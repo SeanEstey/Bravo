@@ -68,7 +68,6 @@ def input():
             fire_dtime
         )
 
-        print "We have a lift of"
         return "Got Data: Messge id is %s" % job_id
 
 #-------------------------------------------------------------------

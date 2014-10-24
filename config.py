@@ -1,6 +1,5 @@
 import os
 
-
 # TODO: Create a mongodb settings collection and webpage to manage these values
 
 FROM_NUMBER= '+17804138846'

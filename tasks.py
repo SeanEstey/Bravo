@@ -12,16 +12,20 @@ import json
 
 celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
 logger = get_task_logger(__name__)
-handler = logging.FileHandler('log.log')
-handler.setLevel(logging.INFO)
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
+setLogger(logger, logging.INFO, 'log.log')
 
+#-------------------------------------------------------------------
 @celery.task
-def test(job_id):
-    #test.get_logger(logfile='tasks.log')
-    #print 'test'
-    logger.info('Starting job %s' % job_id)
+def monitor_bulk_call(job_id):
+    logger.log('Monitoring job %s' % job_id)
+    '''
+    Monitor calls via mongoDB:
+    Loop through all records with job_id
+        Redial busy numbers/no answers (up to MaxAttempts), 
+        Check if job is complete
+            If complete, email report to emptiestowinn@wsaf.ca
+    Sleep(5 minutes)
+    '''
 
 #-------------------------------------------------------------------
 @celery.task
@@ -53,11 +57,13 @@ def fire_bulk_call(job_id):
         'machine_detection_url': URL+'/call/machine',
         'name': row[0],
         'date': row[1],
-        'ring_url' : COUNTER_URL
+        #'ring_url' : COUNTER_URL
       }
 
-      #logger.info('%s Firing call' % row[2])
       resp = server.make_call(params)
+      status = resp[0]
+      logger.info('%s %s (%s)', row[2], resp[1]['message'], status)
+
       call = {
           '_id': resp[1]['request_uuid'],
           'job_id': job_id,

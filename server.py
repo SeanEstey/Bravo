@@ -92,7 +92,7 @@ def content():
     date_str = dt.strftime('%A, %B %d')
     speak = 'Hi, this is a friendly reminder from the Winny Fred stewart association that your next empties to winn pickup date is ' + date_str + '. please have your empties out by 8am. to repeat this message press 1.'
   
-    logger.info('%s Answered.' % call['to'])
+    logger.debug('%s Answered.' % call['to'])
    
     response = plivoxml.Response()
     response.addWait(length=1)
@@ -107,6 +107,11 @@ def content():
 @app.route('/call/hangup',methods=['POST','GET'])
 def process_hangup():
   try:
+    call_status = request.form.get('CallStatus')
+    to = request.form.get('To')
+    cause = request.form.get('HangupCause')
+
+    logger.info('%s %s (%s)', to, call_status, cause)
     logger.debug('Call hungup %s' % request.values.items())
 
     request_uuid = request.form.get('RequestUUID')
@@ -115,7 +120,11 @@ def process_hangup():
     db = client['wsf']
     db['calls'].update(
         {'_id':request_uuid}, 
-        {'$set': {'status':'hungup'}}
+        {'$set': {
+            'status': call_status,
+            'code': cause
+            }
+        }
     )
 
     response = plivoxml.Response()

@@ -11,9 +11,11 @@ import time
 import tasks
 import urllib2
 import csv
+import logging
 
-client = pymongo.MongoClient('localhost',27017)
-db = client['wsf']
+logger = logging.getLogger(__name__)
+setLogger(logger, logging.INFO, 'log.log')
+
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 
@@ -34,30 +36,25 @@ def push_data(verify_phone, message, audio_url, audio_order, csv_url, fire_dtime
     }
 
     job_id = db['call_jobs'].insert(record)
-
-    print "Request %s processed for %s." % (job_id, fire_dtime)
     return job_id
 
 #-------------------------------------------------------------------
 @app.route('/')
 def index():
+    logger.info('test init')
     return render_template('user_input.html')
 
 #-------------------------------------------------------------------
 @app.route('/input', methods=['POST'])
 def input():
     if request.method == 'POST':
-
         date_string = request.form['date']+' '+request.form['time']
-
         fire_dtime = parse(date_string)
 
         if request.form['order'] == 'after':
             order = False
         else:
             order = True
-
-        print "Pushing request!", request.form
 
         job_id = push_data(
             request.form['verify_phone'],
@@ -68,13 +65,14 @@ def input():
             fire_dtime
         )
 
+        logger.info('Job %s added to DB' % job_id)
         return "Got Data: Messge id is %s" % job_id
 
 #-------------------------------------------------------------------
 @app.route('/call/answer',methods=['POST','GET'])
 def content():
   try:
-    print "Call answered %s" % request.values.items()
+    logger.debug('Call answered %s' % request.values.items())
 
     request_uuid = request.form.get('RequestUUID')
     call_uuid = request.form.get('CallUUID')
@@ -93,6 +91,8 @@ def content():
     dt = parse(call['event_date'])
     date_str = dt.strftime('%A, %B %d')
     speak = 'Hi, this is a friendly reminder from the Winny Fred stewart association that your next empties to winn pickup date is ' + date_str + '. please have your empties out by 8am. to repeat this message press 1.'
+  
+    logger.info('%s Answered.' % call['to'])
    
     response = plivoxml.Response()
     response.addWait(length=1)
@@ -100,14 +100,14 @@ def content():
     return Response(str(response), mimetype='text/xml')
   
   except Exception, e:
-    print str(e)
-    return "ERROR %s" % str(e)
+    logger.error('%s answered. Failed to update DB or deliver message' % call['to'], exc_info=True)
+    return str(e)
 
 #-------------------------------------------------------------------
 @app.route('/call/hangup',methods=['POST','GET'])
 def process_hangup():
   try:
-    print "Call hungup %s" % request.values.items()
+    logger.debug('Call hungup %s' % request.values.items())
 
     request_uuid = request.form.get('RequestUUID')
     
@@ -122,22 +122,18 @@ def process_hangup():
     return Response(str(response), mimetype='text/xml')
   
   except Exception, e:
-    print str(e)
-    return "ERROR %s" % str(e)
+    logger.error('%s Failed to process hangup' % request.form.get('To'), exc_info=True)
+    return str(e)
 
 #-------------------------------------------------------------------
 @app.route('/call/machine',methods=['POST','GET'])
 def process_machine():
   try:
-    
-    # This is an asynchronous notice. Re-route the call to
-    # leave a voicemail.
-
-    print "Machine detected %s" % request.values.items()
-
     to = request.form.get('To', None)
     request_uuid = request.form.get('RequestUUID')
     call_uuid = request.form.get('CallUUID')
+
+    logger.debug('Machine detected. Transferring to voicemail. %s' % request.values.items())
 
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
@@ -153,22 +149,20 @@ def process_machine():
         'aleg_url' : URL+'/call/voicemail',
         'aleg_method': 'POST',
     }
-    print 'params for transfer: ' + str(params)
     resp  = server.transfer_call(params)
-    print 'result of transfer: ' + str(resp)
 
     # response = plivoxml.Response()
     return Response(str(resp), mimetype='text/xml')
   
   except Exception, e:
-    print str(e)
-    return "ERROR %s" % str(e)
+    logger.error('%s Failed to process machine detection' % request.form.get('To'), exc_info=True)
+    return str(e)
 
 #-------------------------------------------------------------------
 @app.route('/call/voicemail',methods=['POST','GET'])
 def process_voicemail():
   try:
-    print "Leaving voicemail %s" % request.values.items()
+    logger.debug('Call routed to leave voicemail. %s' % request.values.items())
 
     request_uuid = request.form.get('RequestUUID')
     
@@ -186,14 +180,16 @@ def process_voicemail():
     date_str = dt.strftime('%A, %B %d')
     speak = 'Hi, this is a friendly reminder from the winny fred stewart association that your next empties to winn pickup date is ' + date_str
    
+    logger.info('%s Leaving voicemail.' % call['to'])
+    
     response = plivoxml.Response()
     response.addWait(length=1)
     response.addSpeak(body=speak)
     return Response(str(response), mimetype='text/xml')
   
   except Exception, e:
-    print str(e)
-    return "ERROR %s" % str(e)
+    logger.error('%s Failed to leave voicemail' % request.form.get('To'), exc_info=True)
+    return str(e)
 
 #-------------------------------------------------------------------
 @app.route('/verify/<job_id>', methods = ['POST', 'GET'])

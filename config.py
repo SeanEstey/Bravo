@@ -1,4 +1,5 @@
 import os
+import logging
 
 # TODO: Create a mongodb settings collection and webpage to manage these values
 
@@ -11,3 +12,13 @@ AUTH_ID= 'MAMGFLNDVJMWE0NWU2MW'
 AUTH_TOKEN= 'ZGFjOTEyN2RjMjBlZjU0YzY1NDg2MTc2ZjkyMzA5'
 CPS= 1
 MAX_ATTEMPTS= 3
+
+
+def setLogger(logger, level, log_name):
+    handler = logging.FileHandler(log_name)
+    handler.setLevel(level)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+
+    logger.setLevel(level)
+    logger.addHandler(handler)

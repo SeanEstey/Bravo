@@ -1,3 +1,4 @@
 import tasks
 
-tasks.fire_bulk_call('544984f99b93873e475b2e10')
+job_id = '544984f99b93873e475b2e10'
+tasks.fire_bulk_call.delay(job_id)

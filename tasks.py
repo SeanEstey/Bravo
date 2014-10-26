@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.utils.log import get_task_logger
 from config import *
 from bson.objectid import ObjectId
 import plivo
@@ -10,17 +11,27 @@ import time
 import json
 
 celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
+logger = get_task_logger(__name__)
+handler = logging.FileHandler('log.log')
+handler.setLevel(logging.INFO)
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+
+@celery.task
+def test(job_id):
+    #test.get_logger(logfile='tasks.log')
+    #print 'test'
+    logger.info('Starting job %s' % job_id)
 
 #-------------------------------------------------------------------
 @celery.task
 def fire_bulk_call(job_id):
     # job_id is the default _id field created for each call_jobs document by mongo
-    print "Bulk call entry point for :", job_id
+    logger.info('Starting job %s' % job_id)
 
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
     job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
-    print "Job got:", job
 
     to = ''
     csv_data = urllib2.urlopen(job['csv_url'])
@@ -45,9 +56,8 @@ def fire_bulk_call(job_id):
         'ring_url' : COUNTER_URL
       }
 
-      print 'Making Bulk Call:',params
+      #logger.info('%s Firing call' % row[2])
       resp = server.make_call(params)
-      print resp
       call = {
           '_id': resp[1]['request_uuid'],
           'job_id': job_id,

@@ -1,0 +1,290 @@
+2014-10-25 14:16:55,512 - __main__ - INFO - Test Test
+2014-10-25 14:16:55,747 - __main__ - INFO - Test Test
+2014-10-25 14:17:47,350 - __main__ - INFO - Test Test
+2014-10-25 14:18:26,861 - __main__ - INFO - Test Test
+2014-10-25 14:18:39,401 - __main__ - INFO - Loading user_input.html
+2014-10-25 14:21:00,082 - config - INFO - Loading user_input.html
+2014-10-25 14:21:00,082 - config - INFO - Loading user_input.html
+2014-10-25 14:28:39,550 - __main__ - INFO - Loading user_input.html
+2014-10-25 14:43:50,506 - __main__ - INFO - +17808635715 answered. Message delivered live
+2014-10-25 15:01:30,816 - __main__ - INFO - +17808635715 answered. Message delivered live
+2014-10-25 15:04:12,919 - __main__ - INFO - +17808635715 answered. Message delivered live
+2014-10-25 15:06:57,017 - __main__ - INFO - +17808635715 answered. Message delivered live
+2014-10-25 15:06:59,427 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-25 15:16:06,208 - __main__ - INFO - test init
+2014-10-25 15:17:35,426 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'4f242a52-5c8c-11e4-93b8-97ac087fd512'), ('BillRate', u'0.01200'), ('To', u'17808635715'), ('CallUUID', u'4f242a52-5c8c-11e4-93b8-97ac087fd512'), ('ALegRequestUUID', u'f6307347-8113-4d04-9bd0-991940bfdbbd'), ('RequestUUID', u'f6307347-8113-4d04-9bd0-991940bfdbbd'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-10-25 15:17:35,431 - __main__ - INFO - +17808635715 answered.
+2014-10-25 15:17:37,504 - __main__ - DEBUG - Machine detected. Transferring to voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('IfMachine', u'continue'), ('ALegUUID', u'4f242a52-5c8c-11e4-93b8-97ac087fd512'), ('CallerName', u'Winnifred Stewart Association'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'4f242a52-5c8c-11e4-93b8-97ac087fd512'), ('ALegRequestUUID', u'f6307347-8113-4d04-9bd0-991940bfdbbd'), ('RequestUUID', u'f6307347-8113-4d04-9bd0-991940bfdbbd'), ('CallStatus', u'in-progress'), ('Event', u'MachineDetection')]
+2014-10-25 15:17:37,851 - __main__ - DEBUG - Call routed to leave voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'4f242a52-5c8c-11e4-93b8-97ac087fd512'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'4f242a52-5c8c-11e4-93b8-97ac087fd512'), ('ALegRequestUUID', u'f6307347-8113-4d04-9bd0-991940bfdbbd'), ('RequestUUID', u'f6307347-8113-4d04-9bd0-991940bfdbbd'), ('CallStatus', u'in-progress'), ('Event', u'Transfer')]
+2014-10-25 15:17:37,853 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-25 15:17:50,808 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-25 15:17:35'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'4f242a52-5c8c-11e4-93b8-97ac087fd512'), ('ALegRequestUUID', u'f6307347-8113-4d04-9bd0-991940bfdbbd'), ('EndTime', u'2014-10-25 15:17:48'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'4f242a52-5c8c-11e4-93b8-97ac087fd512'), ('BillDuration', u'60'), ('StartTime', u'2014-10-25 15:17:22'), ('Duration', u'14'), ('RequestUUID', u'f6307347-8113-4d04-9bd0-991940bfdbbd'), ('Event', u'Hangup')]
+2014-10-25 15:28:22,506 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-25 15:28:36,084 - __main__ - INFO - +17808635715 answered.
+2014-10-25 15:28:38,371 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-25 15:57:47,310 - __main__ - INFO - test init
+2014-10-25 16:54:56,120 - __main__ - INFO - test init
+2014-10-25 17:37:55,918 - __main__ - INFO - +17808635715 Answered.
+2014-10-25 17:44:54,887 - __main__ - INFO - +17808635715 Answered.
+2014-10-25 17:52:47,569 - __main__ - INFO - +17808635715 Answered.
+2014-10-25 17:52:49,090 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-25 17:55:06,691 - __main__ - INFO - +17808635715 Answered.
+2014-10-25 17:56:43,477 - __main__ - INFO - +17808635715 Answered.
+2014-10-25 17:56:45,884 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-25 17:59:14,490 - __main__ - INFO - +17808635715 Answered.
+2014-10-25 17:59:16,941 - __main__ - INFO - +17808635715 Leaving voicemail.
+Starting job 544984f99b93873e475b2e10
+2014-10-26 00:51:57,730 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 00:52:00,017 - __main__ - INFO - +17808635715 Leaving voicemail.
+Starting job 544984f99b93873e475b2e10
+2014-10-26 00:54:20,269 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 00:54:22,661 - __main__ - INFO - +17808635715 Leaving voicemail.
+Starting job 544984f99b93873e475b2e10
+2014-10-26 00:55:29,016 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 00:55:31,155 - __main__ - INFO - +17808635715 Leaving voicemail.
+Starting job 544984f99b93873e475b2e10
++17808635715 Firing call
++7805550191 Firing call
+2014-10-26 01:08:14,604 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 01:08:16,702 - __main__ - INFO - +17808635715 Leaving voicemail.
+Starting job 544984f99b93873e475b2e10
+2014-10-26 01:11:10,316 - __main__ - INFO - +17804536707 Answered.
+2014-10-26 01:11:11,945 - __main__ - INFO - +17804536707 Leaving voicemail.
+2014-10-26 01:11:20,597 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 01:11:23,171 - __main__ - INFO - +17808635715 Leaving voicemail.
+Starting job 544984f99b93873e475b2e10
++17808635715 Firing call
++17805550191 Firing call
++17804536707 Firing call
+2014-10-26 01:13:43,024 - __main__ - INFO - +17804536707 Answered.
+2014-10-26 01:13:45,031 - __main__ - INFO - +17804536707 Leaving voicemail.
+2014-10-26 01:13:51,266 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 01:13:53,614 - __main__ - INFO - +17808635715 Leaving voicemail.
+Starting job 544984f99b93873e475b2e10
++17808635715 Firing call
++17805550191 Firing call
++17804536707 Firing call
+2014-10-26 01:18:01,877 - __main__ - INFO - +17804536707 Answered.
+2014-10-26 01:18:03,825 - __main__ - INFO - +17804536707 Leaving voicemail.
+2014-10-26 01:18:09,547 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 01:18:11,846 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 01:18:14,675 - __main__ - INFO - 17804536707 Hungup.
+2014-10-26 01:18:22,626 - __main__ - INFO - 17808635715 Hungup.
+2014-10-26 01:18:51,432 - __main__ - INFO - 17805550191 Hungup.
+Starting job 544984f99b93873e475b2e10
++17808635715 Firing call
++17805550191 Firing call
++17804536707 Firing call
+2014-10-26 01:19:50,894 - __main__ - INFO - +17804536707 Answered.
+2014-10-26 01:19:53,066 - __main__ - INFO - +17804536707 Leaving voicemail.
+2014-10-26 01:19:57,858 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 01:19:59,948 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 01:20:04,276 - __main__ - INFO - 17804536707 Hungup.
+2014-10-26 01:20:04,276 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 01:19:50'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17804536707'), ('CallUUID', u'7757c642-5ce0-11e4-9269-bbb605259247'), ('ALegRequestUUID', u'c2180bd2-d4af-4a67-9ded-871d8fd9566c'), ('EndTime', u'2014-10-26 01:20:03'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'7757c642-5ce0-11e4-9269-bbb605259247'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 01:19:47'), ('Duration', u'14'), ('RequestUUID', u'c2180bd2-d4af-4a67-9ded-871d8fd9566c'), ('Event', u'Hangup')]
+2014-10-26 01:20:10,805 - __main__ - INFO - 17808635715 Hungup.
+2014-10-26 01:20:10,805 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 01:19:57'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'76d455a0-5ce0-11e4-9261-bbb605259247'), ('ALegRequestUUID', u'f1dc4792-4338-454a-8866-e0cca1f01d0b'), ('EndTime', u'2014-10-26 01:20:10'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'76d455a0-5ce0-11e4-9261-bbb605259247'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 01:19:46'), ('Duration', u'13'), ('RequestUUID', u'f1dc4792-4338-454a-8866-e0cca1f01d0b'), ('Event', u'Hangup')]
+2014-10-26 01:20:27,769 - __main__ - INFO - 17805550191 Hungup.
+2014-10-26 01:20:27,769 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550191'), ('AnswerTime', u''), ('CallUUID', u'77257c28-5ce0-11e4-9265-bbb605259247'), ('EndTime', u'2014-10-26 01:20:27'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 01:19:46'), ('Duration', u'0'), ('RequestUUID', u'ebecb4ad-9bbe-4003-aa93-55315eaca5b7'), ('Event', u'Hangup')]
+Starting job 544984f99b93873e475b2e10
+2014-10-26 01:24:26,545 - __main__ - INFO - +17804536707 Answered.
+2014-10-26 01:24:28,232 - __main__ - INFO - +17804536707 Leaving voicemail.
+2014-10-26 01:24:33,958 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 01:24:36,250 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 01:24:39,035 - __main__ - INFO - 17804536707 Hungup.
+2014-10-26 01:24:39,036 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 01:24:26'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17804536707'), ('CallUUID', u'1b793e40-5ce1-11e4-91b5-d5d5cc6dbb5b'), ('ALegRequestUUID', u'44ebccfb-ab7e-4b2f-a1fb-2944343ed99d'), ('EndTime', u'2014-10-26 01:24:38'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'1b793e40-5ce1-11e4-91b5-d5d5cc6dbb5b'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 01:24:22'), ('Duration', u'13'), ('RequestUUID', u'44ebccfb-ab7e-4b2f-a1fb-2944343ed99d'), ('Event', u'Hangup')]
+2014-10-26 01:24:47,034 - __main__ - INFO - 17808635715 Hungup.
+2014-10-26 01:24:47,034 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 01:24:33'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'1af26f50-5ce1-11e4-91ad-d5d5cc6dbb5b'), ('ALegRequestUUID', u'aa63bed7-f49c-44ff-bb8d-e5e4dabd2fee'), ('EndTime', u'2014-10-26 01:24:46'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'1af26f50-5ce1-11e4-91ad-d5d5cc6dbb5b'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 01:24:21'), ('Duration', u'13'), ('RequestUUID', u'aa63bed7-f49c-44ff-bb8d-e5e4dabd2fee'), ('Event', u'Hangup')]
+2014-10-26 01:25:02,472 - __main__ - INFO - 17805550191 Hungup.
+2014-10-26 01:25:02,472 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550191'), ('AnswerTime', u''), ('CallUUID', u'1b47f65a-5ce1-11e4-91b1-d5d5cc6dbb5b'), ('EndTime', u'2014-10-26 01:25:02'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 01:24:22'), ('Duration', u'0'), ('RequestUUID', u'73fe5506-1d65-436b-8a08-b61ed6c7eacf'), ('Event', u'Hangup')]
+Starting job 544984f99b93873e475b2e10
++17808635715 Firing call
++17805550191 Firing call
++17804536707 Firing call
+2014-10-26 01:26:56,375 - __main__ - INFO - +17804536707 Answered.
+2014-10-26 01:26:58,215 - __main__ - INFO - +17804536707 Leaving voicemail.
+2014-10-26 01:27:04,184 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 01:27:06,446 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 01:27:09,017 - __main__ - INFO - 17804536707 Hungup.
+2014-10-26 01:27:09,018 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 01:26:56'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17804536707'), ('CallUUID', u'750e3cbc-5ce1-11e4-847f-9f812b1edde0'), ('ALegRequestUUID', u'af635c46-dfe6-4cf2-9ed4-931f7f1b34ab'), ('EndTime', u'2014-10-26 01:27:08'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'750e3cbc-5ce1-11e4-847f-9f812b1edde0'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 01:26:52'), ('Duration', u'13'), ('RequestUUID', u'af635c46-dfe6-4cf2-9ed4-931f7f1b34ab'), ('Event', u'Hangup')]
+2014-10-26 01:27:18,817 - __main__ - INFO - 17808635715 Hungup.
+2014-10-26 01:27:18,817 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 01:27:03'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'7498a29a-5ce1-11e4-8477-9f812b1edde0'), ('ALegRequestUUID', u'37f17391-789d-40c2-99ff-57f6a9ab7cfe'), ('EndTime', u'2014-10-26 01:27:16'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'7498a29a-5ce1-11e4-8477-9f812b1edde0'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 01:26:52'), ('Duration', u'13'), ('RequestUUID', u'37f17391-789d-40c2-99ff-57f6a9ab7cfe'), ('Event', u'Hangup')]
+2014-10-26 01:27:31,198 - __main__ - INFO - 17805550191 Hungup.
+2014-10-26 01:27:31,198 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550191'), ('AnswerTime', u''), ('CallUUID', u'74dbc2fa-5ce1-11e4-847b-9f812b1edde0'), ('EndTime', u'2014-10-26 01:27:30'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 01:26:52'), ('Duration', u'0'), ('RequestUUID', u'b39f35c0-52c1-47a2-adeb-24c6e7239aa2'), ('Event', u'Hangup')]
+Starting job 544984f99b93873e475b2e10
++17808635715 Firing call
++17805550191 Firing call
++17804536707 Firing call
+2014-10-26 01:28:56,209 - __main__ - INFO - +17804536707 Answered.
+2014-10-26 01:28:58,147 - __main__ - INFO - +17804536707 Leaving voicemail.
+2014-10-26 01:29:01,482 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 01:29:03,775 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 01:29:09,101 - __main__ - INFO - 17804536707 Hungup.
+2014-10-26 01:29:09,101 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 01:28:55'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17804536707'), ('CallUUID', u'bc62e4f0-5ce1-11e4-85bd-65abb2ef8120'), ('ALegRequestUUID', u'5df5553e-3a54-4062-9f5a-7397e9032e65'), ('EndTime', u'2014-10-26 01:29:08'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'bc62e4f0-5ce1-11e4-85bd-65abb2ef8120'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 01:28:52'), ('Duration', u'13'), ('RequestUUID', u'5df5553e-3a54-4062-9f5a-7397e9032e65'), ('Event', u'Hangup')]
+2014-10-26 01:29:14,706 - __main__ - INFO - 17808635715 Hungup.
+2014-10-26 01:29:14,706 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 01:29:01'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'bbedd0a2-5ce1-11e4-859e-65abb2ef8120'), ('ALegRequestUUID', u'c6657eb0-0857-4df3-aa9b-cfdae3e4b917'), ('EndTime', u'2014-10-26 01:29:14'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'bbedd0a2-5ce1-11e4-859e-65abb2ef8120'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 01:28:51'), ('Duration', u'14'), ('RequestUUID', u'c6657eb0-0857-4df3-aa9b-cfdae3e4b917'), ('Event', u'Hangup')]
+2014-10-26 01:29:32,629 - __main__ - INFO - 17805550191 Hungup.
+2014-10-26 01:29:32,630 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550191'), ('AnswerTime', u''), ('CallUUID', u'bc35b430-5ce1-11e4-85a3-65abb2ef8120'), ('EndTime', u'2014-10-26 01:29:32'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 01:28:52'), ('Duration', u'0'), ('RequestUUID', u'34f7012f-f00c-49d9-9c8e-f4fb2e08a25a'), ('Event', u'Hangup')]
+Starting job 544984f99b93873e475b2e10
++17808635715 Firing call
++17805550191 Firing call
++17804536707 Firing call
+2014-10-26 01:30:24,396 - __main__ - INFO - +17804536707 Answered.
+2014-10-26 01:30:26,239 - __main__ - INFO - +17804536707 Leaving voicemail.
+2014-10-26 01:30:31,773 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 01:30:34,044 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 01:30:37,161 - __main__ - INFO - 17804536707 Hungup.
+2014-10-26 01:30:37,161 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 01:30:24'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17804536707'), ('CallUUID', u'f0d5a0c4-5ce1-11e4-8720-9f812b1edde0'), ('ALegRequestUUID', u'cd4ef0d9-68db-4197-91cc-2d0216f8db77'), ('EndTime', u'2014-10-26 01:30:36'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'f0d5a0c4-5ce1-11e4-8720-9f812b1edde0'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 01:30:20'), ('Duration', u'13'), ('RequestUUID', u'cd4ef0d9-68db-4197-91cc-2d0216f8db77'), ('Event', u'Hangup')]
+2014-10-26 01:30:44,927 - __main__ - INFO - 17808635715 Hungup.
+2014-10-26 01:30:44,928 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 01:30:31'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'f067a3ee-5ce1-11e4-ab86-3d8540fe77ee'), ('ALegRequestUUID', u'11bbe8dc-3caf-4140-8d02-76281a9eb0ca'), ('EndTime', u'2014-10-26 01:30:44'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'f067a3ee-5ce1-11e4-ab86-3d8540fe77ee'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 01:30:19'), ('Duration', u'14'), ('RequestUUID', u'11bbe8dc-3caf-4140-8d02-76281a9eb0ca'), ('Event', u'Hangup')]
+2014-10-26 01:31:00,244 - __main__ - INFO - 17805550191 Hungup.
+2014-10-26 01:31:00,245 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550191'), ('AnswerTime', u''), ('CallUUID', u'f09ca968-5ce1-11e4-ab8e-3d8540fe77ee'), ('EndTime', u'2014-10-26 01:30:59'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 01:30:20'), ('Duration', u'0'), ('RequestUUID', u'd9fa72d2-222f-49a0-987c-c86054b0e09a'), ('Event', u'Hangup')]
+Starting job 544984f99b93873e475b2e10
+Starting job 544984f99b93873e475b2e10
+Starting job 544984f99b93873e475b2e10
++17808635715 Firing call
++17808635715 Firing call
++17808635715 Firing call
+dummy log
+Status: 201
++17805550191 Firing call
+dummy log
+Status: 201
++17805550191 Firing call
+dummy log
+Status: 201
++17805550191 Firing call
+dummy log
+Status: 201
++17804536707 Firing call
+dummy log
+Status: 201
++17804536707 Firing call
+dummy log
+Status: 400
+dummy log
+Status: 400
+dummy log
+Status: 201
++17804536707 Firing call
+dummy log
+Status: 400
+2014-10-26 12:36:32,829 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 12:36:32,999 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 12:36:35,121 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 12:36:35,231 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 12:36:42,428 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 12:36:44,874 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 12:36:45,202 - __main__ - INFO - 17805550191 Hungup.
+2014-10-26 12:36:45,202 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550191'), ('AnswerTime', u''), ('CallUUID', u'000ae8d0-5d3f-11e4-ba76-d5d5cc6dbb5b'), ('EndTime', u'2014-10-26 12:36:44'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 12:36:29'), ('Duration', u'0'), ('RequestUUID', u'8c5a0c24-0fdf-4e00-a150-ba564988adec'), ('Event', u'Hangup')]
+2014-10-26 12:36:46,043 - __main__ - INFO - 17808635715 Hungup.
+2014-10-26 12:36:46,043 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 12:36:32'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'ffe4f832-5d3e-11e4-ba6c-d5d5cc6dbb5b'), ('ALegRequestUUID', u'e3328337-3b6f-4246-a1d6-073a6513d9fe'), ('EndTime', u'2014-10-26 12:36:45'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'ffe4f832-5d3e-11e4-ba6c-d5d5cc6dbb5b'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 12:36:29'), ('Duration', u'13'), ('RequestUUID', u'e3328337-3b6f-4246-a1d6-073a6513d9fe'), ('Event', u'Hangup')]
+2014-10-26 12:36:46,164 - __main__ - INFO - 17808635715 Hungup.
+2014-10-26 12:36:46,164 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 12:36:32'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'ffc42508-5d3e-11e4-ba64-d5d5cc6dbb5b'), ('ALegRequestUUID', u'22cdea6f-723d-455d-8ab5-9396389a3d39'), ('EndTime', u'2014-10-26 12:36:45'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'ffc42508-5d3e-11e4-ba64-d5d5cc6dbb5b'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 12:36:28'), ('Duration', u'13'), ('RequestUUID', u'22cdea6f-723d-455d-8ab5-9396389a3d39'), ('Event', u'Hangup')]
+2014-10-26 12:36:55,699 - __main__ - INFO - 17808635715 Hungup.
+2014-10-26 12:36:55,699 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 12:36:42'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'ffdd6cc0-5d3e-11e4-ba68-d5d5cc6dbb5b'), ('ALegRequestUUID', u'872b9aab-688e-4e7d-8ff2-1c087be4da0f'), ('EndTime', u'2014-10-26 12:36:55'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'ffdd6cc0-5d3e-11e4-ba68-d5d5cc6dbb5b'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 12:36:28'), ('Duration', u'14'), ('RequestUUID', u'872b9aab-688e-4e7d-8ff2-1c087be4da0f'), ('Event', u'Hangup')]
+2014-10-26 12:36:57,177 - __main__ - INFO - 17805550191 Hungup.
+2014-10-26 12:36:57,177 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550191'), ('AnswerTime', u''), ('CallUUID', u'0005206c-5d3f-11e4-ba72-d5d5cc6dbb5b'), ('EndTime', u'2014-10-26 12:36:56'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 12:36:29'), ('Duration', u'0'), ('RequestUUID', u'dfc61189-15d4-4de9-a9f9-fe405c126291'), ('Event', u'Hangup')]
+2014-10-26 12:37:13,966 - __main__ - INFO - 17805550191 Hungup.
+2014-10-26 12:37:13,966 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550191'), ('AnswerTime', u''), ('CallUUID', u'0028c2ba-5d3f-11e4-ba7c-d5d5cc6dbb5b'), ('EndTime', u'2014-10-26 12:37:13'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 12:36:29'), ('Duration', u'0'), ('RequestUUID', u'f1d3dd83-6cbf-4387-9951-4b95e7fa7bdc'), ('Event', u'Hangup')]
+Starting job 544984f99b93873e475b2e10
++17808635715 Firing call
+Status: 201
+Response: {u'message': u'call fired', u'request_uuid': u'd38448f8-fb67-4036-8cb8-ba0746356526', u'api_id': u'7f07c88e-5d43-11e4-b153-22000abcaa64'}
++17805550191 Firing call
+Status: 201
+Response: {u'message': u'call fired', u'request_uuid': u'1798167a-5149-4f89-90a7-fe6a31235968', u'api_id': u'7f4dbae2-5d43-11e4-bd8a-12313f016a39'}
++17804536707 Firing call
+Status: 201
+Response: {u'message': u'call fired', u'request_uuid': u'2d596ba1-c1a8-40ef-ac95-654959560878', u'api_id': u'7f9eb91a-5d43-11e4-8a4a-123140008edf'}
+2014-10-26 13:08:44,778 - __main__ - INFO - +17804536707 Answered.
+2014-10-26 13:08:53,442 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 13:08:55,954 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 13:09:00,766 - __main__ - INFO - 17804536707 Hungup.
+2014-10-26 13:09:00,766 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('HangupCause', u'NORMAL_CLEARING'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'60'), ('BillRate', u'0.01200'), ('To', u'17804536707'), ('AnswerTime', u'2014-10-26 13:08:44'), ('CallUUID', u'7fc07208-5d43-11e4-af95-9f812b1edde0'), ('ALegRequestUUID', u'2d596ba1-c1a8-40ef-ac95-654959560878'), ('EndTime', u'2014-10-26 13:09:00'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'7fc07208-5d43-11e4-af95-9f812b1edde0'), ('StartTime', u'2014-10-26 13:08:41'), ('Duration', u'16'), ('RequestUUID', u'2d596ba1-c1a8-40ef-ac95-654959560878'), ('Event', u'Hangup')]
+2014-10-26 13:09:06,774 - __main__ - INFO - 17808635715 Hungup.
+2014-10-26 13:09:06,774 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 13:08:53'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'7f348554-5d43-11e4-8656-65cb1e998f4b'), ('ALegRequestUUID', u'd38448f8-fb67-4036-8cb8-ba0746356526'), ('EndTime', u'2014-10-26 13:09:06'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'7f348554-5d43-11e4-8656-65cb1e998f4b'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 13:08:40'), ('Duration', u'14'), ('RequestUUID', u'd38448f8-fb67-4036-8cb8-ba0746356526'), ('Event', u'Hangup')]
+2014-10-26 13:09:19,676 - __main__ - INFO - 17805550191 Hungup.
+2014-10-26 13:09:19,676 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550191'), ('AnswerTime', u''), ('CallUUID', u'7f8fb96a-5d43-11e4-af91-9f812b1edde0'), ('EndTime', u'2014-10-26 13:09:19'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 13:08:41'), ('Duration', u'0'), ('RequestUUID', u'1798167a-5149-4f89-90a7-fe6a31235968'), ('Event', u'Hangup')]
+Starting job 544984f99b93873e475b2e10
++17808635715 Firing call
+Status: 201
+Response: {u'message': u'call fired', u'request_uuid': u'a952296c-1ece-47d8-9f56-e2bd235792ff', u'api_id': u'161f2d66-5d44-11e4-a2d1-22000ac5040c'}
++17805550191 Firing call
+Status: 201
+Response: {u'message': u'call fired', u'request_uuid': u'684eafc4-2b83-4fc3-8c5f-c49de08f3e1d', u'api_id': u'164c2bae-5d44-11e4-8a4a-123140008edf'}
++17805550111 Firing call
+Status: 201
+Response: {u'message': u'call fired', u'request_uuid': u'c2ff3f7c-766e-40df-a7ca-9198a0228fbc', u'api_id': u'16932266-5d44-11e4-8a4a-123140008edf'}
+2014-10-26 13:13:06,161 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 13:13:08,595 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 13:13:19,696 - __main__ - INFO - 17808635715 Hungup.
+2014-10-26 13:13:19,697 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 13:13:05'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'164196e4-5d44-11e4-ab52-05cda41a218d'), ('ALegRequestUUID', u'a952296c-1ece-47d8-9f56-e2bd235792ff'), ('EndTime', u'2014-10-26 13:13:19'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'164196e4-5d44-11e4-ab52-05cda41a218d'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 13:12:54'), ('Duration', u'14'), ('RequestUUID', u'a952296c-1ece-47d8-9f56-e2bd235792ff'), ('Event', u'Hangup')]
+2014-10-26 13:13:31,079 - __main__ - INFO - 17805550191 Hungup.
+2014-10-26 13:13:31,079 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550191'), ('AnswerTime', u''), ('CallUUID', u'168567ca-5d44-11e4-b462-d5d5cc6dbb5b'), ('EndTime', u'2014-10-26 13:13:30'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 13:12:54'), ('Duration', u'0'), ('RequestUUID', u'684eafc4-2b83-4fc3-8c5f-c49de08f3e1d'), ('Event', u'Hangup')]
+2014-10-26 13:13:45,367 - __main__ - INFO - 17805550111 Hungup.
+2014-10-26 13:13:45,367 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550111'), ('AnswerTime', u''), ('CallUUID', u'16c8d9d8-5d44-11e4-b46c-d5d5cc6dbb5b'), ('EndTime', u'2014-10-26 13:13:45'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 13:12:54'), ('Duration', u'0'), ('RequestUUID', u'c2ff3f7c-766e-40df-a7ca-9198a0228fbc'), ('Event', u'Hangup')]
+Starting job 544984f99b93873e475b2e10
++17808635715 call fired (201)
++17805550191 call fired (201)
++17805550111 call fired (201)
+2014-10-26 13:23:15,050 - __main__ - INFO - +17808635715 Answered.
+2014-10-26 13:23:17,321 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 13:23:28,190 - __main__ - INFO - 17808635715 Hungup.
+2014-10-26 13:23:28,190 - __main__ - INFO - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-26 13:23:14'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'814ee7f6-5d45-11e4-81a4-97ac087fd512'), ('ALegRequestUUID', u'9bc639ef-247c-4918-8168-f806f326548b'), ('EndTime', u'2014-10-26 13:23:27'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'814ee7f6-5d45-11e4-81a4-97ac087fd512'), ('BillDuration', u'60'), ('StartTime', u'2014-10-26 13:23:03'), ('Duration', u'13'), ('RequestUUID', u'9bc639ef-247c-4918-8168-f806f326548b'), ('Event', u'Hangup')]
+2014-10-26 13:23:41,415 - __main__ - INFO - 17805550191 Hungup.
+2014-10-26 13:23:41,415 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550191'), ('AnswerTime', u''), ('CallUUID', u'819e30d6-5d45-11e4-81b4-97ac087fd512'), ('EndTime', u'2014-10-26 13:23:41'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 13:23:03'), ('Duration', u'0'), ('RequestUUID', u'6d445567-c2d9-4b98-b607-a2bf72ecaeda'), ('Event', u'Hangup')]
+2014-10-26 13:23:42,157 - __main__ - INFO - 17805550111 Hungup.
+2014-10-26 13:23:42,158 - __main__ - INFO - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'NORMAL_TEMPORARY_FAILURE'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.01200'), ('To', u'17805550111'), ('AnswerTime', u''), ('CallUUID', u'81d0fa3e-5d45-11e4-81bc-97ac087fd512'), ('EndTime', u'2014-10-26 13:23:41'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-10-26 13:23:03'), ('Duration', u'0'), ('RequestUUID', u'f1dd793f-a433-44f5-adc7-83d2116a4ffc'), ('Event', u'Hangup')]
+Starting job 544984f99b93873e475b2e10
++17808635715 call fired (201)
++17805550191 call fired (201)
++17805550111 call fired (201)
+2014-10-26 13:31:11,590 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-10-26 13:31:22,379 - __main__ - ERROR - 17808635715 Failed to process hangup
+Traceback (most recent call last):
+  File "server.py", line 112, in process_hangup
+    cause = requet.form.get('HangupCause')
+NameError: global name 'requet' is not defined
+2014-10-26 13:31:35,895 - __main__ - ERROR - 17805550191 Failed to process hangup
+Traceback (most recent call last):
+  File "server.py", line 112, in process_hangup
+    cause = requet.form.get('HangupCause')
+NameError: global name 'requet' is not defined
+2014-10-26 13:31:37,339 - __main__ - ERROR - 17805550111 Failed to process hangup
+Traceback (most recent call last):
+  File "server.py", line 112, in process_hangup
+    cause = requet.form.get('HangupCause')
+NameError: global name 'requet' is not defined
+Starting job 544984f99b93873e475b2e10
++17805550191 call fired (201)
++17805550111 call fired (201)
+2014-10-26 13:32:39,079 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 13:32:39,692 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 13:36:31,939 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-26 13:36:32,488 - tasks - INFO - +17805550191 call fired (201)
+2014-10-26 13:36:33,015 - tasks - INFO - +17805550111 call fired (201)
+2014-10-26 13:37:10,338 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 13:37:11,179 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 13:40:24,303 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-26 13:40:24,902 - tasks - INFO - +17805550191 call fired (201)
+2014-10-26 13:40:25,383 - tasks - INFO - +17805550111 call fired (201)
+2014-10-26 13:41:02,914 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 13:41:04,234 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 13:42:59,293 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-26 13:42:59,994 - tasks - INFO - +17805550191 call fired (201)
+2014-10-26 13:43:00,408 - tasks - INFO - +17805550111 call fired (201)
+2014-10-26 13:43:39,252 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 13:43:39,321 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 13:45:13,502 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-26 13:45:13,824 - tasks - INFO - +17805550191 call fired (201)
+2014-10-26 13:45:14,355 - tasks - INFO - +17805550111 call fired (201)
+2014-10-26 13:45:14,764 - tasks - INFO - +17808093927 call fired (201)
+2014-10-26 13:45:15,672 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-26 13:45:52,222 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 13:45:52,313 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 13:57:58,077 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-26 13:57:58,701 - tasks - INFO - +17805550191 call fired (201)
+2014-10-26 13:57:59,359 - tasks - INFO - +17805550111 call fired (201)
+2014-10-26 13:57:59,665 - tasks - INFO - +17808093927 call fired (201)
+2014-10-26 13:58:00,723 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-26 13:58:36,268 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 13:58:38,302 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)

@@ -9,6 +9,7 @@ import csv
 import logging
 import time
 import json
+import monitor
 
 celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
 logger = get_task_logger(__name__)
@@ -41,38 +42,11 @@ def fire_bulk_call(job_id):
     csv_data = urllib2.urlopen(job['csv_url'])
     reader = csv.reader(csv_data)
     cps = int(job['cps'])
-    server = plivo.RestAPI(job['auth_id'], job['auth_token'])
   
     # CSV format: NAME,PICKUP_DATE,PHONE
     for row in reader:
-      params = { 
-        'from' : FROM_NUMBER,
-        'caller_name': CALLER_ID,
-        'to' : row[2],
-        'answer_url' : URL+'/call/answer',
-        'answer_method': 'POST',
-        'hangup_url': URL+'/call/hangup',
-        'hangup_method': 'POST',
-        'machine_detection': 'true',
-        'machine_detection_url': URL+'/call/machine',
-        'name': row[0],
-        'date': row[1],
-        #'ring_url' : COUNTER_URL
-      }
-
-      resp = server.make_call(params)
-      status = resp[0]
-      logger.info('%s %s (%s)', row[2], resp[1]['message'], status)
-
-      call = {
-          '_id': resp[1]['request_uuid'],
-          'job_id': job_id,
-          'to': params['to'],
-          'status': resp[1]['message'],
-          'name': params['name'],
-          'event_date': params['date']
-      }
-      db['calls'].insert(call)
+      response = monitor.dial(row[2])
+      monitor.call_to_db(response, job_id, csv_row=row)
 
 #-------------------------------------------------------------------
 @celery.task

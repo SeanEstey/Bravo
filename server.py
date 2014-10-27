@@ -80,14 +80,14 @@ def content():
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
     db['calls'].update(
-        {'_id':request_uuid}, 
+        {'request_id':request_uuid}, 
         {'$set':{
             'status': 'answered',
             'message': 'delivered', 
             'call_uuid': call_uuid
             }}
     )
-    call = db['calls'].find_one({'_id':request_uuid})
+    call = db['calls'].find_one({'request_id':request_uuid})
     dt = parse(call['event_date'])
     date_str = dt.strftime('%A, %B %d')
     speak = 'Hi, this is a friendly reminder from the Winny Fred stewart association that your next empties to winn pickup date is ' + date_str + '. please have your empties out by 8am. to repeat this message press 1.'
@@ -110,16 +110,15 @@ def process_hangup():
     call_status = request.form.get('CallStatus')
     to = request.form.get('To')
     cause = request.form.get('HangupCause')
-
+    request_uuid = request.form.get('RequestUUID')
+    
     logger.info('%s %s (%s)', to, call_status, cause)
     logger.debug('Call hungup %s' % request.values.items())
-
-    request_uuid = request.form.get('RequestUUID')
     
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
     db['calls'].update(
-        {'_id':request_uuid}, 
+        {'request_id':request_uuid}, 
         {'$set': {
             'status': call_status,
             'code': cause
@@ -147,7 +146,7 @@ def process_machine():
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
     db['calls'].update(
-        {'_id':request_uuid}, 
+        {'request_id':request_uuid}, 
         {'$set': {'status':'machine'}}
     )
     
@@ -178,13 +177,13 @@ def process_voicemail():
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
     db['calls'].update(
-        {'_id':request_uuid}, 
+        {'request_id':request_uuid}, 
         {'$set': {
             'status':'voicemail',
             'message': 'left voicemail'
             }}
     )
-    call = db['calls'].find_one({'_id':request_uuid})
+    call = db['calls'].find_one({'request_id':request_uuid})
     dt = parse(call['event_date'])
     date_str = dt.strftime('%A, %B %d')
     speak = 'Hi, this is a friendly reminder from the winny fred stewart association that your next empties to winn pickup date is ' + date_str

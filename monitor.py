@@ -102,20 +102,19 @@ def send_email_report(job_id):
     import smtplib
     from email.mime.text import MIMEText
 
-    textfile = 'email_file.txt'
-    # Open a plain text file for reading.  For this example, assume that
-    # the text file contains only ASCII characters.
-    fp = open(textfile, 'rb')
-    # Create a text/plain message
-    msg = MIMEText(fp.read())
-    fp.close()
+    client = pymongo.MongoClient('localhost',27017)
+    db = client['wsf']
+    calls = list(db['calls'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))
+    calls_str = json.dumps(calls, sort_keys=True, indent=4, separators=(',',': ' ))
+    
+    msg = MIMEText(calls_str)
 
     username = 'winnstew'
     password = 'batman()'
     me = 'winnstew@gmail.com'
     you = 'estese@gmail.com'
 
-    msg['Subject'] = 'The contents of %s' % textfile
+    msg['Subject'] = 'Job Summary %s' % job_id
     msg['From'] = me
     msg['To'] = you
 

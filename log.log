@@ -347,3 +347,23 @@ Starting job 544984f99b93873e475b2e10
 2014-10-26 19:01:38,570 - monitor - INFO - Monitoring job 544984f99b93873e475b2e10
 2014-10-26 19:02:01,141 - monitor - INFO - Monitoring job 544984f99b93873e475b2e10
 2014-10-26 19:02:01,144 - monitor - INFO - job 544984f99b93873e475b2e10 complete
+2014-10-26 23:19:37,332 - monitor - INFO - Monitoring job 544984f99b93873e475b2e10
+2014-10-26 23:20:16,391 - monitor - INFO - Sending report
+2014-10-26 23:22:48,418 - monitor - INFO - Sending report
+2014-10-26 23:23:41,330 - monitor - INFO - Sending report
+2014-10-26 23:24:31,711 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-26 23:24:32,205 - monitor - INFO - +17805550191 call fired (201)
+2014-10-26 23:24:32,837 - monitor - INFO - +17805550111 call fired (201)
+2014-10-26 23:24:33,136 - monitor - INFO - +17808093927 call fired (201)
+2014-10-26 23:24:34,411 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-26 23:25:12,719 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 23:25:25,922 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-26 23:25:54,966 - monitor - INFO - Sending report
+2014-10-26 23:26:39,366 - monitor - INFO - Sending report
+2014-10-26 23:33:25,233 - monitor - INFO - Sending report
+2014-10-26 23:39:04,263 - monitor - INFO - Sending report
+2014-10-26 23:43:36,994 - monitor - INFO - Sending report
+2014-10-26 23:44:13,991 - monitor - INFO - Sending report
+2014-10-26 23:46:54,735 - monitor - INFO - Sending report
+2014-10-26 23:48:09,622 - monitor - INFO - Sending report
+2014-10-26 23:50:10,917 - monitor - INFO - Sending report

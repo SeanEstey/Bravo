@@ -13,7 +13,7 @@ import bravo
 
 celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
 logger = get_task_logger(__name__)
-setLogger(logger, logging.INFO, 'log.log')
+setLogger(logger, logging.DEBUG, 'log.log')
 
 #-------------------------------------------------------------------
 @celery.task
@@ -59,24 +59,32 @@ def fire_job(job_id):
     job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
 
     to = ''
+    # CSV format: NAME,PICKUP_DATE,PHONE
     csv_data = urllib2.urlopen(job['csv_url'])
     reader = csv.reader(csv_data)
     cps = int(job['cps'])
   
-    # CSV format: NAME,PICKUP_DATE,PHONE
+    # Dial the calls
     for row in reader:
       response = bravo.dial(row[2])
+      
+      code = str(response[0])
+      # Endpoint probably overloaded
+      if code == '400':
+          print 'taking a break...'
+          time.sleep(10)
       bravo.call_to_db(response, job_id, csv_row=row)
+      time.sleep(1)
 
 #-------------------------------------------------------------------
 @celery.task
-def validate_message(id):
+def validate_job(job_id):
     '''fire the validation and thus fire the calls'''
-    print "Validating: ", id
+    print "Validating: ", job_id
 
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
-    data = db['calls'].find_one({'request_id':id})
+    data = db['calls'].find_one({'request_id':job_id})
 
     print "Got data:", data['from_number']
 
@@ -84,7 +92,7 @@ def validate_message(id):
         'from' : FROM_NUMBER,
         'caller_name': CALLER_ID,
         'to'   : data['from_number'],
-        'answer_url' : URL+'/verify/'+id
+        'answer_url' : URL+'/verify/'+job_id
     }
 
     print "Params are: ", params

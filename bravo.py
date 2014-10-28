@@ -9,7 +9,7 @@ import time
 import json
 
 logger = logging.getLogger(__name__)
-setLogger(logger, logging.INFO, 'log.log')
+setLogger(logger, logging.DEBUG, 'log.log')
 
 #-------------------------------------------------------------------
 def dial(to):
@@ -22,6 +22,8 @@ def dial(to):
         'answer_method': 'POST',
         'hangup_url': URL+'/call/hangup',
         'hangup_method': 'POST',
+        'fallback_url': URL+'/call/fallback',
+        'fallback_method': 'POST',
         'machine_detection': 'true',
         'machine_detection_url': URL+'/call/machine'
     }
@@ -31,8 +33,11 @@ def dial(to):
     code = str(response[0])
     if code != '400':
         logger.info('%s %s (%s)', to, response[1]['message'], response[0])
+    else:
+        logger.info('%s: 400 error' % to)
 
     return response
+
   except Exception, e:
     logger.error('%s Call failed to dial (%a)',to, code, exc_info=True)
     return str(e)

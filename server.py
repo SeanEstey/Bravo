@@ -14,7 +14,7 @@ import csv
 import logging
 
 logger = logging.getLogger(__name__)
-setLogger(logger, logging.INFO, 'log.log')
+setLogger(logger, logging.DEBUG, 'log.log')
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -90,7 +90,11 @@ def content():
     call = db['calls'].find_one({'request_id':request_uuid})
     dt = parse(call['event_date'])
     date_str = dt.strftime('%A, %B %d')
-    speak = 'Hi, this is a friendly reminder from the Winny Fred stewart association that your next empties to winn pickup date is ' + date_str + '. please have your empties out by 8am. to repeat this message press 1.'
+    speak = ('Hi, this is a friendly reminder from the Winny Fred ' +
+      'stewart association that your next empties to winn pickup date ' +
+      'is ' + date_str + '. please have your empties out by 8am. ' +
+      'To repeat this message press 1.'
+    )
   
     logger.debug('%s Answered.' % call['to'])
    
@@ -131,6 +135,19 @@ def process_hangup():
   
   except Exception, e:
     logger.error('%s Failed to process hangup' % request.form.get('To'), exc_info=True)
+    return str(e)
+
+#-------------------------------------------------------------------
+@app.route('/call/fallback',methods=['POST','GET'])
+def process_fallback():
+  try:
+    post_data = str(request.form.values())
+    print post_data
+    logger.info('call fallback data: %s' % post_data)
+    response = plivoxml.Response()
+    return Response(str(response), mimetype='text/xml')
+  except Exception, e:
+    logger.error('%s Failed to process fallback' % request.form.get('To'), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------

@@ -9,7 +9,7 @@ import csv
 import logging
 import time
 import json
-import monitor
+import bravo
 
 celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
 logger = get_task_logger(__name__)
@@ -17,20 +17,40 @@ setLogger(logger, logging.INFO, 'log.log')
 
 #-------------------------------------------------------------------
 @celery.task
-def monitor_bulk_call(job_id):
-    logger.log('Monitoring job %s' % job_id)
-    '''
-    Monitor calls via mongoDB:
-    Loop through all records with job_id
-        Redial busy numbers/no answers (up to MaxAttempts), 
-        Check if job is complete
-            If complete, email report to emptiestowinn@wsaf.ca
-    Sleep(5 minutes)
-    '''
+def monitor_job(job_id):
+    logger.info('Monitoring job %s' % job_id)
+
+    time.sleep(60)
+
+    client = pymongo.MongoClient('localhost',27017)
+    db = client['wsf']
+
+    while True:
+        redials = {
+            'job_id':job_id,
+            'attempts': {'$lt': MAX_ATTEMPTS}, 
+            '$or':[
+                {'status':'busy'},
+                {'status':'no answer'}
+            ]
+        }
+        cursor = db['calls'].find(redials)
+        
+        if cursor.count() == 0:
+            logger.info('job %s complete' % job_id)
+            break;
+            #continue;
+        else:
+            for each in cursor:
+                print each['status']
+                # Redial
+                response = bravo.dial(each['to'])
+                bravo.call_to_db(response, job_id, db_record=each)
+        time.sleep(60)
 
 #-------------------------------------------------------------------
 @celery.task
-def fire_bulk_call(job_id):
+def fire_job(job_id):
     # job_id is the default _id field created for each call_jobs document by mongo
     logger.info('Starting job %s' % job_id)
 
@@ -45,8 +65,8 @@ def fire_bulk_call(job_id):
   
     # CSV format: NAME,PICKUP_DATE,PHONE
     for row in reader:
-      response = monitor.dial(row[2])
-      monitor.call_to_db(response, job_id, csv_row=row)
+      response = bravo.dial(row[2])
+      bravo.call_to_db(response, job_id, csv_row=row)
 
 #-------------------------------------------------------------------
 @celery.task

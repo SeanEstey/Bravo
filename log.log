@@ -367,3 +367,275 @@ Starting job 544984f99b93873e475b2e10
 2014-10-26 23:46:54,735 - monitor - INFO - Sending report
 2014-10-26 23:48:09,622 - monitor - INFO - Sending report
 2014-10-26 23:50:10,917 - monitor - INFO - Sending report
+2014-10-27 21:31:03,969 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:32:04,353 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:45:14,276 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 21:45:14,996 - bravo - INFO - +17805550191 call fired (201)
+2014-10-27 21:45:15,367 - bravo - INFO - +17805550111 call fired (201)
+2014-10-27 21:45:15,741 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 21:45:16,155 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 21:45:16,829 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 21:45:17,163 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:45:17,293 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 21:45:17,372 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:45:17,762 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:45:18,495 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:45:42,821 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 21:45:44,933 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 21:54:01,867 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 21:54:02,544 - bravo - INFO - +17805550191 call fired (201)
+2014-10-27 21:54:03,192 - bravo - INFO - +17805550111 call fired (201)
+2014-10-27 21:54:04,033 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 21:54:04,545 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 21:54:04,891 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:54:04,918 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:54:04,922 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 21:54:05,355 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 21:54:05,381 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:54:05,411 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:54:05,890 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:54:06,071 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:54:06,336 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:54:06,393 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 21:54:31,705 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 21:54:31,807 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:01:57,623 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:02:26,876 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:02:43,800 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:03:14,699 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:07:50,360 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:08:13,509 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:10:15,556 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:10:57,326 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:11:35,346 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:12:05,156 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:13:04,157 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:13:39,464 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:14:34,474 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:15:08,831 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:16:01,442 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:16:13,655 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:16:30,720 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:16:30,824 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:18:46,944 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:19:21,703 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:33:25,832 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:33:28,304 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:33:28,399 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:33:28,725 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:33:28,762 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:33:28,985 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:33:28,999 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:33:29,565 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:33:29,711 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:33:56,033 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:33:56,040 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:36:15,279 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:36:18,650 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:36:18,775 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:36:18,803 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:36:18,956 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:36:19,099 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:36:19,310 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:36:19,315 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:36:19,442 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:36:45,252 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:36:57,239 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:48:31,448 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:52:56,488 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:52:57,248 - bravo - INFO - +17805550191 call fired (201)
+2014-10-27 22:52:57,868 - bravo - INFO - +17805550111 call fired (201)
+2014-10-27 22:52:58,192 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 22:52:58,476 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 22:52:58,900 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 22:52:59,275 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:52:59,352 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:52:59,363 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:52:59,368 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 22:52:59,417 - bravo - ERROR - +17808093927 Call failed to dial
+Traceback (most recent call last):
+  File "/root/bravo/bravo.py", line 33, in dial
+    logger.info('%s %s (%s)', to, response[1]['message'], response[0])
+KeyError: 'message'
+2014-10-27 22:52:59,531 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:52:59,840 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:53:00,000 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:53:00,401 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:53:00,425 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:53:14,832 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:53:21,407 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:53:21,958 - bravo - INFO - +17805550191 call fired (201)
+2014-10-27 22:53:22,461 - bravo - INFO - +17805550111 call fired (201)
+2014-10-27 22:53:22,843 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 22:53:23,321 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 22:53:23,766 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:53:23,804 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:53:23,817 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 22:53:24,330 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 22:53:24,381 - bravo - ERROR - +17808093927 Call failed to dial
+Traceback (most recent call last):
+  File "/root/bravo/bravo.py", line 33, in dial
+    logger.info('%s %s (%s)', to, response[1]['message'], response[0])
+KeyError: 'message'
+2014-10-27 22:53:24,384 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:53:24,455 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:53:24,722 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:53:24,776 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:53:25,405 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:53:25,419 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:53:26,619 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:53:40,137 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:53:51,226 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:55:03,932 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 22:55:04,420 - bravo - INFO - +17805550191 call fired (201)
+2014-10-27 22:55:04,924 - bravo - INFO - +17805550111 call fired (201)
+2014-10-27 22:55:05,440 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 22:55:05,869 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 22:55:06,182 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 22:55:06,250 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:55:06,360 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:55:06,633 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 22:55:06,674 - bravo - ERROR - +17808093927 Call failed to dial
+Traceback (most recent call last):
+  File "/root/bravo/bravo.py", line 33, in dial
+    logger.info('%s %s (%s)', to, response[1]['message'], response[0])
+KeyError: 'message'
+2014-10-27 22:55:06,753 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:55:06,840 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:55:07,123 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:55:07,135 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:55:07,407 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:55:07,505 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 22:55:33,144 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 22:55:33,548 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 23:01:38,903 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 23:01:39,527 - bravo - INFO - +17805550191 call fired (201)
+2014-10-27 23:01:40,002 - bravo - INFO - +17805550111 call fired (201)
+2014-10-27 23:01:40,370 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:01:40,743 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:01:41,095 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:01:41,419 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:01:41,442 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:01:41,498 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:01:41,545 - bravo - ERROR - +17808093927 Call failed to dial
+Traceback (most recent call last):
+  File "/root/bravo/bravo.py", line 33, in dial
+    logger.info('%s %s (%s)', to, response[1]['message'], response[0])
+KeyError: 'message'
+2014-10-27 23:01:41,634 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:01:41,715 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:01:41,917 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:01:41,990 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:01:42,309 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:01:42,370 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:01:56,499 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 23:02:10,831 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 23:02:33,741 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 23:02:34,297 - bravo - INFO - +17805550191 call fired (201)
+2014-10-27 23:02:34,595 - bravo - INFO - +17805550111 call fired (201)
+2014-10-27 23:02:35,005 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:02:35,531 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:02:35,874 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:02:36,014 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:02:36,017 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:02:36,150 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:02:36,197 - bravo - ERROR - +17808093927 Call failed to dial
+Traceback (most recent call last):
+  File "/root/bravo/bravo.py", line 33, in dial
+    logger.info('%s %s (%s)', to, response[1]['message'], response[0])
+KeyError: 'message'
+2014-10-27 23:02:36,413 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:02:36,710 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:02:36,743 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:02:36,855 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:02:37,039 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:02:37,068 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:02:59,716 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 23:03:04,756 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 23:05:39,961 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 23:05:40,423 - bravo - INFO - +17805550191 call fired (201)
+2014-10-27 23:05:40,934 - bravo - INFO - +17805550111 call fired (201)
+2014-10-27 23:05:41,452 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:05:41,820 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:05:42,265 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:05:42,538 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:05:42,542 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:05:42,572 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:05:42,614 - bravo - ERROR - +17808093927 Call failed to dial
+Traceback (most recent call last):
+  File "/root/bravo/bravo.py", line 33, in dial
+    logger.info('%s %s (%s)', to, response[1]['message'], response[0])
+KeyError: 'message'
+2014-10-27 23:05:42,746 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:05:42,819 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:05:43,102 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:05:43,226 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:05:43,474 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:05:43,540 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:06:03,176 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 23:06:03,822 - bravo - INFO - +17805550191 call fired (201)
+2014-10-27 23:06:04,265 - bravo - INFO - +17805550111 call fired (201)
+2014-10-27 23:06:04,592 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:06:05,055 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:06:05,518 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:06:05,556 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:06:05,640 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:06:05,972 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:06:06,000 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:06:06,057 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:06:06,282 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 23:06:06,326 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:06:06,357 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:06:07,438 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:06:09,357 - __main__ - INFO - +17808093927 Leaving voicemail.
+2014-10-27 23:06:10,007 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 23:06:11,687 - __main__ - INFO - +17808093927 Leaving voicemail.
+2014-10-27 23:06:20,347 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:06:20,425 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:06:20,892 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 23:06:22,743 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:06:22,818 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:06:35,954 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 23:09:19,686 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-10-27 23:09:20,211 - bravo - INFO - +17805550191 call fired (201)
+2014-10-27 23:09:20,718 - bravo - INFO - +17805550111 call fired (201)
+2014-10-27 23:09:21,116 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:09:21,512 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:09:21,940 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:09:21,941 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:09:22,042 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:09:22,277 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:09:22,357 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:09:22,447 - __main__ - INFO - 17808093927 busy (USER_BUSY)
+2014-10-27 23:09:23,505 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:09:23,942 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:09:24,385 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:09:24,700 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:09:25,049 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:09:25,411 - __main__ - INFO - +17808093927 Leaving voicemail.
+2014-10-27 23:09:25,482 - bravo - INFO - +17808093927 call fired (201)
+2014-10-27 23:09:25,843 - __main__ - INFO - +17808093927 Leaving voicemail.
+2014-10-27 23:09:26,939 - __main__ - INFO - +17808093927 Leaving voicemail.
+2014-10-27 23:09:27,561 - __main__ - INFO - +17808093927 Leaving voicemail.
+2014-10-27 23:09:28,000 - __main__ - INFO - +17808093927 Leaving voicemail.
+2014-10-27 23:09:28,069 - __main__ - INFO - +17808093927 Leaving voicemail.
+2014-10-27 23:09:28,751 - __main__ - INFO - +17808093927 Leaving voicemail.
+2014-10-27 23:09:28,869 - __main__ - INFO - +17808093927 Leaving voicemail.
+2014-10-27 23:09:36,419 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:36,519 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:36,612 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:36,730 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:37,889 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:37,918 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:38,343 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:38,635 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:38,832 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:38,893 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:39,117 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:39,175 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:39,534 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:39,633 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:39,704 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:39,808 - __main__ - INFO - 17808093927 completed (NORMAL_CLEARING)
+2014-10-27 23:09:48,996 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE)
+2014-10-27 23:09:49,438 - __main__ - INFO - 17805550191 failed (NORMAL_TEMPORARY_FAILURE)

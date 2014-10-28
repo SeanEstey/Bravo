@@ -13,6 +13,7 @@ setLogger(logger, logging.INFO, 'log.log')
 
 #-------------------------------------------------------------------
 def dial(to):
+  try:
     params = { 
         'from' : FROM_NUMBER,
         'caller_name': CALLER_ID,
@@ -27,28 +28,40 @@ def dial(to):
 
     server = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
     response = server.make_call(params)
-    logger.info('%s %s (%s)', to, response[1]['message'], response[0])
+    code = str(response[0])
+    if code != '400':
+        logger.info('%s %s (%s)', to, response[1]['message'], response[0])
+
     return response
+  except Exception, e:
+    logger.error('%s Call failed to dial (%a)',to, code, exc_info=True)
+    return str(e)
 
 #-------------------------------------------------------------------
 def call_to_db(response, job_id, csv_row=None, db_record=None):
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
-    
+   
+    response_code = str(response[0])
+     
     # First call. Create new record.
     if csv_row is not None: 
         name = csv_row[0]
         date = csv_row[1]
         to = csv_row[2]
         call = {
-          'request_id': response[1]['request_uuid'],
           'job_id': job_id,
           'to': to,
-          'status': response[1]['message'],
           'name': name,
           'event_date': date,
           'attempts': 1
         }
+        
+        if response_code != '400':
+            call['request_id'] = response[1]['request_uuid']
+            call['status'] = response[1]['message']
+            call['code'] = response_code
+        
         db['calls'].insert(call)
     # Redial. Update record.
     elif db_record is not None:
@@ -62,38 +75,6 @@ def call_to_db(response, job_id, csv_row=None, db_record=None):
                 }
             }
         )   
-
-#-------------------------------------------------------------------
-def monitor_bulk_call(job_id):
-    logger.info('Monitoring job %s' % job_id)
-
-    time.sleep(60)
-
-    client = pymongo.MongoClient('localhost',27017)
-    db = client['wsf']
-
-    while True:
-        redials = {
-            'job_id':job_id,
-            'attempts': {'$lt': MAX_ATTEMPTS}, 
-            '$or':[
-                {'status':'busy'},
-                {'status':'no answer'}
-            ]
-        }
-        cursor = db['calls'].find(redials)
-        
-        if cursor.count() == 0:
-            logger.info('job %s complete' % job_id)
-            break;
-            #continue;
-        else:
-            for each in cursor:
-                print each['status']
-                # Redial
-                response = dial(each['to'])
-                call_to_db(response, job_id, db_record=each)
-        time.sleep(60)
 
 #-------------------------------------------------------------------
 def send_email_report(job_id):

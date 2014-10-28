@@ -20,7 +20,7 @@ setLogger(logger, logging.INFO, 'log.log')
 def monitor_job(job_id):
     logger.info('Monitoring job %s' % job_id)
 
-    time.sleep(60)
+    #time.sleep(60)
 
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']

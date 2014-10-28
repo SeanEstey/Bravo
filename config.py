@@ -13,7 +13,7 @@ AUTH_TOKEN= 'ZGFjOTEyN2RjMjBlZjU0YzY1NDg2MTc2ZjkyMzA5'
 CPS= 1
 MAX_ATTEMPTS= 3
 EMAIL_USER = 'winnstew'
-EMAIL_PW = 'batman();
+EMAIL_PW = 'batman()'
 
 
 def setLogger(logger, level, log_name):

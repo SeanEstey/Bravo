@@ -1,13 +1,16 @@
 body {
-    background: #fdf6e3;
     /*background-image : url("logo.png");
     background-repeat: no-repeat;
     background-position: bottom right;*/
     height: 100%;
-    font-family: 'Port Lligat Sans', sans-serif;
-    color: #cb4b16;
+    font-family: verdana;
+    color: black;
     font-size: 16px;
+}
 
+form {
+  margin: 0 auto;
+  width: 300px;
 }
 
 .box {
@@ -16,7 +19,8 @@ body {
     width: 450px;
     padding: 2em;
     z-index: 20;
-    margin-left: 25em;
+    margin-left: auto;
+    margin-right: auto;
     margin-top: 1em;
 
     border: 1px solid #cccccc;
@@ -24,14 +28,13 @@ body {
     -webkit-border-radius: 7px;
     border-radius: 7px;
 
-    /* Border Shadow */
+    /* Border Shadow 
     -moz-box-shadow: 2px 2px 2px #cccccc;
     -webkit-box-shadow: 2px 2px 2px #cccccc;
-    box-shadow: 2px 2px 2px #cccccc;
+    box-shadow: 2px 2px 2px #cccccc;*/
 }
 
 .input{
-    font-family: 'Inconsolata', sans-serif;
     font-size: 15px;
     padding: 5px;
     border: 1px solid #b9bdc1;
@@ -41,15 +44,19 @@ body {
 
 .h1 {
     font-size: 20px;
-    font-family: 'Kavoon', cursive;
+    font-family: verdana;
     text-align: center;
-    color: #cb4b16;
 }
 
 div.footer {
     position : absolute;
     bottom : 0;
     right: 10px;
+}
+
+div.header {
+  margin: 0 auto;
+  width: 300px;
 }
 
 div.navigator {

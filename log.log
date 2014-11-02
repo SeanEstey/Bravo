@@ -757,3 +757,27 @@ KeyError: 'message'
 2014-10-28 16:53:58,893 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-10-28 16:53:45'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17805555559'), ('CallUUID', u'1f67981a-5ef5-11e4-92ed-dfe70fdb257c'), ('ALegRequestUUID', u'b242cfad-58ad-4c1b-bbb6-41eb21f3669b'), ('EndTime', u'2014-10-28 16:53:58'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'1f67981a-5ef5-11e4-92ed-dfe70fdb257c'), ('BillDuration', u'60'), ('StartTime', u'2014-10-28 16:52:41'), ('Duration', u'13'), ('RequestUUID', u'b242cfad-58ad-4c1b-bbb6-41eb21f3669b'), ('Event', u'Hangup')]
 2014-10-28 16:54:05,656 - __main__ - INFO - 17805555558 completed (NORMAL_CLEARING)
 2014-10-28 16:54:05,656 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.01200'), ('HangupCause', u'NORMAL_CLEARING'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'60'), ('BillRate', u'0.01200'), ('To', u'17805555558'), ('AnswerTime', u'2014-10-28 16:53:49'), ('CallUUID', u'1f188144-5ef5-11e4-92c7-dfe70fdb257c'), ('ALegRequestUUID', u'5bd2aa9e-fbb1-4a6f-82a0-e1365c7c0d4f'), ('EndTime', u'2014-10-28 16:54:05'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'1f188144-5ef5-11e4-92c7-dfe70fdb257c'), ('StartTime', u'2014-10-28 16:52:40'), ('Duration', u'16'), ('RequestUUID', u'5bd2aa9e-fbb1-4a6f-82a0-e1365c7c0d4f'), ('Event', u'Hangup')]
+2014-11-02 15:32:51,010 - __main__ - INFO - test init
+2014-11-02 15:37:48,228 - __main__ - INFO - test init
+2014-11-02 15:38:35,913 - __main__ - INFO - test init
+2014-11-02 15:39:21,922 - __main__ - INFO - test init
+2014-11-02 15:42:19,176 - __main__ - INFO - test init
+2014-11-02 15:42:44,029 - __main__ - INFO - test init
+2014-11-02 15:42:55,834 - __main__ - INFO - test init
+2014-11-02 15:46:22,604 - __main__ - INFO - test init
+2014-11-02 15:46:59,959 - __main__ - INFO - test init
+2014-11-02 15:47:14,109 - __main__ - INFO - test init
+2014-11-02 15:48:07,656 - __main__ - INFO - test init
+2014-11-02 15:48:56,267 - __main__ - INFO - test init
+2014-11-02 15:49:20,981 - __main__ - INFO - test init
+2014-11-02 15:49:37,653 - __main__ - INFO - test init
+2014-11-02 15:52:22,432 - __main__ - INFO - test init
+2014-11-02 15:54:50,277 - __main__ - INFO - test init
+2014-11-02 15:55:16,855 - __main__ - INFO - test init
+2014-11-02 15:56:30,251 - __main__ - INFO - test init
+2014-11-02 15:57:06,665 - __main__ - INFO - test init
+2014-11-02 15:57:55,639 - __main__ - INFO - test init
+2014-11-02 15:58:47,690 - __main__ - INFO - test init
+2014-11-02 15:59:03,933 - __main__ - INFO - test init
+2014-11-02 15:59:11,998 - __main__ - INFO - test init
+2014-11-02 16:00:05,694 - __main__ - INFO - test init

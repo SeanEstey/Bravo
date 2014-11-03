@@ -72,25 +72,64 @@ def call_to_db(response, job_id, csv_row=None, db_record=None):
     call['request_id'] = response[1]['request_uuid']
     call['status'] = response[1]['message']
     call['code'] = response_code
-    call['attempts'] = '0';
+    call['attempts'] = 0;
     db['calls'].insert(call)
   elif db_record is not None:
     logger.info('redialing')
     # Redial. Update record.
     attempts = int(db_record['attempts'])
     
-    #if response[1]['message'] != 'failed':
-    #  attempts += 1
-    logger.info('redialing')
+    if response[1]['message'] != 'failed':
+      attempts += 1
+    
     db['calls'].update(
       {'_id': db_record['_id']}, 
       {'$set': {
         'request_id': response[1]['request_uuid'],
         'status': response[1]['message'],
-        'attempts': str(attempts)
+        'attempts': attempts
         }
       }
     ) 
+
+#-------------------------------------------------------------------
+def create_job_summary(job_id):
+  logger.info('Creating job summary for %s' % job_id)
+
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
+  calls = list(db['calls'].find({'job_id':job_id},{'_id':0}))
+
+  job = {
+    'summary': {
+      'busy': 0,
+      'no_answer': 0,
+      'delivered': 0,
+      'machine' : 0,
+      'failed' : 0
+    }
+  }
+
+  for call in calls:
+    if call['status'] == 'completed':
+      if call['message'] == 'left voicemail':
+        job['summary']['machine'] += 1
+      elif call['message'] == 'delivered':
+        job['summary']['delivered'] += 1
+    elif call['status'] == 'busy':
+      job['summary']['busy'] += 1
+    elif call['status'] == 'failed':
+      job['summary']['failed'] += 1
+
+  #logger.info('Summary for job %s:\ndelivered: %s\nmachine: %s\nbusy: %s\nfailed: %s', job_id, str(delivered), str(machine), str(busy), str(failed))
+
+  db['call_jobs'].update(
+    {'_id': ObjectId(job_id)}, 
+    {'$set': job}
+  )
+
+  logger.info('done')
+
 
 #-------------------------------------------------------------------
 def send_email_report(job_id):
@@ -101,10 +140,14 @@ def send_email_report(job_id):
 
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
+    job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
+    
+
     calls = list(db['calls'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))
     calls_str = json.dumps(calls, sort_keys=True, indent=4, separators=(',',': ' ))
+    sum_str = json.dumps(job['summary'])
     
-    msg = MIMEText(calls_str)
+    msg = MIMEText(sum_str + '\n\n' + calls_str)
 
     username = 'winnstew'
     password = 'batman()'

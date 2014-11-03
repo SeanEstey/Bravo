@@ -131,15 +131,13 @@ def process_hangup():
 
     if call_status != 'failed':
       attempts += 1
-      logger.info('incrementing attempts. call_status=%s' % call_status)
-    logger.info('attempts for %s: %s', to, str(attempts)) 
 
     db['calls'].update(
         {'request_id':request_uuid}, 
         {'$set': {
             'status': call_status,
             'code': cause,
-            'attempts': str(attempts)
+            'attempts': attempts
             }
         }
     )

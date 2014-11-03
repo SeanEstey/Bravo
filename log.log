@@ -1,0 +1,210 @@
+test test test
+more tests
+2014-11-02 21:26:21,124 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-11-02 21:26:21,673 - bravo - INFO - +17805550191 call fired (201)
+2014-11-02 21:26:23,163 - bravo - INFO - +17805550111 call fired (201)
+2014-11-02 21:26:24,620 - bravo - INFO - +17808093927 call fired (201)
+2014-11-02 21:26:25,664 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-11-02 21:26:25,666 - __main__ - ERROR - 17808093927 Failed to process hangup
+Traceback (most recent call last):
+  File "server.py", line 130, in process_hangup
+    attempts = int(call['attempts'])
+TypeError: 'NoneType' object has no attribute '__getitem__'
+2014-11-02 21:26:25,689 - __main__ - INFO - 17808093927 busy (USER_BUSY) /call/hangup
+2014-11-02 21:26:25,691 - __main__ - INFO - incrementing attempts. call_status=busy
+2014-11-02 21:26:25,691 - __main__ - INFO - attempts for 17808093927: 1
+2014-11-02 21:26:26,096 - bravo - INFO - +17805555554 call fired (201)
+2014-11-02 21:26:27,463 - bravo - INFO - +17805555553 call fired (201)
+2014-11-02 21:26:28,802 - bravo - INFO - +17805555552 call fired (201)
+2014-11-02 21:26:30,113 - bravo - INFO - +17805555551 call fired (201)
+2014-11-02 21:26:31,585 - bravo - INFO - +17805555550 call fired (201)
+2014-11-02 21:26:32,356 - __main__ - INFO - 17805550191 failed (NO_ROUTE_DESTINATION) /call/hangup
+2014-11-02 21:26:32,357 - __main__ - INFO - attempts for 17805550191: 0
+2014-11-02 21:26:32,954 - __main__ - INFO - 17805550111 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 21:26:32,956 - __main__ - INFO - attempts for 17805550111: 0
+2014-11-02 21:26:33,058 - bravo - INFO - +17805555555 call fired (201)
+2014-11-02 21:26:34,535 - bravo - INFO - +17805555556 call fired (201)
+2014-11-02 21:26:35,812 - bravo - INFO - +17805555557 call fired (201)
+2014-11-02 21:26:36,949 - __main__ - INFO - 17805555554 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 21:26:36,951 - __main__ - INFO - attempts for 17805555554: 0
+2014-11-02 21:26:37,248 - bravo - INFO - +17805555558 call fired (201)
+2014-11-02 21:26:38,549 - bravo - INFO - +17805555559 call fired (201)
+2014-11-02 21:26:42,616 - __main__ - INFO - 17805555550 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 21:26:42,619 - __main__ - INFO - attempts for 17805555550: 0
+2014-11-02 21:26:42,622 - __main__ - INFO - 17805555555 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 21:26:42,623 - __main__ - INFO - attempts for 17805555555: 0
+2014-11-02 21:26:46,026 - __main__ - INFO - 17805555556 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 21:26:46,028 - __main__ - INFO - attempts for 17805555556: 0
+2014-11-02 21:26:49,385 - __main__ - INFO - 17805555559 failed (NO_ROUTE_DESTINATION) /call/hangup
+2014-11-02 21:26:49,387 - __main__ - INFO - attempts for 17805555559: 0
+2014-11-02 21:26:49,614 - __main__ - INFO - 17805555552 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 21:26:49,615 - __main__ - INFO - attempts for 17805555552: 0
+2014-11-02 21:27:00,176 - __main__ - INFO - 17805555551 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 21:27:00,178 - __main__ - INFO - attempts for 17805555551: 0
+2014-11-02 21:27:06,887 - __main__ - INFO - 17805555558 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 21:27:06,889 - __main__ - INFO - attempts for 17805555558: 0
+2014-11-02 21:27:33,135 - __main__ - INFO - 17805555553 completed (NORMAL_CLEARING) /call/hangup
+2014-11-02 21:27:33,138 - __main__ - INFO - incrementing attempts. call_status=completed
+2014-11-02 21:27:33,138 - __main__ - INFO - attempts for 17805555553: 1
+2014-11-02 21:27:39,790 - __main__ - INFO - 17805555557 completed (NORMAL_CLEARING) /call/hangup
+2014-11-02 21:27:39,792 - __main__ - INFO - incrementing attempts. call_status=completed
+2014-11-02 21:27:39,793 - __main__ - INFO - attempts for 17805555557: 1
+2014-11-02 22:40:31,451 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-11-02 22:40:32,248 - bravo - INFO - +17805550191 call fired (201)
+2014-11-02 22:40:33,782 - bravo - INFO - +17805550111 call fired (201)
+2014-11-02 22:40:35,212 - bravo - INFO - +17808093927 call fired (201)
+2014-11-02 22:40:35,955 - __main__ - INFO - 17808093927 busy (USER_BUSY) /call/hangup
+2014-11-02 22:40:36,051 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-11-02 22:40:36,053 - __main__ - ERROR - 17808093927 Failed to process hangup
+Traceback (most recent call last):
+  File "server.py", line 130, in process_hangup
+    attempts = int(call['attempts'])
+TypeError: 'NoneType' object has no attribute '__getitem__'
+2014-11-02 22:40:36,622 - bravo - INFO - +17805555554 call fired (201)
+2014-11-02 22:40:37,955 - bravo - INFO - +17805555553 call fired (201)
+2014-11-02 22:40:39,234 - bravo - INFO - +17805555552 call fired (201)
+2014-11-02 22:40:40,613 - bravo - INFO - +17805555551 call fired (201)
+2014-11-02 22:40:42,056 - bravo - INFO - +17805555550 call fired (201)
+2014-11-02 22:40:43,265 - __main__ - INFO - 17805550191 failed (NO_ROUTE_DESTINATION) /call/hangup
+2014-11-02 22:40:43,588 - bravo - INFO - +17805555555 call fired (201)
+2014-11-02 22:40:44,918 - bravo - INFO - +17805555556 call fired (201)
+2014-11-02 22:40:46,856 - bravo - INFO - +17805555557 call fired (201)
+2014-11-02 22:40:48,316 - bravo - INFO - +17805555558 call fired (201)
+2014-11-02 22:40:48,562 - __main__ - INFO - 17805555554 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:40:49,689 - bravo - INFO - +17805555559 call fired (201)
+2014-11-02 22:40:51,484 - __main__ - INFO - 17805555552 failed (NO_ROUTE_DESTINATION) /call/hangup
+2014-11-02 22:40:53,759 - __main__ - INFO - 17805550111 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:40:54,876 - __main__ - INFO - 17805555555 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:40:57,453 - __main__ - INFO - 17805555557 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:40:59,829 - __main__ - INFO - 17805555558 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:41:00,070 - __main__ - INFO - 17805555559 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:41:00,575 - __main__ - INFO - 17805555551 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:41:05,961 - __main__ - INFO - 17805555556 failed (NO_ROUTE_DESTINATION) /call/hangup
+2014-11-02 22:41:33,484 - __main__ - INFO - +17805555550 Leaving voicemail.
+2014-11-02 22:41:44,324 - __main__ - INFO - 17805555550 completed (NORMAL_CLEARING) /call/hangup
+2014-11-02 22:41:48,741 - __main__ - INFO - +17805555553 Leaving voicemail.
+2014-11-02 22:41:59,767 - __main__ - INFO - 17805555553 completed (NORMAL_CLEARING) /call/hangup
+2014-11-02 22:51:38,388 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-11-02 22:51:38,940 - bravo - INFO - +17805550191 call fired (201)
+2014-11-02 22:51:40,511 - bravo - INFO - +17805550111 call fired (201)
+2014-11-02 22:51:41,825 - bravo - INFO - +17808093927 call fired (201)
+2014-11-02 22:51:42,718 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-11-02 22:51:42,722 - __main__ - ERROR - 17808093927 Failed to process hangup
+Traceback (most recent call last):
+  File "server.py", line 130, in process_hangup
+    attempts = int(call['attempts'])
+TypeError: 'NoneType' object has no attribute '__getitem__'
+2014-11-02 22:51:42,863 - __main__ - INFO - 17808093927 busy (USER_BUSY) /call/hangup
+2014-11-02 22:51:43,261 - bravo - INFO - +17805555554 call fired (201)
+2014-11-02 22:51:44,775 - bravo - INFO - +17805555553 call fired (201)
+2014-11-02 22:51:46,098 - bravo - INFO - +17805555552 call fired (201)
+2014-11-02 22:51:47,562 - bravo - INFO - +17805555551 call fired (201)
+2014-11-02 22:51:48,907 - bravo - INFO - +17805555550 call fired (201)
+2014-11-02 22:51:50,266 - bravo - INFO - +17805555555 call fired (201)
+2014-11-02 22:51:51,850 - bravo - INFO - +17805555556 call fired (201)
+2014-11-02 22:51:53,300 - bravo - INFO - +17805555557 call fired (201)
+2014-11-02 22:51:54,445 - __main__ - INFO - 17805555554 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:51:54,747 - bravo - INFO - +17805555558 call fired (201)
+2014-11-02 22:51:56,184 - bravo - INFO - +17805555559 call fired (201)
+2014-11-02 22:51:57,540 - __main__ - INFO - 17805555550 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:51:57,628 - __main__ - INFO - 17805555551 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:51:59,458 - __main__ - INFO - 17805550191 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:52:00,037 - __main__ - INFO - 17805550111 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:52:00,563 - __main__ - INFO - 17805555555 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:52:04,619 - __main__ - INFO - 17805555552 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:52:05,227 - __main__ - INFO - 17805555557 failed (NO_ROUTE_DESTINATION) /call/hangup
+2014-11-02 22:52:05,315 - __main__ - INFO - 17805555558 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:52:06,153 - __main__ - INFO - 17805555559 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:52:15,600 - __main__ - INFO - 17805555553 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:52:43,759 - __main__ - INFO - +17805555556 Leaving voicemail.
+2014-11-02 22:52:54,611 - __main__ - INFO - 17805555556 completed (NORMAL_CLEARING) /call/hangup
+2014-11-02 22:57:06,939 - tasks - INFO - Starting job 544984f99b93873e475b2e10
+2014-11-02 22:57:07,477 - bravo - INFO - +17805550191 call fired (201)
+2014-11-02 22:57:09,001 - bravo - INFO - +17805550111 call fired (201)
+2014-11-02 22:57:10,363 - bravo - INFO - +17808093927 call fired (201)
+2014-11-02 22:57:11,418 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-11-02 22:57:11,420 - __main__ - ERROR - 17808093927 Failed to process hangup
+Traceback (most recent call last):
+  File "server.py", line 130, in process_hangup
+    attempts = int(call['attempts'])
+TypeError: 'NoneType' object has no attribute '__getitem__'
+2014-11-02 22:57:11,537 - __main__ - INFO - 17808093927 busy (USER_BUSY) /call/hangup
+2014-11-02 22:57:11,897 - bravo - INFO - +17805555554 call fired (201)
+2014-11-02 22:57:13,417 - bravo - INFO - +17805555553 call fired (201)
+2014-11-02 22:57:14,786 - bravo - INFO - +17805555552 call fired (201)
+2014-11-02 22:57:16,364 - bravo - INFO - +17805555551 call fired (201)
+2014-11-02 22:57:17,804 - bravo - INFO - +17805555550 call fired (201)
+2014-11-02 22:57:19,152 - bravo - INFO - +17805555555 call fired (201)
+2014-11-02 22:57:20,202 - __main__ - INFO - 17805550191 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:57:20,613 - bravo - INFO - +17805555556 call fired (201)
+2014-11-02 22:57:20,941 - __main__ - INFO - 17805550111 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:57:22,096 - bravo - INFO - +17805555557 call fired (201)
+2014-11-02 22:57:23,711 - bravo - INFO - +17805555558 call fired (201)
+2014-11-02 22:57:25,194 - __main__ - INFO - 17805555551 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:57:25,196 - bravo - INFO - +17805555559 call fired (201)
+2014-11-02 22:57:27,825 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-11-02 22:57:27,826 - __main__ - ERROR - 17808093927 Failed to process hangup
+Traceback (most recent call last):
+  File "server.py", line 130, in process_hangup
+    attempts = int(call['attempts'])
+TypeError: 'NoneType' object has no attribute '__getitem__'
+2014-11-02 22:57:27,906 - __main__ - INFO - 17808093927 busy (USER_BUSY) /call/hangup
+2014-11-02 22:57:29,737 - __main__ - INFO - 17805555555 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:57:33,735 - __main__ - INFO - 17805555557 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:57:34,119 - __main__ - INFO - 17805555552 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:57:36,335 - __main__ - INFO - 17805555559 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:58:01,579 - __main__ - INFO - 17805555558 failed (UNALLOCATED_NUMBER) /call/hangup
+2014-11-02 22:58:01,740 - __main__ - INFO - +17805555554 Leaving voicemail.
+2014-11-02 22:58:12,747 - __main__ - INFO - 17805555554 completed (NORMAL_CLEARING) /call/hangup
+2014-11-02 22:58:19,975 - __main__ - INFO - +17805555556 Leaving voicemail.
+2014-11-02 22:58:20,942 - __main__ - INFO - 17805555550 completed (NORMAL_CLEARING) /call/hangup
+2014-11-02 22:58:31,384 - __main__ - INFO - 17805555553 completed (NORMAL_CLEARING) /call/hangup
+2014-11-02 22:58:32,073 - __main__ - INFO - 17805555556 completed (NORMAL_CLEARING) /call/hangup
+2014-11-02 23:23:38,913 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
+2014-11-02 23:23:38,918 - bravo - INFO - Summary for job 544984f99b93873e475b2e10:
+delivered: 2
+machine: 2
+busy: 1
+failed: 8
+2014-11-02 23:32:58,662 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
+2014-11-02 23:32:58,666 - bravo - INFO - Summary for job 544984f99b93873e475b2e10:
+delivered: 2
+machine: 2
+busy: 1
+failed: 8
+2014-11-02 23:33:29,855 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
+2014-11-02 23:33:29,857 - bravo - INFO - Summary for job 544984f99b93873e475b2e10:
+delivered: 2
+machine: 2
+busy: 1
+failed: 8
+2014-11-02 23:33:48,344 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
+2014-11-02 23:33:48,347 - bravo - INFO - Summary for job 544984f99b93873e475b2e10:
+delivered: 2
+machine: 2
+busy: 1
+failed: 8
+2014-11-02 23:34:32,339 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
+2014-11-02 23:34:32,341 - bravo - INFO - Summary for job 544984f99b93873e475b2e10:
+delivered: 2
+machine: 2
+busy: 1
+failed: 8
+2014-11-02 23:34:43,226 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
+2014-11-02 23:34:43,229 - bravo - INFO - Summary for job 544984f99b93873e475b2e10:
+delivered: 2
+machine: 2
+busy: 1
+failed: 8
+2014-11-02 23:35:41,607 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
+2014-11-02 23:35:41,610 - bravo - INFO - Summary for job 544984f99b93873e475b2e10:
+delivered: 2
+machine: 2
+busy: 1
+failed: 8
+2014-11-02 23:36:49,821 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
+2014-11-02 23:36:49,826 - bravo - INFO - done
+2014-11-02 23:41:43,622 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
+2014-11-02 23:42:35,277 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
+2014-11-02 23:42:56,584 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
+2014-11-02 23:42:56,587 - bravo - INFO - done

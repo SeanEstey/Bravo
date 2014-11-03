@@ -18,35 +18,41 @@ setLogger(logger, logging.INFO, 'log.log')
 #-------------------------------------------------------------------
 @celery.task
 def monitor_job(job_id):
-    logger.info('Monitoring job %s' % job_id)
+  logger.info('Monitoring job %s' % job_id)
 
-    #time.sleep(60)
+  time.sleep(10)
 
-    client = pymongo.MongoClient('localhost',27017)
-    db = client['wsf']
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
 
-    while True:
-        redials = {
-            'job_id':job_id,
-            'attempts': {'$lt': MAX_ATTEMPTS}, 
-            '$or':[
-                {'status':'busy'},
-                {'status':'no answer'}
-            ]
-        }
-        cursor = db['calls'].find(redials)
-        
-        if cursor.count() == 0:
-            logger.info('job %s complete' % job_id)
-            break;
-            #continue;
-        else:
-            for each in cursor:
-                print each['status']
-                # Redial
-                response = bravo.dial(each['to'])
-                bravo.call_to_db(response, job_id, db_record=each)
-        time.sleep(60)
+  while True:
+    redials = {
+      'job_id':job_id,
+      'attempts': {'$lt': MAX_ATTEMPTS}, 
+      '$or':[
+        {'status':'busy'},
+        {'status':'no answer'}
+      ]
+    }
+    cursor = db['calls'].find(redials)
+    
+    if cursor.count() == 0:
+      query_in_progress = {
+        'job_id': job_id,
+        'status': 'call fired'
+      }
+      in_progress = db['calls'].find(query_in_progress)
+
+      if in_progress.count() == 0:
+        logger.info('job %s complete' % job_id)
+        break;
+    else:
+      for each in cursor:
+        print each['status']
+        # Redial
+        response = bravo.dial(each['to'])
+        bravo.call_to_db(response, job_id, db_record=each)
+    time.sleep(60)
 
 #-------------------------------------------------------------------
 @celery.task

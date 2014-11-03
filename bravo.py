@@ -9,7 +9,7 @@ import time
 import json
 
 logger = logging.getLogger(__name__)
-setLogger(logger, logging.DEBUG, 'log.log')
+setLogger(logger, logging.INFO, 'log.log')
 
 #-------------------------------------------------------------------
 def dial(to):
@@ -36,6 +36,14 @@ def dial(to):
     else:
         logger.info('%s: 400 error' % to)
 
+    if type(response) == tuple:
+      if 'request_uuid' not in response[1]:
+        response[1]['request_uuid'] = 'n/a'
+      
+      if 'message' not in response[1]:
+        response[1]['message'] = 'failed'
+
+    # return tuple with format: (RESPONSE_CODE, {'request_uuid':ID, 'message':MSG})
     return response
 
   except Exception, e:
@@ -44,42 +52,45 @@ def dial(to):
 
 #-------------------------------------------------------------------
 def call_to_db(response, job_id, csv_row=None, db_record=None):
-    client = pymongo.MongoClient('localhost',27017)
-    db = client['wsf']
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
+ 
+  response_code = str(response[0])
    
-    response_code = str(response[0])
-     
-    # First call. Create new record.
-    if csv_row is not None: 
-        name = csv_row[0]
-        date = csv_row[1]
-        to = csv_row[2]
-        call = {
-          'job_id': job_id,
-          'to': to,
-          'name': name,
-          'event_date': date,
-          'attempts': 1
-        }
-        
-        if response_code != '400':
-            call['request_id'] = response[1]['request_uuid']
-            call['status'] = response[1]['message']
-            call['code'] = response_code
-        
-        db['calls'].insert(call)
+  # First call. Create new record.
+  if csv_row is not None: 
+    name = csv_row[0]
+    date = csv_row[1]
+    to = csv_row[2]
+    call = {
+      'job_id': job_id,
+      'to': to,
+      'name': name,
+      'event_date': date,
+    }
+      
+    call['request_id'] = response[1]['request_uuid']
+    call['status'] = response[1]['message']
+    call['code'] = response_code
+    call['attempts'] = '0';
+    db['calls'].insert(call)
+  elif db_record is not None:
+    logger.info('redialing')
     # Redial. Update record.
-    elif db_record is not None:
-        attempts = db_record['attempts'] + 1
-        db['calls'].update(
-            {'_id': db_record['_id']}, 
-            {'$set': {
-                'request_id': response[1]['request_uuid'],
-                'status': response[1]['message'],
-                'attempts': attempts
-                }
-            }
-        )   
+    attempts = int(db_record['attempts'])
+    
+    #if response[1]['message'] != 'failed':
+    #  attempts += 1
+    logger.info('redialing')
+    db['calls'].update(
+      {'_id': db_record['_id']}, 
+      {'$set': {
+        'request_id': response[1]['request_uuid'],
+        'status': response[1]['message'],
+        'attempts': str(attempts)
+        }
+      }
+    ) 
 
 #-------------------------------------------------------------------
 def send_email_report(job_id):

@@ -14,7 +14,7 @@ import csv
 import logging
 
 logger = logging.getLogger(__name__)
-setLogger(logger, logging.DEBUG, 'log.log')
+setLogger(logger, logging.INFO, 'log.log')
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -74,6 +74,10 @@ def content():
   try:
     logger.debug('Call answered %s' % request.values.items())
 
+    if request.form.get('Direction') == 'inbound':
+      response = plivoxml.Response()
+      return Response(str(response), mimetype='text/xml')
+
     request_uuid = request.form.get('RequestUUID')
     call_uuid = request.form.get('CallUUID')
     
@@ -104,7 +108,7 @@ def content():
     return Response(str(response), mimetype='text/xml')
   
   except Exception, e:
-    logger.error('%s answered. Failed to update DB or deliver message' % call['to'], exc_info=True)
+    logger.error('%s answered. Failed to update DB or deliver message' % request.values.items(), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------
@@ -116,16 +120,26 @@ def process_hangup():
     cause = request.form.get('HangupCause')
     request_uuid = request.form.get('RequestUUID')
     
-    logger.info('%s %s (%s)', to, call_status, cause)
+    logger.info('%s %s (%s) /call/hangup', to, call_status, cause)
     logger.debug('Call hungup %s' % request.values.items())
-    
+
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
+
+    call = db['calls'].find_one({'request_id':request_uuid})
+    attempts = int(call['attempts'])
+
+    if call_status != 'failed':
+      attempts += 1
+      logger.info('incrementing attempts. call_status=%s' % call_status)
+    logger.info('attempts for %s: %s', to, str(attempts)) 
+
     db['calls'].update(
         {'request_id':request_uuid}, 
         {'$set': {
             'status': call_status,
-            'code': cause
+            'code': cause,
+            'attempts': str(attempts)
             }
         }
     )

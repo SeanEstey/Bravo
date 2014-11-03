@@ -13,7 +13,7 @@ import bravo
 
 celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
 logger = get_task_logger(__name__)
-setLogger(logger, logging.DEBUG, 'log.log')
+setLogger(logger, logging.INFO, 'log.log')
 
 #-------------------------------------------------------------------
 @celery.task

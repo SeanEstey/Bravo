@@ -41,8 +41,31 @@ def push_data(verify_phone, message, audio_url, audio_order, csv_url, fire_dtime
 #-------------------------------------------------------------------
 @app.route('/')
 def index():
-    logger.info('test init')
-    return render_template('user_input.html')
+    return render_template('main.html')
+
+
+#-------------------------------------------------------------------
+@app.route('/new')
+def new_job():
+  return render_template('new_job.html')
+
+#-------------------------------------------------------------------
+@app.route('/jobs')
+def show_jobs():
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
+  jobs = db['call_jobs'].find()
+
+  return render_template('show_jobs.html', jobs=jobs)
+
+#-------------------------------------------------------------------
+@app.route('/jobs/<job_id>')
+def show_calls(job_id):
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
+  calls = db['calls'].find({'job_id':job_id})
+
+  return render_template('show_calls.html', calls=calls)
 
 #-------------------------------------------------------------------
 @app.route('/input', methods=['POST'])

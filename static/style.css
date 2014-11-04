@@ -48,6 +48,8 @@ form {
     text-align: center;
 }
 
+
+
 div.footer {
     position : absolute;
     bottom : 0;
@@ -57,6 +59,7 @@ div.footer {
 div.header {
   margin: 0 auto;
   width: 300px;
+  text-align: center;
 }
 
 div.navigator {

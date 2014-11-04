@@ -208,3 +208,14 @@ failed: 8
 2014-11-02 23:42:35,277 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
 2014-11-02 23:42:56,584 - bravo - INFO - Creating job summary for 544984f99b93873e475b2e10
 2014-11-02 23:42:56,587 - bravo - INFO - done
+2014-11-03 00:02:04,094 - __main__ - INFO - test init
+2014-11-03 00:13:05,403 - __main__ - INFO - test init
+2014-11-03 07:24:42,887 - __main__ - INFO - test init
+2014-11-03 07:25:18,298 - __main__ - INFO - test init
+2014-11-03 07:27:31,434 - __main__ - INFO - test init
+2014-11-03 18:30:25,884 - __main__ - INFO - test init
+2014-11-03 18:33:35,039 - __main__ - INFO - test init
+2014-11-03 18:34:36,946 - __main__ - INFO - test init
+2014-11-03 18:54:41,420 - __main__ - INFO - test init
+2014-11-03 18:55:32,233 - __main__ - INFO - test init
+2014-11-03 19:40:43,898 - __main__ - INFO - test init

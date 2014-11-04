@@ -1,0 +1,36 @@
+<!doctype html>
+<title>Reminder Calls</title>
+<head>
+    <link href='http://fonts.googleapis.com/css?family=Port+Lligat+Sans|Kavoon|Inconsolata' rel='stylesheet' type='text/css'>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="header"><img id="buit" src="{{ url_for('static', filename='bravo.png') }}"></div>
+    <br>
+     <div class="h1">View Calls</div>
+    <div class="box">
+      <table width=100%>
+        <tr>
+          <td>Phone</td>
+          <td>Status</td>
+          <td>Message</td>
+          <td>Attempts</td>
+        </tr>
+        {% for call in calls %}
+        <tr>
+          <td>{{ call.to }}</td>
+          <td>{{ call.status }}</td>
+          <td>{{ call.message }}</td>
+          <td>{{ call.attempts }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    <br>
+    <div class='h1'>
+      <a href="{{ url_for('show_jobs') }}">Back</a>
+    </div>
+    <div class="footer"><p>Built by</p><img id="buit" src="{{ url_for('static', filename='logo.png') }}"></p>
+    </div>
+</body>

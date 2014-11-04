@@ -6,9 +6,9 @@
 </head>
 
 <body>
-    <div class="header"><img id="buit" src="{{ url_for('static', filename='logo_emptiestowinn.jpg') }}"></div>
+    <div class="header"><img id="buit" src="{{ url_for('static', filename='bravo.png') }}"></div>
     <br>
-     <div class="h1">Setup Call Reminders</div>
+     <div class="h1">Setup New Job</div>
     <div class="box">
         <form action="{{ url_for('input')}}" method=post>
             Call list URL
@@ -41,6 +41,10 @@
             <br><br>
             <input class="input" type="submit" value="Submit" required ></p>
         </form>
+    </div>
+    <br>
+    <div class='h1'>
+      <a href="{{ url_for('index') }}">Back</a>
     </div>
 
     <div class="footer"><p>Built by</p><img id="buit" src="{{ url_for('static', filename='logo.png') }}"></p>

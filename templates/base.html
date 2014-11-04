@@ -1,0 +1,16 @@
+<html>
+  <head>
+    <link href='http://fonts.googleapis.com/css?family=Port+Lligat+Sans|Kavoon|Inconsolata' rel='stylesheet' type='text/css'>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+    {% if title %}
+    <title>{{ title }} - Bravo</title>
+    {% else %}
+    <title>Bravo</title>
+    {% endif %}
+  </head>
+  <body>
+    <div class="header"><img id="buit" src="{{ url_for('static', filename='bravo.png') }}"></div>
+    <br>
+    {% block content %}{% endblock %}
+  </body>
+</html>

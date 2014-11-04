@@ -1,21 +1,10 @@
-<!doctype html>
-<title>Bravo</title>
-<head>
-    <link href='http://fonts.googleapis.com/css?family=Port+Lligat+Sans|Kavoon|Inconsolata' rel='stylesheet' type='text/css'>
-    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
-</head>
-
-<body>
-    <div class="header"><img id="buit" src="{{ url_for('static', filename='bravo.png') }}"></div>
-    <br>
-     <div class="h1">Welcome</div>
+  {% extends "base.html" %}
+  {% block content %}  
+  <div class="h1">Welcome</div>
     <div class="box">
-      <a href="{{ url_for('new_job') }}">New Job</a>
+      <a href="{{ url_for('new_job') }}">Schedule Job</a>
       <br>
-      <a href="{{ url_for('show_jobs') }}">Show Jobs</a>
+      <a href="{{ url_for('show_jobs') }}">View Jobs</a>
       <br>
     </div>
-
-    <div class="footer"><p>Built by</p><img id="buit" src="{{ url_for('static', filename='logo.png') }}"></p>
-    </div>
-</body>
+  {% endblock %}

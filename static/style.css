@@ -16,8 +16,11 @@ form {
 .box {
     background-color: #eee8d5;
     margin:auto auto;
-    width: 450px;
-    padding: 2em;
+    width: 600px;
+    padding-right: 2em;
+    padding-left: 2em;
+    padding-bottom: 2em;
+    padding-top: 2em;
     z-index: 20;
     margin-left: auto;
     margin-right: auto;

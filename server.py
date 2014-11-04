@@ -65,7 +65,7 @@ def show_calls(job_id):
   db = client['wsf']
   calls = db['calls'].find({'job_id':job_id})
 
-  return render_template('show_calls.html', calls=calls)
+  return render_template('show_calls.html', calls=calls, job_id=job_id)
 
 #-------------------------------------------------------------------
 @app.route('/input', methods=['POST'])

@@ -13,6 +13,22 @@ form {
   width: 300px;
 }
 
+select {
+  font-size: 16px;
+}
+
+option {
+  font-size: 16px;
+}
+
+.opt {
+  font-size: 20px;
+}
+
+optgroup {
+  font-size: 20px;
+}
+
 .box {
     background-color: #eee8d5;
     margin:auto auto;
@@ -50,8 +66,6 @@ form {
     font-family: verdana;
     text-align: center;
 }
-
-
 
 div.footer {
     position : absolute;

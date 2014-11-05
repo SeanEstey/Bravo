@@ -1,13 +1,15 @@
   {% extends "base.html" %}
   {% block content %}  
   <div class="h1">
-    Calls
+    Status: {{ job.status }}
     <br>
-    Job_ID: ({{ job_id }})
+    Scheduled: {{ job.fire_dtime }}
+    <br>
   </div>
   <div class="box">
     <table width=100%>
       <tr>
+        <td>Name</td>
         <td>Phone</td>
         <td>Status</td>
         <td>Message</td>
@@ -15,6 +17,7 @@
       </tr>
       {% for call in calls %}
       <tr>
+        <td>{{ call.name }}</td>
         <td>{{ call.to }}</td>
         <td>{{ call.status }}</td>
         <td>{{ call.message }}</td>

@@ -20,34 +20,66 @@ app = Flask(__name__)
 app.config.from_pyfile('config.py')
 
 #-------------------------------------------------------------------
-def push_data(verify_phone, message, audio_url, audio_order, csv_url, fire_dtime):
-    record = {
-        'auth_id': AUTH_ID,
-        'auth_token': AUTH_TOKEN,
-        'cps': CPS,
-        'max_attempts': MAX_ATTEMPTS,
-        'verify_phone': verify_phone,
-        'message': message,
-        'audio_url': audio_url,
-        'audio_order': audio_order,
-        'csv_url': csv_url,
-        'fire_dtime': fire_dtime,
-        'status': True
-    }
-
-    job_id = db['call_jobs'].insert(record)
-    return job_id
-
-#-------------------------------------------------------------------
 @app.route('/')
 def index():
     return render_template('main.html')
-
 
 #-------------------------------------------------------------------
 @app.route('/new')
 def new_job():
   return render_template('new_job.html')
+
+#-------------------------------------------------------------------
+@app.route('/new/create', methods=['POST'])
+def create_job():
+  if request.method == 'POST':
+    date_string = request.form['date']+' '+request.form['time']
+    fire_dtime = parse(date_string)
+
+    if request.form['order'] == 'after':
+      order = False
+    else:
+      order = True
+
+    record = {
+      'auth_id': AUTH_ID,
+      'auth_token': AUTH_TOKEN,
+      'cps': CPS,
+      'max_attempts': MAX_ATTEMPTS,
+      'verify_phone': request.form['verify_phone'],
+      'message': request.form['message'],
+      'audio_url': request.form['audio'],
+      'audio_order': order,
+      'csv_url': request.form['csv'],
+      'fire_dtime': fire_dtime,
+      'status': 'pending'
+    }
+
+    client = pymongo.MongoClient('localhost',27017)
+    db = client['wsf']
+    job_id = db['call_jobs'].insert(record)
+    job_id = str(job_id)
+    logger.info('Job %s added to DB' % job_id)
+  
+    # CSV format: NAME,PICKUP_DATE,PHONE
+    csv_data = urllib2.urlopen(record['csv_url'])
+    # TODO: ERROR CHECKING
+    reader = csv.reader(csv_data)
+    for row in reader:
+      call = {
+        'job_id': job_id,
+        'name': row[0],
+        'event_date': row[1],
+        'to': row[2],
+        'status': 'not attempted',
+        'attempts': 0
+      }
+      db['calls'].insert(call)
+    logger.info('Calls added to DB for job %s' % job_id)
+
+    jobs = db['call_jobs'].find()
+
+    return render_template('show_jobs.html', jobs=jobs)
 
 #-------------------------------------------------------------------
 @app.route('/jobs')
@@ -64,32 +96,22 @@ def show_calls(job_id):
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
   calls = db['calls'].find({'job_id':job_id})
+  job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
 
-  return render_template('show_calls.html', calls=calls, job_id=job_id)
+  return render_template('show_calls.html', calls=calls, job_id=job_id, job=job)
 
 #-------------------------------------------------------------------
-@app.route('/input', methods=['POST'])
-def input():
-    if request.method == 'POST':
-        date_string = request.form['date']+' '+request.form['time']
-        fire_dtime = parse(date_string)
+@app.route('/cancel/<job_id>')
+def cancel_job(job_id):
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
+  db['call_jobs'].remove({'_id':ObjectId(job_id)})
+  db['calls'].remove({'job_id':job_id})
+  logger.info('Removed db.call_jobs and db.calls for %s' % job_id)
 
-        if request.form['order'] == 'after':
-            order = False
-        else:
-            order = True
+  jobs = db['call_jobs'].find()
 
-        job_id = push_data(
-            request.form['verify_phone'],
-            request.form['message'],
-            request.form['audio'],
-            order, 
-            request.form['csv'],
-            fire_dtime
-        )
-
-        logger.info('Job %s added to DB' % job_id)
-        return "Got Data: Messge id is %s" % job_id
+  return render_template('show_jobs.html', jobs=jobs)
 
 #-------------------------------------------------------------------
 @app.route('/call/answer',methods=['POST','GET'])
@@ -215,7 +237,10 @@ def process_machine():
     return Response(str(resp), mimetype='text/xml')
   
   except Exception, e:
-    logger.error('%s Failed to process machine detection' % request.form.get('To'), exc_info=True)
+    logger.error(
+      '%s Failed to process machine detection' % 
+      request.form.get('To'), exc_info=True
+    )
     return str(e)
 
 #-------------------------------------------------------------------

@@ -219,3 +219,15 @@ failed: 8
 2014-11-03 18:54:41,420 - __main__ - INFO - test init
 2014-11-03 18:55:32,233 - __main__ - INFO - test init
 2014-11-03 19:40:43,898 - __main__ - INFO - test init
+2014-11-04 19:16:48,300 - __main__ - INFO - Job 545988909b938742f5d36421 added to DB
+2014-11-04 19:24:31,717 - __main__ - INFO - Job 54598a5f9b93874386cd1b85 added to DB
+2014-11-04 19:26:06,818 - __main__ - INFO - Job 54598abe9b93874386cd1b93 added to DB
+2014-11-04 19:48:53,617 - __main__ - INFO - Job 545990159b9387456e6e53ab added to DB
+2014-11-04 20:55:12,501 - __main__ - INFO - Job 54599fa09b93874b13ec3bda added to DB
+2014-11-04 20:55:55,378 - __main__ - INFO - Job 54599fcb9b93874b26b4883b added to DB
+2014-11-04 20:56:17,631 - __main__ - INFO - Job 54599fe19b93874b352fba77 added to DB
+2014-11-04 20:56:17,641 - __main__ - INFO - Calls added to DB for job 54599fe19b93874b352fba77
+2014-11-04 21:07:31,029 - __main__ - INFO - Removed db.call_jobs and db.calls for 54598abe9b93874386cd1b93
+2014-11-04 21:08:14,003 - __main__ - INFO - Removed db.call_jobs and db.calls for 545990159b9387456e6e53ab
+2014-11-04 21:08:49,271 - __main__ - INFO - Removed db.call_jobs and db.calls for 54599fa09b93874b13ec3bda
+2014-11-04 21:26:39,053 - __main__ - INFO - Removed db.call_jobs and db.calls for 54599fcb9b93874b26b4883b

@@ -231,3 +231,120 @@ failed: 8
 2014-11-04 21:08:14,003 - __main__ - INFO - Removed db.call_jobs and db.calls for 545990159b9387456e6e53ab
 2014-11-04 21:08:49,271 - __main__ - INFO - Removed db.call_jobs and db.calls for 54599fa09b93874b13ec3bda
 2014-11-04 21:26:39,053 - __main__ - INFO - Removed db.call_jobs and db.calls for 54599fcb9b93874b26b4883b
+2014-11-05 17:22:19,475 - tasks - INFO - Starting job 54599fe19b93874b352fba77
+2014-11-05 17:22:20,231 - bravo - INFO - +17805550191 call fired (201)
+2014-11-05 17:22:21,594 - bravo - INFO - +17805550111 call fired (201)
+2014-11-05 17:22:22,909 - bravo - INFO - +17808093927 call fired (201)
+2014-11-05 17:22:23,798 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-11-05 17:22:23,950 - __main__ - INFO - 17808093927 busy (USER_BUSY) /call/hangup
+2014-11-05 17:22:24,375 - bravo - INFO - +17805555554 call fired (201)
+2014-11-05 17:22:25,825 - bravo - INFO - +17805555553 call fired (201)
+2014-11-05 17:22:27,128 - bravo - INFO - +17805555552 call fired (201)
+2014-11-05 17:22:28,637 - bravo - INFO - +17805555551 call fired (201)
+2014-11-05 17:22:30,119 - bravo - INFO - +17805555550 call fired (201)
+2014-11-05 17:22:31,482 - bravo - INFO - +17805555555 call fired (201)
+2014-11-05 17:22:32,953 - bravo - INFO - +17805555556 call fired (201)
+2014-11-05 17:22:34,333 - bravo - INFO - +17805555557 call fired (201)
+2014-11-05 17:22:35,663 - bravo - INFO - +17805555558 call fired (201)
+2014-11-05 17:22:37,045 - bravo - INFO - +17805555559 call fired (201)
+2014-11-05 17:22:41,530 - __main__ - INFO - +17805555550 Leaving voicemail.
+2014-11-05 17:24:41,668 - tasks - INFO - Starting job 54599fe19b93874b352fba77
+2014-11-05 17:24:42,155 - bravo - INFO - +17805555550 call fired (201)
+2014-11-05 17:24:43,753 - bravo - INFO - +17805550191 call fired (201)
+2014-11-05 17:24:45,046 - bravo - INFO - +17805550111 call fired (201)
+2014-11-05 17:24:46,524 - bravo - INFO - +17808093927 call fired (201)
+2014-11-05 17:24:47,293 - __main__ - INFO - 17808093927 busy (USER_BUSY) /call/hangup
+2014-11-05 17:24:47,302 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-11-05 17:24:47,877 - bravo - INFO - +17805555554 call fired (201)
+2014-11-05 17:24:49,286 - bravo - INFO - +17805555553 call fired (201)
+2014-11-05 17:24:50,783 - bravo - INFO - +17805555552 call fired (201)
+2014-11-05 17:24:52,350 - bravo - INFO - +17805555551 call fired (201)
+2014-11-05 17:24:53,129 - __main__ - INFO - +17805555550 Leaving voicemail.
+2014-11-05 17:24:53,770 - bravo - INFO - +17805555555 call fired (201)
+2014-11-05 17:24:55,741 - bravo - INFO - +17805555556 call fired (201)
+2014-11-05 17:24:57,100 - bravo - INFO - +17805555557 call fired (201)
+2014-11-05 17:24:58,551 - bravo - INFO - +17805555558 call fired (201)
+2014-11-05 17:24:59,978 - bravo - INFO - +17805555559 call fired (201)
+2014-11-05 17:25:01,799 - bravo - INFO - +17808093927 call fired (201)
+2014-11-05 17:25:03,345 - bravo - INFO - +17805550191 call fired (201)
+2014-11-05 17:25:04,610 - bravo - INFO - +17805550111 call fired (201)
+2014-11-05 17:25:05,930 - bravo - INFO - +17805555558 call fired (201)
+2014-11-05 17:25:07,232 - bravo - INFO - +17805555552 call fired (201)
+2014-11-05 17:25:08,722 - bravo - INFO - +17805555559 call fired (201)
+2014-11-05 17:25:10,125 - bravo - INFO - +17805555551 call fired (201)
+2014-11-05 17:25:11,612 - bravo - INFO - +17805555550 call fired (201)
+2014-11-05 17:25:12,964 - bravo - INFO - +17805555555 call fired (201)
+2014-11-05 17:25:14,425 - bravo - INFO - +17805555554 call fired (201)
+2014-11-05 17:25:15,556 - __main__ - INFO - 17805550111 failed (NORMAL_TEMPORARY_FAILURE) /call/hangup
+2014-11-05 17:25:15,757 - bravo - INFO - +17805555553 call fired (201)
+2014-11-05 17:25:16,003 - __main__ - INFO - 17805555550 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:16,014 - __main__ - INFO - 17805555555 failed (NORMAL_TEMPORARY_FAILURE) /call/hangup
+2014-11-05 17:25:16,020 - __main__ - INFO - 17805550191 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:16,453 - __main__ - INFO - +17805555553 Leaving voicemail.
+2014-11-05 17:25:16,455 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-11-05 17:25:16,456 - __main__ - ERROR - 17808093927 Failed to process hangup
+Traceback (most recent call last):
+  File "server.py", line 175, in process_hangup
+    attempts = int(call['attempts'])
+TypeError: 'NoneType' object has no attribute '__getitem__'
+2014-11-05 17:25:16,457 - __main__ - INFO - 17808093927 busy (USER_BUSY) /call/hangup
+2014-11-05 17:25:16,461 - __main__ - INFO - +17805555552 Leaving voicemail.
+2014-11-05 17:25:16,465 - __main__ - INFO - +17805555559 Leaving voicemail.
+2014-11-05 17:25:16,564 - __main__ - INFO - +17805555558 Leaving voicemail.
+2014-11-05 17:25:17,070 - bravo - INFO - +17805555557 call fired (201)
+2014-11-05 17:25:18,390 - bravo - INFO - +17805555556 call fired (201)
+2014-11-05 17:25:23,490 - __main__ - INFO - +17805555550 Leaving voicemail.
+2014-11-05 17:25:24,027 - __main__ - INFO - +17805555551 Leaving voicemail.
+2014-11-05 17:25:27,446 - __main__ - INFO - 17805555559 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:27,453 - __main__ - INFO - 17805555558 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:27,920 - __main__ - INFO - 17805555555 failed (NORMAL_TEMPORARY_FAILURE) /call/hangup
+2014-11-05 17:25:27,942 - __main__ - INFO - 17805555552 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:29,160 - __main__ - INFO - 17805555553 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:32,035 - __main__ - INFO - 17805555556 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:32,059 - __main__ - INFO - 17805555557 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:32,095 - __main__ - INFO - 17805555551 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:32,952 - __main__ - INFO - 17805555554 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:33,578 - __main__ - INFO - 17805550191 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:34,526 - __main__ - INFO - 17805555552 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:34,546 - __main__ - INFO - 17805550111 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:34,604 - __main__ - INFO - 17805555550 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:35,515 - __main__ - INFO - 17805555551 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:37,760 - __main__ - INFO - 17805555554 failed (NORMAL_TEMPORARY_FAILURE) /call/hangup
+2014-11-05 17:25:42,288 - __main__ - INFO - 17805555559 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:42,537 - __main__ - INFO - 17805555553 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:43,782 - __main__ - INFO - 17805555557 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:50,730 - __main__ - INFO - 17805555556 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:25:54,319 - __main__ - INFO - +17805555558 Leaving voicemail.
+2014-11-05 17:26:05,441 - __main__ - INFO - 17805555558 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:32:16,259 - __main__ - INFO - Removed db.call_jobs and db.calls for 54599fe19b93874b352fba77
+2014-11-05 17:32:44,192 - __main__ - INFO - Job 545ac1ac9b93874515a5d70c added to DB
+2014-11-05 17:32:44,207 - __main__ - INFO - Calls added to DB for job 545ac1ac9b93874515a5d70c
+2014-11-05 17:33:39,102 - tasks - INFO - Starting job 545ac1ac9b93874515a5d70c
+2014-11-05 17:33:39,658 - bravo - INFO - +17805555559 call fired (201)
+2014-11-05 17:33:40,968 - bravo - INFO - +17805550191 call fired (201)
+2014-11-05 17:33:42,281 - bravo - INFO - +17805550111 call fired (201)
+2014-11-05 17:33:43,739 - bravo - INFO - +17808093927 call fired (201)
+2014-11-05 17:33:44,815 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-11-05 17:33:44,905 - __main__ - INFO - 17808093927 busy (USER_BUSY) /call/hangup
+2014-11-05 17:33:45,211 - bravo - INFO - +17805555554 call fired (201)
+2014-11-05 17:33:46,588 - bravo - INFO - +17805555553 call fired (201)
+2014-11-05 17:33:48,003 - bravo - INFO - +17805555552 call fired (201)
+2014-11-05 17:33:49,351 - bravo - INFO - +17805555551 call fired (201)
+2014-11-05 17:33:50,506 - __main__ - INFO - +17805555559 Leaving voicemail.
+2014-11-05 17:33:50,710 - bravo - INFO - +17805555550 call fired (201)
+2014-11-05 17:33:52,167 - bravo - INFO - +17805555555 call fired (201)
+2014-11-05 17:33:53,501 - bravo - INFO - +17805555556 call fired (201)
+2014-11-05 17:33:54,836 - bravo - INFO - +17805555557 call fired (201)
+2014-11-05 17:33:56,128 - bravo - INFO - +17805555558 call fired (201)
+2014-11-05 17:34:01,980 - __main__ - INFO - 17805555559 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:34:05,712 - __main__ - INFO - 17805550191 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:34:07,451 - __main__ - INFO - 17805550111 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:34:11,949 - __main__ - INFO - 17805555553 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:34:12,384 - __main__ - INFO - 17805555554 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:34:13,325 - __main__ - INFO - 17805555552 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:34:15,621 - __main__ - INFO - 17805555551 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:34:18,035 - __main__ - INFO - 17805555555 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:34:18,686 - __main__ - INFO - 17805555556 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:34:19,747 - __main__ - INFO - 17805555557 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:34:21,537 - __main__ - INFO - 17805555558 completed (NORMAL_CLEARING) /call/hangup
+2014-11-05 17:34:22,916 - __main__ - INFO - 17805555550 completed (NORMAL_CLEARING) /call/hangup

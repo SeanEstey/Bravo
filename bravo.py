@@ -51,46 +51,26 @@ def dial(to):
     return str(e)
 
 #-------------------------------------------------------------------
-def call_to_db(response, job_id, csv_row=None, db_record=None):
+# Add request_uuid, call_uuid and code to mongo record
+# Update status and attempts
+# response format: (code, {message: val, request_uuid: val})
+def update(call, response):
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
  
-  response_code = str(response[0])
-   
-  # First call. Create new record.
-  if csv_row is not None: 
-    name = csv_row[0]
-    date = csv_row[1]
-    to = csv_row[2]
-    call = {
-      'job_id': job_id,
-      'to': to,
-      'name': name,
-      'event_date': date,
-    }
-      
-    call['request_id'] = response[1]['request_uuid']
-    call['status'] = response[1]['message']
-    call['code'] = response_code
-    call['attempts'] = 0;
-    db['calls'].insert(call)
-  elif db_record is not None:
-    logger.info('redialing')
-    # Redial. Update record.
-    attempts = int(db_record['attempts'])
-    
-    if response[1]['message'] != 'failed':
-      attempts += 1
-    
-    db['calls'].update(
-      {'_id': db_record['_id']}, 
-      {'$set': {
-        'request_id': response[1]['request_uuid'],
-        'status': response[1]['message'],
-        'attempts': attempts
-        }
+  if response[1]['message'] != 'failed':
+    call['attempts'] += 1
+  
+  db['calls'].update(
+    {'_id': call['_id']}, 
+    {'$set': {
+      'code': str(response[0]),
+      'request_id': response[1]['request_uuid'],
+      'status': response[1]['message'],
+      'attempts': call['attempts']
       }
-    ) 
+    }
+  ) 
 
 #-------------------------------------------------------------------
 def create_job_summary(job_id):

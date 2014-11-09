@@ -17,6 +17,8 @@ logger = get_task_logger(__name__)
 setLogger(logger, logging.INFO, 'log.log')
 
 #-------------------------------------------------------------------
+# Checks every 30 seconds for any pending jobs to fire.
+# Dispatches celery worker for each
 def schedule_jobs():
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
@@ -26,15 +28,16 @@ def schedule_jobs():
     
     for job in pending_jobs:
       if datetime.now() > job['fire_dtime']:
+        print 'starting job %s' % str(job['_id'])
         logger.info('Starting job %s' % str(job['_id']))
-        fire_job.delay(str(job['_id']))
-        time.sleep(10)
+        execute_job.delay(str(job['_id']))
+    print 'Scheduler sleeping...'
+    time.sleep(10)
 
 #-------------------------------------------------------------------
 @celery.task
 def monitor_job(job_id):
   logger.info('Monitoring job %s' % job_id)
-  time.sleep(10)
 
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
@@ -60,47 +63,57 @@ def monitor_job(job_id):
 
       if in_progress.count() == 0:
         logger.info('job %s complete' % job_id)
-        db['job_calls'].update(
-          {'job_id': job_id},
+        db['call_jobs'].update(
+          {'_id': ObjectId(job_id)},
           {'$set': {'status': 'complete'}}
         )
+        bravo.send_email_report(job_id)
         break;
     # Redial calls as needed
     else:
       for redial in redials:
         print redial['status']
         response = bravo.dial(redial['to'])
-        bravo.update(call, response)
+        bravo.update(redial, response)
     time.sleep(60)
+
+#-------------------------------------------------------------------
+@celery.task
+def execute_job(job_id):
+  fire_calls(job_id)
+  time.sleep(60)
+  monitor_job(job_id)
 
 #-------------------------------------------------------------------
 # job_id is the default _id field created for each call_jobs document by mongo
 @celery.task
-def fire_job(job_id):
-    logger.info('Starting job %s' % job_id)
+def fire_calls(job_id):
+  logger.info('Firing calls for job %s' % job_id)
 
-    client = pymongo.MongoClient('localhost',27017)
-    db = client['wsf']
-    job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
-    calls = db['calls'].find({'job_id':job_id})
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
+  job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
+  calls = db['calls'].find({'job_id':job_id})
 
-    db['call_jobs'].update(
-      {'_id': job['_id']},
-      {'$set': {'status': 'in_progress'}}
-    )
+  db['call_jobs'].update(
+    {'_id': job['_id']},
+    {'$set': {'status': 'in_progress'}}
+  )
 
-    # Dial the calls
-    for call in calls:
-      response = bravo.dial(call['to'])
-      bravo.update(call, response)
-      
-      code = str(response[0])
-      # Endpoint probably overloaded
-      if code == '400':
-          print 'taking a break...'
-          time.sleep(10)
+  # Dial the calls
+  for call in calls:
+    response = bravo.dial(call['to'])
+    bravo.update(call, response)
+    
+    code = str(response[0])
+    # Endpoint probably overloaded
+    if code == '400':
+        print 'taking a break...'
+        time.sleep(10)
 
-      time.sleep(1)
+    time.sleep(1)
+
+  logger.info('All calls fired for job %s' % job_id)
 
 #-------------------------------------------------------------------
 @celery.task

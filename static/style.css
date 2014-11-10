@@ -22,11 +22,11 @@ option {
 }
 
 .opt {
-  font-size: 20px;
+  font-size: 16px;
 }
 
 optgroup {
-  font-size: 20px;
+  font-size: 16px;
 }
 
 .box {
@@ -58,7 +58,7 @@ optgroup {
     padding: 5px;
     border: 1px solid #b9bdc1;
     width: 300px;
-    color: #797979;
+   /* color: #797979;*/
     }
 
 .h1 {

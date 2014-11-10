@@ -5,10 +5,10 @@
       <form action="{{ url_for('create_job')}}" method=post>
         Template
         <br>
-        <select>
+        <select class='input' id='template-select'>
           <optgroup name='template' required>
-            <option class='opt' value='etw_pickup'>Empties to Winn Pickup</option>
-            <option class='opt' value='etw_dropoff'>Empties to Winn Dropoff</option>
+            <option class='opt' value='etw_reminder'>Empties to Winn Reminder</option>
+            <option class='opt' value='etw_followup'>Empties to Winn Followup</option>
             <option class='opt' value='special_msg'>Special Message</option>
             <option class='opt' value='gg_delivery'>Green Goods Delivery</option>
           </optgroup>
@@ -18,33 +18,44 @@
         <br>
         <input class="input" type="text" name="csv" placeholder='CSV file url' required >
         <br><br>
-        Special message (optional)
-        <textarea class="input" rows="2" cols="50" maxlength="140" name="message" placeholder='message text.' required ></textarea>
-        <br>
-        <select name="order" required >
-            <option value="before">before</option>
-            <option value="after">after</option>
-        </select><br>
-        Recorded message (optional)<br>
-        <input class="input" type="text" name="audio" placeholder='audio file (url)' required >
-        <br>
+        <div id='special_msg_div'>
+          Special message (optional)
+          <textarea class="input" rows="2" cols="50" maxlength="140" name="message" placeholder='message text.' required ></textarea>
+          <br>
+        </div>
+        <div id='order_div'>
+          <select name="order" required >
+              <option value="before">before</option>
+              <option value="after">after</option>
+          </select><br>
+        </div>
+        <div id='recorded_msg_div'>
+          Recorded message (optional)<br>
+          <input class="input" type="text" name="audio" placeholder='audio file (url)' required >
+          <br>
+        </div>
         Call Date
         <br>
-        <input class="input" type="date" name="date" required >
-        <br>
-        Call Time (Mountain Standard Time)
-        <br>
-        <input class="input" type="time" name="time" required >
-        <br>
-        Verification phone 
-        <br>
-        <input class="input" type="text" name="verify_phone" placeholder='Number to call' required >
+        <input class='input' type='text' id='datepicker' placeholder='Browse Calendar...'  name='date' required >
         <br><br>
-        <input class="input" type="submit" value="Submit" required ></p>
+        Call Time 
+        <br>
+        <input class='input' type='time' name="time" required >
+        <br><br>
+        <div id='verify_phone_div'>
+          Verification phone 
+          <br>
+          <input class="input" type="text" name="verify_phone" placeholder='Number to call' required >
+          <br><br>
+        </div>
+        <button class='input' type="button" id="submit_btn" name="submit-btn">Schedule Calls</button>
       </form>
     </div>
     <br>
     <div class='h1'>
       <a href="{{ url_for('index') }}">Back</a>
+    </div>
+    <div id='dialog' title='Whoops!' style='display:none'>
+      <p>Test dialog!</p>
     </div>
   {% endblock %}

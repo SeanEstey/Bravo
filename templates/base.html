@@ -1,6 +1,13 @@
 <html>
   <head>
     <link href='http://fonts.googleapis.com/css?family=Port+Lligat+Sans|Kavoon|Inconsolata' rel='stylesheet' type='text/css'>
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+  <script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+  <script type=text/javascript>
+    var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+  </script> 
+  <script type='text/javascript' src="{{url_for('static', filename='bravo.js')}}"></script>
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
     {% if title %}
     <title>{{ title }} - Bravo</title>

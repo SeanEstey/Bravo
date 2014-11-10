@@ -25,14 +25,22 @@ def schedule_jobs():
 
   while True:
     pending_jobs = db['call_jobs'].find({'status': 'pending'})
-    
+   
+    print str(pending_jobs.count()) + ' pending jobs:'
+    i=1
+
     for job in pending_jobs:
+
       if datetime.now() > job['fire_dtime']:
         print 'starting job %s' % str(job['_id'])
         logger.info('Starting job %s' % str(job['_id']))
         execute_job.delay(str(job['_id']))
-    print 'Scheduler sleeping...'
-    time.sleep(10)
+      else:
+        next_job_delay = job['fire_dtime'] - datetime.now()
+        print str(i) + '): starts in: ' + str(next_job_delay)
+      i+=1
+
+    time.sleep(60)
 
 #-------------------------------------------------------------------
 @celery.task
@@ -67,6 +75,7 @@ def monitor_job(job_id):
           {'_id': ObjectId(job_id)},
           {'$set': {'status': 'complete'}}
         )
+        bravo.create_job_summary(job_id)
         bravo.send_email_report(job_id)
         break;
     # Redial calls as needed

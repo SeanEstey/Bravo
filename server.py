@@ -86,7 +86,7 @@ def create_job():
 def show_jobs():
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
-  jobs = db['call_jobs'].find()
+  jobs = db['call_jobs'].find().sort('fire_dtime',-1)
 
   return render_template('show_jobs.html', jobs=jobs)
 

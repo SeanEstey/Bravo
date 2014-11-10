@@ -531,3 +531,78 @@ TypeError: 'NoneType' object has no attribute '__getitem__'
 2014-11-08 17:58:10,279 - tasks - INFO - job 545ebb959b938731fe928614 complete
 2014-11-08 17:59:00,498 - __main__ - INFO - Removed db.call_jobs and db.calls for 545ac1ac9b93874515a5d70c
 2014-11-08 17:59:12,081 - __main__ - INFO - Removed db.call_jobs and db.calls for 545eb2579b938727e7f36ad4
+2014-11-08 18:52:42,786 - __main__ - INFO - Removed db.call_jobs and db.calls for 545eb2579b938727e7f36ad4
+2014-11-08 19:42:46,904 - __main__ - INFO - Job 545ed4a69b938739a8801448 added to DB
+2014-11-08 19:42:46,915 - __main__ - INFO - Calls added to DB for job 545ed4a69b938739a8801448
+2014-11-08 19:44:05,705 - tasks - INFO - Firing calls for job 545ed4a69b938739a8801448
+2014-11-08 19:44:06,245 - bravo - INFO - +17805550191 call fired (201)
+2014-11-08 19:44:15,109 - __main__ - ERROR - [('Direction', u'outbound'), ('From', u'118889689466'), ('CallerName', u'Empties to Winn'), ('ALegUUID', u'45dec87e-67ba-11e4-9614-05cda41a218d'), ('BillRate', u'0.01200'), ('To', u'17805550191'), ('CallUUID', u'45dec87e-67ba-11e4-9614-05cda41a218d'), ('ALegRequestUUID', u'959b389e-e094-457a-a5e7-1d523f9b08e8'), ('RequestUUID', u'959b389e-e094-457a-a5e7-1d523f9b08e8'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')] answered. Failed to update DB or deliver message
+Traceback (most recent call last):
+  File "server.py", line 140, in content
+    dt = parse(call['event_date'])
+TypeError: 'NoneType' object has no attribute '__getitem__'
+2014-11-08 19:44:15,250 - __main__ - INFO - call fallback data: [u'outbound', u'118889689466', u'Empties to Winn', u'45dec87e-67ba-11e4-9614-05cda41a218d', u'0.01200', u'17805550191', u'45dec87e-67ba-11e4-9614-05cda41a218d', u'959b389e-e094-457a-a5e7-1d523f9b08e8', u'959b389e-e094-457a-a5e7-1d523f9b08e8', u'in-progress', u'StartApp']
+2014-11-08 19:44:15,575 - __main__ - INFO - 17805550191 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:44:15,577 - __main__ - ERROR - 17805550191 Failed to process hangup
+Traceback (most recent call last):
+  File "server.py", line 175, in process_hangup
+    attempts = int(call['attempts'])
+TypeError: 'NoneType' object has no attribute '__getitem__'
+2014-11-08 19:47:29,574 - __main__ - INFO - Removed db.call_jobs and db.calls for 545ed4a69b938739a8801448
+2014-11-08 19:47:57,261 - __main__ - INFO - Job 545ed5dd9b93873a28887a0a added to DB
+2014-11-08 19:47:57,272 - __main__ - INFO - Calls added to DB for job 545ed5dd9b93873a28887a0a
+2014-11-08 19:48:05,324 - tasks - INFO - Firing calls for job 545ed5dd9b93873a28887a0a
+2014-11-08 19:48:05,698 - bravo - INFO - +17805550191 call fired (201)
+2014-11-08 19:48:07,064 - bravo - INFO - +17805550111 call fired (201)
+2014-11-08 19:48:08,384 - bravo - INFO - +17808093927 call fired (201)
+2014-11-08 19:48:09,207 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-11-08 19:48:09,264 - __main__ - INFO - 17808093927 busy (USER_BUSY) /call/hangup
+2014-11-08 19:48:09,720 - bravo - INFO - +17805555554 call fired (201)
+2014-11-08 19:48:11,184 - bravo - INFO - +17805555553 call fired (201)
+2014-11-08 19:48:12,605 - bravo - INFO - +17805555552 call fired (201)
+2014-11-08 19:48:14,064 - bravo - INFO - +17805555551 call fired (201)
+2014-11-08 19:48:15,349 - bravo - INFO - +17805555550 call fired (201)
+2014-11-08 19:48:16,482 - __main__ - INFO - +17805550191 Leaving voicemail.
+2014-11-08 19:48:16,764 - bravo - INFO - +17805555555 call fired (201)
+2014-11-08 19:48:18,256 - bravo - INFO - +17805555556 call fired (201)
+2014-11-08 19:48:19,612 - bravo - INFO - +17805555557 call fired (201)
+2014-11-08 19:48:20,916 - bravo - INFO - +17805555558 call fired (201)
+2014-11-08 19:48:22,413 - bravo - INFO - +17805555559 call fired (201)
+2014-11-08 19:48:23,829 - bravo - INFO - +17808635715 call fired (201)
+2014-11-08 19:48:24,832 - tasks - INFO - All calls fired for job 545ed5dd9b93873a28887a0a
+2014-11-08 19:48:28,455 - __main__ - INFO - 17805550191 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:48:35,022 - __main__ - INFO - 17805555554 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:48:35,526 - __main__ - INFO - 17805555553 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:48:38,733 - __main__ - INFO - 17805550111 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:48:39,354 - __main__ - INFO - 17805555551 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:48:42,807 - __main__ - INFO - 17805555552 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:48:43,004 - __main__ - INFO - 17805555555 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:48:44,252 - __main__ - INFO - 17805555557 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:48:45,167 - __main__ - INFO - 17805555556 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:48:45,578 - __main__ - INFO - 17805555558 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:48:47,362 - __main__ - INFO - 17805555559 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:48:53,839 - __main__ - INFO - 17805555550 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:48:55,688 - __main__ - INFO - +17808635715 Leaving voicemail.
+2014-11-08 19:49:06,649 - __main__ - INFO - 17808635715 completed (NORMAL_CLEARING) /call/hangup
+2014-11-08 19:49:24,894 - tasks - INFO - Monitoring job 545ed5dd9b93873a28887a0a
+2014-11-08 19:49:25,268 - bravo - INFO - +17808093927 call fired (201)
+2014-11-08 19:49:26,230 - __main__ - INFO - 17808093927 busy (USER_BUSY) /call/hangup
+2014-11-08 19:49:26,296 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-11-08 19:50:25,845 - bravo - INFO - +17808093927 call fired (201)
+2014-11-08 19:50:26,597 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-11-08 19:50:26,627 - __main__ - INFO - 17808093927 busy (USER_BUSY) /call/hangup
+2014-11-08 19:51:25,907 - tasks - INFO - job 545ed5dd9b93873a28887a0a complete
+2014-11-08 19:51:25,908 - bravo - INFO - Sending report
+2014-11-08 20:51:09,009 - __main__ - INFO - Job 545ee4ad9b93873e14f61dc1 added to DB
+2014-11-08 20:51:09,021 - __main__ - INFO - Calls added to DB for job 545ee4ad9b93873e14f61dc1
+2014-11-08 21:07:04,461 - __main__ - INFO - Job 545ee8689b93873e9ea505ac added to DB
+2014-11-08 21:07:23,996 - tasks - INFO - Firing calls for job 545ee8689b93873e9ea505ac
+2014-11-08 21:07:24,001 - tasks - INFO - All calls fired for job 545ee8689b93873e9ea505ac
+2014-11-08 21:08:24,028 - tasks - INFO - Monitoring job 545ee8689b93873e9ea505ac
+2014-11-08 21:08:24,031 - tasks - INFO - job 545ee8689b93873e9ea505ac complete
+2014-11-08 21:08:24,031 - bravo - INFO - Sending report
+2014-11-09 16:48:07,333 - __main__ - INFO - Job 545ffd379b93873e9ea505ad added to DB
+2014-11-09 16:59:38,611 - __main__ - INFO - Job 545fffea9b93873e9ea505ae added to DB
+2014-11-09 19:09:45,406 - __main__ - INFO - Removed db.call_jobs and db.calls for 545fffea9b93873e9ea505ae
+2014-11-09 19:09:57,871 - __main__ - INFO - Removed db.call_jobs and db.calls for 545ffd379b93873e9ea505ad
+2014-11-09 19:10:07,686 - __main__ - INFO - Removed db.call_jobs and db.calls for 545ee8689b93873e9ea505ac

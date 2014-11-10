@@ -58,8 +58,7 @@ def update(call, response):
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
  
-  # TODO: this needs to be somewhere else and not update on 'completed'
-  if response[1]['message'] != 'failed':
+  if response[1]['message'] != 'call fired':
     call['attempts'] += 1
   
   db['calls'].update(

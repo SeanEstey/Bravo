@@ -3,8 +3,7 @@
   <div class="h1">Setup New Job</div>
     <div class="box">
       <form action="{{ url_for('create_job')}}" method=post>
-        Template
-        <br>
+        <div class='label'>Template</div>
         <select class='input' id='template-select'>
           <optgroup name='template' required>
             <option class='opt' value='etw_reminder'>Empties to Winn Reminder</option>
@@ -13,11 +12,10 @@
             <option class='opt' value='gg_delivery'>Green Goods Delivery</option>
           </optgroup>
         </select>
-        <br><br>
-        Call list URL
         <br>
-        <input class="input" type="text" name="csv" placeholder='CSV file url' required >
-        <br><br>
+        <div class='label'>Call List</div>
+        <input class="nice" type="file" name="csv" required >
+        <br>
         <div id='special_msg_div'>
           Special message (optional)
           <textarea class="input" rows="2" cols="50" maxlength="140" name="message" placeholder='message text.' required ></textarea>
@@ -34,20 +32,19 @@
           <input class="input" type="text" name="audio" placeholder='audio file (url)' required >
           <br>
         </div>
-        Call Date
-        <br>
+        <div class='label'>Date</div>
         <input class='input' type='text' id='datepicker' placeholder='Browse Calendar...'  name='date' required >
-        <br><br>
-        Call Time 
         <br>
+        <div class='label'>Time</div>
         <input class='input' type='time' name="time" required >
-        <br><br>
+        <br>
         <div id='verify_phone_div'>
           Verification phone 
           <br>
           <input class="input" type="text" name="verify_phone" placeholder='Number to call' required >
-          <br><br>
+          <br>
         </div>
+        <br><br>
         <button class='input' type="button" id="submit_btn" name="submit-btn">Schedule Calls</button>
       </form>
     </div>

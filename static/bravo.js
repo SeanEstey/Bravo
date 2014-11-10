@@ -52,6 +52,9 @@ jQuery(function($){
 
   $('#datepicker').datepicker();
 
+
+  $("input[type=file]").nicefileinput();
+
   $submit_btn = $('#submit_btn');
   $submit_btn.click(function(){
     var paramObj = {};

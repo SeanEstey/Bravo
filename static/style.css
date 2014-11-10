@@ -102,14 +102,8 @@ img.sdf {
 
 .nice {
   width: 305px;
-  font-family: arial;
+  font-family: verdana;
   font-size: 12px;
-  -webkit-box-shadow: 0px 1px 0px #fff, 0px -1px 0px rgba(0,0,0,.1);
-  -moz-box-shadow: 0px 1px 0px #fff, 0px -1px 0px rgba(0,0,0,.1);
-  box-shadow: 0px 1px 0px #fff, 0px -1px 0px rgba(0,0,0,.1); 
-  -moz-border-radius: 4px; 
-  -webkit-border-radius: 4px;
-  border-radius: 4px;
 }
 .nice .NFI-button {
   -moz-border-radius-topleft: 3px; 
@@ -118,37 +112,25 @@ img.sdf {
   -webkit-border-bottom-left-radius: 3px;
   border-top-left-radius: 3px; 
   border-bottom-left-radius: 3px;
-  background-color: #0192DD;
-  background-image: linear-gradient(bottom, #1774A3 0%, #0194DD 56%);
-  background-image: -o-linear-gradient(bottom, #1774A3 0%, #0194DD 56%);
-  background-image: -moz-linear-gradient(bottom, #1774A3 0%, #0194DD 56%);
-  background-image: -webkit-linear-gradient(bottom, #1774A3 0%, #0194DD 56%);
-  background-image: -ms-linear-gradient(bottom, #1774A3 0%, #0194DD 56%);
-  background-image: -webkit-gradient(
-    linear,
-    left bottom,
-    left top,
-    color-stop(0, #1774A3),
-    color-stop(0.56, #0194DD)
-  );
-  text-shadow: 0px -1px 0px #0172bd;
-  border: solid #0172bd 1px;
-  border-bottom: solid #00428d 1px;
+
+  background: #ffffff; /* Old browsers */
+  background: -moz-linear-gradient(top,  #d3d3d3 0%, #8a8a8a 100%); /* FF3.6+ */
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#d3d3d3), color-stop(100%,#8a8a8a)); /* Chrome,Safari4+ */
+  background: -webkit-linear-gradient(top,  #d3d3d3 0%, #f0ffff 100%); /* Chrome10+,Safari5.1+ */
+  background: -o-linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%); /* Opera 11.10+ */
+  background: -ms-linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%); /* IE10+ */
+  background: linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%); /* W3C */
   
-  -webkit-box-shadow: inset 0px 1px 0px rgba(255,255,255,.2);
-  -moz-box-shadow: inset 0px 1px 0px rgba(255,255,255,.2);
-  box-shadow: inset 0px 1px 0px rgba(255,255,255,.2);   
-  
-  color: #fff;
+  border: solid #b3b3b3 1px;
+  color: #2F4F4F;
   width: 100px;
   height: 30px;
   line-height: 30px;
 }
 .nice .NFI-button:hover {
-  background: #333;
-  text-shadow: 0px -1px 0px #111;
-  border: solid #000 1px;
-  
+  /*background: #333;*/
+  color: black;
+  background: -webkit-linear-gradient(top,  #c3c3c3 0%, #f3f3f3 100%); /* Chrome10+,Safari5.1+ */
 }
 .nice .NFI-filename {
   -moz-border-radius-topright: 3px; 
@@ -158,15 +140,11 @@ img.sdf {
   border-top-right-radius: 3px; 
   border-bottom-right-radius: 3px;
   width: 199px;
-  border: solid #777 1px;
+  border: solid #c3c3c3 1px;
   border-left: none;
   height: 32px;
   line-height: 30px;
-  
   background: #fff;
-  -webkit-box-shadow: inset 0px 2px 0px rgba(0,0,0,.05);
-  -moz-box-shadow: inset 0px 2px 0px rgba(0,0,0,.05);
-  box-shadow: inset 0px 2px 0px rgba(0,0,0,.05); 
   color: #777;
   text-shadow: 0px 1px 0px #fff;
 }

@@ -606,3 +606,4 @@ TypeError: 'NoneType' object has no attribute '__getitem__'
 2014-11-09 19:09:45,406 - __main__ - INFO - Removed db.call_jobs and db.calls for 545fffea9b93873e9ea505ae
 2014-11-09 19:09:57,871 - __main__ - INFO - Removed db.call_jobs and db.calls for 545ffd379b93873e9ea505ad
 2014-11-09 19:10:07,686 - __main__ - INFO - Removed db.call_jobs and db.calls for 545ee8689b93873e9ea505ac
+2014-11-09 23:02:19,226 - __main__ - INFO - Job 546054eb9b93873e9ea505af added to DB

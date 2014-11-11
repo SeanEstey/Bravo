@@ -6,6 +6,7 @@ import plivo
 import plivoxml
 from datetime import datetime,date
 from dateutil.parser import parse
+from werkzeug import secure_filename
 import os
 import time
 import tasks
@@ -18,6 +19,11 @@ setLogger(logger, logging.INFO, 'log.log')
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
+
+#-------------------------------------------------------------------
+def allowed_file(filename):
+  return '.' in filename and \
+     filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
 #-------------------------------------------------------------------
 @app.route('/')
@@ -41,7 +47,28 @@ def create_job():
     else:
       order = True
 
-    record = {
+    file = request.files['call_list']
+    filename = ''
+    if file and allowed_file(file.filename):
+      filename = secure_filename(file.filename)
+      file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename)) 
+    else:
+      return render_template('error.html')
+    
+    with open(app.config['UPLOAD_FOLDER'] + '/' + filename, 'rb') as csvfile:
+      reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+      list_of_calls = []
+      buffer = []
+      for row in reader:
+        # CSV format: NAME,PICKUP_DATE,PHONE
+        # verify columns match template
+        if len(row) != 3:
+          return render_template('error.html')
+        else:
+          buffer.append(row)
+
+    # No file errors. Save job + calls to DB.
+    job_record = {
       'auth_id': AUTH_ID,
       'auth_token': AUTH_TOKEN,
       'cps': CPS,
@@ -50,22 +77,17 @@ def create_job():
       'message': request.form['message'],
       'audio_url': request.form['audio'],
       'audio_order': order,
-      'csv_url': request.form['csv'],
       'fire_dtime': fire_dtime,
       'status': 'pending'
     }
-
+    
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
-    job_id = db['call_jobs'].insert(record)
+    job_id = db['call_jobs'].insert(job_record)
     job_id = str(job_id)
     logger.info('Job %s added to DB' % job_id)
-  
-    # CSV format: NAME,PICKUP_DATE,PHONE
-    csv_data = urllib2.urlopen(record['csv_url'])
-    # TODO: ERROR CHECKING
-    reader = csv.reader(csv_data)
-    for row in reader:
+
+    for row in buffer:
       call = {
         'job_id': job_id,
         'name': row[0],
@@ -74,12 +96,15 @@ def create_job():
         'status': 'not attempted',
         'attempts': 0
       }
-      db['calls'].insert(call)
+      list_of_calls.append(call)
+
+    db['calls'].insert(list_of_calls)
     logger.info('Calls added to DB for job %s' % job_id)
 
-    jobs = db['call_jobs'].find()
+    calls = db['calls'].find({'job_id':job_id})
+    job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
 
-    return render_template('show_jobs.html', jobs=jobs)
+    return render_template('show_calls.html', calls=calls, job_id=job_id, job=job)
 
 #-------------------------------------------------------------------
 @app.route('/jobs')
@@ -311,4 +336,5 @@ def enable(request_id):
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.debug = True
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.run(host='0.0.0.0', port=port)

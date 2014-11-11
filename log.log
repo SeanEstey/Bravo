@@ -607,3 +607,22 @@ TypeError: 'NoneType' object has no attribute '__getitem__'
 2014-11-09 19:09:57,871 - __main__ - INFO - Removed db.call_jobs and db.calls for 545ffd379b93873e9ea505ad
 2014-11-09 19:10:07,686 - __main__ - INFO - Removed db.call_jobs and db.calls for 545ee8689b93873e9ea505ac
 2014-11-09 23:02:19,226 - __main__ - INFO - Job 546054eb9b93873e9ea505af added to DB
+2014-11-09 23:07:45,807 - __main__ - INFO - Removed db.call_jobs and db.calls for 546054eb9b93873e9ea505af
+2014-11-10 16:49:02,849 - __main__ - INFO - Job 54614eee9b93876e8651b68a added to DB
+2014-11-10 16:59:21,875 - __main__ - INFO - Job 546151599b93876f2d8c5d81 added to DB
+2014-11-10 17:12:12,044 - __main__ - INFO - Removed db.call_jobs and db.calls for 546151599b93876f2d8c5d81
+2014-11-10 17:12:16,705 - __main__ - INFO - Removed db.call_jobs and db.calls for 546151599b93876f2d8c5d81
+2014-11-10 17:12:29,499 - __main__ - INFO - Removed db.call_jobs and db.calls for 54614eee9b93876e8651b68a
+2014-11-10 17:25:24,690 - __main__ - INFO - Job 546157749b938770db8213ac added to DB
+2014-11-10 17:25:24,696 - __main__ - INFO - Calls added to DB for job 546157749b938770db8213ac
+2014-11-10 17:39:36,352 - __main__ - INFO - Job 54615ac89b938771d0a45715 added to DB
+2014-11-10 17:40:02,899 - __main__ - INFO - Job 54615ae29b938771d0a45716 added to DB
+2014-11-10 17:42:09,744 - __main__ - INFO - Removed db.call_jobs and db.calls for 54615ac89b938771d0a45715
+2014-11-10 17:42:16,959 - __main__ - INFO - Removed db.call_jobs and db.calls for 54615ae29b938771d0a45716
+2014-11-10 17:59:30,805 - __main__ - INFO - Job 54615f729b938772eadc7e93 added to DB
+2014-11-10 17:59:30,809 - __main__ - INFO - Calls added to DB for job 54615f729b938772eadc7e93
+2014-11-10 18:22:36,448 - __main__ - INFO - Removed db.call_jobs and db.calls for 54615f729b938772eadc7e93
+2014-11-10 18:32:49,782 - __main__ - INFO - Job 546167419b938774d94e476a added to DB
+2014-11-10 18:32:49,784 - __main__ - INFO - Calls added to DB for job 546167419b938774d94e476a
+2014-11-10 18:36:22,738 - __main__ - INFO - Job 546168169b938774d94e4779 added to DB
+2014-11-10 18:36:22,738 - __main__ - INFO - Calls added to DB for job 546168169b938774d94e4779

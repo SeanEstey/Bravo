@@ -2,7 +2,7 @@
   {% block content %}  
   <div class="h1">Setup New Job</div>
     <div class="box">
-      <form action="{{ url_for('create_job')}}" method=post>
+      <form action="{{ url_for('create_job')}}" enctype=multipart/form-data method=post>
         <div class='label'>Template</div>
         <select class='input' id='template-select'>
           <optgroup name='template' required>
@@ -14,7 +14,7 @@
         </select>
         <br>
         <div class='label'>Call List</div>
-        <input class="nice" type="file" name="csv" required >
+        <input class="nice" type="file" name="call_list" required >
         <br>
         <div id='special_msg_div'>
           Special message (optional)

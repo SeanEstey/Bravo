@@ -2,6 +2,6 @@
   {% block content %}  
   <div class="h1">There Was an Error</div>
     <div class="box">
-      <br>You screwed up.
+      {{ msg|safe }}
     </div>
   {% endblock %}

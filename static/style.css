@@ -8,6 +8,14 @@ body {
     font-size: 16px;
 }
 
+a:link {
+  color: #365766;
+}
+
+a:visited {
+  color: #365766;
+}
+
 form {
   margin: 0 auto;
   width: 300px;
@@ -29,19 +37,38 @@ optgroup {
   font-size: 16px;
 }
 
+#buit {
+  width: 200px;
+  height: 81px;
+}
+
+.wrapper {
+  width: 100%;
+  text-align: center;
+}
+
+.center {
+  display: inline-block;
+}
+
 .box {
-    background-color: #eee8d5;
-    margin:auto auto;
-    width: 600px;
+    background-color: #d9f3fc;
+/*    margin:auto auto;*/
+/*    position: absolute;*/
+    /*left: 50%;*/
+    min-width: 300px;
+    max-width: 700px;
     padding-right: 2em;
     padding-left: 2em;
     padding-bottom: 2em;
     padding-top: 2em;
     z-index: 20;
-    margin-left: auto;
-    margin-right: auto;
+/*    margin-left: auto;
+    margin-right: auto;*/
+    float: left;
     margin-top: 1em;
-
+/*    display: table-cell;*/
+/*    display: inline-block;*/
     border: 1px solid #cccccc;
     -moz-border-radius: 7px;
     -webkit-border-radius: 7px;
@@ -98,7 +125,25 @@ img.sdf {
   text-align:left;
 }
 
+.ui-dialog-osx {
+  -moz-border-radius: 0 0 8px 8px;
+  -webkit-border-radius: 2px 2px 2px 2px;
+  border-radius: 8px 8px 8px 8px; border-width: 2px 2px 2px 2px;
+  font-family: verdana;
+/*  color: black;*/
+  font-size: 14px;
 
+}
+
+.ui-dialog-osx .ui-dialog-titlebar {
+  background: white;
+  text-align: center;
+  font-size: 16px;
+}
+
+.ui-dialog-osx .ui-dialog-titlebar-close {
+  visibility: hidden;
+}
 
 .nice {
   width: 305px;

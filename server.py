@@ -53,17 +53,31 @@ def create_job():
       filename = secure_filename(file.filename)
       file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename)) 
     else:
-      return render_template('error.html')
+      return render_template('error.html', msg='Could not open file')
     
     with open(app.config['UPLOAD_FOLDER'] + '/' + filename, 'rb') as csvfile:
       reader = csv.reader(csvfile, delimiter=',', quotechar='|')
       list_of_calls = []
       buffer = []
+      template = request.form['template']
+      if template == 'etw_reminder':
+        header = reader.next()
+        if header[0] != 'Name' or \
+           header[1] != 'Phone' or \
+           header[2] != 'Status' or \
+           header[3] != 'Date':
+           msg = 'Your file is missing the proper header rows:<br> \
+           <b>[Name, Phone, Status, Date]</b><br><br>' \
+           'Here is your header row:<br><b>' + str(header) + '</b><br><br>' \
+           'Please fix your mess and try again.'
+           return render_template('error.html', msg=msg)
+      
       for row in reader:
         # CSV format: NAME,PICKUP_DATE,PHONE
         # verify columns match template
-        if len(row) != 3:
-          return render_template('error.html')
+        if len(row) != 4:
+          msg = 'Line #' + str(reader.line_num) + ' has ' + str(len(row)) + ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
+          return render_template('error.html', msg=msg)
         else:
           buffer.append(row)
 
@@ -73,6 +87,7 @@ def create_job():
       'auth_token': AUTH_TOKEN,
       'cps': CPS,
       'max_attempts': MAX_ATTEMPTS,
+      'template': request.form['template'],
       'verify_phone': request.form['verify_phone'],
       'message': request.form['message'],
       'audio_url': request.form['audio'],
@@ -91,8 +106,9 @@ def create_job():
       call = {
         'job_id': job_id,
         'name': row[0],
-        'event_date': row[1],
-        'to': row[2],
+        'to': row[1],
+        'etw_status': row[2],
+        'event_date': row[3],
         'status': 'not attempted',
         'attempts': 0
       }

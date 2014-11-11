@@ -1,10 +1,13 @@
   {% extends "base.html" %}
   {% block content %}  
-  <div class="h1">Welcome</div>
-    <div class="box">
-      <a href="{{ url_for('new_job') }}">Schedule Job</a>
-      <br>
-      <a href="{{ url_for('show_jobs') }}">View Jobs</a>
-      <br>
+  <div class='wrapper'>
+    <div class='center'>
+      <div class="box">
+        <a href="{{ url_for('new_job') }}">Schedule Job</a>
+        <br>
+        <a href="{{ url_for('show_jobs') }}">View Jobs</a>
+        <br>
+      </div>
     </div>
+  </div>
   {% endblock %}

@@ -63,29 +63,29 @@ jQuery(function($){
     }); 
 
     var complete = true;
-    var msg = "You forgot to enter the following fields: ";
+    var msg = "You forgot to enter:<br><br>";
     if(paramObj['time'] == '') {
-      msg += "Call Time,";
+      msg += "Call Time<br>";
       complete = false;
     }
     if(paramObj['date'] == '') {
-      msg += " Call Date,";
+      msg += " Call Date<br>";
       complete = false;
     }
     if(paramObj['csv'] == '') {
-      msg += " Call Url";
+      msg += " Call Url<br>";
       complete = false;
     }
 
     if(!complete) {
-      //$('#dialog').find($('p')).text(JSON.stringify(paramObj)); 
-      $('#dialog').find($('p')).text(msg);
-     // $('#dialog').find($('label')).html(this.html().replace(/\n/g,'<br/>')); 
-      //$('.ui-dialog-titlebar').hide();
+      $('#dialog').find($('p')).html(msg);
       $('#dialog').dialog({ 
+        modal: true,
+        title: 'Oh my god!',
         buttons: [ { 
           text: "Ok", click: function() { $( this ).dialog( "close" ); } 
         } ], 
+        dialogClass: 'ui-dialog-osx',
         width: 400,
         show: { effect: 'shake', duration:500},
         hide: { effect: 'fade'}

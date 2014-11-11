@@ -626,3 +626,14 @@ TypeError: 'NoneType' object has no attribute '__getitem__'
 2014-11-10 18:32:49,784 - __main__ - INFO - Calls added to DB for job 546167419b938774d94e476a
 2014-11-10 18:36:22,738 - __main__ - INFO - Job 546168169b938774d94e4779 added to DB
 2014-11-10 18:36:22,738 - __main__ - INFO - Calls added to DB for job 546168169b938774d94e4779
+2014-11-11 10:57:29,036 - __main__ - INFO - Removed db.call_jobs and db.calls for 54615f729b938772eadc7e93
+2014-11-11 10:57:29,899 - __main__ - INFO - Removed db.call_jobs and db.calls for 54615ae29b938771d0a45716
+2014-11-11 10:57:31,451 - __main__ - INFO - Removed db.call_jobs and db.calls for 54615ac89b938771d0a45715
+2014-11-11 10:57:35,764 - __main__ - INFO - Removed db.call_jobs and db.calls for 54615f729b938772eadc7e93
+2014-11-11 15:00:00,541 - __main__ - INFO - Job 546286e09b938751032e70ff added to DB
+2014-11-11 15:00:00,543 - __main__ - INFO - Calls added to DB for job 546286e09b938751032e70ff
+2014-11-11 15:03:14,657 - __main__ - INFO - Job 546287a29b9387513b8dce55 added to DB
+2014-11-11 15:03:14,658 - __main__ - INFO - Calls added to DB for job 546287a29b9387513b8dce55
+2014-11-11 15:06:18,058 - __main__ - INFO - Removed db.call_jobs and db.calls for 546286e09b938751032e70ff
+2014-11-11 15:38:02,934 - __main__ - INFO - Removed db.call_jobs and db.calls for 546168169b938774d94e4779
+2014-11-11 15:38:18,825 - __main__ - INFO - Removed db.call_jobs and db.calls for 546167419b938774d94e476a

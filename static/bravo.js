@@ -45,14 +45,7 @@ function selectTemplateHandler() {
 jQuery(function($){
   selectTemplateHandler();
   useJQueryBtn();
-  $('#special_msg_div').hide();
-  $('#order_div').hide();
-  $('#recorded_msg_div').hide();
-  $('#verify_phone_div').hide();
-
   $('#datepicker').datepicker();
-
-
   $("input[type=file]").nicefileinput();
 
   $submit_btn = $('#submit_btn');
@@ -62,35 +55,72 @@ jQuery(function($){
       paramObj[kv.name] = kv.value;
     }); 
 
-    var complete = true;
-    var msg = "You forgot to enter:<br><br>";
-    if(paramObj['time'] == '') {
-      msg += "Call Time<br>";
-      complete = false;
-    }
-    if(paramObj['date'] == '') {
-      msg += " Call Date<br>";
-      complete = false;
-    }
-    if(paramObj['csv'] == '') {
-      msg += " Call Url<br>";
-      complete = false;
+    // Validate form data
+    var missing = [];
+    var filename = $('#call-list-div').val();
+    var wrong_date = false;
+    var wrong_filetype = false;
+    var scheduled_date = null;
+    
+    if(!filename)
+      missing.push('CSV File');
+    else if(filename.indexOf('.csv') <= 0)
+      wrong_filetype = true;
+    if(!paramObj['time'])
+      missing.push('Schedule Time');
+    if(!paramObj['date'])
+      missing.push('Schedule Date');
+    else {
+      var now = new Date();
+      var date_str = paramObj['date'];
+      if(paramObj['time'])
+        date_str += ', ' + paramObj['time'];
+      // Datejs for parsing strings like '12pm'
+      scheduled_date = Date.parse(date_str);
+      console.log(scheduled_date.toString());
+      if(scheduled_date.getTime() < now.getTime())
+        wrong_date = true;
     }
 
-    if(!complete) {
+    var msg = ''; 
+    if(missing.length > 0) {
+      msg = 'You forgot to enter: ';
+      msg += '<b>' + missing.join(', ') + '</b><br><br>';
+    }
+    if(wrong_filetype)
+      msg += 'The file you selected is not a .CSV';
+
+    var dialog_style = { 
+      modal: true,
+      title: 'What have you done?!',
+      dialogClass: 'ui-dialog-osx',
+      width: 500,
+      height: 'auto',
+      show: { effect: 'fade', duration:150},
+      hide: { effect: 'fade', duration:150}
+    };
+
+    if(missing.length > 0 || wrong_filetype) {
       $('#dialog').find($('p')).html(msg);
-      $('#dialog').dialog({ 
-        modal: true,
-        title: 'Oh my god!',
-        buttons: [ { 
-          text: "Ok", click: function() { $( this ).dialog( "close" ); } 
-        } ], 
-        dialogClass: 'ui-dialog-osx',
-        width: 400,
-        show: { effect: 'shake', duration:500},
-        hide: { effect: 'fade'}
-      });
+      dialog_style['buttons'] = [
+        { text: "Sorry, I'll fix it", 
+         click: function() { $( this ).dialog( "close" ); }}
+      ];
+      $('#dialog').dialog(dialog_style);
+    }
+    else if(wrong_date) {
+      msg = 'The scheduled date is before the present:<br><br>' + 
+      '<b>' + scheduled_date.toString('dddd, MMMM d, yyyy @ hh:mm tt') + '</b><br><br>' +
+      'Do you want to start this job now?';
 
+      $('#dialog').find($('p')).html(msg);
+      dialog_style['buttons'] = [
+        { text: "No, let me fix it", 
+          click: function() { $( this ).dialog( "close" ); }}, 
+        { text: 'Yes, start job now', 
+          click: function() { $(this).dialog('close'); $('form').submit();}}
+      ];
+      $('#dialog').dialog(dialog_style);
     }
     else {
       $('form').submit(); 

@@ -4,9 +4,11 @@
     <link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+
     <script type=text/javascript>
       var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
     </script> 
+    <script type="text/javascript" src="{{url_for('static', filename='date.js')}}"></script>
     <script type='text/javascript' src="{{url_for('static', filename='bravo.js')}}"></script>
     <script type='text/javascript' src="{{url_for('static', filename='jquery.nicefileinput.min.js')}}"></script>
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
@@ -19,6 +21,14 @@
   <body>
     <div class="header"><img id="buit" src="{{ url_for('static', filename='bravo2x.png') }}"></div>
     <br>
-    {% block content %}{% endblock %}
+    <div class='wrapper'>
+      <div class='center'>
+          {% block content %}{% endblock %}
+      </div>
+    </div>
+
+    <div id='dialog' title='Whoops!' style='display:none'>
+      <p>Test dialog!</p>
+    </div>
   </body>
 </html>

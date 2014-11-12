@@ -1,11 +1,20 @@
+div.footer {
+    position : absolute;
+    bottom : 0;
+    right: 10px;
+}
+
+div.header {
+  margin: 0 auto;
+  width: 300px;
+  text-align: center;
+}
+
 body {
-    /*background-image : url("logo.png");
-    background-repeat: no-repeat;
-    background-position: bottom right;*/
-    height: 100%;
-    font-family: verdana;
-    color: black;
-    font-size: 16px;
+  height: 100%;
+  font-family: verdana;
+  color: black;
+  font-size: 16px;
 }
 
 a:link {
@@ -18,10 +27,10 @@ a:visited {
 
 form {
   margin: 0 auto;
-  width: 300px;
 }
 
 select {
+  width: 100%;
   font-size: 16px;
 }
 
@@ -29,12 +38,29 @@ option {
   font-size: 16px;
 }
 
-.opt {
-  font-size: 16px;
+legend {
+ font-weight: bold; 
+}
+
+fieldset {
+    border: 1px solid #cccccc;
+    -moz-border-radius: 7px;
+    -webkit-border-radius: 7px;
+    text-align: left;
+    /*width: 100%;*/
+    width: 300px;
 }
 
 optgroup {
   font-size: 16px;
+}
+
+.opt {
+  font-size: 16px;
+}
+
+.hidden {
+  display: none;
 }
 
 #buit {
@@ -52,91 +78,65 @@ optgroup {
 }
 
 .box {
-    background-color: #d9f3fc;
-/*    margin:auto auto;*/
-/*    position: absolute;*/
-    /*left: 50%;*/
-    min-width: 300px;
-    max-width: 700px;
-    padding-right: 2em;
-    padding-left: 2em;
-    padding-bottom: 2em;
-    padding-top: 2em;
-    z-index: 20;
-/*    margin-left: auto;
-    margin-right: auto;*/
-    float: left;
-    margin-top: 1em;
-/*    display: table-cell;*/
-/*    display: inline-block;*/
-    border: 1px solid #cccccc;
-    -moz-border-radius: 7px;
-    -webkit-border-radius: 7px;
-    border-radius: 7px;
-
-    /* Border Shadow 
-    -moz-box-shadow: 2px 2px 2px #cccccc;
-    -webkit-box-shadow: 2px 2px 2px #cccccc;
-    box-shadow: 2px 2px 2px #cccccc;*/
+  background-color: #e8f5f9;
+  min-width: 300px;
+  max-width: 700px;
+  padding-right: 2em;
+  padding-left: 2em;
+  padding-bottom: 2em;
+  padding-top: 2em;
+  z-index: 20;
+  float: left;
+  margin-top: 1em;
+  border: 1px solid #cccccc;
+  -moz-border-radius: 7px;
+  -webkit-border-radius: 7px;
+  border-radius: 7px;
 }
 
 .input{
-    font-size: 15px;
-    padding: 5px;
-    border: 1px solid #b9bdc1;
-    width: 300px;
-   /* color: #797979;*/
-    }
+  font-size: 15px;
+  padding: 5px;
+  border: 1px solid #b9bdc1;
+  width: 100%;
+  max-width: 300px;
+}
 
 .h1 {
-    font-size: 20px;
-    font-family: verdana;
-    text-align: center;
-}
-
-div.footer {
-    position : absolute;
-    bottom : 0;
-    right: 10px;
-}
-
-div.header {
-  margin: 0 auto;
-  width: 300px;
+  font-size: 20px;
+  font-family: verdana;
   text-align: center;
 }
 
-div.navigator {
-    width: 300px;
-    position: absolute;
-    top: 20px;
-    text-align: center;
-    font-family: "Kavoon", cursive;
-    font-size: 40pt;
-    color: #268bd2;
-}
-img.sdf {
-    width: 300px;
+.menu-item {
+  text-align: center;
+  padding-top:0.1em;
+  padding-bottom:0.1em;
 }
         
 .label {
   padding-bottom:0.3em; 
   padding-top:0.7em;
   text-align:left;
+  color: #2b547e;
 }
 
 .ui-dialog-osx {
   -moz-border-radius: 0 0 8px 8px;
-  -webkit-border-radius: 2px 2px 2px 2px;
-  border-radius: 8px 8px 8px 8px; border-width: 2px 2px 2px 2px;
+  -webkit-border-radius: 4px 4px 4px 4px;
+  border-radius: 4px 4px 4px 4px; border-width: 1px 1px 1px 1px;
   font-family: verdana;
-/*  color: black;*/
+  border-color: darkgray;
   font-size: 14px;
-
+  max-width: 500px;
+  max-height: 400px;
+  -webkit-box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);  
+   -moz-box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5); 
 }
 
 .ui-dialog-osx .ui-dialog-titlebar {
-  background: white;
+  background: red;
+  border:0;
   text-align: center;
   font-size: 16px;
 }
@@ -146,7 +146,7 @@ img.sdf {
 }
 
 .nice {
-  width: 305px;
+  width: 100%;
   font-family: verdana;
   font-size: 12px;
 }
@@ -168,7 +168,7 @@ img.sdf {
   
   border: solid #b3b3b3 1px;
   color: #2F4F4F;
-  width: 100px;
+  width: 25%;
   height: 30px;
   line-height: 30px;
 }
@@ -184,7 +184,7 @@ img.sdf {
   -webkit-border-bottom-right-radius: 3px;
   border-top-right-radius: 3px; 
   border-bottom-right-radius: 3px;
-  width: 199px;
+  width: 70%;
   border: solid #c3c3c3 1px;
   border-left: none;
   height: 32px;

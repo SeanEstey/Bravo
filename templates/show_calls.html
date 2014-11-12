@@ -6,31 +6,27 @@
     Scheduled: {{ job.fire_dtime }}
     <br>
   </div>
-  <div class='wrapper'>
-    <div class='center'>
-      <div class="box">
-        <table width=100%>
-          <tr>
-            <td>Name</td>
-            <td>Phone</td>
-            <td>ETW Status</td>
-            <td>Status</td>
-            <td>Message</td>
-            <td>Attempts</td>
-          </tr>
-          {% for call in calls %}
-          <tr>
-            <td>{{ call.name }}</td>
-            <td>{{ call.to }}</td>
-            <td>{{ call.etw_status }} </td>
-            <td>{{ call.status }}</td>
-            <td>{{ call.message }}</td>
-            <td>{{ call.attempts }}</td>
-          </tr>
-          {% endfor %}
-        </table>
-      </div>
-    </div>
+  <div class="box">
+    <table width=100%>
+      <tr>
+        <td>Name</td>
+        <td>Phone</td>
+        <td>ETW Status</td>
+        <td>Status</td>
+        <td>Message</td>
+        <td>Attempts</td>
+      </tr>
+      {% for call in calls %}
+      <tr>
+        <td>{{ call.name }}</td>
+        <td>{{ call.to }}</td>
+        <td>{{ call.etw_status }} </td>
+        <td>{{ call.status }}</td>
+        <td>{{ call.message }}</td>
+        <td>{{ call.attempts }}</td>
+      </tr>
+      {% endfor %}
+    </table>
   </div>
 
   <br>

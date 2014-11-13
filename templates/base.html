@@ -19,14 +19,18 @@
     {% endif %}
   </head>
   <body>
-    <div class="header"><img id="buit" src="{{ url_for('static', filename='bravo2x.png') }}"></div>
+    <div class="header">
+      <a href="{{url_for('index')}}">
+        <img id="buit" src="{{ url_for('static', filename='bravo2x.png') }}">
+      </a>
+    </div>
     <br>
     <div class='wrapper'>
       <div class='center'>
           {% block content %}{% endblock %}
       </div>
     </div>
-
+    <br><br>
     <div id='dialog' title='Whoops!' style='display:none'>
       <p>Test dialog!</p>
     </div>

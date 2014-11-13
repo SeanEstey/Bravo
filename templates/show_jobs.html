@@ -18,7 +18,7 @@
           {{ job.status }}
         </td>
         <td>
-          <a href="{{ url_for('show_calls', job_id=job._id ) }}">{{ job._id }}</a>
+          <a href="{{ url_for('show_calls', job_id=job._id, sort_by='name', sort_order=1 ) }}">{{ job._id }}</a>
         </td>
         <td>
           <a href="{{ url_for('cancel_job', job_id=job._id) }}">Cancel</a>
@@ -28,8 +28,9 @@
     </table>
   </div>
 
-  <br>
+  <br><br>
   <div class='h1'>
+    <br>
     <a href="{{ url_for('index') }}">Back</a>
   </div>
   {% endblock %}

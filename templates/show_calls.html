@@ -9,28 +9,31 @@
   <div class="box">
     <table width=100%>
       <tr>
-        <td>Name</td>
-        <td>Phone</td>
-        <td>ETW Status</td>
-        <td>Status</td>
-        <td>Message</td>
-        <td>Attempts</td>
+      {% for col in sort_cols %}
+        <td>
+          <a href="{{ url_for('show_calls', job_id=job._id, sort_by=col.keys()[0], sort_order=col.values()[0]) }}">{{ col.keys()[0] }}</a>
+        </td>
+      {% endfor %}
+        <td>Action</td>
       </tr>
       {% for call in calls %}
       <tr>
         <td>{{ call.name }}</td>
         <td>{{ call.to }}</td>
         <td>{{ call.etw_status }} </td>
+        <td>{{ call.office_notes }}</td>
         <td>{{ call.status }}</td>
         <td>{{ call.message }}</td>
         <td>{{ call.attempts }}</td>
+        <td><a href="{{ url_for('cancel_call', call_id=call._id, job_id=call.job_id, sort_by=sort_by, sort_order=sort_order) }}">Cancel</a></td>
       </tr>
       {% endfor %}
     </table>
   </div>
 
-  <br>
+  <br><br>
   <div class='h1'>
+    <br>
     <a href="{{ url_for('show_jobs') }}">Back</a>
   </div>
   {% endblock %}

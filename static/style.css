@@ -80,7 +80,7 @@ optgroup {
 .box {
   background-color: #e8f5f9;
   min-width: 300px;
-  max-width: 700px;
+  max-width: 1000px;
   padding-right: 2em;
   padding-left: 2em;
   padding-bottom: 2em;
@@ -157,15 +157,13 @@ optgroup {
   -webkit-border-bottom-left-radius: 3px;
   border-top-left-radius: 3px; 
   border-bottom-left-radius: 3px;
-
-  background: #ffffff; /* Old browsers */
-  background: -moz-linear-gradient(top,  #d3d3d3 0%, #8a8a8a 100%); /* FF3.6+ */
-  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#d3d3d3), color-stop(100%,#8a8a8a)); /* Chrome,Safari4+ */
-  background: -webkit-linear-gradient(top,  #d3d3d3 0%, #f0ffff 100%); /* Chrome10+,Safari5.1+ */
-  background: -o-linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%); /* Opera 11.10+ */
-  background: -ms-linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%); /* IE10+ */
-  background: linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%); /* W3C */
-  
+  background: #ffffff; 
+  background: -moz-linear-gradient(top,  #d3d3d3 0%, #8a8a8a 100%);
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#d3d3d3), color-stop(100%,#8a8a8a));
+  background: -webkit-linear-gradient(top,  #d3d3d3 0%, #f0ffff 100%);
+  background: -o-linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%);
+  background: -ms-linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%);
+  background: linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%);
   border: solid #b3b3b3 1px;
   color: #2F4F4F;
   width: 25%;
@@ -173,9 +171,8 @@ optgroup {
   line-height: 30px;
 }
 .nice .NFI-button:hover {
-  /*background: #333;*/
   color: black;
-  background: -webkit-linear-gradient(top,  #c3c3c3 0%, #f3f3f3 100%); /* Chrome10+,Safari5.1+ */
+  background: -webkit-linear-gradient(top,  #c3c3c3 0%, #f3f3f3 100%);
 }
 .nice .NFI-filename {
   -moz-border-radius-topright: 3px; 

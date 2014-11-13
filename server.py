@@ -1,4 +1,4 @@
-from flask import Flask,render_template,request,g,Response
+from flask import Flask,render_template,request,g,Response,redirect,url_for
 from config import *
 from bson.objectid import ObjectId
 import pymongo
@@ -28,7 +28,13 @@ def allowed_file(filename):
 #-------------------------------------------------------------------
 @app.route('/')
 def index():
-    return render_template('main.html')
+  return render_template('main.html')
+
+#-------------------------------------------------------------------
+@app.route('/error')
+def show_error():
+  msg = request.args['msg']
+  return render_template('error.html', msg=msg)
 
 #-------------------------------------------------------------------
 @app.route('/new')
@@ -53,7 +59,7 @@ def create_job():
       filename = secure_filename(file.filename)
       file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename)) 
     else:
-      return render_template('error.html', msg='Could not open file')
+      return redirect(url_for('show_error', msg='Could not open file'))
     
     with open(app.config['UPLOAD_FOLDER'] + '/' + filename, 'rb') as csvfile:
       reader = csv.reader(csvfile, delimiter=',', quotechar='|')
@@ -65,19 +71,20 @@ def create_job():
         if header[0] != 'Name' or \
            header[1] != 'Phone' or \
            header[2] != 'Status' or \
-           header[3] != 'Date':
+           header[3] != 'Date' or \
+           header[4] != 'Office Notes':
            msg = 'Your file is missing the proper header rows:<br> \
-           <b>[Name, Phone, Status, Date]</b><br><br>' \
+           <b>[Name, Phone, Status, Date, Office Notes]</b><br><br>' \
            'Here is your header row:<br><b>' + str(header) + '</b><br><br>' \
            'Please fix your mess and try again.'
-           return render_template('error.html', msg=msg)
+           return redirect(url_for('show_error',  msg=msg))
       
       for row in reader:
         # CSV format: NAME,PICKUP_DATE,PHONE
         # verify columns match template
-        if len(row) != 4:
+        if len(row) != 5:
           msg = 'Line #' + str(reader.line_num) + ' has ' + str(len(row)) + ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
-          return render_template('error.html', msg=msg)
+          return redirect(url_for('show_error', msg=msg))
         else:
           buffer.append(row)
 
@@ -109,6 +116,7 @@ def create_job():
         'to': row[1],
         'etw_status': row[2],
         'event_date': row[3],
+        'office_notes': row[4],
         'status': 'not attempted',
         'attempts': 0
       }
@@ -120,7 +128,7 @@ def create_job():
     calls = db['calls'].find({'job_id':job_id})
     job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
 
-    return render_template('show_calls.html', calls=calls, job_id=job_id, job=job)
+    return redirect(url_for('show_calls', job_id=job_id, calls=calls, job=job))
 
 #-------------------------------------------------------------------
 @app.route('/jobs')
@@ -133,16 +141,49 @@ def show_jobs():
 
 #-------------------------------------------------------------------
 @app.route('/jobs/<job_id>')
-def show_calls(job_id):
+def show_calls(job_id): #sort_by=None, sort_order=None):
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
-  calls = db['calls'].find({'job_id':job_id})
+ 
+  sort_by = request.args['sort_by']
+  sort_order = int(request.args['sort_order'])
+  calls = db['calls'].find({'job_id':job_id}).sort(sort_by, sort_order)
   job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
 
-  return render_template('show_calls.html', calls=calls, job_id=job_id, job=job)
+  sort_cols = [
+    {'name': 1},
+    {'to': 1},
+    {'etw_status': 1},
+    {'office_notes': 1},
+    {'status': 1},
+    {'message': 1},
+    {'attempts': 1}
+  ]
+
+  index = 0
+  for col in sort_cols:
+    if col.keys()[0] == sort_by:
+      break;
+    index += 1
+      #col[sort_by] = col[sort_by] * -1
+
+  if sort_order == -1:
+    sort_cols[index][sort_by] = 1
+  else:
+    sort_cols[index][sort_by] = -1
+
+  return render_template(
+    'show_calls.html', 
+    calls=calls, 
+    job_id=job_id, 
+    job=job, 
+    sort_by=sort_by,
+    sort_order=sort_order,
+    sort_cols=sort_cols
+  )
 
 #-------------------------------------------------------------------
-@app.route('/cancel/<job_id>')
+@app.route('/cancel/job/<job_id>')
 def cancel_job(job_id):
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
@@ -152,7 +193,19 @@ def cancel_job(job_id):
 
   jobs = db['call_jobs'].find()
 
-  return render_template('show_jobs.html', jobs=jobs)
+  return redirect(url_for('show_jobs'))
+
+#-------------------------------------------------------------------
+@app.route('/cancel/call/<call_id>')
+def cancel_call(call_id):
+  job_id = request.args['job_id']
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
+  db['calls'].remove({'_id':ObjectId(call_id)})
+    
+
+
+  return redirect(url_for('show_calls', job_id=job_id, sort_by=request.args['sort_by'], sort_order=request.args['sort_order']))
 
 #-------------------------------------------------------------------
 @app.route('/call/answer',methods=['POST','GET'])

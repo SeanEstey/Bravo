@@ -62,7 +62,7 @@ def create_job():
       return redirect(url_for('show_error', msg='Could not open file'))
     
     with open(app.config['UPLOAD_FOLDER'] + '/' + filename, 'rb') as csvfile:
-      reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+      reader = csv.reader(csvfile, delimiter=',', quotechar='"')
       list_of_calls = []
       buffer = []
       template = request.form['template']
@@ -144,9 +144,14 @@ def show_jobs():
 def show_calls(job_id): #sort_by=None, sort_order=None):
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
- 
-  sort_by = request.args['sort_by']
-  sort_order = int(request.args['sort_order'])
+
+  if 'sort_by' not in request.args:
+    sort_by = 'name'
+    sort_order = 1
+  else:
+    sort_by = request.args['sort_by']
+    sort_order = int(request.args['sort_order'])
+  
   calls = db['calls'].find({'job_id':job_id}).sort(sort_by, sort_order)
   job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
 

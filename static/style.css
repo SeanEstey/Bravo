@@ -43,12 +43,12 @@ legend {
 }
 
 fieldset {
-    border: 1px solid #cccccc;
-    -moz-border-radius: 7px;
-    -webkit-border-radius: 7px;
-    text-align: left;
-    /*width: 100%;*/
-    width: 300px;
+  border: 1px solid #cccccc;
+  -moz-border-radius: 7px;
+  -webkit-border-radius: 7px;
+  text-align: left;
+  /*width: 100%;*/
+  width: 300px;
 }
 
 optgroup {
@@ -137,6 +137,13 @@ optgroup {
   padding-top:0.7em;
   text-align:left;
   color: #2b547e;
+}
+
+.delete-btn {
+  font-size: 0.75em;
+  width: 24px;
+  height: 24px;
+/*  border-radius: 50%*/;
 }
 
 .ui-dialog-osx {

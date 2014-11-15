@@ -667,3 +667,28 @@ TypeError: 'NoneType' object has no attribute '__getitem__'
 2014-11-12 20:58:46,040 - __main__ - INFO - Removed db.call_jobs and db.calls for 54641ee29b9387675fb59c67
 2014-11-12 21:01:44,461 - __main__ - INFO - Job 54642d289b93876968051957 added to DB
 2014-11-12 21:01:44,467 - __main__ - INFO - Calls added to DB for job 54642d289b93876968051957
+2014-11-13 09:50:28,687 - __main__ - INFO - Job 5464e1549b938769680519c3 added to DB
+2014-11-13 09:50:28,689 - __main__ - INFO - Calls added to DB for job 5464e1549b938769680519c3
+2014-11-13 09:51:57,863 - __main__ - INFO - Removed db.call_jobs and db.calls for 5464e1549b938769680519c3
+2014-11-13 18:02:53,109 - __main__ - INFO - Removed db.call_jobs and db.calls for 545eb4059b93872ec25f8e4c
+2014-11-13 18:06:28,921 - __main__ - INFO - Removed db.call_jobs and db.calls for 545ebb959b938731fe928614
+2014-11-14 21:47:55,996 - __main__ - INFO - Removed db.call_jobs and db.calls for 54642d289b93876968051957
+2014-11-14 21:48:00,958 - __main__ - INFO - Removed db.call_jobs and db.calls for 5464257b9b938769680518eb
+2014-11-14 21:59:45,408 - __main__ - INFO - Job 5466ddc19b93875b7030e053 added to DB
+2014-11-14 21:59:45,412 - __main__ - INFO - Calls added to DB for job 5466ddc19b93875b7030e053
+2014-11-14 22:29:30,385 - __main__ - INFO - Job 5466e4ba9b93875b7030e0bf added to DB
+2014-11-14 22:29:30,391 - __main__ - INFO - Calls added to DB for job 5466e4ba9b93875b7030e0bf
+2014-11-14 23:11:05,490 - __main__ - INFO - Job 5466ee799b93875fe38aa11b added to DB
+2014-11-14 23:11:05,493 - __main__ - INFO - Calls added to DB for job 5466ee799b93875fe38aa11b
+2014-11-14 23:12:06,409 - __main__ - INFO - Job 5466eeb69b93875fe38aa187 added to DB
+2014-11-14 23:12:06,413 - __main__ - INFO - Calls added to DB for job 5466eeb69b93875fe38aa187
+2014-11-14 23:12:37,788 - __main__ - INFO - Removed db.call_jobs and db.calls for 5466eeb69b93875fe38aa187
+2014-11-14 23:12:53,683 - __main__ - INFO - Removed db.call_jobs and db.calls for 5466ee799b93875fe38aa11b
+2014-11-14 23:19:51,092 - __main__ - INFO - Removed db.call_jobs and db.calls for 5466e4ba9b93875b7030e0bf
+2014-11-14 23:20:11,025 - __main__ - INFO - Job 5466f09b9b93875fe38aa1f3 added to DB
+2014-11-14 23:20:11,028 - __main__ - INFO - Calls added to DB for job 5466f09b9b93875fe38aa1f3
+2014-11-14 23:20:34,282 - __main__ - INFO - Job 5466f0b29b93875fe38aa25f added to DB
+2014-11-14 23:20:34,291 - __main__ - INFO - Calls added to DB for job 5466f0b29b93875fe38aa25f
+2014-11-14 23:20:45,032 - __main__ - INFO - Removed db.call_jobs and db.calls for 546287a29b9387513b8dce55
+2014-11-14 23:20:47,794 - __main__ - INFO - Removed db.call_jobs and db.calls for 5463f18d9b9387564fbdd3a6
+2014-11-14 23:20:50,374 - __main__ - INFO - Removed db.call_jobs and db.calls for 5466ddc19b93875b7030e053

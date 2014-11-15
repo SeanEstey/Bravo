@@ -1,27 +1,32 @@
   {% extends "base.html" %}
   {% block content %}  
+  <script>
+    jQuery(function($){
+      initShowJobs();
+    });
+  </script>
   <div class="h1">Jobs</div>
   <div class="box">
-    <table class='data-table'>
+    <table class='2data-table' style='border-spacing:10px; text-align:left; width:600px;'>
       <tr>
-        <td>Date</td>
-        <td>Status</td>
-        <td>Job_ID</td>
-        <td>Action</td>
+        <td><b>Date</b></td>
+        <td><b>Name</b></td>
+        <td><b>Status</b></td>
+        <td></td>
       </tr>
       {% for job in jobs %}
       <tr>
         <td>
-          {{ job.fire_dtime }}
+          {{ job.fire_dtime.strftime("%A %b %d %Y @ %I:%M %p") }} 
         </td>
         <td>
-          {{ job.status }}
+          <a href="{{ url_for('show_calls', job_id=job._id, sort_by='name', sort_order=1 ) }}">{{ job.name }}</a>
         </td>
         <td>
-          <a href="{{ url_for('show_calls', job_id=job._id, sort_by='name', sort_order=1 ) }}">{{ job._id }}</a>
+          {{ job.status.title() }}
         </td>
         <td>
-          <a href="{{ url_for('cancel_job', job_id=job._id) }}">Cancel</a>
+          <button class='delete-btn' type="button" id="{{ url_for('cancel_job',job_id=job._id) }}" name="delete-btn"></button>
         </td>
       </tr>
       {% endfor %}

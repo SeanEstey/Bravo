@@ -1,5 +1,10 @@
   {% extends "base.html" %}
   {% block content %}  
+  <script>
+    jQuery(function($){
+      initNewJob();
+    });
+  </script>
   <div class="h1">Setup New Job</div>
   <div class="box">
     <form action="{{ url_for('create_job')}}" enctype=multipart/form-data method=post>

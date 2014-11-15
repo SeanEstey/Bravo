@@ -90,6 +90,7 @@ def create_job():
 
     # No file errors. Save job + calls to DB.
     job_record = {
+      'name': filename.split('.')[0].replace('_',' '),
       'auth_id': AUTH_ID,
       'auth_token': AUTH_TOKEN,
       'cps': CPS,

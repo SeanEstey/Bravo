@@ -5,27 +5,52 @@
       initShowJobs();
     });
   </script>
-  <div class="h1">Jobs</div>
-  <div class="box">
-    <table class='2data-table' style='border-spacing:10px; text-align:left; width:600px;'>
-      <tr>
-        <td><b>Date</b></td>
-        <td><b>Name</b></td>
-        <td><b>Status</b></td>
-        <td></td>
+  <br><br>
+  <div class="h1"> 
+  <script>
+    var date = new Date();
+    document.write('<b>' + date.toString('dddd, MMMM d, yyyy') + '</b>');
+  </script>
+  </div>
+  <div class="box" style='padding-left:0em; padding-right:0em; padding-top:0em; padding-bottom:0em;'>
+    <table style='border-collapse: collapse; border-spacing:20px; text-align:left; width:750px;'>
+      <tr style='padding-top:1em;'>
+        <td class='show-jobs-header'>Scheduled</td>
+        <td class='show-jobs-header'>Name</td>
+        <td class='show-jobs-header'>Type</td>
+        <td class='show-jobs-header'>Calls</td>
+        <td class='show-jobs-header'>Status</td>
+        <td class='show-jobs-header'></td>
       </tr>
       {% for job in jobs %}
-      <tr>
-        <td>
-          {{ job.fire_dtime.strftime("%A %b %d %Y @ %I:%M %p") }} 
+      <tr style='border:solid; border-color:#cccccc; border-width:1px 0; color: #365766;'>
+        <td class='show-jobs-td'>
+          <a class='hover' href="{{ url_for('show_calls', job_id=job._id, sort_by='name', sort_order=1 ) }}">
+          {{ job.fire_dtime.strftime("%A %b %d @ %I:%M %p") }}</a>
         </td>
-        <td>
-          <a href="{{ url_for('show_calls', job_id=job._id, sort_by='name', sort_order=1 ) }}">{{ job.name }}</a>
+        <td class='show-jobs-td'>
+          <a class='hover' href="{{ url_for('show_calls', job_id=job._id, sort_by='name', sort_order=1 ) }}">{{ job.name }}</a>
         </td>
-        <td>
+        <td class='show-jobs-td'>
+          {{ job.template.replace('_', ' ').title() }}
+        </td>
+        <td class='show-jobs-td'>
+          {{ job.num_calls }}
+        </td>
+        <td class='show-jobs-td'>
+        {% if job.status == "complete" %}
+          <p style='color:green;'>
           {{ job.status.title() }}
+        {% elif job.status == "pending" %}
+          <p style='color:blue;'>
+          {{ job.status.title() }}
+        {% elif job.status == "in progress" %}
+          <p style='color:red;'>
+          {{ job.status.title() }}
+          </p>
+        {% endif %}
         </td>
-        <td>
+        <td class='show-jobs-td'>
           <button class='delete-btn' type="button" id="{{ url_for('cancel_job',job_id=job._id) }}" name="delete-btn"></button>
         </td>
       </tr>
@@ -33,9 +58,7 @@
     </table>
   </div>
 
-  <br><br>
-  <div class='h1'>
-    <br>
-    <a href="{{ url_for('index') }}">Back</a>
+  <div class='back' style='padding-top:12em;'>
+    <a class='hover' href="{{ url_for('index') }}">Back</a>
   </div>
   {% endblock %}

@@ -17,6 +17,15 @@ body {
   font-size: 16px;
 }
 
+a.hover {
+  text-decoration: none;
+}
+
+a.hover:hover {
+  color: blue;
+  text-decoration: underline;
+}
+
 a:link {
   color: #365766;
 }
@@ -72,7 +81,19 @@ optgroup {
   padding-bottom: 0.5em;
 }
 
+.show-jobs-td {
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+}
 
+.show-jobs-header {
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+  padding-top: 1em;
+  padding-bottom: 1em;
+}
 .opt {
   font-size: 16px;
 }
@@ -124,6 +145,10 @@ optgroup {
   font-size: 20px;
   font-family: verdana;
   text-align: center;
+}
+
+.back {
+  font-size: 16px;
 }
 
 .menu-item {

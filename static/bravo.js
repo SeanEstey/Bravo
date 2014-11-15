@@ -42,7 +42,7 @@ function onSelectTemplate() {
 }
 
 //---------------------------------------------------------------
-function showDialog($element, msg, _buttons) {
+function showDialog($element, msg, _title, _buttons) {
   if(typeof(_buttons) === 'undefined') {
       _buttons = [{ 
         text: "Sorry, I'll fix it", 
@@ -50,9 +50,13 @@ function showDialog($element, msg, _buttons) {
       }];
   }
 
+  if(typeof(_title) === 'undefined') {
+    _title = 'What have you done??'
+  }
+
   var dialog_style = { 
     modal: true,
-    title: 'What have you done??',
+    title: _title,
     dialogClass: 'ui-dialog-osx',
     width: 500,
     height: 'auto',
@@ -113,7 +117,8 @@ function validateNewJobForm() {
   }
   else if(wrong_date) {
     msg = 'The scheduled date is before the present:<br><br>' + 
-    '<b>' + scheduled_date.toString('dddd, MMMM d, yyyy @ hh:mm tt') + '</b><br><br>' +
+    '<b>' + scheduled_date.toString('dddd, MMMM d, yyyy @ hh:mm tt') + 
+    '</b><br><br>' +
     'Do you want to start this job now?';
 
     var buttons = [
@@ -122,7 +127,7 @@ function validateNewJobForm() {
       { text: 'Yes, start job now', 
         click: function() { $(this).dialog('close'); $('form').submit();}}
     ];
-    showDialog($('#dialog'), msg, buttons);
+    showDialog($('#dialog'), msg, null, buttons);
   }
   else {
     $('form').submit(); 
@@ -160,7 +165,7 @@ function initShowCalls() {
         { text: 'Yes', 
           click: function() { $(this).dialog('close'); $(location).attr('href',url);}}
       ];
-      showDialog($('#dialog'), msg, buttons);
+      showDialog($('#dialog'), msg, 'Confirm Action', buttons);
     });
   });
 
@@ -187,7 +192,7 @@ function initShowJobs() {
         { text: 'Yes', 
           click: function() { $(this).dialog('close'); $(location).attr('href',url);}}
       ];
-      showDialog($('#dialog'), msg, buttons);
+      showDialog($('#dialog'), msg, 'Confirm Action', buttons);
     });
   });
 

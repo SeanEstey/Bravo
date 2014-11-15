@@ -24,7 +24,7 @@ def schedule_jobs():
   db = client['wsf']
 
   while True:
-    pending_jobs = db['call_jobs'].find({'status': 'pending'})
+    pending_jobs = db['jobs'].find({'status': 'pending'})
    
     print str(pending_jobs.count()) + ' pending jobs:'
     i=1
@@ -71,7 +71,7 @@ def monitor_job(job_id):
 
       if in_progress.count() == 0:
         logger.info('job %s complete' % job_id)
-        db['call_jobs'].update(
+        db['jobs'].update(
           {'_id': ObjectId(job_id)},
           {'$set': {'status': 'complete'}}
         )
@@ -94,17 +94,17 @@ def execute_job(job_id):
   monitor_job(job_id)
 
 #-------------------------------------------------------------------
-# job_id is the default _id field created for each call_jobs document by mongo
+# job_id is the default _id field created for each jobs document by mongo
 @celery.task
 def fire_calls(job_id):
   logger.info('Firing calls for job %s' % job_id)
 
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
-  job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
+  job = db['jobs'].find_one({'_id':ObjectId(job_id)})
   calls = db['calls'].find({'job_id':job_id})
 
-  db['call_jobs'].update(
+  db['jobs'].update(
     {'_id': job['_id']},
     {'$set': {'status': 'in_progress'}}
   )

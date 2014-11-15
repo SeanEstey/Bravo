@@ -103,7 +103,7 @@ def create_job_summary(job_id):
 
   #logger.info('Summary for job %s:\ndelivered: %s\nmachine: %s\nbusy: %s\nfailed: %s', job_id, str(delivered), str(machine), str(busy), str(failed))
 
-  db['call_jobs'].update(
+  db['jobs'].update(
     {'_id': ObjectId(job_id)}, 
     {'$set': job}
   )
@@ -120,7 +120,7 @@ def send_email_report(job_id):
 
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
-    job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
+    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
     
 
     calls = list(db['calls'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))

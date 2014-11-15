@@ -78,15 +78,18 @@ def create_job():
            'Here is your header row:<br><b>' + str(header) + '</b><br><br>' \
            'Please fix your mess and try again.'
            return redirect(url_for('show_error',  msg=msg))
-      
+
+      num_lines = 0
       for row in reader:
         # CSV format: NAME,PICKUP_DATE,PHONE
         # verify columns match template
         if len(row) != 5:
-          msg = 'Line #' + str(reader.line_num) + ' has ' + str(len(row)) + ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
+          msg = 'Line #' + str(reader.line_num) + ' has ' + str(len(row)) + \
+          ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
           return redirect(url_for('show_error', msg=msg))
         else:
           buffer.append(row)
+        num_lines += 1
 
     # No file errors. Save job + calls to DB.
     job_record = {
@@ -101,12 +104,13 @@ def create_job():
       'audio_url': request.form['audio'],
       'audio_order': order,
       'fire_dtime': fire_dtime,
-      'status': 'pending'
+      'status': 'pending',
+      'num_calls': num_lines
     }
     
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
-    job_id = db['call_jobs'].insert(job_record)
+    job_id = db['jobs'].insert(job_record)
     job_id = str(job_id)
     logger.info('Job %s added to DB' % job_id)
 
@@ -127,7 +131,7 @@ def create_job():
     logger.info('Calls added to DB for job %s' % job_id)
 
     calls = db['calls'].find({'job_id':job_id})
-    job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
+    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
 
     return redirect(url_for('show_calls', job_id=job_id, calls=calls, job=job))
 
@@ -136,7 +140,7 @@ def create_job():
 def show_jobs():
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
-  jobs = db['call_jobs'].find().sort('fire_dtime',-1)
+  jobs = db['jobs'].find().sort('fire_dtime',-1)
 
   return render_template('show_jobs.html', jobs=jobs)
 
@@ -154,12 +158,13 @@ def show_calls(job_id): #sort_by=None, sort_order=None):
     sort_order = int(request.args['sort_order'])
   
   calls = db['calls'].find({'job_id':job_id}).sort(sort_by, sort_order)
-  job = db['call_jobs'].find_one({'_id':ObjectId(job_id)})
+  job = db['jobs'].find_one({'_id':ObjectId(job_id)})
 
   sort_cols = [
     {'name': 1},
     {'to': 1},
     {'etw_status': 1},
+    {'event_date': 1},
     {'office_notes': 1},
     {'status': 1},
     {'message': 1},
@@ -193,11 +198,11 @@ def show_calls(job_id): #sort_by=None, sort_order=None):
 def cancel_job(job_id):
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
-  db['call_jobs'].remove({'_id':ObjectId(job_id)})
+  db['jobs'].remove({'_id':ObjectId(job_id)})
   db['calls'].remove({'job_id':job_id})
-  logger.info('Removed db.call_jobs and db.calls for %s' % job_id)
+  logger.info('Removed db.jobs and db.calls for %s' % job_id)
 
-  jobs = db['call_jobs'].find()
+  jobs = db['jobs'].find()
 
   return redirect(url_for('show_jobs'))
 
@@ -208,8 +213,11 @@ def cancel_call(call_id):
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
   db['calls'].remove({'_id':ObjectId(call_id)})
-    
-
+   
+  db['jobs'].update(
+    {'_id':ObjectId(job_id)}, 
+    {'$inc':{'num_calls':-1}}
+  )
 
   return redirect(url_for('show_calls', job_id=job_id, sort_by=request.args['sort_by'], sort_order=request.args['sort_order']))
 

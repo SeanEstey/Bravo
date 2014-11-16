@@ -18,10 +18,42 @@ EMAIL_USER = 'winnstew'
 EMAIL_PW = 'batman()'
 UPLOAD_FOLDER = '/tmp'
 ALLOWED_EXTENSIONS = set(['csv','xls'])
-ETW_REMINDER_HEADER = ['Name', 'Phone', 'Status', 'Next P/U Date', 'Office Notes']
-ETW_WELCOME_HEADER =  ['Name', 'Phone', 'Status', 'Next P/U Date', 'Office Notes']
-SPECIAL_MSG_HEADER = ['Name', 'Phone', 'Date']
-GG_DELIVERY_HEADER = ['Name', 'Phone', 'Date', 'Price']
+TEMPLATE_HEADERS = { 
+  'etw_reminder': [
+    'Name', 
+    'Phone', 
+    'Status', 
+    'Next P/U Date', 
+    'Office Notes'
+  ],
+  'etw_welcome': [
+    'Name', 
+    'Phone', 
+    'Status', 
+    'Next P/U Date', 
+    'Office Notes'
+  ],
+  'special_msg': [
+    'Name', 
+    'Phone', 
+    'Date'
+  ],
+  'gg_delivery': [
+    'Name', 
+    'Phone', 
+    'Date', 
+    'Price'
+  ]
+}
+
+HEADERS_TO_MONGO = {
+  'Name': 'name',
+  'Phone': 'to',
+  'Status': 'etw_status',
+  'Next P/U Date': 'event_date',
+  'Office Notes': 'office_notes',
+}
+
 
 def setLogger(logger, level, log_name):
     handler = logging.FileHandler(log_name)

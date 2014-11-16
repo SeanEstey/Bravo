@@ -6,6 +6,7 @@ import plivo
 import plivoxml
 from datetime import datetime,date
 from dateutil.parser import parse
+import werkzeug
 from werkzeug import secure_filename
 import os
 import time
@@ -19,6 +20,41 @@ setLogger(logger, logging.INFO, 'log.log')
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
+
+
+#-------------------------------------------------------------------
+def parse_csv(csvfile, header_template):
+  reader = csv.reader(csvfile, delimiter=',', quotechar='"')
+  buffer = []
+  header_err = False 
+  header_row = reader.next()
+
+  if len(header_row) != len(header_template):
+    header_err = True
+  else:
+    for col in range(0, len(header_row)):
+      if header_row[col] != header_template[col]:
+        header_err = True
+        break
+
+  if header_err:
+      msg = 'Your file is missing the proper header rows:<br> \
+      <b>' + str(header_template) + '</b><br><br>' \
+      'Here is your header row:<br><b>' + str(header_row) + '</b><br><br>' \
+      'Please fix your mess and try again.'
+      return redirect(url_for('show_error',  msg=msg))
+
+  num_lines = 0
+  for row in reader:
+    # verify columns match template
+    if len(row) != len(header_template):
+      msg = 'Line #' + str(reader.line_num) + ' has ' + str(len(row)) + \
+      ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
+      return redirect(url_for('show_error', msg=msg))
+    else:
+      buffer.append(row)
+
+  return buffer
 
 #-------------------------------------------------------------------
 def allowed_file(filename):
@@ -48,11 +84,6 @@ def create_job():
     date_string = request.form['date']+' '+request.form['time']
     fire_dtime = parse(date_string)
 
-    if request.form['order'] == 'after':
-      order = False
-    else:
-      order = True
-
     file = request.files['call_list']
     filename = ''
     if file and allowed_file(file.filename):
@@ -62,34 +93,10 @@ def create_job():
       return redirect(url_for('show_error', msg='Could not open file'))
     
     with open(app.config['UPLOAD_FOLDER'] + '/' + filename, 'rb') as csvfile:
-      reader = csv.reader(csvfile, delimiter=',', quotechar='"')
-      list_of_calls = []
-      buffer = []
-      template = request.form['template']
-      if template == 'etw_reminder':
-        header = reader.next()
-        if header[0] != 'Name' or \
-           header[1] != 'Phone' or \
-           header[2] != 'Status' or \
-           header[3] != 'Date' or \
-           header[4] != 'Office Notes':
-           msg = 'Your file is missing the proper header rows:<br> \
-           <b>[Name, Phone, Status, Date, Office Notes]</b><br><br>' \
-           'Here is your header row:<br><b>' + str(header) + '</b><br><br>' \
-           'Please fix your mess and try again.'
-           return redirect(url_for('show_error',  msg=msg))
-
-      num_lines = 0
-      for row in reader:
-        # CSV format: NAME,PICKUP_DATE,PHONE
-        # verify columns match template
-        if len(row) != 5:
-          msg = 'Line #' + str(reader.line_num) + ' has ' + str(len(row)) + \
-          ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
-          return redirect(url_for('show_error', msg=msg))
-        else:
-          buffer.append(row)
-        num_lines += 1
+      buffer = parse_csv(csvfile, TEMPLATE_HEADERS[request.form['template']])
+      # Return any errors
+      if isinstance (buffer, werkzeug.wrappers.Response):
+        return buffer
 
     # No file errors. Save job + calls to DB.
     job_record = {
@@ -102,10 +109,10 @@ def create_job():
       'verify_phone': request.form['verify_phone'],
       'message': request.form['message'],
       'audio_url': request.form['audio'],
-      'audio_order': order,
+      'audio_order': request.form['order'],
       'fire_dtime': fire_dtime,
       'status': 'pending',
-      'num_calls': num_lines
+      'num_calls': len(buffer)
     }
     
     client = pymongo.MongoClient('localhost',27017)
@@ -114,17 +121,18 @@ def create_job():
     job_id = str(job_id)
     logger.info('Job %s added to DB' % job_id)
 
+    list_of_calls = []
     for row in buffer:
       call = {
         'job_id': job_id,
-        'name': row[0],
-        'to': row[1],
-        'etw_status': row[2],
-        'event_date': row[3],
-        'office_notes': row[4],
         'status': 'not attempted',
         'attempts': 0
       }
+      # Add data columns to list with proper mongodb names ('Phone'->'to', etc)
+      for col in range(0, len(TEMPLATE_HEADERS[request.form['template']])):
+        col_name = TEMPLATE_HEADERS[request.form['template']][col]
+        call[HEADERS_TO_MONGO[col_name]] = row[col]
+
       list_of_calls.append(call)
 
     db['calls'].insert(list_of_calls)
@@ -245,14 +253,40 @@ def content():
             }}
     )
     call = db['calls'].find_one({'request_id':request_uuid})
+
     dt = parse(call['event_date'])
     date_str = dt.strftime('%A, %B %d')
-    speak = ('Hi, this is a friendly reminder from the Winny Fred ' +
-      'stewart association that your next empties to winn pickup date ' +
-      'is ' + date_str + '. please have your empties out by 8am. ' +
-      'To repeat this message press 1.'
-    )
-  
+    
+    # Get template
+    job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
+    
+    if job['template'] == 'etw_reminder':
+      if call['etw_status'] == 'Awaiting Dropoff':
+        speak = ('Hi, this is a friendly reminder from the Winny Fred ' +
+          'stewart association that your empties to winn dropoff date ' +
+          'is ' + date_str + '. If you have any empties you can leave them ' +
+          'out by 8am. ' +
+          'To repeat this message press 1.'
+        )
+      elif call['etw_status'] == 'Active':
+        speak = ('Hi, this is a friendly reminder from the Winny Fred ' +
+          'stewart association that your next empties to winn pickup date ' +
+          'is ' + date_str + '. please have your empties out by 8am. ' +
+          'To repeat this message press 1.'
+        )
+      elif call['etw_status'] == 'Cancelling':
+        speak = ('Hi, this is a friendly reminder from the Winny Fred ' +
+          'stewart association that we will come by to pick up your bag stand ' +
+          'on ' + date_str + '. thanks for your past support. ' +
+          'To repeat this message press 1.'
+        )
+    elif job['template'] == 'special_msg':
+      print 'TODO'
+    elif job['template'] == 'etw_welcome':
+      print 'TODO'
+    elif job['template'] == 'gg_delivery':
+      print 'TODO'
+
     logger.debug('%s Answered.' % call['to'])
    
     response = plivoxml.Response()

@@ -154,7 +154,7 @@ def show_jobs():
 
 #-------------------------------------------------------------------
 @app.route('/jobs/<job_id>')
-def show_calls(job_id): #sort_by=None, sort_order=None):
+def show_calls(job_id):
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
 
@@ -184,7 +184,6 @@ def show_calls(job_id): #sort_by=None, sort_order=None):
     if col.keys()[0] == sort_by:
       break;
     index += 1
-      #col[sort_by] = col[sort_by] * -1
 
   if sort_order == -1:
     sort_cols[index][sort_by] = 1
@@ -227,7 +226,12 @@ def cancel_call(call_id):
     {'$inc':{'num_calls':-1}}
   )
 
-  return redirect(url_for('show_calls', job_id=job_id, sort_by=request.args['sort_by'], sort_order=request.args['sort_order']))
+  return redirect(url_for(
+    'show_calls', 
+    job_id=job_id, 
+    sort_by=request.args['sort_by'], 
+    sort_order=request.args['sort_order']
+  ))
 
 #-------------------------------------------------------------------
 @app.route('/call/answer',methods=['POST','GET'])
@@ -257,9 +261,9 @@ def content():
     dt = parse(call['event_date'])
     date_str = dt.strftime('%A, %B %d')
     
-    # Get template
     job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-    
+   
+    # TODO: Implement this as function in bravo.py in order to invoke in call/voicemail
     if job['template'] == 'etw_reminder':
       if call['etw_status'] == 'Awaiting Dropoff':
         speak = ('Hi, this is a friendly reminder from the Winny Fred ' +

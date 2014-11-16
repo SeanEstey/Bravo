@@ -18,7 +18,10 @@ EMAIL_USER = 'winnstew'
 EMAIL_PW = 'batman()'
 UPLOAD_FOLDER = '/tmp'
 ALLOWED_EXTENSIONS = set(['csv','xls'])
-
+ETW_REMINDER_HEADER = ['Name', 'Phone', 'Status', 'Next P/U Date', 'Office Notes']
+ETW_WELCOME_HEADER =  ['Name', 'Phone', 'Status', 'Next P/U Date', 'Office Notes']
+SPECIAL_MSG_HEADER = ['Name', 'Phone', 'Date']
+GG_DELIVERY_HEADER = ['Name', 'Phone', 'Date', 'Price']
 
 def setLogger(logger, level, log_name):
     handler = logging.FileHandler(log_name)

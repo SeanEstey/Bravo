@@ -12,6 +12,8 @@ div.header {
 
 body {
   height: 100%;
+  background-color: white;
+/*  background-color: #f0f8ff;*/
   font-family: verdana;
   color: black;
   font-size: 16px;
@@ -82,6 +84,8 @@ optgroup {
 }
 
 .show-jobs-td {
+/*  background-color: #f5f5f5;*/
+  background-color: #fafafa;
   padding-left: 0.5em;
   padding-right: 0.5em;
   padding-top: 0.5em;
@@ -91,8 +95,8 @@ optgroup {
 .show-jobs-header {
   padding-left: 0.5em;
   padding-right: 0.5em;
-  padding-top: 1em;
-  padding-bottom: 1em;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
 }
 .opt {
   font-size: 16px;
@@ -114,6 +118,54 @@ optgroup {
 
 .center {
   display: inline-block;
+}
+
+.show-jobs-div {
+  border:1px solid #bbbbbb; 
+  border-radius:7px; 
+  -webkit-border-radius:7px 7px 0px 0px;
+  padding: 0em;
+}
+
+.navbar-div {
+  -webkit-border-radius:7px 7px 0px 0px; 
+  background-color: white; 
+  border-bottom: solid 1px #bbbbbb; 
+  padding:0.5em; 
+  text-align:left;
+}
+
+table.data-table2 {
+  border-collapse: collapse; 
+  text-align:left; 
+  width:750px;
+}
+
+table.data-table2 th {
+  border-top: none;
+  border-bottom: solid 1px #bbbbbb; 
+  background-color: #e8f5f9; 
+  padding: 0.5em;
+}
+
+table.data-table2 tr {
+  border:solid; 
+  border-color:#dddddd; 
+  border-width:1px 0; 
+  color: #365766;
+}
+
+table.data-table2 tr:last-child {
+  border-bottom: none;
+}
+
+table.data-table2 tr:first-child {
+  border-top: none;
+}
+
+table.data-table2 td {
+  background-color: #fafafa;
+  padding: 0.5em;
 }
 
 .box {

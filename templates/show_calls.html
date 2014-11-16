@@ -5,21 +5,26 @@
       initShowCalls();
     });
   </script>
+    <br><br>
   <div class="h1">
-    Status: {{ job.status }}
+    <b>Status: {{ job.status.title() }}</b>
     <br>
-    Scheduled: {{ job.fire_dtime }}
+<!--    Scheduled: {{ job.fire_dtime }} -->
     <br>
   </div>
-  <div class="box">
-    <table class='data-table'>
+  <div class="show-jobs-div">
+  <div class='navbar-div'>
+    <a class='hover' href="{{ url_for('index') }}">Bravo</a> / 
+    <a class='hover' href="{{ url_for('show_jobs') }}">Jobs</a>
+  </div>
+    <table class='data-table2' style='width:950px;'>
       <tr>
       {% for col in sort_cols %}
-        <td>
+        <th>
           <a href="{{ url_for('show_calls', job_id=job._id, sort_by=col.keys()[0], sort_order=col.values()[0]) }}">{{ col.keys()[0].title().replace('_', ' ') }}</a>
-        </td>
+        </th>
       {% endfor %}
-        <td></td>
+      <th></th>
       </tr>
       {% for call in calls %}
       <tr>
@@ -37,11 +42,5 @@
       </tr>
       {% endfor %}
     </table>
-  </div>
-
-  <br><br>
-  <div class='h1'>
-    <br>
-    <a href="{{ url_for('show_jobs') }}">Back</a>
   </div>
   {% endblock %}

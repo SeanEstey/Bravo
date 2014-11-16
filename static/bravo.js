@@ -144,8 +144,10 @@ function initNewJob() {
   $submit_btn.click(function(){
     validateNewJobForm();
   });
+  $('body').css('display','block');
 }
 
+//---------------------------------------------------------------
 function initShowCalls() {
   $('.delete-btn').button({
     icons: {
@@ -169,6 +171,24 @@ function initShowCalls() {
     });
   });
 
+  var scheduled = Date.parse($('#scheduled_datetime').text());
+  setInterval(function() {
+    var today = new Date();
+    var diff_ms = scheduled.getTime() - today.getTime();
+
+    if(diff_ms < 0) {
+      $('#timer').text('Completed');
+      return;
+    }
+
+    var diff_days = diff_ms / (1000 * 3600 * 24);
+    var diff_hrs = ((diff_days + 1) % 1) * 24;
+    var diff_min = ((diff_hrs + 1) % 1) * 60;
+    var diff_sec = ((diff_min + 1) % 1) * 60;
+    $('#timer').text('Pending: ' + Math.floor(diff_days) + ' Days ' + Math.floor(diff_hrs) + ' Hours ' + Math.floor(diff_min) + ' Min ' + Math.floor(diff_sec) + ' Sec')
+  }, 1000);
+
+  $('body').css('display','block');
 }
 
 //---------------------------------------------------------------
@@ -196,6 +216,5 @@ function initShowJobs() {
     });
   });
 
-  console.log('show_jobs!');
-
+  $('body').css('display','block');
 }

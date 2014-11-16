@@ -1,17 +1,18 @@
   {% extends "base.html" %}
   {% block content %}  
   <script>
+    document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
       initShowCalls();
     });
   </script>
     <br><br>
-  <div class="h1">
-    <b>Status: {{ job.status.title() }}</b>
-    <br>
-<!--    Scheduled: {{ job.fire_dtime }} -->
-    <br>
-  </div>
+  <b><div class='h1' id='timer'>
+    <b>Pending: </b>
+    <!--<b>Status: {{ job.status.title() }}</b>-->
+    <p id='scheduled_datetime' style='display:none'>{{ job.fire_dtime }}</p>
+  </div></b>
+  <br>
   <div class="show-jobs-div">
   <div class='navbar-div'>
     <a class='hover' href="{{ url_for('index') }}">Bravo</a> / 
@@ -21,7 +22,16 @@
       <tr>
       {% for col in sort_cols %}
         <th>
-          <a href="{{ url_for('show_calls', job_id=job._id, sort_by=col.keys()[0], sort_order=col.values()[0]) }}">{{ col.keys()[0].title().replace('_', ' ') }}</a>
+          {% 
+            set sort_url = url_for(
+              'show_calls', 
+              job_id=job._id, 
+              sort_by=col.keys()[0], 
+              sort_order=col.values()[0]) 
+          %}
+          <a class='hover' href="{{ sort_url }}">
+            {{ col.keys()[0].title().replace('_', ' ') }}
+          </a>
         </th>
       {% endfor %}
       <th></th>
@@ -33,11 +43,26 @@
         <td>{{ call.etw_status }} </td>
         <td>{{ call.event_date }} </td>
         <td style='width:10%;'>{{ call.office_notes }}</td>
-        <td>{{ call.status.replace('not attempted', '--') }}</td>
+        <td>{{ call.status.replace('not attempted', '') }}</td>
         <td>{{ call.message }}</td>
-        <td>{{ call.attempts }}</td>
         <td>
-          <button class='delete-btn' type="button" id="{{ url_for('cancel_call', call_id=call._id, job_id=call.job_id, sort_by=sort_by, sort_order=sort_order) }}" name="delete-btn"></button>
+          {% if call.attempts == 0 %}
+          
+          {% else %}
+            {{ call.attempts }}</td>
+          {% endif %}
+        <td>
+          <button 
+            class='delete-btn' 
+            type="button" 
+            id="{{ url_for(
+              'cancel_call', 
+              call_id=call._id, 
+              job_id=call.job_id, 
+              sort_by=sort_by, 
+              sort_order=sort_order) }}" 
+            name="delete-btn">
+          </button>
         </td>
       </tr>
       {% endfor %}

@@ -1,6 +1,7 @@
   {% extends "base.html" %}
   {% block content %}  
   <script>
+    document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
       initShowJobs();
     });
@@ -27,19 +28,32 @@
         <th></th>
       </tr>
       {% for job in jobs %}
+      {% set show_calls_url = url_for(
+        'show_calls', 
+        job_id=job._id, 
+        sort_by='name', 
+        sort_order=1 ) 
+      %}
       <tr>
         <td>
-          <a class='hover' href="{{ url_for('show_calls', job_id=job._id, sort_by='name', sort_order=1 ) }}">
-          {{ job.fire_dtime.strftime("%A %b %d @ %I:%M %p") }}</a>
+          <a class='hover' href="{{ show_calls_url }}">
+            {{ job.fire_dtime.strftime("%A %b %d @ %I:%M %p") }}
+          </a>
         </td>
         <td>
-          <a class='hover' href="{{ url_for('show_calls', job_id=job._id, sort_by='name', sort_order=1 ) }}">{{ job.name }}</a>
+          <a class='hover' href="{{ show_calls_url }}">
+            {{ job.name }}
+          </a>
         </td>
         <td>
-          {{ job.template.replace('_', ' ').title() }}
+          <a class='hover' href="{{ show_calls_url }}">
+            {{ job.template.replace('_', ' ').title() }}
+          </a>
         </td>
         <td>
-          {{ job.num_calls }}
+          <a class='hover' href="{{ show_calls_url }}">
+            {{ job.num_calls }}
+          </a>
         </td>
         <td>
         {% if job.status == "complete" %}
@@ -55,7 +69,12 @@
         {% endif %}
         </td>
         <td>
-          <button class='delete-btn' type="button" id="{{ url_for('cancel_job',job_id=job._id) }}" name="delete-btn"></button>
+          <button 
+            class='delete-btn' 
+            type="button" 
+            id="{{ url_for('cancel_job',job_id=job._id) }}" 
+            name="delete-btn">
+          </button>
         </td>
       </tr>
       {% endfor %}

@@ -716,3 +716,267 @@ TypeError: 'NoneType' object has no attribute '__getitem__'
 2014-11-16 14:45:34,579 - __main__ - INFO - Job 54691afe9b9387670fe8fece added to DB
 2014-11-16 14:45:34,585 - __main__ - INFO - Calls added to DB for job 54691afe9b9387670fe8fece
 2014-11-16 15:20:58,901 - __main__ - INFO - Removed db.jobs and db.calls for 5467abf39b9387115afb3dcf
+2014-11-16 19:16:00,436 - __main__ - INFO - <generator object unicode_csv_reader at 0x7f27fc060870>
+2014-11-16 19:18:18,285 - __main__ - INFO - [u'/']
+2014-11-16 19:18:18,285 - __main__ - INFO - [u't']
+2014-11-16 19:18:18,285 - __main__ - INFO - [u'm']
+2014-11-16 19:18:18,286 - __main__ - INFO - [u'p']
+2014-11-16 19:18:18,286 - __main__ - INFO - [u'/']
+2014-11-16 19:18:18,286 - __main__ - INFO - [u'R']
+2014-11-16 19:18:18,286 - __main__ - INFO - [u'e']
+2014-11-16 19:18:18,286 - __main__ - INFO - [u's']
+2014-11-16 19:18:18,286 - __main__ - INFO - [u'_']
+2014-11-16 19:18:18,286 - __main__ - INFO - [u'6']
+2014-11-16 19:18:18,286 - __main__ - INFO - [u'H']
+2014-11-16 19:18:18,286 - __main__ - INFO - [u'.']
+2014-11-16 19:18:18,286 - __main__ - INFO - [u'c']
+2014-11-16 19:18:18,287 - __main__ - INFO - [u's']
+2014-11-16 19:18:18,287 - __main__ - INFO - [u'v']
+2014-11-16 19:28:50,359 - __main__ - INFO - Name
+2014-11-16 19:28:50,359 - __main__ - INFO - Phone
+2014-11-16 19:28:50,359 - __main__ - INFO - Status
+2014-11-16 19:28:50,359 - __main__ - INFO - Next P/U Date
+2014-11-16 19:28:50,360 - __main__ - INFO - Office Notes
+
+2014-11-16 19:28:59,246 - __main__ - INFO - Name
+2014-11-16 19:28:59,246 - __main__ - INFO - Phone
+2014-11-16 19:28:59,246 - __main__ - INFO - Status
+2014-11-16 19:28:59,246 - __main__ - INFO - Next P/U Date
+2014-11-16 19:28:59,247 - __main__ - INFO - Office Notes
+
+2014-11-16 19:34:33,782 - __main__ - INFO - Name,Phone,Status,Next P/U Date,Office Notes
+
+2014-11-16 19:34:33,782 - __main__ - INFO - "","","","",""
+
+2014-11-16 19:34:33,782 - __main__ - INFO - "A Siddigui","780 463-3686","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,782 - __main__ - INFO - "Adam Tuffin","780-994-0070","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,783 - __main__ - INFO - "Albert Williams","780-462-3929","Active","",""
+
+2014-11-16 19:34:33,783 - __main__ - INFO - "Alicia Woolf","780-868-0108","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,783 - __main__ - INFO - "Amy Fehr","780-436-6802","Active","January 26, 2015",""
+
+2014-11-16 19:34:33,783 - __main__ - INFO - "Andrew Duperron","780 902-2774","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,783 - __main__ - INFO - "Angie  Dietrich","780-450-3712","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,783 - __main__ - INFO - "Arvind Sekhon","780-915-9508","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,783 - __main__ - INFO - "Bana Simpson","780 434-0352","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,783 - __main__ - INFO - "Betty Robert","780-289-5154","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,783 - __main__ - INFO - "Brittany Kallstrom","780-466-5772","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,784 - __main__ - INFO - "Bruce Jackson","780 463-1096","Active","November 17, 2014","No P/U Nov 17"
+
+2014-11-16 19:34:33,784 - __main__ - INFO - "Byron Martens","780-915-9390","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,784 - __main__ - INFO - "Catalina  Luna","780-462-8016","Active","",""
+
+2014-11-16 19:34:33,784 - __main__ - INFO - "Chin Lim","780 462 4133","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,784 - __main__ - INFO - "Christina Manchul","780-691-4581","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,784 - __main__ - INFO - "Corey Warawa","780 465 9166","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,784 - __main__ - INFO - "D Thani","780 440 3820","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,784 - __main__ - INFO - "Daljit Sekhon","780 461-3003","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,785 - __main__ - INFO - "Dan Bodie","780 462 2625","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,785 - __main__ - INFO - "Danny De Leon","780-231-4802","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,785 - __main__ - INFO - "Darren Wadley","780 239 8476","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,785 - __main__ - INFO - "Deborah Smith","780-450-0337","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,785 - __main__ - INFO - "Don Lowes","780 469 8853","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,785 - __main__ - INFO - "Doreen Osborne","780-462-3596","Cancelling","November 17, 2014","Remove 6H after Nov 17"
+
+2014-11-16 19:34:33,785 - __main__ - INFO - "Doug Harris","(780) 462-4506","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,785 - __main__ - INFO - "Doug Roche","780 462 4709","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,785 - __main__ - INFO - "Ed Nichols","780 461-7002","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,786 - __main__ - INFO - "Edualc Filo","780-720-6992","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,786 - __main__ - INFO - "Eileen  Asselstine","780-462-6436","Awaiting Dropoff","November 15, 2014",""
+
+2014-11-16 19:34:33,786 - __main__ - INFO - "Frank  Gardner","780-463-3965","Awaiting Dropoff","November 15, 2014",""
+
+2014-11-16 19:34:33,786 - __main__ - INFO - "Greg Burnham","780-240-2828","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,786 - __main__ - INFO - "Harry Boyko","780 000 0000","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,786 - __main__ - INFO - "Henry Stoltz","780-463-0293","Active","",""
+
+2014-11-16 19:34:33,786 - __main__ - INFO - "Hershey Romales","780-758-8599","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,786 - __main__ - INFO - "Ian Lawlor","780 466 6978","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,787 - __main__ - INFO - "Jace MacAskill","587-989-6065","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,787 - __main__ - INFO - "Jack Parker","780 975 8968","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,787 - __main__ - INFO - "Jamie Kavanagh","581-521-7574","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,787 - __main__ - INFO - "Janice Broverman","780 482-7011","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,787 - __main__ - INFO - "Jatin Jajal","780-641-5716","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,787 - __main__ - INFO - "Jen Mallia","780 988-2588","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,787 - __main__ - INFO - "Jeoff Harrison","587 594 3217","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,787 - __main__ - INFO - "Jillian Pidcock","780 465 4821","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,787 - __main__ - INFO - "Jim Sidhu","780-945-6645","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,787 - __main__ - INFO - "Joan Laidler","780-669-0454","Cancelling","January 13, 2015","Remove 6H After Nov 17"
+
+2014-11-16 19:34:33,788 - __main__ - INFO - "John Macdonald","","Active","November 17, 2014","Refused to provide phone number."
+
+2014-11-16 19:34:33,788 - __main__ - INFO - "John Vailliant","780-989-3666","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,788 - __main__ - INFO - "Joyce Leptz","780-463-7865","Active","",""
+
+2014-11-16 19:34:33,788 - __main__ - INFO - "Karlie Brown","780 221 8223","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,788 - __main__ - INFO - "Kayla Harbarenko","780-710-0347","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,788 - __main__ - INFO - "Kim  Miyagishima","780-462-1983","Active","January 26, 2015",""
+
+2014-11-16 19:34:33,788 - __main__ - INFO - "Krishna Rudra","780-628-2649","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,788 - __main__ - INFO - "Latouma Foureh","780-642-6497","Awaiting Dropoff","November 15, 2014",""
+
+2014-11-16 19:34:33,788 - __main__ - INFO - "Laurence Lo","780 462-6573","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,788 - __main__ - INFO - "Len Dacyk","780 462-1363","Cancelling","November 17, 2014","Remove 6H after Nov 17"
+
+2014-11-16 19:34:33,788 - __main__ - INFO - "Leszlo Kormendi","780 000 0000","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,789 - __main__ - INFO - "Linda Bessant","780-993-8490","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,789 - __main__ - INFO - "Linda Karenko","780-439-8895","Awaiting Dropoff","November 17, 2014","Remove 6H after Nov 17"
+
+2014-11-16 19:34:33,789 - __main__ - INFO - "Lois Flynn","780 461 9020","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,789 - __main__ - INFO - "Loius Koledoie","780 465 3829","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,789 - __main__ - INFO - "Maddie Funk","780 278 9191","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,789 - __main__ - INFO - "Mandeep Mangat","780-974-1671","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,789 - __main__ - INFO - "Manjinder Singh","780-916-9132","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,789 - __main__ - INFO - "Marc Mazurak","780-862-6911","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,789 - __main__ - INFO - "Marlina Alva","780-488-9555","Awaiting Dropoff","November 15, 2014",""
+
+2014-11-16 19:34:33,790 - __main__ - INFO - "Meenu Bhardwaj","780-490-4211","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,790 - __main__ - INFO - "Megan Slaney","709-277-0986","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,790 - __main__ - INFO - "Melissa Kneeland","780-995-5242","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,790 - __main__ - INFO - "Michele Dinardo","780-405-7895","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,790 - __main__ - INFO - "Milton Rempel","780 450-4802","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,790 - __main__ - INFO - "Mr Bruce Nelson","780 463 4434","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,790 - __main__ - INFO - "Muqas Naheed","780 465-9125","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,790 - __main__ - INFO - "Nagamani Tumma","780-802-8329","Active","November 17, 2014","Driver:Jerome
+
+2014-11-16 19:34:33,790 - __main__ - INFO - Route:6H
+
+2014-11-16 19:34:33,790 - __main__ - INFO - Notified:via email, put our bottle bags in front of the door by 7:30 am. 
+
+2014-11-16 19:34:33,790 - __main__ - INFO - Anyhow please pick up the bottle bags next time.
+
+2014-11-16 19:34:33,790 - __main__ - INFO - Details:$0.00,nh
+
+2014-11-16 19:34:33,791 - __main__ - INFO - rebook: no"
+
+2014-11-16 19:34:33,791 - __main__ - INFO - "Noman Khan","780 660 7891","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,791 - __main__ - INFO - "Paola Munoz","780-468-6462","Awaiting Dropoff","November 15, 2014",""
+
+2014-11-16 19:34:33,791 - __main__ - INFO - "Paul McCullough","780-907-6427","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,791 - __main__ - INFO - "Paul Vandermeer","780-433-3146","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,791 - __main__ - INFO - "Percy King","780 634 0494","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,791 - __main__ - INFO - "Peter Jarvis","780 461-3586","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,791 - __main__ - INFO - "Poonam Bajwa","780 893 0003","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,791 - __main__ - INFO - "Prem Nariani","780 463-2677","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,791 - __main__ - INFO - "Randy Seutter","780-462-8703","Awaiting Dropoff","November 15, 2014",""
+
+2014-11-16 19:34:33,791 - __main__ - INFO - "Rani Bhathal","780-860-2100","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,791 - __main__ - INFO - "Remea Soyce","587 523 2107","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,792 - __main__ - INFO - "Renee Ruppenthal","780-504-0756","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,792 - __main__ - INFO - "Rhina Castellon","780 469 4428","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,792 - __main__ - INFO - "Robert Hayward","780 435-9972","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,792 - __main__ - INFO - "Robin Kyler","780-982-7532","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,792 - __main__ - INFO - "Rod Boudreau","780 540 2002","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,792 - __main__ - INFO - "Ron James","780 463 5217","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,792 - __main__ - INFO - "Ron Swizinski","780 469-9695","Cancelling","November 17, 2014",""
+
+2014-11-16 19:34:33,792 - __main__ - INFO - "Ros Bonito","780 462 5386","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,792 - __main__ - INFO - "Sandra Graneau","780-902-1329","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,792 - __main__ - INFO - "Sara Schroffel","780-641-9644","Active","November 17, 2014","GPS off."
+
+2014-11-16 19:34:33,792 - __main__ - INFO - "Shannon Gilson","780 461-4062","Active","January 26, 2015",""
+
+2014-11-16 19:34:33,793 - __main__ - INFO - "Sharal Layal","780 906 4003","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,793 - __main__ - INFO - "Shawn Blair","780 203 5047","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,793 - __main__ - INFO - "Shazia Abbas","780-250-8061","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,793 - __main__ - INFO - "Shelly Nunweiler","780-224-7277","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,793 - __main__ - INFO - "Stan Gillies","780 462 5126","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,793 - __main__ - INFO - "Stephanie  Michaels","780-490-0849","Awaiting Dropoff","November 15, 2014",""
+
+2014-11-16 19:34:33,793 - __main__ - INFO - "Steven Mitchell","780 485 5581","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,793 - __main__ - INFO - "Theresa Shirley","(780) 463-8884","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,793 - __main__ - INFO - "Thiyaga Rajan","780-915-1509","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,793 - __main__ - INFO - "Tooba Saeed","780-450-4700","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,793 - __main__ - INFO - "Waren Richard","780 469 1037","Active","November 17, 2014",""
+
+2014-11-16 19:34:33,793 - __main__ - INFO - "William & Marilynn Sangster","780 434-8272","Active","November 17, 2014","Remove 6H after Nov 17"
+
+2014-11-16 19:34:33,794 - __main__ - INFO - "Zujaja Zafrullan","780 665 1076","Active","November 17, 2014",""
+
+2014-11-16 19:54:24,286 - __main__ - INFO - Job 546963609b938739e0b2b51e added to DB
+2014-11-16 19:54:24,294 - __main__ - INFO - Calls added to DB for job 546963609b938739e0b2b51e
+2014-11-16 19:55:28,517 - __main__ - INFO - Job 546963a09b93873a27409611 added to DB
+2014-11-16 19:55:28,524 - __main__ - INFO - Calls added to DB for job 546963a09b93873a27409611

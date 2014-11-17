@@ -14,6 +14,7 @@ import tasks
 import urllib2
 import csv
 import logging
+import codecs
 
 logger = logging.getLogger(__name__)
 setLogger(logger, logging.INFO, 'log.log')
@@ -21,13 +22,12 @@ setLogger(logger, logging.INFO, 'log.log')
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 
-
 #-------------------------------------------------------------------
 def parse_csv(csvfile, header_template):
-  reader = csv.reader(csvfile, delimiter=',', quotechar='"')
+  reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
   buffer = []
   header_err = False 
-  header_row = reader.next()
+  header_row = reader.next() 
 
   if len(header_row) != len(header_template):
     header_err = True
@@ -44,15 +44,19 @@ def parse_csv(csvfile, header_template):
       'Please fix your mess and try again.'
       return redirect(url_for('show_error',  msg=msg))
 
-  num_lines = 0
+  # DELETE FIRST EMPTY ROW FROM ETAP FILE EXPORT
+  reader.next()
+  line_num = 1
   for row in reader:
+    #row_list = row #row.encode('utf-8').rstrip().split(',')
     # verify columns match template
     if len(row) != len(header_template):
-      msg = 'Line #' + str(reader.line_num) + ' has ' + str(len(row)) + \
+      msg = 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
       ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
       return redirect(url_for('show_error', msg=msg))
     else:
       buffer.append(row)
+    line_num += 1
 
   return buffer
 
@@ -91,13 +95,13 @@ def create_job():
       file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename)) 
     else:
       return redirect(url_for('show_error', msg='Could not open file'))
-    
-    with open(app.config['UPLOAD_FOLDER'] + '/' + filename, 'rb') as csvfile:
-      buffer = parse_csv(csvfile, TEMPLATE_HEADERS[request.form['template']])
-      # Return any errors
+   
+    file_path = app.config['UPLOAD_FOLDER'] + '/' + filename
+    with codecs.open(file_path, 'r', 'utf-8-sig') as f:
+      buffer = parse_csv(f, TEMPLATE_HEADERS[request.form['template']])
       if isinstance (buffer, werkzeug.wrappers.Response):
         return buffer
-
+    
     # No file errors. Save job + calls to DB.
     job_record = {
       'name': filename.split('.')[0].replace('_',' '),

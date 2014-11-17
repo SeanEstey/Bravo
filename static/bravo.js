@@ -192,6 +192,23 @@ function initShowCalls() {
 }
 
 //---------------------------------------------------------------
+function toggleEditMode(row_num) {
+  // Apply Edit Mode on a row, change back to Read Mode when input loses focus
+  var row_id = '#row' + row_num;
+  $(row_id).find('td').each(function() {
+    var text = $(this).text();
+    var $field = $(this);
+    $(this).html("<input type='text' value='" + text + "'>");
+
+    var $input = $(this).find('input');
+    $input.change(function() {
+      $field.html($input.val());
+      // TODO: Submit Ajax query to update mongodb record
+    });
+  });
+}
+
+//---------------------------------------------------------------
 function initShowJobs() {
   $('.delete-btn').button({
     icons: {

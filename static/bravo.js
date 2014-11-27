@@ -189,23 +189,70 @@ function initShowCalls() {
   }, 1000);
 
   $('body').css('display','block');
+
+
+  $("td").on('click',function() {      
+  //$("td").focusin(function() {      
+    console.log('focused!');
+    var row_id = $(this).parent().attr('id');
+    toggleEditMode(row_id);
+  });
+
 }
 
 //---------------------------------------------------------------
-function toggleEditMode(row_num) {
+// Tapping on a table cell should replace the label with an <input>
+// element. When it loses focus, it is replaced by a label and changes
+// saved to DB. If 
+function toggleEditMode(row_id) {
   // Apply Edit Mode on a row, change back to Read Mode when input loses focus
-  var row_id = '#row' + row_num;
-  $(row_id).find('td').each(function() {
-    var text = $(this).text();
-    var $field = $(this);
-    $(this).html("<input type='text' value='" + text + "'>");
+  var $current_input = $('tr').find('input');
+  if ($current_input.length > 0) {
+    var current_row_id = $current_input.parent().parent().attr('id');
 
-    var $input = $(this).find('input');
-    $input.change(function() {
-      $field.html($input.val());
-      // TODO: Submit Ajax query to update mongodb record
+    if(row_id != current_row_id) {
+      
+    }
+
+  }
+
+  var $input = $('#'+row_id).find('input');
+
+  // EDIT MODE ENABLED
+  if($input.length > 0) {
+    //console.log('edit mode currently enabled.');
+    $('#'+row_id).find('td').each(function() {
+      // Same row or different row?
+      
+
+      //var $input = $(this).find('input');
+      //var input_val = $input.val();
+      //$(this).html(input_val);
     });
-  });
+  }
+  // EDIT MODE DISABLED
+  else {
+    console.log('edit mode disabled. enabling.');
+    $('#'+row_id).find('td').each(function() {
+      var text = $(this).text();
+      var $field = $(this);
+      $(this).html("<input type='text' value='" + text + "'>");
+
+      var $input = $(this).find('input');
+      $input.focusout(function() {
+        var $row = $field.parent().parent();
+        $row.find('input').each(function() {
+          var text = $(this).val();
+          $(this).parent().html(text);
+          console.log('switched input field back to read mode!');
+        });
+        // Convert entire row back to read mode
+
+        console.log('switch back to read mode!');
+        // TODO: Submit Ajax query to update mongodb record
+      });
+    });
+  }
 }
 
 //---------------------------------------------------------------

@@ -984,3 +984,20 @@ TypeError: 'NoneType' object has no attribute '__getitem__'
 2014-11-24 12:59:38,837 - __main__ - INFO - Removed db.jobs and db.calls for 546963a09b93873a27409611
 2014-11-24 12:59:42,557 - __main__ - INFO - Removed db.jobs and db.calls for 5467ad099b9387115afb3e3b
 2014-11-24 12:59:44,539 - __main__ - INFO - Removed db.jobs and db.calls for 5469115b9b93875ca95845b8
+2014-11-26 20:58:11,582 - __main__ - INFO - [u'shitpants']
+2014-11-26 21:01:29,759 - __main__ - INFO - field_name: shitty pants
+2014-11-26 21:04:00,780 - __main__ - INFO - field_name: shitty pants
+2014-11-26 21:09:58,665 - __main__ - INFO - field_name: shittypants
+2014-11-26 21:12:30,650 - __main__ - INFO - ['field_name']
+2014-11-26 21:12:30,651 - __main__ - INFO - field_name: hello
+2014-11-26 21:13:59,727 - __main__ - INFO - ['field_name']
+2014-11-26 21:13:59,727 - __main__ - INFO - field_name: shitpants
+2014-11-26 21:14:11,397 - __main__ - INFO - ['name']
+2014-11-26 21:14:11,397 - __main__ - INFO - name: test
+2014-11-26 21:16:11,427 - __main__ - INFO - name: Aaron Shitpants
+2014-11-26 21:16:39,278 - __main__ - INFO - office_notes: Go To Hell
+2014-11-26 21:16:48,726 - __main__ - INFO - name: Allen Fuckface
+2014-11-26 21:16:52,166 - __main__ - INFO - name: Amie Dowell
+2014-11-26 21:16:53,578 - __main__ - INFO - to: 780-757-6606
+2014-11-26 21:16:56,592 - __main__ - INFO - name: Amie Dowell
+2014-11-26 21:17:19,858 - __main__ - INFO - to: 780-757-6606

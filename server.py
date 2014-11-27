@@ -238,6 +238,24 @@ def cancel_call(call_id):
   ))
 
 #-------------------------------------------------------------------
+@app.route('/edit/call/<call_id>', methods=['POST'])
+def edit_call(call_id):
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
+  
+  for fieldname, value in request.form.items():
+    db['calls'].update(
+        {'_id':ObjectId(call_id)}, 
+        {'$set':{
+            fieldname: value,
+            }}
+    )
+
+    logger.info(fieldname + ': ' + value)
+
+  return 'OK'
+
+#-------------------------------------------------------------------
 @app.route('/call/answer',methods=['POST','GET'])
 def content():
   try:

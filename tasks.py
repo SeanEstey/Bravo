@@ -25,12 +25,10 @@ def schedule_jobs():
 
   while True:
     pending_jobs = db['jobs'].find({'status': 'pending'})
-   
     print str(pending_jobs.count()) + ' pending jobs:'
     i=1
 
     for job in pending_jobs:
-
       if datetime.now() > job['fire_dtime']:
         print 'starting job %s' % str(job['_id'])
         logger.info('Starting job %s' % str(job['_id']))

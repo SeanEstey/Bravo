@@ -17,7 +17,7 @@ import logging
 import codecs
 
 logger = logging.getLogger(__name__)
-setLogger(logger, logging.INFO, 'log.log')
+setLogger(logger, logging.DEBUG, 'log.log')
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -48,7 +48,6 @@ def parse_csv(csvfile, header_template):
   reader.next()
   line_num = 1
   for row in reader:
-    #row_list = row #row.encode('utf-8').rstrip().split(',')
     # verify columns match template
     if len(row) != len(header_template):
       msg = 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
@@ -251,14 +250,24 @@ def edit_call(call_id):
             }}
     )
 
-    logger.info(fieldname + ': ' + value)
+  return 'OK'
 
+#-------------------------------------------------------------------
+@app.route('/call/ring', methods=['POST'])
+def ring:
+  # Set db.call['rang'] = true
+  # This fields needs to be true for call to be a success,
+  # unless voicemail detected (straight to voicemail)
   return 'OK'
 
 #-------------------------------------------------------------------
 @app.route('/call/answer',methods=['POST','GET'])
 def content():
   try:
+    call_status = request.form.get('CallStatus')
+    to = request.form.get('To')
+    cause = request.form.get('HangupCause')
+    logger.info('%s %s (%s) /call/answer', to, call_status, cause)
     logger.debug('Call answered %s' % request.values.items())
 
     if request.form.get('Direction') == 'inbound':
@@ -345,14 +354,18 @@ def process_hangup():
     if call_status != 'failed':
       attempts += 1
 
+    fields = { 
+      'status': call_status,
+      'code' : cause,
+      'attempts': attempts
+    }
+
+    if call_status == 'failed':
+      fields['message'] = cause
+
     db['calls'].update(
         {'request_id':request_uuid}, 
-        {'$set': {
-            'status': call_status,
-            'code': cause,
-            'attempts': attempts
-            }
-        }
+        {'$set': fields}
     )
 
     response = plivoxml.Response()

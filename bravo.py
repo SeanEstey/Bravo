@@ -25,6 +25,7 @@ def dial(to):
         'fallback_url': URL+'/call/fallback',
         'fallback_method': 'POST',
         'machine_detection': 'true',
+        'machine_detection_time': 9000,
         'machine_detection_url': URL+'/call/machine'
     }
 

@@ -191,8 +191,11 @@ function initShowCalls() {
   $('body').css('display','block');
 
   $("td").on('click',function() {      
-    var row_id = $(this).parent().attr('id');
-    processCellClick(row_id, $(this));
+    // Editable fields are assigned 'name' attribute
+    if($(this).attr('name')) {
+      var row_id = $(this).parent().attr('id');
+      processCellClick(row_id, $(this));
+    }
   });
 }
 
@@ -202,19 +205,22 @@ function processCellClick(row_id, $cell) {
   if($cell.find('input').length == 0) {
     // Enable cell edit
     var text = $cell.text();
+    var width = $cell.width()*.90;
     $cell.html("<input type='text' value='" + text + "'>");
     var $input = $cell.find('input');
+    $input.width(width);
+    $input.css('font-size', '16px');
    
     $input.blur(function() {
-      console.log('<input> lost focus!');
       $cell.html($input.val());
       var call_id = $cell.parent().attr('id');
       var field_name = $cell.attr('name');
       console.log('field_name: ' + field_name);
       var field_value = $input.val();
-      // TODO: Save edits to DB
+
       var payload = {}
       payload[field_name] = field_value
+      
       $.ajax({
         type: 'POST',
         url: 'http://23.239.21.165:5000/edit/call/' + call_id,

@@ -1001,3 +1001,308 @@ TypeError: 'NoneType' object has no attribute '__getitem__'
 2014-11-26 21:16:53,578 - __main__ - INFO - to: 780-757-6606
 2014-11-26 21:16:56,592 - __main__ - INFO - name: Amie Dowell
 2014-11-26 21:17:19,858 - __main__ - INFO - to: 780-757-6606
+2014-11-26 21:18:47,424 - __main__ - INFO - event_date: 12/3/2014 
+2014-11-26 21:18:58,487 - __main__ - INFO - event_date: 1/25/2015
+2014-11-26 21:19:06,353 - __main__ - INFO - name: Kim Wright
+2014-11-26 21:19:08,712 - __main__ - INFO - event_date: 1/25/2015
+2014-11-26 21:19:17,074 - __main__ - INFO - event_date: 1/25/2015 
+2014-11-26 21:19:20,742 - __main__ - INFO - event_date: 1/25/2015 
+2014-11-26 21:19:26,037 - __main__ - INFO - event_date: 1/25/2015 
+2014-11-26 21:19:28,873 - __main__ - INFO - event_date: 1/25/2015 
+2014-11-26 21:19:34,362 - __main__ - INFO - event_date: 1/25/2015 
+2014-11-26 21:19:36,543 - __main__ - INFO - office_notes: No P/U Nov 10
+2014-11-26 21:19:39,381 - __main__ - INFO - office_notes: No P/U Nov 10
+2014-11-26 21:19:44,436 - __main__ - INFO - undefined:                             
+2014-11-26 21:19:51,574 - __main__ - INFO - undefined:                             
+2014-11-26 21:20:13,441 - __main__ - INFO - etw_status: Cancelled
+2014-11-26 21:20:14,219 - __main__ - INFO - etw_status: Cancelled
+2014-11-26 21:20:15,341 - __main__ - INFO - etw_status: Cancelled
+2014-11-26 21:20:16,733 - __main__ - INFO - etw_status: Active 
+2014-11-26 21:53:36,771 - __main__ - INFO - name: Aaron Shitpants
+2014-11-26 21:53:38,544 - __main__ - INFO - name: Aaron Shitpants
+2014-11-26 21:53:40,764 - __main__ - INFO - to: 780-965-3315
+2014-11-26 21:53:49,766 - __main__ - INFO - office_notes: Go To Hell
+2014-11-26 21:53:52,181 - __main__ - INFO - event_date: 12/3/2014 
+2014-11-26 21:53:56,329 - __main__ - INFO - to: 780-965-3315
+2014-11-26 21:54:05,406 - __main__ - INFO - Removed db.jobs and db.calls for 54690e009b9387584a461b19
+2014-11-27 11:10:33,311 - __main__ - INFO - name: Allen Warunky
+2014-11-27 11:10:34,892 - __main__ - INFO - name: Allen Warunky
+2014-11-27 11:10:36,647 - __main__ - INFO - etw_status: Active 
+2014-11-27 11:10:38,383 - __main__ - INFO - event_date: 12/3/2014 
+2014-11-27 11:10:40,891 - __main__ - INFO - to: 7804547958
+2014-11-27 11:10:46,531 - __main__ - INFO - to: NIS
+2014-11-27 11:10:47,393 - __main__ - INFO - etw_status: Active 
+2014-11-27 11:11:00,060 - __main__ - INFO - undefined: 
+2014-11-27 11:11:02,102 - __main__ - INFO - name: Wayne McNamara
+2014-11-27 11:11:03,110 - __main__ - INFO - name: Lance White
+2014-11-27 11:11:03,961 - __main__ - INFO - name: Wayne McNamara
+2014-11-27 11:11:04,801 - __main__ - INFO - to: 7804525746
+2014-11-27 11:11:05,678 - __main__ - INFO - to: (780)454-1090
+2014-11-27 11:11:06,393 - __main__ - INFO - name: Jen Hamilton
+2014-11-27 11:11:06,810 - __main__ - INFO - to: 780452-7252
+2014-11-27 11:25:47,606 - __main__ - INFO - name: Colleen & Kyle Murray
+2014-11-27 11:25:51,530 - __main__ - INFO - name: Colleen & Kyle Murray
+2014-11-27 11:26:00,637 - __main__ - INFO - name: Chris 
+2014-11-27 11:26:04,140 - __main__ - INFO - name: Darlene Shitpants
+2014-11-27 11:26:23,640 - __main__ - INFO - to: 780-447-1453
+2014-11-27 11:26:29,920 - __main__ - INFO - to: 780-760-0099
+2014-11-27 11:26:34,390 - __main__ - INFO - to: 780-453-1180
+2014-11-27 12:26:24,306 - __main__ - INFO - name: Darlene Smith
+2014-11-27 12:26:27,682 - __main__ - INFO - to: 7804874133
+2014-11-27 12:26:28,990 - __main__ - INFO - name: Dallas Stoesz
+2014-11-27 12:26:30,092 - __main__ - INFO - name: D Myhre
+2014-11-27 12:26:31,240 - __main__ - INFO - name: Colleen Mah
+2014-11-27 12:26:32,085 - __main__ - INFO - name: Colleen & Kyle Murray
+2014-11-27 15:54:22,315 - __main__ - INFO - event_date: 12/3/2014  
+2014-11-27 15:54:30,099 - __main__ - INFO - office_notes: 
+2014-11-27 15:54:32,552 - __main__ - INFO - event_date: 12/3/2014  
+2014-11-27 15:54:34,438 - __main__ - INFO - etw_status: Active  
+2014-11-27 15:54:36,643 - __main__ - INFO - name: Allen Warunky
+2014-11-27 15:54:38,634 - __main__ - INFO - to: 
+2014-11-27 16:00:42,411 - __main__ - INFO - etw_status: Active   
+2014-11-27 16:00:46,217 - __main__ - INFO - etw_status: Active   
+2014-11-27 16:00:48,503 - __main__ - INFO - event_date: 12/3/2014   
+2014-11-27 16:00:52,738 - __main__ - INFO - name: Allen Warunky
+2014-11-27 16:00:55,455 - __main__ - INFO - to: 7804547958
+2014-11-27 16:00:56,575 - __main__ - INFO - to: 780-477-7241
+2014-11-27 16:00:58,053 - __main__ - INFO - event_date: 12/3/2014 
+2014-11-27 16:00:59,293 - __main__ - INFO - office_notes: 
+2014-11-27 16:01:03,962 - __main__ - INFO - event_date: 12/3/2014   
+2014-11-27 16:01:09,171 - __main__ - INFO - name: Augustine Akinwale
+2014-11-27 16:01:12,065 - __main__ - INFO - name: Augustine Akinwale
+2014-11-27 16:01:14,702 - __main__ - INFO - to: 780-453-1645
+2014-11-27 16:01:15,685 - __main__ - INFO - to: 780-732-1086
+2014-11-27 16:01:17,108 - __main__ - INFO - to: 780-461-9871
+2014-11-27 16:01:18,842 - __main__ - INFO - to: 780-477-7241
+2014-11-27 16:01:20,255 - __main__ - INFO - etw_status: Cancelled 
+2014-11-27 16:01:42,894 - __main__ - INFO - name: Andy Hengst
+2014-11-27 16:01:44,109 - __main__ - INFO - name: Anthony Au
+2014-11-27 16:01:45,095 - __main__ - INFO - name: Augustine Akinwale
+2014-11-27 16:01:46,252 - __main__ - INFO - to: 6479714630
+2014-11-27 16:01:49,239 - __main__ - INFO - to: 780-477-7241
+2014-11-27 16:01:51,362 - __main__ - INFO - to: 7804547958
+2014-11-27 16:01:52,158 - __main__ - INFO - etw_status: Cancelled  
+2014-11-27 16:01:54,753 - __main__ - INFO - event_date: 12/3/2014  
+2014-11-27 16:01:56,732 - __main__ - INFO - event_date: 12/3/2014 
+2014-11-27 16:02:04,070 - __main__ - INFO - event_date: 12/3/2014 
+2014-11-27 16:05:20,631 - __main__ - INFO - name: Bev Semeniuk
+2014-11-27 16:05:23,006 - __main__ - INFO - name: Bev Semeniuk
+2014-11-27 16:05:27,177 - __main__ - INFO - name: Beverley Higgins
+2014-11-27 16:05:33,947 - __main__ - INFO - name: Beverley Higgins
+2014-11-27 16:05:35,355 - __main__ - INFO - name: Bev Semeniuk
+2014-11-27 16:07:02,027 - __main__ - INFO - name: Barry Beatty
+2014-11-27 16:07:03,714 - __main__ - INFO - name: Augustine Akinwale
+2014-11-27 16:07:06,346 - __main__ - INFO - name: Augustine Akinwale
+2014-11-27 16:07:17,894 - __main__ - INFO - name: Bev Semeniuk
+2014-11-27 16:07:20,839 - __main__ - INFO - to: 780-732-1086
+2014-11-27 16:07:22,565 - __main__ - INFO - to: 780-453-1645
+2014-11-27 16:07:24,123 - __main__ - INFO - etw_status: Active 
+2014-11-27 16:07:28,379 - __main__ - INFO - etw_status: Active 
+2014-11-27 16:07:29,898 - __main__ - INFO - etw_status: Active 
+2014-11-27 16:07:31,643 - __main__ - INFO - event_date: 12/3/2014 
+2014-11-27 16:07:32,957 - __main__ - INFO - event_date: 12/3/2014 
+2014-11-27 16:07:34,045 - __main__ - INFO - name: Bev Semeniuk
+2014-11-27 16:07:36,590 - __main__ - INFO - to: 780-732-1086
+2014-11-27 16:07:37,882 - __main__ - INFO - to: 780-461-9871
+2014-11-27 16:07:52,920 - __main__ - INFO - name: Bev Semeniuk
+2014-11-27 16:07:54,437 - __main__ - INFO - to: 780-732-1086
+2014-11-27 16:07:56,632 - __main__ - INFO - etw_status: Active  
+2014-11-27 16:07:59,843 - __main__ - INFO - event_date: 12/3/2014  
+2014-11-27 16:08:01,064 - __main__ - INFO - event_date: 12/3/2014  
+2014-11-27 16:08:02,751 - __main__ - INFO - to: 780-453-1645
+2014-11-27 16:08:04,167 - __main__ - INFO - to: 780-732-1086
+2014-11-27 16:08:05,886 - __main__ - INFO - to: 780-461-9871
+2014-11-27 16:08:06,912 - __main__ - INFO - name: Brad Paetz /Leslie Chevalier
+2014-11-27 16:08:10,317 - __main__ - INFO - name: Brad Paetz /Leslie Chevalier
+2014-11-27 16:08:12,107 - __main__ - INFO - name: Breigh Cohen
+2014-11-27 16:08:14,975 - __main__ - INFO - name: Breigh Cohen
+2014-11-27 16:08:15,816 - __main__ - INFO - name: Brian Taylor
+2014-11-27 16:08:17,451 - __main__ - INFO - name: C Klassen
+2014-11-27 16:08:19,109 - __main__ - INFO - name: Caroline Anderson
+2014-11-27 16:08:20,513 - __main__ - INFO - to: (780)454-7522
+2014-11-27 16:08:23,067 - __main__ - INFO - etw_status: Active 
+2014-11-27 16:08:26,747 - __main__ - INFO - etw_status: Active 
+2014-11-27 16:08:30,218 - __main__ - INFO - etw_status: Active 
+2014-11-27 16:08:33,266 - __main__ - INFO - etw_status: Active 
+2014-11-27 16:08:39,127 - __main__ - INFO - to: 
+2014-11-27 16:08:42,676 - __main__ - INFO - to: 7804547958
+2014-11-27 16:08:46,497 - __main__ - INFO - name: Caroline Anderson Smith
+2014-11-27 16:08:54,355 - __main__ - INFO - name: Colleen Mah Dick
+2014-11-27 16:09:09,481 - __main__ - INFO - office_notes: No p/U nov 29
+2014-11-27 16:09:27,473 - __main__ - INFO - event_date: 12/3/2015    
+2014-11-27 16:12:43,492 - __main__ - INFO - to: 780-447-1453
+2014-11-27 16:12:45,584 - __main__ - INFO - etw_status: Active 
+2014-11-27 16:12:46,567 - __main__ - INFO - event_date: 12/3/2014 
+2014-11-27 16:12:47,646 - __main__ - INFO - event_date: 12/3/2014 
+2014-11-27 16:12:49,286 - __main__ - INFO - to: 780-760-0099
+2014-11-27 16:12:50,127 - __main__ - INFO - name: Colleen & Kyle Murray
+2014-11-27 16:12:51,907 - __main__ - INFO - name: Colleen Mah
+2014-11-27 16:12:53,948 - __main__ - INFO - name: Colleen & Kyle Murray
+2014-11-27 16:12:55,738 - __main__ - INFO - name: Chris 
+2014-11-27 16:28:38,490 - __main__ - INFO - Job 5477b3a69b938718cccf7733 added to DB
+2014-11-27 16:28:38,490 - __main__ - INFO - Calls added to DB for job 5477b3a69b938718cccf7733
+2014-11-27 16:49:59,913 - tasks - INFO - Firing calls for job 5477b3a69b938718cccf7733
+2014-11-27 16:50:00,485 - bravo - INFO - 780-863-5715 call fired (201)
+2014-11-27 16:50:02,101 - bravo - INFO - 780555-4025 call fired (201)
+2014-11-27 16:50:03,000 - __main__ - INFO - 7808635715 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-27 16:50:03,503 - bravo - INFO - (780)555-2854 call fired (201)
+2014-11-27 16:50:04,760 - __main__ - INFO - 7805554025 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-27 16:50:05,003 - bravo - INFO - (780)555-7522 call fired (201)
+2014-11-27 16:50:06,006 - tasks - INFO - All calls fired for job 5477b3a69b938718cccf7733
+2014-11-27 16:50:06,266 - __main__ - INFO - 7805552854 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-27 16:50:08,192 - __main__ - INFO - 7805557522 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-27 16:51:06,047 - tasks - INFO - Monitoring job 5477b3a69b938718cccf7733
+2014-11-27 16:51:06,050 - tasks - INFO - job 5477b3a69b938718cccf7733 complete
+2014-11-27 16:51:06,050 - bravo - INFO - Creating job summary for 5477b3a69b938718cccf7733
+2014-11-27 16:51:06,052 - bravo - INFO - done
+2014-11-27 16:51:06,052 - bravo - INFO - Sending report
+2014-11-27 16:51:25,751 - tasks - INFO - Firing calls for job 5477b3a69b938718cccf7733
+2014-11-27 16:51:26,242 - bravo - INFO - +1780-863-5715 call fired (201)
+2014-11-27 16:51:27,664 - bravo - INFO - 780555-4025 call fired (201)
+2014-11-27 16:51:28,983 - bravo - INFO - (780)555-7522 call fired (201)
+2014-11-27 16:51:30,285 - __main__ - INFO - 7805554025 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-27 16:51:30,437 - bravo - INFO - (780)555-2854 call fired (201)
+2014-11-27 16:51:31,440 - tasks - INFO - All calls fired for job 5477b3a69b938718cccf7733
+2014-11-27 16:51:31,863 - __main__ - INFO - 7805557522 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-27 16:51:33,149 - __main__ - INFO - 7805552854 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-27 16:51:54,940 - __main__ - INFO - 17808635715 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 16:52:31,447 - tasks - INFO - Monitoring job 5477b3a69b938718cccf7733
+2014-11-27 16:52:31,450 - tasks - INFO - job 5477b3a69b938718cccf7733 complete
+2014-11-27 16:52:31,451 - bravo - INFO - Creating job summary for 5477b3a69b938718cccf7733
+2014-11-27 16:52:31,452 - bravo - INFO - done
+2014-11-27 16:52:31,453 - bravo - INFO - Sending report
+2014-11-27 17:02:05,753 - __main__ - INFO - Job 5477bb7d9b93871bfcb38b82 added to DB
+2014-11-27 17:02:05,754 - __main__ - INFO - Calls added to DB for job 5477bb7d9b93871bfcb38b82
+2014-11-27 17:04:35,579 - __main__ - INFO - Job 5477bc139b93871bfcb38b87 added to DB
+2014-11-27 17:04:35,580 - __main__ - INFO - Calls added to DB for job 5477bc139b93871bfcb38b87
+2014-11-27 17:05:39,195 - __main__ - INFO - Removed db.jobs and db.calls for 5477b3a69b938718cccf7733
+2014-11-27 17:05:41,346 - __main__ - INFO - Removed db.jobs and db.calls for 5477bc139b93871bfcb38b87
+2014-11-27 17:05:43,460 - __main__ - INFO - Removed db.jobs and db.calls for 5477bb7d9b93871bfcb38b82
+2014-11-27 17:05:59,976 - __main__ - INFO - Job 5477bc679b93871bfcb38b8c added to DB
+2014-11-27 17:05:59,977 - __main__ - INFO - Calls added to DB for job 5477bc679b93871bfcb38b8c
+2014-11-27 17:07:08,658 - tasks - INFO - Firing calls for job 5477bc679b93871bfcb38b8c
+2014-11-27 17:07:09,212 - bravo - INFO - +1(780) 863-5715 call fired (201)
+2014-11-27 17:07:10,662 - bravo - INFO - +1780555-4025 call fired (201)
+2014-11-27 17:07:11,996 - bravo - INFO - +1(780) 555-2854 call fired (201)
+2014-11-27 17:07:13,479 - bravo - INFO - +1(780)555-7522 call fired (201)
+2014-11-27 17:07:14,896 - bravo - INFO - +17805556708 call fired (201)
+2014-11-27 17:07:15,899 - tasks - INFO - All calls fired for job 5477bc679b93871bfcb38b8c
+2014-11-27 17:07:32,697 - __main__ - INFO - 17808635715 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:07:53,865 - __main__ - INFO - +17805556708 Leaving voicemail.
+2014-11-27 17:07:58,807 - __main__ - INFO - 17805552854 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:08:02,883 - __main__ - INFO - 17805557522 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:08:04,313 - __main__ - INFO - 17805556708 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:08:04,784 - __main__ - INFO - 17805554025 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:08:15,903 - tasks - INFO - Monitoring job 5477bc679b93871bfcb38b8c
+2014-11-27 17:08:15,906 - tasks - INFO - job 5477bc679b93871bfcb38b8c complete
+2014-11-27 17:08:15,906 - bravo - INFO - Creating job summary for 5477bc679b93871bfcb38b8c
+2014-11-27 17:08:15,908 - bravo - INFO - done
+2014-11-27 17:08:15,908 - bravo - INFO - Sending report
+2014-11-27 17:19:04,412 - __main__ - INFO - Job 5477bf789b93871d6bb47041 added to DB
+2014-11-27 17:19:04,413 - __main__ - INFO - Calls added to DB for job 5477bf789b93871d6bb47041
+2014-11-27 17:19:24,036 - tasks - INFO - Firing calls for job 5477bf789b93871d6bb47041
+2014-11-27 17:19:24,380 - bravo - INFO - +1(780) 863-5715 call fired (201)
+2014-11-27 17:19:25,833 - bravo - INFO - +1780 555-4025 call fired (201)
+2014-11-27 17:19:27,178 - bravo - INFO - +1(780) 555-2854 call fired (201)
+2014-11-27 17:19:28,584 - bravo - INFO - +1(780) 555-7522 call fired (201)
+2014-11-27 17:19:30,114 - bravo - INFO - 780 555 6708 call fired (201)
+2014-11-27 17:19:31,117 - tasks - INFO - All calls fired for job 5477bf789b93871d6bb47041
+2014-11-27 17:19:32,898 - __main__ - INFO - 7805556708 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-27 17:19:43,780 - __main__ - INFO - 17808635715 in-progress (None) /call/answer
+2014-11-27 17:19:46,044 - __main__ - INFO - +1(780) 863-5715 Leaving voicemail.
+2014-11-27 17:19:56,250 - __main__ - INFO - 17808635715 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:20:07,063 - __main__ - INFO - 17805552854 in-progress (None) /call/answer
+2014-11-27 17:20:10,130 - __main__ - INFO - 17805557522 in-progress (None) /call/answer
+2014-11-27 17:20:13,115 - __main__ - INFO - 17805554025 in-progress (None) /call/answer
+2014-11-27 17:20:23,121 - __main__ - INFO - 17805552854 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:20:25,515 - __main__ - INFO - 17805557522 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:20:28,524 - __main__ - INFO - 17805554025 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:20:31,178 - tasks - INFO - Monitoring job 5477bf789b93871d6bb47041
+2014-11-27 17:20:31,182 - tasks - INFO - job 5477bf789b93871d6bb47041 complete
+2014-11-27 17:20:31,183 - bravo - INFO - Creating job summary for 5477bf789b93871d6bb47041
+2014-11-27 17:20:31,186 - bravo - INFO - done
+2014-11-27 17:20:31,186 - bravo - INFO - Sending report
+2014-11-27 17:34:08,885 - __main__ - INFO - Job 5477c3009b93871e82da3017 added to DB
+2014-11-27 17:34:08,886 - __main__ - INFO - Calls added to DB for job 5477c3009b93871e82da3017
+2014-11-27 17:34:50,799 - tasks - INFO - Firing calls for job 5477c3009b93871e82da3017
+2014-11-27 17:34:51,218 - bravo - INFO - +1(780) 863-5715 call fired (201)
+2014-11-27 17:34:52,717 - bravo - INFO - +1(780) 555-2854 call fired (201)
+2014-11-27 17:34:54,088 - bravo - INFO - +1(780) 555-7522 call fired (201)
+2014-11-27 17:34:55,517 - bravo - INFO - 780 555 6708 call fired (201)
+2014-11-27 17:34:56,835 - bravo - INFO - +1780 555-4025 call fired (201)
+2014-11-27 17:34:57,838 - tasks - INFO - All calls fired for job 5477c3009b93871e82da3017
+2014-11-27 17:34:58,089 - __main__ - INFO - 7805556708 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-27 17:34:58,090 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'INVALID_NUMBER_FORMAT'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.04330'), ('To', u'7805556708'), ('AnswerTime', u''), ('CallUUID', u''), ('EndTime', u'2014-11-27 17:34:57'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-11-27 17:34:55'), ('Duration', u'0'), ('RequestUUID', u'd0cfa20c-0b36-40d4-bdf8-8ebd8b94ee43'), ('Event', u'Hangup')]
+2014-11-27 17:35:04,422 - __main__ - INFO - 17808635715 in-progress (None) /call/answer
+2014-11-27 17:35:04,423 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'5d62041c-7696-11e4-9ba5-43ffd59f555c'), ('BillRate', u'0.01200'), ('To', u'17808635715'), ('CallUUID', u'5d62041c-7696-11e4-9ba5-43ffd59f555c'), ('ALegRequestUUID', u'1fcb5355-60d1-41ae-8226-013dbe5d8cc9'), ('RequestUUID', u'1fcb5355-60d1-41ae-8226-013dbe5d8cc9'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-11-27 17:35:04,426 - __main__ - DEBUG - +1(780) 863-5715 Answered.
+2014-11-27 17:35:06,385 - __main__ - DEBUG - Machine detected. Transferring to voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('IfMachine', u'continue'), ('ALegUUID', u'5d62041c-7696-11e4-9ba5-43ffd59f555c'), ('CallerName', u'Winnifred Stewart Association'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'5d62041c-7696-11e4-9ba5-43ffd59f555c'), ('ALegRequestUUID', u'1fcb5355-60d1-41ae-8226-013dbe5d8cc9'), ('RequestUUID', u'1fcb5355-60d1-41ae-8226-013dbe5d8cc9'), ('CallStatus', u'in-progress'), ('Event', u'MachineDetection')]
+2014-11-27 17:35:06,733 - __main__ - DEBUG - Call routed to leave voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'5d62041c-7696-11e4-9ba5-43ffd59f555c'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'5d62041c-7696-11e4-9ba5-43ffd59f555c'), ('ALegRequestUUID', u'1fcb5355-60d1-41ae-8226-013dbe5d8cc9'), ('RequestUUID', u'1fcb5355-60d1-41ae-8226-013dbe5d8cc9'), ('CallStatus', u'in-progress'), ('Event', u'Transfer')]
+2014-11-27 17:35:06,735 - __main__ - INFO - +1(780) 863-5715 Leaving voicemail.
+2014-11-27 17:35:17,163 - __main__ - INFO - 17808635715 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:35:17,163 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-11-27 17:35:04'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'5d62041c-7696-11e4-9ba5-43ffd59f555c'), ('ALegRequestUUID', u'1fcb5355-60d1-41ae-8226-013dbe5d8cc9'), ('EndTime', u'2014-11-27 17:35:16'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'5d62041c-7696-11e4-9ba5-43ffd59f555c'), ('BillDuration', u'60'), ('StartTime', u'2014-11-27 17:34:51'), ('Duration', u'13'), ('RequestUUID', u'1fcb5355-60d1-41ae-8226-013dbe5d8cc9'), ('Event', u'Hangup')]
+2014-11-27 17:35:30,460 - __main__ - INFO - 17805552854 in-progress (None) /call/answer
+2014-11-27 17:35:30,460 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'5e432e56-7696-11e4-9bcb-43ffd59f555c'), ('BillRate', u'0.01200'), ('To', u'17805552854'), ('CallUUID', u'5e432e56-7696-11e4-9bcb-43ffd59f555c'), ('ALegRequestUUID', u'63f5880d-9c29-4578-9be3-e55b1c9565b1'), ('RequestUUID', u'63f5880d-9c29-4578-9be3-e55b1c9565b1'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-11-27 17:35:30,464 - __main__ - DEBUG - +1(780) 555-2854 Answered.
+2014-11-27 17:35:32,268 - __main__ - DEBUG - Machine detected. Transferring to voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('IfMachine', u'continue'), ('ALegUUID', u'5e432e56-7696-11e4-9bcb-43ffd59f555c'), ('CallerName', u'Winnifred Stewart Association'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17805552854'), ('CallUUID', u'5e432e56-7696-11e4-9bcb-43ffd59f555c'), ('ALegRequestUUID', u'63f5880d-9c29-4578-9be3-e55b1c9565b1'), ('RequestUUID', u'63f5880d-9c29-4578-9be3-e55b1c9565b1'), ('CallStatus', u'in-progress'), ('Event', u'MachineDetection')]
+2014-11-27 17:35:32,533 - __main__ - DEBUG - Call routed to leave voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'5e432e56-7696-11e4-9bcb-43ffd59f555c'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17805552854'), ('CallUUID', u'5e432e56-7696-11e4-9bcb-43ffd59f555c'), ('ALegRequestUUID', u'63f5880d-9c29-4578-9be3-e55b1c9565b1'), ('RequestUUID', u'63f5880d-9c29-4578-9be3-e55b1c9565b1'), ('CallStatus', u'in-progress'), ('Event', u'Transfer')]
+2014-11-27 17:35:32,535 - __main__ - INFO - +1(780) 555-2854 Leaving voicemail.
+2014-11-27 17:35:38,716 - __main__ - INFO - 17805554025 in-progress (None) /call/answer
+2014-11-27 17:35:38,717 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'60ba8d3c-7696-11e4-8fa6-1dc71ddf7ded'), ('BillRate', u'0.01200'), ('To', u'17805554025'), ('CallUUID', u'60ba8d3c-7696-11e4-8fa6-1dc71ddf7ded'), ('ALegRequestUUID', u'7e49e9db-23e5-4bc6-92f4-7d7f80f622cf'), ('RequestUUID', u'7e49e9db-23e5-4bc6-92f4-7d7f80f622cf'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-11-27 17:35:38,719 - __main__ - DEBUG - +1780 555-4025 Answered.
+2014-11-27 17:35:39,332 - __main__ - INFO - 17805557522 in-progress (None) /call/answer
+2014-11-27 17:35:39,332 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'5f175028-7696-11e4-885e-37f9801dd15b'), ('BillRate', u'0.01200'), ('To', u'17805557522'), ('CallUUID', u'5f175028-7696-11e4-885e-37f9801dd15b'), ('ALegRequestUUID', u'10ec0812-222c-483e-8cbc-73587794278a'), ('RequestUUID', u'10ec0812-222c-483e-8cbc-73587794278a'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-11-27 17:35:39,335 - __main__ - DEBUG - +1(780) 555-7522 Answered.
+2014-11-27 17:35:42,002 - __main__ - DEBUG - Machine detected. Transferring to voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('IfMachine', u'continue'), ('ALegUUID', u'5f175028-7696-11e4-885e-37f9801dd15b'), ('CallerName', u'Winnifred Stewart Association'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17805557522'), ('CallUUID', u'5f175028-7696-11e4-885e-37f9801dd15b'), ('ALegRequestUUID', u'10ec0812-222c-483e-8cbc-73587794278a'), ('RequestUUID', u'10ec0812-222c-483e-8cbc-73587794278a'), ('CallStatus', u'in-progress'), ('Event', u'MachineDetection')]
+2014-11-27 17:35:42,356 - __main__ - DEBUG - Call routed to leave voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'5f175028-7696-11e4-885e-37f9801dd15b'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17805557522'), ('CallUUID', u'5f175028-7696-11e4-885e-37f9801dd15b'), ('ALegRequestUUID', u'10ec0812-222c-483e-8cbc-73587794278a'), ('RequestUUID', u'10ec0812-222c-483e-8cbc-73587794278a'), ('CallStatus', u'in-progress'), ('Event', u'Transfer')]
+2014-11-27 17:35:42,359 - __main__ - INFO - +1(780) 555-7522 Leaving voicemail.
+2014-11-27 17:35:42,781 - __main__ - INFO - 17805552854 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:35:42,782 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-11-27 17:35:30'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17805552854'), ('CallUUID', u'5e432e56-7696-11e4-9bcb-43ffd59f555c'), ('ALegRequestUUID', u'63f5880d-9c29-4578-9be3-e55b1c9565b1'), ('EndTime', u'2014-11-27 17:35:42'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'5e432e56-7696-11e4-9bcb-43ffd59f555c'), ('BillDuration', u'60'), ('StartTime', u'2014-11-27 17:34:52'), ('Duration', u'13'), ('RequestUUID', u'63f5880d-9c29-4578-9be3-e55b1c9565b1'), ('Event', u'Hangup')]
+2014-11-27 17:35:52,732 - __main__ - INFO - 17805557522 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:35:52,732 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-11-27 17:35:39'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17805557522'), ('CallUUID', u'5f175028-7696-11e4-885e-37f9801dd15b'), ('ALegRequestUUID', u'10ec0812-222c-483e-8cbc-73587794278a'), ('EndTime', u'2014-11-27 17:35:52'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'5f175028-7696-11e4-885e-37f9801dd15b'), ('BillDuration', u'60'), ('StartTime', u'2014-11-27 17:34:54'), ('Duration', u'14'), ('RequestUUID', u'10ec0812-222c-483e-8cbc-73587794278a'), ('Event', u'Hangup')]
+2014-11-27 17:35:53,977 - __main__ - INFO - 17805554025 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:35:53,978 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.01200'), ('HangupCause', u'NORMAL_CLEARING'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'60'), ('BillRate', u'0.01200'), ('To', u'17805554025'), ('AnswerTime', u'2014-11-27 17:35:38'), ('CallUUID', u'60ba8d3c-7696-11e4-8fa6-1dc71ddf7ded'), ('ALegRequestUUID', u'7e49e9db-23e5-4bc6-92f4-7d7f80f622cf'), ('EndTime', u'2014-11-27 17:35:53'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'60ba8d3c-7696-11e4-8fa6-1dc71ddf7ded'), ('StartTime', u'2014-11-27 17:34:56'), ('Duration', u'16'), ('RequestUUID', u'7e49e9db-23e5-4bc6-92f4-7d7f80f622cf'), ('Event', u'Hangup')]
+2014-11-27 17:35:57,887 - tasks - INFO - Monitoring job 5477c3009b93871e82da3017
+2014-11-27 17:35:57,890 - tasks - INFO - job 5477c3009b93871e82da3017 complete
+2014-11-27 17:35:57,891 - bravo - INFO - Creating job summary for 5477c3009b93871e82da3017
+2014-11-27 17:35:57,892 - bravo - INFO - done
+2014-11-27 17:35:57,893 - bravo - INFO - Sending report
+2014-11-27 17:49:43,516 - __main__ - INFO - Job 5477c6a79b93871fac0765e8 added to DB
+2014-11-27 17:49:43,517 - __main__ - INFO - Calls added to DB for job 5477c6a79b93871fac0765e8
+2014-11-27 17:50:00,373 - tasks - INFO - Firing calls for job 5477c6a79b93871fac0765e8
+2014-11-27 17:50:00,880 - bravo - INFO - +1(780) 863-5715 call fired (201)
+2014-11-27 17:50:02,392 - bravo - INFO - +1(780) 555-2854 call fired (201)
+2014-11-27 17:50:03,742 - bravo - INFO - 780 555 6708 call fired (201)
+2014-11-27 17:50:05,080 - bravo - INFO - +1780 555-4025 call fired (201)
+2014-11-27 17:50:06,297 - __main__ - INFO - 7805556708 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-27 17:50:06,298 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'INVALID_NUMBER_FORMAT'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.04330'), ('To', u'7805556708'), ('AnswerTime', u''), ('CallUUID', u''), ('EndTime', u'2014-11-27 17:50:06'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-11-27 17:50:03'), ('Duration', u'0'), ('RequestUUID', u'd90cca64-a584-409f-9f8a-fff0618d9029'), ('Event', u'Hangup')]
+2014-11-27 17:50:06,502 - bravo - INFO - +1(780) 555-7522 call fired (201)
+2014-11-27 17:50:07,506 - tasks - INFO - All calls fired for job 5477c6a79b93871fac0765e8
+2014-11-27 17:50:12,362 - __main__ - INFO - 17808635715 in-progress (None) /call/answer
+2014-11-27 17:50:12,362 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'7b9555cc-7698-11e4-b168-6f50904b6100'), ('BillRate', u'0.01200'), ('To', u'17808635715'), ('CallUUID', u'7b9555cc-7698-11e4-b168-6f50904b6100'), ('ALegRequestUUID', u'2199fbdc-d07c-4f14-a632-c3b10e7ef6d9'), ('RequestUUID', u'2199fbdc-d07c-4f14-a632-c3b10e7ef6d9'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-11-27 17:50:12,365 - __main__ - DEBUG - +1(780) 863-5715 Answered.
+2014-11-27 17:50:28,406 - __main__ - INFO - 17808635715 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:50:28,406 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.01200'), ('HangupCause', u'NORMAL_CLEARING'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'60'), ('BillRate', u'0.01200'), ('To', u'17808635715'), ('AnswerTime', u'2014-11-27 17:50:12'), ('CallUUID', u'7b9555cc-7698-11e4-b168-6f50904b6100'), ('ALegRequestUUID', u'2199fbdc-d07c-4f14-a632-c3b10e7ef6d9'), ('EndTime', u'2014-11-27 17:50:28'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'7b9555cc-7698-11e4-b168-6f50904b6100'), ('StartTime', u'2014-11-27 17:50:00'), ('Duration', u'16'), ('RequestUUID', u'2199fbdc-d07c-4f14-a632-c3b10e7ef6d9'), ('Event', u'Hangup')]
+2014-11-27 17:50:42,105 - __main__ - INFO - 17805552854 in-progress (None) /call/answer
+2014-11-27 17:50:42,106 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'7c774702-7698-11e4-b977-f3c98eee39ee'), ('BillRate', u'0.01200'), ('To', u'17805552854'), ('CallUUID', u'7c774702-7698-11e4-b977-f3c98eee39ee'), ('ALegRequestUUID', u'ec491564-a312-485f-bfff-7d06b2ef7d27'), ('RequestUUID', u'ec491564-a312-485f-bfff-7d06b2ef7d27'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-11-27 17:50:42,109 - __main__ - DEBUG - +1(780) 555-2854 Answered.
+2014-11-27 17:50:43,938 - __main__ - DEBUG - Machine detected. Transferring to voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('IfMachine', u'continue'), ('ALegUUID', u'7c774702-7698-11e4-b977-f3c98eee39ee'), ('CallerName', u'Winnifred Stewart Association'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17805552854'), ('CallUUID', u'7c774702-7698-11e4-b977-f3c98eee39ee'), ('ALegRequestUUID', u'ec491564-a312-485f-bfff-7d06b2ef7d27'), ('RequestUUID', u'ec491564-a312-485f-bfff-7d06b2ef7d27'), ('CallStatus', u'in-progress'), ('Event', u'MachineDetection')]
+2014-11-27 17:50:44,182 - __main__ - DEBUG - Call routed to leave voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'7c774702-7698-11e4-b977-f3c98eee39ee'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17805552854'), ('CallUUID', u'7c774702-7698-11e4-b977-f3c98eee39ee'), ('ALegRequestUUID', u'ec491564-a312-485f-bfff-7d06b2ef7d27'), ('RequestUUID', u'ec491564-a312-485f-bfff-7d06b2ef7d27'), ('CallStatus', u'in-progress'), ('Event', u'Transfer')]
+2014-11-27 17:50:44,186 - __main__ - INFO - +1(780) 555-2854 Leaving voicemail.
+2014-11-27 17:50:44,190 - __main__ - INFO - 17805554025 in-progress (None) /call/answer
+2014-11-27 17:50:44,190 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'7e164ffe-7698-11e4-b9c8-f3c98eee39ee'), ('BillRate', u'0.01200'), ('To', u'17805554025'), ('CallUUID', u'7e164ffe-7698-11e4-b9c8-f3c98eee39ee'), ('ALegRequestUUID', u'8bfec4a9-729f-4f47-a4eb-62ce4f6a9422'), ('RequestUUID', u'8bfec4a9-729f-4f47-a4eb-62ce4f6a9422'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-11-27 17:50:44,194 - __main__ - DEBUG - +1780 555-4025 Answered.
+2014-11-27 17:50:45,877 - __main__ - INFO - 17805557522 in-progress (None) /call/answer
+2014-11-27 17:50:45,878 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'7eeff47a-7698-11e4-b9fa-f3c98eee39ee'), ('BillRate', u'0.01200'), ('To', u'17805557522'), ('CallUUID', u'7eeff47a-7698-11e4-b9fa-f3c98eee39ee'), ('ALegRequestUUID', u'cb26d128-5af6-4e46-940c-5d79911a7bb4'), ('RequestUUID', u'cb26d128-5af6-4e46-940c-5d79911a7bb4'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-11-27 17:50:45,881 - __main__ - DEBUG - +1(780) 555-7522 Answered.
+2014-11-27 17:50:54,617 - __main__ - INFO - 17805552854 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:50:54,617 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-11-27 17:50:41'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17805552854'), ('CallUUID', u'7c774702-7698-11e4-b977-f3c98eee39ee'), ('ALegRequestUUID', u'ec491564-a312-485f-bfff-7d06b2ef7d27'), ('EndTime', u'2014-11-27 17:50:54'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'7c774702-7698-11e4-b977-f3c98eee39ee'), ('BillDuration', u'60'), ('StartTime', u'2014-11-27 17:50:02'), ('Duration', u'13'), ('RequestUUID', u'ec491564-a312-485f-bfff-7d06b2ef7d27'), ('Event', u'Hangup')]
+2014-11-27 17:50:59,494 - __main__ - INFO - 17805554025 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:50:59,495 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.01200'), ('HangupCause', u'NORMAL_CLEARING'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'60'), ('BillRate', u'0.01200'), ('To', u'17805554025'), ('AnswerTime', u'2014-11-27 17:50:43'), ('CallUUID', u'7e164ffe-7698-11e4-b9c8-f3c98eee39ee'), ('ALegRequestUUID', u'8bfec4a9-729f-4f47-a4eb-62ce4f6a9422'), ('EndTime', u'2014-11-27 17:50:59'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'7e164ffe-7698-11e4-b9c8-f3c98eee39ee'), ('StartTime', u'2014-11-27 17:50:05'), ('Duration', u'16'), ('RequestUUID', u'8bfec4a9-729f-4f47-a4eb-62ce4f6a9422'), ('Event', u'Hangup')]
+2014-11-27 17:51:01,239 - __main__ - INFO - 17805557522 completed (NORMAL_CLEARING) /call/hangup
+2014-11-27 17:51:01,239 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.01200'), ('HangupCause', u'NORMAL_CLEARING'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'60'), ('BillRate', u'0.01200'), ('To', u'17805557522'), ('AnswerTime', u'2014-11-27 17:50:45'), ('CallUUID', u'7eeff47a-7698-11e4-b9fa-f3c98eee39ee'), ('ALegRequestUUID', u'cb26d128-5af6-4e46-940c-5d79911a7bb4'), ('EndTime', u'2014-11-27 17:51:00'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'7eeff47a-7698-11e4-b9fa-f3c98eee39ee'), ('StartTime', u'2014-11-27 17:50:06'), ('Duration', u'16'), ('RequestUUID', u'cb26d128-5af6-4e46-940c-5d79911a7bb4'), ('Event', u'Hangup')]
+2014-11-27 17:51:07,566 - tasks - INFO - Monitoring job 5477c6a79b93871fac0765e8
+2014-11-27 17:51:07,570 - tasks - INFO - job 5477c6a79b93871fac0765e8 complete
+2014-11-27 17:51:07,570 - bravo - INFO - Creating job summary for 5477c6a79b93871fac0765e8
+2014-11-27 17:51:07,572 - bravo - INFO - done
+2014-11-27 17:51:07,572 - bravo - INFO - Sending report

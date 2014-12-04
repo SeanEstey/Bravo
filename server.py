@@ -134,10 +134,15 @@ def create_job():
       buffer = parse_csv(f, TEMPLATE_HEADERS[request.form['template']])
       if isinstance (buffer, werkzeug.wrappers.Response):
         return buffer
+
+    if not request.form['job_name']:
+      job_name = filename.split('.')[0].replace('_',' ')
+    else:
+      job_name = request.form['job_name']
     
     # No file errors. Save job + calls to DB.
     job_record = {
-      'name': filename.split('.')[0].replace('_',' '),
+      'name': job_name,
       'auth_id': AUTH_ID,
       'auth_token': AUTH_TOKEN,
       'cps': CPS,

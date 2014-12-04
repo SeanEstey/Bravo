@@ -11,6 +11,8 @@
     <form action="{{ url_for('create_job')}}" enctype=multipart/form-data method=post>
       <fieldset>
       <legend>Calls</legend>
+        <div class='label'>Job Name</div>
+        <input id='job_name' class='input' name='job_name' type='text' placeholder='Optional'></input>
         <div class='label'>Template</div>
         <select name='template' class='input' id='template-select'>
           <optgroup name='template' required>

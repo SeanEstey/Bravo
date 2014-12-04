@@ -67,30 +67,41 @@ def allowed_file(filename):
   return '.' in filename and \
      filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
-@socketio.on('message')
-def handle_message(message):
-  logger.info('received socket msg!')
-  send(message)
+#-------------------------------------------------------------------
+@socketio.on('disconnected')
+def socketio_disconnected():
+  logger.info('socket disconnected')
+  logger.info('num connected sockets: ' + str(len(socketio.server.sockets)))
 
-@socketio.on('connect')
+#-------------------------------------------------------------------
+@socketio.on('connected')
 def socketio_connect():
   logger.info('socket established!')
-  socketio.emit('update',{
-    'id':'abc123',
-    'status': 'failed'
-  })
+  logger.info('num connected sockets: ' + str(len(socketio.server.sockets)))
 
-
+#-------------------------------------------------------------------
 @socketio.on('update')
 def send_socket_update(data):
-  # TODO: Test if socket connection exists first
+  if not socketio.server:
+    return False
+  logger.info('update(): num connected sockets: ' + str(len(socketio.server.sockets)))
+  # Test for socket.io connections first
+  if len(socketio.server.sockets) == 0:
+    return False
+  
   socketio.emit('update', data)
 
 #-------------------------------------------------------------------
 @app.route('/')
 def index():
-  logger.info('loaded')
   return render_template('main.html')
+
+#-------------------------------------------------------------------
+@app.route('/status')
+def status():
+  if not socketio.server:
+    return "No sockets"
+  return 'Sockets: ' + str(len(socketio.server.sockets))
 
 #-------------------------------------------------------------------
 @app.route('/error')
@@ -326,6 +337,13 @@ def ring():
         {'request_id':request_uuid}, 
         {'$set':{'rang': True}}
     )
+    call = db['calls'].find_one({'request_id':request_uuid})
+    send_socket_update({
+      'id' : str(call['_id']),
+      'status' : 'dialing...',
+      'message' : '',
+      'attempts': call['attempts']
+    })
 
     call_status = request.form.get('CallStatus')
     to = request.form.get('To')
@@ -367,9 +385,10 @@ def content():
     )
     call = db['calls'].find_one({'request_id':request_uuid})
     send_socket_update({
-      'id' : call['_id'],
+      'id' : str(call['_id']),
       'status' : call['status'],
-      'message' : call['message']
+      'message' : call['message'],
+      'attempts' : call['attempts']
     })
 
     dt = parse(call['event_date'])
@@ -399,6 +418,8 @@ def content():
           'on ' + date_str + '. thanks for your past support. ' +
           'To repeat this message press 1.'
         )
+      else:
+        speak = ''
     elif job['template'] == 'special_msg':
       print 'TODO'
     elif job['template'] == 'etw_welcome':
@@ -451,6 +472,12 @@ def process_hangup():
         {'request_id':request_uuid}, 
         {'$set': fields}
     )
+    send_socket_update({
+      'id' : str(call['_id']),
+      'status' : fields['status'],
+      'message' : fields['code'],
+      'attempts': fields['attempts']
+    })
 
     response = plivoxml.Response()
     return Response(str(response), mimetype='text/xml')

@@ -205,16 +205,25 @@ function initShowCalls() {
 
   // Init SocketIO
   var socket = io.connect('http://' + document.domain + ':' + location.port);
+  
   socket.on('connect', function() {
-      console.log('socket.io connected');
-      socket.emit('connect');
-      //socket.emit('my event', {data: 'I\'m connected!'});
+    console.log('socket.io connected');
+    socket.emit('connected');
+    socket.on('disconnect', function() {
+      console.log('socket.io disconnected');
+      socket.emit('disconnected');
+    });
   });
-  socket.on('message', function(message) {
-     //console.log('received ' + message);
-  });
+  
   socket.on('update', function(data) {
-    console.log('received id: ' + data['id']);
+    console.log('received update:: ' + JSON.stringify(data));
+    // Find matching row_id to update
+    var $row = $('#'+data['id']);
+    //$row.find('[name="status"]').text(data['status']);
+    $row.find('[name="status"]').html(data['status']);
+    $row.find('[name="message"]').html(data['message']);
+    $row.find('[name="attempts"]').html(data['attempts']);
+
   });
 }
 

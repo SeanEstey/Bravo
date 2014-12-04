@@ -18,7 +18,7 @@ def dial(to):
       'from' : FROM_NUMBER,
       'caller_name': CALLER_ID,
       'to' : '+1' + to,
-      #'ring_url' :  URL+'/call/ring',
+      'ring_url' :  URL+'/call/ring',
       'answer_url' : URL+'/call/answer',
       'answer_method': 'POST',
       'hangup_url': URL+'/call/hangup',

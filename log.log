@@ -1306,3 +1306,325 @@ TypeError: 'NoneType' object has no attribute '__getitem__'
 2014-11-27 17:51:07,570 - bravo - INFO - Creating job summary for 5477c6a79b93871fac0765e8
 2014-11-27 17:51:07,572 - bravo - INFO - done
 2014-11-27 17:51:07,572 - bravo - INFO - Sending report
+2014-11-30 14:57:22,987 - __main__ - INFO - Removed db.jobs and db.calls for 5477bf789b93871d6bb47041
+2014-11-30 14:57:28,808 - __main__ - INFO - Removed db.jobs and db.calls for 5467c5349b9387143cb6372a
+2014-11-30 14:57:33,236 - __main__ - INFO - Removed db.jobs and db.calls for 5477c3009b93871e82da3017
+2014-11-30 14:57:35,233 - __main__ - INFO - Removed db.jobs and db.calls for 5477bc679b93871bfcb38b8c
+2014-11-30 14:57:52,386 - __main__ - INFO - Job 547b92e09b93871cfb44c58f added to DB
+2014-11-30 14:57:52,387 - __main__ - INFO - Calls added to DB for job 547b92e09b93871cfb44c58f
+2014-11-30 14:59:12,204 - tasks - INFO - Firing calls for job 547b92e09b93871cfb44c58f
+2014-11-30 14:59:12,805 - bravo - INFO - +1(780) 863-5715 call fired (201)
+2014-11-30 14:59:14,445 - bravo - INFO - +1(780) 555-2854 call fired (201)
+2014-11-30 14:59:15,977 - bravo - INFO - 780 555 6708 call fired (201)
+2014-11-30 14:59:17,430 - bravo - INFO - +1780 555-4025 call fired (201)
+2014-11-30 14:59:18,700 - __main__ - INFO - 7805556708 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 14:59:18,701 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.00000'), ('HangupCause', u'INVALID_NUMBER_FORMAT'), ('From', u'+17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('BillDuration', u'0'), ('BillRate', u'0.04330'), ('To', u'7805556708'), ('AnswerTime', u''), ('CallUUID', u''), ('EndTime', u'2014-11-30 14:59:18'), ('CallStatus', u'failed'), ('Direction', u'outbound'), ('StartTime', u'2014-11-30 14:59:15'), ('Duration', u'0'), ('RequestUUID', u'ec92ebe3-0648-4ec6-9cd6-478938c77879'), ('Event', u'Hangup')]
+2014-11-30 14:59:18,722 - bravo - INFO - +1(780) 555-7522 call fired (201)
+2014-11-30 14:59:19,725 - tasks - INFO - All calls fired for job 547b92e09b93871cfb44c58f
+2014-11-30 14:59:20,220 - __main__ - ERROR - [('To', u'17808635715'), ('Direction', u'outbound'), ('From', u'+17804138846'), ('CallUUID', u'1e7e3ffc-78dc-11e4-9135-2ba9b233dd28'), ('RequestUUID', u'25f0d68c-a861-4db0-9ed0-79c7b30a1c0f'), ('CallStatus', u'ringing'), ('Event', u'Ring')] rang. Failed to update DB or deliver message
+Traceback (most recent call last):
+  File "server.py", line 268, in ring
+    {'$set':{'rang': true}}
+NameError: global name 'true' is not defined
+2014-11-30 14:59:31,483 - __main__ - INFO - 17808635715 in-progress (None) /call/answer
+2014-11-30 14:59:31,484 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'1e7e3ffc-78dc-11e4-9135-2ba9b233dd28'), ('BillRate', u'0.01200'), ('To', u'17808635715'), ('CallUUID', u'1e7e3ffc-78dc-11e4-9135-2ba9b233dd28'), ('ALegRequestUUID', u'25f0d68c-a861-4db0-9ed0-79c7b30a1c0f'), ('RequestUUID', u'25f0d68c-a861-4db0-9ed0-79c7b30a1c0f'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-11-30 14:59:31,486 - __main__ - DEBUG - +1(780) 863-5715 Answered.
+2014-11-30 14:59:33,462 - __main__ - DEBUG - Machine detected. Transferring to voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('IfMachine', u'continue'), ('ALegUUID', u'1e7e3ffc-78dc-11e4-9135-2ba9b233dd28'), ('CallerName', u'Winnifred Stewart Association'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'1e7e3ffc-78dc-11e4-9135-2ba9b233dd28'), ('ALegRequestUUID', u'25f0d68c-a861-4db0-9ed0-79c7b30a1c0f'), ('RequestUUID', u'25f0d68c-a861-4db0-9ed0-79c7b30a1c0f'), ('CallStatus', u'in-progress'), ('Event', u'MachineDetection')]
+2014-11-30 14:59:33,829 - __main__ - DEBUG - Call routed to leave voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'1e7e3ffc-78dc-11e4-9135-2ba9b233dd28'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'1e7e3ffc-78dc-11e4-9135-2ba9b233dd28'), ('ALegRequestUUID', u'25f0d68c-a861-4db0-9ed0-79c7b30a1c0f'), ('RequestUUID', u'25f0d68c-a861-4db0-9ed0-79c7b30a1c0f'), ('CallStatus', u'in-progress'), ('Event', u'Transfer')]
+2014-11-30 14:59:33,831 - __main__ - INFO - +1(780) 863-5715 Leaving voicemail.
+2014-11-30 14:59:43,950 - __main__ - INFO - 17808635715 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 14:59:43,951 - __main__ - DEBUG - Call hungup [('TotalCost', u'0.01200'), ('AnswerTime', u'2014-11-30 14:59:31'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('HangupCause', u'NORMAL_CLEARING'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17808635715'), ('CallUUID', u'1e7e3ffc-78dc-11e4-9135-2ba9b233dd28'), ('ALegRequestUUID', u'25f0d68c-a861-4db0-9ed0-79c7b30a1c0f'), ('EndTime', u'2014-11-30 14:59:43'), ('CallStatus', u'completed'), ('Direction', u'outbound'), ('ALegUUID', u'1e7e3ffc-78dc-11e4-9135-2ba9b233dd28'), ('BillDuration', u'60'), ('StartTime', u'2014-11-30 14:59:12'), ('Duration', u'13'), ('RequestUUID', u'25f0d68c-a861-4db0-9ed0-79c7b30a1c0f'), ('Event', u'Hangup')]
+2014-11-30 14:59:45,006 - __main__ - INFO - 17805552854 ringing (None) /call/ring
+2014-11-30 14:59:46,559 - __main__ - INFO - 17805554025 ringing (None) /call/ring
+2014-11-30 14:59:51,026 - __main__ - INFO - 17805552854 in-progress (None) /call/answer
+2014-11-30 14:59:51,027 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'1f78c4f4-78dc-11e4-b1a7-27e05a1037b2'), ('BillRate', u'0.01200'), ('To', u'17805552854'), ('CallUUID', u'1f78c4f4-78dc-11e4-b1a7-27e05a1037b2'), ('ALegRequestUUID', u'8154ca7f-d512-459b-b8da-156f769c03be'), ('RequestUUID', u'8154ca7f-d512-459b-b8da-156f769c03be'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-11-30 14:59:51,030 - __main__ - DEBUG - +1(780) 555-2854 Answered.
+2014-11-30 14:59:52,184 - __main__ - INFO - 17805557522 ringing (None) /call/ring
+2014-11-30 14:59:52,566 - __main__ - INFO - 17805554025 in-progress (None) /call/answer
+2014-11-30 14:59:52,567 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'213b97b2-78dc-11e4-903b-43ffd59f555c'), ('BillRate', u'0.01200'), ('To', u'17805554025'), ('CallUUID', u'213b97b2-78dc-11e4-903b-43ffd59f555c'), ('ALegRequestUUID', u'fa943fae-f2b9-451b-8180-2f44b13530ee'), ('RequestUUID', u'fa943fae-f2b9-451b-8180-2f44b13530ee'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-11-30 14:59:52,570 - __main__ - DEBUG - +1780 555-4025 Answered.
+2014-11-30 14:59:52,893 - __main__ - DEBUG - Machine detected. Transferring to voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('IfMachine', u'continue'), ('ALegUUID', u'1f78c4f4-78dc-11e4-b1a7-27e05a1037b2'), ('CallerName', u'Winnifred Stewart Association'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17805552854'), ('CallUUID', u'1f78c4f4-78dc-11e4-b1a7-27e05a1037b2'), ('ALegRequestUUID', u'8154ca7f-d512-459b-b8da-156f769c03be'), ('RequestUUID', u'8154ca7f-d512-459b-b8da-156f769c03be'), ('CallStatus', u'in-progress'), ('Event', u'MachineDetection')]
+2014-11-30 14:59:53,175 - __main__ - DEBUG - Call routed to leave voicemail. [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'1f78c4f4-78dc-11e4-b1a7-27e05a1037b2'), ('BillRate', u'0.01200'), ('Machine', u'true'), ('To', u'17805552854'), ('CallUUID', u'1f78c4f4-78dc-11e4-b1a7-27e05a1037b2'), ('ALegRequestUUID', u'8154ca7f-d512-459b-b8da-156f769c03be'), ('RequestUUID', u'8154ca7f-d512-459b-b8da-156f769c03be'), ('CallStatus', u'in-progress'), ('Event', u'Transfer')]
+2014-11-30 14:59:53,177 - __main__ - INFO - +1(780) 555-2854 Leaving voicemail.
+2014-11-30 14:59:58,613 - __main__ - INFO - 17805557522 in-progress (None) /call/answer
+2014-11-30 14:59:58,614 - __main__ - DEBUG - Call answered [('Direction', u'outbound'), ('From', u'17804138846'), ('CallerName', u'Winnifred Stewart Association'), ('ALegUUID', u'220532a2-78dc-11e4-904b-43ffd59f555c'), ('BillRate', u'0.01200'), ('To', u'17805557522'), ('CallUUID', u'220532a2-78dc-11e4-904b-43ffd59f555c'), ('ALegRequestUUID', u'71c69dc2-18ae-4b91-a68b-ef188b522c1a'), ('RequestUUID', u'71c69dc2-18ae-4b91-a68b-ef188b522c1a'), ('CallStatus', u'in-progress'), ('Event', u'StartApp')]
+2014-11-30 14:59:58,616 - __main__ - DEBUG - +1(780) 555-7522 Answered.
+2014-11-30 15:00:03,485 - __main__ - INFO - 17805552854 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:00:07,921 - __main__ - INFO - 17805554025 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:00:13,931 - __main__ - INFO - 17805557522 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:07:36,968 - __main__ - INFO - Job 547b95289b93871df62ae9b2 added to DB
+2014-11-30 15:07:36,970 - __main__ - INFO - Calls added to DB for job 547b95289b93871df62ae9b2
+2014-11-30 15:07:51,523 - tasks - INFO - Firing calls for job 547b95289b93871df62ae9b2
+2014-11-30 15:07:51,878 - bravo - INFO - +1(780) 555-2854 call fired (201)
+2014-11-30 15:07:53,322 - bravo - INFO - +1(780) 555-7522 call fired (201)
+2014-11-30 15:07:54,770 - bravo - INFO - +1(780) 863-5715 call fired (201)
+2014-11-30 15:07:56,218 - bravo - INFO - 780 555 6708 call fired (201)
+2014-11-30 15:07:57,676 - bravo - INFO - +1780 555-4025 call fired (201)
+2014-11-30 15:07:58,679 - tasks - INFO - All calls fired for job 547b95289b93871df62ae9b2
+2014-11-30 15:07:59,018 - __main__ - INFO - 7805556708 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 15:08:00,855 - __main__ - INFO - 17808635715 ringing (None) /call/ring
+2014-11-30 15:08:08,272 - __main__ - INFO - 17808635715 in-progress (None) /call/answer
+2014-11-30 15:08:12,471 - __main__ - INFO - 17808635715 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:08:19,711 - __main__ - INFO - 17805552854 ringing (None) /call/ring
+2014-11-30 15:08:25,753 - __main__ - INFO - 17805557522 ringing (None) /call/ring
+2014-11-30 15:08:25,821 - __main__ - INFO - 17805552854 in-progress (None) /call/answer
+2014-11-30 15:08:27,302 - __main__ - INFO - +1(780) 555-2854 Leaving voicemail.
+2014-11-30 15:08:29,305 - __main__ - INFO - 17805554025 ringing (None) /call/ring
+2014-11-30 15:08:32,149 - __main__ - INFO - 17805557522 in-progress (None) /call/answer
+2014-11-30 15:08:35,744 - __main__ - INFO - 17805554025 in-progress (None) /call/answer
+2014-11-30 15:08:37,465 - __main__ - INFO - 17805552854 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:08:47,789 - __main__ - INFO - 17805557522 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:08:51,506 - __main__ - INFO - 17805554025 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:08:58,702 - tasks - INFO - Monitoring job 547b95289b93871df62ae9b2
+2014-11-30 15:08:58,704 - tasks - INFO - job 547b95289b93871df62ae9b2 complete
+2014-11-30 15:08:58,705 - bravo - INFO - Creating job summary for 547b95289b93871df62ae9b2
+2014-11-30 15:08:58,708 - bravo - INFO - done
+2014-11-30 15:08:58,708 - bravo - INFO - Sending report
+2014-11-30 15:14:41,176 - __main__ - INFO - Job 547b96d19b93871df62ae9b8 added to DB
+2014-11-30 15:14:41,177 - __main__ - INFO - Calls added to DB for job 547b96d19b93871df62ae9b8
+2014-11-30 15:15:00,558 - tasks - INFO - Firing calls for job 547b96d19b93871df62ae9b8
+2014-11-30 15:15:01,010 - bravo - INFO - +1(780) 555-2854 call fired (201)
+2014-11-30 15:15:02,456 - bravo - INFO - : 400 error
+2014-11-30 15:15:13,935 - bravo - INFO - 780 555 6708 call fired (201)
+2014-11-30 15:15:15,355 - bravo - INFO - +1780 555-4025 call fired (201)
+2014-11-30 15:15:16,422 - __main__ - INFO - 7805556708 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 15:15:16,815 - bravo - INFO - +1(780) 555-7522 call fired (201)
+2014-11-30 15:15:17,818 - tasks - INFO - All calls fired for job 547b96d19b93871df62ae9b8
+2014-11-30 15:16:17,875 - tasks - INFO - Monitoring job 547b96d19b93871df62ae9b8
+2014-11-30 15:16:34,362 - __main__ - INFO - Job 547b97429b93871ee4128531 added to DB
+2014-11-30 15:16:34,363 - __main__ - INFO - Calls added to DB for job 547b97429b93871ee4128531
+2014-11-30 15:17:01,337 - tasks - INFO - Firing calls for job 547b97429b93871ee4128531
+2014-11-30 15:17:02,051 - bravo - INFO - +1(780) 555-2854 call fired (201)
+2014-11-30 15:17:03,832 - bravo - INFO - +1(780) 555-7522 call fired (201)
+2014-11-30 15:17:05,181 - bravo - INFO - +1(780) 863-5715 call fired (201)
+2014-11-30 15:17:07,209 - bravo - INFO - 780 555 6708 call fired (201)
+2014-11-30 15:17:08,664 - bravo - INFO - +1780 555-4025 call fired (201)
+2014-11-30 15:17:09,667 - tasks - INFO - All calls fired for job 547b97429b93871ee4128531
+2014-11-30 15:17:10,178 - __main__ - INFO - 7805556708 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 15:17:11,317 - __main__ - INFO - 17808635715 ringing (None) /call/ring
+2014-11-30 15:17:17,423 - __main__ - INFO - 17808635715 in-progress (None) /call/answer
+2014-11-30 15:17:19,568 - __main__ - INFO - +1(780) 863-5715 Leaving voicemail.
+2014-11-30 15:17:29,660 - __main__ - INFO - 17808635715 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:17:32,797 - __main__ - INFO - 17805557522 ringing (None) /call/ring
+2014-11-30 15:17:33,106 - __main__ - INFO - 17805557522 in-progress (None) /call/answer
+2014-11-30 15:17:33,436 - __main__ - INFO - 17805552854 ringing (None) /call/ring
+2014-11-30 15:17:33,758 - __main__ - INFO - 17805552854 in-progress (None) /call/answer
+2014-11-30 15:17:34,887 - __main__ - INFO - 17805554025 ringing (None) /call/ring
+2014-11-30 15:17:34,995 - __main__ - INFO - +1(780) 555-7522 Leaving voicemail.
+2014-11-30 15:17:35,000 - __main__ - INFO - Job 547b977e9b93871ee4128537 added to DB
+2014-11-30 15:17:35,001 - __main__ - INFO - Calls added to DB for job 547b977e9b93871ee4128537
+2014-11-30 15:17:35,043 - __main__ - INFO - 17805554025 in-progress (None) /call/answer
+2014-11-30 15:17:45,075 - __main__ - INFO - 17805557522 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:17:49,323 - __main__ - INFO - 17805552854 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:17:50,331 - __main__ - INFO - 17805554025 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:18:05,742 - tasks - INFO - Firing calls for job 547b977e9b93871ee4128537
+2014-11-30 15:18:06,257 - bravo - INFO - +1(780) 555-2854 call fired (201)
+2014-11-30 15:18:07,322 - bravo - INFO - : 400 error
+2014-11-30 15:18:18,379 - bravo - INFO - : 400 error
+2014-11-30 15:18:29,435 - bravo - INFO - : 400 error
+2014-11-30 15:18:40,806 - bravo - INFO - +1780 555-4025 call fired (201)
+2014-11-30 15:18:41,810 - tasks - INFO - All calls fired for job 547b977e9b93871ee4128537
+2014-11-30 15:18:45,542 - __main__ - INFO - 17805552854 ringing (None) /call/ring
+2014-11-30 15:18:45,837 - __main__ - INFO - 17805552854 in-progress (None) /call/answer
+2014-11-30 15:18:47,737 - __main__ - INFO - +1(780) 555-2854 Leaving voicemail.
+2014-11-30 15:18:57,885 - __main__ - INFO - 17805552854 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:19:13,861 - __main__ - INFO - 17805554025 ringing (None) /call/ring
+2014-11-30 15:19:14,250 - __main__ - INFO - 17805554025 in-progress (None) /call/answer
+2014-11-30 15:19:16,512 - __main__ - INFO - +1780 555-4025 Leaving voicemail.
+2014-11-30 15:19:26,637 - __main__ - INFO - 17805554025 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 15:19:41,865 - tasks - INFO - Monitoring job 547b977e9b93871ee4128537
+2014-11-30 15:19:41,868 - tasks - INFO - job 547b977e9b93871ee4128537 complete
+2014-11-30 15:19:41,868 - bravo - INFO - Creating job summary for 547b977e9b93871ee4128537
+2014-11-30 15:19:41,870 - bravo - INFO - done
+2014-11-30 15:19:41,870 - bravo - INFO - Sending report
+2014-11-30 20:47:05,066 - tasks - INFO - Firing calls for job 547b95289b93871df62ae9b2
+2014-11-30 20:47:05,450 - bravo - INFO - 7805556708 call fired (201)
+2014-11-30 20:47:07,111 - bravo - INFO - (780)863-5715 call fired (201)
+2014-11-30 20:47:08,314 - __main__ - INFO - 7805556708 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 20:47:08,566 - bravo - INFO - (780)555-2854 call fired (201)
+2014-11-30 20:47:09,678 - __main__ - INFO - 7808635715 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 20:47:10,001 - bravo - INFO - (780)555-7522 call fired (201)
+2014-11-30 20:47:11,436 - bravo - INFO - 780555-4025 call fired (201)
+2014-11-30 20:47:11,439 - __main__ - INFO - 7805552854 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 20:47:12,441 - tasks - INFO - All calls fired for job 547b95289b93871df62ae9b2
+2014-11-30 20:47:12,622 - __main__ - INFO - 7805557522 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 20:47:14,252 - __main__ - INFO - 7805554025 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 20:50:06,597 - tasks - INFO - Firing calls for job 547b95289b93871df62ae9b2
+2014-11-30 20:50:07,067 - bravo - INFO - 7805556708 call fired (201)
+2014-11-30 20:50:08,490 - bravo - INFO - (780)863-5715 call fired (201)
+2014-11-30 20:50:09,783 - __main__ - INFO - 7805556708 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 20:50:09,955 - bravo - INFO - (780)555-2854 call fired (201)
+2014-11-30 20:50:11,214 - __main__ - INFO - 7808635715 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 20:50:11,300 - bravo - INFO - (780)555-7522 call fired (201)
+2014-11-30 20:50:12,592 - bravo - INFO - 780555-4025 call fired (201)
+2014-11-30 20:50:12,887 - __main__ - INFO - 7805552854 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 20:50:13,595 - tasks - INFO - All calls fired for job 547b95289b93871df62ae9b2
+2014-11-30 20:50:14,143 - __main__ - INFO - 7805557522 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 20:50:15,450 - __main__ - INFO - 7805554025 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 20:51:13,656 - tasks - INFO - Monitoring job 547b95289b93871df62ae9b2
+2014-11-30 20:51:13,659 - tasks - INFO - job 547b95289b93871df62ae9b2 complete
+2014-11-30 20:51:13,659 - bravo - INFO - Creating job summary for 547b95289b93871df62ae9b2
+2014-11-30 20:51:13,661 - bravo - INFO - done
+2014-11-30 20:51:13,661 - bravo - INFO - Sending report
+2014-11-30 21:00:25,685 - __main__ - INFO - Job 547be7d99b938747256b4da7 added to DB
+2014-11-30 21:00:25,687 - __main__ - INFO - Calls added to DB for job 547be7d99b938747256b4da7
+2014-11-30 21:00:41,508 - tasks - INFO - Firing calls for job 547be7d99b938747256b4da7
+2014-11-30 21:00:41,892 - bravo - INFO - (780) 863-5715 call fired (201)
+2014-11-30 21:00:43,414 - bravo - INFO - (780) 555-2854 call fired (201)
+2014-11-30 21:00:44,262 - __main__ - INFO - 7808635715 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 21:00:44,764 - bravo - INFO - (780) 555-7522 call fired (201)
+2014-11-30 21:00:46,157 - bravo - INFO - 780 555 6708 call fired (201)
+2014-11-30 21:00:46,195 - __main__ - INFO - 7805552854 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 21:00:47,514 - __main__ - INFO - 7805557522 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 21:00:47,618 - bravo - INFO - 780 555-4025 call fired (201)
+2014-11-30 21:00:48,565 - __main__ - INFO - 7805556708 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 21:00:48,621 - tasks - INFO - All calls fired for job 547be7d99b938747256b4da7
+2014-11-30 21:00:50,515 - __main__ - INFO - 7805554025 failed (INVALID_NUMBER_FORMAT) /call/hangup
+2014-11-30 21:01:48,681 - tasks - INFO - Monitoring job 547be7d99b938747256b4da7
+2014-11-30 21:01:48,683 - tasks - INFO - job 547be7d99b938747256b4da7 complete
+2014-11-30 21:01:48,684 - bravo - INFO - Creating job summary for 547be7d99b938747256b4da7
+2014-11-30 21:01:48,686 - bravo - INFO - done
+2014-11-30 21:01:48,686 - bravo - INFO - Sending report
+2014-11-30 21:02:58,869 - tasks - INFO - Firing calls for job 547be7d99b938747256b4da7
+2014-11-30 21:02:59,243 - bravo - INFO - (780) 863-5715 call fired (201)
+2014-11-30 21:03:00,567 - bravo - INFO - (780) 555-2854 call fired (201)
+2014-11-30 21:03:02,361 - bravo - INFO - (780) 555-7522 call fired (201)
+2014-11-30 21:03:03,826 - bravo - INFO - 780 555 6708 call fired (201)
+2014-11-30 21:03:04,054 - __main__ - INFO - 17805552854 ringing (None) /call/ring
+2014-11-30 21:03:05,291 - __main__ - INFO - 17808635715 ringing (None) /call/ring
+2014-11-30 21:03:05,318 - bravo - INFO - 780 555-4025 call fired (201)
+2014-11-30 21:03:05,658 - __main__ - INFO - 17805557522 ringing (None) /call/ring
+2014-11-30 21:03:06,322 - tasks - INFO - All calls fired for job 547be7d99b938747256b4da7
+2014-11-30 21:03:07,468 - __main__ - INFO - 17805556708 ringing (None) /call/ring
+2014-11-30 21:03:08,453 - __main__ - INFO - 17805554025 ringing (None) /call/ring
+2014-11-30 21:03:11,503 - __main__ - INFO - 17808635715 in-progress (None) /call/answer
+2014-11-30 21:03:13,788 - __main__ - INFO - 17805552854 in-progress (None) /call/answer
+2014-11-30 21:03:15,495 - __main__ - INFO - 17805557522 in-progress (None) /call/answer
+2014-11-30 21:03:18,283 - __main__ - INFO - 17805554025 in-progress (None) /call/answer
+2014-11-30 21:03:19,646 - __main__ - INFO - 17805556708 failed (NORMAL_TEMPORARY_FAILURE) /call/hangup
+2014-11-30 21:03:22,407 - __main__ - INFO - (780) 555-7522 Leaving voicemail.
+2014-11-30 21:03:27,625 - __main__ - INFO - 17808635715 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 21:03:29,391 - __main__ - INFO - 17805552854 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 21:03:32,715 - __main__ - INFO - 17805557522 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 21:03:33,580 - __main__ - INFO - 17805554025 completed (NORMAL_CLEARING) /call/hangup
+2014-11-30 21:04:06,365 - tasks - INFO - Monitoring job 547be7d99b938747256b4da7
+2014-11-30 21:04:06,368 - tasks - INFO - job 547be7d99b938747256b4da7 complete
+2014-11-30 21:04:06,369 - bravo - INFO - Creating job summary for 547be7d99b938747256b4da7
+2014-11-30 21:04:06,370 - bravo - INFO - done
+2014-11-30 21:04:06,371 - bravo - INFO - Sending report
+2014-12-02 15:57:16,138 - __main__ - INFO - 17808093927 ringing (None) /call/answer
+2014-12-02 15:57:16,579 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-12-02 15:57:17,121 - __main__ - INFO - 17808093927 ringing (None) /call/answer
+2014-12-02 15:57:17,668 - __main__ - INFO - 17808093927 no-answer (NO_ANSWER) /call/hangup
+2014-12-03 17:36:41,569 - tasks - INFO - Firing calls for job 547be7d99b938747256b4da7
+2014-12-03 17:36:42,272 - bravo - INFO - 7805556708 call fired (201)
+2014-12-03 17:36:43,431 - __main__ - INFO - 17805556708 ringing (None) /call/ring
+2014-12-03 17:36:43,829 - bravo - INFO - (780) 863-5715 call fired (201)
+2014-12-03 17:36:45,157 - bravo - INFO - (780) 555-2854 call fired (201)
+2014-12-03 17:36:46,133 - __main__ - INFO - 17805552854 ringing (None) /call/ring
+2014-12-03 17:36:46,557 - bravo - INFO - (780)555-7522 call fired (201)
+2014-12-03 17:36:47,888 - bravo - INFO - 780 555-4025 call fired (201)
+2014-12-03 17:36:48,897 - tasks - INFO - All calls fired for job 547be7d99b938747256b4da7
+2014-12-03 17:36:50,676 - __main__ - INFO - 17808635715 ringing (None) /call/ring
+2014-12-03 17:36:56,701 - __main__ - INFO - 17808635715 in-progress (None) /call/answer
+2014-12-03 17:36:56,719 - __main__ - INFO - 17805554025 ringing (None) /call/ring
+2014-12-03 17:36:58,710 - __main__ - INFO - (780) 863-5715 Leaving voicemail.
+2014-12-03 17:37:02,341 - __main__ - INFO - 17805554025 in-progress (None) /call/answer
+2014-12-03 17:37:04,376 - __main__ - INFO - 780 555-4025 Leaving voicemail.
+2014-12-03 17:37:07,137 - __main__ - INFO - 17805557522 ringing (None) /call/ring
+2014-12-03 17:37:08,855 - __main__ - INFO - 17808635715 completed (NORMAL_CLEARING) /call/hangup
+2014-12-03 17:37:14,495 - __main__ - INFO - 17805554025 completed (NORMAL_CLEARING) /call/hangup
+2014-12-03 17:37:48,955 - tasks - INFO - Monitoring job 547be7d99b938747256b4da7
+2014-12-03 17:38:01,669 - __main__ - INFO - 17805556708 failed (NORMAL_TEMPORARY_FAILURE) /call/hangup
+2014-12-03 17:38:15,756 - __main__ - INFO - 17805552854 failed (NORMAL_TEMPORARY_FAILURE) /call/hangup
+2014-12-03 17:38:18,708 - __main__ - INFO - 17805557522 failed (NORMAL_TEMPORARY_FAILURE) /call/hangup
+2014-12-03 17:38:49,031 - tasks - INFO - job 547be7d99b938747256b4da7 complete
+2014-12-03 17:38:49,031 - bravo - INFO - Creating job summary for 547be7d99b938747256b4da7
+2014-12-03 17:38:49,036 - bravo - INFO - done
+2014-12-03 17:38:49,036 - bravo - INFO - Sending report
+2014-12-03 19:24:36,667 - __main__ - INFO - loaded
+2014-12-03 19:25:01,049 - __main__ - INFO - loaded
+2014-12-03 19:25:17,572 - __main__ - INFO - loaded
+2014-12-03 19:28:23,843 - __main__ - INFO - loaded
+2014-12-03 19:34:25,529 - __main__ - INFO - loaded
+2014-12-03 19:35:12,131 - __main__ - INFO - loaded
+2014-12-03 19:35:55,995 - __main__ - INFO - loaded
+2014-12-03 19:37:21,886 - __main__ - INFO - loaded
+2014-12-03 19:40:38,421 - __main__ - INFO - loaded
+2014-12-03 19:40:43,585 - __main__ - INFO - loaded
+2014-12-03 19:42:36,474 - __main__ - INFO - loaded
+2014-12-03 19:43:55,476 - __main__ - INFO - loaded
+2014-12-03 19:45:27,761 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:45:30,861 - __main__ - INFO - loaded
+2014-12-03 19:45:32,026 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:49:13,239 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:49:15,125 - __main__ - INFO - loaded
+2014-12-03 19:49:17,443 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:49:21,229 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:51:43,722 - __main__ - INFO - loaded
+2014-12-03 19:51:47,236 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:52:09,727 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:52:43,985 - __main__ - INFO - loaded
+2014-12-03 19:52:45,417 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:52:52,382 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:54:21,698 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:55:29,234 - __main__ - INFO - loaded
+2014-12-03 19:55:30,148 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:56:25,940 - __main__ - INFO - loaded
+2014-12-03 19:56:27,080 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:56:48,776 - __main__ - INFO - loaded
+2014-12-03 19:56:49,972 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:56:58,968 - __main__ - INFO - loaded
+2014-12-03 19:57:01,600 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:57:16,542 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:58:42,670 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:58:43,778 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:58:45,483 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:59:35,433 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:59:45,875 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:59:52,311 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 19:59:55,374 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 20:58:39,735 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:00:35,546 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:04:51,656 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:05:03,525 - __main__ - INFO - loaded
+2014-12-03 21:05:05,979 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:05:11,872 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:09:27,301 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:09:35,919 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:10:42,614 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:14:06,382 - __main__ - INFO - loaded
+2014-12-03 21:14:09,724 - __main__ - INFO - loaded
+2014-12-03 21:14:15,183 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:14:18,253 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:14:24,732 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:14:24,735 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:14:29,715 - __main__ - INFO - loaded
+2014-12-03 21:14:34,012 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:20:44,806 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:20:57,388 - __main__ - INFO - loaded
+2014-12-03 21:21:27,611 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:24:08,102 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:27:15,774 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 21:28:34,913 - __main__ - INFO - event received!{u'data': u"I'm connected!"}
+2014-12-03 22:31:56,242 - __main__ - INFO - Removed db.jobs and db.calls for 547b95289b93871df62ae9b2
+2014-12-03 22:32:05,881 - __main__ - INFO - Removed db.jobs and db.calls for 5477c6a79b93871fac0765e8
+2014-12-03 23:49:16,287 - __main__ - INFO - socket established!
+2014-12-03 23:51:25,515 - __main__ - INFO - socket established!
+2014-12-03 23:54:08,467 - __main__ - INFO - socket established!
+2014-12-03 23:56:53,795 - __main__ - INFO - socket established!
+2014-12-03 23:57:02,700 - __main__ - INFO - socket established!
+2014-12-03 23:57:36,642 - __main__ - INFO - socket established!
+2014-12-03 23:57:47,543 - __main__ - INFO - socket established!
+2014-12-03 23:59:26,857 - __main__ - INFO - socket established!
+2014-12-03 23:59:31,425 - __main__ - INFO - socket established!
+2014-12-03 23:59:42,051 - __main__ - INFO - socket established!
+2014-12-03 23:59:44,793 - __main__ - INFO - socket established!
+2014-12-04 00:00:25,677 - __main__ - INFO - socket established!
+2014-12-04 00:01:09,230 - __main__ - INFO - socket established!
+2014-12-04 00:01:11,252 - __main__ - INFO - socket established!
+2014-12-04 00:01:16,199 - __main__ - INFO - socket established!
+2014-12-04 00:01:27,188 - __main__ - INFO - socket established!
+2014-12-04 00:01:36,095 - __main__ - INFO - socket established!
+2014-12-04 00:02:00,896 - __main__ - INFO - socket established!
+2014-12-04 00:03:12,659 - __main__ - INFO - socket established!

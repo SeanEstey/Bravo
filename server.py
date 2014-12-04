@@ -1,4 +1,6 @@
 from flask import Flask,render_template,request,g,Response,redirect,url_for
+#import flask.ext.socketio
+from flask.ext.socketio import *
 from config import *
 from bson.objectid import ObjectId
 import pymongo
@@ -17,10 +19,11 @@ import logging
 import codecs
 
 logger = logging.getLogger(__name__)
-setLogger(logger, logging.DEBUG, 'log.log')
+setLogger(logger, logging.INFO, 'log.log')
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
+socketio = SocketIO(app)
 
 #-------------------------------------------------------------------
 def parse_csv(csvfile, header_template):
@@ -64,9 +67,29 @@ def allowed_file(filename):
   return '.' in filename and \
      filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
+@socketio.on('message')
+def handle_message(message):
+  logger.info('received socket msg!')
+  send(message)
+
+@socketio.on('connect')
+def socketio_connect():
+  logger.info('socket established!')
+  socketio.emit('update',{
+    'id':'abc123',
+    'status': 'failed'
+  })
+
+
+@socketio.on('update')
+def send_socket_update(data):
+  # TODO: Test if socket connection exists first
+  socketio.emit('update', data)
+
 #-------------------------------------------------------------------
 @app.route('/')
 def index():
+  logger.info('loaded')
   return render_template('main.html')
 
 #-------------------------------------------------------------------
@@ -136,6 +159,8 @@ def create_job():
         col_name = TEMPLATE_HEADERS[request.form['template']][col]
         call[HEADERS_TO_MONGO[col_name]] = row[col]
 
+      call['to'] = call['to'].replace(' ', '').replace('(','').replace(')','').replace('-','')
+
       list_of_calls.append(call)
 
     db['calls'].insert(list_of_calls)
@@ -204,6 +229,40 @@ def show_calls(job_id):
   )
 
 #-------------------------------------------------------------------
+@app.route('/reset/<job_id>')
+def reset_job(job_id):
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
+  
+  db['calls'].update(
+    {'job_id': job_id}, 
+    {'$set': {
+      'status': 'not attempted',
+      'attempts': 0
+    }},
+    multi=True
+  )
+
+  db['calls'].update(
+    {'job_id': job_id}, 
+    {'$unset': {
+      'message': '',
+      'call_uuid': '',
+      'request_id': '',
+      'code': ''
+    }},
+    multi=True
+  )
+
+  db['jobs'].update(
+    {'_id':ObjectId(job_id)},
+    {'$set': {
+      'status': 'pending'
+    }})
+
+  return 'OK'
+
+#-------------------------------------------------------------------
 @app.route('/cancel/job/<job_id>')
 def cancel_job(job_id):
   client = pymongo.MongoClient('localhost',27017)
@@ -254,11 +313,30 @@ def edit_call(call_id):
 
 #-------------------------------------------------------------------
 @app.route('/call/ring', methods=['POST'])
-def ring:
-  # Set db.call['rang'] = true
-  # This fields needs to be true for call to be a success,
-  # unless voicemail detected (straight to voicemail)
-  return 'OK'
+def ring():
+  try:
+    request_uuid = request.form.get('RequestUUID')
+    call_uuid = request.form.get('CallUUID')
+    
+    # This fields needs to be true for call to be a success,
+    # unless voicemail detected (straight to voicemail)
+    client = pymongo.MongoClient('localhost',27017)
+    db = client['wsf']
+    db['calls'].update(
+        {'request_id':request_uuid}, 
+        {'$set':{'rang': True}}
+    )
+
+    call_status = request.form.get('CallStatus')
+    to = request.form.get('To')
+    cause = request.form.get('HangupCause')
+    logger.info('%s %s (%s) /call/ring', to, call_status, cause)
+
+    return 'OK'
+
+  except Exception, e:
+    logger.error('%s rang. Failed to update DB or deliver message' % request.values.items(), exc_info=True)
+    return str(e)
 
 #-------------------------------------------------------------------
 @app.route('/call/answer',methods=['POST','GET'])
@@ -288,11 +366,17 @@ def content():
             }}
     )
     call = db['calls'].find_one({'request_id':request_uuid})
+    send_socket_update({
+      'id' : call['_id'],
+      'status' : call['status'],
+      'message' : call['message']
+    })
 
     dt = parse(call['event_date'])
     date_str = dt.strftime('%A, %B %d')
     
     job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
+
    
     # TODO: Implement this as function in bravo.py in order to invoke in call/voicemail
     if job['template'] == 'etw_reminder':
@@ -493,4 +577,7 @@ if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.debug = True
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-    app.run(host='0.0.0.0', port=port)
+    app.config['SECRET_KEY'] = 'a secret!'
+    #app.run(host='0.0.0.0', port=port)
+    socketio.run(app, host='0.0.0.0', port=port)
+    #socketio.run(app)

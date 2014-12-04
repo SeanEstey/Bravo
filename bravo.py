@@ -15,18 +15,19 @@ setLogger(logger, logging.INFO, 'log.log')
 def dial(to):
   try:
     params = { 
-        'from' : FROM_NUMBER,
-        'caller_name': CALLER_ID,
-        'to' : to,
-        'answer_url' : URL+'/call/answer',
-        'answer_method': 'POST',
-        'hangup_url': URL+'/call/hangup',
-        'hangup_method': 'POST',
-        'fallback_url': URL+'/call/fallback',
-        'fallback_method': 'POST',
-        'machine_detection': 'true',
-        'machine_detection_time': 9000,
-        'machine_detection_url': URL+'/call/machine'
+      'from' : FROM_NUMBER,
+      'caller_name': CALLER_ID,
+      'to' : '+1' + to,
+      #'ring_url' :  URL+'/call/ring',
+      'answer_url' : URL+'/call/answer',
+      'answer_method': 'POST',
+      'hangup_url': URL+'/call/hangup',
+      'hangup_method': 'POST',
+      'fallback_url': URL+'/call/fallback',
+      'fallback_method': 'POST',
+      'machine_detection': 'true',
+      #'machine_detection_time': 9000,
+      'machine_detection_url': URL+'/call/machine'
     }
 
     server = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
@@ -114,34 +115,33 @@ def create_job_summary(job_id):
 
 #-------------------------------------------------------------------
 def send_email_report(job_id):
-    logger.info('Sending report')
+  logger.info('Sending report')
 
-    import smtplib
-    from email.mime.text import MIMEText
+  import smtplib
+  from email.mime.text import MIMEText
 
-    client = pymongo.MongoClient('localhost',27017)
-    db = client['wsf']
-    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
+  job = db['jobs'].find_one({'_id':ObjectId(job_id)})
     
+  calls = list(db['calls'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))
+  calls_str = json.dumps(calls, sort_keys=True, indent=4, separators=(',',': ' ))
+  sum_str = json.dumps(job['summary'])
+  
+  msg = MIMEText(sum_str + '\n\n' + calls_str)
 
-    calls = list(db['calls'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))
-    calls_str = json.dumps(calls, sort_keys=True, indent=4, separators=(',',': ' ))
-    sum_str = json.dumps(job['summary'])
-    
-    msg = MIMEText(sum_str + '\n\n' + calls_str)
+  username = 'winnstew'
+  password = 'batman()'
+  me = 'winnstew@gmail.com'
+  you = 'estese@gmail.com'
 
-    username = 'winnstew'
-    password = 'batman()'
-    me = 'winnstew@gmail.com'
-    you = 'estese@gmail.com'
+  msg['Subject'] = 'Job Summary %s' % job_id
+  msg['From'] = me
+  msg['To'] = you
 
-    msg['Subject'] = 'Job Summary %s' % job_id
-    msg['From'] = me
-    msg['To'] = you
-
-    s = smtplib.SMTP('smtp.gmail.com:587')
-    s.ehlo()
-    s.starttls()
-    s.login(username, password)
-    s.sendmail(me, [you], msg.as_string())
-    s.quit()
+  s = smtplib.SMTP('smtp.gmail.com:587')
+  s.ehlo()
+  s.starttls()
+  s.login(username, password)
+  s.sendmail(me, [you], msg.as_string())
+  s.quit()

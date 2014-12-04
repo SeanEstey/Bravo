@@ -147,6 +147,7 @@ function initNewJob() {
   $('body').css('display','block');
 }
 
+
 //---------------------------------------------------------------
 function initShowCalls() {
   $('.delete-btn').button({
@@ -192,10 +193,28 @@ function initShowCalls() {
 
   $("td").on('click',function() {      
     // Editable fields are assigned 'name' attribute
-    if($(this).attr('name')) {
+    var name = $(this).attr('name');
+    if(!name)
+      return;
+
+    if(name != 'status' && name != 'message' && 'attempts') {
       var row_id = $(this).parent().attr('id');
       processCellClick(row_id, $(this));
     }
+  });
+
+  // Init SocketIO
+  var socket = io.connect('http://' + document.domain + ':' + location.port);
+  socket.on('connect', function() {
+      console.log('socket.io connected');
+      socket.emit('connect');
+      //socket.emit('my event', {data: 'I\'m connected!'});
+  });
+  socket.on('message', function(message) {
+     //console.log('received ' + message);
+  });
+  socket.on('update', function(data) {
+    console.log('received id: ' + data['id']);
   });
 }
 

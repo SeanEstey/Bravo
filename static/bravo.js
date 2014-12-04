@@ -172,22 +172,25 @@ function initShowCalls() {
     });
   });
 
-  var scheduled = Date.parse($('#scheduled_datetime').text());
-  setInterval(function() {
-    var today = new Date();
-    var diff_ms = scheduled.getTime() - today.getTime();
+  // Display countdown if job status == Pending
+  if($('#timer').text().indexOf('Pending') > 0) {
+    var scheduled = Date.parse($('#scheduled_datetime').text());
+    setInterval(function() {
+      var today = new Date();
+      var diff_ms = scheduled.getTime() - today.getTime();
 
-    if(diff_ms < 0) {
-      $('#timer').text('Completed');
-      return;
-    }
+      if(diff_ms < 0) {
+        $('#timer').text('Completed');
+        return;
+      }
 
-    var diff_days = diff_ms / (1000 * 3600 * 24);
-    var diff_hrs = ((diff_days + 1) % 1) * 24;
-    var diff_min = ((diff_hrs + 1) % 1) * 60;
-    var diff_sec = ((diff_min + 1) % 1) * 60;
-    $('#timer').text('Pending: ' + Math.floor(diff_days) + ' Days ' + Math.floor(diff_hrs) + ' Hours ' + Math.floor(diff_min) + ' Min ' + Math.floor(diff_sec) + ' Sec')
-  }, 1000);
+      var diff_days = diff_ms / (1000 * 3600 * 24);
+      var diff_hrs = ((diff_days + 1) % 1) * 24;
+      var diff_min = ((diff_hrs + 1) % 1) * 60;
+      var diff_sec = ((diff_min + 1) % 1) * 60;
+      $('#timer').text('Pending: ' + Math.floor(diff_days) + ' Days ' + Math.floor(diff_hrs) + ' Hours ' + Math.floor(diff_min) + ' Min ' + Math.floor(diff_sec) + ' Sec')
+    }, 1000);
+  }
 
   $('body').css('display','block');
 
@@ -195,6 +198,9 @@ function initShowCalls() {
     // Editable fields are assigned 'name' attribute
     var name = $(this).attr('name');
     if(!name)
+      return;
+  
+    if($('#timer').text().indexOf('Pending') < 0)
       return;
 
     if(name != 'status' && name != 'message' && 'attempts') {
@@ -219,11 +225,10 @@ function initShowCalls() {
     console.log('received update:: ' + JSON.stringify(data));
     // Find matching row_id to update
     var $row = $('#'+data['id']);
-    //$row.find('[name="status"]').text(data['status']);
     $row.find('[name="status"]').html(data['status']);
     $row.find('[name="message"]').html(data['message']);
     $row.find('[name="attempts"]').html(data['attempts']);
-
+    $('#timer').text('In Progress');
   });
 }
 

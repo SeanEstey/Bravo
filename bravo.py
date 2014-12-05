@@ -20,13 +20,12 @@ def dial(to):
       'to' : '+1' + to,
       'ring_url' :  URL+'/call/ring',
       'answer_url' : URL+'/call/answer',
-      'answer_method': 'POST',
+      'answer_method': 'GET',
       'hangup_url': URL+'/call/hangup',
       'hangup_method': 'POST',
       'fallback_url': URL+'/call/fallback',
       'fallback_method': 'POST',
       'machine_detection': 'true',
-      #'machine_detection_time': 9000,
       'machine_detection_url': URL+'/call/machine'
     }
 
@@ -51,6 +50,38 @@ def dial(to):
   except Exception, e:
     logger.error('%s Call failed to dial (%a)',to, code, exc_info=True)
     return str(e)
+
+#-------------------------------------------------------------------
+def getSpeak(template, etw_status, date_str):
+  intro_str = 'Hi, this is a friendly reminder from the Winny Fred stewart association '
+  repeat_str = 'To repeat this message press 1. '
+  no_pickup_str = 'If you do not need a pickup, press 2. '
+
+  if template == 'etw_reminder':
+    if etw_status == 'Awaiting Dropoff':
+      speak = (intro_str + 'that your empties to winn dropoff date ' +
+        'is ' + date_str + '. If you have any empties you can leave them ' +
+        'out by 8am. ' + repeat_str
+      )
+    elif etw_status == 'Active':
+      speak = (intro_str + 'that your next empties to winn pickup date ' +
+        'is ' + date_str + '. please have your empties out by 8am. ' + 
+        repeat_str + no_pickup_str
+      )
+    elif etw_status == 'Cancelling':
+      speak = (intro_str + 'that we will come by to pick up your bag stand ' +
+        'on ' + date_str + '. thanks for your past support. ' + repeat_str
+      )
+    else:
+      speak = ''
+  elif template == 'special_msg':
+    print 'TODO'
+  elif template == 'etw_welcome':
+    print 'TODO'
+  elif template == 'gg_delivery':
+    print 'TODO'
+
+  return speak
 
 #-------------------------------------------------------------------
 # Add request_uuid, call_uuid and code to mongo record

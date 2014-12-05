@@ -17,6 +17,7 @@ import urllib2
 import csv
 import logging
 import codecs
+import bravo
 
 logger = logging.getLogger(__name__)
 setLogger(logger, logging.INFO, 'log.log')
@@ -70,21 +71,21 @@ def allowed_file(filename):
 #-------------------------------------------------------------------
 @socketio.on('disconnected')
 def socketio_disconnected():
-  logger.info('socket disconnected')
-  logger.info('num connected sockets: ' + str(len(socketio.server.sockets)))
+  logger.debug('socket disconnected')
+  logger.debug('num connected sockets: ' + str(len(socketio.server.sockets)))
 
 #-------------------------------------------------------------------
 @socketio.on('connected')
 def socketio_connect():
-  logger.info('socket established!')
-  logger.info('num connected sockets: ' + str(len(socketio.server.sockets)))
+  logger.debug('socket established!')
+  logger.debug('num connected sockets: ' + str(len(socketio.server.sockets)))
 
 #-------------------------------------------------------------------
 @socketio.on('update')
 def send_socket_update(data):
   if not socketio.server:
     return False
-  logger.info('update(): num connected sockets: ' + str(len(socketio.server.sockets)))
+  logger.debug('update(): num connected sockets: ' + str(len(socketio.server.sockets)))
   # Test for socket.io connections first
   if len(socketio.server.sockets) == 0:
     return False
@@ -365,79 +366,83 @@ def ring():
 @app.route('/call/answer',methods=['POST','GET'])
 def content():
   try:
-    call_status = request.form.get('CallStatus')
-    to = request.form.get('To')
-    cause = request.form.get('HangupCause')
-    logger.info('%s %s (%s) /call/answer', to, call_status, cause)
-    logger.debug('Call answered %s' % request.values.items())
+    if request.method == "GET":
+      call_status = request.args.get('CallStatus')
+      to = request.args.get('To')
+      logger.info('%s %s /call/answer', to, call_status)
+      #logger.debug('Call answered %s' % request.values.items())
 
-    if request.form.get('Direction') == 'inbound':
+      request_uuid = request.args.get('RequestUUID')
+      call_uuid = request.args.get('CallUUID')
+      
+      client = pymongo.MongoClient('localhost',27017)
+      db = client['wsf']
+      db['calls'].update(
+          {'request_id':request_uuid}, 
+          {'$set':{
+              'status': 'answered',
+              'message': 'delivered', 
+              'call_uuid': call_uuid
+              }}
+      )
+      call = db['calls'].find_one({'request_id':request_uuid})
+      send_socket_update({
+        'id' : str(call['_id']),
+        'status' : call['status'],
+        'message' : call['message'],
+        'attempts' : call['attempts']
+      })
+
+      dt = parse(call['event_date'])
+      date_str = dt.strftime('%A, %B %d')
+      job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
+      speak = bravo.getSpeak(job['template'], call['etw_status'], date_str)
+      logger.debug('%s Answered.' % call['to'])
+      getdigits_action_url = url_for('content', _external=True)
+      getDigits = plivoxml.GetDigits(
+        action=getdigits_action_url,
+        method='POST', timeout=7, numDigits=1,
+        retries=1
+      )  
+      
       response = plivoxml.Response()
+      response.addWait(length=1)
+      response.addSpeak(body=speak)
+      response.add(getDigits)
       return Response(str(response), mimetype='text/xml')
 
-    request_uuid = request.form.get('RequestUUID')
-    call_uuid = request.form.get('CallUUID')
-    
-    client = pymongo.MongoClient('localhost',27017)
-    db = client['wsf']
-    db['calls'].update(
-        {'request_id':request_uuid}, 
-        {'$set':{
-            'status': 'answered',
-            'message': 'delivered', 
-            'call_uuid': call_uuid
+    elif request.method == "POST":
+      digit = request.form.get('Digits')
+      logger.info('got digit: ' + str(digit))
+      client = pymongo.MongoClient('localhost',27017)
+      db = client['wsf']
+      request_uuid = request.form.get('RequestUUID')
+      call = db['calls'].find_one({'request_id':request_uuid})
+      job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
+      dt = parse(call['event_date'])
+      date_str = dt.strftime('%A, %B %d')
+      response = plivoxml.Response()
+      
+      if digit == '1':
+        speak = bravo.getSpeak(job['template'], call['etw_status'], date_str)
+        response.addSpeak(speak)
+      elif digit == '2':
+        db['calls'].update(
+          {'request_id':request_uuid}, 
+          {'$set':{
+            'office_notes': 'NO PICKUP REQUEST RECEIVED',
             }}
-    )
-    call = db['calls'].find_one({'request_id':request_uuid})
-    send_socket_update({
-      'id' : str(call['_id']),
-      'status' : call['status'],
-      'message' : call['message'],
-      'attempts' : call['attempts']
-    })
-
-    dt = parse(call['event_date'])
-    date_str = dt.strftime('%A, %B %d')
-    
-    job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-
-   
-    # TODO: Implement this as function in bravo.py in order to invoke in call/voicemail
-    if job['template'] == 'etw_reminder':
-      if call['etw_status'] == 'Awaiting Dropoff':
-        speak = ('Hi, this is a friendly reminder from the Winny Fred ' +
-          'stewart association that your empties to winn dropoff date ' +
-          'is ' + date_str + '. If you have any empties you can leave them ' +
-          'out by 8am. ' +
-          'To repeat this message press 1.'
         )
-      elif call['etw_status'] == 'Active':
-        speak = ('Hi, this is a friendly reminder from the Winny Fred ' +
-          'stewart association that your next empties to winn pickup date ' +
-          'is ' + date_str + '. please have your empties out by 8am. ' +
-          'To repeat this message press 1.'
-        )
-      elif call['etw_status'] == 'Cancelling':
-        speak = ('Hi, this is a friendly reminder from the Winny Fred ' +
-          'stewart association that we will come by to pick up your bag stand ' +
-          'on ' + date_str + '. thanks for your past support. ' +
-          'To repeat this message press 1.'
-        )
-      else:
-        speak = ''
-    elif job['template'] == 'special_msg':
-      print 'TODO'
-    elif job['template'] == 'etw_welcome':
-      print 'TODO'
-    elif job['template'] == 'gg_delivery':
-      print 'TODO'
+        send_socket_update({
+          'id' : str(call['_id']),
+          'office_notes' : 'NO PICKUP REQUEST RECEIVED',
+          'status' : call['status'],
+          'message' : call['message'],
+          'attempts' : call['attempts']
+        })
 
-    logger.debug('%s Answered.' % call['to'])
-   
-    response = plivoxml.Response()
-    response.addWait(length=1)
-    response.addSpeak(body=speak)
-    return Response(str(response), mimetype='text/xml')
+
+      return Response(str(response), mimetype='text/xml')
   
   except Exception, e:
     logger.error('%s answered. Failed to update DB or deliver message' % request.values.items(), exc_info=True)

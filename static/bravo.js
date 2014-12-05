@@ -203,7 +203,7 @@ function initShowCalls() {
     if($('#timer').text().indexOf('Pending') < 0)
       return;
 
-    if(name != 'status' && name != 'message' && 'attempts') {
+    if(name != 'status' && name != 'message' && name != 'attempts') {
       var row_id = $(this).parent().attr('id');
       processCellClick(row_id, $(this));
     }
@@ -222,12 +222,14 @@ function initShowCalls() {
   });
   
   socket.on('update', function(data) {
-    console.log('received update:: ' + JSON.stringify(data));
+    console.log('received update: ' + JSON.stringify(data));
     // Find matching row_id to update
     var $row = $('#'+data['id']);
     $row.find('[name="status"]').html(data['status']);
     $row.find('[name="message"]').html(data['message']);
     $row.find('[name="attempts"]').html(data['attempts']);
+    if('office_notes' in data)
+      $row.find('[name="office_notes"]').html(data['office_notes']);
     $('#timer').text('In Progress');
   });
 }

@@ -95,7 +95,16 @@ def send_socket_update(data):
 #-------------------------------------------------------------------
 @app.route('/')
 def index():
+
   return render_template('main.html')
+
+@app.route('/celery_status')
+def celery_status():
+  if not bravo.is_active_worker():
+    return 'Offline'
+  else:
+    return 'Online'
+  
 
 #-------------------------------------------------------------------
 @app.route('/status')
@@ -393,10 +402,8 @@ def content():
         'attempts' : call['attempts']
       })
 
-      dt = parse(call['event_date'])
-      date_str = dt.strftime('%A, %B %d')
       job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-      speak = bravo.getSpeak(job['template'], call['etw_status'], date_str)
+      speak = bravo.getSpeak(job['template'], call['etw_status'], call['event_date'])
       logger.debug('%s Answered.' % call['to'])
       getdigits_action_url = url_for('content', _external=True)
       getDigits = plivoxml.GetDigits(
@@ -440,7 +447,7 @@ def content():
           'message' : call['message'],
           'attempts' : call['attempts']
         })
-
+        response.addSpeak('Thank you. Goodbye.')
 
       return Response(str(response), mimetype='text/xml')
   
@@ -454,29 +461,32 @@ def process_hangup():
   try:
     call_status = request.form.get('CallStatus')
     to = request.form.get('To')
-    cause = request.form.get('HangupCause')
+    code = request.form.get('HangupCause')
     request_uuid = request.form.get('RequestUUID')
     
-    logger.info('%s %s (%s) /call/hangup', to, call_status, cause)
+    logger.info('%s %s (%s) /call/hangup', to, call_status, code)
     logger.debug('Call hungup %s' % request.values.items())
 
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
 
     call = db['calls'].find_one({'request_id':request_uuid})
-    attempts = int(call['attempts'])
+    if 'attempts' in call:
+      attempts = int(call['attempts'])
+    else:
+      attempts = 0
 
     if call_status != 'failed':
       attempts += 1
 
     fields = { 
       'status': call_status,
-      'code' : cause,
+      'code' : code,
       'attempts': attempts
     }
 
     if call_status == 'failed':
-      fields['message'] = cause
+      fields['message'] = code
 
     db['calls'].update(
         {'request_id':request_uuid}, 
@@ -552,26 +562,30 @@ def process_voicemail():
     logger.debug('Call routed to leave voicemail. %s' % request.values.items())
 
     request_uuid = request.form.get('RequestUUID')
-    
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
     db['calls'].update(
         {'request_id':request_uuid}, 
         {'$set': {
-            'status':'voicemail',
-            'message': 'left voicemail'
+            'status':'completed',
+            'message': 'delivered voicemail',
+            'code': 'DELIVERED VOICEMAIL'
             }}
     )
     call = db['calls'].find_one({'request_id':request_uuid})
-    dt = parse(call['event_date'])
-    date_str = dt.strftime('%A, %B %d')
-    speak = 'Hi, this is a friendly reminder from the winny fred stewart association that your next empties to winn pickup date is ' + date_str
-   
+    send_socket_update({
+      'id' : str(call['_id']),
+      'status' : 'completed',
+      'message' : 'DELIVERED VOICEMAIL',
+      'attempts': call['attempts']
+    })
+    job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
     logger.info('%s Leaving voicemail.' % call['to'])
-    
+    speak = bravo.getSpeak(job['template'], call['etw_status'], call['event_date'])
     response = plivoxml.Response()
     response.addWait(length=1)
     response.addSpeak(body=speak)
+
     return Response(str(response), mimetype='text/xml')
   
   except Exception, e:

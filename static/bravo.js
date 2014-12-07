@@ -7,6 +7,20 @@ function useJQueryBtn() {
     });
 }
 
+function getCeleryStatus() {
+  var request =  $.ajax({
+      type: 'GET',
+      url: 'http://23.239.21.165:5000/celery_status'
+    });
+
+  request.done(function(msg){
+    $('#status').html('Celery Status: ' + msg);
+    console.log('celery status: ' + JSON.stringify(msg));
+  });
+
+
+}
+
 //---------------------------------------------------------------
 function onSelectTemplate() {
   var $select = $('#template-select');

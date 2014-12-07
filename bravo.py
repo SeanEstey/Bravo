@@ -1,4 +1,5 @@
 from config import *
+from celery import Celery
 from bson.objectid import ObjectId
 import plivo
 import pymongo
@@ -7,13 +8,51 @@ import csv
 import logging
 import time
 import json
+from dateutil.parser import parse
+from datetime import datetime,timedelta
 
+celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
 logger = logging.getLogger(__name__)
 setLogger(logger, logging.INFO, 'log.log')
 
 #-------------------------------------------------------------------
+def is_active_worker():
+  if not celery.control.inspect().active_queues():
+    return False
+  else:
+    return True
+
+#-------------------------------------------------------------------
+# Dispatches celery worker for each
+def schedule_jobs():
+  if not is_active_worker():
+    logger.error('No celery worker available!')
+    return False 
+
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
+  pending_jobs = db['jobs'].find({'status': 'pending'})
+  logger.info('Scheduler: ' + str(pending_jobs.count()) + ' pending jobs:')
+
+  job_num = 1
+  for job in pending_jobs:
+    if datetime.now() > job['fire_dtime']:
+      logger.info('Starting job %s' % str(job['_id']))
+      execute_job.delay(str(job['_id']))
+    else:
+      next_job_delay = job['fire_dtime'] - datetime.now()
+      logger.info(str(job_num) + '): ' + job['name'] + ' starts in: ' + str(next_job_delay))
+    job_num += 1
+
+#-------------------------------------------------------------------
 def dial(to):
   try:
+    if not to:
+      return [
+        'NO PHONE NUMBER', 
+        {'request_uuid':'n/a', 'message': 'failed'}
+      ]
+
     params = { 
       'from' : FROM_NUMBER,
       'caller_name': CALLER_ID,
@@ -52,25 +91,28 @@ def dial(to):
     return str(e)
 
 #-------------------------------------------------------------------
-def getSpeak(template, etw_status, date_str):
-  intro_str = 'Hi, this is a friendly reminder from the Winny Fred stewart association '
+def getSpeak(template, etw_status, datetime):
+  dt = parse(datetime)
+  date_str = dt.strftime('%A, %B %d')
+
+  intro_str = 'Hi, this is a friendly reminder that your empties to winn '
   repeat_str = 'To repeat this message press 1. '
   no_pickup_str = 'If you do not need a pickup, press 2. '
 
   if template == 'etw_reminder':
     if etw_status == 'Awaiting Dropoff':
-      speak = (intro_str + 'that your empties to winn dropoff date ' +
+      speak = (intro_str + 'dropoff date ' +
         'is ' + date_str + '. If you have any empties you can leave them ' +
         'out by 8am. ' + repeat_str
       )
     elif etw_status == 'Active':
-      speak = (intro_str + 'that your next empties to winn pickup date ' +
+      speak = (intro_str + 'pickup date ' +
         'is ' + date_str + '. please have your empties out by 8am. ' + 
         repeat_str + no_pickup_str
       )
     elif etw_status == 'Cancelling':
-      speak = (intro_str + 'that we will come by to pick up your bag stand ' +
-        'on ' + date_str + '. thanks for your past support. ' + repeat_str
+      speak = (intro_str + 'bag stand will be picked up on ' +
+        date_str + '. thanks for your past support. ' + repeat_str
       )
     else:
       speak = ''
@@ -142,7 +184,6 @@ def create_job_summary(job_id):
   )
 
   logger.info('done')
-
 
 #-------------------------------------------------------------------
 def send_email_report(job_id):

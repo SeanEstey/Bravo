@@ -47,7 +47,7 @@
         <td name='event_date'>{{ call.event_date }}</td>
         <td name='office_notes' style='width:10%;'>{{ call.office_notes }}</td>
         <td name='status' >{{ call.status.replace('not attempted', '') }}</td>
-        <td name='message' >{{ call.message }}</td>
+        <td name='message' >{{ call.code }}</td>
         <td name='attempts'>
           {% if call.attempts == 0 %}
           

@@ -1,6 +1,6 @@
-#import sys
-#sys.path.insert(0, '/root/bravo')
+import os
+os.chdir('/root/bravo')
 
-import tasks
+import bravo
 
-tasks.schedule_jobs()
+bravo.schedule_jobs()

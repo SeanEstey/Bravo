@@ -13,6 +13,11 @@
     <script type='text/javascript' src="{{url_for('static', filename='bravo.js')}}"></script>
     <script type='text/javascript' src="{{url_for('static', filename='jquery.nicefileinput.min.js')}}"></script>
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+  <script>
+    jQuery(function($){
+      getCeleryStatus();
+    });
+  </script>
     {% if title %}
     <title>{{ title }} - Bravo</title>
     {% else %}
@@ -20,11 +25,14 @@
     {% endif %}
   </head>
   <body>
+    <div id='status' style='text-align:right'>Celery Status:
+    </div>
     <div class="header">
       <a href="{{url_for('index')}}">
         <img id="buit" src="{{ url_for('static', filename='bravo2x.png') }}">
       </a>
     </div>
+
     <br>
     <div class='wrapper'>
       <div class='center'>

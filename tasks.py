@@ -10,36 +10,12 @@ import logging
 import time
 import json
 import bravo
+from bravo import celery
 import server
 from datetime import datetime,timedelta
 
-celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
 logger = get_task_logger(__name__)
 setLogger(logger, logging.INFO, 'log.log')
-
-#-------------------------------------------------------------------
-# Checks every 30 seconds for any pending jobs to fire.
-# Dispatches celery worker for each
-def schedule_jobs():
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
-
-  while True:
-    pending_jobs = db['jobs'].find({'status': 'pending'})
-    print str(pending_jobs.count()) + ' pending jobs:'
-    i=1
-
-    for job in pending_jobs:
-      if datetime.now() > job['fire_dtime']:
-        print 'starting job %s' % str(job['_id'])
-        logger.info('Starting job %s' % str(job['_id']))
-        execute_job.delay(str(job['_id']))
-      else:
-        next_job_delay = job['fire_dtime'] - datetime.now()
-        print str(i) + '): starts in: ' + str(next_job_delay)
-      i+=1
-
-    time.sleep(60)
 
 #-------------------------------------------------------------------
 @celery.task
@@ -54,8 +30,8 @@ def monitor_job(job_id):
       'job_id':job_id,
       'attempts': {'$lt': MAX_ATTEMPTS}, 
       '$or':[
-        {'status':'busy'},
-        {'status':'no answer'}
+        {'code':'USER_BUSY'},
+        {'code':'NO_ANSWER'}
       ]
     }
     redials = db['calls'].find(redial_query)

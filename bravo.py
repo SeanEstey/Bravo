@@ -14,6 +14,8 @@ from datetime import datetime,timedelta
 celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
 logger = logging.getLogger(__name__)
 setLogger(logger, logging.INFO, 'log.log')
+client = pymongo.MongoClient('localhost',27017)
+db = client['wsf']
 
 #-------------------------------------------------------------------
 def is_active_worker():
@@ -147,6 +149,20 @@ def getSpeak(template, etw_status, datetime):
   except Exception, e:
     logger.error('%s getSpeak failed', exc_info=True)
     return False
+
+#-------------------------------------------------------------------
+def log_call_db(request_uuid, fields, sendSocket=True):
+  db['calls'].update(
+    {'request_id':request_uuid},
+    {'$set': fields}
+  )
+  if sendSocket is False:
+    return
+
+  call = db['calls'].find_one({'request_id':request_uuid})
+  fields['id'] = str(call['_id'])
+  fields['attempts'] = call['attempts']
+  send_socket_update(fields)
 
 #-------------------------------------------------------------------
 # Add request_uuid, call_uuid and code to mongo record

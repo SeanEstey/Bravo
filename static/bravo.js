@@ -214,11 +214,10 @@ function initShowCallsView() {
   var socket = io.connect('http://' + document.domain + ':' + location.port);
   socket.on('connect', function(){
     socket.emit('connected');
-    socket.on('update', function(data) {
+  /*  socket.on('update', function(data) {
       console.log('update');
       receiveCallUpdate(data);
-    });
-    console.log('a user connected');
+    });*/
   });
     socket.on('update', function(data) {
       console.log('update2');
@@ -285,9 +284,12 @@ function receiveCallUpdate(socket_data) {
   console.log('received update: ' + JSON.stringify(socket_data));
   // Find matching row_id to update
   var $row = $('#'+socket_data['id']);
-  $row.find('[name="status"]').html(socket_data['status']);
-  $row.find('[name="message"]').html(socket_data['message']);
-  $row.find('[name="attempts"]').html(socket_data['attempts']);
+  if('status' in socket_data)
+    $row.find('[name="status"]').html(socket_data['status']);
+  if('message' in socket_data)
+    $row.find('[name="message"]').html(socket_data['message']);
+  if('message' in socket_data)
+    $row.find('[name="attempts"]').html(socket_data['attempts']);
   if('office_notes' in socket_data)
     $row.find('[name="office_notes"]').html(socket_data['office_notes']);
 }

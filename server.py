@@ -1,5 +1,4 @@
 from flask import Flask,render_template,request,g,Response,redirect,url_for
-#import flask.ext.socketio
 from flask.ext.socketio import *
 from config import *
 from bson.objectid import ObjectId
@@ -18,10 +17,10 @@ import csv
 import logging
 import codecs
 import bravo
+from bravo import log_call_db
 
 logger = logging.getLogger(__name__)
 setLogger(logger, logging.INFO, 'log.log')
-
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 socketio = SocketIO(app)
@@ -74,21 +73,29 @@ def allowed_file(filename):
 @socketio.on('disconnected')
 def socketio_disconnected():
   logger.debug('socket disconnected')
-  logger.debug('num connected sockets: ' + str(len(socketio.server.sockets)))
+  logger.debug(
+    'num connected sockets: ' + 
+    str(len(socketio.server.sockets))
+  )
 
 #-------------------------------------------------------------------
 @socketio.on('connected')
 def socketio_connect():
   logger.info('socket established!')
-  logger.debug('num connected sockets: ' + str(len(socketio.server.sockets)))
+  logger.debug(
+    'num connected sockets: ' + 
+    str(len(socketio.server.sockets))
+  )
 
 #-------------------------------------------------------------------
 @socketio.on('update')
 def send_socket_update(data):
-  logger.info('update(): num connected sockets: ' + str(len(socketio.server.sockets)))
   if not socketio.server:
     return False
-  logger.debug('update(): num connected sockets: ' + str(len(socketio.server.sockets)))
+  logger.debug(
+    'update(): num connected sockets: ' + 
+    str(len(socketio.server.sockets))
+  )
   # Test for socket.io connections first
   if len(socketio.server.sockets) == 0:
     return False
@@ -181,8 +188,6 @@ def create_job():
       'num_calls': len(buffer)
     }
     
-    client = pymongo.MongoClient('localhost',27017)
-    db = client['wsf']
     job_id = db['jobs'].insert(job_record)
     job_id = str(job_id)
     logger.info('Job %s added to DB' % job_id)
@@ -214,8 +219,6 @@ def create_job():
 #-------------------------------------------------------------------
 @app.route('/jobs')
 def show_jobs():
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
   jobs = db['jobs'].find().sort('fire_dtime',-1)
 
   return render_template('show_jobs.html', jobs=jobs)
@@ -223,57 +226,6 @@ def show_jobs():
 #-------------------------------------------------------------------
 @app.route('/jobs/<job_id>')
 def show_calls(job_id):
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
-
-  if 'sort_by' not in request.args:
-    sort_by = 'name'
-    sort_order = 1
-  else:
-    sort_by = request.args['sort_by']
-    sort_order = int(request.args['sort_order'])
-  
-  calls = db['calls'].find({'job_id':job_id}).sort(sort_by, sort_order)
-  job = db['jobs'].find_one({'_id':ObjectId(job_id)})
-
-  sort_cols = [
-    {'name': 1},
-    {'to': 1},
-    {'etw_status': 1},
-    {'event_date': 1},
-    {'office_notes': 1},
-    {'status': 1},
-    {'message': 1},
-    {'attempts': 1}
-  ]
-
-  index = 0
-  for col in sort_cols:
-    if col.keys()[0] == sort_by:
-      break;
-    index += 1
-
-  if sort_order == -1:
-    sort_cols[index][sort_by] = 1
-  else:
-    sort_cols[index][sort_by] = -1
-
-  return render_template(
-    'show_calls.html', 
-    calls=calls, 
-    job_id=job_id, 
-    job=job, 
-    sort_by=sort_by,
-    sort_order=sort_order,
-    sort_cols=sort_cols
-  )
-
-#-------------------------------------------------------------------
-@app.route('/reset/<job_id>')
-def reset_job(job_id):
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
-  
   db['calls'].update(
     {'job_id': job_id}, 
     {'$set': {
@@ -305,8 +257,6 @@ def reset_job(job_id):
 #-------------------------------------------------------------------
 @app.route('/cancel/job/<job_id>')
 def cancel_job(job_id):
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
   db['jobs'].remove({'_id':ObjectId(job_id)})
   db['calls'].remove({'job_id':job_id})
   logger.info('Removed db.jobs and db.calls for %s' % job_id)
@@ -319,8 +269,6 @@ def cancel_job(job_id):
 @app.route('/cancel/call/<call_id>')
 def cancel_call(call_id):
   job_id = request.args['job_id']
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
   db['calls'].remove({'_id':ObjectId(call_id)})
    
   db['jobs'].update(
@@ -338,17 +286,11 @@ def cancel_call(call_id):
 #-------------------------------------------------------------------
 @app.route('/edit/call/<call_id>', methods=['POST'])
 def edit_call(call_id):
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
-  
   for fieldname, value in request.form.items():
     db['calls'].update(
         {'_id':ObjectId(call_id)}, 
-        {'$set':{
-            fieldname: value,
-            }}
+        {'$set':{fieldname: value}}
     )
-
   return 'OK'
 
 #-------------------------------------------------------------------
@@ -384,11 +326,15 @@ def ring():
 @app.route('/call/answer',methods=['POST','GET'])
 def content():
   try:
+    logger.debug('Call answered %s' % request.values.items())
+    
     if request.method == "GET":
-      logger.info('%s %s /call/answer', request.args.get('To'), request.args.get('CallStatus'))
-      logger.debug('Call answered %s' % request.values.items())
       request_uuid = request.args.get('RequestUUID')
-      
+      logger.info(
+        '%s %s /call/answer', 
+        request.args.get('To'), 
+        request.args.get('CallStatus')
+      )
       log_call_db(request_uuid, {
         'status': 'in progress',
         'message': 'ANSWERED',
@@ -405,13 +351,11 @@ def content():
         method='POST', timeout=7, numDigits=1,
         retries=1
       )  
-      
       response = plivoxml.Response()
       response.addWait(length=1)
       response.addSpeak(body=speak)
       response.add(getDigits)
       return Response(str(response), mimetype='text/xml')
-
     elif request.method == "POST":
       digit = request.form.get('Digits')
       logger.info('got digit: ' + str(digit))
@@ -426,25 +370,15 @@ def content():
         speak = bravo.getSpeak(job['template'], call['etw_status'], date_str)
         response.addSpeak(speak)
       elif digit == '2':
-        db['calls'].update(
-          {'request_id':request_uuid}, 
-          {'$set':{
-            'office_notes': 'NO PICKUP REQUEST RECEIVED',
-            }}
-        )
-        send_socket_update({
-          'id' : str(call['_id']),
-          'office_notes' : 'NO PICKUP REQUEST RECEIVED',
-          'status' : call['status'],
-          'message' : call['code'],
-          'attempts' : call['attempts']
+        log_call_db(request_uuid, {
+          'office_notes': 'NO PICKUP'
         })
         response.addSpeak('Thank you. Goodbye.')
 
       return Response(str(response), mimetype='text/xml')
   
   except Exception, e:
-    logger.error('%s answered. Failed to update DB or deliver message' % request.values.items(), exc_info=True)
+    logger.error('%s /call/answer' % request.values.items(), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------
@@ -458,9 +392,6 @@ def process_hangup():
     
     logger.info('%s %s (%s) /call/hangup', to, call_status, code)
     logger.debug('Call hungup %s' % request.values.items())
-
-    client = pymongo.MongoClient('localhost',27017)
-    db = client['wsf']
 
     call = db['calls'].find_one({'request_id':request_uuid})
     if 'attempts' in call:
@@ -502,7 +433,7 @@ def process_hangup():
     return Response(str(response), mimetype='text/xml')
   
   except Exception, e:
-    logger.error('%s Failed to process hangup' % request.form.get('To'), exc_info=True)
+    logger.error('%s /call/hangup' % request.form.get('To'), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------
@@ -515,21 +446,19 @@ def process_fallback():
     response = plivoxml.Response()
     return Response(str(response), mimetype='text/xml')
   except Exception, e:
-    logger.error('%s Failed to process fallback' % request.form.get('To'), exc_info=True)
+    logger.error('%s /call/fallback' % request.form.get('To'), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------
 @app.route('/call/machine',methods=['POST','GET'])
 def process_machine():
   try:
-    logger.debug('Machine detected. Transferring to voicemail. %s' % request.values.items())
-
+    logger.debug('Machine detected. %s' % request.values.items())
     log_call_db(request.form.get('RequestUUID'), {
       'status': 'machine',
       'message': 'LEAVING_VOICEMAIL',
       'code': 'LEAVING_VOICEMAIL'
     })
-    
     call_uuid = request.form.get('CallUUID')
     server = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
     response = server.transfer_call({
@@ -538,36 +467,16 @@ def process_machine():
       'aleg_url' : URL+'/call/voicemail',
       'aleg_method': 'POST'
     })
-
     return Response(str(response), mimetype='text/xml')
-  
   except Exception, e:
-    logger.error(
-      '%s Failed to process machine detection' % 
-      request.form.get('To'), exc_info=True
-    )
+    logger.error('%s /call/machine' % request.form.get('To'), exc_info=True)
     return str(e)
 
-#-------------------------------------------------------------------
-def log_call_db(request_uuid, fields, sendSocket=True):
-  db['calls'].update(
-    {'request_id':request_uuid},
-    {'$set': fields}
-  )
-#  if sendSocket is False:
-#    return
-  send_socket_update({'test':'test'})
-
-  call = db['calls'].find_one({'request_id':request_uuid})
-  fields['id'] = str(call['_id'])
-  fields['attempts'] = call['attempts']
-  send_socket_update(fields)
-    
 #-------------------------------------------------------------------
 @app.route('/call/voicemail',methods=['POST','GET'])
 def process_voicemail():
   try:
-    logger.debug('Call routed to leave voicemail. %s' % request.values.items())
+    logger.debug('/call/voicemail: %s' % request.values.items())
     request_id = request.form.get('RequestUUID')
     log_call_db(request_id, {
       'status': 'completed',
@@ -581,43 +490,10 @@ def process_voicemail():
     response.addWait(length=1)
     response.addSpeak(body=speak)
     logger.info('%s Leaving voicemail.' % call['to'])
-
     return Response(str(response), mimetype='text/xml')
-  
   except Exception, e:
-    logger.error('%s Failed to leave voicemail' % request.form.get('To'), exc_info=True)
+    logger.error('%s Voicemail failed' % request.form.get('To'), exc_info=True)
     return str(e)
-
-#-------------------------------------------------------------------
-@app.route('/verify/<job_id>', methods = ['POST', 'GET'])
-def verify(request_id):
-    confirm_msg = 'Do you confirm the reminders? Use 1 to confirm and any other digit to cancel.'
-    response = plivoxml.Response()
-    response.addWait(length=1)
-    response.addGetDigits(
-        action=app.config['URL']+'/enable/'+job_id, 
-        method="POST", 
-        finishOnKey='#', 
-        numDigits=1, 
-        playBeep=True, 
-        validDigits='1').addSpeak(body=confirm_msg)
-
-    response.addSpeak(body="No Input recieved.")
-    return Response(str(response), mimetype='text/xml')
-
-#-------------------------------------------------------------------
-@app.route('/enable/<job_id>', methods=['POST'])
-def enable(request_id):
-    if request.method == 'POST':
-        data = request.form['Digits']
-        print 'data veriy: ', data
-
-        if data[0] == '1':
-            print "Customer enabled"
-            tasks.fire_bulk_call.delay(job_id)
-        else:
-            print "customer disabled"
-        return "spawned calls"
 
 #-------------------------------------------------------------------
 if __name__ == "__main__":

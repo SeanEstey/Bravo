@@ -57,7 +57,7 @@ def monitor_job(job_id):
     else:
       for redial in redials:
         response = bravo.dial(redial['to'])
-        bravo.update(redial, response)
+        bravo.log_call(redial, response)
 
     time.sleep(REDIAL_DELAY)
 
@@ -86,8 +86,12 @@ def fire_calls(job_id):
 
   # Dial the calls
   for call in calls:
-    response = bravo.dial(call['to'])
-    bravo.update(call, response)
+    if 'sms' in call:
+      response = bravo.sms(call['to'], 'test')
+      bravo.log_sms(call, response)
+    else:
+      response = bravo.dial(call['to'])
+      bravo.log_call(call, response)
     
     code = str(response[0])
     # Endpoint probably overloaded

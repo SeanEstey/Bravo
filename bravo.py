@@ -152,20 +152,36 @@ def getSpeak(template, etw_status, datetime):
 # Add request_uuid, call_uuid and code to mongo record
 # Update status and attempts
 # response format: (code, {message: val, request_uuid: val})
-def update(call, response):
+def log_call(record, response):
   client = pymongo.MongoClient('localhost',27017)
   db = client['wsf']
  
   if response[1]['message'] != 'call fired':
-    call['attempts'] += 1
+    record['attempts'] += 1
   
   db['calls'].update(
-    {'_id': call['_id']}, 
+    {'_id': record['_id']}, 
     {'$set': {
       'code': str(response[0]),
       'request_id': response[1]['request_uuid'],
       'status': response[1]['message'],
-      'attempts': call['attempts']
+      'attempts': record['attempts']
+      }
+    }
+  ) 
+
+#-------------------------------------------------------------------
+def log_sms(record, response):
+  client = pymongo.MongoClient('localhost',27017)
+  db = client['wsf']
+
+  db['calls'].update(
+    {'_id': record['_id']}, 
+    {'$set': {
+      'code': str(response[0]),
+      'message_id': response[1]['message_uuid'],
+      'status': response[1]['message'],
+      'attempts': record['attempts']
       }
     }
   ) 

@@ -56,10 +56,10 @@ def monitor_job(job_id):
     # Redial calls as needed
     else:
       for redial in redials:
-        print redial['status']
         response = bravo.dial(redial['to'])
         bravo.update(redial, response)
-    time.sleep(60)
+
+    time.sleep(REDIAL_DELAY)
 
 #-------------------------------------------------------------------
 @celery.task

@@ -7,6 +7,19 @@ function useJQueryBtn() {
     });
 }
 
+function getPlivoAccount() {
+  var request =  $.ajax({
+      type: 'GET',
+      url: 'http://23.239.21.165:5000/account'
+    });
+
+  request.done(function(msg){
+    $('#account').html('Balance: ' + msg);
+    console.log('account: ' + JSON.stringify(msg));
+  });
+
+}
+
 function getCeleryStatus() {
   var request =  $.ajax({
       type: 'GET',
@@ -14,11 +27,9 @@ function getCeleryStatus() {
     });
 
   request.done(function(msg){
-    $('#status').html('Celery Status: ' + msg);
+    $('#status').html('Status: ' + msg);
     console.log('celery status: ' + JSON.stringify(msg));
   });
-
-
 }
 
 //---------------------------------------------------------------

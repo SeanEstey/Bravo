@@ -16,6 +16,7 @@
   <script>
     jQuery(function($){
       getCeleryStatus();
+      getPlivoAccount();
     });
   </script>
     {% if title %}
@@ -25,7 +26,9 @@
     {% endif %}
   </head>
   <body>
-    <div id='status' style='text-align:right'>Celery Status:
+    <div id='status' style='text-align:right'>Status:
+    </div>
+    <div id='account' style='text-align:right'>Balance:
     </div>
     <div class="header">
       <a href="{{url_for('index')}}">

@@ -95,9 +95,19 @@ def send_socket_update(data):
 #-------------------------------------------------------------------
 @app.route('/')
 def index():
-
   return render_template('main.html')
 
+#-------------------------------------------------------------------
+@app.route('/account')
+def get_account():
+  server = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
+  account = server.get_account()
+  balance = account[1]['cash_credits']
+  balance = '$' + str(round(float(balance), 2))
+  return balance
+  #return json.dumps(account[1])
+
+#-------------------------------------------------------------------
 @app.route('/celery_status')
 def celery_status():
   if not bravo.is_active_worker():
@@ -105,7 +115,6 @@ def celery_status():
   else:
     return 'Online'
   
-
 #-------------------------------------------------------------------
 @app.route('/status')
 def status():
@@ -350,13 +359,16 @@ def ring():
     db = client['wsf']
     db['calls'].update(
         {'request_id':request_uuid}, 
-        {'$set':{'rang': True}}
+        {'$set':{
+          'rang': True,
+          'code': 'RINGING'
+        }}
     )
     call = db['calls'].find_one({'request_id':request_uuid})
     send_socket_update({
       'id' : str(call['_id']),
       'status' : 'dialing...',
-      'message' : '',
+      'message' : 'RINGING',
       'attempts': call['attempts']
     })
 
@@ -389,8 +401,9 @@ def content():
       db['calls'].update(
           {'request_id':request_uuid}, 
           {'$set':{
-              'status': 'answered',
-              'message': 'delivered', 
+              'status': 'in progress',
+              'message': 'ANSWERED', 
+              'code': 'ANSWERED',
               'call_uuid': call_uuid
               }}
       )
@@ -398,7 +411,7 @@ def content():
       send_socket_update({
         'id' : str(call['_id']),
         'status' : call['status'],
-        'message' : call['message'],
+        'message' : call['code'],
         'attempts' : call['attempts']
       })
 
@@ -444,7 +457,7 @@ def content():
           'id' : str(call['_id']),
           'office_notes' : 'NO PICKUP REQUEST RECEIVED',
           'status' : call['status'],
-          'message' : call['message'],
+          'message' : call['code'],
           'attempts' : call['attempts']
         })
         response.addSpeak('Thank you. Goodbye.')
@@ -481,12 +494,19 @@ def process_hangup():
 
     fields = { 
       'status': call_status,
-      'code' : code,
-      'attempts': attempts
+      #'code': code,
+      'attempts': attempts,
+      'hangup_cause': code
     }
 
-    if call_status == 'failed':
-      fields['message'] = code
+    if code == 'NORMAL_CLEARING':
+      fields['message'] = call['message']
+      if call['code'] == 'ANSWERED':
+        fields['code'] = 'DELIVERED'
+      elif call['code'] == 'DELIVERED_VOICEMAIL':
+        fields['code'] = 'DELIVERED_VOICEMAIL'
+    else:
+      fields['code'] = code
 
     db['calls'].update(
         {'request_id':request_uuid}, 
@@ -533,8 +553,19 @@ def process_machine():
     db = client['wsf']
     db['calls'].update(
         {'request_id':request_uuid}, 
-        {'$set': {'status':'machine'}}
+        {'$set': {
+          'status':'machine',
+          'code': 'LEAVING_VOICEMAIL',
+          'message': 'LEAVING_VOICEMAIL'
+        }}
     )
+    call = db['calls'].find_one({'request_id':request_uuid})
+    send_socket_update({
+      'id' : str(call['_id']),
+      'status' : 'machine',
+      'message' : 'LEAVING_VOICEMAIL',
+      'attempts': call['attempts']
+    })
     
     server = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
     params = {
@@ -568,15 +599,15 @@ def process_voicemail():
         {'request_id':request_uuid}, 
         {'$set': {
             'status':'completed',
-            'message': 'delivered voicemail',
-            'code': 'DELIVERED VOICEMAIL'
+            'message': 'DELIVERED_VOICEMAIL',
+            'code': 'DELIVERED_VOICEMAIL'
             }}
     )
     call = db['calls'].find_one({'request_id':request_uuid})
     send_socket_update({
       'id' : str(call['_id']),
       'status' : 'completed',
-      'message' : 'DELIVERED VOICEMAIL',
+      'message' : 'DELIVERED_VOICEMAIL',
       'attempts': call['attempts']
     })
     job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})

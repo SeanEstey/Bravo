@@ -92,38 +92,42 @@ def dial(to):
 
 #-------------------------------------------------------------------
 def getSpeak(template, etw_status, datetime):
-  dt = parse(datetime)
-  date_str = dt.strftime('%A, %B %d')
+  try:
+    dt = parse(datetime)
+    date_str = dt.strftime('%A, %B %d')
 
-  intro_str = 'Hi, this is a friendly reminder that your empties to winn '
-  repeat_str = 'To repeat this message press 1. '
-  no_pickup_str = 'If you do not need a pickup, press 2. '
+    intro_str = 'Hi, this is a friendly reminder that your empties to winn '
+    repeat_str = 'To repeat this message press 1. '
+    no_pickup_str = 'If you do not need a pickup, press 2. '
 
-  if template == 'etw_reminder':
-    if etw_status == 'Awaiting Dropoff':
-      speak = (intro_str + 'dropoff date ' +
-        'is ' + date_str + '. If you have any empties you can leave them ' +
-        'out by 8am. ' + repeat_str
-      )
-    elif etw_status == 'Active':
-      speak = (intro_str + 'pickup date ' +
-        'is ' + date_str + '. please have your empties out by 8am. ' + 
-        repeat_str + no_pickup_str
-      )
-    elif etw_status == 'Cancelling':
-      speak = (intro_str + 'bag stand will be picked up on ' +
-        date_str + '. thanks for your past support. ' + repeat_str
-      )
-    else:
-      speak = ''
-  elif template == 'special_msg':
-    print 'TODO'
-  elif template == 'etw_welcome':
-    print 'TODO'
-  elif template == 'gg_delivery':
-    print 'TODO'
+    if template == 'etw_reminder':
+      if etw_status == 'Awaiting Dropoff':
+        speak = (intro_str + 'dropoff date ' +
+          'is ' + date_str + '. If you have any empties you can leave them ' +
+          'out by 8am. ' + repeat_str
+        )
+      elif etw_status == 'Active':
+        speak = (intro_str + 'pickup date ' +
+          'is ' + date_str + '. please have your empties out by 8am. ' + 
+          repeat_str + no_pickup_str
+        )
+      elif etw_status == 'Cancelling':
+        speak = (intro_str + 'bag stand will be picked up on ' +
+          date_str + '. thanks for your past support. ' + repeat_str
+        )
+      else:
+        speak = ''
+    elif template == 'special_msg':
+      print 'TODO'
+    elif template == 'etw_welcome':
+      print 'TODO'
+    elif template == 'gg_delivery':
+      print 'TODO'
 
-  return speak
+    return speak
+  except Exception, e:
+    logger.error('%s getSpeak failed', exc_info=True)
+    return False
 
 #-------------------------------------------------------------------
 # Add request_uuid, call_uuid and code to mongo record

@@ -91,6 +91,25 @@ def dial(to):
     return str(e)
 
 #-------------------------------------------------------------------
+def sms(to, msg):
+  try:
+    params = {
+      'dst': '1' + to,
+      'src': SMS_NUMBER,
+      'text': msg,
+      'type': 'sms',
+      'url': URL + '/sms'
+    }
+
+    server = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
+    response = server.send_message(params)
+    return response
+
+  except Exception, e:
+    #logger.error('%s SMS failed (%a)',to, str(response[0]), exc_info=True)
+    return str(e)
+
+#-------------------------------------------------------------------
 def getSpeak(template, etw_status, datetime):
   try:
     dt = parse(datetime)

@@ -4,6 +4,7 @@ import logging
 # TODO: Create a mongodb settings collection and webpage to manage these values
 
 FROM_NUMBER= '+17804138846'
+SMS_NUMBER='17808093927'
 CALLER_ID= 'Winnifred Stewart Association'
 #FROM_NUMBER= '+118889689466'
 #CALLER_ID= 'Empties to Winn'

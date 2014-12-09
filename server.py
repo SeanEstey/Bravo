@@ -347,6 +347,14 @@ def edit_call(call_id):
   return 'OK'
 
 #-------------------------------------------------------------------
+@app.route('/sms', methods=['POST'])
+def sms():
+  for fieldname, value in request.form.items():
+    logger.info('field: ' + fieldname + ', val: ' + str(value))
+
+  return 'OK'
+
+#-------------------------------------------------------------------
 @app.route('/call/ring', methods=['POST'])
 def ring():
   try:

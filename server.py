@@ -25,6 +25,8 @@ setLogger(logger, logging.INFO, 'log.log')
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 socketio = SocketIO(app)
+client = pymongo.MongoClient('localhost',27017)
+db = client['wsf']
 
 #-------------------------------------------------------------------
 def parse_csv(csvfile, header_template):
@@ -77,19 +79,22 @@ def socketio_disconnected():
 #-------------------------------------------------------------------
 @socketio.on('connected')
 def socketio_connect():
-  logger.debug('socket established!')
+  logger.info('socket established!')
   logger.debug('num connected sockets: ' + str(len(socketio.server.sockets)))
 
 #-------------------------------------------------------------------
 @socketio.on('update')
 def send_socket_update(data):
+  logger.info('update(): num connected sockets: ' + str(len(socketio.server.sockets)))
   if not socketio.server:
     return False
   logger.debug('update(): num connected sockets: ' + str(len(socketio.server.sockets)))
   # Test for socket.io connections first
   if len(socketio.server.sockets) == 0:
     return False
-  
+ 
+  logger.info('sending socket update') 
+  socketio.emit('test', data)
   socketio.emit('update', data)
 
 #-------------------------------------------------------------------
@@ -358,37 +363,21 @@ def sms():
 @app.route('/call/ring', methods=['POST'])
 def ring():
   try:
-    request_uuid = request.form.get('RequestUUID')
-    call_uuid = request.form.get('CallUUID')
-    
-    # This fields needs to be true for call to be a success,
-    # unless voicemail detected (straight to voicemail)
-    client = pymongo.MongoClient('localhost',27017)
-    db = client['wsf']
-    db['calls'].update(
-        {'request_id':request_uuid}, 
-        {'$set':{
-          'rang': True,
-          'code': 'RINGING'
-        }}
-    )
-    call = db['calls'].find_one({'request_id':request_uuid})
-    send_socket_update({
-      'id' : str(call['_id']),
-      'status' : 'dialing...',
-      'message' : 'RINGING',
-      'attempts': call['attempts']
+    log_call_db(request.form.get('RequestUUID'), {
+      'status': 'in progress',
+      'message': 'RINGING',
+      'code': 'RINGING',
+      'rang': True
     })
 
-    call_status = request.form.get('CallStatus')
-    to = request.form.get('To')
-    cause = request.form.get('HangupCause')
-    logger.info('%s %s (%s) /call/ring', to, call_status, cause)
-
+    logger.info(
+      '%s %s /call/ring', 
+      request.form.get('To'), 
+      request.form.get('CallStatus')
+    )
     return 'OK'
-
   except Exception, e:
-    logger.error('%s rang. Failed to update DB or deliver message' % request.values.items(), exc_info=True)
+    logger.error('%s /call/ring.' % request.values.items(), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------
@@ -396,36 +385,20 @@ def ring():
 def content():
   try:
     if request.method == "GET":
-      call_status = request.args.get('CallStatus')
-      to = request.args.get('To')
-      logger.info('%s %s /call/answer', to, call_status)
-      #logger.debug('Call answered %s' % request.values.items())
-
+      logger.info('%s %s /call/answer', request.args.get('To'), request.args.get('CallStatus'))
+      logger.debug('Call answered %s' % request.values.items())
       request_uuid = request.args.get('RequestUUID')
-      call_uuid = request.args.get('CallUUID')
       
-      client = pymongo.MongoClient('localhost',27017)
-      db = client['wsf']
-      db['calls'].update(
-          {'request_id':request_uuid}, 
-          {'$set':{
-              'status': 'in progress',
-              'message': 'ANSWERED', 
-              'code': 'ANSWERED',
-              'call_uuid': call_uuid
-              }}
-      )
-      call = db['calls'].find_one({'request_id':request_uuid})
-      send_socket_update({
-        'id' : str(call['_id']),
-        'status' : call['status'],
-        'message' : call['code'],
-        'attempts' : call['attempts']
+      log_call_db(request_uuid, {
+        'status': 'in progress',
+        'message': 'ANSWERED',
+        'code': 'ANSWERED',
+        'call_uuid': request.args.get('CallUUID')
       })
-
+      
+      call = db['calls'].find_one({'request_id':request_uuid})
       job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
       speak = bravo.getSpeak(job['template'], call['etw_status'], call['event_date'])
-      logger.debug('%s Answered.' % call['to'])
       getdigits_action_url = url_for('content', _external=True)
       getDigits = plivoxml.GetDigits(
         action=getdigits_action_url,
@@ -442,8 +415,6 @@ def content():
     elif request.method == "POST":
       digit = request.form.get('Digits')
       logger.info('got digit: ' + str(digit))
-      client = pymongo.MongoClient('localhost',27017)
-      db = client['wsf']
       request_uuid = request.form.get('RequestUUID')
       call = db['calls'].find_one({'request_id':request_uuid})
       job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
@@ -551,41 +522,24 @@ def process_fallback():
 @app.route('/call/machine',methods=['POST','GET'])
 def process_machine():
   try:
-    to = request.form.get('To', None)
-    request_uuid = request.form.get('RequestUUID')
-    call_uuid = request.form.get('CallUUID')
-
     logger.debug('Machine detected. Transferring to voicemail. %s' % request.values.items())
 
-    client = pymongo.MongoClient('localhost',27017)
-    db = client['wsf']
-    db['calls'].update(
-        {'request_id':request_uuid}, 
-        {'$set': {
-          'status':'machine',
-          'code': 'LEAVING_VOICEMAIL',
-          'message': 'LEAVING_VOICEMAIL'
-        }}
-    )
-    call = db['calls'].find_one({'request_id':request_uuid})
-    send_socket_update({
-      'id' : str(call['_id']),
-      'status' : 'machine',
-      'message' : 'LEAVING_VOICEMAIL',
-      'attempts': call['attempts']
+    log_call_db(request.form.get('RequestUUID'), {
+      'status': 'machine',
+      'message': 'LEAVING_VOICEMAIL',
+      'code': 'LEAVING_VOICEMAIL'
     })
     
+    call_uuid = request.form.get('CallUUID')
     server = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
-    params = {
-        'call_uuid': call_uuid,
-        'legs': 'aleg',
-        'aleg_url' : URL+'/call/voicemail',
-        'aleg_method': 'POST',
-    }
-    resp  = server.transfer_call(params)
+    response = server.transfer_call({
+      'call_uuid': call_uuid,
+      'legs': 'aleg',
+      'aleg_url' : URL+'/call/voicemail',
+      'aleg_method': 'POST'
+    })
 
-    # response = plivoxml.Response()
-    return Response(str(resp), mimetype='text/xml')
+    return Response(str(response), mimetype='text/xml')
   
   except Exception, e:
     logger.error(
@@ -595,35 +549,38 @@ def process_machine():
     return str(e)
 
 #-------------------------------------------------------------------
+def log_call_db(request_uuid, fields, sendSocket=True):
+  db['calls'].update(
+    {'request_id':request_uuid},
+    {'$set': fields}
+  )
+#  if sendSocket is False:
+#    return
+  send_socket_update({'test':'test'})
+
+  call = db['calls'].find_one({'request_id':request_uuid})
+  fields['id'] = str(call['_id'])
+  fields['attempts'] = call['attempts']
+  send_socket_update(fields)
+    
+#-------------------------------------------------------------------
 @app.route('/call/voicemail',methods=['POST','GET'])
 def process_voicemail():
   try:
     logger.debug('Call routed to leave voicemail. %s' % request.values.items())
-
-    request_uuid = request.form.get('RequestUUID')
-    client = pymongo.MongoClient('localhost',27017)
-    db = client['wsf']
-    db['calls'].update(
-        {'request_id':request_uuid}, 
-        {'$set': {
-            'status':'completed',
-            'message': 'DELIVERED_VOICEMAIL',
-            'code': 'DELIVERED_VOICEMAIL'
-            }}
-    )
-    call = db['calls'].find_one({'request_id':request_uuid})
-    send_socket_update({
-      'id' : str(call['_id']),
-      'status' : 'completed',
-      'message' : 'DELIVERED_VOICEMAIL',
-      'attempts': call['attempts']
+    request_id = request.form.get('RequestUUID')
+    log_call_db(request_id, {
+      'status': 'completed',
+      'message': 'DELIVERED_VOICEMAIL',
+      'code': 'DELIVERED_VOICEMAIL'
     })
+    call = db['calls'].find_one({'request_id':request_id})
     job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-    logger.info('%s Leaving voicemail.' % call['to'])
     speak = bravo.getSpeak(job['template'], call['etw_status'], call['event_date'])
     response = plivoxml.Response()
     response.addWait(length=1)
     response.addSpeak(body=speak)
+    logger.info('%s Leaving voicemail.' % call['to'])
 
     return Response(str(response), mimetype='text/xml')
   
@@ -668,6 +625,4 @@ if __name__ == "__main__":
     app.debug = True
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['SECRET_KEY'] = 'a secret!'
-    #app.run(host='0.0.0.0', port=port)
     socketio.run(app, host='0.0.0.0', port=port)
-    #socketio.run(app)

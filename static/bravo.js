@@ -7,6 +7,7 @@ function useJQueryBtn() {
     });
 }
 
+//---------------------------------------------------------------
 function getPlivoAccount() {
   var request =  $.ajax({
       type: 'GET',
@@ -20,6 +21,7 @@ function getPlivoAccount() {
 
 }
 
+//---------------------------------------------------------------
 function getCeleryStatus() {
   var request =  $.ajax({
       type: 'GET',
@@ -33,6 +35,51 @@ function getCeleryStatus() {
 }
 
 //---------------------------------------------------------------
+// Error/confirmation dialog UI for all views
+function showDialog($element, msg, _title, _buttons) {
+  if(typeof(_buttons) === 'undefined') {
+      _buttons = [{ 
+        text: "Sorry, I'll fix it", 
+        click: function() { $( this ).dialog( "close" ); }
+      }];
+  }
+
+  if(typeof(_title) === 'undefined') {
+    _title = 'What have you done??'
+  }
+
+  var dialog_style = { 
+    modal: true,
+    title: _title,
+    dialogClass: 'ui-dialog-osx',
+    width: 500,
+    height: 'auto',
+    buttons: _buttons,
+    show: { effect: 'fade', duration:150},
+    hide: { effect: 'fade', duration:150}
+  };
+  
+  // MUST have a <p> element for the msg
+  $element.find($('p')).html(msg);
+  $element.dialog(dialog_style);
+}
+
+//---------------------------------------------------------------
+// View: new_job
+function initNewJobView() {
+  useJQueryBtn();
+  $('#datepicker').datepicker();
+  $("input[type=file]").nicefileinput();
+  onSelectTemplate();
+  $submit_btn = $('#submit_btn');
+  $submit_btn.click(function(){
+    validateNewJobForm();
+  });
+  $('body').css('display','block');
+}
+
+//---------------------------------------------------------------
+// View: new_job
 function onSelectTemplate() {
   var $select = $('#template-select');
   $select.change(function(){
@@ -67,35 +114,7 @@ function onSelectTemplate() {
 }
 
 //---------------------------------------------------------------
-function showDialog($element, msg, _title, _buttons) {
-  if(typeof(_buttons) === 'undefined') {
-      _buttons = [{ 
-        text: "Sorry, I'll fix it", 
-        click: function() { $( this ).dialog( "close" ); }
-      }];
-  }
-
-  if(typeof(_title) === 'undefined') {
-    _title = 'What have you done??'
-  }
-
-  var dialog_style = { 
-    modal: true,
-    title: _title,
-    dialogClass: 'ui-dialog-osx',
-    width: 500,
-    height: 'auto',
-    buttons: _buttons,
-    show: { effect: 'fade', duration:150},
-    hide: { effect: 'fade', duration:150}
-  };
-  
-  // MUST have a <p> element for the msg
-  $element.find($('p')).html(msg);
-  $element.dialog(dialog_style);
-}
-
-//---------------------------------------------------------------
+// View: new_job
 function validateNewJobForm() {
   var paramObj = {};
   $.each($('form').serializeArray(), function(_, kv) {
@@ -160,21 +179,8 @@ function validateNewJobForm() {
 }
 
 //---------------------------------------------------------------
-function initNewJob() {
-  useJQueryBtn();
-  $('#datepicker').datepicker();
-  $("input[type=file]").nicefileinput();
-  onSelectTemplate();
-  $submit_btn = $('#submit_btn');
-  $submit_btn.click(function(){
-    validateNewJobForm();
-  });
-  $('body').css('display','block');
-}
-
-
-//---------------------------------------------------------------
-function initShowCalls() {
+// View: show_calls
+function initShowCallsView() {
   $('.delete-btn').button({
     icons: {
       primary: 'ui-icon-trash'
@@ -197,80 +203,55 @@ function initShowCalls() {
     });
   });
 
-  // Display countdown if job status == Pending
-  if($('#timer').text().indexOf('Pending') > 0) {
-    var scheduled = Date.parse($('#scheduled_datetime').text());
-    setInterval(function() {
-      var today = new Date();
-      var diff_ms = scheduled.getTime() - today.getTime();
-
-      if(diff_ms < 0) {
-        $('#timer').text('Completed');
-        return;
-      }
-
-      var diff_days = diff_ms / (1000 * 3600 * 24);
-      var diff_hrs = ((diff_days + 1) % 1) * 24;
-      var diff_min = ((diff_hrs + 1) % 1) * 60;
-      var diff_sec = ((diff_min + 1) % 1) * 60;
-      $('#timer').text('Pending: ' + Math.floor(diff_days) + ' Days ' + Math.floor(diff_hrs) + ' Hours ' + Math.floor(diff_min) + ' Min ' + Math.floor(diff_sec) + ' Sec')
-    }, 1000);
-  }
+  if($('#timer').text().indexOf('Pending') > 0)
+    beginCountdown($('#timer'), $('#scheduled_datetime').text());
 
   $('body').css('display','block');
 
-  $("td").on('click',function() {      
-    // Editable fields are assigned 'name' attribute
-    var name = $(this).attr('name');
-    if(!name)
-      return;
+  makeCallFieldsClickable();
   
-    if($('#timer').text().indexOf('Pending') < 0)
-      return;
-
-    if(name != 'status' && name != 'message' && name != 'attempts') {
-      var row_id = $(this).parent().attr('id');
-      processCellClick(row_id, $(this));
-    }
-  });
-
   // Init SocketIO
   var socket = io.connect('http://' + document.domain + ':' + location.port);
-  
-  socket.on('connect', function() {
-    console.log('socket.io connected');
+  socket.on('connect', function(){
     socket.emit('connected');
-    socket.on('disconnect', function() {
-      console.log('socket.io disconnected');
-      socket.emit('disconnected');
+    socket.on('update', function(data) {
+      console.log('update');
+      receiveCallUpdate(data);
     });
+    console.log('a user connected');
   });
-  
-  socket.on('update', function(data) {
-    console.log('received update: ' + JSON.stringify(data));
-    // Find matching row_id to update
-    var $row = $('#'+data['id']);
-    $row.find('[name="status"]').html(data['status']);
-    $row.find('[name="message"]').html(data['message']);
-    $row.find('[name="attempts"]').html(data['attempts']);
-    if('office_notes' in data)
-      $row.find('[name="office_notes"]').html(data['office_notes']);
-    $('#timer').text('In Progress');
-  });
+    socket.on('update', function(data) {
+      console.log('update2');
+      receiveCallUpdate(data);
+    });
 }
 
 //---------------------------------------------------------------
-// Clicking on table cell allows edits which are saved to DB
-function processCellClick(row_id, $cell) {
-  if($cell.find('input').length == 0) {
-    // Enable cell edit
+// View: show_calls
+function makeCallFieldsClickable() {
+  $("td").on('click',function() {      
+    $cell = $(this);
+    // Editable fields are assigned 'name' attribute
+    var name = $cell.attr('name');
+    if(!name)
+      return;
+    if($('#timer').text().indexOf('Pending') < 0)
+      return;
+    if(name == 'status' || name == 'message' || name == 'attempts')
+      return;
+    if($cell.find('input').length > 0)
+      return;
+
+    // Insert <input> element into <td> to enable edits
+    var row_id = $cell.parent().attr('id');
     var text = $cell.text();
     var width = $cell.width()*.90;
     $cell.html("<input type='text' value='" + text + "'>");
     var $input = $cell.find('input');
     $input.width(width);
     $input.css('font-size', '16px');
-   
+  
+    // Save edit to DB when focus lost, remove <input> element 
     $input.blur(function() {
       $cell.html($input.val());
       var call_id = $cell.parent().attr('id');
@@ -289,7 +270,55 @@ function processCellClick(row_id, $cell) {
     });
     
     $input.focus();
+  });
+}
+
+//---------------------------------------------------------------
+// View: show_calls
+function receiveCallUpdate(socket_data) {
+  // Clear the countdown timer if it is running
+  if(window.countdown_id) {
+    clearInterval(window.countdown_id);
+    $('#timer').text('In Progress');
   }
+
+  console.log('received update: ' + JSON.stringify(socket_data));
+  // Find matching row_id to update
+  var $row = $('#'+socket_data['id']);
+  $row.find('[name="status"]').html(socket_data['status']);
+  $row.find('[name="message"]').html(socket_data['message']);
+  $row.find('[name="attempts"]').html(socket_data['attempts']);
+  if('office_notes' in socket_data)
+    $row.find('[name="office_notes"]').html(socket_data['office_notes']);
+}
+
+//---------------------------------------------------------------
+// View: show_calls
+// Display timer counting down until event_datetime
+function beginCountdown($timer, event_datetime) {
+  var scheduled = Date.parse(event_datetime);
+  
+  window.countdown_id = setInterval(function() {
+    var today = new Date();
+    var diff_ms = scheduled.getTime() - today.getTime();
+
+    if(diff_ms < 0) {
+      $timer.text('Completed');
+      return;
+    }
+
+    var diff_days = diff_ms / (1000 * 3600 * 24);
+    var diff_hrs = ((diff_days + 1) % 1) * 24;
+    var diff_min = ((diff_hrs + 1) % 1) * 60;
+    var diff_sec = ((diff_min + 1) % 1) * 60;
+    
+    $timer.text(
+      'Pending: ' + Math.floor(diff_days) + ' Days ' + 
+      Math.floor(diff_hrs) + ' Hours ' + 
+      Math.floor(diff_min) + ' Min ' + 
+      Math.floor(diff_sec) + ' Sec');
+
+  }, 1000);
 }
 
 //---------------------------------------------------------------

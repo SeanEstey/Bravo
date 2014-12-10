@@ -115,7 +115,6 @@ def get_account():
   balance = account[1]['cash_credits']
   balance = '$' + str(round(float(balance), 2))
   return balance
-  #return json.dumps(account[1])
 
 #-------------------------------------------------------------------
 @app.route('/celery_status')

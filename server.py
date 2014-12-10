@@ -100,8 +100,6 @@ def send_socket_update(data):
   if len(socketio.server.sockets) == 0:
     return False
  
-  logger.info('sending socket update') 
-  socketio.emit('test', data)
   socketio.emit('update', data)
 
 #-------------------------------------------------------------------
@@ -151,14 +149,16 @@ def create_job():
   if request.method == 'POST':
     date_string = request.form['date']+' '+request.form['time']
     fire_dtime = parse(date_string)
-
     file = request.files['call_list']
     filename = ''
     if file and allowed_file(file.filename):
       filename = secure_filename(file.filename)
       file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename)) 
     else:
-      return redirect(url_for('show_error', msg='Could not open file'))
+      return redirect(url_for(
+        'show_error', 
+        msg='Could not open file')
+      )
    
     file_path = app.config['UPLOAD_FOLDER'] + '/' + filename
     with codecs.open(file_path, 'r', 'utf-8-sig') as f:
@@ -176,7 +176,6 @@ def create_job():
       'name': job_name,
       'auth_id': AUTH_ID,
       'auth_token': AUTH_TOKEN,
-      'cps': CPS,
       'max_attempts': MAX_ATTEMPTS,
       'template': request.form['template'],
       'verify_phone': request.form['verify_phone'],
@@ -214,18 +213,67 @@ def create_job():
     calls = db['calls'].find({'job_id':job_id})
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
 
-    return redirect(url_for('show_calls', job_id=job_id, calls=calls, job=job))
+    return redirect(url_for(
+      'show_calls', 
+      job_id=job_id, 
+      calls=calls, 
+      job=job)
+    )
 
 #-------------------------------------------------------------------
 @app.route('/jobs')
 def show_jobs():
   jobs = db['jobs'].find().sort('fire_dtime',-1)
-
   return render_template('show_jobs.html', jobs=jobs)
 
 #-------------------------------------------------------------------
 @app.route('/jobs/<job_id>')
 def show_calls(job_id):
+  if 'sort_by' not in request.args:
+    sort_by = 'name'
+    sort_order = 1
+  else:
+    sort_by = request.args['sort_by']
+    sort_order = int(request.args['sort_order'])
+  
+  calls = db['calls'].find({'job_id':job_id}).sort(sort_by, sort_order)
+  job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+
+  sort_cols = [
+    {'name': 1},
+    {'to': 1},
+    {'etw_status': 1},
+    {'event_date': 1},
+    {'office_notes': 1},
+    {'status': 1},
+    {'message': 1},
+    {'attempts': 1}
+  ]
+
+  index = 0
+  for col in sort_cols:
+    if col.keys()[0] == sort_by:
+      break;
+    index += 1
+
+  if sort_order == -1:
+    sort_cols[index][sort_by] = 1
+  else:
+    sort_cols[index][sort_by] = -1
+
+  return render_template(
+    'show_calls.html', 
+    calls=calls, 
+    job_id=job_id, 
+    job=job, 
+    sort_by=sort_by,
+    sort_order=sort_order,
+    sort_cols=sort_cols
+  )
+
+#-------------------------------------------------------------------
+@app.route('/reset/<job_id>')
+def reset_job(job_id):
   db['calls'].update(
     {'job_id': job_id}, 
     {'$set': {
@@ -299,6 +347,22 @@ def sms():
   for fieldname, value in request.form.items():
     logger.info('field: ' + fieldname + ', val: ' + str(value))
 
+  message_uuid = request.form.get('MessageUUID')
+  status = request.form.get('Status')
+
+  db['calls'].update(
+      {'message_id':message_uuid}, 
+      {'$set':{
+        'status': status,
+        'code': status
+  }})
+  call = db['calls'].find_one({'message_id':message_uuid})
+  send_socket_update({
+    'id' : str(call['_id']),
+    'status' : status,
+    'message' : status,
+    'attempts': call['attempts']
+  })
   return 'OK'
 
 #-------------------------------------------------------------------
@@ -311,7 +375,6 @@ def ring():
       'code': 'RINGING',
       'rang': True
     })
-
     logger.info(
       '%s %s /call/ring', 
       request.form.get('To'), 
@@ -344,7 +407,11 @@ def content():
       
       call = db['calls'].find_one({'request_id':request_uuid})
       job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-      speak = bravo.getSpeak(job['template'], call['etw_status'], call['event_date'])
+      speak = bravo.getSpeak(
+        job['template'], 
+        call['etw_status'], 
+        call['event_date']
+      )
       getdigits_action_url = url_for('content', _external=True)
       getDigits = plivoxml.GetDigits(
         action=getdigits_action_url,
@@ -355,6 +422,7 @@ def content():
       response.addWait(length=1)
       response.addSpeak(body=speak)
       response.add(getDigits)
+      
       return Response(str(response), mimetype='text/xml')
     elif request.method == "POST":
       digit = request.form.get('Digits')
@@ -362,21 +430,21 @@ def content():
       request_uuid = request.form.get('RequestUUID')
       call = db['calls'].find_one({'request_id':request_uuid})
       job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-      dt = parse(call['event_date'])
-      date_str = dt.strftime('%A, %B %d')
       response = plivoxml.Response()
       
       if digit == '1':
-        speak = bravo.getSpeak(job['template'], call['etw_status'], date_str)
+        speak = bravo.getSpeak(
+          job['template'], 
+          call['etw_status'], 
+          call['event_date']
+        )
         response.addSpeak(speak)
       elif digit == '2':
         log_call_db(request_uuid, {
           'office_notes': 'NO PICKUP'
         })
         response.addSpeak('Thank you. Goodbye.')
-
       return Response(str(response), mimetype='text/xml')
-  
   except Exception, e:
     logger.error('%s /call/answer' % request.values.items(), exc_info=True)
     return str(e)
@@ -485,14 +553,18 @@ def process_voicemail():
     })
     call = db['calls'].find_one({'request_id':request_id})
     job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-    speak = bravo.getSpeak(job['template'], call['etw_status'], call['event_date'])
+    speak = bravo.getSpeak(
+      job['template'], 
+      call['etw_status'], 
+      call['event_date']
+    )
     response = plivoxml.Response()
     response.addWait(length=1)
     response.addSpeak(body=speak)
     logger.info('%s Leaving voicemail.' % call['to'])
     return Response(str(response), mimetype='text/xml')
   except Exception, e:
-    logger.error('%s Voicemail failed' % request.form.get('To'), exc_info=True)
+    logger.error('%s /call/voicemail' % request.form.get('To'), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------

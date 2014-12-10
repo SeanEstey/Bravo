@@ -16,14 +16,13 @@ from datetime import datetime,timedelta
 
 logger = get_task_logger(__name__)
 setLogger(logger, logging.INFO, 'log.log')
+client = pymongo.MongoClient('localhost',27017)
+db = client['wsf']
 
 #-------------------------------------------------------------------
 @celery.task
 def monitor_job(job_id):
   logger.info('Monitoring job %s' % job_id)
-
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
 
   while True:
     redial_query = {
@@ -74,8 +73,6 @@ def execute_job(job_id):
 def fire_calls(job_id):
   logger.info('Firing calls for job %s' % job_id)
 
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
   job = db['jobs'].find_one({'_id':ObjectId(job_id)})
   calls = db['calls'].find({'job_id':job_id})
 
@@ -88,10 +85,24 @@ def fire_calls(job_id):
   for call in calls:
     if 'sms' in call:
       response = bravo.sms(call['to'], 'test')
+      db['calls'].update(
+        {'_id': str(call['_id'])},
+        {'$set':{
+          'message_id': response[1]['message_uuid'],
+          'status': response[1]['message'],
+          'code': response[1]['message']
+      }})
       bravo.log_sms(call, response)
     else:
       response = bravo.dial(call['to'])
-      bravo.log_call(call, response)
+      db['calls'].update(
+        {'_id': str(call['_id'])}, 
+        {'$set': {
+          'code': str(response[0]),
+          'request_id': response[1]['request_uuid'],
+          'status': response[1]['message'],
+          'attempts': call['attempts']
+      }})
     
     code = str(response[0])
     # Endpoint probably overloaded

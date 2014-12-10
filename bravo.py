@@ -31,8 +31,6 @@ def schedule_jobs():
     logger.error('No celery worker available!')
     return False 
 
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
   pending_jobs = db['jobs'].find({'status': 'pending'})
   logger.info('Scheduler: ' + str(pending_jobs.count()) + ' pending jobs:')
 
@@ -165,32 +163,7 @@ def log_call_db(request_uuid, fields, sendSocket=True):
   send_socket_update(fields)
 
 #-------------------------------------------------------------------
-# Add request_uuid, call_uuid and code to mongo record
-# Update status and attempts
-# response format: (code, {message: val, request_uuid: val})
-def log_call(record, response):
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
- 
-  if response[1]['message'] != 'call fired':
-    record['attempts'] += 1
-  
-  db['calls'].update(
-    {'_id': record['_id']}, 
-    {'$set': {
-      'code': str(response[0]),
-      'request_id': response[1]['request_uuid'],
-      'status': response[1]['message'],
-      'attempts': record['attempts']
-      }
-    }
-  ) 
-
-#-------------------------------------------------------------------
 def log_sms(record, response):
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
-
   db['calls'].update(
     {'_id': record['_id']}, 
     {'$set': {
@@ -205,11 +178,7 @@ def log_sms(record, response):
 #-------------------------------------------------------------------
 def create_job_summary(job_id):
   logger.info('Creating job summary for %s' % job_id)
-
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
   calls = list(db['calls'].find({'job_id':job_id},{'_id':0}))
-
   job = {
     'summary': {
       'busy': 0,
@@ -247,8 +216,6 @@ def send_email_report(job_id):
   import smtplib
   from email.mime.text import MIMEText
 
-  client = pymongo.MongoClient('localhost',27017)
-  db = client['wsf']
   job = db['jobs'].find_one({'_id':ObjectId(job_id)})
     
   calls = list(db['calls'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))

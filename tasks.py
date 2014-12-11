@@ -71,48 +71,54 @@ def execute_job(job_id):
 # job_id is the default _id field created for each jobs document by mongo
 @celery.task
 def fire_calls(job_id):
-  logger.info('Firing calls for job %s' % job_id)
+  try:
+    logger.info('Firing calls for job %s' % job_id)
 
-  job = db['jobs'].find_one({'_id':ObjectId(job_id)})
-  calls = db['calls'].find({'job_id':job_id})
+    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+    calls = db['calls'].find({'job_id':job_id})
 
-  db['jobs'].update(
-    {'_id': job['_id']},
-    {'$set': {'status': 'in_progress'}}
-  )
+    db['jobs'].update(
+      {'_id': job['_id']},
+      {'$set': {'status': 'in_progress'}}
+    )
 
-  # Dial the calls
-  for call in calls:
-    if 'sms' in call:
-      response = bravo.sms(call['to'], 'test')
-      db['calls'].update(
-        {'_id': str(call['_id'])},
-        {'$set':{
-          'message_id': response[1]['message_uuid'],
-          'status': response[1]['message'],
-          'code': response[1]['message']
-      }})
-      bravo.log_sms(call, response)
-    else:
-      response = bravo.dial(call['to'])
-      db['calls'].update(
-        {'_id': str(call['_id'])}, 
-        {'$set': {
-          'code': str(response[0]),
-          'request_id': response[1]['request_uuid'],
-          'status': response[1]['message'],
-          'attempts': call['attempts']
-      }})
-    
-    code = str(response[0])
-    # Endpoint probably overloaded
-    if code == '400':
-        print 'taking a break...'
-        time.sleep(10)
+    # Dial the calls
+    for call in calls:
+      if 'sms' in call:
+        #logger.info('call record: ' + str(call))
+        response = bravo.sms(call['to'], 'test')
+        #logger.info('msg_id: ' + response[1]['message_uuid'][0])
+        res = db['calls'].update(
+          {'_id': call['_id']},
+          {'$set':{
+            'message_id': response[1]['message_uuid'][0],
+            'status': response[1]['message'],
+            'code': response[1]['message']
+        }})
+        #logger.info('update res: ' + str(res))
+      else:
+        response = bravo.dial(call['to'])
+        db['calls'].update(
+          {'_id': call['_id']}, 
+          {'$set': {
+            'code': str(response[0]),
+            'request_id': response[1]['request_uuid'],
+            'status': response[1]['message'],
+            'attempts': 1
+        }})
+      
+      code = str(response[0])
+      # Endpoint probably overloaded
+      if code == '400':
+          print 'taking a break...'
+          time.sleep(10)
 
-    time.sleep(1)
+      time.sleep(1)
 
-  logger.info('All calls fired for job %s' % job_id)
+    logger.info('All calls fired for job %s' % job_id)
+  except Exception, e:
+    logger.error('%s fire_calls.', exc_info=True)
+    return str(e)
 
 #-------------------------------------------------------------------
 @celery.task

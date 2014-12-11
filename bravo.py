@@ -106,7 +106,7 @@ def sms(to, msg):
     return response
 
   except Exception, e:
-    #logger.error('%s SMS failed (%a)',to, str(response[0]), exc_info=True)
+    logger.error('%s SMS failed (%a)',to, str(response[0]), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------

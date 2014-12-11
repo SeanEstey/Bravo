@@ -285,6 +285,9 @@ def reset_job(job_id):
   db['calls'].update(
     {'job_id': job_id}, 
     {'$unset': {
+      'message_id': '',
+      'hangup_cause': '',
+      'rang': '',
       'message': '',
       'call_uuid': '',
       'request_id': '',
@@ -343,26 +346,38 @@ def edit_call(call_id):
 #-------------------------------------------------------------------
 @app.route('/sms', methods=['POST'])
 def sms():
-  for fieldname, value in request.form.items():
-    logger.info('field: ' + fieldname + ', val: ' + str(value))
+  try:
+    message_uuid = request.form.get('MessageUUID')
+    status = request.form.get('Status')
+    logger.info('%s (%s) /sms', request.form.get('To'), status)
 
-  message_uuid = request.form.get('MessageUUID')
-  status = request.form.get('Status')
+    fields = {
+      'status': status,
+      'code': status
+    }
 
-  db['calls'].update(
-      {'message_id':message_uuid}, 
-      {'$set':{
-        'status': status,
-        'code': status
-  }})
-  call = db['calls'].find_one({'message_id':message_uuid})
-  send_socket_update({
-    'id' : str(call['_id']),
-    'status' : status,
-    'message' : status,
-    'attempts': call['attempts']
-  })
-  return 'OK'
+    if status == 'sent':
+      fields['status'] = 'completed'
+      fields['code'] = 'SMS_SENT'
+
+    db['calls'].update(
+        {'message_id':message_uuid}, 
+        {'$set': fields}
+    )
+    res = call = db['calls'].find_one({'message_id':message_uuid})
+    if res is None:
+      return 'NO'
+
+    send_socket_update({
+      'id' : str(call['_id']),
+      'status' : fields['status'],
+      'message' : fields['code'],
+      'attempts': call['attempts']
+    })
+    return 'OK'
+  except Exception, e:
+    logger.error('%s /sms.' % request.values.items(), exc_info=True)
+    return str(e)
 
 #-------------------------------------------------------------------
 @app.route('/call/ring', methods=['POST'])

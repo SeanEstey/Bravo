@@ -17,7 +17,7 @@ import csv
 import logging
 import codecs
 import bravo
-from bravo import log_call_db
+#from bravo import log_call_db
 
 logger = logging.getLogger(__name__)
 setLogger(logger, logging.INFO, 'log.log')
@@ -26,6 +26,21 @@ app.config.from_pyfile('config.py')
 socketio = SocketIO(app)
 client = pymongo.MongoClient('localhost',27017)
 db = client['wsf']
+
+
+#-------------------------------------------------------------------
+def log_call_db(request_uuid, fields, sendSocket=True):
+  db['calls'].update(
+    {'request_id':request_uuid},
+    {'$set': fields}
+  )
+  if sendSocket is False:
+    return
+
+  call = db['calls'].find_one({'request_id':request_uuid})
+  fields['id'] = str(call['_id'])
+  fields['attempts'] = call['attempts']
+  send_socket_update(fields)
 
 #-------------------------------------------------------------------
 def parse_csv(csvfile, header_template):

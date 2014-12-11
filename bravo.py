@@ -148,19 +148,7 @@ def getSpeak(template, etw_status, datetime):
     logger.error('%s getSpeak failed', exc_info=True)
     return False
 
-#-------------------------------------------------------------------
-def log_call_db(request_uuid, fields, sendSocket=True):
-  db['calls'].update(
-    {'request_id':request_uuid},
-    {'$set': fields}
-  )
-  if sendSocket is False:
-    return
 
-  call = db['calls'].find_one({'request_id':request_uuid})
-  fields['id'] = str(call['_id'])
-  fields['attempts'] = call['attempts']
-  send_socket_update(fields)
 
 #-------------------------------------------------------------------
 def log_sms(record, response):

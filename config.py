@@ -1,14 +1,18 @@
 import os
 import logging
+import pymongo
 
 # TODO: Create a mongodb settings collection and webpage to manage these values
 
+client = pymongo.MongoClient('localhost',27017)
+db = client['wsf']
+
 FROM_NUMBER= '+17804138846'
 SMS_NUMBER='17808093927'
+EMERGENCY_CONTACT='7808635715'
 CALLER_ID= 'Winnifred Stewart Association'
-#FROM_NUMBER= '+118889689466'
-#CALLER_ID= 'Empties to Winn'
 BROKER_URI= 'amqp://'
+PORT =5000
 URL= 'http://23.239.21.165:5000'
 AUTH_ID= 'MAMGFLNDVJMWE0NWU2MW'
 AUTH_TOKEN= 'ZGFjOTEyN2RjMjBlZjU0YzY1NDg2MTc2ZjkyMzA5'

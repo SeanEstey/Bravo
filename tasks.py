@@ -13,6 +13,7 @@ import bravo
 from bravo import celery
 import server
 from datetime import datetime,timedelta
+import os
 
 logger = get_task_logger(__name__)
 setLogger(logger, logging.INFO, 'log.log')
@@ -63,6 +64,16 @@ def monitor_job(job_id):
 #-------------------------------------------------------------------
 @celery.task
 def execute_job(job_id):
+  if bravo.is_server_online() == False:
+    logger.error('Server offline! Attempting to restart...')
+    os.system('python server.py &')
+    time.sleep(5)
+    if bravo.is_server_online() == False:
+      bravo.sms(EMERGENCY_CONTACT, 'Bravo server offline! Cannot execute job!')
+      return
+    else:
+      logger.info('Successfully restarted. Resuming job...')
+
   fire_calls(job_id)
   time.sleep(60)
   monitor_job(job_id)

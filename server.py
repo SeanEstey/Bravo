@@ -17,7 +17,12 @@ import csv
 import logging
 import codecs
 import bravo
-#from bravo import log_call_db
+
+# To manually shutdown server running in background:
+# get pid:
+# $ ps aux | grep -m 1 'python server.py' | awk '{print $2}'
+# $ kill -9 <PID>
+# (May need to run twice)
 
 logger = logging.getLogger(__name__)
 setLogger(logger, logging.INFO, 'log.log')
@@ -26,7 +31,6 @@ app.config.from_pyfile('config.py')
 socketio = SocketIO(app)
 client = pymongo.MongoClient('localhost',27017)
 db = client['wsf']
-
 
 #-------------------------------------------------------------------
 def log_call_db(request_uuid, fields, sendSocket=True):
@@ -598,8 +602,8 @@ def process_voicemail():
 
 #-------------------------------------------------------------------
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 5000))
+    _port = int(os.environ.get('PORT', PORT))
     app.debug = True
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['SECRET_KEY'] = 'a secret!'
-    socketio.run(app, host='0.0.0.0', port=port)
+    socketio.run(app, host='0.0.0.0', port=_port)

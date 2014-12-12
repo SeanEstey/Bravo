@@ -14,8 +14,18 @@ from datetime import datetime,timedelta
 celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
 logger = logging.getLogger(__name__)
 setLogger(logger, logging.INFO, 'log.log')
-client = pymongo.MongoClient('localhost',27017)
-db = client['wsf']
+
+#-------------------------------------------------------------------
+def is_server_online():
+  import urllib2
+  try:
+    response = urllib2.urlopen('http://localhost:' + str(PORT))
+    if response:
+      return True
+    else:
+      return False
+  except Exception, e:
+    return False
 
 #-------------------------------------------------------------------
 def is_active_worker():
@@ -101,8 +111,8 @@ def sms(to, msg):
       'url': URL + '/sms'
     }
 
-    server = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
-    response = server.send_message(params)
+    plivo_api = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
+    response = plivo_api.send_message(params)
     return response
 
   except Exception, e:

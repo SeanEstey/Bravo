@@ -32,19 +32,26 @@ setLogger(logger, logging.INFO, 'log.log')
 
 #-------------------------------------------------------------------
 def is_mongodb_available():
-  global client, db
-
   if client:
     if client.alive():
       return True
+  else:
+    return False
+
+#-------------------------------------------------------------------
+def reconnect_mongodb():
+  global client, db
   # Either no connection handle or connection is dead
   # Attempt to re-establish 
+  logger.info('Attempting to reconnect to mongodb...')
   try:
     client = pymongo.MongoClient('localhost',27017)
     db = client['wsf']
   except pymongo.errors.ConnectionFailure as e:
     logger.error('mongodb connection refused!')
     return False
+
+  return True
 
 #-------------------------------------------------------------------
 def is_server_online():
@@ -59,27 +66,52 @@ def is_server_online():
     return False
 
 #-------------------------------------------------------------------
-def is_active_worker():
+def restart_server():
+  logger.info('Attempting server restart...')
+  os.system('python server.py &')
+  time.sleep(5)
+  if is_server_online() == False:
+    sms(EMERGENCY_CONTACT, 'Bravo server offline! Cannot execute job!')
+    return False
+
+  logger.info('Successfully restarted. Resuming job...')
+  return True
+
+#-------------------------------------------------------------------
+def is_celery_worker():
   if not celery.control.inspect().active_queues():
-    # Attempt to restart celery worker
-    os.system('./celery.sh &')
-    time.sleep(5)
-    if not celery.control.inspect().active_queues():
-      return False
+    return False
   else:
     return True
 
 #-------------------------------------------------------------------
-def all_systems_online():
-  if not is_active_worker():
-    logger.error('No celery worker available!')
-    return False 
+def restart_celery():
+  # Attempt to restart celery worker
+  logger.info('Attempting to restart celery worker...')
+  try:
+    os.system('./celery.sh &')
+  except Exception as e:
+    logger.error('Failed to restart celery worker')
+    return False
+  time.sleep(5)
+  if not celery.control.inspect().active_queues():
+    logger.error('Failed to restart celery worker')
+    return False
+
+  logger.info('Celery worker restarted')
+  return True
+
+#-------------------------------------------------------------------
+def systems_check():
+  if not is_celery_worker():
+    if not restart_celery():
+      return False 
   if not is_server_online():
-    logger.error('Flask server offline!')
-    return False 
+    if not restart_server():
+      return False 
   if not is_mongodb_available():
-    logger.error('MongoDB connection unavailable!')
-    return False 
+    if not reconnect_mongodb():
+      return False
 
   return True
 
@@ -127,15 +159,10 @@ def monitor_job(job_id):
 #-------------------------------------------------------------------
 @celery.task
 def execute_job(job_id):
-  if is_server_online() == False:
-    logger.error('Server offline! Attempting to restart...')
-    os.system('python server.py &')
-    time.sleep(5)
-    if is_server_online() == False:
-      sms(EMERGENCY_CONTACT, 'Bravo server offline! Cannot execute job!')
-      return
-    else:
-      logger.info('Successfully restarted. Resuming job...')
+  if not systems_check():
+    msg = 'Could not execute job ' + job_id + ' because systems are offline'
+    send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
+    return False
 
   fire_calls(job_id)
   time.sleep(60)
@@ -168,7 +195,13 @@ def fire_calls(job_id):
             'attempts': 1
         }})
       else:
-        response = sms(call['to'], 'test')
+        text = getSpeak(
+          job['template'], 
+          call['etw_status'], 
+          call['event_date'], 
+          medium='sms'
+        )
+        response = sms(call['to'], text)
         res = db['calls'].update(
           {'_id': call['_id']},
           {'$set':{
@@ -189,8 +222,6 @@ def fire_calls(job_id):
   except Exception, e:
     logger.error('%s fire_calls.', exc_info=True)
     return str(e)
-
-
 
 #-------------------------------------------------------------------
 # Run on fixed schedule from crontab, cycles through pending jobs
@@ -261,7 +292,7 @@ def sms(to, msg):
     'src': SMS_NUMBER,
     'text': msg,
     'type': 'sms',
-    'url': URL + '/sms'
+    'url': URL + '/sms_status'
   }
 
   try:
@@ -273,7 +304,7 @@ def sms(to, msg):
     return False
 
 #-------------------------------------------------------------------
-def getSpeak(template, etw_status, datetime):
+def getSpeak(template, etw_status, datetime, medium='voice'):
   try:
     dt = parse(datetime)
     date_str = dt.strftime('%A, %B %d')
@@ -284,21 +315,21 @@ def getSpeak(template, etw_status, datetime):
   intro_str = 'Hi, this is a friendly reminder that your empties to winn '
   repeat_str = 'To repeat this message press 1. '
   no_pickup_str = 'If you do not need a pickup, press 2. '
+  sms_reply_str = 'Reply with No if no pickup required.'
 
   if template == 'etw_reminder':
     if etw_status == 'Awaiting Dropoff':
       speak = (intro_str + 'dropoff date ' +
         'is ' + date_str + '. If you have any empties you can leave them ' +
-        'out by 8am. ' + repeat_str
+        'out by 8am. '
       )
     elif etw_status == 'Active':
       speak = (intro_str + 'pickup date ' +
-        'is ' + date_str + '. please have your empties out by 8am. ' + 
-        repeat_str + no_pickup_str
+        'is ' + date_str + '. please have your empties out by 8am. '
       )
     elif etw_status == 'Cancelling':
       speak = (intro_str + 'bag stand will be picked up on ' +
-        date_str + '. thanks for your past support. ' + repeat_str
+        date_str + '. thanks for your past support. '
       )
     else:
       speak = ''
@@ -308,6 +339,11 @@ def getSpeak(template, etw_status, datetime):
     print 'TODO'
   elif template == 'gg_delivery':
     print 'TODO'
+
+  if medium == 'voice':
+    speak += repeat_str
+  elif medium == 'sms':
+    speak += sms_reply_str
 
   return speak
 
@@ -390,18 +426,3 @@ def send_email(recipient, subject, msg):
       'subject': subject,
       'text': msg
   })
-
-def get_mailgun_logs(recipient):
-  log_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/events'
-  import requests
-
-  return requests.post(
-    log_url,
-    auth=('api', MAILGUN_API_KEY)
-    #data={
-      #'begin': 'Fri, 3 May 2013 18:00:00 GMT',
-    #  'ascending': 'yes',
-    #  'limit': 25,
-    #  'pretty': 'yes'
-      #'recipient': recipient
-  )

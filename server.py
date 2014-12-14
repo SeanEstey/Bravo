@@ -23,6 +23,8 @@ import bravo
 # $ kill -9 <PID>
 # (May need to run twice)
 
+client = pymongo.MongoClient('localhost',27017)
+db = client['wsf']
 logger = logging.getLogger(__name__)
 bravo.setLogger(logger, logging.INFO, 'log.log')
 app = Flask(__name__)
@@ -366,7 +368,14 @@ def edit_call(call_id):
 
 #-------------------------------------------------------------------
 @app.route('/sms', methods=['POST'])
-def sms():
+def get_sms():
+  # Inbound SMS received
+  logger.info('sms received: ' + request.values.items())
+  return 'OK'
+
+#-------------------------------------------------------------------
+@app.route('/sms_status', methods=['POST'])
+def get_sms_status():
   try:
     message_uuid = request.form.get('MessageUUID')
     status = request.form.get('Status')

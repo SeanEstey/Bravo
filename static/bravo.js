@@ -89,26 +89,18 @@ function onSelectTemplate() {
     if($template.text() == 'Empties to Winn Reminder') {
       $('#special_msg_div').hide();
       $('#order_div').hide();
-      $('#recorded_msg_div').hide();
-      $('#verify_phone_div').hide();
     }
     else if($template.text() == 'Special Message') {
       $('#special_msg_div').show();
       $('#order_div').show();
-      $('#recorded_msg_div').show();
-      $('#verify_phone_div').show();
     }
     else if($template.text() == 'Green Goods Delivery') {
       $('#special_msg_div').hide();
       $('#order_div').hide();
-      $('#recorded_msg_div').hide();
-      $('#verify_phone_div').hide();
     }
     else if($template.text() == 'Empties to Winn Followup') {
       $('#special_msg_div').hide();
       $('#order_div').hide();
-      $('#recorded_msg_div').hide();
-      $('#verify_phone_div').hide();
     }
   });
 }
@@ -146,6 +138,10 @@ function validateNewJobForm() {
     console.log(scheduled_date.toString());
     if(scheduled_date.getTime() < now.getTime())
       wrong_date = true;
+  }
+  if(paramObj['template'] == 'special_msg') {
+    if(!paramObj['message'])
+      missing.push('Special Message');
   }
 
   var msg = ''; 

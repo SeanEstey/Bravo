@@ -164,18 +164,18 @@ def execute_job(job_id):
     send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
     return False
 
-  fire_calls(job_id)
+  fire_messages(job_id)
   time.sleep(60)
   #monitor_job(job_id)
 
 #-------------------------------------------------------------------
 # job_id is the default _id field created for each jobs document by mongo
-def fire_calls(job_id):
+def fire_messages(job_id):
   try:
     logger.info('Firing calls for job %s' % job_id)
 
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
-    calls = db['calls'].find({'job_id':job_id})
+    messages = db['calls'].find({'job_id':job_id})
 
     db['jobs'].update(
       {'_id': job['_id']},
@@ -183,11 +183,11 @@ def fire_calls(job_id):
     )
 
     # Fire all calls and sms
-    for call in calls:
-      if not 'sms' in call:
-        response = dial(call['to'])
+    for msg in messages:
+      if not 'sms' in msg:
+        response = dial(msg['to'])
         db['calls'].update(
-          {'_id': call['_id']}, 
+          {'_id': msg['_id']}, 
           {'$set': {
             'code': str(response[0]),
             'request_id': response[1]['request_uuid'],
@@ -196,14 +196,14 @@ def fire_calls(job_id):
         }})
       else:
         text = getSpeak(
-          job['template'], 
-          call['etw_status'], 
-          call['event_date'], 
+          job, 
+          msg['etw_status'], 
+          msg['event_date'], 
           medium='sms'
         )
-        response = sms(call['to'], text)
+        response = sms(msg['to'], text)
         res = db['calls'].update(
-          {'_id': call['_id']},
+          {'_id': msg['_id']},
           {'$set':{
             'message_id': response[1]['message_uuid'][0],
             'status': response[1]['message'],
@@ -220,14 +220,14 @@ def fire_calls(job_id):
 
     logger.info('All calls fired for job %s' % job_id)
   except Exception, e:
-    logger.error('%s fire_calls.', exc_info=True)
+    logger.error('%s fire_messages.', exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------
 # Run on fixed schedule from crontab, cycles through pending jobs
 # and dispatches celery worker when due 
 def schedule_jobs():
-  if not all_systems_online():
+  if not systems_check():
     return False 
 
   pending_jobs = db['jobs'].find({'status': 'pending'})
@@ -304,7 +304,7 @@ def sms(to, msg):
     return False
 
 #-------------------------------------------------------------------
-def getSpeak(template, etw_status, datetime, medium='voice'):
+def getSpeak(job, etw_status, datetime, medium='voice'):
   try:
     dt = parse(datetime)
     date_str = dt.strftime('%A, %B %d')
@@ -317,7 +317,7 @@ def getSpeak(template, etw_status, datetime, medium='voice'):
   no_pickup_str = 'If you do not need a pickup, press 2. '
   sms_reply_str = 'Reply with No if no pickup required.'
 
-  if template == 'etw_reminder':
+  if job['template'] == 'etw_reminder':
     if etw_status == 'Awaiting Dropoff':
       speak = (intro_str + 'dropoff date ' +
         'is ' + date_str + '. If you have any empties you can leave them ' +
@@ -333,11 +333,8 @@ def getSpeak(template, etw_status, datetime, medium='voice'):
       )
     else:
       speak = ''
-  elif template == 'special_msg':
-    print 'TODO'
-  elif template == 'etw_welcome':
-    print 'TODO'
-  elif template == 'gg_delivery':
+  elif job['template'] == 'special_msg':
+    speak = job['message'] 
     print 'TODO'
 
   if medium == 'voice':

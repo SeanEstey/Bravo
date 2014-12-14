@@ -17,32 +17,22 @@
         <select name='template' class='input' id='template-select'>
           <optgroup name='template' required>
             <option class='opt' value='etw_reminder'>Empties to Winn Reminder</option>
-            <option class='opt' value='etw_followup'>Empties to Winn Followup</option>
+            <!--<option class='opt' value='etw_followup'>Empties to Winn Followup</option>-->
             <option class='opt' value='special_msg'>Special Message</option>
-            <option class='opt' value='gg_delivery'>Green Goods Delivery</option>
+            <!--<option class='opt' value='gg_delivery'>Green Goods Delivery</option>-->
           </optgroup>
         </select>
         <div class='label'>Call List</div>
         <input id='call-list-div' class="nice" type="file" name="call_list" required >
         <br><br>
-      </fieldset>
-      <br>
       <div class='hidden' id='special_msg_div'>
-        Special message (optional)
+        Special message
         <textarea class="input" rows="2" cols="50" maxlength="140" name="message" placeholder='message text.' required ></textarea>
         <br>
       </div>
-      <div class='hidden' id='order_div'>
-        <select name="order" required >
-            <option value="before">before</option>
-            <option value="after">after</option>
-        </select><br>
-      </div>
-      <div class='hidden' id='recorded_msg_div'>
-        Recorded message (optional)<br>
-        <input class="input" type="text" name="audio" placeholder='audio file (url)' required >
-        <br>
-      </div>
+      </fieldset>
+      <br>
+
       <fieldset>
         <legend>Schedule</legend>
         <div class='label'>Date</div>
@@ -51,12 +41,6 @@
         <input class='input' type='time' name="time" required >
         <br><br>
       </fieldset>
-      <div class='hidden' id='verify_phone_div'>
-        Verification phone 
-        <br>
-        <input class="input" type="text" name="verify_phone" placeholder='Number to call' required >
-        <br>
-      </div>
       <br><br>
       <button class='input' type="button" id="submit_btn" name="submit-btn">Schedule Calls</button>
     </form>

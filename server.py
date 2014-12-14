@@ -142,7 +142,7 @@ def get_account():
 #-------------------------------------------------------------------
 @app.route('/celery_status')
 def celery_status():
-  if not bravo.is_active_worker():
+  if not bravo.is_celery_worker():
     return 'Offline'
   else:
     return 'Online'
@@ -183,10 +183,14 @@ def create_job():
       )
    
     file_path = app.config['UPLOAD_FOLDER'] + '/' + filename
-    with codecs.open(file_path, 'r', 'utf-8-sig') as f:
-      buffer = parse_csv(f, TEMPLATE_HEADERS[request.form['template']])
-      if isinstance (buffer, werkzeug.wrappers.Response):
-        return buffer
+    try:
+      with codecs.open(file_path, 'r', 'utf-8-sig') as f:
+        buffer = parse_csv(f, TEMPLATE_HEADERS[request.form['template']])
+        if isinstance (buffer, werkzeug.wrappers.Response):
+          return buffer
+    except Exception as e:
+      logger.error(str(e))
+      return False
 
     if not request.form['job_name']:
       job_name = filename.split('.')[0].replace('_',' ')
@@ -200,10 +204,7 @@ def create_job():
       'auth_token': PLIVO_AUTH_TOKEN,
       'max_attempts': MAX_ATTEMPTS,
       'template': request.form['template'],
-      'verify_phone': request.form['verify_phone'],
       'message': request.form['message'],
-      'audio_url': request.form['audio'],
-      'audio_order': request.form['order'],
       'fire_dtime': fire_dtime,
       'status': 'pending',
       'num_calls': len(buffer)
@@ -456,7 +457,7 @@ def content():
       if not job:  
         return Response(str(plivoxml.Response()), mimetype='text/xml')
       speak = bravo.getSpeak(
-        job['template'], 
+        job, 
         call['etw_status'], 
         call['event_date']
       )
@@ -486,7 +487,7 @@ def content():
       
       if digit == '1':
         speak = bravo.getSpeak(
-          job['template'], 
+          job, 
           call['etw_status'], 
           call['event_date']
         )
@@ -609,7 +610,7 @@ def process_voicemail():
     call = db['calls'].find_one({'request_id':request_id})
     job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
     speak = bravo.getSpeak(
-      job['template'], 
+      job, 
       call['etw_status'], 
       call['event_date']
     )

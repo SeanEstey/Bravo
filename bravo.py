@@ -121,21 +121,9 @@ def fire_calls(job_id):
       {'$set': {'status': 'in_progress'}}
     )
 
-    # Dial the calls
+    # Fire all calls and sms
     for call in calls:
-      if 'sms' in call:
-        #logger.info('call record: ' + str(call))
-        response = sms(call['to'], 'test')
-        #logger.info('msg_id: ' + response[1]['message_uuid'][0])
-        res = db['calls'].update(
-          {'_id': call['_id']},
-          {'$set':{
-            'message_id': response[1]['message_uuid'][0],
-            'status': response[1]['message'],
-            'code': response[1]['message']
-        }})
-        #logger.info('update res: ' + str(res))
-      else:
+      if not 'sms' in call:
         response = dial(call['to'])
         db['calls'].update(
           {'_id': call['_id']}, 
@@ -144,6 +132,15 @@ def fire_calls(job_id):
             'request_id': response[1]['request_uuid'],
             'status': response[1]['message'],
             'attempts': 1
+        }})
+      else:
+        response = sms(call['to'], 'test')
+        res = db['calls'].update(
+          {'_id': call['_id']},
+          {'$set':{
+            'message_id': response[1]['message_uuid'][0],
+            'status': response[1]['message'],
+            'code': response[1]['message']
         }})
       
       code = str(response[0])
@@ -182,68 +179,69 @@ def schedule_jobs():
 
 #-------------------------------------------------------------------
 def dial(to):
+  if not to:
+    return [
+      'NO PHONE NUMBER', 
+      {'request_uuid':'n/a', 'message': 'failed'}
+    ]
+
+  params = { 
+    'from' : FROM_NUMBER,
+    'caller_name': CALLER_ID,
+    'to' : '+1' + to,
+    'ring_url' :  URL+'/call/ring',
+    'answer_url' : URL+'/call/answer',
+    'answer_method': 'GET',
+    'hangup_url': URL+'/call/hangup',
+    'hangup_method': 'POST',
+    'fallback_url': URL+'/call/fallback',
+    'fallback_method': 'POST',
+    'machine_detection': 'true',
+    'machine_detection_url': URL+'/call/machine'
+  }
+
   try:
-    if not to:
-      return [
-        'NO PHONE NUMBER', 
-        {'request_uuid':'n/a', 'message': 'failed'}
-      ]
-
-    params = { 
-      'from' : FROM_NUMBER,
-      'caller_name': CALLER_ID,
-      'to' : '+1' + to,
-      'ring_url' :  URL+'/call/ring',
-      'answer_url' : URL+'/call/answer',
-      'answer_method': 'GET',
-      'hangup_url': URL+'/call/hangup',
-      'hangup_method': 'POST',
-      'fallback_url': URL+'/call/fallback',
-      'fallback_method': 'POST',
-      'machine_detection': 'true',
-      'machine_detection_url': URL+'/call/machine'
-    }
-
     server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
     response = server.make_call(params)
-    code = str(response[0])
-    if code != '400':
-        logger.info('%s %s (%s)', to, response[1]['message'], response[0])
-    else:
-        logger.info('%s: 400 error' % to)
+  except Exception as e:
+    logger.error('%s Bravo.dial() (%a)',to, code, exc_info=True)
+    return [
+      'PLIVO EXCEPTION', 
+      {'request_uuid':'n/a', 'message': 'failed'}
+    ]
+  
+  code = str(response[0])
+  if code != '400':
+    logger.info('%s %s (%s)', to, response[1]['message'], response[0])
+  else:
+    logger.info('%s: 400 error' % to)
 
-    if type(response) == tuple:
-      if 'request_uuid' not in response[1]:
-        response[1]['request_uuid'] = 'n/a'
-      
-      if 'message' not in response[1]:
-        response[1]['message'] = 'failed'
+  if type(response) == tuple:
+    if 'request_uuid' not in response[1]:
+      response[1]['request_uuid'] = 'n/a'
+    if 'message' not in response[1]:
+      response[1]['message'] = 'failed'
 
-    # return tuple with format: (RESPONSE_CODE, {'request_uuid':ID, 'message':MSG})
-    return response
-
-  except Exception, e:
-    logger.error('%s Call failed to dial (%a)',to, code, exc_info=True)
-    return str(e)
+  # return tuple with format: (RESPONSE_CODE, {'request_uuid':ID, 'message':MSG})
+  return response
 
 #-------------------------------------------------------------------
 def sms(to, msg):
-  try:
-    params = {
-      'dst': '1' + to,
-      'src': SMS_NUMBER,
-      'text': msg,
-      'type': 'sms',
-      'url': URL + '/sms'
-    }
+  params = {
+    'dst': '1' + to,
+    'src': SMS_NUMBER,
+    'text': msg,
+    'type': 'sms',
+    'url': URL + '/sms'
+  }
 
+  try:
     plivo_api = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
     response = plivo_api.send_message(params)
     return response
-
-  except Exception, e:
+  except Exception as e:
     logger.error('%s SMS failed (%a)',to, str(response[0]), exc_info=True)
-    return str(e)
+    return False
 
 #-------------------------------------------------------------------
 def getSpeak(template, etw_status, datetime):

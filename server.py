@@ -31,6 +31,12 @@ socketio = SocketIO(app)
 
 #-------------------------------------------------------------------
 def log_call_db(request_uuid, fields, sendSocket=True):
+  call = db['calls'].find_one({'request_id':request_uuid})
+
+  if not call:
+    logger.error('log_call_db(): request_uuid ' + request_uuid + ' not in db')
+    return
+
   db['calls'].update(
     {'request_id':request_uuid},
     {'$set': fields}
@@ -38,7 +44,6 @@ def log_call_db(request_uuid, fields, sendSocket=True):
   if sendSocket is False:
     return
 
-  call = db['calls'].find_one({'request_id':request_uuid})
   fields['id'] = str(call['_id'])
   fields['attempts'] = call['attempts']
   send_socket_update(fields)
@@ -97,7 +102,7 @@ def socketio_disconnected():
 #-------------------------------------------------------------------
 @socketio.on('connected')
 def socketio_connect():
-  logger.info('socket established!')
+  #logger.info('socket established!')
   logger.debug(
     'num connected sockets: ' + 
     str(len(socketio.server.sockets))
@@ -436,6 +441,8 @@ def content():
       })
       
       call = db['calls'].find_one({'request_id':request_uuid})
+      if not call:
+        return Response(str(plivoxml.Response()), mimetype='text/xml')
       job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
       speak = bravo.getSpeak(
         job['template'], 
@@ -496,6 +503,9 @@ def process_hangup():
     logger.debug('Call hungup %s' % request.values.items())
 
     call = db['calls'].find_one({'request_id':request_uuid})
+    if not call:
+      return Response(str(plivoxml.Response()), mimetype='text/xml')
+
     if 'attempts' in call:
       attempts = int(call['attempts'])
     else:

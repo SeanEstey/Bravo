@@ -4,9 +4,6 @@ import pymongo
 
 # TODO: Create a mongodb settings collection and webpage to manage these values
 
-client = pymongo.MongoClient('localhost',27017)
-db = client['wsf']
-
 MAILGUN_API_KEY = 'key-d52538f30cff03fdaab2659c76e4474a'
 MAILGUN_DOMAIN = 'wsaf.ca'
 PLIVO_AUTH_ID= 'MAMGFLNDVJMWE0NWU2MW'

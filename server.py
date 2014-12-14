@@ -423,7 +423,7 @@ def ring():
 #-------------------------------------------------------------------
 @app.route('/call/answer',methods=['POST','GET'])
 def content():
-  try:
+#  try:
     logger.debug('Call answered %s' % request.values.items())
     
     if request.method == "GET":
@@ -444,6 +444,8 @@ def content():
       if not call:
         return Response(str(plivoxml.Response()), mimetype='text/xml')
       job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
+      if not job:  
+        return Response(str(plivoxml.Response()), mimetype='text/xml')
       speak = bravo.getSpeak(
         job['template'], 
         call['etw_status'], 
@@ -485,68 +487,68 @@ def content():
           'office_notes': 'NO PICKUP'
         })
         response.addSpeak('Thank you. Goodbye.')
+     
       return Response(str(response), mimetype='text/xml')
-  except Exception, e:
-    logger.error('%s /call/answer' % request.values.items(), exc_info=True)
-    return str(e)
+#  except Exception, e:
+#    logger.error('%s /call/answer' % request.values.items(), exc_info=True)
+#    return str(e)
 
 #-------------------------------------------------------------------
 @app.route('/call/hangup',methods=['POST','GET'])
 def process_hangup():
-  try:
-    call_status = request.form.get('CallStatus')
-    to = request.form.get('To')
-    code = request.form.get('HangupCause')
-    request_uuid = request.form.get('RequestUUID')
-    
-    logger.info('%s %s (%s) /call/hangup', to, call_status, code)
-    logger.debug('Call hungup %s' % request.values.items())
-
-    call = db['calls'].find_one({'request_id':request_uuid})
-    if not call:
-      return Response(str(plivoxml.Response()), mimetype='text/xml')
-
-    if 'attempts' in call:
-      attempts = int(call['attempts'])
-    else:
-      attempts = 0
-
-    if call_status != 'failed':
-      attempts += 1
-
-    fields = { 
-      'status': call_status,
-      #'code': code,
-      'attempts': attempts,
-      'hangup_cause': code
-    }
-
-    if code == 'NORMAL_CLEARING':
-      fields['message'] = call['message']
-      if call['code'] == 'ANSWERED':
-        fields['code'] = 'DELIVERED'
-      elif call['code'] == 'DELIVERED_VOICEMAIL':
-        fields['code'] = 'DELIVERED_VOICEMAIL'
-    else:
-      fields['code'] = code
-
-    db['calls'].update(
-        {'request_id':request_uuid}, 
-        {'$set': fields}
-    )
-    send_socket_update({
-      'id' : str(call['_id']),
-      'status' : fields['status'],
-      'message' : fields['code'],
-      'attempts': fields['attempts']
-    })
-
-    response = plivoxml.Response()
-    return Response(str(response), mimetype='text/xml')
+  call_status = request.form.get('CallStatus')
+  to = request.form.get('To')
+  code = request.form.get('HangupCause')
+  request_uuid = request.form.get('RequestUUID')
   
-  except Exception, e:
-    logger.error('%s /call/hangup' % request.form.get('To'), exc_info=True)
-    return str(e)
+  logger.info('%s %s (%s) /call/hangup', to, call_status, code)
+  logger.debug('Call hungup %s' % request.values.items())
+
+  call = db['calls'].find_one({'request_id':request_uuid})
+  if not call:
+    return Response(str(plivoxml.Response()), mimetype='text/xml')
+
+  if 'attempts' in call:
+    attempts = int(call['attempts'])
+  else:
+    attempts = 0
+
+  if call_status != 'failed':
+    attempts += 1
+
+  fields = { 
+    'status': call_status,
+    #'code': code,
+    'attempts': attempts,
+    'hangup_cause': code
+  }
+
+  if code == 'NORMAL_CLEARING':
+    fields['message'] = call['message']
+    if call['code'] == 'ANSWERED':
+      fields['code'] = 'DELIVERED'
+    elif call['code'] == 'DELIVERED_VOICEMAIL':
+      fields['code'] = 'DELIVERED_VOICEMAIL'
+  else:
+    fields['code'] = code
+
+  db['calls'].update(
+      {'request_id':request_uuid}, 
+      {'$set': fields}
+  )
+  send_socket_update({
+    'id' : str(call['_id']),
+    'status' : fields['status'],
+    'message' : fields['code'],
+    'attempts': fields['attempts']
+  })
+
+  response = plivoxml.Response()
+  return Response(str(response), mimetype='text/xml')
+
+#except Exception, e:
+#  logger.error('%s /call/hangup' % request.form.get('To'), exc_info=True)
+#  return str(e)
 
 #-------------------------------------------------------------------
 @app.route('/call/fallback',methods=['POST','GET'])

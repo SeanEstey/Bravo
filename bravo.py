@@ -15,7 +15,8 @@ import os
 
 celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
 logger = logging.getLogger(__name__)
-
+client = pymongo.MongoClient('localhost',27017)
+db = client['wsf']
 
 #-------------------------------------------------------------------
 def setLogger(logger, level, log_name):
@@ -28,6 +29,22 @@ def setLogger(logger, level, log_name):
   logger.addHandler(handler)
 
 setLogger(logger, logging.INFO, 'log.log')
+
+#-------------------------------------------------------------------
+def is_mongodb_available():
+  global client, db
+
+  if client:
+    if client.alive():
+      return True
+  # Either no connection handle or connection is dead
+  # Attempt to re-establish 
+  try:
+    client = pymongo.MongoClient('localhost',27017)
+    db = client['wsf']
+  except pymongo.errors.ConnectionFailure as e:
+    logger.error('mongodb connection refused!')
+    return False
 
 #-------------------------------------------------------------------
 def is_server_online():
@@ -44,10 +61,27 @@ def is_server_online():
 #-------------------------------------------------------------------
 def is_active_worker():
   if not celery.control.inspect().active_queues():
-    # TODO: Attempt to start celery worker by running script
-    return False
+    # Attempt to restart celery worker
+    os.system('./celery.sh &')
+    time.sleep(5)
+    if not celery.control.inspect().active_queues():
+      return False
   else:
     return True
+
+#-------------------------------------------------------------------
+def all_systems_online():
+  if not is_active_worker():
+    logger.error('No celery worker available!')
+    return False 
+  if not is_server_online():
+    logger.error('Flask server offline!')
+    return False 
+  if not is_mongodb_available():
+    logger.error('MongoDB connection unavailable!')
+    return False 
+
+  return True
 
 #-------------------------------------------------------------------
 @celery.task
@@ -156,12 +190,13 @@ def fire_calls(job_id):
     logger.error('%s fire_calls.', exc_info=True)
     return str(e)
 
+
+
 #-------------------------------------------------------------------
 # Run on fixed schedule from crontab, cycles through pending jobs
 # and dispatches celery worker when due 
 def schedule_jobs():
-  if not is_active_worker():
-    logger.error('No celery worker available!')
+  if not all_systems_online():
     return False 
 
   pending_jobs = db['jobs'].find({'status': 'pending'})
@@ -210,12 +245,6 @@ def dial(to):
       {'request_uuid':'n/a', 'message': 'failed'}
     ]
   
-  code = str(response[0])
-  if code != '400':
-    logger.info('%s %s (%s)', to, response[1]['message'], response[0])
-  else:
-    logger.info('%s: 400 error' % to)
-
   if type(response) == tuple:
     if 'request_uuid' not in response[1]:
       response[1]['request_uuid'] = 'n/a'

@@ -1,5 +1,6 @@
 from config import *
 from celery import Celery
+from celery.utils.log import get_task_logger
 from bson.objectid import ObjectId
 import plivo
 import pymongo
@@ -10,9 +11,22 @@ import time
 import json
 from dateutil.parser import parse
 from datetime import datetime,timedelta
+import os
 
 celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
 logger = logging.getLogger(__name__)
+
+
+#-------------------------------------------------------------------
+def setLogger(logger, level, log_name):
+  handler = logging.FileHandler(log_name)
+  handler.setLevel(level)
+  formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+  handler.setFormatter(formatter)
+
+  logger.setLevel(level)
+  logger.addHandler(handler)
+
 setLogger(logger, logging.INFO, 'log.log')
 
 #-------------------------------------------------------------------
@@ -30,12 +44,124 @@ def is_server_online():
 #-------------------------------------------------------------------
 def is_active_worker():
   if not celery.control.inspect().active_queues():
+    # TODO: Attempt to start celery worker by running script
     return False
   else:
     return True
 
 #-------------------------------------------------------------------
-# Dispatches celery worker for each
+@celery.task
+def monitor_job(job_id):
+  logger.info('Monitoring job %s' % job_id)
+
+  while True:
+    redial_query = {
+      'job_id':job_id,
+      'attempts': {'$lt': MAX_ATTEMPTS}, 
+      '$or':[
+        {'code':'USER_BUSY'},
+        {'code':'NO_ANSWER'}
+      ]
+    }
+    redials = db['calls'].find(redial_query)
+   
+    # If no redials, test for job completion
+    if redials.count() == 0:
+      query_in_progress = {
+        'job_id': job_id,
+        'status': 'call fired'
+      }
+      in_progress = db['calls'].find(query_in_progress)
+
+      if in_progress.count() == 0:
+        logger.info('job %s complete' % job_id)
+        db['jobs'].update(
+          {'_id': ObjectId(job_id)},
+          {'$set': {'status': 'complete'}}
+        )
+        create_job_summary(job_id)
+        send_email_report(job_id)
+        break;
+    # Redial calls as needed
+    else:
+      for redial in redials:
+        response = dial(redial['to'])
+        log_call(redial, response)
+
+    time.sleep(REDIAL_DELAY)
+
+#-------------------------------------------------------------------
+@celery.task
+def execute_job(job_id):
+  if is_server_online() == False:
+    logger.error('Server offline! Attempting to restart...')
+    os.system('python server.py &')
+    time.sleep(5)
+    if is_server_online() == False:
+      sms(EMERGENCY_CONTACT, 'Bravo server offline! Cannot execute job!')
+      return
+    else:
+      logger.info('Successfully restarted. Resuming job...')
+
+  fire_calls(job_id)
+  time.sleep(60)
+  #monitor_job(job_id)
+
+#-------------------------------------------------------------------
+# job_id is the default _id field created for each jobs document by mongo
+def fire_calls(job_id):
+  try:
+    logger.info('Firing calls for job %s' % job_id)
+
+    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+    calls = db['calls'].find({'job_id':job_id})
+
+    db['jobs'].update(
+      {'_id': job['_id']},
+      {'$set': {'status': 'in_progress'}}
+    )
+
+    # Dial the calls
+    for call in calls:
+      if 'sms' in call:
+        #logger.info('call record: ' + str(call))
+        response = sms(call['to'], 'test')
+        #logger.info('msg_id: ' + response[1]['message_uuid'][0])
+        res = db['calls'].update(
+          {'_id': call['_id']},
+          {'$set':{
+            'message_id': response[1]['message_uuid'][0],
+            'status': response[1]['message'],
+            'code': response[1]['message']
+        }})
+        #logger.info('update res: ' + str(res))
+      else:
+        response = dial(call['to'])
+        db['calls'].update(
+          {'_id': call['_id']}, 
+          {'$set': {
+            'code': str(response[0]),
+            'request_id': response[1]['request_uuid'],
+            'status': response[1]['message'],
+            'attempts': 1
+        }})
+      
+      code = str(response[0])
+      # Endpoint probably overloaded
+      if code == '400':
+          print 'taking a break...'
+          time.sleep(10)
+
+      time.sleep(1)
+
+    logger.info('All calls fired for job %s' % job_id)
+  except Exception, e:
+    logger.error('%s fire_calls.', exc_info=True)
+    return str(e)
+
+#-------------------------------------------------------------------
+# Run on fixed schedule from crontab, cycles through pending jobs
+# and dispatches celery worker when due 
 def schedule_jobs():
   if not is_active_worker():
     logger.error('No celery worker available!')
@@ -78,7 +204,7 @@ def dial(to):
       'machine_detection_url': URL+'/call/machine'
     }
 
-    server = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
+    server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
     response = server.make_call(params)
     code = str(response[0])
     if code != '400':
@@ -111,7 +237,7 @@ def sms(to, msg):
       'url': URL + '/sms'
     }
 
-    plivo_api = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
+    plivo_api = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
     response = plivo_api.send_message(params)
     return response
 
@@ -124,41 +250,39 @@ def getSpeak(template, etw_status, datetime):
   try:
     dt = parse(datetime)
     date_str = dt.strftime('%A, %B %d')
-
-    intro_str = 'Hi, this is a friendly reminder that your empties to winn '
-    repeat_str = 'To repeat this message press 1. '
-    no_pickup_str = 'If you do not need a pickup, press 2. '
-
-    if template == 'etw_reminder':
-      if etw_status == 'Awaiting Dropoff':
-        speak = (intro_str + 'dropoff date ' +
-          'is ' + date_str + '. If you have any empties you can leave them ' +
-          'out by 8am. ' + repeat_str
-        )
-      elif etw_status == 'Active':
-        speak = (intro_str + 'pickup date ' +
-          'is ' + date_str + '. please have your empties out by 8am. ' + 
-          repeat_str + no_pickup_str
-        )
-      elif etw_status == 'Cancelling':
-        speak = (intro_str + 'bag stand will be picked up on ' +
-          date_str + '. thanks for your past support. ' + repeat_str
-        )
-      else:
-        speak = ''
-    elif template == 'special_msg':
-      print 'TODO'
-    elif template == 'etw_welcome':
-      print 'TODO'
-    elif template == 'gg_delivery':
-      print 'TODO'
-
-    return speak
-  except Exception, e:
-    logger.error('%s getSpeak failed', exc_info=True)
+  except TypeError:
+    logger.error('Invalid date in getSpeak: ' + str(datetime))
     return False
 
+  intro_str = 'Hi, this is a friendly reminder that your empties to winn '
+  repeat_str = 'To repeat this message press 1. '
+  no_pickup_str = 'If you do not need a pickup, press 2. '
 
+  if template == 'etw_reminder':
+    if etw_status == 'Awaiting Dropoff':
+      speak = (intro_str + 'dropoff date ' +
+        'is ' + date_str + '. If you have any empties you can leave them ' +
+        'out by 8am. ' + repeat_str
+      )
+    elif etw_status == 'Active':
+      speak = (intro_str + 'pickup date ' +
+        'is ' + date_str + '. please have your empties out by 8am. ' + 
+        repeat_str + no_pickup_str
+      )
+    elif etw_status == 'Cancelling':
+      speak = (intro_str + 'bag stand will be picked up on ' +
+        date_str + '. thanks for your past support. ' + repeat_str
+      )
+    else:
+      speak = ''
+  elif template == 'special_msg':
+    print 'TODO'
+  elif template == 'etw_welcome':
+    print 'TODO'
+  elif template == 'gg_delivery':
+    print 'TODO'
+
+  return speak
 
 #-------------------------------------------------------------------
 def log_sms(record, response):
@@ -220,20 +344,37 @@ def send_email_report(job_id):
   calls_str = json.dumps(calls, sort_keys=True, indent=4, separators=(',',': ' ))
   sum_str = json.dumps(job['summary'])
   
-  msg = MIMEText(sum_str + '\n\n' + calls_str)
+  msg = sum_str + '\n\n' + calls_str
+  subject = 'Job Summary %s' % job_id
 
-  username = 'winnstew'
-  password = 'batman()'
-  me = 'winnstew@gmail.com'
-  you = 'estese@gmail.com'
+  send_email('estese@gmail.com', subject, msg)
 
-  msg['Subject'] = 'Job Summary %s' % job_id
-  msg['From'] = me
-  msg['To'] = you
+#-------------------------------------------------------------------
+def send_email(recipient, subject, msg):
+  import requests
+  send_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/messages'
 
-  s = smtplib.SMTP('smtp.gmail.com:587')
-  s.ehlo()
-  s.starttls()
-  s.login(username, password)
-  s.sendmail(me, [you], msg.as_string())
-  s.quit()
+  return requests.post(
+    send_url,
+    auth=('api', MAILGUN_API_KEY),
+    data={
+      'from': 'Empties to WINN <emptiestowinn@wsaf.ca>',
+      'to': [recipient],
+      'subject': subject,
+      'text': msg
+  })
+
+def get_mailgun_logs(recipient):
+  log_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/events'
+  import requests
+
+  return requests.post(
+    log_url,
+    auth=('api', MAILGUN_API_KEY)
+    #data={
+      #'begin': 'Fri, 3 May 2013 18:00:00 GMT',
+    #  'ascending': 'yes',
+    #  'limit': 25,
+    #  'pretty': 'yes'
+      #'recipient': recipient
+  )

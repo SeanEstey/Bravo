@@ -11,7 +11,6 @@ import werkzeug
 from werkzeug import secure_filename
 import os
 import time
-import tasks
 import urllib2
 import csv
 import logging
@@ -25,12 +24,10 @@ import bravo
 # (May need to run twice)
 
 logger = logging.getLogger(__name__)
-setLogger(logger, logging.INFO, 'log.log')
+bravo.setLogger(logger, logging.INFO, 'log.log')
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 socketio = SocketIO(app)
-client = pymongo.MongoClient('localhost',27017)
-db = client['wsf']
 
 #-------------------------------------------------------------------
 def log_call_db(request_uuid, fields, sendSocket=True):
@@ -129,7 +126,7 @@ def index():
 #-------------------------------------------------------------------
 @app.route('/account')
 def get_account():
-  server = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
+  server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
   account = server.get_account()
   balance = account[1]['cash_credits']
   balance = '$' + str(round(float(balance), 2))
@@ -192,8 +189,8 @@ def create_job():
     # No file errors. Save job + calls to DB.
     job_record = {
       'name': job_name,
-      'auth_id': AUTH_ID,
-      'auth_token': AUTH_TOKEN,
+      'auth_id': PLIVO_AUTH_ID,
+      'auth_token': PLIVO_AUTH_TOKEN,
       'max_attempts': MAX_ATTEMPTS,
       'template': request.form['template'],
       'verify_phone': request.form['verify_phone'],
@@ -445,6 +442,10 @@ def content():
         call['etw_status'], 
         call['event_date']
       )
+      if not speak:
+        # ERROR
+        return
+
       getdigits_action_url = url_for('content', _external=True)
       getDigits = plivoxml.GetDigits(
         action=getdigits_action_url,
@@ -561,7 +562,7 @@ def process_machine():
       'code': 'LEAVING_VOICEMAIL'
     })
     call_uuid = request.form.get('CallUUID')
-    server = plivo.RestAPI(AUTH_ID, AUTH_TOKEN)
+    server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
     response = server.transfer_call({
       'call_uuid': call_uuid,
       'legs': 'aleg',

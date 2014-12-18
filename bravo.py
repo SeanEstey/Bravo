@@ -129,7 +129,7 @@ def monitor_job(job_id):
         {'code':'NO_ANSWER'}
       ]
     }
-    redials = db['calls'].find(redial_query)
+    redials = db['msgs'].find(redial_query)
    
     # If no redials, test for job completion
     if redials.count() == 0:
@@ -137,7 +137,7 @@ def monitor_job(job_id):
         'job_id': job_id,
         'status': 'call fired'
       }
-      in_progress = db['calls'].find(query_in_progress)
+      in_progress = db['msgs'].find(query_in_progress)
 
       if in_progress.count() == 0:
         logger.info('job %s complete' % job_id)
@@ -164,33 +164,33 @@ def execute_job(job_id):
     send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
     return False
 
-  fire_messages(job_id)
+  fire_msgs(job_id)
   time.sleep(60)
   #monitor_job(job_id)
 
 #-------------------------------------------------------------------
 # job_id is the default _id field created for each jobs document by mongo
-def fire_messages(job_id):
+def fire_msgs(job_id):
   try:
-    logger.info('Firing calls for job %s' % job_id)
+    logger.info('Firing messages for job %s' % job_id)
 
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
-    messages = db['calls'].find({'job_id':job_id})
+    messages = db['msgs'].find({'job_id':job_id})
 
     db['jobs'].update(
       {'_id': job['_id']},
       {'$set': {'status': 'in_progress'}}
     )
 
-    # Fire all calls and sms
+    # Fire all voice calls and SMS
     for msg in messages:
       if not 'sms' in msg:
         response = dial(msg['to'])
-        db['calls'].update(
+        db['msgs'].update(
           {'_id': msg['_id']}, 
           {'$set': {
             'code': str(response[0]),
-            'request_id': response[1]['request_uuid'],
+            'request_uuid': response[1]['request_uuid'],
             'status': response[1]['message'],
             'attempts': 1
         }})
@@ -202,7 +202,7 @@ def fire_messages(job_id):
           medium='sms'
         )
         response = sms(msg['to'], text)
-        res = db['calls'].update(
+        res = db['msgs'].update(
           {'_id': msg['_id']},
           {'$set':{
             'message_id': response[1]['message_uuid'][0],
@@ -220,13 +220,13 @@ def fire_messages(job_id):
 
     logger.info('All calls fired for job %s' % job_id)
   except Exception, e:
-    logger.error('%s fire_messages.', exc_info=True)
+    logger.error('%s fire_msgs.', exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------
 # Run on fixed schedule from crontab, cycles through pending jobs
 # and dispatches celery worker when due 
-def schedule_jobs():
+def check_job_schedule():
   if not systems_check():
     return False 
 
@@ -346,7 +346,7 @@ def getSpeak(job, etw_status, datetime, medium='voice'):
 
 #-------------------------------------------------------------------
 def log_sms(record, response):
-  db['calls'].update(
+  db['msgs'].update(
     {'_id': record['_id']}, 
     {'$set': {
       'code': str(response[0]),
@@ -360,7 +360,7 @@ def log_sms(record, response):
 #-------------------------------------------------------------------
 def create_job_summary(job_id):
   logger.info('Creating job summary for %s' % job_id)
-  calls = list(db['calls'].find({'job_id':job_id},{'_id':0}))
+  calls = list(db['msgs'].find({'job_id':job_id},{'_id':0}))
   job = {
     'summary': {
       'busy': 0,
@@ -400,7 +400,7 @@ def send_email_report(job_id):
 
   job = db['jobs'].find_one({'_id':ObjectId(job_id)})
     
-  calls = list(db['calls'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))
+  calls = list(db['msgs'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))
   calls_str = json.dumps(calls, sort_keys=True, indent=4, separators=(',',': ' ))
   sum_str = json.dumps(job['summary'])
   

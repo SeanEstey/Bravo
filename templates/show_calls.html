@@ -60,7 +60,7 @@
             type="button" 
             id="{{ url_for(
               'cancel_call', 
-              call_id=call._id, 
+              call_uuid=call._id, 
               job_id=call.job_id, 
               sort_by=sort_by, 
               sort_order=sort_order) }}" 

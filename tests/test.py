@@ -3,15 +3,46 @@ import sys
 sys.path.insert(0, '/root/bravo')
 from bravo import getSpeak
 
-"""Tests for `bravo.py`."""
 class BravoTestCase(unittest.TestCase):
-  def test_getSpeak(self):
-    job = {
+  # Create mongodb connection, context to collection,
+  # create a job record and handle
+  def setUp(self):
+    import pymongo
+    import datetime
+    self.client = pymongo.MongoClient('localhost', 27017)
+    self.assertIsNotNone(self.client)
+    self.db = self.client['wsf']
+    self.assertIsNotNone(self.db)
+    job_record = {
       'template': 'etw_reminder',
-      'message': 'this is a special msg'
+      'status': 'pending',
+      'name': 'test',
+      'fire_dtime': datetime.datetime(2014, 12, 31),
+      'num_calls': 1
     }
-    self.assertIsInstance(getSpeak(job, 'Awaiting Dropoff', '12/3/2014'), str)
-    self.assertFalse(getSpeak(job, 'Awaiting Dropoff', 'Not a date'), msg='Fake date')
+    self.job_id = self.db['jobs'].insert(job_record)
+    self.job = self.db['jobs'].find_one({'_id':self.job_id})
+    self.assertIsNotNone(self.job_id)
+    self.assertIsNotNone(self.job)
+
+  # Remove job record created by setUp
+  def tearDown(self):
+    import pymongo
+    res = self.db['jobs'].remove({'_id':self.job_id})
+    # n == num records deleted
+    self.assertEquals(res['n'], 1)
+
+  def test_getSpeak_dropoff(self):
+    speak = getSpeak(self.job, 'Awaiting Dropoff', self.job['fire_dtime'])
+    self.assertIsInstance(speak, str)
+
+  def test_getSpeak_invalid_date(self):
+    try:
+      getSpeak(self.job, 'Awaiting Dropoff', 'DECLEMBER 5, 2014')
+    except AttributeError:
+      pass
+    else:
+      self.fail('AttributeError not thrown')
 
   def test_show_jobs_view(self):
     import requests
@@ -34,12 +65,15 @@ class BravoTestCase(unittest.TestCase):
     self.assertEquals(requests.get(url).status_code, 200)
 
   def test_call_ring(self):
+    from werkzeug.datastructures import MultiDict
     import requests
-    import json
     url = 'http://localhost:5000/call/ring'
-    payload = { 'RequestUUID':'abc123', 'To':'7801234567', 'CallStatus':'bla' }
-    headers = { 'content-type':'application/json' }
-    self.assertEquals(requests.post(url, data=json.dumps(payload), headers=headers).status_code, 200)
+    payload = MultiDict([
+      ('RequestUUID','abc123'), 
+      ('To','7801234567'), 
+      ('CallStatus','bla')
+    ])
+    self.assertEquals(requests.post(url, data=payload).status_code, 200)
 
 
 if __name__ == '__main__':

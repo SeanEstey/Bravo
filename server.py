@@ -420,18 +420,22 @@ def get_sms_status():
 #-------------------------------------------------------------------
 @app.route('/call/ring', methods=['POST'])
 def ring():
-  log_call_db(request.form.get('RequestUUID'), {
-    'status': 'in progress',
-    'message': 'RINGING',
-    'code': 'RINGING',
-    'rang': True
-  })
-  logger.info(
-    '%s %s /call/ring', 
-    request.form.get('To'), 
-    request.form.get('CallStatus')
-  )
-  return 'OK'
+  try:
+    log_call_db(request.form['RequestUUID'], {
+      'status': 'in progress',
+      'message': 'RINGING',
+      'code': 'RINGING',
+      'rang': True
+    })
+    logger.info(
+      '%s %s /call/ring', 
+      request.form['To'], 
+      request.form['CallStatus']
+    )
+    return 'OK'
+  except Exception as e:
+    logger.error(str(e))
+    return 'FAIL'
 
 #-------------------------------------------------------------------
 @app.route('/call/answer',methods=['POST','GET'])

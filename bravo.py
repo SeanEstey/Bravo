@@ -306,8 +306,8 @@ def sms(to, msg):
 #-------------------------------------------------------------------
 def getSpeak(job, etw_status, datetime, medium='voice'):
   try:
-    dt = parse(datetime)
-    date_str = dt.strftime('%A, %B %d')
+    #dt = parse(datetime)
+    date_str = datetime.strftime('%A, %B %d')
   except TypeError:
     logger.error('Invalid date in getSpeak: ' + str(datetime))
     return False

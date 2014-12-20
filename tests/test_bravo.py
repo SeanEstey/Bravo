@@ -74,6 +74,23 @@ class BravoTestCase(unittest.TestCase):
     url = 'http://localhost:5000/jobs/' + str(self.job_id)
     self.assertEqual(requests.get(url).status_code, 200)
 
+  def test_parse_csv(self):
+    from server import parse_csv
+    import codecs
+    from config import TEMPLATE_HEADERS
+    filepath = '/tmp/ETW_Res_5E.csv'
+    with codecs.open(filepath, 'r', 'utf-8-sig') as f:
+      self.assertIsNotNone(parse_csv(f, TEMPLATE_HEADERS['etw_reminder']))
+
+  def test_create_job(self):
+    import requests
+    #from dateutil.parser import parse
+    #payload = MultiDict([
+    #  ('date', parse('December 31, 2014')), 
+    #  ('time', '3pm'), 
+    #  ('CallStatus', self.msg['status'])
+    #])
+
   def test_schedule_jobs_view(self):
     import requests
     url = 'http://localhost:5000/new'
@@ -82,6 +99,16 @@ class BravoTestCase(unittest.TestCase):
   def test_root_view(self):
     import requests
     url = 'http://localhost:5000'
+    self.assertEquals(requests.get(url).status_code, 200)
+
+  def test_server_get_status(self):
+    import requests
+    url = 'http://localhost:5000/status'
+    self.assertEquals(requests.get(url).status_code, 200)
+
+  def test_server_get_celery_status(self):
+    import requests
+    url = 'http://localhost:5000/celery_status'
     self.assertEquals(requests.get(url).status_code, 200)
 
   def test_call_ring_post(self):

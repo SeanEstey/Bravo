@@ -1,7 +1,7 @@
 import unittest
 import sys
 sys.path.insert(0, '/root/bravo')
-from bravo import getSpeak
+
 
 class BravoTestCase(unittest.TestCase):
   # Create mongodb connection, context to collection,
@@ -52,11 +52,38 @@ class BravoTestCase(unittest.TestCase):
     res = self.db['msgs'].remove({'_id':self.msg_id})
     self.assertEquals(res['n'], 1)
 
+  def test_bravo_dial(self):
+    import plivo
+
+  def test_bravo_sms(self):
+    import plivo
+
+  def test_bravo_check_job_schedule(self):
+    import plivo
+
+  def test_bravo_systems_check(self):
+    from bravo import systems_check
+    self.assertTrue(systems_check);
+
+  def test_bravo_fire_msgs(self):
+    from bravo import fire_msgs
+    self.assertTrue(fire_msgs(str(self.job_id)))
+
+  def test_bravo_check_job_schedule(self):
+    from bravo import check_job_schedule
+    self.assertTrue(check_job_schedule())
+
+  def test_bravo_job_summary(self):
+    from bravo import create_job_summary
+    self.assertTrue(create_job_summary(str(self.job_id)))
+
   def test_getSpeak_dropoff(self):
+    from bravo import getSpeak
     speak = getSpeak(self.job, 'Awaiting Dropoff', self.job['fire_dtime'])
     self.assertIsInstance(speak, str)
 
   def test_getSpeak_invalid_date(self):
+    from bravo import getSpeak
     try:
       getSpeak(self.job, 'Awaiting Dropoff', 'DECLEMBER 5, 2014')
     except AttributeError:

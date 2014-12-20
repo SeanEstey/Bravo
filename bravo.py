@@ -219,6 +219,7 @@ def fire_msgs(job_id):
       time.sleep(1)
 
     logger.info('All calls fired for job %s' % job_id)
+    return True
   except Exception, e:
     logger.error('%s fire_msgs.', exc_info=True)
     return str(e)
@@ -242,6 +243,8 @@ def check_job_schedule():
       next_job_delay = job['fire_dtime'] - datetime.now()
       logger.info(str(job_num) + '): ' + job['name'] + ' starts in: ' + str(next_job_delay))
     job_num += 1
+
+  return True
 
 #-------------------------------------------------------------------
 def dial(to):
@@ -389,7 +392,7 @@ def create_job_summary(job_id):
     {'$set': job}
   )
 
-  logger.info('done')
+  return True
 
 #-------------------------------------------------------------------
 def send_email_report(job_id):

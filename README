@@ -1,3 +1,15 @@
+Clone bravo to some directory (e.g. /root/bravo)
+  $ git clone https://github.com/SeanEstey/Bravo
+Start celery worker:
+  cd /root/bravo
+  $ ./celery.py
+Start server:
+  $ python server.py
+Register schedule monitor process:
+  $ crontab -e 
+  Add following line:
+  @hourly /usr/bin/python /root/bravo/scheduler.py
+
 To manually shutdown server running in background:
 get pid:
 $ ps aux | grep -m 1 'python server.py' | awk '{print $2}'

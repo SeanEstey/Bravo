@@ -1,0 +1,5 @@
+To manually shutdown server running in background:
+get pid:
+$ ps aux | grep -m 1 'python server.py' | awk '{print $2}'
+$ kill -9 <PID>
+(May need to run twice)

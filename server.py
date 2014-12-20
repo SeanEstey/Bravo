@@ -214,7 +214,7 @@ def create_job():
     list_of_calls = []
     for row in buffer:
       call = {
-        'job_id': job_id,
+        'job_id': ObjectId(job_id),
         'status': 'not attempted',
         'attempts': 0
       }
@@ -237,9 +237,9 @@ def create_job():
       list_of_calls.append(call)
 
     db['msgs'].insert(list_of_calls)
-    logger.info('Calls added to DB for job %s' % job_id)
+    logger.info('Calls added to DB for job %s' % str(job_id))
 
-    calls = db['msgs'].find({'job_id':job_id})
+    calls = db['msgs'].find({'job_id':ObjectId(job_id)})
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
 
     return redirect(url_for(
@@ -265,7 +265,7 @@ def show_calls(job_id):
     sort_by = request.args['sort_by']
     sort_order = int(request.args['sort_order'])
   
-  calls = db['msgs'].find({'job_id':job_id}).sort(sort_by, sort_order)
+  calls = db['msgs'].find({'job_id':ObjectId(job_id)}).sort(sort_by, sort_order)
   job = db['jobs'].find_one({'_id':ObjectId(job_id)})
 
   sort_cols = [
@@ -304,7 +304,7 @@ def show_calls(job_id):
 @app.route('/reset/<job_id>')
 def reset_job(job_id):
   db['msgs'].update(
-    {'job_id': job_id}, 
+    {'job_id': ObjectId(job_id)}, 
     {'$set': {
       'status': 'not attempted',
       'attempts': 0
@@ -313,7 +313,7 @@ def reset_job(job_id):
   )
 
   db['msgs'].update(
-    {'job_id': job_id}, 
+    {'job_id': ObjectId(job_id)}, 
     {'$unset': {
       'message_uuid': '',
       'hangup_cause': '',
@@ -338,8 +338,8 @@ def reset_job(job_id):
 @app.route('/cancel/job/<job_id>')
 def cancel_job(job_id):
   db['jobs'].remove({'_id':ObjectId(job_id)})
-  db['msgs'].remove({'job_id':job_id})
-  logger.info('Removed db.jobs and db.calls for %s' % job_id)
+  db['msgs'].remove({'job_id':ObjectId(job_id)})
+  logger.info('Removed db.jobs and db.calls for %s' % str(job_id))
 
   jobs = db['jobs'].find()
 

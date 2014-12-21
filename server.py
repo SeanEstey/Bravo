@@ -82,6 +82,33 @@ def parse_csv(csvfile, header_template):
   return buffer
 
 #-------------------------------------------------------------------
+def create_msg_record(job, idx, buf_row, errors):
+  # Create json record to be added to mongodb
+  msg = {
+    'job_id': job['_id'],
+    'status': 'not attempted',
+    'attempts': 0
+  }
+  # Translate column names to mongodb names ('Phone'->'to', etc)
+  headers = TEMPLATE_HEADERS[job['template']]
+  for col in range(0, len(headers)):
+    col_name = headers[col]
+    if HEADERS_TO_MONGO[col_name] == 'event_date':
+      if buf_row[col] == '':
+        errors.append('Row '+str(idx+1)+ ' is missing a date<br>')
+        return False
+      try:
+        event_dt_str = parse(buf_row[col])
+        msg[HEADERS_TO_MONGO[col_name]] = event_dt_str
+      except TypeError as e:
+        errors.append('Row '+str(idx+1)+ ' has an invalid date: '+str(buf_row[col])+'<br>')
+        return False 
+    else:
+      msg[HEADERS_TO_MONGO[col_name]] = buf_row[col]
+  msg['to'] = bravo.strip_phone_num(msg['to'])
+  return msg
+
+#-------------------------------------------------------------------
 def allowed_file(filename):
   return '.' in filename and \
      filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
@@ -162,86 +189,68 @@ def new_job():
 #-------------------------------------------------------------------
 @app.route('/new/create', methods=['POST'])
 def create_job():
-  if request.method == 'POST':
-    date_string = request.form['date']+' '+request.form['time']
-    fire_dtime = parse(date_string)
-    file = request.files['call_list']
-    filename = ''
-    if file and allowed_file(file.filename):
-      filename = secure_filename(file.filename)
-      file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename)) 
-    else:
-      return redirect(url_for(
-        'show_error', 
-        msg='Could not open file')
-      )
-   
+  # Verify and save file
+  file = request.files['call_list']
+  if file and allowed_file(file.filename):
+    filename = secure_filename(file.filename)
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename)) 
     file_path = app.config['UPLOAD_FOLDER'] + '/' + filename
-    try:
-      with codecs.open(file_path, 'r', 'utf-8-sig') as f:
-        buffer = parse_csv(f, TEMPLATE_HEADERS[request.form['template']])
-        if isinstance (buffer, werkzeug.wrappers.Response):
-          return buffer
-    except Exception as e:
-      logger.error(str(e))
-      return False
+  else:
+    return redirect(url_for('show_error', msg='Could not save file'))
+ 
+  # Open and parse file
+  try:
+    with codecs.open(file_path, 'r', 'utf-8-sig') as f:
+      buffer = parse_csv(f, TEMPLATE_HEADERS[request.form['template']])
+      if isinstance (buffer, werkzeug.wrappers.Response):
+        return buffer
+  except Exception as e:
+    logger.error(str(e))
+    return False
 
-    if not request.form['job_name']:
-      job_name = filename.split('.')[0].replace('_',' ')
-    else:
-      job_name = request.form['job_name']
-    
-    # No file errors. Save job + calls to DB.
-    job_record = {
-      'name': job_name,
-      'template': request.form['template'],
-      'message': request.form['message'],
-      'fire_dtime': fire_dtime,
-      'status': 'pending',
-      'num_calls': len(buffer)
-    }
-    
-    job_id = db['jobs'].insert(job_record)
-    job_id = str(job_id)
-    logger.info('Job %s added to DB' % job_id)
+  if not request.form['job_name']:
+    job_name = filename.split('.')[0].replace('_',' ')
+  else:
+    job_name = request.form['job_name']
+  
+  date_string = request.form['date']+' '+request.form['time']
+  fire_dtime = parse(date_string)
+  # No file errors. Save job + calls to DB.
+  job_record = {
+    'name': job_name,
+    'template': request.form['template'],
+    'message': request.form['message'],
+    'fire_dtime': fire_dtime,
+    'status': 'pending',
+    'num_calls': len(buffer)
+  }
+  
+  job_id = db['jobs'].insert(job_record)
+  job_record['_id'] = job_id
+  logger.info('Job %s added to DB' % str(job_id))
 
-    list_of_calls = []
-    for row in buffer:
-      call = {
-        'job_id': ObjectId(job_id),
-        'status': 'not attempted',
-        'attempts': 0
-      }
-      headers = TEMPLATE_HEADERS[request.form['template']]
-      # Translate file header names to mongodb names ('Phone'->'to', etc)
-      for col in range(0, len(headers)):
-        col_name = headers[col]
-        if HEADERS_TO_MONGO[col_name] == 'event_date':
-          if row[col] == '':
-            # Missing date value. Do not schedule call
-            continue 
-          else:
-            # Store dates as datetime
-            call[HEADERS_TO_MONGO[col_name]] = parse(row[col])
-        else:
-          call[HEADERS_TO_MONGO[col_name]] = row[col]
+  errors = []
+  records = []
+  for idx, row in enumerate(buffer):
+    record = create_msg_record(job_record, idx, row, errors)
+    if record:
+      records.append(record)
 
-      call['to'] = call['to'].replace(' ', '').replace('(','').replace(')','').replace('-','')
+  if len(errors) > 0:
+    msg = 'File had the following errors:<br>' + json.dumps(errors)
+    # Delete job record
+    db['jobs'].remove({'_id':job_id})
+    return redirect(url_for('show_error', msg=msg))
 
-      list_of_calls.append(call)
+  db['msgs'].insert(records)
+  logger.info('Calls added to DB for job %s' % str(job_id))
 
-    db['msgs'].insert(list_of_calls)
-    logger.info('Calls added to DB for job %s' % str(job_id))
-
-    calls = db['msgs'].find({'job_id':ObjectId(job_id)})
-    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
-
-    return redirect(url_for(
-      'show_calls', 
-      job_id=job_id, 
-      calls=calls, 
-      job=job)
-    )
+  return redirect(url_for(
+    'show_calls', 
+    job_id=str(job_id), 
+    calls=db['msgs'].find({'job_id':job_id}),
+    job=db['jobs'].find_one({'_id':job_id})
+  ))
 
 #-------------------------------------------------------------------
 @app.route('/jobs')

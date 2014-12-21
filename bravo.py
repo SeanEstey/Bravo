@@ -342,6 +342,10 @@ def get_speak(job, msg, medium='voice'):
   return speak
 
 #-------------------------------------------------------------------
+def strip_phone_num(to):
+  return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
+
+#-------------------------------------------------------------------
 def log_sms(record, response):
   db['msgs'].update(
     {'_id': record['_id']}, 

@@ -116,6 +116,32 @@ class BravoTestCase(unittest.TestCase):
     with codecs.open(filepath, 'r', 'utf-8-sig') as f:
       self.assertIsNotNone(parse_csv(f, TEMPLATE_HEADERS['etw_reminder']))
 
+  def test_create_msg_record_etw_reminder(self):
+    from server import create_msg_record
+    buffer_row = [
+      'Sean',
+      '(780) 863-5715',
+      'Awaiting Dropoff',
+      '12/3/2014',
+      ''
+    ]
+    errors = []
+    self.assertIsNotNone(create_msg_record(self.job, 1, buffer_row, errors))
+
+  def test_create_msg_record_fake_date(self):
+    from server import create_msg_record
+    buffer_row = [
+      'Sean',
+      '(780) 863-5715',
+      'Awaiting Dropoff',
+      '',
+      ''
+    ]
+    errors = []
+    create_msg_record(self.job, 1, buffer_row, errors)
+    # Return invalid date error
+    self.assertTrue(len(errors) > 0)
+
   def test_create_job(self):
     import requests
     #from dateutil.parser import parse

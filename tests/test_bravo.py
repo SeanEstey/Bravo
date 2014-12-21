@@ -1,4 +1,6 @@
 import unittest
+import requests
+import json
 import sys
 import os
 import plivo
@@ -99,12 +101,10 @@ class BravoTestCase(unittest.TestCase):
     self.assertIsInstance(speak, str)
 
   def test_show_jobs_view(self):
-    import requests
     url = 'http://localhost:5000/jobs'
     self.assertEqual(requests.get(url).status_code, 200)
 
   def test_show_calls_view(self):
-    import requests
     url = 'http://localhost:5000/jobs/' + str(self.job_id)
     self.assertEqual(requests.get(url).status_code, 200)
 
@@ -152,28 +152,23 @@ class BravoTestCase(unittest.TestCase):
     #])
 
   def test_schedule_jobs_view(self):
-    import requests
     url = 'http://localhost:5000/new'
     self.assertEqual(requests.get(url).status_code, 200)
 
   def test_root_view(self):
-    import requests
     url = 'http://localhost:5000'
     self.assertEquals(requests.get(url).status_code, 200)
 
   def test_server_get_status(self):
-    import requests
     url = 'http://localhost:5000/status'
     self.assertEquals(requests.get(url).status_code, 200)
 
   def test_server_get_celery_status(self):
-    import requests
     url = 'http://localhost:5000/celery_status'
     self.assertEquals(requests.get(url).status_code, 200)
 
   def test_call_ring_post(self):
     from werkzeug.datastructures import MultiDict
-    import requests
     url = 'http://localhost:5000/call/ring'
     payload = MultiDict([
       ('RequestUUID', self.msg['request_uuid']), 
@@ -184,14 +179,12 @@ class BravoTestCase(unittest.TestCase):
 
   def test_call_answer_get(self):
     from werkzeug.datastructures import MultiDict
-    import requests
     url = 'http://localhost:5000/call/answer'
     args='?CallStatus='+self.msg['status']+'&RequestUUID='+self.msg['request_uuid']+'&To='+self.msg['to']
     self.assertEquals(requests.get(url+args).status_code, 200)
 
   def test_call_hangup_post(self):
     from werkzeug.datastructures import MultiDict
-    import requests
     self.db['msgs'].update(
       {'request_uuid':self.msg['request_uuid']},
       {'$set':{'code':'ANSWERED', 'status':'active'}})
@@ -207,7 +200,6 @@ class BravoTestCase(unittest.TestCase):
 
   def test_call_voicemail_post(self):
     from werkzeug.datastructures import MultiDict
-    import requests
     payload = MultiDict([
       ('RequestUUID', self.msg['request_uuid']), 
       ('To', self.msg['to'])

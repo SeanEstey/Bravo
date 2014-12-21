@@ -160,7 +160,7 @@ def monitor_job(job_id):
 @celery.task
 def execute_job(job_id):
   if not systems_check():
-    msg = 'Could not execute job ' + job_id + ' because systems are offline'
+    msg = 'Could not execute job ' + str(job_id) + ' because systems are offline'
     send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
     return False
 
@@ -172,10 +172,16 @@ def execute_job(job_id):
 # job_id is the default _id field created for each jobs document by mongo
 def fire_msgs(job_id):
   try:
-    logger.info('Firing messages for job %s' % job_id)
+    if isinstance(job_id, str):
+      job_id = ObjectId(job_id)
 
-    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+    logger.info('Firing messages for job %s' % str(job_id))
+    job = db['jobs'].find_one({'_id':job_id})
     messages = db['msgs'].find({'job_id':job_id})
+
+    if not messages:
+      logger.info('No messages to fire for job_id ' + str(job_id) + '!')
+      return False
 
     db['jobs'].update(
       {'_id': job['_id']},
@@ -213,7 +219,7 @@ def fire_msgs(job_id):
 
       time.sleep(1)
 
-    logger.info('All calls fired for job %s' % job_id)
+    logger.info('All calls fired for job %s' % str(job_id))
     return True
   except Exception, e:
     logger.error('%s fire_msgs.', exc_info=True)
@@ -233,7 +239,7 @@ def check_job_schedule():
   for job in pending_jobs:
     if datetime.now() > job['fire_dtime']:
       logger.info('Starting job %s' % str(job['_id']))
-      execute_job.delay(str(job['_id']))
+      execute_job.delay(job['_id'])
     else:
       next_job_delay = job['fire_dtime'] - datetime.now()
       logger.info(str(job_num) + '): ' + job['name'] + ' starts in: ' + str(next_job_delay))
@@ -302,7 +308,7 @@ def sms(to, msg):
     return False
 
 #-------------------------------------------------------------------
-def get_speak(job, msg, medium='voice'):
+def get_speak(job, msg, medium='voice', live=False):
   try:
     date_str = msg['event_date'].strftime('%A, %B %d')
   except TypeError:
@@ -310,9 +316,9 @@ def get_speak(job, msg, medium='voice'):
     return False
 
   intro_str = 'Hi, this is a friendly reminder that your empties to winn '
-  repeat_str = 'To repeat this message press 1. '
-  no_pickup_str = 'If you do not need a pickup, press 2. '
-  sms_reply_str = 'Reply with No if no pickup required.'
+  repeat_voice = 'To repeat this message press 2. '
+  no_pickup_voice = 'If you do not need a pickup, press 1. '
+  no_pickup_sms = 'Reply with No if no pickup required.'
 
   if job['template'] == 'etw_reminder':
     if msg['etw_status'] == 'Awaiting Dropoff':
@@ -330,14 +336,14 @@ def get_speak(job, msg, medium='voice'):
       )
     else:
       speak = ''
+    if medium == 'voice' and live==True:
+      speak += no_pickup_voice + repeat_voice
+    elif medium == 'sms':
+      speak += no_pickup_sms
   elif job['template'] == 'special_msg':
     speak = job['message'] 
     print 'TODO'
 
-  if medium == 'voice':
-    speak += repeat_str
-  elif medium == 'sms':
-    speak += sms_reply_str
 
   return speak
 

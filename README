@@ -1,8 +1,10 @@
-Clone bravo to some directory (e.g. /root/bravo)
+Instructions
+
+Clone repository:
   $ git clone https://github.com/SeanEstey/Bravo
+  $ cd Bravo
 Start celery worker:
-  cd /root/bravo
-  $ ./celery.py
+  $ ./celery.sh
 Start server:
   $ python server.py
 Register schedule monitor process:

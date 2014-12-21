@@ -343,9 +343,7 @@ def cancel_job(job_id):
   db['jobs'].remove({'_id':ObjectId(job_id)})
   db['msgs'].remove({'job_id':ObjectId(job_id)})
   logger.info('Removed db.jobs and db.calls for %s' % str(job_id))
-
   jobs = db['jobs'].find()
-
   return redirect(url_for('show_jobs'))
 
 #-------------------------------------------------------------------
@@ -465,10 +463,11 @@ def content():
     job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
     if not job:  
       return Response(str(plivoxml.Response()), mimetype='text/xml')
-    speak = bravo.get_speak(job, call)
+    speak = bravo.get_speak(job, call, live=True)
     if not speak:
       # ERROR
       return
+    db['msgs'].update({'_id':call['_id']},{'$set':{'speak':speak}})
 
     getdigits_action_url = url_for('content', _external=True)
     getDigits = plivoxml.GetDigits(
@@ -611,6 +610,7 @@ def process_voicemail():
     call = db['msgs'].find_one({'request_uuid':request_uuid})
     job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
     speak = bravo.get_speak(job, call)
+    db['msgs'].update({'_id':call['_id']},{'$set':{'speak':speak}})
     response = plivoxml.Response()
     response.addWait(length=1)
     response.addSpeak(body=speak)

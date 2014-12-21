@@ -4,9 +4,9 @@ from celery.utils.log import get_task_logger
 from bson.objectid import ObjectId
 import plivo
 import pymongo
-import urllib2
 import csv
 import logging
+import requests
 import time
 import json
 from dateutil.parser import parse
@@ -55,10 +55,10 @@ def reconnect_mongodb():
 
 #-------------------------------------------------------------------
 def is_server_online():
-  import urllib2
   try:
-    response = urllib2.urlopen('http://localhost:' + str(PORT))
-    if response:
+    url = 'http://localhost:' + str(PORT)
+    response = requests.get(url)
+    if response.status_code == 200:
       return True
     else:
       return False
@@ -195,12 +195,7 @@ def fire_msgs(job_id):
             'attempts': 1
         }})
       else:
-        text = getSpeak(
-          job, 
-          msg['etw_status'], 
-          msg['event_date'], 
-          medium='sms'
-        )
+        text = get_speak(job, msg, medium='sms')
         response = sms(msg['to'], text)
         res = db['msgs'].update(
           {'_id': msg['_id']},
@@ -307,12 +302,11 @@ def sms(to, msg):
     return False
 
 #-------------------------------------------------------------------
-def getSpeak(job, etw_status, datetime, medium='voice'):
+def get_speak(job, msg, medium='voice'):
   try:
-    #dt = parse(datetime)
-    date_str = datetime.strftime('%A, %B %d')
+    date_str = msg['event_date'].strftime('%A, %B %d')
   except TypeError:
-    logger.error('Invalid date in getSpeak: ' + str(datetime))
+    logger.error('Invalid date in get_speak: ' + str(msg['event_date']))
     return False
 
   intro_str = 'Hi, this is a friendly reminder that your empties to winn '
@@ -321,16 +315,16 @@ def getSpeak(job, etw_status, datetime, medium='voice'):
   sms_reply_str = 'Reply with No if no pickup required.'
 
   if job['template'] == 'etw_reminder':
-    if etw_status == 'Awaiting Dropoff':
+    if msg['etw_status'] == 'Awaiting Dropoff':
       speak = (intro_str + 'dropoff date ' +
         'is ' + date_str + '. If you have any empties you can leave them ' +
         'out by 8am. '
       )
-    elif etw_status == 'Active':
+    elif msg['etw_status'] == 'Active':
       speak = (intro_str + 'pickup date ' +
         'is ' + date_str + '. please have your empties out by 8am. '
       )
-    elif etw_status == 'Cancelling':
+    elif msg['etw_status'] == 'Cancelling':
       speak = (intro_str + 'bag stand will be picked up on ' +
         date_str + '. thanks for your past support. '
       )

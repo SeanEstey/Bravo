@@ -1,7 +1,9 @@
 import unittest
 import sys
+import os
+import plivo
+os.chdir('/root/bravo')
 sys.path.insert(0, '/root/bravo')
-
 
 class BravoTestCase(unittest.TestCase):
   # Create mongodb connection, context to collection,
@@ -53,13 +55,21 @@ class BravoTestCase(unittest.TestCase):
     self.assertEquals(res['n'], 1)
 
   def test_bravo_dial(self):
-    import plivo
+    from bravo import dial
+    import json
+    response = dial(self.msg['to'])
+    self.assertEquals(response[0], 201, msg=json.dumps(response))
 
   def test_bravo_sms(self):
-    import plivo
+    from bravo import sms
+    import json
+    self.msg['sms'] = True
+    response = sms(self.msg['to'], 'sms unittest')
+    self.assertEquals(response[0], 202, msg=json.dumps(response))
 
   def test_bravo_check_job_schedule(self):
-    import plivo
+    from bravo import check_job_schedule
+    self.assertTrue(check_job_schedule())
 
   def test_bravo_systems_check(self):
     from bravo import systems_check
@@ -77,19 +87,16 @@ class BravoTestCase(unittest.TestCase):
     from bravo import create_job_summary
     self.assertTrue(create_job_summary(str(self.job_id)))
 
-  def test_getSpeak_dropoff(self):
-    from bravo import getSpeak
-    speak = getSpeak(self.job, 'Awaiting Dropoff', self.job['fire_dtime'])
+  def test_get_speak_etw_active(self):
+    from bravo import get_speak
+    speak = get_speak(self.job, self.msg)
     self.assertIsInstance(speak, str)
 
-  def test_getSpeak_invalid_date(self):
-    from bravo import getSpeak
-    try:
-      getSpeak(self.job, 'Awaiting Dropoff', 'DECLEMBER 5, 2014')
-    except AttributeError:
-      pass
-    else:
-      self.fail('AttributeError not thrown')
+  def test_get_speak_etw_dropoff(self):
+    from bravo import get_speak
+    self.msg['etw_status'] = 'Awaiting Dropoff'
+    speak = get_speak(self.job, self.msg)
+    self.assertIsInstance(speak, str)
 
   def test_show_jobs_view(self):
     import requests
@@ -183,4 +190,6 @@ class BravoTestCase(unittest.TestCase):
     self.assertEquals(requests.post(url, data=payload).status_code, 200)
 
 if __name__ == '__main__':
+  from bravo import logger
+  logger.info('********** begin unittest **********')
   unittest.main()

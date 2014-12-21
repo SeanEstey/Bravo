@@ -17,12 +17,6 @@ import logging
 import codecs
 import bravo
 
-# To manually shutdown server running in background:
-# get pid:
-# $ ps aux | grep -m 1 'python server.py' | awk '{print $2}'
-# $ kill -9 <PID>
-# (May need to run twice)
-
 client = pymongo.MongoClient('localhost',27017)
 db = client['wsf']
 logger = logging.getLogger(__name__)
@@ -462,11 +456,7 @@ def content():
     job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
     if not job:  
       return Response(str(plivoxml.Response()), mimetype='text/xml')
-    speak = bravo.getSpeak(
-      job, 
-      call['etw_status'], 
-      call['event_date']
-    )
+    speak = bravo.get_speak(job, call)
     if not speak:
       # ERROR
       return
@@ -492,11 +482,7 @@ def content():
     response = plivoxml.Response()
     
     if digit == '1':
-      speak = bravo.getSpeak(
-        job, 
-        call['etw_status'], 
-        call['event_date']
-      )
+      speak = bravo.get_speak(job, call)
       response.addSpeak(speak)
     elif digit == '2':
       log_call_db(request_uuid, {
@@ -615,11 +601,7 @@ def process_voicemail():
     })
     call = db['msgs'].find_one({'request_uuid':request_uuid})
     job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-    speak = bravo.getSpeak(
-      job, 
-      call['etw_status'], 
-      call['event_date']
-    )
+    speak = bravo.get_speak(job, call)
     response = plivoxml.Response()
     response.addWait(length=1)
     response.addSpeak(body=speak)

@@ -33,7 +33,7 @@ class BravoTestCase(unittest.TestCase):
     msg = {
       'job_id': self.job_id,
       'request_uuid': 'abc123',
-      'status': 'not attempted',
+      'status': 'not-attempted',
       'attempts': 0,
       'event_date': parse('december 31, 2014'),
       'to': '780-555-5555',
@@ -79,7 +79,7 @@ class BravoTestCase(unittest.TestCase):
 
   def test_bravo_fire_msgs(self):
     from bravo import fire_msgs
-    self.assertTrue(fire_msgs(str(self.job_id)))
+    self.assertTrue(fire_msgs(self.job_id))
 
   def test_bravo_check_job_schedule(self):
     from bravo import check_job_schedule
@@ -87,7 +87,7 @@ class BravoTestCase(unittest.TestCase):
 
   def test_bravo_job_summary(self):
     from bravo import create_job_summary
-    self.assertTrue(create_job_summary(str(self.job_id)))
+    self.assertTrue(create_job_summary(self.job_id))
 
   def test_get_speak_etw_active(self):
     from bravo import get_speak
@@ -187,7 +187,7 @@ class BravoTestCase(unittest.TestCase):
     from werkzeug.datastructures import MultiDict
     self.db['msgs'].update(
       {'request_uuid':self.msg['request_uuid']},
-      {'$set':{'code':'ANSWERED', 'status':'active'}})
+      {'$set':{'code':'ANSWERED', 'status':'in-progress'}})
     url = 'http://localhost:5000/call/hangup'
     self.msg = self.db['msgs'].find_one({'_id':self.msg_id})
     payload = MultiDict([

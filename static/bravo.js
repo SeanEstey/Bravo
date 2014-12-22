@@ -210,15 +210,13 @@ function initShowCallsView() {
   var socket = io.connect('http://' + document.domain + ':' + location.port);
   socket.on('connect', function(){
     socket.emit('connected');
-  /*  socket.on('update', function(data) {
-      console.log('update');
-      receiveCallUpdate(data);
-    });*/
   });
-    socket.on('update', function(data) {
-      console.log('update2');
-      receiveCallUpdate(data);
-    });
+  socket.on('update_msg', function(data) {
+    receiveMsgUpdate(data);
+  });
+  socket.on('update_job', function(data) {
+    receiveJobUpdate(data);
+  });
 }
 
 //---------------------------------------------------------------
@@ -269,8 +267,16 @@ function makeCallFieldsClickable() {
 }
 
 //---------------------------------------------------------------
+function receiveJobUpdate(socket_data) {
+  if(socket_data['status'] == 'complete') {
+    console.log('job complete!');
+    $('#timer').text('Complete');
+  }
+}
+
+//---------------------------------------------------------------
 // View: show_calls
-function receiveCallUpdate(socket_data) {
+function receiveMsgUpdate(socket_data) {
   // Clear the countdown timer if it is running
   if(window.countdown_id) {
     clearInterval(window.countdown_id);

@@ -42,7 +42,7 @@ def log_call_db(request_uuid, fields, sendSocket=True):
 
   fields['id'] = str(call['_id'])
   fields['attempts'] = call['attempts']
-  send_socket_update(fields)
+  send_socket('update_msg', fields)
 
 #-------------------------------------------------------------------
 def parse_csv(csvfile, header_template):
@@ -86,7 +86,7 @@ def create_msg_record(job, idx, buf_row, errors):
   # Create json record to be added to mongodb
   msg = {
     'job_id': job['_id'],
-    'status': 'not attempted',
+    'status': 'not-attempted',
     'attempts': 0
   }
   # Translate column names to mongodb names ('Phone'->'to', etc)
@@ -132,8 +132,8 @@ def socketio_connect():
   )
 
 #-------------------------------------------------------------------
-@socketio.on('update')
-def send_socket_update(data):
+#@socketio.on('update')
+def send_socket(name, data):
   if not socketio.server:
     return False
   logger.debug(
@@ -144,7 +144,7 @@ def send_socket_update(data):
   if len(socketio.server.sockets) == 0:
     return False
  
-  socketio.emit('update', data)
+  socketio.emit(name, data)
 
 #-------------------------------------------------------------------
 @app.route('/')
@@ -304,12 +304,22 @@ def show_calls(job_id):
   )
 
 #-------------------------------------------------------------------
+@app.route('/complete/<job_id>')
+def job_complete(job_id):
+  data = {
+    'id': job_id,
+    'status': 'complete'
+  }
+  send_socket('update_job', data)
+  return 'OK'
+
+#-------------------------------------------------------------------
 @app.route('/reset/<job_id>')
 def reset_job(job_id):
   db['msgs'].update(
     {'job_id': ObjectId(job_id)}, 
     {'$set': {
-      'status': 'not attempted',
+      'status': 'not-attempted',
       'attempts': 0
     }},
     multi=True
@@ -407,7 +417,7 @@ def get_sms_status():
     if res is None:
       return 'NO'
 
-    send_socket_update({
+    send_socket('update_msg',{
       'id' : str(call['_id']),
       'status' : fields['status'],
       'message' : fields['code'],
@@ -423,7 +433,7 @@ def get_sms_status():
 def ring():
   try:
     log_call_db(request.form['RequestUUID'], {
-      'status': 'in progress',
+      'status': 'in-progress',
       'message': 'RINGING',
       'code': 'RINGING',
       'rang': True
@@ -451,7 +461,7 @@ def content():
       request.args.get('CallStatus')
     )
     log_call_db(request_uuid, {
-      'status': 'in progress',
+      'status': 'in-progress',
       'message': 'ANSWERED',
       'code': 'ANSWERED',
       'call_uuid': request.args.get('CallUUID')
@@ -506,55 +516,50 @@ def content():
 #-------------------------------------------------------------------
 @app.route('/call/hangup',methods=['POST','GET'])
 def process_hangup():
-  call_status = request.form.get('CallStatus')
-  to = request.form.get('To')
-  code = request.form.get('HangupCause')
-  request_uuid = request.form.get('RequestUUID')
-  
-  logger.info('%s %s (%s) /call/hangup', to, call_status, code)
-  logger.debug('Call hungup %s' % request.values.items())
+  try:
+    call_status = request.form.get('CallStatus')
+    to = request.form.get('To')
+    code = request.form.get('HangupCause')
+    request_uuid = request.form.get('RequestUUID')
+    
+    logger.info('%s %s (%s) /call/hangup', to, call_status, code)
+    logger.debug('Call hungup %s' % request.values.items())
 
-  call = db['msgs'].find_one({'request_uuid':request_uuid})
-  if not call:
-    return Response(str(plivoxml.Response()), mimetype='text/xml')
+    call = db['msgs'].find_one({'request_uuid':request_uuid})
+    if not call:
+      return Response(str(plivoxml.Response()), mimetype='text/xml')
 
-  #attempts = call['attempts']
-  #if call_status != 'failed':
-  #  attempts += 1
+    fields = { 
+      'status': call_status,
+      'hangup_cause': code
+    }
 
-  fields = { 
-    'status': call_status,
-    #'code': code,
-    #'attempts': attempts,
-    'hangup_cause': code
-  }
+    if code == 'NORMAL_CLEARING':
+      fields['message'] = call['message']
+      if call['code'] == 'ANSWERED':
+        fields['code'] = 'DELIVERED'
+      elif call['code'] == 'DELIVERED_VOICEMAIL':
+        fields['code'] = 'DELIVERED_VOICEMAIL'
+    else:
+      fields['code'] = code
 
-  if code == 'NORMAL_CLEARING':
-    fields['message'] = call['message']
-    if call['code'] == 'ANSWERED':
-      fields['code'] = 'DELIVERED'
-    elif call['code'] == 'DELIVERED_VOICEMAIL':
-      fields['code'] = 'DELIVERED_VOICEMAIL'
-  else:
-    fields['code'] = code
+    db['msgs'].update(
+        {'request_uuid':request_uuid}, 
+        {'$set': fields}
+    )
+    send_socket('update_msg',{
+      'id' : str(call['_id']),
+      'status' : fields['status'],
+      'message' : fields['code'],
+      'attempts': call['attempts']
+    })
 
-  db['msgs'].update(
-      {'request_uuid':request_uuid}, 
-      {'$set': fields}
-  )
-  send_socket_update({
-    'id' : str(call['_id']),
-    'status' : fields['status'],
-    'message' : fields['code'],
-    'attempts': fields['attempts']
-  })
+    response = plivoxml.Response()
+    return Response(str(response), mimetype='text/xml')
 
-  response = plivoxml.Response()
-  return Response(str(response), mimetype='text/xml')
-
-#except Exception, e:
-#  logger.error('%s /call/hangup' % request.form.get('To'), exc_info=True)
-#  return str(e)
+  except Exception, e:
+    logger.error('%s /call/hangup' % request.form.get('To'), exc_info=True)
+    return str(e)
 
 #-------------------------------------------------------------------
 @app.route('/call/fallback',methods=['POST','GET'])

@@ -135,17 +135,23 @@ def monitor_job(job_id):
       query_in_progress = {
         'job_id': job_id,
         '$or':[
-          {'status': 'in progress'},
-          {'status': 'not attempted'}
+          {'status': 'in-progress'},
+          {'status': 'not-attempted'},
+          {'status': 'ringing'},
+          {'status': 'answered'}
       ]}
       in_progress = db['msgs'].find(query_in_progress)
 
       if in_progress.count() == 0:
-        logger.info('job %s complete' % job_id)
+        # Job Complete!
         db['jobs'].update(
-          {'_id': ObjectId(job_id)},
+          {'_id': job_id},
           {'$set': {'status': 'complete'}}
         )
+       
+        # Tell server to send completion sockets 
+        url = 'http://localhost:5000/complete/' + str(job_id)
+        requests.get(url)
         create_job_summary(job_id)
         send_email_report(job_id)
         break;
@@ -167,11 +173,11 @@ def execute_job(job_id):
     send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
     return False
  
-  logger.info('\n********* Start Job ' + str(job_id) + '*********\n')
+  logger.info('\n********** Start Job ' + str(job_id) + ' **********')
   fire_msgs(job_id)
   time.sleep(60)
   monitor_job(job_id)
-  logger.info('\n********* End Job ' + str(job_id) + '*********\n')
+  logger.info('\n********** End Job ' + str(job_id) + ' **********\n')
 
 #-------------------------------------------------------------------
 # msg = mongodb json record
@@ -218,7 +224,8 @@ def fire_msg(msg):
 def fire_msgs(job_id):
   try:
     job = db['jobs'].find_one({'_id':job_id})
-    messages = db['msgs'].find({'job_id':job_id})
+    # Default call order is alphabetically by name
+    messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
 
     if not messages:
       logger.info('No messages to fire for job_id ' + str(job_id) + '!')
@@ -226,7 +233,7 @@ def fire_msgs(job_id):
 
     db['jobs'].update(
       {'_id': job['_id']},
-      {'$set': {'status': 'in progress'}}
+      {'$set': {'status': 'in-progress'}}
     )
 
     # Fire all voice calls and SMS
@@ -380,7 +387,6 @@ def log_sms(record, response):
 
 #-------------------------------------------------------------------
 def create_job_summary(job_id):
-  logger.info('Creating job summary for %s' % job_id)
   calls = list(db['msgs'].find({'job_id':job_id},{'_id':0}))
   job = {
     'summary': {
@@ -406,7 +412,7 @@ def create_job_summary(job_id):
   #logger.info('Summary for job %s:\ndelivered: %s\nmachine: %s\nbusy: %s\nfailed: %s', job_id, str(delivered), str(machine), str(busy), str(failed))
 
   db['jobs'].update(
-    {'_id': ObjectId(job_id)}, 
+    {'_id': job_id}, 
     {'$set': job}
   )
 
@@ -414,19 +420,17 @@ def create_job_summary(job_id):
 
 #-------------------------------------------------------------------
 def send_email_report(job_id):
-  logger.info('Sending report')
-
   import smtplib
   from email.mime.text import MIMEText
 
-  job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+  job = db['jobs'].find_one({'_id':job_id})
     
   calls = list(db['msgs'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))
   calls_str = json.dumps(calls, sort_keys=True, indent=4, separators=(',',': ' ))
   sum_str = json.dumps(job['summary'])
   
   msg = sum_str + '\n\n' + calls_str
-  subject = 'Job Summary %s' % job_id
+  subject = 'Job Summary %s' % str(job_id)
 
   send_email('estese@gmail.com', subject, msg)
 

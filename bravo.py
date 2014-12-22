@@ -118,7 +118,7 @@ def systems_check():
 #-------------------------------------------------------------------
 @celery.task
 def monitor_job(job_id):
-  logger.info('Monitoring job %s' % job_id)
+  logger.info('Monitoring job %s' % str(job_id))
 
   while True:
     redial_query = {
@@ -127,16 +127,17 @@ def monitor_job(job_id):
       '$or':[
         {'code':'USER_BUSY'},
         {'code':'NO_ANSWER'}
-      ]
-    }
+    ]}
     redials = db['msgs'].find(redial_query)
    
     # If no redials, test for job completion
     if redials.count() == 0:
       query_in_progress = {
         'job_id': job_id,
-        'status': 'call fired'
-      }
+        '$or':[
+          {'status': 'in progress'},
+          {'status': 'not attempted'}
+      ]}
       in_progress = db['msgs'].find(query_in_progress)
 
       if in_progress.count() == 0:
@@ -151,31 +152,71 @@ def monitor_job(job_id):
     # Redial calls as needed
     else:
       for redial in redials:
-        response = dial(redial['to'])
-        log_call(redial, response)
+        fire_msg(redial)
 
     time.sleep(REDIAL_DELAY)
 
 #-------------------------------------------------------------------
 @celery.task
 def execute_job(job_id):
+  if isinstance(job_id, str):
+    job_id = ObjectId(job_id)
+
   if not systems_check():
     msg = 'Could not execute job ' + str(job_id) + ' because systems are offline'
     send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
     return False
-
+ 
+  logger.info('\n********* Start Job ' + str(job_id) + '*********\n')
   fire_msgs(job_id)
   time.sleep(60)
-  #monitor_job(job_id)
+  monitor_job(job_id)
+  logger.info('\n********* End Job ' + str(job_id) + '*********\n')
+
+#-------------------------------------------------------------------
+# msg = mongodb json record
+def fire_msg(msg):
+  try:
+    if not 'sms' in msg:
+      # Voice Call
+      response = dial(msg['to'])
+      db['msgs'].update(
+        {'_id': msg['_id']}, 
+        {'$set': {
+          'code': str(response[0]),
+          'request_uuid': response[1]['request_uuid'],
+          'status': response[1]['message'],
+          'attempts': msg['attempts'] + 1
+      }})
+    else:
+      # SMS
+      text = get_speak(job, msg, medium='sms')
+      response = sms(msg['to'], text)
+      res = db['msgs'].update(
+        {'_id': msg['_id']},
+        {'$set':{
+          'message_id': response[1]['message_uuid'][0],
+          'status': response[1]['message'],
+          'code': response[1]['message'],
+          'attempts': msg['attempts'] + 1
+      }})
+    
+    code = str(response[0])
+    # Endpoint probably overloaded
+    if code == '400':
+      logger.info('400 error in fire_msg. Taking a break...')
+      time.sleep(10)
+
+    # Cap at 1/sec for testing
+    time.sleep(1)
+  except Exception as e:
+    logger.error('%s fire_msg.', exc_info=True)
+    return str(e)
 
 #-------------------------------------------------------------------
 # job_id is the default _id field created for each jobs document by mongo
 def fire_msgs(job_id):
   try:
-    if isinstance(job_id, str):
-      job_id = ObjectId(job_id)
-
-    logger.info('Firing messages for job %s' % str(job_id))
     job = db['jobs'].find_one({'_id':job_id})
     messages = db['msgs'].find({'job_id':job_id})
 
@@ -185,39 +226,12 @@ def fire_msgs(job_id):
 
     db['jobs'].update(
       {'_id': job['_id']},
-      {'$set': {'status': 'in_progress'}}
+      {'$set': {'status': 'in progress'}}
     )
 
     # Fire all voice calls and SMS
     for msg in messages:
-      if not 'sms' in msg:
-        response = dial(msg['to'])
-        db['msgs'].update(
-          {'_id': msg['_id']}, 
-          {'$set': {
-            'code': str(response[0]),
-            'request_uuid': response[1]['request_uuid'],
-            'status': response[1]['message'],
-            'attempts': 1
-        }})
-      else:
-        text = get_speak(job, msg, medium='sms')
-        response = sms(msg['to'], text)
-        res = db['msgs'].update(
-          {'_id': msg['_id']},
-          {'$set':{
-            'message_id': response[1]['message_uuid'][0],
-            'status': response[1]['message'],
-            'code': response[1]['message']
-        }})
-      
-      code = str(response[0])
-      # Endpoint probably overloaded
-      if code == '400':
-          print 'taking a break...'
-          time.sleep(10)
-
-      time.sleep(1)
+      fire_msg(msg)
 
     logger.info('All calls fired for job %s' % str(job_id))
     return True

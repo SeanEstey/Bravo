@@ -518,18 +518,14 @@ def process_hangup():
   if not call:
     return Response(str(plivoxml.Response()), mimetype='text/xml')
 
-  if 'attempts' in call:
-    attempts = int(call['attempts'])
-  else:
-    attempts = 0
-
-  if call_status != 'failed':
-    attempts += 1
+  #attempts = call['attempts']
+  #if call_status != 'failed':
+  #  attempts += 1
 
   fields = { 
     'status': call_status,
     #'code': code,
-    'attempts': attempts,
+    #'attempts': attempts,
     'hangup_cause': code
   }
 

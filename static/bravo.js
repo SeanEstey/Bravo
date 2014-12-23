@@ -1,3 +1,9 @@
+function toTitleCase(str)
+{
+  return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();}).replace('_',' ');
+}
+
+
 //---------------------------------------------------------------
 function useJQueryBtn() {
   $("input[type=submit], button")
@@ -286,11 +292,19 @@ function receiveMsgUpdate(socket_data) {
   console.log('received update: ' + JSON.stringify(socket_data));
   // Find matching row_id to update
   var $row = $('#'+socket_data['id']);
-  if('status' in socket_data)
-    $row.find('[name="status"]').html(socket_data['status']);
-  if('message' in socket_data)
-    $row.find('[name="message"]').html(socket_data['message']);
-  if('message' in socket_data)
+  if('status' in socket_data) {
+    code = toTitleCase(socket_data['status']);
+    $row.find('[name="status"]').html(code);
+  }
+  if('code' in socket_data) {
+    code = socket_data['code'];
+    if(code == 'NORMAL_TEMPORARY_FAILURE')
+      code = 'Not in Service';
+    else
+      code = toTitleCase(code);
+    $row.find('[name="message"]').html(code);
+  }
+  if('attempts' in socket_data)
     $row.find('[name="attempts"]').html(socket_data['attempts']);
   if('office_notes' in socket_data)
     $row.find('[name="office_notes"]').html(socket_data['office_notes']);

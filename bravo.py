@@ -157,6 +157,7 @@ def monitor_job(job_id):
         break;
     # Redial calls as needed
     else:
+      logger.info('Attempting redial ' + str(redials.count()) + ' calls')
       for redial in redials:
         fire_msg(redial)
 
@@ -397,7 +398,7 @@ def create_job_summary(job_id):
       'failed' : 0
     }
   }
-
+'''
   for call in calls:
     if call['status'] == 'completed':
       if call['message'] == 'left voicemail':
@@ -408,15 +409,11 @@ def create_job_summary(job_id):
       job['summary']['busy'] += 1
     elif call['status'] == 'failed':
       job['summary']['failed'] += 1
-
-  #logger.info('Summary for job %s:\ndelivered: %s\nmachine: %s\nbusy: %s\nfailed: %s', job_id, str(delivered), str(machine), str(busy), str(failed))
-
   db['jobs'].update(
     {'_id': job_id}, 
     {'$set': job}
   )
-
-  return True
+'''
 
 #-------------------------------------------------------------------
 def send_email_report(job_id):

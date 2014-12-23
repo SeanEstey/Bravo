@@ -183,6 +183,9 @@ class BravoTestCase(unittest.TestCase):
     args='?CallStatus='+self.msg['status']+'&RequestUUID='+self.msg['request_uuid']+'&To='+self.msg['to']
     self.assertEquals(requests.get(url+args).status_code, 200)
 
+  def test_call_answer_post(self):
+    import requests
+
   def test_call_hangup_post(self):
     from werkzeug.datastructures import MultiDict
     self.db['msgs'].update(
@@ -196,7 +199,11 @@ class BravoTestCase(unittest.TestCase):
       ('HangupCause', 'NORMAL_CLEARING'),
       ('CallStatus', self.msg['status'])
     ])
-    self.assertEquals(requests.post(url, data=payload).status_code, 200)
+    try:
+      response = requests.post(url, data=payload)
+      self.assertEquals(response.status_code, 200)
+    except Exception as e:
+      self.fail('hangup exception')
 
   def test_call_voicemail_post(self):
     from werkzeug.datastructures import MultiDict

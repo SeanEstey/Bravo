@@ -420,7 +420,7 @@ def get_sms_status():
     send_socket('update_msg',{
       'id' : str(call['_id']),
       'status' : fields['status'],
-      'message' : fields['code'],
+      'code' : fields['code'],
       'attempts': call['attempts']
     })
     return 'OK'
@@ -434,7 +434,6 @@ def ring():
   try:
     log_call_db(request.form['RequestUUID'], {
       'status': 'in-progress',
-      'message': 'RINGING',
       'code': 'RINGING',
       'rang': True
     })
@@ -462,7 +461,6 @@ def content():
     )
     log_call_db(request_uuid, {
       'status': 'in-progress',
-      'message': 'ANSWERED',
       'code': 'ANSWERED',
       'call_uuid': request.args.get('CallUUID')
     })
@@ -519,38 +517,42 @@ def process_hangup():
   try:
     call_status = request.form.get('CallStatus')
     to = request.form.get('To')
-    code = request.form.get('HangupCause')
+    hangup_cause = request.form.get('HangupCause')
     request_uuid = request.form.get('RequestUUID')
-    
-    logger.info('%s %s (%s) /call/hangup', to, call_status, code)
+    logger.info('%s %s (%s) /call/hangup', to, call_status, hangup_cause)
     logger.debug('Call hungup %s' % request.values.items())
-
     call = db['msgs'].find_one({'request_uuid':request_uuid})
+    
     if not call:
       return Response(str(plivoxml.Response()), mimetype='text/xml')
 
-    fields = { 
-      'status': call_status,
-      'hangup_cause': code
-    }
-
-    if code == 'NORMAL_CLEARING':
-      fields['message'] = call['message']
+    if hangup_cause == 'NORMAL_CLEARING':
+      call['status'] = 'completed'
       if call['code'] == 'ANSWERED':
-        fields['code'] = 'DELIVERED'
-      elif call['code'] == 'DELIVERED_VOICEMAIL':
-        fields['code'] = 'DELIVERED_VOICEMAIL'
+        call['code'] = 'DELIVERED'
+    elif hangup_cause == 'USER_BUSY' or hangup_cause == 'NO_ANSWER':
+      call['code'] = hangup_cause
+      call['status'] = 'incomplete'
+    elif hangup_cause == 'NORMAL_TEMPORARY_FAILURE':
+      call['status'] = 'failed'
+      call['code'] = hangup_cause
     else:
-      fields['code'] = code
+      call['status'] = call_status
+      call['code'] = hangup_cause
 
     db['msgs'].update(
         {'request_uuid':request_uuid}, 
-        {'$set': fields}
+        {'$set': {
+          'code': call['code'],
+          'status': call['status'],
+          'hangup_cause': hangup_cause
+          }
+        }
     )
     send_socket('update_msg',{
       'id' : str(call['_id']),
-      'status' : fields['status'],
-      'message' : fields['code'],
+      'status' : call['status'],
+      'code': call['code'],
       'attempts': call['attempts']
     })
 
@@ -580,8 +582,6 @@ def process_machine():
   try:
     logger.debug('Machine detected. %s' % request.values.items())
     log_call_db(request.form.get('RequestUUID'), {
-      'status': 'machine',
-      'message': 'LEAVING_VOICEMAIL',
       'code': 'LEAVING_VOICEMAIL'
     })
     call_uuid = request.form.get('CallUUID')
@@ -604,8 +604,6 @@ def process_voicemail():
     logger.debug('/call/voicemail: %s' % request.values.items())
     request_uuid = request.form.get('RequestUUID')
     log_call_db(request_uuid, {
-      'status': 'completed',
-      'message': 'DELIVERED_VOICEMAIL',
       'code': 'DELIVERED_VOICEMAIL'
     })
     call = db['msgs'].find_one({'request_uuid':request_uuid})

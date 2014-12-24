@@ -175,11 +175,17 @@ class BravoTestCase(unittest.TestCase):
   def test_call_answer_get(self):
     from werkzeug.datastructures import MultiDict
     args='?CallStatus='+self.msg['status']+'&RequestUUID='+self.msg['request_uuid']+'&To='+self.msg['to']
-    uri = url + '/call/answer' + args
+    uri = self.url + '/call/answer' + args
     self.assertEquals(requests.get(uri).status_code, 200)
 
   def test_call_answer_post(self):
-    import requests
+    from werkzeug.datastructures import MultiDict
+    payload = MultiDict([
+      ('RequestUUID', self.msg['request_uuid']), 
+      ('Digits', '1')
+    ])
+    response = requests.post(self.url+'/call/answer', data=payload)
+    self.assertEquals(response.status_code, 200)
 
   def test_call_hangup_post(self):
     from werkzeug.datastructures import MultiDict

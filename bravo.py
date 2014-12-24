@@ -398,6 +398,7 @@ def create_job_summary(job_id):
       'failed' : 0
     }
   }
+  return True
 '''
   for call in calls:
     if call['status'] == 'completed':

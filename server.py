@@ -132,7 +132,6 @@ def socketio_connect():
   )
 
 #-------------------------------------------------------------------
-#@socketio.on('update')
 def send_socket(name, data):
   if not socketio.server:
     return False

@@ -13,6 +13,7 @@ class BravoTestCase(unittest.TestCase):
   def setUp(self):
     import pymongo
     import datetime
+    self.url = 'http://localhost:5000'
     self.client = pymongo.MongoClient('localhost', 27017)
     self.assertIsNotNone(self.client)
     self.db = self.client['wsf']
@@ -101,12 +102,11 @@ class BravoTestCase(unittest.TestCase):
     self.assertIsInstance(speak, str)
 
   def test_show_jobs_view(self):
-    url = 'http://localhost:5000/jobs'
-    self.assertEqual(requests.get(url).status_code, 200)
+    self.assertEqual(requests.get(self.url+'/jobs').status_code, 200)
 
   def test_show_calls_view(self):
-    url = 'http://localhost:5000/jobs/' + str(self.job_id)
-    self.assertEqual(requests.get(url).status_code, 200)
+    uri = self.url + '/jobs/' + str(self.job_id)
+    self.assertEqual(requests.get(uri).status_code, 200)
 
   def test_parse_csv(self):
     from server import parse_csv
@@ -152,36 +152,31 @@ class BravoTestCase(unittest.TestCase):
     #])
 
   def test_schedule_jobs_view(self):
-    url = 'http://localhost:5000/new'
-    self.assertEqual(requests.get(url).status_code, 200)
+    self.assertEqual(requests.get(self.url+'/new').status_code, 200)
 
   def test_root_view(self):
-    url = 'http://localhost:5000'
-    self.assertEquals(requests.get(url).status_code, 200)
+    self.assertEquals(requests.get(self.url).status_code, 200)
 
   def test_server_get_status(self):
-    url = 'http://localhost:5000/status'
-    self.assertEquals(requests.get(url).status_code, 200)
+    self.assertEquals(requests.get(self.url+'/status').status_code, 200)
 
   def test_server_get_celery_status(self):
-    url = 'http://localhost:5000/celery_status'
-    self.assertEquals(requests.get(url).status_code, 200)
+    self.assertEquals(requests.get(self.url+'/celery_status').status_code, 200)
 
   def test_call_ring_post(self):
     from werkzeug.datastructures import MultiDict
-    url = 'http://localhost:5000/call/ring'
     payload = MultiDict([
       ('RequestUUID', self.msg['request_uuid']), 
       ('To', self.msg['to']), 
       ('CallStatus', self.msg['status'])
     ])
-    self.assertEquals(requests.post(url, data=payload).status_code, 200)
+    self.assertEquals(requests.post(self.url+'/call/ring', data=payload).status_code, 200)
 
   def test_call_answer_get(self):
     from werkzeug.datastructures import MultiDict
-    url = 'http://localhost:5000/call/answer'
     args='?CallStatus='+self.msg['status']+'&RequestUUID='+self.msg['request_uuid']+'&To='+self.msg['to']
-    self.assertEquals(requests.get(url+args).status_code, 200)
+    uri = url + '/call/answer' + args
+    self.assertEquals(requests.get(uri).status_code, 200)
 
   def test_call_answer_post(self):
     import requests
@@ -191,7 +186,6 @@ class BravoTestCase(unittest.TestCase):
     self.db['msgs'].update(
       {'request_uuid':self.msg['request_uuid']},
       {'$set':{'code':'ANSWERED', 'status':'in-progress'}})
-    url = 'http://localhost:5000/call/hangup'
     self.msg = self.db['msgs'].find_one({'_id':self.msg_id})
     payload = MultiDict([
       ('RequestUUID', self.msg['request_uuid']), 
@@ -200,7 +194,7 @@ class BravoTestCase(unittest.TestCase):
       ('CallStatus', self.msg['status'])
     ])
     try:
-      response = requests.post(url, data=payload)
+      response = requests.post(self.url+'/call/hangup', data=payload)
       self.assertEquals(response.status_code, 200)
     except Exception as e:
       self.fail('hangup exception')
@@ -211,8 +205,7 @@ class BravoTestCase(unittest.TestCase):
       ('RequestUUID', self.msg['request_uuid']), 
       ('To', self.msg['to'])
     ])
-    url = 'http://localhost:5000/call/voicemail'
-    self.assertEquals(requests.post(url, data=payload).status_code, 200)
+    self.assertEquals(requests.post(self.url+'/call/voicemail', data=payload).status_code, 200)
 
 if __name__ == '__main__':
   from bravo import logger

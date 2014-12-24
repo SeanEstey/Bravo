@@ -1,8 +1,9 @@
-function toTitleCase(str)
-{
-  return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();}).replace('_',' ');
+String.prototype.toTitleCase = function(n) {
+   var s = this;
+   if (1 !== n) s = s.toLowerCase();
+   s = s.replace(/_/g, ' ');
+   return s.replace(/\b[a-z]/g,function(f){return f.toUpperCase()});
 }
-
 
 //---------------------------------------------------------------
 function useJQueryBtn() {
@@ -190,6 +191,20 @@ function initShowCallsView() {
     text: false
   })
 
+  $('.call_status_td').each(function() {
+    var string = $(this).html().toTitleCase();
+    $(this).html(string);
+  });
+  $('.call_msg_td').each(function() {
+    var string = $(this).html().toTitleCase();
+    $(this).html(string);
+  });
+  $('.call_date_td').each(function() {
+    var date = Date.parse($(this).html());
+    var string = date.toDateString();
+    $(this).html(string);
+  });
+
   $('.delete-btn').each(function(){ 
     $(this).click(function(){
       msg = 'Are you sure you want to cancel this call?';
@@ -340,7 +355,23 @@ function beginCountdown($timer, event_datetime) {
 }
 
 //---------------------------------------------------------------
+// View: show_jobs
 function initShowJobs() {
+  $(document).tooltip({
+    position: {
+      my: "center bottom-20",
+      at: "center top",
+      using: function( position, feedback ) {
+        $( this ).css( position );
+        $( "<div>" )
+          .addClass( "arrow" )
+          .addClass( feedback.vertical )
+          .addClass( feedback.horizontal )
+          .appendTo( this );
+      }
+    }
+  });
+
   $('.delete-btn').button({
     icons: {
       primary: 'ui-icon-trash'

@@ -149,7 +149,9 @@ def send_socket(name, data):
 #-------------------------------------------------------------------
 @app.route('/')
 def index():
-  return render_template('main.html')
+  jobs = db['jobs'].find().sort('fire_dtime',-1)
+  return render_template('show_jobs.html', jobs=jobs)
+  #return render_template('main.html')
 
 #-------------------------------------------------------------------
 @app.route('/account')

@@ -16,7 +16,8 @@
   </div>
   <div class="show-jobs-div">
   <div class='navbar-div'>
-    <a class='hover' href="{{ url_for('index') }}">Bravo</a> / Jobs
+    <a class='hover' href="{{ url_for('index') }}">Jobs</a> / 
+    <a style='font-weight:bold; text-decoration:none;' title='Schedule a new job' href="{{ url_for('new_job') }}">+</a>
   </div>
     <table class='data-table2'>
       <tr>
@@ -73,6 +74,7 @@
             class='delete-btn' 
             type="button" 
             id="{{ url_for('cancel_job',job_id=job._id) }}" 
+            title='Delete this job'
             name="delete-btn">
           </button>
         </td>

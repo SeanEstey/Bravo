@@ -66,7 +66,7 @@ def parse_csv(csvfile, header_template):
       'Please fix your mess and try again.'
       return redirect(url_for('show_error',  msg=msg))
 
-  # DELETE FIRST EMPTY ROW FROM ETAP FILE EXPORT.
+  # DELETE FIRST EMPTY ROW FROM ETAP FILE EXPORT
   reader.next()
   line_num = 1
   for row in reader:
@@ -161,6 +161,14 @@ def get_account():
   balance = account[1]['cash_credits']
   balance = '$' + str(round(float(balance), 2))
   return balance
+
+#-------------------------------------------------------------------
+@app.route('/get/template/<name>')
+def get_template(name):
+  if not name in TEMPLATE_HEADERS:
+    return False
+  else:
+    return json.dumps(TEMPLATE_HEADERS[name])
 
 #-------------------------------------------------------------------
 @app.route('/celery_status')

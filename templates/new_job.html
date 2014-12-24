@@ -15,12 +15,8 @@
         <input id='job_name' class='input' name='job_name' type='text' placeholder='Optional'></input>
         <div class='label'>Template</div>
         <select name='template' class='input' id='template-select'>
-          <optgroup name='template' required>
-            <option class='opt' value='etw_reminder'>Empties to Winn Reminder</option>
-            <!--<option class='opt' value='etw_followup'>Empties to Winn Followup</option>-->
-            <option class='opt' value='special_msg'>Special Message</option>
-            <!--<option class='opt' value='gg_delivery'>Green Goods Delivery</option>-->
-          </optgroup>
+          <option class='opt' value='etw_reminder'>Empties to Winn Reminder</option>
+          <option class='opt' value='special_msg'>Special Message</option>
         </select>
         <div class='label'>Call List</div>
         <input id='call-list-div' title='Upload a .CSV file' class="nice" type="file" name="call_list" required >
@@ -38,7 +34,7 @@
         <div class='label'>Date</div>
         <input class='input' type='text' id='datepicker' placeholder='Browse Calendar...'  name='date' required >
         <div class='label'>Time</div>
-        <input class='input' type='time' name="time" required >
+        <input class='input' title="When the job will begin (3pm, 10:30am)" type='time' name="time" required >
         <br><br>
       </fieldset>
       <br><br>

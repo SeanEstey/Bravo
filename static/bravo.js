@@ -98,6 +98,7 @@ function initNewJobView() {
   $('#datepicker').datepicker();
   $("input[type=file]").nicefileinput();
   onSelectTemplate();
+  updateFilePickerTooltip();
   $submit_btn = $('#submit_btn');
   $submit_btn.click(function(){
     validateNewJobForm();
@@ -107,12 +108,27 @@ function initNewJobView() {
 
 //---------------------------------------------------------------
 // View: new_job
+function updateFilePickerTooltip() {
+  var $select = $('#template-select');
+  var $template = $select.find($('option:selected'));
+  var request = $.ajax({
+    type: 'GET',
+    url: 'http://23.239.21.165:5000/get/template/' + $template.attr('value')
+  });
+  request.done(function(msg){
+    var title = 'Upload a .CSV file with columns ';
+    $('#call-list-div').attr('title', title + msg); 
+  });
+}
+
+//---------------------------------------------------------------
+// View: new_job
 function onSelectTemplate() {
   var $select = $('#template-select');
   $select.change(function(){
     var $template = $select.find($('option:selected'));
     console.log($template.text());
-
+    updateFilePickerTooltip();
     if($template.text() == 'Empties to Winn Reminder') {
       $('#special_msg_div').hide();
       $('#order_div').hide();
@@ -143,7 +159,8 @@ function validateNewJobForm() {
   // Validate form data
   var missing = [];
   var filename = $('#call-list-div').val();
-  var wrong_date = false;
+  var expired_date = false;
+  var invalid_date = false;
   var wrong_filetype = false;
   var scheduled_date = null;
   
@@ -162,9 +179,10 @@ function validateNewJobForm() {
       date_str += ', ' + paramObj['time'];
     // Datejs for parsing strings like '12pm'
     scheduled_date = Date.parse(date_str);
-    console.log(scheduled_date.toString());
-    if(scheduled_date.getTime() < now.getTime())
-      wrong_date = true;
+    if(!scheduled_date)
+      invalid_date = true;
+    else if(scheduled_date.getTime() < now.getTime())
+      expired_date = true;
   }
   if(paramObj['template'] == 'special_msg') {
     if(!paramObj['message'])
@@ -182,7 +200,7 @@ function validateNewJobForm() {
   if(missing.length > 0 || wrong_filetype) {
     showDialog($('#dialog'), msg);
   }
-  else if(wrong_date) {
+  else if(expired_date) {
     msg = 'The scheduled date is before the present:<br><br>' + 
     '<b>' + scheduled_date.toString('dddd, MMMM d, yyyy @ hh:mm tt') + 
     '</b><br><br>' +
@@ -195,6 +213,10 @@ function validateNewJobForm() {
         click: function() { $(this).dialog('close'); $('form').submit();}}
     ];
     showDialog($('#dialog'), msg, null, buttons);
+  }
+  else if(invalid_date) {
+    msg = 'Could not understand the date and time provided. Please correct.';
+    showDialog($('#dialog'), msg);
   }
   else {
     $('form').submit(); 

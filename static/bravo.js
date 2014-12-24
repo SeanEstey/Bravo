@@ -224,6 +224,40 @@ function validateNewJobForm() {
 }
 
 //---------------------------------------------------------------
+// View: show_jobs
+function initShowJobs() {
+  addBravoTooltip();
+
+  $('.delete-btn').button({
+    icons: {
+      primary: 'ui-icon-trash'
+    },
+    text: false
+  })
+  $('.delete-btn').addClass('redButton');
+
+  $('.delete-btn').each(function(){ 
+    $(this).click(function(){
+      msg = 'Are you sure you want to cancel this job?';
+      url = $(this).attr('id');
+      console.log('prompt to delete' + url);
+      var buttons = [
+        { text: "No", 
+          click: function() { $( this ).dialog( "close" ); }}, 
+        { text: 'Yes', 
+          click: function() { 
+             $(this).dialog('close'); $(location).attr('href',url);
+          }
+        }
+      ];
+      showDialog($('#dialog'), msg, 'Confirm Action', buttons);
+    });
+  });
+
+  $('body').css('display','block');
+}
+
+//---------------------------------------------------------------
 // View: show_calls
 function initShowCallsView() {
   $('.delete-btn').button({
@@ -394,38 +428,4 @@ function beginCountdown($timer, event_datetime) {
       Math.floor(diff_sec) + ' Sec');
 
   }, 1000);
-}
-
-
-
-
-//---------------------------------------------------------------
-// View: show_jobs
-function initShowJobs() {
-  addBravoTooltip();
-
-  $('.delete-btn').button({
-    icons: {
-      primary: 'ui-icon-trash'
-    },
-    text: false
-  })
-  $('.delete-btn').addClass('redButton');
-
-  $('.delete-btn').each(function(){ 
-    $(this).click(function(){
-      msg = 'Are you sure you want to cancel this job?';
-      url = $(this).attr('id');
-      console.log('prompt to delete' + url);
-      var buttons = [
-        { text: "No", 
-          click: function() { $( this ).dialog( "close" ); }}, 
-        { text: 'Yes', 
-          click: function() { $(this).dialog('close'); $(location).attr('href',url);}}
-      ];
-      showDialog($('#dialog'), msg, 'Confirm Action', buttons);
-    });
-  });
-
-  $('body').css('display','block');
 }

@@ -1,8 +1,27 @@
+//---------------------------------------------------------------
 String.prototype.toTitleCase = function(n) {
    var s = this;
    if (1 !== n) s = s.toLowerCase();
    s = s.replace(/_/g, ' ');
    return s.replace(/\b[a-z]/g,function(f){return f.toUpperCase()});
+}
+
+//---------------------------------------------------------------
+function addBravoTooltip() {
+  $(document).tooltip({
+    position: {
+      my: 'center bottom-20',
+      at: 'center top',
+      using: function(position, feedback) {
+        $(this).css(position);
+        $('<div>')
+          .addClass('arrow')
+          .addClass(feedback.vertical)
+          .addClass(feedback.horizontal)
+          .appendTo(this);
+      }
+    }
+  });
 }
 
 //---------------------------------------------------------------
@@ -75,6 +94,7 @@ function showDialog($element, msg, _title, _buttons) {
 // View: new_job
 function initNewJobView() {
   useJQueryBtn();
+  addBravoTooltip();
   $('#datepicker').datepicker();
   $("input[type=file]").nicefileinput();
   onSelectTemplate();
@@ -354,23 +374,13 @@ function beginCountdown($timer, event_datetime) {
   }, 1000);
 }
 
+
+
+
 //---------------------------------------------------------------
 // View: show_jobs
 function initShowJobs() {
-  $(document).tooltip({
-    position: {
-      my: "center bottom-20",
-      at: "center top",
-      using: function( position, feedback ) {
-        $( this ).css( position );
-        $( "<div>" )
-          .addClass( "arrow" )
-          .addClass( feedback.vertical )
-          .addClass( feedback.horizontal )
-          .appendTo( this );
-      }
-    }
-  });
+  addBravoTooltip();
 
   $('.delete-btn').button({
     icons: {

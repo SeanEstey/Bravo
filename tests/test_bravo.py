@@ -13,7 +13,7 @@ class BravoTestCase(unittest.TestCase):
   def setUp(self):
     import pymongo
     import datetime
-    self.url = 'http://localhost:5000'
+    self.url = 'http://localhost:8000'
     self.client = pymongo.MongoClient('localhost', 27017)
     self.assertIsNotNone(self.client)
     self.db = self.client['wsf']

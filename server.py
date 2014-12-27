@@ -668,4 +668,4 @@ if __name__ == "__main__":
     app.debug = True
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['SECRET_KEY'] = 'a secret!'
-    socketio.run(app, port=8000)
+    socketio.run(app, port=PORT)

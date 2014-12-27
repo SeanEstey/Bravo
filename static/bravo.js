@@ -37,7 +37,7 @@ function useJQueryBtn() {
 function getPlivoAccount() {
   var request =  $.ajax({
       type: 'GET',
-      url: 'http://23.239.21.165:5000/account'
+      url: $SCRIPT_ROOT + '/account'
     });
 
   request.done(function(msg){
@@ -51,7 +51,7 @@ function getPlivoAccount() {
 function getCeleryStatus() {
   var request =  $.ajax({
       type: 'GET',
-      url: 'http://23.239.21.165:5000/celery_status'
+      url: $SCRIPT_ROOT + '/celery_status'
     });
 
   request.done(function(msg){
@@ -113,7 +113,7 @@ function updateFilePickerTooltip() {
   var $template = $select.find($('option:selected'));
   var request = $.ajax({
     type: 'GET',
-    url: 'http://23.239.21.165:5000/get/template/' + $template.attr('value')
+    url: $SCRIPT_ROOT + '/get/template/' + $template.attr('value')
   });
   request.done(function(msg){
     var title = 'Upload a .CSV file with columns ';
@@ -224,40 +224,6 @@ function validateNewJobForm() {
 }
 
 //---------------------------------------------------------------
-// View: show_jobs
-function initShowJobs() {
-  addBravoTooltip();
-
-  $('.delete-btn').button({
-    icons: {
-      primary: 'ui-icon-trash'
-    },
-    text: false
-  })
-  $('.delete-btn').addClass('redButton');
-
-  $('.delete-btn').each(function(){ 
-    $(this).click(function(){
-      msg = 'Are you sure you want to cancel this job?';
-      url = $(this).attr('id');
-      console.log('prompt to delete' + url);
-      var buttons = [
-        { text: "No", 
-          click: function() { $( this ).dialog( "close" ); }}, 
-        { text: 'Yes', 
-          click: function() { 
-             $(this).dialog('close'); $(location).attr('href',url);
-          }
-        }
-      ];
-      showDialog($('#dialog'), msg, 'Confirm Action', buttons);
-    });
-  });
-
-  $('body').css('display','block');
-}
-
-//---------------------------------------------------------------
 // View: show_calls
 function initShowCallsView() {
   $('.delete-btn').button({
@@ -307,6 +273,7 @@ function initShowCallsView() {
   var socket = io.connect('http://' + document.domain + ':' + location.port);
   socket.on('connect', function(){
     socket.emit('connected');
+    console.log('socket.io connected');
   });
   socket.on('update_msg', function(data) {
     receiveMsgUpdate(data);
@@ -354,7 +321,7 @@ function makeCallFieldsClickable() {
       
       $.ajax({
         type: 'POST',
-        url: 'http://23.239.21.165:5000/edit/call/' + call_id,
+        url: $SCRIPT_ROOT + '/edit/call/' + call_id,
         data: payload
       });
     });
@@ -428,4 +395,38 @@ function beginCountdown($timer, event_datetime) {
       Math.floor(diff_sec) + ' Sec');
 
   }, 1000);
+}
+
+
+
+
+//---------------------------------------------------------------
+// View: show_jobs
+function initShowJobs() {
+  addBravoTooltip();
+
+  $('.delete-btn').button({
+    icons: {
+      primary: 'ui-icon-trash'
+    },
+    text: false
+  })
+  $('.delete-btn').addClass('redButton');
+
+  $('.delete-btn').each(function(){ 
+    $(this).click(function(){
+      msg = 'Are you sure you want to cancel this job?';
+      url = $(this).attr('id');
+      console.log('prompt to delete' + url);
+      var buttons = [
+        { text: "No", 
+          click: function() { $( this ).dialog( "close" ); }}, 
+        { text: 'Yes', 
+          click: function() { $(this).dialog('close'); $(location).attr('href',url);}}
+      ];
+      showDialog($('#dialog'), msg, 'Confirm Action', buttons);
+    });
+  });
+
+  $('body').css('display','block');
 }

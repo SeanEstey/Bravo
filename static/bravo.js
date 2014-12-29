@@ -351,7 +351,7 @@ function receiveMsgUpdate(socket_data) {
   // Find matching row_id to update
   var $row = $('#'+socket_data['id']);
   if('status' in socket_data) {
-    code = toTitleCase(socket_data['status']);
+    code = socket_data['status'].toTitleCase();
     $row.find('[name="status"]').html(code);
   }
   if('code' in socket_data) {
@@ -359,7 +359,7 @@ function receiveMsgUpdate(socket_data) {
     if(code == 'NORMAL_TEMPORARY_FAILURE')
       code = 'Not in Service';
     else
-      code = toTitleCase(code);
+      code = code.toTitleCase();
     $row.find('[name="message"]').html(code);
   }
   if('attempts' in socket_data)

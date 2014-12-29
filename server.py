@@ -38,6 +38,7 @@ class ReverseProxied(object):
     self.app = app
 
   def __call__(self, environ, start_response):
+    global PUB_URL
     script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
     if script_name:
       environ['SCRIPT_NAME'] = script_name
@@ -48,6 +49,10 @@ class ReverseProxied(object):
     scheme = environ.get('HTTP_X_SCHEME', '')
     if scheme:
       environ['wsgi.url_scheme'] = scheme
+
+    if PUB_URL == '':
+      PUB_URL = scheme + '://' +  environ['HTTP_HOST'] + script_name
+
     return self.app(environ, start_response)
 
 client = pymongo.MongoClient('localhost',27017)
@@ -57,7 +62,12 @@ bravo.setLogger(logger, logging.INFO, 'log.log')
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 app.wsgi_app = ReverseProxied(app.wsgi_app)
+app.debug = True
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['SECRET_KEY'] = 'a secret!'
 socketio = SocketIO(app)
+test_socket_client = ''
+
 
 #-------------------------------------------------------------------
 def log_call_db(request_uuid, fields, sendSocket=True):
@@ -156,16 +166,29 @@ def socketio_disconnected():
     str(len(socketio.server.sockets))
   )
 
+@socketio.on('connect')
+def on_connect():
+  i = None
+
+@socketio.on('disconnect')
+def on_disconnect():
+  i = None
+
+@socketio.on('update_job')
+def on_update_job(data):
+  logger.info('job updated')
+
 #-------------------------------------------------------------------
 @socketio.on('connected')
 def socketio_connect():
-  #logger.info('socket established!')
   logger.debug(
     'num connected sockets: ' + 
     str(len(socketio.server.sockets))
   )
 
 #-------------------------------------------------------------------
+# Emit socket.io msg if client connection established. Do nothing
+# otherwise.
 def send_socket(name, data):
   if not socketio.server:
     return False
@@ -175,9 +198,23 @@ def send_socket(name, data):
   )
   # Test for socket.io connections first
   if len(socketio.server.sockets) == 0:
+    logger.info('no socket.io clients connected')
     return False
  
   socketio.emit(name, data)
+
+@app.route('/create_test_socket')
+def create_test_socket():
+  global test_socket_client
+  test_socket_client = socketio.test_client(app)
+  return 'OK'
+
+@app.route('/destroy_test_socket')
+def destroy_test_socket():
+  global test_socket_client
+  test_socket_client.disconnect()
+  return 'OK'
+  
 
 #-------------------------------------------------------------------
 @app.route('/')
@@ -353,6 +390,7 @@ def job_complete(job_id):
     'id': job_id,
     'status': 'complete'
   }
+  
   send_socket('update_job', data)
   return 'OK'
 
@@ -632,7 +670,7 @@ def process_machine():
     response = server.transfer_call({
       'call_uuid': call_uuid,
       'legs': 'aleg',
-      'aleg_url' : URL+'/call/voicemail',
+      'aleg_url' : PUB_URL+'/call/voicemail',
       'aleg_method': 'POST'
     })
     return Response(str(response), mimetype='text/xml')
@@ -664,8 +702,6 @@ def process_voicemail():
 
 #-------------------------------------------------------------------
 if __name__ == "__main__":
-    #_port = int(os.environ.get('PORT', PORT))
-    app.debug = True
-    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-    app.config['SECRET_KEY'] = 'a secret!'
-    socketio.run(app, port=PORT)
+
+  #test_socket_client = socketio.test_client(app)
+  socketio.run(app, port=PORT)

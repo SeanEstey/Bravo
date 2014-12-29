@@ -15,7 +15,11 @@ EMERGENCY_CONTACT='7808635715'
 CALLER_ID= 'Winnifred Stewart Association'
 BROKER_URI= 'amqp://'
 PORT =8000
-URL= 'http://23.239.21.165:8000/bravo'
+# The flask server will query the public url from the request headers.
+# The proxy server shouldn't need to hardcode it. It is defined here
+# because unit tests need to refer to it
+PUB_URL = 'http://seanestey.ca/bravo'
+LOCAL_URL = 'http://localhost:'+str(PORT)
 
 CPS= 1
 MAX_ATTEMPTS= 3

@@ -13,7 +13,8 @@ class BravoTestCase(unittest.TestCase):
   def setUp(self):
     import pymongo
     import datetime
-    self.url = 'http://localhost:8000'
+    from config import LOCAL_URL
+    self.url = LOCAL_URL
     self.client = pymongo.MongoClient('localhost', 27017)
     self.assertIsNotNone(self.client)
     self.db = self.client['wsf']
@@ -47,6 +48,8 @@ class BravoTestCase(unittest.TestCase):
     self.msg = self.db['msgs'].find_one({'_id':self.msg_id})
     self.assertIsNotNone(self.msg_id)
     self.assertIsNotNone(self.msg)
+    #requests.get(self.url+'/create_test_socket')
+
 
   # Remove job record created by setUp
   def tearDown(self):
@@ -56,6 +59,15 @@ class BravoTestCase(unittest.TestCase):
     self.assertEquals(res['n'], 1)
     res = self.db['msgs'].remove({'_id':self.msg_id})
     self.assertEquals(res['n'], 1)
+    #requests.get(self.url+'/destroy_test_socket')
+
+
+  def test_job_completion(self):
+    requests.get(self.url+'/create_test_socket')
+    completed_id = '54972d479b938767711838a0'
+    res = requests.get(self.url+'/complete/'+completed_id)
+    self.assertEquals(res.status_code, 200)
+    requests.get(self.url+'/destroy_test_socket')
 
   def test_bravo_dial(self):
     from bravo import dial

@@ -56,8 +56,7 @@ def reconnect_mongodb():
 #-------------------------------------------------------------------
 def is_server_online():
   try:
-    url = 'http://localhost:' + str(PORT)
-    response = requests.get(url)
+    response = requests.get(LOCAL_URL)
     if response.status_code == 200:
       return True
     else:
@@ -107,8 +106,9 @@ def systems_check():
     if not restart_celery():
       return False 
   if not is_server_online():
-    if not restart_server():
-      return False 
+    return False
+  #  if not restart_server():
+  #    return False 
   if not is_mongodb_available():
     if not reconnect_mongodb():
       return False
@@ -150,8 +150,8 @@ def monitor_job(job_id):
         )
        
         # Tell server to send completion sockets 
-        url = 'http://localhost:5000/complete/' + str(job_id)
-        requests.get(url)
+        completion_url = LOCAL_URL + '/complete/' + str(job_id)
+        requests.get(completion_url)
         create_job_summary(job_id)
         send_email_report(job_id)
         break;
@@ -281,15 +281,15 @@ def dial(to):
     'from' : FROM_NUMBER,
     'caller_name': CALLER_ID,
     'to' : '+1' + to,
-    'ring_url' :  URL+'/call/ring',
-    'answer_url' : URL+'/call/answer',
+    'ring_url' :  PUB_URL+'/call/ring',
+    'answer_url' : PUB_URL+'/call/answer',
     'answer_method': 'GET',
-    'hangup_url': URL+'/call/hangup',
+    'hangup_url': PUB_URL+'/call/hangup',
     'hangup_method': 'POST',
-    'fallback_url': URL+'/call/fallback',
+    'fallback_url': PUB_URL+'/call/fallback',
     'fallback_method': 'POST',
     'machine_detection': 'true',
-    'machine_detection_url': URL+'/call/machine'
+    'machine_detection_url': PUB_URL+'/call/machine'
   }
 
   try:
@@ -318,7 +318,7 @@ def sms(to, msg):
     'src': SMS_NUMBER,
     'text': msg,
     'type': 'sms',
-    'url': URL + '/sms_status'
+    'url': PUB_URL + '/sms_status'
   }
 
   try:

@@ -19,24 +19,22 @@
     <a class='hover' href="{{ url_for('show_jobs') }}">Jobs</a> / 
     {{ job.name }}
   </div>
-    <table class='data-table2' style='width:1050px;'>
+    <table id='show-calls-table' class='data-table2' style='width:1050px;'>
+      <thead>
       <tr>
+      {% set col_num=1 %}
       {% for col in sort_cols %}
-        <th>
-          {% 
-            set sort_url = url_for(
-              'show_calls', 
-              job_id=job._id, 
-              sort_by=col.keys()[0], 
-              sort_order=col.values()[0]) 
-          %}
-          <a class='hover' href="{{ sort_url }}">
+        <th id='col{{ col_num }}'>
+          <a class='hover' href="blablabla">
             {{ col.keys()[0].title().replace('_', ' ') }}
           </a>
         </th>
+      {% set col_num = col_num + 1 %}
       {% endfor %}
       <th></th>
       </tr>
+      </thead>
+      <tbody>
       {% set row_num=1 %}
       {%  for call in calls %}
       <tr id='{{ call._id }}'>
@@ -69,6 +67,7 @@
       </tr>
       {% set row_num = row_num + 1 %}
       {% endfor %}
+    </tbody>
     </table>
   </div>
   {% endblock %}

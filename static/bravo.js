@@ -226,6 +226,19 @@ function validateNewJobForm() {
 //---------------------------------------------------------------
 // View: show_calls
 function initShowCallsView() {
+  window.sortColumn = 1;
+  window.sortOrder = 1;
+  
+  $('th').each(function(){ 
+    $(this).click(function(){
+
+      var id = $(this).attr('id');
+      var sort_col = id.slice(-1);
+      console.log('sorting col ' + sort_col);
+      sortTable($('#show-calls-table'), 'asc', sort_col);
+    });
+  });
+
   $('.delete-btn').button({
     icons: {
       primary: 'ui-icon-trash'
@@ -282,6 +295,22 @@ function initShowCallsView() {
     receiveJobUpdate(data);
   });
 }
+
+//---------------------------------------------------------------
+// View: show_calls
+function sortTable(table, order, column) {
+  var asc = order === 'asc';
+  var tbody = table.find('tbody');
+  
+  tbody.find('tr').sort(function(a, b) {
+    var nth_child = 'td:nth-child('+column+')';
+    if(asc)
+      return $(nth_child, a).text().localeCompare($(nth_child, b).text());
+    else
+      return $(nth_child, b).text().localeCompare($(nth_child, a).text());
+  }).appendTo(tbody);
+}
+
 
 //---------------------------------------------------------------
 // View: show_calls

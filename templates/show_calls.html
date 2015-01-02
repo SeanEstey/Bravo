@@ -24,11 +24,7 @@
       <tr>
       {% set col_num=1 %}
       {% for col in sort_cols %}
-        <th id='col{{ col_num }}'>
-          <a class='hover' href="blablabla">
-            {{ col.keys()[0].title().replace('_', ' ') }}
-          </a>
-        </th>
+        <th id='col{{ col_num }}'><a title='Sort' class='hover' href='#'>{{ col.keys()[0].title().replace('_', ' ') }}</a></th>
       {% set col_num = col_num + 1 %}
       {% endfor %}
       <th></th>

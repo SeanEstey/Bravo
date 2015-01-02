@@ -1,4 +1,21 @@
 //---------------------------------------------------------------
+// Returns decimal code for special HTML characters
+function HTMLEncode(str) {
+  var i = str.length,
+    aRet = [];
+
+  while (i--) {
+    var iC = str[i].charCodeAt();
+    if (iC < 65 || iC > 127 || (iC > 90 && iC < 97)) {
+      aRet[i] = '&#' + iC + ';';
+    } else {
+      aRet[i] = str[i];
+    }
+  }
+  return aRet.join('');
+}
+
+//---------------------------------------------------------------
 String.prototype.toTitleCase = function(n) {
    var s = this;
    if (1 !== n) s = s.toLowerCase();
@@ -226,17 +243,31 @@ function validateNewJobForm() {
 //---------------------------------------------------------------
 // View: show_calls
 function initShowCallsView() {
-  window.sortColumn = 1;
-  window.sortOrder = 1;
-  
-  $('th').each(function(){ 
-    $(this).click(function(){
+  var up_arrow = '&#8593;';
+  var down_arrow = '&#8595;';
+  addBravoTooltip();
+  var $a_child = $('th:first-child a');
+  $a_child.html($a_child.html()+down_arrow);
 
-      var id = $(this).attr('id');
+  // Allow calls to be sorted by column headers
+  $('th').each(function(){
+    var $a = $('a', $(this));
+    var encoded_text = HTMLEncode($a.text());
+    if(encoded_text.indexOf(down_arrow) > 0)
+      $a.attr('title', 'Sort Descending Order');
+    else  
+      $a.attr('title', 'Sort Ascending Order');
+
+    $a.click(function() {
+      var id = $(this).parent().attr('id');
       var sort_col = id.slice(-1);
-      console.log('sorting col ' + sort_col);
-      sortTable($('#show-calls-table'), 'asc', sort_col);
-    });
+      sortCalls($('#show-calls-table'), sort_col);
+      var encoded_text = HTMLEncode($(this).text());
+      if(encoded_text.indexOf(down_arrow) > 0)
+        $(this).attr('title', 'Sort Descending Order');
+      else
+        $(this).attr('title', 'Sort Ascending Order');
+      });
   });
 
   $('.delete-btn').button({
@@ -298,19 +329,46 @@ function initShowCallsView() {
 
 //---------------------------------------------------------------
 // View: show_calls
-function sortTable(table, order, column) {
-  var asc = order === 'asc';
+function sortCalls(table, column) {
+  var up_arrow = '&#8593;';
+  var down_arrow = '&#8595;';
+  var space = '&#32;';
   var tbody = table.find('tbody');
-  
-  tbody.find('tr').sort(function(a, b) {
-    var nth_child = 'td:nth-child('+column+')';
-    if(asc)
+
+  // Invert sort order
+  var $th = $('th:nth-child(' + column + ')');
+  var is_ascending = HTMLEncode($th.text()).indexOf(down_arrow) > 0;
+  if(is_ascending)
+    var sort_by = 'descending';
+  else
+    var sort_by = 'ascending';
+   
+  // Clear existing sort arrows 
+  $('th').each(function () {
+    var $a = $('a', $(this));
+    console.log($a.text());
+    var html = HTMLEncode($a.text());
+    html = html.replace(up_arrow, '').replace(down_arrow, '').replace(space, ' ');
+    $a.text(html);
+  });
+
+  // Add sort arrow
+  var $a = $('a', $th);
+  if (sort_by == 'ascending')
+    $a.html($a.html() + down_arrow);
+  else 
+    $a.html($a.html() + up_arrow);
+
+  // Sort rows
+  tbody.find('tr').sort(function (a, b) {
+    var nth_child = 'td:nth-child(' + column + ')';
+    if (sort_by == 'ascending') {
       return $(nth_child, a).text().localeCompare($(nth_child, b).text());
-    else
+    } else {
       return $(nth_child, b).text().localeCompare($(nth_child, a).text());
+    }
   }).appendTo(tbody);
 }
-
 
 //---------------------------------------------------------------
 // View: show_calls

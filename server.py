@@ -166,18 +166,6 @@ def socketio_disconnected():
     str(len(socketio.server.sockets))
   )
 
-@socketio.on('connect')
-def on_connect():
-  i = None
-
-@socketio.on('disconnect')
-def on_disconnect():
-  i = None
-
-@socketio.on('update_job')
-def on_update_job(data):
-  logger.info('job updated')
-
 #-------------------------------------------------------------------
 @socketio.on('connected')
 def socketio_connect():
@@ -202,19 +190,6 @@ def send_socket(name, data):
     return False
  
   socketio.emit(name, data)
-
-@app.route('/create_test_socket')
-def create_test_socket():
-  global test_socket_client
-  test_socket_client = socketio.test_client(app)
-  return 'OK'
-
-@app.route('/destroy_test_socket')
-def destroy_test_socket():
-  global test_socket_client
-  test_socket_client.disconnect()
-  return 'OK'
-  
 
 #-------------------------------------------------------------------
 @app.route('/')
@@ -687,6 +662,4 @@ def process_voicemail():
 
 #-------------------------------------------------------------------
 if __name__ == "__main__":
-
-  #test_socket_client = socketio.test_client(app)
   socketio.run(app, port=PORT)

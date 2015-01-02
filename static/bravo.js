@@ -291,16 +291,35 @@ function initShowCallsView() {
     $(this).html(string);
   });
 
+  var args =  window.location.pathname.split('/');
+  var job_uuid = args.slice(-1)[0];
   $('.delete-btn').each(function(){ 
     $(this).click(function(){
       msg = 'Are you sure you want to cancel this call?';
-      url = $(this).attr('id');
-      console.log('prompt to delete' + url);
+      call_uuid = $(this).attr('id');
+      var $tr = $(this).parent().parent();
       var buttons = [
         { text: "No", 
           click: function() { $( this ).dialog( "close" ); }}, 
         { text: 'Yes', 
-          click: function() { $(this).dialog('close'); $(location).attr('href',url);}}
+          click: function() { 
+            $(this).dialog('close');
+
+            var request =  $.ajax({
+              type: 'POST',
+              url: $SCRIPT_ROOT + '/cancel/call',
+              data: {
+                'call_uuid':call_uuid,
+                'job_uuid':job_uuid
+              }
+            });
+
+            request.done(function(msg){
+              if(msg == 'OK')
+                $tr.remove();
+            });
+          }
+        }
       ];
       showDialog($('#dialog'), msg, 'Confirm Action', buttons);
     });
@@ -325,6 +344,10 @@ function initShowCallsView() {
   socket.on('update_job', function(data) {
     receiveJobUpdate(data);
   });
+}
+
+function deleteCall($tr, id) {
+
 }
 
 //---------------------------------------------------------------

@@ -362,17 +362,6 @@ def show_calls(job_id):
     {'attempts': 1}
   ]
 
-  index = 0
-  for col in sort_cols:
-    if col.keys()[0] == sort_by:
-      break;
-    index += 1
-
-  if sort_order == -1:
-    sort_cols[index][sort_by] = 1
-  else:
-    sort_cols[index][sort_by] = -1
-
   return render_template(
     'show_calls.html', 
     calls=calls, 
@@ -438,22 +427,18 @@ def cancel_job(job_id):
   return redirect(url_for('show_jobs'))
 
 #-------------------------------------------------------------------
-@app.route('/cancel/call/<call_uuid>')
-def cancel_call(call_uuid):
-  job_id = request.args['job_id']
+@app.route('/cancel/call', methods=['POST'])
+def cancel_call():
+  call_uuid = request.form.get('call_uuid')
+  job_uuid = request.form.get('job_uuid')
   db['msgs'].remove({'_id':ObjectId(call_uuid)})
    
   db['jobs'].update(
-    {'_id':ObjectId(job_id)}, 
+    {'_id':ObjectId(job_uuid)}, 
     {'$inc':{'num_calls':-1}}
   )
 
-  return redirect(url_for(
-    'show_calls', 
-    job_id=job_id, 
-    sort_by=request.args['sort_by'], 
-    sort_order=request.args['sort_order']
-  ))
+  return 'OK'
 
 #-------------------------------------------------------------------
 @app.route('/edit/call/<call_uuid>', methods=['POST'])

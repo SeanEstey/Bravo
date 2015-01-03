@@ -373,19 +373,6 @@ def strip_phone_num(to):
   return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
 #-------------------------------------------------------------------
-def log_sms(record, response):
-  db['msgs'].update(
-    {'_id': record['_id']}, 
-    {'$set': {
-      'code': str(response[0]),
-      'message_id': response[1]['message_uuid'],
-      'status': response[1]['message'],
-      'attempts': record['attempts']
-      }
-    }
-  ) 
-
-#-------------------------------------------------------------------
 def send_email_report(job_id):
   job = db['jobs'].find_one({'_id':job_id})
   calls = list(db['msgs'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))

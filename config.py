@@ -22,7 +22,7 @@ PUB_URL = 'http://seanestey.ca/bravo'
 LOCAL_URL = 'http://localhost:'+str(PORT)
 
 CPS= 1
-MAX_ATTEMPTS= 3
+MAX_ATTEMPTS= 1
 REDIAL_DELAY = 60
 UPLOAD_FOLDER = '/tmp'
 ALLOWED_EXTENSIONS = set(['csv','xls'])

@@ -361,6 +361,7 @@ def reset_job(job_id):
       'message': '',
       'call_uuid': '',
       'request_uuid': '',
+      'speak': '',
       'code': ''
     }},
     multi=True
@@ -400,8 +401,15 @@ def cancel_call():
 #-------------------------------------------------------------------
 @app.route('/edit/call/<call_uuid>', methods=['POST'])
 def edit_call(call_uuid):
+  logger.info('edit')
   for fieldname, value in request.form.items():
-    # TODO: Check for invalid datetime edits 
+    logger.info('fieldname: ' + fieldname)
+    if fieldname == 'event_date':
+      try:
+        value = parse(value)
+      except Exception, e:
+        logger.error('Could not parse event_date in /edit/call')
+        return '400'
     db['msgs'].update(
         {'_id':ObjectId(call_uuid)}, 
         {'$set':{fieldname: value}}
@@ -421,7 +429,8 @@ def get_sms_status():
   try:
     message_uuid = request.form.get('MessageUUID')
     status = request.form.get('Status')
-    logger.info('%s (%s) /sms', request.form.get('To'), status)
+    logger.info('%s (%s) /sms id: %s ', request.form.get('To'), status, message_uuid)
+
 
     fields = {
       'status': status,
@@ -444,7 +453,8 @@ def get_sms_status():
       'id' : str(call['_id']),
       'status' : fields['status'],
       'code' : fields['code'],
-      'attempts': call['attempts']
+      'attempts': call['attempts'],
+      'speak': call['speak']
     })
     return 'OK'
   except Exception, e:
@@ -572,12 +582,18 @@ def process_hangup():
           }
         }
     )
-    send_socket('update_msg',{
+
+    payload = {
       'id' : str(call['_id']),
       'status' : call['status'],
       'code': call['code'],
       'attempts': call['attempts']
-    })
+    }
+    
+    if call['status'] is 'completed' and 'speak' in call:
+      payload['speak'] = call['speak']
+
+    send_socket('update_msg', payload)
 
     response = plivoxml.Response()
     return Response(str(response), mimetype='text/xml')

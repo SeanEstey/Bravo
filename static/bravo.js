@@ -416,16 +416,20 @@ function makeCallFieldsClickable() {
       $cell.html($input.val());
       var call_id = $cell.parent().attr('id');
       var field_name = $cell.attr('name');
-      console.log('field_name: ' + field_name);
       var field_value = $input.val();
-
       var payload = {}
       payload[field_name] = field_value
-      
-      $.ajax({
+      var request = $.ajax({
         type: 'POST',
         url: $SCRIPT_ROOT + '/edit/call/' + call_id,
         data: payload
+      });
+
+      request.done(function(msg){
+        if(msg != 'OK') {
+          showDialog($('#dialog'), 'Your edit failed. Please enter a correct value: ' + msg);
+          $cell.html(text);
+        }
       });
     });
     
@@ -469,6 +473,8 @@ function receiveMsgUpdate(socket_data) {
     $row.find('[name="attempts"]').html(socket_data['attempts']);
   if('office_notes' in socket_data)
     $row.find('[name="office_notes"]').html(socket_data['office_notes']);
+  if('speak' in socket_data)
+    $row.find('[name="message"]').attr('title', socket_data['speak']);
 }
 
 //---------------------------------------------------------------

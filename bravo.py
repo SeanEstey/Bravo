@@ -103,7 +103,7 @@ def restart_celery():
 #-------------------------------------------------------------------
 def systems_check():
   if not is_celery_worker():
-    if not restart_celery():
+    #if not restart_celery():
       return False 
   if not is_server_online():
     return False
@@ -197,15 +197,17 @@ def fire_msg(msg):
       }})
     else:
       # SMS
+      job = db['jobs'].find_one({'_id':msg['job_id']})
       text = get_speak(job, msg, medium='sms')
       response = sms(msg['to'], text)
       res = db['msgs'].update(
         {'_id': msg['_id']},
         {'$set':{
-          'message_id': response[1]['message_uuid'][0],
+          'message_uuid': response[1]['message_uuid'][0],
           'status': response[1]['message'],
           'code': response[1]['message'],
-          'attempts': msg['attempts'] + 1
+          'attempts': msg['attempts'] + 1,
+          'speak': text
       }})
     
     code = str(response[0])
@@ -341,31 +343,29 @@ def get_speak(job, msg, medium='voice', live=False):
   repeat_voice = 'To repeat this message press 2. '
   no_pickup_voice = 'If you do not need a pickup, press 1. '
   no_pickup_sms = 'Reply with No if no pickup required.'
+  speak = ''
 
   if job['template'] == 'etw_reminder':
     if msg['etw_status'] == 'Awaiting Dropoff':
-      speak = (intro_str + 'dropoff date ' +
+      speak += (intro_str + 'dropoff date ' +
         'is ' + date_str + '. If you have any empties you can leave them ' +
-        'out by 8am. '
-      )
+        'out by 8am. ')
     elif msg['etw_status'] == 'Active':
-      speak = (intro_str + 'pickup date ' +
-        'is ' + date_str + '. please have your empties out by 8am. '
-      )
+      speak += (intro_str + 'pickup date ' +
+        'is ' + date_str + '. please have your empties out by 8am. ')
+      if medium == 'voice' and live == True:
+        speak += no_pickup_voice
+      elif medium == 'sms':
+        speak += no_pickup_sms
     elif msg['etw_status'] == 'Cancelling':
-      speak = (intro_str + 'bag stand will be picked up on ' +
-        date_str + '. thanks for your past support. '
-      )
-    else:
-      speak = ''
-    if medium == 'voice' and live==True:
-      speak += no_pickup_voice + repeat_voice
-    elif medium == 'sms':
-      speak += no_pickup_sms
+      speak += (intro_str + 'bag stand will be picked up on ' +
+        date_str + '. thanks for your past support. ')
+    
+    if medium == 'voice' and live == True:
+      speak += repeat_voice
   elif job['template'] == 'special_msg':
     speak = job['message'] 
     print 'TODO'
-
 
   return speak
 

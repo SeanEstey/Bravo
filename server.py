@@ -21,18 +21,7 @@ class ReverseProxied(object):
   '''Wrap the application in this middleware and configure the 
   front-end server to add these headers, to let you quietly bind 
   this to a URL other than / and to an HTTP scheme that is 
-  different than what is used locally.
-
-  In nginx:
-  location /myprefix {
-      proxy_pass http://192.168.0.1:5001;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Scheme $scheme;
-      proxy_set_header X-Script-Name /myprefix;
-      }
-
-  :param app: the WSGI application
+  different than what is used locally
   '''
   def __init__(self, app):
     self.app = app
@@ -166,18 +155,6 @@ def socketio_disconnected():
     str(len(socketio.server.sockets))
   )
 
-@socketio.on('connect')
-def on_connect():
-  i = None
-
-@socketio.on('disconnect')
-def on_disconnect():
-  i = None
-
-@socketio.on('update_job')
-def on_update_job(data):
-  logger.info('job updated')
-
 #-------------------------------------------------------------------
 @socketio.on('connected')
 def socketio_connect():
@@ -202,19 +179,6 @@ def send_socket(name, data):
     return False
  
   socketio.emit(name, data)
-
-@app.route('/create_test_socket')
-def create_test_socket():
-  global test_socket_client
-  test_socket_client = socketio.test_client(app)
-  return 'OK'
-
-@app.route('/destroy_test_socket')
-def destroy_test_socket():
-  global test_socket_client
-  test_socket_client.disconnect()
-  return 'OK'
-  
 
 #-------------------------------------------------------------------
 @app.route('/')
@@ -680,6 +644,4 @@ def process_voicemail():
 
 #-------------------------------------------------------------------
 if __name__ == "__main__":
-
-  #test_socket_client = socketio.test_client(app)
   socketio.run(app, port=PORT)

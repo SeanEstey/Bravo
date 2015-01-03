@@ -341,35 +341,28 @@ def show_jobs():
 #-------------------------------------------------------------------
 @app.route('/jobs/<job_id>')
 def show_calls(job_id):
-  if 'sort_by' not in request.args:
-    sort_by = 'name'
-    sort_order = 1
-  else:
-    sort_by = request.args['sort_by']
-    sort_order = int(request.args['sort_order'])
-  
-  calls = db['msgs'].find({'job_id':ObjectId(job_id)}).sort(sort_by, sort_order)
+  # Default sort: ascending by name
+  sort_by = 'name' 
+  calls = db['msgs'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
   job = db['jobs'].find_one({'_id':ObjectId(job_id)})
 
-  sort_cols = [
-    {'name': 1},
-    {'to': 1},
-    {'etw_status': 1},
-    {'event_date': 1},
-    {'office_notes': 1},
-    {'status': 1},
-    {'message': 1},
-    {'attempts': 1}
+  columns = [
+    'name', 
+    'to', 
+    'etw_status', 
+    'event_date', 
+    'office_notes', 
+    'status', 
+    'message', 
+    'attempts'
   ]
 
   return render_template(
     'show_calls.html', 
     calls=calls, 
     job_id=job_id, 
-    job=job, 
-    sort_by=sort_by,
-    sort_order=sort_order,
-    sort_cols=sort_cols
+    job=job,
+    columns=columns 
   )
 
 #-------------------------------------------------------------------

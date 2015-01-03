@@ -29,11 +29,7 @@
         <th></th>
       </tr>
       {% for job in jobs %}
-      {% set show_calls_url = url_for(
-        'show_calls', 
-        job_id=job._id, 
-        sort_by='name', 
-        sort_order=1 ) 
+      {% set show_calls_url = url_for('show_calls', job_id=job._id)
       %}
       <tr>
         <td>

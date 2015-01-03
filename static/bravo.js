@@ -346,10 +346,6 @@ function initShowCallsView() {
   });
 }
 
-function deleteCall($tr, id) {
-
-}
-
 //---------------------------------------------------------------
 // View: show_calls
 function sortCalls(table, column) {
@@ -358,7 +354,6 @@ function sortCalls(table, column) {
   var space = '&#32;';
   var tbody = table.find('tbody');
 
-  // Invert sort order
   var $th = $('th:nth-child(' + column + ')');
   var is_ascending = HTMLEncode($th.text()).indexOf(down_arrow) > 0;
   if(is_ascending)
@@ -367,12 +362,10 @@ function sortCalls(table, column) {
     var sort_by = 'ascending';
    
   // Clear existing sort arrows 
-  $('th').each(function () {
-    var $a = $('a', $(this));
-    console.log($a.text());
-    var html = HTMLEncode($a.text());
+  $('th a').each(function () {
+    var html = HTMLEncode($(this).text());
     html = html.replace(up_arrow, '').replace(down_arrow, '').replace(space, ' ');
-    $a.text(html);
+    $(this).text(html);
   });
 
   // Add sort arrow
@@ -488,11 +481,12 @@ function beginCountdown($timer, event_datetime) {
     var today = new Date();
     var diff_ms = scheduled.getTime() - today.getTime();
 
-    if(diff_ms < 0) {
+/*    if(diff_ms < 0) {
       $timer.text('Completed');
       return;
     }
 
+*/
     var diff_days = diff_ms / (1000 * 3600 * 24);
     var diff_hrs = ((diff_days + 1) % 1) * 24;
     var diff_min = ((diff_hrs + 1) % 1) * 60;
@@ -506,9 +500,6 @@ function beginCountdown($timer, event_datetime) {
 
   }, 1000);
 }
-
-
-
 
 //---------------------------------------------------------------
 // View: show_jobs

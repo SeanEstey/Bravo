@@ -7,12 +7,11 @@
       initShowCallsView();
     });
   </script>
-    <br><br>
-  <b><div class='h1' id='timer'>
-    <!--<b>Pending: </b>-->
+  <br><br>
+  <div class='h1' id='timer'>
     <b>{{ job.status.title() }}</b>
     <p id='scheduled_datetime' style='display:none'>{{ job.fire_dtime }}</p>
-  </div></b>
+  </div>
   <br>
   <div class="show-jobs-div">
   <div class='navbar-div'>
@@ -21,43 +20,43 @@
   </div>
     <table id='show-calls-table' class='data-table2' style='width:1050px;'>
       <thead>
-      <tr>
-      {% set col_num=1 %}
-      {% for col in sort_cols %}
-        <th id='col{{ col_num }}'><a title='Sort' class='hover' href='#'>{{ col.keys()[0].title().replace('_', ' ') }}</a></th>
-      {% set col_num = col_num + 1 %}
-      {% endfor %}
-      <th></th>
-      </tr>
+        <tr>
+          {% set col_num=1 %}
+          {% for column in columns %}
+          <th id='col{{ col_num }}'><a title='Sort' class='hover' href='#'>{{ column.title().replace('_', ' ') }}</a></th>
+          {% set col_num = col_num + 1 %}
+          {% endfor %}
+          <th></th>
+        </tr>
       </thead>
       <tbody>
-      {% set row_num=1 %}
-      {%  for call in calls %}
-      <tr id='{{ call._id }}'>
-        <td name='name' style='width:15%;'>{{ call.name }}</td>
-        <td name='to'>{{ call.to.replace(' ', '').strip() }}</td>
-        <td name='etw_status'>{{ call.etw_status }}</td>
-        <td name='event_date' class='call_date_td'>{{ call.event_date }}</td>
-        <td name='office_notes' >{{ call.office_notes }}</td>
-        <td name='status' class='call_status_td' >{{ call.status.replace('not-attempted', '') }}</td>
-        <td name='message' class='call_msg_td' >{{ call.code }}</td>
-        <td name='attempts'>
-          {% if call.attempts == 0 %}
-          
-          {% else %}
-            {{ call.attempts }}</td>
-          {% endif %}
-        <td>
-          <button 
-            class='delete-btn' 
-            type="button" 
-            id="{{ call._id }}" 
-            name="delete-btn">
-          </button>
-        </td>
-      </tr>
-      {% set row_num = row_num + 1 %}
-      {% endfor %}
+        {% set row_num=1 %}
+        {%  for call in calls %}
+        <tr id='{{ call._id }}'>
+          <td name='name' style='width:15%;'>{{ call.name }}</td>
+          <td name='to'>{{ call.to.replace(' ', '').strip() }}</td>
+          <td name='etw_status'>{{ call.etw_status }}</td>
+          <td name='event_date' class='call_date_td'>{{ call.event_date }}</td>
+          <td name='office_notes' >{{ call.office_notes }}</td>
+          <td name='status' class='call_status_td' >{{ call.status.replace('not-attempted', '') }}</td>
+          <td name='message' class='call_msg_td' >{{ call.code }}</td>
+          <td name='attempts'>
+            {% if call.attempts == 0 %}
+            
+            {% else %}
+              {{ call.attempts }}</td>
+            {% endif %}
+          <td>
+            <button 
+              class='delete-btn' 
+              type="button" 
+              id="{{ call._id }}" 
+              name="delete-btn">
+            </button>
+          </td>
+        </tr>
+        {% set row_num = row_num + 1 %}
+        {% endfor %}
     </tbody>
     </table>
   </div>

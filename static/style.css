@@ -24,7 +24,7 @@ a.hover {
 }
 
 a.hover:hover {
-  color: blue;
+  color: black;
   text-decoration: underline;
 }
 

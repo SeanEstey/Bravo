@@ -38,22 +38,13 @@
           <td name='etw_status'>{{ call.etw_status }}</td>
           <td name='event_date' class='call_date_td'>{{ call.event_date }}</td>
           <td name='office_notes' >{{ call.office_notes }}</td>
-          {% if 'ended_at' in call %}
-            <td name='status' title='{{call.ended_at.strftime("%A %b %d @ %I:%M %p")}}' class='call_status_td' >{{ call.status.replace('not-attempted', '') }}</td>
+          {% if 'speak' in call %}
+            <td name='message' title='"{{call.speak}}"' class='call_msg_td' >{{ call.code }}</td>
+          {% elif call.status == "not-attempted" %}
+            <td name='message' class='call_msg_td' ></td>
           {% else %}
-            <td name='status' class='call_status_td' >{{ call.status.replace('not-attempted', '') }}</td>
+            <td name='message' class='call_msg_td' >{{ call.code + ' (' ~ call.attempts + 'x)' }}</td>
           {% endif %}
-          <td name='message' title='{{call.speak}}' class='call_msg_td' >{{ call.code }}</td>
-          {% if 'ended_at' in call %}
-            <td name='attempts' title='{{call.ended_at.strftime("%A %b %d @ %I:%M %p")}}'>
-          {% else %}
-            <td name='attempts'>
-          {% endif %}
-            {% if call.attempts == 0 %}
-            
-            {% else %}
-              {{ call.attempts }}</td>
-            {% endif %}
           <td>
             <button 
               class='delete-btn' 

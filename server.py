@@ -316,9 +316,7 @@ def show_calls(job_id):
     'etw_status', 
     'event_date', 
     'office_notes', 
-    'status', 
-    'message', 
-    'attempts'
+    'message'
   ]
 
   return render_template(

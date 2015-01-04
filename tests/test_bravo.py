@@ -106,10 +106,6 @@ class BravoTestCase(unittest.TestCase):
     from bravo import fire_msgs
     self.assertTrue(fire_msgs(self.job_id))
 
-  def test_bravo_job_summary(self):
-    from bravo import create_job_summary
-    self.assertTrue(create_job_summary(self.job_id))
-
   def test_get_speak_etw_active(self):
     from bravo import get_speak
     speak = get_speak(self.job, self.msg)

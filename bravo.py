@@ -153,7 +153,6 @@ def monitor_job(job_id):
         # Tell server to send completion sockets 
         completion_url = LOCAL_URL + '/complete/' + str(job_id)
         requests.get(completion_url)
-        create_job_summary(job_id)
         send_email_report(job_id)
         break;
     # Redial calls as needed
@@ -369,12 +368,12 @@ def get_speak(job, msg, medium='voice', live=False):
     elif msg['etw_status'] == 'Cancelling':
       speak += (intro_str + 'bag stand will be picked up on ' +
         date_str + '. thanks for your past support. ')
-    
-    if medium == 'voice' and live == True:
-      speak += repeat_voice
   elif job['template'] == 'special_msg':
     speak = job['message'] 
     print 'TODO'
+    
+  if medium == 'voice' and live == True:
+      speak += repeat_voice
 
   return speak
 
@@ -383,63 +382,12 @@ def strip_phone_num(to):
   return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
 #-------------------------------------------------------------------
-def log_sms(record, response):
-  db['msgs'].update(
-    {'_id': record['_id']}, 
-    {'$set': {
-      'code': str(response[0]),
-      'message_id': response[1]['message_uuid'],
-      'status': response[1]['message'],
-      'attempts': record['attempts']
-      }
-    }
-  ) 
-
-#-------------------------------------------------------------------
-def create_job_summary(job_id):
-  calls = list(db['msgs'].find({'job_id':job_id},{'_id':0}))
-  job = {
-    'summary': {
-      'busy': 0,
-      'no_answer': 0,
-      'delivered': 0,
-      'machine' : 0,
-      'failed' : 0
-    }
-  }
-  return True
-'''
-  for call in calls:
-    if call['status'] == 'completed':
-      if call['message'] == 'left voicemail':
-        job['summary']['machine'] += 1
-      elif call['message'] == 'delivered':
-        job['summary']['delivered'] += 1
-    elif call['status'] == 'busy':
-      job['summary']['busy'] += 1
-    elif call['status'] == 'failed':
-      job['summary']['failed'] += 1
-  db['jobs'].update(
-    {'_id': job_id}, 
-    {'$set': job}
-  )
-'''
-
-#-------------------------------------------------------------------
 def send_email_report(job_id):
-  import smtplib
-  from email.mime.text import MIMEText
-
   job = db['jobs'].find_one({'_id':job_id})
-    
   calls = list(db['msgs'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))
   calls_str = json.dumps(calls, sort_keys=True, indent=4, separators=(',',': ' ))
-  sum_str = json.dumps(job['summary'])
-  
-  msg = sum_str + '\n\n' + calls_str
-  subject = 'Job Summary %s' % str(job_id)
-
-  send_email('estese@gmail.com', subject, msg)
+  subject = 'Job Summary %s' % str(job['name'])
+  send_email('estese@gmail.com', subject, calls_str)
 
 #-------------------------------------------------------------------
 def send_email(recipient, subject, msg):

@@ -125,8 +125,9 @@ def monitor_job(job_id):
       'job_id':job_id,
       'attempts': {'$lt': MAX_ATTEMPTS}, 
       '$or':[
-        {'code':'USER_BUSY'},
-        {'code':'NO_ANSWER'}
+        {'code': 'NO_ENDPOINT'},
+        {'code': 'USER_BUSY'},
+        {'code': 'NO_ANSWER'}
     ]}
     redials = db['msgs'].find(redial_query)
    
@@ -174,50 +175,58 @@ def execute_job(job_id):
     send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
     return False
  
-  logger.info('\n********** Start Job ' + str(job_id) + ' **********')
+  logger.info('\n\n********** Start Job ' + str(job_id) + ' **********')
   fire_msgs(job_id)
   time.sleep(60)
   monitor_job(job_id)
-  logger.info('\n********** End Job ' + str(job_id) + ' **********\n')
+  logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
 
 #-------------------------------------------------------------------
-# msg = mongodb json record
+# message_uuid: primary msg ID for SMS returned in Plivo response
+# request_uuid: primary msg ID for Voice returned in Plivo response
 def fire_msg(msg):
+  fields = {}
   try:
+    # Voice Call
     if not 'sms' in msg:
-      # Voice Call
       response = dial(msg['to'])
-      db['msgs'].update(
-        {'_id': msg['_id']}, 
-        {'$set': {
-          'code': str(response[0]),
-          'request_uuid': response[1]['request_uuid'],
-          'status': response[1]['message'],
-          'attempts': msg['attempts'] + 1
-      }})
+      # Status Code on success = 201
+      if response[0] != 400:
+        fields['request_uuid'] = response[1]['request_uuid']
+        fields['attempts'] = msg['attempts'] + 1
+        fields['status'] = 'in-progress'
+        fields['code'] = response[1]['message']
+    # SMS
     else:
-      # SMS
       job = db['jobs'].find_one({'_id':msg['job_id']})
       text = get_speak(job, msg, medium='sms')
       response = sms(msg['to'], text)
-      res = db['msgs'].update(
-        {'_id': msg['_id']},
-        {'$set':{
-          'message_uuid': response[1]['message_uuid'][0],
-          'status': response[1]['message'],
-          'code': response[1]['message'],
-          'attempts': msg['attempts'] + 1,
-          'speak': text
-      }})
+      # Status Code on success = 202
+      if response[0] != 400:
+        fields['message_uuid'] = response[1]['message_uuid'][0]
+        fields['attempts'] = msg['attempts'] + 1
+        fields['status'] = 'in-progress'
+        fields['code'] = response[1]['message']
+        fields['speak'] = text
     
-    code = str(response[0])
-    # Endpoint probably overloaded
-    if code == '400':
-      logger.info('400 error in fire_msg. Taking a break...')
-      time.sleep(10)
+    status_code = response[0]
+    logger.info('fire_msg response: ' + json.dumps(response))
+    
+    if status_code == 400:
+      if response[1]['message'] == 'NO_PHONE_NUMBER':
+        fields['code'] = 'NO_PHONE_NUMBER'
+      # Endpoint probably overloaded
+      else:
+        fields['code'] = 'NO_ENDPOINT'
+        logger.error('400 error in fire_msg: ' + json.dumps(response))
+        logger.info('Trying to sleep it off (10 sec)...')
+        time.sleep(10)
 
-    # Cap at 1/sec for testing
-    time.sleep(1)
+    db['msgs'].update(
+      {'_id': msg['_id']}, 
+      {'$set': fields})
+
+    return response
   except Exception as e:
     logger.error('%s fire_msg.', exc_info=True)
     return str(e)
@@ -242,6 +251,8 @@ def fire_msgs(job_id):
     # Fire all voice calls and SMS
     for msg in messages:
       fire_msg(msg)
+      # Cap at 1/sec for testing
+      time.sleep(1)
 
     logger.info('All calls fired for job %s' % str(job_id))
     return True
@@ -272,12 +283,11 @@ def check_job_schedule():
   return True
 
 #-------------------------------------------------------------------
+# Plivo returns 'request_uuid' on successful dial attempt. This will 
+# be the primary ID in db['msgs']
 def dial(to):
   if not to:
-    return [
-      'NO PHONE NUMBER', 
-      {'request_uuid':'n/a', 'message': 'failed'}
-    ]
+    return [400, {'request_uuid':'', 'message': 'NO_PHONE_NUMBER'}]
 
   params = { 
     'from' : FROM_NUMBER,
@@ -299,10 +309,7 @@ def dial(to):
     response = server.make_call(params)
   except Exception as e:
     logger.error('%s Bravo.dial() (%a)',to, code, exc_info=True)
-    return [
-      'PLIVO EXCEPTION', 
-      {'request_uuid':'n/a', 'message': 'failed'}
-    ]
+    return [400, {'request_uuid':'n/a', 'message': 'EXCEPTION'}]
   
   if type(response) == tuple:
     if 'request_uuid' not in response[1]:
@@ -314,6 +321,8 @@ def dial(to):
   return response
 
 #-------------------------------------------------------------------
+# Plivo returns 'request_uuid' on successful sms attempt. This will 
+# be the primary ID in db['msgs']
 def sms(to, msg):
   params = {
     'dst': '1' + to,

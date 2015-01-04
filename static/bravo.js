@@ -473,8 +473,11 @@ function receiveMsgUpdate(socket_data) {
     $row.find('[name="attempts"]').html(socket_data['attempts']);
   if('office_notes' in socket_data)
     $row.find('[name="office_notes"]').html(socket_data['office_notes']);
-  if('speak' in socket_data)
-    $row.find('[name="message"]').attr('title', socket_data['speak']);
+  if('speak' in socket_data) {
+    var title = 'Sent: ' + Date.parse(socket_data['ended_at']).toDateString() + '\n';
+    title += 'Msg: ' + socket_data['speak'];
+    $row.find('[name="message"]').attr('title', title);
+  }
 }
 
 //---------------------------------------------------------------

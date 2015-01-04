@@ -401,9 +401,7 @@ def cancel_call():
 #-------------------------------------------------------------------
 @app.route('/edit/call/<call_uuid>', methods=['POST'])
 def edit_call(call_uuid):
-  logger.info('edit')
   for fieldname, value in request.form.items():
-    logger.info('fieldname: ' + fieldname)
     if fieldname == 'event_date':
       try:
         value = parse(value)
@@ -440,6 +438,7 @@ def get_sms_status():
     if status == 'sent':
       fields['status'] = 'completed'
       fields['code'] = 'SMS_SENT'
+      fields['ended_at'] = datetime.now()
 
     db['msgs'].update(
         {'message_uuid':message_uuid}, 
@@ -454,7 +453,8 @@ def get_sms_status():
       'status' : fields['status'],
       'code' : fields['code'],
       'attempts': call['attempts'],
-      'speak': call['speak']
+      'speak': call['speak'],
+      'ended_at': fields['ended_at']
     })
     return 'OK'
   except Exception, e:
@@ -573,12 +573,15 @@ def process_hangup():
       call['status'] = call_status
       call['code'] = hangup_cause
 
+    call['ended_at'] = datetime.now()
+
     db['msgs'].update(
         {'request_uuid':request_uuid}, 
         {'$set': {
           'code': call['code'],
           'status': call['status'],
-          'hangup_cause': hangup_cause
+          'hangup_cause': hangup_cause,
+          'ended_at': call['ended_at']
           }
         }
     )
@@ -587,7 +590,8 @@ def process_hangup():
       'id' : str(call['_id']),
       'status' : call['status'],
       'code': call['code'],
-      'attempts': call['attempts']
+      'attempts': call['attempts'],
+      'ended_at': call['ended_at']
     }
     
     if call['status'] is 'completed' and 'speak' in call:
@@ -646,7 +650,7 @@ def process_voicemail():
       'code': 'DELIVERED_VOICEMAIL'
     })
     call = db['msgs'].find_one({'request_uuid':request_uuid})
-    job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
+    job = db['jobs'].find_one({'_id':call['job_id']})
     speak = bravo.get_speak(job, call)
     db['msgs'].update({'_id':call['_id']},{'$set':{'speak':speak}})
     response = plivoxml.Response()

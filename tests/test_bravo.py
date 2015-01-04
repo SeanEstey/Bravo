@@ -83,7 +83,24 @@ class BravoTestCase(unittest.TestCase):
 
   def test_bravo_systems_check(self):
     from bravo import systems_check
-    self.assertTrue(systems_check);
+    self.assertTrue(systems_check)
+
+  def test_bravo_fire_msg_voice(self):
+    from bravo import fire_msg
+    response = fire_msg(self.msg)
+    self.assertNotEquals(response[0], 400)
+  
+  def test_bravo_fire_msg_voice_no_phone(self):
+    from bravo import fire_msg
+    self.msg['to'] = ''
+    response = fire_msg(self.msg)
+    self.assertEquals(response[0], 400)
+  
+  def test_bravo_fire_msg_sms(self):
+    from bravo import fire_msg
+    self.msg['sms'] = 'true'
+    response = fire_msg(self.msg)
+    self.assertNotEquals(response[0], 400)
 
   def test_bravo_fire_msgs(self):
     from bravo import fire_msgs

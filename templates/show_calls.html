@@ -40,7 +40,7 @@
           <td name='office_notes' >{{ call.office_notes }}</td>
           {% if 'speak' in call %}
             <td name='message' title='"{{call.speak}}"' class='call_msg_td' >{{ call.code }}</td>
-          {% elif call.status == "not-attempted" %}
+          {% elif call.status == "PENDING" %}
             <td name='message' class='call_msg_td' ></td>
           {% else %}
             <td name='message' class='call_msg_td' >{{ call.code + ' (' ~ call.attempts + 'x)' }}</td>

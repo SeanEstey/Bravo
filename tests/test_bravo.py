@@ -21,7 +21,7 @@ class BravoTestCase(unittest.TestCase):
     self.assertIsNotNone(self.db)
     job_record = {
       'template': 'etw_reminder',
-      'status': 'pending',
+      'status': 'PENDING',
       'name': 'test',
       'fire_dtime': datetime.datetime(2014, 12, 31),
       'num_calls': 1
@@ -35,7 +35,7 @@ class BravoTestCase(unittest.TestCase):
     msg = {
       'job_id': self.job_id,
       'request_uuid': 'abc123',
-      'status': 'not-attempted',
+      'status': 'PENDING',
       'attempts': 0,
       'event_date': parse('december 31, 2014'),
       'to': '780-555-5555',
@@ -207,7 +207,7 @@ class BravoTestCase(unittest.TestCase):
     from werkzeug.datastructures import MultiDict
     self.db['msgs'].update(
       {'request_uuid':self.msg['request_uuid']},
-      {'$set':{'code':'ANSWERED', 'status':'in-progress'}})
+      {'$set':{'code':'ANSWERED', 'status':'IN_PROGRESS'}})
     self.msg = self.db['msgs'].find_one({'_id':self.msg_id})
     payload = MultiDict([
       ('RequestUUID', self.msg['request_uuid']), 

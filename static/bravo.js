@@ -277,13 +277,22 @@ function initShowCallsView() {
     text: false
   })
 
-  $('.call_status_td').each(function() {
-    var string = $(this).html().toTitleCase();
-    $(this).html(string);
-  });
   $('.call_msg_td').each(function() {
-    var string = $(this).html().toTitleCase();
-    $(this).html(string);
+    /*
+      Codes: [DIALING, RINGING, ANSWERED, MACHINE_ANSWERED, 
+             SENT_SMS, SENT_VOICEMAIL, SENT_LIVE, USER_BUSY, 
+             NO_ANSWER, NOT_IN_SERVICE]
+    */ 
+    var display_msg = $(this).html();
+
+    if(display_msg.indexOf('SENT') >= 0)
+      $(this).css({'color':'#009900'});
+    else if(display_msg.indexOf('NO_ANSWER') >= 0 || display_msg.indexOf('USER_BUSY') >= 0 || display_msg.indexOf('NOT_IN_SERVICE') >= 0)
+      $(this).css({'color':'#C00000' });
+    else
+      $(this).css({'color':'#365766'});
+
+    $(this).html(display_msg.toTitleCase());
   });
   $('.call_date_td').each(function() {
     var date = Date.parse($(this).html());
@@ -304,23 +313,17 @@ function initShowCallsView() {
         { text: 'Yes', 
           click: function() { 
             $(this).dialog('close');
-
             var request =  $.ajax({
               type: 'POST',
               url: $SCRIPT_ROOT + '/cancel/call',
               data: {
                 'call_uuid':call_uuid,
                 'job_uuid':job_uuid
-              }
-            });
-
+            }});
             request.done(function(msg){
               if(msg == 'OK')
-                $tr.remove();
-            });
-          }
-        }
-      ];
+                $tr.remove();});
+      }}];
       showDialog($('#dialog'), msg, 'Confirm Action', buttons);
     });
   });
@@ -338,8 +341,8 @@ function initShowCallsView() {
     socket.emit('connected');
     console.log('socket.io connected');
   });
-  socket.on('update_msg', function(data) {
-    receiveMsgUpdate(data);
+  socket.on('update_call', function(data) {
+    receiveCallUpdate(data);
   });
   socket.on('update_job', function(data) {
     receiveJobUpdate(data);
@@ -414,17 +417,15 @@ function makeCallFieldsClickable() {
     // Save edit to DB when focus lost, remove <input> element 
     $input.blur(function() {
       $cell.html($input.val());
-      var call_id = $cell.parent().attr('id');
-      var field_name = $cell.attr('name');
-      var field_value = $input.val();
-      var payload = {}
-      payload[field_name] = field_value
+      var field_name = $cell.attr('name')
+      var payload = {
+        field_name : $input.val()
+      };
       var request = $.ajax({
         type: 'POST',
-        url: $SCRIPT_ROOT + '/edit/call/' + call_id,
+        url: $SCRIPT_ROOT + '/edit/call/' + $cell.parent().attr('id'),
         data: payload
       });
-
       request.done(function(msg){
         if(msg != 'OK') {
           showDialog($('#dialog'), 'Your edit failed. Please enter a correct value: ' + msg);
@@ -432,22 +433,26 @@ function makeCallFieldsClickable() {
         }
       });
     });
-    
     $input.focus();
   });
 }
 
 //---------------------------------------------------------------
 function receiveJobUpdate(socket_data) {
-  if(socket_data['status'] == 'complete') {
+  if(socket_data['status'] == 'COMPLETE') {
     console.log('job complete!');
     $('#timer').text('Complete');
   }
 }
 
+function formatCallStatus(call) {
+
+
+}
+
 //---------------------------------------------------------------
 // View: show_calls
-function receiveMsgUpdate(socket_data) {
+function receiveCallUpdate(socket_data) {
   // Clear the countdown timer if it is running
   if(window.countdown_id) {
     clearInterval(window.countdown_id);
@@ -474,8 +479,7 @@ function receiveMsgUpdate(socket_data) {
   if('office_notes' in socket_data)
     $row.find('[name="office_notes"]').html(socket_data['office_notes']);
   if('speak' in socket_data) {
-    var title = 'Sent: ' + Date.parse(socket_data['ended_at']).toDateString() + '\n';
-    title += 'Msg: ' + socket_data['speak'];
+    var title = 'Msg: ' + socket_data['speak'];
     $row.find('[name="message"]').attr('title', title);
   }
 }

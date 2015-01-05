@@ -75,7 +75,7 @@ def log_call_db(request_uuid, fields, sendSocket=True):
 
   fields['id'] = str(call['_id'])
   fields['attempts'] = call['attempts']
-  send_socket('update_msg', fields)
+  send_socket('update_call', fields)
 
 #-------------------------------------------------------------------
 def parse_csv(csvfile, header_template):
@@ -119,7 +119,7 @@ def create_msg_record(job, idx, buf_row, errors):
   # Create json record to be added to mongodb
   msg = {
     'job_id': job['_id'],
-    'status': 'not-attempted',
+    'status': 'PENDING',
     'attempts': 0
   }
   # Translate column names to mongodb names ('Phone'->'to', etc)
@@ -265,7 +265,7 @@ def create_job():
     'template': request.form['template'],
     'message': request.form['message'],
     'fire_dtime': fire_dtime,
-    'status': 'pending',
+    'status': 'PENDING',
     'num_calls': len(buffer)
   }
   
@@ -316,7 +316,7 @@ def show_calls(job_id):
     'etw_status', 
     'event_date', 
     'office_notes', 
-    'message'
+    'status'
   ]
 
   return render_template(
@@ -332,7 +332,7 @@ def show_calls(job_id):
 def job_complete(job_id):
   data = {
     'id': job_id,
-    'status': 'complete'
+    'status': 'COMPLETE'
   }
   
   send_socket('update_job', data)
@@ -344,7 +344,7 @@ def reset_job(job_id):
   db['msgs'].update(
     {'job_id': ObjectId(job_id)}, 
     {'$set': {
-      'status': 'not-attempted',
+      'status': 'PENDING',
       'attempts': 0
     }},
     multi=True
@@ -360,7 +360,8 @@ def reset_job(job_id):
       'call_uuid': '',
       'request_uuid': '',
       'speak': '',
-      'code': ''
+      'code': '',
+      'ended_at': ''
     }},
     multi=True
   )
@@ -368,7 +369,7 @@ def reset_job(job_id):
   db['jobs'].update(
     {'_id':ObjectId(job_id)},
     {'$set': {
-      'status': 'pending'
+      'status': 'PENDING'
     }})
 
   return 'OK'
@@ -427,15 +428,14 @@ def get_sms_status():
     status = request.form.get('Status')
     logger.info('%s (%s) /sms id: %s ', request.form.get('To'), status, message_uuid)
 
-
     fields = {
       'status': status,
       'code': status
     }
 
     if status == 'sent':
-      fields['status'] = 'completed'
-      fields['code'] = 'SMS_SENT'
+      fields['status'] = 'COMPLETE'
+      fields['code'] = 'SENT_SMS'
       fields['ended_at'] = datetime.now()
 
     db['msgs'].update(
@@ -446,7 +446,7 @@ def get_sms_status():
     if res is None:
       return 'NO'
 
-    send_socket('update_msg',{
+    send_socket('update_call',{
       'id' : str(call['_id']),
       'status' : fields['status'],
       'code' : fields['code'],
@@ -464,7 +464,7 @@ def get_sms_status():
 def ring():
   try:
     log_call_db(request.form['RequestUUID'], {
-      'status': 'in-progress',
+      'status': 'IN_PROGRESS',
       'code': 'RINGING',
       'rang': True
     })
@@ -491,7 +491,7 @@ def content():
       request.args.get('CallStatus')
     )
     log_call_db(request_uuid, {
-      'status': 'in-progress',
+      'status': 'IN_PROGRESS',
       'code': 'ANSWERED',
       'call_uuid': request.args.get('CallUUID')
     })
@@ -558,15 +558,15 @@ def process_hangup():
       return Response(str(plivoxml.Response()), mimetype='text/xml')
 
     if hangup_cause == 'NORMAL_CLEARING':
-      call['status'] = 'completed'
+      call['status'] = 'COMPLETE'
       if call['code'] == 'ANSWERED':
-        call['code'] = 'DELIVERED'
+        call['code'] = 'SENT_LIVE'
     elif hangup_cause == 'USER_BUSY' or hangup_cause == 'NO_ANSWER':
       call['code'] = hangup_cause
-      call['status'] = 'incomplete'
+      call['status'] = 'INCOMPLETE'
     elif hangup_cause == 'NORMAL_TEMPORARY_FAILURE':
-      call['status'] = 'failed'
-      call['code'] = hangup_cause
+      call['status'] = 'FAILED'
+      call['code'] = 'NOT_IN_SERVICE'
     else:
       call['status'] = call_status
       call['code'] = hangup_cause
@@ -592,10 +592,10 @@ def process_hangup():
       'ended_at': call['ended_at']
     }
     
-    if call['status'] is 'completed' and 'speak' in call:
+    if call['status'] == 'COMPLETE' and 'speak' in call:
       payload['speak'] = call['speak']
 
-    send_socket('update_msg', payload)
+    send_socket('update_call', payload)
 
     response = plivoxml.Response()
     return Response(str(response), mimetype='text/xml')
@@ -623,7 +623,7 @@ def process_machine():
   try:
     logger.debug('Machine detected. %s' % request.values.items())
     log_call_db(request.form.get('RequestUUID'), {
-      'code': 'LEAVING_VOICEMAIL'
+      'code': 'MACHINE_ANSWERED'
     })
     call_uuid = request.form.get('CallUUID')
     server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
@@ -645,7 +645,7 @@ def process_voicemail():
     logger.debug('/call/voicemail: %s' % request.values.items())
     request_uuid = request.form.get('RequestUUID')
     log_call_db(request_uuid, {
-      'code': 'DELIVERED_VOICEMAIL'
+      'code': 'SENT_VOICEMAIL'
     })
     call = db['msgs'].find_one({'request_uuid':request_uuid})
     job = db['jobs'].find_one({'_id':call['job_id']})

@@ -136,10 +136,10 @@ def monitor_job(job_id):
       query_in_progress = {
         'job_id': job_id,
         '$or':[
-          {'status': 'in-progress'},
-          {'status': 'not-attempted'},
-          {'status': 'ringing'},
-          {'status': 'answered'}
+          {'status': 'IN_PROGRESS'},
+          {'status': 'PENDING'},
+          {'status': 'RINGING'},
+          {'status': 'ANSWERED'}
       ]}
       in_progress = db['msgs'].find(query_in_progress)
 
@@ -147,12 +147,13 @@ def monitor_job(job_id):
         # Job Complete!
         db['jobs'].update(
           {'_id': job_id},
-          {'$set': {'status': 'complete'}}
+          {'$set': {'status': 'COMPLETE'}}
         )
        
         # Tell server to send completion sockets 
         completion_url = LOCAL_URL + '/complete/' + str(job_id)
         requests.get(completion_url)
+        create_job_summary(job_id)
         send_email_report(job_id)
         break;
     # Redial calls as needed
@@ -193,7 +194,7 @@ def fire_msg(msg):
       if response[0] != 400:
         fields['request_uuid'] = response[1]['request_uuid']
         fields['attempts'] = msg['attempts'] + 1
-        fields['status'] = 'in-progress'
+        fields['status'] = 'PENDING'
         fields['code'] = response[1]['message']
     # SMS
     else:
@@ -204,7 +205,7 @@ def fire_msg(msg):
       if response[0] != 400:
         fields['message_uuid'] = response[1]['message_uuid'][0]
         fields['attempts'] = msg['attempts'] + 1
-        fields['status'] = 'in-progress'
+        fields['status'] = 'IN_PROGRESS'
         fields['code'] = response[1]['message']
         fields['speak'] = text
     
@@ -244,7 +245,7 @@ def fire_msgs(job_id):
 
     db['jobs'].update(
       {'_id': job['_id']},
-      {'$set': {'status': 'in-progress'}}
+      {'$set': {'status': 'IN_PROGRESS'}}
     )
 
     # Fire all voice calls and SMS
@@ -307,14 +308,14 @@ def dial(to):
     server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
     response = server.make_call(params)
   except Exception as e:
-    logger.error('%s Bravo.dial() (%a)',to, code, exc_info=True)
-    return [400, {'request_uuid':'n/a', 'message': 'EXCEPTION'}]
+    logger.error('Bravo.dial exception: ' + json.dumps(response), exc_info=True)
+    return [400, {'request_uuid':'', 'message': 'UNKNOWN_ERROR'}]
   
   if type(response) == tuple:
     if 'request_uuid' not in response[1]:
-      response[1]['request_uuid'] = 'n/a'
+      response[1]['request_uuid'] = ''
     if 'message' not in response[1]:
-      response[1]['message'] = 'failed'
+      response[1]['message'] = 'UNKNOWN_ERROR'
 
   # return tuple with format: (RESPONSE_CODE, {'request_uuid':ID, 'message':MSG})
   return response
@@ -368,12 +369,12 @@ def get_speak(job, msg, medium='voice', live=False):
     elif msg['etw_status'] == 'Cancelling':
       speak += (intro_str + 'bag stand will be picked up on ' +
         date_str + '. thanks for your past support. ')
+    
+    if medium == 'voice' and live == True:
+      speak += repeat_voice
   elif job['template'] == 'special_msg':
     speak = job['message'] 
     print 'TODO'
-    
-  if medium == 'voice' and live == True:
-      speak += repeat_voice
 
   return speak
 
@@ -382,12 +383,63 @@ def strip_phone_num(to):
   return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
 #-------------------------------------------------------------------
+def log_sms(record, response):
+  db['msgs'].update(
+    {'_id': record['_id']}, 
+    {'$set': {
+      'code': str(response[0]),
+      'message_id': response[1]['message_uuid'],
+      'status': response[1]['message'],
+      'attempts': record['attempts']
+      }
+    }
+  ) 
+
+#-------------------------------------------------------------------
+def create_job_summary(job_id):
+  calls = list(db['msgs'].find({'job_id':job_id},{'_id':0}))
+  job = {
+    'summary': {
+      'busy': 0,
+      'no_answer': 0,
+      'delivered': 0,
+      'machine' : 0,
+      'failed' : 0
+    }
+  }
+  return True
+'''
+  for call in calls:
+    if call['status'] == 'completed':
+      if call['message'] == 'left voicemail':
+        job['summary']['machine'] += 1
+      elif call['message'] == 'delivered':
+        job['summary']['delivered'] += 1
+    elif call['status'] == 'busy':
+      job['summary']['busy'] += 1
+    elif call['status'] == 'failed':
+      job['summary']['failed'] += 1
+  db['jobs'].update(
+    {'_id': job_id}, 
+    {'$set': job}
+  )
+'''
+
+#-------------------------------------------------------------------
 def send_email_report(job_id):
+  import smtplib
+  from email.mime.text import MIMEText
+
   job = db['jobs'].find_one({'_id':job_id})
+    
   calls = list(db['msgs'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))
   calls_str = json.dumps(calls, sort_keys=True, indent=4, separators=(',',': ' ))
-  subject = 'Job Summary %s' % str(job['name'])
-  send_email('estese@gmail.com', subject, calls_str)
+  sum_str = json.dumps(job['summary'])
+  
+  msg = sum_str + '\n\n' + calls_str
+  subject = 'Job Summary %s' % str(job_id)
+
+  send_email('estese@gmail.com', subject, msg)
 
 #-------------------------------------------------------------------
 def send_email(recipient, subject, msg):

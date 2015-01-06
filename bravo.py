@@ -13,10 +13,11 @@ from dateutil.parser import parse
 from datetime import datetime,timedelta
 import os
 
-celery = Celery('tasks', cache='amqp', broker=BROKER_URI)
+celery = Celery(CELERY_MODULE, cache='amqp', broker=BROKER_URI)
 logger = logging.getLogger(__name__)
-client = pymongo.MongoClient('localhost',27017)
-db = client['wsf']
+client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+db = client[DATABASE]
+PUB_URL = ''
 
 #-------------------------------------------------------------------
 def setLogger(logger, level, log_name):
@@ -24,11 +25,10 @@ def setLogger(logger, level, log_name):
   handler.setLevel(level)
   formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
   handler.setFormatter(formatter)
-
   logger.setLevel(level)
   logger.addHandler(handler)
 
-setLogger(logger, logging.INFO, 'log.log')
+setLogger(logger, LOG_LEVEL, LOG_FILE)
 
 #-------------------------------------------------------------------
 def is_mongodb_available():
@@ -184,12 +184,12 @@ def execute_job(job_id):
 #-------------------------------------------------------------------
 # message_uuid: primary msg ID for SMS returned in Plivo response
 # request_uuid: primary msg ID for Voice returned in Plivo response
-def fire_msg(msg):
+def fire_msg(msg, pub_url):
   fields = {}
   try:
     # Voice Call
     if not 'sms' in msg:
-      response = dial(msg['to'])
+      response = dial(msg['to'], pub_url)
       # Status Code on success = 201
       if response[0] != 400:
         fields['request_uuid'] = response[1]['request_uuid']
@@ -200,7 +200,7 @@ def fire_msg(msg):
     else:
       job = db['jobs'].find_one({'_id':msg['job_id']})
       text = get_speak(job, msg, medium='sms')
-      response = sms(msg['to'], text)
+      response = sms(msg['to'], text, pub_url)
       # Status Code on success = 202
       if response[0] != 400:
         fields['message_uuid'] = response[1]['message_uuid'][0]
@@ -235,6 +235,10 @@ def fire_msg(msg):
 # job_id is the default _id field created for each jobs document by mongo
 def fire_msgs(job_id):
   try:
+    pub_url = requests.get(local_url + '/get_pub_url')
+    if not pub_url:
+      pub_url = DEFAULT_PUB_URL
+
     job = db['jobs'].find_one({'_id':job_id})
     # Default call order is alphabetically by name
     messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
@@ -250,7 +254,7 @@ def fire_msgs(job_id):
 
     # Fire all voice calls and SMS
     for msg in messages:
-      fire_msg(msg)
+      fire_msg(msg, pub_url)
       # Cap at 1/sec for testing
       time.sleep(1)
 
@@ -285,24 +289,27 @@ def check_job_schedule():
 #-------------------------------------------------------------------
 # Plivo returns 'request_uuid' on successful dial attempt. This will 
 # be the primary ID in db['msgs']
-def dial(to):
+def dial(to, pub_url):
   if not to:
     return [400, {'request_uuid':'', 'message': 'NO_PHONE_NUMBER'}]
+
 
   params = { 
     'from' : FROM_NUMBER,
     'caller_name': CALLER_ID,
     'to' : '+1' + to,
-    'ring_url' :  PUB_URL+'/call/ring',
-    'answer_url' : PUB_URL+'/call/answer',
+    'ring_url' :  pub_url + '/call/ring',
+    'answer_url' : pub_url + '/call/answer',
     'answer_method': 'GET',
-    'hangup_url': PUB_URL+'/call/hangup',
+    'hangup_url': pub_url + '/call/hangup',
     'hangup_method': 'POST',
-    'fallback_url': PUB_URL+'/call/fallback',
+    'fallback_url': pub_url + '/call/fallback',
     'fallback_method': 'POST',
     'machine_detection': 'true',
-    'machine_detection_url': PUB_URL+'/call/machine'
+    'machine_detection_url': pub_url + '/call/machine'
   }
+
+  logger.info('Dialing: ' + json.dumps(params))
 
   try:
     server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
@@ -323,13 +330,14 @@ def dial(to):
 #-------------------------------------------------------------------
 # Plivo returns 'request_uuid' on successful sms attempt. This will 
 # be the primary ID in db['msgs']
-def sms(to, msg):
+def sms(to, msg, pub_url):
+  
   params = {
     'dst': '1' + to,
     'src': SMS_NUMBER,
     'text': msg,
     'type': 'sms',
-    'url': PUB_URL + '/sms_status'
+    'url': pub_url + '/sms_status'
   }
 
   try:

@@ -16,47 +16,17 @@ import csv
 import logging
 import codecs
 import bravo
+from reverse_proxy import ReverseProxied
 
-class ReverseProxied(object):
-  '''Wrap the application in this middleware and configure the 
-  front-end server to add these headers, to let you quietly bind 
-  this to a URL other than / and to an HTTP scheme that is 
-  different than what is used locally
-  '''
-  def __init__(self, app):
-    self.app = app
-
-  def __call__(self, environ, start_response):
-    global PUB_URL
-    script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
-    if script_name:
-      environ['SCRIPT_NAME'] = script_name
-      path_info = environ['PATH_INFO']
-      if path_info.startswith(script_name):
-        environ['PATH_INFO'] = path_info[len(script_name):]
-
-    scheme = environ.get('HTTP_X_SCHEME', '')
-    if scheme:
-      environ['wsgi.url_scheme'] = scheme
-
-    if PUB_URL == '':
-      PUB_URL = scheme + '://' +  environ['HTTP_HOST'] + script_name
-
-    return self.app(environ, start_response)
-
-client = pymongo.MongoClient('localhost',27017)
-db = client['wsf']
+client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+db = client[DATABASE]
 logger = logging.getLogger(__name__)
-bravo.setLogger(logger, logging.INFO, 'log.log')
+bravo.setLogger(logger, LOG_LEVEL, LOG_FILE)
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.debug = True
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['SECRET_KEY'] = 'a secret!'
 socketio = SocketIO(app)
-test_socket_client = ''
-
 
 #-------------------------------------------------------------------
 def log_call_db(request_uuid, fields, sendSocket=True):
@@ -203,6 +173,17 @@ def get_template(name):
     return False
   else:
     return json.dumps(TEMPLATE_HEADERS[name])
+
+#-------------------------------------------------------------------
+@app.route('/get_pub_url')
+def get_public_url():
+  if not os.environ.get('PUB_URL'):
+    logger.error('No public URL!')
+    return False
+ 
+  if os.environ['PUB_URL'].find('localhost') >= 0: 
+    return DEFAULT_PUB_URL
+  return os.environ['PUB_URL']
 
 #-------------------------------------------------------------------
 @app.route('/celery_status')
@@ -630,7 +611,7 @@ def process_machine():
     response = server.transfer_call({
       'call_uuid': call_uuid,
       'legs': 'aleg',
-      'aleg_url' : PUB_URL+'/call/voicemail',
+      'aleg_url' : os.environ['PUB_URL']+'/call/voicemail',
       'aleg_method': 'POST'
     })
     return Response(str(response), mimetype='text/xml')
@@ -662,4 +643,6 @@ def process_voicemail():
 
 #-------------------------------------------------------------------
 if __name__ == "__main__":
+
+
   socketio.run(app, port=PORT)

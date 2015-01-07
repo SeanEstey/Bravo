@@ -64,6 +64,31 @@ function getPlivoAccount() {
 
 }
 
+function displayServerStatus(route, label, $element) {
+  var request =  $.ajax({
+      type: 'GET',
+      url: $SCRIPT_ROOT + route
+    });
+
+  request.done(function(msg){
+    $element.html(label + ': ' + msg);
+    //console.log('account: ' + JSON.stringify(msg));
+  });
+}
+
+//---------------------------------------------------------------
+function getMode() {
+  var request =  $.ajax({
+      type: 'GET',
+      url: $SCRIPT_ROOT + '/celery_status'
+    });
+
+  request.done(function(msg){
+    $('#status').html('Status: ' + msg);
+    console.log('celery status: ' + JSON.stringify(msg));
+  });
+}
+
 //---------------------------------------------------------------
 function getCeleryStatus() {
   var request =  $.ajax({

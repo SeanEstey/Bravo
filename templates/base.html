@@ -17,6 +17,7 @@
     jQuery(function($){
       getCeleryStatus();
       getPlivoAccount();
+      displayServerStatus('/get_mode', 'Mode', $('#mode'));
     });
   </script>
     {% if title %}
@@ -26,6 +27,8 @@
     {% endif %}
   </head>
   <body>
+    <div id='mode' style='text-align:right'>Mode:
+    </div>
     <div id='status' style='text-align:right'>Status:
     </div>
     <div id='account' style='text-align:right'>Balance:

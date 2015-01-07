@@ -6,12 +6,13 @@ git clone https://github.com/SeanEstey/Bravo
 cd Bravo
 ```
 Start celery worker<br>
-`./celery.sh`
-Server<br>
--Flask server running on http://localhost:8000<br>
+`./celery.sh`<br>
+
+Start Flask Server<br>
+`python server.py <mode>`<br>
+where mode == 'test' runs on http://localhost:5000 and mode == 'deploy' runs on http://localhost:8000<br>
+
 -Nginx running flask server as reverse proxy (see nginx .conf file in /config)<br>
-Start Flask server<br>
-`python server.py`<br>
 Register schedule monitor process<br>
 `crontab -e`<br>
 Add following line<br>

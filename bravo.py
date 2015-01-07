@@ -14,10 +14,23 @@ from datetime import datetime,timedelta
 import os
 
 celery = Celery(CELERY_MODULE, cache='amqp', broker=BROKER_URI)
+LOCAL_URL = None
+client = None
+db = None
 logger = logging.getLogger(__name__)
-client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
-db = client[DATABASE]
-PUB_URL = ''
+
+#-------------------------------------------------------------------
+def init(mode):
+  global client, db, logger
+  client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+
+  if mode == 'test':
+    db = client[TEST_DB]
+    LOCAL_URL = 'http://localhost:'+str(TEST_PORT)
+  elif mode == 'deploy':
+    db = client[DEPLOY_DB]
+    LOCAL_URL = 'http://localhost:'+str(DEPLOY_PORT)
+  setLogger(logger, LOG_LEVEL, LOG_FILE)
 
 #-------------------------------------------------------------------
 def setLogger(logger, level, log_name):
@@ -27,8 +40,6 @@ def setLogger(logger, level, log_name):
   handler.setFormatter(formatter)
   logger.setLevel(level)
   logger.addHandler(handler)
-
-setLogger(logger, LOG_LEVEL, LOG_FILE)
 
 #-------------------------------------------------------------------
 def is_mongodb_available():

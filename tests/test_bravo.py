@@ -14,10 +14,11 @@ class BravoTestCase(unittest.TestCase):
     import pymongo
     import datetime
     from config import LOCAL_URL
+    bravo.init('test')
     self.url = LOCAL_URL
     self.client = pymongo.MongoClient('localhost', 27017)
     self.assertIsNotNone(self.client)
-    self.db = self.client['wsf']
+    self.db = self.client['test']
     self.assertIsNotNone(self.db)
     job_record = {
       'template': 'etw_reminder',

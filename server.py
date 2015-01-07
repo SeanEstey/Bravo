@@ -17,9 +17,8 @@ import logging
 import codecs
 import bravo
 from reverse_proxy import ReverseProxied
+import sys
 
-client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
-db = client[DATABASE]
 logger = logging.getLogger(__name__)
 bravo.setLogger(logger, LOG_LEVEL, LOG_FILE)
 app = Flask(__name__)
@@ -173,6 +172,10 @@ def get_template(name):
     return False
   else:
     return json.dumps(TEMPLATE_HEADERS[name])
+
+@app.route('/get_mode')
+def get_mode():
+  return mode.upper()
 
 #-------------------------------------------------------------------
 @app.route('/get_pub_url')
@@ -643,6 +646,15 @@ def process_voicemail():
 
 #-------------------------------------------------------------------
 if __name__ == "__main__":
+  client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+  if len(sys.argv) > 0:
+    mode = sys.argv[1]
+    bravo.init(mode)
+    if mode == 'test':
+      db = client[TEST_DB]
+      socketio.run(app, port=TEST_PORT)
+    elif mode == 'deploy':
+      db = client[DEPLOY_DB]
+      socketio.run(app, port=DEPLOY_PORT)
+    
 
-
-  socketio.run(app, port=PORT)

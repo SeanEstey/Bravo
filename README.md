@@ -1,14 +1,21 @@
+Dependencies:<br>
+-Python 2.7<br>
+-RabbitMQ<br>
+-Celery<br>
+-Flask (w/ flask-socketio)<br>
+-MongoDB (w/ pymongo)<br>
+
 Instructions<br>
 
-Clone repository
+Clone repository:
 ```
 git clone https://github.com/SeanEstey/Bravo
 cd Bravo
 ```
-Start celery worker<br>
+Start celery worker:<br>
 `./celery.sh`<br>
 
-Start Flask Server<br>
+Start Flask Server:<br>
 `python server.py <mode>`<br>
 
 mode == 'test' runs on http://localhost:5000<br>

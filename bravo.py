@@ -14,22 +14,25 @@ from datetime import datetime,timedelta
 import os
 
 celery = Celery(CELERY_MODULE, cache='amqp', broker=BROKER_URI)
-LOCAL_URL = None
+local_url = None
+pub_url = None
 client = None
 db = None
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------
 def init(mode):
-  global client, db, logger
+  global client, db, logger, pub_url, local_url
   client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
 
   if mode == 'test':
     db = client[TEST_DB]
-    LOCAL_URL = 'http://localhost:'+str(TEST_PORT)
+    local_url = 'http://localhost:'+str(TEST_PORT)
+    pub_url = PUB_DOMAIN + TEST_PREFIX
   elif mode == 'deploy':
     db = client[DEPLOY_DB]
-    LOCAL_URL = 'http://localhost:'+str(DEPLOY_PORT)
+    local_url = 'http://localhost:'+str(DEPLOY_PORT)
+    pub_url = PUB_DOMAIN + DEPLOY_PREFIX
   setLogger(logger, LOG_LEVEL, LOG_FILE)
 
 #-------------------------------------------------------------------
@@ -67,7 +70,7 @@ def reconnect_mongodb():
 #-------------------------------------------------------------------
 def is_server_online():
   try:
-    response = requests.get(LOCAL_URL)
+    response = requests.get(local_url)
     if response.status_code == 200:
       return True
     else:
@@ -162,7 +165,7 @@ def monitor_job(job_id):
         )
        
         # Tell server to send completion sockets 
-        completion_url = LOCAL_URL + '/complete/' + str(job_id)
+        completion_url = local_url + '/complete/' + str(job_id)
         requests.get(completion_url)
         create_job_summary(job_id)
         send_email_report(job_id)
@@ -195,12 +198,12 @@ def execute_job(job_id):
 #-------------------------------------------------------------------
 # message_uuid: primary msg ID for SMS returned in Plivo response
 # request_uuid: primary msg ID for Voice returned in Plivo response
-def fire_msg(msg, pub_url):
+def fire_msg(msg):
   fields = {}
   try:
     # Voice Call
     if not 'sms' in msg:
-      response = dial(msg['to'], pub_url)
+      response = dial(msg['to'])
       # Status Code on success = 201
       if response[0] != 400:
         fields['request_uuid'] = response[1]['request_uuid']
@@ -211,7 +214,7 @@ def fire_msg(msg, pub_url):
     else:
       job = db['jobs'].find_one({'_id':msg['job_id']})
       text = get_speak(job, msg, medium='sms')
-      response = sms(msg['to'], text, pub_url)
+      response = sms(msg['to'], text)
       # Status Code on success = 202
       if response[0] != 400:
         fields['message_uuid'] = response[1]['message_uuid'][0]
@@ -246,10 +249,6 @@ def fire_msg(msg, pub_url):
 # job_id is the default _id field created for each jobs document by mongo
 def fire_msgs(job_id):
   try:
-    pub_url = requests.get(local_url + '/get_pub_url')
-    if not pub_url:
-      pub_url = DEFAULT_PUB_URL
-
     job = db['jobs'].find_one({'_id':job_id})
     # Default call order is alphabetically by name
     messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
@@ -265,7 +264,7 @@ def fire_msgs(job_id):
 
     # Fire all voice calls and SMS
     for msg in messages:
-      fire_msg(msg, pub_url)
+      fire_msg(msg)
       # Cap at 1/sec for testing
       time.sleep(1)
 
@@ -300,7 +299,7 @@ def check_job_schedule():
 #-------------------------------------------------------------------
 # Plivo returns 'request_uuid' on successful dial attempt. This will 
 # be the primary ID in db['msgs']
-def dial(to, pub_url):
+def dial(to):
   if not to:
     return [400, {'request_uuid':'', 'message': 'NO_PHONE_NUMBER'}]
 
@@ -341,7 +340,7 @@ def dial(to, pub_url):
 #-------------------------------------------------------------------
 # Plivo returns 'request_uuid' on successful sms attempt. This will 
 # be the primary ID in db['msgs']
-def sms(to, msg, pub_url):
+def sms(to, msg):
   
   params = {
     'dst': '1' + to,

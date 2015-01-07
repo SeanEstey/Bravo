@@ -4,22 +4,17 @@ import json
 import sys
 import os
 import plivo
+import pymongo
+import datetime
+from dateutil.parser import parse
 os.chdir('/root/bravo')
 sys.path.insert(0, '/root/bravo')
+import bravo
 
 class BravoTestCase(unittest.TestCase):
-  # Create mongodb connection, context to collection,
-  # create a job record and handle
   def setUp(self):
-    import pymongo
-    import datetime
-    from config import LOCAL_URL
     bravo.init('test')
-    self.url = LOCAL_URL
-    self.client = pymongo.MongoClient('localhost', 27017)
-    self.assertIsNotNone(self.client)
-    self.db = self.client['test']
-    self.assertIsNotNone(self.db)
+    self.url = 'http://www.seanestey.ca/bravo_test'
     job_record = {
       'template': 'etw_reminder',
       'status': 'PENDING',
@@ -28,36 +23,35 @@ class BravoTestCase(unittest.TestCase):
       'num_calls': 1
     }
 
-    self.job_id = self.db['jobs'].insert(job_record)
-    self.job = self.db['jobs'].find_one({'_id':self.job_id})
+    self.job_id = bravo.db['jobs'].insert(job_record)
+    self.job = bravo.db['jobs'].find_one({'_id':self.job_id})
     self.assertIsNotNone(self.job_id)
     self.assertIsNotNone(self.job)
-    from dateutil.parser import parse
+
     msg = {
       'job_id': self.job_id,
       'request_uuid': 'abc123',
       'status': 'PENDING',
       'attempts': 0,
       'event_date': parse('december 31, 2014'),
-      'to': '780-555-5555',
+      'to': '780-863-5715',
       'name': 'NIS',
       'etw_status': 'Active',
       'message': '',
       'office_notes': ''
     }
-    self.msg_id = self.db['msgs'].insert(msg)
-    self.msg = self.db['msgs'].find_one({'_id':self.msg_id})
+    self.msg_id = bravo.db['msgs'].insert(msg)
+    self.msg = bravo.db['msgs'].find_one({'_id':self.msg_id})
     self.assertIsNotNone(self.msg_id)
     self.assertIsNotNone(self.msg)
-
 
   # Remove job record created by setUp
   def tearDown(self):
     import pymongo
-    res = self.db['jobs'].remove({'_id':self.job_id})
+    res = bravo.db['jobs'].remove({'_id':self.job_id})
     # n == num records deleted
     self.assertEquals(res['n'], 1)
-    res = self.db['msgs'].remove({'_id':self.msg_id})
+    res = bravo.db['msgs'].remove({'_id':self.msg_id})
     self.assertEquals(res['n'], 1)
 
   def test_job_completion(self):
@@ -66,16 +60,16 @@ class BravoTestCase(unittest.TestCase):
     self.assertEquals(res.status_code, 200)
 
   def test_bravo_dial(self):
-    from bravo import dial
+    #from bravo import dial
     import json
-    response = dial(self.msg['to'])
+    response = bravo.dial(self.msg['to'])
     self.assertEquals(response[0], 201, msg=json.dumps(response))
 
   def test_bravo_sms(self):
-    from bravo import sms
+    #from bravo import sms
     import json
     self.msg['sms'] = True
-    response = sms(self.msg['to'], 'sms unittest')
+    response = bravo.sms(self.msg['to'], 'sms unittest')
     self.assertEquals(response[0], 202, msg=json.dumps(response))
 
   def test_bravo_check_job_schedule(self):
@@ -83,39 +77,39 @@ class BravoTestCase(unittest.TestCase):
     # self.assertTrue(check_job_schedule())
 
   def test_bravo_systems_check(self):
-    from bravo import systems_check
-    self.assertTrue(systems_check)
+    #from bravo import systems_check
+    self.assertTrue(bravo.systems_check)
 
   def test_bravo_fire_msg_voice(self):
-    from bravo import fire_msg
-    response = fire_msg(self.msg)
+    #from bravo import fire_msg
+    response = bravo.fire_msg(self.msg)
     self.assertNotEquals(response[0], 400)
   
   def test_bravo_fire_msg_voice_no_phone(self):
-    from bravo import fire_msg
+    #from bravo import fire_msg
     self.msg['to'] = ''
-    response = fire_msg(self.msg)
+    response = bravo.fire_msg(self.msg)
     self.assertEquals(response[0], 400)
   
   def test_bravo_fire_msg_sms(self):
-    from bravo import fire_msg
+    #from bravo import fire_msg
     self.msg['sms'] = 'true'
-    response = fire_msg(self.msg)
+    response = bravo.fire_msg(self.msg)
     self.assertNotEquals(response[0], 400)
 
   def test_bravo_fire_msgs(self):
-    from bravo import fire_msgs
-    self.assertTrue(fire_msgs(self.job_id))
+    #from bravo import fire_msgs
+    self.assertTrue(bravo.fire_msgs(self.job_id))
 
   def test_get_speak_etw_active(self):
-    from bravo import get_speak
-    speak = get_speak(self.job, self.msg)
+    #from bravo import get_speak
+    speak = bravo.get_speak(self.job, self.msg)
     self.assertIsInstance(speak, str)
 
   def test_get_speak_etw_dropoff(self):
-    from bravo import get_speak
+    #from bravo import get_speak
     self.msg['etw_status'] = 'Awaiting Dropoff'
-    speak = get_speak(self.job, self.msg)
+    speak = bravo.get_speak(self.job, self.msg)
     self.assertIsInstance(speak, str)
 
   def test_show_jobs_view(self):
@@ -206,10 +200,10 @@ class BravoTestCase(unittest.TestCase):
 
   def test_call_hangup_post(self):
     from werkzeug.datastructures import MultiDict
-    self.db['msgs'].update(
+    bravo.db['msgs'].update(
       {'request_uuid':self.msg['request_uuid']},
       {'$set':{'code':'ANSWERED', 'status':'IN_PROGRESS'}})
-    self.msg = self.db['msgs'].find_one({'_id':self.msg_id})
+    self.msg = bravo.db['msgs'].find_one({'_id':self.msg_id})
     payload = MultiDict([
       ('RequestUUID', self.msg['request_uuid']), 
       ('To', self.msg['to']),

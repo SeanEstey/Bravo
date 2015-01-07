@@ -27,7 +27,7 @@ class ReverseProxied(object):
     full_url = scheme + '://' + environ['HTTP_HOST'] + script_name
     if full_url.find('localhost') < 0:
       os.environ['PUB_URL'] = full_url
-      print 'ReverseProxied called! ' + os.environ['PUB_URL']
+     # print 'ReverseProxied called! ' + os.environ['PUB_URL']
 
     return self.app(environ, start_response)
 

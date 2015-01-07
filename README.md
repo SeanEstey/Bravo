@@ -10,9 +10,12 @@ Start celery worker<br>
 
 Start Flask Server<br>
 `python server.py <mode>`<br>
-where mode == 'test' runs on http://localhost:5000 and mode == 'deploy' runs on http://localhost:8000<br>
 
--Nginx running flask server as reverse proxy (see nginx .conf file in /config)<br>
+mode == 'test' runs on http://localhost:5000<br>
+mode == 'deploy' runs on http://localhost:8000<br>
+
+Setup front end server to redirect to proper proxy addresses (see /config for Nginx .conf file)<br>
+
 Register schedule monitor process<br>
 `crontab -e`<br>
 Add following line<br>
@@ -23,5 +26,4 @@ get pid<br>
 `ps aux | grep -m 1 'python server.py' | awk '{print $2}'`<br>
 Kill it<br>
 `kill -9 <PID>`<br>
-
 (May need to run twice)

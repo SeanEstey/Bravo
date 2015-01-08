@@ -21,7 +21,7 @@ db = None
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------
-def init(mode):
+def set_mode(mode):
   global client, db, logger, pub_url, local_url
   client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
 
@@ -33,15 +33,18 @@ def init(mode):
     db = client[DEPLOY_DB]
     local_url = 'http://localhost:'+str(DEPLOY_PORT)
     pub_url = PUB_DOMAIN + DEPLOY_PREFIX
-  setLogger(logger, LOG_LEVEL, LOG_FILE)
+
+  print 'Bravo mode: ' + mode + '. pub_url: ' + pub_url
+  set_logger(logger, LOG_LEVEL, LOG_FILE)
 
 #-------------------------------------------------------------------
-def setLogger(logger, level, log_name):
+def set_logger(logger, level, log_name):
   handler = logging.FileHandler(log_name)
   handler.setLevel(level)
   formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
   handler.setFormatter(formatter)
   logger.setLevel(level)
+  logger.handlers = []
   logger.addHandler(handler)
 
 #-------------------------------------------------------------------
@@ -224,7 +227,7 @@ def fire_msg(msg):
         fields['speak'] = text
     
     status_code = response[0]
-    logger.info('fire_msg response: ' + json.dumps(response))
+    logger.debug('fire_msg response: ' + json.dumps(response))
     
     if status_code == 400:
       if response[1]['message'] == 'NO_PHONE_NUMBER':
@@ -303,7 +306,6 @@ def dial(to):
   if not to:
     return [400, {'request_uuid':'', 'message': 'NO_PHONE_NUMBER'}]
 
-
   params = { 
     'from' : FROM_NUMBER,
     'caller_name': CALLER_ID,
@@ -319,7 +321,7 @@ def dial(to):
     'machine_detection_url': pub_url + '/call/machine'
   }
 
-  logger.info('Dialing: ' + json.dumps(params))
+  logger.debug('Dialing: ' + json.dumps(params))
 
   try:
     server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)

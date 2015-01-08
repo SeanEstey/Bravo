@@ -225,6 +225,5 @@ class BravoTestCase(unittest.TestCase):
     self.assertEquals(requests.post(self.url+'/call/voicemail', data=payload).status_code, 200)
 
 if __name__ == '__main__':
-  from bravo import logger
-  logger.info('********** begin unittest **********')
+  bravo.logger.info('********** begin unittest **********')
   unittest.main()

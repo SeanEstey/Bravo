@@ -15,9 +15,9 @@
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
   <script>
     jQuery(function($){
-      displayServerStatus('/celery_status', 'Celery', $('#status'));
-      displayServerStatus('/account', 'Balance', $('#account'));
-      displayServerStatus('/get_mode', 'Mode', $('#mode'));
+      displayServerStatus('/get/celery_status', 'Celery', $('#status'));
+      displayServerStatus('/get/plivo_balance', 'Balance', $('#account'));
+      displayServerStatus('/get/mode', 'Server', $('#mode'));
     });
   </script>
     {% if title %}

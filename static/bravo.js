@@ -50,6 +50,18 @@ function useJQueryBtn() {
     });
 }
 
+
+function getServerStatus(variable) {
+  var request =  $.ajax({
+      type: 'GET',
+      url: $SCRIPT_ROOT + '/get/' + variable
+    });
+
+  request.done(function(msg){
+    console.log(msg);
+  });
+
+}
 //---------------------------------------------------------------
 function displayServerStatus(route, label, $element) {
   var request =  $.ajax({
@@ -58,7 +70,7 @@ function displayServerStatus(route, label, $element) {
     });
 
   request.done(function(msg){
-    $element.html(label + ': ' + msg);
+    $element.html(label + ': ' + msg.toTitleCase());
   });
 }
 
@@ -319,9 +331,21 @@ function initShowCallsView() {
   $('body').css('display','block');
 
   makeCallFieldsClickable();
+
+  // Deploy mode socket.io defaults to port 80
+  var socketio_url = 'http://' + document.domain + ':';
+  if(document.documentURI.indexOf('bravo_test') >= 0) {
+    // Test mode. Use port 8080 for socket.io
+    console.log('using socket.io port 8080 for test mode');
+    socketio_url += '8080';
+  }
   
   // Init SocketIO
-  var socket = io.connect('http://' + document.domain + ':' + location.port);
+  console.log('attempting socket.io connection to ' + socketio_url);
+  var socket = io.connect(socketio_url);
+  socket.on('msg', function(msg) {
+    console.log('received msg: ' + msg);
+  });
   socket.on('connect', function(){
     socket.emit('connected');
     console.log('socket.io connected');

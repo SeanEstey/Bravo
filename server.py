@@ -20,7 +20,7 @@ from reverse_proxy import ReverseProxied
 import sys
 
 logger = logging.getLogger(__name__)
-bravo.setLogger(logger, LOG_LEVEL, LOG_FILE)
+bravo.set_logger(logger, LOG_LEVEL, LOG_FILE)
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 app.wsgi_app = ReverseProxied(app.wsgi_app)
@@ -131,6 +131,7 @@ def socketio_connect():
     'num connected sockets: ' + 
     str(len(socketio.server.sockets))
   )
+  socketio.emit('msg', 'ping from ' + mode + ' server!');
 
 #-------------------------------------------------------------------
 # Emit socket.io msg if client connection established. Do nothing
@@ -156,14 +157,6 @@ def index():
   return render_template('show_jobs.html', jobs=jobs)
   #return render_template('main.html')
 
-#-------------------------------------------------------------------
-@app.route('/account')
-def get_account():
-  server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
-  account = server.get_account()
-  balance = account[1]['cash_credits']
-  balance = '$' + str(round(float(balance), 2))
-  return balance
 
 #-------------------------------------------------------------------
 @app.route('/get/template/<name>')
@@ -173,35 +166,35 @@ def get_template(name):
   else:
     return json.dumps(TEMPLATE_HEADERS[name])
 
-@app.route('/get_mode')
-def get_mode():
-  return mode.upper()
+#-------------------------------------------------------------------
+@app.route('/get/<var>')
+def get_var(var):
+  if var == 'mode':
+    return mode
+  elif var == 'pub_url':
+    if not os.environ.get('PUB_URL'):
+      logger.error('No public URL!')
+      return False
+    if os.environ['PUB_URL'].find('localhost') >= 0: 
+      return DEFAULT_PUB_URL
+    return os.environ['PUB_URL']
+  elif var == 'celery_status':
+    if not bravo.is_celery_worker():
+      return 'Offline'
+    else:
+      return 'Online'
+  elif var == 'sockets':
+    if not socketio.server:
+      return "No sockets"
+    return 'Sockets: ' + str(len(socketio.server.sockets))
+  elif var == 'plivo_balance':
+    server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
+    account = server.get_account()
+    balance = account[1]['cash_credits']
+    balance = '$' + str(round(float(balance), 2))
+    return balance
 
-#-------------------------------------------------------------------
-@app.route('/get_pub_url')
-def get_public_url():
-  if not os.environ.get('PUB_URL'):
-    logger.error('No public URL!')
-    return False
- 
-  if os.environ['PUB_URL'].find('localhost') >= 0: 
-    return DEFAULT_PUB_URL
-  return os.environ['PUB_URL']
-
-#-------------------------------------------------------------------
-@app.route('/celery_status')
-def celery_status():
-  if not bravo.is_celery_worker():
-    return 'Offline'
-  else:
-    return 'Online'
-  
-#-------------------------------------------------------------------
-@app.route('/status')
-def status():
-  if not socketio.server:
-    return "No sockets"
-  return 'Sockets: ' + str(len(socketio.server.sockets))
+  return False
 
 #-------------------------------------------------------------------
 @app.route('/error')
@@ -614,9 +607,10 @@ def process_machine():
     response = server.transfer_call({
       'call_uuid': call_uuid,
       'legs': 'aleg',
-      'aleg_url' : os.environ['PUB_URL']+'/call/voicemail',
+      'aleg_url' : bravo.pub_url +'/call/voicemail',
       'aleg_method': 'POST'
     })
+    logger.info('/call/machine forwarding to url: ' + bravo.pub_url + '/call/voicemail')
     return Response(str(response), mimetype='text/xml')
   except Exception, e:
     logger.error('%s /call/machine' % request.form.get('To'), exc_info=True)
@@ -649,7 +643,7 @@ if __name__ == "__main__":
   client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
   if len(sys.argv) > 0:
     mode = sys.argv[1]
-    bravo.init(mode)
+    bravo.set_mode(mode)
     if mode == 'test':
       db = client[TEST_DB]
       socketio.run(app, port=TEST_PORT)

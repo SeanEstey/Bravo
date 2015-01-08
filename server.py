@@ -172,12 +172,7 @@ def get_var(var):
   if var == 'mode':
     return mode
   elif var == 'pub_url':
-    if not os.environ.get('PUB_URL'):
-      logger.error('No public URL!')
-      return False
-    if os.environ['PUB_URL'].find('localhost') >= 0: 
-      return DEFAULT_PUB_URL
-    return os.environ['PUB_URL']
+    return bravo.pub_url
   elif var == 'celery_status':
     if not bravo.is_celery_worker():
       return 'Offline'
@@ -646,9 +641,9 @@ if __name__ == "__main__":
     bravo.set_mode(mode)
     if mode == 'test':
       db = client[TEST_DB]
-      socketio.run(app, port=TEST_PORT)
+      socketio.run(app, port=LOCAL_TEST_PORT)
     elif mode == 'deploy':
       db = client[DEPLOY_DB]
-      socketio.run(app, port=DEPLOY_PORT)
+      socketio.run(app, port=LOCAL_DEPLOY_PORT)
     
 

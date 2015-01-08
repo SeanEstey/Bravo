@@ -332,12 +332,12 @@ function initShowCallsView() {
 
   makeCallFieldsClickable();
 
-  // Deploy mode socket.io defaults to port 80
-  var socketio_url = 'http://' + document.domain + ':';
-  if(document.documentURI.indexOf('bravo_test') >= 0) {
+  // Deploy mode socket.io  defaults to port 80
+  var socketio_url = 'http://' + document.domain + ':' + location.port;
+  if(location.port == 8080) {
     // Test mode. Use port 8080 for socket.io
     console.log('using socket.io port 8080 for test mode');
-    socketio_url += '8080';
+    //    socketio_url += '8080';
   }
   
   // Init SocketIO

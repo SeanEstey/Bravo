@@ -27,14 +27,14 @@ def set_mode(mode):
 
   if mode == 'test':
     db = client[TEST_DB]
-    local_url = 'http://localhost:'+str(TEST_PORT)
-    pub_url = PUB_DOMAIN + TEST_PREFIX
+    local_url = 'http://localhost:'+str(LOCAL_TEST_PORT)
+    pub_url = PUB_DOMAIN + ':' + str(PUB_TEST_PORT) + PREFIX 
   elif mode == 'deploy':
     db = client[DEPLOY_DB]
-    local_url = 'http://localhost:'+str(DEPLOY_PORT)
-    pub_url = PUB_DOMAIN + DEPLOY_PREFIX
+    local_url = 'http://localhost:'+str(LOCAL_DEPLOY_PORT)
+    pub_url = PUB_DOMAIN + PREFIX
 
-  print 'Bravo mode: ' + mode + '. pub_url: ' + pub_url
+  print 'Bravo mode: ' + mode + '. \npub_url: ' + pub_url + '\nlocal_url: ' + local_url
   set_logger(logger, LOG_LEVEL, LOG_FILE)
 
 #-------------------------------------------------------------------

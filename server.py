@@ -154,7 +154,7 @@ def send_socket(name, data):
 @app.route('/')
 def index():
   jobs = db['jobs'].find().sort('fire_dtime',-1)
-  return render_template('show_jobs.html', jobs=jobs)
+  return render_template('show_jobs.html', title=os.environ['title'], jobs=jobs)
   #return render_template('main.html')
 
 
@@ -195,12 +195,12 @@ def get_var(var):
 @app.route('/error')
 def show_error():
   msg = request.args['msg']
-  return render_template('error.html', msg=msg)
+  return render_template('error.html', title=os.environ['title'], msg=msg)
 
 #-------------------------------------------------------------------
 @app.route('/new')
 def new_job():
-  return render_template('new_job.html')
+  return render_template('new_job.html', title=os.environ['title'])
 
 #-------------------------------------------------------------------
 @app.route('/new/create', methods=['POST'])
@@ -268,11 +268,20 @@ def create_job():
     job=db['jobs'].find_one({'_id':job_id})
   ))
 
+@app.route('/execute/<job_id>')
+def execute_job(job_id):
+  # TODO: Disable this command on deployed server
+  job_id = job_id.encode('utf-8')
+  logger.info(type(job_id))
+  logger.info('job_id: ' + job_id)
+  bravo.execute_job(job_id);
+
+
 #-------------------------------------------------------------------
 @app.route('/jobs')
 def show_jobs():
   jobs = db['jobs'].find().sort('fire_dtime',-1)
-  return render_template('show_jobs.html', jobs=jobs)
+  return render_template('show_jobs.html', title=os.environ['title'], jobs=jobs)
 
 #-------------------------------------------------------------------
 @app.route('/jobs/<job_id>')
@@ -293,6 +302,7 @@ def show_calls(job_id):
 
   return render_template(
     'show_calls.html', 
+    title=os.environ['title'],
     calls=calls, 
     job_id=job_id, 
     job=job,
@@ -640,9 +650,11 @@ if __name__ == "__main__":
     mode = sys.argv[1]
     bravo.set_mode(mode)
     if mode == 'test':
+      os.environ['title'] = 'Bravo:8080'
       db = client[TEST_DB]
       socketio.run(app, port=LOCAL_TEST_PORT)
     elif mode == 'deploy':
+      os.environ['title'] = 'Bravo Deploy'
       db = client[DEPLOY_DB]
       socketio.run(app, port=LOCAL_DEPLOY_PORT)
     

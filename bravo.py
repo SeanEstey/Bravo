@@ -170,8 +170,8 @@ def monitor_job(job_id):
         # Tell server to send completion sockets 
         completion_url = local_url + '/complete/' + str(job_id)
         requests.get(completion_url)
-        create_job_summary(job_id)
-        send_email_report(job_id)
+        #create_job_summary(job_id)
+        #send_email_report(job_id)
         break;
     # Redial calls as needed
     else:
@@ -189,7 +189,7 @@ def execute_job(job_id):
 
   if not systems_check():
     msg = 'Could not execute job ' + str(job_id) + ' because systems are offline'
-    send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
+    #send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
     return False
  
   logger.info('\n\n********** Start Job ' + str(job_id) + ' **********')
@@ -251,7 +251,11 @@ def fire_msg(msg):
 #-------------------------------------------------------------------
 # job_id is the default _id field created for each jobs document by mongo
 def fire_msgs(job_id):
+  if isinstance(job_id, str):
+    job_id = ObjectId(job_id)
+    logger.info('job_id was a str')
   try:
+    logger.info(type(job_id))
     job = db['jobs'].find_one({'_id':job_id})
     # Default call order is alphabetically by name
     messages = db['msgs'].find({'job_id':job_id}).sort('name',1)

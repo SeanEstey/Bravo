@@ -332,29 +332,38 @@ function initShowCallsView() {
 
   makeCallFieldsClickable();
 
-  // Deploy mode socket.io  defaults to port 80
+  // Init socket.io
   var socketio_url = 'http://' + document.domain + ':' + location.port;
-  if(location.port == 8080) {
-    // Test mode. Use port 8080 for socket.io
-    console.log('using socket.io port 8080 for test mode');
-    //    socketio_url += '8080';
-  }
-  
-  // Init SocketIO
-  console.log('attempting socket.io connection to ' + socketio_url);
+  console.log('attempting socket.io connection to ' + socketio_url + '...');
   var socket = io.connect(socketio_url);
   socket.on('msg', function(msg) {
     console.log('received msg: ' + msg);
   });
   socket.on('connect', function(){
     socket.emit('connected');
-    console.log('socket.io connected');
+    console.log('socket.io connected!');
   });
   socket.on('update_call', function(data) {
     receiveCallUpdate(data);
   });
   socket.on('update_job', function(data) {
     receiveJobUpdate(data);
+  });
+
+  $('#execute-job').click(function() {
+    var url = $SCRIPT_ROOT + '/execute/' + job_uuid;
+    console.log('execute_job url: ' + url);
+    var request =  $.ajax({
+      type: 'GET',
+      url: url
+    });
+  });
+  $('#reset-job').click(function() {
+    var request =  $.ajax({
+      type: 'GET',
+      url: $SCRIPT_ROOT + '/reset/' + job_uuid
+    });
+    
   });
 }
 
@@ -452,11 +461,6 @@ function receiveJobUpdate(socket_data) {
     console.log('job complete!');
     $('#timer').text('Complete');
   }
-}
-
-function formatCallStatus(call) {
-
-
 }
 
 //---------------------------------------------------------------

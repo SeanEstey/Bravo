@@ -242,11 +242,14 @@ function validateNewJobForm() {
 function initShowCallsView() {
   var up_arrow = '&#8593;';
   var down_arrow = '&#8595;';
-  addBravoTooltip();
   var $a_child = $('th:first-child a');
   $a_child.html($a_child.html()+down_arrow);
+  
+  addBravoTooltip();
 
-  // Allow calls to be sorted by column headers
+  makeCallFieldsClickable();
+
+  // Enable column sorting
   $('th').each(function(){
     var $a = $('a', $(this));
     var encoded_text = HTMLEncode($a.text());
@@ -267,70 +270,64 @@ function initShowCallsView() {
       });
   });
 
-  $('.delete-btn').button({
-    icons: {
-      primary: 'ui-icon-trash'
-    },
-    text: false
-  })
-
   $('.call_msg_td').each(function() {
-    /*
-      Codes: [DIALING, RINGING, ANSWERED, MACHINE_ANSWERED, 
-             SENT_SMS, SENT_VOICEMAIL, SENT_LIVE, USER_BUSY, 
-             NO_ANSWER, NOT_IN_SERVICE]
-    */ 
-    var display_msg = $(this).html();
-
-    if(display_msg.indexOf('SENT') >= 0)
-      $(this).css({'color':'#009900'});
-    else if(display_msg.indexOf('NO_ANSWER') >= 0 || display_msg.indexOf('USER_BUSY') >= 0 || display_msg.indexOf('NOT_IN_SERVICE') >= 0)
-      $(this).css({'color':'#C00000' });
-    else
-      $(this).css({'color':'#365766'});
-
-    $(this).html(display_msg.toTitleCase());
+    formatCallStatus($(this), $(this).text());
   });
+  
   $('.call_date_td').each(function() {
     var date = Date.parse($(this).html());
     var string = date.toDateString();
     $(this).html(string);
   });
 
-  var args =  window.location.pathname.split('/');
-  var job_uuid = args.slice(-1)[0];
-  $('.delete-btn').each(function(){ 
-    $(this).click(function(){
-      msg = 'Are you sure you want to cancel this call?';
-      call_uuid = $(this).attr('id');
-      var $tr = $(this).parent().parent();
-      var buttons = [
-        { text: "No", 
-          click: function() { $( this ).dialog( "close" ); }}, 
-        { text: 'Yes', 
-          click: function() { 
-            $(this).dialog('close');
-            var request =  $.ajax({
-              type: 'POST',
-              url: $SCRIPT_ROOT + '/cancel/call',
-              data: {
-                'call_uuid':call_uuid,
-                'job_uuid':job_uuid
-            }});
-            request.done(function(msg){
-              if(msg == 'OK')
-                $tr.remove();});
-      }}];
-      showDialog($('#dialog'), msg, 'Confirm Action', buttons);
+  // Display delete call buttons if job status == PENDING
+  if($('#job-status').text().indexOf('Pending') >= 0) {
+    var args =  window.location.pathname.split('/');
+    var job_uuid = args.slice(-1)[0];
+    $('.delete-btn').each(function(){ 
+      $(this).button({
+      icons: {
+        primary: 'ui-icon-trash'
+      },
+      text: false
+    })
+      $(this).click(function(){
+        msg = 'Are you sure you want to cancel this call?';
+        call_uuid = $(this).attr('id');
+        var $tr = $(this).parent().parent();
+        var buttons = [
+          { text: "No", 
+            click: function() { $( this ).dialog( "close" ); }}, 
+          { text: 'Yes', 
+            click: function() { 
+              $(this).dialog('close');
+              var request =  $.ajax({
+                type: 'POST',
+                url: $SCRIPT_ROOT + '/cancel/call',
+                data: {
+                  'call_uuid':call_uuid,
+                  'job_uuid':job_uuid
+              }});
+              request.done(function(msg){
+                if(msg == 'OK')
+                  $tr.remove();});
+        }}];
+        showDialog($('#dialog'), msg, 'Confirm Action', buttons);
+      });
     });
-  });
+  }
+  else {
+    $('.delete-btn').hide();
+  }
 
   if($('#timer').text().indexOf('Pending') > 0)
-    beginCountdown($('#timer'), $('#scheduled_datetime').text());
+    beginCountdown($('#job-summary'), $('#scheduled_datetime').text());
 
+  showJobSummary();
+  
   $('body').css('display','block');
 
-  makeCallFieldsClickable();
+
 
   // Init socket.io
   var socketio_url = 'http://' + document.domain + ':' + location.port;
@@ -350,21 +347,42 @@ function initShowCallsView() {
     receiveJobUpdate(data);
   });
 
-  $('#execute-job').click(function() {
-    var url = $SCRIPT_ROOT + '/execute/' + job_uuid;
-    console.log('execute_job url: ' + url);
-    var request =  $.ajax({
-      type: 'GET',
-      url: url
+  // Show only on test server
+  if(location.port == 8080) {
+    $('#execute-job').click(function() {
+      var url = $SCRIPT_ROOT + '/execute/' + job_uuid;
+      console.log('execute_job url: ' + url);
+      var request =  $.ajax({
+        type: 'GET',
+        url: url
+      });
     });
-  });
-  $('#reset-job').click(function() {
-    var request =  $.ajax({
-      type: 'GET',
-      url: $SCRIPT_ROOT + '/reset/' + job_uuid
+    $('#reset-job').click(function() {
+      var request =  $.ajax({
+        type: 'GET',
+        url: $SCRIPT_ROOT + '/reset/' + job_uuid
+      });
     });
-    
-  });
+  }
+  else {
+    $('#execute-job').hide();
+    $('#reset-job').hide();
+  }
+
+
+}
+
+//---------------------------------------------------------------
+// View: show_calls
+function formatCallStatus($cell, text) {
+  if(text.indexOf('SENT') >= 0)
+    $cell.css({'color':'#009900'});
+  else if(text.indexOf('NO_ANSWER') >= 0 || text.indexOf('USER_BUSY') >= 0 || text.indexOf('NOT_IN_SERVICE') >= 0)
+    $cell.css({'color':'#C00000' });
+  else
+    $cell.css({'color':'#365766'});
+
+  $cell.html(text.toTitleCase());
 }
 
 //---------------------------------------------------------------
@@ -435,10 +453,11 @@ function makeCallFieldsClickable() {
     // Save edit to DB when focus lost, remove <input> element 
     $input.blur(function() {
       $cell.html($input.val());
-      var field_name = $cell.attr('name')
-      var payload = {
-        field_name : $input.val()
-      };
+      var field_name = String($cell.attr('name'));
+      console.log(field_name + ' edited');
+      var payload = {};
+      payload[field_name] = $input.val();
+      console.log(payload);
       var request = $.ajax({
         type: 'POST',
         url: $SCRIPT_ROOT + '/edit/call/' + $cell.parent().attr('id'),
@@ -455,11 +474,34 @@ function makeCallFieldsClickable() {
   });
 }
 
+function showJobSummary() {
+  if($('#job-status').text().indexOf('Complete') >= 0) {
+    var sum = 0;
+    var n_sent = 0;
+    var n_incomplete = 0;
+    $('[name="message"]').each(function() {
+      sum++;
+      if($(this).text().indexOf('Sent') >= 0)
+        n_sent++;
+      else
+        n_incomplete++;
+    });
+
+    var delivered_percent = Math.floor((n_sent / sum) * 100);
+    $('#job-summary').css({'color':'#009900'});
+    var text = String(delivered_percent) + '% delivered';
+    $('#job-summary').text(text);
+  }
+}
+
+
 //---------------------------------------------------------------
 function receiveJobUpdate(socket_data) {
   if(socket_data['status'] == 'COMPLETE') {
     console.log('job complete!');
-    $('#timer').text('Complete');
+    $('#job-status').text('Complete');
+    showJobSummary();
+    $('.delete-btn').hide();
   }
 }
 
@@ -480,12 +522,11 @@ function receiveCallUpdate(socket_data) {
     $row.find('[name="status"]').html(code);
   }
   if('code' in socket_data) {
+    $cell = $row.find('[name="message"]');
     code = socket_data['code'];
-    if(code == 'NORMAL_TEMPORARY_FAILURE')
-      code = 'Not in Service';
-    else
-      code = code.toTitleCase();
-    $row.find('[name="message"]').html(code);
+    //$cell.html(code);
+    formatCallStatus($cell, code);
+    //code = code.toTitleCase();
   }
   if('attempts' in socket_data)
     $row.find('[name="attempts"]').html(socket_data['attempts']);
@@ -500,26 +541,22 @@ function receiveCallUpdate(socket_data) {
 //---------------------------------------------------------------
 // View: show_calls
 // Display timer counting down until event_datetime
-function beginCountdown($timer, event_datetime) {
+function beginCountdown($summary_lbl, event_datetime) {
   var scheduled = Date.parse(event_datetime);
   
   window.countdown_id = setInterval(function() {
     var today = new Date();
     var diff_ms = scheduled.getTime() - today.getTime();
 
-/*    if(diff_ms < 0) {
-      $timer.text('Completed');
-      return;
-    }
-
-*/
     var diff_days = diff_ms / (1000 * 3600 * 24);
     var diff_hrs = ((diff_days + 1) % 1) * 24;
     var diff_min = ((diff_hrs + 1) % 1) * 60;
     var diff_sec = ((diff_min + 1) % 1) * 60;
     
-    $timer.text(
-      'Pending: ' + Math.floor(diff_days) + ' Days ' + 
+    $('#job-summary').css({'color':'#009900'});
+    
+    $summary_lbl.text(
+      Math.floor(diff_days) + ' Days ' + 
       Math.floor(diff_hrs) + ' Hours ' + 
       Math.floor(diff_min) + ' Min ' + 
       Math.floor(diff_sec) + ' Sec');

@@ -9,10 +9,11 @@
   </script>
   <br><br>
   <div class='h1' id='timer'>
-    <b>{{ job.status.title() }}</b>
+    <b><label id='job-status'>{{ job.status.title() }}</label></b>
+     (<label id='job-summary'></label>)
     <p id='scheduled_datetime' style='display:none'>{{ job.fire_dtime }}</p>
   </div>
-  <br>
+  <br><br>
   <div class="show-jobs-div">
   <div class='navbar-div'>
     <a class='hover' href="{{ url_for('show_jobs') }}">Jobs</a> / 

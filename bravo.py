@@ -34,7 +34,6 @@ def set_mode(mode):
     local_url = 'http://localhost:'+str(LOCAL_DEPLOY_PORT)
     pub_url = PUB_DOMAIN + PREFIX
 
-  print 'Bravo mode: ' + mode + '. \npub_url: ' + pub_url + '\nlocal_url: ' + local_url
   set_logger(logger, LOG_LEVEL, LOG_FILE)
 
 #-------------------------------------------------------------------
@@ -164,13 +163,17 @@ def monitor_job(job_id):
         # Job Complete!
         db['jobs'].update(
           {'_id': job_id},
-          {'$set': {'status': 'COMPLETE'}}
-        )
+          {'$set': {
+            'status': 'COMPLETE',
+            'ended_at': datetime.now()
+            }
+        })
        
+        create_job_summary(job_id)
         # Tell server to send completion sockets 
         completion_url = local_url + '/complete/' + str(job_id)
         requests.get(completion_url)
-        #create_job_summary(job_id)
+
         #send_email_report(job_id)
         break;
     # Redial calls as needed
@@ -191,7 +194,7 @@ def execute_job(job_id):
     msg = 'Could not execute job ' + str(job_id) + ' because systems are offline'
     #send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
     return False
- 
+    
   logger.info('\n\n********** Start Job ' + str(job_id) + ' **********')
   fire_msgs(job_id)
   time.sleep(60)
@@ -238,6 +241,8 @@ def fire_msg(msg):
         logger.error('400 error in fire_msg: ' + json.dumps(response))
         logger.info('Trying to sleep it off (10 sec)...')
         time.sleep(10)
+
+    logger.info('%s %s', msg['to'], fields['code'])
 
     db['msgs'].update(
       {'_id': msg['_id']}, 
@@ -379,7 +384,7 @@ def get_speak(job, msg, medium='voice', live=False):
   speak = ''
 
   if job['template'] == 'etw_reminder':
-    if msg['etw_status'] == 'Awaiting Dropoff':
+    if msg['etw_status'] == 'Dropoff':
       speak += (intro_str + 'dropoff date ' +
         'is ' + date_str + '. If you have any empties you can leave them ' +
         'out by 8am. ')
@@ -421,33 +426,41 @@ def log_sms(record, response):
 
 #-------------------------------------------------------------------
 def create_job_summary(job_id):
-  calls = list(db['msgs'].find({'job_id':job_id},{'_id':0}))
-  job = {
-    'summary': {
-      'busy': 0,
-      'no_answer': 0,
-      'delivered': 0,
-      'machine' : 0,
-      'failed' : 0
-    }
+  if isinstance(job_id, str):
+    job_id = ObjectId(job_id)
+
+  calls = db['msgs'].find({'job_id':job_id},{'_id':0})
+  
+  summary = {
+    'totals': {
+      'COMPLETE': 0,
+      'INCOMPLETE' : 0,
+      'FAILED' : 0
+    },
+    'calls': {}
   }
-  return True
-'''
+
   for call in calls:
-    if call['status'] == 'completed':
-      if call['message'] == 'left voicemail':
-        job['summary']['machine'] += 1
-      elif call['message'] == 'delivered':
-        job['summary']['delivered'] += 1
-    elif call['status'] == 'busy':
-      job['summary']['busy'] += 1
-    elif call['status'] == 'failed':
-      job['summary']['failed'] += 1
-  db['jobs'].update(
-    {'_id': job_id}, 
-    {'$set': job}
-  )
-'''
+    if call['status'] == 'COMPLETE':
+      summary['totals']['COMPLETE'] += 1
+    elif call['status'] == 'INCOMPLETE':
+      summary['totals']['INCOMPLETE'] += 1
+    elif call['status'] == 'FAILED':
+      summary['totals']['FAILED'] += 1
+
+    summary['calls'][call['name']] = {
+      'Phone': call['to'],
+      'Status': call['status'],
+      'Attempts': call['attempts']
+    }
+  
+  job = db['jobs'].find({'job_id':job_id})
+
+  delta = job['ended_at'] - job['fire_dtime']
+  
+  summary['Elapsed Time'] = delta.total_seconds()
+
+  return summary
 
 #-------------------------------------------------------------------
 def send_email_report(job_id):

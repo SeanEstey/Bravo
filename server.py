@@ -389,6 +389,7 @@ def edit_call(call_uuid):
       except Exception, e:
         logger.error('Could not parse event_date in /edit/call')
         return '400'
+    logger.info('Editing ' + fieldname + ' to value: ' + str(value))
     db['msgs'].update(
         {'_id':ObjectId(call_uuid)}, 
         {'$set':{fieldname: value}}
@@ -615,7 +616,7 @@ def process_machine():
       'aleg_url' : bravo.pub_url +'/call/voicemail',
       'aleg_method': 'POST'
     })
-    logger.info('/call/machine forwarding to url: ' + bravo.pub_url + '/call/voicemail')
+    logger.info(request.form.get('To') + ' machine detected')
     return Response(str(response), mimetype='text/xml')
   except Exception, e:
     logger.error('%s /call/machine' % request.form.get('To'), exc_info=True)

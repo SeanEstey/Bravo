@@ -451,16 +451,20 @@ def create_job_summary(job_id):
     summary['calls'][call['name']] = {
       'Phone': call['to'],
       'Status': call['status'],
-      'Attempts': call['attempts']
+      'Attempts': call['attempts'],
+      'Code': call['code']
     }
+
+    if 'call_uuid' in call:
+      summary['calls'][call['name']]['Call_UUID'] = call['call_uuid']
   
-  job = db['jobs'].find({'job_id':job_id})
+  job = db['jobs'].find_one({'_id':job_id})
 
   delta = job['ended_at'] - job['fire_dtime']
   
-  summary['Elapsed Time'] = delta.total_seconds()
+  summary['elapsed'] = delta.total_seconds()
 
-  return summary
+  return json.dumps(summary)
 
 #-------------------------------------------------------------------
 def send_email_report(job_id):

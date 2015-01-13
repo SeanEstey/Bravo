@@ -1,5 +1,7 @@
   {% extends "base.html" %}
-  {% block content %}  
+  {% block content %} 
+  <script type='text/javascript' src="{{url_for('static', filename='json2html.js')}}"</script>
+  <script type='text/javascript' src="{{url_for('static', filename='jquery.json2html.js')}}"</script>
   <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
   <script>
     document.write('<style type="text/css">body{display:none}</style>');
@@ -64,5 +66,6 @@
     <br><br>
     <a class='hover' id='execute-job' href="#">[Start Job]</a>
     <a class='hover' id='reset-job' href="#">[Reset Job]</a>
+    <a class='hover' id='dump' href='#'>[DB Dump]</a>
   </div>
   {% endblock %}

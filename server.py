@@ -157,6 +157,12 @@ def index():
   return render_template('show_jobs.html', title=os.environ['title'], jobs=jobs)
   #return render_template('main.html')
 
+#-------------------------------------------------------------------
+@app.route('/summarize/<job_id>')
+def get_job_summary(job_id):
+  job_id = job_id.encode('utf-8')
+  summary = bravo.create_job_summary(job_id)
+  return render_template('job_summary.html', title=os.environ['title'], summary=summary)
 
 #-------------------------------------------------------------------
 @app.route('/get/template/<name>')

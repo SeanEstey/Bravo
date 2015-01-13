@@ -349,6 +349,8 @@ function initShowCallsView() {
 
   // Show only on test server
   if(location.port == 8080) {
+    var args =  window.location.pathname.split('/');
+    var job_uuid = args.slice(-1)[0];
     $('#execute-job').click(function() {
       var url = $SCRIPT_ROOT + '/execute/' + job_uuid;
       console.log('execute_job url: ' + url);
@@ -363,10 +365,12 @@ function initShowCallsView() {
         url: $SCRIPT_ROOT + '/reset/' + job_uuid
       });
     });
+    $('#dump').attr('href', $SCRIPT_ROOT + '/summarize/' + String(job_uuid));
   }
   else {
     $('#execute-job').hide();
     $('#reset-job').hide();
+    $('#dump').hide();
   }
 
 
@@ -593,4 +597,20 @@ function initShowJobs() {
   });
 
   $('body').css('display','block');
+}
+
+function initJobSummary() {
+  var data = $('#content').text();
+  data = JSON.stringify(JSON.parse(data),null,2);
+/*  var find = '{';
+  var re = new RegExp(find, 'g');
+//  console.log('data len='+String(data.length));
+  data = data.replace(re, '<br>');
+  var re2 = new RegExp('}', 'g');
+  data = data.replace(re2, '<br>');
+  console.log(data);
+//  data = data.replace('{', '<br>');*/
+  $('#content').html(data);
+  //$('#header').json2html(data, transform);
+//  $('#header').appendTo($('#header'));
 }

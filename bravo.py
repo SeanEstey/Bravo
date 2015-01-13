@@ -135,68 +135,101 @@ def systems_check():
 @celery.task
 def monitor_job(job_id):
   logger.info('Monitoring job %s' % str(job_id))
-
-  while True:
-    redial_query = {
-      'job_id':job_id,
-      'attempts': {'$lt': MAX_ATTEMPTS}, 
-      '$or':[
-        {'code': 'NO_ENDPOINT'},
-        {'code': 'USER_BUSY'},
-        {'code': 'NO_ANSWER'}
-    ]}
-    redials = db['msgs'].find(redial_query)
-   
-    # If no redials, test for job completion
-    if redials.count() == 0:
-      query_in_progress = {
-        'job_id': job_id,
+  
+  try:
+    while True:
+      redial_query = {
+        'job_id':job_id,
+        'attempts': {'$lt': MAX_ATTEMPTS}, 
         '$or':[
-          {'status': 'IN_PROGRESS'},
-          {'status': 'PENDING'},
-          {'status': 'RINGING'},
-          {'status': 'ANSWERED'}
+          {'code': 'NO_ENDPOINT'},
+          {'code': 'USER_BUSY'},
+          {'code': 'NO_ANSWER'}
       ]}
-      in_progress = db['msgs'].find(query_in_progress)
+      redials = db['msgs'].find(redial_query)
+     
+      # If no redials, test for job completion
+      if redials.count() == 0:
+        query_in_progress = {
+          'job_id': job_id,
+          '$or':[
+            {'status': 'IN_PROGRESS'},
+            {'status': 'PENDING'},
+            {'status': 'RINGING'},
+            {'status': 'ANSWERED'}
+        ]}
+        in_progress = db['msgs'].find(query_in_progress)
 
-      if in_progress.count() == 0:
-        # Job Complete!
-        db['jobs'].update(
-          {'_id': job_id},
-          {'$set': {
-            'status': 'COMPLETE',
-            'ended_at': datetime.now()
-            }
-        })
-       
-        create_job_summary(job_id)
-        # Tell server to send completion sockets 
-        completion_url = local_url + '/complete/' + str(job_id)
-        requests.get(completion_url)
+        if in_progress.count() == 0:
+          # Job Complete!
+          db['jobs'].update(
+            {'_id': job_id},
+            {'$set': {
+              'status': 'COMPLETE',
+              'ended_at': datetime.now()
+              }
+          })
+         
+          create_job_summary(job_id)
+          # Tell server to send completion sockets 
+          completion_url = local_url + '/complete/' + str(job_id)
+          requests.get(completion_url)
+          #send_email_report(job_id)
+          break;
+      # Redial calls as needed
+      else:
+        logger.info('Attempting redial ' + str(redials.count()) + ' calls')
+        for redial in redials:
+          fire_msg(redial)
 
-        #send_email_report(job_id)
-        break;
-    # Redial calls as needed
-    else:
-      logger.info('Attempting redial ' + str(redials.count()) + ' calls')
-      for redial in redials:
-        fire_msg(redial)
-
-    time.sleep(REDIAL_DELAY)
+      time.sleep(REDIAL_DELAY)
+  except Exception, e:
+    logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
+    return str(e)
 
 #-------------------------------------------------------------------
 @celery.task
 def execute_job(job_id):
-  if isinstance(job_id, str):
-    job_id = ObjectId(job_id)
+  try:
+    if isinstance(job_id, str):
+      job_id = ObjectId(job_id)
 
-  if not systems_check():
-    msg = 'Could not execute job ' + str(job_id) + ' because systems are offline'
-    #send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
-    return False
+    if not systems_check():
+      msg = 'Systems check failed during execution of job_id ' + str(job_id)
+      #send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
+      logger.error(msg)
+      return False
+  
+    job = db['jobs'].find_one({'_id':job_id})
+    # Default call order is alphabetically by name
+    messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
+
+    if not messages:
+      logger.error('No msgs in job_id ' + str(job_id))
+      return False
+
+    logger.info('\n\n********** Start Job ' + str(job_id) + ' **********')
     
-  logger.info('\n\n********** Start Job ' + str(job_id) + ' **********')
-  fire_msgs(job_id)
+    db['jobs'].update(
+      {'_id': job['_id']},
+      {'$set': {
+        'status': 'IN_PROGRESS',
+        'started_at': datetime.now()
+        }
+      }
+    )
+  except Exception, e:
+    logger.error('execute_job job_id %s', str(job_id), exc_info=True)
+    return str(e)
+
+  # Fire all voice calls and SMS
+  for msg in messages:
+    fire_msg(msg)
+    # Cap at 1/sec for testing
+    time.sleep(1)
+
+  logger.info('All calls fired for job %s' % str(job_id))
+  logger.info('Sleeping for 60s...')
   time.sleep(60)
   monitor_job(job_id)
   logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
@@ -253,38 +286,7 @@ def fire_msg(msg):
     logger.error('%s fire_msg.', exc_info=True)
     return str(e)
 
-#-------------------------------------------------------------------
-# job_id is the default _id field created for each jobs document by mongo
-def fire_msgs(job_id):
-  if isinstance(job_id, str):
-    job_id = ObjectId(job_id)
-    logger.info('job_id was a str')
-  try:
-    logger.info(type(job_id))
-    job = db['jobs'].find_one({'_id':job_id})
-    # Default call order is alphabetically by name
-    messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
 
-    if not messages:
-      logger.info('No messages to fire for job_id ' + str(job_id) + '!')
-      return False
-
-    db['jobs'].update(
-      {'_id': job['_id']},
-      {'$set': {'status': 'IN_PROGRESS'}}
-    )
-
-    # Fire all voice calls and SMS
-    for msg in messages:
-      fire_msg(msg)
-      # Cap at 1/sec for testing
-      time.sleep(1)
-
-    logger.info('All calls fired for job %s' % str(job_id))
-    return True
-  except Exception, e:
-    logger.error('%s fire_msgs.', exc_info=True)
-    return str(e)
 
 #-------------------------------------------------------------------
 # Run on fixed schedule from crontab, cycles through pending jobs
@@ -469,7 +471,7 @@ def create_job_summary(job_id):
   
   job = db['jobs'].find_one({'_id':job_id})
 
-  delta = job['ended_at'] - job['fire_dtime']
+  delta = job['ended_at'] - job['started_at']
   
   summary['elapsed'] = delta.total_seconds()
 

@@ -1,8 +1,9 @@
   {% extends "base.html" %}
   {% block content %}  
   <script>
+    document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
-      initJobSummary()
+      initJobSummary();
     });
   </script>
   <div id='header' class="h1">Job Summary</div>

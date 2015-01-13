@@ -327,8 +327,6 @@ function initShowCallsView() {
   
   $('body').css('display','block');
 
-
-
   // Init socket.io
   var socketio_url = 'http://' + document.domain + ':' + location.port;
   console.log('attempting socket.io connection to ' + socketio_url + '...');
@@ -372,8 +370,6 @@ function initShowCallsView() {
     $('#reset-job').hide();
     $('#dump').hide();
   }
-
-
 }
 
 //---------------------------------------------------------------
@@ -606,18 +602,20 @@ function initJobSummary() {
   var l_brace = new RegExp(/\{/g);
   var comma = new RegExp(/,/g);
   var quotes = new RegExp(/\"/g);
+  var colon = new RegExp(/:/g);
   var html = '<DL>';
   var list = JSON.parse(data);
 
   for(var k in list['calls']) {
     if(list['calls'].hasOwnProperty(k)) {
-      html += '<DT>"' + k + '":';
+      html += '<DT>"<label style="color:green;">' + k + '</label>":';
       var call = JSON.stringify(list['calls'][k]);
-      call = call.replace(l_brace, '').replace(r_brace, '').replace(comma, '<BR>').replace(quotes, ' ');
+      call = call.replace(l_brace, '').replace(r_brace, '').replace(comma, '</label><BR>').replace(quotes, ' ').replace(colon, ': <label style="color:green;">');
       html += '<DD>' + call + '<br><br>';
     }
   }
   html += '</DL>';
 
   $('#content').html(html);
+  $('body').css('display','block');
 }

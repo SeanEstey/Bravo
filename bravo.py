@@ -449,14 +449,23 @@ def create_job_summary(job_id):
       summary['totals']['FAILED'] += 1
 
     summary['calls'][call['name']] = {
-      'Phone': call['to'],
-      'Status': call['status'],
-      'Attempts': call['attempts'],
-      'Code': call['code']
+      'phone': call['to'],
+      'status': call['status'],
+      'attempts': call['attempts'],
+      'code': call['code']
     }
 
+    if 'request_uuid' in call:
+      summary['calls'][call['name']]['request_uuid'] = call['request_uuid']
     if 'call_uuid' in call:
-      summary['calls'][call['name']]['Call_UUID'] = call['call_uuid']
+      summary['calls'][call['name']]['call_uuid'] = call['call_uuid']
+    if 'hangup_cause' in call:
+      summary['calls'][call['name']]['hangup_cause'] = call['hangup_cause']
+    if 'machine' in call:
+      summary['calls'][call['name']]['machine_detected'] = 'Yes'
+    else:
+      summary['calls'][call['name']]['machine_detected'] = 'No'
+
   
   job = db['jobs'].find_one({'_id':job_id})
 

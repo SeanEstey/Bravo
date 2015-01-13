@@ -612,7 +612,8 @@ def process_machine():
   try:
     logger.debug('Machine detected. %s' % request.values.items())
     log_call_db(request.form.get('RequestUUID'), {
-      'code': 'MACHINE_ANSWERED'
+      'code': 'MACHINE_ANSWERED',
+      'machine': True
     })
     call_uuid = request.form.get('CallUUID')
     server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)

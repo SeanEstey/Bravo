@@ -599,18 +599,25 @@ function initShowJobs() {
   $('body').css('display','block');
 }
 
+//---------------------------------------------------------------
 function initJobSummary() {
   var data = $('#content').text();
-  data = JSON.stringify(JSON.parse(data),null,2);
-/*  var find = '{';
-  var re = new RegExp(find, 'g');
-//  console.log('data len='+String(data.length));
-  data = data.replace(re, '<br>');
-  var re2 = new RegExp('}', 'g');
-  data = data.replace(re2, '<br>');
-  console.log(data);
-//  data = data.replace('{', '<br>');*/
-  $('#content').html(data);
-  //$('#header').json2html(data, transform);
-//  $('#header').appendTo($('#header'));
+  var r_brace = new RegExp(/\}/g);
+  var l_brace = new RegExp(/\{/g);
+  var comma = new RegExp(/,/g);
+  var quotes = new RegExp(/\"/g);
+  var html = '<DL>';
+  var list = JSON.parse(data);
+
+  for(var k in list['calls']) {
+    if(list['calls'].hasOwnProperty(k)) {
+      html += '<DT>"' + k + '":';
+      var call = JSON.stringify(list['calls'][k]);
+      call = call.replace(l_brace, '').replace(r_brace, '').replace(comma, '<BR>').replace(quotes, ' ');
+      html += '<DD>' + call + '<br><br>';
+    }
+  }
+  html += '</DL>';
+
+  $('#content').html(html);
 }

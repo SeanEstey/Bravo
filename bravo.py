@@ -1,4 +1,5 @@
 from config import *
+from secret import *
 from celery import Celery
 from celery.utils.log import get_task_logger
 from bson.objectid import ObjectId
@@ -135,54 +136,48 @@ def systems_check():
 @celery.task
 def monitor_job(job_id):
   logger.info('Monitoring job %s' % str(job_id))
-  
   try:
     while True:
-      redial_query = {
-        'job_id':job_id,
-        'attempts': {'$lt': MAX_ATTEMPTS}, 
+      # Any active msg's?
+      if db['msgs'].find({
+        'job_id': job_id,
         '$or':[
-          {'code': 'NO_ENDPOINT'},
-          {'code': 'USER_BUSY'},
-          {'code': 'NO_ANSWER'}
-      ]}
-      redials = db['msgs'].find(redial_query)
-     
-      # If no redials, test for job completion
-      if redials.count() == 0:
-        query_in_progress = {
-          'job_id': job_id,
-          '$or':[
-            {'status': 'IN_PROGRESS'},
-            {'status': 'PENDING'},
-            {'status': 'RINGING'},
-            {'status': 'ANSWERED'}
-        ]}
-        in_progress = db['msgs'].find(query_in_progress)
-
-        if in_progress.count() == 0:
-          # Job Complete!
-          db['jobs'].update(
-            {'_id': job_id},
-            {'$set': {
-              'status': 'COMPLETE',
-              'ended_at': datetime.now()
-              }
-          })
-         
-          create_job_summary(job_id)
-          # Tell server to send completion sockets 
-          completion_url = local_url + '/complete/' + str(job_id)
-          requests.get(completion_url)
-          #send_email_report(job_id)
-          break;
-      # Redial calls as needed
+          {'status': 'IN_PROGRESS'},
+          {'status': 'PENDING'}
+        ]
+      }).count() == 0:
+        # Job Complete!
+        db['jobs'].update(
+          {'_id': job_id},
+          {'$set': {
+            'status': 'COMPLETE',
+            'ended_at': datetime.now()
+            }
+        })
+        create_job_summary(job_id)
+        completion_url = local_url + '/complete/' + str(job_id)
+        requests.get(completion_url)
+        #send_email_report(job_id)
+        return
+      # Job still in progress. Any incomplete calls need redialing?
       else:
-        logger.info('Attempting redial ' + str(redials.count()) + ' calls')
-        for redial in redials:
-          fire_msg(redial)
-
-      time.sleep(REDIAL_DELAY)
+        redials = db['msgs'].find({
+          'job_id':job_id,
+          'attempts': {'$lt': MAX_ATTEMPTS}, 
+          '$or':[
+            {'code': 'NO_ENDPOINT'},
+            {'code': 'USER_BUSY'},
+            {'code': 'NO_ANSWER'}
+          ]
+        })
+        if redials.count() > 0:
+          logger.info(str(redials.count()) + ' calls incomplete. Pausing for ' + str(REDIAL_DELAY) + 's then redialing...')
+          time.sleep(REDIAL_DELAY)
+          for redial in redials:
+            fire_msg(redial)
+        else:
+          time.sleep(10)
+      # End loop
   except Exception, e:
     logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
     return str(e)
@@ -228,8 +223,7 @@ def execute_job(job_id):
     # Cap at 1/sec for testing
     time.sleep(1)
 
-  logger.info('All calls fired for job %s' % str(job_id))
-  logger.info('Sleeping for 60s...')
+  logger.info('All calls fired for job %s. Sleeping 60s...', str(job_id))
   time.sleep(60)
   monitor_job(job_id)
   logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
@@ -286,12 +280,10 @@ def fire_msg(msg):
     logger.error('%s fire_msg.', exc_info=True)
     return str(e)
 
-
-
 #-------------------------------------------------------------------
 # Run on fixed schedule from crontab, cycles through pending jobs
 # and dispatches celery worker when due 
-def check_job_schedule():
+def run_scheduler():
   if not systems_check():
     return False 
 

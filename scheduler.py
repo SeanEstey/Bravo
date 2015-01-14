@@ -3,4 +3,5 @@ os.chdir('/root/bravo')
 
 import bravo
 
-bravo.check_job_schedule()
+bravo.set_mode('deploy')
+bravo.run_scheduler()

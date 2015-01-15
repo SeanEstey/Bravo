@@ -48,23 +48,23 @@ def log_call_db(request_uuid, fields, sendSocket=True):
   send_socket('update_call', fields)
 
 #-------------------------------------------------------------------
-def parse_csv(csvfile, header_template):
+def parse_csv(csvfile, template):
   reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
   buffer = []
   header_err = False 
   header_row = reader.next() 
 
-  if len(header_row) != len(header_template):
+  if len(header_row) != len(template):
     header_err = True
   else:
     for col in range(0, len(header_row)):
-      if header_row[col] != header_template[col]:
+      if header_row[col] != template[col]['header']:
         header_err = True
         break
 
   if header_err:
       msg = 'Your file is missing the proper header rows:<br> \
-      <b>' + str(header_template) + '</b><br><br>' \
+      <b>' + str(template) + '</b><br><br>' \
       'Here is your header row:<br><b>' + str(header_row) + '</b><br><br>' \
       'Please fix your mess and try again.'
       return redirect(url_for('show_error',  msg=msg))
@@ -74,7 +74,7 @@ def parse_csv(csvfile, header_template):
   line_num = 1
   for row in reader:
     # verify columns match template
-    if len(row) != len(header_template):
+    if len(row) != len(template):
       msg = 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
       ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
       return redirect(url_for('show_error', msg=msg))
@@ -90,25 +90,27 @@ def create_msg_record(job, idx, buf_row, errors):
   msg = {
     'job_id': job['_id'],
     'status': 'PENDING',
-    'attempts': 0
+    'attempts': 0,
+    'imported': {}
   }
   # Translate column names to mongodb names ('Phone'->'to', etc)
-  headers = TEMPLATE_HEADERS[job['template']]
-  for col in range(0, len(headers)):
-    col_name = headers[col]
-    if HEADERS_TO_MONGO[col_name] == 'event_date':
+  template = TEMPLATE[job['template']]
+  for col in range(0, len(template)):
+    field = template[col]['field']
+    if field != 'event_date':
+      msg['imported'][field] = buf_row[col]
+    else:
       if buf_row[col] == '':
         errors.append('Row '+str(idx+1)+ ' is missing a date<br>')
         return False
       try:
         event_dt_str = parse(buf_row[col])
-        msg[HEADERS_TO_MONGO[col_name]] = event_dt_str
+        msg['imported'][field] = event_dt_str
       except TypeError as e:
         errors.append('Row '+str(idx+1)+ ' has an invalid date: '+str(buf_row[col])+'<br>')
         return False 
-    else:
-      msg[HEADERS_TO_MONGO[col_name]] = buf_row[col]
-  msg['to'] = bravo.strip_phone_num(msg['to'])
+
+  #msg['to'] = bravo.strip_phone_num(msg['to'])
   return msg
 
 #-------------------------------------------------------------------
@@ -224,7 +226,7 @@ def create_job():
   # Open and parse file
   try:
     with codecs.open(file_path, 'r', 'utf-8-sig') as f:
-      buffer = parse_csv(f, TEMPLATE_HEADERS[request.form['template']])
+      buffer = parse_csv(f, TEMPLATE[request.form['template']])
       if isinstance (buffer, werkzeug.wrappers.Response):
         return buffer
   except Exception as e:
@@ -269,7 +271,8 @@ def create_job():
   logger.info('Calls added to DB for job %s' % str(job_id))
 
   return redirect(url_for(
-    'show_calls', 
+    'show_calls',
+    template=TEMPLATE[request.form['template']],
     job_id=str(job_id), 
     calls=db['msgs'].find({'job_id':job_id}),
     job=db['jobs'].find_one({'_id':job_id})
@@ -298,22 +301,13 @@ def show_calls(job_id):
   calls = db['msgs'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
   job = db['jobs'].find_one({'_id':ObjectId(job_id)})
 
-  columns = [
-    'name', 
-    'to', 
-    'etw_status', 
-    'event_date', 
-    'office_notes', 
-    'status'
-  ]
-
   return render_template(
     'show_calls.html', 
     title=os.environ['title'],
     calls=calls, 
     job_id=job_id, 
     job=job,
-    columns=columns 
+    template=TEMPLATE[job['template']]
   )
 
 #-------------------------------------------------------------------
@@ -397,9 +391,10 @@ def edit_call(call_uuid):
         logger.error('Could not parse event_date in /edit/call')
         return '400'
     logger.info('Editing ' + fieldname + ' to value: ' + str(value))
+    field = 'imported.'+fieldname
     db['msgs'].update(
         {'_id':ObjectId(call_uuid)}, 
-        {'$set':{fieldname: value}}
+        {'$set':{field: value}}
     )
   return 'OK'
 

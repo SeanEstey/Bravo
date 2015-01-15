@@ -23,10 +23,11 @@
       <thead>
         <tr>
           {% set col_num=1 %}
-          {% for column in columns %}
-          <th id='col{{ col_num }}'><a title='Sort' class='hover' href='#'>{{ column.title().replace('_', ' ') }}</a></th>
+          {% for column in template %}
+          <th id='col{{ col_num }}'><a title='Sort' class='hover' href='#'>{{ column['field'].title().replace('_', ' ') }}</a></th>
           {% set col_num = col_num + 1 %}
           {% endfor %}
+          <th id='col{{col_num}}'><a title='Sort' class='hover' href='#'>Message</a></th>
           <th></th>
         </tr>
       </thead>
@@ -34,15 +35,17 @@
         {% set row_num=1 %}
         {%  for call in calls %}
         <tr id='{{ call._id }}'>
-          <td name='name' style='width:15%;'>{{ call.name }}</td>
-          <td name='to'>{{ call.to.replace(' ', '').strip() }}</td>
-          <td name='etw_status'>{{ call.etw_status }}</td>
-          <td name='event_date' class='call_date_td'>{{ call.event_date }}</td>
-          <td name='office_notes' >{{ call.office_notes }}</td>
+          {% for column in template %}
+            <td name='{{column.field}}'>{{call.imported[column.field]}}</td>
+          {% endfor %}
+          {#<td name='name' style='width:15%;'>{{ call.imported.name }}</td>
+          <td name='to'>{{ call.imported.to.replace(' ', '').strip() }}</td>
+          <td name='event_date' class='call_date_td'>{{ call.imported.event_date }}</td>
+          #}
           {% if 'speak' in call %}
             <td name='message' title='"{{call.speak}}"' class='call_msg_td' >{{ call.code }}</td>
           {% elif call.status == "PENDING" %}
-            <td name='message' class='call_msg_td' ></td>
+            <td name='message' class='call_msg_td'>Pending</td>
           {% else %}
             <td name='message' class='call_msg_td' >{{ call.code + ' (' ~ call.attempts + 'x)' }}</td>
           {% endif %}

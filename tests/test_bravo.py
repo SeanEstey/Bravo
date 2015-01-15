@@ -69,9 +69,6 @@ class BravoTestCase(unittest.TestCase):
     response = bravo.sms(self.msg['to'], 'sms unittest')
     self.assertEquals(response[0], 202, msg=json.dumps(response))
 
-  def test_bravo_check_job_schedule(self):
-    from bravo import check_job_schedule
-
   def test_bravo_systems_check(self):
     self.assertTrue(bravo.systems_check)
 
@@ -89,8 +86,8 @@ class BravoTestCase(unittest.TestCase):
     response = bravo.fire_msg(self.msg)
     self.assertNotEquals(response[0], 400)
 
-  def test_bravo_fire_msgs(self):
-    self.assertTrue(bravo.fire_msgs(self.job_id))
+  def test_bravo_execute_job(self):
+    self.assertTrue(bravo.execute_job(self.job_id))
 
   def test_get_speak_etw_active(self):
     speak = bravo.get_speak(self.job, self.msg)
@@ -192,7 +189,7 @@ class BravoTestCase(unittest.TestCase):
       ('To', self.msg['to']) 
     ])
     res = requests.post(bravo.pub_url+'/call/machine', data=payload)
-    self.assertEquals(response.status_code, 200)
+    self.assertEquals(res.status_code, 200)
 
   def test_call_hangup_post(self):
     from werkzeug.datastructures import MultiDict

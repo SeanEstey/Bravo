@@ -436,7 +436,7 @@ function makeCallFieldsClickable() {
       return;
     if($('#timer').text().indexOf('Pending') < 0)
       return;
-    if(name == 'status' || name == 'message' || name == 'attempts')
+    if(name == 'message' || name == 'attempts')
       return;
     if($cell.find('input').length > 0)
       return;

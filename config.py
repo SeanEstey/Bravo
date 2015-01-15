@@ -27,43 +27,7 @@ ALLOWED_EXTENSIONS = set(['csv','xls'])
 PUB_DOMAIN = 'http://seanestey.ca'
 PREFIX = '/bravo'
 
-TEMPLATE_HEADERS = { 
-  'etw_reminder': [
-    'Name', 
-    'Phone', 
-    'Status', 
-    'Next P/U Date', 
-    'Office Notes'
-  ],
-  'etw_welcome': [
-    'Name', 
-    'Phone', 
-    'Status', 
-    'Next P/U Date', 
-    'Office Notes'
-  ],
-  'special_msg': [
-    'Name', 
-    'Phone', 
-    'Date'
-  ],
-  'gg_delivery': [
-    'Name', 
-    'Phone', 
-    'Date', 
-    'Price'
-  ]
-}
-
-HEADERS_TO_MONGO = {
-  'Name': 'name',
-  'Phone': 'to',
-  'Status': 'etw_status',
-  'Next P/U Date': 'event_date',
-  'Office Notes': 'office_notes',
-}
-
-new_template = {
+TEMPLATE = {
   'etw_reminder': [
     {'header': 'Name', 'field': 'name'},
     {'header': 'Phone', 'field': 'to'},

@@ -227,6 +227,7 @@ def execute_job(job_id):
   time.sleep(60)
   monitor_job(job_id)
   logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
+  return True
 
 #-------------------------------------------------------------------
 # message_uuid: primary msg ID for SMS returned in Plivo response
@@ -236,7 +237,7 @@ def fire_msg(msg):
   try:
     # Voice Call
     if not 'sms' in msg:
-      response = dial(msg['to'])
+      response = dial(msg['imported']['to'])
       # Status Code on success = 201
       if response[0] != 400:
         fields['request_uuid'] = response[1]['request_uuid']
@@ -247,7 +248,7 @@ def fire_msg(msg):
     else:
       job = db['jobs'].find_one({'_id':msg['job_id']})
       text = get_speak(job, msg, medium='sms')
-      response = sms(msg['to'], text)
+      response = sms(msg['imported']['to'], text)
       # Status Code on success = 202
       if response[0] != 400:
         fields['message_uuid'] = response[1]['message_uuid'][0]
@@ -269,7 +270,7 @@ def fire_msg(msg):
         logger.info('Trying to sleep it off (10 sec)...')
         time.sleep(10)
 
-    logger.info('%s %s', msg['to'], fields['code'])
+    logger.info('%s %s', msg['imported']['to'], fields['code'])
 
     db['msgs'].update(
       {'_id': msg['_id']}, 
@@ -321,7 +322,8 @@ def dial(to):
     'fallback_url': pub_url + '/call/fallback',
     'fallback_method': 'POST',
     'machine_detection': 'true',
-    'machine_detection_url': pub_url + '/call/machine'
+    'machine_detection_url': pub_url + '/call/machine',
+    'machine_detection_time': 7500
   }
 
   logger.debug('Dialing: ' + json.dumps(params))
@@ -442,23 +444,23 @@ def create_job_summary(job_id):
     elif call['status'] == 'FAILED':
       summary['totals']['FAILED'] += 1
 
-    summary['calls'][call['name']] = {
-      'phone': call['to'],
+    summary['calls'][call['imported']['name']] = {
+      'phone': call['imported']['to'],
       'status': call['status'],
       'attempts': call['attempts'],
       'code': call['code']
     }
 
     if 'request_uuid' in call:
-      summary['calls'][call['name']]['request_uuid'] = call['request_uuid']
+      summary['calls'][call['imported']['name']]['request_uuid'] = call['request_uuid']
     if 'call_uuid' in call:
-      summary['calls'][call['name']]['call_uuid'] = call['call_uuid']
+      summary['calls'][call['imported']['name']]['call_uuid'] = call['call_uuid']
     if 'hangup_cause' in call:
-      summary['calls'][call['name']]['hangup_cause'] = call['hangup_cause']
+      summary['calls'][call['imported']['name']]['hangup_cause'] = call['hangup_cause']
     if 'machine' in call:
-      summary['calls'][call['name']]['machine_detected'] = 'Yes'
+      summary['calls'][call['imported']['name']]['machine_detected'] = 'Yes'
     else:
-      summary['calls'][call['name']]['machine_detected'] = 'No'
+      summary['calls'][call['imported']['name']]['machine_detected'] = 'No'
 
   
   job = db['jobs'].find_one({'_id':job_id})

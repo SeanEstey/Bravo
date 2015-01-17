@@ -379,9 +379,13 @@ def get_speak(job, msg, medium='voice', live=False):
     
     if medium == 'voice' and live == True:
       speak += repeat_voice
+  elif job['template'] == 'gg_delivery':
+    speak = ('Hi, this is friendly reminder that your green goods delivery will be on ' +
+      date_str + '. Your order total is ' + msg['imported']['price'] + '. ')
+    if medium == 'voice' and live == True:
+      speak += repeat_voice
   elif job['template'] == 'special_msg':
-    speak = job['message'] 
-    print 'TODO'
+    speak = job['speak'] 
 
   return speak
 

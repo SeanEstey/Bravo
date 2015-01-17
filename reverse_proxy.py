@@ -1,5 +1,6 @@
 import os
 import bravo
+import json
 
 '''Wrap the application in this middleware and configure the 
 front-end server to add these headers, to let you quietly bind 
@@ -9,11 +10,11 @@ different than what is used locally
 class ReverseProxied(object):
   def __init__(self, app):
     self.app = app
-    self.public_url = ''
 
   def __call__(self, environ, start_response):
     scheme = environ.get('HTTP_X_SCHEME', '')
     script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
+    server = environ.get('HTTP_X_FORWARDED_SERVER', '') 
 
     if script_name:
       environ['SCRIPT_NAME'] = script_name
@@ -24,12 +25,11 @@ class ReverseProxied(object):
     if scheme:
       environ['wsgi.url_scheme'] = scheme
 
+    if server: 
+      environ['HTTP_HOST'] = server
+
     full_url = scheme + '://' + environ['HTTP_HOST'] + script_name
     if full_url.find('localhost') < 0:
       os.environ['PUB_URL'] = full_url
-     # print 'ReverseProxied called! ' + os.environ['PUB_URL']
 
     return self.app(environ, start_response)
-
-  def getPublicUrl(self):
-    return self.public_url

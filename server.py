@@ -50,7 +50,9 @@ def parse_csv(csvfile, template):
   reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
   buffer = []
   header_err = False 
-  header_row = reader.next() 
+  header_row = reader.next()
+  logger.info('template='+str(template)) 
+  logger.info('header row='+str(header_row))
 
   if len(header_row) != len(template):
     header_err = True
@@ -61,25 +63,24 @@ def parse_csv(csvfile, template):
         break
 
   if header_err:
-      msg = 'Your file is missing the proper header rows:<br> \
-      <b>' + str(template) + '</b><br><br>' \
-      'Here is your header row:<br><b>' + str(header_row) + '</b><br><br>' \
-      'Please fix your mess and try again.'
-      return redirect(url_for('show_error',  msg=msg))
+    return 'Your file is missing the proper header rows:<br> \
+    <b>' + str(template) + '</b><br><br>' \
+    'Here is your header row:<br><b>' + str(header_row) + '</b><br><br>' \
+    'Please fix your mess and try again.'
 
   # DELETE FIRST EMPTY ROW FROM ETAP FILE EXPORT
   reader.next()
   line_num = 1
   for row in reader:
+    logger.info('row '+str(line_num)+'='+str(row)+' ('+str(len(row))+' elements)')
     # verify columns match template
     if len(row) != len(template):
-      msg = 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
+      return 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
       ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
-      return redirect(url_for('show_error', msg=msg))
     else:
       buffer.append(row)
     line_num += 1
-
+  logger.info('Parsed ' + str(line_num) + ' rows in CSV')
   return buffer
 
 def create_msg_record(job, idx, buf_row, errors):
@@ -91,6 +92,7 @@ def create_msg_record(job, idx, buf_row, errors):
     'imported': {}
   }
   # Translate column names to mongodb names ('Phone'->'to', etc)
+  logger.info(str(buf_row))
   template = TEMPLATE[job['template']]
   for col in range(0, len(template)):
     field = template[col]['field']
@@ -159,10 +161,13 @@ def get_job_summary(job_id):
 
 @app.route('/get/template/<name>')
 def get_template(name):
-  if not name in TEMPLATE_HEADERS:
+  if not name in TEMPLATE:
     return False
   else:
-    return json.dumps(TEMPLATE_HEADERS[name])
+    headers = []
+    for col in TEMPLATE[name]:
+      headers.append(col['header'])
+    return json.dumps(headers)
 
 @app.route('/get/<var>')
 def get_var(var):
@@ -206,14 +211,15 @@ def create_job():
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename)) 
     file_path = app.config['UPLOAD_FOLDER'] + '/' + filename
   else:
-    return redirect(url_for('show_error', msg='Could not save file'))
+    msg = 'Could not save file'
+    return render_template('error.html', title=os.environ['title'], msg=msg)
  
   # Open and parse file
   try:
     with codecs.open(file_path, 'r', 'utf-8-sig') as f:
       buffer = parse_csv(f, TEMPLATE[request.form['template']])
-      if isinstance (buffer, werkzeug.wrappers.Response):
-        return buffer
+      if type(buffer) == str:
+        return render_template('error.html', title=os.environ['title'], msg=buffer)
   except Exception as e:
     logger.error(str(e))
     return False
@@ -250,18 +256,12 @@ def create_job():
     msg = 'File had the following errors:<br>' + json.dumps(errors)
     # Delete job record
     db['jobs'].remove({'_id':job_id})
-    return redirect(url_for('show_error', msg=msg))
+    return render_template('error.html', title=os.environ['title'], msg=msg)
 
   db['msgs'].insert(records)
   logger.info('Calls added to DB for job %s' % str(job_id))
 
-  return redirect(url_for(
-    'show_calls',
-    template=TEMPLATE[request.form['template']],
-    job_id=str(job_id), 
-    calls=db['msgs'].find({'job_id':job_id}),
-    job=db['jobs'].find_one({'_id':job_id})
-  ))
+  return show_calls(job_id)
 
 @app.route('/execute/<job_id>')
 def execute_job(job_id):

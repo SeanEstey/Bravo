@@ -28,7 +28,6 @@ app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.debug = True
 socketio = SocketIO(app)
 
-#-------------------------------------------------------------------
 def log_call_db(request_uuid, fields, sendSocket=True):
   call = db['msgs'].find_one({'request_uuid':request_uuid})
 
@@ -47,7 +46,6 @@ def log_call_db(request_uuid, fields, sendSocket=True):
   fields['attempts'] = call['attempts']
   send_socket('update_call', fields)
 
-#-------------------------------------------------------------------
 def parse_csv(csvfile, template):
   reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
   buffer = []
@@ -84,7 +82,6 @@ def parse_csv(csvfile, template):
 
   return buffer
 
-#-------------------------------------------------------------------
 def create_msg_record(job, idx, buf_row, errors):
   # Create json record to be added to mongodb
   msg = {
@@ -113,12 +110,10 @@ def create_msg_record(job, idx, buf_row, errors):
   #msg['to'] = bravo.strip_phone_num(msg['to'])
   return msg
 
-#-------------------------------------------------------------------
 def allowed_file(filename):
   return '.' in filename and \
      filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
-#-------------------------------------------------------------------
 @socketio.on('disconnected')
 def socketio_disconnected():
   logger.debug('socket disconnected')
@@ -127,7 +122,6 @@ def socketio_disconnected():
     str(len(socketio.server.sockets))
   )
 
-#-------------------------------------------------------------------
 @socketio.on('connected')
 def socketio_connect():
   logger.debug(
@@ -136,10 +130,9 @@ def socketio_connect():
   )
   socketio.emit('msg', 'ping from ' + mode + ' server!');
 
-#-------------------------------------------------------------------
+def send_socket(name, data):
 # Emit socket.io msg if client connection established. Do nothing
 # otherwise.
-def send_socket(name, data):
   if not socketio.server:
     return False
   logger.debug(
@@ -153,21 +146,17 @@ def send_socket(name, data):
  
   socketio.emit(name, data)
 
-#-------------------------------------------------------------------
 @app.route('/')
 def index():
   jobs = db['jobs'].find().sort('fire_dtime',-1)
   return render_template('show_jobs.html', title=os.environ['title'], jobs=jobs)
-  #return render_template('main.html')
 
-#-------------------------------------------------------------------
 @app.route('/summarize/<job_id>')
 def get_job_summary(job_id):
   job_id = job_id.encode('utf-8')
   summary = bravo.create_job_summary(job_id)
   return render_template('job_summary.html', title=os.environ['title'], summary=summary)
 
-#-------------------------------------------------------------------
 @app.route('/get/template/<name>')
 def get_template(name):
   if not name in TEMPLATE_HEADERS:
@@ -175,7 +164,6 @@ def get_template(name):
   else:
     return json.dumps(TEMPLATE_HEADERS[name])
 
-#-------------------------------------------------------------------
 @app.route('/get/<var>')
 def get_var(var):
   if var == 'mode':
@@ -200,21 +188,18 @@ def get_var(var):
 
   return False
 
-#-------------------------------------------------------------------
 @app.route('/error')
 def show_error():
   msg = request.args['msg']
   return render_template('error.html', title=os.environ['title'], msg=msg)
 
-#-------------------------------------------------------------------
 @app.route('/new')
 def new_job():
+  # Create new job
   return render_template('new_job.html', title=os.environ['title'])
 
-#-------------------------------------------------------------------
 @app.route('/new/create', methods=['POST'])
 def create_job():
-  # Verify and save file
   file = request.files['call_list']
   if file and allowed_file(file.filename):
     filename = secure_filename(file.filename)
@@ -280,23 +265,19 @@ def create_job():
 
 @app.route('/execute/<job_id>')
 def execute_job(job_id):
-  # TODO: Disable this command on deployed server
   job_id = job_id.encode('utf-8')
   logger.info(type(job_id))
   logger.info('job_id: ' + job_id)
   bravo.execute_job(job_id);
 
-
-#-------------------------------------------------------------------
 @app.route('/jobs')
 def show_jobs():
   jobs = db['jobs'].find().sort('fire_dtime',-1)
   return render_template('show_jobs.html', title=os.environ['title'], jobs=jobs)
 
-#-------------------------------------------------------------------
 @app.route('/jobs/<job_id>')
 def show_calls(job_id):
-  # Default sort: ascending by name
+# Default sort: ascending by name
   sort_by = 'name' 
   calls = db['msgs'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
   job = db['jobs'].find_one({'_id':ObjectId(job_id)})
@@ -310,7 +291,6 @@ def show_calls(job_id):
     template=TEMPLATE[job['template']]
   )
 
-#-------------------------------------------------------------------
 @app.route('/complete/<job_id>')
 def job_complete(job_id):
   data = {
@@ -321,7 +301,6 @@ def job_complete(job_id):
   send_socket('update_job', data)
   return 'OK'
 
-#-------------------------------------------------------------------
 @app.route('/reset/<job_id>')
 def reset_job(job_id):
   db['msgs'].update(
@@ -357,16 +336,14 @@ def reset_job(job_id):
 
   return 'OK'
 
-#-------------------------------------------------------------------
 @app.route('/cancel/job/<job_id>')
 def cancel_job(job_id):
   db['jobs'].remove({'_id':ObjectId(job_id)})
   db['msgs'].remove({'job_id':ObjectId(job_id)})
   logger.info('Removed db.jobs and db.calls for %s' % str(job_id))
-  jobs = db['jobs'].find()
-  return redirect(url_for('show_jobs'))
 
-#-------------------------------------------------------------------
+  return 'OK'
+
 @app.route('/cancel/call', methods=['POST'])
 def cancel_call():
   call_uuid = request.form.get('call_uuid')
@@ -380,7 +357,6 @@ def cancel_call():
 
   return 'OK'
 
-#-------------------------------------------------------------------
 @app.route('/edit/call/<call_uuid>', methods=['POST'])
 def edit_call(call_uuid):
   for fieldname, value in request.form.items():
@@ -398,14 +374,11 @@ def edit_call(call_uuid):
     )
   return 'OK'
 
-#-------------------------------------------------------------------
 @app.route('/sms', methods=['POST'])
 def get_sms():
-  # Inbound SMS received
   logger.info('sms received: ' + request.values.items())
   return 'OK'
 
-#-------------------------------------------------------------------
 @app.route('/sms_status', methods=['POST'])
 def get_sms_status():
   try:
@@ -444,7 +417,6 @@ def get_sms_status():
     logger.error('%s /sms.' % request.values.items(), exc_info=True)
     return str(e)
 
-#-------------------------------------------------------------------
 @app.route('/call/ring', methods=['POST'])
 def ring():
   try:
@@ -463,71 +435,70 @@ def ring():
     logger.error(str(e))
     return 'FAIL'
 
-#-------------------------------------------------------------------
 @app.route('/call/answer',methods=['POST','GET'])
 def content():
-  logger.debug('Call answered %s' % request.values.items())
-  
-  if request.method == "GET":
-    request_uuid = request.args.get('RequestUUID')
-    logger.info(
-      '%s %s /call/answer', 
-      request.args.get('To'), 
-      request.args.get('CallStatus')
-    )
-    log_call_db(request_uuid, {
-      'status': 'IN_PROGRESS',
-      'code': 'ANSWERED',
-      'call_uuid': request.args.get('CallUUID')
-    })
+  try:
+    logger.debug('Call answered %s' % request.values.items())
     
-    call = db['msgs'].find_one({'request_uuid':request_uuid})
-    if not call:
-      return Response(str(plivoxml.Response()), mimetype='text/xml')
-    job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-    if not job:  
-      return Response(str(plivoxml.Response()), mimetype='text/xml')
-    speak = bravo.get_speak(job, call, live=True)
-    if not speak:
-      # ERROR
-      return
-    db['msgs'].update({'_id':call['_id']},{'$set':{'speak':speak}})
-
-    getdigits_action_url = url_for('content', _external=True)
-    getDigits = plivoxml.GetDigits(
-      action=getdigits_action_url,
-      method='POST', timeout=7, numDigits=1,
-      retries=1
-    )  
-    response = plivoxml.Response()
-    response.addWait(length=1)
-    response.addSpeak(body=speak)
-    response.add(getDigits)
-    
-    return Response(str(response), mimetype='text/xml')
-  elif request.method == "POST":
-    digit = request.form.get('Digits')
-    logger.info('got digit: ' + str(digit))
-    request_uuid = request.form.get('RequestUUID')
-    call = db['msgs'].find_one({'request_uuid':request_uuid})
-    job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-    response = plivoxml.Response()
-    
-    if digit == '1':
-      speak = bravo.get_speak(job, call)
-      response.addSpeak(speak)
-    elif digit == '2':
+    if request.method == "GET":
+      request_uuid = request.args.get('RequestUUID')
+      logger.info(
+        '%s %s /call/answer', 
+        request.args.get('To'), 
+        request.args.get('CallStatus')
+      )
       log_call_db(request_uuid, {
-        'office_notes': 'NO PICKUP'
+        'status': 'IN_PROGRESS',
+        'code': 'ANSWERED',
+        'call_uuid': request.args.get('CallUUID')
       })
-      response.addSpeak('Thank you. Goodbye.')
-   
-    return Response(str(response), mimetype='text/xml')
-#  except Exception, e:
-#    logger.error('%s /call/answer' % request.values.items(), exc_info=True)
-#    return str(e)
+      
+      call = db['msgs'].find_one({'request_uuid':request_uuid})
+      if not call:
+        return Response(str(plivoxml.Response()), mimetype='text/xml')
+      job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
+      if not job:  
+        return Response(str(plivoxml.Response()), mimetype='text/xml')
+      speak = bravo.get_speak(job, call, live=True)
+      if not speak:
+        # ERROR
+        return
+      db['msgs'].update({'_id':call['_id']},{'$set':{'speak':speak}})
 
-#-------------------------------------------------------------------
+      getdigits_action_url = url_for('content', _external=True)
+      getDigits = plivoxml.GetDigits(
+        action=getdigits_action_url,
+        method='POST', timeout=7, numDigits=1,
+        retries=1
+      )  
+      response = plivoxml.Response()
+      response.addWait(length=1)
+      response.addSpeak(body=speak)
+      response.add(getDigits)
+      
+      return Response(str(response), mimetype='text/xml')
+    elif request.method == "POST":
+      digit = request.form.get('Digits')
+      logger.info('got digit: ' + str(digit))
+      request_uuid = request.form.get('RequestUUID')
+      call = db['msgs'].find_one({'request_uuid':request_uuid})
+      job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
+      response = plivoxml.Response()
+      
+      if digit == '1':
+        speak = bravo.get_speak(job, call)
+        response.addSpeak(speak)
+      elif digit == '2':
+        log_call_db(request_uuid, {
+          'office_notes': 'NO PICKUP'
+        })
+        response.addSpeak('Thank you. Goodbye.')
+     
+      return Response(str(response), mimetype='text/xml')
+  except Exception, e:
+    logger.error('/call/answer', exc_info=True)
+    return str(e)
+
 @app.route('/call/hangup',methods=['POST','GET'])
 def process_hangup():
   try:
@@ -589,7 +560,6 @@ def process_hangup():
     logger.error('%s /call/hangup' % request.form.get('To'), exc_info=True)
     return str(e)
 
-#-------------------------------------------------------------------
 @app.route('/call/fallback',methods=['POST','GET'])
 def process_fallback():
   try:
@@ -602,7 +572,6 @@ def process_fallback():
     logger.error('%s /call/fallback' % request.form.get('To'), exc_info=True)
     return str(e)
 
-#-------------------------------------------------------------------
 @app.route('/call/machine',methods=['POST','GET'])
 def process_machine():
   try:
@@ -625,7 +594,6 @@ def process_machine():
     logger.error('%s /call/machine' % request.form.get('To'), exc_info=True)
     return str(e)
 
-#-------------------------------------------------------------------
 @app.route('/call/voicemail',methods=['POST','GET'])
 def process_voicemail():
   try:
@@ -647,7 +615,6 @@ def process_voicemail():
     logger.error('%s /call/voicemail' % request.form.get('To'), exc_info=True)
     return str(e)
 
-#-------------------------------------------------------------------
 if __name__ == "__main__":
   client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
   if len(sys.argv) > 0:

@@ -31,7 +31,7 @@
       {% for job in jobs %}
       {% set show_calls_url = url_for('show_calls', job_id=job._id)
       %}
-      <tr>
+      <tr id='{{job._id}}'>
         <td>
           <a class='hover' href="{{ show_calls_url }}">
             {{ job.fire_dtime.strftime("%A %b %d @ %I:%M %p") }}

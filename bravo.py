@@ -21,7 +21,6 @@ client = None
 db = None
 logger = logging.getLogger(__name__)
 
-#-------------------------------------------------------------------
 def set_mode(mode):
   global client, db, logger, pub_url, local_url
   client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
@@ -37,7 +36,6 @@ def set_mode(mode):
 
   set_logger(logger, LOG_LEVEL, LOG_FILE)
 
-#-------------------------------------------------------------------
 def set_logger(logger, level, log_name):
   handler = logging.FileHandler(log_name)
   handler.setLevel(level)
@@ -47,7 +45,6 @@ def set_logger(logger, level, log_name):
   logger.handlers = []
   logger.addHandler(handler)
 
-#-------------------------------------------------------------------
 def is_mongodb_available():
   if client:
     if client.alive():
@@ -55,7 +52,6 @@ def is_mongodb_available():
   else:
     return False
 
-#-------------------------------------------------------------------
 def reconnect_mongodb():
   global client, db
   # Either no connection handle or connection is dead
@@ -70,7 +66,6 @@ def reconnect_mongodb():
 
   return True
 
-#-------------------------------------------------------------------
 def is_server_online():
   try:
     response = requests.get(local_url)
@@ -81,7 +76,6 @@ def is_server_online():
   except Exception, e:
     return False
 
-#-------------------------------------------------------------------
 def restart_server():
   logger.info('Attempting server restart...')
   os.system('python server.py &')
@@ -93,16 +87,13 @@ def restart_server():
   logger.info('Successfully restarted. Resuming job...')
   return True
 
-#-------------------------------------------------------------------
 def is_celery_worker():
   if not celery.control.inspect().active_queues():
     return False
   else:
     return True
 
-#-------------------------------------------------------------------
 def restart_celery():
-  # Attempt to restart celery worker
   logger.info('Attempting to restart celery worker...')
   try:
     os.system('./celery.sh &')
@@ -117,7 +108,6 @@ def restart_celery():
   logger.info('Celery worker restarted')
   return True
 
-#-------------------------------------------------------------------
 def systems_check():
   if not is_celery_worker():
     #if not restart_celery():
@@ -132,7 +122,6 @@ def systems_check():
 
   return True
 
-#-------------------------------------------------------------------
 @celery.task
 def monitor_job(job_id):
   logger.info('Monitoring job %s' % str(job_id))
@@ -182,7 +171,6 @@ def monitor_job(job_id):
     logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
     return str(e)
 
-#-------------------------------------------------------------------
 @celery.task
 def execute_job(job_id):
   try:
@@ -229,7 +217,6 @@ def execute_job(job_id):
   logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
   return True
 
-#-------------------------------------------------------------------
 # message_uuid: primary msg ID for SMS returned in Plivo response
 # request_uuid: primary msg ID for Voice returned in Plivo response
 def fire_msg(msg):
@@ -281,7 +268,6 @@ def fire_msg(msg):
     logger.error('%s fire_msg.', exc_info=True)
     return str(e)
 
-#-------------------------------------------------------------------
 # Run on fixed schedule from crontab, cycles through pending jobs
 # and dispatches celery worker when due 
 def run_scheduler():
@@ -303,7 +289,6 @@ def run_scheduler():
 
   return True
 
-#-------------------------------------------------------------------
 # Plivo returns 'request_uuid' on successful dial attempt. This will 
 # be the primary ID in db['msgs']
 def dial(to):
@@ -344,11 +329,9 @@ def dial(to):
   # return tuple with format: (RESPONSE_CODE, {'request_uuid':ID, 'message':MSG})
   return response
 
-#-------------------------------------------------------------------
 # Plivo returns 'request_uuid' on successful sms attempt. This will 
 # be the primary ID in db['msgs']
 def sms(to, msg):
-  
   params = {
     'dst': '1' + to,
     'src': SMS_NUMBER,
@@ -365,12 +348,11 @@ def sms(to, msg):
     logger.error('%s SMS failed (%a)',to, str(response[0]), exc_info=True)
     return False
 
-#-------------------------------------------------------------------
 def get_speak(job, msg, medium='voice', live=False):
   try:
-    date_str = msg['event_date'].strftime('%A, %B %d')
+    date_str = msg['imported']['event_date'].strftime('%A, %B %d')
   except TypeError:
-    logger.error('Invalid date in get_speak: ' + str(msg['event_date']))
+    logger.error('Invalid date in get_speak: ' + str(msg['imported']['event_date']))
     return False
 
   intro_str = 'Hi, this is a friendly reminder that your empties to winn '
@@ -380,18 +362,18 @@ def get_speak(job, msg, medium='voice', live=False):
   speak = ''
 
   if job['template'] == 'etw_reminder':
-    if msg['etw_status'] == 'Dropoff':
+    if msg['imported']['status'] == 'Dropoff':
       speak += (intro_str + 'dropoff date ' +
         'is ' + date_str + '. If you have any empties you can leave them ' +
         'out by 8am. ')
-    elif msg['etw_status'] == 'Active':
+    elif msg['imported']['status'] == 'Active':
       speak += (intro_str + 'pickup date ' +
         'is ' + date_str + '. please have your empties out by 8am. ')
       if medium == 'voice' and live == True:
         speak += no_pickup_voice
       elif medium == 'sms':
         speak += no_pickup_sms
-    elif msg['etw_status'] == 'Cancelling':
+    elif msg['imported']['status'] == 'Cancelling':
       speak += (intro_str + 'bag stand will be picked up on ' +
         date_str + '. thanks for your past support. ')
     
@@ -403,11 +385,9 @@ def get_speak(job, msg, medium='voice', live=False):
 
   return speak
 
-#-------------------------------------------------------------------
 def strip_phone_num(to):
   return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
-#-------------------------------------------------------------------
 def log_sms(record, response):
   db['msgs'].update(
     {'_id': record['_id']}, 
@@ -420,7 +400,6 @@ def log_sms(record, response):
     }
   ) 
 
-#-------------------------------------------------------------------
 def create_job_summary(job_id):
   if isinstance(job_id, str):
     job_id = ObjectId(job_id)
@@ -471,7 +450,6 @@ def create_job_summary(job_id):
 
   return json.dumps(summary)
 
-#-------------------------------------------------------------------
 def send_email_report(job_id):
   import smtplib
   from email.mime.text import MIMEText
@@ -487,7 +465,6 @@ def send_email_report(job_id):
 
   send_email('estese@gmail.com', subject, msg)
 
-#-------------------------------------------------------------------
 def send_email(recipient, subject, msg):
   import requests
   send_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/messages'

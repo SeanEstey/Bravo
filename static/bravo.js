@@ -1,4 +1,3 @@
-//---------------------------------------------------------------
 // Returns decimal code for special HTML characters
 function HTMLEncode(str) {
   var i = str.length,
@@ -15,7 +14,6 @@ function HTMLEncode(str) {
   return aRet.join('');
 }
 
-//---------------------------------------------------------------
 String.prototype.toTitleCase = function(n) {
    var s = this;
    if (1 !== n) s = s.toLowerCase();
@@ -23,7 +21,6 @@ String.prototype.toTitleCase = function(n) {
    return s.replace(/\b[a-z]/g,function(f){return f.toUpperCase()});
 }
 
-//---------------------------------------------------------------
 function addBravoTooltip() {
   $(document).tooltip({
     position: {
@@ -41,7 +38,6 @@ function addBravoTooltip() {
   });
 }
 
-//---------------------------------------------------------------
 function useJQueryBtn() {
   $("input[type=submit], button")
     .button()
@@ -49,7 +45,6 @@ function useJQueryBtn() {
       event.preventDefault();
     });
 }
-
 
 function getServerStatus(variable) {
   var request =  $.ajax({
@@ -62,7 +57,7 @@ function getServerStatus(variable) {
   });
 
 }
-//---------------------------------------------------------------
+
 function displayServerStatus(route, label, $element) {
   var request =  $.ajax({
       type: 'GET',
@@ -74,7 +69,6 @@ function displayServerStatus(route, label, $element) {
   });
 }
 
-//---------------------------------------------------------------
 // Error/confirmation dialog UI for all views
 function showDialog($element, msg, _title, _buttons) {
   if(typeof(_buttons) === 'undefined') {
@@ -104,7 +98,6 @@ function showDialog($element, msg, _title, _buttons) {
   $element.dialog(dialog_style);
 }
 
-//---------------------------------------------------------------
 // View: new_job
 function initNewJobView() {
   useJQueryBtn();
@@ -120,7 +113,6 @@ function initNewJobView() {
   $('body').css('display','block');
 }
 
-//---------------------------------------------------------------
 // View: new_job
 function updateFilePickerTooltip() {
   var $select = $('#template-select');
@@ -135,7 +127,6 @@ function updateFilePickerTooltip() {
   });
 }
 
-//---------------------------------------------------------------
 // View: new_job
 function onSelectTemplate() {
   var $select = $('#template-select');
@@ -162,7 +153,6 @@ function onSelectTemplate() {
   });
 }
 
-//---------------------------------------------------------------
 // View: new_job
 function validateNewJobForm() {
   var paramObj = {};
@@ -237,7 +227,6 @@ function validateNewJobForm() {
   }
 }
 
-//---------------------------------------------------------------
 // View: show_calls
 function initShowCallsView() {
   var up_arrow = '&#8593;';
@@ -372,7 +361,6 @@ function initShowCallsView() {
   }
 }
 
-//---------------------------------------------------------------
 // View: show_calls
 function formatCallStatus($cell, text) {
   if(text.indexOf('SENT') >= 0)
@@ -385,7 +373,6 @@ function formatCallStatus($cell, text) {
   $cell.html(text.toTitleCase());
 }
 
-//---------------------------------------------------------------
 // View: show_calls
 function sortCalls(table, column) {
   var up_arrow = '&#8593;';
@@ -425,7 +412,6 @@ function sortCalls(table, column) {
   }).appendTo(tbody);
 }
 
-//---------------------------------------------------------------
 // View: show_calls
 function makeCallFieldsClickable() {
   $("td").on('click',function() {      
@@ -494,8 +480,6 @@ function showJobSummary() {
   }
 }
 
-
-//---------------------------------------------------------------
 function receiveJobUpdate(socket_data) {
   if(socket_data['status'] == 'COMPLETE') {
     console.log('job complete!');
@@ -505,7 +489,6 @@ function receiveJobUpdate(socket_data) {
   }
 }
 
-//---------------------------------------------------------------
 // View: show_calls
 function receiveCallUpdate(socket_data) {
   // Clear the countdown timer if it is running
@@ -538,7 +521,6 @@ function receiveCallUpdate(socket_data) {
   }
 }
 
-//---------------------------------------------------------------
 // View: show_calls
 // Display timer counting down until event_datetime
 function beginCountdown($summary_lbl, event_datetime) {
@@ -564,10 +546,10 @@ function beginCountdown($summary_lbl, event_datetime) {
   }, 1000);
 }
 
-//---------------------------------------------------------------
 // View: show_jobs
 function initShowJobs() {
   addBravoTooltip();
+  console.log('script_root: ' + $SCRIPT_ROOT);
 
   $('.delete-btn').button({
     icons: {
@@ -580,13 +562,25 @@ function initShowJobs() {
   $('.delete-btn').each(function(){ 
     $(this).click(function(){
       msg = 'Are you sure you want to cancel this job?';
-      url = $(this).attr('id');
-      console.log('prompt to delete' + url);
+      var $tr = $(this).parent().parent();
+      var job_uuid = $tr.attr('id');
+      console.log('prompt to delete job_id: ' + job_uuid);
       var buttons = [
         { text: "No", 
           click: function() { $( this ).dialog( "close" ); }}, 
         { text: 'Yes', 
-          click: function() { $(this).dialog('close'); $(location).attr('href',url);}}
+          click: function() {
+            $(this).dialog('close');
+            var request =  $.ajax({
+              type: 'GET',
+              url: $SCRIPT_ROOT + '/cancel/job/'+job_uuid
+            });
+            request.done(function(msg){
+              if(msg == 'OK')
+                $tr.remove();
+            });
+          }
+        }
       ];
       showDialog($('#dialog'), msg, 'Confirm Action', buttons);
     });
@@ -595,7 +589,6 @@ function initShowJobs() {
   $('body').css('display','block');
 }
 
-//---------------------------------------------------------------
 function initJobSummary() {
   var data = $('#content').text();
   var r_brace = new RegExp(/\}/g);

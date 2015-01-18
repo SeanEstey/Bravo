@@ -55,7 +55,6 @@ function getServerStatus(variable) {
   request.done(function(msg){
     console.log(msg);
   });
-
 }
 
 function displayServerStatus(route, label, $element) {
@@ -309,8 +308,10 @@ function initShowCallsView() {
     $('.delete-btn').hide();
   }
 
-  if($('#timer').text().indexOf('Pending') > 0)
-    beginCountdown($('#job-summary'), $('#scheduled_datetime').text());
+  if($('#timer').text().indexOf('Pending') > 0) {
+    updateCountdown();
+    window.countdown_id = setInterval(updateCountdown, 1000);
+  }
 
   showJobSummary();
   
@@ -523,27 +524,25 @@ function receiveCallUpdate(socket_data) {
 
 // View: show_calls
 // Display timer counting down until event_datetime
-function beginCountdown($summary_lbl, event_datetime) {
+function updateCountdown() {
+  $summary_lbl = $('#job-summary');
+  var event_datetime = $('#scheduled_datetime').text();
   var scheduled = Date.parse(event_datetime);
+  var today = new Date();
+  var diff_ms = scheduled.getTime() - today.getTime();
+
+  var diff_days = diff_ms / (1000 * 3600 * 24);
+  var diff_hrs = ((diff_days + 1) % 1) * 24;
+  var diff_min = ((diff_hrs + 1) % 1) * 60;
+  var diff_sec = ((diff_min + 1) % 1) * 60;
   
-  window.countdown_id = setInterval(function() {
-    var today = new Date();
-    var diff_ms = scheduled.getTime() - today.getTime();
-
-    var diff_days = diff_ms / (1000 * 3600 * 24);
-    var diff_hrs = ((diff_days + 1) % 1) * 24;
-    var diff_min = ((diff_hrs + 1) % 1) * 60;
-    var diff_sec = ((diff_min + 1) % 1) * 60;
-    
-    $('#job-summary').css({'color':'#009900'});
-    
-    $summary_lbl.text(
-      Math.floor(diff_days) + ' Days ' + 
-      Math.floor(diff_hrs) + ' Hours ' + 
-      Math.floor(diff_min) + ' Min ' + 
-      Math.floor(diff_sec) + ' Sec');
-
-  }, 1000);
+  $('#job-summary').css({'color':'#009900'});
+  
+  $summary_lbl.text(
+    Math.floor(diff_days) + ' Days ' + 
+    Math.floor(diff_hrs) + ' Hours ' + 
+    Math.floor(diff_min) + ' Min ' + 
+    Math.floor(diff_sec) + ' Sec');
 }
 
 // View: show_jobs

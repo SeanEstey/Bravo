@@ -292,6 +292,7 @@ def run_scheduler():
 # Plivo returns 'request_uuid' on successful dial attempt. This will 
 # be the primary ID in db['msgs']
 def dial(to):
+  # TWILIO API
   if not to:
     return [400, {'request_uuid':'', 'message': 'NO_PHONE_NUMBER'}]
 

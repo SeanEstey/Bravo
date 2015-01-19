@@ -4,8 +4,8 @@ from config import *
 from secret import *
 from bson.objectid import ObjectId
 import pymongo
-import plivo
-import plivoxml
+import twilio
+from twilio import twiml
 from datetime import datetime,date
 from dateutil.parser import parse
 import werkzeug
@@ -20,6 +20,7 @@ import bravo
 from reverse_proxy import ReverseProxied
 import sys
 
+
 logger = logging.getLogger(__name__)
 bravo.set_logger(logger, LOG_LEVEL, LOG_FILE)
 app = Flask(__name__)
@@ -28,15 +29,15 @@ app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.debug = True
 socketio = SocketIO(app)
 
-def log_call_db(request_uuid, fields, sendSocket=True):
-  call = db['msgs'].find_one({'request_uuid':request_uuid})
+def log_call_db(sid, fields, sendSocket=True):
+  call = db['msgs'].find_one({'sid':sid})
 
   if not call:
-    logger.error('log_call_db(): request_uuid ' + request_uuid + ' not in db')
+    logger.error('log_call_db(): sid ' + sid + ' not in db')
     return
 
   db['msgs'].update(
-    {'request_uuid':request_uuid},
+    {'sid':sid},
     {'$set': fields}
   )
   if sendSocket is False:
@@ -72,7 +73,7 @@ def parse_csv(csvfile, template):
   reader.next()
   line_num = 1
   for row in reader:
-    logger.info('row '+str(line_num)+'='+str(row)+' ('+str(len(row))+' elements)')
+    #logger.info('row '+str(line_num)+'='+str(row)+' ('+str(len(row))+' elements)')
     # verify columns match template
     if len(row) != len(template):
       return 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
@@ -87,7 +88,7 @@ def create_msg_record(job, idx, buf_row, errors):
   # Create json record to be added to mongodb
   msg = {
     'job_id': job['_id'],
-    'status': 'PENDING',
+    'call_status': 'pending',
     'attempts': 0,
     'imported': {}
   }
@@ -185,11 +186,11 @@ def get_var(var):
       return "No sockets"
     return 'Sockets: ' + str(len(socketio.server.sockets))
   elif var == 'plivo_balance':
-    server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
-    account = server.get_account()
-    balance = account[1]['cash_credits']
-    balance = '$' + str(round(float(balance), 2))
-    return balance
+    #server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
+    #account = server.get_account()
+    #balance = account[1]['cash_credits']
+    #balance = '$' + str(round(float(balance), 2))
+    return ' '
 
   return False
 
@@ -306,7 +307,7 @@ def reset_job(job_id):
   db['msgs'].update(
     {'job_id': ObjectId(job_id)}, 
     {'$set': {
-      'status': 'PENDING',
+      'call_status': 'pending',
       'attempts': 0
     }},
     multi=True
@@ -316,10 +317,14 @@ def reset_job(job_id):
     {'job_id': ObjectId(job_id)}, 
     {'$unset': {
       'message_uuid': '',
+      'answered_by': '',
+      'call_msg': '',
       'hangup_cause': '',
       'rang': '',
       'message': '',
+      'sid': '',
       'call_uuid': '',
+      'status': '',
       'request_uuid': '',
       'speak': '',
       'code': '',
@@ -438,8 +443,23 @@ def ring():
 @app.route('/call/answer',methods=['POST','GET'])
 def content():
   try:
-    logger.debug('Call answered %s' % request.values.items())
-    
+    #logger.info('Call answered! %s' % request.values.items())
+    sid = request.form.get('CallSid')
+    call_status = request.form.get('CallStatus')
+    to = request.form.get('To')
+    logger.info('%s %s /call/answer', to, call_status)
+    log_call_db(sid, {
+      'call_status': call_status,
+      'call_msg': 'answered'
+    })
+    call = db['msgs'].find_one({'sid':sid})
+    job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
+    speak = bravo.get_speak(job, call, live=True)
+    response = twilio.twiml.Response()
+    response.say(speak)
+    return Response(str(response), mimetype='text/xml')
+   
+    ''' 
     if request.method == "GET":
       request_uuid = request.args.get('RequestUUID')
       logger.info(
@@ -493,15 +513,55 @@ def content():
           'office_notes': 'NO PICKUP'
         })
         response.addSpeak('Thank you. Goodbye.')
-     
-      return Response(str(response), mimetype='text/xml')
+    '''   
+
   except Exception, e:
     logger.error('/call/answer', exc_info=True)
     return str(e)
 
-@app.route('/call/hangup',methods=['POST','GET'])
-def process_hangup():
+@app.route('/call/status',methods=['POST','GET'])
+def process_status():
   try:
+    #logger.info('status values %s: ' % request.values.items())
+    sid = request.form.get('CallSid')
+    to = request.form.get('To')
+    call_status = request.form.get('CallStatus')
+    logger.info('%s %s /call/status', to, call_status)
+    fields = {}
+    fields['call_status'] = call_status
+
+    if call_status == 'completed':
+      answered_by = request.form.get('AnsweredBy')
+      call = db['msgs'].find_one({'sid':sid})
+
+      if answered_by == 'human':
+        call_msg = 'delivered_live'
+      elif answered_by == 'machine':
+        call_msg = 'delivered_voicemail'
+      else:
+        call_msg = '???'
+
+      fields['answered_by'] = answered_by
+      fields['call_msg'] = call_msg
+      fields['ended_at'] = datetime.now()
+    elif call_status == 'ringing':
+      logger.info('ringing')
+    elif call_status == 'in-progress':
+      logger.info('in-progress')
+    elif call_status == 'canceled':
+      logger.info('canceled')
+    elif call_status == 'failed':
+      logger.info('failed')
+    elif call_status == 'busy':
+      logger.info('busy')
+    elif call_status == 'no-answer':
+      logger.info('no-answer')
+    else:
+      logger.info('wtf')
+
+    log_call_db(sid, fields)
+
+    '''
     call_status = request.form.get('CallStatus')
     to = request.form.get('To')
     hangup_cause = request.form.get('HangupCause')
@@ -555,27 +615,32 @@ def process_hangup():
 
     response = plivoxml.Response()
     return Response(str(response), mimetype='text/xml')
-
+    '''
+    return 'OK'
   except Exception, e:
-    logger.error('%s /call/hangup' % request.form.get('To'), exc_info=True)
+    logger.error('%s /call/status' % request.values.items(), exc_info=True)
     return str(e)
 
 @app.route('/call/fallback',methods=['POST','GET'])
 def process_fallback():
   try:
+    '''
     post_data = str(request.form.values())
     print post_data
     logger.info('call fallback data: %s' % post_data)
     response = plivoxml.Response()
     return Response(str(response), mimetype='text/xml')
+    '''
+    return 'OK'
   except Exception, e:
-    logger.error('%s /call/fallback' % request.form.get('To'), exc_info=True)
+    logger.error('%s /call/fallback' % request.values.items(), exc_info=True)
     return str(e)
 
 @app.route('/call/machine',methods=['POST','GET'])
 def process_machine():
   try:
-    logger.debug('Machine detected. %s' % request.values.items())
+    logger.info('Machine detected. %s' % request.values.items())
+    '''
     log_call_db(request.form.get('RequestUUID'), {
       'code': 'MACHINE_ANSWERED',
       'machine': True
@@ -590,13 +655,16 @@ def process_machine():
     })
     logger.info(request.form.get('To') + ' machine detected')
     return Response(str(response), mimetype='text/xml')
+  '''
+    return 'OK'
   except Exception, e:
-    logger.error('%s /call/machine' % request.form.get('To'), exc_info=True)
+    logger.error('%s /call/machine' % request.values.items(), exc_info=True)
     return str(e)
 
 @app.route('/call/voicemail',methods=['POST','GET'])
 def process_voicemail():
   try:
+    '''
     logger.debug('/call/voicemail: %s' % request.values.items())
     request_uuid = request.form.get('RequestUUID')
     log_call_db(request_uuid, {
@@ -611,8 +679,10 @@ def process_voicemail():
     response.addSpeak(body=speak)
     logger.info('%s Leaving voicemail.' % call['to'])
     return Response(str(response), mimetype='text/xml')
+    '''
+    return 'OK'
   except Exception, e:
-    logger.error('%s /call/voicemail' % request.form.get('To'), exc_info=True)
+    logger.error('%s /call/voicemail' % request.values.items(), exc_info=True)
     return str(e)
 
 if __name__ == "__main__":

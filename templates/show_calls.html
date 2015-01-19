@@ -43,11 +43,11 @@
           <td name='event_date' class='call_date_td'>{{ call.imported.event_date }}</td>
           #}
           {% if 'speak' in call %}
-            <td name='message' title='"{{call.speak}}"' class='call_msg_td' >{{ call.code }}</td>
-          {% elif call.status == "PENDING" %}
+            <td name='message' title='"{{call.speak}}"' class='call_msg_td' >{{ call.call_status }}</td>
+          {% elif call.call_status == "pending" %}
             <td name='message' class='call_msg_td'>Pending</td>
           {% else %}
-            <td name='message' class='call_msg_td' >{{ call.code + ' (' ~ call.attempts + 'x)' }}</td>
+            <td name='message' class='call_msg_td' >{{ call.call_status + ' (' ~ call.attempts + 'x)' }}</td>
           {% endif %}
           <td>
             <button 

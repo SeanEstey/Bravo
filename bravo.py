@@ -3,7 +3,7 @@ from secret import *
 from celery import Celery
 from celery.utils.log import get_task_logger
 from bson.objectid import ObjectId
-import plivo
+import twilio
 import pymongo
 import csv
 import logging
@@ -218,7 +218,7 @@ def execute_job(job_id):
   return True
 
 # message_uuid: primary msg ID for SMS returned in Plivo response
-# request_uuid: primary msg ID for Voice returned in Plivo response
+# sid: primary msg ID for Voice returned in Plivo response
 def fire_msg(msg):
   fields = {}
   try:
@@ -227,10 +227,9 @@ def fire_msg(msg):
       response = dial(msg['imported']['to'])
       # Status Code on success = 201
       if response[0] != 400:
-        fields['request_uuid'] = response[1]['request_uuid']
+        fields['sid'] = response[1]['sid']
         fields['attempts'] = msg['attempts'] + 1
-        fields['status'] = 'PENDING'
-        fields['code'] = response[1]['message']
+        fields['call_status'] = response[1]['call_status']
     # SMS
     else:
       job = db['jobs'].find_one({'_id':msg['job_id']})
@@ -238,26 +237,20 @@ def fire_msg(msg):
       response = sms(msg['imported']['to'], text)
       # Status Code on success = 202
       if response[0] != 400:
-        fields['message_uuid'] = response[1]['message_uuid'][0]
+        fields['sid'] = response[1]['sid'][0]
         fields['attempts'] = msg['attempts'] + 1
         fields['status'] = 'IN_PROGRESS'
-        fields['code'] = response[1]['message']
+        fields['call_status'] = response[1]['call_status']
         fields['speak'] = text
     
     status_code = response[0]
     logger.debug('fire_msg response: ' + json.dumps(response))
     
     if status_code == 400:
-      if response[1]['message'] == 'NO_PHONE_NUMBER':
-        fields['code'] = 'NO_PHONE_NUMBER'
-      # Endpoint probably overloaded
-      else:
-        fields['code'] = 'NO_ENDPOINT'
-        logger.error('400 error in fire_msg: ' + json.dumps(response))
-        logger.info('Trying to sleep it off (10 sec)...')
-        time.sleep(10)
+        fields['call_status'] = 'failed'
+        fields['sid'] = ''
 
-    logger.info('%s %s', msg['imported']['to'], fields['code'])
+    logger.info('%s %s', msg['imported']['to'], fields['call_status'])
 
     db['msgs'].update(
       {'_id': msg['_id']}, 
@@ -289,48 +282,33 @@ def run_scheduler():
 
   return True
 
-# Plivo returns 'request_uuid' on successful dial attempt. This will 
+# Plivo returns 'sid' on successful dial attempt. This will 
 # be the primary ID in db['msgs']
 def dial(to):
   # TWILIO API
   if not to:
-    return [400, {'request_uuid':'', 'message': 'NO_PHONE_NUMBER'}]
-
-  params = { 
-    'from' : FROM_NUMBER,
-    'caller_name': CALLER_ID,
-    'to' : '+1' + to,
-    'ring_url' :  pub_url + '/call/ring',
-    'answer_url' : pub_url + '/call/answer',
-    'answer_method': 'GET',
-    'hangup_url': pub_url + '/call/hangup',
-    'hangup_method': 'POST',
-    'fallback_url': pub_url + '/call/fallback',
-    'fallback_method': 'POST',
-    'machine_detection': 'true',
-    'machine_detection_url': pub_url + '/call/machine',
-    'machine_detection_time': 7500
-  }
-
-  logger.debug('Dialing: ' + json.dumps(params))
+    return [400, {'sid':'', 'message': 'NO_PHONE_NUMBER'}]
 
   try:
-    server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
-    response = server.make_call(params)
+    client = twilio.rest.TwilioRestClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_ID)
+    call = client.calls.create(
+      from_=TWILIO_NUMBER,
+      to='+1'+to,
+      url=pub_url + '/call/answer',
+      status_callback=pub_url + '/call/status',
+      status_method='POST',
+      method='POST',
+      if_machine='Continue'
+    )
+      
   except Exception as e:
-    logger.error('Bravo.dial exception: ' + json.dumps(response), exc_info=True)
-    return [400, {'request_uuid':'', 'message': 'UNKNOWN_ERROR'}]
-  
-  if type(response) == tuple:
-    if 'request_uuid' not in response[1]:
-      response[1]['request_uuid'] = ''
-    if 'message' not in response[1]:
-      response[1]['message'] = 'UNKNOWN_ERROR'
+    logger.error('twilio.call exception: ', exc_info=True)
+    return [400, {'sid':'', 'call_status': 'failed'}]
+ 
+  return [200, {'sid':call.sid, 'call_status':call.status}]
+  # return tuple with format: (RESPONSE_CODE, {'sid':ID, 'message':MSG})
 
-  # return tuple with format: (RESPONSE_CODE, {'request_uuid':ID, 'message':MSG})
-  return response
-
-# Plivo returns 'request_uuid' on successful sms attempt. This will 
+# Plivo returns 'sid' on successful sms attempt. This will 
 # be the primary ID in db['msgs']
 def sms(to, msg):
   params = {
@@ -413,39 +391,34 @@ def create_job_summary(job_id):
   
   summary = {
     'totals': {
-      'COMPLETE': 0,
-      'INCOMPLETE' : 0,
-      'FAILED' : 0
+      'completed': 0,
+      'no_answer' : 0,
+      'busy': 0,
+      'failed' : 0
     },
     'calls': {}
   }
 
   for call in calls:
-    if call['status'] == 'COMPLETE':
-      summary['totals']['COMPLETE'] += 1
-    elif call['status'] == 'INCOMPLETE':
-      summary['totals']['INCOMPLETE'] += 1
-    elif call['status'] == 'FAILED':
-      summary['totals']['FAILED'] += 1
+    if call['call_status'] == 'completed':
+      summary['totals']['completed'] += 1
+    elif call['call_status'] == 'no_answer':
+      summary['totals']['no_answer'] += 1
+    elif call['call_status'] == 'busy':
+      summary['totals']['busy'] += 1
+    elif call['call_status'] == 'failed':
+      summary['totals']['failed'] += 1
 
     summary['calls'][call['imported']['name']] = {
       'phone': call['imported']['to'],
-      'status': call['status'],
+      'call_status': call['call_status'],
       'attempts': call['attempts'],
-      'code': call['code']
     }
 
-    if 'request_uuid' in call:
-      summary['calls'][call['imported']['name']]['request_uuid'] = call['request_uuid']
-    if 'call_uuid' in call:
-      summary['calls'][call['imported']['name']]['call_uuid'] = call['call_uuid']
-    if 'hangup_cause' in call:
-      summary['calls'][call['imported']['name']]['hangup_cause'] = call['hangup_cause']
-    if 'machine' in call:
-      summary['calls'][call['imported']['name']]['machine_detected'] = 'Yes'
-    else:
-      summary['calls'][call['imported']['name']]['machine_detected'] = 'No'
-
+    if 'sid' in call:
+      summary['calls'][call['imported']['name']]['sid'] = call['sid']
+    if 'answered_by' in call:
+      summary['calls'][call['imported']['name']]['answered_by'] = call['answered_by']
   
   job = db['jobs'].find_one({'_id':job_id})
 

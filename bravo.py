@@ -217,44 +217,36 @@ def execute_job(job_id):
   logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
   return True
 
-# message_uuid: primary msg ID for SMS returned in Plivo response
-# sid: primary msg ID for Voice returned in Plivo response
 def fire_msg(msg):
   fields = {}
   try:
     # Voice Call
     if not 'sms' in msg:
       response = dial(msg['imported']['to'])
-      # Status Code on success = 201
-      if response[0] != 400:
-        fields['sid'] = response[1]['sid']
-        fields['attempts'] = msg['attempts'] + 1
-        fields['call_status'] = response[1]['call_status']
     # SMS
     else:
       job = db['jobs'].find_one({'_id':msg['job_id']})
       text = get_speak(job, msg, medium='sms')
       response = sms(msg['imported']['to'], text)
-      # Status Code on success = 202
-      if response[0] != 400:
-        fields['sid'] = response[1]['sid'][0]
-        fields['attempts'] = msg['attempts'] + 1
-        fields['status'] = 'IN_PROGRESS'
-        fields['call_status'] = response[1]['call_status']
-        fields['speak'] = text
+      fields['speak'] = text
     
-    status_code = response[0]
-    logger.debug('fire_msg response: ' + json.dumps(response))
-    
-    if status_code == 400:
-        fields['call_status'] = 'failed'
-        fields['sid'] = ''
+    fields['sid'] = response[1]['sid']
+    fields['attempts'] = msg['attempts'] + 1
+    fields['call_status'] = response[1]['call_status']
 
-    logger.info('%s %s', msg['imported']['to'], fields['call_status'])
+    if 'call_msg' in response[1]:
+      fields['call_msg'] = response[1]['call_msg']
+      logger.info('%s %s (%s)', msg['imported']['to'], fields['call_status'], fields['call_msg'])
+    else:
+      logger.info('%s %s', msg['imported']['to'], fields['call_status'])
 
     db['msgs'].update(
       {'_id': msg['_id']}, 
       {'$set': fields})
+
+    if fields['call_status'] == 'failed':
+      # TODO: push socket.io update manually to client via server POST
+      foo = 2 
 
     return response
   except Exception as e:
@@ -282,13 +274,8 @@ def run_scheduler():
 
   return True
 
-# Plivo returns 'sid' on successful dial attempt. This will 
-# be the primary ID in db['msgs']
+# TWILIO API
 def dial(to):
-  # TWILIO API
-  if not to:
-    return [400, {'sid':'', 'message': 'NO_PHONE_NUMBER'}]
-
   try:
     client = twilio.rest.TwilioRestClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_ID)
     call = client.calls.create(
@@ -301,15 +288,21 @@ def dial(to):
       if_machine='Continue'
     )
       
+  except twilio.TwilioRestException as e:
+    call_status = 'failed'
+    if e.code == 21216:
+      call_msg = 'not_in_service'
+    elif e.code == 21211:
+      call_msg = 'invalid_number'
+    else:
+      #logger.error('e.msg: ' + e.msg + ', e.code: ' + str(e.code))
+      call_msg = str(e.code)
+    return [400, {'sid':'', 'call_status': call_status, 'call_msg':call_msg}]
   except Exception as e:
     logger.error('twilio.call exception: ', exc_info=True)
-    return [400, {'sid':'', 'call_status': 'failed'}]
  
   return [200, {'sid':call.sid, 'call_status':call.status}]
-  # return tuple with format: (RESPONSE_CODE, {'sid':ID, 'message':MSG})
 
-# Plivo returns 'sid' on successful sms attempt. This will 
-# be the primary ID in db['msgs']
 def sms(to, msg):
   params = {
     'dst': '1' + to,
@@ -327,7 +320,7 @@ def sms(to, msg):
     logger.error('%s SMS failed (%a)',to, str(response[0]), exc_info=True)
     return False
 
-def get_speak(job, msg, medium='voice', live=False):
+def get_speak(job, msg, answered_by, medium='voice'):
   try:
     date_str = msg['imported']['event_date'].strftime('%A, %B %d')
   except TypeError:
@@ -348,7 +341,7 @@ def get_speak(job, msg, medium='voice', live=False):
     elif msg['imported']['status'] == 'Active':
       speak += (intro_str + 'pickup date ' +
         'is ' + date_str + '. please have your empties out by 8am. ')
-      if medium == 'voice' and live == True:
+      if medium == 'voice' and answered_by == 'human':
         speak += no_pickup_voice
       elif medium == 'sms':
         speak += no_pickup_sms
@@ -356,12 +349,12 @@ def get_speak(job, msg, medium='voice', live=False):
       speak += (intro_str + 'bag stand will be picked up on ' +
         date_str + '. thanks for your past support. ')
     
-    if medium == 'voice' and live == True:
+    if medium == 'voice' and answered_by == 'human':
       speak += repeat_voice
   elif job['template'] == 'gg_delivery':
     speak = ('Hi, this is friendly reminder that your green goods delivery will be on ' +
       date_str + '. Your order total is ' + msg['imported']['price'] + '. ')
-    if medium == 'voice' and live == True:
+    if medium == 'voice' and answered_by == 'machine':
       speak += repeat_voice
   elif job['template'] == 'special_msg':
     speak = job['speak'] 

@@ -154,6 +154,10 @@ def index():
   jobs = db['jobs'].find().sort('fire_dtime',-1)
   return render_template('show_jobs.html', title=os.environ['title'], jobs=jobs)
 
+@app.route('/send_socket', method=['POST'])
+def post_socket():
+  
+
 @app.route('/summarize/<job_id>')
 def get_job_summary(job_id):
   job_id = job_id.encode('utf-8')
@@ -443,48 +447,28 @@ def ring():
 @app.route('/call/answer',methods=['POST','GET'])
 def content():
   try:
-    #logger.info('Call answered! %s' % request.values.items())
+    logger.debug('Call answered! %s' % request.values.items())
     sid = request.form.get('CallSid')
     call_status = request.form.get('CallStatus')
     to = request.form.get('To')
-    logger.info('%s %s /call/answer', to, call_status)
+    answered_by = ''
+    if 'AnsweredBy' in request.form:
+      answered_by = request.form.get('AnsweredBy')
+    logger.info('%s %s %s /call/answer', to, call_status, answered_by)
     log_call_db(sid, {
       'call_status': call_status,
       'call_msg': 'answered'
     })
     call = db['msgs'].find_one({'sid':sid})
     job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-    speak = bravo.get_speak(job, call, live=True)
+    speak = bravo.get_speak(job, call, answered_by)
+    db['msgs'].update({'_id':call['_id']},{'$set':{'speak':speak}})
     response = twilio.twiml.Response()
     response.say(speak)
     return Response(str(response), mimetype='text/xml')
    
     ''' 
     if request.method == "GET":
-      request_uuid = request.args.get('RequestUUID')
-      logger.info(
-        '%s %s /call/answer', 
-        request.args.get('To'), 
-        request.args.get('CallStatus')
-      )
-      log_call_db(request_uuid, {
-        'status': 'IN_PROGRESS',
-        'code': 'ANSWERED',
-        'call_uuid': request.args.get('CallUUID')
-      })
-      
-      call = db['msgs'].find_one({'request_uuid':request_uuid})
-      if not call:
-        return Response(str(plivoxml.Response()), mimetype='text/xml')
-      job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-      if not job:  
-        return Response(str(plivoxml.Response()), mimetype='text/xml')
-      speak = bravo.get_speak(job, call, live=True)
-      if not speak:
-        # ERROR
-        return
-      db['msgs'].update({'_id':call['_id']},{'$set':{'speak':speak}})
-
       getdigits_action_url = url_for('content', _external=True)
       getDigits = plivoxml.GetDigits(
         action=getdigits_action_url,
@@ -522,100 +506,43 @@ def content():
 @app.route('/call/status',methods=['POST','GET'])
 def process_status():
   try:
-    #logger.info('status values %s: ' % request.values.items())
+    logger.debug('/call/status values: %s' % request.values.items())
     sid = request.form.get('CallSid')
     to = request.form.get('To')
     call_status = request.form.get('CallStatus')
     logger.info('%s %s /call/status', to, call_status)
     fields = {}
     fields['call_status'] = call_status
+    call = db['msgs'].find_one({'sid':sid})
 
     if call_status == 'completed':
       answered_by = request.form.get('AnsweredBy')
-      call = db['msgs'].find_one({'sid':sid})
-
-      if answered_by == 'human':
-        call_msg = 'delivered_live'
-      elif answered_by == 'machine':
-        call_msg = 'delivered_voicemail'
-      else:
-        call_msg = '???'
-
       fields['answered_by'] = answered_by
-      fields['call_msg'] = call_msg
+      fields['call_status'] = call_status
       fields['ended_at'] = datetime.now()
+      if 'speak' in call:
+        fields['speak'] = call['speak']
     elif call_status == 'ringing':
-      logger.info('ringing')
+      logger.debug('ringing')
     elif call_status == 'in-progress':
-      logger.info('in-progress')
+      logger.debug('in-progress')
     elif call_status == 'canceled':
-      logger.info('canceled')
+      logger.debug('canceled')
     elif call_status == 'failed':
-      logger.info('failed')
+      logger.debug('failed')
     elif call_status == 'busy':
-      logger.info('busy')
+      logger.debug('busy')
     elif call_status == 'no-answer':
-      logger.info('no-answer')
+      logger.debug('no-answer')
     else:
-      logger.info('wtf')
+      logger.debug('wtf')
 
     log_call_db(sid, fields)
+   
+    fields['id'] = str(call['_id'])
+    fields['attempts'] = call['attempts']
+    send_socket('update_call', fields)
 
-    '''
-    call_status = request.form.get('CallStatus')
-    to = request.form.get('To')
-    hangup_cause = request.form.get('HangupCause')
-    request_uuid = request.form.get('RequestUUID')
-    logger.info('%s %s (%s) /call/hangup', to, call_status, hangup_cause)
-    logger.debug('Call hungup %s' % request.values.items())
-    call = db['msgs'].find_one({'request_uuid':request_uuid})
-    
-    if not call:
-      return Response(str(plivoxml.Response()), mimetype='text/xml')
-
-    if hangup_cause == 'NORMAL_CLEARING':
-      call['status'] = 'COMPLETE'
-      if call['code'] == 'ANSWERED':
-        call['code'] = 'SENT_LIVE'
-    elif hangup_cause == 'USER_BUSY' or hangup_cause == 'NO_ANSWER':
-      call['code'] = hangup_cause
-      call['status'] = 'INCOMPLETE'
-    elif hangup_cause == 'NORMAL_TEMPORARY_FAILURE':
-      call['status'] = 'FAILED'
-      call['code'] = 'NOT_IN_SERVICE'
-    else:
-      call['status'] = call_status
-      call['code'] = hangup_cause
-
-    call['ended_at'] = datetime.now()
-
-    db['msgs'].update(
-        {'request_uuid':request_uuid}, 
-        {'$set': {
-          'code': call['code'],
-          'status': call['status'],
-          'hangup_cause': hangup_cause,
-          'ended_at': call['ended_at']
-          }
-        }
-    )
-
-    payload = {
-      'id' : str(call['_id']),
-      'status' : call['status'],
-      'code': call['code'],
-      'attempts': call['attempts'],
-      'ended_at': call['ended_at']
-    }
-    
-    if call['status'] == 'COMPLETE' and 'speak' in call:
-      payload['speak'] = call['speak']
-
-    send_socket('update_call', payload)
-
-    response = plivoxml.Response()
-    return Response(str(response), mimetype='text/xml')
-    '''
     return 'OK'
   except Exception, e:
     logger.error('%s /call/status' % request.values.items(), exc_info=True)
@@ -634,55 +561,6 @@ def process_fallback():
     return 'OK'
   except Exception, e:
     logger.error('%s /call/fallback' % request.values.items(), exc_info=True)
-    return str(e)
-
-@app.route('/call/machine',methods=['POST','GET'])
-def process_machine():
-  try:
-    logger.info('Machine detected. %s' % request.values.items())
-    '''
-    log_call_db(request.form.get('RequestUUID'), {
-      'code': 'MACHINE_ANSWERED',
-      'machine': True
-    })
-    call_uuid = request.form.get('CallUUID')
-    server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
-    response = server.transfer_call({
-      'call_uuid': call_uuid,
-      'legs': 'aleg',
-      'aleg_url' : bravo.pub_url +'/call/voicemail',
-      'aleg_method': 'POST'
-    })
-    logger.info(request.form.get('To') + ' machine detected')
-    return Response(str(response), mimetype='text/xml')
-  '''
-    return 'OK'
-  except Exception, e:
-    logger.error('%s /call/machine' % request.values.items(), exc_info=True)
-    return str(e)
-
-@app.route('/call/voicemail',methods=['POST','GET'])
-def process_voicemail():
-  try:
-    '''
-    logger.debug('/call/voicemail: %s' % request.values.items())
-    request_uuid = request.form.get('RequestUUID')
-    log_call_db(request_uuid, {
-      'code': 'SENT_VOICEMAIL'
-    })
-    call = db['msgs'].find_one({'request_uuid':request_uuid})
-    job = db['jobs'].find_one({'_id':call['job_id']})
-    speak = bravo.get_speak(job, call)
-    db['msgs'].update({'_id':call['_id']},{'$set':{'speak':speak}})
-    response = plivoxml.Response()
-    response.addWait(length=1)
-    response.addSpeak(body=speak)
-    logger.info('%s Leaving voicemail.' % call['to'])
-    return Response(str(response), mimetype='text/xml')
-    '''
-    return 'OK'
-  except Exception, e:
-    logger.error('%s /call/voicemail' % request.values.items(), exc_info=True)
     return str(e)
 
 if __name__ == "__main__":

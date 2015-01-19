@@ -14,23 +14,31 @@ from dateutil.parser import parse
 from datetime import datetime,timedelta
 import os
 
-celery = Celery(CELERY_MODULE, cache='amqp', broker=BROKER_URI)
+celery_app = Celery(CELERY_MODULE, cache='amqp', broker=BROKER_URI)
+celery_app.conf.CELERY_ACCEPT_CONTENT = CELERY_ACCEPT_CONTENT
+celery_app.conf.CELERY_RESULT_SERIALIZER = CELERY_RESULT_SERIALIZER
+celery_app.conf.CELERY_TASK_SERIALIZER = CELERY_TASK_SERIALIZER
+celery_app.conf.CELERY_TIMEZONE = CELERY_TIMEZONE
+celery_app.conf.CELERY_ENABLE_UTC = False
+celery_app.conf.CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE
 local_url = None
 pub_url = None
-client = None
+mongo_client = None
 db = None
 logger = logging.getLogger(__name__)
 
-def set_mode(mode):
-  global client, db, logger, pub_url, local_url
-  client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+def init(mode):
+  global mongo_client, db, logger, pub_url, local_url, celery_app
+  
+  mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+
 
   if mode == 'test':
-    db = client[TEST_DB]
+    db = mongo_client[TEST_DB]
     local_url = 'http://localhost:'+str(LOCAL_TEST_PORT)
     pub_url = PUB_DOMAIN + ':' + str(PUB_TEST_PORT) + PREFIX 
   elif mode == 'deploy':
-    db = client[DEPLOY_DB]
+    db = mongo_client[DEPLOY_DB]
     local_url = 'http://localhost:'+str(LOCAL_DEPLOY_PORT)
     pub_url = PUB_DOMAIN + PREFIX
 
@@ -46,20 +54,20 @@ def set_logger(logger, level, log_name):
   logger.addHandler(handler)
 
 def is_mongodb_available():
-  if client:
-    if client.alive():
+  if mongo_client:
+    if mongo_client.alive():
       return True
   else:
     return False
 
 def reconnect_mongodb():
-  global client, db
+  global mongo_client, db
   # Either no connection handle or connection is dead
   # Attempt to re-establish 
   logger.info('Attempting to reconnect to mongodb...')
   try:
-    client = pymongo.MongoClient('localhost',27017)
-    db = client['wsf']
+    mongo_client = pymongo.MongoClient('localhost',27017)
+    db = mongo_client['wsf']
   except pymongo.errors.ConnectionFailure as e:
     logger.error('mongodb connection refused!')
     return False
@@ -88,7 +96,7 @@ def restart_server():
   return True
 
 def is_celery_worker():
-  if not celery.control.inspect().active_queues():
+  if not celery_app.control.inspect().active_queues():
     return False
   else:
     return True
@@ -101,7 +109,7 @@ def restart_celery():
     logger.error('Failed to restart celery worker')
     return False
   time.sleep(5)
-  if not celery.control.inspect().active_queues():
+  if not celery_app.control.inspect().active_queues():
     logger.error('Failed to restart celery worker')
     return False
 
@@ -109,9 +117,9 @@ def restart_celery():
   return True
 
 def systems_check():
-  if not is_celery_worker():
+  #if not is_celery_worker():
     #if not restart_celery():
-      return False 
+  #    return False 
   if not is_server_online():
     return False
   #  if not restart_server():
@@ -122,7 +130,7 @@ def systems_check():
 
   return True
 
-@celery.task
+@celery_app.task
 def monitor_job(job_id):
   logger.info('Monitoring job %s' % str(job_id))
   try:
@@ -171,7 +179,7 @@ def monitor_job(job_id):
     logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
     return str(e)
 
-@celery.task
+@celery_app.task
 def execute_job(job_id):
   try:
     if isinstance(job_id, str):
@@ -254,8 +262,13 @@ def fire_msg(msg):
     return str(e)
 
 # Run on fixed schedule from crontab, cycles through pending jobs
-# and dispatches celery worker when due 
+# and dispatches celery worker when due
+@celery_app.task 
 def run_scheduler():
+  print 'running scheduler!'
+  logger.info('running scheduler!')
+  
+  '''
   if not systems_check():
     return False 
 
@@ -271,15 +284,15 @@ def run_scheduler():
       next_job_delay = job['fire_dtime'] - datetime.now()
       logger.info(str(job_num) + '): ' + job['name'] + ' starts in: ' + str(next_job_delay))
     job_num += 1
-
+  '''
   return True
 
 # TWILIO API
 def dial(to):
   try:
-    client = twilio.rest.TwilioRestClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_ID)
-    call = client.calls.create(
-      from_=TWILIO_NUMBER,
+    twilio_client = twilio.rest.TwilioRestClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_ID)
+    call = twilio_client.calls.create(
+      from_=FROM_NUMBER,
       to='+1'+to,
       url=pub_url + '/call/answer',
       status_callback=pub_url + '/call/status',
@@ -352,7 +365,7 @@ def get_speak(job, msg, answered_by, medium='voice'):
     if medium == 'voice' and answered_by == 'human':
       speak += repeat_voice
   elif job['template'] == 'gg_delivery':
-    speak = ('Hi, this is friendly reminder that your green goods delivery will be on ' +
+    speak = ('Hi, this is a friendly reminder that your green goods delivery will be on ' +
       date_str + '. Your order total is ' + msg['imported']['price'] + '. ')
     if medium == 'voice' and answered_by == 'machine':
       speak += repeat_voice

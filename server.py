@@ -154,8 +154,9 @@ def index():
   jobs = db['jobs'].find().sort('fire_dtime',-1)
   return render_template('show_jobs.html', title=os.environ['title'], jobs=jobs)
 
-@app.route('/send_socket', method=['POST'])
+@app.route('/send_socket', methods=['POST'])
 def post_socket():
+  return 'OK'
   
 
 @app.route('/summarize/<job_id>')
@@ -565,9 +566,10 @@ def process_fallback():
 
 if __name__ == "__main__":
   client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+
   if len(sys.argv) > 0:
     mode = sys.argv[1]
-    bravo.set_mode(mode)
+    bravo.init(mode)
     if mode == 'test':
       os.environ['title'] = 'Bravo:8080'
       db = client[TEST_DB]
@@ -576,5 +578,4 @@ if __name__ == "__main__":
       os.environ['title'] = 'Bravo Deploy'
       db = client[DEPLOY_DB]
       socketio.run(app, port=LOCAL_DEPLOY_PORT)
-    
 

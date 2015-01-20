@@ -11,7 +11,6 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Canada/Mountain'
 CELERY_ENABLE_UTC = False
-#CELERY_MODULE = 'bravo'
 CELERYBEAT_SCHEDULE = {
   'bravo_scheduler': {
     'task': 'server.run_scheduler',

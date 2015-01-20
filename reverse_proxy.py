@@ -1,5 +1,4 @@
 import os
-import bravo
 import json
 
 '''Wrap the application in this middleware and configure the 

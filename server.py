@@ -250,12 +250,9 @@ def send_email(recipient, subject, msg):
 @celery_app.task
 def execute_job(job_id):
   try:
-    if isinstance(job_id, str):
-      job_id = ObjectId(job_id)
     job = db['jobs'].find_one({'_id':job_id})
     # Default call order is alphabetically by name
     messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
-    
     logger.info('\n\n********** Start Job ' + str(job_id) + ' **********')
     db['jobs'].update(
       {'_id': job['_id']},
@@ -265,23 +262,18 @@ def execute_job(job_id):
         }
       }
     )
-
     # Fire all calls
     for msg in messages:
       status = dial(msg['imported']['to'])
       status['attempts'] = msg['attempts']+1
       log_call_db(status['sid'], status)
       time.sleep(1)
-
     logger.info('Job calls fired. Sleeping 60s before monitor...')
     time.sleep(60)
     monitor_job(job_id)
     logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
-
-    return True
   except Exception, e:
     logger.error('execute_job job_id %s', str(job_id), exc_info=True)
-    return str(e)
 
 def monitor_job(job_id):
   logger.info('Monitoring job %s' % str(job_id))
@@ -567,9 +559,7 @@ def create_job():
 
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
-  job_id = job_id.encode('utf-8')
-  logger.info(type(job_id))
-  logger.info('job_id: ' + job_id)
+  job_id = ObjectId(job_id.encode('utf-8'))
   execute_job.delay(job_id);
 
 @app.route('/jobs')

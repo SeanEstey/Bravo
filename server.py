@@ -279,16 +279,27 @@ def monitor_job(job_id):
   logger.info('Monitoring job %s' % str(job_id))
   try:
     while True:
-      # Any active msg's?
-      if db['msgs'].find({
+      # Any calls still active?
+      active = db['msgs'].find({
         'job_id': job_id,
         '$or':[
           {'status': 'queued'},
           {'status': 'ringing'},
           {'status': 'in-progress'}
         ]
-      }).count() == 0:
-        # Job Complete!
+      })
+      # Any needing redial?
+      incomplete = db['msgs'].find({
+        'job_id':job_id,
+        'attempts': {'$lt': MAX_ATTEMPTS}, 
+        '$or':[
+          {'status': 'busy'},
+          {'status': 'no-answer'}
+        ]
+      })
+      
+      # Job Complete!
+      if active.count() == 0 and incomplete.count() == 0:
         db['jobs'].update(
           {'_id': job_id},
           {'$set': {
@@ -302,24 +313,15 @@ def monitor_job(job_id):
         #send_email_report(job_id)
         return
       # Job still in progress. Any incomplete calls need redialing?
+      elif active.count() == 0 and incomplete.count() > 0:
+        logger.info(str(redials.count()) + ' calls incomplete. Pausing for ' + str(REDIAL_DELAY) + 's then redialing...')
+        time.sleep(REDIAL_DELAY)
+        for redial in redials:
+          fire_msg(redial)
+      # Still active calls going out  
       else:
-        redials = db['msgs'].find({
-          'job_id':job_id,
-          'attempts': {'$lt': MAX_ATTEMPTS}, 
-          '$or':[
-            {'code': 'NO_ENDPOINT'},
-            {'code': 'USER_BUSY'},
-            {'code': 'NO_ANSWER'}
-          ]
-        })
-        if redials.count() > 0:
-          logger.info(str(redials.count()) + ' calls incomplete. Pausing for ' + str(REDIAL_DELAY) + 's then redialing...')
-          time.sleep(REDIAL_DELAY)
-          for redial in redials:
-            fire_msg(redial)
-        else:
-          time.sleep(10)
-      # End loop
+        time.sleep(10)
+    # End loop
   except Exception, e:
     logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
     return str(e)

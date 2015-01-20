@@ -283,8 +283,9 @@ def monitor_job(job_id):
       if db['msgs'].find({
         'job_id': job_id,
         '$or':[
-          {'status': 'IN_PROGRESS'},
-          {'status': 'PENDING'}
+          {'status': 'queued'},
+          {'status': 'ringing'},
+          {'status': 'in-progress'}
         ]
       }).count() == 0:
         # Job Complete!

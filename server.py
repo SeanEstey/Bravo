@@ -176,67 +176,29 @@ def strip_phone_num(to):
 def create_job_summary(job_id):
   if isinstance(job_id, str):
     job_id = ObjectId(job_id)
-
-  calls = db['msgs'].find({'job_id':job_id},{'_id':0})
-  
+  job = db['jobs'].find_one({'_id':job_id})
   summary = {
     'totals': {
-      'completed': 0,
-      'no_answer' : 0,
-      'busy': 0,
-      'failed' : 0
+      'completed': db['msgs'].find({'job_id':job_id, 'status':'completed'}).count(),
+      'no-answer' : db['msgs'].find({'job_id':job_id, 'status':'no-answer'}).count(),
+      'busy': db['msgs'].find({'job_id':job_id, 'status':'busy'}).count(),
+      'failed' : db['msgs'].find({'job_id':job_id, 'status':'failed'}).count(),
+      'time_elapsed': (job['ended_at'] - job['started_at']).total_seconds()
     },
-    'calls': {}
+    'calls': db['msgs'].find({'job_id':job_id},{'_id':0}).toArray()
   }
-
-  for call in calls:
-    if call['call_status'] == 'completed':
-      summary['totals']['completed'] += 1
-    elif call['call_status'] == 'no_answer':
-      summary['totals']['no_answer'] += 1
-    elif call['call_status'] == 'busy':
-      summary['totals']['busy'] += 1
-    elif call['call_status'] == 'failed':
-      summary['totals']['failed'] += 1
-
-    summary['calls'][call['imported']['name']] = {
-      'phone': call['imported']['to'],
-      'call_status': call['call_status'],
-      'attempts': call['attempts'],
-    }
-
-    if 'sid' in call:
-      summary['calls'][call['imported']['name']]['sid'] = call['sid']
-    if 'answered_by' in call:
-      summary['calls'][call['imported']['name']]['answered_by'] = call['answered_by']
-  
-  job = db['jobs'].find_one({'_id':job_id})
-
-  delta = job['ended_at'] - job['started_at']
-  
-  summary['elapsed'] = delta.total_seconds()
-
   return json.dumps(summary)
 
 def send_email_report(job_id):
   import smtplib
   from email.mime.text import MIMEText
-
-  job = db['jobs'].find_one({'_id':job_id})
-    
-  calls = list(db['msgs'].find({'job_id':job_id},{'_id':0,'to':1,'status':1,'message':1}))
-  calls_str = json.dumps(calls, sort_keys=True, indent=4, separators=(',',': ' ))
-  sum_str = json.dumps(job['summary'])
-  
-  msg = sum_str + '\n\n' + calls_str
   subject = 'Job Summary %s' % str(job_id)
-
+  msg = ''
   send_email('estese@gmail.com', subject, msg)
 
 def send_email(recipient, subject, msg):
   import requests
   send_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/messages'
-
   return requests.post(
     send_url,
     auth=('api', MAILGUN_API_KEY),

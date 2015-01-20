@@ -268,8 +268,6 @@ def execute_job(job_id):
       status['attempts'] = msg['attempts']+1
       log_call_db(status['sid'], status)
       time.sleep(1)
-    logger.info('Job calls fired. Sleeping 60s before monitor...')
-    time.sleep(60)
     monitor_job(job_id)
     logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
   except Exception, e:

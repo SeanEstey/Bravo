@@ -14,13 +14,13 @@ from dateutil.parser import parse
 from datetime import datetime,timedelta
 import os
 
-celery_app = Celery(CELERY_MODULE, cache='amqp', broker=BROKER_URI)
-celery_app.conf.CELERY_ACCEPT_CONTENT = CELERY_ACCEPT_CONTENT
-celery_app.conf.CELERY_RESULT_SERIALIZER = CELERY_RESULT_SERIALIZER
-celery_app.conf.CELERY_TASK_SERIALIZER = CELERY_TASK_SERIALIZER
-celery_app.conf.CELERY_TIMEZONE = CELERY_TIMEZONE
-celery_app.conf.CELERY_ENABLE_UTC = False
-celery_app.conf.CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE
+#celery_app = Celery(CELERY_MODULE, cache='amqp', broker=BROKER_URI)
+#celery_app.conf.CELERY_ACCEPT_CONTENT = CELERY_ACCEPT_CONTENT
+#celery_app.conf.CELERY_RESULT_SERIALIZER = CELERY_RESULT_SERIALIZER
+#celery_app.conf.CELERY_TASK_SERIALIZER = CELERY_TASK_SERIALIZER
+#celery_app.conf.CELERY_TIMEZONE = CELERY_TIMEZONE
+#celery_app.conf.CELERY_ENABLE_UTC = False
+#celery_app.conf.CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE
 local_url = None
 pub_url = None
 mongo_client = None
@@ -31,7 +31,6 @@ def init(mode):
   global mongo_client, db, logger, pub_url, local_url, celery_app
   
   mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
-
 
   if mode == 'test':
     db = mongo_client[TEST_DB]
@@ -96,10 +95,12 @@ def restart_server():
   return True
 
 def is_celery_worker():
+  '''
   if not celery_app.control.inspect().active_queues():
     return False
   else:
-    return True
+  '''
+  return True
 
 def restart_celery():
   logger.info('Attempting to restart celery worker...')
@@ -109,10 +110,11 @@ def restart_celery():
     logger.error('Failed to restart celery worker')
     return False
   time.sleep(5)
+  '''
   if not celery_app.control.inspect().active_queues():
     logger.error('Failed to restart celery worker')
     return False
-
+  '''
   logger.info('Celery worker restarted')
   return True
 
@@ -130,7 +132,7 @@ def systems_check():
 
   return True
 
-@celery_app.task
+#@celery_app.task
 def monitor_job(job_id):
   logger.info('Monitoring job %s' % str(job_id))
   try:
@@ -179,95 +181,10 @@ def monitor_job(job_id):
     logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
     return str(e)
 
-@celery_app.task
-def execute_job(job_id):
-  try:
-    if isinstance(job_id, str):
-      job_id = ObjectId(job_id)
-
-    if not systems_check():
-      msg = 'Systems check failed during execution of job_id ' + str(job_id)
-      #send_email('estese@gmail.com', 'Bravo systems Offline!', msg)
-      logger.error(msg)
-      return False
-  
-    job = db['jobs'].find_one({'_id':job_id})
-    # Default call order is alphabetically by name
-    messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
-
-    if not messages:
-      logger.error('No msgs in job_id ' + str(job_id))
-      return False
-
-    logger.info('\n\n********** Start Job ' + str(job_id) + ' **********')
-    
-    db['jobs'].update(
-      {'_id': job['_id']},
-      {'$set': {
-        'status': 'IN_PROGRESS',
-        'started_at': datetime.now()
-        }
-      }
-    )
-  except Exception, e:
-    logger.error('execute_job job_id %s', str(job_id), exc_info=True)
-    return str(e)
-
-  # Fire all voice calls and SMS
-  for msg in messages:
-    fire_msg(msg)
-    # Cap at 1/sec for testing
-    time.sleep(1)
-
-  logger.info('All calls fired for job %s. Sleeping 60s...', str(job_id))
-  time.sleep(60)
-  monitor_job(job_id)
-  logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
-  return True
-
-def fire_msg(msg):
-  fields = {}
-  try:
-    # Voice Call
-    if not 'sms' in msg:
-      response = dial(msg['imported']['to'])
-    # SMS
-    else:
-      job = db['jobs'].find_one({'_id':msg['job_id']})
-      text = get_speak(job, msg, medium='sms')
-      response = sms(msg['imported']['to'], text)
-      fields['speak'] = text
-    
-    fields['sid'] = response[1]['sid']
-    fields['attempts'] = msg['attempts'] + 1
-    fields['call_status'] = response[1]['call_status']
-
-    if 'call_msg' in response[1]:
-      fields['call_msg'] = response[1]['call_msg']
-      logger.info('%s %s (%s)', msg['imported']['to'], fields['call_status'], fields['call_msg'])
-    else:
-      logger.info('%s %s', msg['imported']['to'], fields['call_status'])
-
-    db['msgs'].update(
-      {'_id': msg['_id']}, 
-      {'$set': fields})
-
-    if fields['call_status'] == 'failed':
-      # TODO: push socket.io update manually to client via server POST
-      foo = 2 
-
-    return response
-  except Exception as e:
-    logger.error('%s fire_msg.', exc_info=True)
-    return str(e)
-
 # Run on fixed schedule from crontab, cycles through pending jobs
 # and dispatches celery worker when due
-@celery_app.task 
+#@celery_app.task 
 def run_scheduler():
-  print 'running scheduler!'
-  logger.info('running scheduler!')
-  
   '''
   if not systems_check():
     return False 
@@ -310,11 +227,11 @@ def dial(to):
     else:
       #logger.error('e.msg: ' + e.msg + ', e.code: ' + str(e.code))
       call_msg = str(e.code)
-    return [400, {'sid':'', 'call_status': call_status, 'call_msg':call_msg}]
+    return {'sid':'', 'call_status': call_status, 'call_msg':call_msg}
   except Exception as e:
     logger.error('twilio.call exception: ', exc_info=True)
  
-  return [200, {'sid':call.sid, 'call_status':call.status}]
+  return {'sid':call.sid, 'call_status':call.status}
 
 def sms(to, msg):
   params = {

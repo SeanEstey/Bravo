@@ -4,6 +4,7 @@ from config import *
 from secret import *
 from bson.objectid import ObjectId
 import pymongo
+from celery import Celery
 import twilio
 from twilio import twiml
 from datetime import datetime,date
@@ -20,7 +21,6 @@ import bravo
 from reverse_proxy import ReverseProxied
 import sys
 
-
 logger = logging.getLogger(__name__)
 bravo.set_logger(logger, LOG_LEVEL, LOG_FILE)
 app = Flask(__name__)
@@ -28,6 +28,8 @@ app.config.from_pyfile('config.py')
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.debug = True
 socketio = SocketIO(app)
+celery_app = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+celery_app.conf.update(app.config)
 
 def log_call_db(sid, fields, sendSocket=True):
   call = db['msgs'].find_one({'sid':sid})
@@ -149,6 +151,17 @@ def send_socket(name, data):
  
   socketio.emit(name, data)
 
+@celery_app.task
+def test_test():
+  print 'celery method called from server'
+
+@celery_app.task
+def run_scheduler():
+  print 'running scheduler on server. db='+str(bravo.db)
+  import requests
+  requests.get('http://localhost:5000/schedule')
+  #logger.info('running scheduler!')
+
 @app.route('/')
 def index():
   jobs = db['jobs'].find().sort('fire_dtime',-1)
@@ -157,7 +170,11 @@ def index():
 @app.route('/send_socket', methods=['POST'])
 def post_socket():
   return 'OK'
-  
+
+@app.route('/schedule')
+def do_schedule():
+  logger.info('activating job via scheduler!')
+  return 'OK'
 
 @app.route('/summarize/<job_id>')
 def get_job_summary(job_id):
@@ -269,12 +286,48 @@ def create_job():
 
   return show_calls(job_id)
 
-@app.route('/execute/<job_id>')
-def execute_job(job_id):
+@app.route('/request/execute/<job_id>')
+def request_execute_job(job_id):
   job_id = job_id.encode('utf-8')
   logger.info(type(job_id))
   logger.info('job_id: ' + job_id)
-  bravo.execute_job(job_id);
+  execute_job.delay(job_id);
+
+@celery_app.task
+def execute_job(job_id):
+  try:
+    if isinstance(job_id, str):
+      job_id = ObjectId(job_id)
+    job = db['jobs'].find_one({'_id':job_id})
+    # Default call order is alphabetically by name
+    messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
+    
+    logger.info('\n\n********** Start Job ' + str(job_id) + ' **********')
+    db['jobs'].update(
+      {'_id': job['_id']},
+      {'$set': {
+        'status': 'IN_PROGRESS',
+        'started_at': datetime.now()
+        }
+      }
+    )
+
+    # Fire all calls
+    for msg in messages:
+      status = bravo.dial(msg['imported']['to'])
+      status['attempts'] = msg['attempts']+1
+      log_call_db(status['sid'], status)
+      time.sleep(1)
+
+    logger.info('Job calls fired. Sleeping 60s before monitor...')
+    time.sleep(60)
+    monitor_job(job_id)
+    logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
+
+    return True
+  except Exception, e:
+    logger.error('execute_job job_id %s', str(job_id), exc_info=True)
+    return str(e)
 
 @app.route('/jobs')
 def show_jobs():
@@ -426,24 +479,6 @@ def get_sms_status():
   except Exception, e:
     logger.error('%s /sms.' % request.values.items(), exc_info=True)
     return str(e)
-
-@app.route('/call/ring', methods=['POST'])
-def ring():
-  try:
-    log_call_db(request.form['RequestUUID'], {
-      'status': 'IN_PROGRESS',
-      'code': 'RINGING',
-      'rang': True
-    })
-    logger.info(
-      '%s %s /call/ring', 
-      request.form['To'], 
-      request.form['CallStatus']
-    )
-    return 'OK'
-  except Exception as e:
-    logger.error(str(e))
-    return 'FAIL'
 
 @app.route('/call/answer',methods=['POST','GET'])
 def content():

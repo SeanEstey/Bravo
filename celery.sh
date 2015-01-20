@@ -1,3 +1,3 @@
 #!/bin/bash
 
-celery -A bravo worker --beat
+celery -A server.celery_app worker --beat -l debug

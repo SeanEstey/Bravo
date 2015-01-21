@@ -340,7 +340,7 @@ function initShowCallsView() {
     var args =  window.location.pathname.split('/');
     var job_uuid = args.slice(-1)[0];
     $('#execute-job').click(function() {
-      var url = $SCRIPT_ROOT + '/execute/' + job_uuid;
+      var url = $SCRIPT_ROOT + '/request/execute/' + job_uuid;
       console.log('execute_job url: ' + url);
       var request =  $.ajax({
         type: 'GET',
@@ -364,9 +364,9 @@ function initShowCallsView() {
 
 // View: show_calls
 function formatCallStatus($cell, text) {
-  if(text.indexOf('SENT') >= 0)
+  if(text.indexOf('Sent') >= 0)
     $cell.css({'color':'#009900'});
-  else if(text.indexOf('NO_ANSWER') >= 0 || text.indexOf('USER_BUSY') >= 0 || text.indexOf('NOT_IN_SERVICE') >= 0)
+  else if(text.indexOf('NO_ANSWER') >= 0 || text.indexOf('USER_BUSY') >= 0 || text.indexOf('Not In Service') >= 0)
     $cell.css({'color':'#C00000' });
   else
     $cell.css({'color':'#365766'});
@@ -501,16 +501,19 @@ function receiveCallUpdate(socket_data) {
   console.log('received update: ' + JSON.stringify(socket_data));
   // Find matching row_id to update
   var $row = $('#'+socket_data['id']);
-  if('status' in socket_data) {
-    code = socket_data['status'].toTitleCase();
-    $row.find('[name="status"]').html(code);
-  }
-  if('code' in socket_data) {
+ /* if('call_status' in socket_data) {
+    var status = socket_data['call_status'].toTitleCase();
+    $row.find('[name="message"]').html(status);
+  }*/
+  if('call_status' in socket_data) {
     $cell = $row.find('[name="message"]');
-    code = socket_data['code'];
-    //$cell.html(code);
-    formatCallStatus($cell, code);
-    //code = code.toTitleCase();
+    var call_status = socket_data['call_status'];
+    if('answered_by' in socket_data) {
+      //formatCallStatus($cell, socket_data['call_status'], socket_data['answered_by']);
+    }
+    else {
+      $cell.html(call_status.toTitleCase()); 
+    }
   }
   if('attempts' in socket_data)
     $row.find('[name="attempts"]').html(socket_data['attempts']);

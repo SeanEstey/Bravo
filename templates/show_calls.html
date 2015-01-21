@@ -38,14 +38,17 @@
           {% for column in template %}
             <td name='{{column.field}}'>{{call.imported[column.field]}}</td>
           {% endfor %}
-          {#<td name='name' style='width:15%;'>{{ call.imported.name }}</td>
-          <td name='to'>{{ call.imported.to.replace(' ', '').strip() }}</td>
-          <td name='event_date' class='call_date_td'>{{ call.imported.event_date }}</td>
-          #}
-          {% if 'speak' in call %}
-            <td name='message' title='"{{call.speak}}"' class='call_msg_td' >{{ call.call_status }}</td>
+          {% if call.call_status == "completed" %}
+            {% if call.answered_by == "machine" %}
+              {% set caption="Sent Voicemail" %}
+            {% else %}
+              {% set caption="Sent Live" %}
+            {% endif %}
+              <td name='message' title='"{{call.speak}}"' class='call_msg_td' >{{caption}}</td>
           {% elif call.call_status == "pending" %}
             <td name='message' class='call_msg_td'>Pending</td>
+          {% elif call.call_status == "failed" %}
+            <td name='message' class='call_msg_td'>{{call.call_msg}}</td>
           {% else %}
             <td name='message' class='call_msg_td' >{{ call.call_status + ' (' ~ call.attempts + 'x)' }}</td>
           {% endif %}

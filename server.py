@@ -86,17 +86,19 @@ def restart_celery():
 
 def dial(to):
   try:
-    twilio_client = twilio.rest.TwilioRestClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_ID)
+    twilio_client = twilio.rest.TwilioRestClient(
+      TWILIO_ACCOUNT_SID, 
+      TWILIO_AUTH_ID
+    )
     call = twilio_client.calls.create(
       from_=FROM_NUMBER,
       to='+1'+to,
-      url=pub_url + '/call/answer',
-      status_callback=pub_url + '/call/hangup',
+      url= os.environ['pub_url'] + '/call/answer',
+      status_callback= os.environ['pub_url'] + '/call/hangup',
       status_method='POST',
       method='POST',
       if_machine='Continue'
     )
-      
   except twilio.TwilioRestException as e:
     call_status = 'failed'
     if e.code == 21216:
@@ -109,8 +111,8 @@ def dial(to):
     return {'sid':'', 'call_status': call_status, 'call_msg':call_msg}
   except Exception as e:
     logger.error('twilio.call exception: ', exc_info=True)
- 
-  return {'sid':call.sid, 'call_status':call.status}
+  else: 
+    return {'sid':call.sid, 'call_status':call.status}
 
 def sms(to, msg):
   params = {
@@ -118,7 +120,7 @@ def sms(to, msg):
     'src': SMS_NUMBER,
     'text': msg,
     'type': 'sms',
-    'url': pub_url + '/sms_status'
+    'url': os.environ['pub_url'] + '/sms_status'
   }
 
   try:
@@ -178,16 +180,16 @@ def create_job_summary(job_id):
     job_id = ObjectId(job_id)
   job = db['jobs'].find_one({'_id':job_id})
   summary = {
-    'totals': {
-      'completed': db['msgs'].find({'job_id':job_id, 'status':'completed'}).count(),
-      'no-answer' : db['msgs'].find({'job_id':job_id, 'status':'no-answer'}).count(),
-      'busy': db['msgs'].find({'job_id':job_id, 'status':'busy'}).count(),
-      'failed' : db['msgs'].find({'job_id':job_id, 'status':'failed'}).count(),
-      'time_elapsed': (job['ended_at'] - job['started_at']).total_seconds()
+    "totals": {
+      "completed": db['msgs'].find({'job_id':job_id, 'call_status':'completed'}).count(),
+      "no-answer" : db['msgs'].find({'job_id':job_id, 'call_status':'no-answer'}).count(),
+      "busy": db['msgs'].find({'job_id':job_id, 'call_status':'busy'}).count(),
+      "failed" : db['msgs'].find({'job_id':job_id, 'call_status':'failed'}).count(),
+      "time_elapsed": (job['ended_at'] - job['started_at']).total_seconds()
     },
-    'calls': db['msgs'].find({'job_id':job_id},{'_id':0}).toArray()
+    "calls": list(db['msgs'].find({'job_id':job_id},{'_id':0, 'ended_at':0, 'job_id':0, 'imported.event_date':0}))
   }
-  return json.dumps(summary)
+  return summary
 
 def send_email_report(job_id):
   import smtplib
@@ -226,9 +228,15 @@ def execute_job(job_id):
     )
     # Fire all calls
     for msg in messages:
-      status = dial(msg['imported']['to'])
-      status['attempts'] = msg['attempts']+1
-      log_call_db(status['sid'], status)
+      response = dial(msg['imported']['to'])
+      logger.info('%s %s', msg['imported']['to'], response['call_status'])
+      response['attempts'] = msg['attempts']+1
+      db['msgs'].update(
+        {'_id':msg['_id']},
+        {'$set': response}
+      )
+      response['id'] = str(msg['_id'])
+      send_socket('update_call', response)
       time.sleep(1)
     monitor_job(job_id)
     logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
@@ -243,9 +251,9 @@ def monitor_job(job_id):
       active = db['msgs'].find({
         'job_id': job_id,
         '$or':[
-          {'status': 'queued'},
-          {'status': 'ringing'},
-          {'status': 'in-progress'}
+          {'call_status': 'queued'},
+          {'call_status': 'ringing'},
+          {'call_status': 'in-progress'}
         ]
       })
       # Any needing redial?
@@ -253,8 +261,8 @@ def monitor_job(job_id):
         'job_id':job_id,
         'attempts': {'$lt': MAX_ATTEMPTS}, 
         '$or':[
-          {'status': 'busy'},
-          {'status': 'no-answer'}
+          {'call_status': 'busy'},
+          {'call_status': 'no-answer'}
         ]
       })
       
@@ -268,8 +276,9 @@ def monitor_job(job_id):
             }
         })
         create_job_summary(job_id)
-        completion_url = local_url + '/complete/' + str(job_id)
-        requests.get(completion_url)
+        job_complete(str(job_id))
+        #completion_url = os.environ['local_url'] + '/complete/' + str(job_id)
+        #requests.get(completion_url)
         #send_email_report(job_id)
         return
       # Job still in progress. Any incomplete calls need redialing?
@@ -285,24 +294,6 @@ def monitor_job(job_id):
   except Exception, e:
     logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
     return str(e)
-
-def log_call_db(sid, fields, sendSocket=True):
-  call = db['msgs'].find_one({'sid':sid})
-
-  if not call:
-    logger.error('log_call_db(): sid ' + sid + ' not in db')
-    return
-
-  db['msgs'].update(
-    {'sid':sid},
-    {'$set': fields}
-  )
-  if sendSocket is False:
-    return
-
-  fields['id'] = str(call['_id'])
-  fields['attempts'] = call['attempts']
-  send_socket('update_call', fields)
 
 def parse_csv(csvfile, template):
   reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
@@ -413,7 +404,8 @@ def index():
 @app.route('/summarize/<job_id>')
 def get_job_summary(job_id):
   job_id = job_id.encode('utf-8')
-  summary = create_job_summary(job_id)
+  summary = json.dumps(create_job_summary(job_id))
+
   return render_template('job_summary.html', title=os.environ['title'], summary=summary)
 
 @app.route('/get/template/<name>')
@@ -431,7 +423,7 @@ def get_var(var):
   if var == 'mode':
     return mode
   elif var == 'pub_url':
-    return pub_url
+    return os.environ['pub_url']
   elif var == 'celery_status':
     if not is_celery_worker():
       return 'Offline'
@@ -523,7 +515,9 @@ def create_job():
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
   job_id = ObjectId(job_id.encode('utf-8'))
-  execute_job.delay(job_id);
+  #execute_job.delay(job_id);
+  execute_job(job_id)
+  return 'OK'
 
 @app.route('/jobs')
 def show_jobs():
@@ -570,16 +564,10 @@ def reset_job(job_id):
   db['msgs'].update(
     {'job_id': ObjectId(job_id)}, 
     {'$unset': {
-      'message_uuid': '',
       'answered_by': '',
       'call_msg': '',
-      'hangup_cause': '',
-      'rang': '',
       'message': '',
       'sid': '',
-      'call_uuid': '',
-      'status': '',
-      'request_uuid': '',
       'speak': '',
       'code': '',
       'ended_at': ''
@@ -592,7 +580,6 @@ def reset_job(job_id):
     {'$set': {
       'status': 'PENDING'
     }})
-
   return 'OK'
 
 @app.route('/cancel/job/<job_id>')
@@ -633,49 +620,107 @@ def edit_call(call_uuid):
     )
   return 'OK'
 
+@app.route('/call/answer',methods=['POST','GET'])
+def content():
+  try:
+    logger.debug('Call answered! %s' % request.values.items())
+    sid = request.form.get('CallSid')
+    call_status = request.form.get('CallStatus')
+    to = request.form.get('To')
+    answered_by = ''
+    if 'AnsweredBy' in request.form:
+      answered_by = request.form.get('AnsweredBy')
+    logger.info('%s %s %s /call/answer', to, call_status, answered_by)
+    db['msgs'].update(
+      {'sid':sid},
+      {'$set': {'call_status':call_status}}
+    )
+    call = db['msgs'].find_one({'sid':sid})
+    send_socket(
+      'update_call', {
+        'id': str(call['_id']),
+        'call_status': call_status
+      }
+    )
+    job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
+    speak = get_speak(job, call, answered_by)
+    db['msgs'].update({'_id':call['_id']},{'$set':{'speak':speak}})
+    response = twilio.twiml.Response()
+    response.say(speak)
+    return Response(str(response), mimetype='text/xml')
+    ''' 
+    if request.method == "GET":
+      getdigits_action_url = url_for('content', _external=True)
+      getDigits = plivoxml.GetDigits(
+        action=getdigits_action_url,
+        method='POST', timeout=7, numDigits=1,
+        retries=1
+      )  
+      response = plivoxml.Response()
+      response.addWait(length=1)
+      response.addSpeak(body=speak)
+      response.add(getDigits)
+      return Response(str(response), mimetype='text/xml')
+    elif request.method == "POST":
+      digit = request.form.get('Digits')
+      logger.info('got digit: ' + str(digit))
+      request_uuid = request.form.get('RequestUUID')
+      call = db['msgs'].find_one({'request_uuid':request_uuid})
+      job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
+      response = plivoxml.Response()
+      if digit == '1':
+        speak = bravo.get_speak(job, call)
+        response.addSpeak(speak)
+      elif digit == '2':
+        log_call_db(request_uuid, {
+          'office_notes': 'NO PICKUP'
+        })
+        response.addSpeak('Thank you. Goodbye.')
+    '''   
+  except Exception, e:
+    logger.error('/call/answer', exc_info=True)
+    return str(e)
+
 @app.route('/call/hangup',methods=['POST','GET'])
 def process_status():
   try:
-    logger.debug('/call/status values: %s' % request.values.items())
+    logger.debug('/call/hangup values: %s' % request.values.items())
     sid = request.form.get('CallSid')
     to = request.form.get('To')
     call_status = request.form.get('CallStatus')
-    logger.info('%s %s /call/status', to, call_status)
-    fields = {}
-    fields['call_status'] = call_status
+    logger.info('%s %s /call/hangup', to, call_status)
+    fields = {
+      'call_status': call_status,
+      'ended_at': datetime.now()
+    }
     call = db['msgs'].find_one({'sid':sid})
 
     if call_status == 'completed':
       answered_by = request.form.get('AnsweredBy')
       fields['answered_by'] = answered_by
-      fields['call_status'] = call_status
-      fields['ended_at'] = datetime.now()
       if 'speak' in call:
         fields['speak'] = call['speak']
-    elif call_status == 'ringing':
-      logger.debug('ringing')
-    elif call_status == 'in-progress':
-      logger.debug('in-progress')
     elif call_status == 'canceled':
-      logger.debug('canceled')
+      logger.info('canceled')
     elif call_status == 'failed':
-      logger.debug('failed')
+      logger.info('failed')
     elif call_status == 'busy':
-      logger.debug('busy')
+      logger.info('busy')
     elif call_status == 'no-answer':
-      logger.debug('no-answer')
+      logger.info('no-answer')
     else:
-      logger.debug('wtf')
+      logger.info('unrecognized /call/hangup status: ' + call_status)
 
-    log_call_db(sid, fields)
-   
+    db['msgs'].update(
+      {'sid':sid},
+      {'$set': fields}
+    )
     fields['id'] = str(call['_id'])
     fields['attempts'] = call['attempts']
     send_socket('update_call', fields)
-
     return 'OK'
   except Exception, e:
-    logger.error('%s /call/status' % request.values.items(), exc_info=True)
+    logger.error('%s /call/hangup' % request.values.items(), exc_info=True)
     return str(e)
 
 @app.route('/call/fallback',methods=['POST','GET'])
@@ -700,14 +745,13 @@ if __name__ == "__main__":
     mode = sys.argv[1]
     if mode == 'test':
       os.environ['title'] = 'Bravo:8080'
+      os.environ['local_url'] = 'http://localhost:'+str(LOCAL_TEST_PORT)
+      os.environ['pub_url'] = PUB_DOMAIN + ':' + str(PUB_TEST_PORT) + PREFIX 
       db = mongo_client[TEST_DB]
       socketio.run(app, port=LOCAL_TEST_PORT)
-      local_url = 'http://localhost:'+str(LOCAL_TEST_PORT)
-      pub_url = PUB_DOMAIN + ':' + str(PUB_TEST_PORT) + PREFIX 
     elif mode == 'deploy':
       os.environ['title'] = 'Bravo Deploy'
+      os.environ['local_url'] = 'http://localhost:'+str(LOCAL_DEPLOY_PORT)
+      os.environ['pub_url'] = PUB_DOMAIN + PREFIX
       db = mongo_client[DEPLOY_DB]
       socketio.run(app, port=LOCAL_DEPLOY_PORT)
-      local_url = 'http://localhost:'+str(LOCAL_DEPLOY_PORT)
-      pub_url = PUB_DOMAIN + PREFIX
-

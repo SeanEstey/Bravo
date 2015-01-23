@@ -132,11 +132,12 @@ def sms(to, msg):
     return False
 
 def get_speak(job, msg, answered_by, medium='voice'):
-  try:
-    date_str = msg['imported']['event_date'].strftime('%A, %B %d')
-  except TypeError:
-    logger.error('Invalid date in get_speak: ' + str(msg['imported']['event_date']))
-    return False
+  if 'event_date' in msg['imported']:
+    try:
+      date_str = msg['imported']['event_date'].strftime('%A, %B %d')
+    except TypeError:
+      logger.error('Invalid date in get_speak: ' + str(msg['imported']['event_date']))
+      return False
 
   intro_str = 'Hi, this is a friendly reminder that your empties to winn '
   repeat_voice = 'To repeat this message press 2. '
@@ -165,10 +166,10 @@ def get_speak(job, msg, answered_by, medium='voice'):
   elif job['template'] == 'gg_delivery':
     speak = ('Hi, this is a friendly reminder that your green goods delivery will be on ' +
       date_str + '. Your order total is ' + msg['imported']['price'] + '. ')
-    if medium == 'voice' and answered_by == 'machine':
+    if medium == 'voice' and answered_by == 'human':
       speak += repeat_voice
   elif job['template'] == 'special_msg':
-    speak = job['speak'] 
+    speak = job['message'] 
 
   return speak
 
@@ -405,7 +406,6 @@ def index():
 def get_job_summary(job_id):
   job_id = job_id.encode('utf-8')
   summary = json.dumps(create_job_summary(job_id))
-
   return render_template('job_summary.html', title=os.environ['title'], summary=summary)
 
 @app.route('/get/template/<name>')

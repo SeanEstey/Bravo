@@ -27,7 +27,7 @@
           <th id='col{{ col_num }}'><a title='Sort' class='hover' href='#'>{{ column['field'].title().replace('_', ' ') }}</a></th>
           {% set col_num = col_num + 1 %}
           {% endfor %}
-          <th id='col{{col_num}}'><a title='Sort' class='hover' href='#'>Message</a></th>
+          <th id='col{{col_num}}'><a title='Sort' class='hover' href='#'>Status</a></th>
           <th></th>
         </tr>
       </thead>
@@ -44,13 +44,13 @@
             {% else %}
               {% set caption="Sent Live" %}
             {% endif %}
-              <td name='message' title='"{{call.speak}}"' class='call_msg_td' >{{caption}}</td>
+              <td name='status' title='"{{call.speak}}"' class='call-status-td' >{{caption}}</td>
           {% elif call.call_status == "pending" %}
-            <td name='message' class='call_msg_td'>Pending</td>
+            <td name='status' class='call-status-td'>Pending</td>
           {% elif call.call_status == "failed" %}
-            <td name='message' class='call_msg_td'>{{call.call_msg}}</td>
+            <td name='status' class='call-status-td'>{{call.call_msg}}</td>
           {% else %}
-            <td name='message' class='call_msg_td' >{{ call.call_status + ' (' ~ call.attempts + 'x)' }}</td>
+            <td name='status' class='call-status-td' >{{ call.call_status + ' (' ~ call.attempts + 'x)' }}</td>
           {% endif %}
           <td>
             <button 

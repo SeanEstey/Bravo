@@ -232,9 +232,7 @@ function initShowCallsView() {
   var down_arrow = '&#8595;';
   var $a_child = $('th:first-child a');
   $a_child.html($a_child.html()+down_arrow);
-  
   addBravoTooltip();
-
   makeCallFieldsClickable();
 
   // Enable column sorting
@@ -258,7 +256,7 @@ function initShowCallsView() {
       });
   });
 
-  $('.call_msg_td').each(function() {
+  $('.call-status-td').each(function() {
     formatCallStatus($(this), $(this).text());
   });
   
@@ -466,7 +464,7 @@ function showJobSummary() {
     var sum = 0;
     var n_sent = 0;
     var n_incomplete = 0;
-    $('[name="message"]').each(function() {
+    $('[name="status"]').each(function() {
       sum++;
       if($(this).text().indexOf('Sent') >= 0)
         n_sent++;
@@ -501,19 +499,15 @@ function receiveCallUpdate(socket_data) {
   console.log('received update: ' + JSON.stringify(socket_data));
   // Find matching row_id to update
   var $row = $('#'+socket_data['id']);
- /* if('call_status' in socket_data) {
-    var status = socket_data['call_status'].toTitleCase();
-    $row.find('[name="message"]').html(status);
-  }*/
   if('call_status' in socket_data) {
-    $cell = $row.find('[name="message"]');
-    var call_status = socket_data['call_status'];
-    if('answered_by' in socket_data) {
-      //formatCallStatus($cell, socket_data['call_status'], socket_data['answered_by']);
-    }
-    else {
-      $cell.html(call_status.toTitleCase()); 
-    }
+    $cell = $row.find('[name="status"]');
+    var caption = socket_data['call_status'];
+    if(socket_data['call_status'] == 'completed' && socket_data['answered_by'] == 'human')
+      caption = 'Delivered Live';
+    else if(socket_data['call_status'] == 'completed' && socket_data['answered_by'] == 'machine')
+      caption = 'Delivered Voicemail';
+
+    $cell.html(caption.toTitleCase()); 
   }
   if('attempts' in socket_data)
     $row.find('[name="attempts"]').html(socket_data['attempts']);
@@ -521,7 +515,7 @@ function receiveCallUpdate(socket_data) {
     $row.find('[name="office_notes"]').html(socket_data['office_notes']);
   if('speak' in socket_data) {
     var title = 'Msg: ' + socket_data['speak'];
-    $row.find('[name="message"]').attr('title', title);
+    $row.find('[name="status"]').attr('title', title);
   }
 }
 
@@ -592,25 +586,19 @@ function initShowJobs() {
 }
 
 function initJobSummary() {
-  var data = $('#content').text();
-  var r_brace = new RegExp(/\}/g);
-  var l_brace = new RegExp(/\{/g);
-  var comma = new RegExp(/,/g);
-  var quotes = new RegExp(/\"/g);
-  var colon = new RegExp(/:/g);
-  var html = '<DL>';
-  var list = JSON.parse(data);
-
-  for(var k in list['calls']) {
-    if(list['calls'].hasOwnProperty(k)) {
-      html += '<DT>"<label style="color:green;">' + k + '</label>":';
-      var call = JSON.stringify(list['calls'][k]);
-      call = call.replace(l_brace, '').replace(r_brace, '').replace(comma, '</label><BR>').replace(quotes, ' ').replace(colon, ': <label style="color:green;">');
-      html += '<DD>' + call + '<br><br>';
+  var data = JSON.parse($('#content').text());
+  $('#content').html('');
+  for(var k in data['calls']) {
+    var call = data['calls'][k];
+    for(var property in call) {
+      if(property=='imported')
+        var line = 'imported:' + JSON.stringify(call[property]);
+      else
+        var line = property + ': ' + call[property];
+      $('#content').append(line+'<br>');
     }
+    $('#content').append('<br>');
   }
-  html += '</DL>';
-
-  $('#content').html(html);
+  
   $('body').css('display','block');
 }

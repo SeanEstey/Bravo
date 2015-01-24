@@ -13,7 +13,7 @@ CELERY_TIMEZONE = 'Canada/Mountain'
 CELERY_ENABLE_UTC = False
 CELERYBEAT_SCHEDULE = {
   'bravo_scheduler': {
-    'task': 'server.run_scheduler',
+    'task': 'server.print_mode',
     'schedule': timedelta(seconds=30)
   },
 }

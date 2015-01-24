@@ -11,6 +11,8 @@ local_url = None
 pub_url = None
 logger = logging.getLogger(__name__)
 
+celery = Celery('scheduler', broker=CELERY_BROKER_URL)
+celery.config_from_object('config')
 
 import requests
 
@@ -49,8 +51,11 @@ def systems_check():
 
   return True
 
-@celery_app.task
+@celery.task
 def run_scheduler():
+  requests.get('http://localhost:5000/request/execute/54c1a1929b93872b2aa4b67c')
+  return False
+
   if not systems_check():
     return False 
 

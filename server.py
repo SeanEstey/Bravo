@@ -5,6 +5,7 @@ from secret import *
 from bson.objectid import ObjectId
 import pymongo
 from celery import Celery
+from celery.signals import worker_process_init
 import twilio
 from twilio import twiml
 from datetime import datetime,date
@@ -29,6 +30,8 @@ def set_logger(logger, level, log_name):
   logger.handlers = []
   logger.addHandler(handler)
 
+mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+db = None
 logger = logging.getLogger(__name__)
 set_logger(logger, LOG_LEVEL, LOG_FILE)
 app = Flask(__name__)
@@ -36,7 +39,7 @@ app.config.from_pyfile('config.py')
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.debug = True
 socketio = SocketIO(app)
-celery_app = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+celery_app = Celery(app.name)
 celery_app.conf.update(app.config)
 
 def is_mongodb_available():
@@ -212,8 +215,32 @@ def send_email(recipient, subject, msg):
       'text': msg
   })
 
+def set_mode(mode):
+  global db
+  if mode == 'test':
+    os.environ['title'] = 'Bravo:8080'
+    os.environ['local_url'] = 'http://localhost:'+str(LOCAL_TEST_PORT)
+    os.environ['pub_url'] = PUB_DOMAIN + ':' + str(PUB_TEST_PORT) + PREFIX 
+    db = mongo_client[TEST_DB]
+  elif mode == 'deploy':
+    os.environ['title'] = 'Bravo Deploy'
+    os.environ['local_url'] = 'http://localhost:'+str(LOCAL_DEPLOY_PORT)
+    os.environ['pub_url'] = PUB_DOMAIN + PREFIX
+    db = mongo_client[DEPLOY_DB]
+
+@worker_process_init.connect
+def init_workers(sender=None, conf=None, **kwargs):
+  set_mode('test')
+  print_mode()
+
+@celery_app.task
+def print_mode():
+  print 'db='+str(db)+', os.environ[title]='+os.environ['title']
+
 @celery_app.task
 def execute_job(job_id):
+  job_id = ObjectId(job_id)
+  logger.info('execute job: os.environ[title]='+str(os.environ['title']))
   try:
     job = db['jobs'].find_one({'_id':job_id})
     # Default call order is alphabetically by name
@@ -514,9 +541,8 @@ def create_job():
 
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
-  job_id = ObjectId(job_id.encode('utf-8'))
-  #execute_job.delay(job_id);
-  execute_job(job_id)
+  logger.info('executing job ' + job_id)
+  execute_job.delay(job_id)
   return 'OK'
 
 @app.route('/jobs')
@@ -738,20 +764,14 @@ def process_fallback():
     logger.error('%s /call/fallback' % request.values.items(), exc_info=True)
     return str(e)
 
-if __name__ == "__main__":
-  mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
 
+
+
+if __name__ == "__main__":
   if len(sys.argv) > 0:
     mode = sys.argv[1]
+    set_mode(mode)
     if mode == 'test':
-      os.environ['title'] = 'Bravo:8080'
-      os.environ['local_url'] = 'http://localhost:'+str(LOCAL_TEST_PORT)
-      os.environ['pub_url'] = PUB_DOMAIN + ':' + str(PUB_TEST_PORT) + PREFIX 
-      db = mongo_client[TEST_DB]
       socketio.run(app, port=LOCAL_TEST_PORT)
     elif mode == 'deploy':
-      os.environ['title'] = 'Bravo Deploy'
-      os.environ['local_url'] = 'http://localhost:'+str(LOCAL_DEPLOY_PORT)
-      os.environ['pub_url'] = PUB_DOMAIN + PREFIX
-      db = mongo_client[DEPLOY_DB]
       socketio.run(app, port=LOCAL_DEPLOY_PORT)

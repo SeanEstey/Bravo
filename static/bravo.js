@@ -509,10 +509,6 @@ function receiveCallUpdate(socket_data) {
 
     $cell.html(caption.toTitleCase()); 
   }
-  if('attempts' in socket_data)
-    $row.find('[name="attempts"]').html(socket_data['attempts']);
-  if('office_notes' in socket_data)
-    $row.find('[name="office_notes"]').html(socket_data['office_notes']);
   if('speak' in socket_data) {
     var title = 'Msg: ' + socket_data['speak'];
     $row.find('[name="status"]').attr('title', title);

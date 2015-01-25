@@ -53,13 +53,13 @@
           </a>
         </td>
         <td>
-        {% if job.status == "COMPLETE" %}
+        {% if job.status == "completed" %}
           <p style='color:green;'>
           {{ job.status.title() }}
-        {% elif job.status == "PENDING" %}
+        {% elif job.status == "pending" %}
           <p style='color:blue;'>
           {{ job.status.title() }}
-        {% elif job.status == "IN_PROGRESS" %}
+        {% elif job.status == "in-progress" %}
           <p style='color:red;'>
           {{ job.status.title() }}
           </p>

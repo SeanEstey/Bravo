@@ -51,27 +51,5 @@ def systems_check():
 
   return True
 
-@celery.task
-def run_scheduler():
-  requests.get('http://localhost:5000/request/execute/54c1a1929b93872b2aa4b67c')
-  return False
-
-  if not systems_check():
-    return False 
-
-  pending_jobs = db['jobs'].find({'status': 'pending'})
-  logger.info('Scheduler: ' + str(pending_jobs.count()) + ' pending jobs:')
-
-  job_num = 1
-  for job in pending_jobs:
-    if datetime.now() > job['fire_dtime']:
-      logger.info('Starting job %s' % str(job['_id']))
-      requests.get('http://localhost:5000/request/execute/schedule')
-      execute_job.delay(job['_id'])
-    else:
-      next_job_delay = job['fire_dtime'] - datetime.now()
-      logger.info(str(job_num) + '): ' + job['name'] + ' starts in: ' + str(next_job_delay))
-    job_num += 1
-  return True
 
 

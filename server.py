@@ -5,7 +5,7 @@ from secret import *
 from bson.objectid import ObjectId
 import pymongo
 from celery import Celery
-from celery.signals import worker_process_init
+from celery.signals import worker_process_init, task_prerun
 import twilio
 from twilio import twiml
 from datetime import datetime,date
@@ -32,6 +32,7 @@ def set_logger(logger, level, log_name):
 
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
 db = None
+mode = None
 logger = logging.getLogger(__name__)
 set_logger(logger, LOG_LEVEL, LOG_FILE)
 app = Flask(__name__)
@@ -172,9 +173,21 @@ def get_speak(job, msg, answered_by, medium='voice'):
     if medium == 'voice' and answered_by == 'human':
       speak += repeat_voice
   elif job['template'] == 'special_msg':
-    speak = job['message'] 
-
-  return speak
+    speak = job['message']
+    
+  response = twilio.twiml.Response()
+  response.say(speak)
+  db['msgs'].update({'_id':msg['_id']},{'$set':{'speak':speak}})
+ 
+  logger.info('get_speak medium='+medium + 'answered_by='+answered_by)
+  if medium == 'voice' and answered_by == 'human': 
+    logger.info('adding gather keys twiml')
+    response.gather(
+      action=os.environ['pub_url'] + '/call/answer',
+      method='GET',
+      numDigits=1
+    )
+  return Response(str(response), mimetype='text/xml')
 
 def strip_phone_num(to):
   return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
@@ -215,8 +228,13 @@ def send_email(recipient, subject, msg):
       'text': msg
   })
 
-def set_mode(mode):
-  global db
+@celery_app.task
+def set_mode(m):
+  global db, mode
+  mode = m
+
+  logger.info('set mode ' + mode)
+
   if mode == 'test':
     os.environ['title'] = 'Bravo:8080'
     os.environ['local_url'] = 'http://localhost:'+str(LOCAL_TEST_PORT)
@@ -230,15 +248,51 @@ def set_mode(mode):
 
 @worker_process_init.connect
 def init_workers(sender=None, conf=None, **kwargs):
-  set_mode('test')
+  #if mode != None:
+  #  set_mode(mode)
+  print_mode()
+
+@task_prerun.connect
+def ensure_init_workers(sender=None, body=None, **kwargs):
+  #if mode != None:
+  #  set_mode(mode)
   print_mode()
 
 @celery_app.task
 def print_mode():
-  print 'db='+str(db)+', os.environ[title]='+os.environ['title']
+  if mode != None:
+    print 'mode='+mode+', os.environ[title]='+os.environ['title']
+  else:
+    print 'server mode not set'
+
+@celery_app.task
+def run_scheduler():
+  #if not systems_check():
+  #  return False 
+  if mode != None:
+    print(mode+' server scheduler')# + str(pending_jobs.count()) + ' pending jobs:')
+  else:
+    print('unset mode server scheduler')
+    return
+
+  pending_jobs = db['jobs'].find({'status': 'pending'})
+  print('Scheduler: ' + str(pending_jobs.count()) + ' pending jobs:')
+
+  job_num = 1
+  for job in pending_jobs:
+    if datetime.now() > job['fire_dtime']:
+      logger.info('Starting job %s' % str(job['_id']))
+      execute_job.delay(job['_id'])
+    else:
+      next_job_delay = job['fire_dtime'] - datetime.now()
+      print(str(job_num) + '): ' + job['name'] + ' starts in: ' + str(next_job_delay))
+    job_num += 1
+  return True
 
 @celery_app.task
 def execute_job(job_id):
+  #if type(job_id) == str:
+  #  logger.info('converting str id to bson objectid')
   job_id = ObjectId(job_id)
   logger.info('execute job: os.environ[title]='+str(os.environ['title']))
   try:
@@ -249,7 +303,7 @@ def execute_job(job_id):
     db['jobs'].update(
       {'_id': job['_id']},
       {'$set': {
-        'status': 'IN_PROGRESS',
+        'status': 'in-progress',
         'started_at': datetime.now()
         }
       }
@@ -299,7 +353,7 @@ def monitor_job(job_id):
         db['jobs'].update(
           {'_id': job_id},
           {'$set': {
-            'status': 'COMPLETE',
+            'status': 'completed',
             'ended_at': datetime.now()
             }
         })
@@ -513,7 +567,7 @@ def create_job():
     'template': request.form['template'],
     'message': request.form['message'],
     'fire_dtime': fire_dtime,
-    'status': 'PENDING',
+    'status': 'pending',
     'num_calls': len(buffer)
   }
   
@@ -542,6 +596,7 @@ def create_job():
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
   logger.info('executing job ' + job_id)
+  job_id = job_id.encode('utf-8')
   execute_job.delay(job_id)
   return 'OK'
 
@@ -570,7 +625,7 @@ def show_calls(job_id):
 def job_complete(job_id):
   data = {
     'id': job_id,
-    'status': 'COMPLETE'
+    'status': 'completed'
   }
   
   send_socket('update_job', data)
@@ -604,7 +659,7 @@ def reset_job(job_id):
   db['jobs'].update(
     {'_id':ObjectId(job_id)},
     {'$set': {
-      'status': 'PENDING'
+      'status': 'pending'
     }})
   return 'OK'
 
@@ -649,62 +704,52 @@ def edit_call(call_uuid):
 @app.route('/call/answer',methods=['POST','GET'])
 def content():
   try:
-    logger.debug('Call answered! %s' % request.values.items())
-    sid = request.form.get('CallSid')
-    call_status = request.form.get('CallStatus')
-    to = request.form.get('To')
-    answered_by = ''
-    if 'AnsweredBy' in request.form:
-      answered_by = request.form.get('AnsweredBy')
-    logger.info('%s %s %s /call/answer', to, call_status, answered_by)
-    db['msgs'].update(
-      {'sid':sid},
-      {'$set': {'call_status':call_status}}
-    )
-    call = db['msgs'].find_one({'sid':sid})
-    send_socket(
-      'update_call', {
-        'id': str(call['_id']),
-        'call_status': call_status
-      }
-    )
-    job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-    speak = get_speak(job, call, answered_by)
-    db['msgs'].update({'_id':call['_id']},{'$set':{'speak':speak}})
+    if request.method == 'POST':
+      logger.debug('Call answered! %s' % request.values.items())
+      sid = request.form.get('CallSid')
+      call_status = request.form.get('CallStatus')
+      to = request.form.get('To')
+      answered_by = ''
+      if 'AnsweredBy' in request.form:
+        answered_by = request.form.get('AnsweredBy')
+      logger.info('%s %s %s /call/answer', to, call_status, answered_by)
+      db['msgs'].update(
+        {'sid':sid},
+        {'$set': {'call_status':call_status}}
+      )
+      call = db['msgs'].find_one({'sid':sid})
+      send_socket(
+        'update_call', {
+          'id': str(call['_id']),
+          'call_status': call_status
+        }
+      )
+      job = db['jobs'].find_one({'_id':call['job_id']})
+      
+      return get_speak(job, call, 'human')#answered_by)
+     
+    elif request.method == "GET":
+      sid = request.args.get('CallSid')
+      call = db['msgs'].find_one({'sid':sid})
+      job = db['jobs'].find_one({'_id':call['job_id']})
+      digits = request.args.get('Digits')
+      # Repeat Msg
+      if digits == '1':
+        logger.info('got digit: ' + str(digits))
+        logger.info('repeating msg. calling get_speak again')
+        
+        return get_speak(job, call, 'human')
+      # Special Action (defined by template)
+      elif digits == '2':
+        # etw_reminder = no pickup request
+        logger.info('got digit 2')
     response = twilio.twiml.Response()
-    response.say(speak)
+    response.say('Goodbye')
+    
     return Response(str(response), mimetype='text/xml')
-    ''' 
-    if request.method == "GET":
-      getdigits_action_url = url_for('content', _external=True)
-      getDigits = plivoxml.GetDigits(
-        action=getdigits_action_url,
-        method='POST', timeout=7, numDigits=1,
-        retries=1
-      )  
-      response = plivoxml.Response()
-      response.addWait(length=1)
-      response.addSpeak(body=speak)
-      response.add(getDigits)
-      return Response(str(response), mimetype='text/xml')
-    elif request.method == "POST":
-      digit = request.form.get('Digits')
-      logger.info('got digit: ' + str(digit))
-      request_uuid = request.form.get('RequestUUID')
-      call = db['msgs'].find_one({'request_uuid':request_uuid})
-      job = db['jobs'].find_one({'_id':ObjectId(call['job_id'])})
-      response = plivoxml.Response()
-      if digit == '1':
-        speak = bravo.get_speak(job, call)
-        response.addSpeak(speak)
-      elif digit == '2':
-        log_call_db(request_uuid, {
-          'office_notes': 'NO PICKUP'
-        })
-        response.addSpeak('Thank you. Goodbye.')
-    '''   
   except Exception, e:
     logger.error('/call/answer', exc_info=True)
+    
     return str(e)
 
 @app.route('/call/hangup',methods=['POST','GET'])
@@ -765,12 +810,17 @@ def process_fallback():
     return str(e)
 
 
-
-
 if __name__ == "__main__":
   if len(sys.argv) > 0:
     mode = sys.argv[1]
     set_mode(mode)
+
+    os.system("ps auxww | grep 'celery' | awk '{print $2}' | xargs kill -9")
+    time.sleep(5)
+    os.system('celery worker -A server.celery_app -f celery.log -B --autoreload &')
+    time.sleep(5)
+    # Init workers
+    set_mode.delay(mode)
     if mode == 'test':
       socketio.run(app, port=LOCAL_TEST_PORT)
     elif mode == 'deploy':

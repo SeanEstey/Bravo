@@ -11,9 +11,10 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Canada/Mountain'
 CELERY_ENABLE_UTC = False
+CELERYD_CONCURRENCY = 1
 CELERYBEAT_SCHEDULE = {
   'bravo_scheduler': {
-    'task': 'server.print_mode',
+    'task': 'server.run_scheduler',
     'schedule': timedelta(seconds=30)
   },
 }

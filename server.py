@@ -327,9 +327,17 @@ def socketio_connect():
   )
   socketio.emit('msg', 'ping from ' + mode + ' server!');
 
+@app.route('/sendsocket', methods=['GET'])
+def request_send_socket():
+  name = request.args.get('name').encode('utf-8')
+  data = request.args.get('data').encode('utf-8')
+  send_socket(name, data)
+  return 'OK'
+
 def send_socket(name, data):
-# Emit socket.io msg if client connection established. Do nothing
-# otherwise.
+  # socket name 'update_call' must provide msg['_id'] from mongodb
+
+  # Emit socket.io msg if client connection established.
   if not socketio.server:
     return False
   logger.debug(
@@ -685,9 +693,9 @@ if __name__ == "__main__":
     set_mode(mode)
 
     os.system("ps auxww | grep 'celery' | awk '{print $2}' | xargs kill -9")
-    time.sleep(5)
+    time.sleep(2)
     os.system('celery worker -A tasks.celery_app -f celery.log -B --autoreload &')
-    time.sleep(5)
+    time.sleep(2)
     if mode == 'test':
       socketio.run(app, port=LOCAL_TEST_PORT)
     elif mode == 'deploy':

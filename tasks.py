@@ -11,6 +11,8 @@ import pymongo
 import twilio
 from twilio import twiml
 import logging
+import requests
+import json
 
 celery_app = Celery()
 celery_app.config_from_object('config')
@@ -31,7 +33,6 @@ def run_scheduler():
       next_job_delay = job['fire_dtime'] - datetime.now()
       print(str(job_num) + '): ' + job['name'] + ' starts in: ' + str(next_job_delay))
     job_num += 1
-  return True
 
 @celery_app.task
 def execute_job(job_id, db_name, server_url):
@@ -39,7 +40,6 @@ def execute_job(job_id, db_name, server_url):
   #if type(job_id) == str:
   #  logger.info('converting str id to bson objectid')
   job_id = ObjectId(job_id)
-  logger.info('execute job: os.environ[title]='+str(os.environ['title']))
   try:
     job = db['jobs'].find_one({'_id':job_id})
     # Default call order is alphabetically by name
@@ -63,19 +63,17 @@ def execute_job(job_id, db_name, server_url):
         {'$set': response}
       )
       response['id'] = str(msg['_id'])
-      #send_socket('update_call', response)
+      payload = {'name': 'update_call', 'data': json.dumps(response)}
+      requests.get(server_url + '/sendsocket', params=payload)
       time.sleep(1)
-    monitor_job(job_id, db, server_url)
-    logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
-  except Exception, e:
-    logger.error('execute_job job_id %s', str(job_id), exc_info=True)
+    
+    logger.info('All calls fired for job %s' % str(job_id))
 
-def monitor_job(job_id, db, server_url):
-  logger.info('Monitoring job %s' % str(job_id))
-  try:
+    # Loop until no incomplete calls remaining (all either failed or complete)
     while True:
+      logger.info('Monitoring job %s...' % str(job_id))
       # Any calls still active?
-      active = db['msgs'].find({
+      actives = db['msgs'].find({
         'job_id': job_id,
         '$or':[
           {'call_status': 'queued'},
@@ -84,7 +82,7 @@ def monitor_job(job_id, db, server_url):
         ]
       })
       # Any needing redial?
-      incomplete = db['msgs'].find({
+      incompletes = db['msgs'].find({
         'job_id':job_id,
         'attempts': {'$lt': MAX_ATTEMPTS}, 
         '$or':[
@@ -94,7 +92,7 @@ def monitor_job(job_id, db, server_url):
       })
       
       # Job Complete!
-      if active.count() == 0 and incomplete.count() == 0:
+      if actives.count() == 0 and incompletes.count() == 0:
         db['jobs'].update(
           {'_id': job_id},
           {'$set': {
@@ -102,20 +100,19 @@ def monitor_job(job_id, db, server_url):
             'ended_at': datetime.now()
             }
         })
-        #create_job_summary(job_id)
-        #job_complete(str(job_id))
-        #completion_url = os.environ['local_url'] + '/complete/' + str(job_id)
-        #requests.get(completion_url)
-        #send_email_report(job_id)
+        logger.info('Job %s complete!' % str(job_id))
+        # Connect back to server and notify
+        requests.get(server_url + '/complete/' + str(job_id))
+        
         return
       # Job still in progress. Any incomplete calls need redialing?
-      elif active.count() == 0 and incomplete.count() > 0:
-        logger.info(str(redials.count()) + ' calls incomplete. Pausing for ' + str(REDIAL_DELAY) + 's then redialing...')
+      elif actives.count() == 0 and incompletes.count() > 0:
+        logger.info(str(redials.count()) + ' calls incomplete. Pausing for ' + str(REDIAL_DELAY) + 's...')
         time.sleep(REDIAL_DELAY)
-        for redial in redials:
-          response = dial(redial['imported']['to'], server_url)
-          logger.info('%s %s', msg['imported']['to'], response['call_status'])
-          response['attempts'] = msg['attempts']+1
+        for call in redials:
+          response = dial(call['imported']['to'], server_url)
+          logger.info('%s %s', call['imported']['to'], response['call_status'])
+          response['attempts'] = call['attempts']+1
           db['msgs'].update(
             {'_id':msg['_id']},
             {'$set': response}
@@ -124,7 +121,6 @@ def monitor_job(job_id, db, server_url):
       else:
         time.sleep(10)
     # End loop
+    logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
   except Exception, e:
-    logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
-    return str(e)
-
+    logger.error('execute_job job_id %s', str(job_id), exc_info=True)

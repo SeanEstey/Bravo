@@ -496,6 +496,9 @@ function receiveCallUpdate(socket_data) {
     $('#timer').text('In Progress');
   }
 
+  if(typeof socket_data == 'string')
+    socket_data = JSON.parse(socket_data);
+
   console.log('received update: ' + JSON.stringify(socket_data));
   // Find matching row_id to update
   var $row = $('#'+socket_data['id']);

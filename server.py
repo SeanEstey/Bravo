@@ -4,8 +4,6 @@ from config import *
 from secret import *
 from bson.objectid import ObjectId
 import pymongo
-from celery import Celery
-from celery.signals import worker_process_init, task_prerun
 import twilio
 from twilio import twiml
 from datetime import datetime,date
@@ -20,6 +18,7 @@ import logging
 import codecs
 from reverse_proxy import ReverseProxied
 import sys
+import tasks
 
 def set_logger(logger, level, log_name):
   handler = logging.FileHandler(log_name)
@@ -40,8 +39,6 @@ app.config.from_pyfile('config.py')
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.debug = True
 socketio = SocketIO(app)
-celery_app = Celery(app.name)
-celery_app.conf.update(app.config)
 
 def is_mongodb_available():
   if mongo_client:
@@ -88,7 +85,7 @@ def restart_celery():
   logger.info('Celery worker restarted')
   return True
 
-def dial(to):
+def dial(to, server_url):
   try:
     twilio_client = twilio.rest.TwilioRestClient(
       TWILIO_ACCOUNT_SID, 
@@ -97,8 +94,8 @@ def dial(to):
     call = twilio_client.calls.create(
       from_=FROM_NUMBER,
       to='+1'+to,
-      url= os.environ['pub_url'] + '/call/answer',
-      status_callback= os.environ['pub_url'] + '/call/hangup',
+      url=server_url + '/call/answer',
+      status_callback= server_url + '/call/hangup',
       status_method='POST',
       method='POST',
       if_machine='Continue'
@@ -228,7 +225,6 @@ def send_email(recipient, subject, msg):
       'text': msg
   })
 
-@celery_app.task
 def set_mode(m):
   global db, mode
   mode = m
@@ -245,137 +241,6 @@ def set_mode(m):
     os.environ['local_url'] = 'http://localhost:'+str(LOCAL_DEPLOY_PORT)
     os.environ['pub_url'] = PUB_DOMAIN + PREFIX
     db = mongo_client[DEPLOY_DB]
-
-@worker_process_init.connect
-def init_workers(sender=None, conf=None, **kwargs):
-  #if mode != None:
-  #  set_mode(mode)
-  print_mode()
-
-@task_prerun.connect
-def ensure_init_workers(sender=None, body=None, **kwargs):
-  #if mode != None:
-  #  set_mode(mode)
-  print_mode()
-
-@celery_app.task
-def print_mode():
-  if mode != None:
-    print 'mode='+mode+', os.environ[title]='+os.environ['title']
-  else:
-    print 'server mode not set'
-
-@celery_app.task
-def run_scheduler():
-  #if not systems_check():
-  #  return False 
-  if mode != None:
-    print(mode+' server scheduler')# + str(pending_jobs.count()) + ' pending jobs:')
-  else:
-    print('unset mode server scheduler')
-    return
-
-  pending_jobs = db['jobs'].find({'status': 'pending'})
-  print('Scheduler: ' + str(pending_jobs.count()) + ' pending jobs:')
-
-  job_num = 1
-  for job in pending_jobs:
-    if datetime.now() > job['fire_dtime']:
-      logger.info('Starting job %s' % str(job['_id']))
-      execute_job.delay(job['_id'])
-    else:
-      next_job_delay = job['fire_dtime'] - datetime.now()
-      print(str(job_num) + '): ' + job['name'] + ' starts in: ' + str(next_job_delay))
-    job_num += 1
-  return True
-
-@celery_app.task
-def execute_job(job_id):
-  #if type(job_id) == str:
-  #  logger.info('converting str id to bson objectid')
-  job_id = ObjectId(job_id)
-  logger.info('execute job: os.environ[title]='+str(os.environ['title']))
-  try:
-    job = db['jobs'].find_one({'_id':job_id})
-    # Default call order is alphabetically by name
-    messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
-    logger.info('\n\n********** Start Job ' + str(job_id) + ' **********')
-    db['jobs'].update(
-      {'_id': job['_id']},
-      {'$set': {
-        'status': 'in-progress',
-        'started_at': datetime.now()
-        }
-      }
-    )
-    # Fire all calls
-    for msg in messages:
-      response = dial(msg['imported']['to'])
-      logger.info('%s %s', msg['imported']['to'], response['call_status'])
-      response['attempts'] = msg['attempts']+1
-      db['msgs'].update(
-        {'_id':msg['_id']},
-        {'$set': response}
-      )
-      response['id'] = str(msg['_id'])
-      send_socket('update_call', response)
-      time.sleep(1)
-    monitor_job(job_id)
-    logger.info('\n********** End Job ' + str(job_id) + ' **********\n\n')
-  except Exception, e:
-    logger.error('execute_job job_id %s', str(job_id), exc_info=True)
-
-def monitor_job(job_id):
-  logger.info('Monitoring job %s' % str(job_id))
-  try:
-    while True:
-      # Any calls still active?
-      active = db['msgs'].find({
-        'job_id': job_id,
-        '$or':[
-          {'call_status': 'queued'},
-          {'call_status': 'ringing'},
-          {'call_status': 'in-progress'}
-        ]
-      })
-      # Any needing redial?
-      incomplete = db['msgs'].find({
-        'job_id':job_id,
-        'attempts': {'$lt': MAX_ATTEMPTS}, 
-        '$or':[
-          {'call_status': 'busy'},
-          {'call_status': 'no-answer'}
-        ]
-      })
-      
-      # Job Complete!
-      if active.count() == 0 and incomplete.count() == 0:
-        db['jobs'].update(
-          {'_id': job_id},
-          {'$set': {
-            'status': 'completed',
-            'ended_at': datetime.now()
-            }
-        })
-        create_job_summary(job_id)
-        job_complete(str(job_id))
-        #completion_url = os.environ['local_url'] + '/complete/' + str(job_id)
-        #requests.get(completion_url)
-        #send_email_report(job_id)
-        return
-      # Job still in progress. Any incomplete calls need redialing?
-      elif active.count() == 0 and incomplete.count() > 0:
-        logger.info(str(redials.count()) + ' calls incomplete. Pausing for ' + str(REDIAL_DELAY) + 's then redialing...')
-        time.sleep(REDIAL_DELAY)
-        for redial in redials:
-          fire_msg(redial)
-      # Still active calls going out  
-      else:
-        time.sleep(10)
-    # End loop
-  except Exception, e:
-    logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
-    return str(e)
 
 def parse_csv(csvfile, template):
   reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
@@ -597,7 +462,11 @@ def create_job():
 def request_execute_job(job_id):
   logger.info('executing job ' + job_id)
   job_id = job_id.encode('utf-8')
-  execute_job.delay(job_id)
+  if mode == 'deploy':
+    tasks.execute_job.delay(job_id, DEPLOY_DB, os.environ['pub_url'])
+  else:
+    tasks.execute_job.delay(job_id, TEST_DB, os.environ['pub_url'])
+
   return 'OK'
 
 @app.route('/jobs')
@@ -817,10 +686,8 @@ if __name__ == "__main__":
 
     os.system("ps auxww | grep 'celery' | awk '{print $2}' | xargs kill -9")
     time.sleep(5)
-    os.system('celery worker -A server.celery_app -f celery.log -B --autoreload &')
+    os.system('celery worker -A tasks.celery_app -f celery.log -B --autoreload &')
     time.sleep(5)
-    # Init workers
-    set_mode.delay(mode)
     if mode == 'test':
       socketio.run(app, port=LOCAL_TEST_PORT)
     elif mode == 'deploy':

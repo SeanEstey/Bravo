@@ -23,7 +23,7 @@ import tasks
 def set_logger(logger, level, log_name):
   handler = logging.FileHandler(log_name)
   handler.setLevel(level)
-  formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+  formatter = logging.Formatter('%(asctime)s %(name)s: %(message)s','%m-%d %H:%M:%S')
   handler.setFormatter(formatter)
   logger.setLevel(level)
   logger.handlers = []
@@ -61,13 +61,13 @@ def reconnect_mongodb():
 
   return True
 
-def is_celery_worker():
-  '''
-  if not celery_app.control.inspect().active_queues():
+def celery_check():
+  if not tasks.celery_app.control.inspect().active_queues():
+    logger.error('Celery process not running')
     return False
   else:
-  '''
-  return True
+    logger.info('Celery process started OK')
+    return True
 
 def restart_celery():
   logger.info('Attempting to restart celery worker...')
@@ -140,30 +140,22 @@ def get_speak(job, msg, answered_by, medium='voice'):
       logger.error('Invalid date in get_speak: ' + str(msg['imported']['event_date']))
       return False
 
-  intro_str = 'Hi, this is a friendly reminder that your empties to winn '
-  repeat_voice = 'To repeat this message press 2. '
-  no_pickup_voice = 'If you do not need a pickup, press 1. '
-  no_pickup_sms = 'Reply with No if no pickup required.'
+  repeat_voice = 'To repeat this message press 1. '
   speak = ''
 
   if job['template'] == 'etw_reminder':
+    etw_intro = 'Hi, this is a friendly reminder that your Empties to WINN '
     if msg['imported']['status'] == 'Dropoff':
-      speak += (intro_str + 'dropoff date ' +
-        'is ' + date_str + '. If you have any empties you can leave them ' +
-        'out by 8am. ')
+      speak += etw_intro + 'dropoff date is ' + date_str + '. If you have any empties you can leave them out by 8am. '
     elif msg['imported']['status'] == 'Active':
-      speak += (intro_str + 'pickup date ' +
-        'is ' + date_str + '. please have your empties out by 8am. ')
-      if medium == 'voice' and answered_by == 'human':
-        speak += no_pickup_voice
-      elif medium == 'sms':
-        speak += no_pickup_sms
+      speak += etw_intro + 'pickup date is ' + date_str + '. Please have your empties out by 8am. '
     elif msg['imported']['status'] == 'Cancelling':
-      speak += (intro_str + 'bag stand will be picked up on ' +
-        date_str + '. thanks for your past support. ')
+      speak += etw_intro + 'bag stand will be picked up on ' + date_str + '. Thanks for your past support. '
     
     if medium == 'voice' and answered_by == 'human':
-      speak += repeat_voice
+      speak += repeat_voice + 'If you do not need a pickup, press 2. '
+    elif medium == 'sms':
+      speak += 'Reply with No if no pickup required.'
   elif job['template'] == 'gg_delivery':
     speak = ('Hi, this is a friendly reminder that your green goods delivery will be on ' +
       date_str + '. Your order total is ' + msg['imported']['price'] + '. ')
@@ -171,14 +163,16 @@ def get_speak(job, msg, answered_by, medium='voice'):
       speak += repeat_voice
   elif job['template'] == 'special_msg':
     speak = job['message']
+    if medium == 'voice' and answered_by == 'human':
+      speak += repeat_voice
     
   response = twilio.twiml.Response()
   response.say(speak)
   db['msgs'].update({'_id':msg['_id']},{'$set':{'speak':speak}})
- 
-  logger.info('get_speak medium='+medium + 'answered_by='+answered_by)
-  if medium == 'voice' and answered_by == 'human': 
-    logger.info('adding gather keys twiml')
+
+  if speak.find(repeat_voice) >= 0:
+    #logger.info('get_speak medium='+medium + 'answered_by='+answered_by)
+    #logger.info('adding gather keys twiml')
     response.gather(
       action=os.environ['pub_url'] + '/call/answer',
       method='GET',
@@ -187,6 +181,9 @@ def get_speak(job, msg, answered_by, medium='voice'):
   return Response(str(response), mimetype='text/xml')
 
 def strip_phone_num(to):
+  if not to:
+    return ''
+
   return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
 def create_job_summary(job_id):
@@ -229,7 +226,7 @@ def set_mode(m):
   global db, mode
   mode = m
 
-  logger.info('set mode ' + mode)
+  logger.info('Server started OK (' + mode + ' mode)')
 
   if mode == 'test':
     os.environ['title'] = 'Bravo:8080'
@@ -247,8 +244,8 @@ def parse_csv(csvfile, template):
   buffer = []
   header_err = False 
   header_row = reader.next()
-  logger.info('template='+str(template)) 
-  logger.info('header row='+str(header_row))
+  #logger.info('template='+str(template)) 
+  #logger.info('header row='+str(header_row))
 
   if len(header_row) != len(template):
     header_err = True
@@ -276,7 +273,6 @@ def parse_csv(csvfile, template):
     else:
       buffer.append(row)
     line_num += 1
-  logger.info('Parsed ' + str(line_num) + ' rows in CSV')
   return buffer
 
 def call_db_doc(job, idx, buf_row, errors):
@@ -287,7 +283,7 @@ def call_db_doc(job, idx, buf_row, errors):
     'imported': {}
   }
   # Translate column names to mongodb names ('Phone'->'to', etc)
-  logger.info(str(buf_row))
+  #logger.info(str(buf_row))
   template = TEMPLATE[job['template']]
   for col in range(0, len(template)):
     field = template[col]['field']
@@ -304,7 +300,7 @@ def call_db_doc(job, idx, buf_row, errors):
         errors.append('Row '+str(idx+1)+ ' has an invalid date: '+str(buf_row[col])+'<br>')
         return False 
 
-  #msg['to'] = bravo.strip_phone_num(msg['to'])
+  msg['imported']['to'] = strip_phone_num(msg['imported']['to'])
   return msg
 
 def allowed_file(filename):
@@ -336,17 +332,11 @@ def request_send_socket():
 
 def send_socket(name, data):
   # socket name 'update_call' must provide msg['_id'] from mongodb
-
   # Emit socket.io msg if client connection established.
   if not socketio.server:
     return False
-  logger.debug(
-    'update(): num connected sockets: ' + 
-    str(len(socketio.server.sockets))
-  )
-  # Test for socket.io connections first
   if len(socketio.server.sockets) == 0:
-    logger.info('no socket.io clients connected')
+    logger.debug('No socket.io clients connected, socket not sent')
     return False
  
   socketio.emit(name, data)
@@ -379,7 +369,7 @@ def get_var(var):
   elif var == 'pub_url':
     return os.environ['pub_url']
   elif var == 'celery_status':
-    if not is_celery_worker():
+    if not tasks.celery_app.control.inspect().active_queues():
       return 'Offline'
     else:
       return 'Online'
@@ -388,10 +378,6 @@ def get_var(var):
       return "No sockets"
     return 'Sockets: ' + str(len(socketio.server.sockets))
   elif var == 'plivo_balance':
-    #server = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
-    #account = server.get_account()
-    #balance = account[1]['cash_credits']
-    #balance = '$' + str(round(float(balance), 2))
     return ' '
 
   return False
@@ -423,6 +409,8 @@ def create_job():
       buffer = parse_csv(f, TEMPLATE[request.form['template']])
       if type(buffer) == str:
         return render_template('error.html', title=os.environ['title'], msg=buffer)
+      else:
+        logger.info('Parsed %d rows from %s', len(buffer), filename) 
   except Exception as e:
     logger.error(str(e))
     return False
@@ -435,7 +423,7 @@ def create_job():
   date_string = request.form['date']+' '+request.form['time']
   fire_dtime = parse(date_string)
   # No file errors. Save job + calls to DB.
-  job_record = {
+  job = {
     'name': job_name,
     'template': request.form['template'],
     'message': request.form['message'],
@@ -444,31 +432,30 @@ def create_job():
     'num_calls': len(buffer)
   }
   
-  job_id = db['jobs'].insert(job_record)
-  job_record['_id'] = job_id
-  logger.info('Job %s added to DB' % str(job_id))
+  job_id = db['jobs'].insert(job)
+  job['_id'] = job_id
 
   errors = []
-  records = []
+  calls = []
   for idx, row in enumerate(buffer):
-    record = call_db_doc(job_record, idx, row, errors)
-    if record:
-      records.append(record)
+    call = call_db_doc(job, idx, row, errors)
+    if call:
+      calls.append(call)
 
   if len(errors) > 0:
     msg = 'File had the following errors:<br>' + json.dumps(errors)
-    # Delete job record
+    # Delete job document
     db['jobs'].remove({'_id':job_id})
     return render_template('error.html', title=os.environ['title'], msg=msg)
 
-  db['msgs'].insert(records)
-  logger.info('Calls added to DB for job %s' % str(job_id))
+  db['msgs'].insert(calls)
+  logger.info('Job "%s" Created [ID %s]', request.form.get('job_name'), str(job_id))
 
   return show_calls(job_id)
 
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
-  logger.info('executing job ' + job_id)
+  #logger.info('executing job ' + job_id)
   job_id = job_id.encode('utf-8')
   if mode == 'deploy':
     tasks.execute_job.delay(job_id, DEPLOY_DB, os.environ['pub_url'])
@@ -538,13 +525,15 @@ def reset_job(job_id):
     {'$set': {
       'status': 'pending'
     }})
+
+  logger.info('Reset Job [ID %s]', str(job_id))
   return 'OK'
 
 @app.route('/cancel/job/<job_id>')
 def cancel_job(job_id):
   db['jobs'].remove({'_id':ObjectId(job_id)})
   db['msgs'].remove({'job_id':ObjectId(job_id)})
-  logger.info('Removed db.jobs and db.calls for %s' % str(job_id))
+  logger.info('Removed Job [ID %s]', str(job_id))
 
   return 'OK'
 
@@ -589,7 +578,7 @@ def content():
       answered_by = ''
       if 'AnsweredBy' in request.form:
         answered_by = request.form.get('AnsweredBy')
-      logger.info('%s %s %s /call/answer', to, call_status, answered_by)
+      logger.info('%s %s (%s)', to, call_status, answered_by)
       db['msgs'].update(
         {'sid':sid},
         {'$set': {'call_status':call_status}}
@@ -612,14 +601,18 @@ def content():
       digits = request.args.get('Digits')
       # Repeat Msg
       if digits == '1':
-        logger.info('got digit: ' + str(digits))
-        logger.info('repeating msg. calling get_speak again')
-        
         return get_speak(job, call, 'human')
       # Special Action (defined by template)
       elif digits == '2':
-        # etw_reminder = no pickup request
-        logger.info('got digit 2')
+        # No pickup request
+        if job['template'] == 'etw_reminder':
+          no_pickup = 'No Pickup ' + call['imported']['event_date'].strftime('%A, %B %d')
+          db['msgs'].update(
+            {'sid':sid},
+            {'$set': {'imported.office_notes': no_pickup}}
+          )
+          send_socket('update_call', {'office_notes':no_pickup})
+
     response = twilio.twiml.Response()
     response.say('Goodbye')
     
@@ -636,7 +629,7 @@ def process_status():
     sid = request.form.get('CallSid')
     to = request.form.get('To')
     call_status = request.form.get('CallStatus')
-    logger.info('%s %s /call/hangup', to, call_status)
+    logger.info('%s %s', to, call_status)
     fields = {
       'call_status': call_status,
       'ended_at': datetime.now()
@@ -648,16 +641,6 @@ def process_status():
       fields['answered_by'] = answered_by
       if 'speak' in call:
         fields['speak'] = call['speak']
-    elif call_status == 'canceled':
-      logger.info('canceled')
-    elif call_status == 'failed':
-      logger.info('failed')
-    elif call_status == 'busy':
-      logger.info('busy')
-    elif call_status == 'no-answer':
-      logger.info('no-answer')
-    else:
-      logger.info('unrecognized /call/hangup status: ' + call_status)
 
     db['msgs'].update(
       {'sid':sid},
@@ -678,7 +661,6 @@ def process_fallback():
     post_data = str(request.form.values())
     print post_data
     logger.info('call fallback data: %s' % post_data)
-    response = plivoxml.Response()
     return Response(str(response), mimetype='text/xml')
     '''
     return 'OK'
@@ -696,6 +678,7 @@ if __name__ == "__main__":
     time.sleep(2)
     os.system('celery worker -A tasks.celery_app -f celery.log -B --autoreload &')
     time.sleep(2)
+    celery_check()
     if mode == 'test':
       socketio.run(app, port=LOCAL_TEST_PORT)
     elif mode == 'deploy':

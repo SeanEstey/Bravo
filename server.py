@@ -23,7 +23,7 @@ import tasks
 def set_logger(logger, level, log_name):
   handler = logging.FileHandler(log_name)
   handler.setLevel(level)
-  formatter = logging.Formatter('%(asctime)s %(name)s: %(message)s','%m-%d %H:%M:%S')
+  formatter = logging.Formatter('[%(asctime)s: %(name)s] %(message)s','%m-%d %H:%M')
   handler.setFormatter(formatter)
   logger.setLevel(level)
   logger.handlers = []
@@ -592,7 +592,7 @@ def content():
       )
       job = db['jobs'].find_one({'_id':call['job_id']})
       
-      return get_speak(job, call, 'human')#answered_by)
+      return get_speak(job, call, answered_by)
      
     elif request.method == "GET":
       sid = request.args.get('CallSid')

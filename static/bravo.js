@@ -256,11 +256,11 @@ function initShowCallsView() {
       });
   });
 
-  $('.call-status-td').each(function() {
+  $('[name="call_status"]').each(function() {
     formatCallStatus($(this), $(this).text());
   });
   
-  $('.call_date_td').each(function() {
+  $('[name="event_date"]').each(function() {
     var date = Date.parse($(this).html());
     var string = date.toDateString();
     $(this).html(string);
@@ -362,14 +362,16 @@ function initShowCallsView() {
 
 // View: show_calls
 function formatCallStatus($cell, text) {
+  text = text.toTitleCase();
+  console.log('formatcallstatus text='+text);
   if(text.indexOf('Sent') >= 0)
     $cell.css({'color':'#009900'});
-  else if(text.indexOf('NO_ANSWER') >= 0 || text.indexOf('USER_BUSY') >= 0 || text.indexOf('Not In Service') >= 0)
+  else if(text.indexOf('No-Answer') >= 0 || text.indexOf('Busy') >= 0 || text.indexOf('Not In Service') >= 0)
     $cell.css({'color':'#C00000' });
   else
     $cell.css({'color':'#365766'});
 
-  $cell.html(text.toTitleCase());
+  $cell.html(text);
 }
 
 // View: show_calls
@@ -464,7 +466,7 @@ function showJobSummary() {
     var sum = 0;
     var n_sent = 0;
     var n_incomplete = 0;
-    $('[name="status"]').each(function() {
+    $('[name="call_status"]').each(function() {
       sum++;
       if($(this).text().indexOf('Sent') >= 0)
         n_sent++;
@@ -480,7 +482,7 @@ function showJobSummary() {
 }
 
 function receiveJobUpdate(socket_data) {
-  if(socket_data['status'] == 'COMPLETE') {
+  if(socket_data['status'] == 'completed') {
     console.log('job complete!');
     $('#job-status').text('Complete');
     showJobSummary();
@@ -503,18 +505,27 @@ function receiveCallUpdate(socket_data) {
   // Find matching row_id to update
   var $row = $('#'+socket_data['id']);
   if('call_status' in socket_data) {
-    $cell = $row.find('[name="status"]');
+    $cell = $row.find('[name="call_status"]');
     var caption = socket_data['call_status'];
-    if(socket_data['call_status'] == 'completed' && socket_data['answered_by'] == 'human')
-      caption = 'Delivered Live';
-    else if(socket_data['call_status'] == 'completed' && socket_data['answered_by'] == 'machine')
-      caption = 'Delivered Voicemail';
+    if(socket_data['call_status'] == 'completed') {
+      if(socket_data['answered_by'] == 'human')
+        caption = 'Sent Live';
+      else if(socket_data['answered_by'] == 'machine')
+        caption = 'Sent Voicemail';
+    }
+    else if(socket_data['call_status'] == 'failed') {
+      if('call_msg' in socket_data)
+        caption = socket_data['call_msg'];
+    }
+    else if(socket_data['call_status'] == 'busy' || socket_data['call_status'] == 'no-answer')
+      caption += ' (' + socket_data['attempts'] + 'x)';
 
-    $cell.html(caption.toTitleCase()); 
+    formatCallStatus($cell, caption);
+//    $cell.html(caption.toTitleCase()); 
   }
   if('speak' in socket_data) {
     var title = 'Msg: ' + socket_data['speak'];
-    $row.find('[name="status"]').attr('title', title);
+    $row.find('[name="call_status"]').attr('title', title);
   }
 }
 

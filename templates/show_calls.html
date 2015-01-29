@@ -44,13 +44,13 @@
             {% else %}
               {% set caption="Sent Live" %}
             {% endif %}
-              <td name='status' title='"{{call.speak}}"' class='call-status-td' >{{caption}}</td>
+              <td name='call_status' title='"{{call.speak}}"' class='call-status-td' >{{caption}}</td>
           {% elif call.call_status == "pending" %}
-            <td name='status' class='call-status-td'>Pending</td>
+            <td name='call_status' class='call-status-td'>Pending</td>
           {% elif call.call_status == "failed" %}
-            <td name='status' class='call-status-td'>{{call.call_msg}}</td>
+            <td name='call_status' class='call-status-td'>{{call.call_msg}}</td>
           {% else %}
-            <td name='status' class='call-status-td' >{{ call.call_status + ' (' ~ call.attempts + 'x)' }}</td>
+            <td name='call_status' class='call-status-td' >{{ call.call_status + ' (' ~ call.attempts + 'x)' }}</td>
           {% endif %}
           <td>
             <button 

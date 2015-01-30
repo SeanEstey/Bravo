@@ -102,15 +102,15 @@ def dial(to, server_url):
       if_machine='Continue'
     )
   except twilio.TwilioRestException as e:
-    call_status = 'failed'
     if e.code == 21216:
-      call_msg = 'not_in_service'
+      error_msg = 'not_in_service'
     elif e.code == 21211:
-      call_msg = 'invalid_number'
+      error_msg = 'invalid_number'
+    elif e.code == 13223:
+      error_msg = 'invalid_number_format'
     else:
-      #logger.error('e.msg: ' + e.msg + ', e.code: ' + str(e.code))
-      call_msg = str(e.code)
-    return {'sid':'', 'call_status': call_status, 'call_msg':call_msg}
+      error_msg = e.message
+    return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'error_msg':error_msg}
   except Exception as e:
     logger.error('twilio.call exception: ', exc_info=True)
   else: 
@@ -154,9 +154,11 @@ def get_speak(job, msg, answered_by, medium='voice'):
       speak += etw_intro + 'bag stand will be picked up on ' + date_str + '. Thanks for your past support. '
     
     if medium == 'voice' and answered_by == 'human':
-      speak += repeat_voice + 'If you do not need a pickup, press 2. '
-    elif medium == 'sms':
-      speak += 'Reply with No if no pickup required.'
+      speak += repeat_voice
+    if medium == 'voice' and answered_by == 'human' and msg['imported']['status'] == 'Active':
+      speak += 'If you do not need a pickup, press 2. '
+    #elif medium == 'sms':
+    #  speak += 'Reply with No if no pickup required.'
   elif job['template'] == 'gg_delivery':
     speak = ('Hi, this is a friendly reminder that your green goods delivery will be on ' +
       date_str + '. Your order total is ' + msg['imported']['price'] + '. ')
@@ -511,7 +513,7 @@ def reset_job(job_id):
     {'job_id': ObjectId(job_id)}, 
     {'$unset': {
       'answered_by': '',
-      'call_msg': '',
+      'error_msg': '',
       'message': '',
       'sid': '',
       'speak': '',

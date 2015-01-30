@@ -462,7 +462,8 @@ function makeCallFieldsClickable() {
 }
 
 function showJobSummary() {
-  if($('#job-status').text().indexOf('Complete') >= 0) {
+  console.log('job summary called');
+  if($('#job-status').text().indexOf('Completed') >= 0) {
     var sum = 0;
     var n_sent = 0;
     var n_incomplete = 0;
@@ -482,9 +483,10 @@ function showJobSummary() {
 }
 
 function receiveJobUpdate(socket_data) {
+  console.log('received update: ' + JSON.stringify(socket_data));
   if(socket_data['status'] == 'completed') {
     console.log('job complete!');
-    $('#job-status').text('Complete');
+    $('#job-status').text('Completed');
     showJobSummary();
     $('.delete-btn').hide();
   }
@@ -514,8 +516,10 @@ function receiveCallUpdate(socket_data) {
         caption = 'Sent Voicemail';
     }
     else if(socket_data['call_status'] == 'failed') {
-      if('call_msg' in socket_data)
-        caption = socket_data['call_msg'];
+      if('error_msg' in socket_data)
+        caption = socket_data['error_msg'];
+      else
+        caption = 'Failed';
     }
     else if(socket_data['call_status'] == 'busy' || socket_data['call_status'] == 'no-answer')
       caption += ' (' + socket_data['attempts'] + 'x)';

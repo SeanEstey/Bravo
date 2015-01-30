@@ -597,7 +597,10 @@ function initShowJobs() {
 
 function initJobSummary() {
   var data = JSON.parse($('#content').text());
-  $('#content').html('');
+  $('#content').html('Summary:<br><br>');
+  $('#content').append(JSON.stringify(data['totals']));
+  $('#content').append('<br><br>Calls:<br><br>');
+
   for(var k in data['calls']) {
     var call = data['calls'][k];
     for(var property in call) {
@@ -609,6 +612,8 @@ function initJobSummary() {
     }
     $('#content').append('<br>');
   }
+  
+
   
   $('body').css('display','block');
 }

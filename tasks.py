@@ -48,7 +48,7 @@ def execute_job(job_id, db_name, server_url):
     job = db['jobs'].find_one({'_id':job_id})
     # Default call order is alphabetically by name
     messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
-    logger.info('\n\n*** Starting Job %s [ID %s] ***', job['name'], str(job_id))
+    logger.info('\n\nStarting Job %s [ID %s]', job['name'], str(job_id))
     db['jobs'].update(
       {'_id': job['_id']},
       {'$set': {
@@ -103,7 +103,7 @@ def execute_job(job_id, db_name, server_url):
             'ended_at': datetime.now()
             }
         })
-        logger.info('\n*** Completed Job %s [ID %s] ***\n', job['name'], str(job_id))
+        logger.info('\nCompleted Job %s [ID %s]\n', job['name'], str(job_id))
         # Connect back to server and notify
         requests.get(server_url + '/complete/' + str(job_id))
         

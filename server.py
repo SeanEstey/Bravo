@@ -23,7 +23,8 @@ import tasks
 def set_logger(logger, level, log_name):
   handler = logging.FileHandler(log_name)
   handler.setLevel(level)
-  formatter = logging.Formatter('[%(asctime)s: %(name)s] %(message)s','%m-%d %H:%M')
+  #formatter = logging.Formatter('[%(asctime)s: %(name)s] %(message)s','%m-%d %H:%M')
+  formatter = logging.Formatter('[%(asctime)s] %(message)s','%m-%d %H:%M')
   handler.setFormatter(formatter)
   logger.setLevel(level)
   logger.handlers = []

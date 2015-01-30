@@ -2,17 +2,18 @@
 
 Install Dependencies<br>
 ```
-apt-get install python-pip python-dev mongodb nginx
-pip install celery flask flask-socketio pymongo
+apt-get install python-pip python-dev mongodb nginx rabbitmq-server
+pip install celery flask flask-socketio pymongo python-dateutil twilio
 ```
 Clone repository<br>
 ```
 git clone https://github.com/SeanEstey/Bravo
 cd Bravo
 ```
+Start RabbitMQ daemon<br>
+`rabbitmqctl start_app`<br>
 Start celery worker<br>
 `./celery.sh`<br>
-
 Start Flask Server:<br>
 `python server.py <mode>`<br>
 

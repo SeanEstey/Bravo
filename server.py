@@ -195,7 +195,10 @@ def create_job_summary(job_id):
   job = db['jobs'].find_one({'_id':job_id})
   summary = {
     "totals": {
-      "completed": db['msgs'].find({'job_id':job_id, 'call_status':'completed'}).count(),
+      "completed": {
+        'answered': db['msgs'].find({'job_id':job_id, 'answered_by':'human'}).count(),
+        'voicemail': db['msgs'].find({'job_id':job_id, 'answered_by':'machine'}).count()
+      }, #db['msgs'].find({'job_id':job_id, 'call_status':'completed'}).count(),
       "no-answer" : db['msgs'].find({'job_id':job_id, 'call_status':'no-answer'}).count(),
       "busy": db['msgs'].find({'job_id':job_id, 'call_status':'busy'}).count(),
       "failed" : db['msgs'].find({'job_id':job_id, 'call_status':'failed'}).count(),

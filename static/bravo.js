@@ -246,7 +246,7 @@ function initShowCallsView() {
 
     $a.click(function() {
       var id = $(this).parent().attr('id');
-      var sort_col = id.slice(-1);
+      var sort_col = id.split('col')[1];
       sortCalls($('#show-calls-table'), sort_col);
       var encoded_text = HTMLEncode($(this).text());
       if(encoded_text.indexOf(down_arrow) > 0)
@@ -601,23 +601,39 @@ function initShowJobs() {
 
 function initJobSummary() {
   var data = JSON.parse($('#content').text());
-  $('#content').html('Summary:<br><br>');
-  $('#content').append(JSON.stringify(data['totals']));
-  $('#content').append('<br><br>Calls:<br><br>');
-
-  for(var k in data['calls']) {
-    var call = data['calls'][k];
-    for(var property in call) {
-      if(property=='imported')
-        var line = 'imported:' + JSON.stringify(call[property]);
-      else
-        var line = property + ': ' + call[property];
-      $('#content').append(line+'<br>');
-    }
-    $('#content').append('<br>');
-  }
-  
-
-  
+  $('#content').html('');
+  $('#content').append(printJsonObj('totals', data['totals'], 0));
+  $('#content').append('<br><br>');
+  $('#content').append(printJsonObj('calls', data['calls'], 0));
   $('body').css('display','block');
+}
+
+function printJsonObj(parent_key, obj, indent_lvl) {
+  var base_indent = '&nbsp;&nbsp;';
+  var indent = '';
+  var str = '';
+  for(var i=0; i<indent_lvl; i++)
+    indent += base_indent;
+
+  if(obj instanceof Array) {
+    str += indent + parent_key.toTitleCase() + ': <br>';
+    for(var i=0; i<obj.length; i++) {
+      //if(obj[i] instanceof Object)
+        str += printJsonObj(i, obj[i], indent_lvl+1);
+      str+='<br>';
+    }
+  }
+  else if(obj instanceof Object) {
+    for(var property in obj) {
+      if(property == 'speak')
+        continue;
+      if(obj[property] instanceof Object)
+        str += 
+          indent + property.toTitleCase() + ': <br>' + 
+          printJsonObj(property, obj[property], indent_lvl+1);
+      else
+        str += indent + property.toTitleCase() + ': ' + String(obj[property]).toTitleCase() + '<br>';
+    }
+  }
+  return str;
 }

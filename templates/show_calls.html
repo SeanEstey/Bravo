@@ -27,7 +27,7 @@
           <th id='col{{ col_num }}'><a title='Sort' class='hover' href='#'>{{ column['field'].title().replace('_', ' ') }}</a></th>
           {% set col_num = col_num + 1 %}
           {% endfor %}
-          <th id='col{{col_num}}'><a title='Sort' class='hover' href='#'>Status</a></th>
+          <th id='col{{template|length+1}}'><a title='Sort' class='hover' href='#'>Status</a></th>
           <th></th>
         </tr>
       </thead>

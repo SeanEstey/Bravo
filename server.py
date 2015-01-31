@@ -2,6 +2,8 @@ from flask import Flask,render_template,request,g,Response,redirect,url_for
 from flask.ext.socketio import *
 from config import *
 from secret import *
+from bson import Binary, Code, json_util
+#from bson.json_util import dumps
 from bson.objectid import ObjectId
 import pymongo
 import twilio
@@ -204,7 +206,7 @@ def create_job_summary(job_id):
       "failed" : db['msgs'].find({'job_id':job_id, 'call_status':'failed'}).count(),
       "time_elapsed": (job['ended_at'] - job['started_at']).total_seconds()
     },
-    "calls": list(db['msgs'].find({'job_id':job_id},{'_id':0, 'ended_at':0, 'job_id':0, 'imported.event_date':0}))
+    "calls": list(db['msgs'].find({'job_id':job_id},{'ended_at':0, 'job_id':0}))
   }
   return summary
 
@@ -355,7 +357,8 @@ def index():
 @app.route('/summarize/<job_id>')
 def get_job_summary(job_id):
   job_id = job_id.encode('utf-8')
-  summary = json.dumps(create_job_summary(job_id))
+  summary = json_util.dumps(create_job_summary(job_id))
+  #logger.info(summary)
   return render_template('job_summary.html', title=os.environ['title'], summary=summary)
 
 @app.route('/get/template/<name>')
@@ -647,6 +650,8 @@ def process_status():
       fields['answered_by'] = answered_by
       if 'speak' in call:
         fields['speak'] = call['speak']
+    elif call_status == 'failed':
+      fields['error_msg'] = 'not_in_service'
 
     db['msgs'].update(
       {'sid':sid},

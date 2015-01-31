@@ -602,37 +602,45 @@ function initShowJobs() {
 function initJobSummary() {
   var data = JSON.parse($('#content').text());
   $('#content').html('');
-  $('#content').append(printJsonObj('totals', data['totals'], 0));
-  $('#content').append('<br><br>');
-  $('#content').append(printJsonObj('calls', data['calls'], 0));
+  $('#content').append(objToHtml(data, 0, ['speak']));
   $('body').css('display','block');
 }
 
-function printJsonObj(parent_key, obj, indent_lvl) {
-  var base_indent = '&nbsp;&nbsp;';
+// Converts a JS Object to indented HTML (no braces/brackets)
+// Properties are sorted alphabetically
+function objToHtml(obj, indents, ignores) {
   var indent = '';
   var str = '';
-  for(var i=0; i<indent_lvl; i++)
-    indent += base_indent;
+  var toClass = {}.toString;
+  for(var i=0; i<indents; i++)
+    indent += '&nbsp;&nbsp';
 
-  if(obj instanceof Array) {
-    str += indent + parent_key.toTitleCase() + ': <br>';
-    for(var i=0; i<obj.length; i++) {
-      //if(obj[i] instanceof Object)
-        str += printJsonObj(i, obj[i], indent_lvl+1);
-      str+='<br>';
+  var sorted_keys = Object.keys(obj).sort();
+  var key;
+
+  for(var index in sorted_keys) {
+    key = sorted_keys[index];
+    if(ignores.indexOf(key) > -1)
+      continue;
+    // Primitive
+    if(typeof obj[key] != 'object')
+      str += indent + key.toTitleCase() + ': ' + String(obj[key]).toTitleCase() + '<br>';
+    // Date
+    else if(toClass.call(obj[key]) == '[object Date]')
+      str += indent + key.toTitleCase() + ': ' + obj[key].toString() + '<br>';
+    // Array
+    else if(toClass.call(obj[key]) == '[object Array]') {
+      str += indent + key.toTitleCase() + ': <br>';
+      var element_str;
+      for(var i=0; i<obj[key].length; i++) {
+        element_str = objToHtml(obj[key][i], indents+1, ignores);
+        str += indent + element_str + '<br>';
+      }
     }
-  }
-  else if(obj instanceof Object) {
-    for(var property in obj) {
-      if(property == 'speak')
-        continue;
-      if(obj[property] instanceof Object)
-        str += 
-          indent + property.toTitleCase() + ': <br>' + 
-          printJsonObj(property, obj[property], indent_lvl+1);
-      else
-        str += indent + property.toTitleCase() + ': ' + String(obj[property]).toTitleCase() + '<br>';
+    // Unknown Object
+    else if(toClass.call(obj[key]) == '[object Object]') {
+      var obj_str = objToHtml(obj[key], indents+1, ignores);
+      str += indent + key.toTitleCase() + ':<br>' + obj_str;
     }
   }
   return str;

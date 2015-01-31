@@ -60,7 +60,10 @@ def execute_job(job_id, db_name, server_url):
     # Fire all calls
     for msg in messages:
       response = dial(msg['imported']['to'], server_url)
-      logger.info('%s %s', msg['imported']['to'], response['call_status'])
+      if response['call_status'] == 'failed':
+        logger.info('%s %s (%s)', msg['imported']['to'], response['call_status'], response['error_msg'])
+      else: 
+        logger.info('%s %s', msg['imported']['to'], response['call_status'])
       response['attempts'] = msg['attempts']+1
       db['msgs'].update(
         {'_id':msg['_id']},

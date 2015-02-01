@@ -14,10 +14,12 @@ function HTMLEncode(str) {
   return aRet.join('');
 }
 
+// Replace underscores with spaces, capitalizes words
 String.prototype.toTitleCase = function(n) {
    var s = this;
    if (1 !== n) s = s.toLowerCase();
    s = s.replace(/_/g, ' ');
+  // s = s.replace(/\$/g, '');
    return s.replace(/\b[a-z]/g,function(f){return f.toUpperCase()});
 }
 
@@ -363,7 +365,6 @@ function initShowCallsView() {
 // View: show_calls
 function formatCallStatus($cell, text) {
   text = text.toTitleCase();
-  console.log('formatcallstatus text='+text);
   if(text.indexOf('Sent') >= 0)
     $cell.css({'color':'#009900'});
   else if(text.indexOf('No-Answer') >= 0 || text.indexOf('Busy') >= 0 || text.indexOf('Not In Service') >= 0)
@@ -606,7 +607,7 @@ function initJobSummary() {
   $('body').css('display','block');
 }
 
-// Converts a JS Object to indented HTML (no braces/brackets)
+// Converts a JS Object to indented, color-coded HTML (no braces/brackets)
 // Properties are sorted alphabetically
 function objToHtml(obj, indents, ignores) {
   var indent = '';
@@ -622,9 +623,17 @@ function objToHtml(obj, indents, ignores) {
     key = sorted_keys[index];
     if(ignores.indexOf(key) > -1)
       continue;
+    // MongoDB Timestamp
+    if(key.indexOf('$date') > -1) {
+      str += indent + 'Date: ';
+      var date_str = new Date(obj[key]);
+      str += '<label style="color:green;">' + date_str + '</label><br>'; 
+    }
     // Primitive
-    if(typeof obj[key] != 'object')
-      str += indent + key.toTitleCase() + ': ' + String(obj[key]).toTitleCase() + '<br>';
+    else if(typeof obj[key] != 'object') {
+      str += indent + key.toTitleCase() + ': ';
+      str += '<label style="color:green;">' + String(obj[key]).toTitleCase() + '</label><br>';
+    }
     // Date
     else if(toClass.call(obj[key]) == '[object Date]')
       str += indent + key.toTitleCase() + ': ' + obj[key].toString() + '<br>';

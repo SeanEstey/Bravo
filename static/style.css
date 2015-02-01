@@ -136,6 +136,8 @@ optgroup {
 }
 
 table.data-table2 {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 11pt;
   border-collapse: collapse; 
   text-align:left; 
   width:750px;

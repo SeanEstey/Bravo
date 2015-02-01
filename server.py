@@ -641,7 +641,8 @@ def process_status():
     logger.info('%s %s', to, call_status)
     fields = {
       'call_status': call_status,
-      'ended_at': datetime.now()
+      'ended_at': datetime.now(),
+      'call_duration': request.form.get('CallDuration')
     }
     call = db['msgs'].find_one({'sid':sid})
 

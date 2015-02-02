@@ -580,7 +580,6 @@ def edit_call(call_uuid):
 def content():
   try:
     if request.method == 'POST':
-      logger.debug('Call answered! %s' % request.values.items())
       sid = request.form.get('CallSid')
       call_status = request.form.get('CallStatus')
       to = request.form.get('To')

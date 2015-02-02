@@ -646,7 +646,7 @@ function objToHtml(obj, indents, ignores) {
         str += indent + element_str + '<br>';
       }
     }
-    // Unknown Object
+    // Generic Object
     else if(toClass.call(obj[key]) == '[object Object]') {
       var obj_str = objToHtml(obj[key], indents+1, ignores);
       str += indent + key.toTitleCase() + ':<br>' + obj_str;

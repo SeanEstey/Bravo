@@ -5,6 +5,7 @@ from datetime import timedelta
 
 # App
 LOG_LEVEL = logging.INFO
+
 LOG_FILE = 'log.log'
 DIAL_NUMBER= '+17804138846'
 SMS_NUMBER = '+15874104251'
@@ -63,3 +64,5 @@ MONGO_PORT = 27017
 TEST_DB = 'test'
 DEPLOY_DB = 'wsf'
 MAILGUN_DOMAIN = 'wsaf.ca'
+
+formatter = logging.Formatter('[%(asctime)s] %(message)s','%m-%d %H:%M')

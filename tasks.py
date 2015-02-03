@@ -15,6 +15,11 @@ import requests
 import json
 
 logger = logging.getLogger(__name__)
+handler = logging.FileHandler(LOG_FILE)
+handler.setLevel(LOG_LEVEL)
+handler.setFormatter(formatter)
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(handler)
 celery_app = Celery('tasks')
 celery_app.config_from_object('config')
 test_server_url = PUB_DOMAIN + ':' + str(PUB_TEST_PORT) + PREFIX 

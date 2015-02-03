@@ -66,8 +66,6 @@ class BravoTestCase(unittest.TestCase):
     res = self.db['msgs'].remove({'_id':self.msg_id})
     self.assertEquals(res['n'], 1)
 
-
-  
   def test_dial_valid(self):
     response = server.dial(self.msg['imported']['to'], self.pub_url)
     self.assertEquals(response['call_status'], 'queued')
@@ -170,19 +168,6 @@ class BravoTestCase(unittest.TestCase):
     response = bravo.fire_msg(self.msg)
     self.assertNotEquals(response[0], 400)
   
-  def test_bravo_fire_msg_voice_no_phone(self):
-    self.msg['to'] = ''
-    response = bravo.fire_msg(self.msg)
-    self.assertEquals(response[0], 400)
-  
-  def test_bravo_fire_msg_sms(self):
-    self.msg['sms'] = 'true'
-    response = bravo.fire_msg(self.msg)
-    self.assertNotEquals(response[0], 400)
-
-  def test_bravo_execute_job(self):
-    self.assertTrue(bravo.execute_job(self.job_id))
-
   def test_get_speak_etw_active(self):
     speak = bravo.get_speak(self.job, self.msg)
     self.assertIsInstance(speak, str)
@@ -245,47 +230,11 @@ class BravoTestCase(unittest.TestCase):
   def test_server_get_celery_status(self):
     self.assertEquals(requests.get(self.pub_url+'/get/celery_status').status_code, 200)
   
-  def test_call_ring_post(self):
-    from werkzeug.datastructures import MultiDict
-    payload = MultiDict([
-      ('RequestUUID', self.msg['request_uuid']), 
-      ('To', self.msg['to']), 
-      ('CallStatus', self.msg['status'])
-    ])
-    self.assertEquals(requests.post(self.pub_url+'/call/ring', data=payload).status_code, 200)
-  
   def test_call_answer_get(self):
     from werkzeug.datastructures import MultiDict
     args='?CallStatus='+self.msg['status']+'&RequestUUID='+self.msg['request_uuid']+'&To='+self.msg['to']
     uri = self.pub_url + '/call/answer' + args
     self.assertEquals(requests.get(uri).status_code, 200)
-
-  def test_call_answer_post(self):
-    from werkzeug.datastructures import MultiDict
-    payload = MultiDict([
-      ('RequestUUID', self.msg['request_uuid']), 
-      ('Digits', '1')
-    ])
-    response = requests.post(self.pub_url+'/call/answer', data=payload)
-    self.assertEquals(response.status_code, 200)
-  
-  def test_call_hangup_post(self):
-    from werkzeug.datastructures import MultiDict
-    self.db['msgs'].update(
-      {'request_uuid':self.msg['request_uuid']},
-      {'$set':{'code':'ANSWERED', 'status':'IN_PROGRESS'}})
-    self.msg = self.db['msgs'].find_one({'_id':self.msg_id})
-    payload = MultiDict([
-      ('To', self.msg['to']),
-      ('HangupCause', 'NORMAL_CLEARING'),
-      ('CallStatus', self.msg['status'])
-    ])
-    try:
-      response = requests.post(self.pub_url+'/call/hangup', data=payload)
-      self.assertEquals(response.status_code, 200)
-    except Exception as e:
-      self.fail('hangup exception')
-
   '''
 
 if __name__ == '__main__':

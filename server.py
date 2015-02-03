@@ -22,21 +22,15 @@ from reverse_proxy import ReverseProxied
 import sys
 import tasks
 
-def set_logger(logger, level, log_name):
-  handler = logging.FileHandler(log_name)
-  handler.setLevel(level)
-  #formatter = logging.Formatter('[%(asctime)s: %(name)s] %(message)s','%m-%d %H:%M')
-  formatter = logging.Formatter('[%(asctime)s] %(message)s','%m-%d %H:%M')
-  handler.setFormatter(formatter)
-  logger.setLevel(level)
-  logger.handlers = []
-  logger.addHandler(handler)
-
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
 db = None
 mode = None
 logger = logging.getLogger(__name__)
-set_logger(logger, LOG_LEVEL, LOG_FILE)
+handler = logging.FileHandler(LOG_FILE)
+handler.setLevel(LOG_LEVEL)
+handler.setFormatter(formatter)
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(handler)
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 app.wsgi_app = ReverseProxied(app.wsgi_app)

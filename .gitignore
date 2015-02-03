@@ -4,3 +4,6 @@ venv*
 *.swo
 *~
 log.log
+celery.log
+celerybeat-schedule
+secret.py

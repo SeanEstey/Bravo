@@ -43,27 +43,6 @@ app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.debug = True
 socketio = SocketIO(app)
 
-def is_mongodb_available():
-  if mongo_client:
-    if mongo_client.alive():
-      return True
-  else:
-    return False
-
-def reconnect_mongodb():
-  global mongo_client, db
-  # Either no connection handle or connection is dead
-  # Attempt to re-establish 
-  logger.info('Attempting to reconnect to mongodb...')
-  try:
-    mongo_client = pymongo.MongoClient('localhost',27017)
-    db = mongo_client['wsf']
-  except pymongo.errors.ConnectionFailure as e:
-    logger.error('mongodb connection refused!')
-    return False
-
-  return True
-
 def celery_check():
   if not tasks.celery_app.control.inspect().active_queues():
     logger.error('Celery process not running')
@@ -88,25 +67,29 @@ def restart_celery():
   logger.info('Celery worker restarted')
   return True
 
-def dial(to, server_url):
+def dial(to, url):
   try:
     twilio_client = twilio.rest.TwilioRestClient(
       TWILIO_ACCOUNT_SID, 
       TWILIO_AUTH_ID
     )
     call = twilio_client.calls.create(
-      from_=FROM_NUMBER,
-      to='+1'+to,
-      url=server_url + '/call/answer',
-      status_callback= server_url + '/call/hangup',
-      status_method='POST',
-      method='POST',
-      if_machine='Continue'
+      from_ = DIAL_NUMBER,
+      to = '+1'+to,
+      url = url + '/call/answer',
+      status_callback = url + '/call/hangup',
+      status_method = 'POST',
+      method = 'POST',
+      if_machine = 'Continue'
     )
+
+    return {'sid':call.sid, 'call_status':call.status}
   except twilio.TwilioRestException as e:
     if e.code == 21216:
       error_msg = 'not_in_service'
     elif e.code == 21211:
+      error_msg = 'no_number'
+    elif e.code == 13224:
       error_msg = 'invalid_number'
     elif e.code == 13223:
       error_msg = 'invalid_number_format'
@@ -114,25 +97,38 @@ def dial(to, server_url):
       error_msg = e.message
     return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'error_msg':error_msg}
   except Exception as e:
-    logger.error('twilio.call exception: ', exc_info=True)
-  else: 
-    return {'sid':call.sid, 'call_status':call.status}
+    logger.error('twilio.dial exception %s', str(e), exc_info=True)
+    return str(e)
 
-def sms(to, msg):
-  params = {
-    'dst': '1' + to,
-    'src': SMS_NUMBER,
-    'text': msg,
-    'type': 'sms',
-    'url': os.environ['pub_url'] + '/sms_status'
-  }
-
+def sms(to, msg, url):
   try:
-    plivo_api = plivo.RestAPI(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
-    response = plivo_api.send_message(params)
-    return response
+    twilio_client = twilio.rest.TwilioRestClient(
+      TWILIO_ACCOUNT_SID, 
+      TWILIO_AUTH_ID
+    )
+    message = twilio_client.messages.create(
+      body = msg,
+      to = '+1' + to,
+      from_ = SMS_NUMBER,
+      status_callback = url + '/sms/status'
+    )
+
+    return {'sid': message.sid, 'call_status': message.status}
+
+  except twilio.TwilioRestException as e:
+    if e.code == 14101: 
+      #"To" Attribute is Invalid
+      error_msg = 'number_not_mobile'
+    elif e.code == 30006:
+      erorr_msg = 'landline_unreachable'
+    else:
+      error_msg = e.message
+
+    return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'error_msg':error_msg}
+
   except Exception as e:
-    logger.error('%s SMS failed (%a)',to, str(response[0]), exc_info=True)
+    logger.error('sms exception %s', str(e), exc_info=True)
+
     return False
 
 def get_speak(job, msg, answered_by, medium='voice'):
@@ -172,7 +168,8 @@ def get_speak(job, msg, answered_by, medium='voice'):
       speak += repeat_voice
     
   response = twilio.twiml.Response()
-  response.say(speak)
+  response.say(speak, voice='alice')
+  #response.say(speak, **{'voice':'alice'})
   db['msgs'].update({'_id':msg['_id']},{'$set':{'speak':speak}})
 
   if speak.find(repeat_voice) >= 0:
@@ -663,6 +660,34 @@ def process_status():
     return 'OK'
   except Exception, e:
     logger.error('%s /call/hangup' % request.values.items(), exc_info=True)
+    return str(e)
+
+@app.route('/sms/status', methods=['POST'])
+def sms_status():
+  try:
+    # Using 'call_status' in DB TEMPORARILY!!!!
+    items = str(request.form.items())
+    logger.info(items)
+    sid = request.form.get('SmsSid')
+    sms_status = request.form.get('SmsStatus')
+    msg_doc = db['msgs'].find_one({'sid':sid})
+    if not msg_doc:
+      logger.info('SmsSid not found in DB')
+      return 'FAIL'
+
+    # TODO: replace 'call_status' with 'sms_status' and refactor code
+    db['msgs'].update(
+      {'sid':sid},
+      {'$set': {'call_status': sms_status}}
+    )
+    fields = {
+      'id': str(msg_doc['_id']),
+      'call_status': sms_status
+    }
+    send_socket('update_call', fields)
+
+    return 'OK'
+  except Exception, e:
     return str(e)
 
 @app.route('/call/fallback',methods=['POST','GET'])

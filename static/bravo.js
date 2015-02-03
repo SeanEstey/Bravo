@@ -649,7 +649,7 @@ function objToHtml(obj, indents, ignores) {
     // Generic Object
     else if(toClass.call(obj[key]) == '[object Object]') {
       var obj_str = objToHtml(obj[key], indents+1, ignores);
-      str += indent + key.toTitleCase() + ':<br>' + obj_str;
+      str += indent + key.toTitleCase() + '<br>' + obj_str;
     }
   }
   return str;

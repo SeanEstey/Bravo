@@ -1,5 +1,5 @@
 from config import *
-from server import mongo_client, logger, dial
+from server import dial
 from celery import Celery
 from celery.signals import worker_process_init, task_prerun
 import time
@@ -14,9 +14,11 @@ import logging
 import requests
 import json
 
+logger = logging.getLogger(__name__)
 celery_app = Celery('tasks')
 celery_app.config_from_object('config')
 test_server_url = PUB_DOMAIN + ':' + str(PUB_TEST_PORT) + PREFIX 
+mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
 test_db = mongo_client[TEST_DB]
 
 @celery_app.task
@@ -40,6 +42,8 @@ def run_scheduler():
   for job in in_progress_jobs:
     print('    ' + str(job_num) + '): ' + job['name'])
 
+  return pending_jobs.count()
+
 @celery_app.task
 def execute_job(job_id, db_name, server_url):
   db = mongo_client[db_name]
@@ -59,20 +63,20 @@ def execute_job(job_id, db_name, server_url):
     )
     # Fire all calls
     for msg in messages:
-      response = dial(msg['imported']['to'], server_url)
-      if response['call_status'] == 'failed':
-        logger.info('%s %s (%s)', msg['imported']['to'], response['call_status'], response['error_msg'])
+      r = dial(msg['imported']['to'], server_url)
+      if r['call_status'] == 'failed':
+        logger.info('%s %s (%d: %s)', msg['imported']['to'], r['call_status'], r['error_code'], r['error_msg'])
       else: 
-        logger.info('%s %s', msg['imported']['to'], response['call_status'])
-      response['attempts'] = msg['attempts']+1
+        logger.info('%s %s', msg['imported']['to'], r['call_status'])
+      r['attempts'] = msg['attempts']+1
       db['msgs'].update(
         {'_id':msg['_id']},
-        {'$set': response}
+        {'$set': r}
       )
-      response['id'] = str(msg['_id'])
-      payload = {'name': 'update_call', 'data': json.dumps(response)}
+      r['id'] = str(msg['_id'])
+      payload = {'name': 'update_call', 'data': json.dumps(r)}
       requests.get(server_url + '/sendsocket', params=payload)
-      time.sleep(1)
+      #time.sleep(1)
     
     logger.info('Job Calls Fired. Monitoring...')
 
@@ -116,17 +120,17 @@ def execute_job(job_id, db_name, server_url):
         logger.info('Pausing %dsec then Re-attempting %d Incompletes.', REDIAL_DELAY, incompletes.count())
         time.sleep(REDIAL_DELAY)
         for call in incompletes:
-          response = dial(call['imported']['to'], server_url)
-          logger.info('%s %s', call['imported']['to'], response['call_status'])
-          response['attempts'] = call['attempts']+1
+          r = dial(call['imported']['to'], server_url)
+          logger.info('%s %s', call['imported']['to'], r['call_status'])
+          r['attempts'] = call['attempts']+1
           db['msgs'].update(
             {'_id':call['_id']},
-            {'$set': response}
+            {'$set': r}
           )
       # Still active calls going out  
       else:
         time.sleep(10)
     # End loop
-
+    return 'OK'
   except Exception, e:
     logger.error('execute_job job_id %s', str(job_id), exc_info=True)

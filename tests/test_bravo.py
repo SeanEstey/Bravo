@@ -17,9 +17,10 @@ import tasks
 import server
 from server import dial
 
+# Test credentials (simulates real calls/sms)
 server.TWILIO_ACCOUNT_SID = 'AC4ca41ad0331210f865f3b966ceebe813'
 server.TWILIO_AUTH_ID = '52ea057f9df92b65b9b990c669e4143c'
-server.FROM_NUMBER = '15005550006'
+server.DIAL_NUMBER = '15005550006'
 
 class BravoTestCase(unittest.TestCase):
   def setUp(self):
@@ -65,12 +66,7 @@ class BravoTestCase(unittest.TestCase):
     res = self.db['msgs'].remove({'_id':self.msg_id})
     self.assertEquals(res['n'], 1)
 
-  '''
-  def test_job_completion(self):
-    completed_id = '54972d479b938767711838a0'
-    res = requests.get(self.pub_url+'/complete/'+completed_id)
-    self.assertEquals(res.status_code, 200)
-  '''
+
   
   def test_dial_valid(self):
     response = server.dial(self.msg['imported']['to'], self.pub_url)
@@ -109,7 +105,20 @@ class BravoTestCase(unittest.TestCase):
     response = requests.post(self.pub_url+'/call/hangup', data=payload)
     self.assertEquals(response.content, 'OK')
   
+  def test_scheduler(self):
+    r = tasks.run_scheduler.delay()
+    self.assertTrue(r > 0)
+
+  def test_execute_job(self):
+    r = tasks.execute_job.delay(self.job_id, TEST_DB, self.pub_url)
+    self.assertEquals(r, 'OK')
+
   '''
+  def test_job_completion(self):
+    completed_id = '54972d479b938767711838a0'
+    res = requests.get(self.pub_url+'/complete/'+completed_id)
+    self.assertEquals(res.status_code, 200)
+  
   def test_many_calls(self):
     calls = []
     base = '780453'

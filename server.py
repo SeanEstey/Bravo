@@ -3,7 +3,6 @@ from flask.ext.socketio import *
 from config import *
 from secret import *
 from bson import Binary, Code, json_util
-#from bson.json_util import dumps
 from bson.objectid import ObjectId
 import pymongo
 import twilio
@@ -22,6 +21,7 @@ from reverse_proxy import ReverseProxied
 import sys
 import tasks
 import re
+import utils
 
 db = None
 mode = None
@@ -68,7 +68,7 @@ def dial(to, url):
       TWILIO_AUTH_ID
     )
     call = twilio_client.calls.create(
-      from_ = DIAL_NUMBER,
+      from_ = FROM_NUMBER,
       to = '+1'+to,
       url = url + '/call/answer',
       status_callback = url + '/call/hangup',
@@ -165,12 +165,9 @@ def get_speak(job, msg, answered_by, medium='voice'):
     
   response = twilio.twiml.Response()
   response.say(speak, voice='alice')
-  #response.say(speak, **{'voice':'alice'})
   db['msgs'].update({'_id':msg['_id']},{'$set':{'speak':speak}})
 
   if speak.find(repeat_voice) >= 0:
-    #logger.info('get_speak medium='+medium + 'answered_by='+answered_by)
-    #logger.info('adding gather keys twiml')
     response.gather(
       action=os.environ['pub_url'] + '/call/answer',
       method='GET',
@@ -184,7 +181,7 @@ def strip_phone_num(to):
 
   return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
-def job_dump(job_id):
+def job_db_dump(job_id):
   if isinstance(job_id, str):
     job_id = ObjectId(job_id)
   job = db['jobs'].find_one({'_id':job_id})
@@ -210,6 +207,18 @@ def job_dump(job_id):
 def send_email_report(job_id):
   if isinstance(job_id, str):
     job_id = ObjectId(job_id)
+  
+  job = db['jobs'].find_one({'_id':job_id})
+
+  summary = {
+    '<b>Summary</b>': {
+      'Answered': db['msgs'].find({'job_id':job_id, 'answered_by':'human'}).count(),
+      'Voicemail': db['msgs'].find({'job_id':job_id, 'answered_by':'machine'}).count(),
+      'No-answer' : db['msgs'].find({'job_id':job_id, 'call_status':'no-answer'}).count(),
+      'Busy': db['msgs'].find({'job_id':job_id, 'call_status':'busy'}).count(),
+      'Failed' : db['msgs'].find({'job_id':job_id, 'call_status':'failed'}).count()
+    }
+  }
 
   report = {
     'Failed Calls': list( 
@@ -226,56 +235,9 @@ def send_email_report(job_id):
     )
   }
 
-  msg = str(printitems(report)).encode('iso-8859-1')
-  
-  import smtplib
-  from email.mime.text import MIMEText
-  subject = 'Job Summary %s' % str(job_id)
-  send_email('estese@gmail.com', subject, msg)
-
-def printitems(dictObj, indent=0):
-  p='<ul style="list-style-type: none;">'
-  for k,v in dictObj.iteritems():
-    # '$' Represents MongoDB non-serializable value
-    if k.find('$') > -1:
-      p+='<li>'+toTitleCase(k)+': '
-      p+=str(json_util.dumps(v))
-      p+='</li>'
-    elif isinstance(v, dict):
-      p+='<li>'+ toTitleCase(k)+ ': '
-      p+=printitems(v)
-      p+='</li>'
-    elif isinstance(v, list):
-      p+='<br><li><b>'+toTitleCase(k)+': </b></li>'
-      p+='<ul style="list-style-type: none;">'
-      for idx, item in enumerate(v):
-        p+='<li>['+str(idx+1)+']'
-        p+=printitems(item)
-        p+='</li>'
-      p+='</ul>'
-    else:
-      p+='<li>'+ toTitleCase(k)+ ': '+ toTitleCase(json.dumps(v))+ '</li>'
-  p+='</ul>'
-  return p
-
-def toTitleCase(s):
-  s = re.sub(r'\"', '', s)
-  s = re.sub(r'_', ' ', s)
-  return s.title()
-
-
-def send_email(recipient, subject, msg):
-  import requests
-  send_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/messages'
-  return requests.post(
-    send_url,
-    auth=('api', MAILGUN_API_KEY),
-    data={
-      'from': 'Empties to WINN <emptiestowinn@wsaf.ca>',
-      'to': [recipient],
-      'subject': subject,
-      'html': msg
-  })
+  msg = utils.print_html(summary) + '<br><br>' + utils.print_html(report)
+  subject = 'Job Summary %s' % job['name']
+  utils.send_email('estese@gmail.com', subject, msg)
 
 def set_mode(m):
   global db, mode
@@ -404,8 +366,7 @@ def index():
 @app.route('/summarize/<job_id>')
 def get_job_summary(job_id):
   job_id = job_id.encode('utf-8')
-  summary = json_util.dumps(job_dump(job_id))
-  #logger.info(summary)
+  summary = json_util.dumps(job_db_dump(job_id))
   return render_template('job_summary.html', title=os.environ['title'], summary=summary)
 
 @app.route('/get/template/<name>')

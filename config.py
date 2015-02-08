@@ -7,7 +7,8 @@ from datetime import timedelta
 LOG_LEVEL = logging.INFO
 
 LOG_FILE = 'log.log'
-DIAL_NUMBER= '+17804138846'
+FROM_NUMBER= '+17804138846'
+FROM_EMAIL= 'Empties to WINN <emptiestowinn@wsaf.ca>'
 SMS_NUMBER = '+15874104251'
 EMERGENCY_CONTACT='7808635715'
 CALLER_ID= 'Winnifred Stewart Association'

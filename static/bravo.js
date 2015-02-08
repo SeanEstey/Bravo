@@ -17,9 +17,9 @@ function HTMLEncode(str) {
 // Replace underscores with spaces, capitalizes words
 String.prototype.toTitleCase = function(n) {
    var s = this;
-   if (1 !== n) s = s.toLowerCase();
+   if (1 !== n) 
+     s = s.toLowerCase();
    s = s.replace(/_/g, ' ');
-  // s = s.replace(/\$/g, '');
    return s.replace(/\b[a-z]/g,function(f){return f.toUpperCase()});
 }
 

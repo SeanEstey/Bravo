@@ -21,6 +21,7 @@ import codecs
 from reverse_proxy import ReverseProxied
 import sys
 import tasks
+import re
 
 db = None
 mode = None
@@ -211,13 +212,13 @@ def send_email_report(job_id):
     job_id = ObjectId(job_id)
 
   report = {
-    'Fails': list( 
+    'Failed Calls': list( 
       db['msgs'].find(
         {'job_id':job_id, 'call_status': 'failed'}, 
         {'error_msg': 1, 'error_code': 1, 'imported': 1, '_id': 0}
       )
     ),
-    'Followups': list(
+    'Calls Requiring Office Followup': list(
       db['msgs'].find(
         {'job_id': job_id, 'rfu': True},
         {'imported': 1, '_id': 0}
@@ -233,28 +234,34 @@ def send_email_report(job_id):
   send_email('estese@gmail.com', subject, msg)
 
 def printitems(dictObj, indent=0):
-  p='<ul>'
+  p='<ul style="list-style-type: none;">'
   for k,v in dictObj.iteritems():
     # '$' Represents MongoDB non-serializable value
     if k.find('$') > -1:
-      p+='<li>'+k+':'
+      p+='<li>'+toTitleCase(k)+': '
       p+=str(json_util.dumps(v))
       p+='</li>'
     elif isinstance(v, dict):
-      p+='<li>'+ k+ ':'
+      p+='<li>'+ toTitleCase(k)+ ': '
       p+=printitems(v)
       p+='</li>'
     elif isinstance(v, list):
-      p+='<li>'+k+':'
+      p+='<br><li><b>'+toTitleCase(k)+': </b></li>'
+      p+='<ul style="list-style-type: none;">'
       for idx, item in enumerate(v):
-        p+='<li>'+str(idx)+':'
+        p+='<li>['+str(idx+1)+']'
         p+=printitems(item)
         p+='</li>'
-      p+='</li>'
+      p+='</ul>'
     else:
-      p+='<li>'+ k+ ':'+ json.dumps(v)+ '</li>'
+      p+='<li>'+ toTitleCase(k)+ ': '+ toTitleCase(json.dumps(v))+ '</li>'
   p+='</ul>'
   return p
+
+def toTitleCase(s):
+  s = re.sub(r'\"', '', s)
+  s = re.sub(r'_', ' ', s)
+  return s.title()
 
 
 def send_email(recipient, subject, msg):

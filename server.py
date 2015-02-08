@@ -22,7 +22,6 @@ from reverse_proxy import ReverseProxied
 import sys
 import tasks
 
-mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
 db = None
 mode = None
 logger = logging.getLogger(__name__)
@@ -144,6 +143,8 @@ def get_speak(job, msg, answered_by, medium='voice'):
       speak += etw_intro + 'pickup date is ' + date_str + '. Please have your empties out by 8am. '
     elif msg['imported']['status'] == 'Cancelling':
       speak += etw_intro + 'bag stand will be picked up on ' + date_str + '. Thanks for your past support. '
+    elif msg['imported']['status'] == 'One-time':
+      speak += etw_intro + ' one time pickup is ' + date_str + '. Please have your empties out by 8am. '
     
     if medium == 'voice' and answered_by == 'human':
       speak += repeat_voice
@@ -182,31 +183,79 @@ def strip_phone_num(to):
 
   return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
-def create_job_summary(job_id):
+def job_dump(job_id):
   if isinstance(job_id, str):
     job_id = ObjectId(job_id)
   job = db['jobs'].find_one({'_id':job_id})
+  if 'ended_at' in job:
+    time_elapsed = (job['ended_at'] - job['started_at']).total_seconds()
+  else:
+    time_elapsed = ''
   summary = {
     "totals": {
       "completed": {
         'answered': db['msgs'].find({'job_id':job_id, 'answered_by':'human'}).count(),
         'voicemail': db['msgs'].find({'job_id':job_id, 'answered_by':'machine'}).count()
-      }, #db['msgs'].find({'job_id':job_id, 'call_status':'completed'}).count(),
+      },
       "no-answer" : db['msgs'].find({'job_id':job_id, 'call_status':'no-answer'}).count(),
       "busy": db['msgs'].find({'job_id':job_id, 'call_status':'busy'}).count(),
       "failed" : db['msgs'].find({'job_id':job_id, 'call_status':'failed'}).count(),
-      "time_elapsed": (job['ended_at'] - job['started_at']).total_seconds()
+      "time_elapsed": time_elapsed
     },
     "calls": list(db['msgs'].find({'job_id':job_id},{'ended_at':0, 'job_id':0}))
   }
   return summary
 
 def send_email_report(job_id):
+  if isinstance(job_id, str):
+    job_id = ObjectId(job_id)
+
+  report = {
+    'Fails': list( 
+      db['msgs'].find(
+        {'job_id':job_id, 'call_status': 'failed'}, 
+        {'error_msg': 1, 'error_code': 1, 'imported': 1, '_id': 0}
+      )
+    ),
+    'Followups': list(
+      db['msgs'].find(
+        {'job_id': job_id, 'rfu': True},
+        {'imported': 1, '_id': 0}
+      )
+    )
+  }
+
+  msg = str(printitems(report)).encode('iso-8859-1')
+  
   import smtplib
   from email.mime.text import MIMEText
   subject = 'Job Summary %s' % str(job_id)
-  msg = ''
   send_email('estese@gmail.com', subject, msg)
+
+def printitems(dictObj, indent=0):
+  p='<ul>'
+  for k,v in dictObj.iteritems():
+    # '$' Represents MongoDB non-serializable value
+    if k.find('$') > -1:
+      p+='<li>'+k+':'
+      p+=str(json_util.dumps(v))
+      p+='</li>'
+    elif isinstance(v, dict):
+      p+='<li>'+ k+ ':'
+      p+=printitems(v)
+      p+='</li>'
+    elif isinstance(v, list):
+      p+='<li>'+k+':'
+      for idx, item in enumerate(v):
+        p+='<li>'+str(idx)+':'
+        p+=printitems(item)
+        p+='</li>'
+      p+='</li>'
+    else:
+      p+='<li>'+ k+ ':'+ json.dumps(v)+ '</li>'
+  p+='</ul>'
+  return p
+
 
 def send_email(recipient, subject, msg):
   import requests
@@ -218,13 +267,13 @@ def send_email(recipient, subject, msg):
       'from': 'Empties to WINN <emptiestowinn@wsaf.ca>',
       'to': [recipient],
       'subject': subject,
-      'text': msg
+      'html': msg
   })
 
 def set_mode(m):
   global db, mode
   mode = m
-
+  mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
   logger.info('Server started OK (' + mode + ' mode)')
 
   if mode == 'test':
@@ -348,7 +397,7 @@ def index():
 @app.route('/summarize/<job_id>')
 def get_job_summary(job_id):
   job_id = job_id.encode('utf-8')
-  summary = json_util.dumps(create_job_summary(job_id))
+  summary = json_util.dumps(job_dump(job_id))
   #logger.info(summary)
   return render_template('job_summary.html', title=os.environ['title'], summary=summary)
 
@@ -493,6 +542,8 @@ def job_complete(job_id):
   }
   
   send_socket('update_job', data)
+  send_email_report(job_id)
+
   return 'OK'
 
 @app.route('/reset/<job_id>')
@@ -515,7 +566,8 @@ def reset_job(job_id):
       'sid': '',
       'speak': '',
       'code': '',
-      'ended_at': ''
+      'ended_at': '',
+      'rfu': ''
     }},
     multi=True
   )
@@ -608,7 +660,10 @@ def content():
           no_pickup = 'No Pickup ' + call['imported']['event_date'].strftime('%A, %B %d')
           db['msgs'].update(
             {'sid':sid},
-            {'$set': {'imported.office_notes': no_pickup}}
+            {'$set': {
+              'imported.office_notes': no_pickup,
+              'rfu': True
+            }}
           )
           send_socket('update_call', {'office_notes':no_pickup})
 

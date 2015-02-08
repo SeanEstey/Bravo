@@ -365,10 +365,10 @@ function initShowCallsView() {
 // View: show_calls
 function formatCallStatus($cell, text) {
   text = text.toTitleCase();
-  if(text.indexOf('Sent') >= 0)
+  if(text.indexOf('Sent') > -1)
     $cell.css({'color':'#009900'});
-  else if(text.indexOf('No-Answer') >= 0 || text.indexOf('Busy') >= 0 || text.indexOf('Not In Service') >= 0)
-    $cell.css({'color':'#C00000' });
+  else if(text.indexOf('Failed') > -1)
+    $cell.css({'color': '#C00000'});
   else
     $cell.css({'color':'#365766'});
 
@@ -518,7 +518,7 @@ function receiveCallUpdate(socket_data) {
     }
     else if(socket_data['call_status'] == 'failed') {
       if('error_msg' in socket_data)
-        caption = socket_data['error_msg'];
+        caption = 'Failed (' + socket_data['error_msg'] + ')';
       else
         caption = 'Failed';
     }
@@ -538,10 +538,14 @@ function receiveCallUpdate(socket_data) {
 // Display timer counting down until event_datetime
 function updateCountdown() {
   $summary_lbl = $('#job-summary');
-  var event_datetime = $('#scheduled_datetime').text();
-  var scheduled = Date.parse(event_datetime);
+  var scheduled_date = Date.parse($('#scheduled_datetime').text());
   var today = new Date();
-  var diff_ms = scheduled.getTime() - today.getTime();
+  var diff_ms = scheduled_date.getTime() - today.getTime();
+
+  if(diff_ms < 0) {
+    $summary_lbl.text('0 Days 0 Hours 0 Min 0 Sec');
+    return;
+  }
 
   var diff_days = diff_ms / (1000 * 3600 * 24);
   var diff_hrs = ((diff_days + 1) % 1) * 24;

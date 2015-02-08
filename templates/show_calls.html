@@ -48,7 +48,7 @@
           {% elif call.call_status == "pending" %}
             <td name='call_status' class='call-status-td'>Pending</td>
           {% elif call.call_status == "failed" %}
-            <td name='call_status' class='call-status-td'>{{call.error_msg}}</td>
+            <td name='call_status' class='call-status-td'>Failed ({{call.error_msg}})</td>
           {% else %}
             <td name='call_status' class='call-status-td' >{{ call.call_status + ' (' ~ call.attempts + 'x)' }}</td>
           {% endif %}

@@ -16,11 +16,12 @@ from config import *
 import tasks
 import server
 from server import dial
+import time
 
 # Test credentials (simulates real calls/sms)
 server.TWILIO_ACCOUNT_SID = 'AC4ca41ad0331210f865f3b966ceebe813'
 server.TWILIO_AUTH_ID = '52ea057f9df92b65b9b990c669e4143c'
-server.DIAL_NUMBER = '15005550006'
+server.FROM_NUMBER = '15005550006'
 
 class BravoTestCase(unittest.TestCase):
   def setUp(self):
@@ -108,8 +109,12 @@ class BravoTestCase(unittest.TestCase):
     self.assertTrue(r > 0)
 
   def test_execute_job(self):
-    r = tasks.execute_job.delay(self.job_id, TEST_DB, self.pub_url)
+    print str(self.job_id)
+    print self.job['_id']
+    tasks.REDIAL_DELAY = 1
+    r = tasks.execute_job(str(self.job_id), TEST_DB, self.pub_url)
     self.assertEquals(r, 'OK')
+    time.sleep(3)
 
   '''
   def test_job_completion(self):

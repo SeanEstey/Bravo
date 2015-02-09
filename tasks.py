@@ -34,7 +34,7 @@ def run_scheduler():
   job_num = 1
   for job in pending_jobs:
     if datetime.now() > job['fire_dtime']:
-      logger.info('Starting scheduled Job [ID %s]', str(job['_id']))
+      logger.info('Scheduler: Starting Job...')
       execute_job.delay(str(job['_id']), TEST_DB, test_server_url)
     else:
       next_job_delay = job['fire_dtime'] - datetime.now()
@@ -51,9 +51,9 @@ def run_scheduler():
 
 @celery_app.task
 def execute_job(job_id, db_name, server_url):
-  db = mongo_client[db_name]
-  job_id = ObjectId(job_id)
   try:
+    db = mongo_client[db_name]
+    job_id = ObjectId(job_id)
     job = db['jobs'].find_one({'_id':job_id})
     # Default call order is alphabetically by name
     messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
@@ -81,9 +81,21 @@ def execute_job(job_id, db_name, server_url):
       r['id'] = str(msg['_id'])
       payload = {'name': 'update_call', 'data': json.dumps(r)}
       requests.get(server_url + '/sendsocket', params=payload)
-      #time.sleep(1)
     
-    logger.info('Job Calls Fired. Monitoring...')
+    logger.info('Job Calls Fired.')
+    r = requests.get(server_url + '/fired/' + str(job_id))
+    return 'OK'
+
+  except Exception, e:
+    logger.error('execute_job job_id %s', str(job_id), exc_info=True)
+
+@celery_app.task
+def monitor_job(job_id, db_name, server_url):
+  try:
+    logger.info('Tasks: Monitoring Job')
+    db = mongo_client[db_name]
+    job_id = ObjectId(job_id)
+    job = db['jobs'].find_one({'_id':job_id})
 
     # Loop until no incomplete calls remaining (all either failed or complete)
     while True:
@@ -119,7 +131,7 @@ def execute_job(job_id, db_name, server_url):
         # Connect back to server and notify
         requests.get(server_url + '/complete/' + str(job_id))
         
-        return
+        return 'OK'
       # Job still in progress. Any incomplete calls need redialing?
       elif actives.count() == 0 and incompletes.count() > 0:
         logger.info('Pausing %dsec then Re-attempting %d Incompletes.', REDIAL_DELAY, incompletes.count())
@@ -138,4 +150,4 @@ def execute_job(job_id, db_name, server_url):
     # End loop
     return 'OK'
   except Exception, e:
-    logger.error('execute_job job_id %s', str(job_id), exc_info=True)
+    logger.error('monitor_job job_id %s', str(job_id), exc_info=True)

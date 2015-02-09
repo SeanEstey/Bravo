@@ -13,14 +13,12 @@ import werkzeug
 from werkzeug import secure_filename
 import os
 import time
-import urllib2
 import csv
 import logging
 import codecs
 from reverse_proxy import ReverseProxied
 import sys
 import tasks
-import re
 import utils
 
 db = None
@@ -347,9 +345,9 @@ def request_send_socket():
   send_socket(name, data)
   return 'OK'
 
+# socket name 'update_call' must provide msg['_id'] from mongodb
+# Emit socket.io msg if client connection established.
 def send_socket(name, data):
-  # socket name 'update_call' must provide msg['_id'] from mongodb
-  # Emit socket.io msg if client connection established.
   if not socketio.server:
     return False
   if len(socketio.server.sockets) == 0:
@@ -470,6 +468,7 @@ def create_job():
 
   return show_calls(job_id)
 
+# Requested from client
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
   #logger.info('executing job ' + job_id)
@@ -502,12 +501,19 @@ def show_calls(job_id):
     template=TEMPLATE[job['template']]
   )
 
+# All calls fired for job. Monitor.
+@app.route('/fired/<job_id>')
+def job_fired(job_id):
+  tasks.monitor_job.delay(job_id.encode('utf-8'), mode, os.environ['pub_url'])
+  return 'OK'
+  
 @app.route('/complete/<job_id>')
 def job_complete(job_id):
   data = {
     'id': job_id,
     'status': 'completed'
   }
+  job_id = job_id.encode('utf-8')
   
   send_socket('update_job', data)
   send_email_report(job_id)

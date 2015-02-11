@@ -13,7 +13,6 @@ div.header {
 body {
   height: 100%;
   background-color: white;
-/*  background-color: #f0f8ff;*/
   font-family: verdana;
   color: black;
   font-size: 16px;
@@ -58,7 +57,6 @@ fieldset {
   -moz-border-radius: 7px;
   -webkit-border-radius: 7px;
   text-align: left;
-  /*width: 100%;*/
   width: 300px;
 }
 
@@ -118,6 +116,14 @@ optgroup {
 
 .center {
   display: inline-block;
+}
+
+.status-banner-div {
+  -webkit-border-radius:7px 7px 7px 7px; 
+  background-color: #CDE6CD; 
+  padding:0.5em; 
+  text-align:center;
+  color: #365766;
 }
 
 .show-jobs-div {

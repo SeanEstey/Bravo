@@ -7,7 +7,7 @@
       initShowCallsView();
     });
   </script>
-  <br><br>
+  <br>
   <div class='h1' id='timer'>
     <b><label id='job-status'>{{ job.status.title() }}</label></b>
      (<label id='job-summary'></label>)
@@ -16,7 +16,7 @@
   <br><br>
   <div class="show-jobs-div">
   <div class='navbar-div'>
-    <a class='hover' href="{{ url_for('show_jobs') }}">Jobs</a> / 
+    <a class='hover' href="{{ url_for('index') }}">Jobs</a> / 
     {{ job.name }}
   </div>
     <table id='show-calls-table' class='data-table2' style='width:1050px;'>

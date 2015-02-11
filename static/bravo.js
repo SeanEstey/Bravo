@@ -99,7 +99,7 @@ function showDialog($element, msg, _title, _buttons) {
   $element.dialog(dialog_style);
 }
 
-// View: new_job
+// new_job view
 function initNewJobView() {
   useJQueryBtn();
   addBravoTooltip();
@@ -114,7 +114,7 @@ function initNewJobView() {
   $('body').css('display','block');
 }
 
-// View: new_job
+// new_job view
 function updateFilePickerTooltip() {
   var $select = $('#template-select');
   var $template = $select.find($('option:selected'));
@@ -128,7 +128,7 @@ function updateFilePickerTooltip() {
   });
 }
 
-// View: new_job
+// new_job view
 function onSelectTemplate() {
   var $select = $('#template-select');
   $select.change(function(){
@@ -154,7 +154,7 @@ function onSelectTemplate() {
   });
 }
 
-// View: new_job
+// new_job view
 function validateNewJobForm() {
   var paramObj = {};
   $.each($('form').serializeArray(), function(_, kv) {
@@ -462,6 +462,7 @@ function makeCallFieldsClickable() {
   });
 }
 
+// View: show_calls
 function showJobSummary() {
   console.log('job summary called');
   if($('#job-status').text().indexOf('Completed') >= 0) {
@@ -482,6 +483,7 @@ function showJobSummary() {
     $('#job-summary').text(text);
   }
 }
+
 
 function receiveJobUpdate(socket_data) {
   console.log('received update: ' + JSON.stringify(socket_data));
@@ -565,6 +567,11 @@ function updateCountdown() {
 function initShowJobs() {
   addBravoTooltip();
   console.log('script_root: ' + $SCRIPT_ROOT);
+
+  if(!$('#status-banner').text())
+   $('#status-banner').hide(); 
+  else
+    $('#status-banner').show();
 
   $('.delete-btn').button({
     icons: {

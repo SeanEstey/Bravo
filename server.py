@@ -356,59 +356,13 @@ def send_socket(name, data):
  
   socketio.emit(name, data)
 
-@app.route('/')
+@app.route('/', methods=['POST', 'GET'])
 def index():
-  jobs = db['jobs'].find().sort('fire_dtime',-1)
-  return render_template('show_jobs.html', title=os.environ['title'], jobs=jobs)
-
-@app.route('/summarize/<job_id>')
-def get_job_summary(job_id):
-  job_id = job_id.encode('utf-8')
-  summary = json_util.dumps(job_db_dump(job_id))
-  return render_template('job_summary.html', title=os.environ['title'], summary=summary)
-
-@app.route('/get/template/<name>')
-def get_template(name):
-  if not name in TEMPLATE:
-    return False
-  else:
-    headers = []
-    for col in TEMPLATE[name]:
-      headers.append(col['header'])
-    return json.dumps(headers)
-
-@app.route('/get/<var>')
-def get_var(var):
-  if var == 'mode':
-    return mode
-  elif var == 'pub_url':
-    return os.environ['pub_url']
-  elif var == 'celery_status':
-    if not tasks.celery_app.control.inspect().active_queues():
-      return 'Offline'
-    else:
-      return 'Online'
-  elif var == 'sockets':
-    if not socketio.server:
-      return "No sockets"
-    return 'Sockets: ' + str(len(socketio.server.sockets))
-  elif var == 'plivo_balance':
-    return ' '
-
-  return False
-
-@app.route('/error')
-def show_error():
-  msg = request.args['msg']
-  return render_template('error.html', title=os.environ['title'], msg=msg)
-
-@app.route('/new')
-def new_job():
-  # Create new job
-  return render_template('new_job.html', title=os.environ['title'])
-
-@app.route('/new/create', methods=['POST'])
-def create_job():
+  if request.method == 'GET':
+    jobs = db['jobs'].find().sort('fire_dtime',-1)
+    return render_template('show_jobs.html', title=os.environ['title'], jobs=jobs)
+  
+  # POST request to create new job from new_job.html template
   file = request.files['call_list']
   if file and allowed_file(file.filename):
     filename = secure_filename(file.filename)
@@ -464,14 +418,65 @@ def create_job():
     return render_template('error.html', title=os.environ['title'], msg=msg)
 
   db['msgs'].insert(calls)
-  logger.info('Job "%s" Created [ID %s]', request.form.get('job_name'), str(job_id))
+  logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
 
-  return show_calls(job_id)
+  jobs = db['jobs'].find().sort('fire_dtime',-1)
+  banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(calls)) + ' calls imported.'
+  return render_template(
+    'show_jobs.html', 
+    title=os.environ['title'], 
+    jobs=jobs, 
+    banner_msg=banner_msg
+  )
+    
+@app.route('/summarize/<job_id>')
+def get_job_summary(job_id):
+  job_id = job_id.encode('utf-8')
+  summary = json_util.dumps(job_db_dump(job_id))
+  return render_template('job_summary.html', title=os.environ['title'], summary=summary)
+
+@app.route('/get/template/<name>')
+def get_template(name):
+  if not name in TEMPLATE:
+    return False
+  else:
+    headers = []
+    for col in TEMPLATE[name]:
+      headers.append(col['header'])
+    return json.dumps(headers)
+
+@app.route('/get/<var>')
+def get_var(var):
+  if var == 'mode':
+    return mode
+  elif var == 'pub_url':
+    return os.environ['pub_url']
+  elif var == 'celery_status':
+    if not tasks.celery_app.control.inspect().active_queues():
+      return 'Offline'
+    else:
+      return 'Online'
+  elif var == 'sockets':
+    if not socketio.server:
+      return "No sockets"
+    return 'Sockets: ' + str(len(socketio.server.sockets))
+  elif var == 'plivo_balance':
+    return ' '
+
+  return False
+
+@app.route('/error')
+def show_error():
+  msg = request.args['msg']
+  return render_template('error.html', title=os.environ['title'], msg=msg)
+
+@app.route('/new')
+def new_job():
+  return render_template('new_job.html', title=os.environ['title'])
 
 # Requested from client
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
-  #logger.info('executing job ' + job_id)
   job_id = job_id.encode('utf-8')
   if mode == 'deploy':
     tasks.execute_job.delay(job_id, DEPLOY_DB, os.environ['pub_url'])
@@ -480,14 +485,8 @@ def request_execute_job(job_id):
 
   return 'OK'
 
-@app.route('/jobs')
-def show_jobs():
-  jobs = db['jobs'].find().sort('fire_dtime',-1)
-  return render_template('show_jobs.html', title=os.environ['title'], jobs=jobs)
-
 @app.route('/jobs/<job_id>')
 def show_calls(job_id):
-# Default sort: ascending by name
   sort_by = 'name' 
   calls = db['msgs'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
   job = db['jobs'].find_one({'_id':ObjectId(job_id)})
@@ -501,7 +500,7 @@ def show_calls(job_id):
     template=TEMPLATE[job['template']]
   )
 
-# All calls fired for job. Monitor.
+# Requested on completion of tasks.execute_job()
 @app.route('/fired/<job_id>')
 def job_fired(job_id):
   tasks.monitor_job.delay(job_id.encode('utf-8'), mode, os.environ['pub_url'])
@@ -726,7 +725,6 @@ def process_fallback():
   except Exception, e:
     logger.error('%s /call/fallback' % request.values.items(), exc_info=True)
     return str(e)
-
 
 if __name__ == "__main__":
   if len(sys.argv) > 0:

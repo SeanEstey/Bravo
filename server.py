@@ -364,7 +364,6 @@ def index():
       'show_jobs.html', 
       title=os.environ['title'], 
       jobs=jobs
-      #banner_msg='Five Thick Thistle Sticks'
     )
   
   # POST request to create new job from new_job.html template

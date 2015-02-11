@@ -66,6 +66,8 @@ def execute_job(job_id, db_name, server_url):
         }
       }
     )
+    payload = {'name': 'update_job', 'data': json.dumps({'id':str(job['_id']), 'status':'in-progress'})}
+    requests.get(server_url+'/sendsocket', params=payload)
     # Fire all calls
     for msg in messages:
       r = dial(msg['imported']['to'], server_url)

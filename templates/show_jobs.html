@@ -1,5 +1,6 @@
   {% extends "base.html" %}
   {% block content %}  
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
   <script>
     document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
@@ -39,10 +40,8 @@
             {{ job.fire_dtime.strftime("%A %b %d @ %I:%M %p") }}
           </a>
         </td>
-        <td>
-          <a class='hover' href="{{ show_calls_url }}">
-            {{ job.name }}
-          </a>
+        <td name='job-name'>
+          <a class='hover' href="{{ show_calls_url }}">{{ job.name }}</a>
         </td>
         <td>
           <a class='hover' href="{{ show_calls_url }}">
@@ -54,7 +53,7 @@
             {{ job.num_calls }}
           </a>
         </td>
-        <td>
+        <td name='job-status'>
         {% if job.status == "completed" %}
           <p style='color:green;'>
           {{ job.status.title() }}

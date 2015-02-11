@@ -304,9 +304,8 @@ function initShowCallsView() {
       });
     });
   }
-  else {
+  else
     $('.delete-btn').hide();
-  }
 
   if($('#timer').text().indexOf('Pending') > 0) {
     updateCountdown();
@@ -321,9 +320,6 @@ function initShowCallsView() {
   var socketio_url = 'http://' + document.domain + ':' + location.port;
   console.log('attempting socket.io connection to ' + socketio_url + '...');
   var socket = io.connect(socketio_url);
-  socket.on('msg', function(msg) {
-    console.log('received msg: ' + msg);
-  });
   socket.on('connect', function(){
     socket.emit('connected');
     console.log('socket.io connected!');
@@ -332,7 +328,13 @@ function initShowCallsView() {
     receiveCallUpdate(data);
   });
   socket.on('update_job', function(data) {
-    receiveJobUpdate(data);
+    console.log('received update: ' + JSON.stringify(data));
+    if(data['status'] == 'completed') {
+      console.log('job complete!');
+      $('#job-status').text('Completed');
+      showJobSummary();
+      $('.delete-btn').hide();
+    }
   });
 
   // Show only on test server
@@ -484,17 +486,6 @@ function showJobSummary() {
   }
 }
 
-
-function receiveJobUpdate(socket_data) {
-  console.log('received update: ' + JSON.stringify(socket_data));
-  if(socket_data['status'] == 'completed') {
-    console.log('job complete!');
-    $('#job-status').text('Completed');
-    showJobSummary();
-    $('.delete-btn').hide();
-  }
-}
-
 // View: show_calls
 function receiveCallUpdate(socket_data) {
   // Clear the countdown timer if it is running
@@ -566,12 +557,47 @@ function updateCountdown() {
 // View: show_jobs
 function initShowJobs() {
   addBravoTooltip();
-  console.log('script_root: ' + $SCRIPT_ROOT);
+  
+  // Init socket.io
+  var socketio_url = 'http://' + document.domain + ':' + location.port;
+  console.log('attempting socket.io connection to ' + socketio_url + '...');
+  var socket = io.connect(socketio_url);
+  socket.on('connect', function(){
+    socket.emit('connected');
+    console.log('socket.io connected!');
+  });
+  socket.on('update_job', function(data) {
+    // data format: {'id': id, 'status': status}
+    if(typeof data == 'string')
+      data = JSON.parse(data);
+    console.log('received update: ' + JSON.stringify(data));
+    $job_row = $('#'+data['id']);
+    if(!$job_row)
+      return console.log('Could not find row with id=' + data['id']);
+   
+    var job_name = $job_row.find('[name="job-name"]').text(); 
+    var msg = 'Job \''+job_name+'\' ' + data['status'];
+    $('#status-banner').text(msg);
+    $('#status-banner').clearQueue();
+    $('#status-banner').fadeIn('slow');
+    $('#status-banner').delay(3000);
+    $('#status-banner').fadeOut(3000);
 
-  if(!$('#status-banner').text())
-   $('#status-banner').hide(); 
-  else
-    $('#status-banner').show();
+    $status_td = $job_row.find('[name="job-status"]');
+    if (data['status'] == "completed")
+      $status_td.css({'color':'green'});
+    else if(data['status'] == "in-progress")
+      $status_td.css({'color':'red'});
+      
+    $status_td.text(data['status'].toTitleCase());   
+    //$('.delete-btn').hide();
+  });
+
+  if($('#status-banner').text()) {
+    $('#status-banner').fadeIn('slow');
+    $('#status-banner').delay(3000);
+    $('#status-banner').fadeOut(3000);
+  }
 
   $('.delete-btn').button({
     icons: {

@@ -360,7 +360,12 @@ def send_socket(name, data):
 def index():
   if request.method == 'GET':
     jobs = db['jobs'].find().sort('fire_dtime',-1)
-    return render_template('show_jobs.html', title=os.environ['title'], jobs=jobs)
+    return render_template(
+      'show_jobs.html', 
+      title=os.environ['title'], 
+      jobs=jobs
+      #banner_msg='Five Thick Thistle Sticks'
+    )
   
   # POST request to create new job from new_job.html template
   file = request.files['call_list']

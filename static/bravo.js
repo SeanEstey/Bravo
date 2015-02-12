@@ -580,7 +580,7 @@ function initShowJobs() {
     $('#status-banner').text(msg);
     $('#status-banner').clearQueue();
     $('#status-banner').fadeIn('slow');
-    $('#status-banner').delay(3000);
+    $('#status-banner').delay(10000);
     $('#status-banner').fadeOut(3000);
 
     $status_td = $job_row.find('[name="job-status"]');
@@ -595,7 +595,7 @@ function initShowJobs() {
 
   if($('#status-banner').text()) {
     $('#status-banner').fadeIn('slow');
-    $('#status-banner').delay(3000);
+    $('#status-banner').delay(10000);
     $('#status-banner').fadeOut(3000);
   }
 

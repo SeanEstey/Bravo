@@ -55,15 +55,8 @@ CELERYBEAT_SCHEDULE = {
 
 # Ports/Domains
 PUB_DOMAIN = 'http://seanestey.ca'
-PREFIX = '/bravo'
-LOCAL_DEPLOY_PORT = 8000
-PUB_DEPLOY_PORT = 80
-LOCAL_TEST_PORT = 5000
-PUB_TEST_PORT = 8080
 MONGO_URL = 'localhost'
 MONGO_PORT = 27017
-TEST_DB = 'test'
-DEPLOY_DB = 'wsf'
 MAILGUN_DOMAIN = 'wsaf.ca'
 
 formatter = logging.Formatter('[%(asctime)s] %(message)s','%m-%d %H:%M')

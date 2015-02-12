@@ -15,6 +15,7 @@ sys.path.insert(0, '/root/bravo')
 from config import *
 import tasks
 import server
+from session import *
 from server import dial
 import time
 
@@ -33,9 +34,8 @@ class BravoTestCase(unittest.TestCase):
       'num_calls': 1
     }
     
-    self.pub_url = PUB_DOMAIN + ':' + str(PUB_TEST_PORT) + PREFIX
     mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
-    self.db = mongo_client[TEST_DB]
+    self.db = mongo_client[DB_NAME]
     self.job_id = self.db['jobs'].insert(self.job_document)
     self.job = self.db['jobs'].find_one({'_id':self.job_id})
     self.assertIsNotNone(self.job_id)
@@ -68,16 +68,16 @@ class BravoTestCase(unittest.TestCase):
     self.assertEquals(res['n'], 1)
 
   def test_dial_valid(self):
-    response = server.dial(self.msg['imported']['to'], self.pub_url)
+    response = server.dial(self.msg['imported']['to'])
     self.assertEquals(response['call_status'], 'queued')
     return response
 
   def test_dial_invalid(self):
-    response = server.dial('5005550002', self.pub_url)
+    response = server.dial('5005550002')
     self.assertEquals(response['call_status'], 'failed')
   
   def test_answer_call(self):
-    response = server.dial(self.msg['imported']['to'], self.pub_url)
+    response = server.dial(self.msg['imported']['to'])
     sid = response['sid']
     self.db['msgs'].update({'_id':self.msg['_id']},{'$set':{'sid': sid}})
     payload = MultiDict([
@@ -86,7 +86,7 @@ class BravoTestCase(unittest.TestCase):
       ('CallStatus', 'in-progress'),
       ('AnsweredBy', 'human')
     ])
-    response = requests.post(self.pub_url+'/call/answer', data=payload)
+    response = requests.post(PUB_URL+'/call/answer', data=payload)
     xml_response = xml.dom.minidom.parseString(response.text)
     # Test valid XML returned by server.get_speak() 
     self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
@@ -101,7 +101,7 @@ class BravoTestCase(unittest.TestCase):
       ('AnsweredBy', 'human'),
       ('CallDuration', 16)
     ])
-    response = requests.post(self.pub_url+'/call/hangup', data=payload)
+    response = requests.post(PUB_URL+'/call/hangup', data=payload)
     self.assertEquals(response.content, 'OK')
   
   def test_scheduler(self):
@@ -109,17 +109,15 @@ class BravoTestCase(unittest.TestCase):
     self.assertTrue(r > 0)
 
   def test_execute_job(self):
-    print str(self.job_id)
-    print self.job['_id']
     tasks.REDIAL_DELAY = 1
-    r = tasks.execute_job(str(self.job_id), TEST_DB, self.pub_url)
+    r = tasks.execute_job(str(self.job_id))
     self.assertEquals(r, 'OK')
     time.sleep(3)
 
   '''
   def test_job_completion(self):
     completed_id = '54972d479b938767711838a0'
-    res = requests.get(self.pub_url+'/complete/'+completed_id)
+    res = requests.get(PUB_URL+'/complete/'+completed_id)
     self.assertEquals(res.status_code, 200)
   
   def test_many_calls(self):
@@ -141,7 +139,7 @@ class BravoTestCase(unittest.TestCase):
     for x in range(1000,1100):
       call = base + str(x)
       print call
-      response = server.dial(call, self.pub_url)
+      response = server.dial(call)
       #self.assertEquals(response['call_status'], 'queued', msg=response)
       sid = response['sid']
       msg_document['sid'] = sid
@@ -156,7 +154,7 @@ class BravoTestCase(unittest.TestCase):
         ('AnsweredBy', 'human')
       ])
       del msg_document['_id']
-      response = requests.post(self.pub_url+'/call/answer', data=payload)
+      response = requests.post(PUB_URL+'/call/answer', data=payload)
       xml_response = xml.dom.minidom.parseString(response.text)
       # Test valid XML returned by server.get_speak() 
       self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
@@ -183,10 +181,10 @@ class BravoTestCase(unittest.TestCase):
     self.assertIsInstance(speak, str)
 
   def test_show_jobs_view(self):
-    self.assertEqual(requests.get(self.pub_url+'/jobs').status_code, 200)
+    self.assertEqual(requests.get(PUB_URL+'/jobs').status_code, 200)
 
   def test_show_calls_view(self):
-    uri = self.pub_url + '/jobs/' + str(self.job_id)
+    uri = PUB_URL + '/jobs/' + str(self.job_id)
     self.assertEqual(requests.get(uri).status_code, 200)
 
   def test_parse_csv(self):
@@ -227,18 +225,18 @@ class BravoTestCase(unittest.TestCase):
     import requests
 
   def test_schedule_jobs_view(self):
-    self.assertEqual(requests.get(self.pub_url+'/new').status_code, 200)
+    self.assertEqual(requests.get(PUB_URL+'/new').status_code, 200)
 
   def test_root_view(self):
-    self.assertEquals(requests.get(self.pub_url).status_code, 200)
+    self.assertEquals(requests.get(PUB_URL).status_code, 200)
 
   def test_server_get_celery_status(self):
-    self.assertEquals(requests.get(self.pub_url+'/get/celery_status').status_code, 200)
+    self.assertEquals(requests.get(PUB_URL+'/get/celery_status').status_code, 200)
   
   def test_call_answer_get(self):
     from werkzeug.datastructures import MultiDict
     args='?CallStatus='+self.msg['status']+'&RequestUUID='+self.msg['request_uuid']+'&To='+self.msg['to']
-    uri = self.pub_url + '/call/answer' + args
+    uri = PUB_URL + '/call/answer' + args
     self.assertEquals(requests.get(uri).status_code, 200)
   '''
 

@@ -1,5 +1,6 @@
 from flask import Flask,render_template,request,g,Response,redirect,url_for
 from flask.ext.socketio import *
+from session import *
 from config import *
 from secret import *
 from bson import Binary, Code, json_util
@@ -21,8 +22,8 @@ import sys
 import tasks
 import utils
 
-db = None
-mode = None
+mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+db = mongo_client[DB_NAME]
 logger = logging.getLogger(__name__)
 handler = logging.FileHandler(LOG_FILE)
 handler.setLevel(LOG_LEVEL)
@@ -59,7 +60,7 @@ def restart_celery():
   logger.info('Celery worker restarted')
   return True
 
-def dial(to, url):
+def dial(to):
   try:
     twilio_client = twilio.rest.TwilioRestClient(
       TWILIO_ACCOUNT_SID, 
@@ -68,8 +69,8 @@ def dial(to, url):
     call = twilio_client.calls.create(
       from_ = FROM_NUMBER,
       to = '+1'+to,
-      url = url + '/call/answer',
-      status_callback = url + '/call/hangup',
+      url = PUB_URL + '/call/answer',
+      status_callback = PUB_URL + '/call/hangup',
       status_method = 'POST',
       method = 'POST',
       if_machine = 'Continue'
@@ -92,7 +93,7 @@ def dial(to, url):
     logger.error('twilio.dial exception %s', str(e), exc_info=True)
     return str(e)
 
-def sms(to, msg, url):
+def sms(to, msg):
   try:
     twilio_client = twilio.rest.TwilioRestClient(
       TWILIO_ACCOUNT_SID, 
@@ -102,7 +103,7 @@ def sms(to, msg, url):
       body = msg,
       to = '+1' + to,
       from_ = SMS_NUMBER,
-      status_callback = url + '/sms/status'
+      status_callback = PUB_URL + '/sms/status'
     )
 
     return {'sid': message.sid, 'call_status': message.status}
@@ -167,7 +168,7 @@ def get_speak(job, msg, answered_by, medium='voice'):
 
   if speak.find(repeat_voice) >= 0:
     response.gather(
-      action=os.environ['pub_url'] + '/call/answer',
+      action= PUB_URL + '/call/answer',
       method='GET',
       numDigits=1
     )
@@ -236,23 +237,6 @@ def send_email_report(job_id):
   msg = utils.print_html(summary) + '<br><br>' + utils.print_html(report)
   subject = 'Job Summary %s' % job['name']
   utils.send_email('estese@gmail.com', subject, msg)
-
-def set_mode(m):
-  global db, mode
-  mode = m
-  mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
-  logger.info('Server started OK (' + mode + ' mode)')
-
-  if mode == 'test':
-    os.environ['title'] = 'Bravo:8080'
-    os.environ['local_url'] = 'http://localhost:'+str(LOCAL_TEST_PORT)
-    os.environ['pub_url'] = PUB_DOMAIN + ':' + str(PUB_TEST_PORT) + PREFIX 
-    db = mongo_client[TEST_DB]
-  elif mode == 'deploy':
-    os.environ['title'] = 'Bravo Deploy'
-    os.environ['local_url'] = 'http://localhost:'+str(LOCAL_DEPLOY_PORT)
-    os.environ['pub_url'] = PUB_DOMAIN + PREFIX
-    db = mongo_client[DEPLOY_DB]
 
 def parse_csv(csvfile, template):
   reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
@@ -336,7 +320,7 @@ def socketio_connect():
     'num connected sockets: ' + 
     str(len(socketio.server.sockets))
   )
-  socketio.emit('msg', 'ping from ' + mode + ' server!');
+  socketio.emit('msg', 'ping from ' + DB_NAME + ' server!');
 
 @app.route('/sendsocket', methods=['GET'])
 def request_send_socket():
@@ -362,7 +346,7 @@ def index():
     jobs = db['jobs'].find().sort('fire_dtime',-1)
     return render_template(
       'show_jobs.html', 
-      title=os.environ['title'], 
+      title=TITLE, 
       jobs=jobs
     )
   
@@ -374,14 +358,14 @@ def index():
     file_path = app.config['UPLOAD_FOLDER'] + '/' + filename
   else:
     msg = 'Could not save file'
-    return render_template('error.html', title=os.environ['title'], msg=msg)
+    return render_template('error.html', title=TITLE, msg=msg)
  
   # Open and parse file
   try:
     with codecs.open(file_path, 'r', 'utf-8-sig') as f:
       buffer = parse_csv(f, TEMPLATE[request.form['template']])
       if type(buffer) == str:
-        return render_template('error.html', title=os.environ['title'], msg=buffer)
+        return render_template('error.html', title=TITLE, msg=buffer)
       else:
         logger.info('Parsed %d rows from %s', len(buffer), filename) 
   except Exception as e:
@@ -419,7 +403,7 @@ def index():
     msg = 'File had the following errors:<br>' + json.dumps(errors)
     # Delete job document
     db['jobs'].remove({'_id':job_id})
-    return render_template('error.html', title=os.environ['title'], msg=msg)
+    return render_template('error.html', title=TITLE, msg=msg)
 
   db['msgs'].insert(calls)
   logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
@@ -428,7 +412,7 @@ def index():
   banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(calls)) + ' calls imported.'
   return render_template(
     'show_jobs.html', 
-    title=os.environ['title'], 
+    title=TITLE, 
     jobs=jobs, 
     banner_msg=banner_msg
   )
@@ -437,7 +421,7 @@ def index():
 def get_job_summary(job_id):
   job_id = job_id.encode('utf-8')
   summary = json_util.dumps(job_db_dump(job_id))
-  return render_template('job_summary.html', title=os.environ['title'], summary=summary)
+  return render_template('job_summary.html', title=TITLE, summary=summary)
 
 @app.route('/get/template/<name>')
 def get_template(name):
@@ -452,9 +436,9 @@ def get_template(name):
 @app.route('/get/<var>')
 def get_var(var):
   if var == 'mode':
-    return mode
+    return DB_NAME
   elif var == 'pub_url':
-    return os.environ['pub_url']
+    return PUB_URL
   elif var == 'celery_status':
     if not tasks.celery_app.control.inspect().active_queues():
       return 'Offline'
@@ -472,20 +456,17 @@ def get_var(var):
 @app.route('/error')
 def show_error():
   msg = request.args['msg']
-  return render_template('error.html', title=os.environ['title'], msg=msg)
+  return render_template('error.html', title=TITLE, msg=msg)
 
 @app.route('/new')
 def new_job():
-  return render_template('new_job.html', title=os.environ['title'])
+  return render_template('new_job.html', title=TITLE)
 
 # Requested from client
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
   job_id = job_id.encode('utf-8')
-  if mode == 'deploy':
-    tasks.execute_job.delay(job_id, DEPLOY_DB, os.environ['pub_url'])
-  else:
-    tasks.execute_job.delay(job_id, TEST_DB, os.environ['pub_url'])
+  tasks.execute_job.delay(job_id)
 
   return 'OK'
 
@@ -497,7 +478,7 @@ def show_calls(job_id):
 
   return render_template(
     'show_calls.html', 
-    title=os.environ['title'],
+    title=TITLE,
     calls=calls, 
     job_id=job_id, 
     job=job,
@@ -507,7 +488,7 @@ def show_calls(job_id):
 # Requested on completion of tasks.execute_job()
 @app.route('/fired/<job_id>')
 def job_fired(job_id):
-  tasks.monitor_job.delay(job_id.encode('utf-8'), mode, os.environ['pub_url'])
+  tasks.monitor_job.delay(job_id.encode('utf-8'))
   return 'OK'
   
 @app.route('/complete/<job_id>')
@@ -731,16 +712,10 @@ def process_fallback():
     return str(e)
 
 if __name__ == "__main__":
-  if len(sys.argv) > 0:
-    mode = sys.argv[1]
-    set_mode(mode)
-
-    os.system("ps auxww | grep 'celery' | awk '{print $2}' | xargs kill -9")
-    time.sleep(2)
-    os.system('celery worker -A tasks.celery_app -f celery.log -B --autoreload &')
-    time.sleep(2)
-    celery_check()
-    if mode == 'test':
-      socketio.run(app, port=LOCAL_TEST_PORT)
-    elif mode == 'deploy':
-      socketio.run(app, port=LOCAL_DEPLOY_PORT)
+  os.system("ps auxww | grep 'celery' | awk '{print $2}' | xargs kill -9")
+  time.sleep(2)
+  os.system('celery worker -A tasks.celery_app -f celery.log -B --autoreload &')
+  time.sleep(2)
+  celery_check()
+  logger.info('Server started OK (' + DB_NAME + ')')
+  socketio.run(app, port=LOCAL_PORT)

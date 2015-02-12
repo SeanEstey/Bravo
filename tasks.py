@@ -1,4 +1,5 @@
 from config import *
+from session import *
 from server import dial
 from celery import Celery
 from celery.signals import worker_process_init, task_prerun
@@ -22,26 +23,25 @@ logger.setLevel(LOG_LEVEL)
 logger.addHandler(handler)
 celery_app = Celery('tasks')
 celery_app.config_from_object('config')
-test_server_url = PUB_DOMAIN + ':' + str(PUB_TEST_PORT) + PREFIX 
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
-test_db = mongo_client[TEST_DB]
+db = mongo_client[DB_NAME]
 
 @celery_app.task
 def run_scheduler():
-  pending_jobs = test_db['jobs'].find({'status': 'pending'})
+  pending_jobs = db['jobs'].find({'status': 'pending'})
   print(str(pending_jobs.count()) + ' pending jobs:')
 
   job_num = 1
   for job in pending_jobs:
     if datetime.now() > job['fire_dtime']:
       logger.info('Scheduler: Starting Job...')
-      execute_job.delay(str(job['_id']), TEST_DB, test_server_url)
+      execute_job.delay(str(job['_id']))
     else:
       next_job_delay = job['fire_dtime'] - datetime.now()
       print '{0}): {1} starts in {2}'.format(job_num, job['name'], str(next_job_delay))
     job_num += 1
   
-  in_progress_jobs = test_db['jobs'].find({'status': 'in-progress'})
+  in_progress_jobs = db['jobs'].find({'status': 'in-progress'})
   print(str(in_progress_jobs.count()) + ' active jobs:')
   job_num = 1
   for job in in_progress_jobs:
@@ -50,9 +50,8 @@ def run_scheduler():
   return pending_jobs.count()
 
 @celery_app.task
-def execute_job(job_id, db_name, server_url):
+def execute_job(job_id):
   try:
-    db = mongo_client[db_name]
     job_id = ObjectId(job_id)
     job = db['jobs'].find_one({'_id':job_id})
     # Default call order is alphabetically by name
@@ -67,10 +66,10 @@ def execute_job(job_id, db_name, server_url):
       }
     )
     payload = {'name': 'update_job', 'data': json.dumps({'id':str(job['_id']), 'status':'in-progress'})}
-    requests.get(server_url+'/sendsocket', params=payload)
+    requests.get(LOCAL_URL+'/sendsocket', params=payload)
     # Fire all calls
     for msg in messages:
-      r = dial(msg['imported']['to'], server_url)
+      r = dial(msg['imported']['to'])
       if r['call_status'] == 'failed':
         logger.info('%s %s (%d: %s)', msg['imported']['to'], r['call_status'], r['error_code'], r['error_msg'])
       else: 
@@ -82,20 +81,19 @@ def execute_job(job_id, db_name, server_url):
       )
       r['id'] = str(msg['_id'])
       payload = {'name': 'update_call', 'data': json.dumps(r)}
-      requests.get(server_url + '/sendsocket', params=payload)
+      requests.get(LOCAL_URL+'/sendsocket', params=payload)
     
     logger.info('Job Calls Fired.')
-    r = requests.get(server_url + '/fired/' + str(job_id))
+    r = requests.get(LOCAL_URL+'/fired/' + str(job_id))
     return 'OK'
 
   except Exception, e:
     logger.error('execute_job job_id %s', str(job_id), exc_info=True)
 
 @celery_app.task
-def monitor_job(job_id, db_name, server_url):
+def monitor_job(job_id):
   try:
     logger.info('Tasks: Monitoring Job')
-    db = mongo_client[db_name]
     job_id = ObjectId(job_id)
     job = db['jobs'].find_one({'_id':job_id})
 
@@ -131,7 +129,7 @@ def monitor_job(job_id, db_name, server_url):
         })
         logger.info('\nCompleted Job %s [ID %s]\n', job['name'], str(job_id))
         # Connect back to server and notify
-        requests.get(server_url + '/complete/' + str(job_id))
+        requests.get(PUB_URL + '/complete/' + str(job_id))
         
         return 'OK'
       # Job still in progress. Any incomplete calls need redialing?
@@ -139,7 +137,7 @@ def monitor_job(job_id, db_name, server_url):
         logger.info('Pausing %dsec then Re-attempting %d Incompletes.', REDIAL_DELAY, incompletes.count())
         time.sleep(REDIAL_DELAY)
         for call in incompletes:
-          r = dial(call['imported']['to'], server_url)
+          r = dial(call['imported']['to'])
           logger.info('%s %s', call['imported']['to'], r['call_status'])
           r['attempts'] = call['attempts']+1
           db['msgs'].update(

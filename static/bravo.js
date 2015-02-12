@@ -66,7 +66,9 @@ function displayServerStatus(route, label, $element) {
     });
 
   request.done(function(msg){
-    $element.html(label + ': ' + msg.toTitleCase());
+    $element.html(msg.toTitleCase());
+    $element.hide();
+    $element.fadeIn('slow');
   });
 }
 

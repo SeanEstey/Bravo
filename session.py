@@ -1,4 +1,5 @@
 DB_NAME = 'test'
+BRANCH = 'dev'
 LOCAL_PORT = 5000
 PUB_PORT = 8080
 PREFIX = '/bravo'

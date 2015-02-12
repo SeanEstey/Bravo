@@ -14,8 +14,8 @@
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
   <script>
     jQuery(function($){
-      displayServerStatus('/get/celery_status', 'Celery', $('#status'));
-      displayServerStatus('/get/mode', 'Server', $('#mode'));
+      displayServerStatus('/get/celery_status', '', $('#status'));
+      displayServerStatus('/get/version', '', $('#version'));
       //$('#status-banner').text('Job successfully created!');
     });
   </script>
@@ -26,10 +26,8 @@
     {% endif %}
   </head>
   <body>
-    <div id='mode' style='text-align:right'>Mode:
-    </div>
-    <div id='status' style='text-align:right'>Status:
-    </div>
+    <div id='version' style='text-align:right'><br></div>
+    <div id='status' style='text-align:right'><br></div>
     <div class="header">
       <a href="{{url_for('index')}}">
         <img id="buit" src="{{ url_for('static', filename='bravo2x.png') }}">
@@ -38,7 +36,7 @@
     <br>
     <div class='wrapper'>
       <div class='center'>
-          {% block content %}{% endblock %}
+        {% block content %}{% endblock %}
       </div>
     </div>
     <br><br>

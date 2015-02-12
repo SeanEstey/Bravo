@@ -120,6 +120,7 @@ optgroup {
 
 .status-banner-div {
   display: none;
+  border:1px solid #B8CfB8;
   -webkit-border-radius:7px 7px 7px 7px; 
   background-color: #CDE6CD; 
   padding:0.5em; 

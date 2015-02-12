@@ -435,15 +435,16 @@ def get_template(name):
 
 @app.route('/get/<var>')
 def get_var(var):
-  if var == 'mode':
-    return DB_NAME
+  if var == 'version':
+    revision = os.popen('git rev-list HEAD | wc -l').read()
+    return BRANCH + ' rev ' + revision
   elif var == 'pub_url':
     return PUB_URL
   elif var == 'celery_status':
     if not tasks.celery_app.control.inspect().active_queues():
-      return 'Offline'
+      return 'Celery Offline'
     else:
-      return 'Online'
+      return 'Celery Online'
   elif var == 'sockets':
     if not socketio.server:
       return "No sockets"

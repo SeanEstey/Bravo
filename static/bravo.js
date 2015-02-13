@@ -113,6 +113,35 @@ function initNewJobView() {
   $submit_btn.click(function(){
     validateNewJobForm();
   });
+  
+  $('input:radio[name="template"]').change(function(){
+    if ($(this).is(':checked') && $(this).val() == 'voice') {
+      $('#record-voice').show();
+      $('#record-text').hide();
+    } 
+    else if($(this).is(':checked') && $(this).val() == 'text') {
+      $('#record-text').show();
+      $('#record-voice').hide();
+    }
+  })
+
+  $('#call-btn').click(function() {
+    var phone = $('#phone-num').val();
+    // TODO: Verify proper phone number
+    //alert('calling '+phone);
+    var request =  $.ajax({
+      type: 'POST',
+      url: $SCRIPT_ROOT + '/record',
+      data: {'to':phone}
+    });
+    $('#record-status').text('< Dialing ' + phone + '... >');
+    $('#record-status').clearQueue();
+    $('#record-status').fadeIn('slow');
+    $('#record-status').delay(10000);
+    //$('#record-status').fadeOut(3000);
+    //$('#phone-num').attr('placeholder', 'Dialing ' + phone + '...');
+  });
+  
   $('body').css('display','block');
 }
 
@@ -138,19 +167,19 @@ function onSelectTemplate() {
     console.log($template.text());
     updateFilePickerTooltip();
     if($template.text() == 'Empties to Winn Reminder') {
-      $('#special_msg_div').hide();
+      $('#special-msg-div').hide();
       $('#order_div').hide();
     }
     else if($template.text() == 'Special Message') {
-      $('#special_msg_div').show();
+      $('#special-msg-div').show();
       $('#order_div').show();
     }
     else if($template.text() == 'Green Goods Delivery') {
-      $('#special_msg_div').hide();
+      $('#special-msg-div').hide();
       $('#order_div').hide();
     }
     else if($template.text() == 'Empties to Winn Followup') {
-      $('#special_msg_div').hide();
+      $('#special-msg-div').hide();
       $('#order_div').hide();
     }
   });

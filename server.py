@@ -463,6 +463,14 @@ def show_error():
 def new_job():
   return render_template('new_job.html', title=TITLE)
 
+@app.route('/record', methods=['POST'])
+def record_msg():
+  to = request.form.get('to')
+  logger.info('Record request from ' + to)
+  # TODO: Verify is correct number
+  dial(to)
+  return 'OK'
+
 # Requested from client
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):

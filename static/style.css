@@ -204,6 +204,9 @@ table.data-table2 td {
 }
 
 .input{
+  -moz-border-radius: 3px; 
+  -webkit-border-radius: 3px;
+  border-radius: 3px; 
   font-size: 15px;
   padding: 5px;
   border: 1px solid #b9bdc1;
@@ -276,13 +279,14 @@ table.data-table2 td {
   -webkit-border-bottom-left-radius: 3px;
   border-top-left-radius: 3px; 
   border-bottom-left-radius: 3px;
-  background: #ffffff; 
-  background: -moz-linear-gradient(top,  #d3d3d3 0%, #8a8a8a 100%);
+  /*background:#CDE6CD;*/
+  background: #e3e3e3;
+  /*background: -moz-linear-gradient(top,  #d3d3d3 0%, #8a8a8a 100%);
   background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#d3d3d3), color-stop(100%,#8a8a8a));
   background: -webkit-linear-gradient(top,  #d3d3d3 0%, #f0ffff 100%);
   background: -o-linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%);
   background: -ms-linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%);
-  background: linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%);
+  background: linear-gradient(top,  #d3d3d3 0%,#8a8a8a 100%);*/
   border: solid #b3b3b3 1px;
   color: #2F4F4F;
   width: 25%;
@@ -291,7 +295,7 @@ table.data-table2 td {
 }
 .nice .NFI-button:hover {
   color: black;
-  background: -webkit-linear-gradient(top,  #c3c3c3 0%, #f3f3f3 100%);
+  /*background: -webkit-linear-gradient(top,  #c3c3c3 0%, #f3f3f3 100%);*/
 }
 .nice .NFI-filename {
   -moz-border-radius-topright: 3px; 

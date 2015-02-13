@@ -127,17 +127,31 @@ function initNewJobView() {
 
   $('#call-btn').click(function() {
     var phone = $('#phone-num').val();
-    // TODO: Verify proper phone number
-    //alert('calling '+phone);
     var request =  $.ajax({
       type: 'POST',
       url: $SCRIPT_ROOT + '/record',
       data: {'to':phone}
     });
-    $('#record-status').text('< Dialing ' + phone + '... >');
+    
+    $('#record-status').text('< Attempting Call... >');
     $('#record-status').clearQueue();
-    $('#record-status').fadeIn('slow');
-    $('#record-status').delay(10000);
+    
+    request.done(function(msg) {
+      if(typeof msg == 'string') 
+        msg = JSON.parse(msg);
+
+      if(msg['call_status'] == 'failed') {
+        $('#record-status').text('< ' + msg['error_msg'].toTitleCase() + ' >');
+      }
+      else if(msg['call_status'] == 'queued') {
+        $('#record-status').text('< Calling... >');
+      }
+      //$('#record-status').text(msg);
+      $('#record-status').clearQueue();
+      $('#record-status').fadeIn('slow');
+      $('#record-status').delay(10000);
+    });
+
     //$('#record-status').fadeOut(3000);
     //$('#phone-num').attr('placeholder', 'Dialing ' + phone + '...');
   });

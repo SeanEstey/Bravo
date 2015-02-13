@@ -467,8 +467,27 @@ def new_job():
 def record_msg():
   to = request.form.get('to')
   logger.info('Record request from ' + to)
-  # TODO: Verify is correct number
-  dial(to)
+  r = dial(to)
+  logger.info('Dial response=' + json.dumps(r))
+  if r['call_status'] == 'queued':
+    db['bravo'].insert(r)
+    del r['_id']
+  
+  from flask.json import jsonify
+  return jsonify(r)
+
+@app.route('/sendrecording', methods=['POST'])
+def get_recording():
+  logger.info('Recording completed')
+  
+  db['bravo'].update(
+    {'sid': request.form.get('CallSid')},
+    {
+      'voice_url': request.form.get('RecordingUrl'),
+      'voice_duration': request.form.get('RecordingDuration')
+    }
+  )
+  
   return 'OK'
 
 # Requested from client
@@ -597,20 +616,38 @@ def content():
       if 'AnsweredBy' in request.form:
         answered_by = request.form.get('AnsweredBy')
       logger.info('%s %s (%s)', to, call_status, answered_by)
-      db['msgs'].update(
-        {'sid':sid},
-        {'$set': {'call_status':call_status}}
-      )
       call = db['msgs'].find_one({'sid':sid})
-      send_socket(
-        'update_call', {
-          'id': str(call['_id']),
-          'call_status': call_status
-        }
-      )
-      job = db['jobs'].find_one({'_id':call['job_id']})
-      
-      return get_speak(job, call, answered_by)
+
+      if not call:
+        # Might be special msg voice record call
+        record = db['bravo'].find_one({'sid':sid})
+        if record:
+          logger.info('Sending record twimlo response to client')
+          # Record voice message
+          response = twilio.twiml.Response()
+          response.say('Record your message after the beep. Press pound when complete.', voice='alice')
+          response.record(
+            method= 'POST',
+            action= PUB_URL+'/sendrecording',
+            playBeep= True
+          )
+          return Response(str(response), mimetype='text/xml')
+
+      else:
+        db['msgs'].update(
+          {'sid':sid},
+          {'$set': {'call_status':call_status}}
+        )
+        call = db['msgs'].find_one({'sid':sid})
+        send_socket(
+          'update_call', {
+            'id': str(call['_id']),
+            'call_status': call_status
+          }
+        )
+        job = db['jobs'].find_one({'_id':call['job_id']})
+        
+        return get_speak(job, call, answered_by)
      
     elif request.method == "GET":
       sid = request.args.get('CallSid')
@@ -635,7 +672,7 @@ def content():
           send_socket('update_call', {'office_notes':no_pickup})
 
     response = twilio.twiml.Response()
-    response.say('Goodbye')
+    response.say('Goodbye', voice='alice')
     
     return Response(str(response), mimetype='text/xml')
   except Exception, e:

@@ -1,5 +1,6 @@
   {% extends "base.html" %}
   {% block content %}  
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
   <script>
     document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
@@ -31,7 +32,7 @@
               <label style='padding:0.5em; color:#2b547e;'>Text to Voice</label>
           </form>
           <br>
-          <div id='record-voice' style='width:100%; display:none'>
+          <div id='record-audio' style='width:100%; display:none'>
             <div id='record-status' style='font-size:14px; color:green; text-align:center; padding:0.5em;'></div>
             <input id='phone-num' 
               style='border-radius:3px; -webkit-border-radius:3px; font-size:14px; padding:5px; border:1px solid #b9bdc1; width:65%;' 
@@ -40,6 +41,12 @@
               placeholder='Enter your Phone Number'>
             </input>
             <button id='call-btn' style='border-radius:3px; -webkit-border-radius:3px; background:#CDE6CD; border:1px solid #b3b3b3; font-size:14px; width:30%;'>Call Me</button>
+
+            <audio id='audio' controls>
+            <source id='audio-source' src='' type='audio/mpeg' />
+            <em>Sorry, your browser doesn't support HTML5 audio.</em>
+            </audio>
+
           </div>
           <div id='record-text' class='input' style='display:none'>
             <textarea class='special-msg' name='message' 

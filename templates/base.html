@@ -14,8 +14,9 @@
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
   <script>
     jQuery(function($){
-      displayServerStatus('/get/celery_status', '', $('#status'));
-      displayServerStatus('/get/version', '', $('#version'));
+      displayServerStatus('/get/celery_status', '', $('#celery-status'));
+      displayServerStatus('/get/db_name', '', $('#db-name'));
+      displayServerStatus('/get/branch_version', '', $('#branch-version'));
       //$('#status-banner').text('Job successfully created!');
     });
   </script>
@@ -26,8 +27,9 @@
     {% endif %}
   </head>
   <body>
-    <div id='version' style='font-size:12px; text-align:right'><br></div>
-    <div id='status' style='font-size:12px; text-align:right'><br></div>
+    <div id='branch-version' style='font-size:12px; text-align:right'><br></div>
+    <div id='db-name' style='font-size:12px; text-align:right'><br></div>
+    <div id='celery-status' style='font-size:12px; text-align:right'><br></div>
     <div class="header">
       <a href="{{url_for('index')}}">
         <img id="buit" src="{{ url_for('static', filename='bravo2x.png') }}">

@@ -1,3 +1,4 @@
+import flask
 from flask import Flask,render_template,request,g,Response,redirect,url_for
 from flask.ext.socketio import *
 from session import *
@@ -148,8 +149,8 @@ def get_speak(job, msg, answered_by, medium='voice'):
     
     if medium == 'voice' and answered_by == 'human':
       speak += repeat_voice
-    if medium == 'voice' and answered_by == 'human' and msg['imported']['status'] == 'Active':
-      speak += 'If you do not need a pickup, press 2. '
+      if msg['imported']['status'] == 'Active':
+        speak += 'If you do not need a pickup, press 2. '
     #elif medium == 'sms':
     #  speak += 'Reply with No if no pickup required.'
   elif job['template'] == 'gg_delivery':
@@ -435,9 +436,11 @@ def get_template(name):
 
 @app.route('/get/<var>')
 def get_var(var):
-  if var == 'version':
+  if var == 'branch_version':
     revision = os.popen('git rev-list HEAD | wc -l').read()
-    return BRANCH + ' rev ' + revision
+    return BRANCH + ' branch rev ' + revision
+  elif var == 'db_name':
+    return 'DB: ' + DB_NAME
   elif var == 'pub_url':
     return PUB_URL
   elif var == 'celery_status':
@@ -463,32 +466,42 @@ def show_error():
 def new_job():
   return render_template('new_job.html', title=TITLE)
 
-@app.route('/record', methods=['POST'])
+# POST request from client->Dial phone to record audio (routes to call/answer)
+# GET request from client->Audio recording complete (hit # or hung up)
+@app.route('/recordaudio', methods=['GET', 'POST'])
 def record_msg():
-  to = request.form.get('to')
-  logger.info('Record request from ' + to)
-  r = dial(to)
-  logger.info('Dial response=' + json.dumps(r))
-  if r['call_status'] == 'queued':
-    db['bravo'].insert(r)
-    del r['_id']
-  
-  from flask.json import jsonify
-  return jsonify(r)
+  if request.method == 'POST':
+    to = request.form.get('to')
+    logger.info('Record audio request from ' + to)
+    
+    r = dial(to)
+    logger.info('Dial response=' + json.dumps(r))
+    
+    if r['call_status'] == 'queued':
+      db['bravo'].insert(r)
+      del r['_id']
+    
+    return flask.json.jsonify(r)
+  elif request.method == 'GET':
+    if request.args.get('Digits'):
+      digits = request.args.get('Digits')
+      logger.info('recordaudio digit='+digits)
+      if digits == '#':
+        logger.info('Recording completed. Sending audio_url to client')
+        recording_info = {
+          'audio_url': request.args.get('RecordingUrl'),
+          'audio_duration': request.args.get('RecordingDuration')
+        }
+        db['bravo'].update({'sid': request.args.get('CallSid')}, recording_info)
+        send_socket('record_audio', recording_info)
+        response = twilio.twiml.Response()
+        response.say('Message recorded', voice='alice')
+        
+        return Response(str(response), mimetype='text/xml')
+    else:
+      logger.info('recordaudio: no digits')
 
-@app.route('/sendrecording', methods=['POST'])
-def get_recording():
-  logger.info('Recording completed')
-  
-  db['bravo'].update(
-    {'sid': request.form.get('CallSid')},
-    {
-      'voice_url': request.form.get('RecordingUrl'),
-      'voice_duration': request.form.get('RecordingDuration')
-    }
-  )
-  
-  return 'OK'
+    return 'OK'
 
 # Requested from client
 @app.route('/request/execute/<job_id>')
@@ -627,10 +640,12 @@ def content():
           response = twilio.twiml.Response()
           response.say('Record your message after the beep. Press pound when complete.', voice='alice')
           response.record(
-            method= 'POST',
-            action= PUB_URL+'/sendrecording',
-            playBeep= True
+            method= 'GET',
+            action= PUB_URL+'/recordaudio',
+            playBeep= True,
+            finishOnKey='#'
           )
+          send_socket('record_audio', {'msg': 'Listen to the call for instructions'}) 
           return Response(str(response), mimetype='text/xml')
 
       else:
@@ -694,6 +709,14 @@ def process_status():
       'call_duration': request.form.get('CallDuration')
     }
     call = db['msgs'].find_one({'sid':sid})
+
+    if not call:
+      # Might be an audio recording call
+      call = db['bravo'].find_one({'sid':sid})
+      if call:
+        logger.info('Record audio call complete')
+        db['bravo'].update({'sid':sid}, {'call_status':call_status})
+      return 'OK'
 
     if call_status == 'completed':
       answered_by = request.form.get('AnsweredBy')

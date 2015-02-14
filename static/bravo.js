@@ -114,14 +114,41 @@ function initNewJobView() {
     validateNewJobForm();
   });
   
+  // Init socket.io
+  var socketio_url = 'http://' + document.domain + ':' + location.port;
+  console.log('attempting socket.io connection to ' + socketio_url + '...');
+  var socket = io.connect(socketio_url);
+  socket.on('connect', function(){
+    socket.emit('connected');
+    console.log('connected!');
+  });
+
+  socket.on('record_audio', function(data) {
+    if(typeof data == 'string')
+      data = JSON.parse(data);
+
+    console.log('received record_audio socket: ' + JSON.stringify(data));
+
+    if('audio_url' in data) {
+      $('#record-status').text('< Recording complete. You can listen to the audio below. >');
+      $('#audio-source').attr('src', data['audio_url']);
+      $('#audio').load();
+      return;
+    }
+    if('msg' in data) {
+      $('#record-status').text('< ' + data['msg'] + ' >');
+      return;
+    }
+  });
+  
   $('input:radio[name="template"]').change(function(){
     if ($(this).is(':checked') && $(this).val() == 'voice') {
-      $('#record-voice').show();
+      $('#record-audio').show();
       $('#record-text').hide();
     } 
     else if($(this).is(':checked') && $(this).val() == 'text') {
       $('#record-text').show();
-      $('#record-voice').hide();
+      $('#record-audio').hide();
     }
   })
 
@@ -129,7 +156,7 @@ function initNewJobView() {
     var phone = $('#phone-num').val();
     var request =  $.ajax({
       type: 'POST',
-      url: $SCRIPT_ROOT + '/record',
+      url: $SCRIPT_ROOT + '/recordaudio',
       data: {'to':phone}
     });
     
@@ -146,14 +173,10 @@ function initNewJobView() {
       else if(msg['call_status'] == 'queued') {
         $('#record-status').text('< Calling... >');
       }
-      //$('#record-status').text(msg);
       $('#record-status').clearQueue();
       $('#record-status').fadeIn('slow');
       $('#record-status').delay(10000);
     });
-
-    //$('#record-status').fadeOut(3000);
-    //$('#phone-num').attr('placeholder', 'Dialing ' + phone + '...');
   });
   
   $('body').css('display','block');
@@ -178,7 +201,6 @@ function onSelectTemplate() {
   var $select = $('#template-select');
   $select.change(function(){
     var $template = $select.find($('option:selected'));
-    console.log($template.text());
     updateFilePickerTooltip();
     if($template.text() == 'Empties to Winn Reminder') {
       $('#special-msg-div').hide();

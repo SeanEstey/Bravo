@@ -268,9 +268,6 @@ table.data-table2 td {
 }
 
 .form-btn {
-  /*-webkit-box-shadow: 0 3px 5px #333;
-  -moz-box-shadow: 0 3px 5px #333;
-  box-shadow: 0 3px 5px #333;*/
   border-radius:3px; 
   -webkit-border-radius:3px; 
   -moz-border-radius: 3px; 
@@ -280,13 +277,13 @@ table.data-table2 td {
   color:white;
 }
 
-.form-btn.noshadow {
-/*  -webkit-box-shadow: 0px 0px 2px rgba(0,0,0, .75);
-  -moz-box-shadow: 0px 0px 2px rgba(0,0,0, .75);
-  box-shadow: 0px 0px 2px rgba(0,0,0, .75);*/
-  -webkit-box-shadow: none;
-  -moz-box-shadow: none;
-  box-shadow: none;
+.form-btn.green {
+  background:#6cc644; 
+  border:1px solid grey; 
+}
+
+.form-btn.green:hover {
+  background:#89D169;
 }
 
 .form-btn:hover {

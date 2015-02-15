@@ -19,49 +19,33 @@
         <div class='label'>Template</div>
         <select name='template' class='input' id='template-select'>
           <option class='opt' value='etw_reminder'>Empties to Winn Reminder</option>
-          <option class='opt' value='special_msg'>Special Message</option>
           <option class='opt' value='gg_delivery'>Green Goods Delivery</option>
+          <option class='opt' value='special_msg'>Special Message (Voice Recording)</option>
+          <option class='opt' value='special_msg'>Special Message (Text to Voice)</option>
         </select>
-        <br><br>
         
-        <div id='special-msg-div' style='margin:0; padding:0; display:none;'>
-          <form action=''>
-            <input type='radio' style='padding:0.5em;' name='template' id='special-msg-voice' value='voice'>
-              <label style='color:#2b547e;' >Voice Message</label>
-            <input type='radio' style-'padding:0.5em;' name='template' id='special-msg-text' class='label' value='text'>
-              <label style='padding:0.5em; color:#2b547e;'>Text to Voice</label>
-          </form>
-          <br>
-          <div id='record-audio' style='width:100%; display:none'>
-            <div id='record-status' style='font-size:14px; color:green; text-align:center; padding:0.5em;'></div>
-            <input id='phone-num' class='input' style='padding: 4px 5px 7px 5px; width:65%;' name='phone-num' type='text' 
-              placeholder='Enter your Phone Number'>
-            </input>
-            <button id='call-btn' class='form-btn noshadow' style='align:right; background:#6cc644; border:1px solid grey; width:30%; padding:0px;'>Call Me</button>
-
-            <audio id="music">
-              <source id='audio-source' type='audio/mpeg' src=''>
-            </audio>
-            <div id="audioplayer">
-              <button id="pButton" class='play' onclick='play()'></button>
-              <div id="timeline">    
-                <div id="playhead"></div>
-              </div>
+        <br>
+        
+        <div id='record-audio' style='width:100%; display:none'>
+          <div id='record-status' style='font-size:14px; color:#2b547e; text-align:center; padding:0.5em;'></div>
+          <input id='phone-num' class='input' style='padding: 4px 5px 7px 5px; width:65%;' name='phone-num' type='text' 
+            placeholder='Phone Number'>
+          </input>
+          <button id='call-btn' class='form-btn green' style='width:30%; padding:0px;'>Call Me</button>
+          <audio id="music">
+            <source id='audio-source' type='audio/mpeg' src=''>
+          </audio>
+          <div id="audioplayer">
+            <button id="pButton" class='play' onclick='play()'></button>
+            <div id="timeline">    
+              <div id="playhead"></div>
             </div>
-
-          <!--
-            <audio id='audio' style='background:white;' controls>
-            <source id='audio-source' src='' type='audio/mpeg' />
-            <em>Sorry, your browser doesn't support HTML5 audio.</em>
-            </audio>
-          -->
-
           </div>
-          <div id='record-text' class='input' style='display:none'>
-            <textarea class='special-msg' name='message' 
-              placeholder='Type your special message' required>
-            </textarea>
-          </div>
+        </div>
+        <div id='record-text' class='input' style='display:none'>
+          <textarea class='special-msg' name='message' 
+            placeholder='Type your special message' required>
+          </textarea>
         </div>
       </fieldset>
       <br>
@@ -73,13 +57,9 @@
         <input class='input' title="When the job will begin (3pm, 10:30am)" type='time' name="time" required >
         <br><br>
       </fieldset>
-      <br><br>
+      <br>
       <button class='form-btn' type="button" style='padding:0.5em; width:100%;' id="submit_btn" name="submit-btn">Schedule Calls</button>
     </form>
-  </div>
-  <br>
-  <div class='h1'>
-    <a href="{{ url_for('index') }}">Back</a>
   </div>
 
   {% endblock %}

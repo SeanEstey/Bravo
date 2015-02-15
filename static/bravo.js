@@ -114,13 +114,6 @@ function initNewJobView() {
     validateNewJobForm();
   });
   $('#radio').buttonset();
-/*
-  $('#call-btn').button({
-    icons: {
-      primary: 'ui-icon-volume-on'
-    }
-  });
-*/
   
   // Init socket.io
   var socketio_url = 'http://' + document.domain + ':' + location.port;
@@ -131,10 +124,6 @@ function initNewJobView() {
     console.log('connected!');
   });
 
- // console.log('showing divs');
- // $('#special-msg-div').show();
- // $('#record-audio').show();
-
   socket.on('record_audio', function(data) {
     if(typeof data == 'string')
       data = JSON.parse(data);
@@ -142,28 +131,17 @@ function initNewJobView() {
     console.log('received record_audio socket: ' + JSON.stringify(data));
 
     if('audio_url' in data) {
-      $('#record-status').text('< Recording complete. You can listen to the audio below. >');
+      $('#record-status').text('Recording complete. You can listen to the audio below.');
       $('#audio-source').attr('src', data['audio_url']);
       $('#music').load();
       return;
     }
     if('msg' in data) {
-      $('#record-status').text('< ' + data['msg'] + ' >');
+      $('#record-status').text(data['msg']);
       return;
     }
   });
   
-  $('input:radio[name="template"]').change(function(){
-    if ($(this).is(':checked') && $(this).val() == 'voice') {
-      $('#record-audio').show();
-      $('#record-text').hide();
-    } 
-    else if($(this).is(':checked') && $(this).val() == 'text') {
-      $('#record-text').show();
-      $('#record-audio').hide();
-    }
-  })
-
   $('#call-btn').click(function() {
     // AUDIO PLAYER
     var music = document.getElementById('music');
@@ -196,7 +174,7 @@ function initNewJobView() {
       data: {'to':phone}
     });
     
-    $('#record-status').text('< Attempting Call... >');
+    $('#record-status').text('Attempting Call...');
     $('#record-status').clearQueue();
     
     request.done(function(msg) {
@@ -204,10 +182,10 @@ function initNewJobView() {
         msg = JSON.parse(msg);
 
       if(msg['call_status'] == 'failed') {
-        $('#record-status').text('< ' + msg['error_msg'].toTitleCase() + ' >');
+        $('#record-status').text(msg['error_msg'].toTitleCase());
       }
       else if(msg['call_status'] == 'queued') {
-        $('#record-status').text('< Calling... >');
+        $('#record-status').text('Calling...');
       }
       $('#record-status').clearQueue();
       $('#record-status').fadeIn('slow');
@@ -328,21 +306,22 @@ function onSelectTemplate() {
     var $template = $select.find($('option:selected'));
     updateFilePickerTooltip();
     if($template.text() == 'Empties to Winn Reminder') {
-      $('#special-msg-div').hide();
-      $('#order_div').hide();
-    }
-    else if($template.text() == 'Special Message') {
-      $('#special-msg-div').show();
-      $('#order_div').show();
+      $('#record-audio').hide();
+      $('#record-text').hide();
     }
     else if($template.text() == 'Green Goods Delivery') {
-      $('#special-msg-div').hide();
-      $('#order_div').hide();
+      $('#record-audio').hide();
+      $('#record-text').hide();
     }
-    else if($template.text() == 'Empties to Winn Followup') {
-      $('#special-msg-div').hide();
-      $('#order_div').hide();
+    else if($template.text() == 'Special Message (Voice Recording)') {
+      $('#record-audio').show();
+      $('#record-text').hide();
     }
+    else if($template.text() == 'Special Message (Text to Voice)') {
+      $('#record-text').show();
+      $('#record-audio').hide();
+    }
+
   });
 }
 

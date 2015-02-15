@@ -113,6 +113,14 @@ function initNewJobView() {
   $submit_btn.click(function(){
     validateNewJobForm();
   });
+  $('#radio').buttonset();
+/*
+  $('#call-btn').button({
+    icons: {
+      primary: 'ui-icon-volume-on'
+    }
+  });
+*/
   
   // Init socket.io
   var socketio_url = 'http://' + document.domain + ':' + location.port;
@@ -123,6 +131,10 @@ function initNewJobView() {
     console.log('connected!');
   });
 
+ // console.log('showing divs');
+ // $('#special-msg-div').show();
+ // $('#record-audio').show();
+
   socket.on('record_audio', function(data) {
     if(typeof data == 'string')
       data = JSON.parse(data);
@@ -132,7 +144,7 @@ function initNewJobView() {
     if('audio_url' in data) {
       $('#record-status').text('< Recording complete. You can listen to the audio below. >');
       $('#audio-source').attr('src', data['audio_url']);
-      $('#audio').load();
+      $('#music').load();
       return;
     }
     if('msg' in data) {
@@ -153,6 +165,30 @@ function initNewJobView() {
   })
 
   $('#call-btn').click(function() {
+    // AUDIO PLAYER
+    var music = document.getElementById('music');
+    var duration;
+    var pButton = document.getElementById('pButton');
+    var playhead = document.getElementById('playhead');
+    var timeline = document.getElementById('timeline');
+    var timelineWidth = timeline.offsetWidth - playhead.offsetWidth;
+    
+    music.addEventListener("timeupdate", timeUpdate, false);
+    timeline.addEventListener("click", function (event) {
+      moveplayhead(event);
+      music.currentTime = duration * clickPercent(event);
+    }, false);
+
+    // Makes playhead draggable 
+    playhead.addEventListener('mousedown', mouseDown, false);
+    window.addEventListener('mouseup', mouseUp, false);
+    
+    // Gets audio file duration
+    music.addEventListener("canplaythrough", function () {
+      var music = document.getElementById('music');
+      duration = music.duration;  
+    }, false);
+
     var phone = $('#phone-num').val();
     var request =  $.ajax({
       type: 'POST',
@@ -181,6 +217,95 @@ function initNewJobView() {
   
   $('body').css('display','block');
 }
+
+// returns click as decimal (.77) of the total timelineWidth
+function clickPercent(e) {
+  var timeline = document.getElementById('timeline'); // timeline
+  var playhead = document.getElementById('playhead');
+  var timelineWidth = timeline.offsetWidth - playhead.offsetWidth;
+  return (e.pageX - timeline.offsetLeft) / timelineWidth;
+}
+
+// Boolean value so that mouse is moved on mouseUp only when the playhead is released 
+var onplayhead = false;
+// mouseDown EventListener
+function mouseDown() {
+  var music = document.getElementById('music');
+  onplayhead = true;
+  window.addEventListener('mousemove', moveplayhead, true);
+  music.removeEventListener('timeupdate', timeUpdate, false);
+}
+// mouseUp EventListener
+// getting input from all mouse clicks
+function mouseUp(e) {
+  var music = document.getElementById('music');
+  if (onplayhead == true) {
+    moveplayhead(e);
+    window.removeEventListener('mousemove', moveplayhead, true);
+    // change current time
+    music.currentTime = music.duration * clickPercent(e);
+    music.addEventListener('timeupdate', timeUpdate, false);
+  }
+  onplayhead = false;
+}
+// mousemove EventListener
+// Moves playhead as user drags
+function moveplayhead(e) {
+  var timeline = document.getElementById('timeline');
+  var playhead = document.getElementById('playhead');
+  var timelineWidth = timeline.offsetWidth - playhead.offsetWidth;
+  var newMargLeft = e.pageX - timeline.offsetLeft;
+  if (newMargLeft >= 0 && newMargLeft <= timelineWidth) {
+    playhead.style.marginLeft = newMargLeft + "px";
+  }
+  if (newMargLeft < 0) {
+    playhead.style.marginLeft = "0px";
+  }
+  if (newMargLeft > timelineWidth) {
+    playhead.style.marginLeft = timelineWidth + "px";
+  }
+}
+
+// timeUpdate 
+// Synchronizes playhead position with current point in audio 
+function timeUpdate() {
+  var music = document.getElementById('music');
+  var pButton = document.getElementById('pButton');
+  var timeline = document.getElementById('timeline');
+  var playhead = document.getElementById('playhead');
+  var timelineWidth = timeline.offsetWidth - playhead.offsetWidth;
+  var playPercent = timelineWidth * (music.currentTime / music.duration);
+  
+  playhead.style.marginLeft = playPercent + "px";
+  
+  if (music.currentTime == music.duration) {
+    pButton.className = "";
+    pButton.className = "play";
+  }
+}
+
+
+
+//Play and Pause
+function play() {
+  var music = document.getElementById('music');
+  var pButton = document.getElementById('pButton');
+  
+  if (music.paused) {
+    music.play();
+    // remove play, add pause
+    pButton.className = "";
+    pButton.className = "pause";
+  } 
+  else {
+    music.pause();
+    // remove pause, add play
+    pButton.className = "";
+    pButton.className = "play";
+  }
+}
+
+
 
 // new_job view
 function updateFilePickerTooltip() {

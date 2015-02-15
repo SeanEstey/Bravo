@@ -490,9 +490,11 @@ def record_msg():
         logger.info('Recording completed. Sending audio_url to client')
         recording_info = {
           'audio_url': request.args.get('RecordingUrl'),
-          'audio_duration': request.args.get('RecordingDuration')
+          'audio_duration': request.args.get('RecordingDuration'),
+          'sid': request.args.get('CallSid'),
+          'call_status': request.args.get('CallStatus')
         }
-        db['bravo'].update({'sid': request.args.get('CallSid')}, recording_info)
+        db['bravo'].update({'sid': request.args.get('CallSid')}, {'$set': recording_info})
         send_socket('record_audio', recording_info)
         response = twilio.twiml.Response()
         response.say('Message recorded', voice='alice')
@@ -715,7 +717,7 @@ def process_status():
       call = db['bravo'].find_one({'sid':sid})
       if call:
         logger.info('Record audio call complete')
-        db['bravo'].update({'sid':sid}, {'call_status':call_status})
+        db['bravo'].update({'sid':sid}, {'$set': {'call_status':call_status}})
       return 'OK'
 
     if call_status == 'completed':

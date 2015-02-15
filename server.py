@@ -126,6 +126,12 @@ def sms(to, msg):
     return False
 
 def get_speak(job, msg, answered_by, medium='voice'):
+  # Simplest case: announce_voice template. Play audio file
+  if job['template'] == 'announce_voice':
+    response = twilio.twiml.Response()
+    response.play(job['audio_url'])
+    return Response(str(response), mimetype='text/xml')
+
   if 'event_date' in msg['imported']:
     try:
       date_str = msg['imported']['event_date'].strftime('%A, %B %d')
@@ -151,14 +157,12 @@ def get_speak(job, msg, answered_by, medium='voice'):
       speak += repeat_voice
       if msg['imported']['status'] == 'Active':
         speak += 'If you do not need a pickup, press 2. '
-    #elif medium == 'sms':
-    #  speak += 'Reply with No if no pickup required.'
   elif job['template'] == 'gg_delivery':
     speak = ('Hi, this is a friendly reminder that your green goods delivery will be on ' +
       date_str + '. Your order total is ' + msg['imported']['price'] + '. ')
     if medium == 'voice' and answered_by == 'human':
       speak += repeat_voice
-  elif job['template'] == 'special_msg':
+  elif job['template'] == 'announce_text':
     speak = job['message']
     if medium == 'voice' and answered_by == 'human':
       speak += repeat_voice
@@ -244,8 +248,6 @@ def parse_csv(csvfile, template):
   buffer = []
   header_err = False 
   header_row = reader.next()
-  #logger.info('template='+str(template)) 
-  #logger.info('header row='+str(header_row))
 
   if len(header_row) != len(template):
     header_err = True
@@ -380,16 +382,21 @@ def index():
   
   date_string = request.form['date']+' '+request.form['time']
   fire_dtime = parse(date_string)
+  
   # No file errors. Save job + calls to DB.
   job = {
     'name': job_name,
     'template': request.form['template'],
-    'message': request.form['message'],
     'fire_dtime': fire_dtime,
     'status': 'pending',
     'num_calls': len(buffer)
   }
-  
+
+  if request.form['template'] == 'announce_voice':
+    job['audio_url'] = request.form['audio-url']
+  elif request.form['template'] == 'announce_text':
+    job['message'] = request.form['message']
+    
   job_id = db['jobs'].insert(job)
   job['_id'] = job_id
 
@@ -436,25 +443,28 @@ def get_template(name):
 
 @app.route('/get/<var>')
 def get_var(var):
-  if var == 'branch_version':
+  if var == 'version':
+    branch = os.popen('git rev-parse --abbrev-ref HEAD').read()
     revision = os.popen('git rev-list HEAD | wc -l').read()
-    return BRANCH + ' branch rev ' + revision
+    return branch + ' branch rev ' + revision
+  
   elif var == 'db_name':
     return 'DB: ' + DB_NAME
+  
   elif var == 'pub_url':
     return PUB_URL
+  
   elif var == 'celery_status':
     if not tasks.celery_app.control.inspect().active_queues():
       return 'Celery Offline'
     else:
       return 'Celery Online'
+  
   elif var == 'sockets':
     if not socketio.server:
       return "No sockets"
     return 'Sockets: ' + str(len(socketio.server.sockets))
-  elif var == 'plivo_balance':
-    return ' '
-
+  
   return False
 
 @app.route('/error')

@@ -8,7 +8,7 @@
     });
   </script>
   <div class="h1">Setup New Job</div>
-  <div class="box">
+  <div class="box" style='padding:1.5em'>
     <form action="{{ url_for('index')}}" enctype=multipart/form-data method=post>
       <fieldset>
       <legend>Calls</legend>
@@ -20,32 +20,30 @@
         <select name='template' class='input' id='template-select'>
           <option class='opt' value='etw_reminder'>Empties to Winn Reminder</option>
           <option class='opt' value='gg_delivery'>Green Goods Delivery</option>
-          <option class='opt' value='special_msg'>Special Message (Voice Recording)</option>
-          <option class='opt' value='special_msg'>Special Message (Text to Voice)</option>
+          <option class='opt' value='announce_voice'>Voice Announcement (Recording)</option>
+          <option class='opt' value='announce_text'>Voice Announcement (Text)</option>
         </select>
-        
         <br>
-        
         <div id='record-audio' style='width:100%; display:none'>
           <div id='record-status' style='font-size:14px; color:#2b547e; text-align:center; padding:0.5em;'></div>
-          <input id='phone-num' class='input' style='padding: 4px 5px 7px 5px; width:65%;' name='phone-num' type='text' 
-            placeholder='Phone Number'>
-          </input>
-          <button id='call-btn' class='form-btn green' style='width:30%; padding:0px;'>Call Me</button>
+          <button id='call-btn' class='form-btn green' style='float:right; padding:0px;'>Call Me</button>
+          <span style='overflow:hidden; display:block'>
+            <input id='phone-num' class='input' style='padding: 4px 5px 7px 5px;' name='phone-num' type='text' placeholder='Phone Number'></input>
+          </span>
+
           <audio id="music">
-            <source id='audio-source' type='audio/mpeg' src=''>
+            <source id='audio-source' name='audio-announce' type='audio/mpeg'>
           </audio>
-          <div id="audioplayer">
+          <div id="audioplayer"  style='display:none'>
             <button id="pButton" class='play' onclick='play()'></button>
             <div id="timeline">    
               <div id="playhead"></div>
             </div>
           </div>
+          <div style='display:none'><input id='input-audio-url' name='audio-url'></input></div>
         </div>
-        <div id='record-text' class='input' style='display:none'>
-          <textarea class='special-msg' name='message' 
-            placeholder='Type your special message' required>
-          </textarea>
+        <div id='record-text' style='display:none'>
+          <textarea class='input' name='message' style='height:10em; margin-top:1em' placeholder='Type your announcement' required></textarea>
         </div>
       </fieldset>
       <br>

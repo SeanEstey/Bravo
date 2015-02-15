@@ -304,7 +304,6 @@ table.data-table2 td {
   font-size: 12px;
 }
 
-
 .nice .NFI-button {
   -moz-border-radius-topleft: 3px; 
   -moz-border-radius-bottomleft: 3px;
@@ -313,21 +312,19 @@ table.data-table2 td {
   border-top-left-radius: 3px; 
   border-bottom-left-radius: 3px;
   background: white;
-  /*background: #e3e3e3;*/
-  /*background:#0769AD;*/
-
   border: solid #b3b3b3 1px;
-  /*color: #2F4F4F;*/
   color:black;
-  width: 25%;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+  /*width: 25%;*/
   height: 30px;
   line-height: 30px;
 }
 
 .nice .NFI-button:hover {
   color: black;
-  background: #e3e3e3;
-  /*background: -webkit-linear-gradient(top,  #c3c3c3 0%, #f3f3f3 100%);*/
+  background:#6cc644;
+  color:white; 
 }
 
 .nice .NFI-filename {
@@ -337,7 +334,7 @@ table.data-table2 td {
   -webkit-border-bottom-right-radius: 3px;
   border-top-right-radius: 3px; 
   border-bottom-right-radius: 3px;
-  width: 70%;
+  width: 76%;
   border: solid #c3c3c3 1px;
   border-left: none;
   height: 32px;

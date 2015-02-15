@@ -31,7 +31,11 @@ TEMPLATE = {
     {'header': 'Date', 'field': 'event_date'},
     {'header': 'Price', 'field': 'price'}
   ],
-  'special_msg': [
+  'announce_text': [
+    {'header': 'Name', 'field': 'name'},
+    {'header': 'Phone', 'field': 'to'}
+  ],
+  'announce_voice': [
     {'header': 'Name', 'field': 'name'},
     {'header': 'Phone', 'field': 'to'}
   ]
@@ -54,7 +58,6 @@ CELERYBEAT_SCHEDULE = {
 }
 
 # Ports/Domains
-PUB_DOMAIN = 'http://seanestey.ca'
 MONGO_URL = 'localhost'
 MONGO_PORT = 27017
 MAILGUN_DOMAIN = 'wsaf.ca'

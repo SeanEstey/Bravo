@@ -134,6 +134,9 @@ function initNewJobView() {
       $('#record-status').text('Recording complete. You can listen to the audio below.');
       $('#audio-source').attr('src', data['audio_url']);
       $('#music').load();
+      $('#audioplayer').fadeIn('3000');
+      // Add url to form element for submission
+      $('#input-audio-url').val(data['audio_url']);
       return;
     }
     if('msg' in data) {
@@ -196,6 +199,7 @@ function initNewJobView() {
   $('body').css('display','block');
 }
 
+// Audio Player
 // returns click as decimal (.77) of the total timelineWidth
 function clickPercent(e) {
   var timeline = document.getElementById('timeline'); // timeline
@@ -204,6 +208,7 @@ function clickPercent(e) {
   return (e.pageX - timeline.offsetLeft) / timelineWidth;
 }
 
+// Audio Player
 // Boolean value so that mouse is moved on mouseUp only when the playhead is released 
 var onplayhead = false;
 // mouseDown EventListener
@@ -213,8 +218,9 @@ function mouseDown() {
   window.addEventListener('mousemove', moveplayhead, true);
   music.removeEventListener('timeupdate', timeUpdate, false);
 }
-// mouseUp EventListener
-// getting input from all mouse clicks
+
+// Audio Player
+// mouseUp EventListener. getting input from all mouse clicks
 function mouseUp(e) {
   var music = document.getElementById('music');
   if (onplayhead == true) {
@@ -226,13 +232,15 @@ function mouseUp(e) {
   }
   onplayhead = false;
 }
-// mousemove EventListener
-// Moves playhead as user drags
+
+// Audio Player
+// mousemove EventListener. Moves playhead as user drags
 function moveplayhead(e) {
   var timeline = document.getElementById('timeline');
   var playhead = document.getElementById('playhead');
   var timelineWidth = timeline.offsetWidth - playhead.offsetWidth;
   var newMargLeft = e.pageX - timeline.offsetLeft;
+
   if (newMargLeft >= 0 && newMargLeft <= timelineWidth) {
     playhead.style.marginLeft = newMargLeft + "px";
   }
@@ -244,7 +252,7 @@ function moveplayhead(e) {
   }
 }
 
-// timeUpdate 
+// Audio Player 
 // Synchronizes playhead position with current point in audio 
 function timeUpdate() {
   var music = document.getElementById('music');
@@ -262,9 +270,7 @@ function timeUpdate() {
   }
 }
 
-
-
-//Play and Pause
+// Audio Player
 function play() {
   var music = document.getElementById('music');
   var pButton = document.getElementById('pButton');
@@ -282,8 +288,6 @@ function play() {
     pButton.className = "play";
   }
 }
-
-
 
 // new_job view
 function updateFilePickerTooltip() {
@@ -305,23 +309,23 @@ function onSelectTemplate() {
   $select.change(function(){
     var $template = $select.find($('option:selected'));
     updateFilePickerTooltip();
-    if($template.text() == 'Empties to Winn Reminder') {
+    $('#audioplayer').hide();
+    if($template.val() == 'etw_reminder') {
       $('#record-audio').hide();
       $('#record-text').hide();
     }
-    else if($template.text() == 'Green Goods Delivery') {
+    else if($template.val() == 'gg_delivery') {
       $('#record-audio').hide();
       $('#record-text').hide();
     }
-    else if($template.text() == 'Special Message (Voice Recording)') {
+    else if($template.val() == 'announce_voice') {
       $('#record-audio').show();
       $('#record-text').hide();
     }
-    else if($template.text() == 'Special Message (Text to Voice)') {
+    else if($template.val() == 'announce_text') {
       $('#record-text').show();
       $('#record-audio').hide();
     }
-
   });
 }
 
@@ -360,9 +364,15 @@ function validateNewJobForm() {
     else if(scheduled_date.getTime() < now.getTime())
       expired_date = true;
   }
-  if(paramObj['template'] == 'special_msg') {
+  if(paramObj['template'] == 'announce_voice') {
+    console.log('voice announcement');
+    console.log('audio url='+paramObj['audio-url']);
+    if(!$('#audio-source').attr('src'))
+      missing.push('Voice Recording');
+  }
+  else if(paramObj['template'] == 'announce_text') {
     if(!paramObj['message'])
-      missing.push('Special Message');
+      missing.push('Text Announcement');
   }
 
   var msg = ''; 

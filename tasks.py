@@ -28,6 +28,7 @@ db = mongo_client[DB_NAME]
 
 @celery_app.task
 def run_scheduler():
+  logger.info('Running scheduler')
   pending_jobs = db['jobs'].find({'status': 'pending'})
   print(str(pending_jobs.count()) + ' pending jobs:')
 

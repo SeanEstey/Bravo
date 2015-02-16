@@ -15,7 +15,7 @@ sys.path.insert(0, '/root/bravo')
 from config import *
 import tasks
 import server
-from session import *
+from server_settings import *
 from server import dial
 import time
 

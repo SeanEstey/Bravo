@@ -1,7 +1,7 @@
 import flask
 from flask import Flask,render_template,request,g,Response,redirect,url_for
 from flask.ext.socketio import *
-from session import *
+from server_settings import *
 from config import *
 from secret import *
 from bson import Binary, Code, json_util

@@ -1,5 +1,5 @@
 from config import *
-from session import *
+from server_settings import *
 from server import dial
 from celery import Celery
 from celery.signals import worker_process_init, task_prerun

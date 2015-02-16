@@ -103,6 +103,9 @@ function showDialog($element, msg, _title, _buttons) {
 
 // new_job view
 function initNewJobView() {
+
+
+
   useJQueryBtn();
   addBravoTooltip();
   $('#datepicker').datepicker();
@@ -167,7 +170,9 @@ function initNewJobView() {
     // Gets audio file duration
     music.addEventListener("canplaythrough", function () {
       var music = document.getElementById('music');
-      duration = music.duration;  
+      duration = music.duration;
+      var rounded = Math.ceil(duration);
+      $('#duration').text(String(rounded)+' sec'); 
     }, false);
 
     var phone = $('#phone-num').val();

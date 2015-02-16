@@ -391,7 +391,7 @@ table.data-table2 td {
   border-radius:3px; 
   -webkit-border-radius:3px; 
   -moz-border-radius: 3px; 
-  width: 300px;
+  max-width: 300px;
   background: white;
   height: 20px;
   margin: 10px auto auto auto;
@@ -411,12 +411,23 @@ table.data-table2 td {
   outline:none;
 }
 
+/* STORE THESE ON SERVER */
 .play{background: url('http://www.alexkatz.me/codepen/images/play.png') ;}
 .pause{background: url('http://www.alexkatz.me/codepen/images/pause.png') ;}
 
+#duration {
+  font-size:10px; 
+  width:35px; 
+  height:20px; 
+  float:right; 
+  color:gray; 
+  margin:0px 5px 0px 0px;
+  padding:4px 0px 0px 0px;
+}
+
 #timeline{
 /* Original: 400px x 20px */
-  width: 270px;
+  width: 230px;
   height: 7.5px;
   margin-top: 6.5px;
   float: left;

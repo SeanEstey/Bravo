@@ -830,6 +830,14 @@ function initJobSummary() {
   $('body').css('display','block');
 }
 
+function initAdmin() {
+  $('body').css('display','block');
+  displayServerStatus('/get/celery_status', '', $('#celery-status'));
+  displayServerStatus('/get/version', '', $('#version'));
+  displayServerStatus('/get/monthly_usage', '', $('#monthly-usage'));
+  displayServerStatus('/get/annual_usage', '', $('#annual-usage'));
+}
+
 // Converts a JS Object to indented, color-coded HTML (no braces/brackets)
 // Properties are sorted alphabetically
 function objToHtml(obj, indents, ignores) {

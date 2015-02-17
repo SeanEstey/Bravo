@@ -343,6 +343,10 @@ def send_socket(name, data):
  
   socketio.emit(name, data)
 
+@app.route('/admin')
+def view_admin():
+  return render_template('admin.html')
+
 @app.route('/', methods=['POST', 'GET'])
 def index():
   if request.method == 'GET':
@@ -446,7 +450,31 @@ def get_var(var):
   if var == 'version':
     branch = os.popen('git rev-parse --abbrev-ref HEAD').read()
     revision = os.popen('git rev-list HEAD | wc -l').read()
-    return branch + ' branch rev ' + revision
+    return branch + ' branch rev ' + revision + ' (' + DB_NAME + ' DB)'
+
+  elif var == 'monthly_usage':
+    client = twilio.rest.TwilioRestClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_ID)
+    calls = client.usage.records.this_month.list(category='calls')[0]
+    cost = client.usage.records.this_month.list(category='totalprice')[0]
+    now = datetime.now()
+    data = {
+      'month': now.strftime('%B'),
+      'calls': calls.count,
+      'cost': '$' + cost.usage
+    }
+    return json.dumps(data)
+  
+  elif var == 'annual_usage':
+    client = twilio.rest.TwilioRestClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_ID)
+    calls = client.usage.records.yearly.list(category='calls')[0]
+    cost = client.usage.records.yearly.list(category='totalprice')[0]
+    now = datetime.now()
+    data = {
+      'year': now.strftime('%Y'),
+      'calls': calls.count,
+      'cost': '$' + cost.usage
+    }
+    return json.dumps(data)
   
   elif var == 'db_name':
     return 'DB: ' + DB_NAME
@@ -456,9 +484,9 @@ def get_var(var):
   
   elif var == 'celery_status':
     if not tasks.celery_app.control.inspect().active_queues():
-      return 'Celery Offline'
+      return 'Offline'
     else:
-      return 'Celery Online'
+      return 'Online'
   
   elif var == 'sockets':
     if not socketio.server:

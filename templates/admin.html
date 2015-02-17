@@ -1,0 +1,24 @@
+  {% extends "base.html" %}
+  {% block content %}  
+  <script>
+    document.write('<style type="text/css">body{display:none}</style>');
+    jQuery(function($){
+      initAdmin();
+    });
+  </script>
+  <br>
+  <div class="h1">Admin</div>
+  <div class='box' style='width:600px;'>
+    <div style='text-align:left'><b>Version</b></div>
+    <div style='text-align:left' id='version'></div>
+    <br>
+    <div style='text-align:left'><b>Celery Status</b></div>
+    <div style='text-align:left' id='celery-status'></div>
+    <br>
+    <div style='text-align:left'><b>Twilio Usage This Month</b></div>
+    <div style='text-align:left' id='monthly-usage'></div>
+    <br>
+    <div style='text-align:left'><b>Twilio Usage This Year</b></div>
+    <div style='text-align:left' id='annual-usage'></div>
+  </div> 
+  {% endblock %}

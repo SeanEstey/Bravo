@@ -12,13 +12,17 @@ cd Bravo
 ```
 Start RabbitMQ daemon<br>
 `rabbitmqctl start_app`<br>
-Start celery worker<br>
-`./celery.sh`<br>
 Start Flask Server:<br>
-`python server.py <mode>`<br>
+`python server.py`<br>
 
-mode == 'test' runs on http://localhost:5000<br>
-mode == 'deploy' runs on http://localhost:8000<br>
+Create server_settings.py file with following variables set:<br>
+```
+DB_NAME = 'test'
+LOCAL_PORT = 5000
+LOCAL_URL = 'http://localhost:5000'
+PUB_URL = 'http://seanestey.ca:8080/bravo'
+TITLE = 'Bravo:8080'
+```
 
 Setup front end server to redirect to proper proxy addresses (see /config for Nginx .conf file)<br>
 

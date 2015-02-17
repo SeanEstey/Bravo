@@ -49,10 +49,21 @@ option {
 }
 
 legend {
- font-weight: bold; 
+
+ margin:0px 0px 0px 0px;
 }
 
-fieldset {
+legend.scheduler-border {
+  font-size: 1.0em !important;
+  font-weight: bold !important;
+  text-align: left !important;
+  width:auto;
+  padding:0 10px;
+  border-bottom:none;
+}
+
+.form-fieldset {
+  padding: 5px 10px 15px 10px;
   border: 1px solid #cccccc;
   -moz-border-radius: 7px;
   -webkit-border-radius: 7px;
@@ -230,7 +241,7 @@ table.data-table2 td {
   padding-bottom:0.1em;
 }
         
-.label {
+.form-label {
   padding-bottom:0.3em; 
   padding-top:0.7em;
   text-align:left;
@@ -334,7 +345,7 @@ table.data-table2 td {
   -webkit-border-bottom-right-radius: 3px;
   border-top-right-radius: 3px; 
   border-bottom-right-radius: 3px;
-  width: 76%;
+  width: 70%;
   border: solid #c3c3c3 1px;
   border-left: none;
   height: 32px;

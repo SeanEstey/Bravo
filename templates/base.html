@@ -1,23 +1,14 @@
 <html>
   <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
     <link href='http://fonts.googleapis.com/css?family=Port+Lligat+Sans|Kavoon|Inconsolata' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-    <script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
-    <script type=text/javascript>
-      var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-    </script> 
-    <script type="text/javascript" src="{{url_for('static', filename='date.js')}}"></script>
-    <script type='text/javascript' src="{{url_for('static', filename='bravo.js')}}"></script>
-    <script type='text/javascript' src="{{url_for('static', filename='jquery.nicefileinput.min.js')}}"></script>
+    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-theme.min.css" />
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css" />
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
-  <script>
-    jQuery(function($){
-
-      //$('#status-banner').text('Job successfully created!');
-    });
-  </script>
+    
     {% if title %}
     <title>{{ title }}</title>
     {% else %}
@@ -25,9 +16,20 @@
     {% endif %}
   </head>
   <body>
-    <div id='admin' style='font-size:12px; text-align:right'>
-      <a href="{{ url_for('view_admin') }}">Admin</a>
+    <script type=text/javascript>var $SCRIPT_ROOT= {{request.script_root|tojson|safe}};</script> 
+    <script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+    <script src="http://code.jquery.com/ui/1.11.3/jquery-ui.js"></script>
+    <script type='text/javascript' src="{{url_for('static', filename='jquery.nicefileinput.min.js')}}"></script>
+    <script type="text/javascript" src="{{url_for('static', filename='date.js')}}"></script>
+    <script type='text/javascript' src="{{url_for('static', filename='bravo.js')}}"></script>
+    
+    <div style='padding:0.5em; text-align:right'>
+    <a href="{{ url_for('view_admin') }}">
+      <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
+    </a>
     </div>
+    <div>
     <div class="header">
       <a href="{{url_for('index')}}">
         <img id="buit" src="{{ url_for('static', filename='bravo2x.png') }}">

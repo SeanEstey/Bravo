@@ -10,13 +10,13 @@
   <div class="h1">Setup New Job</div>
   <div class="box" style='padding:1.5em'>
     <form action="{{ url_for('index')}}" enctype=multipart/form-data method=post>
-      <fieldset>
-      <legend>Calls</legend>
-        <div class='label'>Job Name</div>
+      <fieldset class='form-fieldset'>
+      <legend class='scheduler-border'>Calls</legend>
+        <div class='form-label'>Job Name</div>
         <input id='job_name' class='input' name='job_name' type='text' placeholder='Optional'></input>
-        <div class='label'>Call List</div>
+        <div class='form-label'>Call List</div>
         <input id='call-list-div' title='Upload a .CSV file' class="nice" type="file" name="call_list" required >
-        <div class='label'>Template</div>
+        <div class='form-label'>Template</div>
         <select name='template' class='input' id='template-select'>
           <option class='opt' value='etw_reminder'>Empties to Winn Reminder</option>
           <option class='opt' value='gg_delivery'>Green Goods Delivery</option>
@@ -26,9 +26,9 @@
         <br>
         <div id='record-audio' style='width:100%; display:none'>
           <div id='record-status' style='font-size:14px; color:#2b547e; text-align:center; padding:0.5em;'></div>
-          <button id='call-btn' class='form-btn green' style='float:right; padding:0px;'>Call Me</button>
+          <button id='call-btn' class='form-btn green' style='float:right; padding:2px 0px 0px 3px;'>Call Me</button>
           <span style='overflow:hidden; display:block'>
-            <input id='phone-num' class='input' style='padding: 4px 5px 7px 5px;' name='phone-num' type='text' placeholder='Phone Number'></input>
+            <input id='phone-num' class='input' name='phone-num' style='margin:0px 5px 5px 0px;' type='text' placeholder='Phone Number'></input>
           </span>
           <audio id="music">
             <source id='audio-source' name='audio-announce' type='audio/mpeg'>
@@ -47,13 +47,13 @@
         </div>
       </fieldset>
       <br>
-      <fieldset>
-        <legend>Schedule</legend>
-        <div class='label'>Date</div>
+      <fieldset class='form-fieldset'>
+        <legend class='scheduler-border'>Schedule</legend>
+        <div class='form-label'>Date</div>
         <input class='input' type='text' id='datepicker' placeholder='Browse Calendar...'  name='date' required >
-        <div class='label'>Time</div>
+        <div class='form-label'>Time</div>
         <input class='input' title="When the job will begin (3pm, 10:30am)" type='time' name="time" required >
-        <br><br>
+        
       </fieldset>
       <br>
       <button class='form-btn' type="button" style='padding:0.5em; width:100%;' id="submit_btn" name="submit-btn">Schedule Calls</button>

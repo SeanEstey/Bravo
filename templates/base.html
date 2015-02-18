@@ -5,7 +5,6 @@
     
     <link href='http://fonts.googleapis.com/css?family=Port+Lligat+Sans|Kavoon|Inconsolata' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-theme.min.css" />
     <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css" />
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
     
@@ -25,8 +24,8 @@
     <script type='text/javascript' src="{{url_for('static', filename='bravo.js')}}"></script>
     
     <div style='padding:0.5em; text-align:right'>
-    <a href="{{ url_for('view_admin') }}">
-      <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
+    <a class='glyph' href="{{ url_for('view_admin') }}">
+      <span class="glyphicon glyphicon-cog " aria-hidden="true"></span>
     </a>
     </div>
     <div>

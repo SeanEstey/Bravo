@@ -821,10 +821,9 @@ def process_fallback():
     return str(e)
 
 if __name__ == "__main__":
-  os.system("ps auxww | grep 'celery' | awk '{print $2}' | xargs kill -9")
-  time.sleep(2)
-  os.system('celery worker -A tasks.celery_app -f celery.log -B --autoreload &')
-  time.sleep(2)
+  os.system('kill %1')
+  #os.system("jobs | grep celery | awk '{print $1}' | cut -c2")
+  os.system('celery worker -A tasks.celery_app -f celery.log -B -n ' + DB_NAME + ' --autoreload &')
   celery_check()
   logger.info('Server started OK (' + DB_NAME + ')')
   socketio.run(app, port=LOCAL_PORT)

@@ -2,6 +2,7 @@ import os
 import logging
 import pymongo
 from datetime import timedelta
+from server_settings import DB_NAME
 
 # App
 LOG_LEVEL = logging.INFO
@@ -14,7 +15,7 @@ EMERGENCY_CONTACT='7808635715'
 CALLER_ID= 'Winnifred Stewart Association'
 MAX_ATTEMPTS= 2
 REDIAL_DELAY = 300
-SCHEDULE_FREQUENCY = 300
+SCHEDULE_FREQUENCY = 30
 UPLOAD_FOLDER = '/tmp'
 ALLOWED_EXTENSIONS = set(['csv','xls'])
 TEMPLATE = {
@@ -53,7 +54,8 @@ CELERYD_CONCURRENCY = 1
 CELERYBEAT_SCHEDULE = {
   'bravo_scheduler': {
     'task': 'tasks.run_scheduler',
-    'schedule': timedelta(seconds=SCHEDULE_FREQUENCY)
+    'schedule': timedelta(seconds=SCHEDULE_FREQUENCY),
+    'options': { 'queue': DB_NAME }
   },
 }
 

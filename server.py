@@ -547,7 +547,7 @@ def record_msg():
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
   job_id = job_id.encode('utf-8')
-  tasks.execute_job.delay(job_id)
+  tasks.execute_job.apply_async((job_id, ), queue=DB_NAME)
 
   return 'OK'
 
@@ -569,7 +569,7 @@ def show_calls(job_id):
 # Requested on completion of tasks.execute_job()
 @app.route('/fired/<job_id>')
 def job_fired(job_id):
-  tasks.monitor_job.delay(job_id.encode('utf-8'))
+  tasks.monitor_job.apply_async((job_id.encode('utf-8'), ), queue=DB_NAME)
   return 'OK'
   
 @app.route('/complete/<job_id>')
@@ -822,8 +822,9 @@ def process_fallback():
 
 if __name__ == "__main__":
   os.system('kill %1')
-  #os.system("jobs | grep celery | awk '{print $1}' | cut -c2")
-  os.system('celery worker -A tasks.celery_app -f celery.log -B -n ' + DB_NAME + ' --autoreload &')
+  # Kill celery nodes with matching queue name. Leave others alone 
+  os.system("ps aux | grep 'queues " + DB_NAME + "' | awk '{print $2}' | xargs kill -9")
+  os.system('celery worker -A tasks.celery_app -f celery.log -B -n ' + DB_NAME + ' --queues ' + DB_NAME + ' &')
   celery_check()
   logger.info('Server started OK (' + DB_NAME + ')')
   socketio.run(app, port=LOCAL_PORT)

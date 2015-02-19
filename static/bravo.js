@@ -103,9 +103,6 @@ function showDialog($element, msg, _title, _buttons) {
 
 // new_job view
 function initNewJobView() {
-
-
-
   useJQueryBtn();
   addBravoTooltip();
   $('#datepicker').datepicker();

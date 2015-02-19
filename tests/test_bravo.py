@@ -105,7 +105,7 @@ class BravoTestCase(unittest.TestCase):
     self.assertEquals(response.content, 'OK')
   
   def test_scheduler(self):
-    r = tasks.run_scheduler.delay()
+    r = tasks.run_scheduler.apply_async(queue=DB_NAME)
     self.assertTrue(r > 0)
 
   def test_execute_job(self):

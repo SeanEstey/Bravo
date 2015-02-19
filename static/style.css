@@ -68,7 +68,7 @@ legend.scheduler-border {
   -moz-border-radius: 7px;
   -webkit-border-radius: 7px;
   text-align: left;
-  width: 300px;
+  width: 350px;
 }
 
 optgroup {
@@ -222,7 +222,7 @@ table.data-table2 td {
   padding: 5px;
   border: 1px solid #b9bdc1;
   width: 100%;
-  max-width: 300px;
+  max-width: 400px;
 }
 
 .h1 {
@@ -313,6 +313,7 @@ table.data-table2 td {
   width: 100%;
   font-family: verdana;
   font-size: 12px;
+  max-width: 400px;
 }
 
 .nice .NFI-button {
@@ -327,9 +328,9 @@ table.data-table2 td {
   color:black;
   padding-left: 0.5em;
   padding-right: 0.5em;
-  /*width: 25%;*/
-  height: 30px;
-  line-height: 30px;
+  width: 25%;
+  height: 32px;
+  line-height: 32px;
 }
 
 .nice .NFI-button:hover {
@@ -345,7 +346,7 @@ table.data-table2 td {
   -webkit-border-bottom-right-radius: 3px;
   border-top-right-radius: 3px; 
   border-bottom-right-radius: 3px;
-  width: 70%;
+  width: 75%;
   border: solid #c3c3c3 1px;
   border-left: none;
   height: 32px;
@@ -402,7 +403,7 @@ table.data-table2 td {
   border-radius:3px; 
   -webkit-border-radius:3px; 
   -moz-border-radius: 3px; 
-  max-width: 300px;
+  max-width: 350px;
   background: white;
   height: 20px;
   margin: 10px auto auto auto;
@@ -427,30 +428,31 @@ table.data-table2 td {
 .pause{background: url('http://www.alexkatz.me/codepen/images/pause.png') ;}
 
 #duration {
-  font-size:10px; 
+  font-size:10px;
+  line-height:20px;
   width:35px; 
   height:20px; 
   float:right; 
   color:gray; 
-  margin:0px 5px 0px 0px;
-  padding:4px 0px 0px 0px;
+ /* margin:0px 5px 0px 0px;
+  padding:4px 0px 0px 0px;*/
 }
 
 #timeline{
 /* Original: 400px x 20px */
-  width: 230px;
-  height: 7.5px;
-  margin-top: 6.5px;
+  width: 80%;
+  height: 5px;
+  margin-top: 7px;
   float: left;
   border-radius: 15px;
   background: rgba(0,0,0,.3);
   
 }
 #playhead{
-  width: 7.5px;
-  height: 7.5px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  margin-top: 0px;
+  margin-top: -2.5px;
   background: rgba(0, 0, 0,1);
 }
 

@@ -35,7 +35,7 @@ def run_scheduler():
   for job in pending_jobs:
     if datetime.now() > job['fire_dtime']:
       logger.info('Scheduler: Starting Job...')
-      execute_job.apply_async((str(job['_id'], )), queue=DB_NAME)
+      execute_job.apply_async((str(job['_id']), ), queue=DB_NAME)
     else:
       next_job_delay = job['fire_dtime'] - datetime.now()
       print '{0}): {1} starts in {2}'.format(job_num, job['name'], str(next_job_delay))

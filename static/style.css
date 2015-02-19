@@ -167,7 +167,7 @@ table.data-table2 {
   font-size: 11pt;
   border-collapse: collapse; 
   text-align:left; 
-  width:750px;
+  max-width:1050px;
 }
 
 table.data-table2 th {
@@ -175,6 +175,7 @@ table.data-table2 th {
   border-bottom: solid 1px #bbbbbb; 
   background-color: #e8f5f9; 
   padding: 0.5em;
+  max-width: 225px;
 }
 
 table.data-table2 tr {
@@ -193,8 +194,10 @@ table.data-table2 tr:first-child {
 }
 
 table.data-table2 td {
-  background-color: #fafafa;
+  /*background-color: #fafafa;*/
+  background-color: #f7f7f7;
   padding: 0.5em;
+  max-width: 225px;
 }
 
 .box {

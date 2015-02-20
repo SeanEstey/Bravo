@@ -8,19 +8,21 @@
     });
   </script>
   <br>
+  
   <div class='h1' id='timer'>
     <b><label id='job-status'>{{ job.status.title() }}</label></b>
      (<label id='job-summary'></label>)
     <p id='scheduled_datetime' style='display:none'>{{ job.fire_dtime }}</p>
   </div>
+  
   <br>
-  <div class="show-jobs-div">
-  <div class='navbar-div'>
-    <a class='hover' href="{{ url_for('index') }}">Jobs</a> / 
-    {{ job.name }}
-  </div>
-    <!--<table id='show-calls-table' class='data-table2'>-->
-    <table id='show-calls-table' class='table table-hover table-colored' style='max-width:1000px'>
+  
+  <div class='data-container'>
+    <div class='navbar-div'>
+      <a class='hover' href="{{ url_for('index') }}">Jobs</a> / 
+      {{ job.name }}
+    </div>
+    <table id='show-calls-table' class='table table-hover table-colored'>
       <thead>
         <tr>
           {% set col_num=1 %}

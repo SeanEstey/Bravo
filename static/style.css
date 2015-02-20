@@ -1,9 +1,3 @@
-div.footer {
-    position : absolute;
-    bottom : 0;
-    right: 10px;
-}
-
 div.header {
   margin: 0 auto;
   width: 300px;
@@ -75,25 +69,7 @@ optgroup {
   font-size: 16px;
 }
 
-.data-table {
-  text-align: left;
-  width:100%;
-  border-spacing: 0px;
-  padding: 5px;
-  font-family: arial; 
-  font-size:16;
-}
-.data-table tr:nth-child(even) {
-  background-color: white;
-}
-
-.data-table td {
-  padding-top: 0.5em;
-  padding-bottom: 0.5em;
-}
-
 .show-jobs-td {
-/*  background-color: #f5f5f5;*/
   background-color: #fafafa;
   padding-left: 0.5em;
   padding-right: 0.5em;
@@ -125,10 +101,6 @@ optgroup {
   text-align: center;
 }
 
-.center {
-  display: inline-block;
-}
-
 .status-banner-div {
   display: none;
   border:1px solid #B8CfB8;
@@ -139,7 +111,8 @@ optgroup {
   color: #365766;
 }
 
-.show-jobs-div {
+/* Outer frame for tables in show_jobs / show_calls views */
+.data-container {
   border:1px solid #bbbbbb; 
   border-radius:7px; 
   -webkit-border-radius:7px 7px 0px 0px;
@@ -158,46 +131,6 @@ textarea.special-msg {
   width: 100%;
   max-width: 300px;
   height: 50px;
-  /*width: 50em;
-  max-width: 140em;*/
-}
-
-table.data-table2 {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-size: 11pt;
-  border-collapse: collapse; 
-  text-align:left; 
-  max-width:1050px;
-}
-
-table.data-table2 th {
-  border-top: none;
-  border-bottom: solid 1px #bbbbbb; 
-  background-color: #e8f5f9; 
-  padding: 0.5em;
-  max-width: 225px;
-}
-
-table.data-table2 tr {
-  border:solid; 
-  border-color:#dddddd; 
-  border-width:1px 0; 
-  color: #365766;
-}
-
-table.data-table2 tr:last-child {
-  border-bottom: none;
-}
-
-table.data-table2 tr:first-child {
-  border-top: none;
-}
-
-table.data-table2 td {
-  /*background-color: #fafafa;*/
-  background-color: #f7f7f7;
-  padding: 0.5em;
-  max-width: 225px;
 }
 
 .box {
@@ -209,7 +142,6 @@ table.data-table2 td {
   padding-bottom: 2em;
   padding-top: 2em;
   z-index: 20;
-  float: left;
   margin-top: 1em;
   border: 1px solid #cccccc;
   -moz-border-radius: 7px;
@@ -401,6 +333,8 @@ table.data-table2 td {
   top: auto;
 }
 
+/***** AUDIOPLAYER *****/
+
 #audioplayer{
 /* Original: 480px x 60px */
   border-radius:3px; 
@@ -460,7 +394,7 @@ table.data-table2 td {
 }
 
 
-/* BOOTSTRAP3 */
+/***** BOOTSTRAP3 *****/
 
 span.glyphicon-cog {
  font-size: 1.5em;
@@ -479,11 +413,16 @@ a.glyph:hover {
   background-color: #f7f7f7;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size:11pt;
-  margin-bottom:0px
+  margin-bottom:0px;
 }
 
 .table.table-colored td {
   max-width:200px;
+  padding:3px 10px 3px 10px;
+  /*color: #365766;*/
+  /*color: #50757D;*/
+  color: #2b547e;
+  vertical-align:middle;
 }
 
 .table.table-colored.table-hover tbody tr:hover td {
@@ -498,3 +437,8 @@ a.glyph:hover {
   background-color: #e8f5f9;
 }
 
+.center {
+  float: none;
+  margin-left: auto;
+  margin-right: auto;
+}

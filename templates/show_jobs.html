@@ -7,30 +7,36 @@
       initShowJobs();
     });
   </script>
+  
   <br>
+  
   <div class="h1"> 
-  <script>
-    var date = new Date();
-    document.write('<b>' + date.toString('dddd, MMMM d, yyyy') + '</b>');
-  </script>
-  <br>
+    <script>
+      var date = new Date();
+      document.write('<b>' + date.toString('dddd, MMMM d, yyyy') + '</b>');
+    </script>
+    <br>
   </div>
   <div id='status-banner' class='status-banner-div'>{{banner_msg}}</div>
+  
   <br>
-  <div class="show-jobs-div">
-  <div class='navbar-div'>
-    <a class='hover' href="{{ url_for('index') }}">Jobs</a> / 
-    <a style='font-weight:bold; text-decoration:none;' title='Schedule a new job' href="{{ url_for('new_job') }}">+</a>
-  </div>
-  <table class='table table-hover table-colored'>
-      <tr>
-        <th style='width:225px'>Scheduled</th>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Calls</th>
-        <th>Status</th>
-        <th></th>
-      </tr>
+  
+  <div class='data-container'>
+    <div class='navbar-div'>
+      <a class='hover' href="{{ url_for('index') }}">Jobs</a> / 
+      <a style='font-weight:bold; text-decoration:none;' title='Schedule a new job' href="{{ url_for('new_job') }}">+</a>
+    </div>
+    <table class='table table-hover table-colored'>
+      <thead>
+        <tr>
+          <th style='width:245px'>Scheduled</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Calls</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
       <tbody>
       {% for job in jobs %}
       {% set show_calls_url = url_for('show_calls', job_id=job._id)
@@ -80,5 +86,5 @@
       {% endfor %}
       </tbody>
     </table>
-  </div>
+</div>
   {% endblock %}

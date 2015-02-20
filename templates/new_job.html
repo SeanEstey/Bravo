@@ -7,8 +7,8 @@
       initNewJobView();
     });
   </script>
-  <div class="h1">Setup New Job</div>
-  <div class="box" style='background-color:#f7f7f7; padding:1.5em'>
+  <div class='h1'>Setup New Job</div>
+  <div class='box center' style='width:400px; background-color:#f7f7f7; padding:1.5em'>
     <form action="{{ url_for('index')}}" enctype=multipart/form-data method=post>
       <fieldset class='form-fieldset'>
       <legend class='scheduler-border'>Calls</legend>
@@ -53,7 +53,6 @@
         <input class='input' type='text' id='datepicker' placeholder='Browse Calendar...'  name='date' required >
         <div class='form-label'>Time</div>
         <input class='input' title="When the job will begin (3pm, 10:30am)" type='time' name="time" required >
-        
       </fieldset>
       <br>
       <button class='form-btn' type="button" style='padding:0.5em; width:100%;' id="submit_btn" name="submit-btn">Schedule Calls</button>

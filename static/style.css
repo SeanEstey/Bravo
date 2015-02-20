@@ -1,15 +1,18 @@
-div.header {
-  margin: 0 auto;
-  width: 300px;
-  text-align: center;
+#buit {
+  width: 200px;
+  height: 81px;
 }
 
-body {
-  height: 100%;
-  background-color: white;
-  font-family: verdana;
-  color: black;
-  font-size: 16px;
+/***** CLASSES *****/
+
+legend.scheduler-border {
+  font-size: 1.0em !important;
+  font-weight: bold !important;
+  text-align: left !important;
+  width:auto;
+  padding:0 10px;
+  margin:0px 0px 0px 0px;
+  border-bottom:none;
 }
 
 a.hover {
@@ -29,33 +32,6 @@ a.hover:visited {
   color: #365766;
 }
 
-form {
-  margin: 0 auto;
-}
-
-select {
-  width: 100%;
-  font-size: 16px;
-}
-
-option {
-  font-size: 16px;
-}
-
-legend {
-
- margin:0px 0px 0px 0px;
-}
-
-legend.scheduler-border {
-  font-size: 1.0em !important;
-  font-weight: bold !important;
-  text-align: left !important;
-  width:auto;
-  padding:0 10px;
-  border-bottom:none;
-}
-
 .form-fieldset {
   padding: 5px 10px 15px 10px;
   border: 1px solid #cccccc;
@@ -65,45 +41,12 @@ legend.scheduler-border {
   width: 350px;
 }
 
-optgroup {
-  font-size: 16px;
-}
-
-.show-jobs-td {
-  background-color: #fafafa;
-  padding-left: 0.5em;
-  padding-right: 0.5em;
-  padding-top: 0.5em;
-  padding-bottom: 0.5em;
-}
-
-.show-jobs-header {
-  padding-left: 0.5em;
-  padding-right: 0.5em;
-  padding-top: 0.5em;
-  padding-bottom: 0.5em;
-}
-.opt {
-  font-size: 16px;
-}
-
-.hidden {
-  display: none;
-}
-
-#buit {
-  width: 200px;
-  height: 81px;
-}
-
-.wrapper {
-  width: 100%;
-  text-align: center;
-}
+.opt {font-size: 16px;}
+.hidden {display: none;}
 
 .status-banner-div {
   display: none;
-  border:1px solid #B8CfB8;
+  /*border:1px solid #B8CfB8;*/
   -webkit-border-radius:7px 7px 7px 7px; 
   background-color: #CDE6CD; 
   padding:0.5em; 
@@ -159,12 +102,6 @@ textarea.special-msg {
   width: 100%;
   max-width: 400px;
 }
-/*
-.h1 {
-  font-size: 20px;
-  font-family: verdana;
-  text-align: center;
-}*/
 
 .menu-item {
   text-align: center;
@@ -235,6 +172,7 @@ textarea.special-msg {
   background:#3987BD;
   color:white;
 }
+
 .form-btn:active {
   background:#FFFFFF;
   color:black;

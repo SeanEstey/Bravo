@@ -474,3 +474,27 @@ a.glyph {
 a.glyph:hover {
   color: #2b547e;
 }
+
+.table.table-colored {
+  background-color: #f7f7f7;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size:11pt;
+  margin-bottom:0px
+}
+
+.table.table-colored td {
+  max-width:200px;
+}
+
+.table.table-colored.table-hover tbody tr:hover td {
+  background-color: white;
+}
+
+.table.table-colored.table-hover tbody tr:hover th {
+  background-color: #e8f5f9;
+}
+
+.table.table-colored th {
+  background-color: #e8f5f9;
+}
+

@@ -19,7 +19,8 @@
     <a class='hover' href="{{ url_for('index') }}">Jobs</a> / 
     {{ job.name }}
   </div>
-    <table id='show-calls-table' class='data-table2'>
+    <!--<table id='show-calls-table' class='data-table2'>-->
+    <table id='show-calls-table' class='table table-hover table-colored' style='max-width:1000px'>
       <thead>
         <tr>
           {% set col_num=1 %}
@@ -44,13 +45,13 @@
             {% else %}
               {% set caption="Sent Live" %}
             {% endif %}
-              <td name='call_status' title='"{{call.speak}}"' class='call-status-td' >{{caption}}</td>
+              <td name='call_status' title='"{{call.speak}}"'>{{caption}}</td>
           {% elif call.call_status == "pending" %}
-            <td name='call_status' class='call-status-td'>Pending</td>
+            <td name='call_status'>Pending</td>
           {% elif call.call_status == "failed" %}
-            <td name='call_status' class='call-status-td'>Failed ({{call.error_msg}})</td>
+            <td name='call_status'>Failed ({{call.error_msg}})</td>
           {% else %}
-            <td name='call_status' class='call-status-td' >{{ call.call_status + ' (' ~ call.attempts + 'x)' }}</td>
+            <td name='call_status'>{{ call.call_status + ' (' ~ call.attempts + 'x)' }}</td>
           {% endif %}
           <td>
             <button 

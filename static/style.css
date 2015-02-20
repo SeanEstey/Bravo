@@ -346,7 +346,9 @@ a.glyph:hover {
 .table.table-colored {
   background-color: #f7f7f7;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-weight: lighter;
+  /*text-shadow: 1px 1px 1px rgba(0,0,0,0.004);*/
+  text-rendering: optimizeLegibility !important;
+  -webkit-font-smoothing: antialiased !important;
   font-size:11pt;
   margin-bottom:0px;
 }

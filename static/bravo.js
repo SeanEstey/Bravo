@@ -487,8 +487,10 @@ function initShowCallsView() {
       });
     });
   }
-  else
+  else {
     $('.delete-btn').hide();
+    $('.cancel-call-col').hide();
+  }
 
   if($('#timer').text().indexOf('Pending') > 0) {
     updateCountdown();
@@ -768,11 +770,11 @@ function initShowJobs() {
 
     $status_td = $job_row.find('[name="job-status"]');
     if (data['status'] == "completed")
-      $status_td.css({'color':'green'});
+      $status_td.css({'color':'green'}); // FIXME: Breaks Bootstrap style
     else if(data['status'] == "in-progress")
-      $status_td.css({'color':'red'});
+      $status_td.css({'color':'red'}); // FIXME: Breaks Bootstrap style
       
-    $status_td.text(data['status'].toTitleCase());   
+    $status_td.text(data['status'].toTitleCase());
     //$('.delete-btn').hide();
   });
 
@@ -816,6 +818,7 @@ function initShowJobs() {
       showDialog($('#dialog'), msg, 'Confirm Action', buttons);
     });
   });
+
 
   $('body').css('display','block');
 }

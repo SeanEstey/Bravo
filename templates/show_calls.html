@@ -31,7 +31,7 @@
           {% set col_num = col_num + 1 %}
           {% endfor %}
           <th id='col{{template|length+1}}'><a title='Sort' class='hover' href='#'>Status</a></th>
-          <th></th>
+          <th class='cancel-call-col'></th>
         </tr>
       </thead>
       <tbody>
@@ -55,7 +55,7 @@
           {% else %}
             <td name='call_status'>{{ call.call_status + ' (' ~ call.attempts + 'x)' }}</td>
           {% endif %}
-          <td>
+          <td class='cancel-call-col'>
             <button 
               class='delete-btn' 
               type="button" 

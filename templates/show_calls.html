@@ -7,15 +7,17 @@
       initShowCallsView();
     });
   </script>
-  <br>
   
-  <div class='h1' id='timer'>
-    <b><label id='job-status'>{{ job.status.title() }}</label></b>
-     (<label id='job-summary'></label>)
-    <p id='scheduled_datetime' style='display:none'>{{ job.fire_dtime }}</p>
+  <div style='text-align:center' id='timer'>
+    <h3>
+      <b><label id='job-status'>{{ job.status.title() }}</label></b>
+       (<label id='job-summary'></label>)
+      <p id='scheduled_datetime' style='display:none'>{{ job.fire_dtime }}</p>
+    </h3>
   </div>
-  
-  <br>
+  <div>
+    <br>
+  </div>
   
   <div class='data-container'>
     <div class='navbar-div'>

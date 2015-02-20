@@ -159,16 +159,12 @@ textarea.special-msg {
   width: 100%;
   max-width: 400px;
 }
-
+/*
 .h1 {
   font-size: 20px;
   font-family: verdana;
   text-align: center;
-}
-
-.back {
-  font-size: 16px;
-}
+}*/
 
 .menu-item {
   text-align: center;
@@ -412,6 +408,7 @@ a.glyph:hover {
 .table.table-colored {
   background-color: #f7f7f7;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: lighter;
   font-size:11pt;
   margin-bottom:0px;
 }

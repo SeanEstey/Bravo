@@ -2,7 +2,6 @@
   <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    
     <link href='http://fonts.googleapis.com/css?family=Port+Lligat+Sans|Kavoon|Inconsolata' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" />
     <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css" />
@@ -23,24 +22,21 @@
     <script type="text/javascript" src="{{url_for('static', filename='date.js')}}"></script>
     <script type='text/javascript' src="{{url_for('static', filename='bravo.js')}}"></script>
     
-
-    <br>
     <div class='container'>
-    <div style='padding:0.5em; text-align:right'>
-    <a class='glyph' href="{{ url_for('view_admin') }}">
-      <span class="glyphicon glyphicon-cog " aria-hidden="true"></span>
-    </a>
-    </div>
-    <div class='header'>
-      <a href="{{url_for('index')}}">
-        <img id="buit" src="{{ url_for('static', filename='bravo2x.png') }}">
-      </a>
-    </div>
+      <div style='float:right; padding:0.5em; text-align:right'>
+        <a class='glyph' href="{{ url_for('view_admin') }}">
+          <span class="glyphicon glyphicon-cog " aria-hidden="true"></span>
+        </a>
+      </div>
+      <div style='width:200px;' class='center'>
+        <br>
+        <a href="{{url_for('index')}}"><img id="buit" src="{{ url_for('static', filename='bravo2x.png') }}"></a>
+      </div>
       {% block content %}{% endblock %}
-    </div>
-    <br><br>
-    <div id='dialog' title='Whoops!' style='display:none'>
-      <p>Test dialog!</p>
+      
+      <div id='dialog' title='Whoops!' style='display:none'>
+        <p>Test dialog!</p>
+      </div>
     </div>
   </body>
 </html>

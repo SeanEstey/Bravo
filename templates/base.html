@@ -3,7 +3,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link href='http://fonts.googleapis.com/css?family=Port+Lligat+Sans|Kavoon|Inconsolata' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
     <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css" />
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
     
@@ -18,10 +18,11 @@
     <script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
     <script src="http://code.jquery.com/ui/1.11.3/jquery-ui.js"></script>
+
     <script type='text/javascript' src="{{url_for('static', filename='jquery.nicefileinput.min.js')}}"></script>
     <script type="text/javascript" src="{{url_for('static', filename='date.js')}}"></script>
     <script type='text/javascript' src="{{url_for('static', filename='bravo.js')}}"></script>
-    
+      
     <div class='container'>
       <div style='float:right; padding:0.5em; text-align:right'>
         <a class='glyph' href="{{ url_for('view_admin') }}">
@@ -33,10 +34,24 @@
         <a href="{{url_for('index')}}"><img id='buit' src="{{ url_for('static', filename='bravo2x.png') }}"></a>
       </div>
       {% block content %}{% endblock %}
-      
-      <div id='dialog' title='Whoops!' style='display:none'>
-        <p>Test dialog!</p>
-      </div>
     </div>
+
+    <div id='mymodal' class="modal fade">
+      <div style='margin-top:15em' class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+            <h4 class="modal-title">Modal title</h4>
+          </div>
+          <div class="modal-body">
+            <p></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary"></button>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
   </body>
 </html>

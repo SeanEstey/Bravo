@@ -41,11 +41,13 @@ function addBravoTooltip() {
 }
 
 function useJQueryBtn() {
+  /*
   $("input[type=submit], button")
     .button()
     .click(function( event ) {
       event.preventDefault();
     });
+    */
 }
 
 function getServerStatus(variable) {
@@ -386,7 +388,14 @@ function validateNewJobForm() {
     msg += 'The file you selected is not a .CSV';
 
   if(missing.length > 0 || wrong_filetype) {
-    showDialog($('#dialog'), msg);
+    $('.modal-title').text('Missing Fields');
+    $('.modal-body').html(msg);
+    $('.btn-primary').text('Ok');
+    $('.btn-primary').click(function() {
+      $('#mymodal').modal('hide');
+    });
+    $('.btn-default').hide();
+    $('#mymodal').modal('show');
   }
   else if(expired_date) {
     msg = 'The scheduled date is before the present:<br><br>' + 
@@ -394,17 +403,20 @@ function validateNewJobForm() {
     '</b><br><br>' +
     'Do you want to start this job now?';
 
-    var buttons = [
-      { text: "No, let me fix it", 
-        click: function() { $( this ).dialog( "close" ); }}, 
-      { text: 'Yes, start job now', 
-        click: function() { $(this).dialog('close'); $('form').submit();}}
-    ];
-    showDialog($('#dialog'), msg, null, buttons);
+    $('.modal-title').text('Confirm');
+    $('.modal-body').html(msg);
+    $('.btn-primary').text('Start Job');
+    $('.btn-primary').text('No');
+    $('.btn-primary').click(function() {
+      $('form').submit();
+    });
+    $('#mymodal').modal('show');
   }
   else if(invalid_date) {
-    msg = 'Could not understand the date and time provided. Please correct.';
-    showDialog($('#dialog'), msg);
+    $('.modal-title').text('Error');
+    $('.modal-body').text('Could not understand the date and time provided. Please correct.');
+    $('.btn-primary').hide();
+    $('#mymodal').modal('show');
   }
   else {
     $('form').submit(); 
@@ -455,35 +467,30 @@ function initShowCallsView() {
   if($('#job-status').text().indexOf('Pending') >= 0) {
     var args =  window.location.pathname.split('/');
     var job_uuid = args.slice(-1)[0];
+
     $('.delete-btn').each(function(){ 
       $(this).button({
-      icons: {
-        primary: 'ui-icon-trash'
-      },
-      text: false
-    })
+        icons: {
+          primary: 'ui-icon-trash'
+        },
+        text: false
+      });
+
       $(this).click(function(){
-        msg = 'Are you sure you want to cancel this call?';
-        call_uuid = $(this).attr('id');
+        var call_uuid = $(this).attr('id');
         var $tr = $(this).parent().parent();
-        var buttons = [
-          { text: "No", 
-            click: function() { $( this ).dialog( "close" ); }}, 
-          { text: 'Yes', 
-            click: function() { 
-              $(this).dialog('close');
-              var request =  $.ajax({
-                type: 'POST',
-                url: $SCRIPT_ROOT + '/cancel/call',
-                data: {
-                  'call_uuid':call_uuid,
-                  'job_uuid':job_uuid
-              }});
-              request.done(function(msg){
-                if(msg == 'OK')
-                  $tr.remove();});
-        }}];
-        showDialog($('#dialog'), msg, 'Confirm Action', buttons);
+        var request =  $.ajax({
+          type: 'POST',
+          url: $SCRIPT_ROOT + '/cancel/call',
+          data: {
+            'call_uuid':call_uuid,
+            'job_uuid':job_uuid
+          }
+        });
+        request.done(function(msg){
+          if(msg == 'OK')
+            $tr.remove();
+        });
       });
     });
   }
@@ -794,31 +801,29 @@ function initShowJobs() {
 
   $('.delete-btn').each(function(){ 
     $(this).click(function(){
-      msg = 'Are you sure you want to cancel this job?';
       var $tr = $(this).parent().parent();
       var job_uuid = $tr.attr('id');
       console.log('prompt to delete job_id: ' + job_uuid);
-      var buttons = [
-        { text: "No", 
-          click: function() { $( this ).dialog( "close" ); }}, 
-        { text: 'Yes', 
-          click: function() {
-            $(this).dialog('close');
-            var request =  $.ajax({
-              type: 'GET',
-              url: $SCRIPT_ROOT + '/cancel/job/'+job_uuid
-            });
-            request.done(function(msg){
-              if(msg == 'OK')
-                $tr.remove();
-            });
-          }
-        }
-      ];
-      showDialog($('#dialog'), msg, 'Confirm Action', buttons);
+
+      $('.modal-title').text('Confirm');
+      $('.modal-body').text('Really delete this job?');
+      $('.btn-secondary').text('No');
+      $('.btn-primary').text('Yes');
+      $('.btn-primary').click(function() {
+        var request =  $.ajax({
+          type: 'GET',
+          url: $SCRIPT_ROOT + '/cancel/job/'+job_uuid
+        });
+        request.done(function(msg){
+          if(msg == 'OK')
+            $tr.remove();
+        });
+        $('#mymodal').modal('hide'); 
+      });
+
+      $('#mymodal').modal('show');
     });
   });
-
 
   $('body').css('display','block');
 }

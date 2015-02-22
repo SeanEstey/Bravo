@@ -121,7 +121,7 @@ textarea.special-msg {
   width: 24px;
   height: 24px;
 }
-
+/*
 .ui-dialog-osx {
   -moz-border-radius: 0 0 8px 8px;
   -webkit-border-radius: 4px 4px 4px 4px;
@@ -145,7 +145,7 @@ textarea.special-msg {
 .ui-dialog-osx .ui-dialog-titlebar-close {
   visibility: hidden;
 }
-
+*/
 .form-btn {
   border-radius:3px; 
   -webkit-border-radius:3px; 

@@ -241,7 +241,7 @@ def send_email_report(job_id):
 
   msg = utils.print_html(summary) + '<br><br>' + utils.print_html(report)
   subject = 'Job Summary %s' % job['name']
-  utils.send_email('estese@gmail.com', subject, msg)
+  utils.send_email('estese@gmail.com, emptiestowinn@wsaf.ca', subject, msg)
 
 def parse_csv(csvfile, template):
   reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')

@@ -8,8 +8,8 @@
     });
   </script>
   
-  <div style='text-align:center'> 
-    <h3>
+  <div style='margin:40px 10px 40px 10px; text-align:center'>
+    <h3 class='thin'>
     <script>
       var date = new Date();
       document.write('<b>' + date.toString('dddd, MMMM d, yyyy') + '</b>');
@@ -17,9 +17,6 @@
     </h3>
   </div>
   <div id='status-banner' class='status-banner-div'>{{banner_msg}}</div>
-  <div>
-    <br>
-  </div>
   
   <div class='data-container'>
     <div class='navbar-div'>
@@ -87,4 +84,12 @@
       </tbody>
     </table>
   </div>
+  <nav>
+    <ul class="pager">
+      <li><a href="#"><span aria-hidden="true">&laquo;</span>  Newer</a></li>
+      <li><a href="#">Older  <span aria-hidden="true">&raquo;</span></a></li>
+    </ul>
+  </nav>
   {% endblock %}
+
+

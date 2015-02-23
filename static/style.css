@@ -330,17 +330,12 @@ textarea.special-msg {
 
 /***** BOOTSTRAP3 *****/
 
-span.glyphicon-cog {
- font-size: 1.5em;
-}
 
-a.glyph {
-  color: black;
-
-}
-
-a.glyph:hover {
-  color: #2b547e;
+.thin {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  text-rendering: optimizeLegibility !important;
+  -webkit-font-smoothing: antialiased !important;
+  font-weight: lighter;
 }
 
 .table.table-colored {

@@ -277,13 +277,13 @@ def call_db_doc(job, idx, buf_row, errors):
       msg['imported'][field] = buf_row[col]
     else:
       if buf_row[col] == '':
-        errors.append('Row '+str(idx+1)+ ' is missing a date<br>')
+        errors.append('Row '+str(idx+1)+ ': ' + str(buf_row) + ' <b>Missing Date</b><br>')
         return False
       try:
         event_dt_str = parse(buf_row[col])
         msg['imported'][field] = event_dt_str
       except TypeError as e:
-        errors.append('Row '+str(idx+1)+ ' has an invalid date: '+str(buf_row[col])+'<br>')
+        errors.append('Row '+str(idx+1)+ ': ' + str(buf_row) + ' <b>Invalid Date</b><br>')
         return False 
 
   msg['imported']['to'] = strip_phone_num(msg['imported']['to'])
@@ -333,37 +333,30 @@ def view_admin():
 
 @app.route('/submit', methods=['POST'])
 def submit():
-  logger.info('request.values='+json.dumps(request.values.items()))
-  logger.info('request.data='+json.dumps(request.data))
-  logger.info('request.method='+request.method)
-  #logger.info('request.files='+json.dumps(request.files))
-
   # POST request to create new job from new_job.html template
   file = request.files['call_list']
   if file and allowed_file(file.filename):
     filename = secure_filename(file.filename)
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename)) 
     file_path = app.config['UPLOAD_FOLDER'] + '/' + filename
-    logger.info('filename='+filename)
   else:
     logger.info('could not save file')
-    return 'Could not save file'
+    r = json.dumps({'status':'error', 'title': 'Filename Problem', 'msg':'Could not save file'})
+    return Response(response=r, status=200, mimetype='application/json')
 
-  #logger.info('returning OK')
-  #return Response('Completo!', mimetype='text/json')
- 
   # Open and parse file
   try:
     with codecs.open(file_path, 'r', 'utf-8-sig') as f:
       buffer = parse_csv(f, TEMPLATE[request.form['template']])
       if type(buffer) == str:
-        return buffer
-        #return render_template('error.html', title=TITLE, msg=buffer)
+        r = json.dumps({'status':'error', 'title': 'Problem Reading File', 'msg':'Could not parse file'})
+        return Response(response=r, status=200, mimetype='application/json')
       else:
         logger.info('Parsed %d rows from %s', len(buffer), filename) 
   except Exception as e:
     logger.error(str(e))
-    return False
+    r = json.dumps({'status':'error', 'title': 'Problem Reading File', 'msg':'Could not parse file'})
+    return Response(response=r, status=200, mimetype='application/json')
 
   if not request.form['job_name']:
     job_name = filename.split('.')[0].replace('_',' ')
@@ -397,31 +390,25 @@ def submit():
       calls.append(call)
 
   if len(errors) > 0:
-    msg = 'File had the following errors:<br>' + json.dumps(errors)
-    # Delete job document
+    msg = 'The file <b>' + filename + '</b> has some errors:<br><br>'
+    for error in errors:
+      msg += error
     db['jobs'].remove({'_id':job_id})
-    return msg
+    r = json.dumps({'status':'error', 'title':'File Format Problem', 'msg':msg})
+    return Response(response=r, status=200, mimetype='application/json')
 
   db['msgs'].insert(calls)
   logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
 
   jobs = db['jobs'].find().sort('fire_dtime',-1)
   banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(calls)) + ' calls imported.'
+  r = json.dumps({'status':'success', 'msg':banner_msg})
   
-  return 'success'
-  '''
-  return render_template(
-    'show_jobs.html', 
-    title=TITLE, 
-    jobs=jobs, 
-    banner_msg=banner_msg
-  )
-  '''
+  return Response(response=r, status=200, mimetype='application/json')
 
 @app.route('/', methods=['GET'])
 def index():
   if request.method == 'GET':
-    logger.info('GET request at /')
     jobs = db['jobs'].find().sort('fire_dtime',-1)
     return render_template(
       'show_jobs.html', 

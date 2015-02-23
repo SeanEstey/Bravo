@@ -387,6 +387,8 @@ function validateNewJobForm() {
   if(wrong_filetype)
     msg += 'The file you selected is not a .CSV';
 
+  $('#btn-default').addClass('btn-primary');
+
   if(missing.length > 0 || wrong_filetype) {
     $('.modal-title').text('Missing Fields');
     $('.modal-body').html(msg);
@@ -394,7 +396,7 @@ function validateNewJobForm() {
     $('.btn-primary').click(function() {
       $('#mymodal').modal('hide');
     });
-    $('.btn-default').hide();
+    $('#btn-primary').hide();
     $('#mymodal').modal('show');
   }
   else if(expired_date) {
@@ -405,46 +407,56 @@ function validateNewJobForm() {
 
     $('.modal-title').text('Confirm');
     $('.modal-body').html(msg);
-    $('.btn-primary').text('Start Job');
-    $('.btn-primary').text('No');
-    $('.btn-primary').click(function() {
-      $('form').submit();
+    $('#btn-primary').text('Start Job');
+    $('#btn-primary').text('No');
+    $('#btn-primary').click(function() {
+ //     $('form').submit();
     });
     $('#mymodal').modal('show');
   }
   else if(invalid_date) {
-    $('.modal-title').text('Error');
+    $('.modal-title').text('Invalid Date/Time');
     $('.modal-body').text('Could not understand the date and time provided. Please correct.');
-    $('.btn-primary').hide();
+    $('#btn-primary').hide();
     $('#mymodal').modal('show');
   }
   else {
     event.preventDefault();
     var form_data = new FormData($('#myform')[0]);
-    $.ajax({
+    var request = $.ajax({
       type: 'POST',
       url: $SCRIPT_ROOT + '/submit',
       data: form_data,
       contentType: false,
       processData: false,
       dataType: 'json'
-      }).done( function(msg) {
-        console.log('done!');
-        console.log('POST response:'+msg);
-        $('#alert-msg').html(msg);
-        $('#my-alert').fadeIn('slow');
-        
-      }).fail( function(xhr, textStatus, errorThrown) {
-        if(xhr.responseText == 'success') {
-          var end = window.location.href.indexOf('new');
-          window.location.href = window.location.href.substring(0,end);
-        }
-        console.log('fail!');
-        $('#alert-msg').html(xhr.responseText);
-        $('#my-alert').fadeIn('slow');
-      });
+    })
     
-    //$('form').submit(); 
+    request.done(function(response){
+      console.log(response);
+      if(typeof response == 'string')
+        response = JSON.parse(response);
+      if(response['status'] == 'success') {
+        var end = location.href.indexOf('new');
+        location.href = location.href.substring(0,end) + '?msg='+response['msg'];
+      }
+      else if(response['status'] == 'error') {
+        $('.modal-title').text(response['title']);
+        $('.modal-body').html(response['msg']);
+        $('#btn-primary').hide();
+        $('#mymodal').modal('show');
+      }
+    });
+    
+    request.fail(function(xhr, textStatus, errorThrown) {
+      console.log(xhr);
+      console.log(textStatus);
+      console.log(errorThrown);
+      $('.modal-title').text('Error');
+      $('.modal-body').html(xhr.responseText);
+      $('.btn-primary').hide();
+      $('#mymodal').modal('show');
+    });
   }
 }
 
@@ -809,6 +821,13 @@ function initShowJobs() {
     $status_td.text(data['status'].toTitleCase());
     //$('.delete-btn').hide();
   });
+
+  if(location.href.indexOf('?msg=') > -1) {
+    var uri = decodeURIComponent(location.href);
+    var ind = uri.indexOf('?msg=');
+    var msg = uri.substring(ind+5, uri.length);
+    $('#status-banner').text(msg);
+  }
 
   if($('#status-banner').text()) {
     $('#status-banner').fadeIn('slow');

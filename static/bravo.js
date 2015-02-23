@@ -199,7 +199,7 @@ function initNewJobView() {
       $('#record-status').delay(10000);
     });
   });
-  
+
   $('body').css('display','block');
 }
 
@@ -419,7 +419,32 @@ function validateNewJobForm() {
     $('#mymodal').modal('show');
   }
   else {
-    $('form').submit(); 
+    event.preventDefault();
+    var form_data = new FormData($('#myform')[0]);
+    $.ajax({
+      type: 'POST',
+      url: $SCRIPT_ROOT + '/submit',
+      data: form_data,
+      contentType: false,
+      processData: false,
+      dataType: 'json'
+      }).done( function(msg) {
+        console.log('done!');
+        console.log('POST response:'+msg);
+        $('#alert-msg').html(msg);
+        $('#my-alert').fadeIn('slow');
+        
+      }).fail( function(xhr, textStatus, errorThrown) {
+        if(xhr.responseText == 'success') {
+          var end = window.location.href.indexOf('new');
+          window.location.href = window.location.href.substring(0,end);
+        }
+        console.log('fail!');
+        $('#alert-msg').html(xhr.responseText);
+        $('#my-alert').fadeIn('slow');
+      });
+    
+    //$('form').submit(); 
   }
 }
 

@@ -12,8 +12,15 @@
     <h3>Schedule New Job</h3>
   </div>
 
+  <div id='my-alert' style='display:none; width:400px' class="alert alert-danger alert-dismissible center" role="alert">
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+    <label id='alert-msg'>Alert! Warning! Alert!</label>
+  </div>
+
   <div class='box center' style='width:400px; background-color:#f7f7f7; padding:1.5em'>
-    <form action="{{ url_for('index')}}" enctype=multipart/form-data method=post>
+    <form id='myform' enctype=multipart/form-data method=post>
       <fieldset class='form-fieldset'>
       <legend class='scheduler-border'>Calls</legend>
         <div class='form-label'>Job Name</div>

@@ -45,22 +45,6 @@ def celery_check():
     logger.info('Celery process started OK')
     return True
 
-def restart_celery():
-  logger.info('Attempting to restart celery worker...')
-  try:
-    os.system('./celery.sh &')
-  except Exception as e:
-    logger.error('Failed to restart celery worker')
-    return False
-  time.sleep(5)
-  '''
-  if not celery_app.control.inspect().active_queues():
-    logger.error('Failed to restart celery worker')
-    return False
-  '''
-  logger.info('Celery worker restarted')
-  return True
-
 def dial(to):
   try:
     twilio_client = twilio.rest.TwilioRestClient(
@@ -347,32 +331,34 @@ def send_socket(name, data):
 def view_admin():
   return render_template('admin.html')
 
-@app.route('/', methods=['POST', 'GET'])
-def index():
-  if request.method == 'GET':
-    jobs = db['jobs'].find().sort('fire_dtime',-1)
-    return render_template(
-      'show_jobs.html', 
-      title=TITLE, 
-      jobs=jobs
-    )
-  
+@app.route('/submit', methods=['POST'])
+def submit():
+  logger.info('request.values='+json.dumps(request.values.items()))
+  logger.info('request.data='+json.dumps(request.data))
+  logger.info('request.method='+request.method)
+  #logger.info('request.files='+json.dumps(request.files))
+
   # POST request to create new job from new_job.html template
   file = request.files['call_list']
   if file and allowed_file(file.filename):
     filename = secure_filename(file.filename)
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename)) 
     file_path = app.config['UPLOAD_FOLDER'] + '/' + filename
+    logger.info('filename='+filename)
   else:
-    msg = 'Could not save file'
-    return render_template('error.html', title=TITLE, msg=msg)
+    logger.info('could not save file')
+    return 'Could not save file'
+
+  #logger.info('returning OK')
+  #return Response('Completo!', mimetype='text/json')
  
   # Open and parse file
   try:
     with codecs.open(file_path, 'r', 'utf-8-sig') as f:
       buffer = parse_csv(f, TEMPLATE[request.form['template']])
       if type(buffer) == str:
-        return render_template('error.html', title=TITLE, msg=buffer)
+        return buffer
+        #return render_template('error.html', title=TITLE, msg=buffer)
       else:
         logger.info('Parsed %d rows from %s', len(buffer), filename) 
   except Exception as e:
@@ -387,7 +373,6 @@ def index():
   date_string = request.form['date']+' '+request.form['time']
   fire_dtime = parse(date_string)
   
-  # No file errors. Save job + calls to DB.
   job = {
     'name': job_name,
     'template': request.form['template'],
@@ -415,19 +400,34 @@ def index():
     msg = 'File had the following errors:<br>' + json.dumps(errors)
     # Delete job document
     db['jobs'].remove({'_id':job_id})
-    return render_template('error.html', title=TITLE, msg=msg)
+    return msg
 
   db['msgs'].insert(calls)
   logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
 
   jobs = db['jobs'].find().sort('fire_dtime',-1)
   banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(calls)) + ' calls imported.'
+  
+  return 'success'
+  '''
   return render_template(
     'show_jobs.html', 
     title=TITLE, 
     jobs=jobs, 
     banner_msg=banner_msg
   )
+  '''
+
+@app.route('/', methods=['GET'])
+def index():
+  if request.method == 'GET':
+    logger.info('GET request at /')
+    jobs = db['jobs'].find().sort('fire_dtime',-1)
+    return render_template(
+      'show_jobs.html', 
+      title=TITLE, 
+      jobs=jobs
+    )
     
 @app.route('/summarize/<job_id>')
 def get_job_summary(job_id):

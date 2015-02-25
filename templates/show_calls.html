@@ -8,11 +8,13 @@
     });
   </script>
   
-  <div style='margin: 40px 10px 40px 10px; text-align:center'>
-    <h3 class='thin'>
-      <span id='job-status' class='label label-primary'>{{job.status.title()}}</span>
-      <span id='job-summary' class='label label-success'></span>
-    </h3>
+  <div style='margin: 60px 10px 40px 10px; text-align:center'>
+    <h2>
+      <span id='job-header' class='label label-primary'>
+        <label id='job-status'>{{job.status.title()}}</label>
+        <label id='job-summary'></label>
+      </span>
+    </h2>
       <p id='scheduled_datetime' style='display:none'>{{ job.fire_dtime }}</p>
   </div>
   

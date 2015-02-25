@@ -531,7 +531,18 @@ function initShowCallsView() {
       });
     });
   }
-  else {
+  else if($('#job-status').text() == 'In Progress') {
+    $('.delete-btn').hide();
+    $('.cancel-call-col').each(function() {
+      $(this).hide();
+    });
+  }
+  else if($('#job-status').text() == 'Completed') {
+    $('#job-header').removeClass('label-primary');
+    $('#job-header').addClass('label-success');
+    console.log('job complete!');
+    $('#job-status').text('Completed');
+    $('#job-summary').text('');
     $('.delete-btn').hide();
     $('.cancel-call-col').each(function() {
       $(this).hide();
@@ -570,8 +581,11 @@ function initShowCallsView() {
       });
     }
     else if(data['status'] == 'completed') {
+      $('#job-header').removeClass('label-primary');
+      $('#job-header').addClass('label-success');
       console.log('job complete!');
       $('#job-status').text('Completed');
+      $('#job-summary').text('');
     }
       updateJobStatus();
   });
@@ -705,7 +719,7 @@ function makeCallFieldsClickable() {
 
 // View: show_calls
 function updateJobStatus() {
-  if($('#job-status').text().indexOf('Pending') < 0) {
+  if($('#job-status').text() == 'In Progress') {
     var sum = 0;
     var n_sent = 0;
     var n_incomplete = 0;

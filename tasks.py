@@ -6,7 +6,6 @@ from celery.signals import worker_process_init, task_prerun
 import time
 import os
 from datetime import datetime,date
-from secret import *
 from bson.objectid import ObjectId
 import pymongo
 import twilio

@@ -3,7 +3,6 @@ from flask import Flask,render_template,request,g,Response,redirect,url_for
 from flask.ext.socketio import *
 from server_settings import *
 from config import *
-from secret import *
 from bson import Binary, Code, json_util
 from bson.objectid import ObjectId
 import pymongo
@@ -34,7 +33,7 @@ logger.addHandler(handler)
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 app.wsgi_app = ReverseProxied(app.wsgi_app)
-app.debug = True
+app.debug = DEBUG
 socketio = SocketIO(app)
 
 def celery_check():

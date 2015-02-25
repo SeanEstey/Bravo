@@ -8,13 +8,12 @@
     });
   </script>
   
-  <div id='timer' style='margin: 40px 10px 40px 10px; text-align:center'>
+  <div style='margin: 40px 10px 40px 10px; text-align:center'>
     <h3 class='thin'>
-      <label id='job-status'>{{ job.status.title() }}</label> (<label id='job-summary'></label>)
-      <p id='scheduled_datetime' style='display:none'>{{ job.fire_dtime }}</p>
+      <span id='job-status' class='label label-primary'>{{job.status.title()}}</span>
+      <span id='job-summary' class='label label-success'></span>
     </h3>
-  </div>
-  <div>
+      <p id='scheduled_datetime' style='display:none'>{{ job.fire_dtime }}</p>
   </div>
   
   <div class='data-container'>
@@ -71,6 +70,8 @@
   </div>
   <div>
     <br><br>
+
+
     <a class='hover' id='execute-job' href="#">[Start Job]</a>
     <a class='hover' id='reset-job' href="#">[Reset Job]</a>
     <a class='hover' id='dump' href='#'>[DB Dump]</a>

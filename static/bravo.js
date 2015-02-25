@@ -392,8 +392,8 @@ function validateNewJobForm() {
   if(missing.length > 0 || wrong_filetype) {
     $('.modal-title').text('Missing Fields');
     $('.modal-body').html(msg);
-    $('.btn-primary').text('Ok');
-    $('.btn-primary').click(function() {
+    $('#btn-primary').text('Ok');
+    $('#btn-primary').click(function() {
       $('#mymodal').modal('hide');
     });
     $('#btn-primary').hide();
@@ -473,7 +473,7 @@ function initShowCallsView() {
   $('th').each(function(){
     var $a = $('a', $(this));
     var encoded_text = HTMLEncode($a.text());
-    if(encoded_text.indexOf(down_arrow) > 0)
+    if(encoded_text.indexOf(down_arrow) > -1)
       $a.attr('title', 'Sort Descending Order');
     else  
       $a.attr('title', 'Sort Ascending Order');
@@ -483,7 +483,7 @@ function initShowCallsView() {
       var sort_col = id.split('col')[1];
       sortCalls($('#show-calls-table'), sort_col);
       var encoded_text = HTMLEncode($(this).text());
-      if(encoded_text.indexOf(down_arrow) > 0)
+      if(encoded_text.indexOf(down_arrow) > -1)
         $(this).attr('title', 'Sort Descending Order');
       else
         $(this).attr('title', 'Sort Ascending Order');
@@ -501,7 +501,7 @@ function initShowCallsView() {
   });
 
   // Display delete call buttons if job status == PENDING
-  if($('#job-status').text().indexOf('Pending') >= 0) {
+  if($('#job-status').text().indexOf('Pending') > -1) {
     var args =  window.location.pathname.split('/');
     var job_uuid = args.slice(-1)[0];
 
@@ -533,15 +533,17 @@ function initShowCallsView() {
   }
   else {
     $('.delete-btn').hide();
-    $('.cancel-call-col').hide();
+    $('.cancel-call-col').each(function() {
+      $(this).hide();
+    });
   }
 
-  if($('#timer').text().indexOf('Pending') > 0) {
+  if($('#job-status').text().indexOf('Pending') > -1) {
     updateCountdown();
     window.countdown_id = setInterval(updateCountdown, 1000);
   }
 
-  showJobSummary();
+  updateJobStatus();
   
   $('body').css('display','block');
 
@@ -557,13 +559,21 @@ function initShowCallsView() {
     receiveCallUpdate(data);
   });
   socket.on('update_job', function(data) {
+    if(typeof data == 'string')
+      data = JSON.parse(data);
     console.log('received update: ' + JSON.stringify(data));
-    if(data['status'] == 'completed') {
+    if(data['status'] == 'in-progress') {
+      console.log('in progress!');
+      $('#job-status').text('In Progress');
+      $('.cancel-call-col').each(function() {
+        $(this).hide();
+      });
+    }
+    else if(data['status'] == 'completed') {
       console.log('job complete!');
       $('#job-status').text('Completed');
-      showJobSummary();
-      $('.delete-btn').hide();
     }
+      updateJobStatus();
   });
 
   // Show only on test server
@@ -614,7 +624,7 @@ function sortCalls(table, column) {
   var tbody = table.find('tbody');
 
   var $th = $('th:nth-child(' + column + ')');
-  var is_ascending = HTMLEncode($th.text()).indexOf(down_arrow) > 0;
+  var is_ascending = HTMLEncode($th.text()).indexOf(down_arrow) > -1;
   if(is_ascending)
     var sort_by = 'descending';
   else
@@ -653,7 +663,7 @@ function makeCallFieldsClickable() {
     var name = $cell.attr('name');
     if(!name)
       return;
-    if($('#timer').text().indexOf('Pending') < 0)
+    if($('#job-status').text().indexOf('Pending') < 0)
       return;
     if(name == 'message' || name == 'attempts')
       return;
@@ -694,22 +704,21 @@ function makeCallFieldsClickable() {
 }
 
 // View: show_calls
-function showJobSummary() {
-  console.log('job summary called');
-  if($('#job-status').text().indexOf('Completed') >= 0) {
+function updateJobStatus() {
+  if($('#job-status').text().indexOf('Pending') < 0) {
     var sum = 0;
     var n_sent = 0;
     var n_incomplete = 0;
     $('[name="call_status"]').each(function() {
       sum++;
-      if($(this).text().indexOf('Sent') >= 0)
+      if($(this).text().indexOf('Sent') > -1)
         n_sent++;
       else
         n_incomplete++;
     });
 
     var delivered_percent = Math.floor((n_sent / sum) * 100);
-    $('#job-summary').css({'color':'#009900'});
+//    $('#job-summary').css({'color':'#009900'});
     var text = String(delivered_percent) + '% delivered';
     $('#job-summary').text(text);
   }
@@ -720,7 +729,6 @@ function receiveCallUpdate(socket_data) {
   // Clear the countdown timer if it is running
   if(window.countdown_id) {
     clearInterval(window.countdown_id);
-    $('#timer').text('In Progress');
   }
 
   if(typeof socket_data == 'string')
@@ -754,6 +762,8 @@ function receiveCallUpdate(socket_data) {
     var title = 'Msg: ' + socket_data['speak'];
     $row.find('[name="call_status"]').attr('title', title);
   }
+
+  updateJobStatus();
 }
 
 // View: show_calls
@@ -774,13 +784,12 @@ function updateCountdown() {
   var diff_min = ((diff_hrs + 1) % 1) * 60;
   var diff_sec = ((diff_min + 1) % 1) * 60;
   
-  $('#job-summary').css({'color':'#009900'});
-  
-  $summary_lbl.text(
-    Math.floor(diff_days) + ' Days ' + 
-    Math.floor(diff_hrs) + ' Hours ' + 
-    Math.floor(diff_min) + ' Min ' + 
-    Math.floor(diff_sec) + ' Sec');
+  $summary_lbl.text('');
+
+  if(Math.floor(diff_days) > 0)
+    $summary_lbl.text(Math.floor(diff_days) + ' Days ');
+
+  $summary_lbl.text($summary_lbl.text() + Math.floor(diff_hrs) + ' Hours ' + Math.floor(diff_min) + ' Min ' + Math.floor(diff_sec) + ' Sec');
 }
 
 // View: show_jobs
@@ -851,9 +860,9 @@ function initShowJobs() {
 
       $('.modal-title').text('Confirm');
       $('.modal-body').text('Really delete this job?');
-      $('.btn-secondary').text('No');
-      $('.btn-primary').text('Yes');
-      $('.btn-primary').click(function() {
+      $('#btn-secondary').text('No');
+      $('#btn-primary').text('Yes');
+      $('#btn-primary').click(function() {
         var request =  $.ajax({
           type: 'GET',
           url: $SCRIPT_ROOT + '/cancel/job/'+job_uuid

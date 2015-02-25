@@ -17,11 +17,16 @@ Start Flask Server:<br>
 
 Create server_settings.py file with following variables set:<br>
 ```
+DEBUG = True
 DB_NAME = 'test'
 LOCAL_PORT = 5000
 LOCAL_URL = 'http://localhost:5000'
 PUB_URL = 'http://seanestey.ca:8080/bravo'
 TITLE = 'Bravo:8080'
+TWILIO_ACCOUNT_SID = ''
+TWILIO_AUTH_ID = ''
+MAILGUN_API_KEY = ''
+SECRET_KEY = ''
 ```
 
 Setup front end server to redirect to proper proxy addresses (see /config for Nginx .conf file)<br>

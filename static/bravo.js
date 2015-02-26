@@ -500,7 +500,6 @@ function initShowCallsView() {
     $(this).html(string);
   });
 
-  // Display delete call buttons if job status == PENDING
   if($('#job-status').text().indexOf('Pending') > -1) {
     var args =  window.location.pathname.split('/');
     var job_uuid = args.slice(-1)[0];
@@ -532,7 +531,6 @@ function initShowCallsView() {
     });
   }
   else if($('#job-status').text() == 'In Progress') {
-    $('.delete-btn').hide();
     $('.cancel-call-col').each(function() {
       $(this).hide();
     });
@@ -733,7 +731,7 @@ function updateJobStatus() {
 
     var delivered_percent = Math.floor((n_sent / sum) * 100);
 //    $('#job-summary').css({'color':'#009900'});
-    var text = String(delivered_percent) + '% delivered';
+    var text = String(delivered_percent) + '%';
     $('#job-summary').text(text);
   }
 }

@@ -28,9 +28,8 @@
         <li role="presentation"><a href="#"><span class="glyphicon glyphicon-home"></span> Home</a></li>
         <li role="presentation"><a href="{{url_for('view_admin')}}"><span class='glyphicon glyphicon-cog'></span> Settings</a></li>
       </ul>
-      <div style='width:200px;' class='center'>
-        <br>
-        <a href="{{url_for('index')}}"><img id='buit' src="{{ url_for('static', filename='bravo2x.png') }}"></a>
+      <div style='width:200px; margin:0.5em auto' class='center'>
+        <a href="{{url_for('index')}}"><img id='buit' src="{{ url_for('static', filename='bravo_comfortaa.png') }}"></a>
       </div>
       {% block content %}{% endblock %}
     </div>

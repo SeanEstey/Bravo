@@ -37,7 +37,7 @@
         <br>
         <div id='record-audio' style='width:100%; display:none'>
           <div id='record-status' style='font-size:14px; color:#2b547e; text-align:center; padding:0.5em;'></div>
-          <button id='call-btn' class='form-btn green' style='float:right; padding:5px 10px 5px 10px;'>Call Me</button>
+          <button id='call-btn' class='btn btn-info' style='float:right;'>Call Me</button>
           <span style='overflow:hidden; display:block'>
             <input id='phone-num' class='input' name='phone-num' style='width:98%;' type='text' placeholder='Phone Number'></input>
           </span>
@@ -54,7 +54,7 @@
           <div style='display:none'><input id='input-audio-url' name='audio-url'></input></div>
         </div>
         <div id='record-text' style='display:none'>
-          <textarea class='input' name='message' style='height:10em; margin-top:1em' placeholder='Type your announcement' required></textarea>
+          <textarea class='form-control' style='margin:1em 0 0.5em 0;' name='message' rows='7' placeholder='Type your announcement' required></textarea>
         </div>
       </fieldset>
       <br>
@@ -66,7 +66,11 @@
         <input class='input' title="When the job will begin (3pm, 10:30am)" type='time' name="time" required >
       </fieldset>
       <br>
-      <button class='btn btn-primary' style='font-size:20px; width:100%; padding:0.5em' type="button" id="submit_btn" name="submit-btn">Schedule</button>
+      <button 
+        class='btn btn-primary' 
+        style='font-size:20px; width:100%; padding:0.5em' 
+        type="button" id="submit_btn" name="submit-btn">Schedule
+      </button>
     </form>
   </div>
 

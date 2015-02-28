@@ -19,26 +19,34 @@ SCHEDULE_FREQUENCY = 30
 UPLOAD_FOLDER = '/tmp'
 ALLOWED_EXTENSIONS = set(['csv','xls'])
 TEMPLATE = {
+  'etw_reminder_email': [
+    {'header': 'Name', 'field': 'name'},
+    {'header': 'Phone', 'field': 'to', 'status_field': 'call_status'},
+    {'header': 'Email', 'field': 'email', 'status_field': 'email_status'},
+    {'header': 'Status', 'field': 'status'},
+    {'header': 'Next P/U Date', 'field': 'event_date'},
+    {'header': 'Office Notes', 'field': 'office_notes'}
+  ],
   'etw_reminder': [
     {'header': 'Name', 'field': 'name'},
-    {'header': 'Phone', 'field': 'to'},
+    {'header': 'Phone', 'field': 'to', 'status_field': 'call_status'},
     {'header': 'Status', 'field': 'status'},
     {'header': 'Next P/U Date', 'field': 'event_date'},
     {'header': 'Office Notes', 'field': 'office_notes'}
   ],
   'gg_delivery': [
     {'header': 'Name', 'field': 'name'},
-    {'header': 'Phone', 'field': 'to'},
+    {'header': 'Phone', 'field': 'to', 'status_field': 'call_status'},
     {'header': 'Date', 'field': 'event_date'},
     {'header': 'Price', 'field': 'price'}
   ],
   'announce_text': [
     {'header': 'Name', 'field': 'name'},
-    {'header': 'Phone', 'field': 'to'}
+    {'header': 'Phone', 'field': 'to', 'status_field': 'call_status'}
   ],
   'announce_voice': [
     {'header': 'Name', 'field': 'name'},
-    {'header': 'Phone', 'field': 'to'}
+    {'header': 'Phone', 'field': 'to', 'status_field': 'call_status'}
   ]
 }
 

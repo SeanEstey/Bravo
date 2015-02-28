@@ -125,7 +125,7 @@ def get_speak(job, msg, answered_by, medium='voice'):
   repeat_voice = 'To repeat this message press 1. '
   speak = ''
 
-  if job['template'] == 'etw_reminder':
+  if job['template'] == 'etw_reminder' or job['template'] == 'etw_reminder_email':
     etw_intro = 'Hi, this is a friendly reminder that your Empties to WINN '
     if msg['imported']['status'] == 'Dropoff':
       speak += etw_intro + 'dropoff date is ' + date_str + '. If you have any empties you can leave them out by 8am. '
@@ -140,6 +140,11 @@ def get_speak(job, msg, answered_by, medium='voice'):
       speak += repeat_voice
       if msg['imported']['status'] == 'Active':
         speak += 'If you do not need a pickup, press 2. '
+    if medium == 'email':
+      speak += '<p>Your green bags can be placed in front of your house by 8am. Please keep each bag under 30lbs.  Extra glass can be left in cases to the side.</p>'
+      speak += '<p>If you do not need a pick-up please reply to this email so we can notify our driver.</p>'
+      speak += '<p>If you are a new participant, your bag buddy and bag will be dropped off on this date. If you have any empties to give at this time, you can label your bags "WSA".</p>'
+      return speak
   elif job['template'] == 'gg_delivery':
     speak = ('Hi, this is a friendly reminder that your green goods delivery will be on ' +
       date_str + '. Your order total is ' + msg['imported']['price'] + '. ')
@@ -222,9 +227,17 @@ def send_email_report(job_id):
     )
   }
 
+  if job['template'] == 'etw_reminder_email':
+    report['Bounced Emails'] = list(
+      db['msgs'].find(
+        {'job_id':job_id, '$or': [{'email_status': 'bounced', 'email_status': 'dropped'}]},
+        {'imported': 1, '_id': 0}
+      )
+    )
+
   msg = utils.print_html(summary) + '<br><br>' + utils.print_html(report)
   subject = 'Job Summary %s' % job['name']
-  utils.send_email('estese@gmail.com, emptiestowinn@wsaf.ca', subject, msg)
+  utils.send_email(['estese@gmail.com, emptiestowinn@wsaf.ca'], subject, msg)
 
 def parse_csv(csvfile, template):
   reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
@@ -261,16 +274,20 @@ def parse_csv(csvfile, template):
   return buffer
 
 def call_db_doc(job, idx, buf_row, errors):
+  template = TEMPLATE[job['template']]
+  
   msg = {
     'job_id': job['_id'],
-    'call_status': 'pending',
     'attempts': 0,
     'imported': {}
   }
   # Translate column names to mongodb names ('Phone'->'to', etc)
   #logger.info(str(buf_row))
-  template = TEMPLATE[job['template']]
+
   for col in range(0, len(template)):
+    if 'status_field' in template[col]:
+      msg[template[col]['status_field']] = 'pending'
+
     field = template[col]['field']
     if field != 'event_date':
       msg['imported'][field] = buf_row[col]
@@ -537,6 +554,30 @@ def request_execute_job(job_id):
 
   return 'OK'
 
+@app.route('/request/email/<job_id>')
+def request_email_job(job_id):
+  job_id = job_id.encode('utf-8')
+  job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+  messages = db['msgs'].find({'job_id':ObjectId(job_id)}) #{'imported.email':1})
+  emails = []
+  for message in messages:
+    email = message['imported']['email']
+    body = get_speak(job, message, 'machine', medium='email')
+    subject = 'Empties to WINN Pickup Reminder'
+    r = utils.send_email([email], subject, body)
+    logger.info(r.text)
+    r = json.loads(r.text)
+    db['msgs'].update(
+      {'_id':message['_id']}, 
+      {'$set': {
+        'mid':r['id'],
+        'email_status': 'queued'
+        }
+      }
+    )
+
+  return 'OK'
+
 @app.route('/jobs/<job_id>')
 def show_calls(job_id):
   sort_by = 'name' 
@@ -573,10 +614,14 @@ def job_complete(job_id):
 
 @app.route('/reset/<job_id>')
 def reset_job(job_id):
+  #template = TEMPLATE[job['template']]
+  
   db['msgs'].update(
     {'job_id': ObjectId(job_id)}, 
     {'$set': {
+      # TODO: only include status fields defined by Template
       'call_status': 'pending',
+      'email_status': 'pending',
       'attempts': 0
     }},
     multi=True
@@ -586,6 +631,7 @@ def reset_job(job_id):
     {'job_id': ObjectId(job_id)}, 
     {'$unset': {
       'answered_by': '',
+      'mid': '',
       'error_msg': '',
       'message': '',
       'sid': '',
@@ -804,6 +850,18 @@ def process_fallback():
     return 'OK'
   except Exception, e:
     logger.error('%s /call/fallback' % request.values.items(), exc_info=True)
+    return str(e)
+
+@app.route('/email/status',methods=['POST'])
+def email_status():
+  try:
+    logger.info(request.form['recipient'] + ' ' + request.form['event'])
+    mid = request.form['Message-Id']
+    db['msgs'].update({'mid':mid},{'$set':{'email_status':request.form['event']}})
+
+    return 'OK'
+  except Exception, e:
+    logger.error('%s /email/status' % request.values.items(), exc_info=True)
     return str(e)
 
 if __name__ == "__main__":

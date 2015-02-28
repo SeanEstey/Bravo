@@ -26,12 +26,18 @@
     <table id='show-calls-table' class='table table-hover table-colored'>
       <thead>
         <tr>
+          <!-- Imported Headers -->
           {% set col_num=1 %}
           {% for column in template %}
           <th id='col{{ col_num }}'><a title='Sort' class='hover' href='#'>{{ column['field'].title().replace('_', ' ') }}</a></th>
           {% set col_num = col_num + 1 %}
           {% endfor %}
-          <th id='col{{template|length+1}}'><a title='Sort' class='hover' href='#'>Status</a></th>
+          <!-- Status Headers -->
+          {% for column in template %}
+            {% if 'status_field' in column %}
+              <th id='col{{template|length+1}}'><a title='Sort' class='hover' href='#'>{{column['status_field'].title().replace('_', ' ')}}</a></th>
+            {% endif %}
+          {% endfor %}
           <th class='cancel-call-col'></th>
         </tr>
       </thead>
@@ -39,9 +45,11 @@
         {% set row_num=1 %}
         {%  for call in calls %}
         <tr id='{{ call._id }}'>
+          <!-- Imported Fields -->
           {% for column in template %}
             <td name='{{column.field}}'>{{call.imported[column.field]}}</td>
           {% endfor %}
+          <!-- Status Fields -->
           {% if call.call_status == "completed" %}
             {% if call.answered_by == "machine" %}
               {% set caption="Sent Voicemail" %}
@@ -56,6 +64,14 @@
           {% else %}
             <td name='call_status'>{{ call.call_status + ' (' ~ call.attempts + 'x)' }}</td>
           {% endif %}
+          {% for column in template %}
+            {% if 'status_field' in column %}
+              <!-- HACK. Fixme. -->
+              {% if column['status_field'] == 'email_status' %}
+                <td name='{{status_field}}'>{{call[column['status_field']].title()}}</td>
+              {% endif %}
+            {% endif %}
+          {% endfor %} 
           <td class='cancel-call-col'>
             <button 
               class='delete-btn' 
@@ -75,6 +91,7 @@
 
 
     <a class='hover' id='execute-job' href="#">[Start Job]</a>
+    <a class='hover' id='email-job' href="#">[Email Job]</a>
     <a class='hover' id='reset-job' href="#">[Reset Job]</a>
     <a class='hover' id='dump' href='#'>[DB Dump]</a>
   </div>

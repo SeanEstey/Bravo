@@ -5,7 +5,6 @@ import re
 from bson import json_util
 import json
 
-
 def has_bounced(address):
   send_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/bounces'
   r = requests.get(
@@ -41,14 +40,14 @@ def get_today_fails():
   )
 
 
-def send_email(recipient, subject, msg):
+def send_email(recipients, subject, msg):
   send_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/messages'
   return requests.post(
     send_url,
     auth=('api', MAILGUN_API_KEY),
     data={
       'from': FROM_EMAIL,
-      'to': [recipient],
+      'to': recipients,
       'subject': subject,
       'html': msg
   })
@@ -65,9 +64,14 @@ def print_html(dictObj):
         p+='<li>['+str(idx+1)+']'+print_html(item)+'</li>'
       p+='</ul>'
     else:
-      p+='<li>'+ to_title_case(k)+ ': '+ to_title_case(json_util.dumps(v))+ '</li>'
+      #p+='<li>'+ to_title_case(k)+ ': '+ to_title_case(json_util.dumps(v))+ '</li>'
+      p+='<li>'+ to_title_case(k)+ ': '+ remove_quotes(json_util.dumps(v)) + '</li>'
   p+='</ul>'
   return p
+
+def remove_quotes(s):
+  s = re.sub(r'\"', '', s)
+  return s
 
 def to_title_case(s):
   s = re.sub(r'\"', '', s)

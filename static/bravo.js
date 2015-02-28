@@ -600,6 +600,13 @@ function initShowCallsView() {
         url: url
       });
     });
+    $('#email-job').click(function() {
+      var url = $SCRIPT_ROOT + '/request/email/' + job_uuid;
+      var request =  $.ajax({
+        type: 'GET',
+        url: url
+      });
+    });
     $('#reset-job').click(function() {
       var request =  $.ajax({
         type: 'GET',

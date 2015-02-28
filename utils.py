@@ -3,6 +3,43 @@ from server_settings import *
 import requests
 import re
 from bson import json_util
+import json
+
+
+def has_bounced(address):
+  send_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/bounces'
+  r = requests.get(
+    send_url + '/' + address, 
+    auth=('api', MAILGUN_API_KEY)
+  )
+  
+  r = json.loads(r.content)
+  
+  if 'bounce' in r:
+    return True
+  else:
+    return False
+
+def get_today_fails():
+  from email.Utils import formatdate
+  import time
+  import datetime
+  #fire_dtime = db['jobs'].find({'_id':id})
+  fire_dtime = datetime.datetime.now()
+  timetuple = fire_dtime.timetuple()
+  stamp = time.mktime(timetuple) - 10000
+
+  send_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/events'
+  return requests.get(
+    send_url,
+    auth=('api', MAILGUN_API_KEY),
+    params={
+      'event' : 'rejected OR failed',
+      'begin' : formatdate(stamp),
+      'ascending' : 'yes'
+    }
+  )
+
 
 def send_email(recipient, subject, msg):
   send_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/messages'

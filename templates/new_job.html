@@ -28,13 +28,12 @@
         <div class='form-label'>Call List</div>
         <input id='call-list-div' title='Upload a .CSV file' class="nice" type="file" name="call_list" required >
         <div class='form-label'>Template</div>
-        <select name='template' class='input' id='template-select'>
-          <option class='opt' value='etw_reminder'>Empties to Winn Reminder</option>
-          <option class='opt' value='gg_delivery'>Green Goods Delivery</option>
-          <option class='opt' value='announce_voice'>Voice Announcement (Recording)</option>
-          <option class='opt' value='announce_text'>Voice Announcement (Text)</option>
+        <select name='template' class='form-control' id='template-select'>
+          <option value='etw_reminder'>Empties to Winn Reminder</option>
+          <option value='gg_delivery'>Green Goods Delivery</option>
+          <option value='announce_voice'>Voice Announcement (Recording)</option>
+          <option value='announce_text'>Voice Announcement (Text)</option>
         </select>
-        <br>
         <div id='record-audio' style='width:100%; display:none'>
           <div id='record-status' style='font-size:14px; color:#2b547e; text-align:center; padding:0.5em;'></div>
           <button id='call-btn' class='btn btn-info' style='float:right;'>Call Me</button>

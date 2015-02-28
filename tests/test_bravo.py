@@ -105,8 +105,14 @@ class BravoTestCase(unittest.TestCase):
     self.assertEquals(response.content, 'OK')
   
   def test_scheduler(self):
-    r = tasks.run_scheduler.apply_async(queue=DB_NAME)
-    self.assertTrue(r > 0)
+    # Tricky to test because it fires another sync call to execute_job
+    # But the function returns num pending jobs. If we call it twice and
+    # a job executes the first time, the second time it should return a lower
+    # value for num pending jobs
+    num_pending = tasks.run_scheduler() #.apply_async(queue=DB_NAME)
+    num_pending2 = tasks.run_scheduler() #.apply_async(queue=DB_NAME)
+    print 'num_pending2='+str(num_pending2)+', num_pending1='+str(num_pending)
+    self.assertTrue(num_pending2 < num_pending)
 
   def test_execute_job(self):
     tasks.REDIAL_DELAY = 1

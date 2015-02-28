@@ -316,7 +316,6 @@ textarea.special-msg {
 .table.table-colored {
   background-color: #f7f7f7;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  /*text-shadow: 1px 1px 1px rgba(0,0,0,0.004);*/
   text-rendering: optimizeLegibility !important;
   -webkit-font-smoothing: antialiased !important;
   font-size:11pt;
@@ -326,8 +325,6 @@ textarea.special-msg {
 .table.table-colored td {
   max-width:200px;
   padding:3px 10px 3px 10px;
-  /*color: #365766;*/
-  /*color: #50757D;*/
   color: #2b547e;
   vertical-align:middle;
 }

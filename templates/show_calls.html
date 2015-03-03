@@ -29,19 +29,25 @@
           <!-- Imported Headers -->
           {% set col_num=1 %}
           {% for column in template %}
-          <th id='col{{ col_num }}'><a title='Sort' class='hover' href='#'>{{ column['field'].title().replace('_', ' ') }}</a></th>
+          <th style='text-align:center' id='col{{ col_num }}'>
+            <a title='Sort' class='hover' href='#'>{{ column['field'].title().replace('_', ' ') }}</a>
+          </th>
           {% set col_num = col_num + 1 %}
           {% endfor %}
           <!-- Status Headers -->
+          {% set col_num = template|length+1 %}
           {% for column in template %}
             {% if 'status_field' in column %}
-              <th id='col{{template|length+1}}'><a title='Sort' class='hover' href='#'>{{column['status_field'].title().replace('_', ' ')}}</a></th>
+              <th style='text-align:center'  id='col{{col_num}}'>
+                <a title='Sort' class='hover' href='#'>{{column['status_field'].title().replace('_', ' ')}}</a>
+              </th>
+            {% set col_num = col_num + 1 %}
             {% endif %}
           {% endfor %}
-          <th class='cancel-call-col'></th>
+          <th class='cancel-call-col' style='width:50px'></th>
         </tr>
       </thead>
-      <tbody>
+      <tbody style='WORD-BREAK:BREAK-ALL'>
         {% set row_num=1 %}
         {%  for call in calls %}
         <tr id='{{ call._id }}'>
@@ -51,27 +57,51 @@
           {% endfor %}
           <!-- Status Fields -->
           {% if call.call_status == "completed" %}
+            {% set tooltip = call.speak %}
+            {% set label="label label-success" %}
             {% if call.answered_by == "machine" %}
               {% set caption="Sent Voicemail" %}
             {% else %}
               {% set caption="Sent Live" %}
             {% endif %}
-              <td name='call_status' title='"{{call.speak}}"'>{{caption}}</td>
           {% elif call.call_status == "pending" %}
-            <td name='call_status'>Pending</td>
+            {% set label="label label-default" %}
+            {% set caption="Pending" %}
           {% elif call.call_status == "failed" %}
-            <td name='call_status'>Failed ({{call.error_msg}})</td>
+            {% set label="label label-danger" %}
+            {% set caption=call.error_msg.title() %}
           {% else %}
-            <td name='call_status'>{{ call.call_status + ' (' ~ call.attempts + 'x)' }}</td>
+            {% set label = "label label-primary" %}
+            {% set caption = call.call_status.title() + ' (' ~ call.attempts + 'x)' %}
           {% endif %}
+          <td title='"{{tooltip}}"'>
+            <span style='text-align:right; font-size:14' name='call_status_lbl' class='pull-right {{label}}'>{{caption}}</span>
+          </td>
+          
           {% for column in template %}
             {% if 'status_field' in column %}
               <!-- HACK. Fixme. -->
-              {% if column['status_field'] == 'email_status' %}
-                <td name='{{status_field}}'>{{call[column['status_field']].title()}}</td>
+              {% if column["status_field"] == "email_status" %}
+                {% if call["email_status"] == "delivered" %}
+                  {% set caption = "Sent" %}
+                  {% set label = "label label-success" %}
+                {% elif call["email_status"] == "dropped" or call["email_status"] == "bounced" %}
+                  {% set caption = "Bounced" %}
+                  {% set label = "label label-danger" %}
+                {% elif call["email_status"] == "pending" %}
+                  {% set caption = "Pending" %}
+                  {% set label = "label label-default" %}
+                {% else %}
+                  {% set caption = call["email_status"].title() %}
+                  {% set label = "label label-primary" %}
+                {% endif %}
+                  
+                <td>
+                  <span style='text-align:right; font-size:14' name='email_status_lbl' class='pull-right {{label}}'>{{caption}}</span>
+                </td>
               {% endif %}
             {% endif %}
-          {% endfor %} 
+          {% endfor %}
           <td class='cancel-call-col'>
             <button 
               class='delete-btn' 

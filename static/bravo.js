@@ -174,6 +174,7 @@ function initNewJobView() {
       $('#duration').text(String(rounded)+' sec'); 
     }, false);
 
+    event.preventDefault();
     var phone = $('#phone-num').val();
     var request =  $.ajax({
       type: 'POST',
@@ -490,8 +491,8 @@ function initShowCallsView() {
       });
   });
 
-  $('[name="call_status"]').each(function() {
-    formatCallStatus($(this), $(this).text());
+  $('[name="call_status_lbl"]').each(function() {
+//    formatCallStatus($(this), $(this).text());
   });
   
   $('[name="event_date"]').each(function() {
@@ -564,8 +565,8 @@ function initShowCallsView() {
     socket.emit('connected');
     console.log('socket.io connected!');
   });
-  socket.on('update_call', function(data) {
-    receiveCallUpdate(data);
+  socket.on('update_msg', function(data) {
+    receiveMsgUpdate(data);
   });
   socket.on('update_job', function(data) {
     if(typeof data == 'string')
@@ -625,12 +626,20 @@ function initShowCallsView() {
 // View: show_calls
 function formatCallStatus($cell, text) {
   text = text.toTitleCase();
+/*
+  if(text.indexOf('Sent') > -1) {
+    $(this).removeClass('label-primary').removeClass('label-danger');
+    $(this).addClass('label-success');
+  }
+  */
+ /* 
   if(text.indexOf('Sent') > -1)
     $cell.css({'color':'#009900'});
   else if(text.indexOf('Failed') > -1)
     $cell.css({'color': '#C00000'});
   else
     $cell.css({'color':'#365766'});
+*/
 
   $cell.html(text);
 }
@@ -744,41 +753,72 @@ function updateJobStatus() {
 }
 
 // View: show_calls
-function receiveCallUpdate(socket_data) {
+function receiveMsgUpdate(data) {
   // Clear the countdown timer if it is running
-  if(window.countdown_id) {
+  if(window.countdown_id)
     clearInterval(window.countdown_id);
-  }
 
-  if(typeof socket_data == 'string')
-    socket_data = JSON.parse(socket_data);
+  if(typeof data == 'string')
+    data = JSON.parse(data);
 
-  console.log('received update: ' + JSON.stringify(socket_data));
-  // Find matching row_id to update
-  var $row = $('#'+socket_data['id']);
-  if('call_status' in socket_data) {
-    $cell = $row.find('[name="call_status"]');
-    var caption = socket_data['call_status'];
-    if(socket_data['call_status'] == 'completed') {
-      if(socket_data['answered_by'] == 'human')
+  console.log('received update: ' + JSON.stringify(data));
+  var $row = $('#'+data['id']);
+ 
+  // Update to CALL state 
+  if('call_status' in data) {
+    $lbl = $row.find('[name="call_status_lbl"]');
+    var caption = data['call_status'];
+    
+    if(data['call_status'] == 'completed') {
+      $lbl.removeClass('label-primary').removeClass('label-danger');
+      $lbl.addClass('label-success');
+
+      if(data['answered_by'] == 'human')
         caption = 'Sent Live';
-      else if(socket_data['answered_by'] == 'machine')
+      else if(data['answered_by'] == 'machine')
         caption = 'Sent Voicemail';
     }
-    else if(socket_data['call_status'] == 'failed') {
-      if('error_msg' in socket_data)
-        caption = 'Failed (' + socket_data['error_msg'] + ')';
+    else if(data['call_status'] == 'failed') {
+      $lbl.removeClass('label-primary').removeClass('label-default');
+      $lbl.addClass('label-danger');
+
+      if('error_msg' in data)
+        caption = 'Failed (' + data['error_msg'] + ')';
       else
         caption = 'Failed';
     }
-    else if(socket_data['call_status'] == 'busy' || socket_data['call_status'] == 'no-answer')
-      caption += ' (' + socket_data['attempts'] + 'x)';
+    else if(data['call_status'] == 'busy' || data['call_status'] == 'no-answer')
+      caption += ' (' + data['attempts'] + 'x)';
+    else {
+      $lbl.removeClass('label-default');
+      $lbl.addClass('label-primary');
+    }
 
-    formatCallStatus($cell, caption);
-//    $cell.html(caption.toTitleCase()); 
+    $lbl.html(caption.toTitleCase()); 
   }
-  if('speak' in socket_data) {
-    var title = 'Msg: ' + socket_data['speak'];
+  // Update to EMAIL state
+  else if('email_status' in data) {
+    $lbl = $row.find('[name="email_status_lbl"]');
+    var caption = data['email_status'];
+    
+    if(data['email_status'] == 'delivered') {
+      $lbl.removeClass('label-primary').removeClass('label-default');
+      $lbl.addClass('label-success');
+    }
+    else if(data['email_status'] == 'bounced' || data['email_status'] == 'dropped') {
+      $lbl.removeClass('label-primary').removeClass('label-default');
+      $lbl.addClass('label-danger');
+    }
+    else if(data['email_status'] == 'queued') {
+      $lbl.removeClass('label-default');
+      $lbl.addClass('label-primary');
+    }
+    
+    $lbl.text(caption.toTitleCase()); 
+  }
+
+  if('speak' in data) {
+    var title = 'Msg: ' + data['speak'];
     $row.find('[name="call_status"]').attr('title', title);
   }
 
@@ -940,7 +980,7 @@ function objToHtml(obj, indents, ignores) {
     // Primitive
     else if(typeof obj[key] != 'object') {
       str += indent + key.toTitleCase() + ': ';
-      str += '<label style="color:green;">' + String(obj[key]).toTitleCase() + '</label><br>';
+      str += '<label style="color:green;">' + String(obj[key]) + '</label><br>';
     }
     // Date
     else if(toClass.call(obj[key]) == '[object Date]')

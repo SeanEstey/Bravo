@@ -108,6 +108,29 @@ def sms(to, msg):
 
     return False
 
+def get_email_body(job, msg):
+  try:
+    date_str = msg['imported']['event_date'].strftime('%A, %B %d')
+  except TypeError:
+    logger.error('Invalid date in get_email: ' + str(msg['imported']['event_date']))
+    return False
+
+  body = ''
+
+  if job['template'] == 'etw_reminder_email':
+    if msg['imported']['status'] == 'Active':
+      body += '<p>Hi, your upcoming Empties to WINN pickup date is ' + date_str + '</p>'
+      body += '<p>Your green bags can be placed in front of your house by 8am. Please keep each bag under 30lbs.  Extra glass can be left in cases to the side.</p>'
+      body += '<p>If you do not need a pick-up please reply to this email so we can notify our driver.</p>'
+    elif msg['imported']['status'] == 'Dropoff':
+      return False
+    elif msg['imported']['status'] == 'Cancelling':
+      body += '<p>Hi, this is a reminder that a driver will be by on ' + date_str + ' to pick up your Empties to WINN collection stand. Thanks for your support.</p>'
+
+    body += "<br><p style='text-align:center'>1-888-YOU-WINN</p>"
+    body += "<p style='text-align:center'><a href='http://www.emptiestowinn.com'>www.emptiestowinn.com</a></p>"
+    return body
+  
 def get_speak(job, msg, answered_by, medium='voice'):
   # Simplest case: announce_voice template. Play audio file
   if job['template'] == 'announce_voice':
@@ -140,11 +163,7 @@ def get_speak(job, msg, answered_by, medium='voice'):
       speak += repeat_voice
       if msg['imported']['status'] == 'Active':
         speak += 'If you do not need a pickup, press 2. '
-    if medium == 'email':
-      speak += '<p>Your green bags can be placed in front of your house by 8am. Please keep each bag under 30lbs.  Extra glass can be left in cases to the side.</p>'
-      speak += '<p>If you do not need a pick-up please reply to this email so we can notify our driver.</p>'
-      speak += '<p>If you are a new participant, your bag buddy and bag will be dropped off on this date. If you have any empties to give at this time, you can label your bags "WSA".</p>'
-      return speak
+
   elif job['template'] == 'gg_delivery':
     speak = ('Hi, this is a friendly reminder that your green goods delivery will be on ' +
       date_str + '. Your order total is ' + msg['imported']['price'] + '. ')
@@ -332,7 +351,7 @@ def request_send_socket():
   send_socket(name, data)
   return 'OK'
 
-# socket name 'update_call' must provide msg['_id'] from mongodb
+# socket name 'update_msg' must provide msg['_id'] from mongodb
 # Emit socket.io msg if client connection established.
 def send_socket(name, data):
   if not socketio.server:
@@ -562,7 +581,9 @@ def request_email_job(job_id):
   emails = []
   for message in messages:
     email = message['imported']['email']
-    body = get_speak(job, message, 'machine', medium='email')
+    body = get_email_body(job, message)
+    if not body:
+      continue
     subject = 'Empties to WINN Pickup Reminder'
     r = utils.send_email([email], subject, body)
     logger.info(r.text)
@@ -631,8 +652,10 @@ def reset_job(job_id):
     {'job_id': ObjectId(job_id)}, 
     {'$unset': {
       'answered_by': '',
+      'call_duration': '',
       'mid': '',
       'error_msg': '',
+      'error_code': '',
       'message': '',
       'sid': '',
       'speak': '',
@@ -727,7 +750,7 @@ def content():
         )
         call = db['msgs'].find_one({'sid':sid})
         send_socket(
-          'update_call', {
+          'update_msg', {
             'id': str(call['_id']),
             'call_status': call_status
           }
@@ -756,7 +779,10 @@ def content():
               'rfu': True
             }}
           )
-          send_socket('update_call', {'office_notes':no_pickup})
+          send_socket('update_msg', {
+            'id': str(call['_id']),
+            'office_notes':no_pickup
+            })
 
     response = twilio.twiml.Response()
     response.say('Goodbye', voice='alice')
@@ -804,7 +830,7 @@ def process_status():
     )
     fields['id'] = str(call['_id'])
     fields['attempts'] = call['attempts']
-    send_socket('update_call', fields)
+    send_socket('update_msg', fields)
     return 'OK'
   except Exception, e:
     logger.error('%s /call/hangup' % request.values.items(), exc_info=True)
@@ -832,7 +858,7 @@ def sms_status():
       'id': str(msg_doc['_id']),
       'call_status': sms_status
     }
-    send_socket('update_call', fields)
+    send_socket('update_msg', fields)
 
     return 'OK'
   except Exception, e:
@@ -855,9 +881,12 @@ def process_fallback():
 @app.route('/email/status',methods=['POST'])
 def email_status():
   try:
+    #logger.info(request.values.items())
     logger.info(request.form['recipient'] + ' ' + request.form['event'])
     mid = request.form['Message-Id']
     db['msgs'].update({'mid':mid},{'$set':{'email_status':request.form['event']}})
+    msg = db['msgs'].find_one({'mid':mid})
+    send_socket('update_msg', {'id':str(msg['_id']), 'email_status': request.form['event']})
 
     return 'OK'
   except Exception, e:

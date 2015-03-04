@@ -577,25 +577,39 @@ def request_execute_job(job_id):
 def request_email_job(job_id):
   job_id = job_id.encode('utf-8')
   job = db['jobs'].find_one({'_id':ObjectId(job_id)})
-  messages = db['msgs'].find({'job_id':ObjectId(job_id)}) #{'imported.email':1})
+  messages = db['msgs'].find({'job_id':ObjectId(job_id)})
   emails = []
   for message in messages:
-    email = message['imported']['email']
-    body = get_email_body(job, message)
-    if not body:
+    if message['email_status'] != 'pending':
       continue
-    subject = 'Empties to WINN Pickup Reminder'
-    r = utils.send_email([email], subject, body)
-    logger.info(r.text)
-    r = json.loads(r.text)
-    db['msgs'].update(
-      {'_id':message['_id']}, 
-      {'$set': {
-        'mid':r['id'],
-        'email_status': 'queued'
+    if not message['imported']['email']:
+      db['msgs'].update(
+        {'_id':message['_id']}, 
+        {'$set': {'email_status': 'no_email'}}
+      )
+      send_socket('update_msg', {'id':str(message['_id']), 'email_status': 'no_email'})
+    else:
+      body = get_email_body(job, message)
+      if not body:
+        continue
+      subject = 'Empties to WINN Pickup Reminder'
+      r = utils.send_email([message['imported']['email']], subject, body)
+      
+      r = json.loads(r.text)
+      state = 'queued'
+      if r['message'].find('Queued') != 0:
+        state = r['message']
+      logger.info('%s %s', message['imported']['email'], state)
+
+      db['msgs'].update(
+        {'_id':message['_id']}, 
+        {'$set': {
+          'mid':r['id'],
+          'email_status': state
+          }
         }
-      }
-    )
+      )
+      send_socket('update_msg', {'id':str(message['_id']), 'email_status': 'queued'})
 
   return 'OK'
 
@@ -881,11 +895,33 @@ def process_fallback():
 @app.route('/email/status',methods=['POST'])
 def email_status():
   try:
-    #logger.info(request.values.items())
-    logger.info(request.form['recipient'] + ' ' + request.form['event'])
+    event = request.form['event']
+    recipient = request.form['recipient']
     mid = request.form['Message-Id']
-    db['msgs'].update({'mid':mid},{'$set':{'email_status':request.form['event']}})
     msg = db['msgs'].find_one({'mid':mid})
+    # Email may be for job summary or other purposes not needing this webhook callback
+    if not msg:
+      return False 
+    
+    error_msg = ''
+    if event == 'bounced':
+      logger.info('%s %s (%s). %s', recipient, event, request.form['code'], request.form['error'])
+      db['msgs'].update({'mid':mid},{'$set':{
+        'email_status': event,
+        'email_error': request.form['code'] + '. ' + request.form['error']
+        }}
+      )
+    elif event == 'dropped':
+      logger.info('%s %s (%s). %s', recipient, event, request.form['reason'], request.form['description'])
+      db['msgs'].update({'mid':mid},{'$set':{
+        'email_status': event,
+        'email_error': request.form['reason'] + '. ' + request.form['description']
+        }}
+      )
+    else:
+      logger.info('%s %s', recipient, event)
+      db['msgs'].update({'mid':mid},{'$set':{'email_status':event}})
+
     send_socket('update_msg', {'id':str(msg['_id']), 'email_status': request.form['event']})
 
     return 'OK'

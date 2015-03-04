@@ -813,6 +813,9 @@ function receiveMsgUpdate(data) {
       $lbl.removeClass('label-default');
       $lbl.addClass('label-primary');
     }
+    else if(data['email_status'] == 'no_email') {
+      //$lbl.removeCl
+    }
     
     $lbl.text(caption.toTitleCase()); 
   }

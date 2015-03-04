@@ -326,7 +326,7 @@ textarea.special-msg {
 
 .table.table-colored td {
   max-width:200px;
-  padding:8px 8px 8px 8px;
+  padding:4px 8px 4px 8px;
   color: #2b547e;
   vertical-align:middle;
 }

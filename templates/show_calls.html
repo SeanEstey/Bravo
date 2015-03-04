@@ -69,7 +69,7 @@
             {% set caption="Pending" %}
           {% elif call.call_status == "failed" %}
             {% set label="label label-danger" %}
-            {% set caption=call.error_msg.title() %}
+            {% set caption=call.error_msg.title().replace('_', ' ') %}
           {% else %}
             {% set label = "label label-primary" %}
             {% set caption = call.call_status.title() + ' (' ~ call.attempts + 'x)' %}
@@ -83,13 +83,19 @@
               <!-- HACK. Fixme. -->
               {% if column["status_field"] == "email_status" %}
                 {% if call["email_status"] == "delivered" %}
-                  {% set caption = "Sent" %}
+                  {% set caption = "Delivered" %}
                   {% set label = "label label-success" %}
-                {% elif call["email_status"] == "dropped" or call["email_status"] == "bounced" %}
+                {% elif call["email_status"] == "dropped" %}
+                  {% set caption = "Dropped" %}
+                  {% set label = "label label-danger" %}
+                {% elif call["email_status"] == "bounced" %}
                   {% set caption = "Bounced" %}
                   {% set label = "label label-danger" %}
                 {% elif call["email_status"] == "pending" %}
                   {% set caption = "Pending" %}
+                  {% set label = "label label-default" %}
+                {% elif call["email_status"] == "no_email" %}
+                  {% set caption = "No Email" %}
                   {% set label = "label label-default" %}
                 {% else %}
                   {% set caption = call["email_status"].title() %}

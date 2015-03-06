@@ -320,7 +320,7 @@ textarea.special-msg {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   text-rendering: optimizeLegibility !important;
   -webkit-font-smoothing: antialiased !important;
-  /*font-size:11pt;*/
+  font-size:11pt;
   margin-bottom:0px;
 }
 
@@ -329,6 +329,9 @@ textarea.special-msg {
   padding:4px 8px 4px 8px;
   color: #2b547e;
   vertical-align:middle;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  text-rendering: optimizeLegibility !important;
+  -webkit-font-smoothing: antialiased !important;
 }
 
 .table.table-colored.table-hover tbody tr:hover td {

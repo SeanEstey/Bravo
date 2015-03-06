@@ -501,6 +501,13 @@ function initShowCallsView() {
     $(this).html(string);
   });
 
+  $('[name="to"]').each(function() {
+ //   var to = $(this).val();
+ //   to = to.replace(/\s/g, '');
+ //   to = to.replace(/\)/g
+    
+  });
+
   if($('#job-status').text().indexOf('Pending') > -1) {
     var args =  window.location.pathname.split('/');
     var job_uuid = args.slice(-1)[0];

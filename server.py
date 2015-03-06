@@ -54,7 +54,7 @@ def dial(to):
       from_ = FROM_NUMBER,
       to = '+1'+to,
       url = PUB_URL + '/call/answer',
-      status_callback = PUB_URL + '/call/hangup',
+      status_callback = PUB_URL + '/call/status',
       status_method = 'POST',
       method = 'POST',
       if_machine = 'Continue'
@@ -575,43 +575,47 @@ def request_execute_job(job_id):
 
 @app.route('/request/email/<job_id>')
 def request_email_job(job_id):
-  job_id = job_id.encode('utf-8')
-  job = db['jobs'].find_one({'_id':ObjectId(job_id)})
-  messages = db['msgs'].find({'job_id':ObjectId(job_id)})
-  emails = []
-  for message in messages:
-    if message['email_status'] != 'pending':
-      continue
-    if not message['imported']['email']:
-      db['msgs'].update(
-        {'_id':message['_id']}, 
-        {'$set': {'email_status': 'no_email'}}
-      )
-      send_socket('update_msg', {'id':str(message['_id']), 'email_status': 'no_email'})
-    else:
-      body = get_email_body(job, message)
-      if not body:
+  try:
+    job_id = job_id.encode('utf-8')
+    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+    messages = db['msgs'].find({'job_id':ObjectId(job_id)})
+    emails = []
+    for message in messages:
+      if message['email_status'] != 'pending':
         continue
-      subject = 'Empties to WINN Pickup Reminder'
-      r = utils.send_email([message['imported']['email']], subject, body)
-      
-      r = json.loads(r.text)
-      state = 'queued'
-      if r['message'].find('Queued') != 0:
-        state = r['message']
-      logger.info('%s %s', message['imported']['email'], state)
+      if not message['imported']['email']:
+        db['msgs'].update(
+          {'_id':message['_id']}, 
+          {'$set': {'email_status': 'no_email'}}
+        )
+        send_socket('update_msg', {'id':str(message['_id']), 'email_status': 'no_email'})
+      else:
+        body = get_email_body(job, message)
+        if not body:
+          continue
+        subject = 'Empties to WINN Pickup Reminder'
+        r = utils.send_email([message['imported']['email']], subject, body)
+        
+        r = json.loads(r.text)
 
-      db['msgs'].update(
-        {'_id':message['_id']}, 
-        {'$set': {
-          'mid':r['id'],
-          'email_status': state
-          }
-        }
-      )
-      send_socket('update_msg', {'id':str(message['_id']), 'email_status': 'queued'})
+        if r['message'].find('Queued') == 0:
+          db['msgs'].update(
+            {'_id':message['_id']}, 
+            {'$set': {
+              'mid':r['id'],
+              'email_status': 'queued'
+              }
+            }
+          )
+          logger.info('%s %s', message['imported']['email'], 'queued')
+          send_socket('update_msg', {'id':str(message['_id']), 'email_status': 'queued'})
+        else:
+          logger.info('%s %s', message['imported']['email'], r['message'])
+          send_socket('update_msg', {'id':str(message['_id']), 'email_status': 'failed'})
 
-  return 'OK'
+    return 'OK'
+  except Exception, e:
+    logger.error('/request/email', exc_info=True)
 
 @app.route('/jobs/<job_id>')
 def show_calls(job_id):
@@ -784,19 +788,19 @@ def content():
       # Special Action (defined by template)
       elif digits == '2':
         # No pickup request
-        if job['template'] == 'etw_reminder':
-          no_pickup = 'No Pickup ' + call['imported']['event_date'].strftime('%A, %B %d')
-          db['msgs'].update(
-            {'sid':sid},
-            {'$set': {
-              'imported.office_notes': no_pickup,
-              'rfu': True
-            }}
-          )
-          send_socket('update_msg', {
-            'id': str(call['_id']),
-            'office_notes':no_pickup
-            })
+        #if job['template'] == 'etw_reminder':
+        no_pickup = 'No Pickup ' + call['imported']['event_date'].strftime('%A, %B %d')
+        db['msgs'].update(
+          {'sid':sid},
+          {'$set': {
+            'imported.office_notes': no_pickup,
+            'rfu': True
+          }}
+        )
+        send_socket('update_msg', {
+          'id': str(call['_id']),
+          'office_notes':no_pickup
+          })
 
     response = twilio.twiml.Response()
     response.say('Goodbye', voice='alice')
@@ -807,10 +811,10 @@ def content():
     
     return str(e)
 
-@app.route('/call/hangup',methods=['POST','GET'])
+@app.route('/call/status',methods=['POST','GET'])
 def process_status():
   try:
-    logger.debug('/call/hangup values: %s' % request.values.items())
+    logger.debug('/call/status values: %s' % request.values.items())
     sid = request.form.get('CallSid')
     to = request.form.get('To')
     call_status = request.form.get('CallStatus')
@@ -836,7 +840,8 @@ def process_status():
       if 'speak' in call:
         fields['speak'] = call['speak']
     elif call_status == 'failed':
-      fields['error_msg'] = 'not_in_service'
+      fields['error_msg'] = 'unknown_error'
+      logger.info('/call/status dump: %s', request.values.items())
 
     db['msgs'].update(
       {'sid':sid},
@@ -847,7 +852,7 @@ def process_status():
     send_socket('update_msg', fields)
     return 'OK'
   except Exception, e:
-    logger.error('%s /call/hangup' % request.values.items(), exc_info=True)
+    logger.error('%s /call/status' % request.values.items(), exc_info=True)
     return str(e)
 
 @app.route('/sms/status', methods=['POST'])
@@ -901,7 +906,7 @@ def email_status():
     msg = db['msgs'].find_one({'mid':mid})
     # Email may be for job summary or other purposes not needing this webhook callback
     if not msg:
-      return False 
+      return 'No mid matching email' 
     
     error_msg = ''
     if event == 'bounced':

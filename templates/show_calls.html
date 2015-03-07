@@ -75,7 +75,8 @@
             {% set caption = call.call_status.title() + ' (' ~ call.attempts + 'x)' %}
           {% endif %}
           <td title='"{{tooltip}}"'>
-            <span style='text-align:right; font-size:14' name='call_status_lbl' class='pull-right {{label}}'>{{caption}}</span>
+            {% set label="" %}
+            <span style='text-align:right; font-size:14; font-weight:bold;' name='call_status_lbl' class='pull-right {{label}}'>{{caption}}</span>
           </td>
           
           {% for column in template %}
@@ -101,9 +102,9 @@
                   {% set caption = call["email_status"].title() %}
                   {% set label = "label label-primary" %}
                 {% endif %}
-                  
+                 {% set label="" %} 
                 <td>
-                  <span style='text-align:right; font-size:14' name='email_status_lbl' class='pull-right {{label}}'>{{caption}}</span>
+                  <span style='text-align:right; font-size:14; font-weight:bold;' name='email_status_lbl' class='pull-right {{label}}'>{{caption}}</span>
                 </td>
               {% endif %}
             {% endif %}

@@ -492,6 +492,25 @@ function initShowCallsView() {
   });
 
   $('[name="call_status_lbl"]').each(function() {
+    if($(this).text().indexOf('Sent') >= 0)
+      $(this).css('color', 'green');
+    else if($(this).text().indexOf('Error') >= 0)
+      $(this).css('color', 'red');
+    else if($(this).text().indexOf('Pending') >= 0)
+      $(this).css('color', 'black');
+  });
+
+  $('[name="email_status_lbl"]').each(function() {
+    if($(this).text().indexOf('Delivered') > -1)
+      $(this).css('color', 'green');
+    else if($(this).text().indexOf('Pending') > -1)
+      $(this).css('color', 'black');
+    else if($(this).text().indexOf('Queued') > -1)
+      $(this).css('color', 'blue');
+    else if($(this).text().indexOf('No Email') > -1 ||
+      $(this).text().indexOf('Bounced') > -1 ||
+      $(this).text().indexOf('Dropped') > -1)
+      $(this).css('color', 'red');
   });
 
   $('[name="name"]').each(function() {

@@ -315,9 +315,10 @@ textarea.special-msg {
 
 .table.table-colored {
   /*table-layout: fixed;*/
-  word-wrap: break-word;
+  /*word-wrap: break-word;*/
+  word-wrap: normal;
   background-color: #f7f7f7;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /*font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;*/
   text-rendering: optimizeLegibility !important;
   -webkit-font-smoothing: antialiased !important;
   font-size:11pt;
@@ -326,11 +327,12 @@ textarea.special-msg {
 
 .table.table-colored td {
   max-width:200px;
-  padding:4px 8px 4px 8px;
+  padding:12px 8px 12px 8px;
   color: #2b547e;
   vertical-align:middle;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: Helvetica, Arial, sans-serif;
   text-rendering: optimizeLegibility !important;
+  font-weight: lighter;
   -webkit-font-smoothing: antialiased !important;
 }
 

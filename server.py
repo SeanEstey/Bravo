@@ -37,7 +37,7 @@ app.debug = DEBUG
 socketio = SocketIO(app)
 
 def celery_check():
-  if not tasks.celery_app.control.inspect().active_queues():
+  if not tasks.celery_app.control.inspect().registered_tasks():
     logger.error('Celery process not running')
     return False
   else:
@@ -250,7 +250,7 @@ def send_email_report(job_id):
     report['Bounced Emails'] = list(
       db['msgs'].find(
         {'job_id':job_id, '$or': [{'email_status': 'bounced', 'email_status': 'dropped'}]},
-        {'imported': 1, '_id': 0}
+        {'imported': 1, 'email_error': 1, 'email_status': 1, '_id': 0}
       )
     )
 
@@ -917,6 +917,10 @@ def email_status():
         }}
       )
     elif event == 'dropped':
+      # Don't overwrite a bounced with a dropped status
+      if msg['email_status'] == 'bounced':
+        event = 'bounced'
+      
       logger.info('%s %s (%s). %s', recipient, event, request.form['reason'], request.form['description'])
       db['msgs'].update({'mid':mid},{'$set':{
         'email_status': event,
@@ -939,6 +943,7 @@ if __name__ == "__main__":
   # Kill celery nodes with matching queue name. Leave others alone 
   os.system("ps aux | grep 'queues " + DB_NAME + "' | awk '{print $2}' | xargs kill -9")
   os.system('celery worker -A tasks.celery_app -f celery.log -B -n ' + DB_NAME + ' --queues ' + DB_NAME + ' &')
+  time.sleep(3);
   celery_check()
   logger.info('Server started OK (' + DB_NAME + ')')
   socketio.run(app, port=LOCAL_PORT)

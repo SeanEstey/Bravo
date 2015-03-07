@@ -492,20 +492,30 @@ function initShowCallsView() {
   });
 
   $('[name="call_status_lbl"]').each(function() {
-//    formatCallStatus($(this), $(this).text());
+  });
+
+  $('[name="name"]').each(function() {
+    $(this).css('width', '150px');
   });
   
   $('[name="event_date"]').each(function() {
+    $(this).css('width', '135px');
     var date = Date.parse($(this).html());
     var string = date.toDateString();
     $(this).html(string);
   });
 
   $('[name="to"]').each(function() {
- //   var to = $(this).val();
- //   to = to.replace(/\s/g, '');
- //   to = to.replace(/\)/g
-    
+    // Make this cell wide enough
+    $(this).css('width', '125px');
+    if($(this).text() != '') {
+      var to = $(this).text();
+      // Strip parentheses, dashes and spaces
+      to = to.replace(/[\s\)\(-]/g, '');
+      // Format: (780) 123-4567
+      to = '('+to.substring(0,3)+') '+to.substring(3,6)+'-'+to.substring(6,11);
+      $(this).text(to);
+    }
   });
 
   if($('#job-status').text().indexOf('Pending') > -1) {
@@ -631,27 +641,6 @@ function initShowCallsView() {
 }
 
 // View: show_calls
-function formatCallStatus($cell, text) {
-  text = text.toTitleCase();
-/*
-  if(text.indexOf('Sent') > -1) {
-    $(this).removeClass('label-primary').removeClass('label-danger');
-    $(this).addClass('label-success');
-  }
-  */
- /* 
-  if(text.indexOf('Sent') > -1)
-    $cell.css({'color':'#009900'});
-  else if(text.indexOf('Failed') > -1)
-    $cell.css({'color': '#C00000'});
-  else
-    $cell.css({'color':'#365766'});
-*/
-
-  $cell.html(text);
-}
-
-// View: show_calls
 function sortCalls(table, column) {
   var up_arrow = '&#8593;';
   var down_arrow = '&#8595;';
@@ -744,7 +733,7 @@ function updateJobStatus() {
     var sum = 0;
     var n_sent = 0;
     var n_incomplete = 0;
-    $('[name="call_status"]').each(function() {
+    $('[name="call_status_lbl"]').each(function() {
       sum++;
       if($(this).text().indexOf('Sent') > -1)
         n_sent++;
@@ -829,7 +818,7 @@ function receiveMsgUpdate(data) {
 
   if('speak' in data) {
     var title = 'Msg: ' + data['speak'];
-    $row.find('[name="call_status"]').attr('title', title);
+    $row.find('[name="call_status_lbl"]').attr('title', title);
   }
 
   updateJobStatus();

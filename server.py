@@ -444,7 +444,15 @@ def submit():
 @app.route('/', methods=['GET'])
 def index():
   if request.method == 'GET':
-    jobs = db['jobs'].find().sort('fire_dtime',-1)
+    # If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
+    # If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
+    start_record = request.args.get('n')
+    if start_record:
+      jobs = db['jobs'].find().sort('fire_dtime',-1)
+      jobs.skip(int(start_record)).limit(JOBS_PER_PAGE);
+    else:
+      jobs = db['jobs'].find().sort('fire_dtime',-1).limit(JOBS_PER_PAGE)
+
     return render_template(
       'show_jobs.html', 
       title=TITLE, 

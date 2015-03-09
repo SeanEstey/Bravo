@@ -17,6 +17,7 @@ MAX_ATTEMPTS= 2
 REDIAL_DELAY = 300
 SCHEDULE_FREQUENCY = 30
 UPLOAD_FOLDER = '/tmp'
+JOBS_PER_PAGE = 10
 ALLOWED_EXTENSIONS = set(['csv','xls'])
 TEMPLATE = {
   'etw_reminder_email': [

@@ -47,66 +47,35 @@
           <th class='cancel-call-col' style='width:50px'></th>
         </tr>
       </thead>
-      <tbody style='WORD-BREAK:BREAK-ALL'>
+      <tbody>
         {% set row_num=1 %}
         {%  for call in calls %}
         <tr id='{{ call._id }}'>
           <!-- Imported Fields -->
           {% for column in template %}
-            <td name='{{column.field}}'>{{call.imported[column.field]}}</td>
-          {% endfor %}
-          <!-- Status Fields -->
-          {% if call.call_status == "completed" %}
-            {% set tooltip = call.speak %}
-            {% set label="label label-success" %}
-            {% if call.answered_by == "machine" %}
-              {% set caption="Sent Voicemail" %}
+            {% if column.field == "email" %}
+              <td style='WORD-BREAK:BREAK-ALL' name='{{column.field}}'>{{call.imported[column.field]}}</td>
             {% else %}
-              {% set caption="Sent Live" %}
+              <td name='{{column.field}}'>{{call.imported[column.field]}}</td>
             {% endif %}
-          {% elif call.call_status == "pending" %}
-            {% set label="label label-default" %}
-            {% set caption="Pending" %}
-          {% elif call.call_status == "failed" %}
-            {% set label="label label-danger" %}
-            {% set caption=call.error_msg.title().replace('_', ' ') %}
-          {% else %}
-            {% set label = "label label-primary" %}
-            {% set caption = call.call_status.title() + ' (' ~ call.attempts + 'x)' %}
-          {% endif %}
-          <td title='"{{tooltip}}"'>
-            {% set label="" %}
-            <span style='text-align:right; font-size:14; font-weight:bold;' name='call_status_lbl' class='pull-right {{label}}'>{{caption}}</span>
-          </td>
-          
+          {% endfor %}
+
           {% for column in template %}
-            {% if 'status_field' in column %}
-              <!-- HACK. Fixme. -->
-              {% if column["status_field"] == "email_status" %}
-                {% if call["email_status"] == "delivered" %}
-                  {% set caption = "Delivered" %}
-                  {% set label = "label label-success" %}
-                {% elif call["email_status"] == "dropped" %}
-                  {% set caption = "Dropped" %}
-                  {% set label = "label label-danger" %}
-                {% elif call["email_status"] == "bounced" %}
-                  {% set caption = "Bounced" %}
-                  {% set label = "label label-danger" %}
-                {% elif call["email_status"] == "pending" %}
-                  {% set caption = "Pending" %}
-                  {% set label = "label label-default" %}
-                {% elif call["email_status"] == "no_email" %}
-                  {% set caption = "No Email" %}
-                  {% set label = "label label-default" %}
-                {% else %}
-                  {% set caption = call["email_status"].title() %}
-                  {% set label = "label label-primary" %}
-                {% endif %}
-                 {% set label="" %} 
-                <td>
-                  <span style='text-align:right; font-size:14; font-weight:bold;' name='email_status_lbl' class='pull-right {{label}}'>{{caption}}</span>
-                </td>
+            <!-- Call Status -->
+            {% if 'status_field' in column and column['status_field'] == 'call_status' %}
+              {% if call.call_status == "completed" %}
+                {% set caption=call.call_status + ' ' + call.answered_by %}
+              {% elif call.call_status == "no-answer" or call.call_status == "busy" %}
+                {% set caption = call.call_status + ' ' ~ call.attempts %}
+              {% elif call.call_status == "failed" %}
+                {% set caption = call.call_status + ' ' + call.error_msg %}
+              {% else %}
+                {% set caption=call.call_status %}
               {% endif %}
+                <td name='call_status_lbl' style='text-align:right; font-weight:bold;' title='"{{tooltip}}"'>{{caption}}</td>
+            <!-- Email Status -->
+            {% elif 'status_field' in column and column['status_field'] == 'email_status' %}
+              <td style='text-align:right; font-weight:bold;' name='email_status_lbl'>{{call["email_status"]}}</td>
             {% endif %}
           {% endfor %}
           <td class='cancel-call-col'>

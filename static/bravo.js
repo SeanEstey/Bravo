@@ -492,25 +492,51 @@ function initShowCallsView() {
   });
 
   $('[name="call_status_lbl"]').each(function() {
-    if($(this).text().indexOf('Sent') >= 0)
-      $(this).css('color', 'green');
-    else if($(this).text().indexOf('Error') >= 0)
-      $(this).css('color', 'red');
-    else if($(this).text().indexOf('Pending') >= 0)
+    var status = $(this).text();
+    
+    if(status.indexOf('completed') > -1) {
+      if(status.indexOf('human') > -1)
+        status = 'Sent Live';
+      else if(status.indexOf('machine') > -1)
+        status = 'Sent VM';
+      $(this).css('color', '#5cb85c');
+    }
+    else if(status.indexOf('failed') > -1) {
+      var values = status.split(' ');
+      status = values[1];
+      if(status == 'invalid_number_format')
+        status = 'invalid_number';
+      else if(status == 'unknown_error')
+        status = 'failed';
+      $(this).css('color', '#d9534f');
+    }
+    else if(status.indexOf('busy') > -1 || status.indexOf('no-answer') > -1) {
+      var values = status.split(' ');
+      status = values[0] + ' (' + values[1] + 'x)';
+      $(this).css('color', '#337ab7');
+    }
+    else if(status.indexOf('pending') > -1) {
       $(this).css('color', 'black');
+    }
+
+    $(this).text(status.toTitleCase());
   });
 
   $('[name="email_status_lbl"]').each(function() {
-    if($(this).text().indexOf('Delivered') > -1)
-      $(this).css('color', 'green');
-    else if($(this).text().indexOf('Pending') > -1)
+    var status = $(this).text();
+    if(status.indexOf('delivered') > -1)
+      $(this).css('color', '5cb85c');
+    else if(status.indexOf('pending') > -1)
       $(this).css('color', 'black');
-    else if($(this).text().indexOf('Queued') > -1)
-      $(this).css('color', 'blue');
-    else if($(this).text().indexOf('No Email') > -1 ||
-      $(this).text().indexOf('Bounced') > -1 ||
-      $(this).text().indexOf('Dropped') > -1)
-      $(this).css('color', 'red');
+    else if(status.indexOf('queued') > -1)
+      $(this).css('color', '#337ab7');
+    else if(status.indexOf('no_email') > -1) {
+      $(this).css('color', 'black');
+    }
+    else if(status.indexOf('bounced') > -1 || status.indexOf('dropped') > -1) {
+      $(this).css('color', '#d9534f');
+    }
+    $(this).text(status.toTitleCase());
   });
 
   $('[name="name"]').each(function() {
@@ -518,7 +544,7 @@ function initShowCallsView() {
   });
   
   $('[name="event_date"]').each(function() {
-    $(this).css('width', '135px');
+    $(this).css('width', '145px');
     var date = Date.parse($(this).html());
     var string = date.toDateString();
     $(this).html(string);
@@ -526,7 +552,7 @@ function initShowCallsView() {
 
   $('[name="to"]').each(function() {
     // Make this cell wide enough
-    $(this).css('width', '125px');
+    $(this).css('width', '135px');
     if($(this).text() != '') {
       var to = $(this).text();
       // Strip parentheses, dashes and spaces
@@ -953,6 +979,40 @@ function initShowJobs() {
 
       $('#mymodal').modal('show');
     });
+  });
+
+  var num_page_records = $('tbody').children().length;
+  var n = 1;
+  var n_ind = location.href.indexOf('n=');
+
+  if(n_ind > -1) {
+    if(location.href.indexOf('&') > -1)
+      n = location.href.substring(n_ind+2, location.href.indexOf('&'));
+    else
+      n = location.href.substring(n_ind+2, location.href.length);
+
+    n = parseInt(n, 10);
+  }
+
+  console.log(n);
+  console.log(num_page_records);
+
+  $('#newer-page').click(function() {
+    if(n > 1) {
+      var prev_n = n - num_page_records;
+      if(prev_n < 1)
+        prev_n = 1;
+      location.href = $SCRIPT_ROOT + '?n='+prev_n;
+    }
+  });
+  
+  $('#older-page').click(function() {
+    var next_n = num_page_records + 1;
+
+    if(n)
+      next_n += n;
+
+    location.href = $SCRIPT_ROOT + '?n='+next_n;
   });
 
   $('body').css('display','block');

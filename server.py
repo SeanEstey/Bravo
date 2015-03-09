@@ -273,8 +273,12 @@ def parse_csv(csvfile, template):
         break
 
   if header_err:
+    columns = []
+    for element in template:
+      columns.append(element['header'])
+
     return 'Your file is missing the proper header rows:<br> \
-    <b>' + str(template) + '</b><br><br>' \
+    <b>' + str(columns) + '</b><br><br>' \
     'Here is your header row:<br><b>' + str(header_row) + '</b><br><br>' \
     'Please fix your mess and try again.'
 
@@ -384,7 +388,7 @@ def submit():
     with codecs.open(file_path, 'r', 'utf-8-sig') as f:
       buffer = parse_csv(f, TEMPLATE[request.form['template']])
       if type(buffer) == str:
-        r = json.dumps({'status':'error', 'title': 'Problem Reading File', 'msg':'Could not parse file'})
+        r = json.dumps({'status':'error', 'title': 'Problem Reading File', 'msg':buffer})
         return Response(response=r, status=200, mimetype='application/json')
       else:
         logger.info('Parsed %d rows from %s', len(buffer), filename) 

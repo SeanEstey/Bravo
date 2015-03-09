@@ -493,7 +493,7 @@ function initShowCallsView() {
       });
   });
 
-  // "To" column
+  // "Name" column
   $('[name="name"]').each(function() {
     $(this).css('width', '125px');
   });
@@ -512,9 +512,35 @@ function initShowCallsView() {
     }
   });
 
+  // "Office Notes" column
+  $('tbody [name="office_notes"]').each(function() {
+    $(this).css('white-space', 'nowrap');
+    $(this).css('overflow', 'hidden');
+    $(this).css('text-overflow', 'ellipsis');
+  });
+
+  // "Status" column
+  $('tbody [name="status"]').each(function() {
+    //$(this).css('width', '150px');
+    $(this).css('white-space', 'nowrap');
+    //$(this).css('overflow', 'hidden');
+    //$(this).css('text-overflow', 'ellipsis');
+  });
+
+
+  // "Email" column
+  $('thead [name="email"]').css('width', '150px');
+  $('tbody [name="email"]').each(function() {
+    $(this).css('width', '150px');
+    $(this).css('white-space', 'nowrap');
+    $(this).css('overflow', 'hidden');
+    $(this).css('text-overflow', 'ellipsis');
+  });
+
   // "Call Status" column
   $('thead [name="call_status"]').css('width', '110px');
   $('tbody [name="call_status"]').each(function() {
+    $(this).css('width', '110px');
     var status = $(this).text();
     
     if(status.indexOf('completed') > -1) {

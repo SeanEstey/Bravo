@@ -76,14 +76,14 @@
               {% else %}
                 {% set caption=call.call_status %}
               {% endif %}
-                <td name='call_status' style='text-align:right; font-weight:bold;' title='"{{tooltip}}"'>{{caption}}</td>
+                <td name='call_status' style='text-align:right; font-weight:normal;' title='"{{tooltip}}"'>{{caption}}</td>
             <!-- Email Status -->
             {% set tooltip = '' %}
             {% elif 'status_field' in column and column['status_field'] == 'email_status' %}
               {% if call['email_status'] == 'bounced' or call['email_status'] == 'dropped' %}
                 {% set tooltip = call.email_error %}
               {% endif %}
-              <td title='{{tooltip}}' style='text-align:right; font-weight:bold;' name='email_status'>{{call["email_status"]}}</td>
+              <td title='{{tooltip}}' style='text-align:right; font-weight:normal;' name='email_status'>{{call["email_status"]}}</td>
             {% endif %}
           {% endfor %}
           <!-- Delete Button -->

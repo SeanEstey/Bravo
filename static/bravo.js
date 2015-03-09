@@ -112,7 +112,9 @@ function initNewJobView() {
   onSelectTemplate();
   updateFilePickerTooltip();
   $submit_btn = $('#submit_btn');
-  $submit_btn.click(function(){
+  $submit_btn.click(function(event){
+    // This line needs to be here for Firefox browsers
+    event.preventDefault(event);
     validateNewJobForm();
   });
   $('#radio').buttonset();
@@ -422,7 +424,7 @@ function validateNewJobForm() {
     $('#mymodal').modal('show');
   }
   else {
-    event.preventDefault();
+//    event.preventDefault();
     var form_data = new FormData($('#myform')[0]);
     var request = $.ajax({
       type: 'POST',

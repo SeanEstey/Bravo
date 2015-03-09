@@ -470,7 +470,7 @@ function initShowCallsView() {
   addBravoTooltip();
   makeCallFieldsClickable();
 
-  // Enable column sorting
+  // Enable sorting on column headers
   $('th').each(function(){
     var $a = $('a', $(this));
     var encoded_text = HTMLEncode($a.text());
@@ -491,7 +491,28 @@ function initShowCallsView() {
       });
   });
 
-  $('[name="call_status_lbl"]').each(function() {
+  // "To" column
+  $('[name="name"]').each(function() {
+    $(this).css('width', '125px');
+  });
+  
+  // "To" column
+  $('[name="to"]').each(function() {
+    // Make this cell wide enough
+    $(this).css('width', '135px');
+    if($(this).text() != '---') {
+      var to = $(this).text();
+      // Strip parentheses, dashes and spaces
+      to = to.replace(/[\s\)\(-]/g, '');
+      // Format: (780) 123-4567
+      to = '('+to.substring(0,3)+') '+to.substring(3,6)+'-'+to.substring(6,11);
+      $(this).text(to);
+    }
+  });
+
+  // "Call Status" column
+  $('thead [name="call_status"]').css('width', '110px');
+  $('tbody [name="call_status"]').each(function() {
     var status = $(this).text();
     
     if(status.indexOf('completed') > -1) {
@@ -502,6 +523,7 @@ function initShowCallsView() {
       $(this).css('color', '#5cb85c');
     }
     else if(status.indexOf('failed') > -1) {
+      $(this).attr('title', '');
       var values = status.split(' ');
       status = values[1];
       if(status == 'invalid_number_format')
@@ -511,26 +533,37 @@ function initShowCallsView() {
       $(this).css('color', '#d9534f');
     }
     else if(status.indexOf('busy') > -1 || status.indexOf('no-answer') > -1) {
+      $(this).attr('title', '');
       var values = status.split(' ');
       status = values[0] + ' (' + values[1] + 'x)';
       $(this).css('color', '#337ab7');
     }
     else if(status.indexOf('pending') > -1) {
+      $(this).attr('title', '');
       $(this).css('color', 'black');
     }
 
     $(this).text(status.toTitleCase());
   });
 
-  $('[name="email_status_lbl"]').each(function() {
+  // "Email Status" column
+  $('thead [name="email_status"]').css('width', '110px');
+  $('tbody [name="email_status"]').each(function() {
     var status = $(this).text();
-    if(status.indexOf('delivered') > -1)
+    if(status.indexOf('delivered') > -1) {
+      $(this).attr('title', '');
       $(this).css('color', '5cb85c');
-    else if(status.indexOf('pending') > -1)
+    }
+    else if(status.indexOf('pending') > -1) {
+      $(this).attr('title', '');
       $(this).css('color', 'black');
-    else if(status.indexOf('queued') > -1)
+    }
+    else if(status.indexOf('queued') > -1) {
+      $(this).attr('title', '');
       $(this).css('color', '#337ab7');
+    }
     else if(status.indexOf('no_email') > -1) {
+      $(this).attr('title', '');
       $(this).css('color', 'black');
     }
     else if(status.indexOf('bounced') > -1 || status.indexOf('dropped') > -1) {
@@ -539,9 +572,7 @@ function initShowCallsView() {
     $(this).text(status.toTitleCase());
   });
 
-  $('[name="name"]').each(function() {
-    $(this).css('width', '150px');
-  });
+
   
   $('[name="event_date"]').each(function() {
     $(this).css('width', '145px');
@@ -550,18 +581,8 @@ function initShowCallsView() {
     $(this).html(string);
   });
 
-  $('[name="to"]').each(function() {
-    // Make this cell wide enough
-    $(this).css('width', '135px');
-    if($(this).text() != '') {
-      var to = $(this).text();
-      // Strip parentheses, dashes and spaces
-      to = to.replace(/[\s\)\(-]/g, '');
-      // Format: (780) 123-4567
-      to = '('+to.substring(0,3)+') '+to.substring(3,6)+'-'+to.substring(6,11);
-      $(this).text(to);
-    }
-  });
+
+
 
   if($('#job-status').text().indexOf('Pending') > -1) {
     var args =  window.location.pathname.split('/');
@@ -732,9 +753,9 @@ function makeCallFieldsClickable() {
     var name = $cell.attr('name');
     if(!name)
       return;
-    if($('#job-status').text().indexOf('Pending') < 0)
+    if(name == 'call_status' || name == 'email_status')
       return;
-    if(name == 'message' || name == 'attempts')
+    if($('#job-status').text().indexOf('Pending') < 0)
       return;
     if($cell.find('input').length > 0)
       return;
@@ -755,6 +776,8 @@ function makeCallFieldsClickable() {
       console.log(field_name + ' edited');
       var payload = {};
       payload[field_name] = $input.val();
+      if($input.val() == '---')
+        return;
       console.log(payload);
       var request = $.ajax({
         type: 'POST',
@@ -778,7 +801,7 @@ function updateJobStatus() {
     var sum = 0;
     var n_sent = 0;
     var n_incomplete = 0;
-    $('[name="call_status_lbl"]').each(function() {
+    $('[name="call_status"]').each(function() {
       sum++;
       if($(this).text().indexOf('Sent') > -1)
         n_sent++;
@@ -807,7 +830,7 @@ function receiveMsgUpdate(data) {
  
   // Update to CALL state 
   if('call_status' in data) {
-    $lbl = $row.find('[name="call_status_lbl"]');
+    $lbl = $row.find('[name="call_status"]');
     var caption = data['call_status'];
     
     if(data['call_status'] == 'completed') {
@@ -839,7 +862,7 @@ function receiveMsgUpdate(data) {
   }
   // Update to EMAIL state
   else if('email_status' in data) {
-    $lbl = $row.find('[name="email_status_lbl"]');
+    $lbl = $row.find('[name="email_status"]');
     var caption = data['email_status'];
     
     if(data['email_status'] == 'delivered') {
@@ -863,7 +886,7 @@ function receiveMsgUpdate(data) {
 
   if('speak' in data) {
     var title = 'Msg: ' + data['speak'];
-    $row.find('[name="call_status_lbl"]').attr('title', title);
+    $row.find('[name="call_status"]').attr('title', title);
   }
 
   updateJobStatus();

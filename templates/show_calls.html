@@ -29,7 +29,7 @@
           <!-- Imported Headers -->
           {% set col_num=1 %}
           {% for column in template %}
-          <th style='text-align:center' id='col{{ col_num }}'>
+          <th style='text-align:left' id='col{{ col_num }}'>
             <a title='Sort' class='hover' href='#'>{{ column['field'].title().replace('_', ' ') }}</a>
           </th>
           {% set col_num = col_num + 1 %}
@@ -38,7 +38,7 @@
           {% set col_num = template|length+1 %}
           {% for column in template %}
             {% if 'status_field' in column %}
-              <th style='text-align:center'  id='col{{col_num}}'>
+              <th name='{{column['status_field']}}' style='text-align:right'  id='col{{col_num}}'>
                 <a title='Sort' class='hover' href='#'>{{column['status_field'].title().replace('_', ' ')}}</a>
               </th>
             {% set col_num = col_num + 1 %}
@@ -54,9 +54,12 @@
           <!-- Imported Fields -->
           {% for column in template %}
             {% if column.field == "email" %}
-              <td style='WORD-BREAK:BREAK-ALL' name='{{column.field}}'>{{call.imported[column.field]}}</td>
+              {% set style="WORD-BREAK:BREAK-ALL" %}
+            {% endif %}
+            {% if call.imported[column.field] == '' %}
+              <td style='{{style}}' name="{{column.field}}">---</td>
             {% else %}
-              <td name='{{column.field}}'>{{call.imported[column.field]}}</td>
+              <td style='{{style}}' name="{{column.field}}">{{call.imported[column.field]}}</td>
             {% endif %}
           {% endfor %}
 
@@ -65,6 +68,7 @@
             {% if 'status_field' in column and column['status_field'] == 'call_status' %}
               {% if call.call_status == "completed" %}
                 {% set caption=call.call_status + ' ' + call.answered_by %}
+                {% set tooltip = call.speak  %}
               {% elif call.call_status == "no-answer" or call.call_status == "busy" %}
                 {% set caption = call.call_status + ' ' ~ call.attempts %}
               {% elif call.call_status == "failed" %}
@@ -72,12 +76,17 @@
               {% else %}
                 {% set caption=call.call_status %}
               {% endif %}
-                <td name='call_status_lbl' style='text-align:right; font-weight:bold;' title='"{{tooltip}}"'>{{caption}}</td>
+                <td name='call_status' style='text-align:right; font-weight:bold;' title='"{{tooltip}}"'>{{caption}}</td>
             <!-- Email Status -->
+            {% set tooltip = '' %}
             {% elif 'status_field' in column and column['status_field'] == 'email_status' %}
-              <td style='text-align:right; font-weight:bold;' name='email_status_lbl'>{{call["email_status"]}}</td>
+              {% if call['email_status'] == 'bounced' or call['email_status'] == 'dropped' %}
+                {% set tooltip = call.email_error %}
+              {% endif %}
+              <td title='{{tooltip}}' style='text-align:right; font-weight:bold;' name='email_status'>{{call["email_status"]}}</td>
             {% endif %}
           {% endfor %}
+          <!-- Delete Button -->
           <td class='cancel-call-col'>
             <button 
               class='delete-btn' 
@@ -94,8 +103,6 @@
   </div>
   <div>
     <br><br>
-
-
     <a class='hover' id='execute-job' href="#">[Start Job]</a>
     <a class='hover' id='email-job' href="#">[Email Job]</a>
     <a class='hover' id='reset-job' href="#">[Reset Job]</a>

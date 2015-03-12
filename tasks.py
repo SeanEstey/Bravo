@@ -68,6 +68,8 @@ def execute_job(job_id):
     requests.get(LOCAL_URL+'/sendsocket', params=payload)
     # Fire all calls
     for msg in messages:
+      if 'no_pickup' in msg:
+        continue
       r = dial(msg['imported']['to'])
       if r['call_status'] == 'failed':
         logger.info('%s %s (%d: %s)', msg['imported']['to'], r['call_status'], r['error_code'], r['error_msg'])

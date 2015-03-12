@@ -119,9 +119,13 @@ def get_email_body(job, msg):
 
   if job['template'] == 'etw_reminder_email':
     if msg['imported']['status'] == 'Active':
+      a_style = 'color:#ffffff!important;display:inline-block;font-weight:500;font-size:16px;line-height:42px;font-family:\'Helvetica\',Arial,sans-serif;width:auto;white-space:nowrap;min-height:42px;margin:12px 5px 12px 0;padding:0 22px;text-decoration:none;text-align:center;border:0;border-radius:3px;vertical-align:top;background-color:#337ab7!important'
+      no_pickup_btn = '<a style="'+a_style+'" href="' + PUB_URL + '/nopickup/' + str(msg['_id']) + '">Click here to cancel your pickup</a>'
+
       body += '<p>Hi, your upcoming Empties to WINN pickup date is ' + date_str + '</p>'
       body += '<p>Your green bags can be placed in front of your house by 8am. Please keep each bag under 30lbs.  Extra glass can be left in cases to the side.</p>'
-      body += '<p>If you do not need a pick-up please reply to this email so we can notify our driver.</p>'
+
+      body += '<p>' + no_pickup_btn + '</p>'
     elif msg['imported']['status'] == 'Dropoff':
       return False
     elif msg['imported']['status'] == 'Cancelling':
@@ -249,7 +253,7 @@ def send_email_report(job_id):
   if job['template'] == 'etw_reminder_email':
     report['Bounced Emails'] = list(
       db['msgs'].find(
-        {'job_id':job_id, '$or': [{'email_status': 'bounced', 'email_status': 'dropped'}]},
+        {'job_id':job_id, '$or': [{'email_status': 'bounced'},{'email_status': 'dropped'}]},
         {'imported': 1, 'email_error': 1, 'email_status': 1, '_id': 0}
       )
     )
@@ -581,7 +585,7 @@ def record_msg():
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
   job_id = job_id.encode('utf-8')
-  tasks.execute_job.apply_async((job_id, ), queue=DB_NAME)
+  #tasks.execute_job.apply_async((job_id, ), queue=DB_NAME)
 
   return 'OK'
 
@@ -691,7 +695,8 @@ def reset_job(job_id):
       'speak': '',
       'code': '',
       'ended_at': '',
-      'rfu': ''
+      'rfu': '',
+      'no_pickup': ''
     }},
     multi=True
   )
@@ -726,8 +731,43 @@ def cancel_call():
 
   return 'OK'
 
-@app.route('/edit/call/<call_uuid>', methods=['POST'])
-def edit_call(call_uuid):
+@app.route('/nopickup/<msg_id>', methods=['GET'])
+# Script run via reminder email
+def no_pickup(msg_id):
+  try:
+    
+    #msg_id = msg_id.encode('utf-8')
+    msg = db['msgs'].find_one({'_id':ObjectId(msg_id)})
+    # Link clicked for an outdated/in-progress or deleted job?
+    if not msg:
+      logger.info('No pickup request fail. Invalid msg_id')
+      return 'Request unsuccessful'
+
+    job = db['jobs'].find_one({'_id':msg['job_id']})
+    # TODO: Allow no pickups right until routing time
+    if job['status'] != 'pending':
+      logger.info('No pickup request fail. Job status no longer pending')
+      return 'Request unsuccessful'
+
+    no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
+    db['msgs'].update(
+      {'_id':msg['_id']},
+      {'$set': {
+        'imported.office_notes': no_pickup,
+        'rfu': True,
+        'no_pickup': True
+      }}
+    )
+
+    logger.info('No pickup request success for %s', msg['imported']['email'])
+    return 'Thank you'
+  
+  except Exception, e:
+    logger.error('/call/answer', exc_info=True)
+    return str(e)
+   
+@app.route('/edit/call/<sid>', methods=['POST'])
+def edit_call(sid):
   for fieldname, value in request.form.items():
     if fieldname == 'event_date':
       try:
@@ -738,7 +778,7 @@ def edit_call(call_uuid):
     logger.info('Editing ' + fieldname + ' to value: ' + str(value))
     field = 'imported.'+fieldname
     db['msgs'].update(
-        {'_id':ObjectId(call_uuid)}, 
+        {'_id':ObjectId(sid)}, 
         {'$set':{field: value}}
     )
   return 'OK'

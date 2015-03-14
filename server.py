@@ -237,30 +237,42 @@ def send_email_report(job_id):
     }
   }
 
-  report = {
-    'Failed Calls': list( 
-      db['msgs'].find(
-        {'job_id':job_id, 'call_status': 'failed'}, 
-        {'error_msg': 1, 'error_code': 1, 'imported': 1, '_id': 0}
-      )
-    ),
-    'Calls Requiring Office Followup': list(
-      db['msgs'].find(
-        {'job_id': job_id, 'rfu': True},
-        {'imported': 1, '_id': 0}
-      )
+  fails = list( 
+    db['msgs'].find(
+      {'job_id':job_id, '$or': [{'email_status': 'bounced'},{'email_status': 'dropped'},{'call_status':'failed'}]},
+      {'imported': 1, 'email_error': 1, 'error_msg':1, 'error_code':1, 'email_status': 1, '_id': 0}
     )
-  }
+  )
 
-  if job['template'] == 'etw_reminder_email':
-    report['Bounced Emails'] = list(
-      db['msgs'].find(
-        {'job_id':job_id, '$or': [{'email_status': 'bounced'},{'email_status': 'dropped'}]},
-        {'imported': 1, 'email_error': 1, 'email_status': 1, '_id': 0}
-      )
-    )
+  td = '<td style="padding:5px; border:1px solid black">'
+  th = '<th style="padding:5px; border:1px solid black">'
 
-  msg = utils.print_html(summary) + '<br><br>' + utils.print_html(report)
+  fails_table = '<table style="padding:5px; border-collapse:collapse; border:1px solid black"><tr>'
+  for field in fails[0]['imported'].keys():
+    fails_table += th + field + '</th>'
+  fails_table += th + 'error_code</th>' + th + 'error_msg</th>' + th + 'email_error</th>'
+  fails_table += '</tr>'
+  
+  for row in fails:
+    fails_table += '<tr>'
+    for key, val in row['imported'].iteritems():
+      fails_table += td + str(val) + '</td>'
+    if 'error_code' in row:
+      fails_table += td + row['error_code'] + '</td>'
+    else:
+      fails_table += td + '</td>'
+    if 'error_msg' in row:
+      fails_table += td + row['error_msg']  + '</td>'
+    else:
+      fails_table += td + '</td>'
+    if 'email_error' in row:
+      fails_table += td + row['email_error']  + '</td>'
+    else:
+      fails_table += td + '</td>'
+    fails_table += '</tr>'
+  fails_table += '</table>'
+
+  msg = utils.print_html(summary) + '<br><br>' + fails_table
   subject = 'Job Summary %s' % job['name']
   utils.send_email(['estese@gmail.com, emptiestowinn@wsaf.ca'], subject, msg)
 
@@ -587,7 +599,7 @@ def record_msg():
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
   job_id = job_id.encode('utf-8')
-  tasks.execute_job.apply_async((job_id, ), queue=DB_NAME)
+  #tasks.execute_job.apply_async((job_id, ), queue=DB_NAME)
 
   return 'OK'
 
@@ -1009,4 +1021,5 @@ if __name__ == "__main__":
   time.sleep(3);
   celery_check()
   logger.info('Server started OK (' + DB_NAME + ')')
+  # Start gevent server
   socketio.run(app, port=LOCAL_PORT)

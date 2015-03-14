@@ -70,6 +70,8 @@ def execute_job(job_id):
     for msg in messages:
       if 'no_pickup' in msg:
         continue
+      if msg['call_status'] != 'pending':
+        continue
       r = dial(msg['imported']['to'])
       if r['call_status'] == 'failed':
         logger.info('%s %s (%d: %s)', msg['imported']['to'], r['call_status'], r['error_code'], r['error_msg'])
@@ -152,3 +154,13 @@ def monitor_job(job_id):
     return 'OK'
   except Exception, e:
     logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
+
+@celery_app.task
+def run_etap_get_script(url, params):
+  logger.info('running etap script %s', url)
+  r = requests.get(url, params=params)
+  if r.status_code != 200:
+    logger.error('etap script "%s" failed. status_code:%i', url, r.status_code)
+    return r.status_code
+    
+  return r.status_code

@@ -28,10 +28,10 @@
         <tr>
           <!-- Imported Headers -->
           {% set col_num=1 %}
-          {% for column in template %}
-          <th style='text-align:left' id='col{{ col_num }}'>
-            <a title='Sort' class='hover' href='#'>{{ column['field'].title().replace('_', ' ') }}</a>
-          </th>
+          {% for column in template if not column.hide %}
+              <th style='text-align:left' id='col{{ col_num }}'>
+                <a title='Sort' class='hover' href='#'>{{ column['field'].title().replace('_', ' ') }}</a>
+              </th>
           {% set col_num = col_num + 1 %}
           {% endfor %}
           <!-- Status Headers -->
@@ -52,7 +52,7 @@
         {%  for call in calls %}
         <tr id='{{ call._id }}'>
           <!-- Imported Fields -->
-          {% for column in template %}
+          {% for column in template if not column.hide %}
             {% if column.field == "email" %}
               {% set style="WORD-BREAK:BREAK-ALL" %}
             {% endif %}

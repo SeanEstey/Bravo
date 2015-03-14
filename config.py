@@ -21,6 +21,7 @@ JOBS_PER_PAGE = 10
 ALLOWED_EXTENSIONS = set(['csv','xls'])
 TEMPLATE = {
   'etw_reminder_email': [
+    {'header': 'Account', 'field': 'account', 'hide': True},
     {'header': 'Name', 'field': 'name'},
     {'header': 'Phone', 'field': 'to', 'status_field': 'call_status'},
     {'header': 'Email', 'field': 'email', 'status_field': 'email_status'},

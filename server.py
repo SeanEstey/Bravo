@@ -21,6 +21,7 @@ from reverse_proxy import ReverseProxied
 import sys
 import tasks
 import utils
+import requests
 
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
 db = mongo_client[DB_NAME]
@@ -115,7 +116,7 @@ def get_email_body(job, msg):
     logger.error('Invalid date in get_email: ' + str(msg['imported']['event_date']))
     return False
 
-  body = ''
+  body = '<div style="text-align:left; font-size:14pt;">'
 
   if job['template'] == 'etw_reminder_email':
     if msg['imported']['status'] == 'Active':
@@ -131,8 +132,9 @@ def get_email_body(job, msg):
     elif msg['imported']['status'] == 'Cancelling':
       body += '<p>Hi, this is a reminder that a driver will be by on ' + date_str + ' to pick up your Empties to WINN collection stand. Thanks for your support.</p>'
 
-    body += "<br><p style='text-align:center'>1-888-YOU-WINN</p>"
-    body += "<p style='text-align:center'><a href='http://www.emptiestowinn.com'>www.emptiestowinn.com</a></p>"
+    body += "<br>1-888-YOU-WINN<br>"
+    body += "<a href='http://www.emptiestowinn.com'>www.emptiestowinn.com</a>"
+    body += '</div>'
     return body
   
 def get_speak(job, msg, answered_by, medium='voice'):
@@ -585,7 +587,7 @@ def record_msg():
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
   job_id = job_id.encode('utf-8')
-  #tasks.execute_job.apply_async((job_id, ), queue=DB_NAME)
+  tasks.execute_job.apply_async((job_id, ), queue=DB_NAME)
 
   return 'OK'
 
@@ -735,8 +737,6 @@ def cancel_call():
 # Script run via reminder email
 def no_pickup(msg_id):
   try:
-    
-    #msg_id = msg_id.encode('utf-8')
     msg = db['msgs'].find_one({'_id':ObjectId(msg_id)})
     # Link clicked for an outdated/in-progress or deleted job?
     if not msg:
@@ -759,11 +759,16 @@ def no_pickup(msg_id):
       }}
     )
 
-    logger.info('No pickup request success for %s', msg['imported']['email'])
-    return 'Thank you'
+    # Write to eTapestry
+    if 'account' in msg['imported']:
+      url = 'http://seanestey.ca/wsf/no_pickup.php'
+      ddmmyyyy = msg['imported']['event_date'].strftime('%d/%m/%Y')
+      params = {'account': msg['imported']['account'], 'date': ddmmyyyy}
+      tasks.run_etap_get_script.apply_async((url, params, ), queue=DB_NAME)
+      return 'Thank you'
   
   except Exception, e:
-    logger.error('/call/answer', exc_info=True)
+    logger.error('/nopickup/msg_id', exc_info=True)
     return str(e)
    
 @app.route('/edit/call/<sid>', methods=['POST'])
@@ -853,6 +858,12 @@ def content():
           'id': str(call['_id']),
           'office_notes':no_pickup
           })
+        # Write to eTapestry
+        if 'account' in call['imported']:
+          url = 'http://seanestey.ca/wsf/no_pickup.php'
+          ddmmyyyy = call['imported']['event_date'].strftime('%d/%m/%Y')
+          params = {'account': call['imported']['account'], 'date': ddmmyyyy}
+          tasks.run_etap_get_script.apply_async((url, params, ), queue=DB_NAME)
 
     response = twilio.twiml.Response()
     response.say('Goodbye', voice='alice')

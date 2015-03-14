@@ -64,9 +64,24 @@ def print_html(dictObj):
         p+='<li>['+str(idx+1)+']'+print_html(item)+'</li>'
       p+='</ul>'
     else:
-      #p+='<li>'+ to_title_case(k)+ ': '+ to_title_case(json_util.dumps(v))+ '</li>'
       p+='<li>'+ to_title_case(k)+ ': '+ remove_quotes(json_util.dumps(v)) + '</li>'
   p+='</ul>'
+  return p
+
+def dict_to_html_table(dictObj):
+  p='<table>'
+  for k,v in dictObj.iteritems():
+    if isinstance(v, dict):
+      p+='<td>'+ dict_to_html_table(v)+'</td>'
+    elif isinstance(v, list):
+      #p+='<br><li><b>'+to_title_case(k)+': </b></li>'
+      #p+='<ul style="list-style-type: none;">'
+      for idx, item in enumerate(v):
+        p+='<tr>'+dict_to_html_table(item)+'</tr>'
+      #p+='</ul>'
+    else:
+      p+='<td>'+ remove_quotes(json_util.dumps(v)) + '</td>'
+  p+='</table>'
   return p
 
 def remove_quotes(s):

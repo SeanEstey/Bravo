@@ -73,7 +73,7 @@ def dial(to):
       error_msg = 'invalid_number_format'
     else:
       error_msg = e.message
-    return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'error_msg':error_msg}
+    return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'call_error':error_msg}
   except Exception as e:
     logger.error('twilio.dial exception %s', str(e), exc_info=True)
     return str(e)
@@ -102,7 +102,7 @@ def sms(to, msg):
     else:
       error_msg = e.message
 
-    return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'error_msg':error_msg}
+    return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'call_error':error_msg}
 
   except Exception as e:
     logger.error('sms exception %s', str(e), exc_info=True)
@@ -240,7 +240,7 @@ def send_email_report(job_id):
   fails = list( 
     db['msgs'].find(
       {'job_id':job_id, '$or': [{'email_status': 'bounced'},{'email_status': 'dropped'},{'call_status':'failed'}]},
-      {'imported': 1, 'email_error': 1, 'error_msg':1, 'error_code':1, 'email_status': 1, '_id': 0}
+      {'imported': 1, 'email_error': 1, 'call_error':1, 'error_code':1, 'email_status': 1, '_id': 0}
     )
   )
 
@@ -248,25 +248,30 @@ def send_email_report(job_id):
   th = '<th style="padding:5px; border:1px solid black">'
 
   fails_table = '<table style="padding:5px; border-collapse:collapse; border:1px solid black"><tr>'
+  # Column Headers
   for field in fails[0]['imported'].keys():
-    fails_table += th + field + '</th>'
-  fails_table += th + 'error_code</th>' + th + 'error_msg</th>' + th + 'email_error</th>'
+    fails_table += th + field.replace('_', ' ').title() + '</th>'
+  fails_table += th + 'Email Error</th>' + th + 'Call Error</th>' + th + 'Code</th>'
   fails_table += '</tr>'
   
+  # Column Data 
   for row in fails:
     fails_table += '<tr>'
     for key, val in row['imported'].iteritems():
       fails_table += td + str(val) + '</td>'
-    if 'error_code' in row:
-      fails_table += td + row['error_code'] + '</td>'
-    else:
-      fails_table += td + '</td>'
-    if 'error_msg' in row:
-      fails_table += td + row['error_msg']  + '</td>'
-    else:
-      fails_table += td + '</td>'
     if 'email_error' in row:
+      if row['email_error'].find('550') > -1:
+        row['error_code'] = 550
+        row['email_error'] = 'Address does not exist'
       fails_table += td + row['email_error']  + '</td>'
+    else:
+      fails_table += td + '</td>'
+    if 'call_error' in row:
+      fails_table += td + row['call_error'].replace('_', ' ').title()  + '</td>'
+    else:
+      fails_table += td + '</td>'
+    if 'error_code' in row:
+      fails_table += td + str(row['error_code']) + '</td>'
     else:
       fails_table += td + '</td>'
     fails_table += '</tr>'
@@ -275,6 +280,7 @@ def send_email_report(job_id):
   msg = utils.print_html(summary) + '<br><br>' + fails_table
   subject = 'Job Summary %s' % job['name']
   utils.send_email(['estese@gmail.com, emptiestowinn@wsaf.ca'], subject, msg)
+  logger.info('Email report sent')
 
 def parse_csv(csvfile, template):
   reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
@@ -599,7 +605,7 @@ def record_msg():
 @app.route('/request/execute/<job_id>')
 def request_execute_job(job_id):
   job_id = job_id.encode('utf-8')
-  #tasks.execute_job.apply_async((job_id, ), queue=DB_NAME)
+  tasks.execute_job.apply_async((job_id, ), queue=DB_NAME)
 
   return 'OK'
 
@@ -702,7 +708,7 @@ def reset_job(job_id):
       'answered_by': '',
       'call_duration': '',
       'mid': '',
-      'error_msg': '',
+      'call_error': '',
       'error_code': '',
       'message': '',
       'sid': '',
@@ -755,6 +761,10 @@ def no_pickup(msg_id):
       logger.info('No pickup request fail. Invalid msg_id')
       return 'Request unsuccessful'
 
+    if 'no_pickup' in msg:
+      logger.info('No pickup request already processed')
+      return 'Thank you'
+
     job = db['jobs'].find_one({'_id':msg['job_id']})
     # TODO: Allow no pickups right until routing time
     if job['status'] != 'pending':
@@ -773,10 +783,10 @@ def no_pickup(msg_id):
 
     # Write to eTapestry
     if 'account' in msg['imported']:
-      url = 'http://seanestey.ca/wsf/no_pickup.php'
+      url = 'http://seanestey.ca/wsf/etap.php'
       ddmmyyyy = msg['imported']['event_date'].strftime('%d/%m/%Y')
-      params = {'account': msg['imported']['account'], 'date': ddmmyyyy}
-      tasks.run_etap_get_script.apply_async((url, params, ), queue=DB_NAME)
+      params = {'func':'no_pickup', 'account': msg['imported']['account'], 'date': ddmmyyyy}
+      tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
       return 'Thank you'
   
   except Exception, e:
@@ -855,9 +865,7 @@ def content():
       if digits == '1':
         return get_speak(job, call, 'human')
       # Special Action (defined by template)
-      elif digits == '2':
-        # No pickup request
-        #if job['template'] == 'etw_reminder':
+      elif digits == '2' and 'no_pickup' not in call:
         no_pickup = 'No Pickup ' + call['imported']['event_date'].strftime('%A, %B %d')
         db['msgs'].update(
           {'sid':sid},
@@ -872,10 +880,10 @@ def content():
           })
         # Write to eTapestry
         if 'account' in call['imported']:
-          url = 'http://seanestey.ca/wsf/no_pickup.php'
+          url = 'http://seanestey.ca/wsf/etap.php'
           ddmmyyyy = call['imported']['event_date'].strftime('%d/%m/%Y')
-          params = {'account': call['imported']['account'], 'date': ddmmyyyy}
-          tasks.run_etap_get_script.apply_async((url, params, ), queue=DB_NAME)
+          params = {'func': 'no_pickup', 'account': call['imported']['account'], 'date': ddmmyyyy}
+          tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
 
     response = twilio.twiml.Response()
     response.say('Goodbye', voice='alice')
@@ -915,7 +923,7 @@ def process_status():
       if 'speak' in call:
         fields['speak'] = call['speak']
     elif call_status == 'failed':
-      fields['error_msg'] = 'unknown_error'
+      fields['call_error'] = 'unknown_error'
       logger.info('/call/status dump: %s', request.values.items())
 
     db['msgs'].update(

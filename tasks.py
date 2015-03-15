@@ -156,11 +156,12 @@ def monitor_job(job_id):
     logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
 
 @celery_app.task
-def run_etap_get_script(url, params):
-  logger.info('running etap script %s', url)
+def no_pickup_etapestry(url, params):
   r = requests.get(url, params=params)
+  
   if r.status_code != 200:
     logger.error('etap script "%s" failed. status_code:%i', url, r.status_code)
     return r.status_code
-    
+  
+  logger.info('No pickup for account %s', params['account'])
   return r.status_code

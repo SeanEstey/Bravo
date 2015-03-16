@@ -109,6 +109,41 @@ def sms(to, msg):
 
     return False
 
+@app.route('/cal')
+def get_calendar_events():
+  try:
+    import httplib2
+    from oauth2client.client import SignedJwtAssertionCredentials 
+    from apiclient.discovery import build
+
+    f = file("google_api_key.p12", "rb")
+    key = f.read()
+    f.close()
+
+    credentials = SignedJwtAssertionCredentials(
+      service_account_name='577344603920-mofl4kripj8a8bmvkl38s9t7s7d0r29b@developer.gserviceaccount.com',
+      private_key=key,
+      scope='https://www.googleapis.com/auth/calendar.readonly'
+    )
+
+    http = httplib2.Http()
+    http = credentials.authorize(http)
+
+    service = build('calendar', 'v3', http=http)
+    events = service.events().list(
+      calendarId=RES_CAL_ID, 
+      timeMin=datetime.now().isoformat()+'+01:00',
+      singleEvents=True,
+      orderBy= 'startTime',
+      maxResults=10
+    ).execute()
+    logger.info(events)
+
+    return render_template('job_summary.html', title=TITLE, summary=json.dumps(events))
+  except Exception, e:
+    logger.error('/cal', exc_info=True)
+    return str(e)
+
 def get_email_body(job, msg):
   try:
     date_str = msg['imported']['event_date'].strftime('%A, %B %d')
@@ -679,7 +714,7 @@ def request_email_job(job_id):
         body = get_email_body(job, message)
         if not body:
           continue
-        subject = 'Empties to WINN Pickup Reminder'
+        subject = 'Pickup on ' + message['imported']['event_date'].strftime('%A, %B %d')
         r = utils.send_email([message['imported']['email']], subject, body)
         
         r = json.loads(r.text)
@@ -838,6 +873,13 @@ def no_pickup(msg_id):
       params = {'func':'no_pickup', 'account': msg['imported']['account'], 'date': ddmmyyyy}
       tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
       return 'Thank you'
+    
+    # TODO: Get next pickup date using Google API and Block lookup 
+    url = 'https://www.googleapis.com/calendar/v3/calendars/' + RES_CAL_ID + '/events'
+    params = {'timeMin': '2014-01-01T00:00:00+00:00', 'key': GOOGLE_CAL_KEY}
+    #events = requests.get(url, params=params)
+
+    return 'OK'
   
   except Exception, e:
     logger.error('/nopickup/msg_id', exc_info=True)

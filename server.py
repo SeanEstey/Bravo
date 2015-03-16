@@ -116,25 +116,75 @@ def get_email_body(job, msg):
     logger.error('Invalid date in get_email: ' + str(msg['imported']['event_date']))
     return False
 
-  body = '<div style="text-align:left; font-size:14pt;">'
-
   if job['template'] == 'etw_reminder_email':
     if msg['imported']['status'] == 'Active':
-      a_style = 'color:#ffffff!important;display:inline-block;font-weight:500;font-size:16px;line-height:42px;font-family:\'Helvetica\',Arial,sans-serif;width:auto;white-space:nowrap;min-height:42px;margin:12px 5px 12px 0;padding:0 22px;text-decoration:none;text-align:center;border:0;border-radius:3px;vertical-align:top;background-color:#337ab7!important'
-      no_pickup_btn = '<a style="'+a_style+'" href="' + PUB_URL + '/nopickup/' + str(msg['_id']) + '">Click here to cancel your pickup</a>'
+      a_style = '''
+        color:#ffffff!important;
+        display:inline-block;
+        font-weight:500;
+        font-size:16px;
+        line-height:42px;
+        font-family:\'Helvetica\',Arial,sans-serif;
+        width:auto;
+        white-space:nowrap;
+        min-height:42px;
+        margin-top:12px;
+        margin-bottom:12px;
+        padding-top:0px;
+        padding-bottom:0px;
+        padding-left:22px;
+        padding-right:22px;
+        text-decoration:none;
+        text-align:center;
+        border:0;
+        border-radius:3px;
+        vertical-align:top;
+        background-color:#337ab7!important
+      '''.replace('\n', '').replace(' ', '')
 
-      body += '<p>Hi, your upcoming Empties to WINN pickup date is ' + date_str + '</p>'
-      body += '<p>Your green bags can be placed in front of your house by 8am. Please keep each bag under 30lbs.  Extra glass can be left in cases to the side.</p>'
+      body = '''
+        <html>
+          <body style='font-size:12pt; text-align:left'>
+            <div>
+              <p>Hi, your upcoming Empties to WINN pickup date is</p>
+              <p><h3>!DATE!</h3></p>
+              <p>Your green bags can be placed in front of your house by 8am. 
+              Please keep each bag under 30lbs.  
+              Extra glass can be left in cases to the side.</p>
+              <p><a style="!STYLE!" href='!HREF!'>Click here to cancel your pickup</a></p>
+            </div>
+            <div>
+              1-888-YOU-WINN
+              <br>
+              <a href='http://www.emptiestowinn.com'>www.emptiestowinn.com</a>
+            </div>
+          </body>
+        </html>
+      '''
 
-      body += '<p>' + no_pickup_btn + '</p>'
+      body = body.replace('!DATE!', date_str)
+      body = body.replace('!STYLE!', a_style)
+      body = body.replace('!HREF!', PUB_URL + '/nopickup/' + str(msg['_id']))
     elif msg['imported']['status'] == 'Dropoff':
       return False
     elif msg['imported']['status'] == 'Cancelling':
-      body += '<p>Hi, this is a reminder that a driver will be by on ' + date_str + ' to pick up your Empties to WINN collection stand. Thanks for your support.</p>'
+      body = '''
+        <html>
+          <body style='font-size:12pt; text-align:left;'>
+            <p>Hi, this is a reminder that a driver will be by on !DATE! 
+            to pickup your Empties to WINN collection stand.
+            Thanks for your support.</p>
+            <div>
+              1-888-YOU-WINN
+              <br>
+              <a href='http://www.emptiestowinn.com'>www.emptiestowinn.com</a>
+            </div>
+          </body>
+        </html>
+      '''
 
-    body += "<br>1-888-YOU-WINN<br>"
-    body += "<a href='http://www.emptiestowinn.com'>www.emptiestowinn.com</a>"
-    body += '</div>'
+      body = body.replace('!DATE!', date_str)
+
     return body
   
 def get_speak(job, msg, answered_by, medium='voice'):

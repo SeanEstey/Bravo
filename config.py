@@ -20,18 +20,12 @@ UPLOAD_FOLDER = '/tmp'
 JOBS_PER_PAGE = 10
 ALLOWED_EXTENSIONS = set(['csv','xls'])
 TEMPLATE = {
-  'etw_reminder_email': [
+  'etw_reminder': [
     {'header': 'Account', 'field': 'account', 'hide': True},
     {'header': 'Name', 'field': 'name'},
     {'header': 'Phone', 'field': 'to', 'status_field': 'call_status'},
     {'header': 'Email', 'field': 'email', 'status_field': 'email_status'},
-    {'header': 'Status', 'field': 'status'},
-    {'header': 'Next P/U Date', 'field': 'event_date'},
-    {'header': 'Office Notes', 'field': 'office_notes'}
-  ],
-  'etw_reminder': [
-    {'header': 'Name', 'field': 'name'},
-    {'header': 'Phone', 'field': 'to', 'status_field': 'call_status'},
+    {'header': 'Block', 'field': 'block', 'hide': True},
     {'header': 'Status', 'field': 'status'},
     {'header': 'Next P/U Date', 'field': 'event_date'},
     {'header': 'Office Notes', 'field': 'office_notes'}

@@ -109,40 +109,33 @@ def sms(to, msg):
 
     return False
 
-@app.route('/cal')
-def get_calendar_events():
-  try:
-    import httplib2
-    from oauth2client.client import SignedJwtAssertionCredentials 
-    from apiclient.discovery import build
+@app.route('/cal/<job_id>')
+def get_calendar_events(job_id):
+  job_id = job_id.encode('utf-8')
+  tasks.get_next_pickups.apply_async((job_id, ), queue=DB_NAME)
+  return 'OK'
 
-    f = file("google_api_key.p12", "rb")
-    key = f.read()
-    f.close()
+def get_no_pickup_email_body(block):
+  body = '''
+    <html>
+      <body style='font-size:12pt; text-align:left'>
+        <div>
+          <p>Thanks for letting us know you don't need a pickup. 
+          This helps us to be more efficient with our resources.</p>
+          
+          <p>Your next pickup date will be on</p>
+          <p><h3>!DATE!</h3></p>
+        </div>
+        <div>
+          1-888-YOU-WINN
+          <br>
+          <a href='http://www.emptiestowinn.com'>www.emptiestowinn.com</a>
+        </div>
+      </body>
+    </html>
+  '''
 
-    credentials = SignedJwtAssertionCredentials(
-      service_account_name='577344603920-mofl4kripj8a8bmvkl38s9t7s7d0r29b@developer.gserviceaccount.com',
-      private_key=key,
-      scope='https://www.googleapis.com/auth/calendar.readonly'
-    )
-
-    http = httplib2.Http()
-    http = credentials.authorize(http)
-
-    service = build('calendar', 'v3', http=http)
-    events = service.events().list(
-      calendarId=RES_CAL_ID, 
-      timeMin=datetime.now().isoformat()+'+01:00',
-      singleEvents=True,
-      orderBy= 'startTime',
-      maxResults=10
-    ).execute()
-    logger.info(events)
-
-    return render_template('job_summary.html', title=TITLE, summary=json.dumps(events))
-  except Exception, e:
-    logger.error('/cal', exc_info=True)
-    return str(e)
+  return body
 
 def get_email_body(job, msg):
   try:
@@ -151,7 +144,7 @@ def get_email_body(job, msg):
     logger.error('Invalid date in get_email: ' + str(msg['imported']['event_date']))
     return False
 
-  if job['template'] == 'etw_reminder_email':
+  if job['template'] == 'etw_reminder':
     if msg['imported']['status'] == 'Active':
       a_style = '''
         color:#ffffff!important;
@@ -239,7 +232,7 @@ def get_speak(job, msg, answered_by, medium='voice'):
   repeat_voice = 'To repeat this message press 1. '
   speak = ''
 
-  if job['template'] == 'etw_reminder' or job['template'] == 'etw_reminder_email':
+  if job['template'] == 'etw_reminder':
     etw_intro = 'Hi, this is a friendly reminder that your Empties to WINN '
     if msg['imported']['status'] == 'Dropoff':
       speak += etw_intro + 'dropoff date is ' + date_str + '. If you have any empties you can leave them out by 8am. '
@@ -413,6 +406,10 @@ def call_db_doc(job, idx, buf_row, errors):
     'attempts': 0,
     'imported': {}
   }
+
+  if job['template'] == 'etw_reminder':
+    msg['next_pickup'] = ''
+
   # Translate column names to mongodb names ('Phone'->'to', etc)
   #logger.info(str(buf_row))
 
@@ -852,9 +849,9 @@ def no_pickup(msg_id):
 
     job = db['jobs'].find_one({'_id':msg['job_id']})
     # TODO: Allow no pickups right until routing time
-    if job['status'] != 'pending':
-      logger.info('No pickup request fail. Job status no longer pending')
-      return 'Request unsuccessful'
+    #if job['status'] != 'pending':
+    #  logger.info('No pickup request fail. Job status no longer pending')
+    #  return 'Request unsuccessful'
 
     no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
     db['msgs'].update(
@@ -874,11 +871,6 @@ def no_pickup(msg_id):
       tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
       return 'Thank you'
     
-    # TODO: Get next pickup date using Google API and Block lookup 
-    url = 'https://www.googleapis.com/calendar/v3/calendars/' + RES_CAL_ID + '/events'
-    params = {'timeMin': '2014-01-01T00:00:00+00:00', 'key': GOOGLE_CAL_KEY}
-    #events = requests.get(url, params=params)
-
     return 'OK'
   
   except Exception, e:

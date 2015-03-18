@@ -72,7 +72,7 @@
               {% elif call.call_status == "no-answer" or call.call_status == "busy" %}
                 {% set caption = call.call_status + ' ' ~ call.attempts %}
               {% elif call.call_status == "failed" %}
-                {% set caption = call.call_status + ' ' + call.error_msg %}
+                {% set caption = call.call_status + ' ' + call.call_error %}
               {% else %}
                 {% set caption=call.call_status %}
               {% endif %}

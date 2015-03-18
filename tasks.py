@@ -13,6 +13,7 @@ from twilio import twiml
 import logging
 import requests
 import json
+import dateutil
 
 logger = logging.getLogger(__name__)
 handler = logging.FileHandler(LOG_FILE)
@@ -164,6 +165,10 @@ def no_pickup_etapestry(url, params):
     return r.status_code
   
   logger.info('No pickup for account %s', params['account'])
+
+
+  
+
   return r.status_code
 
 @celery_app.task
@@ -216,11 +221,12 @@ def get_next_pickups(job_id):
         cal_block = event['summary'].split(' ')[0]
         if cal_block == block:
           logger.info('Block %s Pickup Date: %s', block, event['start']['date'])
-          pickup_dates[block] = event['start']['date']
+          dt = dateutil.parser.parse(event['start']['date'])
+          pickup_dates[block] = dt
       if block not in pickup_dates:
         logger.info('No pickup found for Block %s', block)
 
-    logger.info('pickup_date list' + json.dumps(pickup_dates))
+    #logger.info('pickup_date list' + json.dumps(pickup_dates))
 
     # Now we should have pickup dates for all blocks on job
     # Iterate through each msg and store pickup_date

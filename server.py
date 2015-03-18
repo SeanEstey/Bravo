@@ -115,7 +115,9 @@ def get_calendar_events(job_id):
   tasks.get_next_pickups.apply_async((job_id, ), queue=DB_NAME)
   return 'OK'
 
-def get_no_pickup_email_body(block):
+def get_no_pickup_email_body(next_pickup_dt):
+  date_str = next_pickup_dt.strftime('%A, %B %d')
+
   body = '''
     <html>
       <body style='font-size:12pt; text-align:left'>
@@ -123,7 +125,7 @@ def get_no_pickup_email_body(block):
           <p>Thanks for letting us know you don't need a pickup. 
           This helps us to be more efficient with our resources.</p>
           
-          <p>Your next pickup date will be on</p>
+          <p>Your next pickup date will be on:</p>
           <p><h3>!DATE!</h3></p>
         </div>
         <div>
@@ -134,6 +136,8 @@ def get_no_pickup_email_body(block):
       </body>
     </html>
   '''
+
+  body = body.replace('!DATE!', date_str)
 
   return body
 
@@ -548,6 +552,9 @@ def submit():
   jobs = db['jobs'].find().sort('fire_dtime',-1)
   banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(calls)) + ' calls imported.'
   r = json.dumps({'status':'success', 'msg':banner_msg})
+
+  if job['template'] == 'etw_reminder':
+    tasks.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
   
   return Response(response=r, status=200, mimetype='application/json')
 
@@ -771,8 +778,6 @@ def job_complete(job_id):
 
 @app.route('/reset/<job_id>')
 def reset_job(job_id):
-  #template = TEMPLATE[job['template']]
-  
   db['msgs'].update(
     {'job_id': ObjectId(job_id)}, 
     {'$set': {
@@ -798,7 +803,8 @@ def reset_job(job_id):
       'code': '',
       'ended_at': '',
       'rfu': '',
-      'no_pickup': ''
+      'no_pickup': '',
+      'next_pickup': ''
     }},
     multi=True
   )
@@ -808,6 +814,11 @@ def reset_job(job_id):
     {'$set': {
       'status': 'pending'
     }})
+
+
+  job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+  if job['template'] == 'etw_reminder':
+    tasks.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
 
   logger.info('Reset Job [ID %s]', str(job_id))
   return 'OK'
@@ -869,9 +880,15 @@ def no_pickup(msg_id):
       ddmmyyyy = msg['imported']['event_date'].strftime('%d/%m/%Y')
       params = {'func':'no_pickup', 'account': msg['imported']['account'], 'date': ddmmyyyy}
       tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
-      return 'Thank you'
+      #return 'Thank you'
+
+    # Send email w/ next pickup
+    if 'next_pickup' in msg:
+      subject = 'Your next Pickup'
+      body = get_no_pickup_email_body(msg['next_pickup'])
+      utils.send_email([msg['imported']['email']], subject, body)
     
-    return 'OK'
+    return 'Thank you'
   
   except Exception, e:
     logger.error('/nopickup/msg_id', exc_info=True)

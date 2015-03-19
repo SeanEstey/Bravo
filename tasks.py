@@ -220,7 +220,7 @@ def get_next_pickups(job_id):
       for event in events['items']:
         cal_block = event['summary'].split(' ')[0]
         if cal_block == block:
-          logger.info('Block %s Pickup Date: %s', block, event['start']['date'])
+          logger.debug('Block %s Pickup Date: %s', block, event['start']['date'])
           dt = dateutil.parser.parse(event['start']['date'])
           pickup_dates[block] = dt
       if block not in pickup_dates:
@@ -231,7 +231,7 @@ def get_next_pickups(job_id):
     # Now we should have pickup dates for all blocks on job
     # Iterate through each msg and store pickup_date
     for block, date in pickup_dates.iteritems():
-      logger.info('Updating all %s with Next Pickup: %s', block, date)
+      logger.debug('Updating all %s with Next Pickup: %s', block, date)
       db['msgs'].update(
         {'job_id':job_id, 'imported.block':block}, 
         {'$set':{'next_pickup':date}},

@@ -480,6 +480,11 @@ def send_socket(name, data):
 def view_admin():
   return render_template('admin.html')
 
+@app.route('/log')
+def view_log():
+
+  return render_template('log.html')
+
 @app.route('/submit', methods=['POST'])
 def submit():
   # POST request to create new job from new_job.html template

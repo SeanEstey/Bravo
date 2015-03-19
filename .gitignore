@@ -3,6 +3,7 @@ venv*
 *.swp
 *.swo
 *~
+google_api_key.p12
 log.log
 celery.log
 celerybeat-schedule

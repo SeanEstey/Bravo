@@ -232,7 +232,11 @@ def get_next_pickups(job_id):
     # Iterate through each msg and store pickup_date
     for block, date in pickup_dates.iteritems():
       logger.info('Updating all %s with Next Pickup: %s', block, date)
-      db['msgs'].update({'job_id':job_id, 'imported.block':block}, {'$set':{'next_pickup':date}})
+      db['msgs'].update(
+        {'job_id':job_id, 'imported.block':block}, 
+        {'$set':{'next_pickup':date}},
+        multi=True
+      )
   
   except Exception, e:
     logger.error('get_next_pickups', exc_info=True)

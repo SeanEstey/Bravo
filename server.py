@@ -869,24 +869,31 @@ def no_pickup(msg_id):
       {'_id':msg['_id']},
       {'$set': {
         'imported.office_notes': no_pickup,
-        'rfu': True,
         'no_pickup': True
       }}
     )
+    send_socket('update_msg', {
+      'id': str(msg['_id']),
+      'office_notes':no_pickup
+      })
 
     # Write to eTapestry
     if 'account' in msg['imported']:
       url = 'http://seanestey.ca/wsf/etap.php'
-      ddmmyyyy = msg['imported']['event_date'].strftime('%d/%m/%Y')
-      params = {'func':'no_pickup', 'account': msg['imported']['account'], 'date': ddmmyyyy}
+      params = {
+        'func':'no_pickup', 
+        'account': msg['imported']['account'], 
+        'date': msg['imported']['event_date'].strftime('%d/%m/%Y'),
+        'next_pickup': msg['next_pickup'].strftime('%d/%m/%Y')
+      }
       tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
-      #return 'Thank you'
 
     # Send email w/ next pickup
     if 'next_pickup' in msg:
       subject = 'Your next Pickup'
       body = get_no_pickup_email_body(msg['next_pickup'])
       utils.send_email([msg['imported']['email']], subject, body)
+      logger.info('Emailed Next Pickup to %s', msg['imported']['email'])
     
     return 'Thank you'
   
@@ -970,10 +977,7 @@ def content():
         no_pickup = 'No Pickup ' + call['imported']['event_date'].strftime('%A, %B %d')
         db['msgs'].update(
           {'sid':sid},
-          {'$set': {
-            'imported.office_notes': no_pickup,
-            'rfu': True
-          }}
+          {'$set': {'imported.office_notes': no_pickup}}
         )
         send_socket('update_msg', {
           'id': str(call['_id']),
@@ -982,8 +986,12 @@ def content():
         # Write to eTapestry
         if 'account' in call['imported']:
           url = 'http://seanestey.ca/wsf/etap.php'
-          ddmmyyyy = call['imported']['event_date'].strftime('%d/%m/%Y')
-          params = {'func': 'no_pickup', 'account': call['imported']['account'], 'date': ddmmyyyy}
+          params = {
+            'func': 'no_pickup', 
+            'account': call['imported']['account'], 
+            'date':  call['imported']['event_date'].strftime('%d/%m/%Y'),
+            'next_pickup': call['next_pickup'].strftime('%d/%m/%Y')
+          }
           tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
 
     response = twilio.twiml.Response()

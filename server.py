@@ -1,5 +1,6 @@
 import flask
 from flask import Flask,render_template,request,g,Response,redirect,url_for
+from flask.ext.login import LoginManager, login_user, logout_user, current_user, login_required
 from flask.ext.socketio import *
 from server_settings import *
 from config import *
@@ -20,6 +21,7 @@ import codecs
 from reverse_proxy import ReverseProxied
 import sys
 import tasks
+from user import User
 import utils
 import requests
 
@@ -35,7 +37,25 @@ app = Flask(__name__)
 app.config.from_pyfile('config.py')
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.debug = DEBUG
+app.secret_key = SECRET_KEY
 socketio = SocketIO(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = PUB_URL + '/login' #url_for('login')
+
+@app.before_request
+def before_request():
+  g.user = current_user
+
+@login_manager.user_loader
+def load_user(username):
+  user_record = db['logins'].find_one({'user':username})
+
+  if user_record:
+    user = User(user_record['user'],user_record['password'])
+    return user
+  else:
+    return None
 
 def celery_check():
   if not tasks.celery_app.control.inspect().registered_tasks():
@@ -110,6 +130,7 @@ def sms(to, msg):
     return False
 
 @app.route('/cal/<job_id>')
+@login_required
 def get_calendar_events(job_id):
   job_id = job_id.encode('utf-8')
   tasks.get_next_pickups.apply_async((job_id, ), queue=DB_NAME)
@@ -476,16 +497,46 @@ def send_socket(name, data):
  
   socketio.emit(name, data)
 
+
+@app.route('/login', methods=['GET','POST'])
+def login():
+  if request.method == 'GET':
+    return render_template('login.html')
+  elif request.method == 'POST':
+    username = request.form['username']
+    password = request.form['password']
+    logger.info('user: %s pw: %s', username, password)
+    
+    login_record = db['logins'].find_one({'user': username})
+    if not login_record:
+      r = json.dumps({'status':'error', 'title': 'login info', 'msg':'Username does not exist'})
+    else:
+      if login_record['password'] != password:
+        r = json.dumps({'status':'error', 'title': 'login info', 'msg':'Incorrect password'})
+      else:
+        r = json.dumps({'status':'success', 'title': 'yes', 'msg':'success!'})
+        user = load_user(username)
+        login_user(user)
+        logger.info(user)
+
+    return Response(response=r, status=200, mimetype='application/json')
+
+@app.route('/logout', methods=['GET'])
+def logout():
+  return 'OK'
+
 @app.route('/admin')
+@login_required
 def view_admin():
   return render_template('admin.html')
 
 @app.route('/log')
+@login_required
 def view_log():
-
   return render_template('log.html')
 
 @app.route('/submit', methods=['POST'])
+@login_required
 def submit():
   # POST request to create new job from new_job.html template
   file = request.files['call_list']
@@ -564,6 +615,7 @@ def submit():
   return Response(response=r, status=200, mimetype='application/json')
 
 @app.route('/', methods=['GET'])
+@login_required
 def index():
   if request.method == 'GET':
     # If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
@@ -582,6 +634,7 @@ def index():
     )
     
 @app.route('/summarize/<job_id>')
+@login_required
 def get_job_summary(job_id):
   job_id = job_id.encode('utf-8')
   summary = json_util.dumps(job_db_dump(job_id))
@@ -653,12 +706,14 @@ def show_error():
   return render_template('error.html', title=TITLE, msg=msg)
 
 @app.route('/new')
+@login_required
 def new_job():
   return render_template('new_job.html', title=TITLE)
 
 # POST request from client->Dial phone to record audio (routes to call/answer)
 # GET request from client->Audio recording complete (hit # or hung up)
 @app.route('/recordaudio', methods=['GET', 'POST'])
+@login_required
 def record_msg():
   if request.method == 'POST':
     to = request.form.get('to')
@@ -697,6 +752,7 @@ def record_msg():
 
 # Requested from client
 @app.route('/request/execute/<job_id>')
+@login_required
 def request_execute_job(job_id):
   job_id = job_id.encode('utf-8')
   tasks.execute_job.apply_async((job_id, ), queue=DB_NAME)
@@ -704,6 +760,7 @@ def request_execute_job(job_id):
   return 'OK'
 
 @app.route('/request/email/<job_id>')
+@login_required
 def request_email_job(job_id):
   try:
     job_id = job_id.encode('utf-8')
@@ -748,6 +805,7 @@ def request_email_job(job_id):
     logger.error('/request/email', exc_info=True)
 
 @app.route('/jobs/<job_id>')
+@login_required
 def show_calls(job_id):
   sort_by = 'name' 
   calls = db['msgs'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
@@ -769,6 +827,7 @@ def job_fired(job_id):
   return 'OK'
   
 @app.route('/complete/<job_id>')
+@login_required
 def job_complete(job_id):
   data = {
     'id': job_id,
@@ -782,6 +841,7 @@ def job_complete(job_id):
   return 'OK'
 
 @app.route('/reset/<job_id>')
+@login_required
 def reset_job(job_id):
   db['msgs'].update(
     {'job_id': ObjectId(job_id)}, 
@@ -829,6 +889,7 @@ def reset_job(job_id):
   return 'OK'
 
 @app.route('/cancel/job/<job_id>')
+@login_required
 def cancel_job(job_id):
   db['jobs'].remove({'_id':ObjectId(job_id)})
   db['msgs'].remove({'job_id':ObjectId(job_id)})
@@ -837,6 +898,7 @@ def cancel_job(job_id):
   return 'OK'
 
 @app.route('/cancel/call', methods=['POST'])
+@login_required
 def cancel_call():
   call_uuid = request.form.get('call_uuid')
   job_uuid = request.form.get('job_uuid')
@@ -860,14 +922,10 @@ def no_pickup(msg_id):
       return 'Request unsuccessful'
 
     if 'no_pickup' in msg:
-      logger.info('No pickup request already processed')
+      logger.info('No pickup already processed for account %s', msg['imported']['account'])
       return 'Thank you'
 
     job = db['jobs'].find_one({'_id':msg['job_id']})
-    # TODO: Allow no pickups right until routing time
-    #if job['status'] != 'pending':
-    #  logger.info('No pickup request fail. Job status no longer pending')
-    #  return 'Request unsuccessful'
 
     no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
     db['msgs'].update(
@@ -907,6 +965,7 @@ def no_pickup(msg_id):
     return str(e)
    
 @app.route('/edit/call/<sid>', methods=['POST'])
+@login_required
 def edit_call(sid):
   for fieldname, value in request.form.items():
     if fieldname == 'event_date':

@@ -14,6 +14,9 @@ import logging
 import requests
 import json
 import dateutil
+import httplib2
+from oauth2client.client import SignedJwtAssertionCredentials 
+from apiclient.discovery import build
 
 logger = logging.getLogger(__name__)
 handler = logging.FileHandler(LOG_FILE)
@@ -166,9 +169,6 @@ def no_pickup_etapestry(url, params):
   
   logger.info('No pickup for account %s', params['account'])
 
-
-  
-
   return r.status_code
 
 @celery_app.task
@@ -180,10 +180,6 @@ def get_next_pickups(job_id):
     for msg in messages:
       if msg['imported']['block'] not in blocks:
         blocks.append(msg['imported']['block'])
-      
-    import httplib2
-    from oauth2client.client import SignedJwtAssertionCredentials 
-    from apiclient.discovery import build
 
     # Generated on google developer console
     f = file("google_api_key.p12", "rb")

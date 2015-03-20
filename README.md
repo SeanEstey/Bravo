@@ -3,7 +3,7 @@
 Install Dependencies<br>
 ```
 apt-get install python-pip python-dev mongodb nginx rabbitmq-server
-pip install celery flask flask-socketio pymongo python-dateutil twilio
+pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio
 ```
 Clone repository<br>
 ```

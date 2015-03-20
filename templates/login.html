@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}  
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
+<script>
+  document.write('<style type="text/css">body{display:none}</style>');
+  jQuery(function($){
+    initLoginView();
+  });
+</script>
+
+<div id='space' style='margin:5em'>
+</div>
+<div style='text-align:center'> 
+  <h3>Login</h3>
+</div>
+
+<div id='my-alert' style='display:none; width:400px' class="alert alert-danger alert-dismissible center" role="alert">
+  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button>
+  <label id='alert-msg'>Alert! Warning! Alert!</label>
+</div>
+
+<div class='box center' style='font-size:16pt; width:400px; background-color:#f7f7f7; padding:1.5em'>
+  <form id='myform' method=post>
+    <div class='form-group' style='margin:1em 0em'>
+      <input class='form-control input-lg' style='' type='text' id='' placeholder='Username'  name='username' required>
+    </div>
+    <div class='form-group' style='margin:1em 0em'>
+      <input class='form-control input-lg' style='' title='' placeholder='Password' type='password' name='password' required>
+    </div>
+    <button 
+      class='btn btn-primary' 
+      style='font-size:20px; width:100%; padding:0.5em;' 
+      type="button" id="submit_btn" name="submit-btn">Login
+    </button>
+  </div>
+  </form>
+</div>
+
+{% endblock %}

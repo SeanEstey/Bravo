@@ -103,6 +103,56 @@ function showDialog($element, msg, _title, _buttons) {
   $element.dialog(dialog_style);
 }
 
+// login view
+function initLoginView() {
+  $('#app_menu').hide();
+
+  $('#submit_btn').click(function(event){
+    // This line needs to be here for Firefox browsers
+    event.preventDefault(event);
+    
+    var form_data = new FormData($('#myform')[0]);
+    var request = $.ajax({
+      type: 'POST',
+      url: $SCRIPT_ROOT + '/login',
+      data: form_data,
+      contentType: false,
+      processData: false,
+      dataType: 'json'
+    })
+    
+    request.done(function(response){
+      console.log(response);
+      if(typeof response == 'string')
+        response = JSON.parse(response);
+      if(response['status'] == 'success') {
+        console.log('login success');
+        localStorage.setItem('username', $('[name="username"]').val());
+        localStorage.setItem('password', $('[name="password"]').val());
+        location.href = $SCRIPT_ROOT;
+      }
+      else if(response['status'] == 'error') {
+        $('.modal-title').text(response['title']);
+        $('.modal-body').html(response['msg']);
+        $('#btn-primary').hide();
+        $('#mymodal').modal('show');
+      }
+    });
+    
+    request.fail(function(xhr, textStatus, errorThrown) {
+      console.log(xhr);
+      console.log(textStatus);
+      console.log(errorThrown);
+      $('.modal-title').text('Error');
+      $('.modal-body').html(xhr.responseText);
+      $('.btn-primary').hide();
+      $('#mymodal').modal('show');
+    });
+  });
+
+  $('body').css('display','block');
+}
+
 // new_job view
 function initNewJobView() {
   useJQueryBtn();

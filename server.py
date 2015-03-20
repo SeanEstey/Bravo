@@ -497,7 +497,6 @@ def send_socket(name, data):
  
   socketio.emit(name, data)
 
-
 @app.route('/login', methods=['GET','POST'])
 def login():
   if request.method == 'GET':
@@ -505,25 +504,29 @@ def login():
   elif request.method == 'POST':
     username = request.form['username']
     password = request.form['password']
-    logger.info('user: %s pw: %s', username, password)
+    #logger.info('user: %s pw: %s', username, password)
     
     login_record = db['logins'].find_one({'user': username})
     if not login_record:
       r = json.dumps({'status':'error', 'title': 'login info', 'msg':'Username does not exist'})
+      logger.info('User %s login failed', username)
     else:
       if login_record['password'] != password:
         r = json.dumps({'status':'error', 'title': 'login info', 'msg':'Incorrect password'})
+        logger.info('User %s login failed', username)
       else:
         r = json.dumps({'status':'success', 'title': 'yes', 'msg':'success!'})
         user = load_user(username)
         login_user(user)
-        logger.info(user)
+        logger.info('User %s logged in', username)
 
     return Response(response=r, status=200, mimetype='application/json')
 
 @app.route('/logout', methods=['GET'])
 def logout():
-  return 'OK'
+  logout_user()
+  logger.info('User logged out')
+  return redirect(PUB_URL)
 
 @app.route('/admin')
 @login_required

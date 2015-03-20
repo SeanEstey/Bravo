@@ -127,8 +127,8 @@ function initLoginView() {
         response = JSON.parse(response);
       if(response['status'] == 'success') {
         console.log('login success');
-        localStorage.setItem('username', $('[name="username"]').val());
-        localStorage.setItem('password', $('[name="password"]').val());
+        //localStorage.setItem('username', $('[name="username"]').val());
+        //localStorage.setItem('password', $('[name="password"]').val());
         location.href = $SCRIPT_ROOT;
       }
       else if(response['status'] == 'error') {

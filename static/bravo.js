@@ -1126,6 +1126,10 @@ function initJobSummary() {
   $('body').css('display','block');
 }
 
+function initLog() {
+  $('body').css('display','block');
+}
+
 function initAdmin() {
   $('body').css('display','block');
   displayServerStatus('/get/celery_status', '', $('#celery-status'));

@@ -24,6 +24,7 @@ import tasks
 from user import User
 import utils
 import requests
+import mmap
 
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
 db = mongo_client[DB_NAME]
@@ -38,6 +39,7 @@ app.config.from_pyfile('config.py')
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.debug = DEBUG
 app.secret_key = SECRET_KEY
+app.jinja_env.add_extension("jinja2.ext.do")
 socketio = SocketIO(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -536,7 +538,25 @@ def view_admin():
 @app.route('/log')
 @login_required
 def view_log():
-  return render_template('log.html')
+  n = 50
+  size = os.path.getsize(LOG_FILE)
+
+  with open(LOG_FILE, "rb") as f:
+    fm = mmap.mmap(f.fileno(), 0, mmap.MAP_SHARED, mmap.PROT_READ)
+    try:
+      for i in xrange(size - 1, -1, -1):
+        if fm[i] == '\n':
+          n -= 1
+          if n == -1:
+            break
+        lines = fm[i + 1 if i else 0:].splitlines()
+    except Exception, e:
+      logger.error('/log: %s', str(e))
+    finally:
+      fm.close()
+
+
+  return render_template('log.html', lines=lines)
 
 @app.route('/submit', methods=['POST'])
 @login_required
@@ -813,6 +833,8 @@ def show_calls(job_id):
   sort_by = 'name' 
   calls = db['msgs'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
   job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+
+
 
   return render_template(
     'show_calls.html', 

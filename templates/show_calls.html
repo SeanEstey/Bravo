@@ -28,20 +28,22 @@
         <tr>
           <!-- Imported Headers -->
           {% set col_num=1 %}
+          {% set col_arr=[] %}
           {% for column in template if not column.hide %}
-              <th style='text-align:left' id='col{{ col_num }}'>
-                <a title='Sort' class='hover' href='#'>{{ column['field'].title().replace('_', ' ') }}</a>
-              </th>
-          {% set col_num = col_num + 1 %}
+            <th style='text-align:left' id='col{{ col_num }}'>
+              <a title='Sort' class='hover' href='#'>{{ column['field'].title().replace('_', ' ') }}</a>
+            </th>
+            {% set col_num = col_num + 1 %}
+            {% do col_arr.append(1) %}
           {% endfor %}
           <!-- Status Headers -->
-          {% set col_num = template|length+1 %}
           {% for column in template %}
             {% if 'status_field' in column %}
-              <th name='{{column['status_field']}}' style='text-align:right'  id='col{{col_num}}'>
+              <th name='{{column['status_field']}}' style='text-align:right'  id='col{{col_arr|length+1}}'>
                 <a title='Sort' class='hover' href='#'>{{column['status_field'].title().replace('_', ' ')}}</a>
               </th>
             {% set col_num = col_num + 1 %}
+            {% do col_arr.append(1) %}
             {% endif %}
           {% endfor %}
           <th class='cancel-call-col' style='width:50px'></th>

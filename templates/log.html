@@ -1,3 +1,16 @@
-{% extends "base.html" %}
-{% block content %}  
-{% endblock %}
+  {% extends "base.html" %}
+  {% block content %}  
+  <script>
+    document.write('<style type="text/css">body{display:none}</style>');
+    jQuery(function($){
+      initLog();
+    });
+  </script>
+  <br>
+  <div style='text-align:center' class='h1'>Log</div>
+  <table class='table'>
+    {% for line in lines %}
+    <tr><td style='font-size:10pt'>{{ line }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endblock %}

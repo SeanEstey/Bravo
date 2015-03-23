@@ -1,13 +1,12 @@
 <?php
 
-require("./lib/utils.php");
 require("./lib/nusoap.php");
 
 ini_set('log_errors', 1);
 ini_set('error_log', '/data/wsf/error.log');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $func = json_decode($_POST["func"]);
+  $func = $_POST["func"];
   $data = json_decode($_POST["data"]);
 }
 else if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -32,33 +31,44 @@ switch($func) {
     $next_pickup = $_GET['next_pickup'];
     no_pickup($account_id, $date, $next_pickup);
     http_response_code(200);
+  
   case 'add_notes':
     //add_notes($data);
     break;
+  
   case 'add_gifts':
     $gifts = json_decode($_POST["data"]);
     add_gifts($gifts);
     http_response_code(200);
-
     break;
+  
   case 'update_accounts':
     $accounts = json_decode($_POST["data"]);
     update_accounts($accounts);
     http_response_code(200);
-   
     break;
+  
   case 'add_accounts':
+    error_log('running add_accounts');
     $submissions = json_decode($_POST["data"]);
     add_accounts($submissions);
-    http_response_code(200);
-    
+    http_response_code(200);  
     break;
+  
   case 'get_block_size':
-    //get_block_size($data);
+    $category = $_GET['category'];
+    $query = $_GET['query'];
+    get_block_size($category, $query);
+    http_response_code(200);  
     break;
-  case 'get_query_stats':
-    //get_query_stats($data);
-    break; 
+  
+  case 'get_upload_status':
+    $request_id = intval($_GET['request_id']);
+    $from_row = intval($_GET['from_row']);
+    get_upload_status($request_id, $from_row);
+    http_response_code(200);
+    break;
+
   default:
     error_log('Invalid function');
     echo 'Invalid Function';
@@ -88,6 +98,34 @@ function startEtapSession() {
   }
 
   return $nsc;
+}
+
+function checkStatus($nsc) {
+  if ($nsc->fault || $nsc->getError()) {
+    if (!$nsc->fault) {
+      error_log("Error: " . $nsc->getError());
+    }
+    else {
+      error_log("Fault Code: " . $nsc->faultcode);
+      error_log("Fault String: " .$nsc->faultstring);;
+    }
+    exit;
+  }
+}
+
+function formatDateAsDateTimeString($dateStr) {
+  if ($dateStr == null || $dateStr == "") return "";
+  if (substr_count($dateStr, "/") != 2) return "[Invalid Date: $dateStr]";
+
+  $separator1 = stripos($dateStr, "/");
+  $separator2 = stripos($dateStr, "/", $separator1 + 1);
+
+  $day = substr($dateStr, 0, $separator1);
+  $month = substr($dateStr, $separator1 + 1, $separator2 - $separator1 - 1);
+  $year = substr($dateStr, $separator2 + 1);
+
+  
+  return ($day > 0 && $month > 0 && $year > 0) ? date(DATE_ATOM, mktime(0, 0, 0, $month, $day, $year)) : "[Invalid Date: $dateStr]";
 }
 
 function no_pickup($account_id, $date, $next_pickup) {
@@ -123,6 +161,7 @@ function no_pickup($account_id, $date, $next_pickup) {
 }
 
 function add_gifts($gifts) {
+  global $nsc;
   $data = array();
 
   for($i=0; $i<count($gifts); $i++) {
@@ -158,6 +197,8 @@ function add_gifts($gifts) {
 }
 
 function add_accounts($submissions) {
+  global $nsc, $collection;
+  
   for($n=0; $n<count($submissions); $n++) {
     $submission = get_object_vars($submissions[$n]);
     $account = array();
@@ -168,13 +209,22 @@ function add_accounts($submissions) {
     $account["city"] = $submission["City"];
     $account["state"] = "AB";
     $account["postalCode"] = $submission["Postal"];
+    
     if(empty($submission["Email"]))
         $account["email"] = "";
     else
         $account["email"] = $submission["Email"];
+    
+    if(empty($submission["Title"])) {
+      $account["longSalutation"] = $account["name"];
+      $account["envelopeSalutation"] = $account["name"];
+    }
+    else {
+      $account["longSalutation"] = $submission["Title"] . " " . $account["name"];
+      $account["envelopeSalutation"] = $account["longSalutation"];
+    }
+
     $account["shortSalutation"] = $submission["FirstName"];
-    $account["longSalutation"] = $account["name"];
-    $account["envelopeSalutation"] = $account["name"];
 
     if(!empty($submission["Phone"])) {
       $phone = array();
@@ -259,6 +309,8 @@ function add_accounts($submissions) {
 }
 
 function update_accounts($accounts) {
+  global $nsc;
+  
   $udf_names = array(
     "Status" => "Status",
     "Next P/U Date" => "NextPickupDate",
@@ -292,12 +344,11 @@ function update_accounts($accounts) {
     unset($status);
     unset($document);
   }
-
-  stopEtapestrySession($nsc);
-  http_response_code(202);
 }
 
 function add_notes($notes) {
+  global $nsc;
+
   for($i=0; $i<count($notes); $i++) {
     $note = get_object_vars($notes[$i]);
     $account = $nsc->call("getAccountById", array($note["Account"]));
@@ -328,7 +379,59 @@ function add_notes($notes) {
   }
 }
 
+function get_upload_status($request_id, $from_row) {
+  global $nsc, $collection;
+
+  $criteria['request_id'] = $request_id;
+
+  if($from_row)
+    $criteria['row'] = array('$gte' => $from_row);
+
+  $cursor = $collection->find($criteria);
+
+  if($cursor->count() === 0) {
+    echo 'no results';
+    exit(0);
+  }
+
+  error_log('get_upload_status: ' . (string)$cursor->count() . ' results found');
+
+  $results = array();
+  foreach ($cursor as $document) {
+    unset($document["_id"]);
+    $results[] = $document;
+  }
+
+  echo json_encode($results);
+}
+
+function get_block_size($category, $query) {
+  global $nsc;
+
+  if($category == "res")
+      $categoryName = "ETW: Residential Runs";
+  else if($category == "bus")
+      $categoryName = "ETW: Business Runs";
+
+  $request = array();
+  $request["start"] = 0;
+  $request["count"] = 500;
+  $request["query"] = "$categoryName::$query";
+
+  $response = $nsc->call("getExistingQueryResults", array($request));
+  $num_accounts = $response["count"];
+
+  checkStatus($nsc);
+
+  error_log("getQueryResultStats().count(): " . $num_accounts);
+  echo $num_accounts;
+}
+
+
+
+
 function remove_udf_values($nsc, $account, $submission) {
+  global $nsc;
   global $udf_names;
   $udf_remove = array();
 
@@ -357,6 +460,7 @@ function remove_udf_values($nsc, $account, $submission) {
 }
 
 function apply_udf_values($nsc, $account, $submission) {
+  global $nsc;
   global $udf_names;
 
   // Add new User Defined Values

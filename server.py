@@ -852,7 +852,9 @@ def job_fired(job_id):
   return 'OK'
   
 @app.route('/complete/<job_id>')
-@login_required
+#@login_required
+# Prevent this request from coming externally. Comes via Celery task now
+# but can be spoofed easily
 def job_complete(job_id):
   data = {
     'id': job_id,

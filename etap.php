@@ -107,7 +107,7 @@ function checkStatus($nsc) {
     }
     else {
       error_log("Fault Code: " . $nsc->faultcode);
-      error_log("Fault String: " .$nsc->faultstring);;
+      error_log("Fault String: " .$nsc->faultstring);
     }
     exit;
   }
@@ -124,12 +124,11 @@ function formatDateAsDateTimeString($dateStr) {
   $month = substr($dateStr, $separator1 + 1, $separator2 - $separator1 - 1);
   $year = substr($dateStr, $separator2 + 1);
 
-  
   return ($day > 0 && $month > 0 && $year > 0) ? date(DATE_ATOM, mktime(0, 0, 0, $month, $day, $year)) : "[Invalid Date: $dateStr]";
 }
 
 function no_pickup($account_id, $date, $next_pickup) {
-  global $nsc;
+  global $nsc, $collection;
   $account = $nsc->call("getAccountById", array($account_id));
   $office_notes = "";
   $udf = $account['accountDefinedValues'];
@@ -161,8 +160,9 @@ function no_pickup($account_id, $date, $next_pickup) {
 }
 
 function add_gifts($gifts) {
-  global $nsc;
+  global $nsc, $collection;
   $data = array();
+  $num_errors = 0;
 
   for($i=0; $i<count($gifts); $i++) {
     $gift = get_object_vars($gifts[$i]);
@@ -186,18 +186,23 @@ function add_gifts($gifts) {
       "row" => $gift["Row"],
     );
     
-    if(is_array($status))
+    if(is_array($status)) {
       $document["status"] = $status["faultstring"];
+      $num_errors++;
+      error_log('Gift error: ' . $status['faultstring']);
+    }
     else
       $document["status"] = $status;
 
     $collection->insert($document);
-    error_log('Add Gift status: ' . print_r($status,true));
   }
+
+  error_log((string)count($gifts) . ' gifts added. ' . (string)$num_errors . ' errors.');
 }
 
 function add_accounts($submissions) {
   global $nsc, $collection;
+  $num_errors = 0;
   
   for($n=0; $n<count($submissions); $n++) {
     $submission = get_object_vars($submissions[$n]);
@@ -298,18 +303,23 @@ function add_accounts($submissions) {
       "row" => $submission["Row"],
     );
     
-    if(is_array($status))
-      $document["status"] = $status["faultstring"];
+    if(is_array($status)) {
+      $document['status'] = $status['faultstring'];
+      error_log('Add account error: ' . $status['faultstring']);
+      $num_errors++;
+    }
     else
       $document["status"] = $status;
 
     $collection->insert($document);
-    error_log('add_accounts_db result: ' . print_r($status,true));
   }
+  
+  error_log((string)count($submissions) . ' accounts added. ' . (string)$num_errors . ' errors.');
 }
 
 function update_accounts($accounts) {
-  global $nsc;
+  global $nsc, $collection;
+  $num_errors = 0;
   
   $udf_names = array(
     "Status" => "Status",
@@ -325,16 +335,19 @@ function update_accounts($accounts) {
     $submission = get_object_vars($accounts[$i]);
     $account = $nsc->call("getAccountById", array($submission["Account"]));
     //checkStatus($nsc);
-    remove_udf_values($nsc, $account, $submission);
-    $status = apply_udf_values($nsc, $account, $submission);
+    remove_udf_values($nsc, $udf_names, $account, $submission);
+    $status = apply_udf_values($nsc, $udf_names, $account, $submission);
 
     $document = array(
       "request_id" => $submission["RequestID"], 
       "row" => $submission["Row"],
     );
     
-    if(is_array($status))
+    if(is_array($status)) {
       $document["status"] = $status["faultstring"];
+      error_log('Update account error: ' . $status['faultstring']);
+      $num_errors++;
+    }
     else
       $document["status"] = "OK";
 
@@ -344,10 +357,12 @@ function update_accounts($accounts) {
     unset($status);
     unset($document);
   }
+
+  error_log((string)count($accounts) . ' accounts updated. ' . (string)$num_errors . ' errors.');
 }
 
 function add_notes($notes) {
-  global $nsc;
+  global $nsc, $collection;
 
   for($i=0; $i<count($notes); $i++) {
     $note = get_object_vars($notes[$i]);
@@ -394,7 +409,7 @@ function get_upload_status($request_id, $from_row) {
     exit(0);
   }
 
-  error_log('get_upload_status: ' . (string)$cursor->count() . ' results found');
+  //error_log('get_upload_status: ' . (string)$cursor->count() . ' results found');
 
   $results = array();
   foreach ($cursor as $document) {
@@ -427,12 +442,8 @@ function get_block_size($category, $query) {
   echo $num_accounts;
 }
 
-
-
-
-function remove_udf_values($nsc, $account, $submission) {
+function remove_udf_values($nsc, $udf_names, $account, $submission) {
   global $nsc;
-  global $udf_names;
   $udf_remove = array();
 
   foreach($account["accountDefinedValues"] as $key=> $value) {
@@ -459,9 +470,8 @@ function remove_udf_values($nsc, $account, $submission) {
   unset($udf_remove);
 }
 
-function apply_udf_values($nsc, $account, $submission) {
+function apply_udf_values($nsc, $udf_names, $account, $submission) {
   global $nsc;
-  global $udf_names;
 
   // Add new User Defined Values
   $definedvalues = array();

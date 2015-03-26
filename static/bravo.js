@@ -1,3 +1,18 @@
+
+// GLOBALS
+this.colors = {
+  'SUCCESS_STATUS': '#5CB85C',
+  'FAILED_STATUS': '#D9534F',
+  'DEFAULT_STATUS': 'black',
+  'IN_PROGRESS_STATUS': '#337AB7'
+};
+
+this.unicode = {
+  'UP_ARROW': '&#8593;',
+  'DOWN_ARROW': '&#8595;',
+  'SPACE': '&#32;'
+};
+
 // Returns decimal code for special HTML characters
 function HTMLEncode(str) {
   var i = str.length,
@@ -515,10 +530,8 @@ function validateNewJobForm() {
 
 // View: show_calls
 function initShowCallsView() {
-  var up_arrow = '&#8593;';
-  var down_arrow = '&#8595;';
   var $a_child = $('th:first-child a');
-  $a_child.html($a_child.html()+down_arrow);
+  $a_child.html($a_child.html()+window.unicode['DOWN_ARROW']);
   addBravoTooltip();
   makeCallFieldsClickable();
 
@@ -526,7 +539,7 @@ function initShowCallsView() {
   $('th').each(function(){
     var $a = $('a', $(this));
     var encoded_text = HTMLEncode($a.text());
-    if(encoded_text.indexOf(down_arrow) > -1)
+    if(encoded_text.indexOf(window.unicode['DOWN_ARROW']) > -1)
       $a.attr('title', 'Sort Descending Order');
     else  
       $a.attr('title', 'Sort Ascending Order');
@@ -536,7 +549,7 @@ function initShowCallsView() {
       var sort_col = id.split('col')[1];
       sortCalls($('#show-calls-table'), sort_col);
       var encoded_text = HTMLEncode($(this).text());
-      if(encoded_text.indexOf(down_arrow) > -1)
+      if(encoded_text.indexOf(window.unicode['DOWN_ARROW']) > -1)
         $(this).attr('title', 'Sort Descending Order');
       else
         $(this).attr('title', 'Sort Ascending Order');
@@ -598,7 +611,7 @@ function initShowCallsView() {
         status = 'Sent Live';
       else if(status.indexOf('machine') > -1)
         status = 'Sent VM';
-      $(this).css('color', '#5cb85c');
+      $(this).css('color', window.colors['SUCCESS_STATUS']);
     }
     else if(status.indexOf('failed') > -1) {
       $(this).attr('title', '');
@@ -608,17 +621,17 @@ function initShowCallsView() {
         status = 'invalid_number';
       else if(status == 'unknown_error')
         status = 'failed';
-      $(this).css('color', '#d9534f');
+      $(this).css('color', window.colors['FAILED_STATUS']);
     }
     else if(status.indexOf('busy') > -1 || status.indexOf('no-answer') > -1) {
       $(this).attr('title', '');
       var values = status.split(' ');
       status = values[0] + ' (' + values[1] + 'x)';
-      $(this).css('color', '#337ab7');
+      $(this).css('color', window.colors['INCOMPLETE_STATUS']);
     }
     else if(status.indexOf('pending') > -1) {
       $(this).attr('title', '');
-      $(this).css('color', 'black');
+      $(this).css('color', window.colors['DEFAULT_STATUS']);
     }
 
     $(this).text(status.toTitleCase());
@@ -630,37 +643,32 @@ function initShowCallsView() {
     var status = $(this).text();
     if(status.indexOf('delivered') > -1) {
       $(this).attr('title', '');
-      $(this).css('color', '5cb85c');
+      $(this).css('color', window.colors['SUCCESS_STATUS']);
     }
     else if(status.indexOf('pending') > -1) {
       $(this).attr('title', '');
-      $(this).css('color', 'black');
+      $(this).css('color', window.colors['DEFAULT_STATUS']);
     }
     else if(status.indexOf('queued') > -1) {
       $(this).attr('title', '');
-      $(this).css('color', '#337ab7');
+      $(this).css('color', window.colors['DEFAULT_STATUS']);
     }
     else if(status.indexOf('no_email') > -1) {
       $(this).attr('title', '');
-      $(this).css('color', 'black');
+      $(this).css('color', window.colors['DEFAULT_STATUS']);
     }
     else if(status.indexOf('bounced') > -1 || status.indexOf('dropped') > -1) {
-      $(this).css('color', '#d9534f');
+      $(this).css('color', window.colors['FAILED_STATUS']);
     }
     $(this).text(status.toTitleCase());
   });
 
-
-  
   $('[name="event_date"]').each(function() {
     $(this).css('width', '145px');
     var date = Date.parse($(this).html());
     var string = date.toDateString();
     $(this).html(string);
   });
-
-
-
 
   if($('#job-status').text().indexOf('Pending') > -1) {
     var args =  window.location.pathname.split('/');
@@ -786,13 +794,10 @@ function initShowCallsView() {
 
 // View: show_calls
 function sortCalls(table, column) {
-  var up_arrow = '&#8593;';
-  var down_arrow = '&#8595;';
-  var space = '&#32;';
   var tbody = table.find('tbody');
 
   var $th = $('th:nth-child(' + column + ')');
-  var is_ascending = HTMLEncode($th.text()).indexOf(down_arrow) > -1;
+  var is_ascending = HTMLEncode($th.text()).indexOf(window.unicode['DOWN_ARROW']) > -1;
   if(is_ascending)
     var sort_by = 'descending';
   else
@@ -801,16 +806,16 @@ function sortCalls(table, column) {
   // Clear existing sort arrows 
   $('th a').each(function () {
     var html = HTMLEncode($(this).text());
-    html = html.replace(up_arrow, '').replace(down_arrow, '').replace(space, ' ');
+    html = html.replace(window.unicode['UP_ARROW'], '').replace(window.unicode['DOWN_ARROW'], '').replace(window.unicode['SPACE'], ' ');
     $(this).text(html);
   });
 
   // Add sort arrow
   var $a = $('a', $th);
   if (sort_by == 'ascending')
-    $a.html($a.html() + down_arrow);
+    $a.html($a.html() + window.unicode['DOWN_ARROW']);
   else 
-    $a.html($a.html() + up_arrow);
+    $a.html($a.html() + window.unicode['UP_ARROW']);
 
   // Sort rows
   tbody.find('tr').sort(function (a, b) {
@@ -912,8 +917,7 @@ function receiveMsgUpdate(data) {
     var caption = data['call_status'];
     
     if(data['call_status'] == 'completed') {
-      $lbl.removeClass('label-primary').removeClass('label-danger');
-      $lbl.addClass('label-success');
+      $lbl.css('color', window.colors['SUCCESS_STATUS']);
 
       if(data['answered_by'] == 'human')
         caption = 'Sent Live';
@@ -921,8 +925,7 @@ function receiveMsgUpdate(data) {
         caption = 'Sent Voicemail';
     }
     else if(data['call_status'] == 'failed') {
-      $lbl.removeClass('label-primary').removeClass('label-default');
-      $lbl.addClass('label-danger');
+      $lbl.css('color', window.colors['FAILED_STATUS']);
 
       if('error_msg' in data)
         caption = 'Failed (' + data['error_msg'] + ')';
@@ -932,8 +935,7 @@ function receiveMsgUpdate(data) {
     else if(data['call_status'] == 'busy' || data['call_status'] == 'no-answer')
       caption += ' (' + data['attempts'] + 'x)';
     else {
-      $lbl.removeClass('label-default');
-      $lbl.addClass('label-primary');
+      $lbl.css('color', window.colors['IN_PROGRESS_STATUS']);
     }
 
     $lbl.html(caption.toTitleCase()); 
@@ -944,19 +946,16 @@ function receiveMsgUpdate(data) {
     var caption = data['email_status'];
     
     if(data['email_status'] == 'delivered') {
-      $lbl.removeClass('label-primary').removeClass('label-default');
-      $lbl.addClass('label-success');
+      $lbl.css('color', window.colors['SUCCESS_STATUS']);
     }
     else if(data['email_status'] == 'bounced' || data['email_status'] == 'dropped') {
-      $lbl.removeClass('label-primary').removeClass('label-default');
-      $lbl.addClass('label-danger');
+      $lbl.css('color', window.colors['FAILED_STATUS']);
     }
     else if(data['email_status'] == 'queued') {
-      $lbl.removeClass('label-default');
-      $lbl.addClass('label-primary');
+      $lbl.css('color', window.colors['IN_PROGRESS_STATUS']);
     }
     else if(data['email_status'] == 'no_email') {
-      //$lbl.removeCl
+      $lbl.css('color', window.colors['DEFAULT_STATUS']);
     }
     
     $lbl.text(caption.toTitleCase()); 

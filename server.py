@@ -327,65 +327,73 @@ def job_db_dump(job_id):
   return summary
 
 def send_email_report(job_id):
-  if isinstance(job_id, str):
-    job_id = ObjectId(job_id)
-  
-  job = db['jobs'].find_one({'_id':job_id})
+  try:
+    if isinstance(job_id, str):
+      job_id = ObjectId(job_id)
+    
+    job = db['jobs'].find_one({'_id':job_id})
 
-  summary = {
-    '<b>Summary</b>': {
-      'Answered': db['msgs'].find({'job_id':job_id, 'answered_by':'human'}).count(),
-      'Voicemail': db['msgs'].find({'job_id':job_id, 'answered_by':'machine'}).count(),
-      'No-answer' : db['msgs'].find({'job_id':job_id, 'call_status':'no-answer'}).count(),
-      'Busy': db['msgs'].find({'job_id':job_id, 'call_status':'busy'}).count(),
-      'Failed' : db['msgs'].find({'job_id':job_id, 'call_status':'failed'}).count()
+    summary = {
+      '<b>Summary</b>': {
+        'Answered': db['msgs'].find({'job_id':job_id, 'answered_by':'human'}).count(),
+        'Voicemail': db['msgs'].find({'job_id':job_id, 'answered_by':'machine'}).count(),
+        'No-answer' : db['msgs'].find({'job_id':job_id, 'call_status':'no-answer'}).count(),
+        'Busy': db['msgs'].find({'job_id':job_id, 'call_status':'busy'}).count(),
+        'Failed' : db['msgs'].find({'job_id':job_id, 'call_status':'failed'}).count()
+      }
     }
-  }
 
-  fails = list( 
-    db['msgs'].find(
-      {'job_id':job_id, '$or': [{'email_status': 'bounced'},{'email_status': 'dropped'},{'call_status':'failed'}]},
-      {'imported': 1, 'email_error': 1, 'call_error':1, 'error_code':1, 'email_status': 1, '_id': 0}
+    msg = utils.print_html(summary)
+
+    fails = list( 
+      db['msgs'].find(
+        {'job_id':job_id, '$or': [{'email_status': 'bounced'},{'email_status': 'dropped'},{'call_status':'failed'}]},
+        {'imported': 1, 'email_error': 1, 'call_error':1, 'error_code':1, 'email_status': 1, '_id': 0}
+      )
     )
-  )
 
-  td = '<td style="padding:5px; border:1px solid black">'
-  th = '<th style="padding:5px; border:1px solid black">'
+    if fails:
+      td = '<td style="padding:5px; border:1px solid black">'
+      th = '<th style="padding:5px; border:1px solid black">'
 
-  fails_table = '<table style="padding:5px; border-collapse:collapse; border:1px solid black"><tr>'
-  # Column Headers
-  for field in fails[0]['imported'].keys():
-    fails_table += th + field.replace('_', ' ').title() + '</th>'
-  fails_table += th + 'Email Error</th>' + th + 'Call Error</th>' + th + 'Code</th>'
-  fails_table += '</tr>'
+      fails_table = '<table style="padding:5px; border-collapse:collapse; border:1px solid black"><tr>'
+      # Column Headers
+      for field in fails[0]['imported'].keys():
+        fails_table += th + field.replace('_', ' ').title() + '</th>'
+      fails_table += th + 'Email Error</th>' + th + 'Call Error</th>' + th + 'Code</th>'
+      fails_table += '</tr>'
+      
+      # Column Data 
+      for row in fails:
+        fails_table += '<tr>'
+        for key, val in row['imported'].iteritems():
+          fails_table += td + str(val) + '</td>'
+        if 'email_error' in row:
+          if row['email_error'].find('550') > -1:
+            row['error_code'] = 550
+            row['email_error'] = 'Address does not exist'
+          fails_table += td + row['email_error']  + '</td>'
+        else:
+          fails_table += td + '</td>'
+        if 'call_error' in row:
+          fails_table += td + row['call_error'].replace('_', ' ').title()  + '</td>'
+        else:
+          fails_table += td + '</td>'
+        if 'error_code' in row:
+          fails_table += td + str(row['error_code']) + '</td>'
+        else:
+          fails_table += td + '</td>'
+        fails_table += '</tr>'
+      fails_table += '</table>'
+
+      msg += '<br><br>' + fails_table
+
+    subject = 'Job Summary %s' % job['name']
+    utils.send_email(['estese@gmail.com, emptiestowinn@wsaf.ca'], subject, msg)
+    logger.info('Email report sent')
   
-  # Column Data 
-  for row in fails:
-    fails_table += '<tr>'
-    for key, val in row['imported'].iteritems():
-      fails_table += td + str(val) + '</td>'
-    if 'email_error' in row:
-      if row['email_error'].find('550') > -1:
-        row['error_code'] = 550
-        row['email_error'] = 'Address does not exist'
-      fails_table += td + row['email_error']  + '</td>'
-    else:
-      fails_table += td + '</td>'
-    if 'call_error' in row:
-      fails_table += td + row['call_error'].replace('_', ' ').title()  + '</td>'
-    else:
-      fails_table += td + '</td>'
-    if 'error_code' in row:
-      fails_table += td + str(row['error_code']) + '</td>'
-    else:
-      fails_table += td + '</td>'
-    fails_table += '</tr>'
-  fails_table += '</table>'
-
-  msg = utils.print_html(summary) + '<br><br>' + fails_table
-  subject = 'Job Summary %s' % job['name']
-  utils.send_email(['estese@gmail.com, emptiestowinn@wsaf.ca'], subject, msg)
-  logger.info('Email report sent')
+  except Exception, e:
+    logger.error('/send_email_report: %s', str(e))
 
 def parse_csv(csvfile, template):
   reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
@@ -736,7 +744,7 @@ def new_job():
 # POST request from client->Dial phone to record audio (routes to call/answer)
 # GET request from client->Audio recording complete (hit # or hung up)
 @app.route('/recordaudio', methods=['GET', 'POST'])
-@login_required
+#@login_required
 def record_msg():
   if request.method == 'POST':
     to = request.form.get('to')
@@ -1084,6 +1092,12 @@ def content():
             'next_pickup': call['next_pickup'].strftime('%d/%m/%Y')
           }
           tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
+
+        if call['next_pickup']:
+          response = twilio.twiml.Response()
+          next_pickup_str = call['next_pickup'].strftime('%A, %B %d')
+          response.say('Thank you. Your next pickup will be on ' + next_pickup_str + '. Goodbye', voice='alice')
+          return Response(str(response), mimetype='text/xml')
 
     response = twilio.twiml.Response()
     response.say('Goodbye', voice='alice')

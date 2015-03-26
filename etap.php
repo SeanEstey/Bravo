@@ -146,7 +146,7 @@ function no_pickup($account_id, $date, $next_pickup) {
 
   $status = $nsc->call("applyDefinedValues", array($account["ref"], $definedvalues, false));
   if(!empty($status))
-    error_log('Account ' . $account_id . ' No Pickup status: ' . print_r($status,true));
+    error_log('Account ' . $account_id . ' No Pickup');
       
   // Define Note
   $trans = array();
@@ -156,7 +156,7 @@ function no_pickup($account_id, $date, $next_pickup) {
   $trans["date"] = formatDateAsDateTimeString($date);
 
   $status = $nsc->call("addNote", array($trans, false));
-  error_log('Account ' . $account_id . ' No Pickup status: ' . print_r($status,true));
+  error_log('Account ' . $account_id . ' No Pickup');
 }
 
 function add_gifts($gifts) {
@@ -334,22 +334,26 @@ function update_accounts($accounts) {
   for($i=0; $i<count($accounts); $i++) {
     $submission = get_object_vars($accounts[$i]);
     $account = $nsc->call("getAccountById", array($submission["Account"]));
-    //checkStatus($nsc);
-    remove_udf_values($nsc, $udf_names, $account, $submission);
-    $status = apply_udf_values($nsc, $udf_names, $account, $submission);
 
     $document = array(
       "request_id" => $submission["RequestID"], 
       "row" => $submission["Row"],
     );
-    
-    if(is_array($status)) {
-      $document["status"] = $status["faultstring"];
-      error_log('Update account error: ' . $status['faultstring']);
-      $num_errors++;
+
+    if(!$account)
+      $document['status'] = 'Account ' . (string)$submission['Account'] . ' not found. Was it merged?';
+    else {
+      remove_udf_values($nsc, $udf_names, $account, $submission);
+      $status = apply_udf_values($nsc, $udf_names, $account, $submission);
+
+      if(is_array($status)) {
+        $document["status"] = $status["faultstring"];
+        error_log('Update account error: ' . $status['faultstring']);
+        $num_errors++;
+      }
+      else
+        $document["status"] = "OK";
     }
-    else
-      $document["status"] = "OK";
 
     $collection->insert($document);
     unset($submission);
@@ -438,7 +442,7 @@ function get_block_size($category, $query) {
 
   checkStatus($nsc);
 
-  error_log("getQueryResultStats().count(): " . $num_accounts);
+  //error_log("getQueryResultStats().count(): " . $num_accounts);
   echo $num_accounts;
 }
 

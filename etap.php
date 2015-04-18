@@ -38,6 +38,15 @@ switch($func) {
   
   case 'add_gifts':
     $gifts = json_decode($_POST["data"]);
+    $gift = get_object_vars($gifts[0]);
+    $criteria['request_id'] = $gift['RequestID'];
+    $cursor = $collection->find($criteria);
+    
+    if($cursor->count() > 0) {
+      error_log('duplicate add_gifts request for request_id ' . (string)$gift['RequestID']);
+      break;
+    }
+
     add_gifts($gifts);
     http_response_code(200);
     break;
@@ -49,9 +58,37 @@ switch($func) {
     break;
   
   case 'add_accounts':
-    error_log('running add_accounts');
     $submissions = json_decode($_POST["data"]);
     add_accounts($submissions);
+    http_response_code(200);  
+    break;
+
+  case 'check_duplicates':
+    $data = get_object_vars($data);
+    $search["accountRoleTypes"] = 1;
+    $search["allowEmailOnlyMatch"] = false;
+    $search['name'] = $data['name'];
+    $search['address'] = $data['address'];
+    if(!empty($data['email']))
+      $search['email'] = $data['email'];
+
+    $response = $nsc->call("getDuplicateAccounts", array($search));
+    checkStatus($nsc);
+
+    if(!empty($response)) {
+      $msg = (string)sizeof($response) . ' duplicates found: ';
+
+      for($i=0; $i<sizeof($response); $i++) {
+        $account = $response[0]['id'];
+        $msg .= ' account ' . (string)$account;
+      }
+
+      error_log($msg);
+      echo $msg;
+    }
+    else
+      echo 'No duplicate found';
+
     http_response_code(200);  
     break;
   
@@ -64,7 +101,10 @@ switch($func) {
   
   case 'get_upload_status':
     $request_id = intval($_GET['request_id']);
-    $from_row = intval($_GET['from_row']);
+    if(!empty($_GET['from_row']))
+      $from_row = $_GET['from_row'];
+    else
+      $from_row = 2;
     get_upload_status($request_id, $from_row);
     http_response_code(200);
     break;
@@ -164,6 +204,8 @@ function add_gifts($gifts) {
   $data = array();
   $num_errors = 0;
 
+  error_log((string)count($gifts) . ' gifts to be added.');
+
   for($i=0; $i<count($gifts); $i++) {
     $gift = get_object_vars($gifts[$i]);
     $account = $nsc->call("getAccountById", array($gift["Account"]));
@@ -207,6 +249,8 @@ function add_accounts($submissions) {
   for($n=0; $n<count($submissions); $n++) {
     $submission = get_object_vars($submissions[$n]);
     $account = array();
+
+    // Set Persona Info
     $account["name"] = $submission["FirstName"] . " " . $submission["LastName"];
     $account["sortName"] = $submission["LastName"] . ", " . $submission["FirstName"];
     $account["personaType"] = $submission["Persona"];
@@ -229,13 +273,22 @@ function add_accounts($submissions) {
       $account["envelopeSalutation"] = $account["longSalutation"];
     }
 
-    $account["shortSalutation"] = $submission["FirstName"];
+    $account['shortSalutation'] = $submission['FirstName'];
 
-    if(!empty($submission["Phone"])) {
-      $phone = array();
-      $phone["type"] = "Voice";
-      $phone["number"] = $submission["Phone"];
-      $account["phones"] = array($phone);
+    if(!empty($submission['Phone'])) {
+      $account['phones'] = array(
+        array(
+          'type' => 'Voice',
+          'number' => $submission['Phone']
+        )
+      );
+      
+      if(!empty($submission['Mobile'])) {
+        $account['phones'][] = array(
+          'type' => 'Mobile',
+          'number' => $submission['Mobile']
+        );
+      }
     }
 
     $udf_names = array(
@@ -247,7 +300,6 @@ function add_accounts($submissions) {
       "Block",
       "Driver Notes",
       "Office Notes",
-      "Account Type",
       "Reason Joined",
       "Reason Joined Note",
       "Tax Receipt");
@@ -261,11 +313,11 @@ function add_accounts($submissions) {
       "Block",
       "DriverNotes",
       "OfficeNotes",
-      "AccountType",
       "ReasonJoined",
       "ReasonJoinedNote",
       "TaxReceipt");
 
+    // Set Defined Fields
     $account["accountDefinedValues"] = array();
 
     for($i=0; $i<count($udf_names); $i++) {

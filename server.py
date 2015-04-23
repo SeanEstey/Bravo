@@ -425,12 +425,15 @@ def parse_csv(csvfile, template):
   for row in reader:
     #logger.info('row '+str(line_num)+'='+str(row)+' ('+str(len(row))+' elements)')
     # verify columns match template
-    if len(row) != len(template):
-      return 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
-      ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
-    else:
-      buffer.append(row)
-    line_num += 1
+    try:
+      if len(row) != len(template):
+        return 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
+        ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
+      else:
+        buffer.append(row)
+      line_num += 1
+    except Exception as e:
+      logger.info('Error reading line num ' + str(line_num) + ': ' + str(row) + '. Msg: ' + str(e))
   return buffer
 
 def call_db_doc(job, idx, buf_row, errors):
@@ -583,6 +586,10 @@ def submit():
   # Open and parse file
   try:
     with codecs.open(file_path, 'r', 'utf-8-sig') as f:
+      logger.info('opened file')
+      #if f[0] == unicode(codecs.BOM_UTF8, 'utf8'):
+      #  logger.info('stripping BOM_UTF8 char')
+      #  f.lstrip(unicode(codecs.BOM_UTF8, 'utf8'))
       buffer = parse_csv(f, TEMPLATE[request.form['template']])
       if type(buffer) == str:
         r = json.dumps({'status':'error', 'title': 'Problem Reading File', 'msg':buffer})
@@ -591,7 +598,7 @@ def submit():
         logger.info('Parsed %d rows from %s', len(buffer), filename) 
   except Exception as e:
     logger.error(str(e))
-    r = json.dumps({'status':'error', 'title': 'Problem Reading File', 'msg':'Could not parse file'})
+    r = json.dumps({'status':'error', 'title': 'Problem Reading File', 'msg':'Could not parse file: ' + str(e)})
     return Response(response=r, status=200, mimetype='application/json')
 
   if not request.form['job_name']:

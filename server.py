@@ -172,7 +172,7 @@ def get_email_body(job, msg):
     return False
 
   if job['template'] == 'etw_reminder':
-    if msg['imported']['status'] == 'Active':
+    if msg['imported']['status'] == 'Active' or msg['imported']['status'] == 'Call-in' or msg['imported']['status'] == 'One-time':
       a_style = '''
         color:#ffffff!important;
         display:inline-block;
@@ -203,7 +203,7 @@ def get_email_body(job, msg):
             <div>
               <p>Hi, your upcoming Empties to WINN pickup date is</p>
               <p><h3>!DATE!</h3></p>
-              <p>Your green bags can be placed in front of your house by 8am. 
+              <p>Your green bags can be placed at your front entrance, visible from the street, by 8am. 
               Please keep each bag under 30lbs.  
               Extra glass can be left in cases to the side.</p>
               <p><a style="!STYLE!" href='!HREF!'>Click here to cancel your pickup</a></p>

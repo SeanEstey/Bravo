@@ -758,8 +758,7 @@ function initShowCallsView() {
       updateJobStatus();
   });
 
-  // Show only on test server
-  if(location.port == 8080) {
+//  if(location.port == 8080) {
     var args =  window.location.pathname.split('/');
     var job_uuid = args.slice(-1)[0];
     $('#execute-job').click(function() {
@@ -783,13 +782,15 @@ function initShowCallsView() {
         url: $SCRIPT_ROOT + '/reset/' + job_uuid
       });
     });
-    $('#dump').attr('href', $SCRIPT_ROOT + '/summarize/' + String(job_uuid));
-  }
-  else {
+    $('#dump').click(function() {
+      window.location.assign($SCRIPT_ROOT + '/summarize/' + String(job_uuid));
+    });
+  
+  /*else {
     $('#execute-job').hide();
     $('#reset-job').hide();
     $('#dump').hide();
-  }
+  }*/
 }
 
 // View: show_calls

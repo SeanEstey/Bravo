@@ -984,7 +984,7 @@ def no_pickup(msg_id):
 
     # Write to eTapestry
     if 'account' in msg['imported']:
-      url = 'http://seanestey.ca/wsf/etap.php'
+      url = 'http://bravovoice.ca/etap/etap.php'
       params = {
         'func':'no_pickup', 
         'account': msg['imported']['account'], 
@@ -1091,7 +1091,7 @@ def content():
           })
         # Write to eTapestry
         if 'account' in call['imported']:
-          url = 'http://seanestey.ca/wsf/etap.php'
+          url = 'http://bravovoice.ca/etap/etap.php'
           params = {
             'func': 'no_pickup', 
             'account': call['imported']['account'], 

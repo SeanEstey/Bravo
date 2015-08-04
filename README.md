@@ -3,8 +3,18 @@
 Install Dependencies<br>
 ```
 apt-get install python-pip python-dev mongodb nginx rabbitmq-server
-pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio
+pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio apiclient oauth2client
+pip install --upgrade google-api-python-client
 ```
+
+Nginx/Php-fpm Setup<br>
+```
+apt-get install php-dev php-pear php5-curl
+pecl install mongo
+pear install Mail
+pear install Net_SMTP
+```
+
 Clone repository<br>
 ```
 git clone https://github.com/SeanEstey/Bravo
@@ -17,16 +27,20 @@ Start Flask Server:<br>
 
 Create server_settings.py file with following variables set:<br>
 ```
-DEBUG = True
-DB_NAME = 'test'
-LOCAL_PORT = 5000
-LOCAL_URL = 'http://localhost:5000'
-PUB_URL = 'http://seanestey.ca:8080/bravo'
-TITLE = 'Bravo:8080'
-TWILIO_ACCOUNT_SID = ''
-TWILIO_AUTH_ID = ''
-MAILGUN_API_KEY = ''
+DEBUG = [True/False]
+DB_NAME = [MongoDB Db name]
+ETW_RES_CALENDAR_ID = 
+GOOGLE_SERVICE_ACCOUNT = [Google Service Email Address]
+LOCAL_PORT = 
+LOCAL_URL = [Localhost URL]
+MAILGUN_API_KEY = 
+MAILGUN_DOMAIN = 
+PUB_URL = 
 SECRET_KEY = ''
+TITLE = 
+TWILIO_ACCOUNT_SID = 
+TWILIO_AUTH_ID = 
+
 ```
 
 Setup front end server to redirect to proper proxy addresses (see /config for Nginx .conf file)<br>

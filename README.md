@@ -3,8 +3,7 @@
 Install Dependencies<br>
 ```
 apt-get install python-pip python-dev mongodb nginx rabbitmq-server
-pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio apiclient oauth2client
-pip install --upgrade google-api-python-client
+pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio
 ```
 
 Nginx/Php-fpm Setup<br>
@@ -41,6 +40,12 @@ TITLE =
 TWILIO_ACCOUNT_SID = 
 TWILIO_AUTH_ID = 
 
+```
+
+Setup Google API<br>
+```
+apt-get install apiclient oauth2client
+pip install --upgrade google-api-python-client
 ```
 
 Setup front end server to redirect to proper proxy addresses (see /config for Nginx .conf file)<br>

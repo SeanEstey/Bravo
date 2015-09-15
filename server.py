@@ -264,7 +264,7 @@ def get_speak(job, msg, answered_by, medium='voice'):
     if msg['imported']['status'] == 'Dropoff':
       speak += etw_intro + 'dropoff date is ' + date_str + '. If you have any empties you can leave them out by 8am. '
     elif msg['imported']['status'] == 'Active':
-      speak += etw_intro + 'pickup date is ' + date_str + '. Please have your empties out by 8am. '
+      speak += etw_intro + 'pickup date is ' + date_str + '. Please have your green bags out by 8am. Glass can be separated into cases. Your pickup date again is ' + date_str + '. '
     elif msg['imported']['status'] == 'Cancelling':
       speak += etw_intro + 'bag stand will be picked up on ' + date_str + '. Thanks for your past support. '
     elif msg['imported']['status'] == 'One-time':

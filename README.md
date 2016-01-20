@@ -44,7 +44,7 @@ TWILIO_AUTH_ID =
 
 Setup Google API<br>
 ```
-apt-get install apiclient oauth2client
+pip install apiclient oauth2client
 pip install --upgrade google-api-python-client
 ```
 

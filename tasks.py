@@ -1,6 +1,6 @@
 from config import *
 from server_settings import *
-from server import dial
+from reminders import dial
 from celery import Celery
 from celery.signals import worker_process_init, task_prerun
 import time

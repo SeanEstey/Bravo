@@ -511,27 +511,32 @@ def request_email_job(job_id):
     logger.error('/request/email', exc_info=True)
 
 
-@app.route('/request/send_welcome', methods=['GET', 'POST'])
-def send_email():
-  if request.method == 'GET':
-    utils.send_email(['estese@gmail.com'], 'hi', 'hi there!')
-    return 'OK'
-  elif request.method == 'POST':
-    from html_templates import welcome_body
+@app.route('/request/send_welcome', methods=['POST'])
+def send_welcome_email():
+  if request.method == 'POST':
+    html = render_template(
+      'email_welcome.html', 
+      first_name=request.form['first_name'],
+      dropoff_date=request.form['dropoff_date'],
+      address = request.form['address'],
+      postal = request.form['postal']
+    )
     
-    welcome_body = welcome_body.replace('!FIRST_NAME!', request.form['first_name'])
-    welcome_body = welcome_body.replace('!ADDRESS!', request.form['address'])
-    welcome_body = welcome_body.replace('!POSTAL!', request.form['postal'])
-    welcome_body = welcome_body.replace('!DROPOFF_DATE!', request.form['dropoff_date'])
-    welcome_body = welcome_body.replace('!FIRST_NAME!', request.form['first_name'])
+    utils.send_email([request.form['to']], 'Welcome to Empties to Winn', html) 
 
-    #logger.info('keys: ' + json.dumps(request.form.keys()))
-    #logger.info('values: ' + json.dumps(request.form.values()))
-    
-    utils.send_email([request.form['to']], 'Welcome to Empties to Winn', welcome_body)
-    
     return 'OK'
-    
+  
+@app.route('/request/send_reminder', methods=['POST'])
+def send_reminder_email():
+  if request.method == 'POST':
+    html = render_template(
+      'email_reminder.html',
+      next_pickup = request.form['next_pickup']
+    )
+
+    utils.send_email([request.form['to']], 'Your upcoming Empties to Winn pickup', html)
+
+    return 'OK'
 
 @app.route('/reminders/jobs/<job_id>')
 @login_required

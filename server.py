@@ -26,6 +26,7 @@ import reminders
 import utils
 import requests
 import mmap
+import json
 
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
 db = mongo_client[DB_NAME]
@@ -52,7 +53,7 @@ def before_request():
 
 @login_manager.user_loader
 def load_user(username):
-  user_record = db['logins'].find_one({'user':username})
+  user_record = db['admin_logins'].find_one({'user':username})
 
   if user_record:
     user = User(user_record['user'],user_record['password'])
@@ -186,7 +187,7 @@ def login():
     password = request.form['password']
     #logger.info('user: %s pw: %s', username, password)
     
-    login_record = db['logins'].find_one({'user': username})
+    login_record = db['admin_logins'].find_one({'user': username})
     if not login_record:
       r = json.dumps({'status':'error', 'title': 'login info', 'msg':'Username does not exist'})
       logger.info('User %s login failed', username)
@@ -338,14 +339,14 @@ def index():
       jobs=jobs
     )
     
-@app.route('/summarize/<job_id>')
+@app.route('/reminders/summarize/<job_id>')
 @login_required
 def get_job_summary(job_id):
   job_id = job_id.encode('utf-8')
   summary = json_util.dumps(job_db_dump(job_id))
   return render_template('job_summary.html', title=TITLE, summary=summary)
 
-@app.route('/get/template/<name>')
+@app.route('/reminders/get/template/<name>')
 def get_template(name):
   if not name in TEMPLATE:
     return False
@@ -355,7 +356,7 @@ def get_template(name):
       headers.append(col['header'])
     return json.dumps(headers)
 
-@app.route('/get/<var>')
+@app.route('/reminders/get/<var>')
 def get_var(var):
   if var == 'version':
     branch = os.popen('git rev-parse --abbrev-ref HEAD').read()
@@ -405,12 +406,12 @@ def get_var(var):
   
   return False
 
-@app.route('/error')
+@app.route('/reminders/error')
 def show_error():
   msg = request.args['msg']
   return render_template('error.html', title=TITLE, msg=msg)
 
-@app.route('/new')
+@app.route('/reminders/new')
 @login_required
 def new_job():
   return render_template('new_job.html', title=TITLE)
@@ -456,7 +457,7 @@ def record_msg():
     return 'OK'
 
 # Requested from client
-@app.route('/request/execute/<job_id>')
+@app.route('/reminders/request/execute/<job_id>')
 @login_required
 def request_execute_job(job_id):
   job_id = job_id.encode('utf-8')
@@ -464,7 +465,7 @@ def request_execute_job(job_id):
 
   return 'OK'
 
-@app.route('/request/email/<job_id>')
+@app.route('/reminders/request/email/<job_id>')
 @login_required
 def request_email_job(job_id):
   try:
@@ -510,13 +511,25 @@ def request_email_job(job_id):
     logger.error('/request/email', exc_info=True)
 
 
-@app.route('/request/send_email', methods=['GET', 'POST'])
+@app.route('/request/send_welcome', methods=['GET', 'POST'])
 def send_email():
   if request.method == 'GET':
     utils.send_email(['estese@gmail.com'], 'hi', 'hi there!')
     return 'OK'
   elif request.method == 'POST':
-    utils.send_email([request.form.get('to')], request.form.get('subject'), request.form.get('body'))
+    from html_templates import welcome_body
+    
+    welcome_body = welcome_body.replace('!FIRST_NAME!', request.form['first_name'])
+    welcome_body = welcome_body.replace('!ADDRESS!', request.form['address'])
+    welcome_body = welcome_body.replace('!POSTAL!', request.form['postal'])
+    welcome_body = welcome_body.replace('!DROPOFF_DATE!', request.form['dropoff_date'])
+    welcome_body = welcome_body.replace('!FIRST_NAME!', request.form['first_name'])
+
+    #logger.info('keys: ' + json.dumps(request.form.keys()))
+    #logger.info('values: ' + json.dumps(request.form.values()))
+    
+    utils.send_email([request.form['to']], 'Welcome to Empties to Winn', welcome_body)
+    
     return 'OK'
     
 

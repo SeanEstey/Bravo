@@ -5,7 +5,7 @@
     <link href='http://fonts.googleapis.com/css?family=Port+Lligat+Sans|Kavoon|Inconsolata' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
     <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css" />
-    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/style.css') }}">
     
     {% if title %}
     <title>{{ title }}</title>
@@ -19,9 +19,9 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
     <script src="http://code.jquery.com/ui/1.11.3/jquery-ui.js"></script>
 
-    <script type='text/javascript' src="{{url_for('static', filename='jquery.nicefileinput.min.js')}}"></script>
-    <script type="text/javascript" src="{{url_for('static', filename='date.js')}}"></script>
-    <script type='text/javascript' src="{{url_for('static', filename='bravo.js')}}"></script>
+    <script type='text/javascript' src="{{url_for('static', filename='js/jquery.nicefileinput.min.js')}}"></script>
+    <script type="text/javascript" src="{{url_for('static', filename='js/date.js')}}"></script>
+    <script type='text/javascript' src="{{url_for('static', filename='js/bravo.js')}}"></script>
       
     <div class='container'>
       <ul id='app_menu' class="nav nav-pills" style='float:right'>
@@ -31,7 +31,8 @@
         <li role="presentation"><a href="{{url_for('logout')}}"><span class='glyphicon glyphicon-log-out'></span> Logout</a></li>
       </ul>
       <div style='width:200px; margin:0.5em auto' class='center'>
-        <a href="{{url_for('index')}}"><img id='buit' src="{{ url_for('static', filename='bravo_comfortaa.png') }}"></a>
+        <a href="{{url_for('index')}}"><img id='buit' src="{{ url_for('static',
+        filename='images/bravo_comfortaa.png') }}"></a>
       </div>
       {% block content %}{% endblock %}
     </div>

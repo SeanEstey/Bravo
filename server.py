@@ -521,8 +521,15 @@ def send_welcome_email():
       address = request.form['address'],
       postal = request.form['postal']
     )
-    
-    utils.send_email([request.form['to']], 'Welcome to Empties to Winn', html) 
+   
+    r = utils.send_email([request.form['to']], 'Welcome to Empties to Winn', html) 
+        
+    r = json.loads(r.text)
+
+    logger.info('Queued email to ' + request.form['to'] + '. ID: ' + r['id'])
+
+    if r['message'].find('Queued') == 0:
+      db['email_status'].insert({'recipient': request.form['to'], 'mid': r['id'], 'status':'queued' })
 
     return 'OK'
   
@@ -903,11 +910,37 @@ def process_fallback():
     return str(e)
 
 
+@app.route('/email/opened', methods=['POST'])
+def email_opened():
+  try:
+    event = request.form['event']
+    recipient = request.form['recipient']
+    #mid = request.form['Message-Id']
+    #msg = db['reminder_msgs'].find_one({'mid':mid})
+    logger.info('Message opened by ' + recipient + '. Event: ' + event)
+    return 'OK'
+  except Exception, e:
+    logger.error('%s /email/status' % request.values.items(), exc_info=True)
+    return str(e)
+
 @app.route('/email/status',methods=['POST'])
 def email_status():
   try:
     event = request.form['event']
     recipient = request.form['recipient']
+    mid = request.form['mid']
+    logger.info(json.dumps(request.form))
+
+    db['email_status'].update(
+      {'mid': mid},
+      {'$set': {'status': event}}
+    )
+
+    logger.info('Email to ' + recipient + ' ' + event)
+
+    return 'OK'
+
+    '''
     mid = request.form['Message-Id']
     msg = db['reminder_msgs'].find_one({'mid':mid})
     # Email may be for job summary or other purposes not needing this webhook callback
@@ -940,6 +973,7 @@ def email_status():
     send_socket('update_msg', {'id':str(msg['_id']), 'email_status': request.form['event']})
 
     return 'OK'
+    '''
   except Exception, e:
     logger.error('%s /email/status' % request.values.items(), exc_info=True)
     return str(e)

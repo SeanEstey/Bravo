@@ -5,8 +5,9 @@ import re
 from bson import json_util
 import json
 
+
 def has_bounced(address):
-  send_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/bounces'
+  send_url = 'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/bounces'
   r = requests.get(
     send_url + '/' + address, 
     auth=('api', MAILGUN_API_KEY)
@@ -28,7 +29,7 @@ def get_today_fails():
   timetuple = fire_dtime.timetuple()
   stamp = time.mktime(timetuple) - 10000
 
-  send_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/events'
+  send_url = 'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/events'
   return requests.get(
     send_url,
     auth=('api', MAILGUN_API_KEY),
@@ -41,7 +42,7 @@ def get_today_fails():
 
 
 def send_email(recipients, subject, msg):
-  send_url = 'https://api.mailgun.net/v2/' + MAILGUN_DOMAIN + '/messages'
+  send_url = 'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/messages'
   return requests.post(
     send_url,
     auth=('api', MAILGUN_API_KEY),

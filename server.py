@@ -27,6 +27,8 @@ import utils
 import requests
 import mmap
 import json
+from oauth2client.client import SignedJwtAssertionCredentials
+import gspread
 
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
 db = mongo_client[DB_NAME]
@@ -100,8 +102,6 @@ def job_db_dump(job_id):
     "calls": list(db['reminder_msgs'].find({'job_id':job_id},{'ended_at':0, 'job_id':0}))
   }
   return summary
-
-
 
 
 def call_db_doc(job, idx, buf_row, errors):
@@ -915,9 +915,16 @@ def email_opened():
   try:
     event = request.form['event']
     recipient = request.form['recipient']
-    #mid = request.form['Message-Id']
-    #msg = db['reminder_msgs'].find_one({'mid':mid})
-    logger.info('Message opened by ' + recipient + '. Event: ' + event)
+   
+    logger.info('Email opened by ' + recipient)
+    
+    mid = '<' + request.form['message-id'] + '>'
+    
+    db['email_status'].update(
+      {'mid': mid},
+      {'$set': {'opened': True}}
+    )
+
     return 'OK'
   except Exception, e:
     logger.error('%s /email/status' % request.values.items(), exc_info=True)
@@ -926,17 +933,33 @@ def email_opened():
 @app.route('/email/status',methods=['POST'])
 def email_status():
   try:
+    # Forwarded from bravovoice.ca
     event = request.form['event']
     recipient = request.form['recipient']
     mid = request.form['mid']
-    logger.info(json.dumps(request.form))
-
+    
     db['email_status'].update(
       {'mid': mid},
       {'$set': {'status': event}}
     )
 
     logger.info('Email to ' + recipient + ' ' + event)
+  
+    json_key = json.load(open('oauth_credentials.json'))
+    scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
+    credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
+    gc = gspread.authorize(credentials)
+    wks = gc.open('Route Importer').worksheet('Signups')
+
+    sheet_id = '1P51j2vTcaw0cNXGvvu_48J7yIztvS2-Yg4d1PwfWl3k'
+    worksheet_id = 'oh79kh2'
+
+    headers = wks.row_values(1)
+    email_column = wks.col_values(headers.index('Email')+1)
+
+    for idx, email in enumerate(email_column):
+      if email == recipient:
+        wks.update_cell(idx+1, headers.index('Email Status')+1, event)
 
     return 'OK'
 

@@ -511,6 +511,26 @@ def request_email_job(job_id):
     logger.error('/request/email', exc_info=True)
 
 
+@app.route('/test', methods=['GET'])
+def test_get_account():
+  data = {
+    "keys": {
+      "etap_user": "",
+      "etap_pass": "",
+      "etap_endpoint": ""
+    },
+    "data": {
+      "persona": {"email":"foo@bar.com", "mobile":""},
+      'udf' : {"Driver Notes":"Please get contact info"}
+    }
+  }
+
+  r = requests.post('http://www.bravoweb.ca/etap/test.php', data=json.dumps(data))
+  
+  #logger.info(r.text)
+
+  return r.text
+
 @app.route('/request/send_welcome', methods=['POST'])
 def send_welcome_email():
   if request.method == 'POST':
@@ -526,7 +546,7 @@ def send_welcome_email():
         
     r = json.loads(r.text)
 
-    logger.info('Queued email to ' + request.form['to'] + '. ID: ' + r['id'])
+    #logger.info('Queued email to ' + request.form['to'] + '. ID: ' + r['id'])
 
     if r['message'].find('Queued') == 0:
       db['email_status'].insert({'recipient': request.form['to'], 'mid': r['id'], 'status':'queued' })
@@ -916,7 +936,7 @@ def email_opened():
     event = request.form['event']
     recipient = request.form['recipient']
    
-    logger.info('Email opened by ' + recipient)
+    #logger.info('Email opened by ' + recipient)
     
     mid = '<' + request.form['message-id'] + '>'
     
@@ -933,7 +953,8 @@ def email_opened():
 @app.route('/email/status',methods=['POST'])
 def email_status():
   try:
-    # Forwarded from bravovoice.ca
+    # Forwarded from bravovoice.ca. Change webhooks in Mailgun once
+    # reminders switched to this VPS 
     event = request.form['event']
     recipient = request.form['recipient']
     mid = request.form['mid']

@@ -65,10 +65,10 @@ def load_user(username):
 
 def celery_check():
   if not tasks.celery_app.control.inspect().registered_tasks():
-    logger.error('Celery process not running')
+    #logger.error('Celery process not running')
     return False
   else:
-    logger.info('Celery process started OK')
+    #logger.info('Celery process started OK')
     return True
 
 
@@ -511,47 +511,93 @@ def request_email_job(job_id):
     logger.error('/request/email', exc_info=True)
 
 
-@app.route('/test_gift_history', methods=['GET'])
-def test_get_account():
+@app.route('/send_zero_collection', methods=['POST'])
+def send_zero_collection():
   try:
+    url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
+ 
+    account_number = json.loads(request.form["data"])["account_number"]
+    date = json.loads(request.form["data"])["date"]
+    next_pickup = json.loads(request.form["data"])["next_pickup"]
+    
     data = {
-      "func": "get_gift_history",
-      "keys": {
-        "etap_user": "SeanE",
-        "etap_pass": "smarties1983",
-        "etap_endpoint": "https://sna.etapestry.com/v3messaging/service?WSDL",
-        "association_name": "wsf"
-      },
+      "func": "get_account",
+      "keys": json.loads(request.form["keys"]),
       "data": {
-        "account_number": 57516,
-        "year": 2016
+        "account_number": account_number
       }
     }
+    
+    r = requests.post(url, data=json.dumps(data))
 
-    r = requests.post('http://www.bravoweb.ca/etap/etap_mongo.php', data=json.dumps(data))
+    account = json.loads(r.text)
+
+    html = render_template(
+      'email_zero_collection.html',
+      first_name = account['firstName'],
+      date = date,
+      address = account['address'],
+      postal = account['postalCode'],
+      next_pickup = next_pickup
+    )
+
+    utils.send_email(account['email'], 'Your Empties to Winn Pickup', html)
+    
+  
+  
+  except Exception, e:
+    logger.error('/send_collection_receipt', exc_info=True)
+
+@app.route('/send_collection_receipt', methods=['POST'])
+def send_collection_receipt():
+  try:
+    url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
+  
+    account_number = json.loads(request.form["data"])["account_number"]
+    year = json.loads(request.form["data"])["year"]
+    next_pickup = json.loads(request.form["data"])["next_pickup"]
+    
+    data = {
+      "func": "get_account",
+      "keys": json.loads(request.form["keys"]),
+      "data": {
+        "account_number": account_number
+      }
+    }
+    
+    r = requests.post(url, data=json.dumps(data))
+
+    account = json.loads(r.text)
+
+    data["func"] = "get_gift_history"
+    data["data"]["year"] = year
+
+    r = requests.post(url, data=json.dumps(data))
 
     gifts = json.loads(r.text)
 
     for gift in gifts:
       gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
       gift['amount'] = '$' + str(gift['amount'])
-      logger.info(gift['amount'] + ', ' + gift['date'])
+      #logger.info(gift['amount'] + ', ' + gift['date'])
 
     html = render_template(
       'email_collection_receipt.html',
+      first_name = account['firstName'],
       last_date = gifts[len(gifts)-1]['date'],
       last_amount = gifts[len(gifts)-1]['amount'],
       gifts=gifts, 
-      next_pickup = 'June 16, 2016'
-      next_pickup = request.form['next_pickup']
+      next_pickup = next_pickup
     )
 
-    utils.send_email(request.form['to'], 'Your upcoming Empties to Winn pickup', html)
-    #utils.send_email('estese@gmail.com', 'Your upcoming Empties to Winn pickup', html)
+    utils.send_email(account['email'], 'Your Empties to Winn Donation', html)
 
-    return html
+    logger.info('Sending collection receipt to %s', account['email'])
+
+    return 'OK'
+  
   except Exception, e:
-    logger.error('/test_gift_history', exc_info=True)
+    logger.error('/send_collection_receipt', exc_info=True)
 
 @app.route('/request/send_welcome', methods=['POST'])
 def send_welcome_email():
@@ -1050,11 +1096,20 @@ def email_status():
 
 if __name__ == "__main__":
   os.system('kill %1')
+  
   # Kill celery nodes with matching queue name. Leave others alone 
   os.system("ps aux | grep 'queues " + DB_NAME + "' | awk '{print $2}' | xargs kill -9")
-  os.system('celery worker -A tasks.celery_app -f celery.log -B -n ' + DB_NAME + ' --queues ' + DB_NAME + ' &')
+  
+  # Create workers
+  os.system('celery worker -A tasks.celery_app -f log -B -n ' + DB_NAME + ' --queues ' + DB_NAME + ' &')
+  
+  # Pause to give workers time to initialize before starting server
   time.sleep(3);
-  celery_check()
-  logger.info('Server started OK (' + DB_NAME + ')')
-  # Start gevent server
-  socketio.run(app, port=LOCAL_PORT)
+  
+  if not celery_check():
+    logger.info('Celery process failed to start!')
+  else:
+    logger.info('Server starting using \'%s\' DB', DB_NAME)
+
+    # Start gevent server
+    socketio.run(app, port=LOCAL_PORT)

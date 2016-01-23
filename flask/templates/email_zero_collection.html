@@ -1,0 +1,28 @@
+  {% extends "email_base.html" %}
+  {% block content %}  
+    <tr>
+      <td>
+        Hi {{ first_name }},
+      </td>
+    </tr>
+    <tr>
+      <td>
+        We did not receive a collection from you on {{ date }}, at your address {{ address }}, {{ postal }}.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        If your pickup was missed, or if you have moved, please reply to this email and let us know.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Your next pickup date will be {{ next_pickup }}.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        To drop off empties, you can use the 24-hour drop box in the back alley or in front of the building at 11130 131 St NW
+      </td>
+    </tr>
+  {% endblock %}

@@ -26,13 +26,14 @@ logger.setLevel(LOG_LEVEL)
 logger.addHandler(handler)
 celery_app = Celery('tasks')
 celery_app.config_from_object('config')
-mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT, connect=False)
 db = mongo_client[DB_NAME]
 
 @celery_app.task
 def run_scheduler():
   pending_jobs = db['jobs'].find({'status': 'pending'})
-  print(str(pending_jobs.count()) + ' pending jobs:')
+  
+  #print(str(pending_jobs.count()) + ' pending jobs:')
 
   job_num = 1
   for job in pending_jobs:
@@ -45,10 +46,12 @@ def run_scheduler():
     job_num += 1
   
   in_progress_jobs = db['jobs'].find({'status': 'in-progress'})
-  print(str(in_progress_jobs.count()) + ' active jobs:')
+  #print(str(in_progress_jobs.count()) + ' active jobs:')
+  
   job_num = 1
-  for job in in_progress_jobs:
-    print('    ' + str(job_num) + '): ' + job['name'])
+  
+  #for job in in_progress_jobs:
+  #  print('    ' + str(job_num) + '): ' + job['name'])
 
   return pending_jobs.count()
 

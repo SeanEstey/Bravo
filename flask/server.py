@@ -980,7 +980,11 @@ def email_status():
 
     for idx, email in enumerate(email_column):
       if email == recipient:
-        wks.update_cell(idx+1, headers.index('Email Status')+1, event)
+        r = wks.update_cell(idx+1, headers.index('Email Status')+1, event)
+        if r:
+          logger.info('updated sheet ' + r)
+        else:
+          logger.info('updated sheet')
 
     return 'OK'
 

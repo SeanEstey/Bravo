@@ -18,14 +18,10 @@
           <!-- Row 2: Content -->
           <tr>
             <td>
-              <table cellpadding='15'>
-                <tr>
-                  <td>
-                    <table style='font-size:12pt; width: 100%;' border='0' cellspacing='0' cellpadding='10' align='center'>
-                      {% block content %}{% endblock %}
-                    </table>
-                  </td>
-                </tr>
+              <table style='font-size:12pt; width: 100%;' border='0' cellspacing='0' cellpadding='10' align='center'>
+                <tbody>
+                  {% block content %}{% endblock %}
+                </tbody>
               </table>
             </td>
           </tr>

@@ -1,0 +1,36 @@
+  {% extends "email_base.html" %}
+  {% block content %}  
+    <tr>
+      <td>
+        Hi [Name],
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Thank you for your donation of {{ last_amount }} on {{ last_date }}.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <table style='font-size:12pt;' cellpadding='5'>
+          <tbody>
+            {% for gift in gifts %}
+              <tr>
+                <td>
+                  {{ gift.date }}
+                </td>
+                <td>
+                  {{ gift.amount }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Your next pickup date is {{ next_pickup }}.
+      </td>
+    </tr>
+  {% endblock %}

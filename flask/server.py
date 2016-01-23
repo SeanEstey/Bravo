@@ -511,25 +511,47 @@ def request_email_job(job_id):
     logger.error('/request/email', exc_info=True)
 
 
-@app.route('/test', methods=['GET'])
+@app.route('/test_gift_history', methods=['GET'])
 def test_get_account():
-  data = {
-    "keys": {
-      "etap_user": "",
-      "etap_pass": "",
-      "etap_endpoint": ""
-    },
-    "data": {
-      "persona": {"email":"foo@bar.com", "mobile":""},
-      'udf' : {"Driver Notes":"Please get contact info"}
+  try:
+    data = {
+      "func": "get_gift_history",
+      "keys": {
+        "etap_user": "SeanE",
+        "etap_pass": "smarties1983",
+        "etap_endpoint": "https://sna.etapestry.com/v3messaging/service?WSDL",
+        "association_name": "wsf"
+      },
+      "data": {
+        "account_number": 57516,
+        "year": 2016
+      }
     }
-  }
 
-  r = requests.post('http://www.bravoweb.ca/etap/test.php', data=json.dumps(data))
-  
-  #logger.info(r.text)
+    r = requests.post('http://www.bravoweb.ca/etap/etap_mongo.php', data=json.dumps(data))
 
-  return r.text
+    gifts = json.loads(r.text)
+
+    for gift in gifts:
+      gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
+      gift['amount'] = '$' + str(gift['amount'])
+      logger.info(gift['amount'] + ', ' + gift['date'])
+
+    html = render_template(
+      'email_collection_receipt.html',
+      last_date = gifts[len(gifts)-1]['date'],
+      last_amount = gifts[len(gifts)-1]['amount'],
+      gifts=gifts, 
+      next_pickup = 'June 16, 2016'
+      next_pickup = request.form['next_pickup']
+    )
+
+    utils.send_email(request.form['to'], 'Your upcoming Empties to Winn pickup', html)
+    #utils.send_email('estese@gmail.com', 'Your upcoming Empties to Winn pickup', html)
+
+    return html
+  except Exception, e:
+    logger.error('/test_gift_history', exc_info=True)
 
 @app.route('/request/send_welcome', methods=['POST'])
 def send_welcome_email():

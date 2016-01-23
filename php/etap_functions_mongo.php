@@ -126,6 +126,46 @@ function get_block_size($nsc, $query_category, $query) {
   http_response_code(200);  
 }
 
+
+//-----------------------------------------------------------------------
+function get_gift_history($nsc, $account_number, $year) {
+
+  $account = $nsc->call('getAccountById', [$account_number]);
+
+  //$now = new DateTime();
+  $start_date = '01/01/' . $year; //$now->format('Y');
+  $end_date = '31/12/' . $year; //$now->format('Y');
+
+  $request = [
+    'accountRef' => $account['ref'],
+    'start' => 0,
+    'count' => 100,
+    'startDate' => formatDateAsDateTimeString($start_date),
+    'endDate' => formatDateAsDateTimeString($end_date),
+    'types' => [5]
+    ];
+
+  $response = $nsc->call("getJournalEntries", array($request));
+  $gifts = [];
+
+  for($i=0; $i<$response['count']; $i++) {
+    $entry = $response['data'][$i];
+
+    if($entry['campaign'] != 'Empties to WINN')
+      continue;
+
+    if($entry['amount'] > 0) {
+      $gifts[] = [
+        'amount' => $entry['amount'],
+        'date' => $entry['date']
+        ];
+    }
+  }
+
+  return json_encode($gifts);
+}
+
+
 //-----------------------------------------------------------------------
 /* Check on progress of update_accounts, add_gifts, add_accounts */
 function get_upload_status($db, $request_id, $from_row) {

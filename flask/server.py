@@ -1023,7 +1023,7 @@ def email_status():
     return 'OK'
     '''
   except Exception, e:
-    logger.error('%s /email/status' % request.values.items(), exc_info=True)
+    logger.info('%s /email/status' % request.values.items(), exc_info=True)
     return str(e)
 
 if __name__ == "__main__":

@@ -519,6 +519,7 @@ def send_zero_collection():
     account_number = json.loads(request.form["data"])["account_number"]
     date = json.loads(request.form["data"])["date"]
     next_pickup = json.loads(request.form["data"])["next_pickup"]
+    row = json.loads(request.form["data"])["row"]
     
     data = {
       "func": "get_account",
@@ -541,12 +542,25 @@ def send_zero_collection():
       next_pickup = next_pickup
     )
 
-    utils.send_email(account['email'], 'Your Empties to Winn Pickup', html)
+    r = utils.send_email(account['email'], 'Your Empties to Winn Pickup', html)
+
+    r = json.loads(r.text)
     
-  
+    if r['message'].find('Queued') == 0:
+      db['email_status'].insert({
+        'recipient': account['email'], 
+        'mid': r['id'], 
+        'status':'queued',
+        'sheet_name': 'Route Importer',
+        'worksheet_name': 'Routes',
+        'row': row
+        }
+      )
+    
+    return 'OK' 
   
   except Exception, e:
-    logger.error('/send_collection_receipt', exc_info=True)
+    logger.error('/send_zero_collection', exc_info=True)
 
 @app.route('/send_collection_receipt', methods=['POST'])
 def send_collection_receipt():
@@ -556,6 +570,7 @@ def send_collection_receipt():
     account_number = json.loads(request.form["data"])["account_number"]
     year = json.loads(request.form["data"])["year"]
     next_pickup = json.loads(request.form["data"])["next_pickup"]
+    row = json.loads(request.form["data"])["row"]
     
     data = {
       "func": "get_account",
@@ -590,9 +605,22 @@ def send_collection_receipt():
       next_pickup = next_pickup
     )
 
-    utils.send_email(account['email'], 'Your Empties to Winn Donation', html)
+    r = utils.send_email(account['email'], 'Your Empties to Winn Donation', html)
+
+    r = json.loads(r.text)
 
     logger.info('Sending collection receipt to %s', account['email'])
+    
+    if r['message'].find('Queued') == 0:
+      db['email_status'].insert({
+        'recipient': account['email'], 
+        'mid': r['id'], 
+        'status':'queued',
+        'sheet_name': 'Route Importer',
+        'worksheet_name': 'Routes',
+        'row': row
+        }
+      )
 
     return 'OK'
   
@@ -614,10 +642,14 @@ def send_welcome_email():
         
     r = json.loads(r.text)
 
-    #logger.info('Queued email to ' + request.form['to'] + '. ID: ' + r['id'])
-
     if r['message'].find('Queued') == 0:
-      db['email_status'].insert({'recipient': request.form['to'], 'mid': r['id'], 'status':'queued' })
+      db['email_status'].insert({
+        'recipient': request.form['to'], 
+        'mid': r['id'], 
+        'status':'queued' ,
+        'sheet_name': 'Route Importer',
+        'worksheet_name': 'Signups'
+      })
 
     return 'OK'
   
@@ -1015,7 +1047,7 @@ def email_opened():
 
     return 'OK'
   except Exception, e:
-    logger.error('%s /email/status' % request.values.items(), exc_info=True)
+    logger.error('%s /email/opened' % request.values.items(), exc_info=True)
     return str(e)
 
 @app.route('/email/status',methods=['POST'])
@@ -1026,6 +1058,8 @@ def email_status():
     event = request.form['event']
     recipient = request.form['recipient']
     mid = request.form['mid']
+
+    db_record = db['email_status'].find_one({'mid':mid})
     
     db['email_status'].update(
       {'mid': mid},
@@ -1034,25 +1068,16 @@ def email_status():
 
     logger.info('Email to ' + recipient + ' ' + event)
   
-    json_key = json.load(open('oauth_credentials.json'))
-    scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
-    credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
-    gc = gspread.authorize(credentials)
-    wks = gc.open('Route Importer').worksheet('Signups')
+    if db_record['sheet_name']:
+      json_key = json.load(open('oauth_credentials.json'))
+      scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
+      credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
+      gc = gspread.authorize(credentials)
+      
+      wks = gc.open(db_record['sheet_name']).worksheet(db_record['worksheet_name'])
 
-    sheet_id = '1P51j2vTcaw0cNXGvvu_48J7yIztvS2-Yg4d1PwfWl3k'
-    worksheet_id = 'oh79kh2'
-
-    headers = wks.row_values(1)
-    email_column = wks.col_values(headers.index('Email')+1)
-
-    for idx, email in enumerate(email_column):
-      if email == recipient:
-        r = wks.update_cell(idx+1, headers.index('Email Status')+1, event)
-        if r:
-          logger.info('updated sheet ' + r)
-        else:
-          logger.info('updated sheet')
+      headers = wks.row_values(1)
+      r = wks.update_cell(db_record['row'], headers.index('Email Status')+1, event)
 
     return 'OK'
 

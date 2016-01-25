@@ -511,6 +511,72 @@ def request_email_job(job_id):
     logger.error('/request/email', exc_info=True)
 
 
+@app.route('/send_receipts', methods=['post'])
+def send_receipts():
+  try:
+    # TODO: Make this entire function a Celery worker process
+
+    # Call eTap 'get_accounts' func for all accounts
+    # Send Zero Collection receipts 
+    # Call eTap 'get_gift_history' for non-zero donations
+    # Send Gift receipts
+
+    # If sent via JSON by CURL from unit tests...
+
+    args = request.get_json()
+    entries = args['data']
+
+    url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
+    account_numbers = []
+
+    for entry in entries:
+      account_numbers.append(entry['account_number'])
+
+    data = {
+      "func": "get_accounts",
+      "keys": args["keys"],
+      "data": {
+        "account_numbers": account_numbers
+      }
+    }
+      
+    r = requests.post(url, data=json.dumps(data))
+
+    accounts = json.loads(r.text)
+
+    for idx, entry in enumerate(entries):
+      entry['etap_account'] = accounts[idx]
+
+    for entry in entries:
+      if entry["amount"] == 0:
+        html = render_template(
+          'email_zero_collection.html',
+          first_name = entry["etap_account"]["firstName"],
+          date = entry["date"],
+          address = entry["etap_account"]["address"],
+          postal = entry["etap_account"]["postalCode"],
+          next_pickup = entry["next_pickup"]
+        )
+
+        r = utils.send_email(entry["etap_account"]["email"], 'Your Empties to Winn Pickup', html)
+        r = json.loads(r.text)
+      
+        if r['message'].find('Queued') == 0:
+          db['email_status'].insert({
+            'recipient': entry["etap_account"]["email"], 
+            'mid': r['id'], 
+            'status':'queued' ,
+            'sheet_name': 'Route Importer',
+            'worksheet_name': 'Routes',
+            "row": entry["row"]
+          })
+          logger.info('inserted record for mid: ' + r['id'])
+    
+    return 'OK'
+
+  except Exception, e:
+    logger.error('/send_receipts', exc_info=True)
+
 @app.route('/send_zero_collection', methods=['POST'])
 def send_zero_collection():
   try:
@@ -627,31 +693,39 @@ def send_collection_receipt():
   except Exception, e:
     logger.error('/send_collection_receipt', exc_info=True)
 
-@app.route('/request/send_welcome', methods=['POST'])
+@app.route('/send_welcome', methods=['POST'])
 def send_welcome_email():
-  if request.method == 'POST':
-    html = render_template(
-      'email_welcome.html', 
-      first_name=request.form['first_name'],
-      dropoff_date=request.form['dropoff_date'],
-      address = request.form['address'],
-      postal = request.form['postal']
-    )
-   
-    r = utils.send_email([request.form['to']], 'Welcome to Empties to Winn', html) 
-        
-    r = json.loads(r.text)
+  try:
+    if request.method == 'POST':
+      args = json.loads(request.form["data"])
 
-    if r['message'].find('Queued') == 0:
-      db['email_status'].insert({
-        'recipient': request.form['to'], 
-        'mid': r['id'], 
-        'status':'queued' ,
-        'sheet_name': 'Route Importer',
-        'worksheet_name': 'Signups'
-      })
+      logger.info(request.form["data"])
 
-    return 'OK'
+      html = render_template(
+        'email_welcome.html', 
+        first_name = args['first_name'],
+        dropoff_date = args["dropoff_date"],
+        address = args['address'],
+        postal = args['postal']
+      )
+     
+      r = utils.send_email([args['to']], 'Welcome to Empties to Winn', html) 
+          
+      r = json.loads(r.text)
+
+      if r['message'].find('Queued') == 0:
+        db['email_status'].insert({
+          'recipient': args['to'], 
+          'mid': r['id'], 
+          'status':'queued' ,
+          'sheet_name': 'Route Importer',
+          'worksheet_name': 'Signups',
+          "row": args['row']
+        })
+
+      return 'OK'
+  except Exception, e:
+    logger.error('/send_welcome', exc_info=True)
   
 @app.route('/request/send_reminder', methods=['POST'])
 def send_reminder_email():
@@ -1068,7 +1142,7 @@ def email_status():
 
     logger.info('Email to ' + recipient + ' ' + event)
   
-    if db_record['sheet_name']:
+    if 'sheet_name' in db_record:
       json_key = json.load(open('oauth_credentials.json'))
       scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
       credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)

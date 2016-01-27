@@ -511,187 +511,98 @@ def request_email_job(job_id):
     logger.error('/request/email', exc_info=True)
 
 
-@app.route('/send_receipts', methods=['post'])
+@app.route('/send_zero_receipt', methods=['POST'])
+def send_zero_receipt():
+  try:
+    arg = request.get_json(force=True)
+
+    html = render_template(
+      'email_zero_collection.html',
+      first_name = arg['first_name'],
+      date = arg['date'],
+      address = arg['address'],
+      postal = arg['postal'],
+      next_pickup = arg['next_pickup']
+    )
+
+    r = utils.send_email(arg['email'], 'Your Empties to Winn Pickup', html)
+    r = json.loads(r.text)
+      
+    if r['message'].find('Queued') == 0:
+      db['email_status'].insert({
+        'recipient': arg["email"], 
+        'mid': r['id'], 
+        'status':'queued' ,
+        'sheet_name': 'Route Importer',
+        'worksheet_name': 'Routes',
+        "row": arg["row"]
+      })
+      #logger.info('inserted record for mid: ' + r['id'])
+      logger.info('Queued Zero Collection for ' + arg["email"])
+
+    return 'OK'
+
+  except Exception, e:
+    logger.error('/send_zero_receipt', exc_info=True)
+
+
+@app.route('/send_gift_receipt', methods=['POST'])
+def send_gift_receipt():
+  try:
+    arg = request.get_json(force=True)
+
+    html = render_template(
+      'email_collection_receipt.html',
+      first_name = arg['first_name'],
+      last_date = arg['last_date'],
+      last_amount = arg['last_amount'],
+      gift_history= arg['gift_history'], 
+      next_pickup = arg['next_pickup']
+    )
+
+    r = utils.send_email(arg['email'], 'Your Empties to Winn Donation', html)
+    
+    r = json.loads(r.text)
+  
+    if r['message'].find('Queued') == 0:
+      db['email_status'].insert({
+        'recipient': arg['email'], 
+        'mid': r['id'], 
+        'status':'queued' ,
+        'sheet_name': 'Route Importer',
+        'worksheet_name': 'Routes',
+        "row": arg["row"]
+      })
+      #logger.info('inserted record for mid: ' + r['id'])
+      logger.info('Queued Collection Receipt for ' + arg['email'])
+
+  except Exception, e:
+    logger.error('/send_gift_receipt', exc_info=True)
+
+
+@app.route('/send_receipts', methods=['POST'])
 def send_receipts():
   try:
     # TODO: Make this entire function a Celery worker process
 
-    # Call eTap 'get_accounts' func for all accounts
-    # Send Zero Collection receipts 
-    # Call eTap 'get_gift_history' for non-zero donations
-    # Send Gift receipts
-
     # If sent via JSON by CURL from unit tests...
 
-    args = request.get_json()
-    entries = args['data']
+    # Call eTap 'get_accounts' func for all accounts
+    if request.get_json():
+      args = request.get_json()
+      entries = args['data']
+      keys = args['keys']
+    else:
+      entries = json.loads(request.form['data'])
+      keys = json.loads(request.form['keys'])
 
-    url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
-    account_numbers = []
+    tasks.send_receipts.apply_async((entries, keys, ), queue=DB_NAME)
 
-    for entry in entries:
-      account_numbers.append(entry['account_number'])
-
-    data = {
-      "func": "get_accounts",
-      "keys": args["keys"],
-      "data": {
-        "account_numbers": account_numbers
-      }
-    }
-      
-    r = requests.post(url, data=json.dumps(data))
-
-    accounts = json.loads(r.text)
-
-    for idx, entry in enumerate(entries):
-      entry['etap_account'] = accounts[idx]
-
-    for entry in entries:
-      if entry["amount"] == 0:
-        html = render_template(
-          'email_zero_collection.html',
-          first_name = entry["etap_account"]["firstName"],
-          date = entry["date"],
-          address = entry["etap_account"]["address"],
-          postal = entry["etap_account"]["postalCode"],
-          next_pickup = entry["next_pickup"]
-        )
-
-        r = utils.send_email(entry["etap_account"]["email"], 'Your Empties to Winn Pickup', html)
-        r = json.loads(r.text)
-      
-        if r['message'].find('Queued') == 0:
-          db['email_status'].insert({
-            'recipient': entry["etap_account"]["email"], 
-            'mid': r['id'], 
-            'status':'queued' ,
-            'sheet_name': 'Route Importer',
-            'worksheet_name': 'Routes',
-            "row": entry["row"]
-          })
-          logger.info('inserted record for mid: ' + r['id'])
-    
     return 'OK'
 
   except Exception, e:
     logger.error('/send_receipts', exc_info=True)
 
-@app.route('/send_zero_collection', methods=['POST'])
-def send_zero_collection():
-  try:
-    url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
- 
-    account_number = json.loads(request.form["data"])["account_number"]
-    date = json.loads(request.form["data"])["date"]
-    next_pickup = json.loads(request.form["data"])["next_pickup"]
-    row = json.loads(request.form["data"])["row"]
-    
-    data = {
-      "func": "get_account",
-      "keys": json.loads(request.form["keys"]),
-      "data": {
-        "account_number": account_number
-      }
-    }
-    
-    r = requests.post(url, data=json.dumps(data))
-
-    account = json.loads(r.text)
-
-    html = render_template(
-      'email_zero_collection.html',
-      first_name = account['firstName'],
-      date = date,
-      address = account['address'],
-      postal = account['postalCode'],
-      next_pickup = next_pickup
-    )
-
-    r = utils.send_email(account['email'], 'Your Empties to Winn Pickup', html)
-
-    r = json.loads(r.text)
-    
-    if r['message'].find('Queued') == 0:
-      db['email_status'].insert({
-        'recipient': account['email'], 
-        'mid': r['id'], 
-        'status':'queued',
-        'sheet_name': 'Route Importer',
-        'worksheet_name': 'Routes',
-        'row': row
-        }
-      )
-    
-    return 'OK' 
-  
-  except Exception, e:
-    logger.error('/send_zero_collection', exc_info=True)
-
-@app.route('/send_collection_receipt', methods=['POST'])
-def send_collection_receipt():
-  try:
-    url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
-  
-    account_number = json.loads(request.form["data"])["account_number"]
-    year = json.loads(request.form["data"])["year"]
-    next_pickup = json.loads(request.form["data"])["next_pickup"]
-    row = json.loads(request.form["data"])["row"]
-    
-    data = {
-      "func": "get_account",
-      "keys": json.loads(request.form["keys"]),
-      "data": {
-        "account_number": account_number
-      }
-    }
-    
-    r = requests.post(url, data=json.dumps(data))
-
-    account = json.loads(r.text)
-
-    data["func"] = "get_gift_history"
-    data["data"]["year"] = year
-
-    r = requests.post(url, data=json.dumps(data))
-
-    gifts = json.loads(r.text)
-
-    for gift in gifts:
-      gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
-      gift['amount'] = '$' + str(gift['amount'])
-      #logger.info(gift['amount'] + ', ' + gift['date'])
-
-    html = render_template(
-      'email_collection_receipt.html',
-      first_name = account['firstName'],
-      last_date = gifts[len(gifts)-1]['date'],
-      last_amount = gifts[len(gifts)-1]['amount'],
-      gifts=gifts, 
-      next_pickup = next_pickup
-    )
-
-    r = utils.send_email(account['email'], 'Your Empties to Winn Donation', html)
-
-    r = json.loads(r.text)
-
-    logger.info('Sending collection receipt to %s', account['email'])
-    
-    if r['message'].find('Queued') == 0:
-      db['email_status'].insert({
-        'recipient': account['email'], 
-        'mid': r['id'], 
-        'status':'queued',
-        'sheet_name': 'Route Importer',
-        'worksheet_name': 'Routes',
-        'row': row
-        }
-      )
-
-    return 'OK'
-  
-  except Exception, e:
-    logger.error('/send_collection_receipt', exc_info=True)
 
 @app.route('/send_welcome', methods=['POST'])
 def send_welcome_email():
@@ -1134,6 +1045,9 @@ def email_status():
     mid = request.form['mid']
 
     db_record = db['email_status'].find_one({'mid':mid})
+
+    if not db_record:
+      return 'OK'
     
     db['email_status'].update(
       {'mid': mid},

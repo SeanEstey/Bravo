@@ -5,6 +5,7 @@ from celery import Celery
 from celery.signals import worker_process_init, task_prerun
 import time
 import os
+from dateutil.parser import parse
 from datetime import datetime,date
 from bson.objectid import ObjectId
 import pymongo
@@ -239,4 +240,88 @@ def get_next_pickups(job_id):
   
   except Exception, e:
     logger.error('get_next_pickups', exc_info=True)
+    return str(e)
+
+@celery_app.task
+def send_receipts(entries, keys):
+  try:
+    url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
+    account_numbers = []
+
+    for entry in entries:
+      account_numbers.append(entry['account_number'])
+
+    r = requests.post(url, data=json.dumps({
+      "func": "get_accounts",
+      "keys": keys,
+      "data": {
+        "account_numbers": account_numbers
+      }
+    }))
+
+    accounts = json.loads(r.text)
+
+    for idx, entry in enumerate(entries):
+      entry['etap_account'] = accounts[idx]
+
+    # Send Zero Collection receipts 
+    
+    for entry in entries:
+      if entry['amount'] == 0 and entry['etap_account']['email']:
+        r = requests.post(PUB_URL + '/send_zero_receipt', data=json.dumps({
+            "email": entry['etap_account']['email'],
+            "first_name": entry['etap_account']['firstName'],
+            "date": entry["date"],
+            "address": entry["etap_account"]["address"],
+            "postal": entry["etap_account"]["postalCode"],
+            "next_pickup": entry["next_pickup"],
+            "row": entry["row"]
+        }))
+
+        entries.remove(entry)
+
+    # 'entries' list should now contain only gifts
+    
+    # Call eTap 'get_gift_history' for non-zero donations
+    # Send Gift receipts
+
+    account_refs = []
+
+    for entry in entries:
+      account_refs.append(entry['etap_account']['ref'])
+
+    r = requests.post(url, data=json.dumps({
+      "func": "get_gift_histories",
+      "keys": keys,
+      "data": {
+        "account_refs": account_refs,
+        "year": 2016 # FIXME
+      }
+    }))
+
+    gift_histories = json.loads(r.text)
+
+    for idx, entry in enumerate(entries):
+      gifts = gift_histories[idx]
+
+      if entry['etap_account']['email']:
+        for gift in gifts:
+          gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
+          gift['amount'] = '$' + str(gift['amount'])
+
+        # Send requests.post back to Flask
+        r = requests.post(PUB_URL + '/send_gift_receipt', data=json.dumps({
+            "email": entry['etap_account']['email'],
+            "first_name": entry['etap_account']['firstName'],
+            "last_date": entry['date'],
+            "last_amount": entry['amount'],
+            "gift_history": gifts,
+            "next_pickup": entry['next_pickup'],
+            "row": entry['row']
+        }))
+
+    return 'OK'
+
+  except Exception, e:
+    logger.error('send_receipts', exc_info=True)
     return str(e)

@@ -64,9 +64,6 @@
       echo $num_processes;
       break;
 
-    case 'process_gifts':
-      break;
-
     case 'add_accounts':
       add_accounts($db, $nsc, $data);
       break;
@@ -97,10 +94,6 @@
 
       break;
       
-    case 'update_udf':
-      update_udf($db, $nsc, $data);
-      break;
-
     case 'get_account':
       $account = get_account($nsc, $data['account_number']);
       echo json_encode($account);

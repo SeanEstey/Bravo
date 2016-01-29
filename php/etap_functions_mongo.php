@@ -218,56 +218,6 @@ function process_route_entry($nsc, $entry) {
   ]);
 }
 
-//-----------------------------------------------------------------------
-/* 
-  Update UDF's for accounts from Gift Entries spreadsheet 
-   $account format: {
-    'account_num': int,
-    'request_id': int,
-    'row': int,
-    'udf': {
-      'field_name': field_value,
-      'field_name': field_value
-    }
-  }
-*/
-function update_udf($db, $nsc, $accounts) {
-  ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
-  $num_errors = 0;
-  
-  // For each account, clear UDF's then replace them 
-  for($i=0; $i<count($accounts); $i++) {
-    $etap_account = $nsc->call("getAccountById", array($accounts[$i]["account_num"]));
-    
-    $status = 'OK';
-    
-    if(checkForError($nsc)) {
-      $status = 'Account ' . (string)$accounts[$i]['account_num'] . ' not found. Was it merged? ';
-      $status += $nsc->faultcode . ': ' . $nsc->faultstring;
-      $num_errors++;
-    }
-    else {
-      remove_udf($nsc, $etap_account, $accounts[$i]['udf']);
-      apply_udf($nsc, $etap_account, $accounts[$i]['udf']);
-
-      if(checkForError($nsc)) {
-        $status = 'Update account error: ' . $nsc->faultcode . ': ' . $nsc->faultstring;
-        $num_errors++;
-      }
-    }
-
-    $result = $db->insertOne([ 
-      'function' => 'update_udf',
-      'request_id' => $accounts[$i]['request_id'],
-      'row' => $accounts[$i]['row'],
-      'status' => $status
-    ]);
-  }
-
-  write_log((string)count($accounts). " accounts updated. $num_errors errors.");
-}
-
-
 
 //-----------------------------------------------------------------------
 function update_persona($account_num, $persona) {
@@ -452,24 +402,14 @@ function add_accounts($db, $nsc, $submissions) {
 
 //-----------------------------------------------------------------------
 function add_to_existing_account($db, $nsc, $account, $account_number) {
-  $to_update = [
-    'request_id' => $account['request_id'],
-    'row' => $account['row'],
-    'account_num' => $account_number,
-    'udf' => $account['defined_fields']
-  ];
-
-  // Add Defined Fields
-  update_udf($db, $nsc, [$to_update]);
-
-  write_log("Updated account $account_number Defined Fields");
-
-  // Get old account
+  
   $etap_account = $nsc->call("getAccountById", array($account_number));
 
-  if(empty($etap_account)) {
+  if(!$etap_account)
     return;
-  }
+
+  remove_udf($nsc, $etap_account, $account['defined_fields']);
+  apply_udf($nsc, $etap_account, $account['defined_fields']);
 
   // See if we have updated Email, Phone, or Address info
   if(!empty($account['persona_fields']['Email'])) {
@@ -482,7 +422,7 @@ function add_to_existing_account($db, $nsc, $account, $account_number) {
       'number' => $account['persona_fields']['Mobile']
     ];
 
-  $response = $nsc->call("updateAccount", [$etap_account, false]);
+  $nsc->call("updateAccount", [$etap_account, false]);
 
   checkForError($nsc);
 }

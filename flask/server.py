@@ -576,6 +576,8 @@ def send_gift_receipt():
       #logger.info('inserted record for mid: ' + r['id'])
       logger.info('Queued Collection Receipt for ' + arg['email'])
 
+      return 'OK'
+
   except Exception, e:
     logger.error('/send_gift_receipt', exc_info=True)
 
@@ -583,11 +585,7 @@ def send_gift_receipt():
 @app.route('/send_receipts', methods=['POST'])
 def send_receipts():
   try:
-    # TODO: Make this entire function a Celery worker process
-
     # If sent via JSON by CURL from unit tests...
-
-    # Call eTap 'get_accounts' func for all accounts
     if request.get_json():
       args = request.get_json()
       entries = args['data']
@@ -596,6 +594,7 @@ def send_receipts():
       entries = json.loads(request.form['data'])
       keys = json.loads(request.form['keys'])
 
+    # Start celery workers to run slow eTapestry API calls
     tasks.send_receipts.apply_async((entries, keys, ), queue=DB_NAME)
 
     return 'OK'

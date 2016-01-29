@@ -246,6 +246,9 @@ def get_next_pickups(job_id):
 def send_receipts(entries, keys):
   try:
     url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
+    
+    # Call eTap 'get_accounts' func for all accounts
+    
     account_numbers = []
 
     for entry in entries:
@@ -281,7 +284,6 @@ def send_receipts(entries, keys):
         entries.remove(entry)
 
     # 'entries' list should now contain only gifts
-    
     # Call eTap 'get_gift_history' for non-zero donations
     # Send Gift receipts
 
@@ -313,10 +315,10 @@ def send_receipts(entries, keys):
         r = requests.post(PUB_URL + '/send_gift_receipt', data=json.dumps({
             "email": entry['etap_account']['email'],
             "first_name": entry['etap_account']['firstName'],
-            "last_date": entry['date'],
-            "last_amount": entry['amount'],
+            "last_date": parse(entry['date']).strftime('%B %-d, %Y'),
+            "last_amount": '$' + str(entry['amount']),
             "gift_history": gifts,
-            "next_pickup": entry['next_pickup'],
+            "next_pickup": parse(entry['next_pickup']).strftime('%B %-d, %Y'),
             "row": entry['row']
         }))
 

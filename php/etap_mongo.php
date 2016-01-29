@@ -67,17 +67,6 @@
     case 'process_gifts':
       break;
 
-    case 'add_gifts':
-      add_gifts(
-        $db, 
-        $nsc, 
-        $data['gifts'], 
-        $data['etap_gift_fund'],
-        $data['etap_gift_campaign'], 
-        $data['etap_gift_approach']
-      );
-      break;
-
     case 'add_accounts':
       add_accounts($db, $nsc, $data);
       break;
@@ -89,13 +78,55 @@
     case 'update_note':
       update_note($nsc, $data);
       break;
+
+    case 'process_route_entries':
+      $entries = $data['entries'];
+
+      for($i=0; $i<count($data['entries']); $i++) { 
+        $status = process_route_entry($nsc, $entries[$i]);
+
+        write_log('process_route_entry for account ' . (string)$entries[$i]['account_number'] . ': ' . $status);
+        
+        $result = $db->insertOne([ 
+          'function' => 'process_route_entry',
+          'request_id' => $data['request_id'],
+          'row' => $entries[$i]['row'],
+          'status' => $status
+        ]);
+      }
+
+      break;
       
     case 'update_udf':
       update_udf($db, $nsc, $data);
       break;
 
     case 'get_account':
-      get_account($nsc, $data['account_num']);
+      $account = get_account($nsc, $data['account_number']);
+      echo json_encode($account);
+
+      break;
+
+    case 'get_accounts':
+      $accounts = [];
+      for($i=0; $i < count($data['account_numbers']); $i++) {
+        $accounts[] = get_account($nsc, $data['account_numbers'][$i]);
+      }
+
+      write_log(count($accounts) . ' accounts retrieved.');
+
+      echo json_encode($accounts);
+      break;
+
+    case 'get_gift_histories':
+      $accounts = [];
+      for($i=0; $i < count($data['account_refs']); $i++) {
+        $accounts[] = get_gift_history($nsc, $data['account_refs'][$i], $data['year']);
+      }
+      
+      write_log(count($accounts) . ' gift histories retrieved.');
+
+      echo json_encode($accounts);
       break;
     
     case 'get_upload_status':

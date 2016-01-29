@@ -59,7 +59,7 @@ function get_account($nsc, $account_number) {
     return false;
   }
 
-  echo json_encode($account);
+  //echo json_encode($account);
   http_response_code(200);
   return $account;
 }
@@ -128,24 +128,29 @@ function get_block_size($nsc, $query_category, $query) {
 
 
 //-----------------------------------------------------------------------
-function get_gift_history($nsc, $account_number, $year) {
+function get_gift_history($nsc, $ref, $year) {
+  ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
 
-  $account = $nsc->call('getAccountById', [$account_number]);
+  //$account = $nsc->call('getAccountById', [$account_number]);
 
   //$now = new DateTime();
-  $start_date = '01/01/' . $year; //$now->format('Y');
-  $end_date = '31/12/' . $year; //$now->format('Y');
+  $start_date = '01/01/' . (string)$year; //$now->format('Y');
+  $end_date = '31/12/' . (string)$year; //$now->format('Y');
 
+  // Return filtered journal entries for provided year
   $request = [
-    'accountRef' => $account['ref'],
+    'accountRef' => $ref,
     'start' => 0,
     'count' => 100,
     'startDate' => formatDateAsDateTimeString($start_date),
     'endDate' => formatDateAsDateTimeString($end_date),
-    'types' => [5]
+    'types' => [5] // Gifts filter
     ];
 
   $response = $nsc->call("getJournalEntries", array($request));
+  
+  checkForError($nsc);
+
   $gifts = [];
 
   for($i=0; $i<$response['count']; $i++) {
@@ -162,7 +167,9 @@ function get_gift_history($nsc, $account_number, $year) {
     }
   }
 
-  return json_encode($gifts);
+  //$account['gifts'] = $gifts;
+
+  return $gifts;
 }
 
 
@@ -180,6 +187,35 @@ function get_upload_status($db, $request_id, $from_row) {
   }
 
   echo json_encode($results);
+}
+
+
+//-----------------------------------------------------------------------
+function process_route_entry($nsc, $entry) {
+  ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
+
+  $etap_account = $nsc->call("getAccountById", array($entry['account_number']));
+
+  if(!$etap_account)
+    return 'Acct # ' . (string)$entry['account_number'] . ' not found.';
+
+  remove_udf($nsc, $etap_account, $entry['udf']);
+  apply_udf($nsc, $etap_account, $entry['udf']);
+  
+  if(checkForError($nsc))
+    return 'Error: ' . $nsc->faultcode . ': ' . $nsc->faultstring;
+  
+  return $nsc->call("addGift", [[
+    'accountRef' => $etap_account['ref'],
+    'amount' => $entry['gift']['amount'],
+    'fund' => $entry['gift']['fund'],
+    'campaign' => $entry['gift']['campaign'],
+    'approach' => $entry['gift']['approach'],
+    'note' => $entry['gift']['note'],
+    'date' => formatDateAsDateTimeString($entry['gift']['date'])
+  ], 
+    false
+  ]);
 }
 
 //-----------------------------------------------------------------------
@@ -312,44 +348,6 @@ function update_note($nsc, $data) {
   }
 }
 
-//-----------------------------------------------------------------------
-/* Add Journal Gifts for accounts in Gift Entries spreadsheet */
-function add_gifts($db, $nsc, $gifts, $fund, $campaign, $approach) {
-  ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
-  $num_errors = 0;
-
-  for($i=0; $i<count($gifts); $i++) {
-    $gift = $gifts[$i];
-    $account = $nsc->call("getAccountById", [$gift['account_num']]);
-    checkForError($nsc);
-
-    $etap_gift = [
-      'accountRef' => $account['ref'],
-      'amount' => $gift['gift'],
-      'fund' => $fund,
-      'campaign' => $campaign,
-      'approach' => $approach,
-      'note' => $gift['note'],
-      'date' => formatDateAsDateTimeString($gift['date'])
-    ];
-
-    $status = $nsc->call("addGift", array($etap_gift, false));
-   
-    if(checkForError($nsc)) {
-      $status = $nsc->faultcode . ': ' . $nsc->faultstring;
-      $num_errors++;
-    }
-    
-    $result = $db->insertOne([ 
-      'function' => 'add_gifts',
-      'request_id' => $gift['request_id'],
-      'row' => $gift['row'],
-      'status' => $status
-    ]);
-  }
-
-  write_log((string)count($gifts) . ' gifts added. ' . (string)$num_errors . ' errors.');
-}
 
 //-----------------------------------------------------------------------
 function add_accounts($db, $nsc, $submissions) {

@@ -18,7 +18,6 @@ import time
 import csv
 import logging
 import codecs
-from reverse_proxy import ReverseProxied
 import sys
 import tasks
 from user import User
@@ -30,21 +29,6 @@ import json
 from oauth2client.client import SignedJwtAssertionCredentials
 import gspread
 
-mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
-db = mongo_client[DB_NAME]
-logger = logging.getLogger(__name__)
-handler = logging.FileHandler(LOG_FILE)
-handler.setLevel(LOG_LEVEL)
-handler.setFormatter(formatter)
-logger.setLevel(LOG_LEVEL)
-logger.addHandler(handler)
-app = Flask(__name__)
-app.config.from_pyfile('config.py')
-app.wsgi_app = ReverseProxied(app.wsgi_app)
-app.debug = DEBUG
-app.secret_key = SECRET_KEY
-app.jinja_env.add_extension("jinja2.ext.do")
-socketio = SocketIO(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = PUB_URL + '/login' #url_for('login')
@@ -63,22 +47,12 @@ def load_user(username):
   else:
     return None
 
-def celery_check():
-  if not tasks.celery_app.control.inspect().registered_tasks():
-    #logger.error('Celery process not running')
-    return False
-  else:
-    #logger.info('Celery process started OK')
-    return True
-
-
 @app.route('/cal/<job_id>')
 @login_required
 def get_calendar_events(job_id):
   job_id = job_id.encode('utf-8')
   tasks.get_next_pickups.apply_async((job_id, ), queue=DB_NAME)
   return 'OK'
-
 
 def job_db_dump(job_id):
   if isinstance(job_id, str):
@@ -335,7 +309,7 @@ def index():
 
     return render_template(
       'show_jobs.html', 
-      title=TITLE, 
+      #title=TITLE, 
       jobs=jobs
     )
     
@@ -530,6 +504,7 @@ def send_zero_receipt():
       
     if r['message'].find('Queued') == 0:
       db['email_status'].insert({
+        'account_number': arg['account_number'],
         'recipient': arg["email"], 
         'mid': r['id'], 
         'status':'queued' ,
@@ -566,6 +541,7 @@ def send_gift_receipt():
   
     if r['message'].find('Queued') == 0:
       db['email_status'].insert({
+        'account_number': arg['account_number'],
         'recipient': arg['email'], 
         'mid': r['id'], 
         'status':'queued' ,
@@ -1079,17 +1055,19 @@ def email_status():
           wks.update_cell(db_record['row'], headers.index('Email Status')+1, event)
 
       # Create RFU if event is dropped/bounced and is from a collection receipt
-      if db_record['worksheet_name'] is 'Routes' and (event is 'dropped' or event is 'bounced'):
-        wks = sheet.worksheet('RFU')
-        headers = wks.row_values(1)
-        
-        rfu = [''] * len(headers)
-        rfu[headers.index('Request Note')] = 'Email ' + db_record['recipient'] + ' dropped.'
+      if db_record['worksheet_name'] == 'Routes':
+          if event == 'dropped' or event == 'bounced':
+            wks = sheet.worksheet('RFU')
+            headers = wks.row_values(1)
+            
+            rfu = [''] * len(headers)
+            rfu[headers.index('Request Note')] = 'Email ' + db_record['recipient'] + ' dropped.'
 
-        if 'account_number' in db_record:
-          rfu[headers.index('Account Number')] = db_record['account_number']
+            if 'account_number' in db_record:
+              rfu[headers.index('Account Number')] = db_record['account_number']
 
-        wks.append_row(rfu)
+            logger.info('Creating RFU for bounced/dropped email: ' + json.dumps(rfu))
+            wks.append_row(rfu)
 
     return 'OK'
 
@@ -1131,22 +1109,3 @@ def email_status():
     logger.info('%s /email/status' % request.values.items(), exc_info=True)
     return str(e)
 
-if __name__ == "__main__":
-  os.system('kill %1')
-  
-  # Kill celery nodes with matching queue name. Leave others alone 
-  os.system("ps aux | grep 'queues " + DB_NAME + "' | awk '{print $2}' | xargs kill -9")
-  
-  # Create workers
-  os.system('celery worker -A tasks.celery_app -f log -B -n ' + DB_NAME + ' --queues ' + DB_NAME + ' &')
-  
-  # Pause to give workers time to initialize before starting server
-  time.sleep(3);
-  
-  if not celery_check():
-    logger.info('Celery process failed to start!')
-  else:
-    logger.info('Server starting using \'%s\' DB', DB_NAME)
-
-    # Start gevent server
-    socketio.run(app, port=LOCAL_PORT)

@@ -57,7 +57,7 @@ CELERY_ENABLE_UTC = False
 CELERYD_CONCURRENCY = 1
 CELERYBEAT_SCHEDULE = {
   'bravo_scheduler': {
-    'task': 'tasks.run_scheduler',
+    'task': 'reminders.run_scheduler',
     'schedule': timedelta(seconds=SCHEDULE_FREQUENCY),
     'options': { 'queue': DB_NAME }
   },

@@ -2,12 +2,169 @@ import twilio
 from twilio import twiml
 from bson import Binary, Code, json_util
 from bson.objectid import ObjectId
+import flask
 from flask import Flask,render_template,request,g,Response,redirect,url_for
+from datetime import datetime,date
+from dateutil.parser import parse
+import werkzeug
+from werkzeug import secure_filename
 
+
+from app import app, celery_app, db, logger, login_manager
 import utils
 from config import *
 from server_settings import *
 
+def view_main():
+  if request.method == 'GET':
+    # If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
+    # If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
+    start_record = request.args.get('n')
+    if start_record:
+      jobs = db['reminder_jobs'].find().sort('fire_dtime',-1)
+      jobs.skip(int(start_record)).limit(JOBS_PER_PAGE);
+    else:
+      jobs = db['reminder_jobs'].find().sort('fire_dtime',-1).limit(JOBS_PER_PAGE)
+
+    return render_template(
+      'show_jobs.html', 
+      title=None,
+      #title=TITLE, 
+      jobs=jobs
+    )
+
+@celery_app.task
+def run_scheduler():
+  pending_jobs = db['jobs'].find({'status': 'pending'})
+  
+  print(str(pending_jobs.count()) + ' pending jobs:')
+
+  job_num = 1
+  for job in pending_jobs:
+    if datetime.now() > job['fire_dtime']:
+      logger.info('Scheduler: Starting Job...')
+      execute_job.apply_async((str(job['_id']), ), queue=DB_NAME)
+    else:
+      next_job_delay = job['fire_dtime'] - datetime.now()
+      print '{0}): {1} starts in {2}'.format(job_num, job['name'], str(next_job_delay))
+    job_num += 1
+  
+  in_progress_jobs = db['jobs'].find({'status': 'in-progress'})
+  #print(str(in_progress_jobs.count()) + ' active jobs:')
+  
+  job_num = 1
+  
+  #for job in in_progress_jobs:
+  #  print('    ' + str(job_num) + '): ' + job['name'])
+
+  return pending_jobs.count()
+
+@celery_app.task
+def execute_job(job_id):
+  try:
+    job_id = ObjectId(job_id)
+    job = db['jobs'].find_one({'_id':job_id})
+    # Default call order is alphabetically by name
+    messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
+    logger.info('\n\nStarting Job %s [ID %s]', job['name'], str(job_id))
+    db['jobs'].update(
+      {'_id': job['_id']},
+      {'$set': {
+        'status': 'in-progress',
+        'started_at': datetime.now()
+        }
+      }
+    )
+    payload = {'name': 'update_job', 'data': json.dumps({'id':str(job['_id']), 'status':'in-progress'})}
+    requests.get(LOCAL_URL+'/sendsocket', params=payload)
+    # Fire all calls
+    for msg in messages:
+      if 'no_pickup' in msg:
+        continue
+      if msg['call_status'] != 'pending':
+        continue
+      r = dial(msg['imported']['to'])
+      if r['call_status'] == 'failed':
+        logger.info('%s %s (%d: %s)', msg['imported']['to'], r['call_status'], r['error_code'], r['call_error'])
+      else: 
+        logger.info('%s %s', msg['imported']['to'], r['call_status'])
+      r['attempts'] = msg['attempts']+1
+      db['msgs'].update(
+        {'_id':msg['_id']},
+        {'$set': r}
+      )
+      r['id'] = str(msg['_id'])
+      payload = {'name': 'update_call', 'data': json.dumps(r)}
+      requests.get(LOCAL_URL+'/sendsocket', params=payload)
+    
+    logger.info('Job Calls Fired.')
+    r = requests.get(LOCAL_URL+'/fired/' + str(job_id))
+    return 'OK'
+
+  except Exception, e:
+    logger.error('execute_job job_id %s', str(job_id), exc_info=True)
+
+@celery_app.task
+def monitor_job(job_id):
+  try:
+    logger.info('Tasks: Monitoring Job')
+    job_id = ObjectId(job_id)
+    job = db['jobs'].find_one({'_id':job_id})
+
+    # Loop until no incomplete calls remaining (all either failed or complete)
+    while True:
+      # Any calls still active?
+      actives = db['msgs'].find({
+        'job_id': job_id,
+        '$or':[
+          {'call_status': 'queued'},
+          {'call_status': 'ringing'},
+          {'call_status': 'in-progress'}
+        ]
+      })
+      # Any needing redial?
+      incompletes = db['msgs'].find({
+        'job_id':job_id,
+        'attempts': {'$lt': MAX_ATTEMPTS}, 
+        '$or':[
+          {'call_status': 'busy'},
+          {'call_status': 'no-answer'}
+        ]
+      })
+      
+      # Job Complete!
+      if actives.count() == 0 and incompletes.count() == 0:
+        db['jobs'].update(
+          {'_id': job_id},
+          {'$set': {
+            'status': 'completed',
+            'ended_at': datetime.now()
+            }
+        })
+        logger.info('\nCompleted Job %s [ID %s]\n', job['name'], str(job_id))
+        # Connect back to server and notify
+        requests.get(PUB_URL + '/complete/' + str(job_id))
+        
+        return 'OK'
+      # Job still in progress. Any incomplete calls need redialing?
+      elif actives.count() == 0 and incompletes.count() > 0:
+        logger.info('Pausing %dsec then Re-attempting %d Incompletes.', REDIAL_DELAY, incompletes.count())
+        time.sleep(REDIAL_DELAY)
+        for call in incompletes:
+          r = dial(call['imported']['to'])
+          logger.info('%s %s', call['imported']['to'], r['call_status'])
+          r['attempts'] = call['attempts']+1
+          db['msgs'].update(
+            {'_id':call['_id']},
+            {'$set': r}
+          )
+      # Still active calls going out  
+      else:
+        time.sleep(10)
+    # End loop
+    return 'OK'
+  except Exception, e:
+    logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
 
 def dial(to):
   try:
@@ -350,3 +507,39 @@ def parse_csv(csvfile, template):
     except Exception as e:
       logger.info('Error reading line num ' + str(line_num) + ': ' + str(row) + '. Msg: ' + str(e))
   return buffer
+
+def record_audio():
+  if request.method == 'POST':
+    to = request.form.get('to')
+    logger.info('Record audio request from ' + to)
+    
+    r = reminders.dial(to)
+    logger.info('Dial response=' + json.dumps(r))
+    
+    if r['call_status'] == 'queued':
+      db['bravo'].insert(r)
+      del r['_id']
+    
+    return flask.json.jsonify(r)
+  elif request.method == 'GET':
+    if request.args.get('Digits'):
+      digits = request.args.get('Digits')
+      logger.info('recordaudio digit='+digits)
+      if digits == '#':
+        logger.info('Recording completed. Sending audio_url to client')
+        recording_info = {
+          'audio_url': request.args.get('RecordingUrl'),
+          'audio_duration': request.args.get('RecordingDuration'),
+          'sid': request.args.get('CallSid'),
+          'call_status': request.args.get('CallStatus')
+        }
+        db['bravo'].update({'sid': request.args.get('CallSid')}, {'$set': recording_info})
+        send_socket('record_audio', recording_info)
+        response = twilio.twiml.Response()
+        response.say('Message recorded', voice='alice')
+        
+        return Response(str(response), mimetype='text/xml')
+    else:
+      logger.info('recordaudio: no digits')
+
+    return 'OK'

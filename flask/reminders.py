@@ -9,7 +9,6 @@ from dateutil.parser import parse
 import werkzeug
 from werkzeug import secure_filename
 
-
 from app import app, celery_app, db, logger, login_manager
 import utils
 from config import *
@@ -37,6 +36,7 @@ def view_main():
 def run_scheduler():
   pending_jobs = db['jobs'].find({'status': 'pending'})
   
+  print('app secret key: ' + app.secret_key)
   print(str(pending_jobs.count()) + ' pending jobs:')
 
   job_num = 1

@@ -535,9 +535,9 @@ def send_zero_receipt():
         'status':'queued' ,
         'sheet_name': 'Route Importer',
         'worksheet_name': 'Routes',
-        "row": arg["row"]
+        "row": arg["row"],
+        "upload_status": arg['upload_status']
       })
-      #logger.info('inserted record for mid: ' + r['id'])
       logger.info('Queued Zero Collection for ' + arg["email"])
 
     return 'OK'
@@ -571,7 +571,8 @@ def send_gift_receipt():
         'status':'queued' ,
         'sheet_name': 'Route Importer',
         'worksheet_name': 'Routes',
-        "row": arg["row"]
+        "row": arg["row"],
+        'upload_status': arg['upload_status']
       })
       #logger.info('inserted record for mid: ' + r['id'])
       logger.info('Queued Collection Receipt for ' + arg['email'])
@@ -1036,6 +1037,8 @@ def email_opened():
 
 @app.route('/email/status',methods=['POST'])
 def email_status():
+  # Relay for all Mailgun webhooks (delivered, bounced, dropped, etc)
+  # Can be from Reminders app, Signups sheet, or Route Importer sheet 
   try:
     # Forwarded from bravovoice.ca. Change webhooks in Mailgun once
     # reminders switched to this VPS 
@@ -1046,25 +1049,47 @@ def email_status():
     db_record = db['email_status'].find_one({'mid':mid})
 
     if not db_record:
+      logger.info('Reminder email to ' + recipient + ' ' + event)
       return 'OK'
+    else:
+      logger.info('Email to ' + recipient + ' ' + event)
     
     db['email_status'].update(
       {'mid': mid},
       {'$set': {'status': event}}
     )
 
-    logger.info('Email to ' + recipient + ' ' + event)
-  
+    # Did email originate from Google Sheet?
     if 'sheet_name' in db_record:
       json_key = json.load(open('oauth_credentials.json'))
       scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
       credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
       gc = gspread.authorize(credentials)
       
-      wks = gc.open(db_record['sheet_name']).worksheet(db_record['worksheet_name'])
+      sheet = gc.open(db_record['sheet_name'])
+      wks = sheet.worksheet(db_record['worksheet_name'])
 
       headers = wks.row_values(1)
-      r = wks.update_cell(db_record['row'], headers.index('Email Status')+1, event)
+      
+      # Make sure the row entry still exists in the worksheet
+      cell = wks.cell(db_record['row'], headers.index('Upload Status')+1)
+
+      if cell:
+        if str(cell.value) == db_record['upload_status']:
+          wks.update_cell(db_record['row'], headers.index('Email Status')+1, event)
+
+      # Create RFU if event is dropped/bounced and is from a collection receipt
+      if db_record['worksheet_name'] is 'Routes' and (event is 'dropped' or event is 'bounced'):
+        wks = sheet.worksheet('RFU')
+        headers = wks.row_values(1)
+        
+        rfu = [''] * len(headers)
+        rfu[headers.index('Request Note')] = 'Email ' + db_record['recipient'] + ' dropped.'
+
+        if 'account_number' in db_record:
+          rfu[headers.index('Account Number')] = db_record['account_number']
+
+        wks.append_row(rfu)
 
     return 'OK'
 

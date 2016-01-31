@@ -18,6 +18,7 @@ import dateutil
 import httplib2
 from oauth2client.client import SignedJwtAssertionCredentials 
 from apiclient.discovery import build
+import gspread
 
 logger = logging.getLogger(__name__)
 handler = logging.FileHandler(LOG_FILE)
@@ -263,9 +264,28 @@ def send_receipts(entries, keys):
     }))
 
     accounts = json.loads(r.text)
+    
+    json_key = json.load(open('oauth_credentials.json'))
+    scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
+    credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
+    gc = gspread.authorize(credentials)
+  
+    wks = gc.open('Route Importer').worksheet('Routes')
+    headers = wks.row_values(1)
+    
+    start = wks.get_addr_int(2, headers.index('Email Status')+1)
+    end = start[0] + str(len(accounts)+1)
+    email_status_cells = wks.range(start + ':' + end)
 
     for idx, entry in enumerate(entries):
       entry['etap_account'] = accounts[idx]
+      
+      if accounts[idx]['email']:
+        email_status_cells[idx].value = 'queued'
+      else:
+        email_status_cells[idx].value = 'no email'
+      
+    wks.update_cells(email_status_cells)
 
     # Send Zero Collection receipts 
     
@@ -278,7 +298,8 @@ def send_receipts(entries, keys):
             "address": entry["etap_account"]["address"],
             "postal": entry["etap_account"]["postalCode"],
             "next_pickup": entry["next_pickup"],
-            "row": entry["row"]
+            "row": entry["row"],
+            "upload_status": entry["upload_status"]
         }))
 
         entries.remove(entry)
@@ -319,7 +340,8 @@ def send_receipts(entries, keys):
             "last_amount": '$' + str(entry['amount']),
             "gift_history": gifts,
             "next_pickup": parse(entry['next_pickup']).strftime('%B %-d, %Y'),
-            "row": entry['row']
+            "row": entry['row'],
+            "upload_status": entry["upload_status"]
         }))
 
     return 'OK'

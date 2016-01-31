@@ -36,8 +36,7 @@ def view_main():
 def run_scheduler():
   pending_jobs = db['jobs'].find({'status': 'pending'})
   
-  print('app secret key: ' + app.secret_key)
-  print(str(pending_jobs.count()) + ' pending jobs:')
+  #print(str(pending_jobs.count()) + ' pending jobs:')
 
   job_num = 1
   for job in pending_jobs:

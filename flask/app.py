@@ -11,16 +11,13 @@ from server_settings import *
 from flask.ext.socketio import *
 from config import *
 
-app = Flask(__name__)
-app.config.from_pyfile('config.py')
-app.wsgi_app = ReverseProxied(app.wsgi_app)
-app.debug = DEBUG
-app.secret_key = SECRET_KEY
-app.jinja_env.add_extension("jinja2.ext.do")
-socketio = SocketIO(app)
-
-celery_app = Celery('tasks')
-celery_app.config_from_object('config')
+flask_app = Flask(__name__)
+flask_app.config.from_pyfile('config.py')
+flask_app.wsgi_app = ReverseProxied(flask_app.wsgi_app)
+flask_app.debug = DEBUG
+flask_app.secret_key = SECRET_KEY
+flask_app.jinja_env.add_extension("jinja2.ext.do")
+socketio = SocketIO(flask_app)
 
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT, connect=False)
 db = mongo_client[DB_NAME]
@@ -32,7 +29,29 @@ logger.setLevel(LOG_LEVEL)
 logger.addHandler(handler)
 
 login_manager = LoginManager()
-login_manager.init_app(app)
+login_manager.init_app(flask_app)
 login_manager.login_view = PUB_URL + '/login' #url_for('login')
+
+def make_celery(app):
+    celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+    celery.conf.update(app.config)
+    TaskBase = celery.Task
+    class ContextTask(TaskBase):
+        abstract = True
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return TaskBase.__call__(self, *args, **kwargs)
+    celery.Task = ContextTask
+    return celery
+
+celery_app = make_celery(flask_app)
+celery_app.config_from_object('config')
+
+flask_app.app_context().push()
+
+from scheduler import get_next_pickups
+from reminders import run_scheduler
+from gift_collections import send_receipts
+
 
 

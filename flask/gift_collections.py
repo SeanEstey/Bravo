@@ -1,15 +1,20 @@
 import json
 from oauth2client.client import SignedJwtAssertionCredentials
 import gspread
+import flask
+import requests
+from flask import request, current_app, render_template
+from dateutil.parser import parse
+
+from app import flask_app, celery_app, db, logger
+from server_settings import *
 
 @celery_app.task
 def send_receipts(entries, keys):
   try:
-    url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
-    
     # Call eTap 'get_accounts' func for all accounts
-    
     account_numbers = []
+    url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
 
     for entry in entries:
       account_numbers.append(entry['account_number'])
@@ -128,11 +133,11 @@ def update_entry(db_record):
 
   if cell:
     if str(cell.value) == db_record['upload_status']:
-      wks.update_cell(db_record['row'], headers.index('Email Status')+1, event)
+      wks.update_cell(db_record['row'], headers.index('Email Status')+1, db_record['status'])
 
   # Create RFU if event is dropped/bounced and is from a collection receipt
   if db_record['worksheet_name'] == 'Routes':
-      if event == 'dropped' or event == 'bounced':
+      if db_record['status'] == 'dropped' or db_record['status'] == 'bounced':
         wks = sheet.worksheet('RFU')
         headers = wks.row_values(1)
         

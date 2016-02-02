@@ -1,10 +1,10 @@
 import flask
-from flask import Flask,request,g,Response,url_for
+from flask import Flask,request,g,Response,url_for, render_template
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from user import User
+import json
 
-import app
-from app import app, db, logger, login_manager
+from app import db, logger, login_manager
 import reminders
 from config import *
 

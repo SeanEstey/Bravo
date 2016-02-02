@@ -1,15 +1,17 @@
 import json
+import mmap
 import flask
-from flask import Flask,request,g,Response,url_for
+from flask import Flask,request,g,Response,url_for, render_template
 from flask.ext.login import login_user, logout_user, current_user, login_required
 
-import app
-from app import app, db, logger, login_manager
+from app import flask_app, db, logger, login_manager
 import reminders
+import gift_collections
 import auth
 from config import *
+import utils
 
-@app.before_request
+@flask_app.before_request
 def before_request():
   g.user = current_user
 
@@ -17,22 +19,22 @@ def before_request():
 def load_user(username):
   return auth.load_user(username)
 
-@app.route('/login', methods=['GET','POST'])
+@flask_app.route('/login', methods=['GET','POST'])
 def login():
   return auth.login()
 
-@app.route('/logout', methods=['GET'])
+@flask_app.route('/logout', methods=['GET'])
 def logout():
   logout_user()
   logger.info('User logged out')
   return flask.redirect(PUB_URL)
 
-@app.route('/', methods=['GET'])
+@flask_app.route('/', methods=['GET'])
 @login_required
 def index():
   return reminders.view_main()
 
-@app.route('/log')
+@flask_app.route('/log')
 @login_required
 def view_log():
   n = 50
@@ -54,21 +56,21 @@ def view_log():
 
   return flask.render_template('log.html', lines=lines)
 
-@app.route('/admin')
+@flask_app.route('/admin')
 @login_required
 def view_admin():
   return flask.render_template('admin.html')
 
-@app.route('/reminders/new')
+@flask_app.route('/reminders/new')
 @login_required
 def new_job():
   return flask.render_template('new_job.html', title=TITLE)
 
-@app.route('/reminders/recordaudio', methods=['GET', 'POST'])
+@flask_app.route('/reminders/recordaudio', methods=['GET', 'POST'])
 def record_msg():
   return reminders.record_audio()
 
-@app.route('/reminders/request/execute/<job_id>')
+@flask_app.route('/reminders/request/execute/<job_id>')
 @login_required
 def request_execute_job(job_id):
   job_id = job_id.encode('utf-8')
@@ -77,7 +79,7 @@ def request_execute_job(job_id):
 
   return 'OK'
 
-@app.route('/collections/send_receipts', methods=['POST'])
+@flask_app.route('/collections/send_receipts', methods=['POST'])
 def send_receipts():
   try:
     # If sent via JSON by CURL from unit tests...
@@ -86,8 +88,9 @@ def send_receipts():
       entries = args['data']
       keys = args['keys']
     else:
-      entries = json.loads(request.form['data'])
-      keys = json.loads(request.form['keys'])
+        entries = json.loads(request.form['data'])
+        keys = json.loads(request.form['keys'])
+        url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
 
     # Start celery workers to run slow eTapestry API calls
     gift_collections.send_receipts.apply_async((entries, keys, ), queue=DB_NAME)
@@ -97,7 +100,7 @@ def send_receipts():
   except Exception, e:
     logger.error('/send_receipts', exc_info=True)
 
-@app.route('/send_zero_receipt', methods=['POST'])
+@flask_app.route('/send_zero_receipt', methods=['POST'])
 def send_zero_receipt():
   try:
     arg = request.get_json(force=True)
@@ -133,7 +136,7 @@ def send_zero_receipt():
     logger.error('/send_zero_receipt', exc_info=True)
 
 
-@app.route('/send_gift_receipt', methods=['POST'])
+@flask_app.route('/send_gift_receipt', methods=['POST'])
 def send_gift_receipt():
   try:
     arg = request.get_json(force=True)
@@ -170,7 +173,28 @@ def send_gift_receipt():
   except Exception, e:
     logger.error('/send_gift_receipt', exc_info=True)
 
-@app.route('/email/status',methods=['POST'])
+
+@flask_app.route('/email/opened', methods=['POST'])
+def email_opened():
+  try:
+    event = request.form['event']
+    recipient = request.form['recipient']
+   
+    #logger.info('Email opened by ' + recipient)
+    
+    mid = '<' + request.form['message-id'] + '>'
+    
+    db['email_status'].update(
+      {'mid': mid},
+      {'$set': {'opened': True}}
+    )
+
+    return 'OK'
+  except Exception, e:
+    logger.error('%s /email/opened' % request.values.items(), exc_info=True)
+    return str(e)
+
+@flask_app.route('/email/status',methods=['POST'])
 def email_status():
   # Relay for all Mailgun webhooks (delivered, bounced, dropped, etc)
   # Can be from Reminders app, Signups sheet, or Route Importer sheet 
@@ -193,6 +217,8 @@ def email_status():
       {'mid': mid},
       {'$set': {'status': event}}
     )
+
+    db_record['status'] = event
 
     # Did email originate from Google Sheet?
     if 'sheet_name' in db_record:

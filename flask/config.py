@@ -7,6 +7,8 @@ from server_settings import DB_NAME
 # App
 LOG_LEVEL = logging.INFO
 
+# Flask
+
 LOG_FILE = 'log'
 FROM_NUMBER= '+17804138846'
 FROM_EMAIL= 'Empties to WINN <emptiestowinn@wsaf.ca>'

@@ -9,7 +9,7 @@ from dateutil.parser import parse
 import werkzeug
 from werkzeug import secure_filename
 
-from app import app, celery_app, db, logger, login_manager
+from app import celery_app, db, logger, login_manager
 import utils
 from config import *
 from server_settings import *
@@ -360,6 +360,17 @@ def send_email_report(job_id):
   except Exception, e:
     logger.error('/send_email_report: %s', str(e))
 
+@celery_app.task
+def no_pickup_etapestry(url, params):
+  r = requests.get(url, params=params)
+  
+  if r.status_code != 200:
+    logger.error('etap script "%s" failed. status_code:%i', url, r.status_code)
+    return r.status_code
+  
+  logger.info('No pickup for account %s', params['account'])
+
+  return r.status_code
 
 def get_no_pickup_html_body(next_pickup_dt):
   date_str = next_pickup_dt.strftime('%A, %B %d')

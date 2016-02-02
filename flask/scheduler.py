@@ -1,4 +1,4 @@
-from app import app, celery_app, db, logger, login_manager
+from app import celery_app, db, logger, login_manager
 
 @celery_app.task
 def get_next_pickups(job_id):

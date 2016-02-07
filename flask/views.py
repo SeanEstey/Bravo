@@ -7,6 +7,7 @@ from flask.ext.login import login_user, logout_user, current_user, login_require
 from app import flask_app, db, logger, login_manager
 import reminders
 import gift_collections
+import scheduler
 import auth
 from config import *
 import utils
@@ -173,6 +174,40 @@ def send_gift_receipt():
   except Exception, e:
     logger.error('/send_gift_receipt', exc_info=True)
 
+@flask_app.route('/send_welcome', methods=['POST'])
+def send_welcome_email():
+  try:
+    if request.method == 'POST':
+      args = json.loads(request.form["data"])
+
+      logger.info(request.form["data"])
+
+      html = render_template(
+        'email_welcome.html', 
+        first_name = args['first_name'],
+        dropoff_date = args["dropoff_date"],
+        address = args['address'],
+        postal = args['postal']
+      )
+     
+      r = utils.send_email([args['to']], 'Welcome to Empties to Winn', html) 
+          
+      r = json.loads(r.text)
+
+      if r['message'].find('Queued') == 0:
+        db['email_status'].insert({
+          'recipient': args['to'], 
+          'mid': r['id'], 
+          'status':'queued' ,
+          'sheet_name': 'Route Importer',
+          'worksheet_name': 'Signups',
+          "row": args['row'],
+          'upload_status': args['upload_status']
+        })
+
+      return 'OK'
+  except Exception, e:
+    logger.error('/send_welcome', exc_info=True)
 
 @flask_app.route('/email/opened', methods=['POST'])
 def email_opened():
@@ -263,3 +298,10 @@ def email_status():
   except Exception, e:
     logger.info('%s /email/status' % request.values.items(), exc_info=True)
     return str(e)
+
+@flask_app.route('/is_np', methods=['GET'])
+def is_np():
+  account_num = request.args.get('acct')
+  scheduler.is_non_participant(account_num)
+
+  return 'OK'

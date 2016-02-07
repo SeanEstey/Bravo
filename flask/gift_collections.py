@@ -75,6 +75,8 @@ def send_receipts(entries, keys):
 
     account_refs = []
 
+    year = parse(entry[0]['date']).year
+
     for entry in entries:
       account_refs.append(entry['etap_account']['ref'])
 
@@ -83,7 +85,8 @@ def send_receipts(entries, keys):
       "keys": keys,
       "data": {
         "account_refs": account_refs,
-        "year": 2016 # FIXME
+        "start_date": "01/01/" + year,
+        "end_date": "31/12/" + year
       }
     }))
 

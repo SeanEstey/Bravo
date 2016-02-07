@@ -1,4 +1,66 @@
+import json
+import requests
+import datetime
+from dateutil.parser import parse
+
 from app import celery_app, db, logger, login_manager
+from server_settings import PHP_KEYS
+
+
+def get_udf_from_etap_account(field_name, udf):
+    for field in udf:
+        if field['fieldName'] == field_name:
+            return field['value']
+
+def is_non_participant(account_number):
+  try:
+    url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
+    logger.info('querying gift history for ' + account_number)
+    
+    r = requests.post(url, data=json.dumps({
+      "func": "get_accounts",
+      "keys": PHP_KEYS,
+      "data": {
+        "account_numbers": [account_number]
+      }
+    }))
+
+    account = json.loads(r.text)[0]
+
+    now = datetime.datetime.now()
+
+    # TODO: Test if Dropoff Date was at least 12 months ago
+
+    dropoff_date = parse(get_udf_from_etap_account('Dropoff Date', account['accountDefinedValues']))
+
+    delta = now - dropoff_date
+
+    if delta.days < 365:
+        logger.info('Not eligible to be non-participant. Dropoff < 1 year ago')
+        return 'ok'
+
+    r = requests.post(url, data=json.dumps({
+      "func": "get_gift_histories",
+      "keys": PHP_KEYS,
+      "data": {
+        "account_refs": [account['ref']],
+        "start_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year-1),
+        "end_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year)
+      }
+    }))
+    
+    gifts = json.loads(r.text)[0]
+
+    for gift in gifts:
+      if gift.amount > 0:
+        return "Active Participant!"
+
+    logger.info('Non-participant!')
+    return "Non-participant!"
+
+  except Exception, e:
+    logger.error('is_non_participant', exc_info=True)
+    return str(e)
 
 @celery_app.task
 def get_next_pickups(job_id):
@@ -10,16 +72,9 @@ def get_next_pickups(job_id):
       if msg['imported']['block'] not in blocks:
         blocks.append(msg['imported']['block'])
 
-    # Generated on google developer console
-    f = file("google_api_key.p12", "rb")
-    key = f.read()
-    f.close()
-
-    credentials = SignedJwtAssertionCredentials(
-      service_account_name = GOOGLE_SERVICE_ACCOUNT,
-      private_key = key,
-      scope = 'https://www.googleapis.com/auth/calendar.readonly'
-    )
+    json_key = json.load(open('oauth_credentials.json'))
+    scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
+    credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
 
     http = httplib2.Http()
     http = credentials.authorize(http)

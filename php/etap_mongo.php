@@ -78,12 +78,14 @@
 
     case 'process_route_entries':
       $entries = $data['entries'];
+      $num_errors = 0;
 
       for($i=0; $i<count($data['entries']); $i++) { 
         $status = process_route_entry($nsc, $entries[$i]);
 
-        write_log('process_route_entry for account ' . (string)$entries[$i]['account_number'] . ': ' . $status);
-        
+        if(floatval($status) == 0)
+          $num_errors++;
+
         $result = $db->insertOne([ 
           'function' => 'process_route_entry',
           'request_id' => $data['request_id'],
@@ -92,18 +94,27 @@
         ]);
       }
 
+      write_log('Processed ' . (string)count($data['entries']) . ' route entries. ' . (string)$num_errors . ' errors.');
+
       break;
       
     case 'get_account':
       $account = get_account($nsc, $data['account_number']);
-      echo json_encode($account);
+      
+      if(empty($account))
+        echo json_encode('No matching account for ' . $data['account_number']);
+      else
+        echo json_encode($account);
 
       break;
 
     case 'get_accounts':
       $accounts = [];
       for($i=0; $i < count($data['account_numbers']); $i++) {
-        $accounts[] = get_account($nsc, $data['account_numbers'][$i]);
+        $account = get_account($nsc, $data['account_numbers'][$i]);
+        
+        if($account)
+          $accounts[] = $account;
       }
 
       write_log(count($accounts) . ' accounts retrieved.');
@@ -114,7 +125,7 @@
     case 'get_gift_histories':
       $accounts = [];
       for($i=0; $i < count($data['account_refs']); $i++) {
-        $accounts[] = get_gift_history($nsc, $data['account_refs'][$i], $data['year']);
+        $accounts[] = get_gift_history($nsc, $data['account_refs'][$i], $data['start_date'], $data['end_date']);
       }
       
       write_log(count($accounts) . ' gift histories retrieved.');
@@ -154,6 +165,22 @@
 
     case 'make_booking':
       make_booking($nsc, $data['account_num'], $data['udf']);
+      break;
+
+    case 'get_query_accounts':
+      $query = $data['query'];
+      $category = $data['query_category'];
+
+      $response = $nsc->call("getExistingQueryResults", [[
+          'start' => 0,
+          'count' => 500,
+          'query' => "$category::$query"
+        ]]
+      );
+
+      write_log($response['count'] . ' accounts in query ' . $data['query'] . ', category: ' . $data['query_category']);
+      echo json_encode($response);
+
       break;
 
     case 'build_viamente_route':

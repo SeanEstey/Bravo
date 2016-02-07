@@ -54,12 +54,6 @@ function get_account($nsc, $account_number) {
     return false;
   }
 
-  if(empty($account)) {
-    echo 'No matching accounts for ' . $account_number;
-    return false;
-  }
-
-  //echo json_encode($account);
   http_response_code(200);
   return $account;
 }
@@ -126,16 +120,12 @@ function get_block_size($nsc, $query_category, $query) {
   http_response_code(200);  
 }
 
-
+// Returns all Gifts with amount > $0 between given dates
 //-----------------------------------------------------------------------
-function get_gift_history($nsc, $ref, $year) {
+function get_gift_history($nsc, $ref, $start_date, $end_date) {
   ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
 
   //$account = $nsc->call('getAccountById', [$account_number]);
-
-  //$now = new DateTime();
-  $start_date = '01/01/' . (string)$year; //$now->format('Y');
-  $end_date = '31/12/' . (string)$year; //$now->format('Y');
 
   // Return filtered journal entries for provided year
   $request = [
@@ -166,8 +156,6 @@ function get_gift_history($nsc, $ref, $year) {
         ];
     }
   }
-
-  //$account['gifts'] = $gifts;
 
   return $gifts;
 }
@@ -204,7 +192,7 @@ function process_route_entry($nsc, $entry) {
   
   if(checkForError($nsc))
     return 'Error: ' . $nsc->faultcode . ': ' . $nsc->faultstring;
-  
+
   return $nsc->call("addGift", [[
     'accountRef' => $etap_account['ref'],
     'amount' => $entry['gift']['amount'],
@@ -212,7 +200,11 @@ function process_route_entry($nsc, $entry) {
     'campaign' => $entry['gift']['campaign'],
     'approach' => $entry['gift']['approach'],
     'note' => $entry['gift']['note'],
-    'date' => formatDateAsDateTimeString($entry['gift']['date'])
+    'date' => formatDateAsDateTimeString($entry['gift']['date']),
+    'valuable' => [
+      'type' => 5,
+      'inKind' => []
+    ]
   ], 
     false
   ]);
@@ -308,6 +300,13 @@ function add_accounts($db, $nsc, $submissions) {
 
     if(!empty($submission['existing_account'])) {
       add_to_existing_account($db, $nsc, $submission, $submission['existing_account']);
+      
+      $result = $db->insertOne([ 
+        'function' => 'add_accounts',
+        'request_id' => $submission['request_id'],
+        'row' => $submission['row'],
+        'status' => 'Updated'
+      ]);
       continue;
     }
 
@@ -387,6 +386,8 @@ function add_accounts($db, $nsc, $submissions) {
       error_log('Add account error: ' . $status);
       $num_errors++;
     }
+    else
+      write_log('Added account ' . $account['name']);
 
     $result = $db->insertOne([ 
       'function' => 'add_accounts',
@@ -411,18 +412,34 @@ function add_to_existing_account($db, $nsc, $account, $account_number) {
   remove_udf($nsc, $etap_account, $account['defined_fields']);
   apply_udf($nsc, $etap_account, $account['defined_fields']);
 
-  // See if we have updated Email, Phone, or Address info
-  if(!empty($account['persona_fields']['Email'])) {
-    $etap_account['email'] = $account['persona_fields']['Email'];
+  // For those accounts who still have unset 'nameFormat'
+  if($etap_account['nameFormat'] === 0) {
+    $etap_account['nameFormat'] = 1;
+    $etap_account['firstName'] = $account['persona_fields']['First Name'];
+    $etap_account['lastName'] = $account['persona_fields']['Last Name'];
   }
 
-  if(!empty($account['persona_fields']['Mobile']))
+  // For some reason, this field gets null'd sometimes (bug)...
+  if(!$etap_account['lastName'])
+    $etap_account['lastName'] = $account['persona_fields']['Last Name'];
+  
+  if(!$etap_account['firstName'])
+    $etap_account['firstName'] = $account['persona_fields']['First Name'];
+
+  // See if we have updated Email, Phone, or Address info
+  if(array_key_exists('Email', $account['persona_fields']))
+    $etap_account['email'] = $account['persona_fields']['Email'];
+
+  if(array_key_exists('Mobile', $account['persona_fields']))
     $etap_account['phones'][] = [
       'type' => 'Mobile',
       'number' => $account['persona_fields']['Mobile']
     ];
 
   $nsc->call("updateAccount", [$etap_account, false]);
+
+  write_log('Updated account ' . $etap_account['firstName'] . ' ' . $etap_account['lastName'] . ' (' . $etap_account['id'] . ')');
+
 
   checkForError($nsc);
 }

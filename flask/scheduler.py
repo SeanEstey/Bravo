@@ -2,46 +2,92 @@ import json
 import requests
 import datetime
 from dateutil.parser import parse
+from oauth2client.client import SignedJwtAssertionCredentials
+import httplib2
+from apiclient.discovery import build
+import re
+from datetime import datetime,date, timedelta
 
 from app import celery_app, db, logger, login_manager
-from server_settings import PHP_KEYS
-
+from config import ETAP_WRAPPER_URL
+from server_settings import *
 
 def get_udf_from_etap_account(field_name, udf):
-    for field in udf:
-        if field['fieldName'] == field_name:
-            return field['value']
+  for field in udf:
+    if field['fieldName'] == field_name:
+      return field['value']
 
-def is_non_participant(account_number):
+@celery_app.task
+def get_tomorrow_non_participants():
+  try:   
+    json_key = json.load(open('oauth_credentials.json'))
+    scope = ['https://www.googleapis.com/auth/calendar.readonly']
+    credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
+
+    http = httplib2.Http()
+    http = credentials.authorize(http)
+
+    start_search = datetime.now() + timedelta(days=1)
+    end_search = start_search + timedelta(hours=12)
+
+    service = build('calendar', 'v3', http=http)
+    events = service.events().list(
+      calendarId = ETW_RES_CALENDAR_ID,
+      timeMin = start_search.isoformat()+'+01:00',
+      timeMax = end_search.isoformat()+'+01:00',
+      singleEvents = True,
+      orderBy = 'startTime'
+    ).execute()
+
+    logger.info('%i calendar events pulled', len(events['items']))
+
+    for item in events['items']:
+      block = re.match(r'^R([1-9]|10)[a-zA-Z]{1}', item['summary'])
+      if block:
+        block = block.group(0)
+        logger.info(block)
+        
+        r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
+          "func": "get_query_accounts",
+          "keys": ETAP_WRAPPER_KEYS,
+          "data": {
+            "query": block,
+            "query_category": "ETW: Routes"
+          }
+        }))
+
+        r = json.loads(r.text)
+        
+        count = 0
+
+        for account in r['data']:
+          if is_non_participant(account):
+              count = count + 1
+        
+        logger.info('Found ' + str(count) + ' Non-participants')
+
+  except Exception, e:
+    logger.error('get_tomorrow_blocks', exc_info=True)
+    return str(e)
+
+
+def is_non_participant(account):
+  # Returns true if the account has been active for at least a year but
+  # no contributions in past 12 months
   try:
-    url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
-    logger.info('querying gift history for ' + account_number)
+    # Test if Dropoff Date was at least 12 months ago
     
-    r = requests.post(url, data=json.dumps({
-      "func": "get_accounts",
-      "keys": PHP_KEYS,
-      "data": {
-        "account_numbers": [account_number]
-      }
-    }))
-
-    account = json.loads(r.text)[0]
-
-    now = datetime.datetime.now()
-
-    # TODO: Test if Dropoff Date was at least 12 months ago
-
     dropoff_date = parse(get_udf_from_etap_account('Dropoff Date', account['accountDefinedValues']))
-
+    now = datetime.now()
     delta = now - dropoff_date
 
     if delta.days < 365:
-        logger.info('Not eligible to be non-participant. Dropoff < 1 year ago')
-        return 'ok'
+      #logger.info('Not eligible to be non-participant. Dropoff < 1 year ago')
+      return False
 
-    r = requests.post(url, data=json.dumps({
+    r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
       "func": "get_gift_histories",
-      "keys": PHP_KEYS,
+      "keys": ETAP_WRAPPER_KEYS,
       "data": {
         "account_refs": [account['ref']],
         "start_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year-1),
@@ -51,12 +97,11 @@ def is_non_participant(account_number):
     
     gifts = json.loads(r.text)[0]
 
-    for gift in gifts:
-      if gift.amount > 0:
-        return "Active Participant!"
-
-    logger.info('Non-participant!')
-    return "Non-participant!"
+    if len(gifts) == 0:
+      logger.info('Account ' + str(account['id']) + ' confirmed as Non-participant!')
+      return True
+    else:
+      return False
 
   except Exception, e:
     logger.error('is_non_participant', exc_info=True)

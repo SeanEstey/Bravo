@@ -70,4 +70,7 @@ MONGO_URL = 'localhost'
 MONGO_PORT = 27017
 MAILGUN_DOMAIN = 'wsaf.ca'
 
+ETAP_WRAPPER_URL = 'http://www.bravoweb.ca/etap/etap_mongo.php'
+
+
 formatter = logging.Formatter('[%(asctime)s] %(message)s','%m-%d %H:%M')

@@ -3,6 +3,7 @@ import logging
 import pymongo
 from datetime import timedelta
 from server_settings import DB_NAME
+from celery.schedules import crontab
 
 # App
 LOG_LEVEL = logging.INFO
@@ -64,7 +65,7 @@ CELERYBEAT_SCHEDULE = {
   },
   'get_non_participants': {
     'task': 'scheduler.get_non_participants',
-    'schedule': timedelta(days=1),
+    'schedule': crontab(hour=13, minute=0, day_of_week='mon,tue,wed,fri,sat,sun'),
     'options': { 'queue': DB_NAME }
   }
 }

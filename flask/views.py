@@ -231,6 +231,29 @@ def email_opened():
     logger.error('%s /email/opened' % request.values.items(), exc_info=True)
     return str(e)
 
+
+@flask_app.route('/email/unsubscribe', methods=['POST'])
+def email_unsubscribe():
+  try:
+      gift_collections.create_rfu(request.form['recipient'] + ' requested unsubscribe')
+      return 'OK'
+
+  except Exception, e:
+    logger.info('%s /email/unsubscribe' % request.values.items(), exc_info=True)
+    return str(e)
+
+
+@flask_app.route('/email/spam_complaint', methods=['POST'])
+def email_spam_complaint():
+  try:
+      gift_collections.create_rfu(request.form['recipient'] + ': received spam complaint')
+      return 'OK'
+
+  except Exception, e:
+    logger.info('%s /email/spam_complaint' % request.values.items(), exc_info=True)
+    return str(e)
+
+
 @flask_app.route('/email/status',methods=['POST'])
 def email_status():
   # Relay for all Mailgun webhooks (delivered, bounced, dropped, etc)

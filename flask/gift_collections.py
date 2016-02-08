@@ -43,7 +43,7 @@ def send_receipts(entries, keys):
 
     for idx, entry in enumerate(entries):
       entry['etap_account'] = accounts[idx]
-      
+    '''  
       if accounts[idx]['email']:
         email_status_cells[idx].value = 'queued'
       else:
@@ -52,10 +52,12 @@ def send_receipts(entries, keys):
     wks.update_cells(email_status_cells)
 
     # Send Zero Collection receipts 
-    
+    '''
     for entry in entries:
       if entry['amount'] == 0 and entry['etap_account']['email']:
-        r = requests.post(PUB_URL + '/send_zero_receipt', data=json.dumps({
+        entries.remove(entry)
+        '''
+          r = requests.post(PUB_URL + '/send_zero_receipt', data=json.dumps({
             "account_number": entry['account_number'],
             "email": entry['etap_account']['email'],
             "first_name": entry['etap_account']['firstName'],
@@ -66,16 +68,16 @@ def send_receipts(entries, keys):
             "row": entry["row"],
             "upload_status": entry["upload_status"]
         }))
+        '''
 
-        entries.remove(entry)
 
     # 'entries' list should now contain only gifts
     # Call eTap 'get_gift_history' for non-zero donations
     # Send Gift receipts
 
     account_refs = []
-
-    year = parse(entry[0]['date']).year
+    logger.info(json.dumps(entries, indent=4))
+    year = parse(entries[0]['date']).year
 
     for entry in entries:
       account_refs.append(entry['etap_account']['ref'])
@@ -85,8 +87,8 @@ def send_receipts(entries, keys):
       "keys": keys,
       "data": {
         "account_refs": account_refs,
-        "start_date": "01/01/" + year,
-        "end_date": "31/12/" + year
+        "start_date": "01/01/" + str(year),
+        "end_date": "31/12/" + str(year)
       }
     }))
 
@@ -152,3 +154,25 @@ def update_entry(db_record):
 
         logger.info('Creating RFU for bounced/dropped email: ' + json.dumps(rfu))
         wks.append_row(rfu)
+
+
+def create_rfu(request_note, account_number=None):
+  json_key = json.load(open('oauth_credentials.json'))
+  scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
+  credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
+  gc = gspread.authorize(credentials)
+
+  sheet = gc.open('Route Importer')
+  wks = sheet.worksheet('RFU')
+  
+  headers = wks.row_values(1)
+
+  rfu = [''] * len(headers)
+  
+  rfu[headers.index('Request Note')] = request_note
+  
+  if account_number != None:
+    rfu[headers.index('Account Number')] = account_number
+
+  logger.info('Creating RFU: ' + json.dumps(rfu))
+  wks.append_row(rfu)

@@ -17,7 +17,6 @@ EMERGENCY_CONTACT='7808635715'
 CALLER_ID= 'Winnifred Stewart Association'
 MAX_ATTEMPTS= 2
 REDIAL_DELAY = 300
-SCHEDULE_FREQUENCY = 30
 UPLOAD_FOLDER = '/tmp'
 JOBS_PER_PAGE = 10
 ALLOWED_EXTENSIONS = set(['csv','xls'])
@@ -58,11 +57,16 @@ CELERY_TIMEZONE = 'Canada/Mountain'
 CELERY_ENABLE_UTC = False
 CELERYD_CONCURRENCY = 1
 CELERYBEAT_SCHEDULE = {
-  'bravo_scheduler': {
-    'task': 'reminders.run_scheduler',
-    'schedule': timedelta(seconds=SCHEDULE_FREQUENCY),
+  'check_reminder_jobs': {
+    'task': 'reminders.check_jobs',
+    'schedule': timedelta(seconds=30),
     'options': { 'queue': DB_NAME }
   },
+  'get_non_participants': {
+    'task': 'scheduler.get_non_participants',
+    'schedule': timedelta(days=1),
+    'options': { 'queue': DB_NAME }
+  }
 }
 
 # Ports/Domains

@@ -308,7 +308,7 @@ def is_np():
 
   return 'OK'
 
-@flask_app.route('/get_tomorrow_accounts', methods=['GET'])
+@flask_app.route('/get_np', methods=['GET'])
 def get_romorrow_accounts():
-    scheduler.get_tomorrow_non_participants.apply_async(queue=DB_NAME)
+    scheduler.get_non_participants.apply_async(queue=DB_NAME)
     return 'Celery process started...'

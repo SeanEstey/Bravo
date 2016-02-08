@@ -33,7 +33,7 @@ def view_main():
     )
 
 @celery_app.task
-def run_scheduler():
+def check_jobs():
   pending_jobs = db['jobs'].find({'status': 'pending'})
   
   #print(str(pending_jobs.count()) + ' pending jobs:')
@@ -361,7 +361,7 @@ def send_email_report(job_id):
     logger.error('/send_email_report: %s', str(e))
 
 @celery_app.task
-def no_pickup_etapestry(url, params):
+def set_no_pickup(url, params):
   r = requests.get(url, params=params)
   
   if r.status_code != 200:

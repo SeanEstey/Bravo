@@ -18,7 +18,7 @@ def get_udf_from_etap_account(field_name, udf):
       return field['value']
 
 @celery_app.task
-def get_tomorrow_non_participants():
+def get_non_participants(start=None, end=None):
   try:   
     json_key = json.load(open('oauth_credentials.json'))
     scope = ['https://www.googleapis.com/auth/calendar.readonly']
@@ -27,14 +27,16 @@ def get_tomorrow_non_participants():
     http = httplib2.Http()
     http = credentials.authorize(http)
 
-    start_search = datetime.now() + timedelta(days=1)
-    end_search = start_search + timedelta(hours=12)
+    # Default to 3 days in advance
+    if start == None:
+      start = datetime.now() + timedelta(days=3)
+      end = start + timedelta(hours=12)
 
     service = build('calendar', 'v3', http=http)
     events = service.events().list(
       calendarId = ETW_RES_CALENDAR_ID,
-      timeMin = start_search.isoformat()+'+01:00',
-      timeMax = end_search.isoformat()+'+01:00',
+      timeMin = start.isoformat()+'+01:00',
+      timeMax = end.isoformat()+'+01:00',
       singleEvents = True,
       orderBy = 'startTime'
     ).execute()
@@ -42,16 +44,15 @@ def get_tomorrow_non_participants():
     logger.info('%i calendar events pulled', len(events['items']))
 
     for item in events['items']:
-      block = re.match(r'^R([1-9]|10)[a-zA-Z]{1}', item['summary'])
-      if block:
-        block = block.group(0)
-        logger.info(block)
+      res_block = re.match(r'^R([1-9]|10)[a-zA-Z]{1}', item['summary'])
+      if res_block:
+        res_block = res_block.group(0)
         
         r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
           "func": "get_query_accounts",
           "keys": ETAP_WRAPPER_KEYS,
           "data": {
-            "query": block,
+            "query": res_block,
             "query_category": "ETW: Routes"
           }
         }))
@@ -64,7 +65,7 @@ def get_tomorrow_non_participants():
           if is_non_participant(account):
               count = count + 1
         
-        logger.info('Found ' + str(count) + ' Non-participants')
+        logger.info(res_block + ': Found ' + str(count) + ' Non-participants')
 
   except Exception, e:
     logger.error('get_tomorrow_blocks', exc_info=True)
@@ -98,7 +99,7 @@ def is_non_participant(account):
     gifts = json.loads(r.text)[0]
 
     if len(gifts) == 0:
-      logger.info('Account ' + str(account['id']) + ' confirmed as Non-participant!')
+      #logger.info('Account ' + str(account['id']) + ' confirmed as Non-participant!')
       return True
     else:
       return False

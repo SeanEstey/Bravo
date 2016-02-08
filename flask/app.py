@@ -49,8 +49,8 @@ celery_app.config_from_object('config')
 
 flask_app.app_context().push()
 
-from scheduler import get_next_pickups
-from reminders import run_scheduler
+from scheduler import get_next_pickups, get_non_participants
+from reminders import check_jobs, execute_job, monitor_job, set_no_pickup
 from gift_collections import send_receipts
 
 

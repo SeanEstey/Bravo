@@ -11,7 +11,7 @@ import gift_collections
 import scheduler
 import auth
 from config import *
-from server_settings import *
+from private_config import *
 import utils
 
 @flask_app.before_request
@@ -324,14 +324,7 @@ def email_status():
     logger.info('%s /email/status' % request.values.items(), exc_info=True)
     return str(e)
 
-@flask_app.route('/is_np', methods=['GET'])
-def is_np():
-  account_num = request.args.get('acct')
-  scheduler.is_non_participant(account_num)
-
-  return 'OK'
-
 @flask_app.route('/get_np', methods=['GET'])
 def get_romorrow_accounts():
-    scheduler.get_non_participants.apply_async(queue=DB_NAME)
+    scheduler.find_nps_in_schedule.apply_async(queue=DB_NAME)
     return 'Celery process started...'

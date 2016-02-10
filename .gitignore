@@ -8,4 +8,4 @@ log
 oauth_credentials.json
 celery.log
 celerybeat-schedule
-server_settings.py
+private_config.py

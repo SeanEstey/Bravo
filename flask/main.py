@@ -4,8 +4,7 @@ import sys
 
 import app
 from app import flask_app, celery_app, db, logger, socketio
-from server_settings import *
-
+from private_config import *
 from views import *
 
 if __name__ == "__main__":
@@ -15,7 +14,8 @@ if __name__ == "__main__":
   os.system("ps aux | grep 'queues " + DB_NAME + "' | awk '{print $2}' | xargs kill -9")
   
   # Create workers
-  os.system('celery worker -A app.celery_app -f log -B -n ' + DB_NAME + ' --queues ' + DB_NAME + ' &')
+  #os.system('celery worker -A app.celery_app -f log -B -n ' + DB_NAME + ' --queues ' + DB_NAME + ' &')
+  os.system('celery worker -A app.celery_app -B -n ' + DB_NAME + ' --queues ' + DB_NAME + ' &')
   
   # Pause to give workers time to initialize before starting server
   time.sleep(3);

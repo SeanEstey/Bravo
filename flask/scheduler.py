@@ -1,6 +1,6 @@
 import json
 import requests
-import datetime
+#import datetime
 from dateutil.parser import parse
 from oauth2client.client import SignedJwtAssertionCredentials
 import httplib2
@@ -10,27 +10,28 @@ from datetime import datetime,date, timedelta
 
 from app import celery_app, db, logger, login_manager
 from config import ETAP_WRAPPER_URL
-from server_settings import *
+from private_config import *
+from gift_collections import create_rfu
 
-def get_udf_from_etap_account(field_name, udf):
-  for field in udf:
+def get_udf(field_name, etap_account):
+  for field in etap_account['accountDefinedValues']:
     if field['fieldName'] == field_name:
       return field['value']
 
 @celery_app.task
-def get_non_participants(start=None, end=None):
+def find_nps_in_schedule(start=None, end=None):
   try:   
+    # Default to 3 days in advance
+    if start == None:
+      start = datetime.now() + timedelta(days=3)
+      end = start + timedelta(hours=12)
+
     json_key = json.load(open('oauth_credentials.json'))
     scope = ['https://www.googleapis.com/auth/calendar.readonly']
     credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
 
     http = httplib2.Http()
     http = credentials.authorize(http)
-
-    # Default to 3 days in advance
-    if start == None:
-      start = datetime.now() + timedelta(days=3)
-      end = start + timedelta(hours=12)
 
     service = build('calendar', 'v3', http=http)
     events = service.events().list(
@@ -59,53 +60,69 @@ def get_non_participants(start=None, end=None):
 
         r = json.loads(r.text)
         
-        count = 0
-
-        for account in r['data']:
-          if is_non_participant(account):
-              count = count + 1
-        
-        logger.info(res_block + ': Found ' + str(count) + ' Non-participants')
+        analyze_non_participants(r['data'])
 
   except Exception, e:
-    logger.error('get_tomorrow_blocks', exc_info=True)
+    logger.error('find_nps_in_schedule', exc_info=True)
     return str(e)
 
 
-def is_non_participant(account):
+def analyze_non_participants(etap_accounts):
   # Returns true if the account has been active for at least a year but
   # no contributions in past 12 months
   try:
-    # Test if Dropoff Date was at least 12 months ago
-    
-    dropoff_date = parse(get_udf_from_etap_account('Dropoff Date', account['accountDefinedValues']))
-    now = datetime.now()
-    delta = now - dropoff_date
+    # Build list of accounts to query gift_histories for
+    account_refs = []
 
-    if delta.days < 365:
-      #logger.info('Not eligible to be non-participant. Dropoff < 1 year ago')
-      return False
+    for account in etap_accounts:
+      # Test if Dropoff Date was at least 12 months ago
+      d = get_udf('Dropoff Date', account).split('/')
+      dropoff_date = datetime(int(d[2]), int(d[1]), int(d[0])) 
+      now = datetime.now()
+      delta = now - dropoff_date
+
+      if delta.days >= 365:
+        account_refs.append(account['ref'])
+      else:
+        etap_accounts.remove(account)
 
     r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
       "func": "get_gift_histories",
       "keys": ETAP_WRAPPER_KEYS,
       "data": {
-        "account_refs": [account['ref']],
+        "account_refs": account_refs,
         "start_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year-1),
         "end_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year)
       }
     }))
     
-    gifts = json.loads(r.text)[0]
+    gift_histories = json.loads(r.text)
 
-    if len(gifts) == 0:
-      #logger.info('Account ' + str(account['id']) + ' confirmed as Non-participant!')
-      return True
-    else:
-      return False
+    now = datetime.now()
+
+    num_nps = 0
+
+    for idx, gift_history in enumerate(gift_histories):
+      account = etap_accounts[idx]
+
+      if len(gift_history) == 0:
+        num_nps += 1
+        npu = get_udf('Next Pickup Date', account).split('/')
+
+        next_pickup = npu[1] + '/' + npu[0] + '/' + npu[2]
+
+        create_rfu(
+          'Non-participant', 
+          account_number = account['id'],
+          next_pickup = next_pickup,
+          block = get_udf('Block', account),
+          date = str(now.month) + '/' + str(now.day) + '/' + str(now.year)
+        )
+
+    logger.info('Found ' + str(num_nps) + ' Non-Participants')
 
   except Exception, e:
-    logger.error('is_non_participant', exc_info=True)
+    logger.error('analyze_non_participants', exc_info=True)
     return str(e)
 
 @celery_app.task

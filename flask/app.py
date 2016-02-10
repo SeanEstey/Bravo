@@ -1,13 +1,13 @@
 import flask
-from flask import Flask,render_template,request,g,Response,redirect,url_for
-from flask.ext.login import LoginManager, login_user, logout_user, current_user, login_required
+from flask import Flask
+from flask.ext.login import LoginManager
 from flask.ext.socketio import *
 import pymongo
 import logging
 
 from celery import Celery
 from reverse_proxy import ReverseProxied
-from server_settings import *
+from private_config import *
 from flask.ext.socketio import *
 from config import *
 
@@ -49,7 +49,7 @@ celery_app.config_from_object('config')
 
 flask_app.app_context().push()
 
-from scheduler import get_next_pickups, get_non_participants
+from scheduler import get_next_pickups, find_nps_in_schedule
 from reminders import check_jobs, execute_job, monitor_job, set_no_pickup
 from gift_collections import send_receipts
 

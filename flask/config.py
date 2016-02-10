@@ -2,7 +2,7 @@ import os
 import logging
 import pymongo
 from datetime import timedelta
-from server_settings import DB_NAME
+from private_config import DB_NAME
 from celery.schedules import crontab
 
 # App
@@ -64,8 +64,8 @@ CELERYBEAT_SCHEDULE = {
     'options': { 'queue': DB_NAME }
   },
   'get_non_participants': {
-    'task': 'scheduler.get_non_participants',
-    'schedule': crontab(hour=13, minute=0, day_of_week='mon,tue,wed,fri,sat,sun'),
+    'task': 'scheduler.find_nps_in_schedule',
+    'schedule': crontab(hour=7, minute=0, day_of_week='*'),
     'options': { 'queue': DB_NAME }
   }
 }

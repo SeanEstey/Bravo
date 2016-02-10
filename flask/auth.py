@@ -1,6 +1,6 @@
 import flask
-from flask import Flask,request,g,Response,url_for, render_template
-from flask.ext.login import login_user, logout_user, current_user, login_required
+from flask import Flask, request, g, Response, render_template
+from flask.ext.login import login_user
 from user import User
 import json
 
@@ -8,14 +8,12 @@ from app import db, logger, login_manager
 import reminders
 from config import *
 
-
 def login():
   if request.method == 'GET':
     return render_template('login.html')
   elif request.method == 'POST':
     username = request.form['username']
     password = request.form['password']
-    #logger.info('user: %s pw: %s', username, password)
     
     login_record = db['admin_logins'].find_one({'user': username})
     if not login_record:

@@ -7,7 +7,7 @@ from flask import request, current_app, render_template
 from dateutil.parser import parse
 
 from app import flask_app, celery_app, db, logger
-from server_settings import *
+from private_config import *
 
 @celery_app.task
 def send_receipts(entries, keys):
@@ -43,7 +43,7 @@ def send_receipts(entries, keys):
 
     for idx, entry in enumerate(entries):
       entry['etap_account'] = accounts[idx]
-    '''  
+      
       if accounts[idx]['email']:
         email_status_cells[idx].value = 'queued'
       else:
@@ -52,31 +52,27 @@ def send_receipts(entries, keys):
     wks.update_cells(email_status_cells)
 
     # Send Zero Collection receipts 
-    '''
     for entry in entries:
       if entry['amount'] == 0 and entry['etap_account']['email']:
-        entries.remove(entry)
-        '''
-          r = requests.post(PUB_URL + '/send_zero_receipt', data=json.dumps({
-            "account_number": entry['account_number'],
-            "email": entry['etap_account']['email'],
-            "first_name": entry['etap_account']['firstName'],
-            "date": entry["date"],
-            "address": entry["etap_account"]["address"],
-            "postal": entry["etap_account"]["postalCode"],
-            "next_pickup": entry["next_pickup"],
-            "row": entry["row"],
-            "upload_status": entry["upload_status"]
+        r = requests.post(PUB_URL + '/send_zero_receipt', data=json.dumps({
+          "account_number": entry['account_number'],
+          "email": entry['etap_account']['email'],
+          "first_name": entry['etap_account']['firstName'],
+          "date": entry["date"],
+          "address": entry["etap_account"]["address"],
+          "postal": entry["etap_account"]["postalCode"],
+          "next_pickup": entry["next_pickup"],
+          "row": entry["row"],
+          "upload_status": entry["upload_status"]
         }))
-        '''
-
+        entries.remove(entry)
 
     # 'entries' list should now contain only gifts
     # Call eTap 'get_gift_history' for non-zero donations
     # Send Gift receipts
 
     account_refs = []
-    logger.info(json.dumps(entries, indent=4))
+    
     year = parse(entries[0]['date']).year
 
     for entry in entries:
@@ -156,7 +152,7 @@ def update_entry(db_record):
         wks.append_row(rfu)
 
 
-def create_rfu(request_note, account_number=None):
+def create_rfu(request_note, account_number=None, next_pickup=None, block=None, date=None):
   json_key = json.load(open('oauth_credentials.json'))
   scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
   credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
@@ -173,6 +169,15 @@ def create_rfu(request_note, account_number=None):
   
   if account_number != None:
     rfu[headers.index('Account Number')] = account_number
+
+  if next_pickup != None:
+    rfu[headers.index('Next Pickup Date')] = next_pickup
+
+  if block != None:
+    rfu[headers.index('Block')] = block
+
+  if date != None:
+    rfu[headers.index('Date')] = date
 
   logger.info('Creating RFU: ' + json.dumps(rfu))
   wks.append_row(rfu)

@@ -328,3 +328,36 @@ def email_status():
 def get_romorrow_accounts():
     scheduler.find_nps_in_schedule.apply_async(queue=DB_NAME)
     return 'Celery process started...'
+
+@flask_app.route('/call/nis', methods=['POST'])
+def nis():
+    try:
+        ''' 
+        MongoDB record passed in with format: { 
+        "_id" : ObjectId("56ba35a2693785608683f3e6"), 
+        "next_pickup" : ISODate("2016-04-21T00:00:00Z"), 
+        "imported" : { 
+            "status" : "Dropoff", 
+            "account" : "71535", 
+            "name" : "Harish Kumar", 
+            "office_notes" : "", 
+            "to" : "7804652323", 
+            "event_date" : ISODate("2016-02-11T00:00:00Z"), 
+            "email" : "", 
+            "block" : "R10J" 
+        }, 
+        "job_id" : ObjectId("56ba35a2693785608683f31c"), 
+        "call_status" : "pending", 
+        "attempts" : 0, 
+        "email_status" : "no_email" 
+        }
+        '''
+        
+        logger.info('NIS!')
+        logger.info(request.form['data'])
+        
+        return False
+
+    except Exception, e:
+        logger.info('%s /call/nis' % request.values.items(), exc_info=True)
+        return str(e)

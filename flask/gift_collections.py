@@ -179,5 +179,5 @@ def create_rfu(request_note, account_number=None, next_pickup=None, block=None, 
   if date != None:
     rfu[headers.index('Date')] = date
 
-  logger.info('Creating RFU: ' + json.dumps(rfu))
+  logger.info('Creating RFU: ' + json.dumps([item for item in rfu if item]))
   wks.append_row(rfu)

@@ -13,41 +13,53 @@ from config import ETAP_WRAPPER_URL
 from private_config import *
 from gift_collections import create_rfu
 
+
+# Extract User Defined Fields from eTap Account object. Allows
+# for UDF's which contain multiple fields (Block, Neighborhood)
 def get_udf(field_name, etap_account):
+  field_values = []
+
   for field in etap_account['accountDefinedValues']:
     if field['fieldName'] == field_name:
-      return field['value']
+      field_values.append(field['value'])
+
+  return ", ".join(field_values)
+
+
+def get_cal_events(cal_id, start, end):
+  json_key = json.load(open('oauth_credentials.json'))
+  scope = ['https://www.googleapis.com/auth/calendar.readonly']
+  credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
+
+  http = httplib2.Http()
+  http = credentials.authorize(http)
+
+  service = build('calendar', 'v3', http=http)
+
+  return service.events().list(
+    calendarId = cal_id,
+    timeMin = start.isoformat()+'-07:00', # MST ofset
+    timeMax = end.isoformat()+'-07:00', # MST offset
+    singleEvents = True,
+    orderBy = 'startTime'
+  ).execute()
 
 @celery_app.task
 def find_nps_in_schedule(start=None, end=None):
   try:   
     # Default to 3 days in advance
     if start == None:
-      start = datetime.now() + timedelta(days=3)
-      end = start + timedelta(hours=12)
+      start = datetime.now() + timedelta(days=4)
+      end = start + timedelta(hours=1)
 
-    json_key = json.load(open('oauth_credentials.json'))
-    scope = ['https://www.googleapis.com/auth/calendar.readonly']
-    credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
-
-    http = httplib2.Http()
-    http = credentials.authorize(http)
-
-    service = build('calendar', 'v3', http=http)
-    events = service.events().list(
-      calendarId = ETW_RES_CALENDAR_ID,
-      timeMin = start.isoformat()+'+01:00',
-      timeMax = end.isoformat()+'+01:00',
-      singleEvents = True,
-      orderBy = 'startTime'
-    ).execute()
-
-    logger.info('%i calendar events pulled', len(events['items']))
+    events = get_cal_events(ETW_RES_CALENDAR_ID, start, end)
 
     for item in events['items']:
       res_block = re.match(r'^R([1-9]|10)[a-zA-Z]{1}', item['summary'])
       if res_block:
         res_block = res_block.group(0)
+
+        logger.info('Analyzing non-participants for %s... ', res_block)
         
         r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
           "func": "get_query_accounts",
@@ -67,12 +79,13 @@ def find_nps_in_schedule(start=None, end=None):
     return str(e)
 
 
+# Analyze list of eTap account objects for non-participants
+# (Dropoff Date >= 12 monthss ago and no collections in that time
 def analyze_non_participants(etap_accounts):
-  # Returns true if the account has been active for at least a year but
-  # no contributions in past 12 months
   try:
     # Build list of accounts to query gift_histories for
     account_refs = []
+    accounts_over_one_year = []
 
     for account in etap_accounts:
       # Test if Dropoff Date was at least 12 months ago
@@ -83,8 +96,7 @@ def analyze_non_participants(etap_accounts):
 
       if delta.days >= 365:
         account_refs.append(account['ref'])
-      else:
-        etap_accounts.remove(account)
+        accounts_over_one_year.append(account)
 
     r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
       "func": "get_gift_histories",
@@ -99,11 +111,10 @@ def analyze_non_participants(etap_accounts):
     gift_histories = json.loads(r.text)
 
     now = datetime.now()
-
     num_nps = 0
 
     for idx, gift_history in enumerate(gift_histories):
-      account = etap_accounts[idx]
+      account = accounts_over_one_year[idx]
 
       if len(gift_history) == 0:
         num_nps += 1
@@ -184,4 +195,3 @@ def get_next_pickups(job_id):
   except Exception, e:
     logger.error('get_next_pickups', exc_info=True)
     return str(e)
-

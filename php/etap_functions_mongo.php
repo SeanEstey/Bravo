@@ -298,84 +298,54 @@ function add_accounts($db, $nsc, $submissions) {
   for($n=0; $n<count($submissions); $n++) {
     $submission = $submissions[$n];
 
+    // Clear empty UDF fields (i.e. Office Notes may be blank)
+    foreach($submission['udf'] as $key=>$value) {
+      if(empty($value))
+        $submission['udf'] = remove_key($submission['udf'], $key);
+    }
+
+    // Modify existing eTap account
     if(!empty($submission['existing_account'])) {
-      add_to_existing_account($db, $nsc, $submission, $submission['existing_account']);
+      $status = add_to_existing_account($db, $nsc, 
+        $submission['existing_account'], 
+        $submission['udf'], 
+        $submission['persona']
+      );
+
+      if($status != 'Success')
+        $num_errors++;
       
       $result = $db->insertOne([ 
         'function' => 'add_accounts',
         'request_id' => $submission['request_id'],
         'row' => $submission['row'],
-        'status' => 'Updated'
+        'status' => $status
       ]);
+
       continue;
     }
 
-    $persona = $submission['persona_fields'];
-    $account = [
-      'nameFormat' => 1,
-      'personaType' => $persona['Persona Type'],
-      'name' => $persona['First Name'] . " " . $persona['Last Name'],
-      'sortName' => $persona['Last Name'] . ", " . $persona['First Name'],
-      'firstName' => $persona['First Name'],
-      'lastName' => $persona['Last Name'],
-      'shortSalutation' => $persona['First Name'],
-      'longSalutation' => $persona['Title'] . " " . $persona['Last Name'],
-      'envelopeSalutation' => $persona['Title'] . ' ' . $persona['First Name'] . ' ' . $persona['Last Name'],
-      'address' => $persona['Address'],
-      'city' => $persona['City'],
-      'state' => 'AB',
-      'country' => 'CA',
-      'postalCode' => $persona['Postal'],
-      'email' => $persona['Email']
-    ];
+    /******** Create new account ********/
+    
+    // Personas
+    $account = $submission['persona'];
 
-    // Optional Persona Fields
-
-    if(!empty($persona['Phone'])) {
-      $account['phones'][] = [
-        'type' => 'Voice',
-        'number' => $persona['Phone']
-      ];
-      
-      if(!empty($persona['Mobile'])) {
-        $account['phones'][] = [
-          'type' => 'Mobile',
-          'number' => $persona['Mobile']
+    // User Defined Fields
+    // Create proper DefinedValue object
+    foreach($udf as $key=>$value) {
+      if($key != 'Block' && $key != 'Neighborhood') {
+        $account['accountDefinedValues'][] = [
+          'fieldName'=>$key,
+          'value'=>$value
         ];
       }
-    }
-
-    $udf = $submission['defined_fields'];
-
-    $account["accountDefinedValues"] = [
-      ['fieldName'=>'Status', 'value'=>$udf['Status']],
-      ['fieldName'=>'Signup Date', 'value'=>$udf['Signup Date']],
-      ['fieldName'=>'Dropoff Date', 'value'=>$udf['Dropoff Date']],
-      ['fieldName'=>'Next Pickup Date', 'value'=>$udf['Next Pickup Date']],
-      ['fieldName'=>'Tax Receipt', 'value'=>$udf['Tax Receipt']],
-      ['fieldName'=>'Reason Joined', 'value'=>$udf['Reason Joined']]
-    ];
-    
-    $blocks = explode(",", $udf['Block']);
-    for($j=0; $j<count($blocks); $j++) {
-      $account['accountDefinedValues'][] = ['fieldName'=>'Block', 'value'=>$blocks[$j]];
-    }
-
-    // Optional User Defined Fields
-
-    if(!empty($udf['Office Notes']))
-      $account['accountDefinedValues'][] = ['fieldName' => 'Office Notes', 'value'=>$udf['Office Notes']];
-
-    if(!empty($udf['Driver Notes']))
-      $account['accountDefinedValues'][] = ['fieldName' => 'Driver Notes', 'value'=>$udf['Driver Notes']];
-
-    if(!empty($udf['Referrer']))
-      $account['accountDefinedValues'][] = ['fieldName'=>'Referrer', 'value'=>$udf['Referrer']];
-      
-    if(array_key_exists('Neighborhood', $udf)) {
-      $neighborhoods = explode(",", $udf['Neighborhood']);
-      for($j=0; $j<count($neighborhoods); $j++) {
-        $account['accountDefinedValues'][] = ['fieldName'=>'Neighborhood', 'value'=>$neighborhoods[$j]];
+      // Multi-value UDF like Block and Neighborhood need to each be separate array 
+      // for each comma-separated value
+      else {
+        $list = explode(",", $value);
+        for($j=0; $j<count($list); $j++) {
+          $account['accountDefinedValues'][] = ['fieldName'=>$key, 'value'=>$list[$j]];
+        }
       }
     }
 
@@ -395,53 +365,40 @@ function add_accounts($db, $nsc, $submissions) {
       'row' => $submission['row'],
       'status' => $status
     ]);
+
   }
-  
-  write_log((string)count($submissions) . ' accounts added. ' . (string)$num_errors . ' errors.');
+
+  write_log((string)count($submissions) . ' accounts added/updated. ' . (string)$num_errors . ' errors.');
 }
 
-
+// $udf is JSON dictionary ie. {"Status":"Active", ...}, not DefinedValue object
 //-----------------------------------------------------------------------
-function add_to_existing_account($db, $nsc, $account, $account_number) {
+function add_to_existing_account($db, $nsc, $account_number, $udf, $persona) {
   
-  $etap_account = $nsc->call("getAccountById", array($account_number));
+  $account = $nsc->call("getAccountById", array($account_number));
 
-  if(!$etap_account)
+  if(!$account)
     return;
 
-  remove_udf($nsc, $etap_account, $account['defined_fields']);
-  apply_udf($nsc, $etap_account, $account['defined_fields']);
-
-  // For those accounts who still have unset 'nameFormat'
-  if($etap_account['nameFormat'] === 0) {
-    $etap_account['nameFormat'] = 1;
-    $etap_account['firstName'] = $account['persona_fields']['First Name'];
-    $etap_account['lastName'] = $account['persona_fields']['Last Name'];
+  foreach($persona as $key=>$value) {
+    $account[$key] = $value;
   }
 
-  // For some reason, this field gets null'd sometimes (bug)...
-  if(!$etap_account['lastName'])
-    $etap_account['lastName'] = $account['persona_fields']['Last Name'];
+  $ref = $nsc->call("updateAccount", [$account, false]);
+
+  if(checkForError($nsc))
+    return 'Error ' . $nsc->faultcode . ': ' . $nsc->faultstring;
+
+  // Now update UDF fields 
+  remove_udf($nsc, $account, $udf);
+  apply_udf($nsc, $account, $udf);
   
-  if(!$etap_account['firstName'])
-    $etap_account['firstName'] = $account['persona_fields']['First Name'];
+  if(checkForError($nsc))
+    return 'Error ' . $nsc->faultcode . ': ' . $nsc->faultstring;
 
-  // See if we have updated Email, Phone, or Address info
-  if(array_key_exists('Email', $account['persona_fields']))
-    $etap_account['email'] = $account['persona_fields']['Email'];
+  write_log('Updated account ' . $account['firstName'] . ' ' . $account['lastName'] . ' (' . $account['id'] . ')');
 
-  if(array_key_exists('Mobile', $account['persona_fields']))
-    $etap_account['phones'][] = [
-      'type' => 'Mobile',
-      'number' => $account['persona_fields']['Mobile']
-    ];
-
-  $nsc->call("updateAccount", [$etap_account, false]);
-
-  write_log('Updated account ' . $etap_account['firstName'] . ' ' . $etap_account['lastName'] . ' (' . $etap_account['id'] . ')');
-
-
-  checkForError($nsc);
+  return 'Success';
 }
 
 
@@ -722,6 +679,16 @@ function default_value($var, $default) {
 function add_if_key_exists($dest, $key, $arr) {
   if(array_key_exists($key, $arr))
     $dest[$key] = $arr[$key];
+}
+
+function remove_key($array,$key){
+    $holding=array();
+    foreach($array as $k => $v){
+        if($key!=$k){
+            $holding[$k]=$v;
+        }
+    }    
+    return $holding;
 }
 
 

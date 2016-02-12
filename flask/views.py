@@ -352,9 +352,16 @@ def nis():
         "email_status" : "no_email" 
         }
         '''
-        
+
         logger.info('NIS!')
-        logger.info(request.form['data'])
+
+        record = request.get_json()
+
+        gift_collections.create_rfu(
+            record['imported']['to'] + ' not in service', 
+            account_number=record['imported']['account'], 
+            block=record['imported']['block']
+        )
         
         return False
 

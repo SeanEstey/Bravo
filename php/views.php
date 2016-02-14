@@ -6,9 +6,10 @@
     global $association;
     $line = '[' . date('j-M-Y g:iA') . ' ' . strtoupper($association) . ']: ' . $msg . "\n\r";
     file_put_contents('log', $line, FILE_APPEND);
+    return $msg;
   }
 
-  require('etap_functions_mongo.php');
+  require('empties.php');
   require 'vendor/autoload.php';
 
   if(!isset($_POST['data'])) {
@@ -120,6 +121,18 @@
       write_log(count($accounts) . ' accounts retrieved.');
 
       echo json_encode($accounts);
+      break;
+
+    case 'modify_account':
+      $status = modify_account($db, $nsc, $data['id'], $data['udf'], $data['persona']);
+      
+      if($status != 'Success')
+        http_response_code(400);
+      else
+        http_response_code(200);
+      
+      echo $status;
+
       break;
 
     case 'get_gift_histories':

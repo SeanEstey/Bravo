@@ -180,7 +180,7 @@ function get_upload_status($db, $request_id, $from_row) {
 
 //-----------------------------------------------------------------------
 function process_route_entry($nsc, $entry) {
-  ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
+  ini_set('max_execution_time', 30000); // IMPORTANT: To prevent fatail error timeout
 
   $etap_account = $nsc->call("getAccountById", array($entry['account_number']));
 
@@ -212,43 +212,10 @@ function process_route_entry($nsc, $entry) {
 
 
 //-----------------------------------------------------------------------
-function update_persona($account_num, $persona) {
-  $account = $nsc->call("getAccountById", array($account_num));
-
-  if(isset($persona['email']))
-    $account['email'] = $persona['email'];
-
-  if(isset($persona['voice'])) {
-    foreach($account['phones'] as $idx=>$phone) {
-      if($phone['type'] == 'Voice')
-        $account['phones'][$idx]['number'] = $persona['voice'];
-    }
-  }
-
-  if(isset($persona['mobile'])) {
-    foreach($account['phones'] as $idx=>$phone) {
-      if($phone['type'] == 'Mobile')
-        $account['phones'][$idx]['number'] = $persona['mobile'];
-    }
-  }
-
-  $nsc->call('updateAccount', [$account, false]);
-
-  if($nsc->fault || $nsc->getError())
-    if(!$nsc->fault)
-      error_log("Error: " . $nsc->getError());
-
-  error_log('Updated persona for Account ' . (string)$account_num . ': ' . $_POST['persona']);
-
-  return true;
-}
-
-
-//-----------------------------------------------------------------------
-/* $note format: {'Account': account_num, 'Note': note, 'Date': date} */
+/* $note format: {'id': account_number, 'Note': note, 'Date': date} */
 /* Returns response code 200 on success, 400 on failure */
 function add_note($nsc, $note) {
-  $account = $nsc->call("getAccountById", array($note["Account"]));
+  $account = $nsc->call("getAccountById", array($note["id"]));
   checkForError($nsc);
 
   // Define Note
@@ -266,7 +233,7 @@ function add_note($nsc, $note) {
     echo 'add_note failed: ' . $status;
   }
   else {
-    write_log('Note added for account ' . $note['Account']);
+    write_log('Note added for account ' . $note['id']);
     http_response_code(200);
     echo $status;
   }
@@ -284,7 +251,7 @@ function update_note($nsc, $data) {
     echo 'update_note failed';
   }
   else {
-    write_log('Note updated for account ' . $data['Account']);
+    write_log('Note updated for account ' . $data['id']);
     http_response_code(200);
     echo $status;
   }
@@ -306,7 +273,7 @@ function add_accounts($db, $nsc, $submissions) {
 
     // Modify existing eTap account
     if(!empty($submission['existing_account'])) {
-      $status = add_to_existing_account($db, $nsc, 
+      $status = modify_account($db, $nsc, 
         $submission['existing_account'], 
         $submission['udf'], 
         $submission['persona']
@@ -371,30 +338,39 @@ function add_accounts($db, $nsc, $submissions) {
   write_log((string)count($submissions) . ' accounts added/updated. ' . (string)$num_errors . ' errors.');
 }
 
-// $udf is JSON dictionary ie. {"Status":"Active", ...}, not DefinedValue object
+// $udf is associative array ie. ["Status"=>"Active", ...], not DefinedValue object.
+// the call to apply_udf() converts to DefinedValue format
+// $persona is associative array
 //-----------------------------------------------------------------------
-function add_to_existing_account($db, $nsc, $account_number, $udf, $persona) {
+function modify_account($db, $nsc, $id, $udf, $persona) {
   
-  $account = $nsc->call("getAccountById", array($account_number));
+  $account = $nsc->call("getAccountById", [$id]);
 
   if(!$account)
-    return;
+    return write_log('modify_account(): Id ' . (string)$id . ' does not exist');
 
   foreach($persona as $key=>$value) {
     $account[$key] = $value;
   }
 
+  // Fix accounts where nameFormat is 1 but lastName and firstName are unset (bug?)
+  if(!$account['lastName'] || !$account['firstName']) {
+    $split = explode(' ', $account['name']);
+    $account['firstName'] = $split[0];
+    $account['lastName'] = $split[count($split)-1];
+  }
+
   $ref = $nsc->call("updateAccount", [$account, false]);
 
   if(checkForError($nsc))
-    return 'Error ' . $nsc->faultcode . ': ' . $nsc->faultstring;
+    return write_log('in modify_account(): eTap API updateAccount() error: ' . $nsc->faultcode . ': ' . $nsc->faultstring);
 
   // Now update UDF fields 
   remove_udf($nsc, $account, $udf);
   apply_udf($nsc, $account, $udf);
   
   if(checkForError($nsc))
-    return 'Error ' . $nsc->faultcode . ': ' . $nsc->faultstring;
+    return write_log('in modify_account(): Error ' . $nsc->faultcode . ': ' . $nsc->faultstring);
 
   write_log('Updated account ' . $account['firstName'] . ' ' . $account['lastName'] . ' (' . $account['id'] . ')');
 

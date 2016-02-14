@@ -93,7 +93,6 @@ def send_receipts():
     else:
         entries = json.loads(request.form['data'])
         keys = json.loads(request.form['keys'])
-        url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
 
     # Start celery workers to run slow eTapestry API calls
     gift_collections.send_receipts.apply_async((entries, keys, ), queue=DB_NAME)
@@ -210,6 +209,7 @@ def send_welcome_email():
       return 'OK'
   except Exception, e:
     logger.error('/send_welcome', exc_info=True)
+    return str(e)
 
 @flask_app.route('/email/opened', methods=['POST'])
 def email_opened():

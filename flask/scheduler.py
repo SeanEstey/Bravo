@@ -90,6 +90,10 @@ def analyze_non_participants(etap_accounts):
     for account in etap_accounts:
       # Test if Dropoff Date was at least 12 months ago
       d = get_udf('Dropoff Date', account).split('/')
+
+      if len(d) < 3:
+        continue
+
       dropoff_date = datetime(int(d[2]), int(d[1]), int(d[0])) 
       now = datetime.now()
       delta = now - dropoff_date

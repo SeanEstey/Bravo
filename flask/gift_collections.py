@@ -8,18 +8,18 @@ from dateutil.parser import parse
 
 from app import flask_app, celery_app, db, logger
 from private_config import *
+from config import *
 
 @celery_app.task
 def send_receipts(entries, keys):
   try:
     # Call eTap 'get_accounts' func for all accounts
     account_numbers = []
-    url = 'http://www.bravoweb.ca/etap/etap_mongo.php'
 
     for entry in entries:
       account_numbers.append(entry['account_number'])
 
-    r = requests.post(url, data=json.dumps({
+    r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
       "func": "get_accounts",
       "keys": keys,
       "data": {
@@ -78,7 +78,7 @@ def send_receipts(entries, keys):
     for entry in entries:
       account_refs.append(entry['etap_account']['ref'])
 
-    r = requests.post(url, data=json.dumps({
+    r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
       "func": "get_gift_histories",
       "keys": keys,
       "data": {

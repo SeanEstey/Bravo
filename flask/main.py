@@ -4,7 +4,7 @@ import sys
 
 import app
 from app import flask_app, celery_app, db, logger, socketio
-from private_config import *
+from config import *
 from views import *
 
 if __name__ == "__main__":
@@ -25,5 +25,5 @@ if __name__ == "__main__":
   else:
     logger.info('Server starting using \'%s\' DB', DB_NAME)
 
-    # Start gevent server
+    # Start eventlet server (Release mode) or werkzeug server (Debug mode)
     socketio.run(flask_app, port=LOCAL_PORT)

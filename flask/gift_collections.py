@@ -7,7 +7,6 @@ from flask import request, current_app, render_template
 from dateutil.parser import parse
 
 from app import flask_app, celery_app, db, logger
-from private_config import *
 from config import *
 
 @celery_app.task
@@ -51,21 +50,29 @@ def send_receipts(entries, keys):
       
     wks.update_cells(email_status_cells)
 
+    gift_accounts = []
+    num_zero_receipts = 0
+
     # Send Zero Collection receipts 
     for entry in entries:
-      if entry['amount'] == 0 and entry['etap_account']['email']:
+      if not entry['etap_account']['email']:
+        continue
+      
+      if entry['amount'] == 0:
         r = requests.post(PUB_URL + '/send_zero_receipt', data=json.dumps({
           "account_number": entry['account_number'],
           "email": entry['etap_account']['email'],
-          "first_name": entry['etap_account']['firstName'],
-          "date": entry["date"],
+          "first_name": entry['etap_account']['name'],
+          "date": parse(entry['date']).strftime('%B %-d, %Y'),
           "address": entry["etap_account"]["address"],
           "postal": entry["etap_account"]["postalCode"],
-          "next_pickup": entry["next_pickup"],
+          "next_pickup": parse(entry['next_pickup']).strftime('%B %-d, %Y'),
           "row": entry["row"],
           "upload_status": entry["upload_status"]
         }))
-        entries.remove(entry)
+        num_zero_receipts+=1
+      else:
+          gift_accounts.append(entry)
 
     # 'entries' list should now contain only gifts
     # Call eTap 'get_gift_history' for non-zero donations
@@ -73,9 +80,9 @@ def send_receipts(entries, keys):
 
     account_refs = []
     
-    year = parse(entries[0]['date']).year
+    year = parse(gift_accounts[0]['date']).year
 
-    for entry in entries:
+    for entry in gift_accounts:
       account_refs.append(entry['etap_account']['ref'])
 
     r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
@@ -90,27 +97,34 @@ def send_receipts(entries, keys):
 
     gift_histories = json.loads(r.text)
 
-    for idx, entry in enumerate(entries):
+    num_gift_receipts = 0
+
+    for idx, entry in enumerate(gift_accounts):
+      if not entry['etap_account']['email']:
+        continue
+      
       gifts = gift_histories[idx]
 
-      if entry['etap_account']['email']:
-        for gift in gifts:
-          gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
-          gift['amount'] = '$' + str(gift['amount'])
+      for gift in gifts:
+        gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
+        gift['amount'] = '$' + str(gift['amount'])
 
-        # Send requests.post back to Flask
-        r = requests.post(PUB_URL + '/send_gift_receipt', data=json.dumps({
-            "account_number": entry['account_number'],
-            "email": entry['etap_account']['email'],
-            "first_name": entry['etap_account']['firstName'],
-            "last_date": parse(entry['date']).strftime('%B %-d, %Y'),
-            "last_amount": '$' + str(entry['amount']),
-            "gift_history": gifts,
-            "next_pickup": parse(entry['next_pickup']).strftime('%B %-d, %Y'),
-            "row": entry['row'],
-            "upload_status": entry["upload_status"]
-        }))
+      num_gift_receipts += 1
 
+      # Send requests.post back to Flask
+      r = requests.post(PUB_URL + '/send_gift_receipt', data=json.dumps({
+        "account_number": entry['account_number'],
+        "email": entry['etap_account']['email'],
+        "first_name": entry['etap_account']['name'],
+        "last_date": parse(entry['date']).strftime('%B %-d, %Y'),
+        "last_amount": '$' + str(entry['amount']),
+        "gift_history": gifts,
+        "next_pickup": parse(entry['next_pickup']).strftime('%B %-d, %Y'),
+        "row": entry['row'],
+        "upload_status": entry["upload_status"]
+      }))
+
+    logger.info(str(num_zero_receipts) + ' zero receipts sent, ' + str(num_gift_receipts) + ' gift receipts sent')
     return 'OK'
 
   except Exception, e:

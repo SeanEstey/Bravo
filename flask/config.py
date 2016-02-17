@@ -2,17 +2,22 @@ import os
 import logging
 import pymongo
 from datetime import timedelta
-from private_config import DB_NAME
+from private_config import *
 from celery.schedules import crontab
 
 # App
+DEBUG = False
+DB_NAME = 'wsf'
 LOG_LEVEL = logging.INFO
-
-# Flask
-
+LOCAL_PORT = 8000
+LOCAL_URL = 'http://localhost:8000'
+PUB_URL = 'http://bravoweb.ca'
+TITLE = 'Bravo'
 LOG_FILE = 'log'
+formatter = logging.Formatter('[%(asctime)s] %(message)s','%m-%d %H:%M')
+
+# Reminders
 FROM_NUMBER= '+17804138846'
-FROM_EMAIL= 'Empties to WINN <emptiestowinn@wsaf.ca>'
 SMS_NUMBER = '+15874104251'
 EMERGENCY_CONTACT='7808635715'
 CALLER_ID= 'Winnifred Stewart Association'
@@ -73,9 +78,10 @@ CELERYBEAT_SCHEDULE = {
 # Ports/Domains
 MONGO_URL = 'localhost'
 MONGO_PORT = 27017
+
+# Mailgun
 MAILGUN_DOMAIN = 'wsaf.ca'
+FROM_EMAIL= 'Empties to WINN <emptiestowinn@wsaf.ca>'
 
+# PHP
 ETAP_WRAPPER_URL = 'http://www.bravoweb.ca/etap/views.php'
-
-
-formatter = logging.Formatter('[%(asctime)s] %(message)s','%m-%d %H:%M')

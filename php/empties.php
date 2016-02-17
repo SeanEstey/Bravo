@@ -296,6 +296,7 @@ function add_accounts($db, $nsc, $submissions) {
     
     // Personas
     $account = $submission['persona'];
+    $udf = $submission['udf'];
 
     // User Defined Fields
     // Create proper DefinedValue object
@@ -353,11 +354,13 @@ function modify_account($db, $nsc, $id, $udf, $persona) {
     $account[$key] = $value;
   }
 
-  // Fix accounts where nameFormat is 1 but lastName and firstName are unset (bug?)
-  if(!$account['lastName'] || !$account['firstName']) {
-    $split = explode(' ', $account['name']);
-    $account['firstName'] = $split[0];
-    $account['lastName'] = $split[count($split)-1];
+  // Fix blank firstName / lastName bug in non-business accounts
+  if($account['nameFormat'] != 3)  {
+    if(!$account['lastName'] || !$account['firstName']) {
+      $split = explode(' ', $account['name']);
+      $account['firstName'] = $split[0];
+      $account['lastName'] = $split[count($split)-1];
+    }
   }
 
   $ref = $nsc->call("updateAccount", [$account, false]);
@@ -428,17 +431,23 @@ function remove_udf($nsc, $account, $udf) {
       $udf_remove[] = $account["accountDefinedValues"][$key];       
   }
 
+  if(empty($udf_remove))
+    return false;
+
   $nsc->call('removeDefinedValues', array($account["ref"], $udf_remove, false));
 
   if(checkForError($nsc))
-    echo $nsc->faultcode . ': ' . $nsc->faultstring;
+    return 'remove_udf error: ' . $nsc->faultcode . ': ' . $nsc->faultstring;
 }
 
 //-----------------------------------------------------------------------
-// $udf: array of udf_names=>values
-// $account: etap account
+// Converts associative array of defined values into DefinedValue eTap 
+// object, modifies account
+// $udf: associative array of udf_names=>values
+// $account: eTap Account object
 function apply_udf($nsc, $account, $udf) {
   $definedvalues = [];
+  
   foreach($udf as $fieldname=>$fieldvalue) {
     if(!$fieldvalue)
       continue;
@@ -463,12 +472,13 @@ function apply_udf($nsc, $account, $udf) {
     }
   }
 
+  if(empty($definedvalues))
+    return false;
+
   $nsc->call('applyDefinedValues', array($account["ref"], $definedvalues, false));
   
-  if(checkForError($nsc)) {
-    echo $nsc->faultcode . ': ' . $nsc->faultstring;
-    return $nsc->faultcode . ': ' . $nsc->faultstring;
-  }
+  if(checkForError($nsc))
+    return 'apply_udf error: ' . $nsc->faultcode . ': ' . $nsc->faultstring;
 }
 
 //-----------------------------------------------------------------------
@@ -507,19 +517,25 @@ function check_duplicates($nsc, $persona_fields) {
 function make_booking($nsc, $account_num, $udf) {
   $account = $nsc->call("getAccountById", array($account_num));
   
-  if(checkForError($nsc)) {
-    echo $nsc->faultcode . ': ' . $nsc->faultstring;
-    http_response_code(400);
-    return;
-  }
+  if(!$account)
+    return false;
 
-  // Append Driver and Office Notes to existing notes
+  $act_office_notes = '';
+
+  // Find existing Driver and Office notes and merge them with parameter values
   foreach($account['accountDefinedValues'] as $index=>$a_udf) {
     if($a_udf['fieldName'] == 'Office Notes')
-      $udf['Office Notes'] = $a_udf['value'] . '\n' . $udf['Office Notes'];
+      $act_office_notes = $a_udf['value'];
     else if($a_udf['fieldName'] == 'Driver Notes')
       $udf['Driver Notes'] = $a_udf['value'] . '\n' . $udf['Driver Notes'];
+    // If we're booking onto a natural block, just a later one, we don't want
+    // to include a ***RMV BLK*** directive
+    else if($a_udf['fieldName'] == 'Block' && $a_udf['value'] == $udf['Block']) {
+      $udf['Office Notes'] = '';
+    }
   }
+
+  $udf['Office Notes'] = $act_office_notes;
 
   apply_udf($nsc, $account, $udf);
 

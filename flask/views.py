@@ -11,7 +11,6 @@ import gift_collections
 import scheduler
 import auth
 from config import *
-from private_config import *
 import utils
 
 @flask_app.before_request
@@ -100,7 +99,7 @@ def send_receipts():
     return 'OK'
 
   except Exception, e:
-    logger.error('/send_receipts', exc_info=True)
+    logger.error('/collections/send_receipts', exc_info=True)
 
 @flask_app.route('/send_zero_receipt', methods=['POST'])
 def send_zero_receipt():
@@ -181,8 +180,6 @@ def send_welcome_email():
     if request.method == 'POST':
       args = json.loads(request.form["data"])
 
-      logger.info(request.form["data"])
-
       html = render_template(
         'email_welcome.html', 
         first_name = args['first_name'],
@@ -205,6 +202,8 @@ def send_welcome_email():
           "row": args['row'],
           'upload_status': args['upload_status']
         })
+
+        logger.info('Queued welcome letter to ' + args['to'])
 
       return 'OK'
   except Exception, e:

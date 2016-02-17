@@ -13,7 +13,7 @@ class ReverseProxied(object):
   def __call__(self, environ, start_response):
     scheme = environ.get('HTTP_X_SCHEME', '')
     script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
-    server = environ.get('HTTP_X_FORWARDED_SERVER', '') 
+    server = environ.get('HTTP_X_FORWARDED_FOR', '')
 
     if script_name:
       environ['SCRIPT_NAME'] = script_name

@@ -12,7 +12,6 @@ from werkzeug import secure_filename
 from app import celery_app, db, logger, login_manager
 import utils
 from config import *
-from private_config import *
 
 def view_main():
   if request.method == 'GET':

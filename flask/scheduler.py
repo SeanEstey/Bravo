@@ -9,8 +9,7 @@ import re
 from datetime import datetime,date, timedelta
 
 from app import celery_app, db, logger, login_manager
-from config import ETAP_WRAPPER_URL
-from private_config import *
+from config import *
 from gift_collections import create_rfu
 
 

@@ -3,6 +3,7 @@ from oauth2client.client import SignedJwtAssertionCredentials
 import gspread
 import flask
 import requests
+from datetime import datetime
 from flask import request, current_app, render_template
 from dateutil.parser import parse
 
@@ -195,3 +196,51 @@ def create_rfu(request_note, account_number=None, next_pickup=None, block=None, 
 
   logger.info('Creating RFU: ' + json.dumps([item for item in rfu if item]))
   wks.append_row(rfu)
+
+
+@celery_app.task
+def add_signup_row(signup):
+  try:
+    json_key = json.load(open('oauth_credentials.json'))
+    scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
+    credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
+    gc = gspread.authorize(credentials)
+    wks = gc.open('Route Importer').worksheet('Signups')
+
+    form_data = {
+      'Signup Date': datetime.now().strftime('%-m/%-d/%Y'),
+      'Office Notes': signup['special_requests'],
+      'Address': signup['address'],
+      'Postal Code': signup['postal'],
+      'First Name': signup['first_name'],
+      'Last Name': signup['last_name'],
+      'Primary Phone': signup['phone'],
+      'Email': signup['email'],
+      'Tax Receipt': signup['tax_receipt'],
+      'Reason Joined': signup['reason_joined'],
+      'City': signup['city'],
+      'Status': 'Dropoff',
+      'Name Format': 'Individual',
+      'Persona Type': 'Personal'
+    }
+
+    if 'title' in signup:
+      form_data['Title'] = signup['title']
+      
+    if 'referrer' in signup:
+      form_data['Referrer'] = signup['referrer']   
+
+    headers = wks.row_values(1)
+    row = []
+
+    for field in headers:
+      if form_data.has_key(field):
+        row.append(form_data[field])
+      else:
+        row.append('')
+    
+    wks.append_row(row)
+  
+  except Exception, e:
+    logger.info('add_signup_row', exc_info=True)
+    return str(e)

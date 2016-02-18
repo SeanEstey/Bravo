@@ -367,3 +367,14 @@ def nis():
     except Exception, e:
         logger.info('%s /call/nis' % request.values.items(), exc_info=True)
         return str(e)
+
+@flask_app.route('/receive_signup', methods=['POST'])
+def rec_signup():
+  try:
+      signup = request.form.to_dict()
+      logger.info('New signup received: ' + signup['first_name'] + ' ' + signup['last_name'])
+      gift_collections.add_signup_row.apply_async((request.form.to_dict(), ), queue=DB_NAME)
+      return 'OK'
+  except Exception, e:
+    logger.info('%s /receive_signup' % request.values.items(), exc_info=True)
+    return str(e)

@@ -108,14 +108,14 @@ def send_zero_receipt():
 
     html = render_template(
       'email_zero_collection.html',
-      first_name = arg['first_name'],
+      name = arg['name'],
       date = arg['date'],
       address = arg['address'],
       postal = arg['postal'],
       next_pickup = arg['next_pickup']
     )
 
-    r = utils.send_email(arg['email'], 'Your Empties to Winn Pickup', html)
+    r = utils.send_email(arg['email'], 'We missed your pickup this time around', html)
     r = json.loads(r.text)
       
     if r['message'].find('Queued') == 0:
@@ -137,6 +137,40 @@ def send_zero_receipt():
     logger.error('/send_zero_receipt', exc_info=True)
 
 
+@flask_app.route('/send_dropoff_followup', methods=['POST'])
+def send_dropoff_followup():
+  try:
+    arg = request.get_json(force=True)
+
+    html = render_template(
+      'email_dropoff_followup.html',
+      name = arg['name'],
+      date = arg['date'],
+      address = arg['address'],
+      postal = arg['postal'],
+      next_pickup = arg['next_pickup']
+    )
+
+    r = utils.send_email(arg['email'], 'Your Dropoff is Complete', html)
+    r = json.loads(r.text)
+      
+    if r['message'].find('Queued') == 0:
+      db['email_status'].insert({
+        'account_number': arg['account_number'],
+        'recipient': arg["email"], 
+        'mid': r['id'], 
+        'status':'queued' ,
+        'sheet_name': 'Route Importer',
+        'worksheet_name': 'Routes',
+        "row": arg["row"],
+        "upload_status": arg['upload_status']
+      })
+      logger.info('Queued Dropoff Followup for ' + arg["email"])
+
+    return 'OK'
+
+  except Exception, e:
+    logger.error('/send_zero_receipt', exc_info=True)
 @flask_app.route('/send_gift_receipt', methods=['POST'])
 def send_gift_receipt():
   try:
@@ -144,14 +178,14 @@ def send_gift_receipt():
 
     html = render_template(
       'email_collection_receipt.html',
-      first_name = arg['first_name'],
+      name = arg['name'],
       last_date = arg['last_date'],
       last_amount = arg['last_amount'],
       gift_history= arg['gift_history'], 
       next_pickup = arg['next_pickup']
     )
 
-    r = utils.send_email(arg['email'], 'Your Empties to Winn Donation', html)
+    r = utils.send_email(arg['email'], 'Thanks for your donation!', html)
     
     r = json.loads(r.text)
   

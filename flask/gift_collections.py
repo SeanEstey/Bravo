@@ -7,6 +7,7 @@ from datetime import datetime
 from flask import request, current_app, render_template
 from dateutil.parser import parse
 
+import scheduler
 from app import flask_app, celery_app, db, logger
 from config import *
 
@@ -53,17 +54,45 @@ def send_receipts(entries, keys):
 
     gift_accounts = []
     num_zero_receipts = 0
+    num_dropoff_followups = 0
 
-    # Send Zero Collection receipts 
+    # Send Dropoff Followups, Zero Collection, and Cancel email receipts 
     for entry in entries:
       if not entry['etap_account']['email']:
         continue
-      
+
+      status = scheduler.get_udf('Status', entry['etap_account'])
+
+      # Test for Cancel email
+      if status == 'Cancelled':
+        # TODO: send Cancel email confirmation
+        continue
+
+      # Test for Dropoff Followup email
+      d = scheduler.get_udf('Dropoff Date', entry['etap_account']).split('/')
+      if len(d) > 0:
+        drop_date = datetime(int(d[2]),int(d[1]),int(d[0]))
+        if drop_date == parse(entry['date']):
+          r = requests.post(PUB_URL + '/send_dropoff_followup', data=json.dumps({
+            "account_number": entry['account_number'],
+            "email": entry['etap_account']['email'],
+            "name": entry['etap_account']['name'],
+            "date": parse(entry['date']).strftime('%B %-d, %Y'),
+            "address": entry["etap_account"]["address"],
+            "postal": entry["etap_account"]["postalCode"],
+            "next_pickup": parse(entry['next_pickup']).strftime('%B %-d, %Y'),
+            "row": entry["row"],
+            "upload_status": entry["upload_status"]
+          }))
+          num_dropoff_followups += 1
+          continue
+
+      # Test for Zero Collection or Gift Collection email
       if entry['amount'] == 0:
         r = requests.post(PUB_URL + '/send_zero_receipt', data=json.dumps({
           "account_number": entry['account_number'],
           "email": entry['etap_account']['email'],
-          "first_name": entry['etap_account']['name'],
+          "name": entry['etap_account']['name'],
           "date": parse(entry['date']).strftime('%B %-d, %Y'),
           "address": entry["etap_account"]["address"],
           "postal": entry["etap_account"]["postalCode"],
@@ -73,6 +102,8 @@ def send_receipts(entries, keys):
         }))
         num_zero_receipts+=1
       else:
+          # Can't send these yet, don't have gift histories. Build list to query
+          # them at once for speed 
           gift_accounts.append(entry)
 
     # 'entries' list should now contain only gifts
@@ -116,7 +147,7 @@ def send_receipts(entries, keys):
       r = requests.post(PUB_URL + '/send_gift_receipt', data=json.dumps({
         "account_number": entry['account_number'],
         "email": entry['etap_account']['email'],
-        "first_name": entry['etap_account']['name'],
+        "name": entry['etap_account']['name'],
         "last_date": parse(entry['date']).strftime('%B %-d, %Y'),
         "last_amount": '$' + str(entry['amount']),
         "gift_history": gifts,
@@ -125,7 +156,7 @@ def send_receipts(entries, keys):
         "upload_status": entry["upload_status"]
       }))
 
-    logger.info(str(num_zero_receipts) + ' zero receipts sent, ' + str(num_gift_receipts) + ' gift receipts sent')
+    logger.info(str(num_zero_receipts) + ' zero receipts sent, ' + str(num_gift_receipts) + ' gift receipts sent, ' + str(num_dropoff_followups) + ' dropoff followups sent')
     return 'OK'
 
   except Exception, e:
@@ -212,17 +243,24 @@ def add_signup_row(signup):
       'Office Notes': signup['special_requests'],
       'Address': signup['address'],
       'Postal Code': signup['postal'],
-      'First Name': signup['first_name'],
-      'Last Name': signup['last_name'],
       'Primary Phone': signup['phone'],
       'Email': signup['email'],
       'Tax Receipt': signup['tax_receipt'],
       'Reason Joined': signup['reason_joined'],
       'City': signup['city'],
-      'Status': 'Dropoff',
-      'Name Format': 'Individual',
-      'Persona Type': 'Personal'
+      'Status': 'Dropoff'
     }
+
+    if signup['account_type'] == 'Residential':
+        form_data['First Name'] = signup['first_name']
+        form_data['Last Name'] = signup['last_name']
+        form_data['Name Format'] = 'Individual'
+        form_data['Persona Type'] = 'Personal'
+    elif signup['account_type'] == 'Business':
+        form_data['Business Name'] = signup['account_name']
+        form_data['Contact Person'] = signup['contact_person']
+        form_data['Name Format'] = 'Business'
+        form_data['Persona Type'] = 'Business'
 
     if 'title' in signup:
       form_data['Title'] = signup['title']

@@ -1,0 +1,23 @@
+  {% extends "email_base.html" %}
+  {% block content %}  
+    <tr>
+      <td>
+        Hi {{ name }},
+      </td>
+    </tr>
+    <tr>
+      <td>
+        You should have had your collection supplies dropped off on {{ date }}, at your address {{ address }}, {{ postal }}.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        You should be all set! Let us know if you have any questions.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Your next pickup date will be {{ next_pickup }}.
+      </td>
+    </tr>
+  {% endblock %}

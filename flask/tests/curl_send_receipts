@@ -2,7 +2,7 @@ curl -X POST -H "Content-Type: application/json" \
   -d "{\"keys\":{\"association_name\":\"wsf\",\"etap_endpoint\":\"https://sna.etapestry.com/v3messaging/service?WSDL\",\"etap_user\":\"SeanE\",\"etap_pass\":\"smarties1983\"},\
   \"data\":[\
   {\"account_number\":57516,\"date\":\"Jan 24, 2016\",\"amount\":5,\"next_pickup\":\"June 1, 2016\",\"row\":2,\"upload_status\":\"\"},\
-  {\"account_number\":57516,\"date\":\"Jan 25, 2016\",\"amount\":0,\"next_pickup\":\"June 2, 2016\",\"row\":3,\"upload_status\":\"\"},\
+  {\"account_number\":57516,\"date\":\"Jan 24, 2016\",\"amount\":0,\"next_pickup\":\"June 2, 2016\",\"row\":3,\"upload_status\":\"\"},\
   {\"account_number\":57515,\"date\":\"Jan 25, 2016\",\"amount\":0,\"next_pickup\":\"June 3, 2016\",\"row\":3,\"upload_status\":\"\"},\
   {\"account_number\":57515,\"date\":\"Jan 25, 2016\",\"amount\":16,\"next_pickup\":\"June 4, 2016\",\"row\":3,\"upload_status\":\"\"}\
   ]}" \

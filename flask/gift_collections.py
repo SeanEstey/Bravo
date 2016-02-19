@@ -71,8 +71,9 @@ def send_receipts(entries, keys):
       # Test for Dropoff Followup email
       d = scheduler.get_udf('Dropoff Date', entry['etap_account']).split('/')
       if len(d) > 0:
-        drop_date = datetime(int(d[2]),int(d[1]),int(d[0]))
-        if drop_date == parse(entry['date']):
+        drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
+        collection_date = parse(entry['date']).date() #replace(tzinfo=None)
+        if drop_date == collection_date:
           r = requests.post(PUB_URL + '/send_dropoff_followup', data=json.dumps({
             "account_number": entry['account_number'],
             "email": entry['etap_account']['email'],

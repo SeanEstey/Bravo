@@ -7,22 +7,24 @@
     </tr>
     <tr>
       <td>
-        We did not receive a collection from you on {{ date }}, at your address {{ address }}, {{ postal }}.
+        We did not receive a collection from you on <b>{{ date }}</b>, at your address <b>{{ address }}</b>, <b>{{ postal }}</b>.
       </td>
     </tr>
     <tr>
       <td>
-        If your pickup was missed, or if you have moved, please reply to this email and let us know.
+        If your pickup was missed, or if you have moved, please let us know. If you don't require a pickup, please help us
+        to be more efficient with driver resources by opting out via the email or phone reminders.
       </td>
     </tr>
     <tr>
       <td>
-        Your next pickup date will be {{ next_pickup }}.
+        You can always drop off empties via our 24-hour drop box at 11130 131 St NW.
       </td>
     </tr>
     <tr>
       <td>
-        To drop off empties, you can use the 24-hour drop box in the back alley or in front of the building at 11130 131 St NW
+        Your next pickup is scheduled for <b>{{ next_pickup }}</b>.
       </td>
     </tr>
+
   {% endblock %}

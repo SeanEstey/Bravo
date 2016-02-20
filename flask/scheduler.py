@@ -12,7 +12,6 @@ from app import celery_app, db, logger, login_manager
 from config import *
 from gift_collections import create_rfu
 
-
 # Extract User Defined Fields from eTap Account object. Allows
 # for UDF's which contain multiple fields (Block, Neighborhood)
 def get_udf(field_name, etap_account):

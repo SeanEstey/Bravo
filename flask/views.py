@@ -108,6 +108,7 @@ def send_zero_receipt():
 
     html = render_template(
       'email_zero_collection.html',
+      email = arg['email'],
       name = arg['name'],
       date = arg['date'],
       address = arg['address'],
@@ -144,6 +145,7 @@ def send_dropoff_followup():
 
     html = render_template(
       'email_dropoff_followup.html',
+      email = arg['email'],
       name = arg['name'],
       date = arg['date'],
       address = arg['address'],
@@ -178,6 +180,7 @@ def send_gift_receipt():
 
     html = render_template(
       'email_collection_receipt.html',
+      email = arg['email'],
       name = arg['name'],
       last_date = arg['last_date'],
       last_amount = arg['last_amount'],
@@ -265,11 +268,25 @@ def email_opened():
     return str(e)
 
 
-@flask_app.route('/email/unsubscribe', methods=['POST'])
+@flask_app.route('/email/unsubscribe', methods=['GET'])
 def email_unsubscribe():
   try:
-      gift_collections.create_rfu(request.form['recipient'] + ' requested unsubscribe')
-      return 'OK'
+      if request.args.get('email'):
+          msg = 'Contributor ' + request.args['email'] + ' has requested to unsubscribe \
+                from Empties to Winn emails. Please contact to see if they want to cancel \
+                the entire service.'
+          
+          utils.send_email(
+            ['emptiestowinn@wsaf.ca'], 
+            'Unsubscribe request', 
+            msg
+          )
+
+          return 'We have received your request to unsubscribe ' + request.args['email'] + ' \
+                  from Empties to Winn. If you wish to cancel the service, please allow us \
+                  to contact you once more to arrange for retrieval of the Bag Buddy or other \
+                  collection materials provided to you. As a non-profit, this allows us to \
+                  spread out our costs.'
 
   except Exception, e:
     logger.info('%s /email/unsubscribe' % request.values.items(), exc_info=True)

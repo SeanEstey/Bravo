@@ -2,12 +2,12 @@
   {% block content %}  
     <tr>
       <td>
-        Hi {{ name }},
+        Hi {{ args.name }},
       </td>
     </tr>
     <tr>
       <td>
-        We did not receive a collection from you on <b>{{ date }}</b>, at your address <b>{{ address }}</b>, <b>{{ postal }}</b>.
+        We did not receive a collection from you on <b>{{ args.date }}</b>, at your address <b>{{ args.address }}</b>, <b>{{ args.postal }}</b>.
       </td>
     </tr>
     <tr>
@@ -23,7 +23,9 @@
     </tr>
     <tr>
       <td>
-        Your next pickup is scheduled for <b>{{ next_pickup }}</b>.
+        {% if args.next_pickup %}
+        Your next pickup is scheduled for <b>{{ args.next_pickup }}</b>.
+        {% endif %}
       </td>
     </tr>
 

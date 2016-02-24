@@ -74,33 +74,44 @@ def send_receipts(entries, keys):
         drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
         collection_date = parse(entry['date']).date() #replace(tzinfo=None)
         if drop_date == collection_date:
-          r = requests.post(PUB_URL + '/send_dropoff_followup', data=json.dumps({
+          args = {
             "account_number": entry['account_number'],
             "email": entry['etap_account']['email'],
             "name": entry['etap_account']['name'],
             "date": parse(entry['date']).strftime('%B %-d, %Y'),
             "address": entry["etap_account"]["address"],
             "postal": entry["etap_account"]["postalCode"],
-            "next_pickup": parse(entry['next_pickup']).strftime('%B %-d, %Y'),
             "row": entry["row"],
             "upload_status": entry["upload_status"]
-          }))
+          }
+
+          if entry['next_pickup']:
+            args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
+
+          r = requests.post(PUB_URL + '/send_dropoff_followup', data=json.dumps(args))
+
           num_dropoff_followups += 1
+          
           continue
 
       # Test for Zero Collection or Gift Collection email
       if entry['amount'] == 0:
-        r = requests.post(PUB_URL + '/send_zero_receipt', data=json.dumps({
+        args = {
           "account_number": entry['account_number'],
           "email": entry['etap_account']['email'],
           "name": entry['etap_account']['name'],
           "date": parse(entry['date']).strftime('%B %-d, %Y'),
           "address": entry["etap_account"]["address"],
           "postal": entry["etap_account"]["postalCode"],
-          "next_pickup": parse(entry['next_pickup']).strftime('%B %-d, %Y'),
           "row": entry["row"],
           "upload_status": entry["upload_status"]
-        }))
+        }
+
+        if entry['next_pickup']:
+          args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
+
+        r = requests.post(PUB_URL + '/send_zero_receipt', data=json.dumps(args))
+
         num_zero_receipts+=1
       else:
           # Can't send these yet, don't have gift histories. Build list to query
@@ -144,18 +155,22 @@ def send_receipts(entries, keys):
 
       num_gift_receipts += 1
 
-      # Send requests.post back to Flask
-      r = requests.post(PUB_URL + '/send_gift_receipt', data=json.dumps({
+      args = {
         "account_number": entry['account_number'],
         "email": entry['etap_account']['email'],
         "name": entry['etap_account']['name'],
         "last_date": parse(entry['date']).strftime('%B %-d, %Y'),
         "last_amount": '$' + str(entry['amount']),
         "gift_history": gifts,
-        "next_pickup": parse(entry['next_pickup']).strftime('%B %-d, %Y'),
         "row": entry['row'],
         "upload_status": entry["upload_status"]
-      }))
+      }
+
+      if entry['next_pickup']:
+        args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
+
+      # Send requests.post back to Flask
+      r = requests.post(PUB_URL + '/send_gift_receipt', data=json.dumps(args))
 
     logger.info(str(num_zero_receipts) + ' zero receipts sent, ' + str(num_gift_receipts) + ' gift receipts sent, ' + str(num_dropoff_followups) + ' dropoff followups sent')
     return 'OK'

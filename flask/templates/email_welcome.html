@@ -1,14 +1,14 @@
   {% extends "email_base.html" %}
   {% block content %}  
     <div style='font-size:12pt; margin: 1.0em 0.5em'>
-      <p>Hi {{ first_name }}, </p>
+      <p>Hi {{ args.first_name }}, </p>
       <p>Thanks for signing up with Empties to Winn.</p>
     </div>
     <div style='font-size:12pt; margin: 1.0em 0.5em'>
-      Dropoff Date: {{ dropoff_date }} 
+      Dropoff Date: {{ args.dropoff_date }} 
     </div>
     <div style='font-size:12pt; margin: 1.0em 0.5em'>
-      Address: {{ address }}, {{ postal }}
+      Address: {{ args.address }}, {{ args.postal }}
     </div>
     <div style='font-size:12pt; margin: 1.0em 0.5em'>
       Please let us know if the address above is incorrect.

@@ -104,33 +104,25 @@ def send_receipts():
 @flask_app.route('/send_zero_receipt', methods=['POST'])
 def send_zero_receipt():
   try:
-    arg = request.get_json(force=True)
+    args = request.get_json(force=True)
 
-    html = render_template(
-      'email_zero_collection.html',
-      email = arg['email'],
-      name = arg['name'],
-      date = arg['date'],
-      address = arg['address'],
-      postal = arg['postal'],
-      next_pickup = arg['next_pickup']
-    )
+    html = render_template('email_zero_collection.html', args=args)
 
-    r = utils.send_email(arg['email'], 'We missed your pickup this time around', html)
+    r = utils.send_email(args['email'], 'We missed your pickup this time around', html)
     r = json.loads(r.text)
       
     if r['message'].find('Queued') == 0:
       db['email_status'].insert({
-        'account_number': arg['account_number'],
-        'recipient': arg["email"], 
+        'account_number': args['account_number'],
+        'recipient': args["email"], 
         'mid': r['id'], 
         'status':'queued' ,
         'sheet_name': 'Route Importer',
         'worksheet_name': 'Routes',
-        "row": arg["row"],
-        "upload_status": arg['upload_status']
+        "row": args["row"],
+        "upload_status": args['upload_status']
       })
-      logger.info('Queued Zero Collection for ' + arg["email"])
+      logger.info('Queued Zero Collection for ' + args["email"])
 
     return 'OK'
 
@@ -141,70 +133,55 @@ def send_zero_receipt():
 @flask_app.route('/send_dropoff_followup', methods=['POST'])
 def send_dropoff_followup():
   try:
-    arg = request.get_json(force=True)
+    args = request.get_json(force=True)
 
-    html = render_template(
-      'email_dropoff_followup.html',
-      email = arg['email'],
-      name = arg['name'],
-      date = arg['date'],
-      address = arg['address'],
-      postal = arg['postal'],
-      next_pickup = arg['next_pickup']
-    )
+    html = render_template('email_dropoff_followup.html', args=args)
 
-    r = utils.send_email(arg['email'], 'Your Dropoff is Complete', html)
+    r = utils.send_email(args['email'], 'Your Dropoff is Complete', html)
     r = json.loads(r.text)
       
     if r['message'].find('Queued') == 0:
       db['email_status'].insert({
-        'account_number': arg['account_number'],
-        'recipient': arg["email"], 
+        'account_number': args['account_number'],
+        'recipient': args["email"], 
         'mid': r['id'], 
         'status':'queued' ,
         'sheet_name': 'Route Importer',
         'worksheet_name': 'Routes',
-        "row": arg["row"],
-        "upload_status": arg['upload_status']
+        "row": args["row"],
+        "upload_status": args['upload_status']
       })
-      logger.info('Queued Dropoff Followup for ' + arg["email"])
+      logger.info('Queued Dropoff Followup for ' + args["email"])
 
     return 'OK'
 
   except Exception, e:
     logger.error('/send_zero_receipt', exc_info=True)
+
 @flask_app.route('/send_gift_receipt', methods=['POST'])
 def send_gift_receipt():
   try:
-    arg = request.get_json(force=True)
+    args = request.get_json(force=True)
 
-    html = render_template(
-      'email_collection_receipt.html',
-      email = arg['email'],
-      name = arg['name'],
-      last_date = arg['last_date'],
-      last_amount = arg['last_amount'],
-      gift_history= arg['gift_history'], 
-      next_pickup = arg['next_pickup']
-    )
+    html = render_template('email_collection_receipt.html', args=args)
 
-    r = utils.send_email(arg['email'], 'Thanks for your donation!', html)
+    r = utils.send_email(args['email'], 'Thanks for your donation!', html)
     
     r = json.loads(r.text)
   
     if r['message'].find('Queued') == 0:
       db['email_status'].insert({
-        'account_number': arg['account_number'],
-        'recipient': arg['email'], 
+        'account_number': args['account_number'],
+        'recipient': args['email'], 
         'mid': r['id'], 
         'status':'queued' ,
         'sheet_name': 'Route Importer',
         'worksheet_name': 'Routes',
-        "row": arg["row"],
-        'upload_status': arg['upload_status']
+        "row": args["row"],
+        'upload_status': args['upload_status']
       })
       #logger.info('inserted record for mid: ' + r['id'])
-      logger.info('Queued Collection Receipt for ' + arg['email'])
+      logger.info('Queued Collection Receipt for ' + args['email'])
 
       return 'OK'
 
@@ -217,14 +194,8 @@ def send_welcome_email():
     if request.method == 'POST':
       args = json.loads(request.form["data"])
 
-      html = render_template(
-        'email_welcome.html', 
-        first_name = args['first_name'],
-        dropoff_date = args["dropoff_date"],
-        address = args['address'],
-        postal = args['postal']
-      )
-     
+      html = render_template('email_welcome.html', args=args)
+
       r = utils.send_email([args['to']], 'Welcome to Empties to Winn', html) 
           
       r = json.loads(r.text)

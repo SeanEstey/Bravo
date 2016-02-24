@@ -102,8 +102,10 @@
     case 'get_account':
       $account = get_account($nsc, $data['account_number']);
       
-      if(empty($account))
+      if(empty($account)) {
+        http_response_code(400);
         echo json_encode('No matching account for ' . $data['account_number']);
+      }
       else
         echo json_encode($account);
 
@@ -177,7 +179,7 @@
       break;
 
     case 'make_booking':
-      make_booking($nsc, $data['account_num'], $data['udf']);
+      make_booking($nsc, $data['account_num'], $data['udf'], $data['type']);
       break;
 
     case 'get_query_accounts':

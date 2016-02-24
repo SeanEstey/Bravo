@@ -47,14 +47,10 @@ function formatDateAsDateTimeString($dateStr) {
 //-----------------------------------------------------------------------
 function get_account($nsc, $account_number) {
   $account = $nsc->call("getAccountById", array($account_number));
-  
-  if(checkForError($nsc)) {
-    echo $nsc->faultcode . ': ' . $nsc->faultstring;
-    http_response_code(400);
-    return false;
-  }
 
-  http_response_code(200);
+  if(!$account)
+    return false;
+
   return $account;
 }
 
@@ -514,20 +510,26 @@ function check_duplicates($nsc, $persona_fields) {
 }
 
 //-----------------------------------------------------------------------
-function make_booking($nsc, $account_num, $udf) {
+// Type: either 'pickup' or 'delivery'
+function make_booking($nsc, $account_num, $udf, $type) {
   $account = $nsc->call("getAccountById", array($account_num));
   
   if(!$account)
     return false;
 
-  $act_office_notes = '';
+  $has_status = false;
+  $status = '';
 
   // Find existing Driver and Office notes and merge them with parameter values
   foreach($account['accountDefinedValues'] as $index=>$a_udf) {
-    if($a_udf['fieldName'] == 'Office Notes')
-      $act_office_notes = $a_udf['value'];
+    if($a_udf['fieldName'] == 'Status') {
+      $has_status = true;
+      $status = $a_udf['value'];
+    }
+    else if($a_udf['fieldName'] == 'Office Notes')
+      $udf['Office Notes'] = $a_udf['value'] . '\\n' . $udf['Office Notes'];
     else if($a_udf['fieldName'] == 'Driver Notes')
-      $udf['Driver Notes'] = $a_udf['value'] . '\n' . $udf['Driver Notes'];
+      $udf['Driver Notes'] = $udf['Driver Notes'] . '\\n' . $a_udf['value'];
     // If we're booking onto a natural block, just a later one, we don't want
     // to include a ***RMV BLK*** directive
     else if($a_udf['fieldName'] == 'Block' && $a_udf['value'] == $udf['Block']) {
@@ -535,7 +537,10 @@ function make_booking($nsc, $account_num, $udf) {
     }
   }
 
-  $udf['Office Notes'] = $act_office_notes;
+  if(!$has_status && $type == 'delivery') {
+    if($status != 'Active' || $status != 'Dropoff' || $status != 'Cancelling')
+      $udf['Status'] = 'Green Goods Delivery';
+  }
 
   apply_udf($nsc, $account, $udf);
 

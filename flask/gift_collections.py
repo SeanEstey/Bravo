@@ -83,13 +83,14 @@ def send_receipts(entries, keys):
             "address": entry["etap_account"]["address"],
             "postal": entry["etap_account"]["postalCode"],
             "row": entry["row"],
-            "upload_status": entry["upload_status"]
+            "upload_status": entry["upload_status"],
+            "template": "email_dropoff_followup.html"
           }
 
           if entry['next_pickup']:
             args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
-          r = requests.post(PUB_URL + '/send_dropoff_followup', data=json.dumps(args))
+          r = requests.post(PUB_URL + '/collections/send_receipt', data=json.dumps(args))
 
           num_dropoff_followups += 1
           
@@ -105,13 +106,14 @@ def send_receipts(entries, keys):
           "address": entry["etap_account"]["address"],
           "postal": entry["etap_account"]["postalCode"],
           "row": entry["row"],
-          "upload_status": entry["upload_status"]
+          "upload_status": entry["upload_status"],
+          "template": "email_zero_collection.html"
         }
 
         if entry['next_pickup']:
           args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
-        r = requests.post(PUB_URL + '/send_zero_receipt', data=json.dumps(args))
+        r = requests.post(PUB_URL + '/collections/send_receipt', data=json.dumps(args))
 
         num_zero_receipts+=1
       else:
@@ -164,14 +166,15 @@ def send_receipts(entries, keys):
         "last_amount": '$' + str(entry['amount']),
         "gift_history": gifts,
         "row": entry['row'],
-        "upload_status": entry["upload_status"]
+        "upload_status": entry["upload_status"],
+        "template": "email_collection_receipt.html"
       }
 
       if entry['next_pickup']:
         args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
       # Send requests.post back to Flask
-      r = requests.post(PUB_URL + '/send_gift_receipt', data=json.dumps(args))
+      r = requests.post(PUB_URL + '/collections/send_receipt', data=json.dumps(args))
 
     logger.info(str(num_zero_receipts) + ' zero receipts sent, ' + str(num_gift_receipts) + ' gift receipts sent, ' + str(num_dropoff_followups) + ' dropoff followups sent')
     return 'OK'

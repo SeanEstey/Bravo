@@ -69,8 +69,9 @@ def send_receipts(entries, keys):
         continue
 
       # Test for Dropoff Followup email
-      d = scheduler.get_udf('Dropoff Date', entry['etap_account']).split('/')
-      if len(d) > 0:
+      drop_date = scheduler.get_udf('Dropoff Date', entry['etap_account'])
+      if drop_date:
+        d = drop_date.split('/')
         drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
         collection_date = parse(entry['date']).date() #replace(tzinfo=None)
         if drop_date == collection_date:

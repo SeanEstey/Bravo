@@ -9,7 +9,7 @@ from dateutil.parser import parse
 import werkzeug
 from werkzeug import secure_filename
 
-from app import celery_app, db, logger, login_manager
+from app import celery_app, db, logger, login_manager, socketio
 import utils
 from config import *
 
@@ -543,7 +543,7 @@ def record_audio():
           'call_status': request.args.get('CallStatus')
         }
         db['bravo'].update({'sid': request.args.get('CallSid')}, {'$set': recording_info})
-        send_socket('record_audio', recording_info)
+        socketio.emit('record_audio', recording_info)
         response = twilio.twiml.Response()
         response.say('Message recorded', voice='alice')
         
@@ -552,3 +552,68 @@ def record_audio():
       logger.info('recordaudio: no digits')
 
     return 'OK'
+
+
+
+def job_db_dump(job_id):
+  if isinstance(job_id, str):
+    job_id = ObjectId(job_id)
+  job = db['reminder_jobs'].find_one({'_id':job_id})
+  if 'ended_at' in job:
+    time_elapsed = (job['ended_at'] - job['started_at']).total_seconds()
+  else:
+    time_elapsed = ''
+  summary = {
+    "totals": {
+      "completed": {
+        'answered': db['reminder_msgs'].find({'job_id':job_id, 'answered_by':'human'}).count(),
+        'voicemail': db['reminder_msgs'].find({'job_id':job_id, 'answered_by':'machine'}).count()
+      },
+      "no-answer" : db['reminder_msgs'].find({'job_id':job_id, 'call_status':'no-answer'}).count(),
+      "busy": db['reminder_msgs'].find({'job_id':job_id, 'call_status':'busy'}).count(),
+      "failed" : db['reminder_msgs'].find({'job_id':job_id, 'call_status':'failed'}).count(),
+      "time_elapsed": time_elapsed
+    },
+    "calls": list(db['reminder_msgs'].find({'job_id':job_id},{'ended_at':0, 'job_id':0}))
+  }
+  return summary
+
+def call_db_doc(job, idx, buf_row, errors):
+  template = TEMPLATE[job['template']]
+  
+  msg = {
+    'job_id': job['_id'],
+    'attempts': 0,
+    'imported': {}
+  }
+
+  if job['template'] == 'etw_reminder':
+    msg['next_pickup'] = ''
+
+  # Translate column names to mongodb names ('Phone'->'to', etc)
+  #logger.info(str(buf_row))
+
+  for col in range(0, len(template)):
+    if 'status_field' in template[col]:
+      msg[template[col]['status_field']] = 'pending'
+
+    field = template[col]['field']
+    if field != 'event_date':
+      msg['imported'][field] = buf_row[col]
+    else:
+      if buf_row[col] == '':
+        errors.append('Row '+str(idx+1)+ ': ' + str(buf_row) + ' <b>Missing Date</b><br>')
+        return False
+      try:
+        event_dt_str = parse(buf_row[col])
+        msg['imported'][field] = event_dt_str
+      except TypeError as e:
+        errors.append('Row '+str(idx+1)+ ': ' + str(buf_row) + ' <b>Invalid Date</b><br>')
+        return False 
+
+  msg['imported']['to'] = reminders.strip_phone(msg['imported']['to'])
+  return msg
+
+def allowed_file(filename):
+  return '.' in filename and \
+     filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS

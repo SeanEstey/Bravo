@@ -120,6 +120,7 @@ function showDialog($element, msg, _title, _buttons) {
 
 // login view
 function initLoginView() {
+  console.log('Root url: ' + $SCRIPT_ROOT);
   $('#app_menu').hide();
 
   $('#submit_btn').click(function(event){

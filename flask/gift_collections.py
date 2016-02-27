@@ -11,6 +11,12 @@ import scheduler
 from app import flask_app, celery_app, db, logger
 from config import *
 
+ZERO_COLLECTION_EMAIL_SUBJECT = 'We missed your pickup this time around'
+DROPOFF_FOLLOWUP_EMAIL_SUBJECT = 'Your Dropoff is Complete'
+GIFT_RECEIPT_EMAIL_SUBJECT = 'Thanks for your donation!'
+WELCOME_EMAIL_SUBJECT = 'Welcome to Empties to Winn'
+CANCELLED_EMAIL_SUBJECT = 'You've been removed from the collection schedule'
+
 @celery_app.task
 def process_receipts(entries, keys):
   try:
@@ -84,13 +90,14 @@ def process_receipts(entries, keys):
             "postal": entry["etap_account"]["postalCode"],
             "row": entry["row"],
             "upload_status": entry["upload_status"],
-            "template": "email_dropoff_followup.html"
+            "template": "email_dropoff_followup.html",
+            "subject": DROPOFF_FOLLOWUP_EMAIL_SUBJECT
           }
 
           if entry['next_pickup']:
             args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
-          r = requests.post(PUB_URL + '/collections/send_receipt', data=json.dumps(args))
+          r = requests.post(PUB_URL + '/send_email', data=json.dumps(args))
 
           num_dropoff_followups += 1
           
@@ -107,13 +114,14 @@ def process_receipts(entries, keys):
           "postal": entry["etap_account"]["postalCode"],
           "row": entry["row"],
           "upload_status": entry["upload_status"],
-          "template": "email_zero_collection.html"
+          "template": "email_zero_collection.html",
+          "subject": ZERO_COLLECTION_EMAIL_SUBJECT
         }
 
         if entry['next_pickup']:
           args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
-        r = requests.post(PUB_URL + '/collections/send_receipt', data=json.dumps(args))
+        r = requests.post(PUB_URL + '/send_email', data=json.dumps(args))
 
         num_zero_receipts+=1
       else:
@@ -167,14 +175,15 @@ def process_receipts(entries, keys):
         "gift_history": gifts,
         "row": entry['row'],
         "upload_status": entry["upload_status"],
-        "template": "email_collection_receipt.html"
+        "template": "email_collection_receipt.html",
+        "subject": GIFT_RECEIPT_EMAIL_SUBJECT
       }
 
       if entry['next_pickup']:
         args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
       # Send requests.post back to Flask
-      r = requests.post(PUB_URL + '/collections/send_receipt', data=json.dumps(args))
+      r = requests.post(PUB_URL + '/send_email', data=json.dumps(args))
 
     logger.info(str(num_zero_receipts) + ' zero receipts sent, ' + str(num_gift_receipts) + ' gift receipts sent, ' + str(num_dropoff_followups) + ' dropoff followups sent')
     return 'OK'

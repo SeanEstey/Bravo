@@ -12,7 +12,7 @@ from app import flask_app, celery_app, db, logger
 from config import *
 
 @celery_app.task
-def send_receipts(entries, keys):
+def process_receipts(entries, keys):
   try:
     # Call eTap 'get_accounts' func for all accounts
     account_numbers = []

@@ -99,7 +99,7 @@ def process_receipts(entries, keys):
           if entry['next_pickup']:
             args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
-          r = requests.post(PUB_URL + '/send_email', data=json.dumps(args))
+          r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
 
           num_dropoff_followups += 1
           
@@ -125,7 +125,7 @@ def process_receipts(entries, keys):
         if entry['next_pickup']:
           args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
-        r = requests.post(PUB_URL + '/send_email', data=json.dumps(args))
+        r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
 
         num_zero_receipts+=1
       else:
@@ -189,7 +189,7 @@ def process_receipts(entries, keys):
         args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
       # Send requests.post back to Flask
-      r = requests.post(PUB_URL + '/send_email', data=json.dumps(args))
+      r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
 
     logger.info(str(num_zero_receipts) + ' zero receipts sent, ' + str(num_gift_receipts) + ' gift receipts sent, ' + str(num_dropoff_followups) + ' dropoff followups sent')
     return 'OK'

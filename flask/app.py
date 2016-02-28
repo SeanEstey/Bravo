@@ -52,7 +52,7 @@ flask_app.app_context().push()
 
 from scheduler import get_next_pickups, find_nps_in_schedule
 from reminders import check_jobs, execute_job, monitor_job, set_no_pickup
-from gift_collections import send_receipts
+from gsheets import process_receipts
 
 
 

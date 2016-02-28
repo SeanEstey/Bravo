@@ -7,7 +7,7 @@ from flask.ext.login import login_user, logout_user, current_user, login_require
 
 from app import flask_app, db, logger, login_manager, socketio
 import reminders
-import gift_collections
+import gsheets
 import scheduler
 import auth
 from config import *
@@ -209,7 +209,7 @@ def process_receipts():
         keys = json.loads(request.form['keys'])
 
     # Start celery workers to run slow eTapestry API calls
-    gift_collections.process_receipts.apply_async((entries, keys, ), queue=DB_NAME)
+    gsheets.process_receipts.apply_async((entries, keys, ), queue=DB_NAME)
 
     return 'OK'
 
@@ -217,7 +217,7 @@ def process_receipts():
     logger.error('/collections/process_receipts', exc_info=True)
 
 
-# Can be collection receipt from gift_collections.process_receipts, reminder email, or welcome letter from Google Sheets.
+# Can be collection receipt from gsheets.process_receipts, reminder email, or welcome letter from Google Sheets.
 # Required fields: 'recipient', 'template', 'subject'
 # Required fields for updating Google Sheets: 'sheet_name', 'worksheet_name', 'row', 'upload_status'
 @flask_app.route('/email/send', methods=['POST'])
@@ -296,7 +296,7 @@ def email_unsubscribe():
 @flask_app.route('/email/spam_complaint', methods=['POST'])
 def email_spam_complaint():
   try:
-      gift_collections.create_rfu(request.form['recipient'] + ': received spam complaint')
+      gsheets.create_rfu(request.form['recipient'] + ': received spam complaint')
       return 'OK'
 
   except Exception, e:
@@ -332,7 +332,7 @@ def email_status():
 
     # Did email originate from Google Sheet?
     if 'sheet_name' in db_record:
-      gift_collections.update_entry(db_record)
+      gsheets.update_entry(db_record)
       
     return 'OK'
 
@@ -407,7 +407,7 @@ def nis():
 
         record = request.get_json()
 
-        gift_collections.create_rfu(
+        gsheets.create_rfu(
             record['imported']['to'] + ' not in service', 
             account_number=record['imported']['account'], 
             block=record['imported']['block']
@@ -424,7 +424,7 @@ def rec_signup():
   try:
       signup = request.form.to_dict()
       logger.info('New signup received: ' + signup['first_name'] + ' ' + signup['last_name'])
-      gift_collections.add_signup_row.apply_async((request.form.to_dict(), ), queue=DB_NAME)
+      gsheets.add_signup_row.apply_async((request.form.to_dict(), ), queue=DB_NAME)
       return 'OK'
   except Exception, e:
     logger.info('%s /receive_signup' % request.values.items(), exc_info=True)

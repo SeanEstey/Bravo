@@ -8,6 +8,7 @@ from flask import request, current_app, render_template
 from dateutil.parser import parse
 
 import scheduler
+import etap
 from app import flask_app, celery_app, db, logger
 from config import *
 
@@ -25,16 +26,10 @@ CANCELLED_EMAIL_SUBJECT = 'You have been removed from the collection schedule'
 def process_receipts(entries, keys):
   try:
     # Get all eTapestry account data
-    accounts = json.loads(
-      requests.post(ETAP_WRAPPER_URL, data=json.dumps({
-        "func": "get_accounts",
-        "keys": keys,
-        "data": {
-          "account_numbers": [i['account_number'] for i in entries]
-        }
-      })).text
-    )
-
+    accounts = etap.call('get_accounts', keys, {
+      "account_numbers": [i['account_number'] for i in entries]
+    })
+    
     # Update 'Email Status' with either 'queued' or 'no email' so user knows process is running 
     
     json_key = json.load(open('oauth_credentials.json'))
@@ -94,13 +89,16 @@ def process_receipts(entries, keys):
 
       # Test for Dropoff Followup email
       drop_date = scheduler.get_udf('Dropoff Date', entry['etap_account'])
+      
       if drop_date:
         d = drop_date.split('/')
         drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
         collection_date = parse(entry['date']).date() #replace(tzinfo=None)
+        
         if drop_date == collection_date:
           args["template"] = "email_dropoff_followup.html"
           args["subject"] = DROPOFF_FOLLOWUP_EMAIL_SUBJECT
+          
           if entry['next_pickup']:
             args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
@@ -130,18 +128,12 @@ def process_receipts(entries, keys):
 
     year = parse(gift_accounts[0]['date']).year
 
-    gift_histories = json.loads(
-      requests.post(ETAP_WRAPPER_URL, data=json.dumps({
-        "func": "get_gift_histories",
-        "keys": keys,
-        "data": {
-          "account_refs": [i['etap_account']['ref'] for i in gift_accounts],
-          "start_date": "01/01/" + str(year),
-          "end_date": "31/12/" + str(year)
-        }
-      })).text
-    )
-
+    gift_histories = etap.call('get_gift_histories', keys, {
+      "account_refs": [i['etap_account']['ref'] for i in gift_accounts],
+      "start_date": "01/01/" + str(year),
+      "end_date": "31/12/" + str(year)
+    })
+    
     num_gift_receipts = 0
 
     for idx, entry in enumerate(gift_accounts):

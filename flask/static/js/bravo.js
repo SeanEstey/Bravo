@@ -68,7 +68,7 @@ function useJQueryBtn() {
 function getServerStatus(variable) {
   var request =  $.ajax({
       type: 'GET',
-      url: $SCRIPT_ROOT + '/get/' + variable
+      url: $URL_ROOT + 'get/' + variable
     });
 
   request.done(function(msg){
@@ -79,7 +79,7 @@ function getServerStatus(variable) {
 function displayServerStatus(route, label, $element) {
   var request =  $.ajax({
       type: 'GET',
-      url: $SCRIPT_ROOT + route
+      url: $URL_ROOT + route
     });
 
   request.done(function(msg){
@@ -120,7 +120,7 @@ function showDialog($element, msg, _title, _buttons) {
 
 // login view
 function initLoginView() {
-  console.log('Root url: ' + $SCRIPT_ROOT);
+  console.log('Root url: ' + $URL_ROOT);
   $('#app_menu').hide();
 
   $('#submit_btn').click(function(event){
@@ -130,7 +130,7 @@ function initLoginView() {
     var form_data = new FormData($('#myform')[0]);
     var request = $.ajax({
       type: 'POST',
-      url: $SCRIPT_ROOT + '/login',
+      url: $URL_ROOT + 'login',
       data: form_data,
       contentType: false,
       processData: false,
@@ -143,9 +143,7 @@ function initLoginView() {
         response = JSON.parse(response);
       if(response['status'] == 'success') {
         console.log('login success');
-        //localStorage.setItem('username', $('[name="username"]').val());
-        //localStorage.setItem('password', $('[name="password"]').val());
-        location.href = $SCRIPT_ROOT;
+        location.href = $URL_ROOT;
       }
       else if(response['status'] == 'error') {
         $('.modal-title').text(response['title']);
@@ -246,7 +244,7 @@ function initNewJobView() {
     var phone = $('#phone-num').val();
     var request =  $.ajax({
       type: 'POST',
-      url: $SCRIPT_ROOT + '/recordaudio',
+      url: $URL_ROOT + 'recordaudio',
       data: {'to':phone}
     });
     
@@ -368,7 +366,7 @@ function updateFilePickerTooltip() {
   var $template = $select.find($('option:selected'));
   var request = $.ajax({
     type: 'GET',
-    url: $SCRIPT_ROOT + '/get_job_template/' + $template.attr('value')
+    url: $URL_ROOT + 'get_job_template/' + $template.attr('value')
   });
   request.done(function(msg){
     var title = 'Upload a .CSV file with columns ';
@@ -494,7 +492,7 @@ function validateNewJobForm() {
     var form_data = new FormData($('#myform')[0]);
     var request = $.ajax({
       type: 'POST',
-      url: $SCRIPT_ROOT + '/submit',
+      url: $URL_ROOT + 'submit',
       data: form_data,
       contentType: false,
       processData: false,
@@ -688,7 +686,7 @@ function initShowCallsView() {
         var $tr = $(this).parent().parent();
         var request =  $.ajax({
           type: 'POST',
-          url: $SCRIPT_ROOT + '/cancel/call',
+          url: $URL_ROOT + 'cancel/call',
           data: {
             'call_uuid':call_uuid,
             'job_uuid':job_uuid
@@ -763,7 +761,7 @@ function initShowCallsView() {
     var args =  window.location.pathname.split('/');
     var job_uuid = args.slice(-1)[0];
     $('#execute-job').click(function() {
-      var url = $SCRIPT_ROOT + '/request/execute/' + job_uuid;
+      var url = $URL_ROOT + 'request/execute/' + job_uuid;
       console.log('execute_job url: ' + url);
       var request =  $.ajax({
         type: 'GET',
@@ -771,7 +769,7 @@ function initShowCallsView() {
       });
     });
     $('#email-job').click(function() {
-      var url = $SCRIPT_ROOT + '/request/email/' + job_uuid;
+      var url = $URL_ROOT + 'request/email/' + job_uuid;
       var request =  $.ajax({
         type: 'GET',
         url: url
@@ -780,11 +778,11 @@ function initShowCallsView() {
     $('#reset-job').click(function() {
       var request =  $.ajax({
         type: 'GET',
-        url: $SCRIPT_ROOT + '/reset/' + job_uuid
+        url: $URL_ROOT + 'reset/' + job_uuid
       });
     });
     $('#dump').click(function() {
-      window.location.assign($SCRIPT_ROOT + '/summarize/' + String(job_uuid));
+      window.location.assign($URL_ROOT + 'summarize/' + String(job_uuid));
     });
   
   /*else {
@@ -866,7 +864,7 @@ function makeCallFieldsClickable() {
       console.log(payload);
       var request = $.ajax({
         type: 'POST',
-        url: $SCRIPT_ROOT + '/edit/call/' + $cell.parent().attr('id'),
+        url: $URL_ROOT + 'edit/call/' + $cell.parent().attr('id'),
         data: payload
       });
       request.done(function(msg){
@@ -1070,7 +1068,7 @@ function initShowJobs() {
       $('#btn-primary').click(function() {
         var request =  $.ajax({
           type: 'GET',
-          url: $SCRIPT_ROOT + '/cancel/job/'+job_uuid
+          url: $URL_ROOT + 'cancel/job/'+job_uuid
         });
         request.done(function(msg){
           if(msg == 'OK')
@@ -1104,7 +1102,7 @@ function initShowJobs() {
       var prev_n = n - num_page_records;
       if(prev_n < 1)
         prev_n = 1;
-      location.href = $SCRIPT_ROOT + '?n='+prev_n;
+      location.href = $URL_ROOT + '?n='+prev_n;
     }
   });
   
@@ -1114,7 +1112,7 @@ function initShowJobs() {
     if(n)
       next_n += n;
 
-    location.href = $SCRIPT_ROOT + '?n='+next_n;
+    location.href = $URL_ROOT + '?n='+next_n;
   });
 
   $('body').css('display','block');

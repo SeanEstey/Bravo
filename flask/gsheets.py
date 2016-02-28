@@ -17,7 +17,8 @@ GIFT_RECEIPT_EMAIL_SUBJECT = 'Thanks for your donation!'
 WELCOME_EMAIL_SUBJECT = 'Welcome to Empties to Winn'
 CANCELLED_EMAIL_SUBJECT = 'You have been removed from the collection schedule'
 
-# Sends email receipts to entries in Route Importer->Routes worksheet
+# Celery process that sends email receipts to entries in Route Importer->Routes worksheet
+# Lots of account data retrieved from eTap (accounts + journal data) so can take awhile to run 
 # 4 templates: gift_collection, zero_collection, dropoff_followup, cancelled
 # entries: list of row entries to receive emailed receipts
 @celery_app.task

@@ -88,10 +88,12 @@ def process_receipts(entries, keys):
             "date": parse(entry['date']).strftime('%B %-d, %Y'),
             "address": entry["etap_account"]["address"],
             "postal": entry["etap_account"]["postalCode"],
-            "row": entry["row"],
+            "sheet_name": "Route Importer",
+            "worksheet_name": "Routes",
             "upload_status": entry["upload_status"],
+            "row": entry["row"],
             "template": "email_dropoff_followup.html",
-            "subject": DROPOFF_FOLLOWUP_EMAIL_SUBJECT
+            "subject": DROPOFF_FOLLOWUP_EMAIL_SUBJECT,
           }
 
           if entry['next_pickup']:
@@ -112,8 +114,10 @@ def process_receipts(entries, keys):
           "date": parse(entry['date']).strftime('%B %-d, %Y'),
           "address": entry["etap_account"]["address"],
           "postal": entry["etap_account"]["postalCode"],
-          "row": entry["row"],
+          "sheet_name": "Route Importer",
+          "worksheet_name": "Routes",
           "upload_status": entry["upload_status"],
+          "row": entry["row"],
           "template": "email_zero_collection.html",
           "subject": ZERO_COLLECTION_EMAIL_SUBJECT
         }
@@ -173,8 +177,10 @@ def process_receipts(entries, keys):
         "last_date": parse(entry['date']).strftime('%B %-d, %Y'),
         "last_amount": '$' + str(entry['amount']),
         "gift_history": gifts,
-        "row": entry['row'],
+        "sheet_name": "Route Importer",
+        "worksheet_name": "Routes",
         "upload_status": entry["upload_status"],
+        "row": entry["row"],
         "template": "email_collection_receipt.html",
         "subject": GIFT_RECEIPT_EMAIL_SUBJECT
       }

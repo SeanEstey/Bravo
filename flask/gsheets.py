@@ -17,6 +17,9 @@ GIFT_RECEIPT_EMAIL_SUBJECT = 'Thanks for your donation!'
 WELCOME_EMAIL_SUBJECT = 'Welcome to Empties to Winn'
 CANCELLED_EMAIL_SUBJECT = 'You have been removed from the collection schedule'
 
+# Sends email receipts to entries in Route Importer->Routes worksheet
+# 4 templates: gift_collection, zero_collection, dropoff_followup, cancelled
+# entries: list of row entries to receive emailed receipts
 @celery_app.task
 def process_receipts(entries, keys):
   try:
@@ -35,6 +38,8 @@ def process_receipts(entries, keys):
     }))
 
     accounts = json.loads(r.text)
+    
+    # Update 'Email Status' with either 'queued' or 'no email' so user knows process is running 
     
     json_key = json.load(open('oauth_credentials.json'))
     scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
@@ -62,16 +67,33 @@ def process_receipts(entries, keys):
     num_zero_receipts = 0
     num_dropoff_followups = 0
 
-    # Send Dropoff Followups, Zero Collection, and Cancel email receipts 
+    # Send Dropoff Followups, Zero Collection, and Cancelled email receipts 
     for entry in entries:
       if not entry['etap_account']['email']:
         continue
 
       status = scheduler.get_udf('Status', entry['etap_account'])
+      
+      args = {
+        "account_number": entry['account_number'],
+        "recipient": entry['etap_account']['email'],
+        "name": entry['etap_account']['name'],
+        "date": parse(entry['date']).strftime('%B %-d, %Y'),
+        "address": entry["etap_account"]["address"],
+        "postal": entry["etap_account"]["postalCode"],
+        "sheet_name": "Route Importer",
+        "worksheet_name": "Routes",
+        "upload_status": entry["upload_status"],
+        "row": entry["row"],
+      }
 
       # Test for Cancel email
       if status == 'Cancelled':
-        # TODO: send Cancel email confirmation
+        args['template'] = "email_cancelled.html"
+        args['subject'] = CANCELLED_EMAIL_SUBJECT
+
+        r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
+      
         continue
 
       # Test for Dropoff Followup email
@@ -81,21 +103,8 @@ def process_receipts(entries, keys):
         drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
         collection_date = parse(entry['date']).date() #replace(tzinfo=None)
         if drop_date == collection_date:
-          args = {
-            "account_number": entry['account_number'],
-            "recipient": entry['etap_account']['email'],
-            "name": entry['etap_account']['name'],
-            "date": parse(entry['date']).strftime('%B %-d, %Y'),
-            "address": entry["etap_account"]["address"],
-            "postal": entry["etap_account"]["postalCode"],
-            "sheet_name": "Route Importer",
-            "worksheet_name": "Routes",
-            "upload_status": entry["upload_status"],
-            "row": entry["row"],
-            "template": "email_dropoff_followup.html",
-            "subject": DROPOFF_FOLLOWUP_EMAIL_SUBJECT,
-          }
-
+          args["template"] = "email_dropoff_followup.html"
+          args["subject"] = DROPOFF_FOLLOWUP_EMAIL_SUBJECT
           if entry['next_pickup']:
             args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
@@ -107,21 +116,8 @@ def process_receipts(entries, keys):
 
       # Test for Zero Collection or Gift Collection email
       if entry['amount'] == 0:
-        args = {
-          "account_number": entry['account_number'],
-          "recipient": entry['etap_account']['email'],
-          "name": entry['etap_account']['name'],
-          "date": parse(entry['date']).strftime('%B %-d, %Y'),
-          "address": entry["etap_account"]["address"],
-          "postal": entry["etap_account"]["postalCode"],
-          "sheet_name": "Route Importer",
-          "worksheet_name": "Routes",
-          "upload_status": entry["upload_status"],
-          "row": entry["row"],
-          "template": "email_zero_collection.html",
-          "subject": ZERO_COLLECTION_EMAIL_SUBJECT
-        }
-
+        args['template'] = "email_zero_collection.html"
+        args['subject'] = ZERO_COLLECTION_EMAIL_SUBJECT
         if entry['next_pickup']:
           args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 

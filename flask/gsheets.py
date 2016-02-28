@@ -32,7 +32,8 @@ def process_receipts(entries, keys):
         "data": {
           "account_numbers": [i['account_number'] for i in entries]
         }
-    })).text)
+      })).text
+    )
 
     # Update 'Email Status' with either 'queued' or 'no email' so user knows process is running 
     
@@ -124,35 +125,26 @@ def process_receipts(entries, keys):
           # them at once for speed 
           gift_accounts.append(entry)
 
-    # 'entries' list should now contain only gifts
     # Call eTap 'get_gift_history' for non-zero donations
     # Send Gift receipts
 
-    account_refs = []
-    
     year = parse(gift_accounts[0]['date']).year
 
-    for entry in gift_accounts:
-      account_refs.append(entry['etap_account']['ref'])
-
-    r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
-      "func": "get_gift_histories",
-      "keys": keys,
-      "data": {
-        "account_refs": account_refs,
-        "start_date": "01/01/" + str(year),
-        "end_date": "31/12/" + str(year)
-      }
-    }))
-
-    gift_histories = json.loads(r.text)
+    gift_histories = json.loads(
+      requests.post(ETAP_WRAPPER_URL, data=json.dumps({
+        "func": "get_gift_histories",
+        "keys": keys,
+        "data": {
+          "account_refs": [i['etap_account']['ref'] for i in gift_accounts],
+          "start_date": "01/01/" + str(year),
+          "end_date": "31/12/" + str(year)
+        }
+      })).text
+    )
 
     num_gift_receipts = 0
 
     for idx, entry in enumerate(gift_accounts):
-      if not entry['etap_account']['email']:
-        continue
-      
       gifts = gift_histories[idx]
 
       for gift in gifts:

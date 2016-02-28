@@ -419,6 +419,8 @@ def nis():
         logger.info('%s /call/nis' % request.values.items(), exc_info=True)
         return str(e)
 
+# Forwarded signup submision from emptiestowinn.com
+# Adds signup data to Route Importer->Signups gsheet row
 @flask_app.route('/receive_signup', methods=['POST'])
 def rec_signup():
   try:

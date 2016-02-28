@@ -91,7 +91,7 @@ def request_send_socket():
 def new_job():
   return flask.render_template('new_job.html', title=TITLE)
 
-@flask_app.route('/reminders/job_template/<name>')
+@flask_app.route('/reminders/get_job_template/<name>')
 def get_job_template(name):
   headers = []
   for col in TEMPLATE[name]:

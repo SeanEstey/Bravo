@@ -10,7 +10,7 @@ from datetime import datetime,date, timedelta
 
 from app import celery_app, db, logger, login_manager
 from config import *
-from gift_collections import create_rfu
+from gsheets import create_rfu
 
 # Extract User Defined Fields from eTap Account object. Allows
 # for UDF's which contain multiple fields (Block, Neighborhood)

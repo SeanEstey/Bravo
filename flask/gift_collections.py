@@ -83,7 +83,7 @@ def process_receipts(entries, keys):
         if drop_date == collection_date:
           args = {
             "account_number": entry['account_number'],
-            "email": entry['etap_account']['email'],
+            "recipient": entry['etap_account']['email'],
             "name": entry['etap_account']['name'],
             "date": parse(entry['date']).strftime('%B %-d, %Y'),
             "address": entry["etap_account"]["address"],
@@ -107,7 +107,7 @@ def process_receipts(entries, keys):
       if entry['amount'] == 0:
         args = {
           "account_number": entry['account_number'],
-          "email": entry['etap_account']['email'],
+          "recipient": entry['etap_account']['email'],
           "name": entry['etap_account']['name'],
           "date": parse(entry['date']).strftime('%B %-d, %Y'),
           "address": entry["etap_account"]["address"],
@@ -168,7 +168,7 @@ def process_receipts(entries, keys):
 
       args = {
         "account_number": entry['account_number'],
-        "email": entry['etap_account']['email'],
+        "recipient": entry['etap_account']['email'],
         "name": entry['etap_account']['name'],
         "last_date": parse(entry['date']).strftime('%B %-d, %Y'),
         "last_amount": '$' + str(entry['amount']),

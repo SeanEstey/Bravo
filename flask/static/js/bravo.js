@@ -366,7 +366,7 @@ function updateFilePickerTooltip() {
   var $template = $select.find($('option:selected'));
   var request = $.ajax({
     type: 'GET',
-    url: $URL_ROOT + 'get_job_template/' + $template.attr('value')
+    url: $URL_ROOT + 'reminders/get_job_template/' + $template.attr('value')
   });
   request.done(function(msg){
     var title = 'Upload a .CSV file with columns ';
@@ -492,7 +492,7 @@ function validateNewJobForm() {
     var form_data = new FormData($('#myform')[0]);
     var request = $.ajax({
       type: 'POST',
-      url: $URL_ROOT + 'submit',
+      url: $URL_ROOT + 'reminders/submit',
       data: form_data,
       contentType: false,
       processData: false,
@@ -686,7 +686,7 @@ function initShowCallsView() {
         var $tr = $(this).parent().parent();
         var request =  $.ajax({
           type: 'POST',
-          url: $URL_ROOT + 'cancel/call',
+          url: $URL_ROOT + 'reminders/cancel/call',
           data: {
             'call_uuid':call_uuid,
             'job_uuid':job_uuid
@@ -1068,7 +1068,7 @@ function initShowJobs() {
       $('#btn-primary').click(function() {
         var request =  $.ajax({
           type: 'GET',
-          url: $URL_ROOT + 'cancel/job/'+job_uuid
+          url: $URL_ROOT + 'reminders/cancel/job/'+job_uuid
         });
         request.done(function(msg){
           if(msg == 'OK')

@@ -8,6 +8,9 @@ from datetime import datetime,date
 from dateutil.parser import parse
 import werkzeug
 from werkzeug import secure_filename
+import csv
+from bson import Binary, Code, json_util
+from bson.objectid import ObjectId
 
 from app import celery_app, db, logger, login_manager, socketio
 import utils
@@ -522,7 +525,7 @@ def record_audio():
     to = request.form.get('to')
     logger.info('Record audio request from ' + to)
     
-    r = reminders.dial(to)
+    r = dial(to)
     logger.info('Dial response=' + json.dumps(r))
     
     if r['call_status'] == 'queued':
@@ -611,7 +614,7 @@ def call_db_doc(job, idx, buf_row, errors):
         errors.append('Row '+str(idx+1)+ ': ' + str(buf_row) + ' <b>Invalid Date</b><br>')
         return False 
 
-  msg['imported']['to'] = reminders.strip_phone(msg['imported']['to'])
+  msg['imported']['to'] = strip_phone(msg['imported']['to'])
   return msg
 
 def allowed_file(filename):

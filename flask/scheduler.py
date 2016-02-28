@@ -7,6 +7,8 @@ import httplib2
 from apiclient.discovery import build
 import re
 from datetime import datetime,date, timedelta
+from bson import Binary, Code, json_util
+from bson.objectid import ObjectId
 
 from app import celery_app, db, logger, login_manager
 from config import *
@@ -149,7 +151,7 @@ def get_next_pickups(job_id):
         blocks.append(msg['imported']['block'])
 
     json_key = json.load(open('oauth_credentials.json'))
-    scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
+    scope = ['https://www.googleapis.com/auth/calendar.readonly']
     credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
 
     http = httplib2.Http()

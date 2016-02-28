@@ -57,6 +57,7 @@ def process_receipts(entries, keys):
     gift_accounts = []
     num_zero_receipts = 0
     num_dropoff_followups = 0
+    num_cancelled = 0
 
     # Send Dropoff Followups, Zero Collection, and Cancelled email receipts 
     for entry in entries:
@@ -84,6 +85,8 @@ def process_receipts(entries, keys):
         args['subject'] = CANCELLED_EMAIL_SUBJECT
 
         r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
+
+        num_cancelled +=1
       
         continue
 
@@ -126,6 +129,9 @@ def process_receipts(entries, keys):
     # Call eTap 'get_gift_history' for non-zero donations
     # Send Gift receipts
 
+    if(len(gift_accounts)) == 0:
+      return 'OK'
+
     year = parse(gift_accounts[0]['date']).year
 
     gift_histories = etap.call('get_gift_histories', keys, {
@@ -166,7 +172,13 @@ def process_receipts(entries, keys):
       # Send requests.post back to Flask
       r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
 
-    logger.info(str(num_zero_receipts) + ' zero receipts sent, ' + str(num_gift_receipts) + ' gift receipts sent, ' + str(num_dropoff_followups) + ' dropoff followups sent')
+    logger.info('Receipts: \n' +
+      str(num_zero_receipts) + ' zero collections sent\n' +
+      str(num_gift_receipts) + ' gift receipts sent\n' +
+      str(num_dropoff_followups) + ' dropoff followups sent\n' +
+      str(num_cancelled) + ' cancellations sent'
+    )
+            
     return 'OK'
 
   except Exception, e:

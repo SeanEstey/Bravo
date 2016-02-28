@@ -4,6 +4,14 @@ import flask
 from datetime import datetime,date, timedelta
 from flask import Flask,request,g,Response,url_for, render_template
 from flask.ext.login import login_user, logout_user, current_user, login_required
+from bson.objectid import ObjectId
+
+# Move to reminders.py after refactor
+from werkzeug import secure_filename
+import codecs
+import csv
+import os
+from dateutil.parser import parse
 
 from app import flask_app, db, logger, login_manager, socketio
 import reminders
@@ -34,7 +42,11 @@ def logout():
 @flask_app.route('/', methods=['GET'])
 @login_required
 def index():
-  return reminders.view_main()
+  try:
+    return reminders.view_main()
+  except Exception as e:
+    logger.info(str(e))
+    return 'Fail'
 
 @flask_app.route('/log')
 @login_required
@@ -89,7 +101,7 @@ def request_send_socket():
 @flask_app.route('/reminders/new')
 @login_required
 def new_job():
-  return flask.render_template('new_job.html', title=TITLE)
+  return render_template('new_job.html', title=TITLE)
 
 @flask_app.route('/reminders/get_job_template/<name>')
 def get_job_template(name):
@@ -101,16 +113,20 @@ def get_job_template(name):
 @flask_app.route('/reminders/submit', methods=['POST'])
 @login_required
 def submit():
-  # POST request to create new job from new_job.html template
-  file = request.files['call_list']
-  if file and allowed_file(file.filename):
-    filename = secure_filename(file.filename)
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename)) 
-    file_path = app.config['UPLOAD_FOLDER'] + '/' + filename
-  else:
-    logger.info('could not save file')
-    r = json.dumps({'status':'error', 'title': 'Filename Problem', 'msg':'Could not save file'})
-    return Response(response=r, status=200, mimetype='application/json')
+  try:
+      # POST request to create new job from new_job.html template
+      file = request.files['call_list']
+      if file and reminders.allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(UPLOAD_FOLDER, filename)) 
+        file_path = UPLOAD_FOLDER + '/' + filename
+      else:
+        logger.info('could not save file')
+        r = json.dumps({'status':'error', 'title': 'Filename Problem', 'msg':'Could not save file'})
+        return Response(response=r, status=200, mimetype='application/json')
+  except Exception as e:
+      logger.info(str(e))
+      return Response(response={'status':'error', 'title':'file problem', 'msg':'could not upload file'},status=200,mimetype='application/json')
 
   # Open and parse file
   try:
@@ -130,61 +146,93 @@ def submit():
     r = json.dumps({'status':'error', 'title': 'Problem Reading File', 'msg':'Could not parse file: ' + str(e)})
     return Response(response=r, status=200, mimetype='application/json')
 
-  if not request.form['job_name']:
-    job_name = filename.split('.')[0].replace('_',' ')
-  else:
-    job_name = request.form['job_name']
-  
-  date_string = request.form['date']+' '+request.form['time']
-  fire_dtime = parse(date_string)
-  
-  job = {
-    'name': job_name,
-    'template': request.form['template'],
-    'fire_dtime': fire_dtime,
-    'status': 'pending',
-    'num_calls': len(buffer)
-  }
+  try:
+      if not request.form['job_name']:
+        job_name = filename.split('.')[0].replace('_',' ')
+      else:
+        job_name = request.form['job_name']
+      
+      date_string = request.form['date']+' '+request.form['time']
+      fire_dtime = parse(date_string)
+      
+      job = {
+        'name': job_name,
+        'template': request.form['template'],
+        'fire_dtime': fire_dtime,
+        'status': 'pending',
+        'num_calls': len(buffer)
+      }
 
-  if request.form['template'] == 'announce_voice':
-    job['audio_url'] = request.form['audio-url']
-  elif request.form['template'] == 'announce_text':
-    job['message'] = request.form['message']
-    
-  job_id = db['reminder_jobs'].insert(job)
-  job['_id'] = job_id
+      if request.form['template'] == 'announce_voice':
+        job['audio_url'] = request.form['audio-url']
+      elif request.form['template'] == 'announce_text':
+        job['message'] = request.form['message']
+        
+      job_id = db['reminder_jobs'].insert(job)
+      job['_id'] = job_id
 
-  errors = []
-  calls = []
-  for idx, row in enumerate(buffer):
-    call = call_db_doc(job, idx, row, errors)
-    if call:
-      calls.append(call)
+      errors = []
+      calls = []
+      for idx, row in enumerate(buffer):
+        call = reminders.call_db_doc(job, idx, row, errors)
+        if call:
+          calls.append(call)
 
-  if len(errors) > 0:
-    msg = 'The file <b>' + filename + '</b> has some errors:<br><br>'
-    for error in errors:
-      msg += error
-    db['reminder_jobs'].remove({'_id':job_id})
-    r = json.dumps({'status':'error', 'title':'File Format Problem', 'msg':msg})
-    return Response(response=r, status=200, mimetype='application/json')
+      if len(errors) > 0:
+        msg = 'The file <b>' + filename + '</b> has some errors:<br><br>'
+        for error in errors:
+          msg += error
+        db['reminder_jobs'].remove({'_id':job_id})
+        r = json.dumps({'status':'error', 'title':'File Format Problem', 'msg':msg})
+        return Response(response=r, status=200, mimetype='application/json')
 
-  db['reminder_msgs'].insert(calls)
-  logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
+      db['reminder_msgs'].insert(calls)
+      logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
 
-  jobs = db['reminder_jobs'].find().sort('fire_dtime',-1)
-  banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(calls)) + ' calls imported.'
-  r = json.dumps({'status':'success', 'msg':banner_msg})
+      jobs = db['reminder_jobs'].find().sort('fire_dtime',-1)
+      banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(calls)) + ' calls imported.'
+      r = json.dumps({'status':'success', 'msg':banner_msg})
 
-  if job['template'] == 'etw_reminder':
-    tasks.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
-  
-  return Response(response=r, status=200, mimetype='application/json')
-
+      if job['template'] == 'etw_reminder':
+        scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
+      
+      return Response(response=r, status=200, mimetype='application/json')
+  except Exception as e:
+      logger.info(str(e))
+      return Response(response={'status':'error', 'title':'error', 'msg':str(e)},status=500,mimetype='application/json')
 
 @flask_app.route('/reminders/recordaudio', methods=['GET', 'POST'])
 def record_msg():
   return reminders.record_audio()
+
+@flask_app.route('/reminders/jobs/<job_id>')
+@login_required
+def show_calls(job_id):
+  sort_by = 'name' 
+  calls = db['reminder_msgs'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
+  job = db['reminder_jobs'].find_one({'_id':ObjectId(job_id)})
+
+  return render_template(
+    'show_calls.html', 
+    title=TITLE,
+    calls=calls, 
+    job_id=job_id, 
+    job=job,
+    template=TEMPLATE[job['template']]
+  )
+
+@flask_app.route('/reminders/cancel/job/<job_id>')
+@login_required
+def cancel_job(job_id):
+  try:
+      db['reminder_jobs'].remove({'_id':ObjectId(job_id)})
+      db['reminder_msgs'].remove({'job_id':ObjectId(job_id)})
+      logger.info('Removed Job [ID %s]', str(job_id))
+
+      return 'OK'
+  except Exception as e:
+      logger.info(str(e))
+      return 'error'
 
 @flask_app.route('/reminders/request/execute/<job_id>')
 @login_required
@@ -224,9 +272,6 @@ def process_receipts():
 def send_email():
   try:
     args = request.get_json(force=True)
-    
-    # May need request.form for data from Google Sheets.
-    #args = json.loads(request.form["data"])
 
     html = render_template(args['template'], args=args)
 
@@ -244,7 +289,7 @@ def send_email():
     return 'OK'
 
   except Exception, e:
-    logger.error('/send_email', exc_info=True)
+    logger.error('/email/send', exc_info=True)
 
 
 @flask_app.route('/email/opened', methods=['POST'])

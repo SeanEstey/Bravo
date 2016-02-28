@@ -15,7 +15,7 @@ ZERO_COLLECTION_EMAIL_SUBJECT = 'We missed your pickup this time around'
 DROPOFF_FOLLOWUP_EMAIL_SUBJECT = 'Your Dropoff is Complete'
 GIFT_RECEIPT_EMAIL_SUBJECT = 'Thanks for your donation!'
 WELCOME_EMAIL_SUBJECT = 'Welcome to Empties to Winn'
-CANCELLED_EMAIL_SUBJECT = 'You've been removed from the collection schedule'
+CANCELLED_EMAIL_SUBJECT = 'You have been removed from the collection schedule'
 
 @celery_app.task
 def process_receipts(entries, keys):

@@ -188,8 +188,9 @@ def request_execute_job(job_id):
 
   return 'OK'
 
-@flask_app.route('/collections/send_receipts', methods=['POST'])
-def send_receipts():
+# Data sent from Routes worksheet in Gift Importer (Google Sheet)
+@flask_app.route('/collections/process_receipts', methods=['POST'])
+def process_receipts():
   try:
     # If sent via JSON by CURL from unit tests...
     if request.get_json():
@@ -201,129 +202,43 @@ def send_receipts():
         keys = json.loads(request.form['keys'])
 
     # Start celery workers to run slow eTapestry API calls
-    gift_collections.send_receipts.apply_async((entries, keys, ), queue=DB_NAME)
+    gift_collections.process_receipts.apply_async((entries, keys, ), queue=DB_NAME)
 
     return 'OK'
 
   except Exception, e:
-    logger.error('/collections/send_receipts', exc_info=True)
+    logger.error('/collections/process_receipts', exc_info=True)
 
-@flask_app.route('/send_zero_receipt', methods=['POST'])
-def send_zero_receipt():
+
+# Can be collection receipt from gift_collections.process_receipts, reminder email, or welcome letter from Google Sheets.
+# Required fields: 'recipient', 'template', 'subject'
+# Required fields for updating Google Sheets: 'sheet_name', 'worksheet_name', 'row', 'upload_status'
+@flask_app.route('/email/send', methods=['POST'])
+def send_email():
   try:
     args = request.get_json(force=True)
-
-    html = render_template('email_zero_collection.html', args=args)
-
-    r = utils.send_email(args['email'], 'We missed your pickup this time around', html)
-    r = json.loads(r.text)
-      
-    if r['message'].find('Queued') == 0:
-      db['email_status'].insert({
-        'account_number': args['account_number'],
-        'recipient': args["email"], 
-        'mid': r['id'], 
-        'status':'queued' ,
-        'sheet_name': 'Route Importer',
-        'worksheet_name': 'Routes',
-        "row": args["row"],
-        "upload_status": args['upload_status']
-      })
-      logger.info('Queued Zero Collection for ' + args["email"])
-
-    return 'OK'
-
-  except Exception, e:
-    logger.error('/send_zero_receipt', exc_info=True)
-
-
-@flask_app.route('/send_dropoff_followup', methods=['POST'])
-def send_dropoff_followup():
-  try:
-    args = request.get_json(force=True)
-
-    html = render_template('email_dropoff_followup.html', args=args)
-
-    r = utils.send_email(args['email'], 'Your Dropoff is Complete', html)
-    r = json.loads(r.text)
-      
-    if r['message'].find('Queued') == 0:
-      db['email_status'].insert({
-        'account_number': args['account_number'],
-        'recipient': args["email"], 
-        'mid': r['id'], 
-        'status':'queued' ,
-        'sheet_name': 'Route Importer',
-        'worksheet_name': 'Routes',
-        "row": args["row"],
-        "upload_status": args['upload_status']
-      })
-      logger.info('Queued Dropoff Followup for ' + args["email"])
-
-    return 'OK'
-
-  except Exception, e:
-    logger.error('/send_zero_receipt', exc_info=True)
-
-@flask_app.route('/send_gift_receipt', methods=['POST'])
-def send_gift_receipt():
-  try:
-    args = request.get_json(force=True)
-
-    html = render_template('email_collection_receipt.html', args=args)
-
-    r = utils.send_email(args['email'], 'Thanks for your donation!', html)
     
+    # May need request.form for data from Google Sheets.
+    #args = json.loads(request.form["data"])
+
+    html = render_template(args['template'], args=args)
+
+    r = utils.send_email(args['recipient'], args['subject'], html)
     r = json.loads(r.text)
-  
+    
     if r['message'].find('Queued') == 0:
-      db['email_status'].insert({
-        'account_number': args['account_number'],
-        'recipient': args['email'], 
-        'mid': r['id'], 
-        'status':'queued' ,
-        'sheet_name': 'Route Importer',
-        'worksheet_name': 'Routes',
-        "row": args["row"],
-        'upload_status': args['upload_status']
-      })
-      #logger.info('inserted record for mid: ' + r['id'])
-      logger.info('Queued Collection Receipt for ' + args['email'])
+      args['mid'] = r['id']
+      args['status'] = 'queued'
+      
+      db['email_status'].insert(args)
 
-      return 'OK'
+      logger.info('Queued email to ' + args['recipient'])
+
+    return 'OK'
 
   except Exception, e:
-    logger.error('/send_gift_receipt', exc_info=True)
+    logger.error('/send_email', exc_info=True)
 
-@flask_app.route('/send_welcome', methods=['POST'])
-def send_welcome_email():
-  try:
-    if request.method == 'POST':
-      args = json.loads(request.form["data"])
-
-      html = render_template('email_welcome.html', args=args)
-
-      r = utils.send_email([args['to']], 'Welcome to Empties to Winn', html) 
-          
-      r = json.loads(r.text)
-
-      if r['message'].find('Queued') == 0:
-        db['email_status'].insert({
-          'recipient': args['to'], 
-          'mid': r['id'], 
-          'status':'queued' ,
-          'sheet_name': 'Route Importer',
-          'worksheet_name': 'Signups',
-          "row": args['row'],
-          'upload_status': args['upload_status']
-        })
-
-        logger.info('Queued welcome letter to ' + args['to'])
-
-      return 'OK'
-  except Exception, e:
-    logger.error('/send_welcome', exc_info=True)
-    return str(e)
 
 @flask_app.route('/email/opened', methods=['POST'])
 def email_opened():

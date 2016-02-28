@@ -24,22 +24,16 @@ CANCELLED_EMAIL_SUBJECT = 'You have been removed from the collection schedule'
 @celery_app.task
 def process_receipts(entries, keys):
   try:
-    # Call eTap 'get_accounts' func for all accounts
-    account_numbers = []
+    # Get all eTapestry account data
+    accounts = json.loads(
+      requests.post(ETAP_WRAPPER_URL, data=json.dumps({
+        "func": "get_accounts",
+        "keys": keys,
+        "data": {
+          "account_numbers": [i['account_number'] for i in entries]
+        }
+    })).text)
 
-    for entry in entries:
-      account_numbers.append(entry['account_number'])
-
-    r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
-      "func": "get_accounts",
-      "keys": keys,
-      "data": {
-        "account_numbers": account_numbers
-      }
-    }))
-
-    accounts = json.loads(r.text)
-    
     # Update 'Email Status' with either 'queued' or 'no email' so user knows process is running 
     
     json_key = json.load(open('oauth_credentials.json'))

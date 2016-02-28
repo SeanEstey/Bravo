@@ -368,7 +368,7 @@ function updateFilePickerTooltip() {
   var $template = $select.find($('option:selected'));
   var request = $.ajax({
     type: 'GET',
-    url: $SCRIPT_ROOT + '/get/template/' + $template.attr('value')
+    url: $SCRIPT_ROOT + '/get_job_template/' + $template.attr('value')
   });
   request.done(function(msg){
     var title = 'Upload a .CSV file with columns ';

@@ -80,17 +80,11 @@ def analyze_non_participants(etap_accounts):
         account_refs.append(account['ref'])
         accounts_over_one_year.append(account)
 
-    r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
-      "func": "get_gift_histories",
-      "keys": ETAP_WRAPPER_KEYS,
-      "data": {
-        "account_refs": account_refs,
-        "start_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year-1),
-        "end_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year)
-      }
-    }))
-    
-    gift_histories = json.loads(r.text)
+    gift_histories = etap.call('get_gift_histories', ETAP_WRAPPER_KEYS, {
+      "account_refs": account_refs,
+      "start_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year-1),
+      "end_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year)
+    })
 
     now = datetime.now()
     num_nps = 0

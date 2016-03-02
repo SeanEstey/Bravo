@@ -14,18 +14,6 @@ from app import celery_app, db, logger, login_manager
 from config import *
 from gsheets import create_rfu
 
-# Extract User Defined Fields from eTap Account object. Allows
-# for UDF's which contain multiple fields (Block, Neighborhood)
-def get_udf(field_name, etap_account):
-  field_values = []
-
-  for field in etap_account['accountDefinedValues']:
-    if field['fieldName'] == field_name:
-      field_values.append(field['value'])
-
-  return ", ".join(field_values)
-
-
 def get_cal_events(cal_id, start, end):
   json_key = json.load(open('oauth_credentials.json'))
   scope = ['https://www.googleapis.com/auth/calendar.readonly']

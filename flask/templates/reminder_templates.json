@@ -1,10 +1,10 @@
 TEMPLATE = {
   "etw_reminder": [
-    {"header": "Account", "field": "account", "hide": True},
+    {"header": "Account", "field": "account", "hide": true},
     {"header": "Name", "field": "name"},
     {"header": "Phone", "field": "to", "status_field": "call_status"},
     {"header": "Email", "field": "email", "status_field": "email_status"},
-    {"header": "Block", "field": "block", "hide": True},
+    {"header": "Block", "field": "block", "hide": true},
     {"header": "Status", "field": "status"},
     {"header": "Next P/U Date", "field": "event_date"},
     {"header": "Office Notes", "field": "office_notes"}
@@ -21,6 +21,6 @@ TEMPLATE = {
   ],
   "announce_voice": [
     {"header": "Name", "field": "name"},
-    "header": "Phone", "field": "to", "status_field": "call_status"}
+    {"header": "Phone", "field": "to", "status_field": "call_status"}
   ]
 }

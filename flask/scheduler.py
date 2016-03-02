@@ -138,25 +138,10 @@ def get_next_pickups(job_id):
       if msg['imported']['block'] not in blocks:
         blocks.append(msg['imported']['block'])
 
-    json_key = json.load(open('oauth_credentials.json'))
-    scope = ['https://www.googleapis.com/auth/calendar.readonly']
-    credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
-
-    http = httplib2.Http()
-    http = credentials.authorize(http)
-
-    start_search = datetime.now() + timedelta(days=30)
-    end_search = start_search + timedelta(days=70)
-
-    service = build('calendar', 'v3', http=http)
-    events = service.events().list(
-      calendarId = ETW_RES_CALENDAR_ID,
-      timeMin = start_search.isoformat()+'+01:00',
-      timeMax = end_search.isoformat()+'+01:00',
-      singleEvents = True,
-      orderBy = 'startTime'
-      #maxResults = 50
-    ).execute()
+    start = datetime.now() + timedelta(days=30)
+    end = start_search + timedelta(days=70)
+    
+    events = get_cal_events(ETW_RES_CALENDAR_ID, start, end)
 
     logger.info('%i calendar events pulled', len(events['items']))
 
@@ -171,8 +156,6 @@ def get_next_pickups(job_id):
           pickup_dates[block] = dt
       if block not in pickup_dates:
         logger.info('No pickup found for Block %s', block)
-
-    #logger.info('pickup_date list' + json.dumps(pickup_dates))
 
     # Now we should have pickup dates for all blocks on job
     # Iterate through each msg and store pickup_date

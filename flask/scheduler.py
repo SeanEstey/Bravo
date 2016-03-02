@@ -49,18 +49,8 @@ def find_nps_in_schedule(start=None, end=None):
 
         logger.info('Analyzing non-participants for %s... ', res_block)
         
-        r = requests.post(ETAP_WRAPPER_URL, data=json.dumps({
-          "func": "get_query_accounts",
-          "keys": ETAP_WRAPPER_KEYS,
-          "data": {
-            "query": res_block,
-            "query_category": "ETW: Routes"
-          }
-        }))
-
-        r = json.loads(r.text)
-        
-        analyze_non_participants(r['data'])
+        accounts = etap.call('get_query_accounts', ETAP_WRAPPER_KEYS, {'query':res_block, 'query_category':'ETW: Routes'})
+        analyze_non_participants(accounts)
 
   except Exception, e:
     logger.error('find_nps_in_schedule', exc_info=True)

@@ -5,7 +5,8 @@ Install Dependencies
 <br>
 ```
 apt-get install python-pip python-dev mongodb nginx rabbitmq-server
-pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio
+pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio apiclient oauth2client gspread
+pip install --upgrade google-api-python-client
 ```
 
 Clone repository
@@ -31,12 +32,6 @@ TWILIO_ACCOUNT_SID =
 TWILIO_AUTH_ID = 
 ```
 
-Setup Google API<br>
-```
-pip install apiclient oauth2client gspread
-pip install --upgrade google-api-python-client
-```
-
 Setup front end server to redirect to proper proxy addresses (see /config for Nginx .conf file)<br>
 
 To manually shutdown server running in background<br>
@@ -49,4 +44,5 @@ Kill it<br>
 <h2>Mongo Collections</h2>
 <br>
 
-`"job_id": {"answered_by", "call_duration", "mid", "call_error", "error_code", "message", "sid", "speak", "code", "ended_at", "rfu", "no_pickup", "next_pickup"}`
+`"reminder_msgs": {"job_id", "call_status", "email_status", "attempts", "answered_by", "call_duration", "mid", "call_error", "error_code", "message", "sid", "speak", "code", "ended_at", "rfu", "no_pickup", "next_pickup"}`
+`"reminder_jobs": {"status", "fire_dtime", "num_calls", "template", "audio_url", "message"}`

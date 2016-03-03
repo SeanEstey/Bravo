@@ -6,14 +6,6 @@ apt-get install python-pip python-dev mongodb nginx rabbitmq-server
 pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio
 ```
 
-Nginx/Php-fpm Setup<br>
-```
-apt-get install php-dev php-pear php5-curl
-pecl install mongo
-pear install Mail
-pear install Net_SMTP
-```
-
 Clone repository<br>
 ```
 git clone https://github.com/SeanEstey/Bravo
@@ -24,22 +16,15 @@ Start RabbitMQ daemon<br>
 Start Flask Server:<br>
 `python server.py`<br>
 
-Create server_settings.py file with following variables set:<br>
+Create private_config.py file with following variables set:<br>
 ```
-DEBUG = [True/False]
-DB_NAME = [MongoDB Db name]
 ETW_RES_CALENDAR_ID = 
 GOOGLE_SERVICE_ACCOUNT = [Google Service Email Address]
-LOCAL_PORT = 
-LOCAL_URL = [Localhost URL]
 MAILGUN_API_KEY = 
 MAILGUN_DOMAIN = 
-PUB_URL = 
 SECRET_KEY = ''
-TITLE = 
 TWILIO_ACCOUNT_SID = 
 TWILIO_AUTH_ID = 
-
 ```
 
 Setup Google API<br>
@@ -56,3 +41,7 @@ get pid<br>
 Kill it<br>
 `kill -9 <PID>`<br>
 (May need to run twice)
+
+<h2>Mongo Collections</h2>
+
+"job_id": {"answered_by", "call_duration", "mid", "call_error", "error_code", "message", "sid", "speak", "code", "ended_at", "rfu", "no_pickup", "next_pickup"}

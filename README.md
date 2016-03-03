@@ -4,21 +4,23 @@
 "reminder_msgs": {
   "job_id": "[BSON ObjectId]",
   "call": {
-    "to": "",
+    "sid": "twilio_call_id",
     "status": ["pending","active","failed","pending","queued","ringing","in-progress","busy","no-answer"], 
-    "attempts": "[Number]",
-    "answered_by": "human, machine", 
-    "duration": "[twilio_number_seconds]",
-    "error": "",
-    "code": "",
+    "answered_by": ["human", "machine"], 
+    "ended_at": "[datetime]"
+    "to": "phone_number",
     "speak": "",
-    "sid": "twilio_call_id_string", 
-    "ended_at": "[datetime]",
+    "attempts": "",
+    "duration": "",
+    "error_msg": "",
+    "error_code": "",
   },
   "email": {
-    "recipient": "email_address",
-    "mid":  "mailgun_email_id_string", 
-    "status": ["pending", "bounced", "dropped", "delivered"], 
+    "mid":  "mailgun_email_id", 
+    "status": ["pending", "bounced", "dropped", "delivered"],
+    "recipient": "email",
+    "error_msg": "",
+    "error_code": ""
   },
   "template": {
     "no_pickup": "[bool]",
@@ -27,8 +29,7 @@
     "other imported fields ..."
   }
 }
-```
-```json
+
 "reminder_jobs": {
   "status": ["pending", "in-progress", "completed"], 
   "fire_dtime": "[datetime]", 

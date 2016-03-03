@@ -256,6 +256,7 @@ def request_email_job(job_id):
         #send_socket('update_msg', {'id':str(message['_id']), 'email_status': 'no_email'})
       
       html = render_template('email_reminder.html', args={
+        'name': message['imported']['name'],
         'recipient': message['imported']['email'],
         'next_pickup': message['imported']['event_date'],
         'status': message['imported']['status']

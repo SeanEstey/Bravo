@@ -1,5 +1,5 @@
 <h2>Mongo Collections</h2>
-<br>
+
 ```json
 "reminder_msgs": {
   "job_id": "[BSON ObjectId]",
@@ -7,7 +7,7 @@
     "sid": "twilio_call_id",
     "status": ["pending","active","failed","pending","queued","ringing","in-progress","busy","no-answer"], 
     "answered_by": ["human", "machine"], 
-    "ended_at": "[datetime]"
+    "ended_at": "[datetime]",
     "to": "phone_number",
     "speak": "",
     "attempts": "",
@@ -16,7 +16,7 @@
     "error_code": "",
   },
   "email": {
-    "mid":  "mailgun_email_id", 
+    "mid":  "mailgun_msg_id", 
     "status": ["pending", "bounced", "dropped", "delivered"],
     "recipient": "email",
     "error_msg": "",
@@ -36,6 +36,14 @@
   "num_calls": "[Number]", 
   "template": "template_name_string", 
   "audio_url": "saved_audio_message_url"
+}
+
+"email_status": {
+  "mid": "mailgun_msg_id",
+  "status": ["queued", "delivered", "bounced", "dropped"],
+  "data": {
+    "reminder_msg_id": "mongo_id_for_updating_reminder",
+    "sheet_name": "gsheets_name_for_updating_sheets",
 }
 ```
 

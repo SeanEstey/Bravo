@@ -6,7 +6,7 @@ TEMPLATE = {
     {"file_header": "Email", "db_field": "email.recipient"},
     {"file_header": "Block", "db_field": "template.block", "hide": true},
     {"file_header": "Status", "db_field": "template.status"},
-    {"file_header": "Next Pickup", "db_field": "template.next_pickup"},
+    {"file_header": "Next Pickup", "db_field": "template.next_pickup", "type":"date"},
     {"file_header": "Office Notes", "db_field": "template.office_notes"}
   ],
   "gg_delivery": [

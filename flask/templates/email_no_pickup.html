@@ -7,26 +7,13 @@
     </tr>
     <tr>
       <td>
-        We did not receive a collection from you on <b>{{ args.date }}</b>, at your address <b>{{ args.address }}</b>, <b>{{ args.postal }}</b>.
+        Thanks for letting us know you don't need a pickup. 
+        This helps us to be more efficient with our resources.
       </td>
     </tr>
     <tr>
       <td>
-        If your pickup was missed, or if you have moved, please let us know. If you don't require a pickup, please help us
-        to be more efficient with driver resources by opting out via the email or phone reminders.
+        Your next pickup date will be on <b>{{ args.next_pickup }}</b>
       </td>
     </tr>
-    <tr>
-      <td>
-        You can always drop off empties via our 24-hour drop box at 11130 131 St NW.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        {% if args.next_pickup %}
-        Your next pickup is scheduled for <b>{{ args.next_pickup }}</b>.
-        {% endif %}
-      </td>
-    </tr>
-
   {% endblock %}

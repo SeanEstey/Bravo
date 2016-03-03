@@ -2,23 +2,23 @@
 <br>
 ```json
 "reminder_msgs": {
-  "job_id": [ObjectId], 
-  "call_status", 
-  "email_status", 
-  "attempts", 
-  "answered_by", 
-  "call_duration", 
-  "mid", 
-  "call_error", 
-  "error_code", 
-  "message", 
-  "sid", 
-  "speak", 
-  "code", 
-  "ended_at", 
-  "rfu", 
-  "no_pickup", 
-  "next_pickup"
+  "job_id": "BSON ObjectId", 
+  "call_status": "pending, active, failed, pending, queued, ringing, in-progress, busy, no-answer", 
+  "email_status": "pending, bounced, dropped, delivered", 
+  "attempts": "[Number]", 
+  "answered_by": "human, machine", 
+  "call_duration": "[twilio_number_seconds]", 
+  "mid":  "[mailgun_email_id_string]", 
+  "call_error": "", 
+  "error_code": "", 
+  "message": "[for announce template]", 
+  "sid": "twilio_call_id_string", 
+  "speak": "", 
+  "code": "", 
+  "ended_at": "[datetime]", 
+  "rfu": "", 
+  "no_pickup": "true, false", 
+  "next_pickup": [datetime]
 },
 "reminder_jobs": {
   "status", "fire_dtime", "num_calls", "template", "audio_url", "message"

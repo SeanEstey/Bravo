@@ -1,12 +1,14 @@
 <h2>Instructions</h2><br>
 
-Install Dependencies<br>
+Install Dependencies
+<br>
 ```
 apt-get install python-pip python-dev mongodb nginx rabbitmq-server
 pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio
 ```
 
-Clone repository<br>
+Clone repository
+<br>
 ```
 git clone https://github.com/SeanEstey/Bravo
 cd Bravo
@@ -16,7 +18,8 @@ Start RabbitMQ daemon<br>
 Start Flask Server:<br>
 `python server.py`<br>
 
-Create private_config.py file with following variables set:<br>
+Create private_config.py file with following variables set:
+<br>
 ```
 ETW_RES_CALENDAR_ID = 
 GOOGLE_SERVICE_ACCOUNT = [Google Service Email Address]
@@ -45,4 +48,4 @@ Kill it<br>
 <h2>Mongo Collections</h2>
 <br>
 
-"job_id": {"answered_by", "call_duration", "mid", "call_error", "error_code", "message", "sid", "speak", "code", "ended_at", "rfu", "no_pickup", "next_pickup"}
+`"job_id": {"answered_by", "call_duration", "mid", "call_error", "error_code", "message", "sid", "speak", "code", "ended_at", "rfu", "no_pickup", "next_pickup"}`

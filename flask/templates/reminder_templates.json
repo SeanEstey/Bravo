@@ -1,6 +1,6 @@
 TEMPLATE = {
   "etw_reminder": [
-    {"file_header": "Account", "db_field": call.account_id], "hide": true},
+    {"file_header": "Account", "db_field": call.account_id, "hide": true},
     {"file_header": "Name", "db_field": "name"},
     {"file_header": "Phone", "db_field": "to", "status_field": "call_status"},
     {"file_header": "Email", "db_field": "email", "status_field": "email_status"},

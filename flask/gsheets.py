@@ -18,6 +18,16 @@ GIFT_RECEIPT_EMAIL_SUBJECT = 'Thanks for your donation!'
 WELCOME_EMAIL_SUBJECT = 'Welcome to Empties to Winn'
 CANCELLED_EMAIL_SUBJECT = 'You have been removed from the collection schedule'
 
+# scope is array of Google service URL's to authorize
+def auth(scope):
+  try:
+    json_key = json.load(open('oauth_credentials.json'))
+    credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
+    return gspread.authorize(credentials)
+  except Exception as e:
+    logger.info('gsheets.auth():', exc_info=True)
+    return False
+    
 # Celery process that sends email receipts to entries in Route Importer->Routes worksheet
 # Lots of account data retrieved from eTap (accounts + journal data) so can take awhile to run 
 # 4 templates: gift_collection, zero_collection, dropoff_followup, cancelled
@@ -32,11 +42,7 @@ def process_receipts(entries, keys):
     
     # Update 'Email Status' with either 'queued' or 'no email' so user knows process is running 
     
-    json_key = json.load(open('oauth_credentials.json'))
-    scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
-    credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
-    gc = gspread.authorize(credentials)
-  
+    gc = auth(['https://spreadsheets.google.com/feeds'])
     wks = gc.open('Route Importer').worksheet('Routes')
     headers = wks.row_values(1)
     
@@ -187,14 +193,9 @@ def process_receipts(entries, keys):
 
 
 def update_entry(db_record):
-  json_key = json.load(open('oauth_credentials.json'))
-  scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
-  credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
-  gc = gspread.authorize(credentials)
-  
+  gc = auth(['https://spreadsheets.google.com/feeds'])
   sheet = gc.open(db_record['sheet_name'])
   wks = sheet.worksheet(db_record['worksheet_name'])
-
   headers = wks.row_values(1)
   
   # Make sure the row entry still exists in the worksheet
@@ -221,14 +222,9 @@ def update_entry(db_record):
 
 
 def create_rfu(request_note, account_number=None, next_pickup=None, block=None, date=None):
-  json_key = json.load(open('oauth_credentials.json'))
-  scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
-  credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
-  gc = gspread.authorize(credentials)
-
+  gc = auth(['https://spreadsheets.google.com/feeds'])
   sheet = gc.open('Route Importer')
   wks = sheet.worksheet('RFU')
-  
   headers = wks.row_values(1)
 
   rfu = [''] * len(headers)
@@ -254,10 +250,7 @@ def create_rfu(request_note, account_number=None, next_pickup=None, block=None, 
 @celery_app.task
 def add_signup_row(signup):
   try:
-    json_key = json.load(open('oauth_credentials.json'))
-    scope = ['https://spreadsheets.google.com/feeds', 'https://docs.google.com/feeds']
-    credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'], scope)
-    gc = gspread.authorize(credentials)
+    gc = auth(['https://spreadsheets.google.com/feeds'])
     wks = gc.open('Route Importer').worksheet('Signups')
 
     form_data = {
@@ -302,5 +295,5 @@ def add_signup_row(signup):
     wks.append_row(row)
   
   except Exception, e:
-    logger.info('add_signup_row', exc_info=True)
+    logger.info('add_signup_row. data: ' + json.dumps(signup), exc_info=True)
     return str(e)

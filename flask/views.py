@@ -441,30 +441,25 @@ def email_status():
     
     # A reminder email?
     if 'reminder_msg_id' in db_record['data']:
-      msg = db['reminder_msgs'].find_one({'_id':db_record['reminder_msg_id']})
+      msg = db['reminder_msgs'].find_one({'_id':db_record['data']['reminder_msg_id']})
       
-      error_msg = ''
       if event == 'bounced':
         logger.info('%s %s (%s). %s', recipient, event, request.form['code'], request.form['error'])
-        db['reminder_msgs'].update({email['mid']:mid},{'$set':{
-          'email_status': event,
-          'email_error': request.form['code'] + '. ' + request.form['error']
-          }}
-        )
-      elif event == 'dropped':
-        # Don't overwrite a bounced with a dropped status
-        if msg['email_status'] == 'bounced':
-          event = 'bounced'
         
+        db['reminder_msgs'].update({email['mid']: mid}, {'$set':{
+            email['status']: event,
+            email['error']: request.form['code'] + '. ' + request.form['error']
+        }})
+      elif event == 'dropped':
         logger.info('%s %s (%s). %s', recipient, event, request.form['reason'], request.form['description'])
-        db['reminder_msgs'].update({'mid':mid},{'$set':{
-          'email_status': event,
-          'email_error': request.form['reason'] + '. ' + request.form['description']
-          }}
-        )
+        
+        db['reminder_msgs'].update({email['mid']: mid},{'$set':{
+          email['status']: event,
+          email['error']: request.form['reason'] + '. ' + request.form['description']
+        }})
       else:
         logger.info('%s %s', recipient, event)
-        db['reminder_msgs'].update({'mid':mid},{'$set':{'email_status':event}})
+        db['reminder_msgs'].update({email['mid']: mid},{'$set':{email['status']: event}})
   
       #socketio.emit('update_msg', {'id':str(msg['_id']), 'email_status': request.form['event']})
   

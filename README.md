@@ -3,6 +3,7 @@
 ```json
 "reminder_msgs": {
   "job_id": "[BSON ObjectId]",
+  "name": "",
   "call": {
     "sid": "twilio_call_id",
     "status": ["pending","active","failed","pending","queued","ringing","in-progress","busy","no-answer"], 
@@ -24,7 +25,6 @@
   },
   "template": {
     "no_pickup": "[bool]",
-    "name": "",
     "next_pickup": "",
     "other imported fields ..."
   }

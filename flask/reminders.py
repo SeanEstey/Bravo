@@ -252,35 +252,6 @@ def get_speak(job, msg, answered_by, medium='voice'):
       logger.error('Invalid date in get_speak: ' + str(msg['imported']['event_date']))
       return False
 
-  repeat_voice = 'To repeat this message press 1. '
-  speak = ''
-
-  if job['template'] == 'etw_reminder':
-    etw_intro = 'Hi, this is a friendly reminder that your Empties to WINN '
-    if msg['imported']['status'] == 'Dropoff':
-      speak += etw_intro + 'dropoff date is ' + date_str + '. If you have any empties you can leave them out by 8am. '
-    elif msg['imported']['status'] == 'Active':
-      speak += etw_intro + 'pickup date is ' + date_str + '. Please have your green bags out by 8am. Glass can be separated into cases. Your pickup date again is ' + date_str + '. '
-    elif msg['imported']['status'] == 'Cancelling':
-      speak += etw_intro + 'bag stand will be picked up on ' + date_str + '. Thanks for your past support. '
-    elif msg['imported']['status'] == 'One-time':
-      speak += etw_intro + ' one time pickup is ' + date_str + '. Please have your empties out by 8am. '
-    
-    if medium == 'voice' and answered_by == 'human':
-      speak += repeat_voice
-      if msg['imported']['status'] == 'Active':
-        speak += 'If you do not need a pickup, press 2. '
-
-  elif job['template'] == 'gg_delivery':
-    speak = ('Hi, this is a friendly reminder that your green goods delivery will be on ' +
-      date_str + '. Your order total is ' + msg['imported']['price'] + '. ')
-    if medium == 'voice' and answered_by == 'human':
-      speak += repeat_voice
-  elif job['template'] == 'announce_text':
-    speak = job['message']
-    if medium == 'voice' and answered_by == 'human':
-      speak += repeat_voice
-    
   response = twilio.twiml.Response()
   response.say(speak, voice='alice')
   db['msgs'].update({'_id':msg['_id']},{'$set':{'speak':speak}})
@@ -373,110 +344,6 @@ def set_no_pickup(url, params):
   logger.info('No pickup for account %s', params['account'])
 
   return r.status_code
-
-def get_no_pickup_html_body(next_pickup_dt):
-  date_str = next_pickup_dt.strftime('%A, %B %d')
-
-  body = '''
-    <html>
-      <body style='font-size:12pt; text-align:left'>
-        <div>
-          <p>Thanks for letting us know you don't need a pickup. 
-          This helps us to be more efficient with our resources.</p>
-          
-          <p>Your next pickup date will be on:</p>
-          <p><h3>!DATE!</h3></p>
-        </div>
-        <div>
-          1-888-YOU-WINN
-          <br>
-          <a href='http://www.emptiestowinn.com'>www.emptiestowinn.com</a>
-        </div>
-      </body>
-    </html>
-  '''
-
-  body = body.replace('!DATE!', date_str)
-
-  return body
-
-def get_reminder_html_body(job, msg):
-  try:
-    date_str = msg['imported']['event_date'].strftime('%A, %B %d')
-  except TypeError:
-    logger.error('Invalid date in get_email: ' + str(msg['imported']['event_date']))
-    return False
-
-  if job['template'] == 'etw_reminder':
-    if msg['imported']['status'] == 'Active' or msg['imported']['status'] == 'Call-in' or msg['imported']['status'] == 'One-time':
-      a_style = '''
-        color:#ffffff!important;
-        display:inline-block;
-        font-weight:500;
-        font-size:16px;
-        line-height:42px;
-        font-family:\'Helvetica\',Arial,sans-serif;
-        width:auto;
-        white-space:nowrap;
-        min-height:42px;
-        margin-top:12px;
-        margin-bottom:12px;
-        padding-top:0px;
-        padding-bottom:0px;
-        padding-left:22px;
-        padding-right:22px;
-        text-decoration:none;
-        text-align:center;
-        border:0;
-        border-radius:3px;
-        vertical-align:top;
-        background-color:#337ab7!important
-      '''.replace('\n', '').replace(' ', '')
-
-      body = '''
-        <html>
-          <body style='font-size:12pt; text-align:left'>
-            <div>
-              <p>Hi, your upcoming Empties to WINN pickup date is</p>
-              <p><h3>!DATE!</h3></p>
-              <p>Your green bags can be placed at your front entrance, visible from the street, by 8am. 
-              Please keep each bag under 30lbs.  
-              Extra glass can be left in cases to the side.</p>
-              <p><a style="!STYLE!" href='!HREF!'>Click here to cancel your pickup</a></p>
-            </div>
-            <div>
-              1-888-YOU-WINN
-              <br>
-              <a href='http://www.emptiestowinn.com'>www.emptiestowinn.com</a>
-            </div>
-          </body>
-        </html>
-      '''
-
-      body = body.replace('!DATE!', date_str)
-      body = body.replace('!STYLE!', a_style)
-      body = body.replace('!HREF!', PUB_URL + '/nopickup/' + str(msg['_id']))
-    elif msg['imported']['status'] == 'Dropoff':
-      return False
-    elif msg['imported']['status'] == 'Cancelling':
-      body = '''
-        <html>
-          <body style='font-size:12pt; text-align:left;'>
-            <p>Hi, this is a reminder that a driver will be by on !DATE! 
-            to pickup your Empties to WINN collection stand.
-            Thanks for your support.</p>
-            <div>
-              1-888-YOU-WINN
-              <br>
-              <a href='http://www.emptiestowinn.com'>www.emptiestowinn.com</a>
-            </div>
-          </body>
-        </html>
-      '''
-
-      body = body.replace('!DATE!', date_str)
-
-    return body
 
 
 def parse_csv(csvfile, template):
@@ -581,38 +448,44 @@ def job_db_dump(job_id):
   }
   return summary
 
-def call_db_doc(job, idx, buf_row, errors):
+# job: mongodb "reminder_jobs" record
+# buf_row: array of values from csv file
+def create_call_db_record(job, idx, buf_row, errors):
   template = TEMPLATE[job['template']]
   
   msg = {
-    'job_id': job['_id'],
-    'attempts': 0,
-    'imported': {}
+    "job_id": job['_id'],
+    "call": {
+      "status": "pending"
+      "attempts": 0,
+    },
+    "email": {
+      "status": "pending"
+    },
+    "template": {}
   }
-
-  if job['template'] == 'etw_reminder':
-    msg['next_pickup'] = ''
 
   # Translate column names to mongodb names ('Phone'->'to', etc)
   #logger.info(str(buf_row))
 
-  for col in range(0, len(template)):
-    if 'status_field' in template[col]:
-      msg[template[col]['status_field']] = 'pending'
-
-    field = template[col]['field']
-    if field != 'event_date':
-      msg['imported'][field] = buf_row[col]
-    else:
-      if buf_row[col] == '':
-        errors.append('Row '+str(idx+1)+ ': ' + str(buf_row) + ' <b>Missing Date</b><br>')
-        return False
+  for i, field in enumerate(template):
+    # Convert any date strings to datetime obj
+    if field['type'] == 'date':
       try:
-        event_dt_str = parse(buf_row[col])
-        msg['imported'][field] = event_dt_str
+        buf_row[i] = parse(buf_row[i])
       except TypeError as e:
         errors.append('Row '+str(idx+1)+ ': ' + str(buf_row) + ' <b>Invalid Date</b><br>')
-        return False 
+    
+    db_field = field['db_field']
+    
+    if db_field.find('.') == -1:
+      msg[db_field] = buf_row[i]
+    # dot notation means record is stored as sub-record
+    else:
+      parent = db_field[0 : db_field.find('.')]
+      child = db_field[db_field.find('.')+1 : len(db_field)]
+      msg[parent][child] = buf_row[i]
+   
 
   msg['imported']['to'] = strip_phone(msg['imported']['to'])
   return msg

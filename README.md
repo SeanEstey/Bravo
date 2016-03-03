@@ -16,7 +16,7 @@
     "ended_at": "[datetime]",
   },
   "email": {
-    "recipient", "",
+    "recipient": "email_address",
     "mid":  "mailgun_email_id_string", 
     "status": ["pending", "bounced", "dropped", "delivered"], 
   },

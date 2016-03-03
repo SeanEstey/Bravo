@@ -2,27 +2,40 @@
 <br>
 ```json
 "reminder_msgs": {
-  "job_id": "BSON ObjectId", 
-  "call_status": "pending, active, failed, pending, queued, ringing, in-progress, busy, no-answer", 
-  "email_status": "pending, bounced, dropped, delivered", 
-  "attempts": "[Number]", 
-  "answered_by": "human, machine", 
-  "call_duration": "[twilio_number_seconds]", 
-  "mid":  "[mailgun_email_id_string]", 
-  "call_error": "", 
-  "error_code": "", 
-  "message": "[for announce template]", 
-  "sid": "twilio_call_id_string", 
-  "speak": "", 
-  "code": "", 
-  "ended_at": "[datetime]", 
-  "rfu": "", 
-  "no_pickup": "true, false", 
-  "next_pickup": [datetime]
-},
-"reminder_jobs": {
-  "status", "fire_dtime", "num_calls", "template", "audio_url", "message"
+  "job_id": "[BSON ObjectId]",
+  "call": {
+    "to": "",
+    "status": ["pending", "active", "failed", "pending", "queued", "ringing", "in-progress", "busy", "no-answer"], 
+    "attempts": "[Number]",
+    "answered_by": "human, machine", 
+    "duration": "[twilio_number_seconds]",
+    "error": "",
+    "code": "",
+    "speak": "",
+    "sid": "twilio_call_id_string", 
+    "ended_at": "[datetime]",
+  },
+  "email": {
+    "recipient", "",
+    "mid":  "mailgun_email_id_string", 
+    "status": ["pending", "bounced", "dropped", "delivered"], 
+  },
+  "template": {
+    "no_pickup": "[bool]",
+    "name": "",
+    "next_pickup": "",
+    "other imported fields ..."
   }
+}
+```
+```json
+"reminder_jobs": {
+  "status": ["pending", "in-progress", "completed"], 
+  "fire_dtime": "[datetime]", 
+  "num_calls": "[Number]", 
+  "template": "template_name_string", 
+  "audio_url": "saved_audio_message_url"
+}
 ```
 
 <h2>Instructions</h2>

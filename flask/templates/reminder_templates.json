@@ -1,26 +1,26 @@
 TEMPLATE = {
   "etw_reminder": [
-    {"header": "Account", "field": "account", "hide": true},
-    {"header": "Name", "field": "name"},
-    {"header": "Phone", "field": "to", "status_field": "call_status"},
-    {"header": "Email", "field": "email", "status_field": "email_status"},
-    {"header": "Block", "field": "block", "hide": true},
-    {"header": "Status", "field": "status"},
-    {"header": "Next P/U Date", "field": "event_date"},
-    {"header": "Office Notes", "field": "office_notes"}
+    {"file_header": "Account", "db_field": call["account_id"], "hide": true},
+    {"file_header": "Name", "db_field": "name"},
+    {"file_header": "Phone", "db_field": "to", "status_field": "call_status"},
+    {"file_header": "Email", "db_field": "email", "status_field": "email_status"},
+    {"file_header": "Block", "db_field": "block", "hide": true},
+    {"file_header": "Status", "db_field": "status"},
+    {"file_header": "Next P/U Date", "db_field": "event_date"},
+    {"file_header": "Office Notes", "db_field": "office_notes"}
   ],
   "gg_delivery": [
-    {"header": "Name", "field": "name"},
-    {"header": "Phone", "field": "to", "status_field": "call_status"},
-    {"header": "Date", "field": "event_date"},
-    {"header": "Price", "field": "price"}
+    {"file_header": "Name", "db_field": "name"},
+    {"file_header": "Phone", "db_field": "to", "status_field": "call_status"},
+    {"file_header": "Date", "db_field": "event_date"},
+    {"file_header": "Price", "db_field": "price"}
   ],
   "announce_text": [
-    {"header": "Name", "field": "name"},
-    {"header": "Phone","field": "to", "status_field": "call_status"}
+    {"file_header": "Name", "db_field": "name"},
+    {"file_header": "Phone","db_field": "to", "status_field": "call_status"}
   ],
   "announce_voice": [
-    {"header": "Name", "field": "name"},
-    {"header": "Phone", "field": "to", "status_field": "call_status"}
+    {"file_header": "Name", "db_field": "name"},
+    {"file_header": "Phone", "db_field": "to", "status_field": "call_status"}
   ]
 }

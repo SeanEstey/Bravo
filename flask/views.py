@@ -332,10 +332,11 @@ def send_email():
     r = json.loads(r.text)
     
     if r['message'].find('Queued') == 0:
-      args['mid'] = r['id']
-      args['status'] = 'queued'
-      
-      db['email_status'].insert(args)
+      db['email_status'].insert({
+        "mid": r['id'],
+        "status": "queued",
+        "data": args
+      })
 
       logger.info('Queued email to ' + args['recipient'])
 
@@ -428,21 +429,24 @@ def email_status():
     
     db_record['status'] = event
     
+    if not 'data' in db_record:
+      return 'OK'
+    
     # Where did this email originate from?
     
     # Google Sheets?
-    if 'sheet_name' in db_record:
-      gsheets.update_entry(db_record)
+    if 'sheet_name' in db_record['data']:
+      gsheets.update_entry(db_record['data'])
       return 'OK'
     
     # A reminder email?
-    if 'reminder_msg_id' in db_record:
+    if 'reminder_msg_id' in db_record['data']:
       msg = db['reminder_msgs'].find_one({'_id':db_record['reminder_msg_id']})
       
       error_msg = ''
       if event == 'bounced':
         logger.info('%s %s (%s). %s', recipient, event, request.form['code'], request.form['error'])
-        db['reminder_msgs'].update({'mid':mid},{'$set':{
+        db['reminder_msgs'].update({email['mid']:mid},{'$set':{
           'email_status': event,
           'email_error': request.form['code'] + '. ' + request.form['error']
           }}

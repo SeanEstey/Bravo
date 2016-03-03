@@ -1,4 +1,5 @@
-<h2>Instructions</h2><br>
+<h2>Instructions</h2>
+<br>
 
 Install Dependencies
 <br>

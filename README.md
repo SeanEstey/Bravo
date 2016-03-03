@@ -5,7 +5,7 @@
   "job_id": "[BSON ObjectId]",
   "call": {
     "to": "",
-    "status": ["pending", "active", "failed", "pending", "queued", "ringing", "in-progress", "busy", "no-answer"], 
+    "status": ["pending","active","failed","pending","queued","ringing","in-progress","busy","no-answer"], 
     "attempts": "[Number]",
     "answered_by": "human, machine", 
     "duration": "[twilio_number_seconds]",

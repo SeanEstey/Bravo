@@ -4,6 +4,7 @@
 "reminder_msgs": 
 <br>
 `{"job_id", "call_status", "email_status", "attempts", "answered_by", "call_duration", "mid", "call_error", "error_code", "message", "sid", "speak", "code", "ended_at", "rfu", "no_pickup", "next_pickup"}`
+<br>
 "reminder_jobs":
 <br>
 `{"status", "fire_dtime", "num_calls", "template", "audio_url", "message"}`

@@ -1,13 +1,13 @@
 TEMPLATE = {
   "etw_reminder": [
-    {"file_header": "Account", "db_field": "account_id", "hide": true},
-    {"file_header": "Name", "db_field": "name"},
-    {"file_header": "Phone", "db_field": "call.to"},
-    {"file_header": "Email", "db_field": "email.recipient"},
-    {"file_header": "Block", "db_field": "template.block", "hide": true},
-    {"file_header": "Status", "db_field": "template.status"},
+    {"file_header": "Account", "db_field": "account_id", "hide": true, "type":"string"},
+    {"file_header": "Name", "db_field": "name", "type":"string"},
+    {"file_header": "Phone", "db_field": "call.to" ,"type":"string"},
+    {"file_header": "Email", "db_field": "email.recipient", "type":"string"},
+    {"file_header": "Block", "db_field": "template.block", "hide": true, "type":"string"},
+    {"file_header": "Status", "db_field": "template.status", "type":"string"},
     {"file_header": "Next Pickup", "db_field": "template.next_pickup", "type":"date"},
-    {"file_header": "Office Notes", "db_field": "template.office_notes"}
+    {"file_header": "Office Notes", "db_field": "template.office_notes", "type":"string"}
   ],
   "gg_delivery": [
     {"file_header": "Name", "db_field": "name"},

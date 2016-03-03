@@ -418,56 +418,54 @@ def email_status():
     if not db_record:
       logger.info('Reminder email to ' + recipient + ' ' + event)
       return 'OK'
-    else:
-      logger.info('Email to ' + recipient + ' ' + event)
+      
+    logger.info('Email to ' + recipient + ' ' + event)
     
     db['email_status'].update(
       {'mid': mid},
       {'$set': {'status': event}}
     )
-
+    
     db_record['status'] = event
-
-    # Did email originate from Google Sheet?
+    
+    # Where did this email originate from?
+    
+    # Google Sheets?
     if 'sheet_name' in db_record:
       gsheets.update_entry(db_record)
-      
-    return 'OK'
-
-    '''
-    mid = request.form['Message-Id']
-    msg = db['reminder_msgs'].find_one({'mid':mid})
-    # Email may be for job summary or other purposes not needing this webhook callback
-    if not msg:
-      return 'No mid matching email' 
+      return 'OK'
     
-    error_msg = ''
-    if event == 'bounced':
-      logger.info('%s %s (%s). %s', recipient, event, request.form['code'], request.form['error'])
-      db['reminder_msgs'].update({'mid':mid},{'$set':{
-        'email_status': event,
-        'email_error': request.form['code'] + '. ' + request.form['error']
-        }}
-      )
-    elif event == 'dropped':
-      # Don't overwrite a bounced with a dropped status
-      if msg['email_status'] == 'bounced':
-        event = 'bounced'
+    # A reminder email?
+    if 'reminder_msg_id' in db_record:
+      msg = db['reminder_msgs'].find_one({'_id':db_record['reminder_msg_id']})
       
-      logger.info('%s %s (%s). %s', recipient, event, request.form['reason'], request.form['description'])
-      db['reminder_msgs'].update({'mid':mid},{'$set':{
-        'email_status': event,
-        'email_error': request.form['reason'] + '. ' + request.form['description']
-        }}
-      )
-    else:
-      logger.info('%s %s', recipient, event)
-      db['reminder_msgs'].update({'mid':mid},{'$set':{'email_status':event}})
-
-    socketio.emit('update_msg', {'id':str(msg['_id']), 'email_status': request.form['event']})
-
-    return 'OK'
-    '''
+      error_msg = ''
+      if event == 'bounced':
+        logger.info('%s %s (%s). %s', recipient, event, request.form['code'], request.form['error'])
+        db['reminder_msgs'].update({'mid':mid},{'$set':{
+          'email_status': event,
+          'email_error': request.form['code'] + '. ' + request.form['error']
+          }}
+        )
+      elif event == 'dropped':
+        # Don't overwrite a bounced with a dropped status
+        if msg['email_status'] == 'bounced':
+          event = 'bounced'
+        
+        logger.info('%s %s (%s). %s', recipient, event, request.form['reason'], request.form['description'])
+        db['reminder_msgs'].update({'mid':mid},{'$set':{
+          'email_status': event,
+          'email_error': request.form['reason'] + '. ' + request.form['description']
+          }}
+        )
+      else:
+        logger.info('%s %s', recipient, event)
+        db['reminder_msgs'].update({'mid':mid},{'$set':{'email_status':event}})
+  
+      #socketio.emit('update_msg', {'id':str(msg['_id']), 'email_status': request.form['event']})
+  
+      return 'OK'
+    
   except Exception, e:
     logger.info('%s /email/status' % request.values.items(), exc_info=True)
     return str(e)

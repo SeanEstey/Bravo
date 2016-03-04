@@ -26,7 +26,7 @@
   },
   "template": {
     "no_pickup": "[bool]",
-    "next_pickup": "",
+    "next_pickup": "[datetime]",
     "other imported fields ..."
   }
 }

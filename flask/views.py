@@ -447,19 +447,19 @@ def email_status():
         logger.info('%s %s (%s). %s', recipient, event, request.form['code'], request.form['error'])
         
         db['reminder_msgs'].update({email['mid']: mid}, {'$set':{
-            email['status']: event,
-            email['error']: request.form['code'] + '. ' + request.form['error']
+          "email.status": event,
+          "email.error": request.form['code'] + '. ' + request.form['error']
         }})
       elif event == 'dropped':
         logger.info('%s %s (%s). %s', recipient, event, request.form['reason'], request.form['description'])
         
         db['reminder_msgs'].update({email['mid']: mid},{'$set':{
-          email['status']: event,
-          email['error']: request.form['reason'] + '. ' + request.form['description']
+          "email.status": event,
+          "email.error": request.form['reason'] + '. ' + request.form['description']
         }})
       else:
         logger.info('%s %s', recipient, event)
-        db['reminder_msgs'].update({email['mid']: mid},{'$set':{email['status']: event}})
+        db['reminder_msgs'].update({email['mid']: mid},{'$set':{"email.status": event}})
   
       #socketio.emit('update_msg', {'id':str(msg['_id']), 'email_status': request.form['event']})
   

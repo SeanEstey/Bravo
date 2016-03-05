@@ -145,57 +145,11 @@ def cancel_job(job_id):
       return 'error'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/request/email/<job_id>')
+@flask_app.route('/reminders/<job_id>/send_emails')
 @login_required
-def request_email_job(job_id):
-  try:
-    job_id = job_id.encode('utf-8')
-    job = db['reminder_jobs'].find_one({'_id':ObjectId(job_id)})
-    messages = db['reminder_msgs'].find({'job_id':ObjectId(job_id)})
-    emails = []
-    
-    for message in messages:
-      if message['email_status'] != 'pending':
-        continue
-      
-      if not message['imported']['email']:
-        db['reminder_msgs'].update(
-          {'_id':message['_id']}, 
-          {'$set': {'email_status': 'no_email'}}
-        )
-        continue
-        #send_socket('update_msg', {'id':str(message['_id']), 'email_status': 'no_email'})
-      
-      html = render_template('email_reminder.html', args={
-        'name': message['imported']['name'],
-        'recipient': message['imported']['email'],
-        'next_pickup': message['imported']['event_date'],
-        'status': message['imported']['status']
-      })
-      
-      subject = 'Reminder: Upcoming event on  ' + message['imported']['event_date'].strftime('%A, %B %d')
-      
-      r = utils.send_email(message['imported']['email'], subject, html)
-      r = json.loads(r.text)
-
-      if r['message'].find('Queued') == 0:
-        db['reminder_msgs'].update(
-          {'_id':message['_id']}, 
-          {'$set': {
-            'mid':r['id'],
-            'email_status': 'queued'
-          }}
-        )
-          
-        logger.info('%s %s', message['imported']['email'], 'queued')
-        #send_socket('update_msg', {'id':str(message['_id']), 'email_status': 'queued'})
-      else:
-        logger.info('%s %s', message['imported']['email'], r['message'])
-        #send_socket('update_msg', {'id':str(message['_id']), 'email_status': 'failed'})
-
-    return 'OK'
-  except Exception, e:
-    logger.error('/request/email', exc_info=True)
+def send_reminder_emails(job_id):
+  reminders.send_emails(job_id)
+  return 'OK'
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/request/execute/<job_id>')
@@ -460,7 +414,7 @@ def process_receipts():
 # Required fields: 'recipient', 'template', 'subject'
 # Required fields for updating Google Sheets: 'sheet_name', 'worksheet_name', 'row', 'upload_status'
 @flask_app.route('/email/send', methods=['POST'])
-def send_email():
+def send_email(): 
   try:
     args = request.get_json(force=True)
 

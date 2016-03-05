@@ -177,7 +177,7 @@ def cancel_call():
   return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/nopickup/<msg_id>', methods=['GET'])
+@flask_app.route('/reminders/cancel_pickup/<msg_id>', methods=['GET'])
 # Script run via reminder email
 def no_pickup(msg_id):
   reminders.cancel_pickup.apply_async((msg_id,), queue=DB_NAME)

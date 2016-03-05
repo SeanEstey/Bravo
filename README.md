@@ -24,7 +24,7 @@
     "error_msg": "",
     "error_code": ""
   },
-  "template": {
+  "custom": {
     "no_pickup": "[bool]",
     "next_pickup": "[datetime]",
     "other imported fields ..."

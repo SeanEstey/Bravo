@@ -19,7 +19,7 @@ import utils
 from config import *
 
 #-------------------------------------------------------------------------------
-def view_main():
+def view_jobs():
   if request.method == 'GET':
     # If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
     # If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
@@ -66,14 +66,14 @@ def check_jobs():
 
 #-------------------------------------------------------------------------------
 @celery_app.task
-def execute_job(job_id):
+def send_calls(job_id):
   try:
     job_id = ObjectId(job_id)
     job = db['jobs'].find_one({'_id':job_id})
     # Default call order is alphabetically by name
     messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
     logger.info('\n\nStarting Job %s [ID %s]', job['name'], str(job_id))
-    db['jobs'].update(
+    db['reminder_jobs'].update(
       {'_id': job['_id']},
       {'$set': {
         'status': 'in-progress',
@@ -111,8 +111,43 @@ def execute_job(job_id):
     logger.error('execute_job job_id %s', str(job_id), exc_info=True)
 
 #-------------------------------------------------------------------------------
+def send_emails(job_id):
+ try:
+    job_id = job_id.encode('utf-8')
+    job = db['reminder_jobs'].find_one({'_id':ObjectId(job_id)})
+    reminder_msgs = db['reminder_msgs'].find({'job_id':ObjectId(job_id)})
+    emails = []
+    
+    for msg in reminder_msgs:
+      if msg['email']['status'] != 'pending':
+        continue
+      
+      if not msg['email']['recipient']:
+        db['reminder_msgs'].update(
+          {'_id':msg['_id']}, 
+          {'$set': {'email_status': 'no_email'}}
+        )
+        continue
+        #send_socket('update_msg', {'id':str(msg['_id']), 'email_status': 'no_email'})
+      
+      r = requests.post(PUB_URL + '/email/send', data=json.dumps({
+        "recipient": msg['email']['recipient'],
+        "template": job['template']['email_template'],
+        "subject": job['template']['email_subject'],
+        "name": msg['name'],
+        "args": msg['custom']
+      }))
+      
+      TODO: Add date into subject
+      #subject = 'Reminder: Upcoming event on  ' + msg['imported']['event_date'].strftime('%A, %B %d')
+
+    return 'OK'
+  except Exception, e:
+    logger.error('reminders.send_emails()', exc_info=True)
+
+#-------------------------------------------------------------------------------
 @celery_app.task
-def monitor_job(job_id):
+def monitor_calls(job_id):
   try:
     logger.info('Tasks: Monitoring Job')
     job_id = ObjectId(job_id)
@@ -272,40 +307,7 @@ def get_speak(job, msg, answered_by, medium='voice'):
     )
   return Response(str(response), mimetype='text/xml')
 
-#-------------------------------------------------------------------------------
-def send_emails(job_id):
- try:
-    job_id = job_id.encode('utf-8')
-    job = db['reminder_jobs'].find_one({'_id':ObjectId(job_id)})
-    reminder_msgs = db['reminder_msgs'].find({'job_id':ObjectId(job_id)})
-    emails = []
-    
-    for msg in reminder_msgs:
-      if msg['email']['status'] != 'pending':
-        continue
-      
-      if not msg['email']['recipient']:
-        db['reminder_msgs'].update(
-          {'_id':msg['_id']}, 
-          {'$set': {'email_status': 'no_email'}}
-        )
-        continue
-        #send_socket('update_msg', {'id':str(msg['_id']), 'email_status': 'no_email'})
-      
-      r = requests.post(PUB_URL + '/email/send', data=json.dumps({
-        "recipient": msg['email']['recipient'],
-        "template": job['template']['email_template'],
-        "subject": job['template']['email_subject'],
-        "name": msg['name'],
-        "args": msg['custom']
-      }))
-      
-      TODO: Add date into subject
-      #subject = 'Reminder: Upcoming event on  ' + msg['imported']['event_date'].strftime('%A, %B %d')
 
-    return 'OK'
-  except Exception, e:
-    logger.error('reminders.send_emails()', exc_info=True)
 
 #-------------------------------------------------------------------------------
 def send_email_report(job_id):

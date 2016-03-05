@@ -172,25 +172,25 @@ def submit():
       job['_id'] = job_id
 
       errors = []
-      calls = []
+      reminder_msgs = []
       for idx, row in enumerate(buffer):
-        call = reminders.call_db_doc(job, idx, row, errors)
-        if call:
-          calls.append(call)
+        msg = reminders.create_msg_record(job_id, request.form['template'], idx, row, errors)
+        if msg:
+          reminder_msgs.append(msg)
 
       if len(errors) > 0:
-        msg = 'The file <b>' + filename + '</b> has some errors:<br><br>'
+        e = 'The file <b>' + filename + '</b> has some errors:<br><br>'
         for error in errors:
-          msg += error
+          e += error
         db['reminder_jobs'].remove({'_id':job_id})
-        r = json.dumps({'status':'error', 'title':'File Format Problem', 'msg':msg})
+        r = json.dumps({'status':'error', 'title':'File Format Problem', 'msg':e})
         return Response(response=r, status=200, mimetype='application/json')
 
-      db['reminder_msgs'].insert(calls)
+      db['reminder_msgs'].insert(reminder_msgs)
       logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
 
       jobs = db['reminder_jobs'].find().sort('fire_dtime',-1)
-      banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(calls)) + ' calls imported.'
+      banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(reminder_msgs)) + ' messages imported.'
       r = json.dumps({'status':'success', 'msg':banner_msg})
 
       if job['template'] == 'etw_reminder':

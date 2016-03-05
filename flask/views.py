@@ -6,13 +6,6 @@ from flask import Flask,request,g,Response,url_for, render_template
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from bson.objectid import ObjectId
 
-# Move to reminders.py after refactor
-from werkzeug import secure_filename
-import codecs
-import csv
-import os
-from dateutil.parser import parse
-
 from app import flask_app, db, logger, login_manager, socketio
 import reminders
 import log

@@ -273,6 +273,41 @@ def get_speak(job, msg, answered_by, medium='voice'):
   return Response(str(response), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
+def send_emails(job_id):
+ try:
+    job_id = job_id.encode('utf-8')
+    job = db['reminder_jobs'].find_one({'_id':ObjectId(job_id)})
+    reminder_msgs = db['reminder_msgs'].find({'job_id':ObjectId(job_id)})
+    emails = []
+    
+    for msg in reminder_msgs:
+      if msg['email']['status'] != 'pending':
+        continue
+      
+      if not msg['email']['recipient']:
+        db['reminder_msgs'].update(
+          {'_id':msg['_id']}, 
+          {'$set': {'email_status': 'no_email'}}
+        )
+        continue
+        #send_socket('update_msg', {'id':str(msg['_id']), 'email_status': 'no_email'})
+      
+      r = requests.post(PUB_URL + '/email/send', data=json.dumps({
+        "recipient": msg['email']['recipient'],
+        "template": job['template']['email_template'],
+        "subject": job['template']['email_subject'],
+        "name": msg['name'],
+        "args": msg['custom']
+      }))
+      
+      TODO: Add date into subject
+      #subject = 'Reminder: Upcoming event on  ' + msg['imported']['event_date'].strftime('%A, %B %d')
+
+    return 'OK'
+  except Exception, e:
+    logger.error('reminders.send_emails()', exc_info=True)
+
+#-------------------------------------------------------------------------------
 def send_email_report(job_id):
   try:
     if isinstance(job_id, str):

@@ -113,93 +113,9 @@ def get_job_template(name):
 @flask_app.route('/reminders/submit', methods=['POST'])
 @login_required
 def submit():
-  try:
-      # POST request to create new job from new_job.html template
-      file = request.files['call_list']
-      if file and reminders.allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(UPLOAD_FOLDER, filename)) 
-        file_path = UPLOAD_FOLDER + '/' + filename
-      else:
-        logger.info('could not save file')
-        r = json.dumps({'status':'error', 'title': 'Filename Problem', 'msg':'Could not save file'})
-        return Response(response=r, status=200, mimetype='application/json')
-  except Exception as e:
-      logger.info(str(e))
-      return Response(response={'status':'error', 'title':'file problem', 'msg':'could not upload file'},status=200,mimetype='application/json')
-
-  # Open and parse file
-  try:
-    with codecs.open(file_path, 'r', 'utf-8-sig') as f:
-      logger.info('opened file')
-      #if f[0] == unicode(codecs.BOM_UTF8, 'utf8'):
-      #  logger.info('stripping BOM_UTF8 char')
-      #  f.lstrip(unicode(codecs.BOM_UTF8, 'utf8'))
-      buffer = reminders.parse_csv(f, TEMPLATE[request.form['template']])
-      if type(buffer) == str:
-        r = json.dumps({'status':'error', 'title': 'Problem Reading File', 'msg':buffer})
-        return Response(response=r, status=200, mimetype='application/json')
-      else:
-        logger.info('Parsed %d rows from %s', len(buffer), filename) 
-  except Exception as e:
-    logger.error(str(e))
-    r = json.dumps({'status':'error', 'title': 'Problem Reading File', 'msg':'Could not parse file: ' + str(e)})
-    return Response(response=r, status=200, mimetype='application/json')
-
-  try:
-      if not request.form['job_name']:
-        job_name = filename.split('.')[0].replace('_',' ')
-      else:
-        job_name = request.form['job_name']
-      
-      date_string = request.form['date']+' '+request.form['time']
-      fire_dtime = parse(date_string)
-      
-      job = {
-        'name': job_name,
-        'template': request.form['template'],
-        'fire_dtime': fire_dtime,
-        'status': 'pending',
-        'num_calls': len(buffer)
-      }
-
-      if request.form['template'] == 'announce_voice':
-        job['audio_url'] = request.form['audio-url']
-      elif request.form['template'] == 'announce_text':
-        job['message'] = request.form['message']
-        
-      job_id = db['reminder_jobs'].insert(job)
-      job['_id'] = job_id
-
-      errors = []
-      reminder_msgs = []
-      for idx, row in enumerate(buffer):
-        msg = reminders.create_msg_record(job_id, request.form['template'], idx, row, errors)
-        if msg:
-          reminder_msgs.append(msg)
-
-      if len(errors) > 0:
-        e = 'The file <b>' + filename + '</b> has some errors:<br><br>'
-        for error in errors:
-          e += error
-        db['reminder_jobs'].remove({'_id':job_id})
-        r = json.dumps({'status':'error', 'title':'File Format Problem', 'msg':e})
-        return Response(response=r, status=200, mimetype='application/json')
-
-      db['reminder_msgs'].insert(reminder_msgs)
-      logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
-
-      jobs = db['reminder_jobs'].find().sort('fire_dtime',-1)
-      banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(reminder_msgs)) + ' messages imported.'
-      r = json.dumps({'status':'success', 'msg':banner_msg})
-
-      if job['template'] == 'etw_reminder':
-        scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
-      
-      return Response(response=r, status=200, mimetype='application/json')
-  except Exception as e:
-      logger.info(str(e))
-      return Response(response={'status':'error', 'title':'error', 'msg':str(e)},status=500,mimetype='application/json')
+  file = request.files['call_list']
+  r = reminders.submit_job(request.form, file)
+  return Response(response=json.dumps(r), status=200, mimetype='application/json')
 
 @flask_app.route('/reminders/recordaudio', methods=['GET', 'POST'])
 def record_msg():

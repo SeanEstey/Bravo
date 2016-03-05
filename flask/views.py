@@ -180,55 +180,8 @@ def cancel_call():
 @flask_app.route('/reminders/nopickup/<msg_id>', methods=['GET'])
 # Script run via reminder email
 def no_pickup(msg_id):
-  try:
-    msg = db['reminder_msgs'].find_one({'_id':ObjectId(msg_id)})
-    # Link clicked for an outdated/in-progress or deleted job?
-    if not msg:
-      logger.info('No pickup request fail. Invalid msg_id')
-      return 'Request unsuccessful'
-
-    if 'no_pickup' in msg:
-      logger.info('No pickup already processed for account %s', msg['imported']['account'])
-      return 'Thank you'
-
-    job = db['reminder_jobs'].find_one({'_id':msg['job_id']})
-
-    no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
-    db['reminder_msgs'].update(
-      {'_id':msg['_id']},
-      {'$set': {
-        'imported.office_notes': no_pickup,
-        'no_pickup': True
-      }}
-    )
-    send_socket('update_msg', {
-      'id': str(msg['_id']),
-      'office_notes':no_pickup
-      })
-
-    # Write to eTapestry
-    if 'account' in msg['imported']:
-      url = 'http://bravovoice.ca/etap/etap.php'
-      params = {
-        'func':'no_pickup', 
-        'account': msg['imported']['account'], 
-        'date': msg['imported']['event_date'].strftime('%d/%m/%Y'),
-        'next_pickup': msg['next_pickup'].strftime('%d/%m/%Y')
-      }
-      tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
-
-    # Send email w/ next pickup
-    if 'next_pickup' in msg:
-      subject = 'Your next Pickup'
-      body = reminders.get_no_pickup_html_body(msg['next_pickup'])
-      utils.send_email([msg['imported']['email']], subject, body)
-      logger.info('Emailed Next Pickup to %s', msg['imported']['email'])
-    
-    return 'Thank you'
-  
-  except Exception, e:
-    logger.error('/nopickup/msg_id', exc_info=True)
-    return str(e)
+  reminders.cancel_pickup.apply_async((msg_id,), queue=DB_NAME)
+  return 'Thank You'
    
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/edit/call/<sid>', methods=['POST'])

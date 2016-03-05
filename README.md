@@ -72,7 +72,7 @@ cd Bravo
 Start RabbitMQ daemon<br>
 `rabbitmqctl start_app`<br>
 Start Flask Server:<br>
-`python server.py`<br>
+`python main.py`<br>
 
 Create private_config.py file with following variables set:
 <br>

@@ -196,6 +196,144 @@ def request_execute_job(job_id):
   reminders.execute_job.apply_async((job_id, ), queue=DB_NAME)
 
   return 'OK'
+  
+@flask_app.route('/reminders/call/answer',methods=['POST','GET'])
+def content():
+  try:
+    if request.method == 'POST':
+      sid = request.form.get('CallSid')
+      call_status = request.form.get('CallStatus')
+      to = request.form.get('To')
+      answered_by = ''
+      if 'AnsweredBy' in request.form:
+        answered_by = request.form.get('AnsweredBy')
+      logger.info('%s %s (%s)', to, call_status, answered_by)
+      call = db['reminder_msgs'].find_one({'sid':sid})
+
+      if not call:
+        # Might be special msg voice record call
+        record = db['bravo'].find_one({'sid':sid})
+        if record:
+          logger.info('Sending record twimlo response to client')
+          # Record voice message
+          response = twilio.twiml.Response()
+          response.say('Record your message after the beep. Press pound when complete.', voice='alice')
+          response.record(
+            method= 'GET',
+            action= PUB_URL+'/recordaudio',
+            playBeep= True,
+            finishOnKey='#'
+          )
+          send_socket('record_audio', {'msg': 'Listen to the call for instructions'}) 
+          return Response(str(response), mimetype='text/xml')
+
+      else:
+        db['reminder_msgs'].update(
+          {'sid':sid},
+          {'$set': {'call_status':call_status}}
+        )
+        call = db['reminder_msgs'].find_one({'sid':sid})
+        send_socket(
+          'update_msg', {
+            'id': str(call['_id']),
+            'call_status': call_status
+          }
+        )
+        job = db['reminder_jobs'].find_one({'_id':call['job_id']})
+        
+        return reminders.get_speak(job, call, answered_by)
+     
+    elif request.method == "GET":
+      sid = request.args.get('CallSid')
+      call = db['reminder_msgs'].find_one({'sid':sid})
+      job = db['reminder_jobs'].find_one({'_id':call['job_id']})
+      digits = request.args.get('Digits')
+      # Repeat Msg
+      if digits == '1':
+        return reminders.get_speak(job, call, 'human')
+      # Special Action (defined by template)
+      elif digits == '2' and 'no_pickup' not in call:
+        no_pickup = 'No Pickup ' + call['imported']['event_date'].strftime('%A, %B %d')
+        db['reminder_msgs'].update(
+          {'sid':sid},
+          {'$set': {'imported.office_notes': no_pickup}}
+        )
+        send_socket('update_msg', {
+          'id': str(call['_id']),
+          'office_notes':no_pickup
+          })
+        # Write to eTapestry
+        if 'account' in call['imported']:
+          url = 'http://bravovoice.ca/etap/etap.php'
+          params = {
+            'func': 'no_pickup', 
+            'account': call['imported']['account'], 
+            'date':  call['imported']['event_date'].strftime('%d/%m/%Y'),
+            'next_pickup': call['next_pickup'].strftime('%d/%m/%Y')
+          }
+          tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
+
+        if call['next_pickup']:
+          response = twilio.twiml.Response()
+          next_pickup_str = call['next_pickup'].strftime('%A, %B %d')
+          response.say('Thank you. Your next pickup will be on ' + next_pickup_str + '. Goodbye', voice='alice')
+          return Response(str(response), mimetype='text/xml')
+
+    response = twilio.twiml.Response()
+    response.say('Goodbye', voice='alice')
+    
+    return Response(str(response), mimetype='text/xml')
+  except Exception, e:
+    logger.error('/call/answer', exc_info=True)
+    
+    return str(e)
+  
+  
+@flask_app.route('/reminders/call/status',methods=['POST','GET'])
+def process_status():
+  try:
+    logger.debug('/call/status values: %s' % request.values.items())
+    sid = request.form.get('CallSid')
+    to = request.form.get('To')
+    call_status = request.form.get('CallStatus')
+    logger.info('%s %s', to, call_status)
+    fields = {
+      'call_status': call_status,
+      'ended_at': datetime.now(),
+      'call_duration': request.form.get('CallDuration')
+    }
+    call = db['reminder_msgs'].find_one({'sid':sid})
+
+    if not call:
+      # Might be an audio recording call
+      call = db['bravo'].find_one({'sid':sid})
+      if call:
+        logger.info('Record audio call complete')
+        db['bravo'].update({'sid':sid}, {'$set': {'call_status':call_status}})
+      return 'OK'
+
+    if call_status == 'completed':
+      answered_by = request.form.get('AnsweredBy')
+      fields['answered_by'] = answered_by
+      if 'speak' in call:
+        fields['speak'] = call['speak']
+    elif call_status == 'failed':
+      fields['call_error'] = 'unknown_error'
+      logger.info('/call/status dump: %s', request.values.items())
+
+    db['reminder_msgs'].update(
+      {'sid':sid},
+      {'$set': fields}
+    )
+    fields['id'] = str(call['_id'])
+    fields['attempts'] = call['attempts']
+    send_socket('update_msg', fields)
+    return 'OK'
+  except Exception, e:
+    logger.error('%s /call/status' % request.values.items(), exc_info=True)
+    return str(e)
+
+
 
 # Data sent from Routes worksheet in Gift Importer (Google Sheet)
 @flask_app.route('/collections/process_receipts', methods=['POST'])

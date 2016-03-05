@@ -4,7 +4,7 @@
   from config import *
   from app import logger
   
-  def view_log(file, num_lines):
+  def get_tail(file, num_lines):
     size = os.path.getsize(LOG_FILE)
   
     with open(file, "rb") as f:

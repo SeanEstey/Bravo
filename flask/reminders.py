@@ -618,7 +618,6 @@ def submit_job(form, file):
     logger.error(str(e))
     return {'status':'error', 'title': 'Problem Reading File', 'msg':'Could not parse file: ' + str(e)}
   
-  # C. Create mongo records
   try:
     if not form['job_name']:
       job_name = filename.split('.')[0].replace('_',' ')
@@ -628,17 +627,27 @@ def submit_job(form, file):
     date_string = form['date']+' '+form['time']
     fire_dtime = parse(date_string)
     
+    # C. Create mongo records
+    
+    reminder_name = form['template']
+    
+    # TODO: Open reminder_templates.json file, store definitions
+    with open("reminder_templates.json") as file:
+      reminder_def = json.load(file)
+    
+    reminder_def = reminder_def[form['template']]
+    
     job = {
       'name': job_name,
-      'template': form['template'],
+      'template': reminder_def,
       'fire_dtime': fire_dtime,
       'status': 'pending',
       'num_calls': len(buffer)
     }
 
-    if form['template'] == 'announce_voice':
+    if reminder_name == 'announce_voice':
       job['audio_url'] = form['audio-url']
-    elif form['template'] == 'announce_text':
+    elif reminder_name == 'announce_text':
       job['message'] = form['message']
       
     job_id = db['reminder_jobs'].insert(job)
@@ -647,7 +656,7 @@ def submit_job(form, file):
     errors = []
     reminder_msgs = []
     for idx, row in enumerate(buffer):
-      msg = create_msg_record(job_id, form['template'], idx, row, errors)
+      msg = create_msg_record(job_id, reminder_def['imports'], idx, row, errors)
       if msg:
         reminder_msgs.append(msg)
 
@@ -662,7 +671,7 @@ def submit_job(form, file):
     logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
     
     # Special case
-    if job['template'] == 'etw_reminder':
+    if reminder_name == 'etw':
       scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
 
     banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(reminder_msgs)) + ' messages imported.'

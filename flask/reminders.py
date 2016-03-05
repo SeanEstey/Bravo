@@ -379,6 +379,56 @@ def send_email_report(job_id):
 
 #-------------------------------------------------------------------------------
 @celery_app.task
+def cancel_pickup(msg_id):
+  try:
+    msg = db['reminder_msgs'].find_one({'_id':ObjectId(msg_id)})
+    # Link clicked for an outdated/in-progress or deleted job?
+    if not msg:
+      logger.info('No pickup request fail. Invalid msg_id')
+      return 'Request unsuccessful'
+
+    if 'no_pickup' in msg['custom']:
+      logger.info('No pickup already processed for account %s', msg['imported']['account'])
+      return 'Thank you'
+
+    job = db['reminder_jobs'].find_one({'_id':msg['job_id']})
+
+    no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
+    db['reminder_msgs'].update(
+      {'_id':msg['_id']},
+      {'$set': {
+        "custom.office_notes": no_pickup,
+        "custom.no_pickup": True
+      }}
+    )
+    # send_socket('update_msg', {
+    #  'id': str(msg['_id']),
+    #  'office_notes':no_pickup
+    #  })
+
+    # Write to eTapestry
+    etap.call('no_pickup', keys, {
+      "account": msg['account_id'], 
+      "date": msg['custom']['next_pickup'].strftime('%d/%m/%Y'),
+      "next_pickup": msg['custom']['next_pickup'].strftime('%d/%m/%Y')
+    })
+    
+    # Send email w/ next pickup
+    if 'next_pickup' in msg['custom']:
+      requests.post(PUB_URL + '/email/send', {
+        "recipient": msg['email']['recipient'],
+        "template": "email_no_pickup.html",
+        "subject": "Your next pickup"
+    })
+
+    logger.info('Emailed Next Pickup to %s', msg['email']['recipient'])
+
+  except Exception, e:
+    logger.error('/nopickup/msg_id', exc_info=True)
+    return str(e)
+
+#-------------------------------------------------------------------------------
+@celery_app.task
 def set_no_pickup(url, params):
   r = requests.get(url, params=params)
   

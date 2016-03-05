@@ -448,13 +448,14 @@ def job_db_dump(job_id):
   }
   return summary
 
-# job: mongodb "reminder_jobs" record
+# Create mongodb "reminder_msg" record from .CSV line
+# job_id: mongo "job_reminder" record_id in ObjectId format
+# job_template: array of definitions from reminder_templates.json file
 # buf_row: array of values from csv file
-def create_call_db_record(job, idx, buf_row, errors):
-  template = TEMPLATE[job['template']]
-  
+# line_index: file row index (for error tracking)
+def create_msg_record(job_id, job_template, line_index, buf_row, errors):
   msg = {
-    "job_id": job['_id'],
+    "job_id": job_id,
     "call": {
       "status": "pending"
       "attempts": 0,
@@ -465,18 +466,18 @@ def create_call_db_record(job, idx, buf_row, errors):
     "template": {}
   }
 
-  # Translate column names to mongodb names ('Phone'->'to', etc)
-  #logger.info(str(buf_row))
-
-  for i, field in enumerate(template):
+  for i, field in enumerate(job_template):
+    db_field = field['db_field']
+    
+    # Format phone numbers
+    if db_field == 'call.to':
+      buf_row[i] = strip_phone(buf_row[i])
     # Convert any date strings to datetime obj
-    if field['type'] == 'date':
+    elif field['type'] == 'date':
       try:
         buf_row[i] = parse(buf_row[i])
       except TypeError as e:
         errors.append('Row '+str(idx+1)+ ': ' + str(buf_row) + ' <b>Invalid Date</b><br>')
-    
-    db_field = field['db_field']
     
     if db_field.find('.') == -1:
       msg[db_field] = buf_row[i]
@@ -486,8 +487,6 @@ def create_call_db_record(job, idx, buf_row, errors):
       child = db_field[db_field.find('.')+1 : len(db_field)]
       msg[parent][child] = buf_row[i]
    
-
-  msg['imported']['to'] = strip_phone(msg['imported']['to'])
   return msg
 
 def allowed_file(filename):

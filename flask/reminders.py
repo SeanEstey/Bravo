@@ -18,6 +18,7 @@ from app import celery_app, db, logger, login_manager, socketio
 import utils
 from config import *
 
+#-------------------------------------------------------------------------------
 def view_main():
   if request.method == 'GET':
     # If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
@@ -36,6 +37,7 @@ def view_main():
       jobs=jobs
     )
 
+#-------------------------------------------------------------------------------
 @celery_app.task
 def check_jobs():
   pending_jobs = db['jobs'].find({'status': 'pending'})
@@ -62,6 +64,7 @@ def check_jobs():
 
   return pending_jobs.count()
 
+#-------------------------------------------------------------------------------
 @celery_app.task
 def execute_job(job_id):
   try:
@@ -107,6 +110,7 @@ def execute_job(job_id):
   except Exception, e:
     logger.error('execute_job job_id %s', str(job_id), exc_info=True)
 
+#-------------------------------------------------------------------------------
 @celery_app.task
 def monitor_job(job_id):
   try:
@@ -169,6 +173,7 @@ def monitor_job(job_id):
   except Exception, e:
     logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
 
+#-------------------------------------------------------------------------------
 def dial(to):
   try:
     twilio_client = twilio.rest.TwilioRestClient(
@@ -202,6 +207,7 @@ def dial(to):
     logger.error('twilio.dial exception %s', str(e), exc_info=True)
     return str(e)
 
+#-------------------------------------------------------------------------------
 def sms(to, msg):
   try:
     twilio_client = twilio.rest.TwilioRestClient(
@@ -233,13 +239,13 @@ def sms(to, msg):
 
     return False
 
+#-------------------------------------------------------------------------------
 def strip_phone(to):
   if not to:
     return ''
-
   return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
-
+#-------------------------------------------------------------------------------
 def get_speak(job, msg, answered_by, medium='voice'):
   # Simplest case: announce_voice template. Play audio file
   if job['template'] == 'announce_voice':
@@ -266,6 +272,7 @@ def get_speak(job, msg, answered_by, medium='voice'):
     )
   return Response(str(response), mimetype='text/xml')
 
+#-------------------------------------------------------------------------------
 def send_email_report(job_id):
   try:
     if isinstance(job_id, str):
@@ -335,6 +342,7 @@ def send_email_report(job_id):
   except Exception, e:
     logger.error('/send_email_report: %s', str(e))
 
+#-------------------------------------------------------------------------------
 @celery_app.task
 def set_no_pickup(url, params):
   r = requests.get(url, params=params)
@@ -347,7 +355,7 @@ def set_no_pickup(url, params):
 
   return r.status_code
 
-
+#-------------------------------------------------------------------------------
 def parse_csv(csvfile, template):
   reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
   buffer = []
@@ -389,6 +397,7 @@ def parse_csv(csvfile, template):
       logger.info('Error reading line num ' + str(line_num) + ': ' + str(row) + '. Msg: ' + str(e))
   return buffer
 
+#-------------------------------------------------------------------------------
 def record_audio():
   if request.method == 'POST':
     to = request.form.get('to')
@@ -425,8 +434,7 @@ def record_audio():
 
     return 'OK'
 
-
-
+#-------------------------------------------------------------------------------
 def job_db_dump(job_id):
   if isinstance(job_id, str):
     job_id = ObjectId(job_id)
@@ -450,6 +458,7 @@ def job_db_dump(job_id):
   }
   return summary
 
+#-------------------------------------------------------------------------------
 # Create mongodb "reminder_msg" record from .CSV line
 # job_id: mongo "job_reminder" record_id in ObjectId format
 # job_template: array of definitions from reminder_templates.json file
@@ -491,10 +500,12 @@ def create_msg_record(job_id, job_template, line_index, buf_row, errors):
    
   return msg
 
+#-------------------------------------------------------------------------------
 def allowed_file(filename):
   return '.' in filename and \
      filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
-     
+  
+#-------------------------------------------------------------------------------   
 # POST request to create new job from new_job.html template
 def submit_job(form, file):
   # A. Validate file

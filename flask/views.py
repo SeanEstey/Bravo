@@ -23,19 +23,19 @@ def before_request():
 def load_user(username):
   return auth.load_user(username)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/login', methods=['GET','POST'])
 def login():
   return auth.login()
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/logout', methods=['GET'])
 def logout():
   logout_user()
   logger.info('User logged out')
   return flask.redirect(PUB_URL)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/', methods=['GET'])
 @login_required
 def index():
@@ -45,20 +45,20 @@ def index():
     logger.info(str(e))
     return 'Fail'
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/log')
 @login_required
 def view_log():
   lines = log.get_tail(LOG_FILE, 50):
   return flask.render_template('log.html', lines=lines)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/admin')
 @login_required
 def view_admin():
   return flask.render_template('admin.html')
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @socketio.on('disconnected')
 def socketio_disconnected():
   logger.debug('socket disconnected')
@@ -67,7 +67,7 @@ def socketio_disconnected():
     str(len(socketio.server.sockets))
   )
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @socketio.on('connected')
 def socketio_connect():
   logger.debug(
@@ -76,7 +76,7 @@ def socketio_connect():
   )
   socketio.emit('msg', 'ping from ' + DB_NAME + ' server!');
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/sendsocket', methods=['GET'])
 def request_send_socket():
   name = request.args.get('name').encode('utf-8')
@@ -84,13 +84,13 @@ def request_send_socket():
   socketio.emit(name, data)
   return 'OK'
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/new')
 @login_required
 def new_job():
   return render_template('new_job.html', title=TITLE)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/get_job_template/<name>')
 def get_job_template(name):
   headers = []
@@ -98,7 +98,7 @@ def get_job_template(name):
     headers.append(col['header'])
   return json.dumps(headers)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/submit', methods=['POST'])
 @login_required
 def submit():
@@ -106,12 +106,12 @@ def submit():
   r = reminders.submit_job(request.form, file)
   return Response(response=json.dumps(r), status=200, mimetype='application/json')
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/recordaudio', methods=['GET', 'POST'])
 def record_msg():
   return reminders.record_audio()
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/jobs/<job_id>')
 @login_required
 def show_calls(job_id):
@@ -128,7 +128,7 @@ def show_calls(job_id):
     template=TEMPLATE[job['template']]
   )
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/cancel/job/<job_id>')
 @login_required
 def cancel_job(job_id):
@@ -142,7 +142,7 @@ def cancel_job(job_id):
       logger.info(str(e))
       return 'error'
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/request/email/<job_id>')
 @login_required
 def request_email_job(job_id):
@@ -195,7 +195,7 @@ def request_email_job(job_id):
   except Exception, e:
     logger.error('/request/email', exc_info=True)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/request/execute/<job_id>')
 @login_required
 def request_execute_job(job_id):
@@ -205,7 +205,7 @@ def request_execute_job(job_id):
 
   return 'OK'
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/cancel/call', methods=['POST'])
 @login_required
 def cancel_call():
@@ -220,7 +220,7 @@ def cancel_call():
 
   return 'OK'
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/nopickup/<msg_id>', methods=['GET'])
 # Script run via reminder email
 def no_pickup(msg_id):
@@ -274,7 +274,7 @@ def no_pickup(msg_id):
     logger.error('/nopickup/msg_id', exc_info=True)
     return str(e)
    
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/edit/call/<sid>', methods=['POST'])
 @login_required
 def edit_call(sid):
@@ -293,7 +293,7 @@ def edit_call(sid):
     )
   return 'OK'
   
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/call/answer',methods=['POST','GET'])
 def content():
   try:
@@ -385,7 +385,7 @@ def content():
     
     return str(e)
   
-#---------------------------------------------------- 
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/call/status',methods=['POST','GET'])
 def process_status():
   try:
@@ -431,7 +431,7 @@ def process_status():
     return str(e)
 
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 # Data sent from Routes worksheet in Gift Importer (Google Sheet)
 @flask_app.route('/collections/process_receipts', methods=['POST'])
 def process_receipts():
@@ -453,7 +453,7 @@ def process_receipts():
   except Exception, e:
     logger.error('/collections/process_receipts', exc_info=True)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 # Can be collection receipt from gsheets.process_receipts, reminder email, or welcome letter from Google Sheets.
 # Required fields: 'recipient', 'template', 'subject'
 # Required fields for updating Google Sheets: 'sheet_name', 'worksheet_name', 'row', 'upload_status'
@@ -481,7 +481,7 @@ def send_email():
   except Exception, e:
     logger.error('/email/send', exc_info=True)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/email/opened', methods=['POST'])
 def email_opened():
   try:
@@ -502,7 +502,7 @@ def email_opened():
     logger.error('%s /email/opened' % request.values.items(), exc_info=True)
     return str(e)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/email/unsubscribe', methods=['GET'])
 def email_unsubscribe():
   try:
@@ -527,7 +527,7 @@ def email_unsubscribe():
     logger.info('%s /email/unsubscribe' % request.values.items(), exc_info=True)
     return str(e)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/email/spam_complaint', methods=['POST'])
 def email_spam_complaint():
   try:
@@ -538,7 +538,7 @@ def email_spam_complaint():
     logger.info('%s /email/spam_complaint' % request.values.items(), exc_info=True)
     return str(e)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/email/status',methods=['POST'])
 def email_status():
   # Relay for all Mailgun webhooks (delivered, bounced, dropped, etc)
@@ -605,13 +605,13 @@ def email_status():
     logger.info('%s /email/status' % request.values.items(), exc_info=True)
     return str(e)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/get_np', methods=['GET'])
 def get_romorrow_accounts():
     scheduler.find_nps_in_schedule.apply_async(queue=DB_NAME)
     return 'Celery process started...'
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 @flask_app.route('/call/nis', methods=['POST'])
 def nis():
     try:
@@ -652,7 +652,7 @@ def nis():
         logger.info('%s /call/nis' % request.values.items(), exc_info=True)
         return str(e)
 
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
 # Forwarded signup submision from emptiestowinn.com
 # Adds signup data to Route Importer->Signups gsheet row
 @flask_app.route('/receive_signup', methods=['POST'])

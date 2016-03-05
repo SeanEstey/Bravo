@@ -15,10 +15,12 @@ import auth
 from config import *
 import utils
 
+#-------------------------------------------------------------------------------
 @flask_app.before_request
 def before_request():
   g.user = current_user
 
+#-------------------------------------------------------------------------------
 @login_manager.user_loader
 def load_user(username):
   return auth.load_user(username)

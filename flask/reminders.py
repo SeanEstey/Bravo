@@ -492,3 +492,85 @@ def create_msg_record(job_id, job_template, line_index, buf_row, errors):
 def allowed_file(filename):
   return '.' in filename and \
      filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+     
+# POST request to create new job from new_job.html template
+def submit_job(form, file):
+  # A. Validate file
+  try:
+    if file and allowed_file(file.filename):
+      filename = secure_filename(file.filename)
+      file.save(os.path.join(UPLOAD_FOLDER, filename)) 
+      file_path = UPLOAD_FOLDER + '/' + filename
+    else:
+      logger.info('could not save file')
+      return {'status':'error', 'title': 'Filename Problem', 'msg':'Could not save file'}
+  except Exception as e:
+      logger.info(str(e))
+      return {'status':'error', 'title':'file problem', 'msg':'could not upload file'}
+    
+  # B. Open and parse file
+  try:
+    with codecs.open(file_path, 'r', 'utf-8-sig') as f:
+      buffer = parse_csv(f, TEMPLATE[form['template']])
+      if type(buffer) == str:
+        return {'status':'error', 'title': 'Problem Reading File', 'msg':buffer}
+      else:
+        logger.info('Parsed %d rows from %s', len(buffer), filename) 
+  except Exception as e:
+    logger.error(str(e))
+    return {'status':'error', 'title': 'Problem Reading File', 'msg':'Could not parse file: ' + str(e)}
+  
+  # C. Create mongo records
+  try:
+    if not form['job_name']:
+      job_name = filename.split('.')[0].replace('_',' ')
+    else:
+      job_name = form['job_name']
+    
+    date_string = form['date']+' '+form['time']
+    fire_dtime = parse(date_string)
+    
+    job = {
+      'name': job_name,
+      'template': form['template'],
+      'fire_dtime': fire_dtime,
+      'status': 'pending',
+      'num_calls': len(buffer)
+    }
+
+    if form['template'] == 'announce_voice':
+      job['audio_url'] = form['audio-url']
+    elif form['template'] == 'announce_text':
+      job['message'] = form['message']
+      
+    job_id = db['reminder_jobs'].insert(job)
+    job['_id'] = job_id
+
+    errors = []
+    reminder_msgs = []
+    for idx, row in enumerate(buffer):
+      msg = create_msg_record(job_id, form['template'], idx, row, errors)
+      if msg:
+        reminder_msgs.append(msg)
+
+    if len(errors) > 0:
+      e = 'The file <b>' + filename + '</b> has some errors:<br><br>'
+      for error in errors:
+        e += error
+      db['reminder_jobs'].remove({'_id':job_id})
+      return {'status':'error', 'title':'File Format Problem', 'msg':e}
+
+    db['reminder_msgs'].insert(reminder_msgs)
+    logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
+
+    jobs = db['reminder_jobs'].find().sort('fire_dtime',-1)
+    banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(reminder_msgs)) + ' messages imported.'
+    return {'status':'success', 'msg':banner_msg}
+
+    if job['template'] == 'etw_reminder':
+      scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
+    
+    return True
+  except Exception as e:
+    logger.info(str(e))
+    return 'status':'error', 'title':'error', 'msg':str(e)}

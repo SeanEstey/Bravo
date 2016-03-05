@@ -151,13 +151,12 @@ def send_reminder_emails(job_id):
   return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/request/execute/<job_id>')
+@flask_app.route('/reminders/<job_id>/send_calls')
 @login_required
-def request_execute_job(job_id):
+def send_reminder_calls(job_id):
   job_id = job_id.encode('utf-8')
   # Start celery worker
-  reminders.execute_job.apply_async((job_id, ), queue=DB_NAME)
-
+  reminders.send_calls.apply_async((job_id, ), queue=DB_NAME)
   return 'OK'
 
 #-------------------------------------------------------------------------------

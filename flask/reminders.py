@@ -562,15 +562,14 @@ def submit_job(form, file):
 
     db['reminder_msgs'].insert(reminder_msgs)
     logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
-
-    jobs = db['reminder_jobs'].find().sort('fire_dtime',-1)
-    banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(reminder_msgs)) + ' messages imported.'
-    return {'status':'success', 'msg':banner_msg}
-
+    
+    # Special case
     if job['template'] == 'etw_reminder':
       scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
+
+    banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(reminder_msgs)) + ' messages imported.'
+    return {'status':'success', 'msg':banner_msg}
     
-    return True
   except Exception as e:
     logger.info(str(e))
     return 'status':'error', 'title':'error', 'msg':str(e)}

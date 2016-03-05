@@ -15,6 +15,7 @@ from dateutil.parser import parse
 
 from app import flask_app, db, logger, login_manager, socketio
 import reminders
+import log
 import gsheets
 import scheduler
 import auth
@@ -51,23 +52,7 @@ def index():
 @flask_app.route('/log')
 @login_required
 def view_log():
-  n = 50
-  size = os.path.getsize(LOG_FILE)
-
-  with open(LOG_FILE, "rb") as f:
-    fm = mmap.mmap(f.fileno(), 0, mmap.MAP_SHARED, mmap.PROT_READ)
-    try:
-      for i in xrange(size - 1, -1, -1):
-        if fm[i] == '\n':
-          n -= 1
-          if n == -1:
-            break
-        lines = fm[i + 1 if i else 0:].splitlines()
-    except Exception, e:
-      logger.error('/log: %s', str(e))
-    finally:
-      fm.close()
-
+  lines = log.get_tail(LOG_FILE, 50):
   return flask.render_template('log.html', lines=lines)
 
 @flask_app.route('/admin')

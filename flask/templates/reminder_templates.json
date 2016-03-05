@@ -10,7 +10,7 @@ TEMPLATE = {
       {"file_header": "Next Pickup", "db_field": "template.next_pickup", "type":"date"},
       {"file_header": "Office Notes", "db_field": "template.office_notes", "type":"string"}
     ],
-    "call_template": "speak_reminder.html"
+    "call_template": "speak_reminder.html",
     "email_subject": "Your upcoming Empties to Winn event",
     "email_template": "email_reminder.html"
   },

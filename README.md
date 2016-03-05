@@ -35,7 +35,11 @@
   "status": ["pending", "in-progress", "completed"], 
   "fire_dtime": "[datetime]", 
   "num_calls": "[Number]", 
-  "template": "template_name_string", 
+  "template": {
+    "call_template": "file.html",
+    "email_template": "file.html",
+    "email_subject": ""
+  },
   "audio_url": "saved_audio_message_url"
 }
 

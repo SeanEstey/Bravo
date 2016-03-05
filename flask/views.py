@@ -204,6 +204,94 @@ def request_execute_job(job_id):
   reminders.execute_job.apply_async((job_id, ), queue=DB_NAME)
 
   return 'OK'
+
+#----------------------------------------------------
+@flask_app.route('/reminders/cancel/call', methods=['POST'])
+@login_required
+def cancel_call():
+  call_uuid = request.form.get('call_uuid')
+  job_uuid = request.form.get('job_uuid')
+  db['reminder_msgs'].remove({'_id':ObjectId(call_uuid)})
+   
+  db['reminder_jobs'].update(
+    {'_id':ObjectId(job_uuid)}, 
+    {'$inc':{'num_calls':-1}}
+  )
+
+  return 'OK'
+
+#----------------------------------------------------
+@flask_app.route('/reminders/nopickup/<msg_id>', methods=['GET'])
+# Script run via reminder email
+def no_pickup(msg_id):
+  try:
+    msg = db['reminder_msgs'].find_one({'_id':ObjectId(msg_id)})
+    # Link clicked for an outdated/in-progress or deleted job?
+    if not msg:
+      logger.info('No pickup request fail. Invalid msg_id')
+      return 'Request unsuccessful'
+
+    if 'no_pickup' in msg:
+      logger.info('No pickup already processed for account %s', msg['imported']['account'])
+      return 'Thank you'
+
+    job = db['reminder_jobs'].find_one({'_id':msg['job_id']})
+
+    no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
+    db['reminder_msgs'].update(
+      {'_id':msg['_id']},
+      {'$set': {
+        'imported.office_notes': no_pickup,
+        'no_pickup': True
+      }}
+    )
+    send_socket('update_msg', {
+      'id': str(msg['_id']),
+      'office_notes':no_pickup
+      })
+
+    # Write to eTapestry
+    if 'account' in msg['imported']:
+      url = 'http://bravovoice.ca/etap/etap.php'
+      params = {
+        'func':'no_pickup', 
+        'account': msg['imported']['account'], 
+        'date': msg['imported']['event_date'].strftime('%d/%m/%Y'),
+        'next_pickup': msg['next_pickup'].strftime('%d/%m/%Y')
+      }
+      tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
+
+    # Send email w/ next pickup
+    if 'next_pickup' in msg:
+      subject = 'Your next Pickup'
+      body = reminders.get_no_pickup_html_body(msg['next_pickup'])
+      utils.send_email([msg['imported']['email']], subject, body)
+      logger.info('Emailed Next Pickup to %s', msg['imported']['email'])
+    
+    return 'Thank you'
+  
+  except Exception, e:
+    logger.error('/nopickup/msg_id', exc_info=True)
+    return str(e)
+   
+#----------------------------------------------------
+@flask_app.route('/reminders/edit/call/<sid>', methods=['POST'])
+@login_required
+def edit_call(sid):
+  for fieldname, value in request.form.items():
+    if fieldname == 'event_date':
+      try:
+        value = parse(value)
+      except Exception, e:
+        logger.error('Could not parse event_date in /edit/call')
+        return '400'
+    logger.info('Editing ' + fieldname + ' to value: ' + str(value))
+    field = 'imported.'+fieldname
+    db['reminder_msgs'].update(
+        {'_id':ObjectId(sid)}, 
+        {'$set':{field: value}}
+    )
+  return 'OK'
   
 #----------------------------------------------------
 @flask_app.route('/reminders/call/answer',methods=['POST','GET'])

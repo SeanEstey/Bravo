@@ -304,94 +304,100 @@ def dial(to):
     return str(e)
 
 #-------------------------------------------------------------------------------
-# Twilio callback handler. User has either answered call or made an interaction
-# request_method: ['POST','GET']
+# Twilio callback handler. User has made interaction with call
 # args: dictionary
-def call_action(request_method, args):
-  try:
-    if request_method == 'POST':
-      sid = args['CallSid']
-      call_status = args['CallStatus']
-      to = args['To']
-      answered_by = args.get('AnsweredBy')
-      
-      logger.info('%s %s (%s)', to, call_status, answered_by)
-      
-      call = db['reminder_msgs'].find_one({'sid': args['CallSid']})
+def call_interaction(args):
+ try:
+    sid = args.get('CallSid')
+    msg = db['reminder_msgs'].find_one({'sid':sid})
+    job = db['reminder_jobs'].find_one({'_id':call['job_id']})
+    digits = form.get('Digits')
+    
+    # Repeat Msg
+    if digits == '1':
+      return get_speak(job, msg, 'human')
+    # Special Action (defined by template)
+    elif digits == '2' and 'no_pickup' not in msg:
+      no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
+      db['reminder_msgs'].update(
+        {'sid':sid},
+        {'$set': {'imported.office_notes': no_pickup}}
+      )
+      send_socket('update_msg', {
+        'id': str(call['_id']),
+        'office_notes':no_pickup
+        })
+      # Write to eTapestry
+      if 'account_id' in msg['imported']:
+        url = 'http://bravovoice.ca/etap/etap.php'
+        params = {
+          'func': 'no_pickup', 
+          'account': msg['imported']['account'], 
+          'date':  msg['imported']['event_date'].strftime('%d/%m/%Y'),
+          'next_pickup': msg['next_pickup'].strftime('%d/%m/%Y')
+        }
+        tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
 
-      if not call:
-        # Might be special msg voice record call
-        record = db['bravo'].find_one({'sid': args['CallSid']})
-        if record:
-          logger.info('Sending record twimlo response to client')
-          # Record voice message
-          response = twilio.twiml.Response()
-          response.say('Record your message after the beep. Press pound when complete.', voice='alice')
-          response.record(
-            method= 'GET',
-            action= PUB_URL+'/recordaudio',
-            playBeep= True,
-            finishOnKey='#'
-          )
-          send_socket('record_audio', {'msg': 'Listen to the call for instructions'}) 
-          return Response(str(response), mimetype='text/xml')
-
+      if msg['next_pickup']:
+        response = twilio.twiml.Response()
+        next_pickup_str = msg['next_pickup'].strftime('%A, %B %d')
+        response.say('Thank you. Your next pickup will be on ' + next_pickup_str + '. Goodbye', voice='alice')
+        return Response(str(response), mimetype='text/xml')
       else:
-        db['reminder_msgs'].update(
-          {'sid':sid},
-          {'$set': {'call_status':call_status}}
-        )
-        call = db['reminder_msgs'].find_one({'sid':sid})
-        send_socket(
-          'update_msg', {
-            'id': str(call['_id']),
-            'call_status': call_status
-          }
-        )
-        job = db['reminder_jobs'].find_one({'_id':call['job_id']})
-        
-        return get_speak(job, call, answered_by)
-     
-    elif request_method == "GET":
-      sid = form.get('CallSid')
-      msg = db['reminder_msgs'].find_one({'sid':sid})
-      job = db['reminder_jobs'].find_one({'_id':call['job_id']})
-      digits = form.get('Digits')
-      # Repeat Msg
-      if digits == '1':
-        return get_speak(job, msg, 'human')
-      # Special Action (defined by template)
-      elif digits == '2' and 'no_pickup' not in msg:
-        no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
-        db['reminder_msgs'].update(
-          {'sid':sid},
-          {'$set': {'imported.office_notes': no_pickup}}
-        )
-        send_socket('update_msg', {
-          'id': str(call['_id']),
-          'office_notes':no_pickup
-          })
-        # Write to eTapestry
-        if 'account' in msg['imported']:
-          url = 'http://bravovoice.ca/etap/etap.php'
-          params = {
-            'func': 'no_pickup', 
-            'account': msg['imported']['account'], 
-            'date':  msg['imported']['event_date'].strftime('%d/%m/%Y'),
-            'next_pickup': msg['next_pickup'].strftime('%d/%m/%Y')
-          }
-          tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
-
-        if msg['next_pickup']:
-          response = twilio.twiml.Response()
-          next_pickup_str = msg['next_pickup'].strftime('%A, %B %d')
-          response.say('Thank you. Your next pickup will be on ' + next_pickup_str + '. Goodbye', voice='alice')
-          return Response(str(response), mimetype='text/xml')
-
-    response = twilio.twiml.Response()
-    response.say('Goodbye', voice='alice')
+        response = twilio.twiml.Response()
+        response.say('Goodbye', voice='alice')
+    
   except Exception, e:
     logger.error('reminders.answer_call', exc_info=True)
+    return str(e)
+ 
+#-------------------------------------------------------------------------------  
+def call_answered(args):
+  try:
+    sid = args['CallSid']
+    call_status = args['CallStatus']
+    to = args['To']
+    answered_by = args.get('AnsweredBy')
+    
+    logger.info('%s %s (%s)', to, call_status, answered_by)
+    
+    call = db['reminder_msgs'].find_one({'sid': args['CallSid']})
+
+    # Reminder call to user or special msg recording?
+    if not call:
+      record = db['bravo'].find_one({'sid': args['CallSid']})
+      if record:
+        logger.info('Sending record twimlo response to client')
+        # Record voice message
+        response = twilio.twiml.Response()
+        response.say('Record your message after the beep. Press pound when complete.', voice='alice')
+        response.record(
+          method= 'GET',
+          action= PUB_URL+'/recordaudio',
+          playBeep= True,
+          finishOnKey='#'
+        )
+        send_socket('record_audio', {'msg': 'Listen to the call for instructions'}) 
+        return Response(str(response), mimetype='text/xml')
+
+    # Reminder call
+
+    db['reminder_msgs'].update(
+      {'sid':sid},
+      {'$set': {"call.status": call_status}}
+    )
+    call = db['reminder_msgs'].find_one({'sid':sid})
+    send_socket(
+      'update_msg', {
+        'id': str(call['_id']),
+        'call_status': call_status
+      }
+    )
+    job = db['reminder_jobs'].find_one({'_id':call['job_id']})
+    
+    return get_speak(job, call, answered_by)
+  except Exception, e:
+    logger.error('reminders.call_answered', exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------------------
@@ -432,7 +438,7 @@ def call_ended(args):
     
     return 'OK'
   except Exception, e:
-    logger.error('%s update_call_status args: ' % args, exc_info=True)
+    logger.error('reminders.call_ended %s', args, exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------------------

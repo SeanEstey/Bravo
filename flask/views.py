@@ -167,7 +167,7 @@ def send_reminder_calls(job_id):
   return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<msg_id>/cancel_call', methods=['POST'])
+@flask_app.route('/reminders/<job_id>/<msg_id>/cancel_call', methods=['POST'])
 @login_required
 def cancel_call():
   call_uuid = request.form.get('call_uuid')
@@ -181,7 +181,7 @@ def cancel_call():
   return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<msg_id>/cancel_pickup', methods=['GET'])
+@flask_app.route('/reminders/<job_id>/<msg_id>/cancel_pickup', methods=['GET'])
 # Script run via reminder email
 def no_pickup(msg_id):
   reminders.cancel_pickup.apply_async((msg_id,), queue=DB_NAME)
@@ -207,7 +207,7 @@ def edit_call(sid):
   return 'OK'
   
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<msg_id>/answer_call',methods=['POST','GET'])
+@flask_app.route('/reminders/<job_id>/<msg_id>/answer',methods=['POST','GET'])
 def content():
   try:
     if request.method == 'POST':
@@ -299,7 +299,7 @@ def content():
     return str(e)
   
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<msg_id>/call_status',methods=['POST','GET'])
+@flask_app.route('/reminders/<job_id>/<msg_id>/status',methods=['POST','GET'])
 def process_status():
   try:
     logger.debug('/call/status values: %s' % request.values.items())

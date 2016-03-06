@@ -279,8 +279,8 @@ def dial(to):
     call = twilio_client.calls.create(
       from_ = FROM_NUMBER,
       to = '+1'+to,
-      url = PUB_URL + '/reminders/answer_call',
-      status_callback = PUB_URL + '/reminders/call_status',
+      url = PUB_URL + '/reminders/call_action',
+      status_callback = PUB_URL + '/reminders/call_ended',
       status_method = 'POST',
       method = 'POST',
       if_machine = 'Continue'
@@ -304,9 +304,10 @@ def dial(to):
     return str(e)
 
 #-------------------------------------------------------------------------------
+# Twilio callback handler. User has either answered call or made an interaction
 # request_method: ['POST','GET']
 # args: dictionary
-def answer_call(request_method, args):
+def call_action(request_method, args):
   try:
     if request_method == 'POST':
       sid = args['CallSid']
@@ -314,15 +315,13 @@ def answer_call(request_method, args):
       to = args['To']
       answered_by = args.get('AnsweredBy')
       
-      if 'AnsweredBy' in form:
-        answered_by = form.get('AnsweredBy')
       logger.info('%s %s (%s)', to, call_status, answered_by)
       
-      call = db['reminder_msgs'].find_one({'sid':sid})
+      call = db['reminder_msgs'].find_one({'sid': args['CallSid']})
 
       if not call:
         # Might be special msg voice record call
-        record = db['bravo'].find_one({'sid':sid})
+        record = db['bravo'].find_one({'sid': args['CallSid']})
         if record:
           logger.info('Sending record twimlo response to client')
           # Record voice message
@@ -396,9 +395,9 @@ def answer_call(request_method, args):
     return str(e)
 
 #-------------------------------------------------------------------------------
-# Twilio callback. 
+# Twilio callback handler. 
 # args['CallStatus'] either: 'completed', 'failed', 'no-answer', or 'busy'
-def update_call_status(args):
+def call_ended(args):
   logger.info('%s %s', args['to'], args['CallStatus'])
     
   try:

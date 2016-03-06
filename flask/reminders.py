@@ -212,10 +212,10 @@ def monitor_calls(job_id):
 #-------------------------------------------------------------------------------
 # Create mongodb "reminder_msg" record from .CSV line
 # job_id: mongo "job_reminder" record_id in ObjectId format
-# job_template: array of definitions from reminder_templates.json file
+# template_def: template dict from reminder_templates.json file
 # buf_row: array of values from csv file
 # line_index: file row index (for error tracking)
-def create_msg(job_id, job_template, line_index, buf_row, errors):
+def create_msg(job_id, template_def, line_index, buf_row, errors):
   msg = {
     "job_id": job_id,
     "call": {
@@ -225,10 +225,10 @@ def create_msg(job_id, job_template, line_index, buf_row, errors):
     "email": {
       "status": "pending"
     },
-    "template": {}
+    "custom": {}
   }
 
-  for i, field in enumerate(job_template):
+  for i, field in enumerate(template_def['import_fields']):
     db_field = field['db_field']
     
     # Format phone numbers
@@ -654,32 +654,35 @@ def parse_csv(csvfile, template):
   header_err = False 
   header_row = reader.next()
 
-  if len(header_row) != len(template):
+  # A. Test if file header names matche template definition
+  
+  if len(header_row) != len(template['import_fields']):
     header_err = True
   else:
     for col in range(0, len(header_row)):
-      if header_row[col] != template[col]['header']:
+      if header_row[col] != template['import_fields'][col]['file_header']:
         header_err = True
         break
 
   if header_err:
     columns = []
-    for element in template:
-      columns.append(element['header'])
+    for element in template['import_fields']:
+      columns.append(element['file_header'])
 
     return 'Your file is missing the proper header rows:<br> \
     <b>' + str(columns) + '</b><br><br>' \
     'Here is your header row:<br><b>' + str(header_row) + '</b><br><br>' \
     'Please fix your mess and try again.'
 
-  # DELETE FIRST EMPTY ROW FROM ETAP FILE EXPORT
-  reader.next()
+  reader.next() # Delete empty Row 2 in eTapestry export file
+  
+  # B. Read each line from file into buffer
+  
   line_num = 1
   for row in reader:
-    #logger.info('row '+str(line_num)+'='+str(row)+' ('+str(len(row))+' elements)')
     # verify columns match template
     try:
-      if len(row) != len(template):
+      if len(row) != len(template['import_fields']):
         return 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
         ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
       else:
@@ -750,8 +753,6 @@ def job_db_dump(job_id):
   }
   return summary
 
-
-
 #-------------------------------------------------------------------------------
 def allowed_file(filename):
   return '.' in filename and \
@@ -785,77 +786,83 @@ def submit_job(form, file):
       logger.info(str(e))
       return {'status':'error', 'title':'file problem', 'msg':'could not upload file'}
     
-  # B. Open and parse file
+  # B. Get template definition from reminder_templates.json file
+  try:
+    with open('templates/reminder_templates.json') as json_file:
+      template_definitions = json.load(json_file)
+  except Exception as e:
+    Logger.error(str(e))
+    return {'status':'error', 'title': 'Problem Reading reminder_templates.json File', 'msg':'Could not parse file: ' + str(e)}
+      
+  template = template_definitions[form['template_name']]
+  
+  # C. Open and parse submitted .CSV file
   try:
     with codecs.open(file_path, 'r', 'utf-8-sig') as f:
-      buffer = parse_csv(f, TEMPLATE[form['template']])
+      buffer = parse_csv(f, template)
+      
       if type(buffer) == str:
         return {'status':'error', 'title': 'Problem Reading File', 'msg':buffer}
-      else:
-        logger.info('Parsed %d rows from %s', len(buffer), filename) 
+   
+      logger.info('Parsed %d rows from %s', len(buffer), filename) 
   except Exception as e:
     logger.error(str(e))
-    return {'status':'error', 'title': 'Problem Reading File', 'msg':'Could not parse file: ' + str(e)}
+    return {'status':'error', 'title': 'Problem Reading File', 'msg':'Could not parse .CSV file: ' + str(e)}
   
+  if not form['job_name']:
+    job_name = filename.split('.')[0].replace('_',' ')
+  else:
+    job_name = form['job_name']
+    
   try:
-    if not form['job_name']:
-      job_name = filename.split('.')[0].replace('_',' ')
-    else:
-      job_name = form['job_name']
+    fire_dtime = parse(form['date'] + ' ' + form['time'])
+  except Exception as e:
+    logger.error(str(e))
+    return {'status':'error', 'title': 'Invalid Date', 'msg':'Could not parse the schedule date you entered: ' + str(e)}
     
-    date_string = form['date']+' '+form['time']
-    fire_dtime = parse(date_string)
-    
-    # C. Create mongo records
-    
-    reminder_name = form['template']
-    
-    # TODO: Open reminder_templates.json file, store definitions
-    with open("reminder_templates.json") as file:
-      reminder_def = json.load(file)
-    
-    reminder_def = reminder_def[form['template']]
-    
-    job = {
-      'name': job_name,
-      'template': reminder_def,
-      'fire_dtime': fire_dtime,
-      'status': 'pending',
-      'num_calls': len(buffer)
-    }
+  # D. Create mongo 'reminder_job' and 'reminder_msg' records
 
-    if reminder_name == 'announce_voice':
-      job['audio_url'] = form['audio-url']
-    elif reminder_name == 'announce_text':
-      job['message'] = form['message']
+  job = {
+    'name': job_name,
+    'template': template,
+    'fire_dtime': fire_dtime,
+    'status': 'pending',
+    'num_calls': len(buffer)
+  }
+
+  # Special cases
+  if form['template_name'] == 'announce_voice':
+    job['audio_url'] = form['audio-url']
+  elif form['template_name'] == 'announce_text':
+    job['message'] = form['message']
       
-    job_id = db['reminder_jobs'].insert(job)
-    job['_id'] = job_id
+  job_id = db['reminder_jobs'].insert(job)
+  job['_id'] = job_id
 
+  try:
     errors = []
     reminder_msgs = []
     for idx, row in enumerate(buffer):
-      msg = create_msg(job_id, reminder_def['imports'], idx, row, errors)
+      msg = create_msg(job_id, template['import_fields'], idx, row, errors)
       if msg:
         reminder_msgs.append(msg)
-
+  
     if len(errors) > 0:
       e = 'The file <b>' + filename + '</b> has some errors:<br><br>'
       for error in errors:
         e += error
       db['reminder_jobs'].remove({'_id':job_id})
       return {'status':'error', 'title':'File Format Problem', 'msg':e}
-
-    db['reminder_msgs'].insert(reminder_msgs)
-    logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
-    
-    # Special case
-    if reminder_name == 'etw':
-      scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
-
-    banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(reminder_msgs)) + ' messages imported.'
-    return {'status':'success', 'msg':banner_msg}
-    
+  
+      db['reminder_msgs'].insert(reminder_msgs)
+      logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
+      
+      # Special case
+      if form['template_name'] == 'etw':
+        scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
+  
+      banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(reminder_msgs)) + ' messages imported.'
+      return {'status':'success', 'msg':banner_msg}
   except Exception as e:
     logger.info(str(e))
     return 'status':'error', 'title':'error', 'msg':str(e)}

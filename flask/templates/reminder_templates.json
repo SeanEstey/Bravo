@@ -10,8 +10,8 @@
       {"file_header": "Next Pickup", "db_field": "custom.next_pickup", "type":"date"},
       {"file_header": "Office Notes", "db_field": "custom.office_notes", "type":"string"}
     ],
-    "call_template": "speak_reminder.html",
-    "email_template": "email_reminder.html",
+    "call_template": "speak_etw_reminder.html",
+    "email_template": "email_etw_reminder.html",
     "email_subject": "Your upcoming Empties to Winn event"
   },
   "green_goods": {
@@ -21,7 +21,7 @@
       {"file_header": "Date", "db_field": "custom.event_date", "type": "date"},
       {"file_header": "Price", "db_field": "custom.price", "type": "number"}
     ],
-    "call_template": "green_goods_reminder.html"
+    "call_template": "speak_green_goods_reminder.html"
   },
   "announce_text": {
     "import_fields": [

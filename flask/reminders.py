@@ -320,9 +320,11 @@ def answer_call(request_method, form):
       call_status = form.get('CallStatus')
       to = form.get('To')
       answered_by = ''
+      
       if 'AnsweredBy' in form:
         answered_by = form.get('AnsweredBy')
       logger.info('%s %s (%s)', to, call_status, answered_by)
+      
       call = db['reminder_msgs'].find_one({'sid':sid})
 
       if not call:
@@ -401,7 +403,7 @@ def answer_call(request_method, form):
     return str(e)
 
 #-------------------------------------------------------------------------------
-def update_call_status(job_id, msg_id, form):
+def update_call_status(form):
   try:
     logger.debug('update_call_status values: %s' % form.values.items())
     sid = form.get('CallSid')

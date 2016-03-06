@@ -286,8 +286,8 @@ def dial(to):
     call = twilio_client.calls.create(
       from_ = FROM_NUMBER,
       to = '+1'+to,
-      url = PUB_URL + '/call/answer',
-      status_callback = PUB_URL + '/call/status',
+      url = PUB_URL + '/reminders/answer_call',
+      status_callback = PUB_URL + '/reminders/call_status',
       status_method = 'POST',
       method = 'POST',
       if_machine = 'Continue'

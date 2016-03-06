@@ -1,0 +1,17 @@
+Hi, this is a friendly reminder that your Empties to WINN {{ args.msg.imported.type }} is {{ args.msg.imported.event_date }}.
+
+{% if args.status == "Dropoff" %}  
+    If you have any empties you can leave them out by 8am.
+{% elif args.status == "Active" or msg.imported.status == "One-time" %}
+    Please have your empties out by 8am. Glass can be separated into cases.
+{% elif args.status == "Cancelling" %}
+    A driver will be by to collect your bag buddy frame. Thanks for your past support.
+{% endif %}
+
+{% if args.answered_by == "human" %}
+  To repeat this message, press 1.
+{% endif %}
+
+{% if args.answered_by == "human" and args.status == "Active" %}
+  If you do not need a pickup, press 2.
+{% endif %}

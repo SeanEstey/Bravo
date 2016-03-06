@@ -48,7 +48,7 @@ def check_jobs():
   for job in pending_jobs:
     if datetime.now() > job['fire_dtime']:
       logger.info('Scheduler: Starting Job...')
-      execute_job.apply_async((str(job['_id']), ), queue=DB_NAME)
+      send_calls.apply_async((str(job['_id']), ), queue=DB_NAME)
     else:
       next_job_delay = job['fire_dtime'] - datetime.now()
       print '{0}): {1} starts in {2}'.format(job_num, job['name'], str(next_job_delay))
@@ -104,11 +104,11 @@ def send_calls(job_id):
       requests.get(LOCAL_URL+'/sendsocket', params=payload)
     
     logger.info('Job Calls Fired.')
-    r = requests.get(LOCAL_URL+'/fired/' + str(job_id))
+    r = requests.get(PUB_URL + '/' + str(job_id) + '/monitor')
     return 'OK'
 
   except Exception, e:
-    logger.error('execute_job job_id %s', str(job_id), exc_info=True)
+    logger.error('send_calls job_id %s', str(job_id), exc_info=True)
 
 #-------------------------------------------------------------------------------
 def send_emails(job_id):
@@ -206,7 +206,7 @@ def monitor_calls(job_id):
     # End loop
     return 'OK'
   except Exception, e:
-    logger.error('monitor_job job_id %s', str(job_id), exc_info=True)
+    logger.error('monitor_calls job_id %s', str(job_id), exc_info=True)
 
 #-------------------------------------------------------------------------------
 def dial(to):

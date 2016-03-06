@@ -39,12 +39,19 @@ def logout():
 #-------------------------------------------------------------------------------
 @flask_app.route('/', methods=['GET'])
 @login_required
-def index():
-  try:
-    return reminders.view_main()
-  except Exception as e:
-    logger.info(str(e))
-    return 'Fail'
+def view_jobs():
+  if request.get.args('n'):
+    n = request.get.args('n')
+  else:
+    n = 1
+    
+  jobs = reminders.get_jobs(n)
+
+  return render_template(
+    'view_jobs.html', 
+    title=None,
+    jobs=jobs
+  )
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/log')

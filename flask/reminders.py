@@ -835,7 +835,7 @@ def submit_job(form, file):
     errors = []
     reminder_msgs = []
     for idx, row in enumerate(buffer):
-      msg = create_msg_record(job_id, reminder_def['imports'], idx, row, errors)
+      msg = create_msg(job_id, reminder_def['imports'], idx, row, errors)
       if msg:
         reminder_msgs.append(msg)
 

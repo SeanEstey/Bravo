@@ -19,12 +19,12 @@ import utils
 from config import *
 
 #-------------------------------------------------------------------------------
-def get_jobs(page_num):
+def get_jobs(args):
   # If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
   # If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
-  if page_num > 1:
+  if 'n' in args:
     jobs = db['reminder_jobs'].find().sort('fire_dtime',-1)
-    jobs.skip(int(page_num)).limit(JOBS_PER_PAGE);
+    jobs.skip(int(args['n'])).limit(JOBS_PER_PAGE);
   else:
     jobs = db['reminder_jobs'].find().sort('fire_dtime',-1).limit(JOBS_PER_PAGE)
     
@@ -305,14 +305,14 @@ def dial(to):
 
 #-------------------------------------------------------------------------------
 # request_method: ['POST','GET']
-# form: Flask MultiDict
-def answer_call(request_method, form):
+# args: dictionary
+def answer_call(request_method, args):
   try:
     if request_method == 'POST':
-      sid = form.get('CallSid')
-      call_status = form.get('CallStatus')
-      to = form.get('To')
-      answered_by = ''
+      sid = args['CallSid']
+      call_status = args['CallStatus']
+      to = args['To']
+      answered_by = args.get('AnsweredBy')
       
       if 'AnsweredBy' in form:
         answered_by = form.get('AnsweredBy')
@@ -396,50 +396,44 @@ def answer_call(request_method, form):
     return str(e)
 
 #-------------------------------------------------------------------------------
-def update_call_status(form):
+# Twilio callback. 
+# args['CallStatus'] either: 'completed', 'failed', 'no-answer', or 'busy'
+def update_call_status(args):
+  logger.info('%s %s', args['to'], args['CallStatus'])
+    
   try:
-    logger.debug('update_call_status values: %s' % form.values.items())
-    sid = form.get('CallSid')
-    to = form.get('To')
-    status = form.get('CallStatus')
-    
-    logger.info('%s %s', to, status)
-    
-    fields = {
-      "call.status": status,
-      "call.ended_at": datetime.now(),
-      "call.duration": form.get('CallDuration')
-    }
-    
-    msg = db['reminder_msgs'].find_one({'sid':sid})
+    msg = db['reminder_msgs'].find_one({'sid':args['CallSid']})
 
+    # Might be an audio recording call
     if not msg:
-      # Might be an audio recording call
-      audio = db['audio_msg'].find_one({'sid':sid})
+      audio = db['audio_msg'].find_one({'sid':args['CallSid']})
       if audio:
         logger.info('Record audio call complete')
-        db['audio_msg'].update({'sid':sid}, {'$set': {"status": status}})
+        db['audio_msg'].update({'sid':args['CallSid']}, {'$set': {"status": args['CallStatus']}})
       return 'OK'
-
-    if status == 'completed':
-      answered_by = form.get('AnsweredBy')
-      fields['answered_by'] = answered_by
-      if 'speak' in call:
-        fields['speak'] = call['speak']
-    elif status == 'failed':
-      fields['call_error'] = 'unknown_error'
-      logger.info('update_call_status dump: %s', request.values.items())
-
+    
+    # Is a reminder call
+    
+    fields = {
+      "call.status": args['CallStatus'],
+      "call.ended_at": datetime.now(),
+      "call.duration": args['CallDuration'],
+      "call.answered_by": args.get('AnsweredBy'),
+      "call.error_code": args.get('SipResponseCode') # in case of failure
+    }
+    
     db['reminder_msgs'].update(
-      {'sid':sid},
+      {'sid':args['CallSid']},
       {'$set': fields}
     )
-    fields['id'] = str(call['_id'])
-    fields['attempts'] = call['attempts']
+    
+    #fields['id'] = str(call['_id'])
+    #fields['attempts'] = call['attempts']
     #send_socket('update_msg', fields)
+    
     return 'OK'
   except Exception, e:
-    logger.error('%s update_call_status' % form.items(), exc_info=True)
+    logger.error('%s update_call_status args: ' % args, exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------------------

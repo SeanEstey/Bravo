@@ -7,7 +7,7 @@
   "account_id": "",
   "call": {
     "sid": "twilio_call_id",
-    "status": ["pending","active","failed","pending","queued","ringing","in-progress","busy","no-answer"], 
+    "status": ["pending","active","failed","pending","queued","ringing","in-progress","busy","no-answer","completed"], 
     "answered_by": ["human", "machine"], 
     "ended_at": "[datetime]",
     "to": "phone_number",
@@ -49,6 +49,11 @@
   "data": {
     "reminder_msg_id": "mongo_id_for_updating_reminder",
     "sheet_name": "gsheets_name_for_updating_sheets",
+}
+
+"audio_msg": {
+  "sid": "",
+  "status": ""
 }
 ```
 

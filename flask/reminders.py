@@ -111,6 +111,7 @@ def send_calls(job_id):
     logger.error('send_calls job_id %s', str(job_id), exc_info=True)
 
 #-------------------------------------------------------------------------------
+@celery_app.task
 def send_emails(job_id):
  try:
     job_id = job_id.encode('utf-8')
@@ -209,6 +210,73 @@ def monitor_calls(job_id):
     logger.error('monitor_calls job_id %s', str(job_id), exc_info=True)
 
 #-------------------------------------------------------------------------------
+# Create mongodb "reminder_msg" record from .CSV line
+# job_id: mongo "job_reminder" record_id in ObjectId format
+# job_template: array of definitions from reminder_templates.json file
+# buf_row: array of values from csv file
+# line_index: file row index (for error tracking)
+def create_msg(job_id, job_template, line_index, buf_row, errors):
+  msg = {
+    "job_id": job_id,
+    "call": {
+      "status": "pending"
+      "attempts": 0,
+    },
+    "email": {
+      "status": "pending"
+    },
+    "template": {}
+  }
+
+  for i, field in enumerate(job_template):
+    db_field = field['db_field']
+    
+    # Format phone numbers
+    if db_field == 'call.to':
+      buf_row[i] = strip_phone(buf_row[i])
+    # Convert any date strings to datetime obj
+    elif field['type'] == 'date':
+      try:
+        buf_row[i] = parse(buf_row[i])
+      except TypeError as e:
+        errors.append('Row '+str(idx+1)+ ': ' + str(buf_row) + ' <b>Invalid Date</b><br>')
+    
+    if db_field.find('.') == -1:
+      msg[db_field] = buf_row[i]
+    # dot notation means record is stored as sub-record
+    else:
+      parent = db_field[0 : db_field.find('.')]
+      child = db_field[db_field.find('.')+1 : len(db_field)]
+      msg[parent][child] = buf_row[i]
+   
+  return msg
+
+#-------------------------------------------------------------------------------
+def rmv_msg(job_id, msg_id):
+  db['reminder_msgs'].remove({'_id':ObjectId(msg_id)})
+   
+  db['reminder_jobs'].update(
+    {'_id':ObjectId(job_id)}, 
+    {'$inc':{'num_calls':-1}}
+  )
+ 
+#------------------------------------------------------------------------------- 
+def edit_msg(job_id, msg_id, fields): 
+  for fieldname, value in fields:
+    if fieldname == 'event_date':
+      try:
+        value = parse(value)
+      except Exception, e:
+        logger.error('Could not parse event_date in /edit/call')
+        return '400'
+    logger.info('Editing ' + fieldname + ' to value: ' + str(value))
+    field = 'imported.'+fieldname
+    db['reminder_msgs'].update(
+        {'_id':ObjectId(sid)}, 
+        {'$set':{field: value}}
+    )
+
+#-------------------------------------------------------------------------------
 def dial(to):
   try:
     twilio_client = twilio.rest.TwilioRestClient(
@@ -240,6 +308,143 @@ def dial(to):
     return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'call_error':error_msg}
   except Exception as e:
     logger.error('twilio.dial exception %s', str(e), exc_info=True)
+    return str(e)
+
+#-------------------------------------------------------------------------------
+# request_method: ['POST','GET']
+# form: Flask MultiDict
+def answer_call(request_method, form):
+  try:
+    if request_method == 'POST':
+      sid = form.get('CallSid')
+      call_status = form.get('CallStatus')
+      to = form.get('To')
+      answered_by = ''
+      if 'AnsweredBy' in form:
+        answered_by = form.get('AnsweredBy')
+      logger.info('%s %s (%s)', to, call_status, answered_by)
+      call = db['reminder_msgs'].find_one({'sid':sid})
+
+      if not call:
+        # Might be special msg voice record call
+        record = db['bravo'].find_one({'sid':sid})
+        if record:
+          logger.info('Sending record twimlo response to client')
+          # Record voice message
+          response = twilio.twiml.Response()
+          response.say('Record your message after the beep. Press pound when complete.', voice='alice')
+          response.record(
+            method= 'GET',
+            action= PUB_URL+'/recordaudio',
+            playBeep= True,
+            finishOnKey='#'
+          )
+          send_socket('record_audio', {'msg': 'Listen to the call for instructions'}) 
+          return Response(str(response), mimetype='text/xml')
+
+      else:
+        db['reminder_msgs'].update(
+          {'sid':sid},
+          {'$set': {'call_status':call_status}}
+        )
+        call = db['reminder_msgs'].find_one({'sid':sid})
+        send_socket(
+          'update_msg', {
+            'id': str(call['_id']),
+            'call_status': call_status
+          }
+        )
+        job = db['reminder_jobs'].find_one({'_id':call['job_id']})
+        
+        return get_speak(job, call, answered_by)
+     
+    elif request_method == "GET":
+      sid = form.get('CallSid')
+      msg = db['reminder_msgs'].find_one({'sid':sid})
+      job = db['reminder_jobs'].find_one({'_id':call['job_id']})
+      digits = form.get('Digits')
+      # Repeat Msg
+      if digits == '1':
+        return get_speak(job, msg, 'human')
+      # Special Action (defined by template)
+      elif digits == '2' and 'no_pickup' not in msg:
+        no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
+        db['reminder_msgs'].update(
+          {'sid':sid},
+          {'$set': {'imported.office_notes': no_pickup}}
+        )
+        send_socket('update_msg', {
+          'id': str(call['_id']),
+          'office_notes':no_pickup
+          })
+        # Write to eTapestry
+        if 'account' in msg['imported']:
+          url = 'http://bravovoice.ca/etap/etap.php'
+          params = {
+            'func': 'no_pickup', 
+            'account': msg['imported']['account'], 
+            'date':  msg['imported']['event_date'].strftime('%d/%m/%Y'),
+            'next_pickup': msg['next_pickup'].strftime('%d/%m/%Y')
+          }
+          tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
+
+        if msg['next_pickup']:
+          response = twilio.twiml.Response()
+          next_pickup_str = msg['next_pickup'].strftime('%A, %B %d')
+          response.say('Thank you. Your next pickup will be on ' + next_pickup_str + '. Goodbye', voice='alice')
+          return Response(str(response), mimetype='text/xml')
+
+    response = twilio.twiml.Response()
+    response.say('Goodbye', voice='alice')
+  except Exception, e:
+    logger.error('reminders.answer_call', exc_info=True)
+    return str(e)
+
+#-------------------------------------------------------------------------------
+def update_call_status(job_id, msg_id, form):
+  try:
+    logger.debug('update_call_status values: %s' % form.values.items())
+    sid = form.get('CallSid')
+    to = form.get('To')
+    status = form.get('CallStatus')
+    
+    logger.info('%s %s', to, status)
+    
+    fields = {
+      "call.status": status,
+      "call.ended_at": datetime.now(),
+      "call.duration": form.get('CallDuration')
+    }
+    
+    msg = db['reminder_msgs'].find_one({'sid':sid})
+
+    if not msg:
+      # Might be an audio recording call
+      audio = db['audio_msg'].find_one({'sid':sid})
+      if audio:
+        logger.info('Record audio call complete')
+        db['audio_msg'].update({'sid':sid}, {'$set': {"status": status}})
+      return 'OK'
+
+    if status == 'completed':
+      answered_by = form.get('AnsweredBy')
+      fields['answered_by'] = answered_by
+      if 'speak' in call:
+        fields['speak'] = call['speak']
+    elif status == 'failed':
+      fields['call_error'] = 'unknown_error'
+      logger.info('update_call_status dump: %s', request.values.items())
+
+    db['reminder_msgs'].update(
+      {'sid':sid},
+      {'$set': fields}
+    )
+    fields['id'] = str(call['_id'])
+    fields['attempts'] = call['attempts']
+    #send_socket('update_msg', fields)
+    return 'OK'
+  except Exception, e:
+    logger.error('%s update_call_status' % form.items(), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------------------
@@ -306,8 +511,6 @@ def get_speak(job, msg, answered_by, medium='voice'):
       numDigits=1
     )
   return Response(str(response), mimetype='text/xml')
-
-
 
 #-------------------------------------------------------------------------------
 def send_email_report(job_id):
@@ -545,53 +748,25 @@ def job_db_dump(job_id):
   }
   return summary
 
-#-------------------------------------------------------------------------------
-# Create mongodb "reminder_msg" record from .CSV line
-# job_id: mongo "job_reminder" record_id in ObjectId format
-# job_template: array of definitions from reminder_templates.json file
-# buf_row: array of values from csv file
-# line_index: file row index (for error tracking)
-def create_msg_record(job_id, job_template, line_index, buf_row, errors):
-  msg = {
-    "job_id": job_id,
-    "call": {
-      "status": "pending"
-      "attempts": 0,
-    },
-    "email": {
-      "status": "pending"
-    },
-    "template": {}
-  }
 
-  for i, field in enumerate(job_template):
-    db_field = field['db_field']
-    
-    # Format phone numbers
-    if db_field == 'call.to':
-      buf_row[i] = strip_phone(buf_row[i])
-    # Convert any date strings to datetime obj
-    elif field['type'] == 'date':
-      try:
-        buf_row[i] = parse(buf_row[i])
-      except TypeError as e:
-        errors.append('Row '+str(idx+1)+ ': ' + str(buf_row) + ' <b>Invalid Date</b><br>')
-    
-    if db_field.find('.') == -1:
-      msg[db_field] = buf_row[i]
-    # dot notation means record is stored as sub-record
-    else:
-      parent = db_field[0 : db_field.find('.')]
-      child = db_field[db_field.find('.')+1 : len(db_field)]
-      msg[parent][child] = buf_row[i]
-   
-  return msg
 
 #-------------------------------------------------------------------------------
 def allowed_file(filename):
   return '.' in filename and \
      filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
   
+#-------------------------------------------------------------------------------
+def cancel_job(job_id):  
+  try:
+    db['reminder_jobs'].remove({'_id':ObjectId(job_id)})
+    db['reminder_msgs'].remove({'job_id':ObjectId(job_id)})
+    logger.info('Removed Job [ID %s]', str(job_id))
+
+    return 'OK'
+  except Exception as e:
+    logger.info(str(e))
+    return 'error'
+      
 #-------------------------------------------------------------------------------   
 # POST request to create new job from new_job.html template
 def submit_job(form, file):

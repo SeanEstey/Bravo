@@ -180,7 +180,8 @@ def no_pickup(msg_id):
   return 'Thank You'
   
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/<msg_id>/answer',methods=['POST','GET'])
+# Called by Twilio
+@flask_app.route('/reminders/answer_call',methods=['POST','GET'])
 def answer_call():
   if request.method == 'POST':
     args = request.form
@@ -191,9 +192,9 @@ def answer_call():
   return Response(str(response), mimetype='text/xml')
   
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/<msg_id>/status',methods=['POST','GET'])
-def update_status():
-  reminders.update_call_status(job_id, msg_id, request.form)
+@flask_app.route('/reminders/call_status',methods=['POST','GET'])
+def update_call_status():
+  reminders.update_call_status(request.form)
   return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -214,7 +215,6 @@ def process_receipts():
     gsheets.process_receipts.apply_async((entries, keys, ), queue=DB_NAME)
 
     return 'OK'
-
   except Exception, e:
     logger.error('/collections/process_receipts', exc_info=True)
 
@@ -242,7 +242,6 @@ def send_email():
       logger.info('Queued email to ' + args['recipient'])
 
     return 'OK'
-
   except Exception, e:
     logger.error('/email/send', exc_info=True)
 
@@ -412,7 +411,6 @@ def nis():
         )
         
         return False
-
     except Exception, e:
         logger.info('%s /call/nis' % request.values.items(), exc_info=True)
         return str(e)

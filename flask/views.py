@@ -182,7 +182,11 @@ def no_pickup(msg_id):
 # Twilio callback
 @flask_app.route('/reminders/call_action',methods=['POST','GET'])
 def call_action():
-  response = reminders.call_action(request.method, request.values.to_dict())
+  if request.form.get('msg') or request.form.get('Digits'):
+    response = reminders.call_interaction(request.values.to_dict())
+  else:
+    response = reminders.call_answered(request.values.to_dict())
+    
   return Response(str(response), mimetype='text/xml')
   
 #-------------------------------------------------------------------------------

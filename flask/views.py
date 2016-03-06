@@ -179,16 +179,17 @@ def no_pickup(msg_id):
   return 'Thank You'
   
 #-------------------------------------------------------------------------------
-# Called by Twilio
-@flask_app.route('/reminders/answer_call',methods=['POST','GET'])
-def answer_call():
-  response = reminders.answer_call(request.method, request.values.to_dict())
+# Twilio callback
+@flask_app.route('/reminders/call_action',methods=['POST','GET'])
+def call_action():
+  response = reminders.call_action(request.method, request.values.to_dict())
   return Response(str(response), mimetype='text/xml')
   
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/call_status',methods=['POST','GET'])
-def update_call_status():
-  reminders.update_call_status(request.form.to_dict())
+# Twilio callback
+@flask_app.route('/reminders/call_ended',methods=['POST','GET'])
+def call_ended():
+  reminders.call_ended(request.form.to_dict())
   return 'OK'
 
 #-------------------------------------------------------------------------------

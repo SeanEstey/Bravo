@@ -1,0 +1,6 @@
+Hi, this is a friendly reminder that your green goods delivery will be on {{ args.msg.imported.event_date }}.
+Your order total is {{ msg.imported.price }}.
+
+{% if args.answered_by == "human" %}
+  To repeat this message, press 1.
+{% endif %}

@@ -40,17 +40,10 @@ def logout():
 @flask_app.route('/', methods=['GET'])
 @login_required
 def view_jobs():
-  if request.get.args('n'):
-    n = request.get.args('n')
-  else:
-    n = 1
-    
-  jobs = reminders.get_jobs(n)
-
   return render_template(
     'view_jobs.html', 
     title=None,
-    jobs=jobs
+    jobs=reminders.get_jobs(request.args.values())
   )
 
 #-------------------------------------------------------------------------------
@@ -110,7 +103,7 @@ def get_job_template(name):
 @flask_app.route('/reminders/submit_job', methods=['POST'])
 @login_required
 def submit_job():
-  r = reminders.submit_job(request.form, request.files['call_list'])
+  r = reminders.submit_job(request.form.values(), request.files['call_list'])
   return Response(response=json.dumps(r), status=200, mimetype='application/json')
 
 #-------------------------------------------------------------------------------
@@ -132,7 +125,7 @@ def view_job(job_id):
     calls=calls, 
     job_id=job_id, 
     job=job,
-    template=TEMPLATE[job['template']]
+    template=job['template']['import_fields']
   )
 
 #-------------------------------------------------------------------------------
@@ -189,18 +182,13 @@ def no_pickup(msg_id):
 # Called by Twilio
 @flask_app.route('/reminders/answer_call',methods=['POST','GET'])
 def answer_call():
-  if request.method == 'POST':
-    args = request.form
-  elif request.method == 'GET':
-    args = request.args
-    
-  response = reminders.answer_call(request.method, args)
+  response = reminders.answer_call(request.method, request.values.to_dict())
   return Response(str(response), mimetype='text/xml')
   
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/call_status',methods=['POST','GET'])
 def update_call_status():
-  reminders.update_call_status(request.form)
+  reminders.update_call_status(request.form.to_dict())
   return 'OK'
 
 #-------------------------------------------------------------------------------

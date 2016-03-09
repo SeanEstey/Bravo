@@ -245,27 +245,6 @@ def send_email():
     logger.error('/email/send', exc_info=True)
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/email/opened', methods=['POST'])
-def email_opened():
-  try:
-    event = request.form['event']
-    recipient = request.form['recipient']
-   
-    #logger.info('Email opened by ' + recipient)
-    
-    mid = '<' + request.form['message-id'] + '>'
-    
-    db['email_status'].update(
-      {'mid': mid},
-      {'$set': {'opened': True}}
-    )
-
-    return 'OK'
-  except Exception, e:
-    logger.error('%s /email/opened' % request.values.items(), exc_info=True)
-    return str(e)
-
-#-------------------------------------------------------------------------------
 @flask_app.route('/email/unsubscribe', methods=['GET'])
 def email_unsubscribe():
   try:
@@ -302,11 +281,11 @@ def email_spam_complaint():
     return str(e)
 
 #-------------------------------------------------------------------------------
+# Relay for all Mailgun webhooks: delivered, bounced, dropped, etc
+# Email can originate from reminder_msg, Signups sheet, or Route Importer sheet 
 @flask_app.route('/email/status',methods=['POST'])
 def email_status():
-  # Relay for all Mailgun webhooks (delivered, bounced, dropped, etc)
-  # Can be from Reminders app, Signups sheet, or Route Importer sheet 
-  try:
+
     # Forwarded from bravovoice.ca. Change webhooks in Mailgun once
     # reminders switched to this VPS 
     event = request.form['event']
@@ -320,6 +299,8 @@ def email_status():
       return 'OK'
       
     logger.info('Email to ' + recipient + ' ' + event)
+  
+  try:
     
     db['email_status'].update(
       {'mid': mid},

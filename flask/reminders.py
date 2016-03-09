@@ -60,48 +60,71 @@ def check_jobs():
 #-------------------------------------------------------------------------------
 @celery_app.task
 def send_calls(job_id):
-  try:
-    job_id = ObjectId(job_id)
-    job = db['jobs'].find_one({'_id':job_id})
-    # Default call order is alphabetically by name
-    messages = db['msgs'].find({'job_id':job_id}).sort('name',1)
-    logger.info('\n\nStarting Job %s [ID %s]', job['name'], str(job_id))
-    db['reminder_jobs'].update(
-      {'_id': job['_id']},
-      {'$set': {
-        'status': 'in-progress',
-        'started_at': datetime.now()
-        }
+  job = db['reminder_jobs'].find_one_and_update(
+    {'_id': ObjectId(job_id)},
+    {'$set': {
+      "status": "in-progress",
+      "started_at": datetime.now()
       }
-    )
-    payload = {'name': 'update_job', 'data': json.dumps({'id':str(job['_id']), 'status':'in-progress'})}
-    requests.get(LOCAL_URL+'/sendsocket', params=payload)
-    # Fire all calls
-    for msg in messages:
-      if 'no_pickup' in msg:
-        continue
-      if msg['call_status'] != 'pending':
-        continue
-      r = dial(msg['imported']['to'])
-      if r['call_status'] == 'failed':
-        logger.info('%s %s (%d: %s)', msg['imported']['to'], r['call_status'], r['error_code'], r['call_error'])
-      else: 
-        logger.info('%s %s', msg['imported']['to'], r['call_status'])
-      r['attempts'] = msg['attempts']+1
-      db['msgs'].update(
+    }
+  )
+  
+  logger.info('\n\nStarting Job %s [ID %s]', job['name'], str(job_id))
+    
+  try:
+    requests.get(PUB_URL + '/sendsocket', params={
+      'name': 'update_job', 'data': json.dumps({'id': job_id, 'status':'in-progress'})
+    })
+  except Exception as e:
+    logger.error('send_calls sendsocket error', exc_info=True)
+    
+  # Default call order is alphabetically by name
+  messages = db['reminder_msgs'].find({'job_id': ObjectId(job_id)}).sort('name',1)
+  
+  # Fire all calls
+  for msg in messages:
+    # TODO: change call.status to "cancelled" on no_pickup request, eliminate this test
+    if 'no_pickup in msg['custom']:
+      continue
+    if msg['call']['status'] != 'pending':
+      continue
+    
+    call = dial(msg['call']['to'])
+    
+    if isinstance(call, Exception):
+      logger.info('%s failed (%d: %s)', msg['call']['to'], call.code, call.msg)
+      db['reminder_msgs'].update_one(
         {'_id':msg['_id']},
-        {'$set': r}
+        {'$set': {
+          "call.status": "failed",
+          "call.error_msg": call.msg,
+          "call.error_code": call.code
+        }}
       )
-      r['id'] = str(msg['_id'])
-      payload = {'name': 'update_call', 'data': json.dumps(r)}
-      requests.get(LOCAL_URL+'/sendsocket', params=payload)
+    else: 
+      logger.info('%s %s', msg['call']['to'], call.status)
+      db['reminder_msgs'].update_one(
+        {'_id':msg['_id']},
+        {'$set': {
+          "call.status": call.status,
+          "call.sid": call.sid,
+          "call.attempts": msg['call']['attempts']+1
+        }}
+      )
+    
+    # TODO: Add back in socket.io
+    
+    #r['id'] = str(msg['_id'])
+    #payload = {'name': 'update_call', 'data': json.dumps(r)}
+    #requests.get(LOCAL_URL+'/sendsocket', params=payload)
     
     logger.info('Job Calls Fired.')
-    r = requests.get(PUB_URL + '/' + str(job_id) + '/monitor')
+    r = requests.get(PUB_URL + '/' + job_id + '/monitor')
+    
     return 'OK'
 
   except Exception, e:
-    logger.error('send_calls job_id %s', str(job_id), exc_info=True)
+    logger.error('send_calls job_id %s', job_id, exc_info=True)
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -150,7 +173,7 @@ def monitor_calls(job_id):
     # Loop until no incomplete calls remaining (all either failed or complete)
     while True:
       # Any calls still active?
-      actives = db['msgs'].find({
+      actives = db['reminder_msgs'].find({
         'job_id': job_id,
         '$or':[
           {'call_status': 'queued'},
@@ -276,6 +299,7 @@ def dial(to):
       TWILIO_ACCOUNT_SID, 
       TWILIO_AUTH_ID
     )
+    
     call = twilio_client.calls.create(
       from_ = FROM_NUMBER,
       to = '+1'+to,
@@ -285,23 +309,22 @@ def dial(to):
       method = 'POST',
       if_machine = 'Continue'
     )
-
-    return {'sid':call.sid, 'call_status':call.status}
   except twilio.TwilioRestException as e:
-    if e.code == 21216:
-      error_msg = 'not_in_service'
-    elif e.code == 21211:
-      error_msg = 'no_number'
-    elif e.code == 13224:
-      error_msg = 'invalid_number'
-    elif e.code == 13223:
-      error_msg = 'invalid_number_format'
-    else:
-      error_msg = e.message
-    return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'call_error':error_msg}
-  except Exception as e:
-    logger.error('twilio.dial exception %s', str(e), exc_info=True)
-    return str(e)
+    if not e.msg:
+      if e.code == 21216:
+        e.msg = 'not_in_service'
+      elif e.code == 21211:
+        e.msg = 'no_number'
+      elif e.code == 13224:
+        e.msg = 'invalid_number'
+      elif e.code == 13223:
+        e.msg = 'invalid_number_format'
+      else:
+        e.msg = 'unknown_error'
+    
+    return e
+
+  return call
 
 #-------------------------------------------------------------------------------
 # Twilio callback handler. User has made interaction with call

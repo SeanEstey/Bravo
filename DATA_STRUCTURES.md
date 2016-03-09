@@ -17,7 +17,7 @@
     "error_msg": "",
     "error_code": "",
   },
-  "email": {
+  "emails": {
     "mid":  "mailgun_msg_id", 
     "status": ["pending", "bounced", "dropped", "delivered"],
     "recipient": "email",

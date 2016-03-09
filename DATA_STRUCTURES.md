@@ -46,6 +46,9 @@
 "emails": {
   "mid": "mailgun_msg_id",
   "status": ["queued", "delivered", "bounced", "dropped"],
+  "code": "error code (if any)",
+  "error": "(if any)",
+  "reason": "error desc (if any),
   "optional": {
     "reminder_msg_id": "mongo_id_for_updating_reminder",
     "sheet_name": "gsheets_name_for_updating_sheets"

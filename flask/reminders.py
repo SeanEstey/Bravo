@@ -303,9 +303,10 @@ def dial(to):
     call = twilio_client.calls.create(
       from_ = FROM_NUMBER,
       to = '+1'+to,
-      url = PUB_URL + '/reminders/call_action',
-      status_callback = PUB_URL + '/reminders/call_ended',
+      url = PUB_URL + '/reminders/call.xml',
+      status_callback = PUB_URL + '/reminders/call_event',
       status_method = 'POST',
+      status_events=["initiated", "ringing", "answered", "completed"],
       method = 'POST',
       if_machine = 'Continue'
     )
@@ -327,55 +328,64 @@ def dial(to):
   return call
 
 #-------------------------------------------------------------------------------
-# Twilio callback handler. User has made interaction with call
-# args: dictionary
-def call_interaction(args):
- try:
-    sid = args.get('CallSid')
-    msg = db['reminder_msgs'].find_one({'sid':sid})
-    job = db['reminder_jobs'].find_one({'_id':call['job_id']})
-    digits = form.get('Digits')
-    
-    # Repeat Msg
-    if digits == '1':
-      return get_speak(job, msg, 'human')
-    # Special Action (defined by template)
-    elif digits == '2' and 'no_pickup' not in msg:
-      no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
-      db['reminder_msgs'].update(
-        {'sid':sid},
-        {'$set': {'imported.office_notes': no_pickup}}
-      )
-      send_socket('update_msg', {
-        'id': str(call['_id']),
-        'office_notes':no_pickup
-        })
-      # Write to eTapestry
-      if 'account_id' in msg['imported']:
-        url = 'http://bravovoice.ca/etap/etap.php'
-        params = {
-          'func': 'no_pickup', 
-          'account': msg['imported']['account'], 
-          'date':  msg['imported']['event_date'].strftime('%d/%m/%Y'),
-          'next_pickup': msg['next_pickup'].strftime('%d/%m/%Y')
-        }
-        tasks.no_pickup_etapestry.apply_async((url, params, ), queue=DB_NAME)
+def get_call_xml(args):
+  if 'msg' in args or 'Digits' in args:
+    return get_call_interaction_xml(request.values.to_dict())
+  else:
+    return get_call_answered_xml(request.values.to_dict())
 
-      if msg['next_pickup']:
-        response = twilio.twiml.Response()
-        next_pickup_str = msg['next_pickup'].strftime('%A, %B %d')
-        response.say('Thank you. Your next pickup will be on ' + next_pickup_str + '. Goodbye', voice='alice')
-        return Response(str(response), mimetype='text/xml')
-      else:
-        response = twilio.twiml.Response()
-        response.say('Goodbye', voice='alice')
+#-------------------------------------------------------------------------------
+# Twilio callback handler. User has made interaction with call
+# args: TwiML Voice Request
+def get_call_interaction_xml(args):
+  msg = db['reminder_msgs'].find_one({'sid': args.get('CallSid')})
+  job = db['reminder_jobs'].find_one({'_id': msg['job_id']})
+  
+  response = twilio.twiml.Response()
+  
+  if args.get('Digits') == '1':
+    # Repeat message request...
+    return get_speak(job, msg, 'human')
+  elif args.get('Digits') == '2':
+    # Cancel Pickup special request...
     
-  except Exception, e:
-    logger.error('reminders.answer_call', exc_info=True)
-    return str(e)
- 
-#-------------------------------------------------------------------------------  
-def call_answered(args):
+    if 'account_id' not in msg or 'next_pickup' not in msg:
+      logger.error("Could not cancel pickup for msg: " + msg)
+      response.say('An error occurred.', voice='alice')
+      return Response(str(response), mimetype='text/xml')
+    
+    no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
+    
+    db['reminder_msgs'].update(
+      {'sid': args.get('CallSid')},
+      {'$set': {'custom.office_notes': no_pickup}}
+    )
+    
+    #send_socket('update_msg', {
+    #  'id': str(call['_id']),
+    #  'office_notes':no_pickup
+    #  })
+    
+    try:
+      # Update eTap with future pickup date
+      etap.call.apply_async(('no_pickup', keys, {
+        'account': msg['custom']['account'], 
+        'date': msg['custom']['event_date'].strftime('%d/%m/%Y'),
+        'next_pickup': msg['custom']['next_pickup'].strftime('%d/%m/%Y')
+      },), queue=DB_NAME)
+    except Exception as e:
+      logger.error('Could not write to eTap to update pickup date. ' + str(e))
+
+  response.say('Thank you. Your next pickup will be on ' +  
+    msg['next_pickup'].strftime('%A, %B %d') + '. Goodbye', 
+    voice='alice')
+  
+  return Response(str(response), mimetype='text/xml')
+    
+#-------------------------------------------------------------------------------
+# TwiML Voice Request: "CallSid", "AccountSid", "From", "To", "CallStatus", 
+# "ApiVersion", "Direction", "ForwardedFrom","CallerName"
+def get_call_answered_xml(args):
   try:
     sid = args['CallSid']
     call_status = args['CallStatus']
@@ -424,9 +434,10 @@ def call_answered(args):
     return str(e)
 
 #-------------------------------------------------------------------------------
-# Twilio callback handler. 
-# args['CallStatus'] either: 'completed', 'failed', 'no-answer', or 'busy'
-def call_ended(args):
+# Twilio callback handler 
+# Unless multiple event handlers specified, this callback only called on 'completed'.
+# Registering more events costs $.00001 per event
+def call_event(args):
   logger.info('%s %s', args['to'], args['CallStatus'])
     
   try:

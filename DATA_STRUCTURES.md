@@ -48,7 +48,7 @@
   "status": ["queued", "delivered", "bounced", "dropped"],
   "data": {
     "reminder_msg_id": "mongo_id_for_updating_reminder",
-    "sheet_name": "gsheets_name_for_updating_sheets",
+    "sheet_name": "gsheets_name_for_updating_sheets"
 }
 
 "audio_msg": {
@@ -85,13 +85,13 @@ dict dump:
   "date_updated": "None", 
   "price_unit": "USD", 
   "phone_number_sid": "PN3c6e7d07dd60172c7cbedcf1149c728d", 
-  "parent_call_sid": None, 
-  "auth": ("ACef54e4a38c29aa6a5ed6e5064e02e511", "{{ secret_key }}"), 
+  "parent_call_sid": "None", 
+  "auth": "(ACef54e4a38c29aa6a5ed6e5064e02e511, {{ secret_key }})", 
   "notifications": "<twilio.rest.resources.notifications.Notifications object at 0x7efcbc3dbdd0>", 
   "caller_name": "None", 
   "from_formatted": "(780) 413-8846", 
   "duration": "None", 
-  "group_sid": "None', 
+  "group_sid": "None", 
   "account_sid": "ACef54e4a38c29aa6a5ed6e5064e02e511", 
   "annotation": "None", 
   "feedback": "<twilio.rest.resources.call_feedback.CallFeedbackFactory object at 0x7efcbc3dbfd0>", 

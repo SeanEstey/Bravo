@@ -59,8 +59,9 @@
 
 <h2>Twilio</h2>
 
+twilio.TwilioRestException
 ```json
-"twilio.TwilioRestException": {
+{
   "status": "HTTP error code",
   "msg": "error message string",
   "code": "https://www.twilio.com/docs/api/errors/reference",

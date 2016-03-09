@@ -76,20 +76,5 @@ Python: twilio.rest.resources.call
 <br>
 __dict__:
 ```json
-{
-  "sid": "",
-  "status": "",
-  "answered_by": "",
-  "to_formatted": "",
-  "parent": "",
-  "date_updated": "",
-  "price_unit": "",
-  "phone_number_sid": "",
-  "parent_call_sid": "",
-  "auth": "",
-  "notifications": "",
-  "caller_name": "",
-  "from_formatted": "",
-  "duration": "",
-  "account_sid": "",
-  "
+{u'status': u'queued', u'answered_by': None, u'to_formatted': u'(780) 863-5715', 'parent': <twilio.rest.resources.calls.Calls object at 0x7efcbc3cefd0>, u'date_updated': None, u'price_unit': u'USD', u'phone_number_sid': u'PN3c6e7d07dd60172c7cbedcf1149c728d', u'parent_call_sid': None, 'auth': ('ACef54e4a38c29aa6a5ed6e5064e02e511', '47dbc1c341222df40eaaa941e48044bb'), 'notifications': <twilio.rest.resources.notifications.Notifications object at 0x7efcbc3dbdd0>, u'caller_name': None, u'from_formatted': u'(780) 413-8846', u'duration': None, u'group_sid': None, u'account_sid': u'ACef54e4a38c29aa6a5ed6e5064e02e511', u'annotation': None, 'feedback': <twilio.rest.resources.call_feedback.CallFeedbackFactory object at 0x7efcbc3dbfd0>, u'subresource_uris': {u'notifications': u'/2010-04-01/Accounts/ACef54e4a38c29aa6a5ed6e5064e02e511/Calls/CA7d1d19877dc768fd0c701cfcdc706fdd/Notifications.json', u'recordings': u'/2010-04-01/Accounts/ACef54e4a38c29aa6a5ed6e5064e02e511/Calls/CA7d1d19877dc768fd0c701cfcdc706fdd/Recordings.json'}, 'name': u'CA7d1d19877dc768fd0c701cfcdc706fdd', 'base_uri': 'https://api.twilio.com/2010-04-01/Accounts/ACef54e4a38c29aa6a5ed6e5064e02e511/Calls', u'start_time': None, u'direction': u'outbound-api', 'recordings': <twilio.rest.resources.recordings.Recordings object at 0x7efcbc3dbed0>, u'forwarded_from': None, u'to': u'+17808635715', u'end_time': None, 'timeout': <Unset Timeout Value>, u'sid': u'CA7d1d19877dc768fd0c701cfcdc706fdd', u'date_created': None, 'from_': u'+17804138846', u'price': None, u'api_version': u'2010-04-01'}
+```

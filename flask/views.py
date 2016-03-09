@@ -281,11 +281,11 @@ def email_spam_complaint():
     return str(e)
 
 #-------------------------------------------------------------------------------
-# Relay for all Mailgun webhooks
+# Relay for all Mailgun webhooks. Can originate from reminder_msg, Signups sheet, 
+# or Route Importer sheet 
 # 'delivered' data: ['event', 'recipient', 'Message-Id']
 # 'bounced' data: ['event', 'recipient', 'code', 'error', 'Message-Id']
 # 'dropped' data: ['event', 'recipient', 'code', 'reason', 'Message-Id']
-# Email can originate from reminder_msg, Signups sheet, or Route Importer sheet 
 @flask_app.route('/email/status',methods=['POST'])
 def email_status():
   logger.info('Email to ' + request.form['recipient'] + ' ' + request.form['event'])
@@ -306,7 +306,7 @@ def email_status():
   if not 'optional' in db_doc:
     return 'OK'
     
-  # Where did this email originate from?
+  # Do any required follow-up actions
   
   # Google Sheets?
   if 'sheet_name' in db_doc['optional']:
@@ -340,32 +340,31 @@ def get_romorrow_accounts():
 #-------------------------------------------------------------------------------
 @flask_app.route('/call/nis', methods=['POST'])
 def nis():
-    try:
-        logger.info('NIS!')
+  logger.info('NIS!')
 
-        record = request.get_json()
-
-        gsheets.create_rfu(
-            record['imported']['to'] + ' not in service', 
-            account_number=record['imported']['account'], 
-            block=record['imported']['block']
-        )
-        
-        return False
-    except Exception, e:
-        logger.info('%s /call/nis' % request.values.items(), exc_info=True)
-        return str(e)
+  record = request.get_json()
+    
+  try:
+    gsheets.create_rfu(
+      record['imported']['to'] + ' not in service', 
+      account_number=record['imported']['account'], 
+      block=record['imported']['block']
+    )
+  except Exception, e:
+    logger.info('%s /call/nis' % request.values.items(), exc_info=True)
+    return str(e)
 
 #-------------------------------------------------------------------------------
 # Forwarded signup submision from emptiestowinn.com
 # Adds signup data to Route Importer->Signups gsheet row
 @flask_app.route('/receive_signup', methods=['POST'])
 def rec_signup():
+  logger.info('New signup received: ' + request.form.get('first_name') + ' ' + request.form.get('last_name'))
+  
   try:
-      signup = request.form.to_dict()
-      logger.info('New signup received: ' + signup['first_name'] + ' ' + signup['last_name'])
-      gsheets.add_signup_row.apply_async((request.form.to_dict(), ), queue=DB_NAME)
-      return 'OK'
+    gsheets.add_signup_row.apply_async((request.form.to_dict(), ), queue=DB_NAME)
   except Exception, e:
     logger.info('%s /receive_signup' % request.values.items(), exc_info=True)
     return str(e)
+  
+  return 'OK'

@@ -179,21 +179,17 @@ def no_pickup(msg_id):
   return 'Thank You'
   
 #-------------------------------------------------------------------------------
-# Twilio callback
-@flask_app.route('/reminders/call_action',methods=['POST','GET'])
+# Twilio TwiML Voice Request
+@flask_app.route('/reminders/call.xml',methods=['POST'])
 def call_action():
-  if request.form.get('msg') or request.form.get('Digits'):
-    response = reminders.call_interaction(request.values.to_dict())
-  else:
-    response = reminders.call_answered(request.values.to_dict())
-    
+  response = reminders.get_call_xml(request.values.to_dict())
   return Response(str(response), mimetype='text/xml')
   
 #-------------------------------------------------------------------------------
-# Twilio callback
-@flask_app.route('/reminders/call_ended',methods=['POST','GET'])
+# Twilio callback. 
+@flask_app.route('/reminders/call_event',methods=['POST','GET'])
 def call_ended():
-  reminders.call_ended(request.form.to_dict())
+  reminders.call_event(request.form.to_dict())
   return 'OK'
 
 #-------------------------------------------------------------------------------

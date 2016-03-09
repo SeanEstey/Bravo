@@ -17,7 +17,7 @@
     "error_msg": "",
     "error_code": "",
   },
-  "emails": {
+  "email": {
     "mid":  "mailgun_msg_id", 
     "status": ["pending", "bounced", "dropped", "delivered"],
     "recipient": "email",
@@ -43,7 +43,7 @@
   "audio_url": "saved_audio_message_url"
 }
 
-"email": {
+"emails": {
   "mid": "mailgun_msg_id",
   "status": ["queued", "delivered", "bounced", "dropped"],
   "optional": {

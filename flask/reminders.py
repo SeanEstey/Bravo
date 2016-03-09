@@ -142,7 +142,7 @@ def send_emails(job_id):
       if not msg['email']['recipient']:
         db['reminder_msgs'].update(
           {'_id':msg['_id']}, 
-          {'$set': {'email_status': 'no_email'}}
+          {'$set': {'email.status': 'no_email'}}
         )
         continue
         #send_socket('update_msg', {'id':str(msg['_id']), 'email_status': 'no_email'})
@@ -550,8 +550,8 @@ def send_email_report(job_id):
     msg = utils.print_html(summary)
 
     fails = list( 
-      db['msgs'].find(
-        {'job_id':job_id, '$or': [{'email_status': 'bounced'},{'email_status': 'dropped'},{'call_status':'failed'}]},
+      db['reminder_msgs'].find(
+        {'job_id':job_id, '$or': [{"email.status" : 'bounced'},{"email.status" : 'dropped'},{"call.status" :'failed'}]},
         {'imported': 1, 'email_error': 1, 'call_error':1, 'error_code':1, 'email_status': 1, '_id': 0}
       )
     )

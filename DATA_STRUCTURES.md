@@ -68,3 +68,24 @@ twilio.TwilioRestException
   "uri": "",
   "method": "POST/GET"
 }
+```
+
+<a href="https://www.twilio.com/docs/api/rest/call#instance">Call Instance Resource</a>
+Python: twilio.rest.resources.call
+
+```json
+{
+  "status": "",
+  "answered_by": "",
+  "to_formatted": "",
+  "parent": "",
+  "date_updated": "",
+  "price_unit": "",
+  "phone_number_sid": "",
+  "parent_call_sid": "",
+  "auth": "",
+  "notifications": "",
+  "caller_name": "",
+  "from_formatted": "",
+  "duration": "",
+  "

@@ -328,6 +328,7 @@ def dial(to):
   return call
 
 #-------------------------------------------------------------------------------
+# Returns twilio.twiml.Response obj
 def get_call_xml(args):
   if 'msg' in args or 'Digits' in args:
     return get_call_interaction_xml(request.values.to_dict())
@@ -337,6 +338,7 @@ def get_call_xml(args):
 #-------------------------------------------------------------------------------
 # Twilio callback handler. User has made interaction with call
 # args: TwiML Voice Request
+# Returns twilio.twiml.Response obj
 def get_call_interaction_xml(args):
   msg = db['reminder_msgs'].find_one({'sid': args.get('CallSid')})
   job = db['reminder_jobs'].find_one({'_id': msg['job_id']})
@@ -352,7 +354,7 @@ def get_call_interaction_xml(args):
     if 'account_id' not in msg or 'next_pickup' not in msg:
       logger.error("Could not cancel pickup for msg: " + msg)
       response.say('An error occurred.', voice='alice')
-      return Response(str(response), mimetype='text/xml')
+      return response
     
     no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
     
@@ -380,11 +382,12 @@ def get_call_interaction_xml(args):
     msg['next_pickup'].strftime('%A, %B %d') + '. Goodbye', 
     voice='alice')
   
-  return Response(str(response), mimetype='text/xml')
+  return response
     
 #-------------------------------------------------------------------------------
 # TwiML Voice Request: "CallSid", "AccountSid", "From", "To", "CallStatus", 
 # "ApiVersion", "Direction", "ForwardedFrom","CallerName"
+# Returns twilio.twiml.Response obj
 def get_call_answered_xml(args):
   try:
     sid = args['CallSid']
@@ -411,7 +414,7 @@ def get_call_answered_xml(args):
           finishOnKey='#'
         )
         send_socket('record_audio', {'msg': 'Listen to the call for instructions'}) 
-        return Response(str(response), mimetype='text/xml')
+        return response
 
     # Reminder call
 
@@ -514,12 +517,13 @@ def strip_phone(to):
   return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
 #-------------------------------------------------------------------------------
+# Returns twilio.twiml.Response obj
 def get_speak(job, msg, answered_by, medium='voice'):
   # Simplest case: announce_voice template. Play audio file
   if job['template'] == 'announce_voice':
     response = twilio.twiml.Response()
     response.play(job['audio_url'])
-    return Response(str(response), mimetype='text/xml')
+    return response
 
   if 'event_date' in msg['imported']:
     try:
@@ -538,7 +542,7 @@ def get_speak(job, msg, answered_by, medium='voice'):
       method='GET',
       numDigits=1
     )
-  return Response(str(response), mimetype='text/xml')
+  return response
 
 #-------------------------------------------------------------------------------
 def send_email_report(job_id):

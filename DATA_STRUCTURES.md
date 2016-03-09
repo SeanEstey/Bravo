@@ -2,14 +2,14 @@
 
 ```json
 "reminder_msgs": {
-  "job_id": "[BSON ObjectId]",
+  "job_id": "<BSON.ObjectId>",
   "name": "",
   "account_id": "",
   "call": {
     "sid": "twilio_call_id",
     "status": ["pending","active","failed","pending","queued","ringing","in-progress","busy","no-answer","completed"], 
     "answered_by": ["human", "machine"], 
-    "ended_at": "[datetime]",
+    "ended_at": "<BSON.Date>",
     "to": "phone_number",
     "speak": "",
     "attempts": "",
@@ -26,14 +26,14 @@
   },
   "custom": {
     "no_pickup": "[bool]",
-    "next_pickup": "[datetime]",
+    "next_pickup": "<BSON.Date>",
     "other imported fields ..."
   }
 }
 
 "reminder_jobs": {
   "status": ["pending", "in-progress", "completed"], 
-  "fire_dtime": "[datetime]", 
+  "fire_dtime": "<BSON.Date>", 
   "num_calls": "[Number]", 
   "template": {
     "call_template": "file.html",

@@ -71,10 +71,13 @@ twilio.TwilioRestException
 ```
 
 <a href="https://www.twilio.com/docs/api/rest/call#instance">Call Instance Resource</a>
+<br>
 Python: twilio.rest.resources.call
-
+<br>
+__dict__:
 ```json
 {
+  "sid": "",
   "status": "",
   "answered_by": "",
   "to_formatted": "",
@@ -88,4 +91,5 @@ Python: twilio.rest.resources.call
   "caller_name": "",
   "from_formatted": "",
   "duration": "",
+  "account_sid": "",
   "

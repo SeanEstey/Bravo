@@ -279,9 +279,8 @@ def email_spam_complaint():
 #-------------------------------------------------------------------------------
 # Relay for all Mailgun webhooks. Can originate from reminder_msg, Signups sheet, 
 # or Route Importer sheet 
-# 'delivered' data: ['event', 'recipient', 'Message-Id']
-# 'bounced' data: ['event', 'recipient', 'code', 'error', 'Message-Id']
-# 'dropped' data: ['event', 'recipient', 'code', 'reason', 'Message-Id']
+# POST data: 'event', 'recipient', 'Message-Id', 'code' (dropped/bounced only), 'error' (bounced), 'reason' (dropped)
+# 'event': 'delivered', 'bounced', or 'dropped'
 @flask_app.route('/email/status',methods=['POST'])
 def email_status():
   logger.info('Email to ' + request.form['recipient'] + ' ' + request.form['event'])

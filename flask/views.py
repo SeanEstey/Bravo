@@ -232,10 +232,10 @@ def send_email():
     r = json.loads(r.text)
     
     if r['message'].find('Queued') == 0:
-      db['email_status'].insert({
+      db['emails'].insert({
         "mid": r['id'],
         "status": "queued",
-        "data": args
+        "optional": args
       })
 
       logger.info('Queued email to ' + args['recipient'])
@@ -281,74 +281,56 @@ def email_spam_complaint():
     return str(e)
 
 #-------------------------------------------------------------------------------
-# Relay for all Mailgun webhooks: delivered, bounced, dropped, etc
+# Relay for all Mailgun webhooks
+# 'delivered' data: ['event', 'recipient', 'Message-Id']
+# 'bounced' data: ['event', 'recipient', 'code', 'error', 'Message-Id']
+# 'dropped' data: ['event', 'recipient', 'code', 'reason', 'Message-Id']
 # Email can originate from reminder_msg, Signups sheet, or Route Importer sheet 
 @flask_app.route('/email/status',methods=['POST'])
 def email_status():
-
-    # Forwarded from bravovoice.ca. Change webhooks in Mailgun once
-    # reminders switched to this VPS 
-    event = request.form['event']
-    recipient = request.form['recipient']
-    mid = request.form['mid']
-
-    db_record = db['email_status'].find_one({'mid':mid})
-
-    if not db_record:
-      logger.info('Reminder email to ' + recipient + ' ' + event)
-      return 'OK'
-      
-    logger.info('Email to ' + recipient + ' ' + event)
+  logger.info('Email to ' + request.form['recipient'] + ' ' + request.form['event'])
   
-  try:
+  db_doc = db['emails'].find_one_and_update(
+    {'mid': request.form['Message-Id']},
+    {'$set': {
+      'status': request.form['event'],
+      'code': request.form.get('code'),
+      'error': request.form.get('error'),
+      'reason': request.form.get('reason')
+    }}
+  )
+  
+  if not db_doc:
+    return 'OK'
     
-    db['email_status'].update(
-      {'mid': mid},
-      {'$set': {'status': event}}
+  if not 'optional' in db_doc:
+    return 'OK'
+    
+  # Where did this email originate from?
+  
+  # Google Sheets?
+  if 'sheet_name' in db_doc['optional']:
+    try:
+      gsheets.update_entry(db_doc['optional'])
+    except Exception as e:
+      logger.error("Error writing to Google Sheets: " + str(e))
+      return 'failed'
+  # Reminder email?
+  elif 'reminder_msg_id' in db_doc['optional']:
+    db['reminder_msgs'].update_one(
+      {'email.mid': request.form['Message-Id']}, 
+      {'$set':{
+        "email.status": request.form['event'],
+        "email.code": request.form.get('code'),
+        "email.reason": request.form.get('reason'),
+        "email.error": request.form.get('error')
+      }}
     )
     
-    db_record['status'] = event
-    
-    if not 'data' in db_record:
-      return 'OK'
-    
-    # Where did this email originate from?
-    
-    # Google Sheets?
-    if 'sheet_name' in db_record['data']:
-      gsheets.update_entry(db_record['data'])
-      return 'OK'
-    
-    # A reminder email?
-    if 'reminder_msg_id' in db_record['data']:
-      msg = db['reminder_msgs'].find_one({'_id':db_record['data']['reminder_msg_id']})
-      
-      if event == 'bounced':
-        logger.info('%s %s (%s). %s', recipient, event, request.form['code'], request.form['error'])
-        
-        db['reminder_msgs'].update({email['mid']: mid}, {'$set':{
-          "email.status": event,
-          "email.error": request.form['code'] + '. ' + request.form['error']
-        }})
-      elif event == 'dropped':
-        logger.info('%s %s (%s). %s', recipient, event, request.form['reason'], request.form['description'])
-        
-        db['reminder_msgs'].update({email['mid']: mid},{'$set':{
-          "email.status": event,
-          "email.error": request.form['reason'] + '. ' + request.form['description']
-        }})
-      else:
-        logger.info('%s %s', recipient, event)
-        db['reminder_msgs'].update({email['mid']: mid},{'$set':{"email.status": event}})
-  
-      #socketio.emit('update_msg', {'id':str(msg['_id']), 'email_status': request.form['event']})
-  
-      return 'OK'
-    
-  except Exception, e:
-    logger.info('%s /email/status' % request.values.items(), exc_info=True)
-    return str(e)
+  #socketio.emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
 
+  return 'OK'
+    
 #-------------------------------------------------------------------------------
 @flask_app.route('/get_np', methods=['GET'])
 def get_romorrow_accounts():
@@ -359,27 +341,6 @@ def get_romorrow_accounts():
 @flask_app.route('/call/nis', methods=['POST'])
 def nis():
     try:
-        ''' 
-        MongoDB record passed in with format: { 
-        "_id" : ObjectId("56ba35a2693785608683f3e6"), 
-        "next_pickup" : ISODate("2016-04-21T00:00:00Z"), 
-        "imported" : { 
-            "status" : "Dropoff", 
-            "account" : "71535", 
-            "name" : "Harish Kumar", 
-            "office_notes" : "", 
-            "to" : "7804652323", 
-            "event_date" : ISODate("2016-02-11T00:00:00Z"), 
-            "email" : "", 
-            "block" : "R10J" 
-        }, 
-        "job_id" : ObjectId("56ba35a2693785608683f31c"), 
-        "call_status" : "pending", 
-        "attempts" : 0, 
-        "email_status" : "no_email" 
-        }
-        '''
-
         logger.info('NIS!')
 
         record = request.get_json()

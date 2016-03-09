@@ -43,7 +43,7 @@
   "audio_url": "saved_audio_message_url"
 }
 
-"email_status": {
+"email": {
   "mid": "mailgun_msg_id",
   "status": ["queued", "delivered", "bounced", "dropped"],
   "optional": {

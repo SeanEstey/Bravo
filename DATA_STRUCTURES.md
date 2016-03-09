@@ -77,7 +77,7 @@ Python: twilio.rest.resources.call
 json dump:
 ```json
 {
-  'sid': u'CA7d1d19877dc768fd0c701cfcdc706fdd', 
+  'sid': 'CA7d1d19877dc768fd0c701cfcdc706fdd', 
   'status': 'queued', 
   'answered_by': None, 
   'to_formatted': '(780) 863-5715', 

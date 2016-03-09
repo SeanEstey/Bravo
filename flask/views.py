@@ -290,15 +290,7 @@ def email_spam_complaint():
 def email_status():
   logger.info('Email to ' + request.form['recipient'] + ' ' + request.form['event'])
   
-  db_doc = db['emails'].find_one_and_update(
-    {'mid': request.form['Message-Id']},
-    {'$set': {
-      'status': request.form['event'],
-      'code': request.form.get('code'),
-      'error': request.form.get('error'),
-      'reason': request.form.get('reason')
-    }}
-  )
+  db_doc = db['emails'].find_one({'mid': request.form['Message-Id']})
   
   if not db_doc:
     return 'OK'

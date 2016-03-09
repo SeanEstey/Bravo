@@ -50,7 +50,7 @@
   "error": "(if any)",
   "reason": "error desc (if any)",
   "optional": {
-    "reminder_msg_id": "mongo_id_for_updating_reminder",
+    "reminder_msg_id": "<BSON.OjectId>",
     "sheet_name": "gsheets_name_for_updating_sheets"
   }
 }

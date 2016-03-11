@@ -4,7 +4,8 @@
 "reminder_msgs": {
   "job_id": "<BSON.ObjectId>",
   "name": "",
-  "account_id": "",
+  "account_id": "etapestry_account_id",
+  "event_date": "<BSON.Date>",
   "call": {
     "sid": "twilio_call_id",
     "status": ["pending","active","failed","pending","queued","ringing","in-progress","busy","no-answer","completed"], 
@@ -116,7 +117,7 @@ dict dump:
   "api_version": "2010-04-01"}
 ```
 
-TwiML Voice Request
+TwiML Voice Request (POST data)
 <br>
 ```json
 {

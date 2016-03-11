@@ -231,7 +231,7 @@ def monitor_calls(job_id):
 # template_def: template dict from reminder_templates.json file
 # buf_row: array of values from csv file
 # line_index: file row index (for error tracking)
-def create_msg(job_id, template_def, line_index, buf_row, errors):
+def line_entry_to_db_msg(job_id, template_def, line_index, buf_row, errors):
   msg = {
     "job_id": job_id,
     "call": {
@@ -306,7 +306,7 @@ def dial(to):
       url = PUB_URL + '/reminders/call.xml',
       status_callback = PUB_URL + '/reminders/call_event',
       status_method = 'POST',
-      status_events=["initiated", "ringing", "answered", "completed"],
+      status_events = ["completed"], # adding more status events adds cost
       method = 'POST',
       if_machine = 'Continue'
     )
@@ -336,8 +336,8 @@ def get_call_xml(args):
     return get_call_answered_xml(request.values.to_dict())
 
 #-------------------------------------------------------------------------------
-# Twilio callback handler. User has made interaction with call
-# args: TwiML Voice Request
+# Twilio TwiML Voice Request
+# User has made interaction with call
 # Returns twilio.twiml.Response obj
 def get_call_interaction_xml(args):
   msg = db['reminder_msgs'].find_one({'sid': args.get('CallSid')})
@@ -351,16 +351,14 @@ def get_call_interaction_xml(args):
   elif args.get('Digits') == '2':
     # Cancel Pickup special request...
     
-    if 'account_id' not in msg or 'next_pickup' not in msg:
-      logger.error("Could not cancel pickup for msg: " + msg)
-      response.say('An error occurred.', voice='alice')
+    if msg['custom']['next_pickup'] is None:
+      logger.error("Next Pickup for reminder_msg _id %s is missing.", str(msg['_id']))
+      response.say("Thank you.", voice='alice')
       return response
-    
-    no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
     
     db['reminder_msgs'].update(
       {'sid': args.get('CallSid')},
-      {'$set': {'custom.office_notes': no_pickup}}
+      {'$set': {'custom.office_notes': msg['event_date'].strftime('%A, %B %d')}}
     )
     
     #send_socket('update_msg', {
@@ -371,71 +369,68 @@ def get_call_interaction_xml(args):
     try:
       # Update eTap with future pickup date
       etap.call.apply_async(('no_pickup', keys, {
-        'account': msg['custom']['account'], 
-        'date': msg['custom']['event_date'].strftime('%d/%m/%Y'),
+        'account': msg['account_id'], 
+        'date': msg['event_date'].strftime('%d/%m/%Y'),
         'next_pickup': msg['custom']['next_pickup'].strftime('%d/%m/%Y')
       },), queue=DB_NAME)
     except Exception as e:
       logger.error('Could not write to eTap to update pickup date. ' + str(e))
 
   response.say('Thank you. Your next pickup will be on ' +  
-    msg['next_pickup'].strftime('%A, %B %d') + '. Goodbye', 
+    msg['custom']['next_pickup'].strftime('%A, %B %d') + '. Goodbye', 
     voice='alice')
   
   return response
     
 #-------------------------------------------------------------------------------
-# TwiML Voice Request: "CallSid", "AccountSid", "From", "To", "CallStatus", 
-# "ApiVersion", "Direction", "ForwardedFrom","CallerName"
+# TwiML Voice Request
 # Returns twilio.twiml.Response obj
 def get_call_answered_xml(args):
-  try:
-    sid = args['CallSid']
-    call_status = args['CallStatus']
-    to = args['To']
-    answered_by = args.get('AnsweredBy')
+  logger.info('%s %s (%s)', args['To'], args['CallStatus'], args.get('AnsweredBy'))
+  
+  msg = db['reminder_msgs'].find_one_and_update(
+    {'sid': args['CallSid']},
+    {'$set': {"call.status": args['CallStatus']}}
+  )
+  
+   # Reminder call
+  if msg:
+    # send_socket('update_msg', 
+    # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
     
-    logger.info('%s %s (%s)', to, call_status, answered_by)
+    job = db['reminder_jobs'].find_one({'_id':msg['job_id']})
+  
+    try:  
+      response_xml = get_speak_response(job, msg, args.get('AnsweredBy'))
+    except Exception, e:
+      logger.error('reminders.get_call_answered_xml', exc_info=True)
+      return str(e)
     
-    call = db['reminder_msgs'].find_one({'sid': args['CallSid']})
+    return response_xml
 
-    # Reminder call to user or special msg recording?
-    if not call:
-      record = db['bravo'].find_one({'sid': args['CallSid']})
-      if record:
-        logger.info('Sending record twimlo response to client')
-        # Record voice message
-        response = twilio.twiml.Response()
-        response.say('Record your message after the beep. Press pound when complete.', voice='alice')
-        response.record(
-          method= 'GET',
-          action= PUB_URL+'/recordaudio',
-          playBeep= True,
-          finishOnKey='#'
-        )
-        send_socket('record_audio', {'msg': 'Listen to the call for instructions'}) 
-        return response
-
-    # Reminder call
-
-    db['reminder_msgs'].update(
-      {'sid':sid},
-      {'$set': {"call.status": call_status}}
-    )
-    call = db['reminder_msgs'].find_one({'sid':sid})
-    send_socket(
-      'update_msg', {
-        'id': str(call['_id']),
-        'call_status': call_status
-      }
-    )
-    job = db['reminder_jobs'].find_one({'_id':call['job_id']})
+  # Not a reminder. Maybe a special msg recording?
+  if msg is None:
+    record = db['bravo'].find_one({'sid': args['CallSid']})
     
-    return get_speak(job, call, answered_by)
-  except Exception, e:
-    logger.error('reminders.call_answered', exc_info=True)
-    return str(e)
-
+    response_xml = twilio.twiml.Response()
+    
+    if record:
+      logger.info('Sending record twimlo response to client')
+      # Record voice message
+      response_xml.say('Record your message after the beep. Press pound when complete.', voice='alice')
+      response_xml.record(
+        method= 'GET',
+        action= PUB_URL+'/recordaudio',
+        playBeep= True,
+        finishOnKey='#'
+      )
+      #send_socket('record_audio', {'msg': 'Listen to the call for instructions'}) 
+      
+      return response_xml
+    else:
+      logger.error('Empty xml in reminders.get_call_answered_xml. Args: %s', args)
+      return response_xml
+    
 #-------------------------------------------------------------------------------
 # Twilio callback handler 
 # Unless multiple event handlers specified, this callback only called on 'completed'.
@@ -443,40 +438,29 @@ def get_call_answered_xml(args):
 def call_event(args):
   logger.info('%s %s', args['to'], args['CallStatus'])
     
-  try:
-    msg = db['reminder_msgs'].find_one({'sid':args['CallSid']})
-
-    # Might be an audio recording call
-    if not msg:
-      audio = db['audio_msg'].find_one({'sid':args['CallSid']})
-      if audio:
-        logger.info('Record audio call complete')
-        db['audio_msg'].update({'sid':args['CallSid']}, {'$set': {"status": args['CallStatus']}})
-      return 'OK'
+  msg = db['reminder_msgs'].find_one_and_update(
+    {'sid': args['CallSid']},
+    {'$set': {
+        "call.status": args['CallStatus'],
+        "call.ended_at": datetime.now(),
+        "call.duration": args['CallDuration'],
+        "call.answered_by": args.get('AnsweredBy'),
+        "call.error_code": args.get('SipResponseCode') # in case of failure
+      }
+  )
+  
+  if msg:
+    return 'OK'
+  
+  # Might be an audio recording call
+  if msg is None:
+    audio = db['audio_msg'].find_one({'sid': args['CallSid']})
     
-    # Is a reminder call
-    
-    fields = {
-      "call.status": args['CallStatus'],
-      "call.ended_at": datetime.now(),
-      "call.duration": args['CallDuration'],
-      "call.answered_by": args.get('AnsweredBy'),
-      "call.error_code": args.get('SipResponseCode') # in case of failure
-    }
-    
-    db['reminder_msgs'].update(
-      {'sid':args['CallSid']},
-      {'$set': fields}
-    )
-    
-    #fields['id'] = str(call['_id'])
-    #fields['attempts'] = call['attempts']
-    #send_socket('update_msg', fields)
+    if audio:
+      logger.info('Record audio call complete')
+      db['audio_msg'].update({'sid':args['CallSid']}, {'$set': {"status": args['CallStatus']}})
     
     return 'OK'
-  except Exception, e:
-    logger.error('reminders.call_ended %s', args, exc_info=True)
-    return str(e)
 
 #-------------------------------------------------------------------------------
 def sms(to, msg):
@@ -491,10 +475,9 @@ def sms(to, msg):
       from_ = SMS_NUMBER,
       status_callback = PUB_URL + '/sms/status'
     )
-
-    return {'sid': message.sid, 'call_status': message.status}
-
   except twilio.TwilioRestException as e:
+    logger.error('sms exception %s', str(e), exc_info=True)
+    
     if e.code == 14101: 
       #"To" Attribute is Invalid
       error_msg = 'number_not_mobile'
@@ -502,8 +485,10 @@ def sms(to, msg):
       erorr_msg = 'landline_unreachable'
     else:
       error_msg = e.message
+      
+    return {'sid': message.sid, 'call_status': message.status}
 
-    return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'call_error':error_msg}
+  return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'call_error':error_msg}
 
   except Exception as e:
     logger.error('sms exception %s', str(e), exc_info=True)
@@ -518,7 +503,7 @@ def strip_phone(to):
 
 #-------------------------------------------------------------------------------
 # Returns twilio.twiml.Response obj
-def get_speak(job, msg, answered_by, medium='voice'):
+def get_speak_response(job, msg, answered_by, medium='voice'):
   # Simplest case: announce_voice template. Play audio file
   if job['template'] == 'announce_voice':
     response = twilio.twiml.Response()
@@ -760,7 +745,7 @@ def record_audio():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-def job_db_dump(job_id):
+def job_print(job_id):
   if isinstance(job_id, str):
     job_id = ObjectId(job_id)
   job = db['reminder_jobs'].find_one({'_id':job_id})
@@ -873,7 +858,7 @@ def submit_job(form, file):
     errors = []
     reminder_msgs = []
     for idx, row in enumerate(buffer):
-      msg = create_msg(job_id, template['import_fields'], idx, row, errors)
+      msg = line_entry_to_db_msg(job_id, template['import_fields'], idx, row, errors)
       if msg:
         reminder_msgs.append(msg)
   

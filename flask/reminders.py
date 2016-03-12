@@ -1,5 +1,5 @@
 import twilio
-from twilio import twimlc
+from twilio import twiml
 from bson import Binary, Code, json_util
 from bson.objectid import ObjectId
 import flask
@@ -84,7 +84,7 @@ def send_calls(job_id):
   # Fire all calls
   for msg in messages:
     # TODO: change call.status to "cancelled" on no_pickup request, eliminate this test
-    if 'no_pickup in msg['custom']:
+    if 'no_pickup' in msg['custom']:
       continue
     if msg['call']['status'] != 'pending':
       continue
@@ -123,44 +123,40 @@ def send_calls(job_id):
     
     return 'OK'
 
-  except Exception, e:
-    logger.error('send_calls job_id %s', job_id, exc_info=True)
-
 #-------------------------------------------------------------------------------
 @celery_app.task
 def send_emails(job_id):
- try:
-    job_id = job_id.encode('utf-8')
-    job = db['reminder_jobs'].find_one({'_id':ObjectId(job_id)})
-    reminder_msgs = db['reminder_msgs'].find({'job_id':ObjectId(job_id)})
-    emails = []
-    
-    for msg in reminder_msgs:
-      if msg['email']['status'] != 'pending':
-        continue
-      
-      if not msg['email']['recipient']:
-        db['reminder_msgs'].update(
-          {'_id':msg['_id']}, 
-          {'$set': {'email.status': 'no_email'}}
-        )
-        continue
-        #send_socket('update_msg', {'id':str(msg['_id']), 'email_status': 'no_email'})
-      
-      r = requests.post(PUB_URL + '/email/send', data=json.dumps({
-        "recipient": msg['email']['recipient'],
-        "template": job['template']['email_template'],
-        "subject": job['template']['email_subject'],
-        "name": msg['name'],
-        "args": msg['custom']
-      }))
-      
-      TODO: Add date into subject
-      #subject = 'Reminder: Upcoming event on  ' + msg['imported']['event_date'].strftime('%A, %B %d')
+	job_id = job_id.encode('utf-8')
+	job = db['reminder_jobs'].find_one({'_id':ObjectId(job_id)})
+	reminder_msgs = db['reminder_msgs'].find({'job_id':ObjectId(job_id)})
+	emails = []
 
-    return 'OK'
-  except Exception, e:
-    logger.error('reminders.send_emails()', exc_info=True)
+	for msg in reminder_msgs:
+		if msg['email']['status'] != 'pending':
+			continue
+
+		if not msg['email']['recipient']:
+			db['reminder_msgs'].update(
+				{'_id':msg['_id']}, 
+				{'$set': {'email.status': 'no_email'}}
+			)
+			continue
+		#send_socket('update_msg', {'id':str(msg['_id']), 'email_status': 'no_email'})
+
+		try:
+			r = requests.post(PUB_URL + '/email/send', data=json.dumps({
+				"recipient": msg['email']['recipient'],
+				"template": job['template']['email_template'],
+				"subject": job['template']['email_subject'],
+				"name": msg['name'],
+				"args": msg['custom']
+			}))
+		except requests.exceptions.RequestException as e:
+			logger.error('Error sending email: %s', str(e))	
+
+		#TODO: Add date into subject
+		#subject = 'Reminder: Upcoming event on  ' + msg['imported']['event_date'].strftime('%A, %B %d')
+
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -235,7 +231,7 @@ def line_entry_to_db_msg(job_id, template_def, line_index, buf_row, errors):
   msg = {
     "job_id": job_id,
     "call": {
-      "status": "pending"
+      "status": "pending",
       "attempts": 0,
     },
     "email": {
@@ -441,13 +437,13 @@ def call_event(args):
   msg = db['reminder_msgs'].find_one_and_update(
     {'sid': args['CallSid']},
     {'$set': {
-        "call.status": args['CallStatus'],
-        "call.ended_at": datetime.now(),
-        "call.duration": args['CallDuration'],
-        "call.answered_by": args.get('AnsweredBy'),
-        "call.error_code": args.get('SipResponseCode') # in case of failure
+			"call.status": args['CallStatus'],
+			"call.ended_at": datetime.now(),
+			"call.duration": args['CallDuration'],
+			"call.answered_by": args.get('AnsweredBy'),
+			"call.error_code": args.get('SipResponseCode') # in case of failure
       }
-  )
+  })
   
   if msg:
     return 'OK'
@@ -489,11 +485,6 @@ def sms(to, msg):
     return {'sid': message.sid, 'call_status': message.status}
 
   return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'call_error':error_msg}
-
-  except Exception as e:
-    logger.error('sms exception %s', str(e), exc_info=True)
-
-    return False
 
 #-------------------------------------------------------------------------------
 def strip_phone(to):
@@ -880,4 +871,4 @@ def submit_job(form, file):
       return {'status':'success', 'msg':banner_msg}
   except Exception as e:
     logger.info(str(e))
-    return 'status':'error', 'title':'error', 'msg':str(e)}
+    return {'status':'error', 'title':'error', 'msg':str(e)}

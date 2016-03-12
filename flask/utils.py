@@ -1,5 +1,4 @@
 from config import *
-from server_settings import *
 import requests
 import re
 from bson import json_util

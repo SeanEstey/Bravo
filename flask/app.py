@@ -1,6 +1,6 @@
 import eventlet
 # Allow for non-blocking standard library
-eventlet.monkey_patch()
+#eventlet.monkey_patch()
 
 import flask
 from flask import Flask
@@ -55,7 +55,7 @@ celery_app.config_from_object('config')
 flask_app.app_context().push()
 
 from scheduler import get_next_pickups, find_nps_in_schedule
-from reminders import check_jobs, execute_job, monitor_job, set_no_pickup
+from reminders import check_jobs, send_calls, send_emails, monitor_calls, cancel_pickup, set_no_pickup
 from gsheets import process_receipts
 
 

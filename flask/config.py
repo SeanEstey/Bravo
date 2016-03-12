@@ -6,7 +6,7 @@ from private_config import *
 from celery.schedules import crontab
 
 # App
-DEBUG = False
+DEBUG = True
 DB_NAME = 'wsf'
 LOG_LEVEL = logging.INFO
 LOCAL_PORT = 8000

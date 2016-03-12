@@ -2,7 +2,7 @@ import json
 import requests
 
 from config import *
-from app celery_app
+from app import celery_app
 
 # Call PHP eTapestry script
 def call(func_name, keys, data):

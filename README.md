@@ -7,6 +7,7 @@ Install Dependencies
 apt-get install python-pip python-dev mongodb nginx rabbitmq-server
 pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio apiclient oauth2client gspread
 pip install --upgrade google-api-python-client
+pip install oauth2client==1.5.2
 ```
 
 Clone repository

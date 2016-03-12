@@ -51,7 +51,7 @@ def view_jobs():
 @flask_app.route('/log')
 @login_required
 def view_log():
-  lines = log.get_tail(LOG_FILE, 50):
+  lines = log.get_tail(LOG_FILE, 50)
   return flask.render_template('view_log.html', lines=lines)
 
 #-------------------------------------------------------------------------------
@@ -234,7 +234,7 @@ def send_email():
     return Response(response=e, status=500, mimetype='application/json')
   
   try:
-    r = return requests.post(
+    r = requests.post(
       'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/messages',
       auth=('api', MAILGUN_API_KEY),
       data={
@@ -373,7 +373,7 @@ def rec_signup():
     gsheets.add_signup_row.apply_async((request.form.to_dict(), ), queue=DB_NAME)
   except Exception as e:
     time.sleep(1)
-    logger.info('/receive_signup: %s' str(e), exc_info=True)
+    logger.info('/receive_signup: %s', str(e), exc_info=True)
     logger.info('Retrying...')
     gsheets.add_signup_row.apply_async((request.form.to_dict(), ), queue=DB_NAME)
     return str(e)

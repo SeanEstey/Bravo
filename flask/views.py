@@ -232,13 +232,22 @@ def send_email():
     logger.error(e)
     return Response(response=e, status=500, mimetype='application/json')
     
-  r = utils.send_email(args['recipient'], args['subject'], html)
-  r = json.loads(r.text)
-  
+  r = return requests.post(
+    'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/messages',
+    auth=('api', MAILGUN_API_KEY),
+    data={
+      'from': FROM_EMAIL,
+      'to': args['recipients'],
+      'subject': args['subject'],
+      'html': html
+  })
+
   if r.status_code != 200:
     e = '/email/send: mailgun error: ' + r.text
     logger.error(e)
     return Response(response=e, status=500, mimetype='application/json')
+    
+  r = json.loads(r.text)
     
   db['emails'].insert({
     'mid': r['id'],

@@ -221,19 +221,24 @@ def send_email():
   args = request.get_json(force=True)
   
   if 'template' not in args or 'subject' not in args or 'recipient' not in args:
-    r = '/email/send: missing required fields recipient, template, or subject'
-    logger.error(r)
-    return Response(response=r, status=500, mimetype='application/json')
+    e = '/email/send: missing required fields recipient, template, or subject'
+    logger.error(e)
+    return Response(response=e, status=500, mimetype='application/json')
   
   try:
     html = render_template(args['template'], args=args)
   except Exception, e:
-    r = '/email/send: invalid email template'
-    logger.error(r)
-    return Response(response=r, status=500, mimetype='application/json')
+    e = '/email/send: invalid email template'
+    logger.error(e)
+    return Response(response=e, status=500, mimetype='application/json')
     
   r = utils.send_email(args['recipient'], args['subject'], html)
   r = json.loads(r.text)
+  
+  if r.status_code != 200:
+    e = '/email/send: mailgun error: ' + r.text
+    logger.error(e)
+    return Response(response=e, status=500, mimetype='application/json')
     
   db['emails'].insert({
     'mid': r['id'],

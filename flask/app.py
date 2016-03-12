@@ -1,3 +1,7 @@
+import eventlet
+# Allow for non-blocking standard library
+eventlet.monkey_patch()
+
 import flask
 from flask import Flask
 from flask.ext.login import LoginManager

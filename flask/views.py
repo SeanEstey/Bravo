@@ -196,22 +196,21 @@ def call_event():
 # Data sent from Routes worksheet in Gift Importer (Google Sheet)
 @flask_app.route('/collections/process_receipts', methods=['POST'])
 def process_receipts():
-  try:
-    # If sent via JSON by CURL from unit tests...
-    if request.get_json():
-      args = request.get_json()
-      entries = args['data']
-      keys = args['keys']
-    else:
-        entries = json.loads(request.form['data'])
-        keys = json.loads(request.form['keys'])
+  # If sent via JSON by CURL from unit tests...
+  if request.get_json():
+    args = request.get_json()
+    entries = args['data']
+    keys = args['keys']
+  else:
+    entries = json.loads(request.form['data'])
+    keys = json.loads(request.form['keys'])
+  
+  # Start celery workers to run slow eTapestry API calls
+  r = gsheets.process_receipts.apply_async(args=(entries, keys), queue=DB_NAME)
+  
+  logger.info('Celery process_receipts task: %s', r.__dict__)
 
-    # Start celery workers to run slow eTapestry API calls
-    gsheets.process_receipts.apply_async((entries, keys, ), queue=DB_NAME)
-
-    return 'OK'
-  except Exception, e:
-    logger.error('/collections/process_receipts', exc_info=True)
+  return 'OK'
 
 #-------------------------------------------------------------------------------
 # Can be collection receipt from gsheets.process_receipts, reminder email, or welcome letter from Google Sheets.
@@ -219,47 +218,54 @@ def process_receipts():
 # Required fields for updating Google Sheets: 'sheet_name', 'worksheet_name', 'row', 'upload_status'
 @flask_app.route('/email/send', methods=['POST'])
 def send_email(): 
+  args = request.get_json(force=True)
+  
+  if 'template' not in args or 'subject' not in args or 'recipient' not in args:
+    r = '/email/send: missing required fields recipient, template, or subject'
+    logger.error(r)
+    return Response(response=r, status=500, mimetype='application/json')
+  
   try:
-    args = request.get_json(force=True)
-
     html = render_template(args['template'], args=args)
-
-    r = utils.send_email(args['recipient'], args['subject'], html)
-    r = json.loads(r.text)
-    
-    if r['message'].find('Queued') == 0:
-      db['emails'].insert({
-        "mid": r['id'],
-        "status": "queued",
-        "optional": args
-      })
-
-      logger.info('Queued email to ' + args['recipient'])
-
-    return 'OK'
   except Exception, e:
-    logger.error('/email/send', exc_info=True)
+    r = '/email/send: invalid email template'
+    logger.error(r)
+    return Response(response=r, status=500, mimetype='application/json')
+    
+  r = utils.send_email(args['recipient'], args['subject'], html)
+  r = json.loads(r.text)
+    
+  if r['message'].find('Queued') == 0:
+    db['emails'].insert({
+      'mid': r['id'],
+      'status': "queued",
+      'custom': args
+    })
+
+  logger.info('Queued email to ' + args['recipient'])
+
+  return 'OK'
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/email/unsubscribe', methods=['GET'])
 def email_unsubscribe():
   try:
-      if request.args.get('email'):
-          msg = 'Contributor ' + request.args['email'] + ' has requested to unsubscribe \
-                from Empties to Winn emails. Please contact to see if they want to cancel \
-                the entire service.'
-          
-          utils.send_email(
-            ['emptiestowinn@wsaf.ca'], 
-            'Unsubscribe request', 
-            msg
-          )
+    if request.args.get('email'):
+      msg = 'Contributor ' + request.args['email'] + ' has requested to unsubscribe \
+            from Empties to Winn emails. Please contact to see if they want to cancel \
+            the entire service.'
+      
+      utils.send_email(
+        ['emptiestowinn@wsaf.ca'], 
+        'Unsubscribe request', 
+        msg
+      )
 
-          return 'We have received your request to unsubscribe ' + request.args['email'] + ' \
-                  from Empties to Winn. If you wish to cancel the service, please allow us \
-                  to contact you once more to arrange for retrieval of the Bag Buddy or other \
-                  collection materials provided to you. As a non-profit, this allows us to \
-                  spread out our costs.'
+      return 'We have received your request to unsubscribe ' + request.args['email'] + ' \
+              from Empties to Winn. If you wish to cancel the service, please allow us \
+              to contact you once more to arrange for retrieval of the Bag Buddy or other \
+              collection materials provided to you. As a non-profit, this allows us to \
+              spread out our costs.'
 
   except Exception, e:
     logger.info('%s /email/unsubscribe' % request.values.items(), exc_info=True)
@@ -269,9 +275,8 @@ def email_unsubscribe():
 @flask_app.route('/email/spam_complaint', methods=['POST'])
 def email_spam_complaint():
   try:
-      gsheets.create_rfu(request.form['recipient'] + ': received spam complaint')
-      return 'OK'
-
+    gsheets.create_rfu(request.form['recipient'] + ': received spam complaint')
+    return 'OK'
   except Exception, e:
     logger.info('%s /email/spam_complaint' % request.values.items(), exc_info=True)
     return str(e)
@@ -287,10 +292,10 @@ def email_status():
   
   db_doc = db['emails'].find_one({'mid': request.form['Message-Id']})
   
-  if not db_doc:
+  if db_doc is None:
     return 'OK'
     
-  if not 'optional' in db_doc:
+  if 'optional' not in db_doc:
     return 'OK'
     
   # Do any required follow-up actions

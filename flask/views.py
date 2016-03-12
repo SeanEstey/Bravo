@@ -231,16 +231,20 @@ def send_email():
     e = '/email/send: invalid email template'
     logger.error(e)
     return Response(response=e, status=500, mimetype='application/json')
-    
-  r = return requests.post(
-    'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/messages',
-    auth=('api', MAILGUN_API_KEY),
-    data={
-      'from': FROM_EMAIL,
-      'to': args['recipients'],
-      'subject': args['subject'],
-      'html': html
-  })
+  
+  try:
+    r = return requests.post(
+      'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/messages',
+      auth=('api', MAILGUN_API_KEY),
+      data={
+        'from': FROM_EMAIL,
+        'to': args['recipients'],
+        'subject': args['subject'],
+        'html': html
+    })
+  except requests.exceptions.RequestException as e:
+    logger.error(str(e))
+    return Response(response=e, status=500, mimetype='application/json')
 
   if r.status_code != 200:
     e = '/email/send: mailgun error: ' + r.text

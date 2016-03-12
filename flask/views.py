@@ -1,5 +1,6 @@
 import json
 import flask
+import time
 from datetime import datetime,date, timedelta
 from flask import Flask,request,g,Response,url_for, render_template
 from flask.ext.login import login_user, logout_user, current_user, login_required
@@ -370,8 +371,11 @@ def rec_signup():
   
   try:
     gsheets.add_signup_row.apply_async((request.form.to_dict(), ), queue=DB_NAME)
-  except Exception, e:
-    logger.info('%s /receive_signup' % request.values.items(), exc_info=True)
+  except Exception as e:
+    time.sleep(1)
+    logger.info('/receive_signup: %s' str(e), exc_info=True)
+    logger.info('Retrying...')
+    gsheets.add_signup_row.apply_async((request.form.to_dict(), ), queue=DB_NAME)
     return str(e)
   
   return 'OK'

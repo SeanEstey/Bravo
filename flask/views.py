@@ -235,12 +235,11 @@ def send_email():
   r = utils.send_email(args['recipient'], args['subject'], html)
   r = json.loads(r.text)
     
-  if r['message'].find('Queued') == 0:
-    db['emails'].insert({
-      'mid': r['id'],
-      'status': "queued",
-      'custom': args
-    })
+  db['emails'].insert({
+    'mid': r['id'],
+    'status': 'queued',
+    'custom': args
+  })
 
   logger.info('Queued email to ' + args['recipient'])
 

@@ -247,10 +247,8 @@ def send_email():
     logger.error(e)
     return Response(response=e, status=500, mimetype='application/json')
     
-  r = json.loads(r.text)
-    
   db['emails'].insert({
-    'mid': r['id'],
+    'mid': json.loads(r.text)['id'],
     'status': 'queued',
     'custom': args
   })

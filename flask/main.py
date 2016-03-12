@@ -1,11 +1,12 @@
-import os
-import time
-import sys
-
 import app
+
 from app import flask_app, celery_app, db, logger, socketio
 from config import *
 from views import *
+
+import os
+import time
+import sys
 
 if __name__ == "__main__":
   os.system('kill %1')

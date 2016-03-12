@@ -25,11 +25,18 @@ Create private_config.py file with following variables set:
 ```
 ETW_RES_CALENDAR_ID = 
 GOOGLE_SERVICE_ACCOUNT = [Google Service Email Address]
-MAILGUN_API_KEY = 
-MAILGUN_DOMAIN = 
+MAILGUN_API_KEY = ''
+MAILGUN_DOMAIN = ''
 SECRET_KEY = ''
-TWILIO_ACCOUNT_SID = 
-TWILIO_AUTH_ID = 
+TWILIO_ACCOUNT_SID = ''
+TWILIO_AUTH_ID = ''
+BRAVO_AUTH_KEY = ''
+ETAP_WRAPPER_KEYS = {
+  'association_name': '',
+  'etap_endpoint': '',
+  'etap_user': '',
+  'etap_pass': ''
+}
 ```
 
 Setup front end server to redirect to proper proxy addresses (see /config for Nginx .conf file)<br>

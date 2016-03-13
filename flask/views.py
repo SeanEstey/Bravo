@@ -3,7 +3,7 @@ import flask
 import time
 from datetime import datetime,date, timedelta
 from flask import Flask,request,g,Response,url_for, render_template
-from flask.ext.login import login_user, logout_user, current_user, login_required
+from flask.ext.login import login_user, logout_user, login_required
 from bson.objectid import ObjectId
 
 from app import flask_app, db, logger, login_manager, socketio
@@ -18,7 +18,7 @@ import utils
 #-------------------------------------------------------------------------------
 @flask_app.before_request
 def before_request():
-  g.user = current_user
+  g.user = flask.ext.login.current_user
 
 #-------------------------------------------------------------------------------
 @login_manager.user_loader
@@ -33,9 +33,9 @@ def login():
 #-------------------------------------------------------------------------------
 @flask_app.route('/logout', methods=['GET'])
 def logout():
-  logout_user()
-  logger.info('User logged out')
-  return flask.redirect(PUB_URL)
+    logout_user()
+    logger.info('User logged out')
+    return flask.redirect(PUB_URL)
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/', methods=['GET'])
@@ -51,8 +51,8 @@ def view_jobs():
 @flask_app.route('/log')
 @login_required
 def view_log():
-  lines = log.get_tail(LOG_FILE, 50)
-  return flask.render_template('view_log.html', lines=lines)
+    lines = log.get_tail(LOG_FILE, 50)
+    return flask.render_template('view_log.html', lines=lines)
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/admin')
@@ -72,19 +72,19 @@ def socketio_disconnected():
 #-------------------------------------------------------------------------------
 @socketio.on('connected')
 def socketio_connect():
-  logger.debug(
-    'num connected sockets: ' + 
-    str(len(socketio.server.sockets))
-  )
-  socketio.emit('msg', 'ping from ' + DB_NAME + ' server!');
+    logger.debug(
+        'num connected sockets: ' + 
+        str(len(socketio.server.sockets))
+    )
+    socketio.emit('msg', 'ping from ' + DB_NAME + ' server!');
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/sendsocket', methods=['GET'])
 def request_send_socket():
-  name = request.args.get('name').encode('utf-8')
-  data = request.args.get('data').encode('utf-8')
-  socketio.emit(name, data)
-  return 'OK'
+    name = request.args.get('name').encode('utf-8')
+    data = request.args.get('data').encode('utf-8')
+    socketio.emit(name, data)
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/new')
@@ -95,17 +95,17 @@ def new_job():
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/get_job_template/<name>')
 def get_job_template(name):
-  headers = []
-  for col in TEMPLATE[name]:
-    headers.append(col['header'])
-  return json.dumps(headers)
+    headers = []
+    for col in TEMPLATE[name]:
+        headers.append(col['header'])
+    return json.dumps(headers)
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/submit_job', methods=['POST'])
 @login_required
 def submit_job():
-  r = reminders.submit_job(request.form.values(), request.files['call_list'])
-  return Response(response=json.dumps(r), status=200, mimetype='application/json')
+    r = reminders.submit_job(request.form.values(), request.files['call_list'])
+    return Response(response=json.dumps(r), status=200, mimetype='application/json')
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/recordaudio', methods=['GET', 'POST'])
@@ -116,228 +116,230 @@ def record_msg():
 @flask_app.route('/reminders/<job_id>')
 @login_required
 def view_job(job_id):
-  sort_by = 'name' 
-  calls = db['reminder_msgs'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
-  job = db['reminder_jobs'].find_one({'_id':ObjectId(job_id)})
+    sort_by = 'name' 
+    calls = db['reminder_msgs'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
+    job = db['reminder_jobs'].find_one({'_id':ObjectId(job_id)})
 
-  return render_template(
-    'view_job.html', 
-    title=TITLE,
-    calls=calls, 
-    job_id=job_id, 
-    job=job,
-    template=job['template']['import_fields']
-  )
+    return render_template(
+        'view_job.html', 
+        title=TITLE,
+        calls=calls, 
+        job_id=job_id, 
+        job=job,
+        template=job['template']['import_fields']
+    )
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/<job_id>/cancel')
 @login_required
 def cancel_job(job_id):
-  return reminders.cancel_job(job_id)
-
+    return reminders.cancel_job(job_id)
+    
 #-------------------------------------------------------------------------------
 # Requested on completion of tasks.execute_job()
 @flask_app.route('/reminders/<job_id>/monitor')
 def monitor_job(job_id):
-  reminders.monitor_calls.apply_async((job_id.encode('utf-8'),), queue=DB_NAME)
-  return 'OK'
+    reminders.monitor_calls.apply_async((job_id.encode('utf-8'),), queue=DB_NAME)
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/<job_id>/send_emails')
 @login_required
 def send_emails(job_id):
-  reminders.send_emails.apply_async((job_id.encode('utf-8'),), queue=DB_NAME)
-  return 'OK'
+    reminders.send_emails.apply_async((job_id.encode('utf-8'),), queue=DB_NAME)
+    return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/send_calls')
-@login_required
-def send_calls(job_id):
-  job_id = job_id.encode('utf-8')
-  # Start celery worker
-  reminders.send_calls.apply_async((job_id, ), queue=DB_NAME)
-  return 'OK'
+    @flask_app.route('/reminders/<job_id>/send_calls')
+    @login_required
+    def send_calls(job_id):
+        job_id = job_id.encode('utf-8')
+# Start celery worker
+        reminders.send_calls.apply_async((job_id, ), queue=DB_NAME)
+        return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/<msg_id>/remove', methods=['POST'])
-@login_required
-def rmv_msg():
-  reminders.rmv_msg(job_id, msg_id)
-  return 'OK'
+    @flask_app.route('/reminders/<job_id>/<msg_id>/remove', methods=['POST'])
+    @login_required
+    def rmv_msg():
+        reminders.rmv_msg(job_id, msg_id)
+        return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/<msg_id>/edit', methods=['POST'])
-@login_required
-def edit_msg(sid):
-  reminders.edit_msg(job_id, msg_id, form.items()) 
-  return 'OK'
-  
+    @flask_app.route('/reminders/<job_id>/<msg_id>/edit', methods=['POST'])
+    @login_required
+    def edit_msg(sid):
+        reminders.edit_msg(job_id, msg_id, form.items()) 
+        return 'OK'
+      
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/<msg_id>/cancel_pickup', methods=['GET'])
+    @flask_app.route('/reminders/<job_id>/<msg_id>/cancel_pickup', methods=['GET'])
 # Script run via reminder email
-def no_pickup(msg_id):
-  reminders.cancel_pickup.apply_async((msg_id,), queue=DB_NAME)
-  return 'Thank You'
-  
+    def no_pickup(msg_id):
+        reminders.cancel_pickup.apply_async((msg_id,), queue=DB_NAME)
+        return 'Thank You'
+      
 #-------------------------------------------------------------------------------
 # Twilio TwiML Voice Request
 @flask_app.route('/reminders/call.xml',methods=['POST'])
 def call_xml():
-  response = reminders.get_call_xml(request.values.to_dict())
-  return Response(str(response), mimetype='text/xml')
+    response = reminders.get_call_xml(request.values.to_dict())
+    return Response(str(response), mimetype='text/xml')
   
 #-------------------------------------------------------------------------------
 # Twilio callback. 
 @flask_app.route('/reminders/call_event',methods=['POST','GET'])
 def call_event():
-  reminders.call_event(request.form.to_dict())
-  return 'OK'
+    reminders.call_event(request.form.to_dict())
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 # Data sent from Routes worksheet in Gift Importer (Google Sheet)
-@flask_app.route('/collections/process_receipts', methods=['POST'])
-def process_receipts():
-  # If sent via JSON by CURL from unit tests...
-  if request.get_json():
-    args = request.get_json()
-    entries = args['data']
-    keys = args['keys']
-  else:
-    entries = json.loads(request.form['data'])
-    keys = json.loads(request.form['keys'])
-  
-  # Start celery workers to run slow eTapestry API calls
-  r = gsheets.process_receipts.apply_async(args=(entries, keys), queue=DB_NAME)
-  
-  logger.info('Celery process_receipts task: %s', r.__dict__)
+    @flask_app.route('/collections/process_receipts', methods=['POST'])
+    def process_receipts():
+      # If sent via JSON by CURL from unit tests...
+      if request.get_json():
+        args = request.get_json()
+        entries = args['data']
+        keys = args['keys']
+      else:
+        entries = json.loads(request.form['data'])
+        keys = json.loads(request.form['keys'])
+      
+      # Start celery workers to run slow eTapestry API calls
+      r = gsheets.process_receipts.apply_async(args=(entries, keys), queue=DB_NAME)
+      
+      logger.info('Celery process_receipts task: %s', r.__dict__)
 
-  return 'OK'
+      return 'OK'
 
 #-------------------------------------------------------------------------------
-# Can be collection receipt from gsheets.process_receipts, reminder email, or welcome letter from Google Sheets.
+# Can be collection receipt from gsheets.process_receipts, reminder email, 
+# or welcome letter from Google Sheets.
 # Required fields: 'recipient', 'template', 'subject'
-# Required fields for updating Google Sheets: 'sheet_name', 'worksheet_name', 'row', 'upload_status'
+# Required fields for updating Google Sheets: 'sheet_name', 'worksheet_name', 
+# 'row', 'upload_status'
 @flask_app.route('/email/send', methods=['POST'])
 def send_email(): 
-  args = request.get_json(force=True)
+    args = request.get_json(force=True)
+ 
+    for key in ['template', 'subject', 'recipient']:
+        if key not in args: 
+            e = '/email/send: missing one or more required fields'
+            logger.error(e)
+            return Response(response=e, status=500, mimetype='application/json')
   
-  if 'template' not in args or 'subject' not in args or 'recipient' not in args:
-    e = '/email/send: missing required fields recipient, template, or subject'
-    logger.error(e)
-    return Response(response=e, status=500, mimetype='application/json')
+    try:
+        html = render_template(args['template'], args=args)
+    except Exception, e:
+        e = '/email/send: invalid email template'
+        logger.error(e)
+        return Response(response=e, status=500, mimetype='application/json')
   
-  try:
-    html = render_template(args['template'], args=args)
-  except Exception, e:
-    e = '/email/send: invalid email template'
-    logger.error(e)
-    return Response(response=e, status=500, mimetype='application/json')
-  
-  try:
-    r = requests.post(
-      'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/messages',
-      auth=('api', MAILGUN_API_KEY),
-      data={
-        'from': FROM_EMAIL,
-        'to': args['recipients'],
-        'subject': args['subject'],
-        'html': html
-    })
-  except requests.exceptions.RequestException as e:
-    logger.error(str(e))
-    return Response(response=e, status=500, mimetype='application/json')
+    try:
+        r = requests.post(
+          'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/messages',
+          auth=('api', MAILGUN_API_KEY),
+          data={
+            'from': FROM_EMAIL,
+            'to': args['recipients'],
+            'subject': args['subject'],
+            'html': html
+        })
+    except requests.exceptions.RequestException as e:
+        logger.error(str(e))
+        return Response(response=e, status=500, mimetype='application/json')
 
-  if r.status_code != 200:
-    e = '/email/send: mailgun error: ' + r.text
-    logger.error(e)
-    return Response(response=e, status=500, mimetype='application/json')
+    if r.status_code != 200:
+        e = '/email/send: mailgun error: ' + r.text
+        logger.error(e)
+        return Response(response=e, status=500, mimetype='application/json')
     
-  db['emails'].insert({
+    db['emails'].insert({
     'mid': json.loads(r.text)['id'],
     'status': 'queued',
     'custom': args
-  })
+    })
 
-  logger.info('Queued email to ' + args['recipient'])
+    logger.info('Queued email to ' + args['recipient'])
 
-  return 'OK'
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/email/unsubscribe', methods=['GET'])
 def email_unsubscribe():
-  try:
     if request.args.get('email'):
-      msg = 'Contributor ' + request.args['email'] + ' has requested to unsubscribe \
-            from Empties to Winn emails. Please contact to see if they want to cancel \
-            the entire service.'
+        msg = 'Contributor ' + request.args['email'] + ' has requested to \
+              unsubscribe from ETW emails. Please contact to see if they want \
+              to cancel the entire service.'
       
-      utils.send_email(
-        ['emptiestowinn@wsaf.ca'], 
-        'Unsubscribe request', 
-        msg
-      )
+        utils.send_email(['emptiestowinn@wsaf.ca'], 'Unsubscribe request', msg)
 
-      return 'We have received your request to unsubscribe ' + request.args['email'] + ' \
-              from Empties to Winn. If you wish to cancel the service, please allow us \
-              to contact you once more to arrange for retrieval of the Bag Buddy or other \
-              collection materials provided to you. As a non-profit, this allows us to \
-              spread out our costs.'
-
-  except Exception, e:
-    logger.info('%s /email/unsubscribe' % request.values.items(), exc_info=True)
-    return str(e)
+        return 'We have received your request to unsubscribe ' \
+                + request.args['email'] + ' from Empties to Winn. If you wish \
+                to cancel the service, please allow us to contact you once \
+                more to arrange for retrieval of the Bag Buddy or other \
+                collection materials provided to you. As a non-profit, \
+                this allows us to spread out our costs.'
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/email/spam_complaint', methods=['POST'])
 def email_spam_complaint():
-  try:
-    gsheets.create_rfu(request.form['recipient'] + ': received spam complaint')
-    return 'OK'
-  except Exception, e:
-    logger.info('%s /email/spam_complaint' % request.values.items(), exc_info=True)
-    return str(e)
+    m = 'received spam complaint'
 
+    try:
+        gsheets.create_rfu(request.form['recipient'] + m)
+    except Exception, e:
+        logger.error('%s' % request.values.items(), exc_info=True)
+        return str(e)
+
+    return 'OK'
+    
 #-------------------------------------------------------------------------------
-# Relay for all Mailgun webhooks. Can originate from reminder_msg, Signups sheet, 
-# or Route Importer sheet 
-# POST data: 'event', 'recipient', 'Message-Id', 'code' (dropped/bounced only), 'error' (bounced), 'reason' (dropped)
+# Relay for Mailgun webhooks. 
+# Can originate from reminder_msg, Signups sheet, or Route Importer sheet 
+# POST data: 'event', 'recipient', 'Message-Id', 'code' (dropped/bounced only),
+# 'error' (bounced), 'reason' (dropped)
 # 'event': 'delivered', 'bounced', or 'dropped'
 @flask_app.route('/email/status',methods=['POST'])
 def email_status():
-  logger.info('Email to ' + request.form['recipient'] + ' ' + request.form['event'])
-  
-  db_doc = db['emails'].find_one({'mid': request.form['Message-Id']})
-  
-  if db_doc is None:
-    return 'OK'
-    
-  if 'optional' not in db_doc:
-    return 'OK'
-    
-  # Do any required follow-up actions
-  
-  # Google Sheets?
-  if 'sheet_name' in db_doc['optional']:
-    try:
-      gsheets.update_entry(db_doc['optional'])
-    except Exception as e:
-      logger.error("Error writing to Google Sheets: " + str(e))
-      return 'failed'
-  # Reminder email?
-  elif 'reminder_msg_id' in db_doc['optional']:
-    db['reminder_msgs'].update_one(
-      {'email.mid': request.form['Message-Id']}, 
-      {'$set':{
-        "email.status": request.form['event'],
-        "email.code": request.form.get('code'),
-        "email.reason": request.form.get('reason'),
-        "email.error": request.form.get('error')
-      }}
+    logger.info('Email to %s %s', 
+      request.form['recipient'], request.form['event']
     )
-    
-  #socketio.emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
 
-  return 'OK'
+    db_doc = db['emails'].find_one({'mid': request.form['Message-Id']})
+
+    if db_doc is None:
+        return 'OK'
+
+    if 'optional' not in db_doc:
+        return 'OK'
+
+    # Do any required follow-up actions
+
+    # Google Sheets?
+    if 'sheet_name' in db_doc['optional']:
+        try:
+            gsheets.update_entry(db_doc['optional'])
+        except Exception as e:
+            logger.error("Error writing to Google Sheets: " + str(e))
+            return 'failed'
+    # Reminder email?
+    elif 'reminder_msg_id' in db_doc['optional']:
+        db['reminder_msgs'].update_one(
+          {'email.mid': request.form['Message-Id']}, 
+          {'$set':{
+            "email.status": request.form['event'],
+            "email.code": request.form.get('code'),
+            "email.reason": request.form.get('reason'),
+            "email.error": request.form.get('error')
+          }}
+        )
+
+    #socketio.emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
+
+    return 'OK'
     
 #-------------------------------------------------------------------------------
 @flask_app.route('/get_np', methods=['GET'])
@@ -348,18 +350,18 @@ def get_romorrow_accounts():
 #-------------------------------------------------------------------------------
 @flask_app.route('/call/nis', methods=['POST'])
 def nis():
-  logger.info('NIS!')
+    logger.info('NIS!')
 
-  record = request.get_json()
-    
-  try:
-    gsheets.create_rfu(
-      record['imported']['to'] + ' not in service', 
-      account_number=record['imported']['account'], 
-      block=record['imported']['block']
-    )
-  except Exception, e:
-    logger.info('%s /call/nis' % request.values.items(), exc_info=True)
+    record = request.get_json()
+
+    try:
+        gsheets.create_rfu(
+          record['imported']['to'] + ' not in service', 
+          account_number=record['imported']['account'], 
+          block=record['imported']['block']
+        )
+    except Exception, e:
+        logger.info('%s /call/nis' % request.values.items(), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------------------
@@ -367,15 +369,24 @@ def nis():
 # Adds signup data to Route Importer->Signups gsheet row
 @flask_app.route('/receive_signup', methods=['POST'])
 def rec_signup():
-  logger.info('New signup received: ' + request.form.get('first_name') + ' ' + request.form.get('last_name'))
-  
-  try:
-    gsheets.add_signup_row.apply_async((request.form.to_dict(), ), queue=DB_NAME)
-  except Exception as e:
-    time.sleep(1)
-    logger.info('/receive_signup: %s', str(e), exc_info=True)
-    logger.info('Retrying...')
-    gsheets.add_signup_row.apply_async((request.form.to_dict(), ), queue=DB_NAME)
-    return str(e)
-  
-  return 'OK'
+    logger.info('New signup received: %s %s',
+      request.form.get('first_name'),
+      request.form.get('last_name')
+    )
+
+    try:
+        gsheets.add_signup_row.apply_async(
+          args=(request.form.to_dict()), 
+          queue=DB_NAME
+        )
+    except Exception as e:
+        time.sleep(1)
+        logger.info('/receive_signup: %s', str(e), exc_info=True)
+        logger.info('Retrying...')
+        gsheets.add_signup_row.apply_async(
+          args=(request.form.to_dict()), 
+          queue=DB_NAME
+        )
+        return str(e)
+
+    return 'OK'

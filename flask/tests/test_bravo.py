@@ -3,6 +3,7 @@ import requests
 import json
 import sys
 import os
+import time
 import twilio
 import pymongo
 import json
@@ -12,17 +13,9 @@ from werkzeug.datastructures import MultiDict
 import xml.dom.minidom
 os.chdir('/root/bravo')
 sys.path.insert(0, '/root/bravo')
-from config import *
-import tasks
-import server
-from server_settings import *
-from server import dial
-import time
 
-# Test credentials (simulates real calls/sms)
-server.TWILIO_ACCOUNT_SID = 'AC4ca41ad0331210f865f3b966ceebe813'
-server.TWILIO_AUTH_ID = '52ea057f9df92b65b9b990c669e4143c'
-server.FROM_NUMBER = '15005550006'
+from config import *
+
 
 class BravoTestCase(unittest.TestCase):
   def setUp(self):
@@ -36,13 +29,16 @@ class BravoTestCase(unittest.TestCase):
     
     mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
     self.db = mongo_client[DB_NAME]
-    self.job_id = self.db['jobs'].insert(self.job_document)
-    self.job = self.db['jobs'].find_one({'_id':self.job_id})
+    self.job_id = self.db['reminder_jobs'].insert(self.job_document)
+    self.job = self.db['reminder_jobs'].find_one({'_id':self.job_id})
     self.assertIsNotNone(self.job_id)
     self.assertIsNotNone(self.job)
 
     self.msg_document = {
       'job_id': self.job_id,
+      'name': 'Test Res',
+      'account_id': '57515',
+      'event_date':
       'call_status': 'pending',
       'attempts': 0,
       'imported': {
@@ -114,18 +110,20 @@ class BravoTestCase(unittest.TestCase):
     print 'num_pending2='+str(num_pending2)+', num_pending1='+str(num_pending)
     self.assertTrue(num_pending2 < num_pending)
 
+  '''
   def test_execute_job(self):
     tasks.REDIAL_DELAY = 1
     r = tasks.execute_job(str(self.job_id))
     self.assertEquals(r, 'OK')
     time.sleep(3)
-
+  '''
   '''
   def test_job_completion(self):
     completed_id = '54972d479b938767711838a0'
     res = requests.get(PUB_URL+'/complete/'+completed_id)
     self.assertEquals(res.status_code, 200)
-  
+  '''
+  '''
   def test_many_calls(self):
     calls = []
     base = '780453'
@@ -164,12 +162,14 @@ class BravoTestCase(unittest.TestCase):
       xml_response = xml.dom.minidom.parseString(response.text)
       # Test valid XML returned by server.get_speak() 
       self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
-
+  '''
+  '''
   def test_bravo_sms(self):
     self.msg['sms'] = True
     response = bravo.sms(self.msg['to'], 'sms unittest')
     self.assertEquals(response[0], 202, msg=json.dumps(response))
-
+  '''
+  '''
   def test_bravo_systems_check(self):
     self.assertTrue(bravo.systems_check)
 

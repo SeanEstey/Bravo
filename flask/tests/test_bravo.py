@@ -70,6 +70,9 @@ class BravoTestCase(unittest.TestCase):
       self.assertEquals(r.status_code, 200)
   
   def test_send_collection_receipts(self):
+      #self.app.post('/path-to-request', data=dict(var1='data1', var2='data2', ...))
+      #self.app.get('/path-to-request')
+      
       r = requests.post(LOCAL_URL + '/collections/process_receipts', data=json.dumps({
         "keys": ETAP_WRAPPER_KEYS,
         "data": [{

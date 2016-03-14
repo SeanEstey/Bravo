@@ -14,12 +14,14 @@ import xml.dom.minidom
 os.chdir('/home/sean/Bravo/flask')
 sys.path.insert(0, '/home/sean/Bravo/flask')
 
-from app import logger
+from app import logger, flask_app
 from config import *
 
 class BravoTestCase(unittest.TestCase):
   
   def setUp(self):
+      self.app = flask_app.test_client()
+    
       self.job_document = {
         'template': 'etw_reminder',
         'status': 'pending',
@@ -33,8 +35,6 @@ class BravoTestCase(unittest.TestCase):
       self.job_id = self.db['reminder_jobs'].insert(self.job_document)
       self.job = self.db['reminder_jobs'].find_one({'_id':self.job_id})
       
-      self.
-
       self.msg_document = {
         'job_id': self.job_id,
         'name': 'Test Res',
@@ -60,20 +60,27 @@ class BravoTestCase(unittest.TestCase):
       self.assertEquals(res['n'], 1)
       res = self.db['reminder_msgs'].remove({'_id':self.msg_id})
       self.assertEquals(res['n'], 1)
+      
+  def login(self, username, password):
+      return self.app.post('/login', data=dict(
+          username=username,
+          password=password
+      ), follow_redirects=True)
+  
+  def logout(self):
+      return self.app.get('/logout', follow_redirects=True)
 
   def test_send_email(self):
-      r = requests.post(LOCAL_URL + '/email/send', data=json.dumps({
+      r = self.app.post('/email/send', data=json.dumps({
         'recipient': 'estese@gmail.com',
         'subject': 'test',
         'template': 'email_collection_receipt.html'
-      }))
+      }), follow_redirects=True)
+      
       self.assertEquals(r.status_code, 200)
   
   def test_send_collection_receipts(self):
-      #self.app.post('/path-to-request', data=dict(var1='data1', var2='data2', ...))
-      #self.app.get('/path-to-request')
-      
-      r = requests.post(LOCAL_URL + '/collections/process_receipts', data=json.dumps({
+      r = self.app.post('/collections/process_receipts', data=json.dumps({
         "keys": ETAP_WRAPPER_KEYS,
         "data": [{
           "account_number": 57515, # Test Res
@@ -95,7 +102,7 @@ class BravoTestCase(unittest.TestCase):
             "note": "Driver: Test"
           }
         }]
-      })
+      }))
       self.assertEquals(r.status_code, 200)
 
   '''

@@ -163,8 +163,8 @@ def send_calls(job_id):
 @flask_app.route('/reminders/<job_id>/<msg_id>/remove', methods=['POST'])
 @login_required
 def rmv_msg():
-        reminders.rmv_msg(job_id, msg_id)
-        return 'OK'
+    reminders.rmv_msg(job_id, msg_id)
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/<job_id>/<msg_id>/edit', methods=['POST'])
@@ -174,39 +174,38 @@ def edit_msg(sid):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-    @flask_app.route('/reminders/<job_id>/<msg_id>/cancel_pickup', methods=['GET'])
-# Script run via reminder email
-    def no_pickup(msg_id):
-        reminders.cancel_pickup.apply_async((msg_id,), queue=DB_NAME)
-        return 'Thank You'
+@flask_app.route('/reminders/<job_id>/<msg_id>/cancel_pickup', methods=['GET'])
+def no_pickup(msg_id):
+    # Script run via reminder email
+    
+    reminders.cancel_pickup.apply_async((msg_id,), queue=DB_NAME)
+    return 'Thank You'
       
 #-------------------------------------------------------------------------------
-# Twilio TwiML Voice Request
 @flask_app.route('/reminders/call.xml',methods=['POST'])
 def call_xml():
+    # Twilio TwiML Voice Request
+    
     response = reminders.get_call_xml(request.values.to_dict())
     return Response(str(response), mimetype='text/xml')
   
 #-------------------------------------------------------------------------------
-# Twilio callback. 
 @flask_app.route('/reminders/call_event',methods=['POST','GET'])
 def call_event():
+    # Twilio callback. 
+    
     reminders.call_event(request.form.to_dict())
     return 'OK'
 
-
 #-------------------------------------------------------------------------------
-# Data sent from Routes worksheet in Gift Importer (Google Sheet)
 @flask_app.route('/collections/process_receipts', methods=['POST'])
 def process_receipts():
-    # If sent via JSON by CURL from unit tests...
-    if request.get_json():
-        args = request.get_json()
-        entries = args['data']
-        keys = args['keys']
-    else:
-        entries = json.loads(request.form['data'])
-        keys = json.loads(request.form['keys'])
+    # Data sent from Routes worksheet in Gift Importer (Google Sheet)
+    # @arg 'data': JSON array of dict objects with UDF and gift data
+    # @arg 'keys': JSON dict of etapestry info for PHP script 
+    
+    entries = json.loads(request.form['data'])
+    keys = json.loads(request.form['keys'])
 
     # Start celery workers to run slow eTapestry API calls
     r = gsheets.process_receipts.apply_async(
@@ -219,13 +218,14 @@ def process_receipts():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-# Can be collection receipt from gsheets.process_receipts, reminder email, 
-# or welcome letter from Google Sheets.
-# Required fields: 'recipient', 'template', 'subject'
-# Required fields for updating Google Sheets: 'sheet_name', 'worksheet_name', 
-# 'row', 'upload_status'
 @flask_app.route('/email/send', methods=['POST'])
 def send_email(): 
+    # Can be collection receipt from gsheets.process_receipts, reminder email, 
+    # or welcome letter from Google Sheets.
+    # Required fields: 'recipient', 'template', 'subject'
+    # Required fields for updating Google Sheets: 'sheet_name', 'worksheet_name', 
+    # 'row', 'upload_status'
+    
     args = request.get_json(force=True)
  
     for key in ['template', 'subject', 'recipient']:
@@ -302,13 +302,14 @@ def email_spam_complaint():
     return 'OK'
     
 #-------------------------------------------------------------------------------
-# Relay for Mailgun webhooks. 
-# Can originate from reminder_msg, Signups sheet, or Route Importer sheet 
-# POST data: 'event', 'recipient', 'Message-Id', 'code' (dropped/bounced only),
-# 'error' (bounced), 'reason' (dropped)
-# 'event': 'delivered', 'bounced', or 'dropped'
 @flask_app.route('/email/status',methods=['POST'])
 def email_status():
+    # Relay for Mailgun webhooks.
+    # Can originate from reminder_msg, Signups sheet, or Route Importer sheet 
+    # POST data: 'event', 'recipient', 'Message-Id', 'code' (dropped/bounced only),
+    # 'error' (bounced), 'reason' (dropped)
+    # 'event': 'delivered', 'bounced', or 'dropped'
+    
     logger.info('Email to %s %s', 
       request.form['recipient'], request.form['event']
     )
@@ -370,10 +371,11 @@ def nis():
     return str(e)
 
 #-------------------------------------------------------------------------------
-# Forwarded signup submision from emptiestowinn.com
-# Adds signup data to Route Importer->Signups gsheet row
 @flask_app.route('/receive_signup', methods=['POST'])
 def rec_signup():
+    # Forwarded signup submision from emptiestowinn.com
+    # Adds signup data to Route Importer->Signups gsheet row
+    
     logger.info('New signup received: %s %s',
       request.form.get('first_name'),
       request.form.get('last_name')

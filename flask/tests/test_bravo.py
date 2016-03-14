@@ -32,6 +32,8 @@ class BravoTestCase(unittest.TestCase):
       self.db = mongo_client[DB_NAME]
       self.job_id = self.db['reminder_jobs'].insert(self.job_document)
       self.job = self.db['reminder_jobs'].find_one({'_id':self.job_id})
+      
+      self.
 
       self.msg_document = {
         'job_id': self.job_id,
@@ -65,6 +67,32 @@ class BravoTestCase(unittest.TestCase):
         'subject': 'test',
         'template': 'email_collection_receipt.html'
       }))
+      self.assertEquals(r.status_code, 200)
+  
+  def test_send_collection_receipts(self):
+      r = requests.post(LOCAL_URL + '/collections/process_receipts', data=json.dumps({
+        "keys": ETAP_WRAPPER_KEYS,
+        "data": [{
+          "account_number": 57515, # Test Res
+          "row": 2,
+          "udf": {
+            "Status": "Active",
+            "Neighborhood": "Avonmore",
+            "Block": "R4R",
+            "Driver Notes": "unittest driver notes",
+            "Office Notes":  "unittest office notes",
+            "Next Pickup Date": "21/06/2016"
+          },
+          "gift": {
+            "amount": 5,
+            "fund": "WSF",
+            "campaign": "Empties to WINN",
+            "approach": "Bottle Donation",
+            "date": "04/06/2016",
+            "note": "Driver: Test"
+          }
+        }]
+      })
       self.assertEquals(r.status_code, 200)
 
   '''

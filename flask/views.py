@@ -1,6 +1,7 @@
 import json
 import flask
 import time
+import requests
 from datetime import datetime,date, timedelta
 from flask import Flask,request,g,Response,url_for, render_template
 from flask.ext.login import login_user, logout_user, login_required
@@ -41,11 +42,11 @@ def logout():
 @flask_app.route('/', methods=['GET'])
 @login_required
 def view_jobs():
-  return render_template(
-    'view_jobs.html', 
-    title=None,
-    jobs=reminders.get_jobs(request.args.values())
-  )
+    return render_template(
+      'view_jobs.html', 
+      title=None,
+      jobs=reminders.get_jobs(request.args.values())
+    )
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/log')
@@ -90,7 +91,7 @@ def request_send_socket():
 @flask_app.route('/reminders/new')
 @login_required
 def new_job():
-  return render_template('view_new_job.html', title=TITLE)
+    return render_template('view_new_job.html', title=TITLE)
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/get_job_template/<name>')
@@ -110,7 +111,7 @@ def submit_job():
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/recordaudio', methods=['GET', 'POST'])
 def record_msg():
-  return reminders.record_audio()
+    return reminders.record_audio()
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/<job_id>')
@@ -150,28 +151,28 @@ def send_emails(job_id):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-    @flask_app.route('/reminders/<job_id>/send_calls')
-    @login_required
-    def send_calls(job_id):
-        job_id = job_id.encode('utf-8')
-# Start celery worker
-        reminders.send_calls.apply_async((job_id, ), queue=DB_NAME)
-        return 'OK'
+@flask_app.route('/reminders/<job_id>/send_calls')
+@login_required
+def send_calls(job_id):
+    job_id = job_id.encode('utf-8')
+    # Start celery worker
+    reminders.send_calls.apply_async((job_id, ), queue=DB_NAME)
+    return 'OK'
 
 #-------------------------------------------------------------------------------
-    @flask_app.route('/reminders/<job_id>/<msg_id>/remove', methods=['POST'])
-    @login_required
-    def rmv_msg():
+@flask_app.route('/reminders/<job_id>/<msg_id>/remove', methods=['POST'])
+@login_required
+def rmv_msg():
         reminders.rmv_msg(job_id, msg_id)
         return 'OK'
 
 #-------------------------------------------------------------------------------
-    @flask_app.route('/reminders/<job_id>/<msg_id>/edit', methods=['POST'])
-    @login_required
-    def edit_msg(sid):
-        reminders.edit_msg(job_id, msg_id, form.items()) 
-        return 'OK'
-      
+@flask_app.route('/reminders/<job_id>/<msg_id>/edit', methods=['POST'])
+@login_required
+def edit_msg(sid):
+    reminders.edit_msg(job_id, msg_id, form.items()) 
+    return 'OK'
+
 #-------------------------------------------------------------------------------
     @flask_app.route('/reminders/<job_id>/<msg_id>/cancel_pickup', methods=['GET'])
 # Script run via reminder email
@@ -193,25 +194,29 @@ def call_event():
     reminders.call_event(request.form.to_dict())
     return 'OK'
 
+
 #-------------------------------------------------------------------------------
 # Data sent from Routes worksheet in Gift Importer (Google Sheet)
-    @flask_app.route('/collections/process_receipts', methods=['POST'])
-    def process_receipts():
-      # If sent via JSON by CURL from unit tests...
-      if request.get_json():
+@flask_app.route('/collections/process_receipts', methods=['POST'])
+def process_receipts():
+    # If sent via JSON by CURL from unit tests...
+    if request.get_json():
         args = request.get_json()
         entries = args['data']
         keys = args['keys']
-      else:
+    else:
         entries = json.loads(request.form['data'])
         keys = json.loads(request.form['keys'])
-      
-      # Start celery workers to run slow eTapestry API calls
-      r = gsheets.process_receipts.apply_async(args=(entries, keys), queue=DB_NAME)
-      
-      logger.info('Celery process_receipts task: %s', r.__dict__)
 
-      return 'OK'
+    # Start celery workers to run slow eTapestry API calls
+    r = gsheets.process_receipts.apply_async(
+      args=(entries, keys), 
+      queue=DB_NAME
+    )
+
+    logger.info('Celery process_receipts task: %s', r.__dict__)
+
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 # Can be collection receipt from gsheets.process_receipts, reminder email, 
@@ -242,7 +247,7 @@ def send_email():
           auth=('api', MAILGUN_API_KEY),
           data={
             'from': FROM_EMAIL,
-            'to': args['recipients'],
+            'to': args['recipient'],
             'subject': args['subject'],
             'html': html
         })

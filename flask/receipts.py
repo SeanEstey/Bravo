@@ -43,16 +43,18 @@ def process(entries, keys):
     
     start = wks.get_addr_int(2, headers.index('Email Status')+1)
     end = start[0] + str(len(accounts)+1)
+    
     email_status_cells = wks.range(start + ':' + end)
 
-    for idx, entry in enumerate(entries):
-        entry['etap_account'] = accounts[idx]
-        
-        if accounts[idx]['email']:
-            email_status_cells[idx].value = 'queued'
+    for i in xrange(len(accounts) - 1, -1, -1):
+        if 'email' not in accounts[i]:
+            email_status_cells[i].value = 'no email'
+            del accounts[i]
+            del entries[i]
         else:
-            email_status_cells[idx].value = 'no email'
-      
+            entry['etap_account'] = accounts[i]
+            email_status_cells[idx].value = 'queued'
+  
     wks.update_cells(email_status_cells)
 
     gift_accounts = []
@@ -62,55 +64,52 @@ def process(entries, keys):
 
     # Send Dropoff Followups, Zero Collection, and Cancelled email receipts 
     for entry in entries:
-      if not entry['etap_account']['email']:
-        continue
-
-      status = etap.get_udf('Status', entry['etap_account'])
+        status = etap.get_udf('Status', entry['etap_account'])
       
-      args = {
-        "account_number": entry['account_number'],
-        "recipient": entry['etap_account']['email'],
-        "name": entry['etap_account']['name'],
-        "date": parse(entry['date']).strftime('%B %-d, %Y'),
-        "address": entry["etap_account"]["address"],
-        "postal": entry["etap_account"]["postalCode"],
-        "sheet_name": "Route Importer",
-        "worksheet_name": "Routes",
-        "upload_status": entry["upload_status"],
-        "row": entry["row"],
-      }
-
-      # Test for Cancel email
-      if status == 'Cancelled':
+        args = {
+          "account_number": entry['account_number'],
+          "recipient": entry['etap_account']['email'],
+          "name": entry['etap_account']['name'],
+          "date": parse(entry['date']).strftime('%B %-d, %Y'),
+          "address": entry["etap_account"]["address"],
+          "postal": entry["etap_account"]["postalCode"],
+          "sheet_name": "Route Importer",
+          "worksheet_name": "Routes",
+          "upload_status": entry["upload_status"],
+          "row": entry["row"],
+        }
+    
+        # Test for Cancel email
+        if status == 'Cancelled':
           args['template'] = "email_cancelled.html"
           args['subject'] = CANCELLED_EMAIL_SUBJECT
-  
+        
           r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
-  
+        
           num_cancelled +=1
         
           continue
-
-      # Test for Dropoff Followup email
-      drop_date = etap.get_udf('Dropoff Date', entry['etap_account'])
-      
-      if drop_date:
-          d = drop_date.split('/')
-          drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
-          collection_date = parse(entry['date']).date() #replace(tzinfo=None)
+        
+          # Test for Dropoff Followup email
+          drop_date = etap.get_udf('Dropoff Date', entry['etap_account'])
           
-          if drop_date == collection_date:
-            args["template"] = "email_dropoff_followup.html"
-            args["subject"] = DROPOFF_FOLLOWUP_EMAIL_SUBJECT
-            
-            if entry['next_pickup']:
-              args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
-  
-            r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
-  
-            num_dropoff_followups += 1
-            
-            continue
+          if drop_date:
+              d = drop_date.split('/')
+              drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
+              collection_date = parse(entry['date']).date() #replace(tzinfo=None)
+              
+              if drop_date == collection_date:
+                args["template"] = "email_dropoff_followup.html"
+                args["subject"] = DROPOFF_FOLLOWUP_EMAIL_SUBJECT
+                
+                if entry['next_pickup']:
+                  args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
+        
+                r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
+        
+                num_dropoff_followups += 1
+                
+                continue
 
       # Test for Zero Collection or Gift Collection email
       if entry['amount'] == 0:

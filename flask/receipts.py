@@ -43,19 +43,18 @@ def process(entries, keys):
     
     start = wks.get_addr_int(2, headers.index('Email Status')+1)
     end = start[0] + str(len(accounts)+1)
-    
-    email_status_cells = wks.range(start + ':' + end)
+    status_range = wks.range(start + ':' + end)
 
     for i in xrange(len(accounts) - 1, -1, -1):
         if 'email' not in accounts[i]:
-            email_status_cells[i].value = 'no email'
+            status_range[i].value = 'no email'
             del accounts[i]
             del entries[i]
         else:
-            entry['etap_account'] = accounts[i]
-            email_status_cells[idx].value = 'queued'
+            entries[i]['etap_account'] = accounts[i]
+            status_range[i].value = 'queued'
   
-    wks.update_cells(email_status_cells)
+    wks.update_cells(status_range)
 
     gift_accounts = []
     num_zero_receipts = 0

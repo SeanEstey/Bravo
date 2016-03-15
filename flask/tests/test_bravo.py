@@ -14,14 +14,19 @@ import xml.dom.minidom
 os.chdir('/home/sean/Bravo/flask')
 sys.path.insert(0, '/home/sean/Bravo/flask')
 
-from app import logger, flask_app
 from config import *
+import views
+import gsheets
+from app import logger, flask_app, celery_app
+
 
 class BravoTestCase(unittest.TestCase):
   
   def setUp(self):
+      flask_app.config['TESTING'] = True
       self.app = flask_app.test_client()
-    
+      celery_app.conf.CELERY_ALWAYS_EAGER = True
+
       self.job_document = {
         'template': 'etw_reminder',
         'status': 'pending',
@@ -69,8 +74,9 @@ class BravoTestCase(unittest.TestCase):
   
   def logout(self):
       return self.app.get('/logout', follow_redirects=True)
-
+  """
   def test_send_email(self):
+      self.login('seane@wsaf.ca', 'wsf')
       r = self.app.post('/email/send', data=json.dumps({
         'recipient': 'estese@gmail.com',
         'subject': 'test',
@@ -78,32 +84,27 @@ class BravoTestCase(unittest.TestCase):
       }), follow_redirects=True)
       
       self.assertEquals(r.status_code, 200)
-  
-  def test_send_collection_receipts(self):
-      r = self.app.post('/collections/process_receipts', data=json.dumps({
-        "keys": ETAP_WRAPPER_KEYS,
-        "data": [{
-          "account_number": 57515, # Test Res
-          "row": 2,
-          "udf": {
-            "Status": "Active",
-            "Neighborhood": "Avonmore",
-            "Block": "R4R",
-            "Driver Notes": "unittest driver notes",
-            "Office Notes":  "unittest office notes",
-            "Next Pickup Date": "21/06/2016"
-          },
-          "gift": {
-            "amount": 5,
-            "fund": "WSF",
-            "campaign": "Empties to WINN",
-            "approach": "Bottle Donation",
-            "date": "04/06/2016",
-            "note": "Driver: Test"
-          }
-        }]
-      }))
-      self.assertEquals(r.status_code, 200)
+  """
+  def test_process_receipts(self):
+      self.login('seane@wsaf.ca', 'wsf')
+
+      gifts = [{ 
+        "account_number": 57515, # Test Res
+        "date": "04/06/2016",
+        "amount": 5,
+        "next_pickup": "21/06/2016",
+        "row": 2,
+        "upload_status": ""
+      }]
+
+      r = gsheets.process_receipts.apply_async(
+        args=(gifts, ETAP_WRAPPER_KEYS), 
+        queue=DB_NAME
+      )
+      #r = self.app.post('/collections/process_receipts', data=json.dumps(
+      
+      logger.info(r.__dict__)
+      #self.assertEquals(r.status_code, 200)
 
   '''
   def test_dial_valid(self):

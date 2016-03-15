@@ -70,7 +70,7 @@ def process_receipts(entries, keys):
       if not entry['etap_account']['email']:
         continue
 
-      status = scheduler.get_udf('Status', entry['etap_account'])
+      status = etap.get_udf('Status', entry['etap_account'])
       
       args = {
         "account_number": entry['account_number'],
@@ -97,7 +97,7 @@ def process_receipts(entries, keys):
         continue
 
       # Test for Dropoff Followup email
-      drop_date = scheduler.get_udf('Dropoff Date', entry['etap_account'])
+      drop_date = etap.get_udf('Dropoff Date', entry['etap_account'])
       
       if drop_date:
         d = drop_date.split('/')

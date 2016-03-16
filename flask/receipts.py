@@ -45,6 +45,88 @@ def process(entries, keys):
     end = start[0] + str(len(accounts)+1)
     status_range = wks.range(start + ':' + end)
 
+    # TODO: this is stupid. Just have a single loop and make 4 different lists:
+    # Gifts, Cancels, Drop Followups, Zero's
+    
+    gifts = []
+    zeros = []
+    drop_followups = []
+    cancels = []
+    
+    
+    for i in range(0, len(accounts)):
+        if 'email' not in accounts[i]:
+            continue
+        
+        entries[i]['etap_account'] = accounts[i]
+        
+        # Special case : Cancelled
+        if etap.get_udf('Status', entries[i]['etap_account']) == 'Cancelled':
+            cancels.append(entries[i])
+            
+        # Special case: Dropoff Followup
+        drop_date = etap.get_udf('Dropoff Date', entry['etap_account'])
+          
+        if drop_date:
+            d = drop_date.split('/')
+            drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
+            collection_date = parse(entry['date']).date() #replace(tzinfo=None)
+              
+            if drop_date == collection_date:
+                drop_followups.append(entries[i])
+        
+        # Zero Collection
+        if entries[i]['amount'] == 0:
+            zeros.append(entries[i])
+        # Gift Collection
+        elif entries[i]['amount'] > 0:
+            gifts.append(entries[i])
+        
+    # Go through each of 4 templates and send
+    
+    for cancel in cancels:
+        cancel['template'] = "email_cancelled.html"
+        cancel['subject'] = CANCELLED_EMAIL_SUBJECT
+        cancel['sheet_name'] = "Route Importer"
+        cancel['worksheet_name'] = "Routes"
+        r = requests.post(PUB_URL + '/email/send', data=json.dumps(cancel))
+     
+    for drop in drop_followups:
+        drop['template] = "email_dropoff_followup.html"
+        drop['subject'] = DROPOFF_FOLLOWUP_EMAIL_SUBJECT
+        drop['sheet_name'] = "Route Importer"
+        drop['worksheet_name'] = "Routes"
+        r = requests.post(PUB_URL + '/email/send', data=json.dumps(drop))
+    
+    for zero in zeros:    
+        zero['template'] = "email_zero_collection.html"
+        zero['subject'] = ZERO_COLLECTION_EMAIL_SUBJECT
+        if zero['next_pickup']:
+            args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
+
+        r = requests.post(PUB_URL + '/email/send', data=json.dumps(zero))
+        
+        
+    gift_histories = etap.call('get_gift_histories', keys, {
+      "account_refs": [i['etap_account']['ref'] for i in gift_accounts],
+      "start_date": "01/01/" + str(year),
+      "end_date": "31/12/" + str(year)
+        })
+        
+    for gift in gifts:
+        year = parse(gift_accounts[0]['date']).year
+
+        num_gift_receipts = 0
+    
+        for idx, entry in enumerate(gift_accounts):
+          gifts = gift_histories[idx]
+    
+          for gift in gifts:
+            gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
+            gift['amount'] = '$' + str(gift['amount'])
+    
+    
+    """
     for i in xrange(len(accounts) - 1, -1, -1):
         if 'email' not in accounts[i]:
             status_range[i].value = 'no email'
@@ -57,9 +139,7 @@ def process(entries, keys):
     wks.update_cells(status_range)
 
     gift_accounts = []
-    num_zero_receipts = 0
-    num_dropoff_followups = 0
-    num_cancelled = 0
+
 
     # Send Dropoff Followups, Zero Collection, and Cancelled email receipts 
     for entry in entries:
@@ -82,22 +162,19 @@ def process(entries, keys):
         if status == 'Cancelled':
           args['template'] = "email_cancelled.html"
           args['subject'] = CANCELLED_EMAIL_SUBJECT
-        
           r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
-        
           num_cancelled +=1
-        
           continue
         
-          # Test for Dropoff Followup email
-          drop_date = etap.get_udf('Dropoff Date', entry['etap_account'])
+        # Test for Dropoff Followup email
+        drop_date = etap.get_udf('Dropoff Date', entry['etap_account'])
           
-          if drop_date:
-              d = drop_date.split('/')
-              drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
-              collection_date = parse(entry['date']).date() #replace(tzinfo=None)
+        if drop_date:
+            d = drop_date.split('/')
+            drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
+            collection_date = parse(entry['date']).date() #replace(tzinfo=None)
               
-              if drop_date == collection_date:
+            if drop_date == collection_date:
                 args["template"] = "email_dropoff_followup.html"
                 args["subject"] = DROPOFF_FOLLOWUP_EMAIL_SUBJECT
                 
@@ -135,9 +212,11 @@ def process(entries, keys):
             
     return 'OK'
 
-  except Exception, e:
-    logger.error('send_receipts', exc_info=True)
-    return str(e)
+      except Exception, e:
+        logger.error('send_receipts', exc_info=True)
+        return str(e)
+    """
+
 
 #-------------------------------------------------------------------------------  
 def send_gift_receipts():

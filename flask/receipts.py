@@ -45,24 +45,22 @@ def process(entries, keys):
     end = start[0] + str(len(accounts)+1)
     status_range = wks.range(start + ':' + end)
 
-    # TODO: this is stupid. Just have a single loop and make 4 different lists:
-    # Gifts, Cancels, Drop Followups, Zero's
+    # A. Build 4 lists, one for each email template
     
     gifts = []
-    zeros = []
-    drop_followups = []
-    cancels = []
-    
-    
+
     for i in range(0, len(accounts)):
         if 'email' not in accounts[i]:
             continue
         
-        entries[i]['etap_account'] = accounts[i]
-        
         # Special case : Cancelled
         if etap.get_udf('Status', entries[i]['etap_account']) == 'Cancelled':
-            cancels.append(entries[i])
+            entries[i]['template'] = "email_cancelled.html"
+            entries[i]['subject'] = CANCELLED_EMAIL_SUBJECT
+            r = requests.post(PUB_URL + '/email/send', data=json.dumps({
+                'entry': entries[i], 
+                'etap_account': accounts[i]
+            }))
             
         # Special case: Dropoff Followup
         drop_date = etap.get_udf('Dropoff Date', entry['etap_account'])
@@ -73,45 +71,36 @@ def process(entries, keys):
             collection_date = parse(entry['date']).date() #replace(tzinfo=None)
               
             if drop_date == collection_date:
-                drop_followups.append(entries[i])
+                entries[i]['template'] = "email_dropoff_followup.html"
+                entries[i]['subject'] = DROPOFF_FOLLOWUP_EMAIL_SUBJECT
+                r = requests.post(PUB_URL + '/email/send', data=json.dumps({
+                    'entry': entries[i], 
+                    'etap_account': accounts[i]
+                }))
         
         # Zero Collection
         if entries[i]['amount'] == 0:
-            zeros.append(entries[i])
+            entries[i]['template'] = "email_zero_collection.html"
+            entries[i]['subject'] = ZERO_COLLECTION_EMAIL_SUBJECT
+            if entries[i]['next_pickup']:
+                entries[i]['next_pickup'] = parse(entries[i]['next_pickup']).strftime('%B %-d, %Y')
+
+            r = requests.post(PUB_URL + '/email/send', data=json.dumps({
+                'entry': entries[i], 
+                'etap_account': accounts[i]
+            }))
         # Gift Collection
         elif entries[i]['amount'] > 0:
-            gifts.append(entries[i])
+            # Can't send yet. Need to build list of journal histories
+            # to retrieve
+            gifts.append({'entry': entries[i], 'etap_account': accounts[i]})
         
-    # Go through each of 4 templates and send
-    
-    for cancel in cancels:
-        cancel['template'] = "email_cancelled.html"
-        cancel['subject'] = CANCELLED_EMAIL_SUBJECT
-        cancel['sheet_name'] = "Route Importer"
-        cancel['worksheet_name'] = "Routes"
-        r = requests.post(PUB_URL + '/email/send', data=json.dumps(cancel))
-     
-    for drop in drop_followups:
-        drop['template] = "email_dropoff_followup.html"
-        drop['subject'] = DROPOFF_FOLLOWUP_EMAIL_SUBJECT
-        drop['sheet_name'] = "Route Importer"
-        drop['worksheet_name'] = "Routes"
-        r = requests.post(PUB_URL + '/email/send', data=json.dumps(drop))
-    
-    for zero in zeros:    
-        zero['template'] = "email_zero_collection.html"
-        zero['subject'] = ZERO_COLLECTION_EMAIL_SUBJECT
-        if zero['next_pickup']:
-            args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
-        r = requests.post(PUB_URL + '/email/send', data=json.dumps(zero))
-        
-        
     gift_histories = etap.call('get_gift_histories', keys, {
       "account_refs": [i['etap_account']['ref'] for i in gift_accounts],
       "start_date": "01/01/" + str(year),
       "end_date": "31/12/" + str(year)
-        })
+    })
         
     for gift in gifts:
         year = parse(gift_accounts[0]['date']).year
@@ -119,89 +108,11 @@ def process(entries, keys):
         num_gift_receipts = 0
     
         for idx, entry in enumerate(gift_accounts):
-          gifts = gift_histories[idx]
+            gifts = gift_histories[idx]
     
           for gift in gifts:
-            gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
+        gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
             gift['amount'] = '$' + str(gift['amount'])
-    
-    
-    """
-    for i in xrange(len(accounts) - 1, -1, -1):
-        if 'email' not in accounts[i]:
-            status_range[i].value = 'no email'
-            del accounts[i]
-            del entries[i]
-        else:
-            entries[i]['etap_account'] = accounts[i]
-            status_range[i].value = 'queued'
-  
-    wks.update_cells(status_range)
-
-    gift_accounts = []
-
-
-    # Send Dropoff Followups, Zero Collection, and Cancelled email receipts 
-    for entry in entries:
-        status = etap.get_udf('Status', entry['etap_account'])
-      
-        args = {
-          "account_number": entry['account_number'],
-          "recipient": entry['etap_account']['email'],
-          "name": entry['etap_account']['name'],
-          "date": parse(entry['date']).strftime('%B %-d, %Y'),
-          "address": entry["etap_account"]["address"],
-          "postal": entry["etap_account"]["postalCode"],
-          "sheet_name": "Route Importer",
-          "worksheet_name": "Routes",
-          "upload_status": entry["upload_status"],
-          "row": entry["row"],
-        }
-    
-        # Test for Cancel email
-        if status == 'Cancelled':
-          args['template'] = "email_cancelled.html"
-          args['subject'] = CANCELLED_EMAIL_SUBJECT
-          r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
-          num_cancelled +=1
-          continue
-        
-        # Test for Dropoff Followup email
-        drop_date = etap.get_udf('Dropoff Date', entry['etap_account'])
-          
-        if drop_date:
-            d = drop_date.split('/')
-            drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
-            collection_date = parse(entry['date']).date() #replace(tzinfo=None)
-              
-            if drop_date == collection_date:
-                args["template"] = "email_dropoff_followup.html"
-                args["subject"] = DROPOFF_FOLLOWUP_EMAIL_SUBJECT
-                
-                if entry['next_pickup']:
-                  args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
-        
-                r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
-        
-                num_dropoff_followups += 1
-                
-                continue
-
-      # Test for Zero Collection or Gift Collection email
-      if entry['amount'] == 0:
-          args['template'] = "email_zero_collection.html"
-          args['subject'] = ZERO_COLLECTION_EMAIL_SUBJECT
-          if entry['next_pickup']:
-              args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
-
-          r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
-  
-          num_zero_receipts+=1
-      else:
-          # Can't send these yet, don't have gift histories. Build list to query
-          # them at once for speed 
-          gift_accounts.append(entry)
-
     
     logger.info('Receipts: \n' +
       str(num_zero_receipts) + ' zero collections sent\n' +

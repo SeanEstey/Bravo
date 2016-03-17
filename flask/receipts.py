@@ -47,7 +47,10 @@ def process(entries, keys):
 
     # A. Build 4 lists, one for each email template
     
-    gifts = []
+    num_zeros = 0
+    num_drop_followsups = 0
+    num_cancels = 0
+    gift_accounts = []
 
     for i in range(0, len(accounts)):
         if 'email' not in accounts[i]:
@@ -61,6 +64,7 @@ def process(entries, keys):
                 'entry': entries[i], 
                 'etap_account': accounts[i]
             }))
+            num_cancels += 1
             
         # Special case: Dropoff Followup
         drop_date = etap.get_udf('Dropoff Date', entry['etap_account'])
@@ -77,6 +81,7 @@ def process(entries, keys):
                     'entry': entries[i], 
                     'etap_account': accounts[i]
                 }))
+                num_drop_followups += 1
         
         # Zero Collection
         if entries[i]['amount'] == 0:
@@ -89,41 +94,35 @@ def process(entries, keys):
                 'entry': entries[i], 
                 'etap_account': accounts[i]
             }))
+            num_zeros +=1
         # Gift Collection
         elif entries[i]['amount'] > 0:
             # Can't send yet. Need to build list of journal histories
             # to retrieve
-            gifts.append({'entry': entries[i], 'etap_account': accounts[i]})
-        
+            gift_accounts.append({'entry': entries[i], 'etap_account': accounts[i]})
+      
+    year = parse(gift_accounts[0]['entry']['date']).year  
 
     gift_histories = etap.call('get_gift_histories', keys, {
       "account_refs": [i['etap_account']['ref'] for i in gift_accounts],
       "start_date": "01/01/" + str(year),
       "end_date": "31/12/" + str(year)
     })
+    
+    for i in range(0, len(gift_accounts):
+        gift_accounts[i]['gift_histories'] = gift_histories[i]
         
-    for gift in gifts:
-        year = parse(gift_accounts[0]['date']).year
-
-        num_gift_receipts = 0
-    
-        for idx, entry in enumerate(gift_accounts):
-            gifts = gift_histories[idx]
-    
-          for gift in gifts:
-        gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
-            gift['amount'] = '$' + str(gift['amount'])
-            
-            
-    if entry['next_pickup']:
-        args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
+        entry = gift_accounts[i]['entry']
+        
+        if entry['next_pickup']:
+            entry['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
 
         # Send requests.post back to Flask
-        r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
+        r = requests.post(PUB_URL + '/email/send', data=json.dumps(gift_accounts[i]))
     
     logger.info('Receipts: \n' +
-      str(num_zero_receipts) + ' zero collections sent\n' +
-      str(num_gift_receipts) + ' gift receipts sent\n' +
-      str(num_dropoff_followups) + ' dropoff followups sent\n' +
-      str(num_cancelled) + ' cancellations sent'
+      str(num_zeros) + ' zero collections sent\n' +
+      str(len(gift_accounts)) + ' gift receipts sent\n' +
+      str(num_drop_followups) + ' dropoff followups sent\n' +
+      str(num_cancels) + ' cancellations sent'
     )

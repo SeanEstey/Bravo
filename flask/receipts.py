@@ -113,6 +113,13 @@ def process(entries, keys):
           for gift in gifts:
         gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
             gift['amount'] = '$' + str(gift['amount'])
+            
+            
+    if entry['next_pickup']:
+        args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
+
+        # Send requests.post back to Flask
+        r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))
     
     logger.info('Receipts: \n' +
       str(num_zero_receipts) + ' zero collections sent\n' +
@@ -120,59 +127,3 @@ def process(entries, keys):
       str(num_dropoff_followups) + ' dropoff followups sent\n' +
       str(num_cancelled) + ' cancellations sent'
     )
-            
-    return 'OK'
-
-      except Exception, e:
-        logger.error('send_receipts', exc_info=True)
-        return str(e)
-    """
-
-
-#-------------------------------------------------------------------------------  
-def send_gift_receipts():
-    # Call eTap 'get_gift_history' for non-zero donations
-    # Send Gift receipts
-
-    if(len(gift_accounts)) == 0:
-        return 'OK'
-
-    year = parse(gift_accounts[0]['date']).year
-
-    gift_histories = etap.call('get_gift_histories', keys, {
-      "account_refs": [i['etap_account']['ref'] for i in gift_accounts],
-      "start_date": "01/01/" + str(year),
-      "end_date": "31/12/" + str(year)
-    })
-    
-    num_gift_receipts = 0
-
-    for idx, entry in enumerate(gift_accounts):
-      gifts = gift_histories[idx]
-
-      for gift in gifts:
-        gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
-        gift['amount'] = '$' + str(gift['amount'])
-
-      num_gift_receipts += 1
-
-      args = {
-        "account_number": entry['account_number'],
-        "recipient": entry['etap_account']['email'],
-        "name": entry['etap_account']['name'],
-        "last_date": parse(entry['date']).strftime('%B %-d, %Y'),
-        "last_amount": '$' + str(entry['amount']),
-        "gift_history": gifts,
-        "sheet_name": "Route Importer",
-        "worksheet_name": "Routes",
-        "upload_status": entry["upload_status"],
-        "row": entry["row"],
-        "template": "email_collection_receipt.html",
-        "subject": GIFT_RECEIPT_EMAIL_SUBJECT
-      }
-
-      if entry['next_pickup']:
-        args['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
-
-      # Send requests.post back to Flask
-      r = requests.post(PUB_URL + '/email/send', data=json.dumps(args))

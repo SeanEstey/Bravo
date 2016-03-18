@@ -57,42 +57,52 @@ def process(entries, keys):
             continue
         
         # Special case : Cancelled
-        if etap.get_udf('Status', entries[i]['etap_account']) == 'Cancelled':
-            entries[i]['template'] = "email_cancelled.html"
-            entries[i]['subject'] = CANCELLED_EMAIL_SUBJECT
+        if etap.get_udf('Status', accounts[i]) == 'Cancelled':
             r = requests.post(PUB_URL + '/email/send', data=json.dumps({
-                'entry': entries[i], 
-                'etap_account': accounts[i]
+                "recipient": accounts[i]['email'],
+                "template": "email_cancelled.html",
+                "subject": CANCELLED_EMAIL_SUBJECT,
+                "data": {
+                    "entry": entries[i], 
+                    "etap_account": accounts[i]
+                }
             }))
             num_cancels += 1
             
         # Special case: Dropoff Followup
-        drop_date = etap.get_udf('Dropoff Date', entry['etap_account'])
+        drop_date = etap.get_udf('Dropoff Date', accounts[i])
           
         if drop_date:
             d = drop_date.split('/')
             drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
-            collection_date = parse(entry['date']).date() #replace(tzinfo=None)
+            collection_date = parse(entries[i]['date']).date() #replace(tzinfo=None)
               
             if drop_date == collection_date:
-                entries[i]['template'] = "email_dropoff_followup.html"
-                entries[i]['subject'] = DROPOFF_FOLLOWUP_EMAIL_SUBJECT
                 r = requests.post(PUB_URL + '/email/send', data=json.dumps({
-                    'entry': entries[i], 
-                    'etap_account': accounts[i]
+                    "recipient": accounts[i]['email'],
+                    "template": "email_dropoff_followup.html",
+                    "subject": DROPOFF_FOLLOWUP_EMAIL_SUBJECT,
+                    "data": {
+                        "entry": entries[i], 
+                        "etap_account": accounts[i]
+                    }
                 }))
+                
                 num_drop_followups += 1
         
         # Zero Collection
         if entries[i]['amount'] == 0:
-            entries[i]['template'] = "email_zero_collection.html"
-            entries[i]['subject'] = ZERO_COLLECTION_EMAIL_SUBJECT
             if entries[i]['next_pickup']:
                 entries[i]['next_pickup'] = parse(entries[i]['next_pickup']).strftime('%B %-d, %Y')
 
             r = requests.post(PUB_URL + '/email/send', data=json.dumps({
-                'entry': entries[i], 
-                'etap_account': accounts[i]
+                "recipient": accounts[i]['email'],
+                "template": "email_zero_collection.html",
+                "subject": ZERO_COLLECTION_EMAIL_SUBJECT,
+                "data": {
+                    "entry": entries[i], 
+                    "etap_account": accounts[i]
+                }
             }))
             num_zeros +=1
         # Gift Collection

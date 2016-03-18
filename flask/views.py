@@ -222,7 +222,7 @@ def process_receipts():
 def send_email(): 
     # Can be collection receipt from gsheets.process_receipts, reminder email, 
     # or welcome letter from Google Sheets.
-    # Required fields: 'recipient', 'template', 'subject'
+    # Required fields: 'recipient', 'template', 'subject', and 'data'
     # Required fields for updating Google Sheets: 'sheet_name', 'worksheet_name', 
     # 'row', 'upload_status'
     
@@ -235,7 +235,7 @@ def send_email():
             return Response(response=e, status=500, mimetype='application/json')
   
     try:
-        html = render_template(args['template'], args=args)
+        html = render_template(args['template'], args=args['data'])
     except Exception, e:
         e = '/email/send: invalid email template'
         logger.error(e)

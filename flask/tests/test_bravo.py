@@ -11,8 +11,10 @@ import datetime
 from dateutil.parser import parse
 from werkzeug.datastructures import MultiDict
 import xml.dom.minidom
-os.chdir('/home/sean/Bravo/flask')
-sys.path.insert(0, '/home/sean/Bravo/flask')
+#os.chdir('/home/sean/Bravo/flask')
+#sys.path.insert(0, '/home/sean/Bravo/flask')
+os.chdir('/root/bravo_experimental/Bravo/flask')
+sys.path.insert(0, '/root/bravo_experimental/Bravo/flask')
 
 from config import *
 import views
@@ -91,7 +93,7 @@ class BravoTestCase(unittest.TestCase):
       gifts = [{ 
         "account_number": 57515, # Test Res
         "date": "04/06/2016",
-        "amount": 5,
+        "amount": 0,
         "next_pickup": "21/06/2016",
         "row": 2,
         "upload_status": ""

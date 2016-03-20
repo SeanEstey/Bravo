@@ -21,27 +21,32 @@ CANCELLED_EMAIL_SUBJECT = 'You have been removed from the collection schedule'
 #-------------------------------------------------------------------------------
 def send(account, entry, template, subject):
     try:
-        requests.post(PUB_URL + '/email/send', data=json.dumps({
+        r = requests.post(PUB_URL + '/email/send', json={
             "recipient": account['email'],
             "template": template,
             "subject": subject,
             "data": {
                 "entry": entry,
+                "from": entry['from'],
                 "account": account
             }
-        }))
+        })
     except Exception as e:
-        logger.error('Failed to send receipt to account ID %s',
+        logger.error('Failed to send receipt to account ID %s: %s',
         account['id'], str(e))
+
+    logger.info(r.text)
 
 #-------------------------------------------------------------------------------
 @celery_app.task
 def process(entries, keys):
-    # Celery process that sends email receipts to entries in Route
-    # Importer->Routes worksheet. Lots of account data retrieved from eTap
-    # (accounts + journal data) so can take awhile to run 4 templates:
-    # gift_collection, zero_collection, dropoff_followup, cancelled entries:
-    # list of row entries to receive emailed receipts
+    '''Celery process that sends email receipts to entries in Route
+    Importer->Routes worksheet. Lots of account data retrieved from eTap
+    (accounts + journal data) so can take awhile to run 4 templates:
+    gift_collection, zero_collection, dropoff_followup, cancelled entries:
+    list of row entries to receive emailed receipts
+    '''
+
     try:
         # Get all eTapestry account data
         accounts = etap.call('get_accounts', keys, {
@@ -61,7 +66,7 @@ def process(entries, keys):
     #status_range = wks.range(start + ':' + end)
 
     num_zeros = 0
-    num_drop_followsups = 0
+    num_drop_followups = 0
     num_cancels = 0
     gift_accounts = []
 
@@ -69,20 +74,20 @@ def process(entries, keys):
         if 'email' not in accounts[i]:
             continue
 
-        # Special case : Cancelled
+        # Cancelled Receipt
         if etap.get_udf('Status', accounts[i]) == 'Cancelled':
             send(accounts[i], entries[i], "email_cancelled.html",
                     CANCELLED_EMAIL_SUBJECT)
 
             num_cancels += 1
 
-        # Special case: Dropoff Followup
+        # Dropoff Followup Receipt
         drop_date = etap.get_udf('Dropoff Date', accounts[i])
 
         if drop_date:
             d = drop_date.split('/')
             drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
-            collection_date = parse(entries[i]['date']).date() #replace(tzinfo=None)
+            collection_date = parse(entries[i]['date']).date()
 
             if drop_date == collection_date:
                 send(accounts[i], entries[i], "email_dropoff_followup.html",
@@ -90,38 +95,42 @@ def process(entries, keys):
 
                 num_drop_followups += 1
 
-        # Zero Collection
+        # Zero Collection Receipt
         if entries[i]['amount'] == 0:
             if entries[i]['next_pickup']:
-                entries[i]['next_pickup'] =
-                parse(entries[i]['next_pickup']).strftime('%B %-d, %Y')
+                npu = parse(entries[i]['next_pickup']).date()
+                entries[i]['next_pickup'] = npu.strftime('%B %-d, %Y')
 
             send(accounts[i], entries[i], "email_zero_collection.html",
                     ZERO_COLLECTION_EMAIL_SUBJECT)
 
             num_zeros +=1
 
-        # Gift Collection
+        # Gift Receipt
         elif entries[i]['amount'] > 0:
-            # Can't send yet. Need to build list of journal histories
-            # to retrieve
             gift_accounts.append({'entry': entries[i], 'account': accounts[i]})
 
-    year = parse(gift_accounts[0]['entry']['date']).year
+    # All receipts sent except Gifts. Query Journal Histories
 
-    gift_histories = etap.call('get_gift_histories', keys, {
-      "account_refs": [i['account']['ref'] for i in gift_accounts],
-      "start_date": "01/01/" + str(year),
-      "end_date": "31/12/" + str(year)
-    })
+    if len(gift_accounts) > 0:
+        year = parse(gift_accounts[0]['entry']['date']).year
 
-    for i in range(0, len(gift_accounts):
-        gift_accounts[i]['account']['gift_history'] = gift_histories[i]
-        entry = gift_accounts[i]['entry']
-        if entry['next_pickup']:
-            entry['next_pickup'] = parse(entry['next_pickup']).strftime('%B %-d, %Y')
-        send(gift_accounts[i]['account'], gift_accounts[i]['entry'],
-        "email_collection_receipt.html", GIFT_RECEIPT_EMAIL_SUBJECT)
+        gift_histories = etap.call('get_gift_histories', keys, {
+          "account_refs": [i['account']['ref'] for i in gift_accounts],
+          "start_date": "01/01/" + str(year),
+          "end_date": "31/12/" + str(year)
+        })
+
+        for i in range(0, len(gift_accounts)):
+            gift_accounts[i]['account']['gift_history'] = gift_histories[i]
+            entry = gift_accounts[i]['entry']
+
+            if entry['next_pickup']:
+                npu = parse(entry).date()
+                entry['next_pickup'] = npu.strftime('%B %-d, %Y')
+
+            send(gift_accounts[i]['account'], gift_accounts[i]['entry'],
+            "email_collection_receipt.html", GIFT_RECEIPT_EMAIL_SUBJECT)
 
     logger.info('Receipts: \n' +
       str(num_zeros) + ' zero collections sent\n' +

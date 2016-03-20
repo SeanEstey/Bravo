@@ -9,6 +9,7 @@ from bson.objectid import ObjectId
 
 from app import flask_app, db, logger, login_manager, socketio
 import reminders
+import receipts
 import log
 import gsheets
 import scheduler
@@ -197,15 +198,16 @@ def call_event():
 #-------------------------------------------------------------------------------
 @flask_app.route('/collections/process_receipts', methods=['POST'])
 def process_receipts():
-    """Data sent from Routes worksheet in Gift Importer (Google Sheet)
+    '''Data sent from Routes worksheet in Gift Importer (Google Sheet)
     @arg 'data': JSON array of dict objects with UDF and gift data
-    @arg 'keys': JSON dict of etapestry info for PHP script"""
+    @arg 'keys': JSON dict of etapestry info for PHP script
+    '''
 
     entries = json.loads(request.form['data'])
     keys = json.loads(request.form['keys'])
 
     # Start celery workers to run slow eTapestry API calls
-    r = gsheets.process_receipts.apply_async(
+    r = receipts.process.apply_async(
       args=(entries, keys),
       queue=DB_NAME
     )
@@ -217,16 +219,14 @@ def process_receipts():
 #-------------------------------------------------------------------------------
 @flask_app.route('/email/send', methods=['POST'])
 def send_email():
-    """Can be collection receipt from gsheets.process_receipts, reminder email,
+    '''Can be collection receipt from gsheets.process_receipts, reminder email,
     or welcome letter from Google Sheets.
     Required fields: 'recipient', 'template', 'subject', and 'data'
-    Required fields for updating Google Sheets: 'data': {'entry':{'sheet_name',
+    Required fields for updating Google Sheets: 'data': {'from':{'sheet_name',
     'worksheet_name', 'row', 'upload_status'}}
-    """
+    '''
 
     args = request.get_json(force=True)
-
-    logger.info(args)
 
     for key in ['template', 'subject', 'recipient']:
         if key not in args:
@@ -263,7 +263,7 @@ def send_email():
     db['emails'].insert({
         'mid': json.loads(r.text)['id'],
         'status': 'queued',
-        'optional': args['data']['entry']
+        'on_status_update': args['data']['from']
     })
 
     logger.info('Queued email to ' + args['recipient'])
@@ -304,11 +304,12 @@ def email_spam_complaint():
 #-------------------------------------------------------------------------------
 @flask_app.route('/email/status',methods=['POST'])
 def email_status():
-    """Relay for Mailgun webhooks.
+    '''Relay for Mailgun webhooks.
     Can originate from reminder_msg, Signups sheet, or Route Importer sheet
-    POST data: 'event', 'recipient', 'Message-Id', 'code' (dropped/bounced only),
+    POST data: 'event', 'recipient', 'Message-Id', 'code' (dropped/bounced only)
     'error' (bounced), 'reason' (dropped)
-    'event': 'delivered', 'bounced', or 'dropped'"""
+    'event': 'delivered', 'bounced', or 'dropped'
+    '''
 
     logger.info('Email to %s %s',
       request.form['recipient'], request.form['event']
@@ -319,20 +320,20 @@ def email_status():
     if db_doc is None:
         return 'OK'
 
-    if 'optional' not in db_doc:
+    if 'on_status_update' not in db_doc:
         return 'OK'
 
     # Do any required follow-up actions
 
     # Google Sheets?
-    if 'sheet_name' in db_doc['optional']:
+    if 'sheet_name' in db_doc['on_status_update']:
         try:
-            gsheets.update_entry(db_doc['optional'])
+            gsheets.update_entry(db_doc['on_status_update'])
         except Exception as e:
             logger.error("Error writing to Google Sheets: " + str(e))
             return 'failed'
     # Reminder email?
-    elif 'reminder_msg_id' in db_doc['optional']:
+    elif 'reminder_msg_id' in db_doc['on_status_update']:
         db['reminder_msgs'].update_one(
           {'email.mid': request.form['Message-Id']},
           {'$set':{

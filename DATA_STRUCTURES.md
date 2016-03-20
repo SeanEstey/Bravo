@@ -50,7 +50,7 @@
   "code": "error code (if any)",
   "error": "(if any)",
   "reason": "error desc (if any)",
-  "optional": {
+  "on_status_update": {
     "reminder_msg_id": "<BSON.OjectId>",
     "sheet_name": "gsheets_name_for_updating_sheets"
   }

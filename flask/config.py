@@ -13,7 +13,7 @@ LOCAL_PORT = 8000
 LOCAL_URL = 'http://localhost:8000'
 PUB_URL = 'http://bravoweb.ca'
 TITLE = 'Bravo'
-LOG_FILE = 'log'
+LOG_FILE = 'logs/log'
 formatter = logging.Formatter('[%(asctime)s] %(message)s','%m-%d %H:%M')
 
 # Reminders
@@ -36,7 +36,7 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Canada/Mountain'
 CELERY_ENABLE_UTC = False
 CELERYD_CONCURRENCY = 1
-CELERYBEAT_SCHEDULE = {
+'''CELERYBEAT_SCHEDULE = {
   'check_reminder_jobs': {
     'task': 'reminders.check_jobs',
     'schedule': timedelta(seconds=30),
@@ -47,7 +47,7 @@ CELERYBEAT_SCHEDULE = {
     'schedule': crontab(hour=7, minute=0, day_of_week='*'),
     'options': { 'queue': DB_NAME }
   }
-}
+}'''
 
 # Ports/Domains
 MONGO_URL = 'localhost'

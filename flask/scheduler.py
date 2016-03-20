@@ -13,6 +13,7 @@ from bson.objectid import ObjectId
 from app import celery_app, db, logger, login_manager
 from config import *
 from gsheets import create_rfu
+import etap
 
 def get_cal_events(cal_id, start, end):
   json_key = json.load(open('oauth_credentials.json'))

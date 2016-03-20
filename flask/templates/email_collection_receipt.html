@@ -2,24 +2,27 @@
   {% block content %}  
     <tr>
       <td>
-        Hi {{ args.name }},
+        Hi {{ data['account']['name'] }},
       </td>
     </tr>
     <tr>
       <td>
-        Thank you for your donation of <b>{{ args.last_amount }}</b> on <b>{{ args.last_date }}</b>.
+        Thank you for your donation of 
+        <b>${{ data['entry']['amount'] }}</b> 
+        on
+        <b>{{ data['entry']['date'] }}</b>.
       </td>
     </tr>
     <tr>
       <td>
         <table style='font-size:12pt;' cellpadding='5'>
-          {% for gift in args.gift_history %}
+          {% for gift in data['account']['gift_history'] %}
             <tr>
               <td>
                 {{ gift.date }}
               </td>
               <td>
-                {{ gift.amount }}
+                ${{ gift.amount }}
               </td>
             </tr>
           {% endfor %}
@@ -28,8 +31,10 @@
     </tr>
     <tr>
       <td>
-        {% if args.next_pickup %}
-          Your next pickup is scheduled for <b>{{ args.next_pickup }}</b>.
+        {% if data['entry']['next_pickup'] %}
+          Your next pickup is scheduled for 
+          <b>{{ data['entry']['next_pickup'] }}</b>
+          .
         {% endif %}
       </td>
     </tr>

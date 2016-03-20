@@ -11,19 +11,21 @@ import datetime
 from dateutil.parser import parse
 from werkzeug.datastructures import MultiDict
 import xml.dom.minidom
-#os.chdir('/home/sean/Bravo/flask')
-#sys.path.insert(0, '/home/sean/Bravo/flask')
-os.chdir('/root/bravo_experimental/Bravo/flask')
-sys.path.insert(0, '/root/bravo_experimental/Bravo/flask')
+os.chdir('/home/sean/Bravo/flask')
+sys.path.insert(0, '/home/sean/Bravo/flask')
+#os.chdir('/root/bravo_experimental/Bravo/flask')
+#sys.path.insert(0, '/root/bravo_experimental/Bravo/flask')
 
 from config import *
 import views
 import gsheets
+import receipts
+import views
 from app import logger, flask_app, celery_app
 
 
 class BravoTestCase(unittest.TestCase):
-  
+
   def setUp(self):
       flask_app.config['TESTING'] = True
       self.app = flask_app.test_client()
@@ -36,12 +38,13 @@ class BravoTestCase(unittest.TestCase):
         'fire_dtime': datetime.datetime(2014, 12, 31),
         'num_calls': 1
       }
-    
+
       mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
       self.db = mongo_client[DB_NAME]
       self.job_id = self.db['reminder_jobs'].insert(self.job_document)
       self.job = self.db['reminder_jobs'].find_one({'_id':self.job_id})
-      
+      self.login('seane@wsaf.ca', 'wsf')
+
       self.msg_document = {
         'job_id': self.job_id,
         'name': 'Test Res',
@@ -57,7 +60,7 @@ class BravoTestCase(unittest.TestCase):
           'office_notes': ''
         }
       }
-      
+
       self.msg_id = self.db['reminder_msgs'].insert(self.msg_document)
       self.msg = self.db['reminder_msgs'].find_one({'_id':self.msg_id})
 
@@ -67,46 +70,15 @@ class BravoTestCase(unittest.TestCase):
       self.assertEquals(res['n'], 1)
       res = self.db['reminder_msgs'].remove({'_id':self.msg_id})
       self.assertEquals(res['n'], 1)
-      
+
   def login(self, username, password):
       return self.app.post('/login', data=dict(
           username=username,
           password=password
       ), follow_redirects=True)
-  
+
   def logout(self):
       return self.app.get('/logout', follow_redirects=True)
-  """
-  def test_send_email(self):
-      self.login('seane@wsaf.ca', 'wsf')
-      r = self.app.post('/email/send', data=json.dumps({
-        'recipient': 'estese@gmail.com',
-        'subject': 'test',
-        'template': 'email_collection_receipt.html'
-      }), follow_redirects=True)
-      
-      self.assertEquals(r.status_code, 200)
-  """
-  def test_process_receipts(self):
-      self.login('seane@wsaf.ca', 'wsf')
-
-      gifts = [{ 
-        "account_number": 57515, # Test Res
-        "date": "04/06/2016",
-        "amount": 0,
-        "next_pickup": "21/06/2016",
-        "row": 2,
-        "upload_status": ""
-      }]
-
-      r = gsheets.process_receipts.apply_async(
-        args=(gifts, ETAP_WRAPPER_KEYS), 
-        queue=DB_NAME
-      )
-      #r = self.app.post('/collections/process_receipts', data=json.dumps(
-      
-      logger.info(r.__dict__)
-      #self.assertEquals(r.status_code, 200)
 
   '''
   def test_dial_valid(self):
@@ -125,8 +97,8 @@ class BravoTestCase(unittest.TestCase):
       sid = response['sid']
       self.db['msgs'].update({'_id':self.msg['_id']},{'$set':{'sid': sid}})
       payload = MultiDict([
-        ('CallSid', response['sid']), 
-        ('To', self.msg['imported']['to']), 
+        ('CallSid', response['sid']),
+        ('To', self.msg['imported']['to']),
         ('CallStatus', 'in-progress'),
         ('AnsweredBy', 'human')
       ])
@@ -140,7 +112,7 @@ class BravoTestCase(unittest.TestCase):
       sid = self.test_answer_call()
       payload = MultiDict([
         ('To', self.msg['imported']['to']),
-        ('CallSid', sid), 
+        ('CallSid', sid),
         ('CallStatus', 'completed'),
         ('AnsweredBy', 'human'),
         ('CallDuration', 16)
@@ -152,7 +124,7 @@ class BravoTestCase(unittest.TestCase):
   def test_scheduler(self):
       # Tricky to test because it fires another sync call to execute_job
       # But the function returns num pending jobs. If we call it twice and
-      # a job executes the first time, the second time it should 
+      # a job executes the first time, the second time it should
       #return a lower value for num pending jobs
       num_pending = tasks.run_scheduler() #.apply_async(queue=DB_NAME)
       num_pending2 = tasks.run_scheduler() #.apply_async(queue=DB_NAME)
@@ -188,7 +160,7 @@ class BravoTestCase(unittest.TestCase):
           'office_notes': ''
         }
       }
-      
+
       for x in range(1000,1100):
           call = base + str(x)
           print call
@@ -201,15 +173,15 @@ class BravoTestCase(unittest.TestCase):
           print msg_document
           self.db['msgs'].insert(msg_document)
           payload = MultiDict([
-          ('CallSid', response['sid']), 
-          ('To', call), 
+          ('CallSid', response['sid']),
+          ('To', call),
           ('CallStatus', 'in-progress'),
           ('AnsweredBy', 'human')
           ])
           del msg_document['_id']
           response = requests.post(PUB_URL+'/call/answer', data=payload)
           xml_response = xml.dom.minidom.parseString(response.text)
-          # Test valid XML returned by server.get_speak() 
+          # Test valid XML returned by server.get_speak()
           self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
   '''
   '''
@@ -296,5 +268,5 @@ class BravoTestCase(unittest.TestCase):
   '''
 
 if __name__ == '__main__':
-    logger.info('********** begin unittest **********')
+    logger.info('********** begin reminders.py unittest **********')
     unittest.main()

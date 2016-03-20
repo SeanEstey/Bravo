@@ -2,12 +2,15 @@
   {% block content %}  
     <tr>
       <td>
-        Hi {{ args.name }},
+        Hi {{ data['account']['name'] }},
       </td>
     </tr>
     <tr>
       <td>
-        This is a confirmation that your address <b>{{ args.address }}</b>, <b>{{ args.postal }}</b> has been removed from the pickup schedule.
+        This is a confirmation that your address 
+        <b>{{ data['account']['address'] }}</b>, 
+        <b>{{ data['account']['postal'] }}</b> 
+        has been removed from the pickup schedule.
       </td>
     </tr>
     <tr>

@@ -32,7 +32,7 @@
               </p>
               <p style='font-size:9pt'>
                 <a href="http://www.bravoweb.ca{{ url_for('email_unsubscribe')
-                    }}?email={{ data.recipient }}">unsubscribe</a> me from these emails
+                    }}?email={{ data['account']['email'] }}">unsubscribe</a> me from these emails
               </p>   
             </td>
           </tr>

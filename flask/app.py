@@ -18,7 +18,6 @@ flask_app = Flask(__name__)
 flask_app.config.from_pyfile('config.py')
 from werkzeug.contrib.fixers import ProxyFix
 flask_app.wsgi_app = ProxyFix(flask_app.wsgi_app)
-#flask_app.wsgi_app = ReverseProxied(flask_app.wsgi_app)
 flask_app.debug = DEBUG
 flask_app.secret_key = SECRET_KEY
 flask_app.jinja_env.add_extension("jinja2.ext.do")
@@ -56,7 +55,4 @@ flask_app.app_context().push()
 
 from scheduler import get_next_pickups, find_nps_in_schedule
 from reminders import check_jobs, send_calls, send_emails, monitor_calls, cancel_pickup, set_no_pickup
-from gsheets import process_receipts
-
-
-
+from receipts import process

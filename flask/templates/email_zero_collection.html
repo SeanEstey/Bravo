@@ -2,13 +2,14 @@
   {% block content %}  
     <tr>
       <td>
-        Hi {{ data.account.name }},
+        Hi {{ data['account']['name'] }},
       </td>
     </tr>
     <tr>
       <td>
-        We did not receive a collection from you on <b>{{ data.entry.date }}</b>, at
-        your address <b>{{ data.account.address }}</b>, <b>{{ data.account.postal }}</b>.
+        We did not receive a collection from you on <b>{{ data['entry']['date'] }}</b>, at
+        your address <b>{{ data['account']['address'] }}</b>, <b>{{
+            data['account']['postal'] }}</b>.
       </td>
     </tr>
     <tr>
@@ -24,8 +25,8 @@
     </tr>
     <tr>
       <td>
-        {% if data.entry.next_pickup %}
-        Your next pickup is scheduled for <b>{{ data.entry.next_pickup }}</b>.
+        {% if data['entry']['next_pickup'] %}
+        Your next pickup is scheduled for <b>{{ data['entry']['next_pickup'] }}</b>.
         {% endif %}
       </td>
     </tr>

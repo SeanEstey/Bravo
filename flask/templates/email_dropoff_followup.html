@@ -2,12 +2,15 @@
   {% block content %}  
     <tr>
       <td>
-        Hi {{ args.name }},
+        Hi {{ data['account']['name'] }},
       </td>
     </tr>
     <tr>
       <td>
-        You should have had your collection supplies dropped off on {{ args.date }}, at your address {{ args.address }}, {{ args.postal }}.
+        You should have had your collection supplies dropped off on 
+        {{ data['entry']['date'] }} at 
+        {{ data['account']['address'] }}, 
+        {{ data['account']['postal'] }}.
       </td>
     </tr>
     <tr>
@@ -17,8 +20,9 @@
     </tr>
     <tr>
       <td>
-        {% if args.next_pickup %}
-        Your next pickup is scheduled for <b>{{ args.next_pickup }}</b>.
+        {% if data['entry']['next_pickup'] %}
+        Your next pickup is scheduled for 
+        <b>{{ data['entry']['next_pickup'] }}</b>.
         {% endif %}
       </td>
     </tr>

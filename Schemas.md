@@ -1,4 +1,4 @@
-<h2>Mongo Collections</h2>
+<h2>Mongo Collection Schemas</h2>
 
 ```json
 "reminder_msgs": {
@@ -62,7 +62,7 @@
 }
 ```
 
-<h2>Twilio</h2>
+<h2>Twilio JSON Schemas</h2>
 
 twilio.TwilioRestException
 ```json

@@ -16,6 +16,15 @@ Clone repository
 git clone https://github.com/SeanEstey/Bravo
 cd Bravo
 ```
+
+Setup Mongo Logins
+<br>
+```
+$mongo
+>> use wsf
+>> db.logins.insert({'user':'name', 'pass':'password'})
+```
+
 Start RabbitMQ daemon<br>
 `rabbitmqctl start_app`<br>
 Start Flask Server:<br>

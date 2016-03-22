@@ -31,21 +31,38 @@ def auth(scope):
 
 #-------------------------------------------------------------------------------
 def update_entry(db_record):
-    gc = auth(['https://spreadsheets.google.com/feeds'])
-    sheet = gc.open(db_record['sheet_name'])
-    wks = sheet.worksheet(db_record['worksheet_name'])
+    '''db_record: dict containing info on source google sheet:
+    'sheet_name', 'worksheet_name', 'row', 'upload_status'
+    '''
+    
+    try:
+        gc = auth(['https://spreadsheets.google.com/feeds'])
+        sheet = gc.open(db_record['sheet_name'])
+        wks = sheet.worksheet(db_record['worksheet_name'])
+    except Exception as e:
+        logger.error('Error opening worksheet %s: %s' , 
+                     db_record['worksheet_name'], str(e)
+        )
+        return False
+        
     headers = wks.row_values(1)
 
     # Make sure the row entry still exists in the worksheet
     cell = wks.cell(db_record['row'], headers.index('Upload Status')+1)
 
     if cell:
-      if str(cell.value) == db_record['upload_status']:
-        wks.update_cell(
-          db_record['row'],
-          headers.index('Email Status')+1,
-          db_record['status']
-        )
+        if str(cell.value) == db_record['upload_status']:
+            try:
+                wks.update_cell(
+                    db_record['row'],
+                    headers.index('Email Status')+1,
+                    db_record['status']
+                )
+            except Exception as e:
+                logger.error('Error writing to worksheet %s: %s', 
+                             db_record['worksheet_name'], str(e)
+                )
+                return False
 
     # Create RFU if event is dropped/bounced and is from a collection receipt
     if db_record['worksheet_name'] == 'Routes':
@@ -63,8 +80,12 @@ def update_entry(db_record):
             logger.info(
               'Creating RFU for bounced/dropped email %s', json.dumps(rfu)
             )
-
-            wks.append_row(rfu)
+            
+            try:
+                wks.append_row(rfu)
+            except Exception as e:
+                logger.error('Error writing to RFU worksheet: %s', str(e))
+                return False
 
 #-------------------------------------------------------------------------------
 def create_rfu(request_note, account_number=None, next_pickup=None, block=None, date=None):

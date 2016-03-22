@@ -86,6 +86,8 @@ def update_entry(db_record):
             except Exception as e:
                 logger.error('Error writing to RFU worksheet: %s', str(e))
                 return False
+    
+    return True
 
 #-------------------------------------------------------------------------------
 def create_rfu(request_note, account_number=None, next_pickup=None, block=None, date=None):
@@ -112,7 +114,13 @@ def create_rfu(request_note, account_number=None, next_pickup=None, block=None, 
 
     logger.info('Creating RFU: ' + json.dumps([item for item in rfu if item]))
 
-    wks.append_row(rfu)
+    try:
+        wks.append_row(rfu)
+    except Exception as e:
+        logger.error('Could not write to RFU sheet: %s', str(e)
+        return False
+    
+    return True
 
 #-------------------------------------------------------------------------------
 @celery_app.task

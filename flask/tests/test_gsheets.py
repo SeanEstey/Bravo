@@ -9,7 +9,7 @@ sys.path.insert(0, '/home/sean/Bravo/flask')
 #sys.path.insert(0, '/root/bravo_experimental/Bravo/flask')
 
 from config import *
-import views
+import gsheets
 from app import logger, flask_app, celery_app
 
 class BravoTestCase(unittest.TestCase):
@@ -21,57 +21,23 @@ class BravoTestCase(unittest.TestCase):
 
       mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
       self.db = mongo_client[DB_NAME]
-      self.job_id = self.db['reminder_jobs'].insert(self.job_document)
-      self.job = self.db['reminder_jobs'].find_one({'_id':self.job_id})
-      self.login('seane@wsaf.ca', 'wsf')
-
-      self.test_email_id = db['emails'].insert({
-        'mid': 'abc123',
-        'status': 'queued',
-        'on_status_update': {
-          'sheet_name': 'Route Importer',
-          'worksheet_name': 'Signups',
-          'row': 2,
-          'upload_status': 'Success'
-        }
-      })
 
   # Remove job record created by setUp
   def tearDown(self):
-      res = self.db['emails'].remove({'_id':self.test_email_id})
-      self.assertEquals(res['n'], 1)
+      # .placeholder
 
-  def login(self, username, password):
-      return self.app.post('/login', data=dict(
-          username=username,
-          password=password
-      ), follow_redirects=True)
-
-  def logout(self):
-      return self.app.get('/logout', follow_redirects=True)
-
-  def test_email_status(self):
-      r = self.app.post('/email/status', data={
-        'event': 'delivered',
-        'recipient': 'estese@gmail.com',
-        'Message-Id': 'abc123'
-      })
-      self.assertEquals(r.status_code, 200)
+  def test_update_entry(self):
+      self.assertTrue(gsheets.update_entry({
+        'sheet_name': 'Route Importer',
+        'worksheet_name': 'Signups',
+        'row': 3,
+        'upload_status': 'Success'
+      }))
   
-  def test_root(self):
-      r = self.app.get('/')
-      self.assertEquals(r.status_code, 200)
+  def test_create_rfu(self):
+      self.assertTrue(gsheets.create_rfu("Test RFU"))
   
-  def test_show_jobs(self):
-      r = self.app.get('/jobs')
-      self.assertEquals(r.status_code, 200)
-
-  def test_show_calls(self):
-      r = self.app.get('/jobs' + str(self.job_id)
-      self.assertEquals(r.status_code, 200)
-
-  def test_schedule_jobs(self):
-      r = self.app.get('/new')
+  def test_add_signup_row(self):
       self.assertEquals(r.status_code, 200)
 
 if __name__ == '__main__':

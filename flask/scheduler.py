@@ -64,7 +64,7 @@ def find_nps_in_schedule(start=None, end=None):
 
                 analyze_non_participants(accounts)
 
-    except Exception, e:
+    except Exception as e:
         logger.error('find_nps_in_schedule', exc_info=True)
         return str(e)
 
@@ -173,6 +173,6 @@ def get_next_pickups(job_id):
             multi=True
           )
 
-    except Exception, e:
+    except Exception as e:
         logger.error('get_next_pickups', exc_info=True)
         return str(e)

@@ -1,25 +1,14 @@
 import unittest
-import requests
-import json
 import sys
 import os
-import time
-import twilio
 import pymongo
-import json
-import datetime
-from dateutil.parser import parse
-from werkzeug.datastructures import MultiDict
-import xml.dom.minidom
+
 os.chdir('/home/sean/Bravo/flask')
 sys.path.insert(0, '/home/sean/Bravo/flask')
 #os.chdir('/root/bravo_experimental/Bravo/flask')
 #sys.path.insert(0, '/root/bravo_experimental/Bravo/flask')
 
 from config import *
-import views
-import gsheets
-import receipts
 import views
 from app import logger, flask_app, celery_app
 

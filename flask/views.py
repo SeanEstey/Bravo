@@ -10,6 +10,7 @@ from bson.objectid import ObjectId
 from app import flask_app, db, logger, login_manager, socketio
 import reminders
 import log
+import receipts
 import gsheets
 import scheduler
 import auth
@@ -208,7 +209,7 @@ def process_receipts():
     keys = json.loads(request.form['keys'])
 
     # Start celery workers to run slow eTapestry API calls
-    r = gsheets.process_receipts.apply_async(
+    r = receipts.process.apply_async(
       args=(entries, keys),
       queue=DB_NAME
     )
@@ -223,7 +224,7 @@ def send_email():
     '''Can be collection receipt from gsheets.process_receipts, reminder email,
     or welcome letter from Google Sheets.
     Required fields: 'recipient', 'template', 'subject', and 'data'
-    Required fields for updating Google Sheets: 'data': {'entry':{'sheet_name',
+    Required fields for updating Google Sheets: 'data': {'from':{'sheet_name',
     'worksheet_name', 'row', 'upload_status'}}
     '''
 
@@ -266,7 +267,7 @@ def send_email():
     db['emails'].insert({
         'mid': json.loads(r.text)['id'],
         'status': 'queued',
-        'optional': args['data']['entry']
+        'on_status_update': args['data']['from']
     })
 
     logger.info('Queued email to ' + args['recipient'])

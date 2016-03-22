@@ -21,8 +21,6 @@ class BravoTestCase(unittest.TestCase):
 
       mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
       self.db = mongo_client[DB_NAME]
-      self.job_id = self.db['reminder_jobs'].insert(self.job_document)
-      self.job = self.db['reminder_jobs'].find_one({'_id':self.job_id})
       self.login('seane@wsaf.ca', 'wsf')
 
       self.test_email_id = db['emails'].insert({

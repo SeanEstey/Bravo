@@ -3,10 +3,11 @@ import sys
 import os
 import pymongo
 
-os.chdir('/home/sean/Bravo/flask')
-sys.path.insert(0, '/home/sean/Bravo/flask')
-#os.chdir('/root/bravo_experimental/Bravo/flask')
-#sys.path.insert(0, '/root/bravo_experimental/Bravo/flask')
+#os.chdir('/home/sean/Bravo/flask')
+#sys.path.insert(0, '/home/sean/Bravo/flask')
+
+os.chdir('/root/bravo_dev/Bravo/flask')
+sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
 from config import *
 import gsheets
@@ -24,22 +25,36 @@ class BravoTestCase(unittest.TestCase):
 
   # Remove job record created by setUp
   def tearDown(self):
-      # .placeholder
+      foo = 'bar'
 
   def test_update_entry(self):
       self.assertTrue(gsheets.update_entry({
         'sheet_name': 'Route Importer',
         'worksheet_name': 'Signups',
         'row': 3,
-        'upload_status': 'Success'
+        'upload_status': 'queued',
+        'status': 'delivered'
       }))
-  
+
   def test_create_rfu(self):
       self.assertTrue(gsheets.create_rfu("Test RFU"))
-  
+
   def test_add_signup_row(self):
-      self.assertEquals(r.status_code, 200)
+      self.assertTrue(gsheets.add_signup_row({
+          'first_name': 'test',
+          'last_name': 'mctesty',
+          'account_type': 'Residential',
+          'special_requests': 'get off my yard!',
+          'address': '7444 104 st',
+          'email': 'fake@fake.com',
+          'phone': '780-123-4567',
+          'postal': 'T6A 0P1',
+          'tax_receipt': True,
+          'city': 'Edmonton',
+          'reason_joined': 'referral',
+          'referrer': 'Good Samaritan'
+      }))
 
 if __name__ == '__main__':
-    logger.info('********** begin views.py unittest **********')
+    logger.info('********** begin gsheets unittest **********')
     unittest.main()

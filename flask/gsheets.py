@@ -7,7 +7,6 @@ from datetime import datetime
 from flask import request, current_app, render_template
 from dateutil.parser import parse
 
-import scheduler
 import etap
 from app import flask_app, celery_app, db, logger
 from config import *
@@ -25,26 +24,26 @@ def auth(scope):
 
       return gspread.authorize(credentials)
 
-  except Exception as e:
-      logger.info('gsheets.auth():', exc_info=True)
-      return False
+    except Exception as e:
+        logger.info('gsheets.auth():', exc_info=True)
+        return False
 
 #-------------------------------------------------------------------------------
 def update_entry(db_record):
     '''db_record: dict containing info on source google sheet:
-    'sheet_name', 'worksheet_name', 'row', 'upload_status'
+    'sheet_name', 'worksheet_name', 'row', 'upload_status', 'status'
     '''
-    
+
     try:
         gc = auth(['https://spreadsheets.google.com/feeds'])
         sheet = gc.open(db_record['sheet_name'])
         wks = sheet.worksheet(db_record['worksheet_name'])
     except Exception as e:
-        logger.error('Error opening worksheet %s: %s' , 
+        logger.error('Error opening worksheet %s: %s' ,
                      db_record['worksheet_name'], str(e)
         )
         return False
-        
+
     headers = wks.row_values(1)
 
     # Make sure the row entry still exists in the worksheet
@@ -59,7 +58,7 @@ def update_entry(db_record):
                     db_record['status']
                 )
             except Exception as e:
-                logger.error('Error writing to worksheet %s: %s', 
+                logger.error('Error writing to worksheet %s: %s',
                              db_record['worksheet_name'], str(e)
                 )
                 return False
@@ -80,13 +79,13 @@ def update_entry(db_record):
             logger.info(
               'Creating RFU for bounced/dropped email %s', json.dumps(rfu)
             )
-            
+
             try:
                 wks.append_row(rfu)
             except Exception as e:
                 logger.error('Error writing to RFU worksheet: %s', str(e))
                 return False
-    
+
     return True
 
 #-------------------------------------------------------------------------------
@@ -117,9 +116,9 @@ def create_rfu(request_note, account_number=None, next_pickup=None, block=None, 
     try:
         wks.append_row(rfu)
     except Exception as e:
-        logger.error('Could not write to RFU sheet: %s', str(e)
+        logger.error('Could not write to RFU sheet: %s', str(e))
         return False
-    
+
     return True
 
 #-------------------------------------------------------------------------------
@@ -173,3 +172,5 @@ def add_signup_row(signup):
     except Exception, e:
       logger.info('add_signup_row. data: ' + json.dumps(signup), exc_info=True)
       return str(e)
+
+    return True

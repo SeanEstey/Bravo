@@ -23,7 +23,6 @@ import receipts
 import views
 from app import logger, flask_app, celery_app
 
-
 class BravoTestCase(unittest.TestCase):
 
   def setUp(self):
@@ -31,44 +30,26 @@ class BravoTestCase(unittest.TestCase):
       self.app = flask_app.test_client()
       celery_app.conf.CELERY_ALWAYS_EAGER = True
 
-      self.job_document = {
-        'template': 'etw_reminder',
-        'status': 'pending',
-        'name': 'test',
-        'fire_dtime': datetime.datetime(2014, 12, 31),
-        'num_calls': 1
-      }
-
       mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
       self.db = mongo_client[DB_NAME]
       self.job_id = self.db['reminder_jobs'].insert(self.job_document)
       self.job = self.db['reminder_jobs'].find_one({'_id':self.job_id})
       self.login('seane@wsaf.ca', 'wsf')
 
-      self.msg_document = {
-        'job_id': self.job_id,
-        'name': 'Test Res',
-        'account_id': '57515',
-        'event_date': '',
-        'call_status': 'pending',
-        'attempts': 0,
-        'imported': {
-          'event_date': parse('december 31, 2014'),
-          'to': '780-863-5715',
-          'name': 'NIS',
-          'status': 'Active',
-          'office_notes': ''
+      self.test_email_id = db['emails'].insert({
+        'mid': 'abc123',
+        'status': 'queued',
+        'on_status_update': {
+          'sheet_name': 'Route Importer',
+          'worksheet_name': 'Signups',
+          'row': 2,
+          'upload_status': 'Success'
         }
-      }
-
-      self.msg_id = self.db['reminder_msgs'].insert(self.msg_document)
-      self.msg = self.db['reminder_msgs'].find_one({'_id':self.msg_id})
+      })
 
   # Remove job record created by setUp
   def tearDown(self):
-      res = self.db['reminder_jobs'].remove({'_id':self.job_id})
-      self.assertEquals(res['n'], 1)
-      res = self.db['reminder_msgs'].remove({'_id':self.msg_id})
+      res = self.db['emails'].remove({'_id':self.test_email_id})
       self.assertEquals(res['n'], 1)
 
   def login(self, username, password):
@@ -80,18 +61,29 @@ class BravoTestCase(unittest.TestCase):
   def logout(self):
       return self.app.get('/logout', follow_redirects=True)
 
-  def test_show_jobs_view(self):
-      self.assertEqual(requests.get(PUB_URL+'/jobs').status_code, 200)
+  def test_email_status(self):
+      r = self.app.post('/email/status', data={
+        'event': 'delivered',
+        'recipient': 'estese@gmail.com',
+        'Message-Id': 'abc123'
+      })
+      self.assertEquals(r.status_code, 200)
+  
+  def test_root(self):
+      r = self.app.get('/')
+      self.assertEquals(r.status_code, 200)
+  
+  def test_show_jobs(self):
+      r = self.app.get('/jobs')
+      self.assertEquals(r.status_code, 200)
 
-  def test_show_calls_view(self):
-      uri = PUB_URL + '/jobs/' + str(self.job_id)
-      self.assertEqual(requests.get(uri).status_code, 200)
+  def test_show_calls(self):
+      r = self.app.get('/jobs' + str(self.job_id)
+      self.assertEquals(r.status_code, 200)
 
-  def test_schedule_jobs_view(self):
-      self.assertEqual(requests.get(PUB_URL+'/new').status_code, 200)
-
-  def test_root_view(self):
-      self.assertEquals(requests.get(PUB_URL).status_code, 200)
+  def test_schedule_jobs(self):
+      r = self.app.get('/new')
+      self.assertEquals(r.status_code, 200)
 
 if __name__ == '__main__':
     logger.info('********** begin views.py unittest **********')

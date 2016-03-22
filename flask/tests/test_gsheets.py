@@ -29,8 +29,8 @@ class BravoTestCase(unittest.TestCase):
 
   def test_update_entry(self):
       self.assertTrue(gsheets.update_entry({
-        'sheet_name': 'Route Importer',
-        'worksheet_name': 'Signups',
+        'sheet': 'Route Importer',
+        'worksheet': 'Signups',
         'row': 3,
         'upload_status': 'queued',
         'status': 'delivered'

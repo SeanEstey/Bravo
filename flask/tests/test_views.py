@@ -3,10 +3,11 @@ import sys
 import os
 import pymongo
 
-os.chdir('/home/sean/Bravo/flask')
-sys.path.insert(0, '/home/sean/Bravo/flask')
-#os.chdir('/root/bravo_experimental/Bravo/flask')
-#sys.path.insert(0, '/root/bravo_experimental/Bravo/flask')
+#os.chdir('/home/sean/Bravo/flask')
+#sys.path.insert(0, '/home/sean/Bravo/flask')
+
+os.chdir('/root/bravo_devl/Bravo/flask')
+sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
 from config import *
 import views
@@ -27,15 +28,15 @@ class BravoTestCase(unittest.TestCase):
         'mid': 'abc123',
         'status': 'queued',
         'on_status_update': {
-          'sheet_name': 'Route Importer',
-          'worksheet_name': 'Signups',
+          'sheet': 'Route Importer',
+          'worksheet': 'Signups',
           'row': 2,
           'upload_status': 'Success'
         }
       })
 
-  # Remove job record created by setUp
   def tearDown(self):
+      # Remove job record created by setUp
       res = self.db['emails'].remove({'_id':self.test_email_id})
       self.assertEquals(res['n'], 1)
 
@@ -55,11 +56,11 @@ class BravoTestCase(unittest.TestCase):
         'Message-Id': 'abc123'
       })
       self.assertEquals(r.status_code, 200)
-  
+
   def test_root(self):
       r = self.app.get('/')
       self.assertEquals(r.status_code, 200)
-  
+
   def test_show_jobs(self):
       r = self.app.get('/jobs')
       self.assertEquals(r.status_code, 200)

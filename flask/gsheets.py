@@ -31,16 +31,16 @@ def auth(scope):
 #-------------------------------------------------------------------------------
 def update_entry(db_record):
     '''db_record: dict containing info on source google sheet:
-    'sheet_name', 'worksheet_name', 'row', 'upload_status', 'status'
+    'sheet', 'worksheet', 'row', 'upload_status', 'status'
     '''
 
     try:
         gc = auth(['https://spreadsheets.google.com/feeds'])
-        sheet = gc.open(db_record['sheet_name'])
-        wks = sheet.worksheet(db_record['worksheet_name'])
+        sheet = gc.open(db_record['sheet'])
+        wks = sheet.worksheet(db_record['worksheet'])
     except Exception as e:
         logger.error('Error opening worksheet %s: %s' ,
-                     db_record['worksheet_name'], str(e)
+                     db_record['worksheet'], str(e)
         )
         return False
 
@@ -53,18 +53,19 @@ def update_entry(db_record):
         if str(cell.value) == db_record['upload_status']:
             try:
                 wks.update_cell(
-                    db_record['row'],
-                    headers.index('Email Status')+1,
-                    db_record['status']
+                  db_record['row'],
+                  headers.index('Email Status')+1,
+                  db_record['status']
                 )
             except Exception as e:
-                logger.error('Error writing to worksheet %s: %s',
-                             db_record['worksheet_name'], str(e)
+                logger.error(
+                  'Error writing to worksheet %s: %s',
+                  db_record['worksheet'], str(e)
                 )
                 return False
 
     # Create RFU if event is dropped/bounced and is from a collection receipt
-    if db_record['worksheet_name'] == 'Routes':
+    if db_record['worksheet'] == 'Routes':
         if db_record['status'] == 'dropped' or db_record['status'] == 'bounced':
             wks = sheet.worksheet('RFU')
             headers = wks.row_values(1)

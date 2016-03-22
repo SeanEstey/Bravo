@@ -224,8 +224,8 @@ def send_email():
     '''Can be collection receipt from gsheets.process_receipts, reminder email,
     or welcome letter from Google Sheets.
     Required fields: 'recipient', 'template', 'subject', and 'data'
-    Required fields for updating Google Sheets: 'data': {'from':{'sheet_name',
-    'worksheet_name', 'row', 'upload_status'}}
+    Required fields for updating Google Sheets:
+    'data': {'from':{'sheet','worksheet','row','upload_status'}}
     '''
 
     args = request.get_json(force=True)
@@ -322,16 +322,13 @@ def email_status():
 
     db_doc = db['emails'].find_one({'mid': request.form['Message-Id']})
 
-    if db_doc is None:
-        return 'OK'
-
-    if 'on_status_update' not in db_doc:
+    if db_doc is None or 'on_status_update' not in db_doc:
         return 'OK'
 
     # Do any required follow-up actions
 
     # Google Sheets?
-    if 'sheet_name' in db_doc['on_status_update']:
+    if 'sheet' in db_doc['on_status_update']:
         try:
             gsheets.update_entry(db_doc['on_status_update'])
         except Exception as e:

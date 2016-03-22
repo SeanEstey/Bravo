@@ -22,8 +22,10 @@ def auth(scope):
         json_key['private_key'],
         scope
       )
+
       return gspread.authorize(credentials)
-    except Exception as e:
+
+  except Exception as e:
       logger.info('gsheets.auth():', exc_info=True)
       return False
 

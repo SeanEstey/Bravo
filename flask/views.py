@@ -9,7 +9,6 @@ from bson.objectid import ObjectId
 
 from app import flask_app, db, logger, login_manager, socketio
 import reminders
-import receipts
 import log
 import gsheets
 import scheduler
@@ -177,21 +176,23 @@ def edit_msg(sid):
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/<job_id>/<msg_id>/cancel_pickup', methods=['GET'])
 def no_pickup(msg_id):
-    # Script run via reminder email
+    '''Script run via reminder email'''
+
     reminders.cancel_pickup.apply_async((msg_id,), queue=DB_NAME)
     return 'Thank You'
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/call.xml',methods=['POST'])
 def call_xml():
-    # Twilio TwiML Voice Request
+    '''Twilio TwiML Voice Request'''
     response = reminders.get_call_xml(request.values.to_dict())
     return Response(str(response), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/call_event',methods=['POST','GET'])
 def call_event():
-    # Twilio callback
+    '''Twilio callback'''
+
     reminders.call_event(request.form.to_dict())
     return 'OK'
 
@@ -207,7 +208,7 @@ def process_receipts():
     keys = json.loads(request.form['keys'])
 
     # Start celery workers to run slow eTapestry API calls
-    r = receipts.process.apply_async(
+    r = gsheets.process_receipts.apply_async(
       args=(entries, keys),
       queue=DB_NAME
     )
@@ -222,11 +223,13 @@ def send_email():
     '''Can be collection receipt from gsheets.process_receipts, reminder email,
     or welcome letter from Google Sheets.
     Required fields: 'recipient', 'template', 'subject', and 'data'
-    Required fields for updating Google Sheets: 'data': {'from':{'sheet_name',
+    Required fields for updating Google Sheets: 'data': {'entry':{'sheet_name',
     'worksheet_name', 'row', 'upload_status'}}
     '''
 
     args = request.get_json(force=True)
+
+    logger.info(args)
 
     for key in ['template', 'subject', 'recipient']:
         if key not in args:
@@ -263,7 +266,7 @@ def send_email():
     db['emails'].insert({
         'mid': json.loads(r.text)['id'],
         'status': 'queued',
-        'on_status_update': args['data']['from']
+        'optional': args['data']['entry']
     })
 
     logger.info('Queued email to ' + args['recipient'])
@@ -304,11 +307,12 @@ def email_spam_complaint():
 #-------------------------------------------------------------------------------
 @flask_app.route('/email/status',methods=['POST'])
 def email_status():
-    '''Relay for Mailgun webhooks.
-    Can originate from reminder_msg, Signups sheet, or Route Importer sheet
-    POST data: 'event', 'recipient', 'Message-Id', 'code' (dropped/bounced only)
-    'error' (bounced), 'reason' (dropped)
-    'event': 'delivered', 'bounced', or 'dropped'
+    '''Relay for Mailgun webhooks. Can originate from reminder_msg, Signups
+    sheet, or Route Importer sheet
+    Guaranteed POST data: 'event', 'recipient', 'Message-Id',
+    Optional POST data: 'code' (on dropped/bounced), 'error' (on bounced),
+    'reason' (on dropped)
+    Where event can be: 'delivered', 'bounced', or 'dropped'
     '''
 
     logger.info('Email to %s %s',

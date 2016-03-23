@@ -129,6 +129,10 @@ def process(entries, keys):
 
         try:
             for i in range(0, len(gift_accounts)):
+                for a_gift in gift_histories[i]:
+                    a_date = parse(a_gift['date'])
+                    a_gift['date'] = a_date.strftime('%B %-d, %Y')
+
                 gift_accounts[i]['account']['gift_history'] = gift_histories[i]
                 entry = gift_accounts[i]['entry']
 

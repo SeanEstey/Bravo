@@ -537,10 +537,13 @@ function make_booking($nsc, $account_num, $udf, $type) {
     }
   }
 
-  if(!$has_status && $type == 'delivery') {
+
+  if($has_status && $type == 'delivery') {
     if($status != 'Active' || $status != 'Dropoff' || $status != 'Cancelling')
       $udf['Status'] = 'Green Goods Delivery';
   }
+  else if(!$has_status)
+    $udf['Status'] = 'Green Goods Delivery';
 
   apply_udf($nsc, $account, $udf);
 
@@ -608,8 +611,10 @@ function build_viamente_route($nsc, $api_url, $api_key, $query_category, $query,
         $order['customFields']['driverNotes'] = $udf['value'];
       else if($udf['fieldName'] == 'Office Notes')
         $order['customFields']['officeNotes'] = $udf['value'];
-      else if($udf['fieldName'] == 'GPS')
-        $order['customFields']['GPS'] = $udf['value'];
+      else if($udf['fieldName'] == 'Next Delivery Date')
+        $order['customFields']['nextDeliveryDate'] = $udf['value'];
+      //else if($udf['fieldName'] == 'GPS')
+      //  $order['customFields']['GPS'] = $udf['value'];
     }
 
     if(!empty($order['customFields']['neighborhood']))
@@ -647,7 +652,7 @@ function get_next_pickup($nsc, $email) {
   $response = $nsc->call("getDuplicateAccount", array($dv));
 
   if(empty($response))
-    echo "The email " . $email . " was not found.";
+    return false;
   else {
     // Loop through array and extract fieldName = "Next Pickup Date"
     foreach($response as $search) {
@@ -658,9 +663,7 @@ function get_next_pickup($nsc, $email) {
         extract($searchArray);
         if($fieldName == 'Next Pickup Date') {
           write_log('Next Pickup for ' . $email . ': ' . formatDateAsDateTimeString($value));
-          $DoP = formatDateAsDateTimeString($value);
-          echo $DoP;
-          return true;
+          return formatDateAsDateTimeString($value);
         }
       }
     }

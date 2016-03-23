@@ -388,8 +388,9 @@ def nis():
 #-------------------------------------------------------------------------------
 @flask_app.route('/receive_signup', methods=['POST'])
 def rec_signup():
-    """Forwarded signup submision from emptiestowinn.com
-    Adds signup data to Route Importer->Signups gsheet row"""
+    '''Forwarded signup submision from emptiestowinn.com
+    Adds signup data to Route Importer->Signups gsheet row
+    '''
 
     logger.info('New signup received: %s %s',
       request.form.get('first_name'),
@@ -397,7 +398,7 @@ def rec_signup():
     )
 
     try:
-        gsheets.add_signup_row.apply_async(
+        gsheets.add_signup.apply_async(
           args=(request.form.to_dict()),
           queue=DB_NAME
         )
@@ -405,7 +406,7 @@ def rec_signup():
         time.sleep(1)
         logger.info('/receive_signup: %s', str(e), exc_info=True)
         logger.info('Retrying...')
-        gsheets.add_signup_row.apply_async(
+        gsheets.add_signup.apply_async(
           args=(request.form.to_dict()),
           queue=DB_NAME
         )

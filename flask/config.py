@@ -19,8 +19,8 @@ else:
 
 # App
 DB_NAME = 'wsf'
-LOCAL_PORT = 8000
-LOCAL_URL = 'http://localhost:8000'
+LOCAL_PORT = 5000
+LOCAL_URL = 'http://localhost:5000'
 PUB_URL = 'http://bravoweb.ca'
 TITLE = 'Bravo'
 LOG_FILE = 'logs/log'

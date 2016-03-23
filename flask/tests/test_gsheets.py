@@ -11,6 +11,7 @@ sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
 from config import *
 import gsheets
+import views
 from app import logger, flask_app, celery_app
 
 class BravoTestCase(unittest.TestCase):
@@ -22,6 +23,21 @@ class BravoTestCase(unittest.TestCase):
 
       mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
       self.db = mongo_client[DB_NAME]
+
+      self.signup = {
+          'first_name': 'test',
+          'last_name': 'mctesty',
+          'account_type': 'Residential',
+          'special_requests': 'get off my yard!',
+          'address': '7444 104 st',
+          'email': 'fake@fake.com',
+          'phone': '780-123-4567',
+          'postal': 'T6A 0P1',
+          'tax_receipt': True,
+          'city': 'Edmonton',
+          'reason_joined': 'referral',
+          'referrer': 'Good Samaritan'
+      }
 
   # Remove job record created by setUp
   def tearDown(self):
@@ -39,21 +55,12 @@ class BravoTestCase(unittest.TestCase):
   def test_create_rfu(self):
       self.assertTrue(gsheets.create_rfu("Test RFU"))
 
-  def test_add_signup_row(self):
-      self.assertTrue(gsheets.add_signup_row({
-          'first_name': 'test',
-          'last_name': 'mctesty',
-          'account_type': 'Residential',
-          'special_requests': 'get off my yard!',
-          'address': '7444 104 st',
-          'email': 'fake@fake.com',
-          'phone': '780-123-4567',
-          'postal': 'T6A 0P1',
-          'tax_receipt': True,
-          'city': 'Edmonton',
-          'reason_joined': 'referral',
-          'referrer': 'Good Samaritan'
-      }))
+  def test_add_signup_view(self):
+      r = self.app.post('/receive_signup', data=self.signup)
+      self.assertEquals(r.status_code, 200)
+
+  def test_add_signup(self):
+      self.assertTrue(gsheets.add_signup(self.signup))
 
 if __name__ == '__main__':
     logger.info('********** begin gsheets unittest **********')

@@ -136,7 +136,7 @@ def create_rfu(request_note, account_number=None, next_pickup=None, block=None, 
 
 #-------------------------------------------------------------------------------
 @celery_app.task
-def add_signup_row(signup):
+def add_signup(signup):
     try:
       gc = auth(['https://spreadsheets.google.com/feeds'])
       wks = gc.open(ROUTE_IMPORTER_SHEET).worksheet('Signups')
@@ -183,7 +183,7 @@ def add_signup_row(signup):
       wks.append_row(row)
 
     except Exception, e:
-      logger.info('add_signup_row. data: ' + json.dumps(signup), exc_info=True)
+      logger.info('add_signup. data: ' + json.dumps(signup), exc_info=True)
       return str(e)
 
     return True

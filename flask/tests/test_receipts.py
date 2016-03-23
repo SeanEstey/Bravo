@@ -60,6 +60,18 @@ class BravoTestCase(unittest.TestCase):
         }
       }
 
+      self.gift_cancelled_act = {
+        "account_number": 71675, # Cancelled Status
+        "date": "04/06/2016",
+        "amount": 0.00,
+        "next_pickup": "21/06/2016",
+        "from": {
+            "sheet": "Routes",
+            "row": 4,
+            "upload_status": "Success"
+        }
+      }
+
       self.etap_test_res_acct = {
           'id': 57515,
           'email': 'estese@gmail.com',
@@ -129,7 +141,7 @@ class BravoTestCase(unittest.TestCase):
 
       try:
           r = receipts.process.apply_async(
-            args=([self.zero_gift, self.gift], ETAP_WRAPPER_KEYS),
+            args=([self.zero_gift, self.gift, self.gift_cancelled_act], ETAP_WRAPPER_KEYS),
             queue=DB_NAME
           )
       except Exception as e:

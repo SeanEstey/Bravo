@@ -1,4 +1,4 @@
-  {% extends "base.html" %}
+  {% extends "view_base.html" %}
   {% block content %}  
   <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
   <script>
@@ -20,7 +20,7 @@
   
   <div class='data-container'>
     <div class='navbar-div'>
-      <a class='hover' href="{{ url_for('index') }}">Jobs</a> / 
+      <a class='hover' href="{{ url_for('view_jobs') }}">Jobs</a> / 
       <a style='font-weight:bold; text-decoration:none;' title='Schedule a new job' href="{{ url_for('new_job') }}">+</a>
     </div>
     <table class='table table-hover table-colored'>
@@ -37,12 +37,12 @@
       </thead>
       <tbody>
       {% for job in jobs %}
-      {% set show_calls_url = url_for('show_calls', job_id=job._id)
+      {% set show_calls_url = url_for('view_job', job_id=job._id)
       %}
       <tr id='{{job._id}}'>
         <td>
           <a class='hover' href="{{ show_calls_url }}">
-            {{ job.fire_dtime.strftime("%A %b %d @ %I:%M %p") }}
+            <!--{ job.fire_dtime.strftime("%A %b %d @ %I:%M %p") -->
           </a>
         </td>
         <td name='job-name'>
@@ -50,7 +50,7 @@
         </td>
         <td>
           <a class='hover' href="{{ show_calls_url }}">
-            {{ job.template.replace('_', ' ').title() }}
+            <!-- job.template.replace('_', ' ').title() -->
           </a>
         </td>
         <td>

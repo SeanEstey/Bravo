@@ -48,7 +48,7 @@ class BravoTestCase(unittest.TestCase):
   def logout(self):
       return self.app.get('/logout', follow_redirects=True)
 
-  def test_email_status_collection_delivered(self):
+  def test_email_status_gsheets_delivered(self):
       r = self.app.post('/email/status', data={
         'event': 'delivered',
         'recipient': 'estese@gmail.com',
@@ -57,7 +57,7 @@ class BravoTestCase(unittest.TestCase):
       self.assertEquals(r.status_code, 200)
       self.assertEquals(r.data, 'OK')
 
-  def test_email_status_collection_bounced(self):
+  def test_email_status_gsheets_bounced(self):
       r = self.app.post('/email/status', data={
         'event': 'bounced',
         'recipient': 'estesexyz123@gmail.com',
@@ -67,6 +67,15 @@ class BravoTestCase(unittest.TestCase):
       self.assertEquals(r.data, 'OK')
 
   '''
+  def test_email_status_reminder_delivered(self):
+      r = self.app.post('/email/status', data={
+        'event': 'bounced',
+        'recipient': 'estesexyz123@gmail.com',
+        'Message-Id': 'abc123'
+      })
+      self.assertEquals(r.status_code, 200)
+      self.assertEquals(r.data, 'OK')
+
   def test_root(self):
       r = self.app.get('/')
       self.assertEquals(r.status_code, 200)

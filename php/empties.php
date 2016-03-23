@@ -116,12 +116,12 @@ function get_block_size($nsc, $query_category, $query) {
   http_response_code(200);  
 }
 
-// Returns all Gifts with amount > $0 between given dates
+
 //-----------------------------------------------------------------------
+// Returns array of journal gift histories where amount > $0 and format
+// {'date': '2016-01-05T05:00:00:000Z', 'amount': 16.00}
 function get_gift_history($nsc, $ref, $start_date, $end_date) {
   ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
-
-  //$account = $nsc->call('getAccountById', [$account_number]);
 
   // Return filtered journal entries for provided year
   $request = [
@@ -147,7 +147,7 @@ function get_gift_history($nsc, $ref, $start_date, $end_date) {
 
     if($entry['amount'] > 0) {
       $gifts[] = [
-        'amount' => $entry['amount'],
+        'amount' => floatval($entry['amount']),
         'date' => $entry['date']
         ];
     }
@@ -188,6 +188,10 @@ function process_route_entry($nsc, $entry) {
   
   if(checkForError($nsc))
     return 'Error: ' . $nsc->faultcode . ': ' . $nsc->faultstring;
+
+  // Green Goods deliveries will have no gift estimate
+  if(!$entry['gift']['amount'])
+    return true;
 
   return $nsc->call("addGift", [[
     'accountRef' => $etap_account['ref'],

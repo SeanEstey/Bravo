@@ -8,7 +8,7 @@ from celery.schedules import crontab
 # Flask
 # When True, uses gevent web server
 # When False, uses Wekzeug dev server
-DEBUG = True
+DEBUG = False
 
 if DEBUG == True:
     ROUTE_IMPORTER_SHEET = 'Test Route Importer'
@@ -19,8 +19,8 @@ else:
 
 # App
 DB_NAME = 'wsf'
-LOCAL_PORT = 5000
-LOCAL_URL = 'http://localhost:5000'
+LOCAL_PORT = 8000
+LOCAL_URL = 'http://localhost:8000'
 PUB_URL = 'http://bravoweb.ca'
 TITLE = 'Bravo'
 LOG_FILE = 'logs/log'

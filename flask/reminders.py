@@ -27,7 +27,10 @@ def get_jobs(args):
         jobs = db['jobs'].find().sort('fire_dtime',-1)
         jobs.skip(int(args['n'])).limit(JOBS_PER_PAGE);
     else:
-        jobs = db['jobs'].find().sort('fire_dtime',-1).limit(JOBS_PER_PAGE)
+        jobs = db['jobs'].find()
+
+        if jobs:
+            jobs = jobs.sort('fire_dtime',-1).limit(JOBS_PER_PAGE)
 
     return jobs
 

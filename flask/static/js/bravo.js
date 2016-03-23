@@ -6,7 +6,7 @@ this.colors = {
   'DEFAULT_STATUS': 'black',
   'IN_PROGRESS_STATUS': '#337AB7'
 };
-
+	
 this.unicode = {
   'UP_ARROW': '&#8593;',
   'DOWN_ARROW': '&#8595;',

@@ -76,59 +76,76 @@ def process(entries, keys):
         if 'email' not in accounts[i]:
             continue
 
-        # Cancelled Receipt
-        if etap.get_udf('Status', accounts[i]) == 'Cancelled':
-            send(accounts[i], entries[i], "email_cancelled.html",
-                    CANCELLED_EMAIL_SUBJECT)
+        try:
+            entries[i]['date'] = parse(entries[i]['date']).strftime('%B %-d, %Y')
 
-            num_cancels += 1
+            if 'next_pickup' in entries[i]:
+                entries[i]['next_pickup'] = parse(entries[i]['next_pickup']).strftime('%B %-d, %Y')
 
-        # Dropoff Followup Receipt
-        drop_date = etap.get_udf('Dropoff Date', accounts[i])
+            # Cancelled Receipt
+            if etap.get_udf('Status', accounts[i]) == 'Cancelled':
+                send(accounts[i], entries[i], "email_cancelled.html",
+                        CANCELLED_EMAIL_SUBJECT)
 
-        if drop_date:
-            d = drop_date.split('/')
-            drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
-            collection_date = parse(entries[i]['date']).date()
+                num_cancels += 1
+                continue
 
-            if drop_date == collection_date:
-                send(accounts[i], entries[i], "email_dropoff_followup.html",
-                        DROPOFF_FOLLOWUP_EMAIL_SUBJECT)
+            # Dropoff Followup Receipt
+            drop_date = etap.get_udf('Dropoff Date', accounts[i])
 
-                num_drop_followups += 1
+            if drop_date:
+                d = drop_date.split('/')
+                drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
+                collection_date = parse(entries[i]['date']).date()
 
-        # Zero Collection Receipt
-        if entries[i]['amount'] == 0:
-            if entries[i]['next_pickup']:
-                npu = parse(entries[i]['next_pickup']).date()
-                entries[i]['next_pickup'] = npu.strftime('%B %-d, %Y')
+                if drop_date == collection_date:
+                    send(accounts[i], entries[i], "email_dropoff_followup.html",
+                            DROPOFF_FOLLOWUP_EMAIL_SUBJECT)
 
-            send(
-              accounts[i], entries[i], "email_zero_collection.html", ZERO_COLLECTION_EMAIL_SUBJECT)
+                    num_drop_followups += 1
+                    continue
 
-            num_zeros +=1
+            # Zero Collection Receipt
+            if entries[i]['amount'] == 0:
+                if entries[i]['next_pickup']:
+                    npu = parse(entries[i]['next_pickup']).date()
+                    entries[i]['next_pickup'] = npu.strftime('%B %-d, %Y')
 
-        # Gift Receipt
-        elif entries[i]['amount'] > 0:
-            gift_accounts.append({'entry': entries[i], 'account': accounts[i]})
+                send(accounts[i],
+                     entries[i],
+                     "email_zero_collection.html",
+                     ZERO_COLLECTION_EMAIL_SUBJECT
+                )
 
-    # All receipts sent except Gifts. Query Journal Histories
+                num_zeros +=1
+
+            # Gift Receipt
+            elif entries[i]['amount'] > 0:
+                gift_accounts.append({'entry': entries[i], 'account': accounts[i]})
+
+        except Exception as e:
+            logger.error('Error processing receipt on row #%s',str(entries[i]['row']))
+
+        # All receipts sent except Gifts. Query Journal Histories
 
     if len(gift_accounts) > 0:
-        year = parse(gift_accounts[0]['entry']['date']).year
-
-        gift_histories = etap.call('get_gift_histories', keys, {
-          "account_refs": [i['account']['ref'] for i in gift_accounts],
-          "start_date": "01/01/" + str(year),
-          "end_date": "31/12/" + str(year)
-        })
-
-        logger.info('%s gift histories retrieved', str(len(gift_histories)))
-
-        logger.info(gift_histories)
-
         try:
-            for i in range(0, len(gift_accounts)):
+            year = parse(gift_accounts[0]['entry']['date']).year
+
+            gift_histories = etap.call('get_gift_histories', keys, {
+              "account_refs": [i['account']['ref'] for i in gift_accounts],
+              "start_date": "01/01/" + str(year),
+              "end_date": "31/12/" + str(year)
+            })
+
+            logger.info('%s gift histories retrieved', str(len(gift_histories)))
+
+            #logger.info(gift_histories)
+        except Exception as e:
+            logger.error('Error retrieving gift histories: %s', str(e))
+
+        for i in range(0, len(gift_accounts)):
+            try:
                 for a_gift in gift_histories[i]:
                     a_date = parse(a_gift['date'])
                     a_gift['date'] = a_date.strftime('%B %-d, %Y')
@@ -142,8 +159,10 @@ def process(entries, keys):
 
                 send(gift_accounts[i]['account'], gift_accounts[i]['entry'],
                 "email_collection_receipt.html", GIFT_RECEIPT_EMAIL_SUBJECT)
-        except Exception as e:
-            logger.error(str(e))
+            except Exception as e:
+                logger.error('Error processing gift receipt on row #%s: %s',
+                            str(entry['row']), str(e)
+                )
 
     logger.info('Receipts: \n' +
       str(num_zeros) + ' zero collections sent\n' +

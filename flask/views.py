@@ -44,7 +44,7 @@ def logout():
 @login_required
 def view_jobs():
     return render_template(
-      'view_jobs.html',
+      'view_job_list.html',
       title=None,
       jobs=reminders.get_jobs(request.args.values())
     )
@@ -198,12 +198,14 @@ def call_event():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/collections/process_receipts', methods=['POST'])
+@flask_app.route('/receipts/process', methods=['POST'])
 def process_receipts():
     '''Data sent from Routes worksheet in Gift Importer (Google Sheet)
     @arg 'data': JSON array of dict objects with UDF and gift data
     @arg 'keys': JSON dict of etapestry info for PHP script
     '''
+
+    logger.info('Process receipts request received')
 
     entries = json.loads(request.form['data'])
     keys = json.loads(request.form['keys'])
@@ -214,7 +216,7 @@ def process_receipts():
       queue=DB_NAME
     )
 
-    logger.info('Celery process_receipts task: %s', r.__dict__)
+    #logger.info('Celery process_receipts task: %s', r.__dict__)
 
     return 'OK'
 
@@ -230,7 +232,7 @@ def send_email():
 
     args = request.get_json(force=True)
 
-    logger.debug(args)
+    #logger.debug(args)
 
     for key in ['template', 'subject', 'recipient']:
         if key not in args:
@@ -399,7 +401,7 @@ def rec_signup():
 
     try:
         gsheets.add_signup.apply_async(
-          args=(request.form.to_dict()),
+          args=(request.form.to_dict(),), # Must include comma
           queue=DB_NAME
         )
     except Exception as e:
@@ -407,7 +409,7 @@ def rec_signup():
         logger.info('/receive_signup: %s', str(e), exc_info=True)
         logger.info('Retrying...')
         gsheets.add_signup.apply_async(
-          args=(request.form.to_dict()),
+          args=(request.form.to_dict(),),
           queue=DB_NAME
         )
         return str(e)

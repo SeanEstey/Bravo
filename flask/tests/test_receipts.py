@@ -11,10 +11,12 @@ import datetime
 from dateutil.parser import parse
 from werkzeug.datastructures import MultiDict
 import xml.dom.minidom
-os.chdir('/home/sean/Bravo/flask')
-sys.path.insert(0, '/home/sean/Bravo/flask')
-#os.chdir('/root/bravo_experimental/Bravo/flask')
-#sys.path.insert(0, '/root/bravo_experimental/Bravo/flask')
+
+#os.chdir('/home/sean/Bravo/flask')
+#sys.path.insert(0, '/home/sean/Bravo/flask')
+
+os.chdir('/root/bravo_dev/Bravo/flask')
+sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
 from config import *
 import views
@@ -39,8 +41,11 @@ class BravoTestCase(unittest.TestCase):
         "date": "04/06/2016",
         "amount": 0.00,
         "next_pickup": "21/06/2016",
-        "row": 2,
-        "upload_status": ""
+        "from": {
+            "sheet": "Routes",
+            "row": 2,
+            "upload_status": "Success"
+        }
       }
 
       self.gift = {
@@ -48,8 +53,11 @@ class BravoTestCase(unittest.TestCase):
         "date": "04/06/2016",
         "amount": 10.00,
         "next_pickup": "21/06/2016",
-        "row": 2,
-        "upload_status": ""
+        "from": {
+            "sheet": "Routes",
+            "row": 3,
+            "upload_status": "Success"
+        }
       }
 
       self.etap_test_res_acct = {
@@ -64,11 +72,9 @@ class BravoTestCase(unittest.TestCase):
           ]
       }
 
-
-  # Remove job record created by setUp
   def tearDown(self):
-    #placeholder
-
+      # Remove job record created by setUp
+      foo = 'bar'
 
   def login(self, username, password):
       return self.app.post('/login', data=dict(
@@ -80,7 +86,7 @@ class BravoTestCase(unittest.TestCase):
   def logout(self):
       return self.app.get('/logout', follow_redirects=True)
 
-
+  '''
   def test_send_zero_receipt(self):
       r = self.app.post(
         '/email/send',
@@ -115,16 +121,21 @@ class BravoTestCase(unittest.TestCase):
       )
 
       self.assertEquals(r.status_code, 200)
+  '''
 
-  """
   def test_process_receipts(self):
-      r = receipts.process.apply_async(
-        args=([self.zero_gift], ETAP_WRAPPER_KEYS),
-        queue=DB_NAME
-      )
+      # Hard to unit test because this function calls
+      # /email/send from the live server.
+
+      try:
+          r = receipts.process.apply_async(
+            args=([self.zero_gift, self.gift], ETAP_WRAPPER_KEYS),
+            queue=DB_NAME
+          )
+      except Exception as e:
+          logger.error(str(e))
 
       self.assertEquals(r._state, 'SUCCESS')
-  """
 
   """
   def test_send_receipt(self):

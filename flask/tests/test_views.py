@@ -28,8 +28,7 @@ class BravoTestCase(unittest.TestCase):
         'mid': 'abc123',
         'status': 'queued',
         'on_status_update': {
-          'sheet': 'Route Importer',
-          'worksheet': 'Signups',
+          'worksheet': 'Routes',
           'row': 2,
           'upload_status': 'Success'
         }
@@ -49,7 +48,7 @@ class BravoTestCase(unittest.TestCase):
   def logout(self):
       return self.app.get('/logout', follow_redirects=True)
 
-  def test_email_status_delivered(self):
+  def test_email_status_collection_delivered(self):
       r = self.app.post('/email/status', data={
         'event': 'delivered',
         'recipient': 'estese@gmail.com',
@@ -58,7 +57,7 @@ class BravoTestCase(unittest.TestCase):
       self.assertEquals(r.status_code, 200)
       self.assertEquals(r.data, 'OK')
 
-  def test_email_status_bounced(self):
+  def test_email_status_collection_bounced(self):
       r = self.app.post('/email/status', data={
         'event': 'bounced',
         'recipient': 'estesexyz123@gmail.com',

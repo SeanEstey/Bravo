@@ -5,10 +5,20 @@ from datetime import timedelta
 from private_config import *
 from celery.schedules import crontab
 
-# App
+# Flask
+# When True, uses gevent web server
+# When False, uses Wekzeug dev server
 DEBUG = True
+
+if DEBUG == True:
+    ROUTE_IMPORTER_SHEET = 'Test Route Importer'
+    LOG_LEVEL = logging.DEBUG
+else:
+    ROUTE_IMPORTER_SHEET = 'Route Importer'
+    LOG_LEVEL = logging.INFO
+
+# App
 DB_NAME = 'wsf'
-LOG_LEVEL = logging.INFO
 LOCAL_PORT = 8000
 LOCAL_URL = 'http://localhost:8000'
 PUB_URL = 'http://bravoweb.ca'

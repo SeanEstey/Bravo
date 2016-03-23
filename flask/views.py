@@ -225,12 +225,12 @@ def send_email():
     or welcome letter from Google Sheets.
     Required fields: 'recipient', 'template', 'subject', and 'data'
     Required fields for updating Google Sheets:
-    'data': {'from':{'sheet','worksheet','row','upload_status'}}
+    'data': {'from':{ 'worksheet','row','upload_status'}}
     '''
 
     args = request.get_json(force=True)
 
-    logger.info(args)
+    logger.debug(args)
 
     for key in ['template', 'subject', 'recipient']:
         if key not in args:
@@ -327,15 +327,15 @@ def email_status():
 
     if db_doc is None or 'on_status_update' not in db_doc:
         return 'No record to update'
-    
+
     # No matter where email originated (Reminders or Sheets),
     # create RFU if event is bounced or dropped
-    
+
     event = request.form['event']
     if event == 'bounced' or event == 'dropped':
         gsheets.create_rfu(request.form['recipient'] + ' bounced/dropped')
-        
-    if 'sheet' in db_doc['on_status_update']:
+
+    if 'worksheet' in db_doc['on_status_update']:
         # Update Google Sheets
         try:
             gsheets.update_entry(

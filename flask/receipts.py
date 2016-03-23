@@ -20,8 +20,10 @@ CANCELLED_EMAIL_SUBJECT = 'You have been removed from the collection schedule'
 
 #-------------------------------------------------------------------------------
 def send(account, entry, template, subject):
+    logger.debug('%s %s', str(account['id']), template)
+
     try:
-        r = requests.post(PUB_URL + '/email/send', json={
+        r = requests.post(LOCAL_URL + '/email/send', json={
             "recipient": account['email'],
             "template": template,
             "subject": subject,
@@ -35,7 +37,7 @@ def send(account, entry, template, subject):
         logger.error('Failed to send receipt to account ID %s: %s',
         account['id'], str(e))
 
-    logger.info(r.text)
+    #logger.info(r.text)
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -101,8 +103,8 @@ def process(entries, keys):
                 npu = parse(entries[i]['next_pickup']).date()
                 entries[i]['next_pickup'] = npu.strftime('%B %-d, %Y')
 
-            send(accounts[i], entries[i], "email_zero_collection.html",
-                    ZERO_COLLECTION_EMAIL_SUBJECT)
+            send(
+              accounts[i], entries[i], "email_zero_collection.html", ZERO_COLLECTION_EMAIL_SUBJECT)
 
             num_zeros +=1
 
@@ -121,16 +123,23 @@ def process(entries, keys):
           "end_date": "31/12/" + str(year)
         })
 
-        for i in range(0, len(gift_accounts)):
-            gift_accounts[i]['account']['gift_history'] = gift_histories[i]
-            entry = gift_accounts[i]['entry']
+        logger.info('%s gift histories retrieved', str(len(gift_histories)))
 
-            if entry['next_pickup']:
-                npu = parse(entry).date()
-                entry['next_pickup'] = npu.strftime('%B %-d, %Y')
+        logger.info(gift_histories)
 
-            send(gift_accounts[i]['account'], gift_accounts[i]['entry'],
-            "email_collection_receipt.html", GIFT_RECEIPT_EMAIL_SUBJECT)
+        try:
+            for i in range(0, len(gift_accounts)):
+                gift_accounts[i]['account']['gift_history'] = gift_histories[i]
+                entry = gift_accounts[i]['entry']
+
+                if entry['next_pickup']:
+                    npu = parse(entry['next_pickup']).date()
+                    entry['next_pickup'] = npu.strftime('%B %-d, %Y')
+
+                send(gift_accounts[i]['account'], gift_accounts[i]['entry'],
+                "email_collection_receipt.html", GIFT_RECEIPT_EMAIL_SUBJECT)
+        except Exception as e:
+            logger.error(str(e))
 
     logger.info('Receipts: \n' +
       str(num_zeros) + ' zero collections sent\n' +

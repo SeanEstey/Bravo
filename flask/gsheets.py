@@ -36,7 +36,7 @@ def update_entry(status, destination):
 
     try:
         gc = auth(['https://spreadsheets.google.com/feeds'])
-        sheet = gc.open(destination['sheet'])
+        sheet = gc.open(ROUTE_IMPORTER_SHEET)
         wks = sheet.worksheet(destination['worksheet'])
     except Exception as e:
         logger.error(
@@ -100,7 +100,7 @@ def update_entry(status, destination):
 def create_rfu(request_note, account_number=None, next_pickup=None, block=None, date=None):
     try:
         gc = auth(['https://spreadsheets.google.com/feeds'])
-        sheet = gc.open('Route Importer')
+        sheet = gc.open(ROUTE_IMPORTER_SHEET)
         wks = sheet.worksheet('RFU')
     except Exception as e:
         logger.error('Could not open RFU worksheet: %s', str(e))
@@ -139,7 +139,7 @@ def create_rfu(request_note, account_number=None, next_pickup=None, block=None, 
 def add_signup_row(signup):
     try:
       gc = auth(['https://spreadsheets.google.com/feeds'])
-      wks = gc.open('Route Importer').worksheet('Signups')
+      wks = gc.open(ROUTE_IMPORTER_SHEET).worksheet('Signups')
 
       form_data = {
         'Signup Date': datetime.now().strftime('%-m/%-d/%Y'),

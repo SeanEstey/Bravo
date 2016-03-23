@@ -6,7 +6,7 @@ import pymongo
 #os.chdir('/home/sean/Bravo/flask')
 #sys.path.insert(0, '/home/sean/Bravo/flask')
 
-os.chdir('/root/bravo_devl/Bravo/flask')
+os.chdir('/root/bravo_dev/Bravo/flask')
 sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
 from config import *
@@ -24,7 +24,7 @@ class BravoTestCase(unittest.TestCase):
       self.db = mongo_client[DB_NAME]
       self.login('seane@wsaf.ca', 'wsf')
 
-      self.test_email_id = db['emails'].insert({
+      self.test_email_id = self.db['emails'].insert({
         'mid': 'abc123',
         'status': 'queued',
         'on_status_update': {
@@ -49,14 +49,25 @@ class BravoTestCase(unittest.TestCase):
   def logout(self):
       return self.app.get('/logout', follow_redirects=True)
 
-  def test_email_status(self):
+  def test_email_status_delivered(self):
       r = self.app.post('/email/status', data={
         'event': 'delivered',
         'recipient': 'estese@gmail.com',
         'Message-Id': 'abc123'
       })
       self.assertEquals(r.status_code, 200)
+      self.assertEquals(r.data, 'OK')
 
+  def test_email_status_bounced(self):
+      r = self.app.post('/email/status', data={
+        'event': 'bounced',
+        'recipient': 'estesexyz123@gmail.com',
+        'Message-Id': 'abc123'
+      })
+      self.assertEquals(r.status_code, 200)
+      self.assertEquals(r.data, 'OK')
+
+  '''
   def test_root(self):
       r = self.app.get('/')
       self.assertEquals(r.status_code, 200)
@@ -66,12 +77,13 @@ class BravoTestCase(unittest.TestCase):
       self.assertEquals(r.status_code, 200)
 
   def test_show_calls(self):
-      r = self.app.get('/jobs' + str(self.job_id)
+      r = self.app.get('/jobs' + str(self.job_id))
       self.assertEquals(r.status_code, 200)
 
   def test_schedule_jobs(self):
       r = self.app.get('/new')
       self.assertEquals(r.status_code, 200)
+  '''
 
 if __name__ == '__main__':
     logger.info('********** begin views.py unittest **********')

@@ -1,14 +1,14 @@
 <h2>Mongo Collection Schemas</h2>
 
 ```json
-"reminder_msgs": {
+"reminders": {
   "job_id": "<BSON.ObjectId>",
   "name": "",
   "account_id": "etapestry_account_id",
   "event_date": "<BSON.Date>",
   "call": {
     "sid": "32 char twilio call_id string ex: CA7d1d19877dc768fd0c701cfcdc706fdd",
-    "status": ["pending","active","failed","pending","queued","ringing","in-progress","busy","no-answer","completed"], 
+    "status": ["pending","active","failed","pending","queued","ringing","in-progress","busy",    "no-answer","completed"], 
     "answered_by": ["human", "machine"], 
     "ended_at": "<BSON.Date>",
     "to": "phone_number",
@@ -32,7 +32,7 @@
   }
 }
 
-"reminder_jobs": {
+"jobs": {
   "status": ["pending", "in-progress", "completed"], 
   "fire_dtime": "<BSON.Date>", 
   "num_calls": "[Number]", 
@@ -51,8 +51,11 @@
   "error": "(if any)",
   "reason": "error desc (if any)",
   "on_status_update": {
-    "reminder_msg_id": "<BSON.OjectId>",
-    "sheet_name": "gsheets_name_for_updating_sheets"
+    "reminder_id": "<BSON.OjectId> (only for reminders)",
+    "sheet": "sheet name (Google Sheets)",
+    "worksheet": "worksheet name (Google Sheets)"
+    "row": "row (Google Sheets),
+    "upload_status": "cell value (Google Sheets)"
   }
 }
 

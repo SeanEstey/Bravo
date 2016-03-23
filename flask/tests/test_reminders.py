@@ -36,8 +36,8 @@ class BravoTestCase(unittest.TestCase):
 
       mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
       self.db = mongo_client[DB_NAME]
-      self.job_id = self.db['reminder_jobs'].insert(self.job_document)
-      self.job = self.db['reminder_jobs'].find_one({'_id':self.job_id})
+      self.job_id = self.db['jobs'].insert(self.job_document)
+      self.job = self.db['jobs'].find_one({'_id':self.job_id})
       self.login('seane@wsaf.ca', 'wsf')
 
       self.msg_document = {
@@ -56,14 +56,14 @@ class BravoTestCase(unittest.TestCase):
         }
       }
 
-      self.msg_id = self.db['reminder_msgs'].insert(self.msg_document)
-      self.msg = self.db['reminder_msgs'].find_one({'_id':self.msg_id})
+      self.msg_id = self.db['reminders'].insert(self.msg_document)
+      self.msg = self.db['reminders'].find_one({'_id':self.msg_id})
 
   # Remove job record created by setUp
   def tearDown(self):
-      res = self.db['reminder_jobs'].remove({'_id':self.job_id})
+      res = self.db['jobs'].remove({'_id':self.job_id})
       self.assertEquals(res['n'], 1)
-      res = self.db['reminder_msgs'].remove({'_id':self.msg_id})
+      res = self.db['reminders'].remove({'_id':self.msg_id})
       self.assertEquals(res['n'], 1)
 
   def login(self, username, password):

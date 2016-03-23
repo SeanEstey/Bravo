@@ -28,13 +28,14 @@ class BravoTestCase(unittest.TestCase):
       foo = 'bar'
 
   def test_update_entry(self):
-      self.assertTrue(gsheets.update_entry({
-        'sheet': 'Route Importer',
-        'worksheet': 'Signups',
-        'row': 3,
-        'upload_status': 'queued',
-        'status': 'delivered'
-      }))
+      self.assertTrue(gsheets.update_entry(
+        'delivered', {
+          'sheet': 'Route Importer',
+          'worksheet': 'Signups',
+          'row': 3,
+          'upload_status': 'Success',
+        }
+      ))
 
   def test_create_rfu(self):
       self.assertTrue(gsheets.create_rfu("Test RFU"))

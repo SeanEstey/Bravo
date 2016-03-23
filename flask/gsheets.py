@@ -29,44 +29,52 @@ def auth(scope):
         return False
 
 #-------------------------------------------------------------------------------
-def update_entry(db_record):
-    '''db_record: dict containing info on source google sheet:
-    'sheet', 'worksheet', 'row', 'upload_status', 'status'
+def update_entry(status, destination):
+    '''Updates the 'Email Status' column in a worksheet
+    destination: dict containing 'sheet', 'worksheet', 'row', 'upload_status'
     '''
 
     try:
         gc = auth(['https://spreadsheets.google.com/feeds'])
-        sheet = gc.open(db_record['sheet'])
-        wks = sheet.worksheet(db_record['worksheet'])
+        sheet = gc.open(destination['sheet'])
+        wks = sheet.worksheet(destination['worksheet'])
     except Exception as e:
-        logger.error('Error opening worksheet %s: %s' ,
-                     db_record['worksheet'], str(e)
+        logger.error(
+          'Error opening worksheet %s: %s' ,
+          destination['worksheet'], str(e)
         )
         return False
 
     headers = wks.row_values(1)
 
     # Make sure the row entry still exists in the worksheet
-    cell = wks.cell(db_record['row'], headers.index('Upload Status')+1)
+    # and hasn't been replaced by other data or deleted
+    cell = wks.cell(destination['row'], headers.index('Upload Status')+1)
 
-    if cell:
-        if str(cell.value) == db_record['upload_status']:
-            try:
-                wks.update_cell(
-                  db_record['row'],
-                  headers.index('Email Status')+1,
-                  db_record['status']
-                )
-            except Exception as e:
-                logger.error(
-                  'Error writing to worksheet %s: %s',
-                  db_record['worksheet'], str(e)
-                )
-                return False
+    if not cell:
+        logger.error('update_entry cell not found')
+        return False
+
+    if str(cell.value) == destination['upload_status']:
+        try:
+            wks.update_cell(
+              destination['row'],
+              headers.index('Email Status')+1,
+              status
+            )
+        except Exception as e:
+            logger.error(
+              'Error writing to worksheet %s: %s',
+              destination['worksheet'], str(e)
+            )
+            return False
+
+    return True
 
     # Create RFU if event is dropped/bounced and is from a collection receipt
-    if db_record['worksheet'] == 'Routes':
-        if db_record['status'] == 'dropped' or db_record['status'] == 'bounced':
+    '''
+    if destination['worksheet'] == 'Routes':
+        if destination['status'] == 'dropped' or destination['status'] == 'bounced':
             wks = sheet.worksheet('RFU')
             headers = wks.row_values(1)
 
@@ -86,14 +94,18 @@ def update_entry(db_record):
             except Exception as e:
                 logger.error('Error writing to RFU worksheet: %s', str(e))
                 return False
-
-    return True
+    '''
 
 #-------------------------------------------------------------------------------
 def create_rfu(request_note, account_number=None, next_pickup=None, block=None, date=None):
-    gc = auth(['https://spreadsheets.google.com/feeds'])
-    sheet = gc.open('Route Importer')
-    wks = sheet.worksheet('RFU')
+    try:
+        gc = auth(['https://spreadsheets.google.com/feeds'])
+        sheet = gc.open('Route Importer')
+        wks = sheet.worksheet('RFU')
+    except Exception as e:
+        logger.error('Could not open RFU worksheet: %s', str(e))
+        return False
+
     headers = wks.row_values(1)
 
     rfu = [''] * len(headers)

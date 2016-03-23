@@ -119,8 +119,8 @@ def record_msg():
 @login_required
 def view_job(job_id):
     sort_by = 'name'
-    calls = db['reminder_msgs'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
-    job = db['reminder_jobs'].find_one({'_id':ObjectId(job_id)})
+    calls = db['reminders'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
+    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
 
     return render_template(
         'view_job.html',
@@ -320,23 +320,35 @@ def email_status():
       request.form['recipient'], request.form['event']
     )
 
-    db_doc = db['emails'].find_one({'mid': request.form['Message-Id']})
+    db_doc = db['emails'].find_one_and_update(
+      {'mid': request.form['Message-Id']},
+      {'$set': { 'status': request.form['event']}}
+    )
 
     if db_doc is None or 'on_status_update' not in db_doc:
-        return 'OK'
-
-    # Do any required follow-up actions
-
-    # Google Sheets?
+        return 'No record to update'
+    
+    # No matter where email originated (Reminders or Sheets),
+    # create RFU if event is bounced or dropped
+    
+    event = request.form['event']
+    if event == 'bounced' or event == 'dropped':
+        gsheets.create_rfu(request.form['recipient'] + ' bounced/dropped')
+        
     if 'sheet' in db_doc['on_status_update']:
+        # Update Google Sheets
         try:
-            gsheets.update_entry(db_doc['on_status_update'])
+            gsheets.update_entry(
+              request.form['event'],
+              db_doc['on_status_update']
+            )
         except Exception as e:
             logger.error("Error writing to Google Sheets: " + str(e))
-            return 'failed'
-    # Reminder email?
-    elif 'reminder_msg_id' in db_doc['on_status_update']:
-        db['reminder_msgs'].update_one(
+            return 'Failed'
+
+    elif 'reminder_id' in db_doc['on_status_update']:
+        # Update Reminder record
+        db['reminders'].update_one(
           {'email.mid': request.form['Message-Id']},
           {'$set':{
             "email.status": request.form['event'],

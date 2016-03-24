@@ -190,8 +190,9 @@ function process_route_entry($nsc, $entry) {
     return 'Error: ' . $nsc->faultcode . ': ' . $nsc->faultstring;
 
   // Green Goods deliveries will have no gift estimate
-  if(!$entry['gift']['amount'])
-    return true;
+	if(empty($entry['gift']['amount']))
+		if($entry['gift']['amount'] !== 0)
+			return true;
 
   return $nsc->call("addGift", [[
     'accountRef' => $etap_account['ref'],

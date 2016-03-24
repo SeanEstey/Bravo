@@ -73,7 +73,7 @@ def process(entries, keys):
     gift_accounts = []
 
     for i in range(0, len(accounts)):
-        if 'email' not in accounts[i]:
+        if not accounts[i]['email']:
             continue
 
         try:

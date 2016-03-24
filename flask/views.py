@@ -242,9 +242,9 @@ def send_email():
 
     try:
         html = render_template(args['template'], data=args['data'])
-    except Exception, e:
-        e = '/email/send: invalid email template'
-        logger.error(e)
+    except Exception as e:
+        msg = '/email/send: invalid email template'
+        logger.error('%s: %s', msg, str(e))
         return Response(response=e, status=500, mimetype='application/json')
 
     try:

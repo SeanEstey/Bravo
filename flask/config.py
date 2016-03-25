@@ -6,19 +6,26 @@ from private_config import *
 from celery.schedules import crontab
 
 # Flask
-# When True, uses gevent web server
+# When True, uses gevent web server. Server auto-restarts
+# on code changes
 # When False, uses Wekzeug dev server
 DEBUG = False
 
+TEST_MODE = False
+
 if DEBUG == True:
-    ROUTE_IMPORTER_SHEET = 'Test Route Importer'
     LOG_LEVEL = logging.DEBUG
 else:
-    ROUTE_IMPORTER_SHEET = 'Route Importer'
     LOG_LEVEL = logging.INFO
 
+if TEST_MODE == True:
+    DB_NAME = 'test'
+    ROUTE_IMPORTER_SHEET = 'Test Route Importer'
+else:
+    DB_NAME = 'wsf'
+    ROUTE_IMPORTER_SHEET = 'Route Importer'
+
 # App
-DB_NAME = 'wsf'
 LOCAL_PORT = 8000
 LOCAL_URL = 'http://localhost:8000'
 PUB_URL = 'http://bravoweb.ca'
@@ -46,18 +53,18 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Canada/Mountain'
 CELERY_ENABLE_UTC = False
 CELERYD_CONCURRENCY = 1
-'''CELERYBEAT_SCHEDULE = {
-  'check_reminder_jobs': {
-    'task': 'reminders.check_jobs',
-    'schedule': timedelta(seconds=30),
-    'options': { 'queue': DB_NAME }
-  },
+CELERYBEAT_SCHEDULE = {
+  #'check_reminder_jobs': {
+  #  'task': 'reminders.check_jobs',
+  #  'schedule': timedelta(seconds=30),
+  #  'options': { 'queue': DB_NAME }
+  #},
   'get_non_participants': {
-    'task': 'scheduler.find_nps_in_schedule',
+    'task': 'scheduler.analyze_non_participants',
     'schedule': crontab(hour=7, minute=0, day_of_week='*'),
     'options': { 'queue': DB_NAME }
   }
-}'''
+}
 
 # Ports/Domains
 MONGO_URL = 'localhost'

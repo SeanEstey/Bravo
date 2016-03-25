@@ -11,7 +11,7 @@ import sys
 if __name__ == "__main__":
 	os.system('kill %1')
 
-	# Kill celery nodes with matching queue name. Leave others alone 
+	# Kill celery nodes with matching queue name. Leave others alone
 	os.system("ps aux | grep 'queues " + DB_NAME + "' | awk '{print $2}' | xargs kill -9")
 
 	# Create workers

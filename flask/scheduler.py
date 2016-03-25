@@ -1,6 +1,6 @@
 import json
 import requests
-#import datetime
+import datetime
 from dateutil.parser import parse
 from oauth2client.client import SignedJwtAssertionCredentials
 import httplib2
@@ -38,47 +38,71 @@ def get_cal_events(cal_id, start, end):
         orderBy = 'startTime'
     ).execute()
 
+
 #-------------------------------------------------------------------------------
-@celery_app.task
-def find_nps_in_schedule(start=None, end=None):
+def get_blocks(start_date, end_date):
+    '''Return list of Res Blocks between scheduled dates'''
+
+    blocks = []
+
     try:
-        # Default to 3 days in advance
-        if start == None:
-            start = datetime.now() + timedelta(days=4)
-            end = start + timedelta(hours=1)
-
-        events = get_cal_events(ETW_RES_CALENDAR_ID, start, end)
-
-        for item in events['items']:
-            res_block = re.match(r'^R([1-9]|10)[a-zA-Z]{1}', item['summary'])
-
-            if res_block:
-                res_block = res_block.group(0)
-
-                logger.info('Analyzing non-participants for %s... ', res_block)
-
-                accounts = etap.call('get_query_accounts',
-                    ETAP_WRAPPER_KEYS,
-                    { 'query':res_block, 'query_category':'ETW: Routes'}
-                )
-
-                analyze_non_participants(accounts)
-
+        events = get_cal_events(ETW_RES_CALENDAR_ID, start_date, end_date)
     except Exception as e:
-        logger.error('find_nps_in_schedule', exc_info=True)
-        return str(e)
+        logger.error('Could not access Res calendar: %s', str(e))
+        return False
+
+    for item in events['items']:
+        res_block = re.match(r'^R([1-9]|10)[a-zA-Z]{1}', item['summary'])
+
+        if res_block:
+            blocks.append(res_block.group(0))
+
+    logger.info('%d blocks found: %s', len(blocks), blocks)
+
+    return blocks
+
 
 #-------------------------------------------------------------------------------
-def analyze_non_participants(etap_accounts):
+def get_accounts(days_from_now=None):
+    '''Return list of eTapestry Accounts in schedule'''
+
+    start_date = datetime.now() + timedelta(days=days_from_now)
+    end_date = start_date + timedelta(hours=1)
+
+    blocks = get_blocks(start_date, end_date)
+
+    if len(blocks) < 1:
+        logger.info('No Blocks found on given date')
+        return False
+
+    accounts = []
+
+    for block in blocks:
+        try:
+            a = etap.call('get_query_accounts',
+                ETAP_WRAPPER_KEYS,
+                { 'query':block, 'query_category':'ETW: Routes'}
+            )
+        except Exception as e:
+            logger.error('Error retrieving accounts for query %s', block)
+
+        if 'count' in a and a['count'] > 0:
+            accounts = accounts + a['data']
+
+    logger.info('Found %d accounts in blocks %s', len(accounts), blocks)
+
+    return accounts
+
+#-------------------------------------------------------------------------------
+def get_nps(accounts):
     '''Analyze list of eTap account objects for non-participants
     (Dropoff Date >= 12 monthss ago and no collections in that time
     '''
 
     # Build list of accounts to query gift_histories for
-    account_refs = []
-    accounts_over_one_year = []
+    older_accounts = []
 
-    for account in etap_accounts:
+    for account in accounts:
         # Test if Dropoff Date was at least 12 months ago
         d = etap.get_udf('Dropoff Date', account).split('/')
 
@@ -90,13 +114,12 @@ def analyze_non_participants(etap_accounts):
         delta = now - dropoff_date
 
         if delta.days >= 365:
-            account_refs.append(account['ref'])
-            accounts_over_one_year.append(account)
+            older_accounts.append(account)
 
     try:
         gift_histories = etap.call('get_gift_histories',
           ETAP_WRAPPER_KEYS, {
-          "account_refs": account_refs,
+          "account_refs": [i['ref'] for i in older_accounts],
           "start_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year-1),
           "end_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year)
         })
@@ -105,26 +128,42 @@ def analyze_non_participants(etap_accounts):
         return str(e)
 
     now = datetime.now()
-    num_nps = 0
+
+    nps = []
 
     for idx, gift_history in enumerate(gift_histories):
-        account = accounts_over_one_year[idx]
-
         if len(gift_history) == 0:
-            num_nps += 1
-            npu = etap.get_udf('Next Pickup Date', account).split('/')
+            nps.append(older_accounts[idx])
 
-            next_pickup = npu[1] + '/' + npu[0] + '/' + npu[2]
+    logger.info('Found %d non-participants', len(nps))
 
-            gsheets.create_rfu(
-              'Non-participant',
-              account_number = account['id'],
-              next_pickup = next_pickup,
-              block = etap.get_udf('Block', account),
-              date = str(now.month) + '/' + str(now.day) + '/' + str(now.year)
-            )
+    return nps
 
-    logger.info('Found ' + str(num_nps) + ' Non-Participants')
+#-------------------------------------------------------------------------------
+@celery_app.task
+def analyze_non_participants():
+    logger.info('Analyzing non-participants in 4 days...')
+
+    accounts = get_accounts(days_from_now=4)
+
+    if len(accounts) < 1:
+        return False
+
+    nps = get_nps(accounts)
+
+    now = datetime.now()
+
+    for np in nps:
+        npu = etap.get_udf('Next Pickup Date', np).split('/')
+        next_pickup = npu[1] + '/' + npu[0] + '/' + npu[2]
+
+        gsheets.create_rfu(
+          'Non-participant',
+          account_number = np['id'],
+          next_pickup = next_pickup,
+          block = etap.get_udf('Block', np),
+          date = str(now.month) + '/' + str(now.day) + '/' + str(now.year)
+        )
 
 #-------------------------------------------------------------------------------
 @celery_app.task

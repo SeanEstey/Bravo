@@ -135,7 +135,8 @@ def view_job(job_id):
 @flask_app.route('/reminders/<job_id>/cancel')
 @login_required
 def cancel_job(job_id):
-    return reminders.cancel_job(job_id)
+    reminders.cancel_job(job_id)
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 # Requested on completion of tasks.execute_job()
@@ -312,15 +313,19 @@ def email_spam_complaint():
 def email_status():
     '''Relay for Mailgun webhooks. Can originate from reminder_msg, Signups
     sheet, or Route Importer sheet
-    Guaranteed POST data: 'event', 'recipient', 'Message-Id',
+    Guaranteed POST data: 'event', 'recipient', 'Message-Id'
+    event param can be: 'delivered', 'bounced', or 'dropped'
     Optional POST data: 'code' (on dropped/bounced), 'error' (on bounced),
     'reason' (on dropped)
-    Where event can be: 'delivered', 'bounced', or 'dropped'
     '''
 
     logger.info('Email to %s %s',
       request.form['recipient'], request.form['event']
     )
+
+    event = request.form['event']
+    if event == 'bounced' or event == 'dropped':
+        gsheets.create_rfu(request.form['recipient'] + ' bounced/dropped')
 
     db_doc = db['emails'].find_one_and_update(
       {'mid': request.form['Message-Id']},
@@ -329,13 +334,6 @@ def email_status():
 
     if db_doc is None or 'on_status_update' not in db_doc:
         return 'No record to update'
-
-    # No matter where email originated (Reminders or Sheets),
-    # create RFU if event is bounced or dropped
-
-    event = request.form['event']
-    if event == 'bounced' or event == 'dropped':
-        gsheets.create_rfu(request.form['recipient'] + ' bounced/dropped')
 
     if 'worksheet' in db_doc['on_status_update']:
         # Update Google Sheets

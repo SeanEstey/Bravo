@@ -1068,7 +1068,7 @@ function initShowJobs() {
       $('#btn-primary').click(function() {
         var request =  $.ajax({
           type: 'GET',
-          url: $URL_ROOT + 'reminders/cancel/job/'+job_uuid
+          url: $URL_ROOT + 'reminders/'+job_uuid+'/cancel'
         });
         request.done(function(msg){
           if(msg == 'OK')

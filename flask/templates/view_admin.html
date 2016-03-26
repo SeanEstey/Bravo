@@ -1,4 +1,4 @@
-  {% extends "base.html" %}
+  {% extends "view_base.html" %}
   {% block content %}  
   <script>
     document.write('<style type="text/css">body{display:none}</style>');
@@ -9,9 +9,9 @@
   <br>
   <div class='h1' style='text-align:center'>Admin</div>
   <table class='table'>
-    <tr><td id='version'>Version: ></td></tr>
-    <tr><td id='celery-status'>Celery Status: ></td></tr>
-    <tr><td id='monthly-usage'>Twilio Usage This Month: ></td></tr>
-    <tr><td id='annual-usage'>Twilio Usage This Year: ></td></tr>
+    <tr><td id='version'>Version: </td></tr>
+    <tr><td id='celery-status'>Celery Status: </td></tr>
+    <tr><td id='monthly-usage'>Twilio Usage This Month: </td></tr>
+    <tr><td id='annual-usage'>Twilio Usage This Year: </td></tr>
   </table>
   {% endblock %}

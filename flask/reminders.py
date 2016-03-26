@@ -160,10 +160,9 @@ def send_emails(job_id):
 		except requests.exceptions.RequestException as e:
 			logger.error('Error sending email: %s', str(e))
 
-		#TODO: Add date into subject
-        #subject = 'Reminder: Upcoming event on  ' + 
-        # msg['imported']['event_date'].strftime('%A, %B %d')
-
+    #TODO: Add date into subject
+    #subject = 'Reminder: Upcoming event on  ' + 
+    # msg['imported']['event_date'].strftime('%A, %B %d')
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -272,12 +271,12 @@ def line_entry_to_db_msg(job_id, template_def, line_index, buf_row, errors):
 
 #-------------------------------------------------------------------------------
 def rmv_msg(job_id, msg_id):
-  db['reminders'].remove({'_id':ObjectId(msg_id)})
+    db['reminders'].remove({'_id':ObjectId(msg_id)})
 
-  db['jobs'].update(
-    {'_id':ObjectId(job_id)},
-    {'$inc':{'num_calls':-1}}
-  )
+    db['jobs'].update(
+        {'_id':ObjectId(job_id)},
+        {'$inc':{'num_calls':-1}}
+    )
 
 #-------------------------------------------------------------------------------
 def edit_msg(job_id, msg_id, fields):
@@ -333,10 +332,10 @@ def dial(to):
 #-------------------------------------------------------------------------------
 # Returns twilio.twiml.Response obj
 def get_call_xml(args):
-  if 'msg' in args or 'Digits' in args:
-    return get_call_interaction_xml(request.values.to_dict())
-  else:
-    return get_call_answered_xml(request.values.to_dict())
+    if 'msg' in args or 'Digits' in args:
+        return get_call_interaction_xml(request.values.to_dict())
+    else:
+        return get_call_answered_xml(request.values.to_dict())
 
 #-------------------------------------------------------------------------------
 def get_call_interaction_xml(args):
@@ -506,37 +505,38 @@ def sms(to, msg):
 
 #-------------------------------------------------------------------------------
 def strip_phone(to):
-  if not to:
-    return ''
-  return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
+    if not to:
+        return ''
+    return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
 #-------------------------------------------------------------------------------
 # Returns twilio.twiml.Response obj
 def get_speak_response(job, msg, answered_by, medium='voice'):
-  # Simplest case: announce_voice template. Play audio file
-  if job['template'] == 'announce_voice':
+    # Simplest case: announce_voice template. Play audio file
+    if job['template'] == 'announce_voice':
+        response = twilio.twiml.Response()
+        response.play(job['audio_url'])
+        return response
+
+    if 'event_date' in msg['imported']:
+        try:
+            date_str = msg['imported']['event_date'].strftime('%A, %B %d')
+        except TypeError:
+            logger.error('Invalid date in get_speak: ' + str(msg['imported']['event_date']))
+            return False
+
     response = twilio.twiml.Response()
-    response.play(job['audio_url'])
+    response.say(speak, voice='alice')
+    db['msgs'].update({'_id':msg['_id']},{'$set':{'speak':speak}})
+
+    if speak.find(repeat_voice) >= 0:
+        response.gather(
+          action= PUB_URL + '/call/answer',
+          method='GET',
+          numDigits=1
+        )
+
     return response
-
-  if 'event_date' in msg['imported']:
-    try:
-      date_str = msg['imported']['event_date'].strftime('%A, %B %d')
-    except TypeError:
-      logger.error('Invalid date in get_speak: ' + str(msg['imported']['event_date']))
-      return False
-
-  response = twilio.twiml.Response()
-  response.say(speak, voice='alice')
-  db['msgs'].update({'_id':msg['_id']},{'$set':{'speak':speak}})
-
-  if speak.find(repeat_voice) >= 0:
-    response.gather(
-      action= PUB_URL + '/call/answer',
-      method='GET',
-      numDigits=1
-    )
-  return response
 
 #-------------------------------------------------------------------------------
 def send_email_report(job_id):
@@ -661,232 +661,242 @@ def cancel_pickup(msg_id):
 #-------------------------------------------------------------------------------
 @celery_app.task
 def set_no_pickup(url, params):
-  r = requests.get(url, params=params)
+    r = requests.get(url, params=params)
 
-  if r.status_code != 200:
-    logger.error('etap script "%s" failed. status_code:%i', url, r.status_code)
+    if r.status_code != 200:
+        logger.error('etap script "%s" failed. status_code:%i', url, r.status_code)
+        return r.status_code
+
+    logger.info('No pickup for account %s', params['account'])
+
     return r.status_code
-
-  logger.info('No pickup for account %s', params['account'])
-
-  return r.status_code
 
 #-------------------------------------------------------------------------------
 def parse_csv(csvfile, template):
-  reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
-  buffer = []
-  header_err = False
-  header_row = reader.next()
+    reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
+    buffer = []
+    header_err = False
+    header_row = reader.next()
 
-  # A. Test if file header names matche template definition
+    # A. Test if file header names matche template definition
 
-  if len(header_row) != len(template['import_fields']):
-    header_err = True
-  else:
-    for col in range(0, len(header_row)):
-      if header_row[col] != template['import_fields'][col]['file_header']:
+    if len(header_row) != len(template['import_fields']):
         header_err = True
-        break
+    else:
+        for col in range(0, len(header_row)):
+          if header_row[col] != template['import_fields'][col]['file_header']:
+                header_err = True
+                break
 
-  if header_err:
-    columns = []
-    for element in template['import_fields']:
-      columns.append(element['file_header'])
+    if header_err:
+        columns = []
+        for element in template['import_fields']:
+            columns.append(element['file_header'])
 
-    return 'Your file is missing the proper header rows:<br> \
-    <b>' + str(columns) + '</b><br><br>' \
-    'Here is your header row:<br><b>' + str(header_row) + '</b><br><br>' \
-    'Please fix your mess and try again.'
+        return 'Your file is missing the proper header rows:<br> \
+        <b>' + str(columns) + '</b><br><br>' \
+        'Here is your header row:<br><b>' + str(header_row) + '</b><br><br>' \
+        'Please fix your mess and try again.'
 
-  reader.next() # Delete empty Row 2 in eTapestry export file
+    reader.next() # Delete empty Row 2 in eTapestry export file
 
-  # B. Read each line from file into buffer
+    # B. Read each line from file into buffer
 
-  line_num = 1
-  for row in reader:
-    # verify columns match template
-    try:
-      if len(row) != len(template['import_fields']):
-        return 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
-        ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
-      else:
-        buffer.append(row)
-      line_num += 1
-    except Exception as e:
-      logger.info('Error reading line num ' + str(line_num) + ': ' + str(row) + '. Msg: ' + str(e))
-  return buffer
+    line_num = 1
+    for row in reader:
+        # verify columns match template
+        try:
+            if len(row) != len(template['import_fields']):
+                return 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
+                ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
+            else:
+                buffer.append(row)
+            line_num += 1
+        except Exception as e:
+            logger.info('Error reading line num %d: %s (stack trace: %s)',
+                        line_num, row, str(e))
+    return buffer
 
 #-------------------------------------------------------------------------------
 def record_audio():
-  if request.method == 'POST':
-    to = request.form.get('to')
-    logger.info('Record audio request from ' + to)
+    if request.method == 'POST':
+        to = request.form.get('to')
+        logger.info('Record audio request from ' + to)
 
-    r = dial(to)
-    logger.info('Dial response=' + json.dumps(r))
+        r = dial(to)
 
-    if r['call_status'] == 'queued':
-      db['bravo'].insert(r)
-      del r['_id']
+        logger.info('Dial response=' + json.dumps(r))
 
-    return flask.json.jsonify(r)
-  elif request.method == 'GET':
-    if request.args.get('Digits'):
-      digits = request.args.get('Digits')
-      logger.info('recordaudio digit='+digits)
-      if digits == '#':
-        logger.info('Recording completed. Sending audio_url to client')
-        recording_info = {
-          'audio_url': request.args.get('RecordingUrl'),
-          'audio_duration': request.args.get('RecordingDuration'),
-          'sid': request.args.get('CallSid'),
-          'call_status': request.args.get('CallStatus')
-        }
-        db['bravo'].update({'sid': request.args.get('CallSid')}, {'$set': recording_info})
-        socketio.emit('record_audio', recording_info)
-        response = twilio.twiml.Response()
-        response.say('Message recorded', voice='alice')
+        if r['call_status'] == 'queued':
+            db['bravo'].insert(r)
+            del r['_id']
 
-        return Response(str(response), mimetype='text/xml')
-    else:
-      logger.info('recordaudio: no digits')
+        return flask.json.jsonify(r)
+    elif request.method == 'GET':
+        if request.args.get('Digits'):
+            digits = request.args.get('Digits')
+            logger.info('recordaudio digit='+digits)
+
+            if digits == '#':
+                logger.info('Recording completed. Sending audio_url to client')
+                recording_info = {
+                  'audio_url': request.args.get('RecordingUrl'),
+                  'audio_duration': request.args.get('RecordingDuration'),
+                  'sid': request.args.get('CallSid'),
+                  'call_status': request.args.get('CallStatus')
+                }
+                db['bravo'].update({'sid': request.args.get('CallSid')}, {'$set': recording_info})
+                socketio.emit('record_audio', recording_info)
+                response = twilio.twiml.Response()
+                response.say('Message recorded', voice='alice')
+
+                return Response(str(response), mimetype='text/xml')
+        else:
+            logger.info('recordaudio: no digits')
 
     return 'OK'
 
 #-------------------------------------------------------------------------------
 def job_print(job_id):
-  if isinstance(job_id, str):
-    job_id = ObjectId(job_id)
-  job = db['jobs'].find_one({'_id':job_id})
-  if 'ended_at' in job:
-    time_elapsed = (job['ended_at'] - job['started_at']).total_seconds()
-  else:
-    time_elapsed = ''
-  summary = {
-    "totals": {
-      "completed": {
-        'answered': db['reminders'].find({'job_id':job_id, 'answered_by':'human'}).count(),
-        'voicemail': db['reminders'].find({'job_id':job_id, 'answered_by':'machine'}).count()
-      },
-      "no-answer" : db['reminders'].find({'job_id':job_id, 'call_status':'no-answer'}).count(),
-      "busy": db['reminders'].find({'job_id':job_id, 'call_status':'busy'}).count(),
-      "failed" : db['reminders'].find({'job_id':job_id, 'call_status':'failed'}).count(),
-      "time_elapsed": time_elapsed
-    },
-    "calls": list(db['reminders'].find({'job_id':job_id},{'ended_at':0, 'job_id':0}))
-  }
-  return summary
+    if isinstance(job_id, str):
+        job_id = ObjectId(job_id)
+
+    job = db['jobs'].find_one({'_id':job_id})
+
+    if 'ended_at' in job:
+        time_elapsed = (job['ended_at'] - job['started_at']).total_seconds()
+    else:
+        time_elapsed = ''
+
+    summary = {
+        "totals": {
+          "completed": {
+            'answered': db['reminders'].find({'job_id':job_id, 'answered_by':'human'}).count(),
+            'voicemail': db['reminders'].find({'job_id':job_id, 'answered_by':'machine'}).count()
+          },
+          "no-answer" : db['reminders'].find({'job_id':job_id, 'call_status':'no-answer'}).count(),
+          "busy": db['reminders'].find({'job_id':job_id, 'call_status':'busy'}).count(),
+          "failed" : db['reminders'].find({'job_id':job_id, 'call_status':'failed'}).count(),
+          "time_elapsed": time_elapsed
+        },
+        "calls": list(db['reminders'].find({'job_id':job_id},{'ended_at':0, 'job_id':0}))
+    }
+
+    return summary
 
 #-------------------------------------------------------------------------------
 def allowed_file(filename):
-  return '.' in filename and \
+    return '.' in filename and \
      filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
 #-------------------------------------------------------------------------------
 def cancel_job(job_id):
-  try:
-    db['jobs'].remove({'_id':ObjectId(job_id)})
-    db['reminders'].remove({'job_id':ObjectId(job_id)})
-    logger.info('Removed Job [ID %s]', str(job_id))
+    n = db['jobs'].remove({'_id':ObjectId(job_id)})
 
-    return 'OK'
-  except Exception as e:
-    logger.info(str(e))
-    return 'error'
+    if n is None:
+        logger.error('Could not remove job %s', job_id)
+
+    db['reminders'].remove({'job_id':ObjectId(job_id)})
+
+    logger.info('Removed Job [ID %s]', str(job_id))
 
 #-------------------------------------------------------------------------------
 # POST request to create new job from new_job.html template
 def submit_job(form, file):
-  # A. Validate file
-  try:
-    if file and allowed_file(file.filename):
-      filename = secure_filename(file.filename)
-      file.save(os.path.join(UPLOAD_FOLDER, filename))
-      file_path = UPLOAD_FOLDER + '/' + filename
+    # A. Validate file
+    try:
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(UPLOAD_FOLDER, filename))
+            file_path = UPLOAD_FOLDER + '/' + filename
+        else:
+            logger.info('could not save file')
+            return {'status':'error', 'title': 'Filename Problem', 'msg':'Could not save file'}
+    except Exception as e:
+        logger.info(str(e))
+        return {'status':'error', 'title':'file problem', 'msg':'could not upload file'}
+
+    # B. Get template definition from reminder_templates.json file
+    try:
+        with open('templates/reminder_templates.json') as json_file:
+          template_definitions = json.load(json_file)
+    except Exception as e:
+        Logger.error(str(e))
+        return {'status':'error',
+                'title': 'Problem Readingvreminder_templates.json File',
+                'msg':'Could not parse file: ' + str(e)}
+
+    template = template_definitions[form['template_name']]
+
+    # C. Open and parse submitted .CSV file
+    try:
+        with codecs.open(file_path, 'r', 'utf-8-sig') as f:
+            buffer = parse_csv(f, template)
+
+            if type(buffer) == str:
+                return {'status':'error', 'title': 'Problem Reading File', 'msg':buffer}
+
+            logger.info('Parsed %d rows from %s', len(buffer), filename)
+    except Exception as e:
+        logger.error(str(e))
+        return {'status':'error',
+                'title': 'Problem Reading File',
+                'msg':'Could not parse .CSV file: ' + str(e)}
+    if not form['job_name']:
+        job_name = filename.split('.')[0].replace('_',' ')
     else:
-      logger.info('could not save file')
-      return {'status':'error', 'title': 'Filename Problem', 'msg':'Could not save file'}
-  except Exception as e:
-      logger.info(str(e))
-      return {'status':'error', 'title':'file problem', 'msg':'could not upload file'}
+        job_name = form['job_name']
+    try:
+        fire_dtime = parse(form['date'] + ' ' + form['time'])
+    except Exception as e:
+        logger.error(str(e))
+        return {'status':'error',
+                'title': 'Invalid Date',
+                'msg':'Could not parse the schedule date you entered: ' + str(e)}
+# D. Create mongo 'reminder_job' and 'reminder_msg' records
+    job = {
+        'name': job_name,
+        'template': template,
+        'fire_dtime': fire_dtime,
+        'status': 'pending',
+        'num_calls': len(buffer)
+    }
 
-  # B. Get template definition from reminder_templates.json file
-  try:
-    with open('templates/reminder_templates.json') as json_file:
-      template_definitions = json.load(json_file)
-  except Exception as e:
-    Logger.error(str(e))
-    return {'status':'error', 'title': 'Problem Reading reminder_templates.json File', 'msg':'Could not parse file: ' + str(e)}
+    # Special cases
+    if form['template_name'] == 'announce_voice':
+        job['audio_url'] = form['audio-url']
+    elif form['template_name'] == 'announce_text':
+        job['message'] = form['message']
+    job_id = db['jobs'].insert(job)
+    job['_id'] = job_id
+    try:
+        errors = []
+        reminders = []
 
-  template = template_definitions[form['template_name']]
+        for idx, row in enumerate(buffer):
+            msg = line_entry_to_db_msg(job_id, template['import_fields'], idx, row, errors)
 
-  # C. Open and parse submitted .CSV file
-  try:
-    with codecs.open(file_path, 'r', 'utf-8-sig') as f:
-      buffer = parse_csv(f, template)
+            if msg:
+                reminders.append(msg)
 
-      if type(buffer) == str:
-        return {'status':'error', 'title': 'Problem Reading File', 'msg':buffer}
+            if len(errors) > 0:
+                e = 'The file <b>' + filename + '</b> has some errors:<br><br>'
+                for error in errors:
+                    e += error
+                    db['jobs'].remove({'_id':job_id})
 
-      logger.info('Parsed %d rows from %s', len(buffer), filename)
-  except Exception as e:
-    logger.error(str(e))
-    return {'status':'error', 'title': 'Problem Reading File', 'msg':'Could not parse .CSV file: ' + str(e)}
+                return {'status':'error', 'title':'File Format Problem', 'msg':e}
+        db['reminders'].insert(reminders)
+        logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
 
-  if not form['job_name']:
-    job_name = filename.split('.')[0].replace('_',' ')
-  else:
-    job_name = form['job_name']
+        # Special case
+        if form['template_name'] == 'etw':
+            scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
 
-  try:
-    fire_dtime = parse(form['date'] + ' ' + form['time'])
-  except Exception as e:
-    logger.error(str(e))
-    return {'status':'error', 'title': 'Invalid Date', 'msg':'Could not parse the schedule date you entered: ' + str(e)}
+            banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(reminders)) + ' messages imported.'
 
-  # D. Create mongo 'reminder_job' and 'reminder_msg' records
+        return {'status':'success', 'msg':banner_msg}
 
-  job = {
-    'name': job_name,
-    'template': template,
-    'fire_dtime': fire_dtime,
-    'status': 'pending',
-    'num_calls': len(buffer)
-  }
-
-  # Special cases
-  if form['template_name'] == 'announce_voice':
-    job['audio_url'] = form['audio-url']
-  elif form['template_name'] == 'announce_text':
-    job['message'] = form['message']
-
-  job_id = db['jobs'].insert(job)
-  job['_id'] = job_id
-
-  try:
-    errors = []
-    reminders = []
-    for idx, row in enumerate(buffer):
-      msg = line_entry_to_db_msg(job_id, template['import_fields'], idx, row, errors)
-      if msg:
-        reminders.append(msg)
-
-    if len(errors) > 0:
-      e = 'The file <b>' + filename + '</b> has some errors:<br><br>'
-      for error in errors:
-        e += error
-      db['jobs'].remove({'_id':job_id})
-      return {'status':'error', 'title':'File Format Problem', 'msg':e}
-
-      db['reminders'].insert(reminders)
-      logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
-
-      # Special case
-      if form['template_name'] == 'etw':
-        scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
-
-      banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(reminders)) + ' messages imported.'
-      return {'status':'success', 'msg':banner_msg}
-  except Exception as e:
-    logger.info(str(e))
-    return {'status':'error', 'title':'error', 'msg':str(e)}
+    except Exception as e:
+        logger.info(str(e))
+        return {'status':'error', 'title':'error', 'msg':str(e)}

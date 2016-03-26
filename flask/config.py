@@ -33,6 +33,7 @@ TITLE = 'Bravo'
 LOG_FILE = 'logs/log'
 formatter = logging.Formatter('[%(asctime)s] %(message)s','%m-%d %H:%M')
 
+
 # Reminders
 FROM_NUMBER= '+17804138846'
 SMS_NUMBER = '+15874104251'

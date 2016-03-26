@@ -142,6 +142,8 @@ def get_nps(accounts):
 #-------------------------------------------------------------------------------
 @celery_app.task
 def analyze_non_participants():
+    '''Create RFU's for all non-participants on scheduled dates'''
+
     logger.info('Analyzing non-participants in 4 days...')
 
     accounts = get_accounts(days_from_now=4)
@@ -156,6 +158,8 @@ def analyze_non_participants():
     for np in nps:
         npu = etap.get_udf('Next Pickup Date', np).split('/')
         next_pickup = npu[1] + '/' + npu[0] + '/' + npu[2]
+
+        # Update Driver/Office Notes
 
         gsheets.create_rfu(
           'Non-participant',

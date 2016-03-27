@@ -9,15 +9,16 @@ from dateutil.parser import parse
 from werkzeug.datastructures import MultiDict
 import xml.dom.minidom
 
-os.chdir('/home/sean/Bravo/flask')
-sys.path.insert(0, '/home/sean/Bravo/flask')
-#os.chdir('/root/bravo_experimental/Bravo/flask')
-#sys.path.insert(0, '/root/bravo_experimental/Bravo/flask')
+#os.chdir('/home/sean/Bravo/flask')
+#sys.path.insert(0, '/home/sean/Bravo/flask')
+
+os.chdir('/root/bravo_dev/Bravo/flask')
+sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
 from config import *
+import reminders
 import views
 from app import logger, flask_app, celery_app
-
 
 class BravoTestCase(unittest.TestCase):
 
@@ -25,8 +26,16 @@ class BravoTestCase(unittest.TestCase):
       flask_app.config['TESTING'] = True
       self.app = flask_app.test_client()
       celery_app.conf.CELERY_ALWAYS_EAGER = True
+      DB_NAME = 'test'
+      mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+      self.db = mongo_client[DB_NAME]
+      self.login(LOGIN_USER, LOGIN_PW)
 
-      self.job_document = {
+      reminders.TWILIO_ACCOUNT_SID = TWILIO_TEST_ACCOUNT_SID
+      reminders.TWILIO_AUTH_ID = TWILIO_TEST_AUTH_ID
+      reminders.FROM_NUMBER = '+15005550006'
+
+      self.job = {
         'template': 'etw_reminder',
         'status': 'pending',
         'name': 'test',
@@ -34,36 +43,37 @@ class BravoTestCase(unittest.TestCase):
         'num_calls': 1
       }
 
-      mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
-      self.db = mongo_client[DB_NAME]
-      self.job_id = self.db['jobs'].insert(self.job_document)
+      self.job_id = self.db['jobs'].insert(self.job)
       self.job = self.db['jobs'].find_one({'_id':self.job_id})
-      self.login('seane@wsaf.ca', 'wsf')
 
-      self.msg_document = {
+      self.reminder = {
         'job_id': self.job_id,
         'name': 'Test Res',
         'account_id': '57515',
-        'event_date': '',
-        'call_status': 'pending',
-        'attempts': 0,
-        'imported': {
-          'event_date': parse('december 31, 2014'),
-          'to': '780-863-5715',
-          'name': 'NIS',
+        'event_date': parse('December 31, 2014'),
+        'call': {
+            'sid': '',
+            'status': 'pending',
+            'attempts': 0,
+            'to': '780-863-5715',
+        },
+        'custom': {
+          'next_pickup': parse('June 21, 2016'),
           'status': 'Active',
           'office_notes': ''
         }
       }
 
-      self.msg_id = self.db['reminders'].insert(self.msg_document)
-      self.msg = self.db['reminders'].find_one({'_id':self.msg_id})
+      # bson.objectid.ObjectId
+      self.rem_id = self.db['reminders'].insert(self.reminder)
+
+      self.reminder = self.db['reminders'].find_one({'_id':self.rem_id})
 
   # Remove job record created by setUp
   def tearDown(self):
       res = self.db['jobs'].remove({'_id':self.job_id})
       self.assertEquals(res['n'], 1)
-      res = self.db['reminders'].remove({'_id':self.msg_id})
+      res = self.db['reminders'].remove({'_id':self.rem_id})
       self.assertEquals(res['n'], 1)
 
   def login(self, username, password):
@@ -77,31 +87,36 @@ class BravoTestCase(unittest.TestCase):
 
   '''
   def test_dial_valid(self):
-      response = server.dial(self.msg['imported']['to'])
-      self.assertEquals(response['call_status'], 'queued')
-      return response
+      call = reminders.dial('7808635715')
+      self.assertEquals(call.status, 'queued')
   '''
-  '''
-  def test_dial_invalid(self):
-      response = server.dial('5005550002')
-      self.assertEquals(response['call_status'], 'failed')
-  '''
-  '''
+
+  #'''
   def test_answer_call(self):
-      response = server.dial(self.msg['imported']['to'])
-      sid = response['sid']
-      self.db['msgs'].update({'_id':self.msg['_id']},{'$set':{'sid': sid}})
-      payload = MultiDict([
-        ('CallSid', response['sid']),
-        ('To', self.msg['imported']['to']),
-        ('CallStatus', 'in-progress'),
-        ('AnsweredBy', 'human')
-      ])
-      response = requests.post(PUB_URL+'/call/answer', data=payload)
-      xml_response = xml.dom.minidom.parseString(response.text)
+      call = reminders.dial(self.reminder['call']['to'])
+
+      self.db['reminders'].update_one(
+        {'_id':self.reminder['_id']},
+        {'$set':{
+          'call.sid':call.sid,
+          'call.status': call.status
+        }},
+      )
+
+      payload =  {
+          'CallSid': call.sid,
+          'To': self.reminder['call']['to'],
+          'CallStatus': 'in-progress',
+          'AnsweredBy': 'human'
+      }
+
+      r = self.app.post('/reminders/call.xml', data=dict(payload))
+
+      xml_response = xml.dom.minidom.parseString(r.data)
+      # Test valid XML returned by reminders.get_speak()
       self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
-      return sid
-  '''
+  #'''
+
   '''
   def test_hangup_call(self):
       sid = self.test_answer_call()
@@ -159,7 +174,7 @@ class BravoTestCase(unittest.TestCase):
       for x in range(1000,1100):
           call = base + str(x)
           print call
-          response = server.dial(call)
+          response = reminders.dial(call)
           #self.assertEquals(response['call_status'], 'queued', msg=response)
           sid = response['sid']
           msg_document['sid'] = sid
@@ -176,7 +191,7 @@ class BravoTestCase(unittest.TestCase):
           del msg_document['_id']
           response = requests.post(PUB_URL+'/call/answer', data=payload)
           xml_response = xml.dom.minidom.parseString(response.text)
-          # Test valid XML returned by server.get_speak()
+          # Test valid XML returned by reminders.get_speak()
           self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
   '''
   '''
@@ -210,7 +225,7 @@ class BravoTestCase(unittest.TestCase):
       self.assertEqual(requests.get(uri).status_code, 200)
 
   def test_parse_csv(self):
-      from server import parse_csv
+      from reminders import parse_csv
       import codecs
       from config import TEMPLATE_HEADERS
       filepath = '/tmp/ETW_Res_5E.csv'
@@ -218,7 +233,7 @@ class BravoTestCase(unittest.TestCase):
           self.assertIsNotNone(parse_csv(f, TEMPLATE_HEADERS['etw_reminder']))
 
   def test_create_msg_record_etw_reminder(self):
-      from server import create_msg_record
+      from reminders import create_msg_record
       buffer_row = [
         'Sean',
         '(780) 863-5715',
@@ -230,7 +245,7 @@ class BravoTestCase(unittest.TestCase):
       self.assertIsNotNone(create_msg_record(self.job, 1, buffer_row, errors))
 
   def test_create_msg_record_fake_date(self):
-      from server import create_msg_record
+      from reminders import create_msg_record
       buffer_row = [
         'Sean',
         '(780) 863-5715',
@@ -252,7 +267,7 @@ class BravoTestCase(unittest.TestCase):
   def test_root_view(self):
       self.assertEquals(requests.get(PUB_URL).status_code, 200)
 
-  def test_server_get_celery_status(self):
+  def test_reminders_get_celery_status(self):
       self.assertEquals(requests.get(PUB_URL+'/get/celery_status').status_code, 200)
 
   def test_call_answer_get(self):

@@ -11,7 +11,7 @@ from celery.schedules import crontab
 # When False, uses Wekzeug dev server
 DEBUG = False
 
-TEST_MODE = False
+TEST_MODE = True
 
 if DEBUG == True:
     LOG_LEVEL = logging.DEBUG

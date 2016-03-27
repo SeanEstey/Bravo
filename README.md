@@ -41,6 +41,8 @@ SECRET_KEY = ''
 TWILIO_ACCOUNT_SID = ''
 TWILIO_AUTH_ID = ''
 BRAVO_AUTH_KEY = ''
+LOGIN_USER = ''
+LOGIN_PW = ''
 ETAP_WRAPPER_KEYS = {
   'association_name': '',
   'etap_endpoint': '',

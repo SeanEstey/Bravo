@@ -228,46 +228,46 @@ def monitor_calls(job_id):
     logger.error('monitor_calls job_id %s', str(job_id), exc_info=True)
 
 #-------------------------------------------------------------------------------
-# Create mongodb "reminder_msg" record from .CSV line
-# job_id: mongo "job_reminder" record_id in ObjectId format
-# template_def: template dict from reminder_templates.json file
-# buf_row: array of values from csv file
-# line_index: file row index (for error tracking)
 def line_entry_to_db_msg(job_id, template_def, line_index, buf_row, errors):
-  msg = {
-    "job_id": job_id,
-    "call": {
-      "status": "pending",
-      "attempts": 0,
-    },
-    "email": {
-      "status": "pending"
-    },
-    "custom": {}
-  }
+    '''Create mongodb "reminder_msg" record from .CSV line
+    job_id: mongo "job_reminder" record_id in ObjectId format
+    template_def: template dict from reminder_templates.json file
+    buf_row: array of values from csv file
+    line_index: file row index (for error tracking)
+    '''
+    msg = {
+        "job_id": job_id,
+        "call": {
+          "status": "pending",
+          "attempts": 0,
+        },
+        "email": {
+          "status": "pending"
+        },
+        "custom": {}
+    }
+    for i, field in enumerate(template_def['import_fields']):
+        db_field = field['db_field']
 
-  for i, field in enumerate(template_def['import_fields']):
-    db_field = field['db_field']
+        # Format phone numbers
+        if db_field == 'call.to':
+          buf_row[i] = strip_phone(buf_row[i])
+        # Convert any date strings to datetime obj
+        elif field['type'] == 'date':
+            try:
+                buf_row[i] = parse(buf_row[i])
+            except TypeError as e:
+                errors.append('Row %d: %s <b>Invalid Date</b><br>',
+                            (idx+1), str(buf_row))
 
-    # Format phone numbers
-    if db_field == 'call.to':
-      buf_row[i] = strip_phone(buf_row[i])
-    # Convert any date strings to datetime obj
-    elif field['type'] == 'date':
-      try:
-        buf_row[i] = parse(buf_row[i])
-      except TypeError as e:
-        errors.append('Row '+str(idx+1)+ ': ' + str(buf_row) + ' <b>Invalid Date</b><br>')
-
-    if db_field.find('.') == -1:
-      msg[db_field] = buf_row[i]
-    # dot notation means record is stored as sub-record
-    else:
-      parent = db_field[0 : db_field.find('.')]
-      child = db_field[db_field.find('.')+1 : len(db_field)]
-      msg[parent][child] = buf_row[i]
-
-  return msg
+        if db_field.find('.') == -1:
+            msg[db_field] = buf_row[i]
+        else:
+            # dot notation means record is stored as sub-record
+            parent = db_field[0 : db_field.find('.')]
+            child = db_field[db_field.find('.')+1 : len(db_field)]
+            msg[parent][child] = buf_row[i]
+    return msg
 
 #-------------------------------------------------------------------------------
 def rmv_msg(job_id, msg_id):
@@ -296,52 +296,54 @@ def edit_msg(job_id, msg_id, fields):
 
 #-------------------------------------------------------------------------------
 def dial(to):
-  try:
-    twilio_client = twilio.rest.TwilioRestClient(
-      TWILIO_ACCOUNT_SID,
-      TWILIO_AUTH_ID
-    )
+    try:
+        twilio_client = twilio.rest.TwilioRestClient(
+          TWILIO_ACCOUNT_SID,
+          TWILIO_AUTH_ID
+        )
 
-    call = twilio_client.calls.create(
-      from_ = FROM_NUMBER,
-      to = '+1'+to,
-      url = PUB_URL + '/reminders/call.xml',
-      status_callback = PUB_URL + '/reminders/call_event',
-      status_method = 'POST',
-      status_events = ["completed"], # adding more status events adds cost
-      method = 'POST',
-      if_machine = 'Continue'
-    )
-  except twilio.TwilioRestException as e:
-    if not e.msg:
-      if e.code == 21216:
-        e.msg = 'not_in_service'
-      elif e.code == 21211:
-        e.msg = 'no_number'
-      elif e.code == 13224:
-        e.msg = 'invalid_number'
-      elif e.code == 13223:
-        e.msg = 'invalid_number_format'
-      else:
-        e.msg = 'unknown_error'
+        call = twilio_client.calls.create(
+          from_ = FROM_NUMBER,
+          to = '+1'+to,
+          url = PUB_URL + '/reminders/call.xml',
+          status_callback = PUB_URL + '/reminders/call_event',
+          status_method = 'POST',
+          status_events = ["completed"], # adding more status events adds cost
+          method = 'POST',
+          if_machine = 'Continue'
+        )
+    except twilio.TwilioRestException as e:
+        if not e.msg:
+            if e.code == 21216:
+                e.msg = 'not_in_service'
+            elif e.code == 21211:
+                e.msg = 'no_number'
+            elif e.code == 13224:
+                e.msg = 'invalid_number'
+            elif e.code == 13223:
+                e.msg = 'invalid_number_format'
+            else:
+                e.msg = 'unknown_error'
+        return e
 
-    return e
-
-  return call
+    return call
 
 #-------------------------------------------------------------------------------
-# Returns twilio.twiml.Response obj
 def get_call_xml(args):
+    '''Returns twilio.twiml.Response obj'''
+
     if 'msg' in args or 'Digits' in args:
-        return get_call_interaction_xml(request.values.to_dict())
+        return get_resp_xml(request.values.to_dict())
     else:
-        return get_call_answered_xml(request.values.to_dict())
+        return get_answer_xml(request.values.to_dict())
 
 #-------------------------------------------------------------------------------
-def get_call_interaction_xml(args):
-    # Twilio TwiML Voice Request
-    # User has made interaction with call
-    # Returns twilio.twiml.Response obj
+def get_resp_xml(args):
+    '''Twilio TwiML Voice Request
+    User has made interaction with call
+    Returns twilio.twiml.Response obj
+    '''
+
     msg = db['reminders'].find_one({'sid': args.get('CallSid')})
     job = db['jobs'].find_one({'_id': msg['job_id']})
 
@@ -386,13 +388,15 @@ def get_call_interaction_xml(args):
     return response
 
 #-------------------------------------------------------------------------------
-# TwiML Voice Request
-# Returns twilio.twiml.Response obj
-def get_call_answered_xml(args):
+def get_answer_xml(args):
+    '''TwiML Voice Request
+    Returns twilio.twiml.Response obj
+    '''
+
     logger.info('%s %s (%s)', args['To'], args['CallStatus'], args.get('AnsweredBy'))
 
     msg = db['reminders'].find_one_and_update(
-      {'sid': args['CallSid']},
+      {'call.sid': args['CallSid']},
       {'$set': {"call.status": args['CallStatus']}}
     )
 
@@ -404,10 +408,10 @@ def get_call_answered_xml(args):
         job = db['jobs'].find_one({'_id':msg['job_id']})
 
         try:
-          response_xml = get_speak_response(job, msg, args.get('AnsweredBy'))
+            response_xml = get_speak_response(job, msg, args.get('AnsweredBy'))
         except Exception, e:
-          logger.error('reminders.get_call_answered_xml', exc_info=True)
-          return str(e)
+            logger.error('reminders.get_answer_xml', exc_info=True)
+            return str(e)
 
         return response_xml
 
@@ -417,26 +421,27 @@ def get_call_answered_xml(args):
 
         response_xml = twilio.twiml.Response()
 
-        if record:
-          logger.info('Sending record twimlo response to client')
+        if not record:
+            logger.error('Unknown SID %s (reminders.get_answer_xml)',
+                        args['CallSid'])
+            return response_xml
 
-          # Record voice message
-          response_xml.say(
+        logger.info('Sending record twimlo response to client')
+
+        # Record voice message
+        response_xml.say(
             'Record your message after the beep. Press pound when complete.',
             voice='alice'
-          )
-          response_xml.record(
+        )
+        response_xml.record(
             method= 'GET',
             action= PUB_URL+'/recordaudio',
             playBeep= True,
             finishOnKey='#'
-          )
-          #send_socket('record_audio', {'msg': 'Listen to the call for instructions'})
+        )
+        #send_socket('record_audio', {'msg': 'Listen to the call for instructions'})
 
-          return response_xml
-    else:
-      logger.error('Empty xml in reminders.get_call_answered_xml. Args: %s', args)
-      return response_xml
+        return response_xml
 
 #-------------------------------------------------------------------------------
 def call_event(args):
@@ -445,7 +450,7 @@ def call_event(args):
     Registering more events costs $.00001 per event
     '''
 
-    logger.info('%s %s', args['to'], args['CallStatus'])
+    logger.info('%s %s', args['To'], args['CallStatus'])
 
     msg = db['reminders'].find_one_and_update(
       {'sid': args['CallSid']},
@@ -472,36 +477,38 @@ def call_event(args):
               'sid':args['CallSid']},
               {'$set': {"status": args['CallStatus']}
             })
+        else:
+            logger.error('Unknown SID %s (reminders.call_event)', args['CallSid'])
 
     return 'OK'
 
 #-------------------------------------------------------------------------------
 def sms(to, msg):
-  try:
-    twilio_client = twilio.rest.TwilioRestClient(
-      TWILIO_ACCOUNT_SID,
-      TWILIO_AUTH_ID
-    )
-    message = twilio_client.messages.create(
-      body = msg,
-      to = '+1' + to,
-      from_ = SMS_NUMBER,
-      status_callback = PUB_URL + '/sms/status'
-    )
-  except twilio.TwilioRestException as e:
-    logger.error('sms exception %s', str(e), exc_info=True)
+    try:
+        twilio_client = twilio.rest.TwilioRestClient(
+          TWILIO_ACCOUNT_SID,
+          TWILIO_AUTH_ID
+        )
+        message = twilio_client.messages.create(
+          body = msg,
+          to = '+1' + to,
+          from_ = SMS_NUMBER,
+          status_callback = PUB_URL + '/sms/status'
+        )
+    except twilio.TwilioRestException as e:
+        logger.error('sms exception %s', str(e), exc_info=True)
 
-    if e.code == 14101:
-      #"To" Attribute is Invalid
-      error_msg = 'number_not_mobile'
-    elif e.code == 30006:
-      erorr_msg = 'landline_unreachable'
-    else:
-      error_msg = e.message
+        if e.code == 14101:
+          #"To" Attribute is Invalid
+          error_msg = 'number_not_mobile'
+        elif e.code == 30006:
+          erorr_msg = 'landline_unreachable'
+        else:
+          error_msg = e.message
 
-    return {'sid': message.sid, 'call_status': message.status}
+        return {'sid': message.sid, 'call_status': message.status}
 
-  return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'call_error':error_msg}
+    return {'sid':'', 'call_status': 'failed', 'error_code': e.code, 'call_error':error_msg}
 
 #-------------------------------------------------------------------------------
 def strip_phone(to):
@@ -510,31 +517,38 @@ def strip_phone(to):
     return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
 #-------------------------------------------------------------------------------
-# Returns twilio.twiml.Response obj
-def get_speak_response(job, msg, answered_by, medium='voice'):
+def get_speak_response(job, reminder, answered_by, medium='voice'):
+    '''Returns twilio.twiml.Response obj'''
+
     # Simplest case: announce_voice template. Play audio file
     if job['template'] == 'announce_voice':
         response = twilio.twiml.Response()
         response.play(job['audio_url'])
         return response
 
-    if 'event_date' in msg['imported']:
+    if 'event_date' in reminder:
         try:
-            date_str = msg['imported']['event_date'].strftime('%A, %B %d')
+            date_str = reminder['event_date'].strftime('%A, %B %d')
         except TypeError:
-            logger.error('Invalid date in get_speak: ' + str(msg['imported']['event_date']))
+            logger.error('Invalid date in get_speak: %s',
+                        str(reminder['imported']['event_date']))
             return False
+
+
+    # TODO: Call view reminders/get_speak
+    speak = 'Test'
 
     response = twilio.twiml.Response()
     response.say(speak, voice='alice')
-    db['msgs'].update({'_id':msg['_id']},{'$set':{'speak':speak}})
+    db['reminders'].update({'_id':reminder['_id']},{'$set':{'custom.speak':speak}})
 
-    if speak.find(repeat_voice) >= 0:
+    '''if speak.find(repeat_voice) >= 0:
         response.gather(
           action= PUB_URL + '/call/answer',
           method='GET',
           numDigits=1
         )
+    '''
 
     return response
 

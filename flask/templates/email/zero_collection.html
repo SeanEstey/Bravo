@@ -1,0 +1,34 @@
+  {% extends "email_base.html" %}
+  {% block content %}  
+    <tr>
+      <td>
+        Hi {{ data['account']['name'] }},
+      </td>
+    </tr>
+    <tr>
+      <td>
+        We did not receive a collection from you on <b>{{ data['entry']['date'] }}</b>, at
+        your address <b>{{ data['account']['address'] }}</b>, <b>{{
+            data['account']['postal'] }}</b>.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        If your pickup was missed, or if you have moved, please let us know. If you don't require a pickup, please help us
+        to be more efficient with driver resources by opting out via the email or phone reminders.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        You can always drop off empties via our 24-hour drop box at 11130 131 St NW.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        {% if data['entry']['next_pickup'] %}
+        Your next pickup is scheduled for <b>{{ data['entry']['next_pickup'] }}</b>.
+        {% endif %}
+      </td>
+    </tr>
+
+  {% endblock %}

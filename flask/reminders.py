@@ -1,7 +1,5 @@
 import twilio
 from twilio import twiml
-from bson import Binary, Code, json_util
-from bson.objectid import ObjectId
 import flask
 from flask import Flask,render_template,request,g,Response,redirect,url_for
 from datetime import datetime,date
@@ -11,8 +9,10 @@ from werkzeug import secure_filename
 import codecs
 import os
 import csv
-from bson import Binary, Code, json_util
+import requests
 from bson.objectid import ObjectId
+import bson.json_util
+import re
 
 from app import celery_app, db, logger, login_manager, socketio
 import utils
@@ -534,9 +534,10 @@ def get_speak_response(job, reminder, answered_by, medium='voice'):
                         str(reminder['imported']['event_date']))
             return False
 
-
-    # TODO: Call view reminders/get_speak
-    speak = 'Test'
+    speak = requests.post(LOCAL_URL + '/get_speak', data={
+        'template': 'speak/etw_reminder.html',
+        'reminder': bson_to_json(reminder)
+    }).text
 
     response = twilio.twiml.Response()
     response.say(speak, voice='alice')
@@ -914,3 +915,18 @@ def submit_job(form, file):
     except Exception as e:
         logger.info(str(e))
         return {'status':'error', 'title':'error', 'msg':str(e)}
+
+#-------------------------------------------------------------------------------
+def bson_to_json(a):
+    '''Convert mongoDB BSON format to JSON.
+    Converts timestamps to formatted date strings
+    '''
+
+    a = bson.json_util.dumps(a)
+
+    for group in re.findall(r"\{\"\$date\": [0-9]{13}\}", a):
+        ts = int(re.search(r"[0-9]{13}", group).group(0))/1000
+        date_str = '"' + datetime.fromtimestamp(ts).strftime('%A, %B %d') + '"'
+        a = a.replace(group, date_str)
+
+    return a

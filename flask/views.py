@@ -184,7 +184,7 @@ def no_pickup(msg_id):
     return 'Thank You'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/get_template', methods=['POST'])
+@flask_app.route('/get_speak', methods=['POST'])
 def get_template():
     html = render_template(
         request.form['template'],

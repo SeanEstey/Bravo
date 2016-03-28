@@ -26,9 +26,8 @@ class BravoTestCase(unittest.TestCase):
       flask_app.config['TESTING'] = True
       self.app = flask_app.test_client()
       celery_app.conf.CELERY_ALWAYS_EAGER = True
-      DB_NAME = 'test'
       mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
-      self.db = mongo_client[DB_NAME]
+      self.db = mongo_client['test']
       self.login(LOGIN_USER, LOGIN_PW)
 
       reminders.TWILIO_ACCOUNT_SID = TWILIO_TEST_ACCOUNT_SID
@@ -92,17 +91,21 @@ class BravoTestCase(unittest.TestCase):
       self.assertEquals(call.status, 'queued')
   '''
 
-  '''
-  def test_answer_call(self):
+  #'''
+  def test_dial_and_answer_call(self):
       call = reminders.dial(self.reminder['call']['to'])
 
-      self.db['reminders'].update_one(
+      r = self.db['reminders'].update_one(
         {'_id':self.reminder['_id']},
         {'$set':{
           'call.sid':call.sid,
           'call.status': call.status
         }},
       )
+
+      logger.info('SID: %s', call.sid)
+
+      self.assertEquals(r.modified_count, 1)
 
       payload =  {
           'CallSid': call.sid,
@@ -116,21 +119,19 @@ class BravoTestCase(unittest.TestCase):
       xml_response = xml.dom.minidom.parseString(r.data)
       # Test valid XML returned by reminders.get_speak()
       self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
+
+      #logger.info(r.data)
+  #'''
   '''
-
-  def test_get_template(self):
-      self.reminder['event_date'] = self.reminder['event_date'].strftime('%A, %B %d')
-      self.reminder['custom']['next_pickup'] = self.reminder['custom']['next_pickup'].strftime('%A, %B %d')
-      self.reminder['_id'] = str(self.reminder['_id'])
-      self.reminder['job_id'] = str(self.reminder['job_id'])
-
-      r = self.app.post('/get_template', data={
-          'template': 'speak_etw_reminder.html',
-          'reminder': json.dumps(self.reminder)
+  def test_get_speak(self):
+      r = self.app.post('/get_speak', data={
+          'template': 'speak/etw_reminder.html',
+          'reminder': reminders.bson_to_json(self.reminder)
       })
+      self.assertTrue(type(r.data) == str)
 
-      logger.info(r.data)
-
+      #logger.info(r.data)
+  '''
   '''
   def test_hangup_call(self):
       sid = self.test_answer_call()

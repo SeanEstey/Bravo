@@ -51,7 +51,7 @@ class BravoTestCase(unittest.TestCase):
         'account_id': '57515',
         'event_date': parse('December 31, 2014'),
         'call': {
-            'sid': '',
+            'sid': 'ABC123ABC123ABC123ABC123ABC123AB',
             'status': 'pending',
             'attempts': 0,
             'to': '780-863-5715',
@@ -90,8 +90,27 @@ class BravoTestCase(unittest.TestCase):
       call = reminders.dial('7808635715')
       self.assertEquals(call.status, 'queued')
   '''
-
   #'''
+  def test_etw_reminder_human_answer_call(self):
+      r = self.app.post('/reminders/call.xml', data={
+          'CallSid': self.reminder['call']['sid'],
+          'To': self.reminder['call']['to'],
+          'CallStatus': 'in-progress',
+          'AnsweredBy': 'human'
+      })
+      print "Human XML:" + r.data
+  #'''
+  #'''
+  def test_etw_reminder_machine_answer_call(self):
+      r = self.app.post('/reminders/call.xml', data={
+          'CallSid': self.reminder['call']['sid'],
+          'To': self.reminder['call']['to'],
+          'CallStatus': 'in-progress',
+          'AnsweredBy': 'machine'
+      })
+      print "Machine XML:" + r.data
+  #'''
+  '''
   def test_dial_and_answer_call(self):
       call = reminders.dial(self.reminder['call']['to'])
 
@@ -120,8 +139,8 @@ class BravoTestCase(unittest.TestCase):
       # Test valid XML returned by reminders.get_speak()
       self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
 
-      #logger.info(r.data)
-  #'''
+      logger.info(r.data)
+  '''
   '''
   def test_get_speak(self):
       r = self.app.post('/get_speak', data={
@@ -130,20 +149,23 @@ class BravoTestCase(unittest.TestCase):
       })
       self.assertTrue(type(r.data) == str)
 
-      #logger.info(r.data)
+      logger.info(r.data)
   '''
   '''
-  def test_hangup_call(self):
-      sid = self.test_answer_call()
-      payload = MultiDict([
-        ('To', self.msg['imported']['to']),
-        ('CallSid', sid),
-        ('CallStatus', 'completed'),
-        ('AnsweredBy', 'human'),
-        ('CallDuration', 16)
-      ])
-      response = requests.post(PUB_URL+'/call/hangup', data=payload)
-      self.assertEquals(response.content, 'OK')
+  def test_call_completed(self):
+      completed_call = {
+        'To': self.reminder['call']['to'],
+        'CallSid': 'ABC123ABC123ABC123ABC123ABC123AB',
+        'CallStatus': 'completed',
+        'AnsweredBy': 'human',
+        'CallDuration': 16
+      }
+
+      r = self.app.post('/reminders/call_event', data=completed_call)
+
+      self.assertEquals(r._status_code, 200)
+
+      #logger.info(self.db['reminders'].find_one({'call.sid':completed_call['CallSid']}))
   '''
   '''
   def test_scheduler(self):

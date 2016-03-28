@@ -13,6 +13,7 @@ import requests
 from bson.objectid import ObjectId
 import bson.json_util
 import re
+from pymongo import ReturnDocument
 
 from app import celery_app, db, logger, login_manager, socketio
 import utils
@@ -132,37 +133,38 @@ def send_calls(job_id):
 #-------------------------------------------------------------------------------
 @celery_app.task
 def send_emails(job_id):
-	job_id = job_id.encode('utf-8')
-	job = db['jobs'].find_one({'_id':ObjectId(job_id)})
-	reminders = db['reminders'].find({'job_id':ObjectId(job_id)})
-	emails = []
+    job_id = job_id.encode('utf-8')
+    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+    reminders = db['reminders'].find({'job_id':ObjectId(job_id)})
+    emails = []
 
-	for msg in reminders:
-		if msg['email']['status'] != 'pending':
-			continue
+    for msg in reminders:
+        if msg['email']['status'] != 'pending':
+            continue
 
-		if not msg['email']['recipient']:
-			db['reminders'].update(
-				{'_id':msg['_id']},
-				{'$set': {'email.status': 'no_email'}}
-			)
-			continue
-		#send_socket('update_msg', {'id':str(msg['_id']), 'email_status': 'no_email'})
+        if not msg['email']['recipient']:
+            db['reminders'].update(
+                {'_id':msg['_id']},
+                {'$set': {'email.status': 'no_email'}}
+            )
+            continue
+        #send_socket('update_msg', {'id':str(msg['_id']), 'email_status': 'no_email'})
 
-		try:
-			r = requests.post(PUB_URL + '/email/send', data=json.dumps({
-				"recipient": msg['email']['recipient'],
-				"template": job['template']['email_template'],
-				"subject": job['template']['email_subject'],
-				"name": msg['name'],
-				"args": msg['custom']
-			}))
-		except requests.exceptions.RequestException as e:
-			logger.error('Error sending email: %s', str(e))
+        try:
+            r = requests.post(PUB_URL + '/email/send', data=json.dumps({
+                "recipient": msg['email']['recipient'],
+                "template": job['template']['email_template'],
+                "subject": job['template']['email_subject'],
+                "name": msg['name'],
+                "args": msg['custom']
+            }))
+        except requests.exceptions.RequestException as e:
+            logger.error('Error sending email: %s', str(e))
 
-    #TODO: Add date into subject
+    '''TODO: Add date into subject
     #subject = 'Reminder: Upcoming event on  ' + 
     # msg['imported']['event_date'].strftime('%A, %B %d')
+    '''
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -184,12 +186,12 @@ def monitor_calls(job_id):
         ]
       })
       # Any needing redial?
-      incompletes = db['msgs'].find({
+      incompletes = db['reminders'].find({
         'job_id':job_id,
         'attempts': {'$lt': MAX_ATTEMPTS},
         '$or':[
-          {'call_status': 'busy'},
-          {'call_status': 'no-answer'}
+          {'call.status': 'busy'},
+          {'call.status': 'no-answer'}
         ]
       })
 
@@ -198,8 +200,8 @@ def monitor_calls(job_id):
         db['jobs'].update(
           {'_id': job_id},
           {'$set': {
-            'status': 'completed',
-            'ended_at': datetime.now()
+            'call.status': 'completed',
+            'call.ended_at': datetime.now()
             }
         })
         logger.info('\nCompleted Job %s [ID %s]\n', job['name'], str(job_id))
@@ -209,13 +211,14 @@ def monitor_calls(job_id):
         return 'OK'
       # Job still in progress. Any incomplete calls need redialing?
       elif actives.count() == 0 and incompletes.count() > 0:
-        logger.info('Pausing %dsec then Re-attempting %d Incompletes.', REDIAL_DELAY, incompletes.count())
+        logger.info('Pausing %d sec then Re-attempting %d Incompletes.',
+                    REDIAL_DELAY, incompletes.count())
         time.sleep(REDIAL_DELAY)
         for call in incompletes:
           r = dial(call['imported']['to'])
           logger.info('%s %s', call['imported']['to'], r['call_status'])
           r['attempts'] = call['attempts']+1
-          db['msgs'].update(
+          db['reminders'].update(
             {'_id':call['_id']},
             {'$set': r}
           )
@@ -280,19 +283,19 @@ def rmv_msg(job_id, msg_id):
 
 #-------------------------------------------------------------------------------
 def edit_msg(job_id, msg_id, fields):
-  for fieldname, value in fields:
-    if fieldname == 'event_date':
-      try:
-        value = parse(value)
-      except Exception, e:
-        logger.error('Could not parse event_date in /edit/call')
-        return '400'
-    logger.info('Editing ' + fieldname + ' to value: ' + str(value))
-    field = 'imported.'+fieldname
-    db['reminders'].update(
-        {'_id':ObjectId(sid)},
-        {'$set':{field: value}}
-    )
+    for fieldname, value in fields:
+        if fieldname == 'event_date':
+          try:
+            value = parse(value)
+          except Exception, e:
+            logger.error('Could not parse event_date in /edit/call')
+            return '400'
+        logger.info('Editing ' + fieldname + ' to value: ' + str(value))
+        field = 'imported.'+fieldname
+        db['reminders'].update(
+            {'_id':ObjectId(sid)},
+            {'$set':{field: value}}
+        )
 
 #-------------------------------------------------------------------------------
 def dial(to):
@@ -351,7 +354,7 @@ def get_resp_xml(args):
 
     if args.get('Digits') == '1':
         # Repeat message request...
-        return get_speak(job, msg, 'human')
+        return get_speak(job, msg)
     elif args.get('Digits') == '2':
         # Cancel Pickup special request...
 
@@ -390,25 +393,29 @@ def get_resp_xml(args):
 #-------------------------------------------------------------------------------
 def get_answer_xml(args):
     '''TwiML Voice Request
+    Call has been answered (by machine or human)
     Returns twilio.twiml.Response obj
     '''
 
     logger.info('%s %s (%s)', args['To'], args['CallStatus'], args.get('AnsweredBy'))
 
-    msg = db['reminders'].find_one_and_update(
+    reminder = db['reminders'].find_one_and_update(
       {'call.sid': args['CallSid']},
-      {'$set': {"call.status": args['CallStatus']}}
-    )
+      {'$set': {
+        "call.status": args['CallStatus'],
+        "call.answered_by": args.get('AnsweredBy')}},
+      return_document=ReturnDocument.AFTER)
 
-    # Reminder call
-    if msg:
+    if reminder:
+        # Reminder call
+
         # send_socket('update_msg',
         # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
 
-        job = db['jobs'].find_one({'_id':msg['job_id']})
+        job = db['jobs'].find_one({'_id': reminder['job_id']})
 
         try:
-            response_xml = get_speak_response(job, msg, args.get('AnsweredBy'))
+            response_xml = get_speak(job, reminder)
         except Exception, e:
             logger.error('reminders.get_answer_xml', exc_info=True)
             return str(e)
@@ -416,7 +423,7 @@ def get_answer_xml(args):
         return response_xml
 
     # Not a reminder. Maybe a special msg recording?
-    if msg is None:
+    if reminder is None:
         record = db['bravo'].find_one({'sid': args['CallSid']})
 
         response_xml = twilio.twiml.Response()
@@ -453,15 +460,15 @@ def call_event(args):
     logger.info('%s %s', args['To'], args['CallStatus'])
 
     msg = db['reminders'].find_one_and_update(
-      {'sid': args['CallSid']},
+      {'call.sid': args['CallSid']},
       {'$set': {
         "call.status": args['CallStatus'],
         "call.ended_at": datetime.now(),
         "call.duration": args['CallDuration'],
         "call.answered_by": args.get('AnsweredBy'),
         "call.error_code": args.get('SipResponseCode') # in case of failure
-      }
-    })
+      }}
+    )
 
     if msg:
         return 'OK'
@@ -517,7 +524,7 @@ def strip_phone(to):
     return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
 #-------------------------------------------------------------------------------
-def get_speak_response(job, reminder, answered_by, medium='voice'):
+def get_speak(job, reminder):
     '''Returns twilio.twiml.Response obj'''
 
     # Simplest case: announce_voice template. Play audio file
@@ -526,14 +533,6 @@ def get_speak_response(job, reminder, answered_by, medium='voice'):
         response.play(job['audio_url'])
         return response
 
-    if 'event_date' in reminder:
-        try:
-            date_str = reminder['event_date'].strftime('%A, %B %d')
-        except TypeError:
-            logger.error('Invalid date in get_speak: %s',
-                        str(reminder['imported']['event_date']))
-            return False
-
     speak = requests.post(LOCAL_URL + '/get_speak', data={
         'template': 'speak/etw_reminder.html',
         'reminder': bson_to_json(reminder)
@@ -541,137 +540,137 @@ def get_speak_response(job, reminder, answered_by, medium='voice'):
 
     response = twilio.twiml.Response()
     response.say(speak, voice='alice')
-    db['reminders'].update({'_id':reminder['_id']},{'$set':{'custom.speak':speak}})
 
-    '''if speak.find(repeat_voice) >= 0:
-        response.gather(
-          action= PUB_URL + '/call/answer',
-          method='GET',
-          numDigits=1
-        )
-    '''
+    db['reminders'].update({'_id':reminder['_id']},{'$set':{'custom.speak':speak}})
 
     return response
 
 #-------------------------------------------------------------------------------
 def send_email_report(job_id):
-  try:
-    if isinstance(job_id, str):
-      job_id = ObjectId(job_id)
+    try:
+        if isinstance(job_id, str):
+          job_id = ObjectId(job_id)
 
-    job = db['jobs'].find_one({'_id':job_id})
+        job = db['jobs'].find_one({'_id':job_id})
 
-    summary = {
-      '<b>Summary</b>': {
-        'Answered': db['msgs'].find({'job_id':job_id, 'answered_by':'human'}).count(),
-        'Voicemail': db['msgs'].find({'job_id':job_id, 'answered_by':'machine'}).count(),
-        'No-answer' : db['msgs'].find({'job_id':job_id, 'call_status':'no-answer'}).count(),
-        'Busy': db['msgs'].find({'job_id':job_id, 'call_status':'busy'}).count(),
-        'Failed' : db['msgs'].find({'job_id':job_id, 'call_status':'failed'}).count()
-      }
-    }
+        summary = {
+          '<b>Summary</b>': {
+            'Answered': db['reminders'].find(
+                {'job_id':job_id, 'answered_by':'human'}
+            ).count(),
+            'Voicemail': db['reminders'].find(
+                {'job_id':job_id, 'answered_by':'machine'}
+            ).count(),
+            'No-answer' : db['reminders'].find(
+                {'job_id':job_id, 'call_status':'no-answer'}
+            ).count(),
+            'Busy': db['reminders'].find({'job_id':job_id, 'call_status':'busy'}
+            ).count(),
+            'Failed' : db['reminders'].find(
+                {'job_id':job_id, 'call_status':'failed'}
+            ).count()
+          }
+        }
 
-    msg = utils.print_html(summary)
+        msg = utils.print_html(summary)
 
-    fails = list(
-      db['reminders'].find(
-        {'job_id':job_id, '$or': [{"email.status" : 'bounced'},{"email.status" : 'dropped'},{"call.status" :'failed'}]},
-        {'imported': 1, 'email_error': 1, 'call_error':1, 'error_code':1, 'email_status': 1, '_id': 0}
-      )
-    )
+        fails = list(
+          db['reminders'].find(
+            {'job_id':job_id, '$or': [{"email.status" : 'bounced'},{"email.status" : 'dropped'},{"call.status" :'failed'}]},
+            {'imported': 1, 'email_error': 1, 'call_error':1, 'error_code':1, 'email_status': 1, '_id': 0}
+          )
+        )
 
-    if fails:
-      td = '<td style="padding:5px; border:1px solid black">'
-      th = '<th style="padding:5px; border:1px solid black">'
+        if fails:
+          td = '<td style="padding:5px; border:1px solid black">'
+          th = '<th style="padding:5px; border:1px solid black">'
 
-      fails_table = '<table style="padding:5px; border-collapse:collapse; border:1px solid black"><tr>'
-      # Column Headers
-      for field in fails[0]['imported'].keys():
-        fails_table += th + field.replace('_', ' ').title() + '</th>'
-      fails_table += th + 'Email Error</th>' + th + 'Call Error</th>' + th + 'Code</th>'
-      fails_table += '</tr>'
+          fails_table = '<table style="padding:5px; border-collapse:collapse; border:1px solid black"><tr>'
+          # Column Headers
+          for field in fails[0]['imported'].keys():
+            fails_table += th + field.replace('_', ' ').title() + '</th>'
+          fails_table += th + 'Email Error</th>' + th + 'Call Error</th>' + th + 'Code</th>'
+          fails_table += '</tr>'
 
-      # Column Data
-      for row in fails:
-        fails_table += '<tr>'
-        for key, val in row['imported'].iteritems():
-          fails_table += td + str(val) + '</td>'
-        if 'email_error' in row:
-          if row['email_error'].find('550') > -1:
-            row['error_code'] = 550
-            row['email_error'] = 'Address does not exist'
-          fails_table += td + row['email_error']  + '</td>'
-        else:
-          fails_table += td + '</td>'
-        if 'call_error' in row:
-          fails_table += td + row['call_error'].replace('_', ' ').title()  + '</td>'
-        else:
-          fails_table += td + '</td>'
-        if 'error_code' in row:
-          fails_table += td + str(row['error_code']) + '</td>'
-        else:
-          fails_table += td + '</td>'
-        fails_table += '</tr>'
-      fails_table += '</table>'
+          # Column Data
+          for row in fails:
+            fails_table += '<tr>'
+            for key, val in row['imported'].iteritems():
+              fails_table += td + str(val) + '</td>'
+            if 'email_error' in row:
+              if row['email_error'].find('550') > -1:
+                row['error_code'] = 550
+                row['email_error'] = 'Address does not exist'
+              fails_table += td + row['email_error']  + '</td>'
+            else:
+              fails_table += td + '</td>'
+            if 'call_error' in row:
+              fails_table += td + row['call_error'].replace('_', ' ').title()  + '</td>'
+            else:
+              fails_table += td + '</td>'
+            if 'error_code' in row:
+              fails_table += td + str(row['error_code']) + '</td>'
+            else:
+              fails_table += td + '</td>'
+            fails_table += '</tr>'
+          fails_table += '</table>'
 
-      msg += '<br><br>' + fails_table
+          msg += '<br><br>' + fails_table
 
-    subject = 'Job Summary %s' % job['name']
-    utils.send_email(['estese@gmail.com, emptiestowinn@wsaf.ca'], subject, msg)
-    logger.info('Email report sent')
-
-  except Exception, e:
-    logger.error('/send_email_report: %s', str(e))
+        subject = 'Job Summary %s' % job['name']
+        utils.send_email(['estese@gmail.com, emptiestowinn@wsaf.ca'], subject, msg)
+        logger.info('Email report sent')
+    except Exception, e:
+        logger.error('/send_email_report: %s', str(e))
 
 #-------------------------------------------------------------------------------
 @celery_app.task
 def cancel_pickup(msg_id):
-  try:
-    msg = db['reminders'].find_one({'_id':ObjectId(msg_id)})
-    # Link clicked for an outdated/in-progress or deleted job?
-    if not msg:
-      logger.info('No pickup request fail. Invalid msg_id')
-      return 'Request unsuccessful'
+    try:
+        msg = db['reminders'].find_one({'_id':ObjectId(msg_id)})
+        # Link clicked for an outdated/in-progress or deleted job?
+        if not msg:
+          logger.info('No pickup request fail. Invalid msg_id')
+          return 'Request unsuccessful'
 
-    if 'no_pickup' in msg['custom']:
-      logger.info('No pickup already processed for account %s', msg['imported']['account'])
-      return 'Thank you'
+        if 'no_pickup' in msg['custom']:
+          logger.info('No pickup already processed for account %s', msg['imported']['account'])
+          return 'Thank you'
 
-    job = db['jobs'].find_one({'_id':msg['job_id']})
+        job = db['jobs'].find_one({'_id':msg['job_id']})
 
-    no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
-    db['reminders'].update(
-      {'_id':msg['_id']},
-      {'$set': {
-        "custom.office_notes": no_pickup,
-        "custom.no_pickup": True
-      }}
-    )
-    # send_socket('update_msg', {
-    #  'id': str(msg['_id']),
-    #  'office_notes':no_pickup
-    #  })
+        no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
+        db['reminders'].update(
+          {'_id':msg['_id']},
+          {'$set': {
+            "custom.office_notes": no_pickup,
+            "custom.no_pickup": True
+          }}
+        )
+        # send_socket('update_msg', {
+        #  'id': str(msg['_id']),
+        #  'office_notes':no_pickup
+        #  })
 
-    # Write to eTapestry
-    etap.call('no_pickup', keys, {
-      "account": msg['account_id'],
-      "date": msg['custom']['next_pickup'].strftime('%d/%m/%Y'),
-      "next_pickup": msg['custom']['next_pickup'].strftime('%d/%m/%Y')
-    })
+        # Write to eTapestry
+        etap.call('no_pickup', keys, {
+          "account": msg['account_id'],
+          "date": msg['custom']['next_pickup'].strftime('%d/%m/%Y'),
+          "next_pickup": msg['custom']['next_pickup'].strftime('%d/%m/%Y')
+        })
 
-    # Send email w/ next pickup
-    if 'next_pickup' in msg['custom']:
-      requests.post(PUB_URL + '/email/send', {
-        "recipient": msg['email']['recipient'],
-        "template": "email_no_pickup.html",
-        "subject": "Your next pickup"
-    })
+        # Send email w/ next pickup
+        if 'next_pickup' in msg['custom']:
+          requests.post(PUB_URL + '/email/send', {
+            "recipient": msg['email']['recipient'],
+            "template": "email_no_pickup.html",
+            "subject": "Your next pickup"
+        })
 
-    logger.info('Emailed Next Pickup to %s', msg['email']['recipient'])
-
-  except Exception, e:
-    logger.error('/nopickup/msg_id', exc_info=True)
-    return str(e)
+        logger.info('Emailed Next Pickup to %s', msg['email']['recipient'])
+    except Exception, e:
+        logger.error('/nopickup/msg_id', exc_info=True)
+        return str(e)
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -816,8 +815,9 @@ def cancel_job(job_id):
     logger.info('Removed Job [ID %s]', str(job_id))
 
 #-------------------------------------------------------------------------------
-# POST request to create new job from new_job.html template
 def submit_job(form, file):
+    '''POST request to create new job from new_job.html template'''
+
     # A. Validate file
     try:
         if file and allowed_file(file.filename):

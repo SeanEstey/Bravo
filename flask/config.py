@@ -9,7 +9,7 @@ from celery.schedules import crontab
 # When True, uses gevent web server. Server auto-restarts
 # on code changes
 # When False, uses Wekzeug dev server
-DEBUG = False
+DEBUG = True
 
 TEST_MODE = True
 

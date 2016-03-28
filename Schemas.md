@@ -28,13 +28,16 @@
   "custom": {
     "no_pickup": "[bool]",
     "next_pickup": "<BSON.Date>",
+    "status": "",
+    "type": ["pickup", "delivery"],
     "other imported fields ..."
   }
 }
 
 "jobs": {
   "status": ["pending", "in-progress", "completed"], 
-  "fire_dtime": "<BSON.Date>", 
+  "fire_calls_dtime": "<bson.date>",
+  "fire_emails_dtime": "<bson.date>",
   "num_calls": "[Number]", 
   "template": {
     "call_template": "file.html",

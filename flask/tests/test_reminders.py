@@ -39,7 +39,7 @@ class BravoTestCase(unittest.TestCase):
         'template': 'etw_reminder',
         'status': 'pending',
         'name': 'test',
-        'fire_dtime': datetime.datetime(2014, 12, 31),
+        'fire_calls_dtime': parse('Dec 31, 2016'),
         'num_calls': 1
       }
 
@@ -59,6 +59,7 @@ class BravoTestCase(unittest.TestCase):
         },
         'custom': {
           'next_pickup': parse('June 21, 2016'),
+          'type': 'pickup',
           'status': 'Active',
           'office_notes': ''
         }
@@ -91,7 +92,7 @@ class BravoTestCase(unittest.TestCase):
       self.assertEquals(call.status, 'queued')
   '''
 
-  #'''
+  '''
   def test_answer_call(self):
       call = reminders.dial(self.reminder['call']['to'])
 
@@ -115,7 +116,20 @@ class BravoTestCase(unittest.TestCase):
       xml_response = xml.dom.minidom.parseString(r.data)
       # Test valid XML returned by reminders.get_speak()
       self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
-  #'''
+  '''
+
+  def test_get_template(self):
+      self.reminder['event_date'] = self.reminder['event_date'].strftime('%A, %B %d')
+      self.reminder['custom']['next_pickup'] = self.reminder['custom']['next_pickup'].strftime('%A, %B %d')
+      self.reminder['_id'] = str(self.reminder['_id'])
+      self.reminder['job_id'] = str(self.reminder['job_id'])
+
+      r = self.app.post('/get_template', data={
+          'template': 'speak_etw_reminder.html',
+          'reminder': json.dumps(self.reminder)
+      })
+
+      logger.info(r.data)
 
   '''
   def test_hangup_call(self):

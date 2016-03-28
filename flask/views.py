@@ -184,6 +184,16 @@ def no_pickup(msg_id):
     return 'Thank You'
 
 #-------------------------------------------------------------------------------
+@flask_app.route('/get_template', methods=['POST'])
+def get_template():
+    html = render_template(
+        request.form['template'],
+        reminder=json.loads(request.form['reminder'])
+    )
+
+    return html.replace("\n", "")
+
+#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/call.xml',methods=['POST'])
 def call_xml():
     '''Twilio TwiML Voice Request'''

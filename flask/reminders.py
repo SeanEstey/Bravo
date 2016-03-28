@@ -24,13 +24,13 @@ def get_jobs(args):
     # If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
 
     if 'n' in args:
-        jobs = db['jobs'].find().sort('fire_dtime',-1)
+        jobs = db['jobs'].find().sort('fire_calls_dtime',-1)
         jobs.skip(int(args['n'])).limit(JOBS_PER_PAGE);
     else:
         jobs = db['jobs'].find()
 
         if jobs:
-            jobs = jobs.sort('fire_dtime',-1).limit(JOBS_PER_PAGE)
+            jobs = jobs.sort('fire_calls_dtime',-1).limit(JOBS_PER_PAGE)
 
     return jobs
 

@@ -4,9 +4,13 @@ from flask.ext.login import login_user
 from user import User
 import json
 
-from app import db, logger, login_manager
+from app import db, log_handler, login_manager
 import reminders
 from config import *
+
+logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(log_handler)
 
 def login():
   if request.method == 'GET':
@@ -14,7 +18,7 @@ def login():
   elif request.method == 'POST':
     username = request.form['username']
     password = request.form['password']
-    
+
     login_record = db['admin_logins'].find_one({'user': username})
     if not login_record:
       r = json.dumps({'status':'error', 'title': 'login info', 'msg':'Username does not exist'})

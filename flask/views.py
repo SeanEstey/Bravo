@@ -7,7 +7,7 @@ from flask import Flask,request,g,Response,url_for, render_template
 from flask.ext.login import login_user, logout_user, login_required
 from bson.objectid import ObjectId
 
-from app import flask_app, db, logger, login_manager, socketio
+from app import flask_app, db, login_manager, socketio, log_handler
 import reminders
 import log
 import receipts
@@ -16,6 +16,10 @@ import scheduler
 import auth
 from config import *
 import utils
+
+logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(log_handler)
 
 #-------------------------------------------------------------------------------
 @flask_app.before_request

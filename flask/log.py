@@ -2,7 +2,11 @@ import mmap
 import os
 
 from config import *
-from app import logger
+from app import log_handler
+
+logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(log_handler)
 
 def get_tail(file, num_lines):
     size = os.path.getsize(LOG_FILE)

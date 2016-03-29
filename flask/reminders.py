@@ -15,9 +15,13 @@ import bson.json_util
 import re
 from pymongo import ReturnDocument
 
-from app import celery_app, db, logger, login_manager, socketio
+from app import celery_app, db, log_handler, login_manager, socketio
 import utils
 from config import *
+
+logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(log_handler)
 
 #-------------------------------------------------------------------------------
 def get_jobs(args):

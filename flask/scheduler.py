@@ -10,10 +10,14 @@ from datetime import datetime,date, timedelta
 from bson import Binary, Code, json_util
 from bson.objectid import ObjectId
 
-from app import celery_app, db, logger, login_manager
+from app import celery_app, db, log_handler, login_manager
 from config import *
 import gsheets
 import etap
+
+logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(log_handler)
 
 #-------------------------------------------------------------------------------
 def get_cal_events(cal_id, start, end):

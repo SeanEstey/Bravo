@@ -8,8 +8,12 @@ from flask import request, current_app, render_template
 from dateutil.parser import parse
 
 import etap
-from app import flask_app, celery_app, db, logger
+from app import flask_app, celery_app, db, log_handler
 from config import *
+
+logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(log_handler)
 
 #-------------------------------------------------------------------------------
 # scope is array of Google service URL's to authorize

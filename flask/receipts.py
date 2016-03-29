@@ -9,7 +9,7 @@ from dateutil.parser import parse
 
 import scheduler
 import etap
-from app import flask_app, celery_app, db, logger
+from app import flask_app, celery_app, db, log_handler
 from config import *
 
 ZERO_COLLECTION_EMAIL_SUBJECT = 'We missed your pickup this time around'
@@ -17,6 +17,10 @@ DROPOFF_FOLLOWUP_EMAIL_SUBJECT = 'Your Dropoff is Complete'
 GIFT_RECEIPT_EMAIL_SUBJECT = 'Thanks for your donation!'
 WELCOME_EMAIL_SUBJECT = 'Welcome to Empties to Winn'
 CANCELLED_EMAIL_SUBJECT = 'You have been removed from the collection schedule'
+
+logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(log_handler)
 
 #-------------------------------------------------------------------------------
 def send(account, entry, template, subject):
@@ -84,7 +88,7 @@ def process(entries, keys):
 
             # Cancelled Receipt
             if etap.get_udf('Status', accounts[i]) == 'Cancelled':
-                send(accounts[i], entries[i], "email_cancelled.html",
+                send(accounts[i], entries[i], "email/cancelled.html",
                         CANCELLED_EMAIL_SUBJECT)
 
                 num_cancels += 1
@@ -99,7 +103,7 @@ def process(entries, keys):
                 collection_date = parse(entries[i]['date']).date()
 
                 if drop_date == collection_date:
-                    send(accounts[i], entries[i], "email_dropoff_followup.html",
+                    send(accounts[i], entries[i], "email/dropoff_followup.html",
                             DROPOFF_FOLLOWUP_EMAIL_SUBJECT)
 
                     num_drop_followups += 1
@@ -113,7 +117,7 @@ def process(entries, keys):
 
                 send(accounts[i],
                      entries[i],
-                     "email_zero_collection.html",
+                     "email/zero_collection.html",
                      ZERO_COLLECTION_EMAIL_SUBJECT
                 )
 
@@ -158,7 +162,7 @@ def process(entries, keys):
                     entry['next_pickup'] = npu.strftime('%B %-d, %Y')
 
                 send(gift_accounts[i]['account'], gift_accounts[i]['entry'],
-                "email_collection_receipt.html", GIFT_RECEIPT_EMAIL_SUBJECT)
+                "email/collection_receipt.html", GIFT_RECEIPT_EMAIL_SUBJECT)
             except Exception as e:
                 logger.error('Error processing gift receipt on row #%s: %s',
                             str(entry['row']), str(e)

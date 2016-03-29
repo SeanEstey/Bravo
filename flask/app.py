@@ -17,12 +17,11 @@ from config import *
 flask_app = Flask(__name__)
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT, connect=False)
 db = mongo_client[DB_NAME]
-logger = logging.getLogger(__name__)
-handler = logging.handlers.TimedRotatingFileHandler(LOG_FILE, when='midnight', interval=1)
-handler.setLevel(LOG_LEVEL)
-handler.setFormatter(formatter)
-logger.setLevel(LOG_LEVEL)
-logger.addHandler(handler)
+
+log_formatter = logging.Formatter('[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M')
+log_handler = logging.FileHandler(LOG_FILE)
+log_handler.setLevel(logging.DEBUG)
+log_handler.setFormatter(log_formatter)
 
 flask_app.config.from_pyfile('config.py')
 from werkzeug.contrib.fixers import ProxyFix
@@ -30,8 +29,10 @@ flask_app.wsgi_app = ProxyFix(flask_app.wsgi_app)
 flask_app.debug = DEBUG
 flask_app.secret_key = SECRET_KEY
 flask_app.jinja_env.add_extension("jinja2.ext.do")
-flask_app.logger.addHandler(handler)
-flask_app.logger.setLevel(LOG_LEVEL)
+
+rlh = logging.handlers.TimedRotatingFileHandler(LOG_FILE, when='midnight', interval=1)
+flask_app.logger.addHandler(rlh)
+flask_app.logger.setLevel(logging.DEBUG)
 socketio = SocketIO(flask_app)
 
 login_manager = LoginManager()

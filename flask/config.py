@@ -9,9 +9,9 @@ from celery.schedules import crontab
 # When True, uses gevent web server. Server auto-restarts
 # on code changes
 # When False, uses Wekzeug dev server
-DEBUG = True
+DEBUG = False
 
-TEST_MODE = True
+TEST_MODE = False
 
 if DEBUG == True:
     LOG_LEVEL = logging.DEBUG
@@ -31,7 +31,6 @@ LOCAL_URL = 'http://localhost:8000'
 PUB_URL = 'http://bravoweb.ca'
 TITLE = 'Bravo'
 LOG_FILE = 'logs/log'
-formatter = logging.Formatter('[%(asctime)s] %(message)s','%m-%d %H:%M')
 
 
 # Reminders

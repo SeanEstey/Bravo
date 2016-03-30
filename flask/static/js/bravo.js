@@ -492,7 +492,7 @@ function validateNewJobForm() {
     var form_data = new FormData($('#myform')[0]);
     var request = $.ajax({
       type: 'POST',
-      url: $URL_ROOT + 'reminders/submit',
+      url: $URL_ROOT + 'reminders/submit_job',
       data: form_data,
       contentType: false,
       processData: false,

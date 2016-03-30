@@ -110,7 +110,7 @@ def get_job_template(name):
 @flask_app.route('/reminders/submit_job', methods=['POST'])
 @login_required
 def submit_job():
-    r = reminders.submit_job(request.form.values(), request.files['call_list'])
+    r = reminders.submit_job(request.form.to_dict(), request.files['call_list'])
     return Response(response=json.dumps(r), status=200, mimetype='application/json')
 
 #-------------------------------------------------------------------------------

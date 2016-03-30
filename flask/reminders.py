@@ -8,6 +8,7 @@ import csv
 import requests
 from bson.objectid import ObjectId
 import bson.json_util
+import json
 import re
 from pymongo import ReturnDocument
 
@@ -232,46 +233,53 @@ def monitor_calls(job_id):
         logger.error('monitor_calls job_id %s', str(job_id), exc_info=True)
 
 #-------------------------------------------------------------------------------
-def line_entry_to_db_msg(job_id, template_def, line_index, buf_row, errors):
+def line_entry_to_db_msg(job_id, schema, line_index, buf_row, errors):
     '''Create mongodb "reminder_msg" record from .CSV line
     job_id: mongo "job_reminder" record_id in ObjectId format
-    template_def: template dict from reminder_templates.json file
+    schema: template dict from reminder_templates.json file
     buf_row: array of values from csv file
     line_index: file row index (for error tracking)
     '''
-    msg = {
-        "job_id": job_id,
-        "call": {
-          "status": "pending",
-          "attempts": 0,
-        },
-        "email": {
-          "status": "pending"
-        },
-        "custom": {}
-    }
-    for i, field in enumerate(template_def['import_fields']):
-        db_field = field['db_field']
+    try:
+        msg = {
+            "job_id": job_id,
+            "call": {
+              "status": "pending",
+              "attempts": 0,
+            },
+            "email": {
+              "status": "pending"
+            },
+            "custom": {}
+        }
 
-        # Format phone numbers
-        if db_field == 'call.to':
-          buf_row[i] = strip_phone(buf_row[i])
-        # Convert any date strings to datetime obj
-        elif field['type'] == 'date':
-            try:
-                buf_row[i] = parse(buf_row[i])
-            except TypeError as e:
-                errors.append('Row %d: %s <b>Invalid Date</b><br>',
-                            (idx+1), str(buf_row))
+        for i, field in enumerate(schema['import_fields']):
+            logger.info('ind %d, field: %s', i, field)
 
-        if db_field.find('.') == -1:
-            msg[db_field] = buf_row[i]
-        else:
-            # dot notation means record is stored as sub-record
-            parent = db_field[0 : db_field.find('.')]
-            child = db_field[db_field.find('.')+1 : len(db_field)]
-            msg[parent][child] = buf_row[i]
-    return msg
+            db_field = field['db_field']
+
+            # Format phone numbers
+            if db_field == 'call.to':
+              buf_row[i] = strip_phone(buf_row[i])
+            # Convert any date strings to datetime obj
+            elif field['type'] == 'date':
+                try:
+                    buf_row[i] = parse(buf_row[i])
+                except TypeError as e:
+                    errors.append('Row %d: %s <b>Invalid Date</b><br>',
+                                (idx+1), str(buf_row))
+
+            if db_field.find('.') == -1:
+                msg[db_field] = buf_row[i]
+            else:
+                # dot notation means record is stored as sub-record
+                parent = db_field[0 : db_field.find('.')]
+                child = db_field[db_field.find('.')+1 : len(db_field)]
+                msg[parent][child] = buf_row[i]
+        return msg
+    except Exception as e:
+        logger.info('Error writing db reminder: %s', str(e))
+        return False
 
 #-------------------------------------------------------------------------------
 def rmv_msg(job_id, msg_id):
@@ -776,6 +784,7 @@ def record_audio():
 
     return 'OK'
 
+#-------------------------------------------------------------------------------
 def job_print(job_id):
     if isinstance(job_id, str):
         job_id = ObjectId(job_id)
@@ -809,10 +818,12 @@ def job_print(job_id):
 
     return summary
 
+#-------------------------------------------------------------------------------
 def allowed_file(filename):
     return '.' in filename and \
      filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
+#-------------------------------------------------------------------------------
 def cancel_job(job_id):
     n = db['jobs'].remove({'_id':ObjectId(job_id)})
 
@@ -823,8 +834,10 @@ def cancel_job(job_id):
 
     logger.info('Removed Job [ID %s]', str(job_id))
 
+#-------------------------------------------------------------------------------
 def submit_job(form, file):
     '''POST request to create new job from new_job.html template'''
+    logger.info(form)
 
     # A. Validate file
     try:
@@ -834,56 +847,73 @@ def submit_job(form, file):
             file_path = UPLOAD_FOLDER + '/' + filename
         else:
             logger.info('could not save file')
+
             return {'status':'error',
                     'title': 'Filename Problem',
                     'msg':'Could not save file'}
     except Exception as e:
         logger.info(str(e))
-        return {'status':'error', 'title':'file problem', 'msg':'could not upload file'}
 
-    # B. Get template definition from reminder_templates.json file
+        return {
+          'status':'error',
+          'title':'file problem',
+          'msg':'could not upload file'
+        }
+
+    # B. Get schema definition from reminder_templates.json file
     try:
         with open('templates/reminder_templates.json') as json_file:
-          template_definitions = json.load(json_file)
+          schemas = json.load(json_file)
     except Exception as e:
-        Logger.error(str(e))
+        logger.error(str(e))
         return {'status':'error',
-                'title': 'Problem Readingvreminder_templates.json File',
+                'title': 'Problem Reading reminder_templates.json File',
                 'msg':'Could not parse file: ' + str(e)}
 
-    template = template_definitions[form['template_name']]
+    #logger.info(schemas)
+
+    schema = schemas[form['template_name']]
 
     # C. Open and parse submitted .CSV file
     try:
         with codecs.open(file_path, 'r', 'utf-8-sig') as f:
-            buffer = parse_csv(f, template)
+            buffer = parse_csv(f, schema)
 
             if type(buffer) == str:
-                return {'status':'error',
-                        'title': 'Problem Reading File',
-                        'msg':buffer}
+                return {
+                  'status':'error',
+                  'title': 'Problem Reading File',
+                  'msg':buffer
+                }
 
             logger.info('Parsed %d rows from %s', len(buffer), filename)
     except Exception as e:
         logger.error(str(e))
+
         return {'status':'error',
                 'title': 'Problem Reading File',
                 'msg':'Could not parse .CSV file: ' + str(e)}
+
     if not form['job_name']:
         job_name = filename.split('.')[0].replace('_',' ')
     else:
         job_name = form['job_name']
+
     try:
         fire_dtime = parse(form['date'] + ' ' + form['time'])
     except Exception as e:
         logger.error(str(e))
-        return {'status':'error',
-                'title': 'Invalid Date',
-                'msg':'Could not parse the schedule date you entered: ' + str(e)}
+
+        return {
+          'status':'error',
+          'title': 'Invalid Date',
+          'msg':'Could not parse the schedule date you entered: ' + str(e)
+        }
+
     # D. Create mongo 'reminder_job' and 'reminder_msg' records
     job = {
         'name': job_name,
-        'template': template,
+        'template': schema,
         'fire_dtime': fire_dtime,
         'status': 'pending',
         'num_calls': len(buffer)
@@ -894,6 +924,7 @@ def submit_job(form, file):
         job['audio_url'] = form['audio-url']
     elif form['template_name'] == 'announce_text':
         job['message'] = form['message']
+
     job_id = db['jobs'].insert(job)
     job['_id'] = job_id
 
@@ -902,7 +933,7 @@ def submit_job(form, file):
         reminders = []
 
         for idx, row in enumerate(buffer):
-            msg = line_entry_to_db_msg(job_id, template['import_fields'], idx, row, errors)
+            msg = line_entry_to_db_msg(job_id, schema, idx, row, errors)
 
             if msg:
                 reminders.append(msg)
@@ -914,21 +945,26 @@ def submit_job(form, file):
                     db['jobs'].remove({'_id':job_id})
 
                 return {'status':'error', 'title':'File Format Problem', 'msg':e}
+
         db['reminders'].insert(reminders)
+
         logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
 
         # Special case
         if form['template_name'] == 'etw':
-            scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
+            #scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
 
-            banner_msg = 'Job \'' + job_name + '\' successfully created! ' + str(len(reminders)) + ' messages imported.'
+            banner_msg = 'Job \'' + job_name + '\' successfully created! '\
+                    + str(len(reminders)) + ' messages imported.'
 
         return {'status':'success', 'msg':banner_msg}
 
     except Exception as e:
         logger.info(str(e))
+
         return {'status':'error', 'title':'error', 'msg':str(e)}
 
+#-------------------------------------------------------------------------------
 def bson_to_json(a):
     '''Convert mongoDB BSON format to JSON.
     Converts timestamps to formatted date strings

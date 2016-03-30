@@ -14,7 +14,7 @@ logger.addHandler(log_handler)
 
 def login():
   if request.method == 'GET':
-    return render_template('view_login.html')
+    return render_template('views/login.html')
   elif request.method == 'POST':
     username = request.form['username']
     password = request.form['password']

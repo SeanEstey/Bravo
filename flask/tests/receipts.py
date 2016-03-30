@@ -120,14 +120,14 @@ class BravoTestCase(unittest.TestCase):
 
       self.assertEquals(r.status_code, 200)
   #'''
-  '''
+  #'''
   def test_send_gift_receipt(self):
       r = self.app.post(
         '/email/send',
         data=json.dumps({
           "recipient": self.etap_test_res_acct['email'],
           "subject": receipts.GIFT_RECEIPT_EMAIL_SUBJECT,
-          "template": 'email_collection_receipt.html',
+          "template": 'email/collection_receipt.html',
           "data": {
             "entry": self.gift,
             "account": self.etap_test_res_acct
@@ -137,7 +137,7 @@ class BravoTestCase(unittest.TestCase):
       )
 
       self.assertEquals(r.status_code, 200)
-  '''
+  #'''
   '''
   def test_process_receipts(self):
       # Hard to unit test because this function calls
@@ -162,7 +162,8 @@ class BravoTestCase(unittest.TestCase):
         receipts.ZERO_COLLECTION_EMAIL_SUBJECT
       )
   """
-
+  def test_end(self):
+      logger.info('********** end receipts.py unittest **********')
 
 if __name__ == '__main__':
     logger.info('********** begin receipts.py unittest **********')

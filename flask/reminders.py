@@ -1,10 +1,6 @@
 import twilio
-from twilio import twiml
-import flask
-from flask import Flask,render_template,request,g,Response,redirect,url_for
 from datetime import datetime,date
 from dateutil.parser import parse
-import werkzeug
 from werkzeug import secure_filename
 import codecs
 import os
@@ -15,7 +11,7 @@ import bson.json_util
 import re
 from pymongo import ReturnDocument
 
-from app import celery_app, db, log_handler, login_manager, socketio
+from app import celery_app, db, log_handler, socketio
 import utils
 from config import *
 
@@ -23,19 +19,17 @@ logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(log_handler)
 
+
 #-------------------------------------------------------------------------------
 def get_jobs(args):
-    # If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
-    # If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
+    '''If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
+    If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
+    '''
 
-    if 'n' in args:
-        jobs = db['jobs'].find().sort('fire_calls_dtime',-1)
-        jobs.skip(int(args['n'])).limit(JOBS_PER_PAGE);
-    else:
-        jobs = db['jobs'].find()
+    jobs = db['jobs'].find()
 
-        if jobs:
-            jobs = jobs.sort('fire_calls_dtime',-1).limit(JOBS_PER_PAGE)
+    if jobs:
+        jobs = jobs.sort('fire_calls_dtime',-1).limit(JOBS_PER_PAGE)
 
     return jobs
 
@@ -173,66 +167,69 @@ def send_emails(job_id):
 #-------------------------------------------------------------------------------
 @celery_app.task
 def monitor_calls(job_id):
-  try:
-    logger.info('Tasks: Monitoring Job')
-    job_id = ObjectId(job_id)
-    job = db['jobs'].find_one({'_id':job_id})
+    try:
+        logger.info('Tasks: Monitoring Job')
+        job_id = ObjectId(job_id)
+        job = db['jobs'].find_one({'_id':job_id})
 
-    # Loop until no incomplete calls remaining (all either failed or complete)
-    while True:
-      # Any calls still active?
-      actives = db['reminders'].find({
-        'job_id': job_id,
-        '$or':[
-          {'call_status': 'queued'},
-          {'call_status': 'ringing'},
-          {'call_status': 'in-progress'}
-        ]
-      })
-      # Any needing redial?
-      incompletes = db['reminders'].find({
-        'job_id':job_id,
-        'attempts': {'$lt': MAX_ATTEMPTS},
-        '$or':[
-          {'call.status': 'busy'},
-          {'call.status': 'no-answer'}
-        ]
-      })
+        # Loop until no incomplete calls remaining (all either failed or complete)
+        while True:
+            # Any calls still active?
+            actives = db['reminders'].find({
+                'job_id': job_id,
+                '$or':[
+                  {'call_status': 'queued'},
+                  {'call_status': 'ringing'},
+                  {'call_status': 'in-progress'}
+            ]})
 
-      # Job Complete!
-      if actives.count() == 0 and incompletes.count() == 0:
-        db['jobs'].update(
-          {'_id': job_id},
-          {'$set': {
-            'call.status': 'completed',
-            'call.ended_at': datetime.now()
-            }
-        })
-        logger.info('\nCompleted Job %s [ID %s]\n', job['name'], str(job_id))
-        # Connect back to server and notify
-        requests.get(PUB_URL + '/complete/' + str(job_id))
+            # Any needing redial?
+            incompletes = db['reminders'].find({
+                'job_id':job_id,
+                'attempts': {'$lt': MAX_ATTEMPTS},
+                '$or':[
+                  {'call.status': 'busy'},
+                  {'call.status': 'no-answer'}
+            ]})
 
+            if actives.count() == 0 and incompletes.count() == 0:
+                # Job Complete!
+                db['jobs'].update(
+                  {'_id': job_id},
+                  {'$set': {
+                    'call.status': 'completed',
+                    'call.ended_at': datetime.now()
+                    }
+                })
+                logger.info('\nCompleted Job %s [ID %s]\n', job['name'], str(job_id))
+                # Connect back to server and notify
+                requests.get(PUB_URL + '/complete/' + str(job_id))
+
+                return 'OK'
+            elif actives.count() == 0 and incompletes.count() > 0:
+                # Job still in progress. Any incomplete calls need redialing?
+                logger.info('Pausing %d sec then Re-attempting %d Incompletes.',
+                            REDIAL_DELAY, incompletes.count())
+                time.sleep(REDIAL_DELAY)
+
+                for call in incompletes:
+                    r = dial(call['imported']['to'])
+
+                    logger.info('%s %s', call['imported']['to'], r['call_status'])
+
+                    r['attempts'] = call['attempts']+1
+
+                    db['reminders'].update(
+                      {'_id':call['_id']},
+                      {'$set': r}
+                    )
+                    # Still active calls going out
+            else:
+                time.sleep(10)
+        # End loop
         return 'OK'
-      # Job still in progress. Any incomplete calls need redialing?
-      elif actives.count() == 0 and incompletes.count() > 0:
-        logger.info('Pausing %d sec then Re-attempting %d Incompletes.',
-                    REDIAL_DELAY, incompletes.count())
-        time.sleep(REDIAL_DELAY)
-        for call in incompletes:
-          r = dial(call['imported']['to'])
-          logger.info('%s %s', call['imported']['to'], r['call_status'])
-          r['attempts'] = call['attempts']+1
-          db['reminders'].update(
-            {'_id':call['_id']},
-            {'$set': r}
-          )
-      # Still active calls going out
-      else:
-        time.sleep(10)
-    # End loop
-    return 'OK'
-  except Exception, e:
-    logger.error('monitor_calls job_id %s', str(job_id), exc_info=True)
+    except Exception, e:
+        logger.error('monitor_calls job_id %s', str(job_id), exc_info=True)
 
 #-------------------------------------------------------------------------------
 def line_entry_to_db_msg(job_id, template_def, line_index, buf_row, errors):
@@ -757,13 +754,18 @@ def record_audio():
 
             if digits == '#':
                 logger.info('Recording completed. Sending audio_url to client')
+
                 recording_info = {
                   'audio_url': request.args.get('RecordingUrl'),
                   'audio_duration': request.args.get('RecordingDuration'),
                   'sid': request.args.get('CallSid'),
                   'call_status': request.args.get('CallStatus')
                 }
-                db['bravo'].update({'sid': request.args.get('CallSid')}, {'$set': recording_info})
+
+                db['bravo'].update(
+                  {'sid': request.args.get('CallSid')},
+                  {'$set': recording_info})
+
                 socketio.emit('record_audio', recording_info)
                 response = twilio.twiml.Response()
                 response.say('Message recorded', voice='alice')
@@ -774,7 +776,6 @@ def record_audio():
 
     return 'OK'
 
-#-------------------------------------------------------------------------------
 def job_print(job_id):
     if isinstance(job_id, str):
         job_id = ObjectId(job_id)
@@ -789,25 +790,29 @@ def job_print(job_id):
     summary = {
         "totals": {
           "completed": {
-            'answered': db['reminders'].find({'job_id':job_id, 'answered_by':'human'}).count(),
-            'voicemail': db['reminders'].find({'job_id':job_id, 'answered_by':'machine'}).count()
+            'answered': db['reminders'].find(
+                {'job_id':job_id, 'answered_by':'human'}).count(),
+            'voicemail': db['reminders'].find(
+                {'job_id':job_id, 'answered_by':'machine'}).count()
           },
-          "no-answer" : db['reminders'].find({'job_id':job_id, 'call_status':'no-answer'}).count(),
-          "busy": db['reminders'].find({'job_id':job_id, 'call_status':'busy'}).count(),
-          "failed" : db['reminders'].find({'job_id':job_id, 'call_status':'failed'}).count(),
+          "no-answer" : db['reminders'].find(
+              {'job_id':job_id, 'call_status':'no-answer'}).count(),
+          "busy": db['reminders'].find(
+              {'job_id':job_id, 'call_status':'busy'}).count(),
+          "failed" : db['reminders'].find(
+              {'job_id':job_id, 'call_status':'failed'}).count(),
           "time_elapsed": time_elapsed
         },
-        "calls": list(db['reminders'].find({'job_id':job_id},{'ended_at':0, 'job_id':0}))
+        "calls": list(db['reminders'].find(
+            {'job_id':job_id},{'ended_at':0, 'job_id':0}))
     }
 
     return summary
 
-#-------------------------------------------------------------------------------
 def allowed_file(filename):
     return '.' in filename and \
      filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
-#-------------------------------------------------------------------------------
 def cancel_job(job_id):
     n = db['jobs'].remove({'_id':ObjectId(job_id)})
 
@@ -818,7 +823,6 @@ def cancel_job(job_id):
 
     logger.info('Removed Job [ID %s]', str(job_id))
 
-#-------------------------------------------------------------------------------
 def submit_job(form, file):
     '''POST request to create new job from new_job.html template'''
 
@@ -830,7 +834,9 @@ def submit_job(form, file):
             file_path = UPLOAD_FOLDER + '/' + filename
         else:
             logger.info('could not save file')
-            return {'status':'error', 'title': 'Filename Problem', 'msg':'Could not save file'}
+            return {'status':'error',
+                    'title': 'Filename Problem',
+                    'msg':'Could not save file'}
     except Exception as e:
         logger.info(str(e))
         return {'status':'error', 'title':'file problem', 'msg':'could not upload file'}
@@ -853,7 +859,9 @@ def submit_job(form, file):
             buffer = parse_csv(f, template)
 
             if type(buffer) == str:
-                return {'status':'error', 'title': 'Problem Reading File', 'msg':buffer}
+                return {'status':'error',
+                        'title': 'Problem Reading File',
+                        'msg':buffer}
 
             logger.info('Parsed %d rows from %s', len(buffer), filename)
     except Exception as e:
@@ -872,7 +880,7 @@ def submit_job(form, file):
         return {'status':'error',
                 'title': 'Invalid Date',
                 'msg':'Could not parse the schedule date you entered: ' + str(e)}
-# D. Create mongo 'reminder_job' and 'reminder_msg' records
+    # D. Create mongo 'reminder_job' and 'reminder_msg' records
     job = {
         'name': job_name,
         'template': template,
@@ -888,6 +896,7 @@ def submit_job(form, file):
         job['message'] = form['message']
     job_id = db['jobs'].insert(job)
     job['_id'] = job_id
+
     try:
         errors = []
         reminders = []
@@ -920,7 +929,6 @@ def submit_job(form, file):
         logger.info(str(e))
         return {'status':'error', 'title':'error', 'msg':str(e)}
 
-#-------------------------------------------------------------------------------
 def bson_to_json(a):
     '''Convert mongoDB BSON format to JSON.
     Converts timestamps to formatted date strings

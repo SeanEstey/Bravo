@@ -48,7 +48,7 @@ def logout():
 @login_required
 def view_jobs():
     return render_template(
-      'view_job_list.html',
+      'views/job_list.html',
       title=None,
       jobs=reminders.get_jobs(request.args.values())
     )
@@ -58,13 +58,13 @@ def view_jobs():
 @login_required
 def view_log():
     lines = log.get_tail(LOG_FILE, 50)
-    return flask.render_template('view_log.html', lines=lines)
+    return flask.render_template('views/log.html', lines=lines)
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/admin')
 @login_required
 def view_admin():
-    return flask.render_template('view_admin.html')
+    return flask.render_template('views/admin.html')
 
 #-------------------------------------------------------------------------------
 @socketio.on('disconnected')
@@ -96,7 +96,7 @@ def request_send_socket():
 @flask_app.route('/reminders/new')
 @login_required
 def new_job():
-    return render_template('view_new_job.html', title=TITLE)
+    return render_template('views/new_job.html', title=TITLE)
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/get_job_template/<name>')
@@ -127,7 +127,7 @@ def view_job(job_id):
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
 
     return render_template(
-        'view_job.html',
+        'views/job.html',
         title=TITLE,
         calls=calls,
         job_id=job_id,

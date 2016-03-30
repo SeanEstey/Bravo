@@ -80,6 +80,12 @@ def process(entries, keys):
               'no email'
             )
             continue
+        else:
+            wks.update_cell(
+              entries[i]['from']['row'],
+              headers.index('Email Status')+1,
+              'queued'
+            )
 
         try:
             entries[i]['date'] = parse(entries[i]['date']).strftime('%B %-d, %Y')

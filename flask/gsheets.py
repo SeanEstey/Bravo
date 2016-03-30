@@ -101,6 +101,7 @@ def update_entry(status, destination):
     '''
 
 #-------------------------------------------------------------------------------
+@celery_app.task
 def create_rfu(request_note, account_number=None, next_pickup=None, block=None, date=None):
     try:
         gc = auth(['https://spreadsheets.google.com/feeds'])

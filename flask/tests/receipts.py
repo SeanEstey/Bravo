@@ -44,6 +44,7 @@ class BravoTestCase(unittest.TestCase):
         "account_number": 57515, # Test Res
         "date": "04/06/2016",
         "amount": 0.00,
+        "status": "Active",
         "next_pickup": "21/06/2016",
         "from": {
             "sheet": "Routes",
@@ -58,6 +59,7 @@ class BravoTestCase(unittest.TestCase):
         "account_number": 57515, # Test Res
         "date": "04/06/2016",
         "amount": 10.00,
+        "status": "Active",
         "next_pickup": "21/06/2016",
         "from": {
             "sheet": "Routes",
@@ -70,6 +72,7 @@ class BravoTestCase(unittest.TestCase):
         "account_number": 71675, # Cancelled Status
         "date": "04/06/2016",
         "amount": 0.00,
+        "status": "Cancelled",
         "next_pickup": "21/06/2016",
         "from": {
             "sheet": "Routes",
@@ -85,7 +88,8 @@ class BravoTestCase(unittest.TestCase):
       self.zero_gift_bus = {
         "account_number": 57516, # Test Business
         "date": "04/06/2016",
-        "amount": 0.00,
+        "amount": 5.00,
+        "status": "Call-in",
         "next_pickup": "21/06/2016",
         "from": {
             "sheet": "Routes",
@@ -175,7 +179,7 @@ class BravoTestCase(unittest.TestCase):
       except Exception as e:
           logger.error(str(e))
 
-      logger.info(r.__dict__)
+      #logger.info(r.__dict__)
       self.assertEquals(r._state, 'SUCCESS')
   #'''
   """

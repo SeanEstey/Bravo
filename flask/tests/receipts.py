@@ -52,6 +52,8 @@ class BravoTestCase(unittest.TestCase):
         }
       }
 
+
+
       self.gift = {
         "account_number": 57515, # Test Res
         "date": "04/06/2016",
@@ -72,6 +74,22 @@ class BravoTestCase(unittest.TestCase):
         "from": {
             "sheet": "Routes",
             "row": 4,
+            "upload_status": "Success"
+        }
+      }
+
+      self.gift_no_email_act = self.gift.copy()
+      self.gift_no_email_act['account_number'] = 67590
+      self.gift_no_email_act['from']['row'] = 5
+
+      self.zero_gift_bus = {
+        "account_number": 57516, # Test Business
+        "date": "04/06/2016",
+        "amount": 0.00,
+        "next_pickup": "21/06/2016",
+        "from": {
+            "sheet": "Routes",
+            "row": 6,
             "upload_status": "Success"
         }
       }
@@ -102,7 +120,7 @@ class BravoTestCase(unittest.TestCase):
   def logout(self):
       return self.app.get('/logout', follow_redirects=True)
 
-  #'''
+  '''
   def test_send_zero_receipt(self):
       r = self.app.post(
         '/email/send',
@@ -119,8 +137,8 @@ class BravoTestCase(unittest.TestCase):
       )
 
       self.assertEquals(r.status_code, 200)
-  #'''
-  #'''
+  '''
+  '''
   def test_send_gift_receipt(self):
       r = self.app.post(
         '/email/send',
@@ -137,22 +155,29 @@ class BravoTestCase(unittest.TestCase):
       )
 
       self.assertEquals(r.status_code, 200)
-  #'''
   '''
+  #'''
   def test_process_receipts(self):
       # Hard to unit test because this function calls
       # /email/send from the live server.
 
       try:
           r = receipts.process.apply_async(
-            args=([self.zero_gift, self.gift, self.gift_cancelled_act], ETAP_WRAPPER_KEYS),
+            args=([
+                self.zero_gift,
+                self.gift,
+                self.gift_cancelled_act,
+                self.gift_no_email_act,
+                self.zero_gift_bus],
+                ETAP_WRAPPER_KEYS),
             queue=DB_NAME
           )
       except Exception as e:
           logger.error(str(e))
 
+      logger.info(r.__dict__)
       self.assertEquals(r._state, 'SUCCESS')
-  '''
+  #'''
   """
   def test_send_receipt(self):
       receipts.send(
@@ -162,8 +187,6 @@ class BravoTestCase(unittest.TestCase):
         receipts.ZERO_COLLECTION_EMAIL_SUBJECT
       )
   """
-  def test_end(self):
-      logger.info('********** end receipts.py unittest **********')
 
 if __name__ == '__main__':
     logger.info('********** begin receipts.py unittest **********')

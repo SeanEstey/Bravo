@@ -8,11 +8,12 @@ from flask import request, current_app, render_template
 from dateutil.parser import parse
 
 import scheduler
+from gsheets import auth
 import etap
 from app import flask_app, celery_app, db, log_handler
 from config import *
 
-ZERO_COLLECTION_EMAIL_SUBJECT = 'We missed your pickup this time around'
+ZERO_COLLECTION_EMAIL_SUBJECT = "We didn't receive a collection from you"
 DROPOFF_FOLLOWUP_EMAIL_SUBJECT = 'Your Dropoff is Complete'
 GIFT_RECEIPT_EMAIL_SUBJECT = 'Thanks for your donation!'
 WELCOME_EMAIL_SUBJECT = 'Welcome to Empties to Winn'
@@ -62,14 +63,9 @@ def process(entries, keys):
         logger.error('Error retrieving accounts from etap')
         return False
 
-    # Update 'Email Status' with either 'queued' or 'no email' so user knows
-    # process is running
-    #gc = auth(['https://spreadsheets.google.com/feeds'])
-    #wks = gc.open('Route Importer').worksheet('Routes')
-    #headers = wks.row_values(1)
-    #start = wks.get_addr_int(2, headers.index('Email Status')+1)
-    #end = start[0] + str(len(accounts)+1)
-    #status_range = wks.range(start + ':' + end)
+    gc = auth(['https://spreadsheets.google.com/feeds'])
+    wks = gc.open('Route Importer').worksheet('Routes')
+    headers = wks.row_values(1)
 
     num_zeros = 0
     num_drop_followups = 0
@@ -78,13 +74,19 @@ def process(entries, keys):
 
     for i in range(0, len(accounts)):
         if not accounts[i]['email']:
+            wks.update_cell(
+              entries[i]['from']['row'],
+              headers.index('Email Status')+1,
+              'no email'
+            )
             continue
 
         try:
             entries[i]['date'] = parse(entries[i]['date']).strftime('%B %-d, %Y')
 
             if 'next_pickup' in entries[i]:
-                entries[i]['next_pickup'] = parse(entries[i]['next_pickup']).strftime('%B %-d, %Y')
+                entries[i]['next_pickup'] = parse(
+                        entries[i]['next_pickup']).strftime('%B %-d, %Y')
 
             # Cancelled Receipt
             if etap.get_udf('Status', accounts[i]) == 'Cancelled':
@@ -115,11 +117,18 @@ def process(entries, keys):
                     npu = parse(entries[i]['next_pickup']).date()
                     entries[i]['next_pickup'] = npu.strftime('%B %-d, %Y')
 
-                send(accounts[i],
-                     entries[i],
-                     "email/zero_collection.html",
-                     ZERO_COLLECTION_EMAIL_SUBJECT
-                )
+                if accounts[i]['nameFormat'] == 3: # Business
+                    send(accounts[i],
+                         entries[i],
+                         "email/zero_collection_receipt.html",
+                         ZERO_COLLECTION_EMAIL_SUBJECT
+                    )
+                else: # Residential
+                    send(accounts[i],
+                         entries[i],
+                         "email/no_collection_receipt.html",
+                         ZERO_COLLECTION_EMAIL_SUBJECT
+                    )
 
                 num_zeros +=1
 
@@ -144,7 +153,6 @@ def process(entries, keys):
 
             logger.info('%s gift histories retrieved', str(len(gift_histories)))
 
-            #logger.info(gift_histories)
         except Exception as e:
             logger.error('Error retrieving gift histories: %s', str(e))
 

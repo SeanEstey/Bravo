@@ -254,8 +254,6 @@ def line_entry_to_db_msg(job_id, schema, line_index, buf_row, errors):
         }
 
         for i, field in enumerate(schema['import_fields']):
-            logger.info('ind %d, field: %s', i, field)
-
             db_field = field['db_field']
 
             # Format phone numbers
@@ -860,17 +858,15 @@ def submit_job(form, file):
           'msg':'could not upload file'
         }
 
-    # B. Get schema definition from reminder_templates.json file
+    # B. Get schema definitions from json file
     try:
-        with open('templates/reminder_templates.json') as json_file:
+        with open('templates/reminder_schemas.json') as json_file:
           schemas = json.load(json_file)
     except Exception as e:
         logger.error(str(e))
         return {'status':'error',
                 'title': 'Problem Reading reminder_templates.json File',
                 'msg':'Could not parse file: ' + str(e)}
-
-    #logger.info(schemas)
 
     schema = schemas[form['template_name']]
 

@@ -10,8 +10,8 @@
       {"file_header": "Next Pickup", "db_field": "custom.next_pickup", "type":"date"},
       {"file_header": "Office Notes", "db_field": "custom.office_notes", "type":"string"}
     ],
-    "call_template": "speak_etw_reminder.html",
-    "email_template": "email_etw_reminder.html",
+    "call_template": "speak/etw_reminder.html",
+    "email_template": "email/etw_reminder.html",
     "email_subject": "Your upcoming Empties to Winn event"
   },
   "green_goods": {
@@ -21,20 +21,20 @@
       {"file_header": "Date", "db_field": "custom.event_date", "type": "date"},
       {"file_header": "Price", "db_field": "custom.price", "type": "number"}
     ],
-    "call_template": "speak_green_goods_reminder.html"
+    "call_template": "speak/green_goods_reminder.html"
   },
   "announce_text": {
     "import_fields": [
       {"file_header": "Name", "db_field": "name"},
       {"file_header": "Phone","db_field": "call.to"}
     ],
-    "call_template": "speak_announce.html"
+    "call_template": "speak/announce.html"
   },
   "announce_voice": {
     "import_fields": [
       {"file_header": "Name", "db_field": "name"},
       {"file_header": "Phone", "db_field": "call.to"}
     ],
-    "call_template": "speak_announce.html"
+    "call_template": "speak/announce.html"
   }
 }

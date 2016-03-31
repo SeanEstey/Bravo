@@ -42,7 +42,8 @@
   "template": {
     "call_template": "file.html",
     "email_template": "file.html",
-    "email_subject": ""
+    "email_subject": "",
+    "import_fields": {}
   },
   "audio_url": "saved_audio_message_url"
 }

@@ -31,61 +31,95 @@
           {% set col_arr=[] %}
           {% for column in template if not column.hide %}
             <th style='text-align:left' id='col{{ col_num }}'>
-              <a title='Sort' class='hover' href='#'>{{ column['field'].title().replace('_', ' ') }}</a>
+              <a title='Sort' class='hover' href='#'>
+                <!--column['field'].title().replace('_', ' ')-->
+                {{ column['file_header'] }}
+              </a>
             </th>
             {% set col_num = col_num + 1 %}
             {% do col_arr.append(1) %}
           {% endfor %}
+
           <!-- Status Headers -->
           {% for column in template %}
             {% if 'status_field' in column %}
-              <th name='{{column['status_field']}}' style='text-align:right'  id='col{{col_arr|length+1}}'>
-                <a title='Sort' class='hover' href='#'>{{column['status_field'].title().replace('_', ' ')}}</a>
+              <th name='{{column['status_field']}}' 
+                  style='text-align:right'  
+                  id='col{{col_arr|length+1}}'>
+                  <a title='Sort' class='hover' href='#'>
+                    {{column['status_field'].title().replace('_', ' ')}}
+                  </a>
               </th>
-            {% set col_num = col_num + 1 %}
-            {% do col_arr.append(1) %}
-            {% endif %}
-          {% endfor %}
-          <th class='cancel-call-col' style='width:50px'></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% set row_num=1 %}
-        {%  for call in calls %}
-        <tr id='{{ call._id }}'>
-          <!-- Imported Fields -->
-          {% for column in template if not column.hide %}
-            {% if column.field == "email" %}
-              {% set style="WORD-BREAK:BREAK-ALL" %}
-            {% endif %}
-            {% if call.imported[column.field] == '' %}
-              <td style='{{style}}' name="{{column.field}}">---</td>
-            {% else %}
-              <td style='{{style}}' name="{{column.field}}">{{call.imported[column.field]}}</td>
+              {% set col_num = col_num + 1 %}
+              {% do col_arr.append(1) %}
             {% endif %}
           {% endfor %}
 
+          <th class='cancel-call-col' style='width:50px'></th>
+        </tr>
+      </thead>
+
+      <!-- Data Rows -->
+      <tbody>
+      {% set row_num=1 %}
+
+      {% for reminder in reminders %}
+        <tr id='{{ reminder._id }}'>
+          <!-- Imported Field Columns -->
+          {% for column in template if not column.hide %}
+            {% set field = column['db_field'] %}
+
+            {% if "." in field %}
+              {% set dot_ind = field.index('.') %}
+              {% set len = field|length %}
+              {% set value = reminder[field[0:dot_ind]][field[dot_ind+1:field|length]] %}
+            {% else %}
+              {% set value = reminder[field] %}
+            {% endif %}
+
+            {% if field == "email" %}
+              {% set style="WORD-BREAK:BREAK-ALL" %}
+            {% endif %}
+
+            {% if value == '' %}
+              <td style='{{style}}' name="{{ field }}">
+                ---
+              </td>
+            {% else %}
+              <td style='{{style}}' name="{{ field }}">
+                {{ value }}
+              </td>
+            {% endif %}
+          {% endfor %}
+
+          <!-- Standard Columns -->
           {% for column in template %}
             <!-- Call Status -->
             {% if 'status_field' in column and column['status_field'] == 'call_status' %}
-              {% if call.call_status == "completed" %}
-                {% set caption=call.call_status + ' ' + call.answered_by %}
-                {% set tooltip = call.speak  %}
-              {% elif call.call_status == "no-answer" or call.call_status == "busy" %}
-                {% set caption = call.call_status + ' ' ~ call.attempts %}
-              {% elif call.call_status == "failed" %}
-                {% set caption = call.call_status + ' ' + call.call_error %}
+              {% if reminder['call']['status'] == "completed" %}
+                {% set caption=reminder['call']['status'] + ' ' + reminder.answered_by %}
+                {% set tooltip = reminder.speak  %}
+              {% elif reminder['call']['status'] == "no-answer" or
+              reminder['call']['status'] == "busy" %}
+                {% set caption = reminder['call']['status'] + ' ' ~ reminder.attempts %}
+              {% elif reminder['call']['status'] == "failed" %}
+                {% set caption = reminder['call']['status'] + ' ' + reminder.call_error %}
               {% else %}
-                {% set caption=call.call_status %}
+                {% set caption=reminder['call']['status'] %}
               {% endif %}
-                <td name='call_status' style='text-align:right; font-weight:normal;' title='"{{tooltip}}"'>{{caption}}</td>
+                <td name='call_status' style='text-align:right; font-weight:normal;' 
+                    title='"{{tooltip}}"'>{{caption}}
+                </td>
             <!-- Email Status -->
             {% set tooltip = '' %}
             {% elif 'status_field' in column and column['status_field'] == 'email_status' %}
-              {% if call['email_status'] == 'bounced' or call['email_status'] == 'dropped' %}
-                {% set tooltip = call.email_error %}
+              {% if reminder['email']['status'] == 'bounced' or
+              reminder['email']['status'] == 'dropped' %}
+                {% set tooltip = reminder['email']['error_msg'] %}
               {% endif %}
-              <td title='{{tooltip}}' style='text-align:right; font-weight:normal;' name='email_status'>{{call["email_status"]}}</td>
+              <td title='{{ tooltip }}' style='text-align:right; font-weight:normal;' 
+                  name='email_status'>{{ reminder['email']['status'] }}
+              </td>
             {% endif %}
           {% endfor %}
           <!-- Delete Button -->
@@ -93,13 +127,13 @@
             <button 
               class='delete-btn' 
               type="button" 
-              id="{{ call._id }}" 
+              id="{{ reminder['_id'] }}" 
               name="delete-btn">
             </button>
           </td>
         </tr>
-        {% set row_num = row_num + 1 %}
-        {% endfor %}
+      {% set row_num = row_num + 1 %}
+      {% endfor %}
     </tbody>
     </table>
   </div>

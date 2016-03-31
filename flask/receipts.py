@@ -70,6 +70,7 @@ def process(entries, keys):
     num_zeros = 0
     num_drop_followups = 0
     num_cancels = 0
+    num_no_emails = 0
     gift_accounts = []
 
     for i in range(0, len(accounts)):
@@ -79,6 +80,8 @@ def process(entries, keys):
               headers.index('Email Status')+1,
               'no email'
             )
+            num_no_emails += 1
+
             continue
         else:
             wks.update_cell(
@@ -186,5 +189,6 @@ def process(entries, keys):
       str(num_zeros) + ' zero collections sent\n' +
       str(len(gift_accounts)) + ' gift receipts sent\n' +
       str(num_drop_followups) + ' dropoff followups sent\n' +
-      str(num_cancels) + ' cancellations sent'
+      str(num_cancels) + ' cancellations sent\n' +
+      str(num_no_emails) + ' no emails'
     )

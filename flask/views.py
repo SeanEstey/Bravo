@@ -123,13 +123,15 @@ def record_msg():
 @login_required
 def view_job(job_id):
     sort_by = 'name'
-    calls = db['reminders'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
+    reminders = db['reminders'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+
+    logger.info(reminders)
 
     return render_template(
         'views/job.html',
         title=TITLE,
-        calls=calls,
+        reminders=reminders,
         job_id=job_id,
         job=job,
         template=job['template']['import_fields']

@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(log_handler)
 
-
 #-------------------------------------------------------------------------------
 def get_jobs(args):
     '''If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}

@@ -304,6 +304,21 @@ textarea.special-msg {
   background: rgba(0, 0, 0,1);
 }
 
+#record-status {
+  font-size: 14px;
+  color: #2b547e;
+  text-align: center;
+  padding:0.5em;
+}
+
+/*** new_job.html ***/
+
+#my-alert {
+  display: none;
+  width:400px;
+}
+
+
 /***** BOOTSTRAP3 *****/
 
 .thin {

@@ -1,4 +1,3 @@
-
 // GLOBALS
 this.colors = {
   'SUCCESS_STATUS': '#5CB85C',
@@ -477,7 +476,7 @@ function validateNewJobForm() {
     $('#btn-primary').text('Start Job');
     $('#btn-primary').text('No');
     $('#btn-primary').click(function() {
- //     $('form').submit();
+  //     $('form').submit();
     });
     $('#mymodal').modal('show');
   }
@@ -488,11 +487,11 @@ function validateNewJobForm() {
     $('#mymodal').modal('show');
   }
   else {
-//    event.preventDefault();
+    // event.preventDefault();
     var form_data = new FormData($('#myform')[0]);
     var request = $.ajax({
       type: 'POST',
-      url: $URL_ROOT + 'reminders/submit_job',
+      url: $URL_ROOT + '/',
       data: form_data,
       contentType: false,
       processData: false,
@@ -756,8 +755,7 @@ function initShowCallsView() {
     }
       updateJobStatus();
   });
-
-//  if(location.port == 8080) {
+    //  if(location.port == 8080) {
     var args =  window.location.pathname.split('/');
     var job_uuid = args.slice(-1)[0];
     $('#execute-job').click(function() {
@@ -893,7 +891,7 @@ function updateJobStatus() {
     });
 
     var delivered_percent = Math.floor((n_sent / sum) * 100);
-//    $('#job-summary').css({'color':'#009900'});
+  //    $('#job-summary').css({'color':'#009900'});
     var text = String(delivered_percent) + '%';
     $('#job-summary').text(text);
   }
@@ -994,6 +992,7 @@ function updateCountdown() {
 
   $summary_lbl.text($summary_lbl.text() + Math.floor(diff_hrs) + ' Hours ' + Math.floor(diff_min) + ' Min ' + Math.floor(diff_sec) + ' Sec');
 }
+
 
 // View: show_jobs
 function initShowJobs() {
@@ -1137,9 +1136,11 @@ function initAdmin() {
   displayServerStatus('/get/annual_usage', '', $('#annual-usage'));
 }
 
-// Converts a JS Object to indented, color-coded HTML (no braces/brackets)
-// Properties are sorted alphabetically
 function objToHtml(obj, indents, ignores) {
+  /*Converts a JS Object to indented, color-coded HTML (no braces/brackets)
+  Properties are sorted alphabetically
+  */
+
   var indent = '';
   var str = '';
   var toClass = {}.toString;

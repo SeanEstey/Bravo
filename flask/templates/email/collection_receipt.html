@@ -17,14 +17,16 @@
       <td>
         <table style='font-size:12pt;' cellpadding='5'>
           {% for gift in data['account']['gift_history'] %}
-            <tr>
-              <td>
-                {{ gift.date }}
-              </td>
-              <td>
-                ${{ gift.amount }}
-              </td>
-            </tr>
+            {% if loop.index0 < 6 %}
+              <tr>
+                <td>
+                  {{ gift.date }}
+                </td>
+                <td>
+                  ${{ gift.amount }}
+                </td>
+              </tr>
+            {% endif %}
           {% endfor %}
         </table>
       </td>

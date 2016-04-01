@@ -162,7 +162,7 @@ class BravoTestCase(unittest.TestCase):
 
       self.assertEquals(r.status_code, 200)
   '''
-  '''
+  #'''
   def test_process_receipts(self):
       # Hard to unit test because this function calls
       # /email/send from the live server.
@@ -183,7 +183,7 @@ class BravoTestCase(unittest.TestCase):
 
       #logger.info(r.__dict__)
       self.assertEquals(r._state, 'SUCCESS')
-  '''
+  #'''
   """
   def test_send_receipt(self):
       receipts.send(

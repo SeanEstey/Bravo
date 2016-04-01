@@ -40,20 +40,35 @@
             {% do col_arr.append(1) %}
           {% endfor %}
 
-          <!-- Status Headers -->
-          {% for column in template %}
-            {% if 'status_field' in column %}
-              <th name='{{column['status_field']}}' 
-                  style='text-align:right'  
-                  id='col{{col_arr|length+1}}'>
-                  <a title='Sort' class='hover' href='#'>
-                    {{column['status_field'].title().replace('_', ' ')}}
-                  </a>
-              </th>
-              {% set col_num = col_num + 1 %}
-              {% do col_arr.append(1) %}
-            {% endif %}
-          {% endfor %}
+          <!-- Call Status Header -->
+          {% if 'call' in reminders[0] %}
+            <th name='Call Status' 
+              style='text-align:right'  
+              id='col{{col_arr|length+1}}'>
+              <a title='Sort' class='hover' href='#'>
+                <!--column['status_field'].title().replace('_', ' ')-->
+                Call Status
+              </a>
+            </th>
+
+            {% set col_num = col_num + 1 %}
+            {% do col_arr.append(1) %}
+          {% endif %}
+
+          <!-- Email Status Header -->
+          {% if 'call' in reminders[0] %}
+            <th name='Email Status' 
+              style='text-align:right'  
+              id='col{{col_arr|length+1}}'>
+              <a title='Sort' class='hover' href='#'>
+                <!--column['status_field'].title().replace('_', ' ')-->
+                Email Status
+              </a>
+            </th>
+
+            {% set col_num = col_num + 1 %}
+            {% do col_arr.append(1) %}
+          {% endif %}
 
           <th class='cancel-call-col' style='width:50px'></th>
         </tr>
@@ -92,36 +107,40 @@
             {% endif %}
           {% endfor %}
 
-          <!-- Standard Columns -->
-          {% for column in template %}
-            <!-- Call Status -->
-            {% if 'status_field' in column and column['status_field'] == 'call_status' %}
-              {% if reminder['call']['status'] == "completed" %}
-                {% set caption=reminder['call']['status'] + ' ' + reminder.answered_by %}
-                {% set tooltip = reminder.speak  %}
-              {% elif reminder['call']['status'] == "no-answer" or
-              reminder['call']['status'] == "busy" %}
-                {% set caption = reminder['call']['status'] + ' ' ~ reminder.attempts %}
-              {% elif reminder['call']['status'] == "failed" %}
-                {% set caption = reminder['call']['status'] + ' ' + reminder.call_error %}
-              {% else %}
-                {% set caption=reminder['call']['status'] %}
-              {% endif %}
-                <td name='call_status' style='text-align:right; font-weight:normal;' 
-                    title='"{{tooltip}}"'>{{caption}}
-                </td>
-            <!-- Email Status -->
-            {% set tooltip = '' %}
-            {% elif 'status_field' in column and column['status_field'] == 'email_status' %}
-              {% if reminder['email']['status'] == 'bounced' or
-              reminder['email']['status'] == 'dropped' %}
-                {% set tooltip = reminder['email']['error_msg'] %}
-              {% endif %}
-              <td title='{{ tooltip }}' style='text-align:right; font-weight:normal;' 
-                  name='email_status'>{{ reminder['email']['status'] }}
-              </td>
+          <!-- Call Status -->
+          {% if 'call' in reminder  %}
+            {% if reminder['call']['status'] == "completed" %}
+              {% set caption=reminder['call']['status'] + ' ' +
+              reminder['call']['answered_by'] %}
+              {% set tooltip = reminder['call']['speak']  %}
+            {% elif reminder['call']['status'] == "no-answer" or
+            reminder['call']['status'] == "busy" %}
+              {% set caption = reminder['call']['status'] + ' ' ~
+              reminder['call']['attempts'] %}
+            {% elif reminder['call']['status'] == "failed" %}
+              {% set caption = reminder['call']['status'] + ' ' +
+              reminder['call']['error_msg'] %}
+            {% else %}
+              {% set caption=reminder['call']['status'] %}
             {% endif %}
-          {% endfor %}
+              <td name='call_status' style='text-align:right; font-weight:normal;' 
+                  title='"{{tooltip}}"'>{{caption}}
+              </td>
+          {% endif %}
+
+          {% set tooltip = '' %}
+
+          <!-- Email Status -->
+          {% if 'email' in reminder %}
+            {% if reminder['email']['status'] == 'bounced' or
+            reminder['email']['status'] == 'dropped' %}
+              {% set tooltip = reminder['email']['error_msg'] %}
+            {% endif %}
+            <td title='{{ tooltip }}' style='text-align:right; font-weight:normal;' 
+                name='email_status'>{{ reminder['email']['status'] }}
+            </td>
+          {% endif %}
+
           <!-- Delete Button -->
           <td class='cancel-call-col'>
             <button 

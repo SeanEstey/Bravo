@@ -488,10 +488,12 @@ function validateNewJobForm() {
   }
   else {
     // event.preventDefault();
+
     var form_data = new FormData($('#myform')[0]);
+
     var request = $.ajax({
       type: 'POST',
-      url: $URL_ROOT + '/',
+      url: $URL_ROOT + '/reminders/submit_job',
       data: form_data,
       contentType: false,
       processData: false,
@@ -500,11 +502,16 @@ function validateNewJobForm() {
     
     request.done(function(response){
       console.log(response);
+
       if(typeof response == 'string')
         response = JSON.parse(response);
+
       if(response['status'] == 'success') {
         var end = location.href.indexOf('new');
-        location.href = location.href.substring(0,end) + '?msg='+response['msg'];
+
+        //location.href = location.href.substring(0,end) + '?msg='+response['msg'];
+        
+        location.href = $URL_ROOT;
       }
       else if(response['status'] == 'error') {
         $('.modal-title').text(response['title']);

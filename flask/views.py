@@ -126,8 +126,6 @@ def view_job(job_id):
     reminders = db['reminders'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
 
-    logger.info(reminders)
-
     return render_template(
         'views/job.html',
         title=TITLE,

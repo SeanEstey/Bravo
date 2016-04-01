@@ -124,24 +124,25 @@ class BravoTestCase(unittest.TestCase):
   def logout(self):
       return self.app.get('/logout', follow_redirects=True)
 
-  '''
+  #'''
   def test_send_zero_receipt(self):
       r = self.app.post(
         '/email/send',
         data=json.dumps({
           "recipient": self.etap_test_res_acct['email'],
           "subject": receipts.ZERO_COLLECTION_EMAIL_SUBJECT,
-          "template": 'email/zero_collection.html',
+          "template": 'email/zero_collection_receipt.html',
           "data": {
             "entry": self.zero_gift,
-            "account": self.etap_test_res_acct
+            "account": self.etap_test_res_acct,
+            "from": {}
           }
         }),
         content_type='application/json'
       )
 
       self.assertEquals(r.status_code, 200)
-  '''
+  #'''
   '''
   def test_send_gift_receipt(self):
       r = self.app.post(
@@ -152,7 +153,8 @@ class BravoTestCase(unittest.TestCase):
           "template": 'email/collection_receipt.html',
           "data": {
             "entry": self.gift,
-            "account": self.etap_test_res_acct
+            "account": self.etap_test_res_acct,
+            "from": {'worksheet': 'foo'}
           }
         }),
         content_type='application/json'
@@ -160,7 +162,7 @@ class BravoTestCase(unittest.TestCase):
 
       self.assertEquals(r.status_code, 200)
   '''
-  #'''
+  '''
   def test_process_receipts(self):
       # Hard to unit test because this function calls
       # /email/send from the live server.
@@ -181,7 +183,7 @@ class BravoTestCase(unittest.TestCase):
 
       #logger.info(r.__dict__)
       self.assertEquals(r._state, 'SUCCESS')
-  #'''
+  '''
   """
   def test_send_receipt(self):
       receipts.send(

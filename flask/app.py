@@ -30,9 +30,7 @@ flask_app.debug = DEBUG
 flask_app.secret_key = SECRET_KEY
 flask_app.jinja_env.add_extension("jinja2.ext.do")
 
-rlh = logging.handlers.TimedRotatingFileHandler(LOG_FILE, when='midnight', interval=1)
-flask_app.logger.addHandler(rlh)
-flask_app.logger.setLevel(logging.DEBUG)
+
 socketio = SocketIO(flask_app)
 
 login_manager = LoginManager()

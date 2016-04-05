@@ -68,4 +68,8 @@ Kill it<br>
 `kill -9 <PID>`<br>
 (May need to run twice)
 
-
+<br>
+Start Server
+```
+python main.py
+```

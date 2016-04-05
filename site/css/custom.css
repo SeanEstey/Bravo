@@ -1,0 +1,256 @@
+body {
+	color: #4d4f58;
+}
+
+.horizontal-menu {
+  padding: 0.5em;
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 0;
+}
+
+.horizontal-menu > h5 {
+  margin: auto 0;
+}
+
+.menu-item {
+  color: #4d4f58;
+  text-decoration: none;
+}
+
+.menu-divider {
+  padding: 0 0.3em;
+  color: lightgray;
+  margin: 0 auto;
+}
+
+.mobile-menu {
+  padding: 5em 1em;
+  height: 50em;
+  width: 7.5em;
+  background-color: rgba(51, 102, 153, 0.95);
+  border-left: 1px solid gray;
+  position: absolute;
+  top:0;
+  right: 0;
+  /* Display in front of layout */
+  z-index: 2000; 
+}
+
+.mobile-menu-item {
+  color: white;
+  text-decoration: none;
+  text-align: right;
+}
+
+.mobile-menu-icon {
+  border: 1px solid lightgray;
+  padding: 0 0.3em;
+  text-decoration: none;
+  border-radius: 5px;
+  /* In front of mobile menu */
+  position: relative;
+  z-index: 3000;
+}
+
+.mobile-menu-item {
+}
+
+.mobile-menu-icon:hover {
+  text-decoration: none;
+}
+
+
+.banner {
+	background-image: url("../images/laptop_banner.jpg");
+  background-attachment: fixed;
+	background-size: cover;
+	background-repeat: no-repeat;
+	margin-bottom: 0.5em;
+	margin-left: 0;
+	margin-right: 0;
+	position: relative;
+  height: 30em;
+  padding-left: 0.25em;
+  padding-right: 0.25em;
+}
+
+.title {
+	padding-left:0.5em;
+	padding-top: 0.5em;
+	padding-bottom: 0.5em;
+	margin:0;
+	line-height: 0.5em;
+}
+
+/* left: 0 and right: 0 center text on a div with absolute position */
+.tagline { 
+	color:white; 
+	font-weight:bold;
+	text-align: center;
+  padding-left: 1em;
+  padding-right: 1em;
+  height: 80%;
+}
+
+.abs-center {
+	overflow: auto;
+  margin: auto;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+}
+
+.no-title .ui-dialog-titlebar {
+  display: none; 
+}
+
+.no-title .ui-dialog-titlebar .ui-dialog-titlebar-close {
+    display: none; 
+}
+
+#product-card {
+  -moz-box-shadow: 0px 2px 15px 5px #888;
+  -webkit-box-shadow: 0px 2px 15px 5px #888;
+  box-shadow: 0px 2px 15px 5px #888;
+  padding: 1em;
+  background-color: white;
+  border: 1px solid gray;
+  margin: 0; 
+}
+
+.portfolio_box {
+  background-image: url("../images/bravo_voice_logo.jpg");
+  max-width: 600px;
+  background-repeat: no-repeat;
+  background-position: center;
+  height: 20em;
+  padding: 0.5em;
+  margin: 0.5em auto;
+  cursor: pointer;
+  border: 1px solid lightgray;
+  border-radius: 7px;
+  -webkit-transition: opacity .35s ease-in-out; 
+
+}
+
+.portfolio_content {
+  background-color: rgba(255, 255, 255, 0);
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  color: lightgray;
+  -webkit-transition: background-color .35s ease-in-out; 
+}
+
+.portfolio_content:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  -webkit-transition: background-color .35s ease-in-out;
+  color: black; 
+}
+
+/***** ID's *****/
+
+#btn-getstarted {
+  font-size: 18px;
+  height: 50px;
+  line-height: 50px;
+}
+
+
+/***** Media Queries *****/
+
+/* Larger than mobile */
+@media (min-width: 400px) {
+	.banner {
+		height: 25em;
+		padding-left: 0.25em;
+		padding-right: 0.25em;
+	}	
+	
+	.tagline {
+		padding-left: 1em;
+		padding-right: 1em;
+		height: 80%;
+	}
+	
+	#product-card {
+		margin: 0;
+	}
+}
+
+/* Larger than phablet (also point when grid becomes active) */
+@media (min-width: 550px) {
+	.banner {
+		height: 25em;
+	}
+	.tagline {
+		padding-left: 1em;
+		padding-right: 1em;
+		height: 80%;
+	}
+	
+	#product-card {
+		margin: 0 0.5em;
+	}
+}
+
+/* Larger than tablet */
+@media (min-width: 750px) {
+	.banner {
+		height: 30em;
+	}
+	.tagline {
+		padding-left: 5em;
+		padding-right: 5em;
+		height: 50%;
+	}
+	
+	#product-card {
+		margin: 0 2.5em;
+	}
+}
+
+/* Larger than desktop */
+@media (min-width: 1000px) {
+	.banner {
+		height: 40em;
+	}
+	.tagline {
+		padding-left: 10em;
+		padding-right: 10em;
+		height: 50%;
+	}
+	
+	#product-card {
+		margin: 0 2.5em;
+	}
+	
+	form {
+		width: 65%;
+	}
+}
+
+/* Larger than Desktop HD */
+@media (min-width: 1200px) {
+	.banner {
+		padding-left: 10em;
+		padding-right: 10em;
+		height: 40em;
+		
+	}
+	.tagline {
+		padding-left: 10em;
+		padding-right: 10em;
+		height: 50%;
+	}
+	
+	#product-card {
+		margin: 0 2.5em;
+	}
+	
+	form {
+		width: 50%;
+	}
+}

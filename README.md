@@ -17,6 +17,14 @@ git clone https://github.com/SeanEstey/Bravo
 cd Bravo
 ```
 
+<br>
+Nginx/PHP Setup
+<br>
+-Copy PHP files to webroot (/var/www/empties/etap/)
+<br>
+-Create virtualhost file for nginx (/etc/nginx/sites-enabled/default)
+<br>
+
 Setup Mongo Logins
 <br>
 ```
@@ -55,7 +63,7 @@ Setup front end server to redirect to proper proxy addresses (see /config for Ng
 
 To manually shutdown server running in background<br>
 get pid<br>
-`ps aux | grep -m 1 'python server.py' | awk '{print $2}'`<br>
+`ps aux | grep -m 1 'python main.py' | awk '{print $2}'`<br>
 Kill it<br>
 `kill -9 <PID>`<br>
 (May need to run twice)

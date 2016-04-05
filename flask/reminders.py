@@ -1,4 +1,5 @@
-import twilio
+#import twilio
+import twilio.twiml
 from datetime import datetime,date
 from dateutil.parser import parse
 from werkzeug import secure_filename
@@ -64,6 +65,10 @@ def check_jobs():
 #-------------------------------------------------------------------------------
 @celery_app.task
 def send_calls(job_id):
+    '''job_id: str of BSON.ObjectID
+    Returns number of calls fired
+    '''
+
     job = db['jobs'].find_one_and_update(
       {'_id': ObjectId(job_id)},
       {'$set': {
@@ -72,77 +77,84 @@ def send_calls(job_id):
       }}
     )
 
-    logger.info('\n\nStarting Job %s [ID %s]', job['name'], str(job_id))
+    logger.info('\n\nStarting Job %s [ID %s]', job['name'], job_id)
 
     try:
-        requests.get(PUB_URL + '/sendsocket', params={
+        requests.get(LOCAL_URL + '/sendsocket', params={
           'name': 'update_job', 'data': json.dumps({'id': job_id, 'status':'in-progress'})
         })
     except Exception as e:
         logger.error('send_calls sendsocket error', exc_info=True)
 
     # Default call order is alphabetically by name
-    messages = db['reminders'].find({'job_id': ObjectId(job_id)}).sort('name',1)
+    reminders = db['reminders'].find({'job_id': ObjectId(job_id)}).sort('name',1)
+
+    calls_fired = 0
 
     # Fire all calls
-    for msg in messages:
-        # TODO: change call.status to "cancelled" on no_pickup request, eliminate this test
-        if 'no_pickup' in msg['custom']:
+    for reminder in reminders:
+        # TODO: change call.status to "cancelled" on no_pickup request,
+        # eliminate this test
+
+        if 'no_pickup' in reminder['custom']:
             continue
-        if msg['call']['status'] != 'pending':
+        if reminder['call']['status'] != 'pending':
             continue
 
-        call = dial(msg['call']['to'])
+        call = dial(reminder['call']['to'])
 
         if isinstance(call, Exception):
-            logger.info('%s failed (%d: %s)', msg['call']['to'], call.code, call.msg)
+            logger.info('%s failed (%d: %s)', reminder['call']['to'], call.code, call.msg)
 
             db['reminders'].update_one(
-              {'_id':msg['_id']},
+              {'_id':reminder['_id']},
               {'$set': {
                 "call.status": "failed",
-                "call.error_msg": call.msg,
-                "call.error_code": call.code
+                "call.error": call.msg,
+                "call.code": call.code
               }}
             )
         else:
-            logger.info('%s %s', msg['call']['to'], call.status)
+            logger.info('%s %s', reminder['call']['to'], call.status)
+
+            calls_fired += 1
 
             db['reminders'].update_one(
-              {'_id':msg['_id']},
+              {'_id':reminder['_id']},
               {'$set': {
                 "call.status": call.status,
                 "call.sid": call.sid,
-                "call.attempts": msg['call']['attempts']+1
+                "call.attempts": reminder['call']['attempts']+1
               }}
             )
 
     # TODO: Add back in socket.io
 
-    #r['id'] = str(msg['_id'])
+    #r['id'] = str(reminder['_id'])
     #payload = {'name': 'update_call', 'data': json.dumps(r)}
     #requests.get(LOCAL_URL+'/sendsocket', params=payload)
 
-    logger.info('Job Calls Fired.')
-    r = requests.get(PUB_URL + '/' + job_id + '/monitor')
+    logger.info('%d calls fired', calls_fired)
 
-    return 'OK'
+    #r = requests.get(PUB_URL + '/' + job_id + '/monitor')
+
+    return calls_fired
 
 #-------------------------------------------------------------------------------
 @celery_app.task
 def send_emails(job_id):
     job_id = job_id.encode('utf-8')
+
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
     reminders = db['reminders'].find({'job_id':ObjectId(job_id)})
-    emails = []
 
-    for msg in reminders:
-        if msg['email']['status'] != 'pending':
+    for reminder in reminders:
+        if reminder['email']['status'] != 'pending':
             continue
 
-        if not msg['email']['recipient']:
+        if not reminder['email']['recipient']:
             db['reminders'].update(
-                {'_id':msg['_id']},
+                {'_id':reminder['_id']},
                 {'$set': {'email.status': 'no_email'}}
             )
             continue
@@ -150,18 +162,18 @@ def send_emails(job_id):
 
         try:
             r = requests.post(PUB_URL + '/email/send', data=json.dumps({
-                "recipient": msg['email']['recipient'],
-                "template": job['template']['email_template'],
-                "subject": job['template']['email_subject'],
-                "name": msg['name'],
-                "args": msg['custom']
+                "recipient": reminder['email']['recipient'],
+                "template": job['schema']['email_template'],
+                "subject": job['schema']['email_subject'],
+                "name": reminder['name'],
+                "args": reminder['custom']
             }))
         except requests.exceptions.RequestException as e:
             logger.error('Error sending email: %s', str(e))
 
     '''TODO: Add date into subject
     #subject = 'Reminder: Upcoming event on  ' + 
-    # msg['imported']['event_date'].strftime('%A, %B %d')
+    # reminder['imported']['event_date'].strftime('%A, %B %d')
     '''
 
 #-------------------------------------------------------------------------------
@@ -232,7 +244,7 @@ def monitor_calls(job_id):
         logger.error('monitor_calls job_id %s', str(job_id), exc_info=True)
 
 #-------------------------------------------------------------------------------
-def line_entry_to_db_msg(job_id, schema, line_index, buf_row, errors):
+def line_entry_to_db(job_id, schema, line_index, buf_row, errors):
     '''Create mongodb "reminder_msg" record from .CSV line
     job_id: mongo "job_reminder" record_id in ObjectId format
     schema: template dict from reminder_templates.json file
@@ -342,9 +354,9 @@ def get_call_xml(args):
     '''Returns twilio.twiml.Response obj'''
 
     if 'msg' in args or 'Digits' in args:
-        return get_resp_xml(request.values.to_dict())
+        return get_resp_xml(args)
     else:
-        return get_answer_xml(request.values.to_dict())
+        return get_answer_xml(args)
 
 #-------------------------------------------------------------------------------
 def get_resp_xml(args):
@@ -534,7 +546,7 @@ def get_speak(job, reminder):
     '''Returns twilio.twiml.Response obj'''
 
     # Simplest case: announce_voice template. Play audio file
-    if job['template'] == 'announce_voice':
+    if job['schema'] == 'announce_voice':
         response = twilio.twiml.Response()
         response.play(job['audio_url'])
         return response
@@ -928,7 +940,7 @@ def submit_job(form, file):
         reminders = []
 
         for idx, row in enumerate(buffer):
-            msg = line_entry_to_db_msg(job_id, schema, idx, row, errors)
+            msg = line_entry_to_db(job_id, schema, idx, row, errors)
 
             if msg:
                 reminders.append(msg)

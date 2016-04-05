@@ -132,7 +132,7 @@ def view_job(job_id):
         reminders=reminders,
         job_id=job_id,
         job=job,
-        template=job['template']['import_fields']
+        template=job['schema']['import_fields']
     )
 
 #-------------------------------------------------------------------------------
@@ -338,8 +338,10 @@ def email_status():
     )
 
     event = request.form['event']
-    if event == 'bounced' or event == 'dropped':
-        gsheets.create_rfu(request.form['recipient'] + ' bounced/dropped')
+    if event == 'dropped':
+        gsheets.create_rfu.apply_async(
+            args=(request.form['recipient'] + ' ' + event, ),
+            queue=DB_NAME)
 
     db_doc = db['emails'].find_one_and_update(
       {'mid': request.form['Message-Id']},

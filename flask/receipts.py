@@ -8,7 +8,7 @@ from flask import request, current_app, render_template
 from dateutil.parser import parse
 
 import scheduler
-from gsheets import auth
+import gsheets
 import etap
 from app import flask_app, celery_app, db, log_handler
 from config import *
@@ -63,7 +63,7 @@ def process(entries, keys):
         logger.error('Error retrieving accounts from etap')
         return False
 
-    gc = auth(['https://spreadsheets.google.com/feeds'])
+    gc = gsheets.auth(['https://spreadsheets.google.com/feeds'])
     wks = gc.open('Route Importer').worksheet('Routes')
     headers = wks.row_values(1)
 

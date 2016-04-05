@@ -18,8 +18,8 @@ flask_app = Flask(__name__)
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT, connect=False)
 db = mongo_client[DB_NAME]
 
+log_handler = logging.handlers.TimedRotatingFileHandler(LOG_FILE, when='midnight', interval=1)
 log_formatter = logging.Formatter('[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M')
-log_handler = logging.FileHandler(LOG_FILE)
 log_handler.setLevel(logging.DEBUG)
 log_handler.setFormatter(log_formatter)
 
@@ -53,8 +53,3 @@ celery_app = make_celery(flask_app)
 celery_app.config_from_object('config')
 
 flask_app.app_context().push()
-
-#from reminders import check_jobs, send_calls, send_emails, monitor_calls, cancel_pickup, set_no_pickup
-from receipts import process
-from gsheets import add_signup, create_rfu
-#from scheduler import analyze_non_participants

@@ -1,6 +1,4 @@
-import app
-
-from app import flask_app, celery_app, socketio
+from app import flask_app, celery_app, socketio, log_handler
 from config import *
 from views import *
 
@@ -8,9 +6,10 @@ import os
 import time
 import sys
 
+
+
 if __name__ == "__main__":
-    rlh = logging.handlers.TimedRotatingFileHandler(LOG_FILE, when='midnight', interval=1)
-    flask_app.logger.addHandler(rlh)
+    flask_app.logger.addHandler(log_handler)
     flask_app.logger.setLevel(LOG_LEVEL)
 
     os.system('kill %1')
@@ -19,8 +18,7 @@ if __name__ == "__main__":
     os.system("ps aux | grep 'queues " + DB_NAME + "' | awk '{print $2}' | xargs kill -9")
 
     # Create workers
-    #os.system('celery worker -A app.celery_app -f logs/log -B -n ' + DB_NAME + ' --queues ' + DB_NAME + ' &')
-    os.system('celery worker -A app.celery_app -B -n ' + DB_NAME + ' --queues ' + DB_NAME + ' &')
+    os.system('celery worker -A tasks.celery_app -B -n ' + DB_NAME + ' --queues ' + DB_NAME + ' &')
 
     # Pause to give workers time to initialize before starting server
     time.sleep(3)

@@ -7,30 +7,33 @@
   "account_id": "etapestry_account_id",
   "event_date": "<BSON.Date>",
   "call": {
-    "sid": "32 char twilio call_id string ex: CA7d1d19877dc768fd0c701cfcdc706fdd",
-    "status": ["pending","active","failed","pending","queued","ringing","in-progress","busy",    "no-answer","completed"], 
+    "sid": "32 char twilio call_id string \
+            eg: CA7d1d19877dc768fd0c701cfcdc706fdd",
+    "status": ["pending","active","failed","pending","queued",
+               "ringing","in-progress","busy","no-answer","completed"], 
     "answered_by": ["human", "machine"], 
     "ended_at": "<BSON.Date>",
     "to": "phone_number",
     "speak": "",
     "attempts": "",
     "duration": "",
-    "error_msg": "",
-    "error_code": "",
+    "error": "",
+    "code": "",
   },
   "email": {
     "mid":  "mailgun_msg_id", 
     "status": ["pending", "bounced", "dropped", "delivered"],
     "recipient": "email",
-    "error_msg": "",
-    "error_code": ""
+    "error": "",
+    "code": ""
   },
   "custom": {
     "no_pickup": "[bool]",
     "next_pickup": "<BSON.Date>",
     "status": "",
+    "block": "",
     "type": ["pickup", "delivery"],
-    "other imported fields ..."
+    "other imported fields": ""
   }
 }
 
@@ -39,7 +42,7 @@
   "fire_calls_dtime": "<bson.date>",
   "fire_emails_dtime": "<bson.date>",
   "num_calls": "[Number]", 
-  "template": {
+  "schema": {
     "call_template": "file.html",
     "email_template": "file.html",
     "email_subject": "",
@@ -119,9 +122,10 @@ dict dump:
   "end_time": "None", 
   "timeout": "<Unset Timeout Value>", 
   "date_created": "None", 
-  "from_": "+17804138846", 
+  "from": "+17804138846", 
   "price": "None", 
-  "api_version": "2010-04-01"}
+  "api_version": "2010-04-01"
+}
 ```
 
 TwiML Voice Request (POST data)

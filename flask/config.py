@@ -32,7 +32,6 @@ PUB_URL = 'http://bravoweb.ca'
 TITLE = 'Bravo'
 LOG_FILE = 'logs/log'
 
-
 # Reminders
 FROM_NUMBER= '+17804138846'
 SMS_NUMBER = '+15874104251'

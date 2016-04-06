@@ -25,7 +25,7 @@ Nginx/PHP Setup
 -Set proper webroot permissions for www-data user:
 ```
 chown -R www-data:www-data /var/www/empties/etap/logs
-chmod -R 770 /var/www/example.com/public_html
+chmod -R 770 /var/www/empties/etap/logs
 ```
 -Create virtualhost file for nginx (/etc/nginx/sites-enabled/default)
 <br>

@@ -30,7 +30,8 @@ LOCAL_PORT = 8000
 LOCAL_URL = 'http://localhost:8000'
 PUB_URL = 'http://bravoweb.ca'
 TITLE = 'Bravo'
-LOG_FILE = '/var/www/empties/etap/logs/log.log'
+LOG_FILE = '/var/www/bravo/logs/log.log'
+LOG_LINES = 200
 
 # Reminders
 FROM_NUMBER= '+17804138846'

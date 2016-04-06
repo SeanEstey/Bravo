@@ -1,5 +1,5 @@
 <?php
-  $LOG_FILE = '/var/www/empties/etap/logs/log.log';
+  $LOG_FILE = '/var/www/bravo/logs/log.log';
 
   ini_set('log_errors', 1);
   ini_set('error_log', $LOG_FILE);

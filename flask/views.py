@@ -57,7 +57,7 @@ def view_jobs():
 @flask_app.route('/log')
 @login_required
 def view_log():
-    lines = log.get_tail(LOG_FILE, 50)
+    lines = log.get_tail(LOG_FILE, LOG_LINES)
     return flask.render_template('views/log.html', lines=lines)
 
 #-------------------------------------------------------------------------------

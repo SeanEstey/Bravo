@@ -2,8 +2,8 @@ server {
   listen 80;
   listen [::]80 default_server ipv6only=on;
   
-  location /etap/ {
-    root /var/www/empties;
+  location /php/ {
+    root /var/www/bravo;
 
     location ~ .*\.php$ {
       include fastcgi_params;

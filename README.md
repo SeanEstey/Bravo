@@ -24,8 +24,8 @@ Nginx/PHP Setup
 <br>
 -Set proper webroot permissions for www-data user:
 ```
-chown -R www-data:www-data /var/www/empties/etap/logs
-chmod -R 770 /var/www/empties/etap/logs
+chown -R root:www-data /var/www/bravologs
+chmod -R 770 /var/www/bravologs
 ```
 -Create virtualhost file for nginx (/etc/nginx/sites-enabled/default)
 <br>

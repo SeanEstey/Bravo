@@ -18,7 +18,6 @@ flask_app = Flask(__name__)
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT, connect=False)
 db = mongo_client[DB_NAME]
 
-#log_handler = logging.handlers.TimedRotatingFileHandler(LOG_FILE, when='midnight', interval=1)
 log_handler = logging.FileHandler(LOG_FILE)
 log_formatter = logging.Formatter('[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M')
 log_handler.setLevel(logging.DEBUG)
@@ -31,7 +30,6 @@ flask_app.debug = DEBUG
 flask_app.secret_key = SECRET_KEY
 flask_app.jinja_env.add_extension("jinja2.ext.do")
 
-
 socketio = SocketIO(flask_app)
 
 login_manager = LoginManager()
@@ -39,7 +37,8 @@ login_manager.init_app(flask_app)
 login_manager.login_view = PUB_URL + '/login' #url_for('login')
 
 def make_celery(app):
-    celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+    CELERY_BROKER_URL = 'amqp://'
+    celery = Celery(app.name, broker=CELERY_BROKER_URL)
     celery.conf.update(app.config)
     TaskBase = celery.Task
     class ContextTask(TaskBase):
@@ -51,6 +50,6 @@ def make_celery(app):
     return celery
 
 celery_app = make_celery(flask_app)
-celery_app.config_from_object('config')
+celery_app.config_from_object('tasks')
 
 flask_app.app_context().push()

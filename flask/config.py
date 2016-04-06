@@ -3,7 +3,6 @@ import logging
 import pymongo
 from datetime import timedelta
 from private_config import *
-from celery.schedules import crontab
 
 # Flask
 # When True, uses gevent web server. Server auto-restarts
@@ -44,28 +43,6 @@ UPLOAD_FOLDER = '/tmp'
 JOBS_PER_PAGE = 10
 ALLOWED_EXTENSIONS = set(['csv','xls'])
 
-# Celery
-BROKER_URI= 'amqp://'
-CELERY_BROKER_URL = 'amqp://'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'Canada/Mountain'
-CELERY_ENABLE_UTC = False
-CELERYD_CONCURRENCY = 1
-CELERYBEAT_SCHEDULE = {
-  #'check_reminder_jobs': {
-  #  'task': 'reminders.check_jobs',
-  #  'schedule': timedelta(seconds=30),
-  #  'options': { 'queue': DB_NAME }
-  #},
-  'get_non_participants': {
-    'task': 'scheduler.analyze_non_participants',
-    'schedule': crontab(hour=7, minute=0, day_of_week='*'),
-    'options': { 'queue': DB_NAME }
-  }
-}
-
 # Ports/Domains
 MONGO_URL = 'localhost'
 MONGO_PORT = 27017
@@ -75,4 +52,4 @@ MAILGUN_DOMAIN = 'wsaf.ca'
 FROM_EMAIL= 'Empties to WINN <emptiestowinn@wsaf.ca>'
 
 # PHP
-ETAP_WRAPPER_URL = 'http://www.bravoweb.ca/etap/views.php'
+ETAP_WRAPPER_URL = 'http://www.bravoweb.ca/php/views.php'

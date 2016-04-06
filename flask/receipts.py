@@ -160,7 +160,7 @@ def process(entries, keys):
               "end_date": "31/12/" + str(year)
             })
 
-            logger.info('%s gift histories retrieved', str(len(gift_histories)))
+            #logger.info('%s gift histories retrieved', str(len(gift_histories)))
 
         except Exception as e:
             logger.error('Error retrieving gift histories: %s', str(e))

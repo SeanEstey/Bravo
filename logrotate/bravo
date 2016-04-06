@@ -1,3 +1,5 @@
+# Test out by running logrotate --force /etc/logrotate.d/bravo
+
 /var/www/bravo/logs/*.log {
 	daily
 	missingok

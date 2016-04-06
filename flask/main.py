@@ -6,8 +6,6 @@ import os
 import time
 import sys
 
-
-
 if __name__ == "__main__":
     flask_app.logger.addHandler(log_handler)
     flask_app.logger.setLevel(LOG_LEVEL)

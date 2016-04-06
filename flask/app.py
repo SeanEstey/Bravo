@@ -18,7 +18,8 @@ flask_app = Flask(__name__)
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT, connect=False)
 db = mongo_client[DB_NAME]
 
-log_handler = logging.handlers.TimedRotatingFileHandler(LOG_FILE, when='midnight', interval=1)
+#log_handler = logging.handlers.TimedRotatingFileHandler(LOG_FILE, when='midnight', interval=1)
+log_handler = logging.FileHandler(LOG_FILE)
 log_formatter = logging.Formatter('[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M')
 log_handler.setLevel(logging.DEBUG)
 log_handler.setFormatter(log_formatter)

@@ -1,11 +1,14 @@
 <?php
+  $LOG_FILE = '/var/www/empties/etap/logs/log.log';
+
   ini_set('log_errors', 1);
-  ini_set('error_log', '/var/www/empties/etap/log');
+  ini_set('error_log', $LOG_FILE);
   
-  function write_log($msg) {
+	function write_log($msg) {
+		global $LOG_FILE;
     global $association;
-    $line = '[' . date('j-M-Y g:iA') . ' ' . strtoupper($association) . ']: ' . $msg . "\n\r";
-    file_put_contents('log', $line, FILE_APPEND);
+    $line = '[' . date('j-M-Y g:iA') . ' php ' . strtoupper($association) . ']: ' . $msg . "\n\r";
+    file_put_contents($LOG_FILE, $line, FILE_APPEND);
     return $msg;
   }
 
@@ -30,7 +33,7 @@
   $association = $keys['association_name'];
   
   $m = new MongoDB\Driver\Manager('mongodb://localhost:27017');
-  $db = new MongoDB\Collection($m, "$association.jobs");
+  $db = new MongoDB\Collection($m, "$association.entries");
 
   $nsc = new nusoap_client($keys['etap_endpoint'], true);
 
@@ -167,7 +170,14 @@
       break;
 
     case 'get_next_pickup':
-      get_next_pickup($nsc, $data['email']);
+      $pickup = get_next_pickup($nsc, $data['email']);
+
+      if(!$pickup) {
+        http_response_code(400);
+      }
+      else 
+        echo $pickup;
+
       break;
     
     case 'check_duplicates':

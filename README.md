@@ -4,7 +4,7 @@
 Install Dependencies
 <br>
 ```
-apt-get install python-pip python-dev mongodb nginx rabbitmq-server
+apt-get install python-pip python-dev mongodb nginx rabbitmq-server logrotate
 pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio apiclient oauth2client gspread
 pip install --upgrade google-api-python-client
 pip install oauth2client==1.5.2
@@ -22,7 +22,17 @@ Nginx/PHP Setup
 <br>
 -Copy PHP files to webroot (/var/www/empties/etap/)
 <br>
+-Set proper webroot permissions for www-data user:
+```
+chown -R www-data:www-data /var/www/empties/etap/logs
+chmod -R 770 /var/www/example.com/public_html
+```
 -Create virtualhost file for nginx (/etc/nginx/sites-enabled/default)
+<br>
+
+Logrotate Setup
+<br>
+-Copy logrotate/bravo to /etc/logrotate.d/
 <br>
 
 Setup Mongo Logins

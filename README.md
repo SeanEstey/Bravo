@@ -43,6 +43,17 @@ $mongo
 >> db.logins.insert({'user':'name', 'pass':'password'})
 ```
 
+Get Google Service Account Credentials
+<br>
+-Open Google Developer Console
+<br>
+-Find Service Account
+<br>
+-Generate JSON key
+<br>
+-Save to flask dir as "oauth_credentials.json"
+<br>
+
 Start RabbitMQ daemon<br>
 `rabbitmqctl start_app`<br>
 Start Flask Server:<br>

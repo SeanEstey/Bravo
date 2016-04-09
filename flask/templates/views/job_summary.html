@@ -1,12 +1,23 @@
   {% extends "views/base.html" %}
   {% block content %}  
+
+	<script type='text/javascript' 
+					src="{{url_for('static', filename='js/base.js')}}">
+	</script>
+
   <script>
     document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
-      initJobSummary();
+			var data = JSON.parse($('#content').text());
+			$('#content').html('');
+			$('#content').append(objToHtml(data, 0, ['speak']));
+			$('body').css('display','block');
     });
   </script>
+
   <div id='header' class="h1">Job Summary</div>
-    <div style='font-size:10pt; width:650px; text-align:left' class='box'  id='content'>{{summary}}</div>
+	<div style='font-size:10pt; width:650px; text-align:left' 
+			 class='box'  id='content'>{{summary}}
+	</div>
 
   {% endblock %}

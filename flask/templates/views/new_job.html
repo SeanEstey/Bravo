@@ -3,10 +3,16 @@
   <script type="text/javascript" 
           src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js">
   </script>
+	<script type='text/javascript' 
+					src="{{url_for('static', filename='js/base.js')}}">
+	</script>
+	<script type='text/javascript' 
+					src="{{url_for('static', filename='js/views/new_job.js')}}">
+	</script>
   <script>
     document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
-      initNewJobView();
+      init();
     });
   </script>
   

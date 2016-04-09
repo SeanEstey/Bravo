@@ -132,22 +132,3 @@ function init() {
 
   $('body').css('display','block');
 }
-
-function initJobSummary() {
-  var data = JSON.parse($('#content').text());
-  $('#content').html('');
-  $('#content').append(objToHtml(data, 0, ['speak']));
-  $('body').css('display','block');
-}
-
-function initLog() {
-  $('body').css('display','block');
-}
-
-function initAdmin() {
-  $('body').css('display','block');
-  displayServerStatus('/get/celery_status', '', $('#celery-status'));
-  displayServerStatus('/get/version', '', $('#version'));
-  displayServerStatus('/get/monthly_usage', '', $('#monthly-usage'));
-  displayServerStatus('/get/annual_usage', '', $('#annual-usage'));
-}

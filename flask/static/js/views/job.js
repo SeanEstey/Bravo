@@ -1,160 +1,13 @@
 
-
-function initShowCallsView() {
+function init() {
     var $a_child = $('th:first-child a');
 
     $a_child.html($a_child.html()+window.unicode['DOWN_ARROW']);
 
     addBravoTooltip();
-
     makeCallFieldsClickable();
-
-    // Enable sorting on column headers
-    $('th').each(function(){
-        var $a = $('a', $(this));
-        var encoded_text = HTMLEncode($a.text());
-
-        if(encoded_text.indexOf(window.unicode['DOWN_ARROW']) > -1)
-            $a.attr('title', 'Sort Descending Order');
-        else  
-            $a.attr('title', 'Sort Ascending Order');
-
-        $a.click(function() {
-            var id = $(this).parent().attr('id');
-            var sort_col = id.split('col')[1];
-            sortCalls($('#show-calls-table'), sort_col);
-            var encoded_text = HTMLEncode($(this).text());
-
-            if(encoded_text.indexOf(window.unicode['DOWN_ARROW']) > -1)
-                $(this).attr('title', 'Sort Descending Order');
-            else
-                $(this).attr('title', 'Sort Ascending Order');
-          });
-    });
-
-    // "Name" column
-    $('[name="name"]').each(function() {
-      $(this).css('width', '125px');
-    });
-
-    // "To" column
-    $('[name="to"]').each(function() {
-      // Make this cell wide enough
-      $(this).css('width', '135px');
-
-      if($(this).text() != '---') {
-          var to = $(this).text();
-          // Strip parentheses, dashes and spaces
-          to = to.replace(/[\s\)\(-]/g, '');
-          // Format: (780) 123-4567
-          to = '('+to.substring(0,3)+') '+to.substring(3,6)+'-'+to.substring(6,11);
-
-          $(this).text(to);
-      }
-    });
-
-    // "Office Notes" column
-    $('tbody [name="office_notes"]').each(function() {
-        $(this).css('white-space', 'nowrap');
-        $(this).css('overflow', 'hidden');
-        $(this).css('text-overflow', 'ellipsis');
-    });
-
-    // "Status" column
-    $('tbody [name="status"]').each(function() {
-        $(this).css('white-space', 'nowrap');
-    });
-
-    // "Email" column
-    $('thead [name="email"]').css('width', '150px');
-    $('tbody [name="email"]').each(function() {
-        $(this).css('width', '150px');
-        $(this).css('white-space', 'nowrap');
-        $(this).css('overflow', 'hidden');
-        $(this).css('text-overflow', 'ellipsis');
-    });
-
-    // "Call Status" column
-    $('thead [name="call_status"]').css('width', '110px');
-
-    $('tbody [name="call_status"]').each(function() {
-        $(this).css('width', '110px');
-
-        var status = $(this).text();
-      
-        if(status.indexOf('completed') > -1) {
-            if(status.indexOf('human') > -1)
-                status = 'Sent Live';
-            else if(status.indexOf('machine') > -1)
-                status = 'Sent VM';
-
-            $(this).css('color', window.colors['SUCCESS_STATUS']);
-        }
-        else if(status.indexOf('failed') > -1) {
-            $(this).attr('title', '');
-
-            /*I
-            var values = status.split(' ');
-
-            status = values[1];
-
-            if(status == 'invalid_number_format')
-                status = 'invalid_number';
-            else if(status == 'unknown_error')
-                status = 'failed';
-            */
-
-            $(this).css('color', window.colors['FAILED_STATUS']);
-        }
-        else if(status.indexOf('busy') > -1 || status.indexOf('no-answer') > -1) {
-            $(this).attr('title', '');
-
-            var values = status.split(' ');
-
-            status = values[0] + ' (' + values[1] + 'x)';
-
-            $(this).css('color', window.colors['INCOMPLETE_STATUS']);
-        }
-        else if(status.indexOf('pending') > -1) {
-            $(this).attr('title', '');
-            $(this).css('color', window.colors['DEFAULT_STATUS']);
-        }
-
-        $(this).text(status.toTitleCase());
-      });
-
-    // "Email Status" column
-    $('thead [name="email_status"]').css('width', '110px');
-    $('tbody [name="email_status"]').each(function() {
-      var status = $(this).text();
-      if(status.indexOf('delivered') > -1) {
-        $(this).attr('title', '');
-        $(this).css('color', window.colors['SUCCESS_STATUS']);
-      }
-      else if(status.indexOf('pending') > -1) {
-        $(this).attr('title', '');
-        $(this).css('color', window.colors['DEFAULT_STATUS']);
-      }
-      else if(status.indexOf('queued') > -1) {
-        $(this).attr('title', '');
-        $(this).css('color', window.colors['DEFAULT_STATUS']);
-      }
-      else if(status.indexOf('no_email') > -1) {
-        $(this).attr('title', '');
-        $(this).css('color', window.colors['DEFAULT_STATUS']);
-      }
-      else if(status.indexOf('bounced') > -1 || status.indexOf('dropped') > -1) {
-        $(this).css('color', window.colors['FAILED_STATUS']);
-      }
-      $(this).text(status.toTitleCase());
-    });
-
-    $('[name="event_date"]').each(function() {
-      $(this).css('width', '145px');
-      var date = Date.parse($(this).html());
-      var string = date.toDateString();
-      $(this).html(string);
-    });
+		enableColumnSorting();
+		formatColumns();
 
     if($('#job-status').text().indexOf('Pending') > -1) {
       var args =  window.location.pathname.split('/');
@@ -171,17 +24,16 @@ function initShowCallsView() {
           $(this).click(function() {
               var call_uuid = $(this).attr('id');
               var $tr = $(this).parent().parent();
-              var url = $URL_ROOT + '/reminders/' + job_uuid + '/' + call_uuid + '/remove';
+
               console.log(url);
 
-              var request =  $.ajax({
+              $.ajax({
                 type: 'POST',
-                url: url
-              });
-
-              request.done(function(msg){
-                if(msg == 'OK')
-                  $tr.remove();
+								url: $URL_ROOT + '/reminders/' + job_uuid + '/' + call_uuid + '/remove',
+								done: function(msg) {
+									if(msg == 'OK')
+										$tr.remove();
+								}
               });
           });
       });
@@ -244,9 +96,10 @@ function initShowCallsView() {
         else if(data['status'] == 'completed') {
             $('#job-header').removeClass('label-primary');
             $('#job-header').addClass('label-success');
-            console.log('job complete!');
             $('#job-status').text('Completed');
             $('#job-summary').text('');
+
+            console.log('job complete!');
         }
           updateJobStatus();
     });
@@ -256,28 +109,24 @@ function initShowCallsView() {
     var job_uuid = args.slice(-1)[0];
 
     $('#execute-job').click(function() {
-        var url = $URL_ROOT + 'reminders/' + job_uuid + '/send_calls';
-
-        console.log('execute_job url: ' + url);
-
-        var request =  $.ajax({
-            type: 'GET',
-            url: url
-        });
+			$.ajax({
+				type: 'GET',
+				url: $URL_ROOT + 'reminders/' + job_uuid + '/send_calls'
+			});
     });
 
     $('#email-job').click(function() {
-        var request =  $.ajax({
-          type: 'GET',
-          url: $URL_ROOT + '/reminders/' + job_uuid + '/send_emails'
-        });
+			$.ajax({
+				type: 'GET',
+				url: $URL_ROOT + '/reminders/' + job_uuid + '/send_emails'
+			});
     });
 
     $('#reset-job').click(function() {
-        var request =  $.ajax({
-          type: 'GET',
-          url: $URL_ROOT + '/reminders/' + job_uuid + '/reset'
-        });
+      $.ajax({
+				type: 'GET',
+				url: $URL_ROOT + '/reminders/' + job_uuid + '/reset'
+			});
     });
 
     $('#dump').click(function() {
@@ -489,4 +338,156 @@ function updateCountdown() {
     $summary_lbl.text(Math.floor(diff_days) + ' Days ');
 
   $summary_lbl.text($summary_lbl.text() + Math.floor(diff_hrs) + ' Hours ' + Math.floor(diff_min) + ' Min ' + Math.floor(diff_sec) + ' Sec');
+}
+
+function enableColumnSorting() {
+	// Enable sorting on column headers
+	$('th').each(function(){
+			var $a = $('a', $(this));
+			var encoded_text = HTMLEncode($a.text());
+
+			if(encoded_text.indexOf(window.unicode['DOWN_ARROW']) > -1)
+					$a.attr('title', 'Sort Descending Order');
+			else  
+					$a.attr('title', 'Sort Ascending Order');
+
+			$a.click(function() {
+					var id = $(this).parent().attr('id');
+					var sort_col = id.split('col')[1];
+					sortCalls($('#show-calls-table'), sort_col);
+					var encoded_text = HTMLEncode($(this).text());
+
+					if(encoded_text.indexOf(window.unicode['DOWN_ARROW']) > -1)
+							$(this).attr('title', 'Sort Descending Order');
+					else
+							$(this).attr('title', 'Sort Ascending Order');
+				});
+	});
+}
+
+function formatColumns() {
+	// "Name" column
+	$('[name="name"]').each(function() {
+		$(this).css('width', '125px');
+	});
+
+	// "To" column
+	$('[name="to"]').each(function() {
+		// Make this cell wide enough
+		$(this).css('width', '135px');
+
+		if($(this).text() != '---') {
+				var to = $(this).text();
+				// Strip parentheses, dashes and spaces
+				to = to.replace(/[\s\)\(-]/g, '');
+				// Format: (780) 123-4567
+				to = '('+to.substring(0,3)+') '+to.substring(3,6)+'-'+to.substring(6,11);
+
+				$(this).text(to);
+		}
+	});
+
+	// "Office Notes" column
+	$('tbody [name="office_notes"]').each(function() {
+			$(this).css('white-space', 'nowrap');
+			$(this).css('overflow', 'hidden');
+			$(this).css('text-overflow', 'ellipsis');
+	});
+
+	// "Status" column
+	$('tbody [name="status"]').each(function() {
+			$(this).css('white-space', 'nowrap');
+	});
+
+	// "Email" column
+	$('thead [name="email"]').css('width', '150px');
+	$('tbody [name="email"]').each(function() {
+			$(this).css('width', '150px');
+			$(this).css('white-space', 'nowrap');
+			$(this).css('overflow', 'hidden');
+			$(this).css('text-overflow', 'ellipsis');
+	});
+
+	// "Call Status" column
+	$('thead [name="call_status"]').css('width', '110px');
+
+	$('tbody [name="call_status"]').each(function() {
+			$(this).css('width', '110px');
+
+			var status = $(this).text();
+		
+			if(status.indexOf('completed') > -1) {
+					if(status.indexOf('human') > -1)
+							status = 'Sent Live';
+					else if(status.indexOf('machine') > -1)
+							status = 'Sent VM';
+
+					$(this).css('color', window.colors['SUCCESS_STATUS']);
+			}
+			else if(status.indexOf('failed') > -1) {
+					$(this).attr('title', '');
+
+					/*I
+					var values = status.split(' ');
+
+					status = values[1];
+
+					if(status == 'invalid_number_format')
+							status = 'invalid_number';
+					else if(status == 'unknown_error')
+							status = 'failed';
+					*/
+
+					$(this).css('color', window.colors['FAILED_STATUS']);
+			}
+			else if(status.indexOf('busy') > -1 || status.indexOf('no-answer') > -1) {
+					$(this).attr('title', '');
+
+					var values = status.split(' ');
+
+					status = values[0] + ' (' + values[1] + 'x)';
+
+					$(this).css('color', window.colors['INCOMPLETE_STATUS']);
+			}
+			else if(status.indexOf('pending') > -1) {
+					$(this).attr('title', '');
+					$(this).css('color', window.colors['DEFAULT_STATUS']);
+			}
+
+			$(this).text(status.toTitleCase());
+		});
+
+	// "Email Status" column
+	$('thead [name="email_status"]').css('width', '110px');
+
+	$('tbody [name="email_status"]').each(function() {
+		var status = $(this).text();
+		if(status.indexOf('delivered') > -1) {
+			$(this).attr('title', '');
+			$(this).css('color', window.colors['SUCCESS_STATUS']);
+		}
+		else if(status.indexOf('pending') > -1) {
+			$(this).attr('title', '');
+			$(this).css('color', window.colors['DEFAULT_STATUS']);
+		}
+		else if(status.indexOf('queued') > -1) {
+			$(this).attr('title', '');
+			$(this).css('color', window.colors['DEFAULT_STATUS']);
+		}
+		else if(status.indexOf('no_email') > -1) {
+			$(this).attr('title', '');
+			$(this).css('color', window.colors['DEFAULT_STATUS']);
+		}
+		else if(status.indexOf('bounced') > -1 || status.indexOf('dropped') > -1) {
+			$(this).css('color', window.colors['FAILED_STATUS']);
+		}
+		$(this).text(status.toTitleCase());
+	});
+
+	$('[name="event_date"]').each(function() {
+		$(this).css('width', '145px');
+		var date = Date.parse($(this).html());
+		var string = date.toDateString();
+		$(this).html(string);
+	});
 }

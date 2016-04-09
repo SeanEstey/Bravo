@@ -3,7 +3,11 @@
   <script>
     document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
-      initAdmin();
+			$('body').css('display','block');
+			//displayServerStatus('/get/celery_status', '', $('#celery-status'));
+			//displayServerStatus('/get/version', '', $('#version'));
+			//displayServerStatus('/get/monthly_usage', '', $('#monthly-usage'));
+			//displayServerStatus('/get/annual_usage', '', $('#annual-usage'));
     });
   </script>
   <br>

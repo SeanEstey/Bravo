@@ -9,9 +9,6 @@ from dateutil.parser import parse
 from werkzeug.datastructures import MultiDict
 import xml.dom.minidom
 
-#os.chdir('/home/sean/Bravo/flask')
-#sys.path.insert(0, '/home/sean/Bravo/flask')
-
 os.chdir('/root/bravo_dev/Bravo/flask')
 sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
@@ -123,7 +120,7 @@ class BravoTestCase(unittest.TestCase):
         })
         print "Human XML:" + r.data
     '''
-    #'''
+    '''
     def test_etw_reminder_machine_answer_call(self):
         r = self.app.post('/reminders/call.xml', data={
           'CallSid': self.reminder['call']['sid'],
@@ -132,7 +129,7 @@ class BravoTestCase(unittest.TestCase):
           'AnsweredBy': 'machine'
         })
         print "Machine XML:" + r.data
-    #'''
+    '''
     '''
     def test_dial_and_answer_call(self):
         call = reminders.dial(self.reminder['call']['to'])
@@ -190,9 +187,14 @@ class BravoTestCase(unittest.TestCase):
 
         #logger.info(self.db['reminders'].find_one({'call.sid':completed_call['CallSid']}))
     '''
-    #'''
+    '''
     def test_send_calls(self):
         r = reminders.send_calls.apply_async(args=(str(self.job_id),),queue=DB_NAME)
+        self.assertTrue(type(r.result), int)
+    '''
+    #'''
+    def test_check_jobs(self):
+        r = reminders.check_jobs.apply_async(queue=DB_NAME)
         self.assertTrue(type(r.result), int)
 
     #'''

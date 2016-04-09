@@ -34,7 +34,7 @@ socketio = SocketIO(flask_app)
 
 login_manager = LoginManager()
 login_manager.init_app(flask_app)
-login_manager.login_view = PUB_URL + '/login' #url_for('login')
+login_manager.login_view = PUB_URL + '/login'
 
 def make_celery(app):
     CELERY_BROKER_URL = 'amqp://'

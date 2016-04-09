@@ -39,26 +39,22 @@ def get_jobs(args):
 def check_jobs():
     pending_jobs = db['jobs'].find({'status': 'pending'})
 
-    #print(str(pending_jobs.count()) + ' pending jobs:')
-
-    job_num = 1
-
     for job in pending_jobs:
-        if datetime.now() > job['fire_dtime']:
+        if datetime.now() > job['fire_calls_dtime']:
             logger.info('Scheduler: Starting Job...')
+
             send_calls.apply_async((str(job['_id']), ), queue=DB_NAME)
         else:
-            next_job_delay = job['fire_dtime'] - datetime.now()
-            print '{0}): {1} starts in {2}'.format(job_num, job['name'], str(next_job_delay))
-        job_num += 1
+            next_job_delay = job['fire_calls_dtime'] - datetime.now()
+
+            print '{0}): {1} starts in {2}'.format(
+                    str(job['_id']), job['name'],
+                    str(next_job_delay))
 
     in_progress_jobs = db['jobs'].find({'status': 'in-progress'})
-    #print(str(in_progress_jobs.count()) + ' active jobs:')
 
-    job_num = 1
-
-    #for job in in_progress_jobs:
-    #  print('    ' + str(job_num) + '): ' + job['name'])
+    logger.info('%d pending jobs, %s active jobs',
+                pending_jobs.count(), in_progress_jobs.count())
 
     return pending_jobs.count()
 
@@ -81,7 +77,8 @@ def send_calls(job_id):
 
     try:
         requests.get(LOCAL_URL + '/sendsocket', params={
-          'name': 'update_job', 'data': json.dumps({'id': job_id, 'status':'in-progress'})
+          'name': 'update_job',
+          'data': json.dumps({'id': job_id, 'status':'in-progress'})
         })
     except Exception as e:
         logger.error('send_calls sendsocket error', exc_info=True)
@@ -172,7 +169,7 @@ def send_emails(job_id):
             logger.error('Error sending email: %s', str(e))
 
     '''TODO: Add date into subject
-    #subject = 'Reminder: Upcoming event on  ' + 
+    #subject = 'Reminder: Upcoming event on  ' +
     # reminder['imported']['event_date'].strftime('%A, %B %d')
     '''
 
@@ -292,12 +289,40 @@ def line_entry_to_db(job_id, schema, line_index, buf_row, errors):
 
 #-------------------------------------------------------------------------------
 def rmv_msg(job_id, msg_id):
-    db['reminders'].remove({'_id':ObjectId(msg_id)})
+    n = db['reminders'].remove({'_id':ObjectId(msg_id)})
 
     db['jobs'].update(
         {'_id':ObjectId(job_id)},
         {'$inc':{'num_calls':-1}}
     )
+
+    return n
+
+#-------------------------------------------------------------------------------
+def reset_job(job_id):
+    n = db['reminders'].update(
+            {'job_id': ObjectId(job_id)},
+            {'$set': {
+                'call.status': 'pending',
+                'call.answered_by': None,
+                'call.ended_at': None,
+                'call.speak': None,
+                'call.attempts': 0,
+                'call.code': None,
+                'call.duration': None,
+                'call.error': None,
+                'email.status': 'pending',
+            }})
+
+    logger.info('%d reminders reset', n)
+
+    n = db['jobs'].update(
+            {'_id': ObjectId(job_id)},
+            {'$set': {
+                'status': 'pending',
+            }})
+
+    logger.info('%d jobs reset', n)
 
 #-------------------------------------------------------------------------------
 def edit_msg(job_id, msg_id, fields):
@@ -475,7 +500,16 @@ def call_event(args):
     Registering more events costs $.00001 per event
     '''
 
-    logger.info('%s %s', args['To'], args['CallStatus'])
+    if args.get('SipResponseCode') != 200:
+        if args.get('SipResonseCode') == 404:
+            e = 'nis'
+        else:
+            e = 'unknown error'
+
+        logger.info('%s %s (%s: %s)',
+                    args['To'], args['CallStatus'], args.get('SipResponseCode'), e)
+    else:
+        logger.info('%s %s', args['To'], args['CallStatus'])
 
     msg = db['reminders'].find_one_and_update(
       {'call.sid': args['CallSid']},
@@ -484,7 +518,8 @@ def call_event(args):
         "call.ended_at": datetime.now(),
         "call.duration": args['CallDuration'],
         "call.answered_by": args.get('AnsweredBy'),
-        "call.error_code": args.get('SipResponseCode') # in case of failure
+        "call.code": args.get('SipResponseCode'), # in case of failure
+        "call.error": e
       }}
     )
 
@@ -907,7 +942,7 @@ def submit_job(form, file):
         job_name = form['job_name']
 
     try:
-        fire_dtime = parse(form['date'] + ' ' + form['time'])
+        fire_calls_dtime = parse(form['date'] + ' ' + form['time'])
     except Exception as e:
         logger.error(str(e))
 
@@ -920,8 +955,8 @@ def submit_job(form, file):
     # D. Create mongo 'reminder_job' and 'reminder_msg' records
     job = {
         'name': job_name,
-        'template': schema,
-        'fire_dtime': fire_dtime,
+        'schema': schema,
+        'fire_calls_dtime': fire_calls_dtime,
         'status': 'pending',
         'num_calls': len(buffer)
     }

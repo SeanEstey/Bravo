@@ -1,6 +1,11 @@
   {% extends "views/base.html" %}
   {% block content %} 
-  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
+  <script type="text/javascript" 
+					src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js">
+	</script>
+	<script type='text/javascript' 
+					src="{{url_for('static', filename='js/views/job.js')}}">
+	</script>
   <script>
     document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
@@ -11,11 +16,15 @@
   <div class='row' style='padding:20px 0px 30px 0px; text-align:center'>
     <h2>
       <span id='job-header' class='label label-primary'>
-        <label id='job-status'>{{job.status.title().replace('-',' ')}}</label>
+        <label id='job-status'>
+						{{job.status.title().replace('-',' ')}}
+				</label>
         <label id='job-summary'></label>
       </span>
     </h2>
-      <p id='scheduled_datetime' style='display:none'>{{ job.fire_dtime }}</p>
+      <p id='scheduled_datetime' style='display:none'>
+					{{ job.fire_calls_dtime }}
+			</p>
   </div>
   
   <div class='data-container'>
@@ -32,7 +41,6 @@
           {% for column in template if not column.hide %}
             <th style='text-align:left' id='col{{ col_num }}'>
               <a title='Sort' class='hover' href='#'>
-                <!--column['field'].title().replace('_', ' ')-->
                 {{ column['file_header'] }}
               </a>
             </th>
@@ -46,7 +54,6 @@
               style='text-align:right'  
               id='col{{col_arr|length+1}}'>
               <a title='Sort' class='hover' href='#'>
-                <!--column['status_field'].title().replace('_', ' ')-->
                 Call Status
               </a>
             </th>
@@ -61,7 +68,6 @@
               style='text-align:right'  
               id='col{{col_arr|length+1}}'>
               <a title='Sort' class='hover' href='#'>
-                <!--column['status_field'].title().replace('_', ' ')-->
                 Email Status
               </a>
             </th>
@@ -109,35 +115,19 @@
 
           <!-- Call Status -->
           {% if 'call' in reminder  %}
-            {% if reminder['call']['status'] == "completed" %}
-              {% set caption=reminder['call']['status'] + ' ' +
-              reminder['call']['answered_by'] %}
-              {% set tooltip = reminder['call']['speak']  %}
-            {% elif reminder['call']['status'] == "no-answer" or
-            reminder['call']['status'] == "busy" %}
-              {% set caption = reminder['call']['status'] + ' ' ~
-              reminder['call']['attempts'] %}
-            {% elif reminder['call']['status'] == "failed" %}
-              {% set caption = reminder['call']['status'] + ' ' +
-              reminder['call']['error_msg'] %}
-            {% else %}
-              {% set caption=reminder['call']['status'] %}
-            {% endif %}
-              <td name='call_status' style='text-align:right; font-weight:normal;' 
-                  title='"{{tooltip}}"'>{{caption}}
+              <td name='call_status' style='text-align:right; font-weight:normal;'>
+								{{ reminder['call']['status'] }}
               </td>
           {% endif %}
 
-          {% set tooltip = '' %}
-
           <!-- Email Status -->
           {% if 'email' in reminder %}
-            {% if reminder['email']['status'] == 'bounced' or
-            reminder['email']['status'] == 'dropped' %}
-              {% set tooltip = reminder['email']['error_msg'] %}
+						{% set e_status = reminder['email']['status'] %}
+						{% if e_status == 'bounced' or e_status == 'dropped' %}
+              {% set tooltip = reminder['email']['error'] %}
             {% endif %}
             <td title='{{ tooltip }}' style='text-align:right; font-weight:normal;' 
-                name='email_status'>{{ reminder['email']['status'] }}
+                name='email_status'>{{ e_status }}
             </td>
           {% endif %}
 
@@ -158,10 +148,14 @@
   </div>
     <br><br>
   <div style='text-align:center;'>
-    <button style='margin:0 auto;' class='btn btn-primary' type='button' id='execute-job'>Execute Now </button>
-    <button style='margin:0 auto;' class='btn btn-primary' type='button' id='email-job'>Email Now </button>
-    <button style='margin:0 auto;' class='btn btn-primary' type='button' id='reset-job'>Reset </button>
-    <button style='margin:0 auto;' class='btn btn-primary' type='button' id='dump'>Job Info </button>
+    <button style='margin:0 auto;' class='btn btn-primary' 
+						type='button' id='execute-job'>Execute Now </button>
+    <button style='margin:0 auto;' class='btn btn-primary' 
+						type='button' id='email-job'>Email Now </button>
+    <button style='margin:0 auto;' class='btn btn-primary' 
+						type='button' id='reset-job'>Reset </button>
+    <button style='margin:0 auto;' class='btn btn-primary' 
+						type='button' id='dump'>Job Info </button>
   </div>
     <br><br>
   {% endblock %}

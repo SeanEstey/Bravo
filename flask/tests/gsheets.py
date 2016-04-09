@@ -10,9 +10,10 @@ os.chdir('/root/bravo_dev/Bravo/flask')
 sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
 from config import *
+from app import flask_app, celery_app, log_handler
 import gsheets
 import views # Required for self.app.post()
-from app import flask_app, celery_app, log_handler
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)

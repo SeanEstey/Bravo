@@ -12,10 +12,11 @@ import xml.dom.minidom
 os.chdir('/root/bravo_dev/Bravo/flask')
 sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
+from app import flask_app, celery_app, log_handler
 from config import *
 import reminders
 import views
-from app import flask_app, celery_app, log_handler
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
@@ -54,7 +55,7 @@ class BravoTestCase(unittest.TestCase):
           },
           'status': 'pending',
           'name': 'test',
-          'fire_calls_dtime': parse('Dec 31, 2016'),
+          'fire_calls_dtime': parse('Dec 31, 2015'),
           'num_calls': 1
         }
 
@@ -196,7 +197,13 @@ class BravoTestCase(unittest.TestCase):
     def test_check_jobs(self):
         r = reminders.check_jobs.apply_async(queue=DB_NAME)
         self.assertTrue(type(r.result), int)
-
+    #'''
+    #'''
+    def test_send_calls(self):
+        r = reminders.send_calls.apply_async(
+            args=(str(self.job_id), ),
+            queue=DB_NAME)
+        self.assertTrue(type(r.result), int)
     #'''
     '''
     def test_scheduler(self):

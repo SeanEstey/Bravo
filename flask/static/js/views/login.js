@@ -1,29 +1,28 @@
 
+//------------------------------------------------------------------------------
 function init() {
-		console.log('Root url: ' + $URL_ROOT);
-
 		$('#app_menu').hide();
 
 		$('#submit_btn').click(function(event) {
 			// This line needs to be here for Firefox browsers
 			event.preventDefault(event);
 			
-			var form_data = new FormData($('#myform')[0]);
-
 			$.ajax({
 				type: 'POST',
 				url: $URL_ROOT + 'login',
-				data: form_data,
+				data: new FormData($('#myform')[0]),
 				contentType: false,
 				processData: false,
 				dataType: 'json',
 				success: loginSuccess,
 				fail: loginFailure
 			});
+		});
 
 		$('body').css('display','block');
 }
 
+//------------------------------------------------------------------------------
 function loginSuccess(response) {
 		console.log(response);
 
@@ -42,7 +41,8 @@ function loginSuccess(response) {
 		}
 }
 
-function loginFail(xhr, textStatus, errorThrown) {
+//------------------------------------------------------------------------------
+function loginFailure(xhr, textStatus, errorThrown) {
 		console.log(xhr);
 		console.log(textStatus);
 		console.log(errorThrown);

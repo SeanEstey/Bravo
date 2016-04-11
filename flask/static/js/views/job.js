@@ -1,4 +1,5 @@
 
+//------------------------------------------------------------------------------
 function init() {
     var $a_child = $('th:first-child a');
 
@@ -39,20 +40,21 @@ function init() {
       });
     }
     else if($('#job-status').text() == 'In Progress') {
-      $('.cancel-call-col').each(function() {
-        $(this).hide();
-      });
+        $('.cancel-call-col').each(function() {
+          $(this).hide();
+        });
     }
     else if($('#job-status').text() == 'Completed') {
         $('#job-header').removeClass('label-primary');
         $('#job-header').addClass('label-success');
-        console.log('job complete!');
         $('#job-status').text('Completed');
         $('#job-summary').text('');
         $('.delete-btn').hide();
         $('.cancel-call-col').each(function() {
             $(this).hide();
         });
+
+        console.log('job complete!');
     }
 
     if($('#job-status').text().indexOf('Pending') > -1) {
@@ -140,11 +142,13 @@ function init() {
   }*/
 }
 
+//------------------------------------------------------------------------------
 function sortCalls(table, column) {
   var tbody = table.find('tbody');
 
   var $th = $('th:nth-child(' + column + ')');
   var is_ascending = HTMLEncode($th.text()).indexOf(window.unicode['DOWN_ARROW']) > -1;
+
   if(is_ascending)
     var sort_by = 'descending';
   else
@@ -153,12 +157,17 @@ function sortCalls(table, column) {
   // Clear existing sort arrows 
   $('th a').each(function () {
     var html = HTMLEncode($(this).text());
-    html = html.replace(window.unicode['UP_ARROW'], '').replace(window.unicode['DOWN_ARROW'], '').replace(window.unicode['SPACE'], ' ');
+
+    html = html.replace(window.unicode['UP_ARROW'], '');
+    html = html.replace(window.unicode['DOWN_ARROW'], '');
+    html = html.replace(window.unicode['SPACE'], ' ');
+
     $(this).text(html);
   });
 
   // Add sort arrow
   var $a = $('a', $th);
+
   if (sort_by == 'ascending')
     $a.html($a.html() + window.unicode['DOWN_ARROW']);
   else 
@@ -167,25 +176,31 @@ function sortCalls(table, column) {
   // Sort rows
   tbody.find('tr').sort(function (a, b) {
     var nth_child = 'td:nth-child(' + column + ')';
-    if (sort_by == 'ascending') {
+
+    if (sort_by == 'ascending')
       return $(nth_child, a).text().localeCompare($(nth_child, b).text());
-    } else {
+    else
       return $(nth_child, b).text().localeCompare($(nth_child, a).text());
-    }
   }).appendTo(tbody);
 }
 
+//------------------------------------------------------------------------------
 function makeCallFieldsClickable() {
   $("td").on('click',function() {      
     $cell = $(this);
+
     // Editable fields are assigned 'name' attribute
     var name = $cell.attr('name');
+
     if(!name)
       return;
+
     if(name == 'call_status' || name == 'email_status')
       return;
+
     if($('#job-status').text().indexOf('Pending') < 0)
       return;
+
     if($cell.find('input').length > 0)
       return;
 
@@ -202,48 +217,55 @@ function makeCallFieldsClickable() {
     $input.blur(function() {
       $cell.html($input.val());
       var field_name = String($cell.attr('name'));
+
       console.log(field_name + ' edited');
+
       var payload = {};
       payload[field_name] = $input.val();
+
       if($input.val() == '---')
         return;
+
       console.log(payload);
-      var request = $.ajax({
+
+      $.ajax({
         type: 'POST',
         url: $URL_ROOT + 'edit/call/' + $cell.parent().attr('id'),
-        data: payload
-      });
-      request.done(function(msg){
-        if(msg != 'OK') {
-          showDialog($('#dialog'), 'Your edit failed. Please enter a correct value: ' + msg);
-          $cell.html(text);
+        data: payload,
+        done: function(msg){
+          if(msg != 'OK') {
+            showDialog($('#dialog'), 'Your edit failed. Please enter a correct value: ' + msg);
+            $cell.html(text);
+          }
         }
       });
-    });
+
     $input.focus();
   });
 }
 
+//------------------------------------------------------------------------------
 function updateJobStatus() {
   if($('#job-status').text() == 'In Progress') {
-    var sum = 0;
-    var n_sent = 0;
-    var n_incomplete = 0;
-    $('[name="call_status"]').each(function() {
-      sum++;
-      if($(this).text().indexOf('Sent') > -1)
-        n_sent++;
-      else
-        n_incomplete++;
-    });
+      var sum = 0;
+      var n_sent = 0;
+      var n_incomplete = 0;
 
-    var delivered_percent = Math.floor((n_sent / sum) * 100);
-  //    $('#job-summary').css({'color':'#009900'});
-    var text = String(delivered_percent) + '%';
-    $('#job-summary').text(text);
+      $('[name="call_status"]').each(function() {
+        sum++;
+
+        if($(this).text().indexOf('Sent') > -1)
+          n_sent++;
+        else
+          n_incomplete++;
+      });
+
+      var delivered_percent = Math.floor((n_sent / sum) * 100);
+      $('#job-summary').text((String(delivered_percent) + '%');
   }
 }
 
+//------------------------------------------------------------------------------
 function receiveMsgUpdate(data) {
   // Clear the countdown timer if it is running
   if(window.countdown_id)
@@ -313,6 +335,7 @@ function receiveMsgUpdate(data) {
   updateJobStatus();
 }
 
+//------------------------------------------------------------------------------
 function updateCountdown() {
   /* Display timer counting down until event_datetime */
 
@@ -340,6 +363,7 @@ function updateCountdown() {
   $summary_lbl.text($summary_lbl.text() + Math.floor(diff_hrs) + ' Hours ' + Math.floor(diff_min) + ' Min ' + Math.floor(diff_sec) + ' Sec');
 }
 
+//------------------------------------------------------------------------------
 function enableColumnSorting() {
 	// Enable sorting on column headers
 	$('th').each(function(){
@@ -365,6 +389,7 @@ function enableColumnSorting() {
 	});
 }
 
+//------------------------------------------------------------------------------
 function formatColumns() {
 	// "Name" column
 	$('[name="name"]').each(function() {

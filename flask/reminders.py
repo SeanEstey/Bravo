@@ -41,15 +41,13 @@ def check_jobs():
 
     for job in pending_jobs:
         if datetime.now() > job['fire_calls_dtime']:
-            logger.info('Scheduler: Starting Job...')
-
             send_calls.apply_async((str(job['_id']), ), queue=DB_NAME)
         else:
             next_job_delay = job['fire_calls_dtime'] - datetime.now()
 
             print '{0}): {1} starts in {2}'.format(
-                    str(job['_id']), job['name'],
-                    str(next_job_delay))
+                  str(job['_id']), job['name'],
+                  str(next_job_delay))
 
     in_progress_jobs = db['jobs'].find({'status': 'in-progress'})
 
@@ -73,7 +71,7 @@ def send_calls(job_id):
       }}
     )
 
-    logger.info('\n\nStarting Job %s [ID %s]', job['name'], job_id)
+    logger.info('Starting Job %s [ID %s]', job['name'], job_id)
 
     try:
         requests.get(LOCAL_URL + '/sendsocket', params={
@@ -131,7 +129,7 @@ def send_calls(job_id):
     #payload = {'name': 'update_call', 'data': json.dumps(r)}
     #requests.get(LOCAL_URL+'/sendsocket', params=payload)
 
-    logger.info('%d calls fired', calls_fired)
+    logger.info('Job [ID %s]: %d calls fired', job_id, calls_fired)
 
     #r = requests.get(PUB_URL + '/' + job_id + '/monitor')
 
@@ -177,25 +175,25 @@ def send_emails(job_id):
 @celery_app.task
 def monitor_calls(job_id):
     try:
-        logger.info('Tasks: Monitoring Job')
-        job_id = ObjectId(job_id)
-        job = db['jobs'].find_one({'_id':job_id})
+        logger.info('Monitoring Job [ID %s]', job_id)
 
-        # Loop until no incomplete calls remaining (all either failed or complete)
+        job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+
         while True:
+            # Loop until no incomplete calls remaining (failed or complete)
             # Any calls still active?
             actives = db['reminders'].find({
-                'job_id': job_id,
+                'job_id': ObjectId(job_id),
                 '$or':[
-                  {'call_status': 'queued'},
-                  {'call_status': 'ringing'},
-                  {'call_status': 'in-progress'}
+                  {'call.status': 'queued'},
+                  {'call.status': 'ringing'},
+                  {'call.status': 'in-progress'}
             ]})
 
             # Any needing redial?
             incompletes = db['reminders'].find({
-                'job_id':job_id,
-                'attempts': {'$lt': MAX_ATTEMPTS},
+                'job_id': ObjectId(job_id),
+                'attempts': {'$lt': MAX_CALL_ATTEMPTS},
                 '$or':[
                   {'call.status': 'busy'},
                   {'call.status': 'no-answer'}
@@ -204,13 +202,15 @@ def monitor_calls(job_id):
             if actives.count() == 0 and incompletes.count() == 0:
                 # Job Complete!
                 db['jobs'].update(
-                  {'_id': job_id},
+                  {'_id': ObjectId(job_id)},
                   {'$set': {
                     'call.status': 'completed',
                     'call.ended_at': datetime.now()
                     }
                 })
-                logger.info('\nCompleted Job %s [ID %s]\n', job['name'], str(job_id))
+
+                logger.info('Completed Job %s [ID %s]\n', job['name'], str(job_id))
+
                 # Connect back to server and notify
                 requests.get(PUB_URL + '/complete/' + str(job_id))
 
@@ -222,11 +222,11 @@ def monitor_calls(job_id):
                 time.sleep(REDIAL_DELAY)
 
                 for call in incompletes:
-                    r = dial(call['imported']['to'])
+                    r = dial(call['to'])
 
-                    logger.info('%s %s', call['imported']['to'], r['call_status'])
+                    logger.info('%s %s', call['call']['to'], r['call_status'])
 
-                    r['attempts'] = call['attempts']+1
+                    r['attempts'] = call['call']['attempts']+1
 
                     db['reminders'].update(
                       {'_id':call['_id']},

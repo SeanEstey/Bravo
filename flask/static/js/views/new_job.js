@@ -1,3 +1,5 @@
+
+//------------------------------------------------------------------------------
 function init() {
   addBravoTooltip();
 
@@ -108,6 +110,7 @@ function init() {
   $('body').css('display','block');
 }
 
+//------------------------------------------------------------------------------
 function clickPercent(e) {
 	/* Audio Player
 	 * returns click as decimal (.77) of the total timelineWidth
@@ -119,6 +122,7 @@ function clickPercent(e) {
   return (e.pageX - timeline.offsetLeft) / timelineWidth;
 }
 
+//------------------------------------------------------------------------------
 var onplayhead = false;
 // mouseDown EventListener
 function mouseDown() {
@@ -133,6 +137,7 @@ function mouseDown() {
   music.removeEventListener('timeupdate', timeUpdate, false);
 }
 
+//------------------------------------------------------------------------------
 function mouseUp(e) {
 	/* Audio Player
 	 * mouseUp EventListener. getting input from all mouse clicks
@@ -152,6 +157,7 @@ function mouseUp(e) {
 }
 
 
+//------------------------------------------------------------------------------
 function moveplayhead(e) {
 	/* Audio Player
 	 * mousemove EventListener. Moves playhead as user drags
@@ -175,6 +181,7 @@ function moveplayhead(e) {
   }
 }
 
+//------------------------------------------------------------------------------
 function timeUpdate() {
 	/* Audio Player 
 	 * Synchronizes playhead position with current point in audio 
@@ -195,6 +202,7 @@ function timeUpdate() {
   }
 }
 
+//------------------------------------------------------------------------------
 function play() {
 	/* Audio Player */
 
@@ -215,6 +223,7 @@ function play() {
   }
 }
 
+//------------------------------------------------------------------------------
 function updateFilePickerTooltip() {
   var $select = $('#template-select');
   var $template = $select.find($('option:selected'));
@@ -230,6 +239,7 @@ function updateFilePickerTooltip() {
   });*/
 }
 
+//------------------------------------------------------------------------------
 function onSelectTemplate() {
   var $select = $('#template-select');
 
@@ -257,6 +267,7 @@ function onSelectTemplate() {
   });
 }
 
+//------------------------------------------------------------------------------
 function validateNewJobForm() {
   var paramObj = {};
   $.each($('form').serializeArray(), function(_, kv) {
@@ -367,6 +378,7 @@ function validateNewJobForm() {
   }
 }
 
+//------------------------------------------------------------------------------
 function submitSuccess(response) {
     console.log(response);
 
@@ -388,6 +400,7 @@ function submitSuccess(response) {
     }
 }
 
+//------------------------------------------------------------------------------
 function submitFailure(xhr, textStatus, errorThrown) {
     console.log(xhr);
     console.log(textStatus);

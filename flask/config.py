@@ -10,7 +10,7 @@ from private_config import *
 # When False, uses Wekzeug dev server
 DEBUG = False
 
-TEST_MODE = False
+TEST_MODE = True
 
 if DEBUG == True:
     LOG_LEVEL = logging.DEBUG
@@ -37,7 +37,7 @@ FROM_NUMBER= '+17804138846'
 SMS_NUMBER = '+15874104251'
 EMERGENCY_CONTACT='7808635715'
 CALLER_ID= 'Winnifred Stewart Association'
-MAX_ATTEMPTS= 2
+MAX_CALL_ATTEMPTS= 2
 REDIAL_DELAY = 300
 UPLOAD_FOLDER = '/tmp'
 JOBS_PER_PAGE = 10

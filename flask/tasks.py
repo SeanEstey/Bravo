@@ -4,7 +4,7 @@ from config import DB_NAME
 from datetime import timedelta
 
 from gsheets import add_signup, create_rfu
-from reminders import check_jobs, send_calls, send_emails, monitor_calls, cancel_pickup, set_no_pickup
+from reminders import check_jobs, send_calls, send_emails, cancel_pickup, set_no_pickup
 from receipts import process
 from scheduler import analyze_non_participants
 
@@ -26,7 +26,7 @@ CELERYBEAT_SCHEDULE = {
   },
   'check_jobs': {
     'task': 'reminders.check_jobs',
-    'schedule': crontab(hour='*', minute=0),
+    'schedule': crontab(minute='*/5'),
     'options': { 'queue': DB_NAME }
   },
 }

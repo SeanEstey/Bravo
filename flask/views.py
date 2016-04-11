@@ -150,13 +150,6 @@ def reset_job(job_id):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-# Requested on completion of tasks.execute_job()
-@flask_app.route('/reminders/<job_id>/monitor')
-def monitor_job(job_id):
-    reminders.monitor_calls.apply_async((job_id.encode('utf-8'),), queue=DB_NAME)
-    return 'OK'
-
-#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/<job_id>/send_emails')
 @login_required
 def send_emails(job_id):
@@ -170,6 +163,14 @@ def send_calls(job_id):
     job_id = job_id.encode('utf-8')
     # Start celery worker
     reminders.send_calls.apply_async(args=(job_id, ), queue=DB_NAME)
+    return 'OK'
+
+#-------------------------------------------------------------------------------
+@flask_app.route('/reminders/<job_id>/complete')
+@login_required
+def job_complete(job_id):
+    '''Email job summary, update job status'''
+
     return 'OK'
 
 #-------------------------------------------------------------------------------

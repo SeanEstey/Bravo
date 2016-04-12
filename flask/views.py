@@ -171,6 +171,8 @@ def send_calls(job_id):
 def job_complete(job_id):
     '''Email job summary, update job status'''
 
+    logger.info('Job [ID %s] complete!', job_id)
+
     return 'OK'
 
 #-------------------------------------------------------------------------------

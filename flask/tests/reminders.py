@@ -194,17 +194,29 @@ class BravoTestCase(unittest.TestCase):
         self.assertTrue(type(r.result), int)
     '''
     #'''
-    def test_check_jobs(self):
+    def test_check_jobs_in_progress(self):
+        self.db.jobs.update_one(
+          {'_id':self.job_id},
+          {'$set': {
+              'status': 'in-progress'
+          }})
+        self.db.reminders.update_one(
+          {'_id': self.rem_id},
+          {'$set': {
+              'call.status': 'busy',
+              'call.attempts': 1
+        }})
+
         r = reminders.check_jobs.apply_async(queue=DB_NAME)
         self.assertTrue(type(r.result), int)
     #'''
-    #'''
+    '''
     def test_send_calls(self):
         r = reminders.send_calls.apply_async(
             args=(str(self.job_id), ),
             queue=DB_NAME)
         self.assertTrue(type(r.result), int)
-    #'''
+    '''
     '''
     def test_scheduler(self):
         # Tricky to test because it fires another sync call to execute_job

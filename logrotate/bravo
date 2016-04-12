@@ -1,12 +1,15 @@
 # Test out by running logrotate --force /etc/logrotate.d/bravo
+# copytruncate used because python logger handler will still be pointing
+# to the old renamed file if it is simply renamed
 
 /var/www/bravo/logs/*.log {
 	daily
-	missingok
+	#missingok
 	rotate 52
 	su root root
 	notifempty
-	create 0640 www-data
+	#create 0640 www-data
+    copytruncate
 	dateext
 	dateformat -%Y-%m-%d
 	sharedscripts

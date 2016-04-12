@@ -38,42 +38,79 @@ def get_jobs(args):
 #-------------------------------------------------------------------------------
 @celery_app.task
 def check_jobs():
+    # A. Check active jobs
     in_progress = db['jobs'].find({'status': 'in-progress'})
 
     for job in in_progress:
-        # Finish any existing jobs before starting new ones
-        redial_calls(str(job['_id']))
+        actives = db['reminders'].find({
+          'job_id': job['_id'],
+          '$or':[
+            {'call.status': 'queued'},
+            {'call.status': 'ringing'},
+            {'call.status': 'in-progress'}
+        ]})
 
+        # Any needing redial?
+        incompletes = db['reminders'].find({
+          'job_id': job['_id'],
+          'call.attempts': {'$lt': MAX_CALL_ATTEMPTS},
+          '$or':[
+            {'call.status': 'busy'},
+            {'call.status': 'no-answer'}
+        ]})
+
+        # Test for job completion
+        if actives.count() == 0 and incompletes.count() == 0:
+            # Job Complete!
+            db['jobs'].update(
+              {'_id': job['_id']},
+              {'$set': {
+                'call.status': 'completed',
+                'call.ended_at': datetime.now()
+                }
+            })
+
+            logger.info('Completed Job %s [ID %s]\n', job['name'], str(job_id))
+
+            # Connect back to server and notify
+            requests.get(LOCAL_URL + '/complete/' + str(job_id))
+
+            return 'OK'
+        elif actives.count() == 0 and incompletes.count() > 0:
+            # Job still in progress. Any incomplete calls need redialing?
+            logger.info('Redialing %d incompletes', incompletes.count())
+
+            send_calls(job_id)
+        else:
+            time.sleep(10)
+
+    # B. Check pending jobs
     pending = db['jobs'].find({'status': 'pending'})
 
     for job in pending:
-        if datetime.now() > job['fire_calls_dtime']:
-            # Start new job
-            db['jobs'].update_one(
-              {'_id': job['_id']},
-              {'$set': {
-                "status": "in-progress",
-                "started_at": datetime.now()
-              }}
-            )
-
-            logger.info('Starting Job %s [ID %s]', job['name'], job['_id'])
-
-            try:
-                requests.get(LOCAL_URL + '/sendsocket', params={
-                  'name': 'update_job',
-                  'data': json.dumps({'id': str(job['_id']), 'status':'in-progress'})
-                })
-            except Exception as e:
-                logger.error('sendsocket error', exc_info=True)
-
-            send_calls(str(job['_id']))
-        else:
-            next_job_delay = job['fire_calls_dtime'] - datetime.now()
-
+        if datetime.now() < job['fire_calls_dtime']:
             print '{0}): {1} starts in {2}'.format(
                   str(job['_id']), job['name'],
-                  str(next_job_delay))
+                  str(job['fire_calls_dtime'] - datetime.now())
+            continue
+
+        # Start new job
+        db['jobs'].update_one(
+          {'_id': job['_id']},
+          {'$set': {
+            "status": "in-progress",
+            "started_at": datetime.now()
+          }}
+        )
+
+        logger.info('Starting Job %s [ID %s]', job['name'], job['_id'])
+
+        #requests.get(LOCAL_URL + '/sendsocket', params={
+        #  'name': 'update_job',
+        #  'data': json.dumps({'id': str(job['_id']), 'status':'in-progress'})
+        #})
+
+        send_calls(str(job['_id']))
 
     print('%d pending jobs, %s active jobs' % (pending.count(), in_progress.count()))
 
@@ -98,7 +135,6 @@ def send_calls(job_id):
     for reminder in reminders:
         # TODO: change call.status to "cancelled" on no_pickup request,
         # eliminate this test
-
         if 'no_pickup' in reminder['custom']:
             continue
 
@@ -143,8 +179,6 @@ def send_calls(job_id):
 
     logger.info('Job [ID %s]: %d calls fired', job_id, calls_fired)
 
-    #r = requests.get(PUB_URL + '/' + job_id + '/monitor')
-
     return calls_fired
 
 #-------------------------------------------------------------------------------
@@ -182,67 +216,6 @@ def send_emails(job_id):
     #subject = 'Reminder: Upcoming event on  ' +
     # reminder['imported']['event_date'].strftime('%A, %B %d')
     '''
-
-#-------------------------------------------------------------------------------
-@celery_app.task
-def redial_calls(job_id):
-    logger.info('Redialing Job [ID %s]', job_id)
-
-    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
-
-    while True:
-        try:
-            # Loop until no incomplete calls remaining (failed or complete)
-            # Any calls still active?
-            actives = db['reminders'].find({
-              'job_id': ObjectId(job_id),
-              '$or':[
-                {'call.status': 'queued'},
-                {'call.status': 'ringing'},
-                {'call.status': 'in-progress'}
-            ]})
-
-            # Any needing redial?
-            incompletes = db['reminders'].find({
-                'job_id': ObjectId(job_id),
-                'attempts': {'$lt': MAX_CALL_ATTEMPTS},
-                '$or':[
-                  {'call.status': 'busy'},
-                  {'call.status': 'no-answer'}
-            ]})
-
-            if actives.count() == 0 and incompletes.count() == 0:
-                # Job Complete!
-                db['jobs'].update(
-                  {'_id': ObjectId(job_id)},
-                  {'$set': {
-                    'call.status': 'completed',
-                    'call.ended_at': datetime.now()
-                    }
-                })
-
-                logger.info('Completed Job %s [ID %s]\n', job['name'], str(job_id))
-
-                # Connect back to server and notify
-                requests.get(PUB_URL + '/complete/' + str(job_id))
-
-                return 'OK'
-            elif actives.count() == 0 and incompletes.count() > 0:
-                # Job still in progress. Any incomplete calls need redialing?
-                logger.info('Pausing %d sec then Re-attempting %d Incompletes.',
-                            REDIAL_DELAY, incompletes.count())
-                time.sleep(REDIAL_DELAY)
-
-                send_calls(job_id)
-            else:
-                time.sleep(10)
-
-            print('Redialing Job [ID %s] loop...' % (job_id))
-        except Exception, e:
-            logger.error('redial_calls job_id %s', str(job_id), exc_info=True)
-
-    # End loop
-    return 'OK'
 
 #-------------------------------------------------------------------------------
 def line_entry_to_db(job_id, schema, line_index, buf_row, errors):

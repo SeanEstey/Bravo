@@ -194,7 +194,7 @@ class BravoTestCase(unittest.TestCase):
         self.assertTrue(type(r.result), int)
     '''
     #'''
-    def test_check_jobs_in_progress(self):
+    def test_check_jobs_in_progress_redial(self):
         self.db.jobs.update_one(
           {'_id':self.job_id},
           {'$set': {
@@ -209,6 +209,9 @@ class BravoTestCase(unittest.TestCase):
 
         r = reminders.check_jobs.apply_async(queue=DB_NAME)
         self.assertTrue(type(r.result), int)
+    #'''
+    #'''
+    def test_check_jobs_complete(self):
     #'''
     '''
     def test_send_calls(self):

@@ -1,4 +1,3 @@
-#import twilio
 import twilio.twiml
 from datetime import datetime,date
 from dateutil.parser import parse
@@ -22,33 +21,26 @@ logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(log_handler)
 
-#-------------------------------------------------------------------------------
-def get_jobs(args):
-    '''If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
-    If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
-    '''
-
-    jobs = db['jobs'].find()
-
-    if jobs:
-        jobs = jobs.sort('fire_calls_dtime',-1).limit(JOBS_PER_PAGE)
-
-    return jobs
 
 #-------------------------------------------------------------------------------
 @celery_app.task
 def check_jobs():
+    '''Scheduler process. Runs via celerybeat every few minutes.
+    Will finish off any active jobs and begin any pending scheduled jobs.
+    '''
+
     # A. Check active jobs
     in_progress = db['jobs'].find({'status': 'in-progress'})
 
     for job in in_progress:
-        actives = db['reminders'].find({
-          'job_id': job['_id'],
-          '$or':[
-            {'call.status': 'queued'},
-            {'call.status': 'ringing'},
-            {'call.status': 'in-progress'}
-        ]})
+        if db['reminders'].find({
+            'job_id': job['_id'],
+            '$or':[
+              {'call.status': 'queued'},
+              {'call.status': 'ringing'},
+              {'call.status': 'in-progress'}
+            ]}).count() > 0:
+              continue
 
         # Any needing redial?
         incompletes = db['reminders'].find({
@@ -60,29 +52,22 @@ def check_jobs():
         ]})
 
         # Test for job completion
-        if actives.count() == 0 and incompletes.count() == 0:
+        if incompletes.count() == 0:
             # Job Complete!
-            db['jobs'].update(
+            db['jobs'].update_one(
               {'_id': job['_id']},
-              {'$set': {
-                'call.status': 'completed',
-                'call.ended_at': datetime.now()
-                }
+              {'$set': { 'status': 'completed'}
             })
 
-            logger.info('Completed Job %s [ID %s]\n', job['name'], str(job_id))
+            logger.info('Completed Job %s [ID %s]\n', job['name'], str(job['_id']))
 
             # Connect back to server and notify
-            requests.get(LOCAL_URL + '/complete/' + str(job_id))
-
-            return 'OK'
-        elif actives.count() == 0 and incompletes.count() > 0:
+            requests.get(LOCAL_URL + '/complete/' + str(job['_id']))
+        elif incompletes.count() > 0:
             # Job still in progress. Any incomplete calls need redialing?
             logger.info('Redialing %d incompletes', incompletes.count())
 
-            send_calls(job_id)
-        else:
-            time.sleep(10)
+            send_calls(job['_id'])
 
     # B. Check pending jobs
     pending = db['jobs'].find({'status': 'pending'})
@@ -91,7 +76,7 @@ def check_jobs():
         if datetime.now() < job['fire_calls_dtime']:
             print '{0}): {1} starts in {2}'.format(
                   str(job['_id']), job['name'],
-                  str(job['fire_calls_dtime'] - datetime.now())
+                  str(job['fire_calls_dtime'] - datetime.now()))
             continue
 
         # Start new job
@@ -216,6 +201,19 @@ def send_emails(job_id):
     #subject = 'Reminder: Upcoming event on  ' +
     # reminder['imported']['event_date'].strftime('%A, %B %d')
     '''
+
+#-------------------------------------------------------------------------------
+def get_jobs(args):
+    '''If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
+    If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
+    '''
+
+    jobs = db['jobs'].find()
+
+    if jobs:
+        jobs = jobs.sort('fire_calls_dtime',-1).limit(JOBS_PER_PAGE)
+
+    return jobs
 
 #-------------------------------------------------------------------------------
 def line_entry_to_db(job_id, schema, line_index, buf_row, errors):

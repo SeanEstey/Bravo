@@ -12,6 +12,9 @@ def get_tail(file, num_lines):
     try:
         size = os.path.getsize(LOG_FILE)
 
+        if size == 0:
+            return False
+
         with open(file, "rb") as f:
             fm = mmap.mmap(f.fileno(), 0, mmap.MAP_SHARED, mmap.PROT_READ)
 

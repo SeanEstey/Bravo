@@ -1,14 +1,19 @@
 # Test out by running logrotate --force /etc/logrotate.d/bravo
-# copytruncate used because python logger handler will still be pointing
+#
+# 'copytruncate' used because python logger handler will still be pointing
 # to the old renamed file if it is simply renamed
+#
+# To have logs rotate at midnight, change the following line in
+# /etc/crontab:
+#25 6	* * *	root  test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
+# to:
+#0 0	* * *	root  test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
 
 /var/www/bravo/logs/*.log {
 	daily
-	#missingok
 	rotate 52
 	su root root
 	notifempty
-	#create 0640 www-data
     copytruncate
 	dateext
 	dateformat -%Y-%m-%d

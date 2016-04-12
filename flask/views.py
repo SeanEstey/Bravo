@@ -58,6 +58,7 @@ def view_jobs():
 @login_required
 def view_log():
     lines = log.get_tail(LOG_FILE, LOG_LINES)
+
     return flask.render_template('views/log.html', lines=lines)
 
 #-------------------------------------------------------------------------------
@@ -172,6 +173,8 @@ def job_complete(job_id):
     '''Email job summary, update job status'''
 
     logger.info('Job [ID %s] complete!', job_id)
+
+    # TODO: Send socket to web app to display completed status
 
     return 'OK'
 

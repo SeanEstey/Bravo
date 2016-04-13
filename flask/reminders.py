@@ -28,55 +28,18 @@ def check_jobs():
     '''Scheduler process. Runs via celerybeat every few minutes.
     Will finish off any active jobs and begin any pending scheduled jobs.
     '''
+    check_pending_jobs()
+    check_active_jobs()
 
-    # A. Check active jobs
-    in_progress = db['jobs'].find({'status': 'in-progress'})
-
-    for job in in_progress:
-        if db['reminders'].find({
-            'job_id': job['_id'],
-            '$or':[
-              {'call.status': 'queued'},
-              {'call.status': 'ringing'},
-              {'call.status': 'in-progress'}
-            ]}).count() > 0:
-              continue
-
-        # Any needing redial?
-        incompletes = db['reminders'].find({
-          'job_id': job['_id'],
-          'call.attempts': {'$lt': MAX_CALL_ATTEMPTS},
-          '$or':[
-            {'call.status': 'busy'},
-            {'call.status': 'no-answer'}
-        ]})
-
-        # Test for job completion
-        if incompletes.count() == 0:
-            # Job Complete!
-            db['jobs'].update_one(
-              {'_id': job['_id']},
-              {'$set': { 'status': 'completed'}
-            })
-
-            logger.info('Completed Job %s [ID %s]\n', job['name'], str(job['_id']))
-
-            # Connect back to server and notify
-            requests.get(LOCAL_URL + '/complete/' + str(job['_id']))
-        elif incompletes.count() > 0:
-            # Job still in progress. Any incomplete calls need redialing?
-            logger.info('Redialing %d incompletes', incompletes.count())
-
-            send_calls(job['_id'])
-
+#-------------------------------------------------------------------------------
+def check_pending_jobs():
     # B. Check pending jobs
     pending = db['jobs'].find({'status': 'pending'})
 
     for job in pending:
         if datetime.now() < job['fire_calls_dtime']:
-            print '{0}): {1} starts in {2}'.format(
-                  str(job['_id']), job['name'],
-                  str(job['fire_calls_dtime'] - datetime.now()))
+            print('Pending job ID %s starts in %s' %
+            (str(job['_id']), str(job['fire_calls_dtime'] - datetime.now())))
             continue
 
         # Start new job
@@ -84,9 +47,7 @@ def check_jobs():
           {'_id': job['_id']},
           {'$set': {
             "status": "in-progress",
-            "started_at": datetime.now()
-          }}
-        )
+            "started_at": datetime.now()}})
 
         logger.info('Starting Job %s [ID %s]', job['name'], job['_id'])
 
@@ -97,12 +58,56 @@ def check_jobs():
 
         send_calls(str(job['_id']))
 
-    print('%d pending jobs, %s active jobs' % (pending.count(), in_progress.count()))
-
     if datetime.now().minute == 0:
-        logger.info('%d pending jobs, %s active jobs', pending.count(), in_progress.count())
+        logger.info('%d pending jobs', pending.count())
 
-    return pending.count() + in_progress.count()
+    return pending.count()
+
+#-------------------------------------------------------------------------------
+def check_active_jobs():
+    # A. Check active jobs
+    in_progress = db['jobs'].find({'status': 'in-progress'})
+
+    for job in in_progress:
+        if db['reminders'].find({
+          'job_id': job['_id'],
+          '$or':[
+            {'call.status': 'queued'},
+            {'call.status': 'ringing'},
+            {'call.status': 'in-progress'}
+        ]}).count() > 0:
+            continue
+
+        print('Active job: ID %s' % ((str(job['_id']))))
+
+        # Any needing redial?
+        incompletes = db['reminders'].find({
+          'job_id': job['_id'],
+          'call.attempts': {'$lt': MAX_CALL_ATTEMPTS},
+          '$or':[
+            {'call.status': 'busy'},
+            {'call.status': 'no-answer'}]})
+
+        if incompletes.count() == 0:
+            # Job Complete!
+            db['jobs'].update_one(
+              {'_id': job['_id']},
+              {'$set': { 'status': 'completed'}})
+
+            logger.info('Completed Job %s [ID %s]\n', job['name'], str(job['_id']))
+
+            # Connect back to server and notify
+            requests.get(LOCAL_URL + '/complete/' + str(job['_id']))
+
+            send_email_report(job['_id'])
+
+        else:
+            logger.info('Redialing %d incompletes', incompletes.count())
+
+            # Redial busy or no-answer incompletes
+            send_calls(job['_id'])
+
+    return in_progress.count()
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -139,9 +144,7 @@ def send_calls(job_id):
               {'$set': {
                 "call.status": "failed",
                 "call.error": call.msg,
-                "call.code": call.code
-              }}
-            )
+                "call.code": call.code}})
         else:
             logger.info('%s %s', reminder['call']['to'], call.status)
 
@@ -152,9 +155,7 @@ def send_calls(job_id):
               {'$set': {
                 "call.status": call.status,
                 "call.sid": call.sid,
-                "call.attempts": reminder['call']['attempts']+1
-              }}
-            )
+                "call.attempts": reminder['call']['attempts']+1}})
 
     # TODO: Add back in socket.io
 
@@ -223,19 +224,20 @@ def line_entry_to_db(job_id, schema, line_index, buf_row, errors):
     buf_row: array of values from csv file
     line_index: file row index (for error tracking)
     '''
-    try:
-        msg = {
-            "job_id": job_id,
-            "call": {
-              "status": "pending",
-              "attempts": 0,
-            },
-            "email": {
-              "status": "pending"
-            },
-            "custom": {}
-        }
 
+    msg = {
+        "job_id": job_id,
+        "call": {
+          "status": "pending",
+          "attempts": 0,
+        },
+        "email": {
+          "status": "pending"
+        },
+        "custom": {}
+    }
+
+    try:
         for i, field in enumerate(schema['import_fields']):
             db_field = field['db_field']
 
@@ -276,26 +278,26 @@ def rmv_msg(job_id, msg_id):
 #-------------------------------------------------------------------------------
 def reset_job(job_id):
     n = db['reminders'].update(
-            {'job_id': ObjectId(job_id)},
-            {'$set': {
-                'call.status': 'pending',
-                'call.answered_by': None,
-                'call.ended_at': None,
-                'call.speak': None,
-                'call.attempts': 0,
-                'call.code': None,
-                'call.duration': None,
-                'call.error': None,
-                'email.status': 'pending',
-            }})
+      {'job_id': ObjectId(job_id)},
+      {'$set': {
+        'call.status': 'pending',
+        'call.answered_by': None,
+        'call.ended_at': None,
+        'call.speak': None,
+        'call.attempts': 0,
+        'call.code': None,
+        'call.duration': None,
+        'call.error': None,
+        'email.status': 'pending',
+    }})
 
     logger.info('%d reminders reset', n)
 
     n = db['jobs'].update(
-            {'_id': ObjectId(job_id)},
-            {'$set': {
-                'status': 'pending',
-            }})
+      {'_id': ObjectId(job_id)},
+      {'$set': {
+        'status': 'pending',
+    }})
 
     logger.info('%d jobs reset', n)
 
@@ -308,8 +310,11 @@ def edit_msg(job_id, msg_id, fields):
           except Exception, e:
             logger.error('Could not parse event_date in /edit/call')
             return '400'
+
         logger.info('Editing ' + fieldname + ' to value: ' + str(value))
+
         field = 'imported.'+fieldname
+
         db['reminders'].update(
             {'_id':ObjectId(sid)},
             {'$set':{field: value}}

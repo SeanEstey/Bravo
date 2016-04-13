@@ -17,7 +17,6 @@ from config import *
 import reminders
 import views
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(log_handler)
@@ -198,20 +197,21 @@ class BravoTestCase(unittest.TestCase):
         self.db.jobs.update_one(
           {'_id':self.job_id},
           {'$set': {
-              'status': 'in-progress'
-          }})
+              'status': 'in-progress'}})
+
         self.db.reminders.update_one(
           {'_id': self.rem_id},
           {'$set': {
               'call.status': 'busy',
-              'call.attempts': 1
-        }})
+              'call.attempts': 1}})
 
         r = reminders.check_jobs.apply_async(queue=DB_NAME)
+
         self.assertTrue(type(r.result), int)
     #'''
     #'''
     def test_check_jobs_complete(self):
+        foo = 1
     #'''
     '''
     def test_send_calls(self):

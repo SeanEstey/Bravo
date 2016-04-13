@@ -7,7 +7,7 @@
 	function write_log($msg) {
 		global $LOG_FILE;
     global $association;
-    $line = '[' . date('j-M-Y g:iA') . ' php ' . strtoupper($association) . ']: ' . $msg . "\n\r";
+    $line = '[' . date('j-M-Y g:iA') . ' php ' . strtoupper($association) . ']: ' . $msg . "\n";
     file_put_contents($LOG_FILE, $line, FILE_APPEND);
     return $msg;
   }

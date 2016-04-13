@@ -74,23 +74,23 @@ def process(entries, keys):
     gift_accounts = []
 
     for i in range(0, len(accounts)):
-        if not accounts[i]['email']:
-            wks.update_cell(
-              entries[i]['from']['row'],
-              headers.index('Email Status')+1,
-              'no email'
-            )
-            num_no_emails += 1
-
-            continue
-        else:
-            wks.update_cell(
-              entries[i]['from']['row'],
-              headers.index('Email Status')+1,
-              'queued'
-            )
-
         try:
+            if not accounts[i]['email']:
+                wks.update_cell(
+                  entries[i]['from']['row'],
+                  headers.index('Email Status')+1,
+                  'no email'
+                )
+                num_no_emails += 1
+
+                continue
+            else:
+                wks.update_cell(
+                  entries[i]['from']['row'],
+                  headers.index('Email Status')+1,
+                  'queued'
+                )
+
             entries[i]['date'] = parse(entries[i]['date']).strftime('%B %-d, %Y')
 
             if 'next_pickup' in entries[i]:

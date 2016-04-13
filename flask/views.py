@@ -263,8 +263,6 @@ def send_email():
 
     args = request.get_json(force=True)
 
-    #logger.debug(args)
-
     for key in ['template', 'subject', 'recipient']:
         if key not in args:
             e = '/email/send: missing one or more required fields'

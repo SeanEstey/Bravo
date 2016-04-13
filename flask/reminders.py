@@ -24,21 +24,20 @@ logger.addHandler(log_handler)
 
 #-------------------------------------------------------------------------------
 @celery_app.task
-def check_jobs():
+def monitor_jobs():
     '''Scheduler process. Runs via celerybeat every few minutes.
     Will finish off any active jobs and begin any pending scheduled jobs.
     '''
-    check_pending_jobs()
-    check_active_jobs()
+    monitor_pending_jobs()
+    monitor_active_jobs()
 
 #-------------------------------------------------------------------------------
-def check_pending_jobs():
-    # B. Check pending jobs
+def monitor_pending_jobs():
     pending = db['jobs'].find({'status': 'pending'})
 
     for job in pending:
         if datetime.now() < job['fire_calls_dtime']:
-            print('Pending job ID %s starts in %s' %
+            print('Job_ID %s: Pending in %s' %
             (str(job['_id']), str(job['fire_calls_dtime'] - datetime.now())))
             continue
 
@@ -49,7 +48,7 @@ def check_pending_jobs():
             "status": "in-progress",
             "started_at": datetime.now()}})
 
-        logger.info('Starting Job %s [ID %s]', job['name'], job['_id'])
+        logger.info('Job_ID %s: Sending calls', job['_id'])
 
         #requests.get(LOCAL_URL + '/sendsocket', params={
         #  'name': 'update_job',
@@ -64,8 +63,7 @@ def check_pending_jobs():
     return pending.count()
 
 #-------------------------------------------------------------------------------
-def check_active_jobs():
-    # A. Check active jobs
+def monitor_active_jobs():
     in_progress = db['jobs'].find({'status': 'in-progress'})
 
     for job in in_progress:
@@ -78,7 +76,7 @@ def check_active_jobs():
         ]}).count() > 0:
             continue
 
-        print('Active job: ID %s' % ((str(job['_id']))))
+        print('Job_ID %s: Active' % ((str(job['_id']))))
 
         # Any needing redial?
         incompletes = db['reminders'].find({
@@ -94,7 +92,7 @@ def check_active_jobs():
               {'_id': job['_id']},
               {'$set': { 'status': 'completed'}})
 
-            logger.info('Completed Job %s [ID %s]\n', job['name'], str(job['_id']))
+            logger.info('Job_ID %s: Completed', str(job['_id']))
 
             # Connect back to server and notify
             requests.get(LOCAL_URL + '/complete/' + str(job['_id']))
@@ -102,7 +100,7 @@ def check_active_jobs():
             send_email_report(job['_id'])
 
         else:
-            logger.info('Redialing %d incompletes', incompletes.count())
+            logger.info('Job ID %s: Redialing %d incompletes', str(job['_id']), incompletes.count())
 
             # Redial busy or no-answer incompletes
             send_calls(job['_id'])
@@ -163,7 +161,7 @@ def send_calls(job_id):
     #payload = {'name': 'update_call', 'data': json.dumps(r)}
     #requests.get(LOCAL_URL+'/sendsocket', params=payload)
 
-    logger.info('Job [ID %s]: %d calls fired', job_id, calls_fired)
+    logger.info('Job_ID %s: %d calls fired', job_id, calls_fired)
 
     return calls_fired
 
@@ -176,6 +174,9 @@ def send_emails(job_id):
     reminders = db['reminders'].find({'job_id':ObjectId(job_id)})
 
     for reminder in reminders:
+        if 'email' not in reminder:
+            continue
+
         if reminder['email']['status'] != 'pending':
             continue
 
@@ -185,15 +186,17 @@ def send_emails(job_id):
                 {'$set': {'email.status': 'no_email'}}
             )
             continue
+
         #send_socket('update_msg', {'id':str(msg['_id']), 'email_status': 'no_email'})
 
         try:
+            reminder['custom']['account']['name'] = reminder['name']
+
             r = requests.post(PUB_URL + '/email/send', data=json.dumps({
                 "recipient": reminder['email']['recipient'],
                 "template": job['schema']['email_template'],
                 "subject": job['schema']['email_subject'],
-                "name": reminder['name'],
-                "args": reminder['custom']
+                "data": reminder['custom']
             }))
         except requests.exceptions.RequestException as e:
             logger.error('Error sending email: %s', str(e))
@@ -579,82 +582,50 @@ def get_speak(job, reminder):
     return response
 
 #-------------------------------------------------------------------------------
-def send_email_report(job_id):
+def email_job_summary(job_id):
+    if isinstance(job_id, str):
+        job_id = ObjectId(job_id)
+
+    summary = {
+      "answered": db['reminders'].find({
+        'job_id':job_id, 'call.answered_by':'human'}).count(),
+      "voicemail": db['reminders'].find({
+        'job_id':job_id, 'call.answered_by':'machine'}).count(),
+      "no_answer" : db['reminders'].find({
+        'job_id':job_id, 'call.status':'no-answer'}).count(),
+      "busy": db['reminders'].find({
+        'job_id':job_id, 'call_status':'busy'}).count(),
+      "failed" : db['reminders'].find({
+        'job_id':job_id, 'call.status':'failed'}).count()
+    }
+
+    fails = db['reminders'].find(
+      {'job_id':job_id,
+       '$or': [
+         {"email.status" : "bounced"},
+         {"email.status" : "dropped"},
+         {"call.status" : "failed"}
+       ]
+      },
+      {'custom': 1, 'email.error': 1, 'call.error':1,
+       'call.code':1, 'email.status': 1, '_id': 0})
+
+    job = db['jobs'].find_one({'_id':job_id})
+
     try:
-        if isinstance(job_id, str):
-          job_id = ObjectId(job_id)
-
-        job = db['jobs'].find_one({'_id':job_id})
-
-        summary = {
-          '<b>Summary</b>': {
-            'Answered': db['reminders'].find(
-                {'job_id':job_id, 'answered_by':'human'}
-            ).count(),
-            'Voicemail': db['reminders'].find(
-                {'job_id':job_id, 'answered_by':'machine'}
-            ).count(),
-            'No-answer' : db['reminders'].find(
-                {'job_id':job_id, 'call_status':'no-answer'}
-            ).count(),
-            'Busy': db['reminders'].find({'job_id':job_id, 'call_status':'busy'}
-            ).count(),
-            'Failed' : db['reminders'].find(
-                {'job_id':job_id, 'call_status':'failed'}
-            ).count()
+        r = requests.post(LOCAL_URL + '/email/send', data=json.dumps({
+          "recipient": FROM_EMAIL,
+          "template": 'email/job_summary.html',
+          "subject": 'Job Summary %s' % job['name'],
+          "data": {
+            "summary": summary,
+            "fails": fails
           }
-        }
+        }))
 
-        msg = utils.print_html(summary)
-
-        fails = list(
-          db['reminders'].find(
-            {'job_id':job_id, '$or': [{"email.status" : 'bounced'},{"email.status" : 'dropped'},{"call.status" :'failed'}]},
-            {'imported': 1, 'email_error': 1, 'call_error':1, 'error_code':1, 'email_status': 1, '_id': 0}
-          )
-        )
-
-        if fails:
-          td = '<td style="padding:5px; border:1px solid black">'
-          th = '<th style="padding:5px; border:1px solid black">'
-
-          fails_table = '<table style="padding:5px; border-collapse:collapse; border:1px solid black"><tr>'
-          # Column Headers
-          for field in fails[0]['imported'].keys():
-            fails_table += th + field.replace('_', ' ').title() + '</th>'
-          fails_table += th + 'Email Error</th>' + th + 'Call Error</th>' + th + 'Code</th>'
-          fails_table += '</tr>'
-
-          # Column Data
-          for row in fails:
-            fails_table += '<tr>'
-            for key, val in row['imported'].iteritems():
-              fails_table += td + str(val) + '</td>'
-            if 'email_error' in row:
-              if row['email_error'].find('550') > -1:
-                row['error_code'] = 550
-                row['email_error'] = 'Address does not exist'
-              fails_table += td + row['email_error']  + '</td>'
-            else:
-              fails_table += td + '</td>'
-            if 'call_error' in row:
-              fails_table += td + row['call_error'].replace('_', ' ').title()  + '</td>'
-            else:
-              fails_table += td + '</td>'
-            if 'error_code' in row:
-              fails_table += td + str(row['error_code']) + '</td>'
-            else:
-              fails_table += td + '</td>'
-            fails_table += '</tr>'
-          fails_table += '</table>'
-
-          msg += '<br><br>' + fails_table
-
-        subject = 'Job Summary %s' % job['name']
-        utils.send_email(['estese@gmail.com, emptiestowinn@wsaf.ca'], subject, msg)
         logger.info('Email report sent')
-    except Exception, e:
-        logger.error('/send_email_report: %s', str(e))
+    except Exception as e:
+        logger.error('Error sending job_summary email: %s', str(e))
 
 #-------------------------------------------------------------------------------
 @celery_app.task

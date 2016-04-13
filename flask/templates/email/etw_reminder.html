@@ -3,28 +3,35 @@
     <tr>
       <td>
         <p>
-          Hi {{ args.name }},
+          Hi {{ data['account']['name'] }},
         </p>
      
-        {% if args.status == "Cancelling" %}
+        {% if data['status'] == "Cancelling" %}
           <p>
-            This is a reminder that a driver will be by on <b>{{ args.next_pickup }}</b>
+            This is a reminder that a driver will be by on 
+            <b>{{ data['next_pickup'] }}</b>
             to collect your Bag Buddy stand.
           </p>
-        {% elif args.status == "Active" or args.status == "Call-in" or args.status == "One-time" %}
+        {% elif data['status'] == "Active" or data['status'] == "Call-in" or
+        data['status'] == "One-time" %}
           <p>
-            Your upcoming Empties to Winn pickup is <b>{{ args.next_pickup }}</b>.
+            Your upcoming Empties to Winn pickup is 
+            <b>{{ data['next_pickup'] }}</b>.
           </p>
           <p>
-            Your green bags can be placed at your front entrance, visible from the street, by 8am. 
+            Your green bags can be placed at your front entrance, visible from 
+            the street, by 8am. 
             Please keep each bag under 30lbs.  
             Extra glass can be left in cases to the side.
           </p>
-        {% elif args.status == "Dropoff"%}
+        {% elif data['status'] == "Dropoff"%}
           <p>
-            This is a reminder that a driver will be by on <b>{{ args.next_pickup }}</b>
-            to dropoff your Bag Buddy and collection bags. You do not need to be home. 
-            If you have empties, you can label them <b>'WSA'</b> and place them at your front entrance by 8am.
+            This is a reminder that a driver will be by on 
+            <b>{{ data['next_pickup'] }}</b>
+            to dropoff your Bag Buddy and collection bags. 
+            You do not need to be home. 
+            If you have empties, you can label them <b>'WSA'</b> and place them 
+            at your front entrance by 8am.
           </p>
         {% endif %}
       </td>

@@ -97,7 +97,7 @@ def monitor_active_jobs():
             # Connect back to server and notify
             requests.get(LOCAL_URL + '/complete/' + str(job['_id']))
 
-            send_email_report(job['_id'])
+            email_job_summary(job['_id'])
 
         else:
             logger.info('Job ID %s: Redialing %d incompletes', str(job['_id']), incompletes.count())
@@ -586,30 +586,6 @@ def email_job_summary(job_id):
     if isinstance(job_id, str):
         job_id = ObjectId(job_id)
 
-    summary = {
-      "answered": db['reminders'].find({
-        'job_id':job_id, 'call.answered_by':'human'}).count(),
-      "voicemail": db['reminders'].find({
-        'job_id':job_id, 'call.answered_by':'machine'}).count(),
-      "no_answer" : db['reminders'].find({
-        'job_id':job_id, 'call.status':'no-answer'}).count(),
-      "busy": db['reminders'].find({
-        'job_id':job_id, 'call_status':'busy'}).count(),
-      "failed" : db['reminders'].find({
-        'job_id':job_id, 'call.status':'failed'}).count()
-    }
-
-    fails = db['reminders'].find(
-      {'job_id':job_id,
-       '$or': [
-         {"email.status" : "bounced"},
-         {"email.status" : "dropped"},
-         {"call.status" : "failed"}
-       ]
-      },
-      {'custom': 1, 'email.error': 1, 'call.error':1,
-       'call.code':1, 'email.status': 1, '_id': 0})
-
     job = db['jobs'].find_one({'_id':job_id})
 
     try:
@@ -618,8 +594,28 @@ def email_job_summary(job_id):
           "template": 'email/job_summary.html',
           "subject": 'Job Summary %s' % job['name'],
           "data": {
-            "summary": summary,
-            "fails": fails
+            "summary": {
+              "answered": db['reminders'].find({
+                'job_id':job_id, 'call.answered_by':'human'}).count(),
+              "voicemail": db['reminders'].find({
+                'job_id':job_id, 'call.answered_by':'machine'}).count(),
+              "no_answer" : db['reminders'].find({
+                'job_id':job_id, 'call.status':'no-answer'}).count(),
+              "busy": db['reminders'].find({
+                'job_id':job_id, 'call_status':'busy'}).count(),
+              "failed" : db['reminders'].find({
+                'job_id':job_id, 'call.status':'failed'}).count()
+            },
+            "fails": db['reminders'].find(
+              {'job_id':job_id,
+               '$or': [
+                 {"email.status" : "bounced"},
+                 {"email.status" : "dropped"},
+                 {"call.status" : "failed"}
+               ]
+              },
+              {'custom': 1, 'email.error': 1, 'call.error':1,
+               'call.code':1, 'email.status': 1, '_id': 0})
           }
         }))
 

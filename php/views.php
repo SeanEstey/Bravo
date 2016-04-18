@@ -208,17 +208,6 @@
 
       break;
 
-    case 'build_viamente_route':
-      build_viamente_route(
-        $nsc,
-        $keys['viamente_api_url'], 
-        $keys['viamente_api_key'],
-        $data['query_category'],
-        $data['query'],
-        $data['date']
-      );
-      break;
-
     default:
       error_log("Invalid function '" . $func . "'");
       echo 'Invalid Function';

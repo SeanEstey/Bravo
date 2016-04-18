@@ -11,10 +11,14 @@ logger.addHandler(log_handler)
 def get_tail(file, num_lines):
     try:
         size = os.path.getsize(LOG_FILE)
+    except Exception as e:
+        logger.error('%s does not exist!', LOG_FILE)
+        return []
 
-        if size == 0:
-            return False
+    if size == 0:
+        return []
 
+    try:
         with open(file, "rb") as f:
             fm = mmap.mmap(f.fileno(), 0, mmap.MAP_SHARED, mmap.PROT_READ)
 

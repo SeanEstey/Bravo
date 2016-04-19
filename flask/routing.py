@@ -1,6 +1,5 @@
 import json
 import requests
-from geopy.geocoders import Nominatim
 import time
 
 from config import *
@@ -15,6 +14,41 @@ logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(log_handler)
 
+#-------------------------------------------------------------------------------
+def geocode(address):
+    url = 'https://maps.googleapis.com/maps/api/geocode/json'
+    params = {
+      'address': address,
+      'key': GOOGLE_API_KEY
+    }
+
+    try:
+        r = requests.get(url, params=params)
+    except Exception as e:
+        print 'geocoding error'
+        print e
+        return False
+
+    response = json.loads(r.text)
+
+    if len(response['results']) > 1:
+        print "Multiple results geocoded for " + address
+        print 'Returning first result (usually more accurate)'
+
+    if response['status'] == 'ZERO_RESULTS':
+        print "No geocode result for " + address
+        return False
+    elif response['status'] == 'INVALID_REQUEST':
+        print "Improper address " + address
+        return False
+    elif response['status'] != 'OK':
+        print "Error geocoding " + address
+        print response
+        return False
+
+    return response['results'][0]['geometry']['location']
+
+#-------------------------------------------------------------------------------
 def get_accounts(block):
     # Get data from route via eTap API
     # stops = etap.call('
@@ -25,10 +59,16 @@ def get_accounts(block):
 
     return accounts
 
-def routific():
-    job = json.loads(get_job_id('R1A', 'Steve', '', ''))
 
-    r = requests.get('https://api.routific.com/jobs/' + job['job_id'])
+def routific():
+    job_id = get_job_id('R1A', 'Steve', '', '')
+    solution = get_solution(job_id)
+    print solution
+    return True
+
+#-------------------------------------------------------------------------------
+def get_solution(job_id):
+    r = requests.get('https://api.routific.com/jobs/' + job_id)
 
     data = json.loads(r.text)
 
@@ -37,7 +77,7 @@ def routific():
 
         time.sleep(5)
 
-        r = requests.get('https://api.routific.com/jobs/' + job['job_id'])
+        r = requests.get('https://api.routific.com/jobs/' + job_id)
 
         data = json.loads(r.text)
 
@@ -48,14 +88,12 @@ def routific():
 
     return True
 
-
+#-------------------------------------------------------------------------------
 def get_job_id(block, driver, start_address, depot_address):
-    geolocator = Nominatim()
-
     accounts = get_accounts(block)
 
-    office = geolocator.geocode('11131 131 St NW Edmonton AB')
-    strathcona = geolocator.geocode('10347 73 Ave NW Edmonton AB')
+    office = geocode('11131 131 St NW, Edmonton AB, T5M 1C1')
+    strathcona = geocode('10347 73 Ave NW Edmonton AB')
 
     payload = {
       "visits": {},
@@ -63,14 +101,14 @@ def get_job_id(block, driver, start_address, depot_address):
         "Ryan": {
           "start_location": {
             "id": "Office",
-            "lat": office.latitude,
-            "lng": office.longitude,
+            "lat": office['lat'],
+            "lng": office['lng'],
             "name": "11130 131 St NW, T5M 1C3",
           },
           "end_location": {
             "id": "Strathcona",
-            "lat": strathcona.latitude,
-            "lng": strathcona.longitude,
+            "lat": strathcona['lat'],
+            "lng": strathcona['lng'],
             "name": "10347 73 Ave NW, T6E 1C1",
           },
           "shift_start": "8:00",
@@ -80,18 +118,19 @@ def get_job_id(block, driver, start_address, depot_address):
     }
 
     for account in accounts['data']:
-        addy = account['address'] + ' ' + account['city'] + ' AB'
-        address = geolocator.geocode(addy)
+        addy = account['address'] + ' ' + account['city'] + ' AB, ' + account['postalCode']
 
-        if not address:
+        coords = geocode(addy)
+
+        if not coords:
             print "couldn't geolocate " + addy
             continue
 
         payload['visits'][account['name']] = {
           "location": {
             "name": account['address'] + ', ' + account['postalCode'],
-            "lat": address.latitude,
-            "lng": address.longitude
+            "lat": coords['lat'],
+            "lng": coords['lng']
           },
           "start": "8:00",
           "end": "17:00",
@@ -124,7 +163,7 @@ def get_job_id(block, driver, start_address, depot_address):
         return False
 
     if r.status_code == 202:
-        return r.text
+        return json.loads(r.text)['job_id']
     else:
         print 'error!'
         print r.headers

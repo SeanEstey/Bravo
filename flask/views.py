@@ -14,6 +14,7 @@ import receipts
 import gsheets
 import scheduler
 import auth
+import routing
 from config import *
 import utils
 
@@ -92,6 +93,15 @@ def request_send_socket():
     data = request.args.get('data').encode('utf-8')
     socketio.emit(name, data)
     return 'OK'
+
+#-------------------------------------------------------------------------------
+@flask_app.route('/routing/get_sorted_orders', methods=['POST'])
+def get_route():
+    logger.info('Routing Block %s', request.form['block'])
+
+    orders = routing.get_sorted_orders(request.form.to_dict())
+
+    return json.dumps(orders)
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/new')

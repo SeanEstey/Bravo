@@ -5,17 +5,55 @@ import time
 from config import *
 import etap
 
-log_handler = logging.FileHandler('routing.log')
-log_formatter = logging.Formatter('[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M')
-log_handler.setLevel(logging.DEBUG)
-log_handler.setFormatter(log_formatter)
+from app import log_handler
 
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(log_handler)
 
 #-------------------------------------------------------------------------------
+def get_sorted_orders(form):
+    # TODO: Test arguments
+
+    job_id = get_job_id(form['block'], form['driver'], form['start_addy'], form['end_addy'])
+
+    solution = get_solution(job_id)
+
+    # Routific doesn't include custom fields in the solution object.
+    # Copy them over manually.
+    # Also create Google Maps url
+
+    for stop in solution['output']['solution'][form['driver']]:
+        id = stop['location_id']
+
+        if id in solution['input']['visits']:
+            stop['customNotes'] = solution['input']['visits'][id]['customNotes']
+
+            stop['gmaps_url'] = get_gmaps_url(
+                stop['location_name'],
+                stop['customNotes']['lat'],
+                stop['customNotes']['lng']
+            )
+
+    return solution['output']['solution'][form['driver']]
+
+#-------------------------------------------------------------------------------
+def get_gmaps_url(address, lat, lng):
+    base_url = 'https://www.google.ca/maps/place/'
+
+    # TODO: use proper urlencode() function here
+    full_url = base_url + address.replace(' ', '+')
+
+    full_url +=  '/@' + str(lat) + ',' + str(lng)
+    full_url += ',17z'
+
+    return full_url
+
+#-------------------------------------------------------------------------------
 def geocode(address):
+    '''documentation: https://developers.google.com/maps/documentation/geocoding
+    '''
+
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
     params = {
       'address': address,
@@ -25,25 +63,24 @@ def geocode(address):
     try:
         r = requests.get(url, params=params)
     except Exception as e:
-        print 'geocoding error'
-        print e
+        logger.info('Geocoding exception %s', str(e))
         return False
 
     response = json.loads(r.text)
 
+    # TODO: Test for partial results status
+
     if len(response['results']) > 1:
-        print "Multiple results geocoded for " + address
-        print 'Returning first result (usually more accurate)'
+        logger.info("Multiple results geocoded for %s. Returning first result.", address)
 
     if response['status'] == 'ZERO_RESULTS':
-        print "No geocode result for " + address
+        logger.info("No geocode result for %s", address)
         return False
     elif response['status'] == 'INVALID_REQUEST':
-        print "Improper address " + address
+        logger.info("Improper address %s", address)
         return False
     elif response['status'] != 'OK':
-        print "Error geocoding " + address
-        print response
+        logger.info("Error geocoding %s. %s", address, response)
         return False
 
     return response['results'][0]['geometry']['location']
@@ -51,20 +88,12 @@ def geocode(address):
 #-------------------------------------------------------------------------------
 def get_accounts(block):
     # Get data from route via eTap API
-    # stops = etap.call('
     accounts = etap.call('get_query_accounts', ETAP_WRAPPER_KEYS, {
       "query": block,
       "query_category": "ETW: Routes"
     })
 
     return accounts
-
-
-def routific():
-    job_id = get_job_id('R1A', 'Steve', '', '')
-    solution = get_solution(job_id)
-    print solution
-    return True
 
 #-------------------------------------------------------------------------------
 def get_solution(job_id):
@@ -73,7 +102,7 @@ def get_solution(job_id):
     data = json.loads(r.text)
 
     while data['status'] != 'finished':
-        print data['status'] + ': sleeping 5 sec...'
+        logger.info('%s: sleeping 5 sec...', data['status'])
 
         time.sleep(5)
 
@@ -81,15 +110,14 @@ def get_solution(job_id):
 
         data = json.loads(r.text)
 
+    logger.info('Got solution! %s %s', r.headers, r.status_code)
 
-    print r.headers
-    print r.status_code
-    print r.text
-
-    return True
+    return data
 
 #-------------------------------------------------------------------------------
 def get_job_id(block, driver, start_address, depot_address):
+    '''Use Routific long-running process endpoint to generate a job_id'''
+
     accounts = get_accounts(block)
 
     office = geocode('11131 131 St NW, Edmonton AB, T5M 1C1')
@@ -113,7 +141,7 @@ def get_job_id(block, driver, start_address, depot_address):
           },
           "shift_start": "8:00",
           "shift_end": "17:00"
-        }
+         }
       }
     }
 
@@ -123,10 +151,10 @@ def get_job_id(block, driver, start_address, depot_address):
         coords = geocode(addy)
 
         if not coords:
-            print "couldn't geolocate " + addy
+            logger.info("Couldn't geolocate %s", addy)
             continue
 
-        payload['visits'][account['name']] = {
+        payload['visits'][account['id']] = { # location_id
           "location": {
             "name": account['address'] + ', ' + account['postalCode'],
             "lat": coords['lat'],
@@ -136,7 +164,11 @@ def get_job_id(block, driver, start_address, depot_address):
           "end": "17:00",
           "duration": 3,
           "customNotes": {
+            "lat": coords['lat'],
+            "lng": coords['lng'],
             "id": account['id'],
+            "name": account['name'],
+            #"phone": account['phones'][0]['number'], # TODO: Test if exists
             "block": etap.get_udf('Block', account),
             "status": etap.get_udf('Status', account),
             "neighborhood": etap.get_udf('Neighborhood', account),
@@ -145,27 +177,26 @@ def get_job_id(block, driver, start_address, depot_address):
           }
         }
 
-    url = 'https://api.routific.com/v1/vrp-long'
-    headers = {
-        'content-type': 'application/json',
-        'Authorization': ROUTIFIC_KEY
-    }
-
     try:
         r = requests.post(
-            url,
-            headers=headers,
+            'https://api.routific.com/v1/vrp-long',
+            headers = {
+              'content-type': 'application/json',
+              'Authorization': ROUTIFIC_KEY
+            },
             data=json.dumps(payload)
         )
     except Exception as e:
-        print e
-        #logger.error(e)
+        logger.error('Routific exception %s', str(e))
         return False
 
     if r.status_code == 202:
-        return json.loads(r.text)['job_id']
+        job_id = json.loads(r.text)['job_id']
+
+        logger.info('job_id: %s', job_id)
+
+        return job_id
     else:
-        print 'error!'
-        print r.headers
-        print r.text
+        logger.error('Error retrieving Routific job_id. %s %s',
+            r.headers, r.text)
         return False

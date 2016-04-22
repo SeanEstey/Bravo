@@ -52,6 +52,8 @@ def get_gmaps_url(address, lat, lng):
 #-------------------------------------------------------------------------------
 def geocode(address):
     '''documentation: https://developers.google.com/maps/documentation/geocoding
+    Returns first result
+    Note: including Postal Code in address seems to lower accuracy of results
     '''
 
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
@@ -68,10 +70,13 @@ def geocode(address):
 
     response = json.loads(r.text)
 
-    # TODO: Test for partial results status
+    if len(response['results']) > 0 and 'partial_match' in response['results'][0]:
+        logger.info('Partial match found for "%s". First match is most likely to be correct: "%s"',
+                    address, response['results'][0]['formatted_address'])
 
     if len(response['results']) > 1:
-        logger.info("Multiple results geocoded for %s. Returning first result.", address)
+        logger.info('Multiple results geocoded for "%s". Returning first result: "%s"',
+                    address, response['results'][0]['formatted_address'])
 
     if response['status'] == 'ZERO_RESULTS':
         logger.info("No geocode result for %s", address)
@@ -83,7 +88,7 @@ def geocode(address):
         logger.info("Error geocoding %s. %s", address, response)
         return False
 
-    return response['results'][0]['geometry']['location']
+    return response['results'][0]
 
 #-------------------------------------------------------------------------------
 def get_accounts(block):
@@ -110,7 +115,7 @@ def get_solution(job_id):
 
         data = json.loads(r.text)
 
-    logger.info('Got solution! %s %s', r.headers, r.status_code)
+    logger.info('Got solution! Status code: %s', r.status_code)
 
     return data
 
@@ -120,43 +125,52 @@ def get_job_id(block, driver, start_address, depot_address):
 
     accounts = get_accounts(block)
 
-    office = geocode('11131 131 St NW, Edmonton AB, T5M 1C1')
-    strathcona = geocode('10347 73 Ave NW Edmonton AB')
+    start = geocode(start_address)['geometry']['location']
+    end = geocode(depot_address)['geometry']['location']
 
     payload = {
       "visits": {},
-      "fleet": {
-        "Ryan": {
-          "start_location": {
-            "id": "Office",
-            "lat": office['lat'],
-            "lng": office['lng'],
-            "name": "11130 131 St NW, T5M 1C3",
-          },
-          "end_location": {
-            "id": "Strathcona",
-            "lat": strathcona['lat'],
-            "lng": strathcona['lng'],
-            "name": "10347 73 Ave NW, T6E 1C1",
-          },
-          "shift_start": "8:00",
-          "shift_end": "17:00"
-         }
-      }
+      "fleet": {}
+    }
+
+    payload["fleet"][driver] = {
+      "start_location": {
+        "id": "Office",
+        "lat": start['lat'],
+        "lng": start['lng'],
+        "name": start_address,
+      },
+      "end_location": {
+        "id": "Depot",
+        "lat": end['lat'],
+        "lng": end['lng'],
+        "name": depot_address,
+      },
+      "shift_start": "8:00",
+      "shift_end": "17:00"
     }
 
     for account in accounts['data']:
-        addy = account['address'] + ' ' + account['city'] + ' AB, ' + account['postalCode']
+        addy = account['address'] + ', ' + account['city'] + ', AB'
 
-        coords = geocode(addy)
+        result = geocode(addy)
 
-        if not coords:
-            logger.info("Couldn't geolocate %s", addy)
+        if not result:
             continue
+
+        coords = {}
+
+        if 'partial_match' in result and etap.get_udf('lat', account):
+            logger.info('Retrieved lat/lng from account %s', account['id'])
+
+            coords['lat'] = etap.get_udf('lat', account)
+            coords['lng'] = etap.get_udf('lng', account)
+        else:
+            coords = result['geometry']['location']
 
         payload['visits'][account['id']] = { # location_id
           "location": {
-            "name": account['address'] + ', ' + account['postalCode'],
+            "name": account['address'] + ', ' + account['city'] + ', AB, ' + account['postalCode'],
             "lat": coords['lat'],
             "lng": coords['lng']
           },
@@ -173,7 +187,8 @@ def get_job_id(block, driver, start_address, depot_address):
             "status": etap.get_udf('Status', account),
             "neighborhood": etap.get_udf('Neighborhood', account),
             "driver notes": etap.get_udf('Driver Notes', account),
-            "office notes": etap.get_udf('Office Notes', account)
+            "office notes": etap.get_udf('Office Notes', account),
+            "next pickup": etap.get_udf('Next Pickup Date', account)
           }
         }
 

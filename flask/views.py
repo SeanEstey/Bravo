@@ -111,19 +111,15 @@ def new_job():
     return render_template('views/new_job.html', title=TITLE)
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/get_job_template/<name>')
-def get_job_template(name):
-    headers = []
-    for col in TEMPLATE[name]:
-        headers.append(col['header'])
-    return json.dumps(headers)
-
-#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/submit_job', methods=['POST'])
 @login_required
 def submit_job():
-    r = reminders.submit_job(request.form.to_dict(), request.files['call_list'])
-    return Response(response=json.dumps(r), status=200, mimetype='application/json')
+    try:
+        r = reminders.submit_job(request.form.to_dict(), request.files['call_list'])
+        return Response(response=json.dumps(r), status=200, mimetype='application/json')
+    except Exception as e:
+        logger.error('submit_job: %s', str(e))
+        return False
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/recordaudio', methods=['GET', 'POST'])
@@ -212,20 +208,6 @@ def no_pickup(msg_id):
     return 'Thank You'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/get_speak', methods=['POST'])
-def get_template():
-    logger.info('get_speak')
-
-    html = render_template(
-        request.form['template'],
-        reminder=json.loads(request.form['reminder'])
-    )
-
-    logger.info('speak template: %s', html)
-
-    return html.replace("\n", "")
-
-#-------------------------------------------------------------------------------
 @flask_app.route('/reminders/call.xml',methods=['POST'])
 def call_xml():
     '''Twilio TwiML Voice Request'''
@@ -234,14 +216,14 @@ def call_xml():
 
         html = render_template(
             template['template'],
-            reminder=json.loads(template['reminder'])
+            reminder=json.loads(reminders.bson_to_json(template['reminder']))
         )
 
         html = html.replace("\n", "")
         html = html.replace("  ", "")
         logger.info('speak template: %s', html)
 
-        db['reminders'].update({'_id':template['reminder']['_id']},{'$set':{'call.speak':html}})
+        db['reminders'].update({'_id':template['reminder']},{'$set':{'call.speak':html}})
 
         response = twilio.twiml.Response()
         response.say(html, voice='alice')
@@ -250,6 +232,16 @@ def call_xml():
     except Exception as e:
         logger.info('call.xml: %s', str(e))
         return False
+
+#-------------------------------------------------------------------------------
+@flask_app.route('/get_speak', methods=['POST'])
+def get_template():
+    html = render_template(
+        request.form['template'],
+        reminder=json.loads(request.form['reminder'])
+    )
+
+    return html.replace("\n", "")
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/call_event',methods=['POST','GET'])

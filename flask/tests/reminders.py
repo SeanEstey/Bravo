@@ -4,7 +4,8 @@ import sys
 import os
 import time
 import pymongo
-import datetime
+#import datetime
+from datetime import datetime
 from dateutil.parser import parse
 from werkzeug.datastructures import MultiDict
 import xml.dom.minidom
@@ -34,7 +35,7 @@ class BravoTestCase(unittest.TestCase):
         reminders.TWILIO_AUTH_ID = TWILIO_TEST_AUTH_ID
         reminders.FROM_NUMBER = '+15005550006'
 
-        self.job = {
+        self.job_a = {
           'schema': {
             "import_fields": [
               {"file_header":"Account","db_field":"account_id","type":"string","hide":True},
@@ -58,8 +59,13 @@ class BravoTestCase(unittest.TestCase):
           'num_calls': 1
         }
 
-        self.job_id = self.db['jobs'].insert(self.job)
-        self.job = self.db['jobs'].find_one({'_id':self.job_id})
+        self.job_b = self.job_a.copy()
+
+        self.job_id = self.db['jobs'].insert(self.job_a)
+        self.job_a = self.db['jobs'].find_one({'_id':self.job_id})
+
+        self.job_b_id = self.db['jobs'].insert(self.job_b)
+        self.job_b = self.db['jobs'].find_one({'_id':self.job_b_id})
 
         self.reminder = {
             'job_id': self.job_id,
@@ -96,6 +102,9 @@ class BravoTestCase(unittest.TestCase):
         res = self.db['reminders'].remove({'_id':self.rem_id})
         self.assertEquals(res['n'], 1)
 
+    def update_db(collection, id, set):
+        self.db[collection].update_one({'_id':id},{'$set':set})
+
     def login(self, username, password):
         return self.app.post('/login', data=dict(
           username=username,
@@ -130,37 +139,7 @@ class BravoTestCase(unittest.TestCase):
         })
         print "Machine XML:" + r.data
     '''
-    '''
-    def test_dial_and_answer_call(self):
-        call = reminders.dial(self.reminder['call']['to'])
 
-        r = self.db['reminders'].update_one(
-        {'_id':self.reminder['_id']},
-        {'$set':{
-          'call.sid':call.sid,
-          'call.status': call.status
-        }},
-        )
-
-        logger.info('SID: %s', call.sid)
-
-        self.assertEquals(r.modified_count, 1)
-
-        payload =  {
-          'CallSid': call.sid,
-          'To': self.reminder['call']['to'],
-          'CallStatus': 'in-progress',
-          'AnsweredBy': 'human'
-        }
-
-        r = self.app.post('/reminders/call.xml', data=dict(payload))
-
-        xml_response = xml.dom.minidom.parseString(r.data)
-        # Test valid XML returned by reminders.get_speak()
-        self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
-
-        logger.info(r.data)
-    '''
     '''
     def test_get_speak(self):
         r = self.app.post('/get_speak', data={
@@ -194,26 +173,59 @@ class BravoTestCase(unittest.TestCase):
     '''
     '''
     def test_monitor_active_jobs_redial(self):
-        self.db.jobs.update_one(
-          {'_id':self.job_id},
-          {'$set': {
-              'status': 'in-progress'}})
-
-        self.db.reminders.update_one(
-          {'_id': self.rem_id},
-          {'$set': {
-              'call.status': 'busy',
-              'call.attempts': 1}})
-
+        update_db('jobs',self.job_id,{'status':'in-progress'})
+        update_db('reminders',self.rem_id,{'call.status':'busy','call.attempts':1})
         n = reminders.monitor_active_jobs()
 
         self.assertTrue(type(n), int)
     '''
     #'''
-    def test_monitor_pending_jobs(self):
+    def test_monitor_pending_jobs_a(self):
+        '''Code Path: show a pending job (update fire_calls_dtime to future date)'''
+        update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
+        update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
         n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
-        print n
-        #self.assertTrue(type(n), int)
+    #'''
+    #'''
+    def test_monitor_pending_jobs_b(self):
+        '''Code Path: job_a ready but job_b in progress'''
+        update_db('jobs', self.job_b['_id'],{'status':'in-proress'})
+        update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
+        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
+    #'''
+    #'''
+    def test_monitor_pending_jobs_c(self):
+        '''Code Path: starting new job'''
+        update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
+        update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
+        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
+    #'''
+    #'''
+    def test_monitor_active_jobs_a(self):
+        '''Code Path: job_a hung (went over time limit)'''
+        update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
+        update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
+        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
+    #'''
+    #'''
+    def test_monitor_active_jobs_b(self):
+        '''Code Path: job_a is active'''
+        update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
+        update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
+        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
+    #'''
+    #'''
+    def test_monitor_active_jobs_c(self):
+        '''Code Path: job_a has completed.'''
+        # TODO: set all db['reminders'] for job_a to 'complete'
+        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
+    #'''
+    #'''
+    def test_monitor_active_jobs_d(self):
+        '''Code Path: job_a is incomplete. redialing.'''
+        update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
+        update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
+        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
     #'''
     '''
     def test_send_calls(self):
@@ -221,30 +233,6 @@ class BravoTestCase(unittest.TestCase):
             args=(str(self.job_id), ),
             queue=DB_NAME)
         self.assertTrue(type(r.result), int)
-    '''
-    '''
-    def test_scheduler(self):
-        # Tricky to test because it fires another sync call to execute_job
-        # But the function returns num pending jobs. If we call it twice and
-        # a job executes the first time, the second time it should
-        #return a lower value for num pending jobs
-        num_pending = tasks.run_scheduler() #.apply_async(queue=DB_NAME)
-        num_pending2 = tasks.run_scheduler() #.apply_async(queue=DB_NAME)
-        self.assertTrue(num_pending2 < num_pending)
-
-    '''
-    '''
-    def test_execute_job(self):
-        tasks.REDIAL_DELAY = 1
-        r = tasks.execute_job(str(self.job_id))
-        self.assertEquals(r, 'OK')
-        time.sleep(3)
-    '''
-    '''
-    def test_job_completion(self):
-        completed_id = '54972d479b938767711838a0'
-        res = requests.get(PUB_URL+'/complete/'+completed_id)
-        self.assertEquals(res.status_code, 200)
     '''
     '''
     def test_many_calls(self):
@@ -293,20 +281,13 @@ class BravoTestCase(unittest.TestCase):
         self.assertEquals(response[0], 202, msg=json.dumps(response))
     '''
     '''
-    def test_bravo_systems_check(self):
-        self.assertTrue(bravo.systems_check)
-
-    def test_bravo_fire_msg_voice(self):
-        response = bravo.fire_msg(self.msg)
-        self.assertNotEquals(response[0], 400)
-
     def test_get_speak_etw_active(self):
-        speak = bravo.get_speak(self.job, self.msg)
+        speak = bravo.get_speak(self.job_a, self.msg)
         self.assertIsInstance(speak, str)
 
     def test_get_speak_etw_dropoff(self):
         self.msg['etw_status'] = 'Dropoff'
-        speak = bravo.get_speak(self.job, self.msg)
+        speak = bravo.get_speak(self.job_a, self.msg)
         self.assertIsInstance(speak, str)
 
     def test_show_jobs_view(self):
@@ -334,7 +315,7 @@ class BravoTestCase(unittest.TestCase):
         ''
         ]
         errors = []
-        self.assertIsNotNone(create_msg_record(self.job, 1, buffer_row, errors))
+        self.assertIsNotNone(create_msg_record(self.job_a, 1, buffer_row, errors))
 
     def test_create_msg_record_fake_date(self):
         from reminders import create_msg_record
@@ -346,7 +327,7 @@ class BravoTestCase(unittest.TestCase):
         ''
         ]
         errors = []
-        create_msg_record(self.job, 1, buffer_row, errors)
+        create_msg_record(self.job_a, 1, buffer_row, errors)
         # Return invalid date error
         self.assertTrue(len(errors) > 0)
 
@@ -367,6 +348,39 @@ class BravoTestCase(unittest.TestCase):
         args='?CallStatus='+self.msg['status']+'&RequestUUID='+self.msg['request_uuid']+'&To='+self.msg['to']
         uri = PUB_URL + '/call/answer' + args
         self.assertEquals(requests.get(uri).status_code, 200)
+
+    '''INTEGRATION TESTING'''
+
+    def test_integration_dial_and_answer_call(self):
+        call = reminders.dial(self.reminder['call']['to'])
+
+        r = self.db['reminders'].update_one(
+        {'_id':self.reminder['_id']},
+        {'$set':{
+          'call.sid':call.sid,
+          'call.status': call.status
+        }},
+        )
+
+        logger.info('SID: %s', call.sid)
+
+        self.assertEquals(r.modified_count, 1)
+
+        payload =  {
+          'CallSid': call.sid,
+          'To': self.reminder['call']['to'],
+          'CallStatus': 'in-progress',
+          'AnsweredBy': 'human'
+        }
+
+        r = self.app.post('/reminders/call.xml', data=dict(payload))
+
+        xml_response = xml.dom.minidom.parseString(r.data)
+        # Test valid XML returned by reminders.get_speak()
+        self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
+
+        logger.info(r.data)
+    '''
 '''
 
 if __name__ == '__main__':

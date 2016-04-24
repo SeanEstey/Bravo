@@ -463,8 +463,6 @@ def get_answer_xml(args):
     Returns twilio.twiml.Response obj
     '''
 
-    #try:
-
     logger.info('%s %s (%s)', args['To'], args['CallStatus'], args.get('AnsweredBy'))
 
     reminder = db['reminders'].find_one_and_update(
@@ -475,14 +473,10 @@ def get_answer_xml(args):
       return_document=ReturnDocument.AFTER)
 
     if reminder:
-        # Reminder call
-
         # send_socket('update_msg',
         # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
 
         job = db['jobs'].find_one({'_id': reminder['job_id']})
-
-        #logger.info('Returning response: %s', response_xml)
 
         try:
             return get_speak_template(job, reminder)
@@ -490,8 +484,6 @@ def get_answer_xml(args):
         except Exception as e:
             logger.error('reminders.get_answer_xml', exc_info=True)
             return str(e)
-
-        #return response_xml
 
     # Not a reminder. Maybe a special msg recording?
     if reminder is None:
@@ -616,7 +608,7 @@ def get_speak_template(job, reminder):
 
         return {
           'template': job['schema']['call_template'],
-          'reminder': bson_to_json(reminder)
+          'reminder': reminder
         }
 
     except Exception as e:
@@ -731,32 +723,36 @@ def set_no_pickup(url, params):
 
 #-------------------------------------------------------------------------------
 def parse_csv(csvfile, template):
-    reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
-    buffer = []
-    header_err = False
-    header_row = reader.next()
+    try:
+        reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
+        buffer = []
+        header_err = False
+        header_row = reader.next()
 
-    # A. Test if file header names matche template definition
+        # A. Test if file header names matche template definition
 
-    if len(header_row) != len(template['import_fields']):
-        header_err = True
-    else:
-        for col in range(0, len(header_row)):
-          if header_row[col] != template['import_fields'][col]['file_header']:
-                header_err = True
-                break
+        if len(header_row) != len(template['import_fields']):
+            header_err = True
+        else:
+            for col in range(0, len(header_row)):
+              if header_row[col] != template['import_fields'][col]['file_header']:
+                    header_err = True
+                    break
 
-    if header_err:
-        columns = []
-        for element in template['import_fields']:
-            columns.append(element['file_header'])
+        if header_err:
+            columns = []
+            for element in template['import_fields']:
+                columns.append(element['file_header'])
 
-        return 'Your file is missing the proper header rows:<br> \
-        <b>' + str(columns) + '</b><br><br>' \
-        'Here is your header row:<br><b>' + str(header_row) + '</b><br><br>' \
-        'Please fix your mess and try again.'
+            return 'Your file is missing the proper header rows:<br> \
+            <b>' + str(columns) + '</b><br><br>' \
+            'Here is your header row:<br><b>' + str(header_row) + '</b><br><br>' \
+            'Please fix your mess and try again.'
 
-    reader.next() # Delete empty Row 2 in eTapestry export file
+        reader.next() # Delete empty Row 2 in eTapestry export file
+    except Exception as e:
+        logger.error('reminders.parse_csv: %s', str(e))
+        return False
 
     # B. Read each line from file into buffer
 
@@ -922,7 +918,7 @@ def submit_job(form, file):
 
             logger.info('Parsed %d rows from %s', len(buffer), filename)
     except Exception as e:
-        logger.error(str(e))
+        logger.info('submit_job: parse_csv: %s', str(e))
 
         return {'status':'error',
                 'title': 'Problem Reading File',
@@ -961,6 +957,8 @@ def submit_job(form, file):
 
     job_id = db['jobs'].insert(job)
     job['_id'] = job_id
+
+    logger.info(job)
 
     try:
         errors = []

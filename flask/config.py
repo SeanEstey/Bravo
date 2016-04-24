@@ -10,7 +10,8 @@ from private_config import *
 # When False, uses Wekzeug dev server
 DEBUG = True
 
-TEST_MODE = False
+TEST_MODE = True
+THREADED = True
 
 if DEBUG == True:
     LOG_LEVEL = logging.DEBUG

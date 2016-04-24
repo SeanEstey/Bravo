@@ -40,10 +40,17 @@ def monitor_pending_jobs():
 
     pending = db['jobs'].find({'status': 'pending'})
 
+    in_progress = db['jobs'].find({'status': 'in-progress'})
+
     for job in pending:
         if datetime.now() < job['fire_calls_dtime']:
             print('Job_ID %s: Pending in %s' %
             (str(job['_id']), str(job['fire_calls_dtime'] - datetime.now())))
+            continue
+
+        if in_progress.count() > 0:
+            logger.info('Another job in-progress. Waiting to begin Job_ID %s',
+                        str(job['_id']))
             continue
 
         # Start new job
@@ -391,7 +398,7 @@ def dial(to):
     return call
 
 #-------------------------------------------------------------------------------
-def get_call_xml(args):
+def get_call_template(args):
     '''Returns twilio.twiml.Response obj'''
 
     if 'msg' in args or 'Digits' in args:
@@ -456,6 +463,8 @@ def get_answer_xml(args):
     Returns twilio.twiml.Response obj
     '''
 
+    #try:
+
     logger.info('%s %s (%s)', args['To'], args['CallStatus'], args.get('AnsweredBy'))
 
     reminder = db['reminders'].find_one_and_update(
@@ -473,13 +482,16 @@ def get_answer_xml(args):
 
         job = db['jobs'].find_one({'_id': reminder['job_id']})
 
+        #logger.info('Returning response: %s', response_xml)
+
         try:
-            response_xml = get_speak(job, reminder)
-        except Exception, e:
+            return get_speak_template(job, reminder)
+            #response_xml = get_speak(job, reminder)
+        except Exception as e:
             logger.error('reminders.get_answer_xml', exc_info=True)
             return str(e)
 
-        return response_xml
+        #return response_xml
 
     # Not a reminder. Maybe a special msg recording?
     if reminder is None:
@@ -593,24 +605,23 @@ def strip_phone(to):
     return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
 #-------------------------------------------------------------------------------
-def get_speak(job, reminder):
-    '''Returns twilio.twiml.Response obj'''
+def get_speak_template(job, reminder):
+    try:
+        # Simplest case: announce_voice template. Play audio file
+        if job['schema']['name'] == 'announce_voice':
+            # TODO: Fixme
+            response = twilio.twiml.Response()
+            response.play(job['audio_url'])
+            return response
 
-    # Simplest case: announce_voice template. Play audio file
-    if job['schema'] == 'announce_voice':
-        response = twilio.twiml.Response()
-        response.play(job['audio_url'])
-        return response
+        return {
+          'template': job['schema']['call_template'],
+          'reminder': bson_to_json(reminder)
+        }
 
-    speak = requests.post(LOCAL_URL + '/get_speak', data={
-        'template': 'speak/etw_reminder.html',
-        'reminder': bson_to_json(reminder)
-    }).text
-
-    response = twilio.twiml.Response()
-    response.say(speak, voice='alice')
-
-    db['reminders'].update({'_id':reminder['_id']},{'$set':{'custom.speak':speak}})
+    except Exception as e:
+        logger.info('get_speak_template: %s', str(e))
+        return False
 
     return response
 
@@ -895,6 +906,7 @@ def submit_job(form, file):
                 'msg':'Could not parse file: ' + str(e)}
 
     schema = schemas[form['template_name']]
+    schema['name'] = form['template_name']
 
     # C. Open and parse submitted .CSV file
     try:
@@ -992,11 +1004,15 @@ def bson_to_json(a):
     Converts timestamps to formatted date strings
     '''
 
-    a = bson.json_util.dumps(a)
+    try:
+        a = bson.json_util.dumps(a)
 
-    for group in re.findall(r"\{\"\$date\": [0-9]{13}\}", a):
-        ts = int(re.search(r"[0-9]{13}", group).group(0))/1000
-        date_str = '"' + datetime.fromtimestamp(ts).strftime('%A, %B %d') + '"'
-        a = a.replace(group, date_str)
+        for group in re.findall(r"\{\"\$date\": [0-9]{13}\}", a):
+            timestamp = json.loads(group)['$date']/1000
+            date_str = '"' + datetime.fromtimestamp(timestamp).strftime('%A, %B %d') + '"'
+            a = a.replace(group, date_str)
+    except Exception as e:
+        logger.error('bson_to_json: %s', str(e))
+        return False
 
     return a

@@ -32,7 +32,7 @@
     "next_pickup": "<BSON.Date>",
     "status": "",
     "block": "",
-    "type": ["pickup", "delivery"],
+    "type": ["pickup", "delivery", "dropoff"],
     "other imported fields": ""
   }
 }
@@ -44,6 +44,7 @@
   "fire_emails_dtime": "<bson.date>",
   "num_calls": "[Number]", 
   "schema": {
+    "name": "",
     "call_template": "file.html",
     "email_template": "file.html",
     "email_subject": "",

@@ -1,4 +1,5 @@
 import json
+import twilio.twiml
 import flask
 import time
 import requests
@@ -213,10 +214,14 @@ def no_pickup(msg_id):
 #-------------------------------------------------------------------------------
 @flask_app.route('/get_speak', methods=['POST'])
 def get_template():
+    logger.info('get_speak')
+
     html = render_template(
         request.form['template'],
         reminder=json.loads(request.form['reminder'])
     )
+
+    logger.info('speak template: %s', html)
 
     return html.replace("\n", "")
 
@@ -224,8 +229,27 @@ def get_template():
 @flask_app.route('/reminders/call.xml',methods=['POST'])
 def call_xml():
     '''Twilio TwiML Voice Request'''
-    response = reminders.get_call_xml(request.values.to_dict())
-    return Response(str(response), mimetype='text/xml')
+    try:
+        template = reminders.get_call_template(request.values.to_dict())
+
+        html = render_template(
+            template['template'],
+            reminder=json.loads(template['reminder'])
+        )
+
+        html = html.replace("\n", "")
+        html = html.replace("  ", "")
+        logger.info('speak template: %s', html)
+
+        db['reminders'].update({'_id':template['reminder']['_id']},{'$set':{'call.speak':html}})
+
+        response = twilio.twiml.Response()
+        response.say(html, voice='alice')
+
+        return Response(str(response), mimetype='text/xml')
+    except Exception as e:
+        logger.info('call.xml: %s', str(e))
+        return False
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/reminders/call_event',methods=['POST','GET'])

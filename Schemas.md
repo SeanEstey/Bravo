@@ -38,7 +38,8 @@
 }
 
 "jobs": {
-  "status": ["pending", "in-progress", "completed"], 
+  "status": ["pending", "in-progress", "completed", "failed"], 
+  "started_dtime": "<bson.date>" // Actual time task started by scheduler
   "fire_calls_dtime": "<bson.date>",
   "fire_emails_dtime": "<bson.date>",
   "num_calls": "[Number]", 

@@ -240,7 +240,8 @@ function makeCallFieldsClickable() {
         }
       });
 
-    $input.focus();
+      $input.focus();
+    });
   });
 }
 
@@ -261,7 +262,7 @@ function updateJobStatus() {
       });
 
       var delivered_percent = Math.floor((n_sent / sum) * 100);
-      $('#job-summary').text((String(delivered_percent) + '%');
+      $('#job-summary').text((String(delivered_percent) + '%'));
   }
 }
 

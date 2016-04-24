@@ -192,7 +192,7 @@ class BravoTestCase(unittest.TestCase):
         r = reminders.send_calls.apply_async(args=(str(self.job_id),),queue=DB_NAME)
         self.assertTrue(type(r.result), int)
     '''
-    #'''
+    '''
     def test_monitor_active_jobs_redial(self):
         self.db.jobs.update_one(
           {'_id':self.job_id},
@@ -208,11 +208,12 @@ class BravoTestCase(unittest.TestCase):
         n = reminders.monitor_active_jobs()
 
         self.assertTrue(type(n), int)
-    #'''
+    '''
     #'''
     def test_monitor_pending_jobs(self):
-        n = reminders.monitor_pending_jobs()
-        self.assertTrue(type(n), int)
+        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
+        print n
+        #self.assertTrue(type(n), int)
     #'''
     '''
     def test_send_calls(self):

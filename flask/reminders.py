@@ -17,6 +17,7 @@ from app import celery_app, db, log_handler, socketio
 import utils
 from config import *
 
+
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(log_handler)
@@ -28,11 +29,15 @@ def monitor_jobs():
     '''Scheduler process. Runs via celerybeat every few minutes.
     Will finish off any active jobs and begin any pending scheduled jobs.
     '''
+
     monitor_pending_jobs()
     monitor_active_jobs()
 
 #-------------------------------------------------------------------------------
 def monitor_pending_jobs():
+    '''Runs on celerybeat schedule with frequency defined in config.py.
+    Starts pending jobs as scheduled. Returns # pending jobs'''
+
     pending = db['jobs'].find({'status': 'pending'})
 
     for job in pending:
@@ -46,7 +51,7 @@ def monitor_pending_jobs():
           {'_id': job['_id']},
           {'$set': {
             "status": "in-progress",
-            "started_at": datetime.now()}})
+            "started_dtime": datetime.now()}})
 
         logger.info('Job_ID %s: Sending calls', job['_id'])
 
@@ -55,7 +60,10 @@ def monitor_pending_jobs():
         #  'data': json.dumps({'id': str(job['_id']), 'status':'in-progress'})
         #})
 
-        send_calls(str(job['_id']))
+        # May not be able to start celery task from inside another.
+        # Make a server request to /reminders/<job_id>/execute if this doesn't
+        # work
+        send_calls.apply_async((str(job['_id']).encode('utf-8'),), queue=DB_NAME)
 
     if datetime.now().minute == 0:
         logger.info('%d pending jobs', pending.count())
@@ -64,12 +72,36 @@ def monitor_pending_jobs():
 
 #-------------------------------------------------------------------------------
 def monitor_active_jobs():
+    '''Runs on celerybeat schedule with frequency defined in config.py.
+    Monitors active jobs to do any redials, mark them as complete, or
+    kill any hung jobs.
+    Returns # active jobs'''
+
     in_progress = db['jobs'].find({'status': 'in-progress'})
 
     for job in in_progress:
+        now = datetime.now()
+
+        if (now - job['started_dtime']).seconds > JOB_TIME_LIMIT:
+            # The celery process will have already killed the worker task if
+            # it hung, but we'll catch the error here and clean up.
+
+            logger.error('Job_ID %s: Ran over time limit! Celery task should '+ \
+                         'have been killed automatically.', str(job['_id']))
+
+            logger.error('Job_ID %s dump: %s', str(job['_id']), job)
+
+            db['jobs'].update_one(
+                {'_id':job['_id']},
+                {'$set': {'status': 'failed'}})
+
+            continue
+
+        # Job is active. Do nothing.
         if db['reminders'].find({
           'job_id': job['_id'],
           '$or':[
+            {'call.status': 'pending'},
             {'call.status': 'queued'},
             {'call.status': 'ringing'},
             {'call.status': 'in-progress'}
@@ -97,13 +129,14 @@ def monitor_active_jobs():
             # Connect back to server and notify
             requests.get(LOCAL_URL + '/complete/' + str(job['_id']))
 
-            email_job_summary(job['_id'])
+            #email_job_summary(job['_id'])
 
         else:
             logger.info('Job ID %s: Redialing %d incompletes', str(job['_id']), incompletes.count())
 
             # Redial busy or no-answer incompletes
-            send_calls(job['_id'])
+            # This should be a new celery worker task
+            send_calls.apply_async((str(job['_id']).encode('utf-8'),), queue=DB_NAME)
 
     return in_progress.count()
 
@@ -602,7 +635,7 @@ def email_job_summary(job_id):
               "no_answer" : db['reminders'].find({
                 'job_id':job_id, 'call.status':'no-answer'}).count(),
               "busy": db['reminders'].find({
-                'job_id':job_id, 'call_status':'busy'}).count(),
+                'job_id':job_id, 'call.status':'busy'}).count(),
               "failed" : db['reminders'].find({
                 'job_id':job_id, 'call.status':'failed'}).count()
             },

@@ -23,16 +23,26 @@ def get_sorted_orders(form):
     # Copy them over manually.
     # Also create Google Maps url
 
-    for stop in solution['output']['solution'][form['driver']]:
-        id = stop['location_id']
+    for order in solution['output']['solution'][form['driver']]:
+        id = order['location_id']
+
+        if id == 'depot':
+            location = geocode(form['end_addy'])['geometry']['location']
+
+            order['gmaps_url'] = get_gmaps_url(
+                order['location_name'],
+                location['lat'],
+                location['lng']
+            )
+            continue
 
         if id in solution['input']['visits']:
-            stop['customNotes'] = solution['input']['visits'][id]['customNotes']
+            order['customNotes'] = solution['input']['visits'][id]['customNotes']
 
-            stop['gmaps_url'] = get_gmaps_url(
-                stop['location_name'],
-                stop['customNotes']['lat'],
-                stop['customNotes']['lng']
+            order['gmaps_url'] = get_gmaps_url(
+                order['location_name'],
+                order['customNotes']['lat'],
+                order['customNotes']['lng']
             )
 
     return solution['output']['solution'][form['driver']]
@@ -135,13 +145,13 @@ def get_job_id(block, driver, start_address, depot_address):
 
     payload["fleet"][driver] = {
       "start_location": {
-        "id": "Office",
+        "id": "office",
         "lat": start['lat'],
         "lng": start['lng'],
         "name": start_address,
       },
       "end_location": {
-        "id": "Depot",
+        "id": "depot",
         "lat": end['lat'],
         "lng": end['lng'],
         "name": depot_address,
@@ -151,9 +161,9 @@ def get_job_id(block, driver, start_address, depot_address):
     }
 
     for account in accounts['data']:
-        addy = account['address'] + ', ' + account['city'] + ', AB'
+        address = account['address'] + ', ' + account['city'] + ', AB'
 
-        result = geocode(addy)
+        result = geocode(address)
 
         if not result:
             continue
@@ -170,7 +180,7 @@ def get_job_id(block, driver, start_address, depot_address):
 
         payload['visits'][account['id']] = { # location_id
           "location": {
-            "name": account['address'] + ', ' + account['city'] + ', AB, ' + account['postalCode'],
+            "name": address,
             "lat": coords['lat'],
             "lng": coords['lng']
           },

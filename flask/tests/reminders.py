@@ -114,13 +114,12 @@ class BravoTestCase(unittest.TestCase):
     def logout(self):
         return self.app.get('/logout', follow_redirects=True)
 
-    '''
-    def test_dial_valid(self):
+    def test_dial_a(self):
         call = reminders.dial('7808635715')
         self.assertEquals(call.status, 'queued')
-    '''
-    '''
-    def test_etw_reminder_human_answer_call(self):
+
+    def test_call_xml_a(self):
+        '''Code Path: human answers'''
         r = self.app.post('/reminders/call.xml', data={
           'CallSid': self.reminder['call']['sid'],
           'To': self.reminder['call']['to'],
@@ -128,9 +127,9 @@ class BravoTestCase(unittest.TestCase):
           'AnsweredBy': 'human'
         })
         print "Human XML:" + r.data
-    '''
-    '''
-    def test_etw_reminder_machine_answer_call(self):
+
+    def test_call_xml_b(self):
+        '''Code Path: answering machine'''
         r = self.app.post('/reminders/call.xml', data={
           'CallSid': self.reminder['call']['sid'],
           'To': self.reminder['call']['to'],
@@ -138,20 +137,17 @@ class BravoTestCase(unittest.TestCase):
           'AnsweredBy': 'machine'
         })
         print "Machine XML:" + r.data
-    '''
 
-    '''
     def test_get_speak(self):
         r = self.app.post('/get_speak', data={
           'template': 'speak/etw_reminder.html',
           'reminder': reminders.bson_to_json(self.reminder)
         })
         self.assertTrue(type(r.data) == str)
-
         logger.info(r.data)
-    '''
-    '''
-    def test_call_completed(self):
+
+    def test_call_event_a(self):
+        '''Code Path: rem_a call complete'''
         completed_call = {
         'To': self.reminder['call']['to'],
         'CallSid': 'ABC123ABC123ABC123ABC123ABC123AB',
@@ -161,126 +157,65 @@ class BravoTestCase(unittest.TestCase):
         }
 
         r = self.app.post('/reminders/call_event', data=completed_call)
-
         self.assertEquals(r._status_code, 200)
-
         #logger.info(self.db['reminders'].find_one({'call.sid':completed_call['CallSid']}))
-    '''
-    '''
+
     def test_send_calls(self):
         r = reminders.send_calls.apply_async(args=(str(self.job_id),),queue=DB_NAME)
         self.assertTrue(type(r.result), int)
-    '''
-    '''
-    def test_monitor_active_jobs_redial(self):
-        update_db('jobs',self.job_id,{'status':'in-progress'})
-        update_db('reminders',self.rem_id,{'call.status':'busy','call.attempts':1})
-        n = reminders.monitor_active_jobs()
 
-        self.assertTrue(type(n), int)
-    '''
-    #'''
     def test_monitor_pending_jobs_a(self):
-        '''Code Path: show a pending job (update fire_calls_dtime to future date)'''
+        '''Code Path: job_a is pending'''
         update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
         update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
         n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
-    #'''
-    #'''
+
     def test_monitor_pending_jobs_b(self):
         '''Code Path: job_a ready but job_b in progress'''
         update_db('jobs', self.job_b['_id'],{'status':'in-proress'})
         update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
         n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
-    #'''
-    #'''
+
     def test_monitor_pending_jobs_c(self):
         '''Code Path: starting new job'''
         update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
         update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
         n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
-    #'''
-    #'''
+
     def test_monitor_active_jobs_a(self):
         '''Code Path: job_a hung (went over time limit)'''
         update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
         update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
         n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
-    #'''
-    #'''
+
     def test_monitor_active_jobs_b(self):
         '''Code Path: job_a is active'''
         update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
         update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
         n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
-    #'''
-    #'''
+
     def test_monitor_active_jobs_c(self):
         '''Code Path: job_a has completed.'''
         # TODO: set all db['reminders'] for job_a to 'complete'
         n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
-    #'''
-    #'''
+
     def test_monitor_active_jobs_d(self):
         '''Code Path: job_a is incomplete. redialing.'''
+        update_db('jobs',self.job_id,{'status':'in-progress'})
+        update_db('reminders',self.rem_id,{'call.status':'busy','call.attempts':1})
         update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
         update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
-        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
-    #'''
-    '''
-    def test_send_calls(self):
-        r = reminders.send_calls.apply_async(
-            args=(str(self.job_id), ),
-            queue=DB_NAME)
-        self.assertTrue(type(r.result), int)
-    '''
-    '''
-    def test_many_calls(self):
-        calls = []
-        base = '780453'
-        msg_document = {
-        'job_id': self.job_id,
-        'call_status': 'pending',
-        'attempts': 0,
-        'imported': {
-          'event_date': parse('december 31, 2014'),
-          'to': '780-863-5715',
-          'name': 'NIS',
-          'status': 'Active',
-          'office_notes': ''
-        }
-        }
+        n = reminders.monitor_active_jobs()
 
-        for x in range(1000,1100):
-          call = base + str(x)
-          print call
-          response = reminders.dial(call)
-          #self.assertEquals(response['call_status'], 'queued', msg=response)
-          sid = response['sid']
-          msg_document['sid'] = sid
-          msg_document['call_status'] = 'queued'
-          msg_document['imported']['to'] = call
-          print msg_document
-          self.db['msgs'].insert(msg_document)
-          payload = MultiDict([
-          ('CallSid', response['sid']),
-          ('To', call),
-          ('CallStatus', 'in-progress'),
-          ('AnsweredBy', 'human')
-          ])
-          del msg_document['_id']
-          response = requests.post(PUB_URL+'/call/answer', data=payload)
-          xml_response = xml.dom.minidom.parseString(response.text)
-          # Test valid XML returned by reminders.get_speak()
-          self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
-    '''
-    '''
+    def test_send_calls(self):
+        r = reminders.send_calls.apply_async(args=(str(self.job_id),),queue=DB_NAME)
+        self.assertTrue(type(r.result), int)
+
     def test_bravo_sms(self):
         self.msg['sms'] = True
         response = bravo.sms(self.msg['to'], 'sms unittest')
         self.assertEquals(response[0], 202, msg=json.dumps(response))
-    '''
-    '''
+
     def test_get_speak_etw_active(self):
         speak = bravo.get_speak(self.job_a, self.msg)
         self.assertIsInstance(speak, str)
@@ -348,40 +283,6 @@ class BravoTestCase(unittest.TestCase):
         args='?CallStatus='+self.msg['status']+'&RequestUUID='+self.msg['request_uuid']+'&To='+self.msg['to']
         uri = PUB_URL + '/call/answer' + args
         self.assertEquals(requests.get(uri).status_code, 200)
-
-    '''INTEGRATION TESTING'''
-
-    def test_integration_dial_and_answer_call(self):
-        call = reminders.dial(self.reminder['call']['to'])
-
-        r = self.db['reminders'].update_one(
-        {'_id':self.reminder['_id']},
-        {'$set':{
-          'call.sid':call.sid,
-          'call.status': call.status
-        }},
-        )
-
-        logger.info('SID: %s', call.sid)
-
-        self.assertEquals(r.modified_count, 1)
-
-        payload =  {
-          'CallSid': call.sid,
-          'To': self.reminder['call']['to'],
-          'CallStatus': 'in-progress',
-          'AnsweredBy': 'human'
-        }
-
-        r = self.app.post('/reminders/call.xml', data=dict(payload))
-
-        xml_response = xml.dom.minidom.parseString(r.data)
-        # Test valid XML returned by reminders.get_speak()
-        self.assertTrue(isinstance(xml_response, xml.dom.minidom.Document))
-
-        logger.info(r.data)
-    '''
-'''
 
 if __name__ == '__main__':
     logger.info('********** begin reminders.py unittest **********')

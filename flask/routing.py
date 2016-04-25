@@ -179,15 +179,15 @@ def get_job_id(block, driver, date, start_address, depot_address):
             nd = next_delivery.split('/')
             next_delivery = parse('/'.join([nd[1], nd[0], nd[2]]))
 
-        if next_pickup is not None and next_delivery is None:
+        if next_pickup and not next_delivery:
             if next_pickup > date:
                 num_skips += 1
                 continue
-        elif next_delivery is not None and next_pickup is None:
+        elif next_delivery and not next_pickup:
             if next_delivery != date:
                 num_skips += 1
                 continue
-        elif next_pickup is not None and next_delivery is not None:
+        elif next_pickup and next_delivery:
             # Proceed with routing if next_pickup <= now or next_delivery == now
             if next_pickup > date and next_delivery != date:
                 num_skips += 1

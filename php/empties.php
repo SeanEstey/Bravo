@@ -55,8 +55,12 @@ function get_account($nsc, $account_number) {
 }
 
 //-----------------------------------------------------------------------
-/* Returns amount of stops on specific date */
-function get_scheduled_run_size($nsc, $query_category, $query, $date) {
+function get_scheduled_block_size($nsc, $query_category, $query, $date) {
+	/* Returns amount of stops on specific date 
+	 * This only checks Next Pickup and Next Delivery date fields.
+	 * TODO: Check Blocks too
+	 */
+
   ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
   
   $response = $nsc->call("getExistingQueryResults", [[ 
@@ -72,19 +76,42 @@ function get_scheduled_run_size($nsc, $query_category, $query, $date) {
     echo $response['faultstring'];
     return false;
   }
+
+	// Convert from str dd/mm/yyyy to date object
+	$date = explode("/", $date);
+	$date = implode('/', [$date[1],$date[0],$date[2]]);
+	$date = strtotime($date);
   
-  $matches = 0;
-  foreach($response['data'] as $account) {
+	$matches = 0;
+
+	foreach($response['data'] as $account) {
+		$blocks = [];
+		$next_pickup = '';
+		$next_delivery = '';
+	
+		// Extract UDF's
     foreach($account['accountDefinedValues'] as $udf) {
-      if($udf['fieldName'] == 'Next Pickup Date' && $date >= $udf['value']) {
-        $matches++;
-        break;
+			if($udf['fieldName'] == 'Next Pickup Date') {
+				// Convert from str dd/mm/yyyy to date object
+				$next_pickup = explode("/", $udf['value']);
+				$next_pickup = implode('/', [$next_pickup[1],$next_pickup[0],$next_pickup[2]]);
+				$next_pickup = strtotime($next_pickup);
 			}
-			else if($udf['fieldName'] == 'Next Delivery Date' && $date == $udf['value']) {
-				$matches++;
-				break;
+			else if($udf['fieldName'] == 'Next Delivery Date') {
+				$next_delivery = explode("/", $udf['value']);
+				$next_delivery = implode('/', [$next_delivery[1],$next_delivery[0],$next_delivery[2]]);
+				$next_delivery = strtotime($next_delivery);
 			}
-    }
+			else if($udf['fieldName'] == 'Block')
+				$blocks[] = $udf['value'];
+		}
+
+		// Pickup Date can be earlier than given date and still a match
+		// i.e. we're looking up a weekly business a month from now.
+		if($next_pickup && $next_pickup <= $date)
+			$matches++;
+		else if($next_delivery && $next_delivery == $date)
+			$matches++;
   }
 
   $ratio = (string)$matches . '/';
@@ -94,7 +121,7 @@ function get_scheduled_run_size($nsc, $query_category, $query, $date) {
   else
     $ratio .= '?';
   
-  write_log($query . ': ' . $ratio);
+  write_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
   echo $ratio;
 
   http_response_code(200);

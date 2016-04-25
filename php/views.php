@@ -165,8 +165,8 @@
       get_block_size($nsc, $data['query_category'], $data['query']);
       break;
 
-    case 'get_scheduled_run_size':
-      get_scheduled_run_size($nsc, $data['query_category'], $data['query'], $data['date']);
+    case 'get_scheduled_block_size':
+      get_scheduled_block_size($nsc, $data['query_category'], $data['query'], $data['date']);
       break;
 
     case 'get_next_pickup':

@@ -4,19 +4,16 @@ import pymongo
 from datetime import timedelta
 from private_config import *
 
-# Flask
-# When True, uses gevent web server. Server auto-restarts
-# on code changes
-# When False, uses Wekzeug dev server
-DEBUG = True
-
-TEST_MODE = True
-THREADED = True
+# When True, uses Werkzeug dev server. Server auto-restarts on code changes
+# When False, uses gevent (wsgi, threaded) web server.
+DEBUG = False
 
 if DEBUG == True:
     LOG_LEVEL = logging.DEBUG
 else:
     LOG_LEVEL = logging.INFO
+
+TEST_MODE = False
 
 if TEST_MODE == True:
     DB_NAME = 'test'

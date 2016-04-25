@@ -91,6 +91,24 @@ class BravoTestCase(unittest.TestCase):
   def test_schedule_jobs(self):
       r = self.app.get('/new')
       self.assertEquals(r.status_code, 200)
+
+    def test_schedule_jobs_view(self):
+        self.assertEqual(requests.get(PUB_URL+'/new').status_code, 200)
+
+    def test_root_view(self):
+        self.assertEquals(requests.get(PUB_URL).status_code, 200)
+
+    def test_get_speak_etw_dropoff(self):
+        self.msg['etw_status'] = 'Dropoff'
+        speak = bravo.get_speak(self.job_a, self.msg)
+        self.assertIsInstance(speak, str)
+
+    def test_show_jobs_view(self):
+        self.assertEqual(requests.get(PUB_URL+'/jobs').status_code, 200)
+
+    def test_show_calls_view(self):
+        uri = PUB_URL + '/jobs/' + str(self.job_id)
+        self.assertEqual(requests.get(uri).status_code, 200)
   '''
 
 if __name__ == '__main__':

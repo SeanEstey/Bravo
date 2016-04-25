@@ -192,7 +192,7 @@ def get_job_id(block, driver, start_address, depot_address):
             "lng": coords['lng'],
             "id": account['id'],
             "name": account['name'],
-            #"phone": account['phones'][0]['number'], # TODO: Test if exists
+            "contact": etap.get_udf('Contact', account),
             "block": etap.get_udf('Block', account),
             "status": etap.get_udf('Status', account),
             "neighborhood": etap.get_udf('Neighborhood', account),
@@ -201,6 +201,9 @@ def get_job_id(block, driver, start_address, depot_address):
             "next pickup": etap.get_udf('Next Pickup Date', account)
           }
         }
+
+        if account['phones']:
+            payload['visits'][account['id']]['customNotes']['phone'] = account['phones'][0]['number']
 
     try:
         r = requests.post(

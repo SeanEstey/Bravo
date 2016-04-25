@@ -26,7 +26,7 @@ if __name__ == "__main__":
     else:
         flask_app.logger.info('Server starting using \'%s\' DB', DB_NAME)
 
-    if TEST_MODE == True:
+    if DEBUG == True:
         # Werkzeug server (Test Mode)
         flask_app.run(port=LOCAL_PORT, debug=True, threaded=True)
         #socketio.run(flask_app, port=LOCAL_PORT, threaded=THREADED)

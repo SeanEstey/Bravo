@@ -220,25 +220,17 @@ class BravoTestCase(unittest.TestCase):
         speak = bravo.get_speak(self.job_a, self.msg)
         self.assertIsInstance(speak, str)
 
-    def test_get_speak_etw_dropoff(self):
-        self.msg['etw_status'] = 'Dropoff'
-        speak = bravo.get_speak(self.job_a, self.msg)
-        self.assertIsInstance(speak, str)
-
-    def test_show_jobs_view(self):
-        self.assertEqual(requests.get(PUB_URL+'/jobs').status_code, 200)
-
-    def test_show_calls_view(self):
-        uri = PUB_URL + '/jobs/' + str(self.job_id)
-        self.assertEqual(requests.get(uri).status_code, 200)
-
-    def test_parse_csv(self):
-        from reminders import parse_csv
-        import codecs
-        from config import TEMPLATE_HEADERS
+    def test_parse_csv_a(self):
+        '''Code Path: Success'''
         filepath = '/tmp/ETW_Res_5E.csv'
         with codecs.open(filepath, 'r', 'utf-8-sig') as f:
           self.assertIsNotNone(parse_csv(f, TEMPLATE_HEADERS['etw_reminder']))
+
+    def test_parse_csv_b(self):
+        '''Code Path: headers don't match schema'''
+
+    def test_parse_csv_c(self):
+        '''Code Path: data format doesn't schema'''
 
     def test_create_msg_record_etw_reminder(self):
         from reminders import create_msg_record
@@ -268,12 +260,6 @@ class BravoTestCase(unittest.TestCase):
 
     def test_create_job(self):
         import requests
-
-    def test_schedule_jobs_view(self):
-        self.assertEqual(requests.get(PUB_URL+'/new').status_code, 200)
-
-    def test_root_view(self):
-        self.assertEquals(requests.get(PUB_URL).status_code, 200)
 
     def test_reminders_get_celery_status(self):
         self.assertEquals(requests.get(PUB_URL+'/get/celery_status').status_code, 200)

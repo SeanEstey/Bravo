@@ -76,10 +76,14 @@ function get_scheduled_run_size($nsc, $query_category, $query, $date) {
   $matches = 0;
   foreach($response['data'] as $account) {
     foreach($account['accountDefinedValues'] as $udf) {
-      if($udf['fieldName'] == 'Next Pickup Date' && $date == $udf['value']) {
+      if($udf['fieldName'] == 'Next Pickup Date' && $date >= $udf['value']) {
         $matches++;
         break;
-      }
+			}
+			else if($udf['fieldName'] == 'Next Delivery Date' && $date == $udf['value']) {
+				$matches++;
+				break;
+			}
     }
   }
 

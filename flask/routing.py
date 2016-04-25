@@ -1,4 +1,6 @@
 import json
+from dateutil.parser import parse
+from datetime import datetime
 import requests
 import time
 
@@ -15,7 +17,7 @@ logger.addHandler(log_handler)
 def get_sorted_orders(form):
     # TODO: Test arguments
 
-    job_id = get_job_id(form['block'], form['driver'], form['start_addy'], form['end_addy'])
+    job_id = get_job_id(form['block'], form['driver'], form['date'], form['start_addy'], form['end_addy'])
 
     solution = get_solution(job_id)
 
@@ -130,7 +132,7 @@ def get_solution(job_id):
     return data
 
 #-------------------------------------------------------------------------------
-def get_job_id(block, driver, start_address, depot_address):
+def get_job_id(block, driver, date, start_address, depot_address):
     '''Use Routific long-running process endpoint to generate a job_id'''
 
     accounts = get_accounts(block)
@@ -160,7 +162,37 @@ def get_job_id(block, driver, start_address, depot_address):
       "shift_end": "17:00"
     }
 
+    date = parse(date)
+    num_skips = 0
+
     for account in accounts['data']:
+        # Ignore accounts with Next Pickup > today
+        next_pickup = etap.get_udf('Next Pickup Date', account)
+
+        if next_pickup:
+            np = next_pickup.split('/')
+            next_pickup = parse('/'.join([np[1], np[0], np[2]]))
+
+        next_delivery = etap.get_udf('Next Delivery Date', account)
+
+        if next_delivery:
+            nd = next_delivery.split('/')
+            next_delivery = parse('/'.join([nd[1], nd[0], nd[2]]))
+
+        if next_pickup is not None and next_delivery is None:
+            if next_pickup > date:
+                num_skips += 1
+                continue
+        elif next_delivery is not None and next_pickup is None:
+            if next_delivery != date:
+                num_skips += 1
+                continue
+        elif next_pickup is not None and next_delivery is not None:
+            # Proceed with routing if next_pickup <= now or next_delivery == now
+            if next_pickup > date and next_delivery != date:
+                num_skips += 1
+                continue
+
         address = account['address'] + ', ' + account['city'] + ', AB'
 
         result = geocode(address)
@@ -203,7 +235,21 @@ def get_job_id(block, driver, start_address, depot_address):
         }
 
         if account['phones']:
-            payload['visits'][account['id']]['customNotes']['phone'] = account['phones'][0]['number']
+            for phone in account['phones']:
+                if phone['type'] == 'Mobile' or phone['type'] == 'Cell':
+                    payload['visits'][account['id']]['customNotes']['phone'] = \
+                    phone['number'] + ' (Mobile)'
+                    break
+                else:
+                    payload['visits'][account['id']]['customNotes']['phone'] = \
+                    phone['number'] + ' (' + phone['type'] + ')'
+
+        if account['email']:
+            payload['visits'][account['id']]['customNotes']['email'] = 'Yes'
+        else:
+            payload['visits'][account['id']]['customNotes']['email'] = 'No'
+
+    logger.info('Skipping %s no pickups', str(num_skips))
 
     try:
         r = requests.post(

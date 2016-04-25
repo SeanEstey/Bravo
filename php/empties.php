@@ -56,10 +56,7 @@ function get_account($nsc, $account_number) {
 
 //-----------------------------------------------------------------------
 function get_scheduled_block_size($nsc, $query_category, $query, $date) {
-	/* Returns amount of stops on specific date 
-	 * This only checks Next Pickup and Next Delivery date fields.
-	 * TODO: Check Blocks too
-	 */
+	/* Returns amount of stops booked for pickup/delivery on given date */
 
   ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
   

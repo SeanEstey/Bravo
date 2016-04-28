@@ -40,15 +40,19 @@ def monitor_pending_jobs():
 
     in_progress = db['jobs'].find({'status': 'in-progress'})
 
+    status = {}
+
     for job in pending:
-        if datetime.now() < job['fire_calls_dtime']:
+        if datetime.now() < job['voice']['fire_at']:
             print('Job_ID %s: Pending in %s' %
-            (str(job['_id']), str(job['fire_calls_dtime'] - datetime.now())))
+            (str(job['_id']), str(job['voice']['fire_at'] - datetime.now())))
+            status[job['_id']] = 'pending'
             continue
 
         if in_progress.count() > 0:
             logger.info('Another job in-progress. Waiting to begin Job_ID %s',
                         str(job['_id']))
+            status[job['_id']] = 'waiting'
             continue
 
         # Start new job
@@ -56,9 +60,11 @@ def monitor_pending_jobs():
           {'_id': job['_id']},
           {'$set': {
             "status": "in-progress",
-            "started_dtime": datetime.now()}})
+            "voice.started_at": datetime.now()}})
 
         logger.info('Job_ID %s: Sending calls', job['_id'])
+
+        status[job['_id']] = 'in-progress'
 
         #requests.get(LOCAL_URL + '/sendsocket', params={
         #  'name': 'update_job',
@@ -73,21 +79,23 @@ def monitor_pending_jobs():
     if datetime.now().minute == 0:
         logger.info('%d pending jobs', pending.count())
 
-    return pending.count()
+    return status
 
 #-------------------------------------------------------------------------------
 def monitor_active_jobs():
     '''Runs on celerybeat schedule with frequency defined in config.py.
     Monitors active jobs to do any redials, mark them as complete, or
     kill any hung jobs.
-    Returns # active jobs'''
+    Returns list of statuses'''
 
     in_progress = db['jobs'].find({'status': 'in-progress'})
+
+    status = {}
 
     for job in in_progress:
         now = datetime.now()
 
-        if (now - job['started_dtime']).seconds > JOB_TIME_LIMIT:
+        if (now - job['voice']['started_at']).seconds > JOB_TIME_LIMIT:
             # The celery process will have already killed the worker task if
             # it hung, but we'll catch the error here and clean up.
 
@@ -100,17 +108,20 @@ def monitor_active_jobs():
                 {'_id':job['_id']},
                 {'$set': {'status': 'failed'}})
 
+            status[job['_id']] = 'failed'
+
             continue
 
         # Job is active. Do nothing.
         if db['reminders'].find({
           'job_id': job['_id'],
           '$or':[
-            {'call.status': 'pending'},
-            {'call.status': 'queued'},
-            {'call.status': 'ringing'},
-            {'call.status': 'in-progress'}
+            {'voice.status': 'pending'},
+            {'voice.status': 'queued'},
+            {'voice.status': 'ringing'},
+            {'voice.status': 'in-progress'}
         ]}).count() > 0:
+            status[job['_id']] = 'in-progress'
             continue
 
         print('Job_ID %s: Active' % ((str(job['_id']))))
@@ -118,10 +129,10 @@ def monitor_active_jobs():
         # Any needing redial?
         incompletes = db['reminders'].find({
           'job_id': job['_id'],
-          'call.attempts': {'$lt': MAX_CALL_ATTEMPTS},
+          'voice.attempts': {'$lt': MAX_CALL_ATTEMPTS},
           '$or':[
-            {'call.status': 'busy'},
-            {'call.status': 'no-answer'}]})
+            {'voice.status': 'busy'},
+            {'voice.status': 'no-answer'}]})
 
         if incompletes.count() == 0:
             # Job Complete!
@@ -131,6 +142,8 @@ def monitor_active_jobs():
 
             logger.info('Job_ID %s: Completed', str(job['_id']))
 
+            status[job['_id']] = 'completed'
+
             # Connect back to server and notify
             requests.get(LOCAL_URL + '/complete/' + str(job['_id']))
 
@@ -139,11 +152,13 @@ def monitor_active_jobs():
         else:
             logger.info('Job ID %s: Redialing %d incompletes', str(job['_id']), incompletes.count())
 
+            status[job['_id']] = 'redialing'
+
             # Redial busy or no-answer incompletes
             # This should be a new celery worker task
             send_calls.apply_async((str(job['_id']).encode('utf-8'),), queue=DB_NAME)
 
-    return in_progress.count()
+    return status
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -159,39 +174,39 @@ def send_calls(job_id):
 
     # Fire all calls
     for reminder in reminders:
-        # TODO: change call.status to "cancelled" on no_pickup request,
+        # TODO: change voice.status to "cancelled" on no_pickup request,
         # eliminate this test
         if 'no_pickup' in reminder['custom']:
             continue
 
-        if reminder['call']['status'] not in ['pending', 'no-answer', 'busy']:
+        if reminder['voice']['status'] not in ['pending', 'no-answer', 'busy']:
             continue
 
-        if reminder['call']['attempts'] >= MAX_CALL_ATTEMPTS:
+        if reminder['voice']['attempts'] >= MAX_CALL_ATTEMPTS:
             continue
 
-        call = dial(reminder['call']['to'])
+        call = dial(reminder['voice']['to'])
 
         if isinstance(call, Exception):
-            logger.info('%s failed (%d: %s)', reminder['call']['to'], call.code, call.msg)
+            logger.info('%s failed (%d: %s)', reminder['voice']['to'], voice.code, voice.msg)
 
             db['reminders'].update_one(
               {'_id':reminder['_id']},
               {'$set': {
-                "call.status": "failed",
-                "call.error": call.msg,
-                "call.code": call.code}})
+                "voice.status": "failed",
+                "voice.error": call.msg,
+                "voice.code": call.code}})
         else:
-            logger.info('%s %s', reminder['call']['to'], call.status)
+            logger.info('%s %s', reminder['voice']['to'], call.status)
 
             calls_fired += 1
 
             db['reminders'].update_one(
               {'_id':reminder['_id']},
               {'$set': {
-                "call.status": call.status,
-                "call.sid": call.sid,
-                "call.attempts": reminder['call']['attempts']+1}})
+                "voice.status": call.status,
+                "voice.sid": call.sid,
+                "voice.attempts": reminder['voice']['attempts']+1}})
 
     # TODO: Add back in socket.io
 
@@ -267,7 +282,7 @@ def csv_line_to_db(job_id, schema, buf_row, errors):
 
     reminder = {
         "job_id": job_id,
-        "call": {
+        "voice": {
           "status": "pending",
           "attempts": 0,
         },
@@ -282,7 +297,7 @@ def csv_line_to_db(job_id, schema, buf_row, errors):
             db_field = field['db_field']
 
             # Format phone numbers
-            if db_field == 'call.to':
+            if db_field == 'voice.to':
               buf_row[i] = strip_phone(buf_row[i])
             # Convert any date strings to datetime obj
             elif field['type'] == 'date':
@@ -310,7 +325,7 @@ def rmv_msg(job_id, msg_id):
 
     db['jobs'].update(
         {'_id':ObjectId(job_id)},
-        {'$inc':{'num_calls':-1}}
+        {'$inc':{'voice.count':-1}}
     )
 
     return n
@@ -320,14 +335,14 @@ def reset_job(job_id):
     n = db['reminders'].update(
       {'job_id': ObjectId(job_id)},
       {'$set': {
-        'call.status': 'pending',
-        'call.answered_by': None,
-        'call.ended_at': None,
-        'call.speak': None,
-        'call.attempts': 0,
-        'call.code': None,
-        'call.duration': None,
-        'call.error': None,
+        'voice.status': 'pending',
+        'voice.answered_by': None,
+        'voice.ended_at': None,
+        'voice.speak': None,
+        'voice.attempts': 0,
+        'voice.code': None,
+        'voice.duration': None,
+        'voice.error': None,
         'email.status': 'pending',
     }})
 
@@ -395,7 +410,7 @@ def dial(to):
     return call
 
 #-------------------------------------------------------------------------------
-def get_call_template(args):
+def get_voice_template(args):
     '''Returns twilio.twiml.Response obj'''
 
     if 'msg' in args or 'Digits' in args:
@@ -417,7 +432,7 @@ def get_resp_xml_template(args):
 
     if args.get('Digits') == '1':
         # Repeat message request...
-        return get_speak(job, msg)
+        return get_speak_template(job, msg)
     elif args.get('Digits') == '2':
         # Cancel Pickup special request...
 
@@ -463,10 +478,10 @@ def get_answer_xml_template(args):
     logger.info('%s %s (%s)', args['To'], args['CallStatus'], args.get('AnsweredBy'))
 
     reminder = db['reminders'].find_one_and_update(
-      {'call.sid': args['CallSid']},
+      {'voice.sid': args['CallSid']},
       {'$set': {
-        "call.status": args['CallStatus'],
-        "call.answered_by": args.get('AnsweredBy')}},
+        "voice.status": args['CallStatus'],
+        "voice.answered_by": args.get('AnsweredBy')}},
       return_document=ReturnDocument.AFTER)
 
     if reminder:
@@ -479,7 +494,7 @@ def get_answer_xml_template(args):
             return get_speak_template(job, reminder)
             #response_xml = get_speak(job, reminder)
         except Exception as e:
-            logger.error('reminders.get_answer_xml', exc_info=True)
+            logger.error('reminders.get_answer_xml_template', exc_info=True)
             return str(e)
 
     # Not a reminder. Maybe a special msg recording?
@@ -529,14 +544,14 @@ def call_event(args):
         logger.info('%s %s', args['To'], args['CallStatus'])
 
     msg = db['reminders'].find_one_and_update(
-      {'call.sid': args['CallSid']},
+      {'voice.sid': args['CallSid']},
       {'$set': {
-        "call.status": args['CallStatus'],
-        "call.ended_at": datetime.now(),
-        "call.duration": args['CallDuration'],
-        "call.answered_by": args.get('AnsweredBy'),
-        "call.code": args.get('SipResponseCode'), # in case of failure
-        "call.error": e
+        "voice.status": args['CallStatus'],
+        "voice.ended_at": datetime.now(),
+        "voice.duration": args['CallDuration'],
+        "voice.answered_by": args.get('AnsweredBy'),
+        "voice.code": args.get('SipResponseCode'), # in case of failure
+        "voice.error": e
       }}
     )
 
@@ -604,7 +619,7 @@ def get_speak_template(job, reminder):
             return response
 
         return {
-          'template': job['schema']['call_template'],
+          'template': job['schema']['voice_template'],
           'reminder': reminder
         }
 
@@ -629,26 +644,26 @@ def email_job_summary(job_id):
           "data": {
             "summary": {
               "answered": db['reminders'].find({
-                'job_id':job_id, 'call.answered_by':'human'}).count(),
+                'job_id':job_id, 'voice.answered_by':'human'}).count(),
               "voicemail": db['reminders'].find({
-                'job_id':job_id, 'call.answered_by':'machine'}).count(),
+                'job_id':job_id, 'voice.answered_by':'machine'}).count(),
               "no_answer" : db['reminders'].find({
-                'job_id':job_id, 'call.status':'no-answer'}).count(),
+                'job_id':job_id, 'voice.status':'no-answer'}).count(),
               "busy": db['reminders'].find({
-                'job_id':job_id, 'call.status':'busy'}).count(),
+                'job_id':job_id, 'voice.status':'busy'}).count(),
               "failed" : db['reminders'].find({
-                'job_id':job_id, 'call.status':'failed'}).count()
+                'job_id':job_id, 'voice.status':'failed'}).count()
             },
             "fails": db['reminders'].find(
               {'job_id':job_id,
                '$or': [
                  {"email.status" : "bounced"},
                  {"email.status" : "dropped"},
-                 {"call.status" : "failed"}
+                 {"voice.status" : "failed"}
                ]
               },
-              {'custom': 1, 'email.error': 1, 'call.error':1,
-               'call.code':1, 'email.status': 1, '_id': 0})
+              {'custom': 1, 'email.error': 1, 'voice.error':1,
+               'voice.code':1, 'email.status': 1, '_id': 0})
           }
         }))
 
@@ -820,7 +835,7 @@ def job_print(job_id):
     job = db['jobs'].find_one({'_id':job_id})
 
     if 'ended_at' in job:
-        time_elapsed = (job['ended_at'] - job['started_at']).total_seconds()
+        time_elapsed = (job['voice']['ended_at'] - job['voice']['started_at']).total_seconds()
     else:
         time_elapsed = ''
 
@@ -828,20 +843,20 @@ def job_print(job_id):
         "totals": {
           "completed": {
             'answered': db['reminders'].find(
-                {'job_id':job_id, 'answered_by':'human'}).count(),
+                {'job_id':job_id, 'voice.answered_by':'human'}).count(),
             'voicemail': db['reminders'].find(
-                {'job_id':job_id, 'answered_by':'machine'}).count()
+                {'job_id':job_id, 'voice.answered_by':'machine'}).count()
           },
           "no-answer" : db['reminders'].find(
-              {'job_id':job_id, 'call_status':'no-answer'}).count(),
+              {'job_id':job_id, 'voice.status':'no-answer'}).count(),
           "busy": db['reminders'].find(
-              {'job_id':job_id, 'call_status':'busy'}).count(),
+              {'job_id':job_id, 'voice.status':'busy'}).count(),
           "failed" : db['reminders'].find(
-              {'job_id':job_id, 'call_status':'failed'}).count(),
+              {'job_id':job_id, 'voice.status':'failed'}).count(),
           "time_elapsed": time_elapsed
         },
         "calls": list(db['reminders'].find(
-            {'job_id':job_id},{'ended_at':0, 'job_id':0}))
+            {'job_id':job_id},{'voice.ended_at':0, 'job_id':0}))
     }
 
     return summary
@@ -941,9 +956,11 @@ def submit_job(form, file):
     job = {
         'name': job_name,
         'schema': schema,
-        'fire_calls_dtime': fire_calls_dtime,
-        'status': 'pending',
-        'num_calls': len(buffer)
+        'voice': {
+            'fire_at': fire_calls_dtime,
+            'count': len(buffer)
+        },
+        'status': 'pending'
     }
 
     # Special cases

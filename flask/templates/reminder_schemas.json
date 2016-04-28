@@ -3,38 +3,38 @@
     "import_fields": [
       {"file_header": "Account", "db_field": "account_id", "type":"string", "hide": true},
       {"file_header": "Name", "db_field": "name", "type":"string"},
-      {"file_header": "Phone", "db_field": "call.to" ,"type":"string"},
+      {"file_header": "Phone", "db_field": "voice.to" ,"type":"string"},
       {"file_header": "Email", "db_field": "email.recipient", "type":"string"},
       {"file_header": "Block", "db_field": "custom.block", "type":"string"},
       {"file_header": "Status", "db_field": "custom.status", "type":"string"},
       {"file_header": "Next Pickup", "db_field": "event_date", "type":"date"},
       {"file_header": "Office Notes", "db_field": "custom.office_notes", "type":"string"}
     ],
-    "call_template": "speak/etw_reminder.html",
+    "voice_template": "voice/etw_reminder.html",
     "email_template": "email/etw_reminder.html",
     "email_subject": "Your upcoming Empties to Winn event"
   },
   "green_goods": {
     "import_fields": [
       {"file_header": "Name", "db_field": "name", "type": "string"},
-      {"file_header": "Phone", "db_field": "call.to", "type": "string"},
+      {"file_header": "Phone", "db_field": "voice.to", "type": "string"},
       {"file_header": "Date", "db_field": "event_date", "type": "date"},
       {"file_header": "Price", "db_field": "custom.price", "type": "number"}
     ],
-    "call_template": "speak/green_goods_reminder.html"
+    "voice_template": "voice/green_goods_reminder.html"
   },
   "announce_text": {
     "import_fields": [
       {"file_header": "Name", "db_field": "name"},
-      {"file_header": "Phone","db_field": "call.to"}
+      {"file_header": "Phone","db_field": "voice.to"}
     ],
-    "call_template": "speak/announce.html"
+    "voice_template": "voice/announce.html"
   },
   "announce_voice": {
     "import_fields": [
       {"file_header": "Name", "db_field": "name"},
-      {"file_header": "Phone", "db_field": "call.to"}
+      {"file_header": "Phone", "db_field": "voice.to"}
     ],
-    "call_template": "speak/announce.html"
+    "voice_template": "voice/announce.html"
   }
 }

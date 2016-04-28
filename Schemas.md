@@ -6,7 +6,7 @@
   "name": "",
   "account_id": "etapestry_account_id",
   "event_date": "<BSON.Date>",
-  "call": {
+  "voice": {
     "sid": "32 char twilio call_id string \
             eg: CA7d1d19877dc768fd0c701cfcdc706fdd",
     "status": ["pending","active","failed","pending","queued",
@@ -39,13 +39,19 @@
 
 "jobs": {
   "status": ["pending", "in-progress", "completed", "failed"], 
-  "started_dtime": "<bson.date>" // Actual time task started by scheduler
-  "fire_calls_dtime": "<bson.date>",
-  "fire_emails_dtime": "<bson.date>",
-  "num_calls": "[Number]", 
+  "voice": {
+    "fire_at": "<bson.date>",
+    "started_at": "<bson.date>"
+    "count": "[Number]"
+  },
+  "email": {
+    "fire_at": "<bson.date>",
+    "started_at": "<bson.date>"
+    "count": "[Number]"
+  },
   "schema": {
     "name": "",
-    "call_template": "file.html",
+    "voice_template": "file.html",
     "email_template": "file.html",
     "email_subject": "",
     "import_fields": {}

@@ -1,4 +1,4 @@
-{% if reminder['call']['digit'] == 2 %}
+{% if reminder['voice']['digit'] == 2 %}
     Your pickup has been unscheduled. Your next pickup will be
     {{ reminder['custom']['next_pickup'] }}.
     Thank you.
@@ -22,11 +22,11 @@
         A driver will be by to collect your bag buddy frame. Thanks for your past support.
     {% endif %}
 
-    {% if reminder['call']['answered_by'] == "human" %}
+    {% if reminder['voice']['answered_by'] == "human" %}
         To repeat this message, press 1.
     {% endif %}
 
-    {% if reminder['call']['answered_by'] == "human" and reminder['custom']['status'] == "Active" %}
+    {% if reminder['voice']['answered_by'] == "human" and reminder['custom']['status'] == "Active" %}
         If you do not need a pickup, press 2.
     {% endif %}
 {% endif %}

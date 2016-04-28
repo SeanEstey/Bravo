@@ -42,8 +42,10 @@ class BravoTestCase(unittest.TestCase):
           'schema': schemas['etw'],
           'status': 'pending',
           'name': 'job_a',
-          'fire_calls_dtime': parse('Dec 31, 2015'),
-          'num_calls': 1
+          'voice': {
+              'fire_at': parse('Dec 31, 2015'),
+              'count': 1
+          },
         }
 
         job_a_id = self.db['jobs'].insert_one(job).inserted_id
@@ -54,13 +56,12 @@ class BravoTestCase(unittest.TestCase):
         self.job_a = self.db['jobs'].find_one({'_id':job_a_id})
         self.job_b = self.db['jobs'].find_one({'_id':job_b_id})
 
-
         reminder = {
             'job_id': self.job_a['_id'],
             'name': 'Test Res',
             'account_id': '57515',
             'event_date': parse('December 31, 2014'),
-            'call': {
+            'voice': {
               'sid': 'ABC123ABC123ABC123ABC123ABC123AB',
               'status': 'pending',
               'attempts': 0,
@@ -103,35 +104,45 @@ class BravoTestCase(unittest.TestCase):
         self.assertEquals(call.status, 'queued')
 
     def test_get_answer_xml_template_a(self):
-        '''Code Path: human answers'''
+        '''Test Case: human answers'''
         reminders.get_answer_xml_template({
-            'CallSid': self.reminder['call']['sid'],
-            'To': self.reminder['call']['to'],
+            'CallSid': self.reminder['voice']['sid'],
+            'To': self.reminder['voice']['to'],
             'CallStatus': 'in-progress',
             'AnsweredBy': 'human'
         })
 
     def test_get_answer_xml_template_b(self):
-        '''Code Path: answering machine'''
+        '''Test Case: answering machine'''
         reminders.get_answer_xml_template({
-            'CallSid': self.reminder['call']['sid'],
-            'To': self.reminder['call']['to'],
+            'CallSid': self.reminder['voice']['sid'],
+            'To': self.reminder['voice']['to'],
+            'CallStatus': 'in-progress',
+            'AnsweredBy': 'machine'
+        })
+
+    def test_get_resp_xml_template_b(self):
+        '''Test Case: answering machine'''
+        reminders.get_answer_xml_template({
+            'CallSid': self.reminder['voice']['sid'],
+            'Digits': 1,
+            'To': self.reminder['voice']['to'],
             'CallStatus': 'in-progress',
             'AnsweredBy': 'machine'
         })
 
     def test_get_speak(self):
         r = self.app.post('/get_speak', data={
-          'template': 'speak/etw_reminder.html',
+          'template': 'voice/etw_reminder.html',
           'reminder': reminders.bson_to_json(self.reminder)
         })
         self.assertTrue(type(r.data) == str)
         logger.info(r.data)
 
     def test_call_event_a(self):
-        '''Code Path: rem_a call complete'''
+        '''Test Case: rem_a call complete'''
         completed_call = {
-        'To': self.reminder['call']['to'],
+        'To': self.reminder['voice']['to'],
         'CallSid': 'ABC123ABC123ABC123ABC123ABC123AB',
         'CallStatus': 'completed',
         'AnsweredBy': 'human',
@@ -140,73 +151,81 @@ class BravoTestCase(unittest.TestCase):
 
         r = self.app.post('/reminders/call_event', data=completed_call)
         self.assertEquals(r._status_code, 200)
-        #logger.info(self.db['reminders'].find_one({'call.sid':completed_call['CallSid']}))
+        #logger.info(self.db['reminders'].find_one({'voice.sid':completed_call['CallSid']}))
 
     def test_send_calls(self):
-        r = reminders.send_calls.apply_async(args=(str(self.job_id),),queue=DB_NAME)
-        self.assertTrue(type(r.result), int)
+        n = reminders.send_calls(self.job_a['_id)'])
+        self.assertTrue(n == 1)
 
     def test_monitor_pending_jobs_a(self):
-        '''Code Path: job_a is pending'''
-        self.update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
-        self.update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
-        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
+        '''Test Case: job_a is pending'''
+        self.update_db('jobs', self.job_a['_id'],{'voice.fire_at':datetime.now()+timedelta(hours=1)})
+        self.update_db('jobs', self.job_b['_id'],{'voice.fire_at':datetime.now()+timedelta(hours=1)})
+        status = reminders.monitor_pending_jobs()
+        self.assertTrue(status[self.job_a['_id']] == 'pending')
 
     def test_monitor_pending_jobs_b(self):
-        '''Code Path: job_a ready but job_b in progress'''
-        self.update_db('jobs', self.job_b['_id'],{'status':'in-proress'})
-        self.update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
-        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
+        '''Test Case: job_a ready but job_b in progress'''
+        self.update_db('jobs', self.job_b['_id'],{'status':'in-progress'})
+        self.update_db('jobs', self.job_a['_id'],{'status':'pending','voice.fire_at':datetime.now()-timedelta(hours=1)})
+        status = reminders.monitor_pending_jobs()
+        self.assertTrue(status[self.job_a['_id']] == 'waiting')
 
     def test_monitor_pending_jobs_c(self):
-        '''Code Path: starting new job'''
-        self.update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
-        self.update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
-        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
+        '''Test Case: starting new job'''
+        self.update_db('jobs', self.job_a['_id'],{'voice.fire_at':datetime.now()-timedelta(hours=1)})
+        self.update_db('jobs', self.job_b['_id'],{'voice.fire_at':datetime.now()+timedelta(hours=1)})
+        status = reminders.monitor_pending_jobs()
+        self.assertTrue(status[self.job_a['_id']] == 'in-progress')
 
     def test_monitor_active_jobs_a(self):
-        '''Code Path: job_a hung (went over time limit)'''
-        self.update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
-        self.update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
-        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
+        '''Test Case: job_a hung (went over time limit)'''
+        self.update_db('jobs', self.job_a['_id'],{'status':'in-progress','voice.started_at':datetime.now()-timedelta(hours=1)})
+        self.update_db('jobs', self.job_b['_id'],{'voice.fire_at':datetime.now()+timedelta(hours=1)})
+        status = reminders.monitor_active_jobs()
+        self.assertTrue(status[self.job_a['_id']] == 'failed')
 
     def test_monitor_active_jobs_b(self):
-        '''Code Path: job_a is active'''
-        self.update_db('jobs', self.job_a['_id'],{'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
-        self.update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
-        n = reminders.monitor_jobs.apply_async(queue=DB_NAME)
+        '''Test Case: job_a is active'''
+        self.update_db('jobs',
+        self.job_a['_id'],{'status':'in-progress','voice.fire_at':datetime.now()-timedelta(hours=1),'voice.started_at':datetime.now()})
+        self.update_db('jobs', self.job_b['_id'],{'voice.fire_at':datetime.now()+timedelta(hours=1)})
+        status = reminders.monitor_active_jobs()
+        self.assertTrue(status[self.job_a['_id']] == 'in-progress')
 
     def test_monitor_active_jobs_c(self):
-        '''Code Path: job_a has completed.'''
+        '''Test Case: job_a has completed.'''
         self.update_db('jobs',self.job_a['_id'],
-            {'status':'in-progress','started_dtime':datetime.now(),'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
-        self.update_db('reminders',self.reminder['_id'],{'call.status':'completed','call.attempts':1})
-        reminders.monitor_active_jobs()
+            {'status':'in-progress','voice.started_at':datetime.now(),'voice.fire_at':datetime.now()-timedelta(hours=1)})
+        self.update_db('reminders',self.reminder['_id'],{'voice.status':'completed','voice.attempts':1})
+        status = reminders.monitor_active_jobs()
+        self.assertTrue(status[self.job_a['_id']] == 'completed')
 
     def test_monitor_active_jobs_d(self):
-        '''Code Path: job_a is incomplete. redialing.'''
+        '''Test Case: job_a is incomplete. redialing.'''
         self.update_db('jobs',self.job_a['_id'],
-            {'status':'in-progress','started_dtime':datetime.now(),'fire_calls_dtime':datetime.now()-timedelta(hours=1)})
-        self.update_db('reminders',self.reminder['_id'],{'call.status':'busy','call.attempts':1})
-        self.update_db('jobs', self.job_b['_id'],{'fire_calls_dtime':datetime.now()+timedelta(hours=1)})
-        self.assertEquals(reminders.monitor_active_jobs(), 1)
+            {'status':'in-progress','voice.started_at':datetime.now(),'voice.fire_at':datetime.now()-timedelta(hours=1)})
+        self.update_db('reminders',self.reminder['_id'],{'voice.status':'busy','voice.attempts':1})
+        self.update_db('jobs', self.job_b['_id'],{'voice.fire_at':datetime.now()+timedelta(hours=1)})
+        status = reminders.monitor_active_jobs()
+        self.assertTrue(status[self.job_a['_id']] == 'redialing')
 
     def test_send_calls(self):
         r = reminders.send_calls.apply_async(args=(str(self.job_a['_id']),),queue=DB_NAME)
         self.assertTrue(type(r.result), int)
 
     def test_parse_csv_a(self):
-        '''Code Path: Success'''
+        '''Test Case: Success'''
         #filepath = '/tmp/ETW_Res_5E.csv'
         #with codecs.open(filepath, 'r', 'utf-8-sig') as f:
         #  self.assertIsNotNone(parse_csv(f, TEMPLATE_HEADERS['etw_reminder']))
         return True
 
     def test_parse_csv_b(self):
-        '''Code Path: headers don't match schema'''
+        '''Test Case: headers don't match schema'''
 
     def test_parse_csv_c(self):
-        '''Code Path: data format doesn't schema'''
+        '''Test Case: data format doesn't schema'''
 
     def test_csv_line_to_db_a(self):
         line = [57515,'Sean','(780) 863-5715','estese@gmail.com','R1R','Dropoff','12/3/2014','']

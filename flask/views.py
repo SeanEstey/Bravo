@@ -212,7 +212,7 @@ def no_pickup(msg_id):
 def call_xml():
     '''Twilio TwiML Voice Request'''
     try:
-        template = reminders.get_call_template(request.values.to_dict())
+        template = reminders.get_voice_template(request.values.to_dict())
 
         html = render_template(
             template['template'],
@@ -223,7 +223,7 @@ def call_xml():
         html = html.replace("  ", "")
         logger.info('speak template: %s', html)
 
-        db['reminders'].update({'_id':template['reminder']},{'$set':{'call.speak':html}})
+        db['reminders'].update({'_id':template['reminder']},{'$set':{'voice.speak':html}})
 
         response = twilio.twiml.Response()
         response.say(html, voice='alice')
@@ -250,9 +250,6 @@ def call_event():
 
     reminders.call_event(request.form.to_dict())
     return 'OK'
-
-
-
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/receipts/process', methods=['POST'])

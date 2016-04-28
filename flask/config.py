@@ -13,9 +13,9 @@ if DEBUG == True:
 else:
     LOG_LEVEL = logging.INFO
 
-TEST_MODE = False
+TEST_DATA = True
 
-if TEST_MODE == True:
+if TEST_DATA == True:
     DB_NAME = 'test'
     ROUTE_IMPORTER_SHEET = 'Test Route Importer'
 else:

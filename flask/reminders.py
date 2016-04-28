@@ -17,11 +17,9 @@ from app import celery_app, db, log_handler, socketio
 import utils
 from config import *
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(log_handler)
-
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -260,15 +258,14 @@ def get_jobs(args):
     return jobs
 
 #-------------------------------------------------------------------------------
-def line_entry_to_db(job_id, schema, line_index, buf_row, errors):
-    '''Create mongodb "reminder_msg" record from .CSV line
-    job_id: mongo "job_reminder" record_id in ObjectId format
+def csv_line_to_db(job_id, schema, buf_row, errors):
+    '''Create mongodb "reminder" record from .CSV line
+    job_id: mongo "job" record_id in ObjectId format
     schema: template dict from reminder_templates.json file
     buf_row: array of values from csv file
-    line_index: file row index (for error tracking)
     '''
 
-    msg = {
+    reminder = {
         "job_id": job_id,
         "call": {
           "status": "pending",
@@ -296,13 +293,13 @@ def line_entry_to_db(job_id, schema, line_index, buf_row, errors):
                                 (idx+1), str(buf_row))
 
             if db_field.find('.') == -1:
-                msg[db_field] = buf_row[i]
+                reminder[db_field] = buf_row[i]
             else:
                 # dot notation means record is stored as sub-record
                 parent = db_field[0 : db_field.find('.')]
                 child = db_field[db_field.find('.')+1 : len(db_field)]
-                msg[parent][child] = buf_row[i]
-        return msg
+                reminder[parent][child] = buf_row[i]
+        return reminder
     except Exception as e:
         logger.info('Error writing db reminder: %s', str(e))
         return False
@@ -402,12 +399,12 @@ def get_call_template(args):
     '''Returns twilio.twiml.Response obj'''
 
     if 'msg' in args or 'Digits' in args:
-        return get_resp_xml(args)
+        return get_resp_xml_template(args)
     else:
-        return get_answer_xml(args)
+        return get_answer_xml_template(args)
 
 #-------------------------------------------------------------------------------
-def get_resp_xml(args):
+def get_resp_xml_template(args):
     '''Twilio TwiML Voice Request
     User has made interaction with call
     Returns twilio.twiml.Response obj
@@ -457,7 +454,7 @@ def get_resp_xml(args):
     return response
 
 #-------------------------------------------------------------------------------
-def get_answer_xml(args):
+def get_answer_xml_template(args):
     '''TwiML Voice Request
     Call has been answered (by machine or human)
     Returns twilio.twiml.Response obj
@@ -965,7 +962,7 @@ def submit_job(form, file):
         reminders = []
 
         for idx, row in enumerate(buffer):
-            msg = line_entry_to_db(job_id, schema, idx, row, errors)
+            msg = csv_line_to_db(job_id, schema, idx, row, errors)
 
             if msg:
                 reminders.append(msg)

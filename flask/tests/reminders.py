@@ -14,75 +14,28 @@ from bson.objectid import ObjectId
 os.chdir('/root/bravo_dev/Bravo/flask')
 sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
-from app import flask_app, celery_app
 from config import *
+from app import flask_app, celery_app
 import reminders
 
 class TestReminders(unittest.TestCase):
     def setUp(self):
-        flask_app.config['TESTING'] = True
-
-        # Set logger to redirect to tests.log
-        reminders.logger.handlers = []
-        reminders.logger = logging.getLogger(reminders.__name__)
-        test_log_handler = logging.FileHandler(LOG_PATH + 'tests.log')
-        reminders.logger.addHandler(test_log_handler)
-        reminders.logger.setLevel(logging.DEBUG)
+        flask_app.testing = True
+        self.app = flask_app.test_client()
+        celery_app.conf.CELERY_ALWAYS_EAGER = True
 
         # Use test DB
-        mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
         self.db = mongo_client['test']
-        reminders.db = mongo_client['test']
 
-        # Use test endpoints
-        reminders.TWILIO_ACCOUNT_SID = TWILIO_TEST_ACCOUNT_SID
-        reminders.TWILIO_AUTH_ID = TWILIO_TEST_AUTH_ID
-        reminders.FROM_NUMBER = '+15005550006'
-
-        with open('templates/reminder_schemas.json') as json_file:
-          schemas = json.load(json_file)
-
-        job = {
-          'schema': schemas['etw'],
-          'status': 'pending',
-          'name': 'job_a',
-          'voice': {
-              'fire_at': parse('Dec 31, 2015'),
-              'count': 1
-          },
-        }
+        from data import job, reminder
 
         job_a_id = self.db['jobs'].insert_one(job).inserted_id
-        del job['_id']
+        del job['_id'] # insert_one modifies job and adds _id
         job['name'] = 'job_b'
         job_b_id = self.db['jobs'].insert_one(job).inserted_id
-
         self.job_a = self.db['jobs'].find_one({'_id':job_a_id})
         self.job_b = self.db['jobs'].find_one({'_id':job_b_id})
-
-        reminder = {
-            'job_id': self.job_a['_id'],
-            'name': 'Test Res',
-            'account_id': '57515',
-            'event_date': parse('December 31, 2014'),
-            'voice': {
-              'sid': 'ABC123ABC123ABC123ABC123ABC123AB',
-              'status': 'pending',
-              'attempts': 0,
-              'to': '780-863-5715',
-            },
-            'email': {
-              'status':  'pending',
-              'recipient': 'estese@gmail.com'
-            },
-            'custom': {
-              'next_pickup': parse('June 21, 2016'),
-              'type': 'pickup',
-              'status': 'Active',
-              'office_notes': ''
-            }
-        }
-
+        reminder['job_id'] = self.job_a['_id']
         id = self.db['reminders'].insert_one(reminder).inserted_id
         self.reminder = self.db['reminders'].find_one({'_id':id})
 
@@ -180,8 +133,8 @@ class TestReminders(unittest.TestCase):
         self.assertTrue(str(status[self.job_a['_id']]) == 'redialing')
 
     def test_send_calls(self):
-        r = reminders.send_calls.apply_async(args=(str(self.job_a['_id']),),queue=DB_NAME)
-        self.assertTrue(type(r.result), int)
+        r = reminders.send_calls(self.job_a['_id'])
+        self.assertTrue(type(r), int)
 
     def test_parse_csv_a(self):
         '''Test Case: Success'''
@@ -205,5 +158,21 @@ class TestReminders(unittest.TestCase):
         return True
 
 if __name__ == '__main__':
-    #logger.info('********** begin reminders.py unittest **********')
+    mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+    reminders.db = mongo_client['test']
+
+    # Use test endpoints
+    reminders.TWILIO_ACCOUNT_SID = TWILIO_TEST_ACCOUNT_SID
+    reminders.TWILIO_AUTH_ID = TWILIO_TEST_AUTH_ID
+    reminders.FROM_NUMBER = '+15005550006'
+
+    # Set logger to redirect to tests.log
+    test_log_handler = logging.FileHandler(LOG_PATH + 'tests.log')
+    reminders.logger.handlers = []
+    reminders.logger = logging.getLogger(reminders.__name__)
+    reminders.logger.addHandler(test_log_handler)
+    reminders.logger.setLevel(logging.DEBUG)
+
+    now = datetime.now()
+    reminders.logger.info(now.strftime('\n[%m-%d %H:%M] *** STARTING REMINDERS UNIT TEST ***\n'))
     unittest.main()

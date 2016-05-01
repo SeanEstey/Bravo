@@ -2,8 +2,6 @@ import unittest
 import sys
 import os
 import pymongo
-import json
-from dateutil.parser import parse
 
 os.chdir('/root/bravo_dev/Bravo/flask')
 sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
@@ -15,89 +13,24 @@ import views # This should register the view functions for the flask_app applica
 
 class TestViews(unittest.TestCase):
     def setUp(self):
-        # Modify loggers to redirect to tests.log before getting client
-        test_log_handler = logging.FileHandler(LOG_PATH + 'tests.log')
-        views.logger.handlers = []
-        views.logger = logging.getLogger(views.__name__)
-        #views.logger.setFormatter(log_formatter)
-        views.logger.addHandler(test_log_handler)
-        views.logger.setLevel(logging.DEBUG)
-        views.auth.logger = logging.getLogger(views.__name__)
-        views.reminders.logger = logging.getLogger(views.__name__)
-        views.routing.logger = logging.getLogger(views.__name__)
-        views.receipts.logger = logging.getLogger(views.__name__)
-        views.scheduler.logger = logging.getLogger(views.__name__)
-        views.gsheets.logger = logging.getLogger(views.__name__)
-        views.log.logger = logging.getLogger(views.__name__)
-
-        flask_app.config['TESTING'] = True
-
+        flask_app.testing = True
         self.app = flask_app.test_client()
         celery_app.conf.CELERY_ALWAYS_EAGER = True
 
-        mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
         self.db = mongo_client['test']
         self.login(LOGIN_USER, LOGIN_PW)
 
-        with open('templates/reminder_schemas.json') as json_file:
-          schemas = json.load(json_file)
-
-        job = {
-          'schema': schemas['etw'],
-          'status': 'pending',
-          'name': 'job_a',
-          'voice': {
-              'fire_at': parse('Dec 31, 2015'),
-              'count': 1
-          },
-        }
+        from data import job, reminder
 
         job_a_id = self.db['jobs'].insert_one(job).inserted_id
-        del job['_id']
+        del job['_id'] # insert_one modifies job and adds _id
         job['name'] = 'job_b'
         job_b_id = self.db['jobs'].insert_one(job).inserted_id
-
         self.job_a = self.db['jobs'].find_one({'_id':job_a_id})
         self.job_b = self.db['jobs'].find_one({'_id':job_b_id})
-
-        reminder = {
-            'job_id': self.job_a['_id'],
-            'name': 'Test Res',
-            'account_id': '57515',
-            'event_date': parse('December 31, 2014'),
-            'voice': {
-              'sid': 'ABC123ABC123ABC123ABC123ABC123AB',
-              'status': 'pending',
-              'attempts': 0,
-              'to': '780-863-5715',
-            },
-            'email': {
-              'status':  'pending',
-              'recipient': 'estese@gmail.com'
-            },
-            'custom': {
-              'next_pickup': parse('June 21, 2016'),
-              'type': 'pickup',
-              'status': 'Active',
-              'office_notes': ''
-            }
-        }
-
+        reminder['job_id'] = self.job_a['_id']
         id = self.db['reminders'].insert_one(reminder).inserted_id
         self.reminder = self.db['reminders'].find_one({'_id':id})
-
-
-        '''
-        self.test_email_id = self.db['emails'].insert({
-            'mid': 'abc123',
-            'status': 'queued',
-            'on_status_update': {
-              'worksheet': 'Routes',
-              'row': 2,
-              'upload_status': 'Success'
-        }
-        })
-        '''
 
     def tearDown(self):
         self.db['jobs'].remove({'_id':self.job_a['_id']})
@@ -205,4 +138,25 @@ class TestViews(unittest.TestCase):
   """
 
 if __name__ == '__main__':
+    mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+
+    # Modify loggers to redirect to tests.log before getting client
+    test_log_handler = logging.FileHandler(LOG_PATH + 'tests.log')
+    views.logger.handlers = []
+    views.logger = logging.getLogger(views.__name__)
+    #views.logger.setFormatter(log_formatter)
+    views.logger.addHandler(test_log_handler)
+    views.logger.setLevel(logging.DEBUG)
+    views.auth.logger = logging.getLogger(views.__name__)
+    views.reminders.logger = logging.getLogger(views.__name__)
+    views.routing.logger = logging.getLogger(views.__name__)
+    views.receipts.logger = logging.getLogger(views.__name__)
+    views.scheduler.logger = logging.getLogger(views.__name__)
+    views.gsheets.logger = logging.getLogger(views.__name__)
+    views.log.logger = logging.getLogger(views.__name__)
+
+    from datetime import datetime
+    now = datetime.now()
+    views.logger.info(now.strftime('\n[%m-%d %H:%M] *** START VIEWS UNIT TEST ***\n'))
+
     unittest.main()

@@ -2,24 +2,27 @@ import mmap
 import os
 
 from config import *
-from app import log_handler
+from app import info_handler, error_handler
 
 logger = logging.getLogger(__name__)
-logger.setLevel(LOG_LEVEL)
-logger.addHandler(log_handler)
+logger.addHandler(info_handler)
+logger.addHandler(error_handler)
+logger.setLevel(logging.DEBUG)
 
-def get_tail(file, num_lines):
+def get_tail(file_path, num_lines):
     try:
-        size = os.path.getsize(LOG_FILE)
+        size = os.path.getsize(file_path)
     except Exception as e:
-        logger.error('%s does not exist!', LOG_FILE)
+        logger.error('%s does not exist!', file_path)
         return []
 
     if size == 0:
         return []
 
+    lines = []
+
     try:
-        with open(file, "rb") as f:
+        with open(file_path, "rb") as f:
             fm = mmap.mmap(f.fileno(), 0, mmap.MAP_SHARED, mmap.PROT_READ)
 
             for i in xrange(size - 1, -1, -1):

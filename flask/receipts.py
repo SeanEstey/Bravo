@@ -10,7 +10,7 @@ from dateutil.parser import parse
 import scheduler
 import gsheets
 import etap
-from app import flask_app, celery_app, db, log_handler
+from app import flask_app, celery_app, db, info_handler, error_handler
 from config import *
 
 ZERO_COLLECTION_EMAIL_SUBJECT = "We didn't receive a collection from you"
@@ -20,8 +20,9 @@ WELCOME_EMAIL_SUBJECT = 'Welcome to Empties to Winn'
 CANCELLED_EMAIL_SUBJECT = 'You have been removed from the collection schedule'
 
 logger = logging.getLogger(__name__)
-logger.setLevel(LOG_LEVEL)
-logger.addHandler(log_handler)
+logger.addHandler(info_handler)
+logger.addHandler(error_handler)
+logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 def send(account, entry, template, subject):

@@ -7,11 +7,12 @@ import time
 from config import *
 import etap
 
-from app import log_handler
+from app import info_handler, error_handler
 
 logger = logging.getLogger(__name__)
-logger.setLevel(LOG_LEVEL)
-logger.addHandler(log_handler)
+logger.addHandler(info_handler)
+logger.addHandler(error_handler)
+logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 def get_sorted_orders(form):
@@ -61,8 +62,15 @@ def get_gmaps_url(address, lat, lng):
 
     return full_url
 
+def get_postal(geo_result):
+    for component in geo_result['address_components']:
+        if component['types'] == 'postal_code':
+            return component['short_name']
+
+    return False
+
 #-------------------------------------------------------------------------------
-def geocode(address):
+def geocode(formatted_address, postal=None):
     '''documentation: https://developers.google.com/maps/documentation/geocoding
     Returns first result
     Note: including Postal Code in address seems to lower accuracy of results
@@ -70,7 +78,7 @@ def geocode(address):
 
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
     params = {
-      'address': address,
+      'address': formatted_address,
       'key': GOOGLE_API_KEY
     }
 
@@ -82,25 +90,47 @@ def geocode(address):
 
     response = json.loads(r.text)
 
-    if len(response['results']) > 0 and 'partial_match' in response['results'][0]:
-        logger.info('Partial match found for "%s". First match is most likely to be correct: "%s"',
-                    address, response['results'][0]['formatted_address'])
-
-    if len(response['results']) > 1:
-        logger.info('Multiple results geocoded for "%s". Returning first result: "%s"',
-                    address, response['results'][0]['formatted_address'])
-
     if response['status'] == 'ZERO_RESULTS':
-        logger.info("No geocode result for %s", address)
+        logger.info("No geocode result for %s", formatted_address)
         return False
     elif response['status'] == 'INVALID_REQUEST':
-        logger.info("Improper address %s", address)
+        logger.info("Improper address %s", formatted_address)
         return False
     elif response['status'] != 'OK':
-        logger.info("Error geocoding %s. %s", address, response)
+        logger.info("Error geocoding %s. %s", formatted_address, response)
         return False
 
-    return response['results'][0]
+    match_index = 0
+
+    if len(response['results']) == 1 and 'partial_match' in response['results'][0]:
+        logger.info('Warning: Only partial match found for "%s". Using "%s". '\
+                    'Geo-coordinates may be incorrect.',
+                    formatted_address, response['results'][0]['formatted_address'])
+    elif len(response['results']) > 1:
+        logger.info('Multiple results geocoded for "%s". Finding best match...',
+                    formatted_address)
+
+        if postal is None:
+            logger.error('No postal code provided. Returning first result.')
+            return response['results'][match_index]
+
+        # Go through results, look for Postal Code match
+        for idx, result in enumerate(response['results']):
+            if get_postal(result):
+                short_postal = get_postal(result)[0:3]
+
+                if short_postal == postal[0:3]:
+                    logger.info('First half of Postal Code "%s" matched in ' \
+                                'result[%s]: address "%s". Using as best match.',
+                                short_postal, str(idx))
+                    match_index = idx
+
+        if match_index == 0:
+            logger.info('Using first result as match: "%s, %s"',
+            response['results'][0]['formatted_address'],
+            get_postal(response['results'][0]))
+
+    return response['results'][match_index]
 
 #-------------------------------------------------------------------------------
 def get_accounts(block):
@@ -189,9 +219,9 @@ def get_job_id(block, driver, date, start_address, depot_address):
             num_skips += 1
             continue
 
-        address = account['address'] + ', ' + account['city'] + ', AB'
+        formatted_address = account['address'] + ', ' + account['city'] + ', AB'
 
-        result = geocode(address)
+        result = geocode(formatted_address, postal=account['postalCode'])
 
         if not result:
             continue

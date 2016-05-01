@@ -8,12 +8,7 @@ from private_config import *
 # When False, uses gevent (wsgi, threaded) web server.
 DEBUG = False
 
-if DEBUG == True:
-    LOG_LEVEL = logging.DEBUG
-else:
-    LOG_LEVEL = logging.INFO
-
-TEST_DATA = True
+TEST_DATA = False
 
 if TEST_DATA == True:
     DB_NAME = 'test'
@@ -27,7 +22,7 @@ LOCAL_PORT = 8000
 LOCAL_URL = 'http://localhost:8000'
 PUB_URL = 'http://bravoweb.ca'
 TITLE = 'Bravo'
-LOG_FILE = '/var/www/bravo/logs/log.log'
+LOG_PATH = '/var/www/bravo/logs/'
 LOG_LINES = 200
 
 # Reminders

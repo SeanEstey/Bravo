@@ -179,7 +179,7 @@ class BravoTestCase(unittest.TestCase):
             queue=DB_NAME
           )
       except Exception as e:
-          logger.error(str(e))
+          elogger.error(str(e))
 
       #logger.info(r.__dict__)
       self.assertEquals(r._state, 'SUCCESS')

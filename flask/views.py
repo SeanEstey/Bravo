@@ -8,7 +8,7 @@ from flask import Flask,request,g,Response,url_for, render_template
 from flask.ext.login import login_user, logout_user, login_required
 from bson.objectid import ObjectId
 
-from app import flask_app, db, login_manager, socketio, log_handler
+from app import flask_app, db, login_manager, socketio, info_handler, error_handler
 import reminders
 import log
 import receipts
@@ -20,8 +20,9 @@ from config import *
 import utils
 
 logger = logging.getLogger(__name__)
-logger.setLevel(LOG_LEVEL)
-logger.addHandler(log_handler)
+logger.addHandler(info_handler)
+logger.addHandler(error_handler)
+logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 @flask_app.before_request
@@ -59,7 +60,7 @@ def view_jobs():
 @flask_app.route('/log')
 @login_required
 def view_log():
-    lines = log.get_tail(LOG_FILE, LOG_LINES)
+    lines = log.get_tail(LOG_PATH + 'info.log', LOG_LINES)
 
     return flask.render_template('views/log.html', lines=lines)
 

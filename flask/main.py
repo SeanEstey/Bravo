@@ -1,4 +1,4 @@
-from app import flask_app, celery_app, socketio, log_handler
+from app import flask_app, celery_app, socketio, info_handler, error_handler
 from config import *
 from views import *
 
@@ -7,8 +7,9 @@ import time
 import sys
 
 if __name__ == "__main__":
-    flask_app.logger.addHandler(log_handler)
-    flask_app.logger.setLevel(LOG_LEVEL)
+    flask_app.logger.addHandler(error_handler)
+    flask_app.logger.addHandler(info_handler)
+    flask_app.logger.setLevel(logging.DEBUG)
 
     os.system('kill %1')
 

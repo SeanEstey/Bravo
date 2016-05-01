@@ -18,10 +18,19 @@ flask_app = Flask(__name__)
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT, connect=False)
 db = mongo_client[DB_NAME]
 
-log_handler = logging.FileHandler(LOG_FILE)
 log_formatter = logging.Formatter('[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M')
-log_handler.setLevel(logging.DEBUG)
-log_handler.setFormatter(log_formatter)
+
+debug_handler = logging.FileHandler(LOG_PATH + 'debug.log')
+debug_handler.setLevel(logging.DEBUG)
+debug_handler.setFormatter(log_formatter)
+
+info_handler = logging.FileHandler(LOG_PATH + 'info.log')
+info_handler.setLevel(logging.INFO)
+info_handler.setFormatter(log_formatter)
+
+error_handler = logging.FileHandler(LOG_PATH + 'error.log')
+error_handler.setLevel(logging.ERROR)
+error_handler.setFormatter(log_formatter)
 
 flask_app.config.from_pyfile('config.py')
 from werkzeug.contrib.fixers import ProxyFix

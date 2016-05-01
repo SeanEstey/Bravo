@@ -13,13 +13,15 @@ import json
 import re
 from pymongo import ReturnDocument
 
-from app import celery_app, db, log_handler, socketio
+from app import celery_app, db, info_handler, error_handler, debug_handler, socketio
 import utils
 from config import *
 
 logger = logging.getLogger(__name__)
-logger.setLevel(LOG_LEVEL)
-logger.addHandler(log_handler)
+logger.addHandler(debug_handler)
+logger.addHandler(info_handler)
+logger.addHandler(error_handler)
+logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 @celery_app.task

@@ -5,12 +5,13 @@ import requests
 from datetime import datetime
 from dateutil.parser import parse
 
-from app import celery_app, db, log_handler
+from app import celery_app, db, info_handler, error_handler
 from config import *
 
 logger = logging.getLogger(__name__)
-logger.setLevel(LOG_LEVEL)
-logger.addHandler(log_handler)
+logger.addHandler(info_handler)
+logger.addHandler(error_handler)
+logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 # scope is array of Google service URL's to authorize

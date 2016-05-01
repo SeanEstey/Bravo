@@ -1,6 +1,6 @@
 from app import flask_app, celery_app, socketio, info_handler, error_handler
 from config import *
-from views import *
+from views import * # Register all view functions with Flask application
 
 import os
 import time

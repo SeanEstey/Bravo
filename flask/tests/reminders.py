@@ -9,28 +9,32 @@ from datetime import datetime
 from dateutil.parser import parse
 from werkzeug.datastructures import MultiDict
 import xml.dom.minidom
+from bson.objectid import ObjectId
 
 os.chdir('/root/bravo_dev/Bravo/flask')
 sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
-from app import flask_app, celery_app, log_handler
+from app import flask_app, celery_app
 from config import *
 import reminders
-import views
 
-logger = logging.getLogger(__name__)
-logger.setLevel(LOG_LEVEL)
-logger.addHandler(log_handler)
-
-class BravoTestCase(unittest.TestCase):
+class TestReminders(unittest.TestCase):
     def setUp(self):
         flask_app.config['TESTING'] = True
-        self.app = flask_app.test_client()
-        celery_app.conf.CELERY_ALWAYS_EAGER = True
+
+        # Set logger to redirect to tests.log
+        reminders.logger.handlers = []
+        reminders.logger = logging.getLogger(reminders.__name__)
+        test_log_handler = logging.FileHandler(LOG_PATH + 'tests.log')
+        reminders.logger.addHandler(test_log_handler)
+        reminders.logger.setLevel(logging.DEBUG)
+
+        # Use test DB
         mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
         self.db = mongo_client['test']
-        self.login(LOGIN_USER, LOGIN_PW)
+        reminders.db = mongo_client['test']
 
+        # Use test endpoints
         reminders.TWILIO_ACCOUNT_SID = TWILIO_TEST_ACCOUNT_SID
         reminders.TWILIO_AUTH_ID = TWILIO_TEST_AUTH_ID
         reminders.FROM_NUMBER = '+15005550006'
@@ -90,15 +94,6 @@ class BravoTestCase(unittest.TestCase):
     def update_db(self, collection, a_id, a_set):
         self.db[collection].update_one({'_id':a_id},{'$set':a_set})
 
-    def login(self, username, password):
-        return self.app.post('/login', data=dict(
-          username=username,
-          password=password
-        ), follow_redirects=True)
-
-    def logout(self):
-        return self.app.get('/logout', follow_redirects=True)
-
     def test_dial_a(self):
         call = reminders.dial('7808635715')
         self.assertEquals(call.status, 'queued')
@@ -130,32 +125,6 @@ class BravoTestCase(unittest.TestCase):
             'CallStatus': 'in-progress',
             'AnsweredBy': 'machine'
         })
-
-    def test_get_speak(self):
-        r = self.app.post('/get_speak', data={
-          'template': 'voice/etw_reminder.html',
-          'reminder': reminders.bson_to_json(self.reminder)
-        })
-        self.assertTrue(type(r.data) == str)
-        logger.info(r.data)
-
-    def test_call_event_a(self):
-        '''Test Case: rem_a call complete'''
-        completed_call = {
-        'To': self.reminder['voice']['to'],
-        'CallSid': 'ABC123ABC123ABC123ABC123ABC123AB',
-        'CallStatus': 'completed',
-        'AnsweredBy': 'human',
-        'CallDuration': 16
-        }
-
-        r = self.app.post('/reminders/call_event', data=completed_call)
-        self.assertEquals(r._status_code, 200)
-        #logger.info(self.db['reminders'].find_one({'voice.sid':completed_call['CallSid']}))
-
-    def test_send_calls(self):
-        n = reminders.send_calls(self.job_a['_id)'])
-        self.assertTrue(n == 1)
 
     def test_monitor_pending_jobs_a(self):
         '''Test Case: job_a is pending'''
@@ -208,7 +177,7 @@ class BravoTestCase(unittest.TestCase):
         self.update_db('reminders',self.reminder['_id'],{'voice.status':'busy','voice.attempts':1})
         self.update_db('jobs', self.job_b['_id'],{'voice.fire_at':datetime.now()+timedelta(hours=1)})
         status = reminders.monitor_active_jobs()
-        self.assertTrue(status[self.job_a['_id']] == 'redialing')
+        self.assertTrue(str(status[self.job_a['_id']]) == 'redialing')
 
     def test_send_calls(self):
         r = reminders.send_calls.apply_async(args=(str(self.job_a['_id']),),queue=DB_NAME)
@@ -236,5 +205,5 @@ class BravoTestCase(unittest.TestCase):
         return True
 
 if __name__ == '__main__':
-    logger.info('********** begin reminders.py unittest **********')
+    #logger.info('********** begin reminders.py unittest **********')
     unittest.main()

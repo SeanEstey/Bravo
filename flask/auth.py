@@ -5,7 +5,6 @@ from user import User
 import json
 
 from app import db, info_handler, error_handler, login_manager
-import reminders
 from config import *
 
 logger = logging.getLogger(__name__)
@@ -48,7 +47,6 @@ def login():
             login_user(user)
 
             logger.info('User %s logged in', username)
-            logger.error('Unrecognized user! %s', username)
 
     return Response(response=r, status=200, mimetype='application/json')
 

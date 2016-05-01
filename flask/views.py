@@ -8,7 +8,7 @@ from flask import Flask,request,g,Response,url_for, render_template
 from flask.ext.login import login_user, logout_user, login_required
 from bson.objectid import ObjectId
 
-from app import flask_app, db, login_manager, socketio, info_handler, error_handler
+from app import flask_app,db,login_manager,socketio,info_handler,error_handler,debug_handler
 import reminders
 import log
 import receipts
@@ -22,6 +22,7 @@ import utils
 logger = logging.getLogger(__name__)
 logger.addHandler(info_handler)
 logger.addHandler(error_handler)
+logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
@@ -37,6 +38,7 @@ def load_user(username):
 #-------------------------------------------------------------------------------
 @flask_app.route('/login', methods=['GET','POST'])
 def login():
+    logger.info('Login request')
     return auth.login()
 
 #-------------------------------------------------------------------------------
@@ -241,6 +243,8 @@ def get_template():
         request.form['template'],
         reminder=json.loads(request.form['reminder'])
     )
+
+    logger.debug('returning speak')
 
     return html.replace("\n", "")
 

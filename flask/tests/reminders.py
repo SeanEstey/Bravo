@@ -23,10 +23,17 @@ class TestReminders(unittest.TestCase):
         flask_app.testing = True
         self.app = flask_app.test_client()
         celery_app.conf.CELERY_ALWAYS_EAGER = True
-
-        # Use test DB
         self.db = mongo_client['test']
 
+    def tearDown(self):
+        if hasattr(self, 'job_a'):
+            self.db['jobs'].remove({'_id':self.job_a['_id']})
+        if hasattr(self, 'job_b'):
+            self.db['jobs'].remove({'_id':self.job_b['_id']})
+        if hasattr(self, 'reminder'):
+            self.db['reminders'].remove({'_id':self.reminder['_id']})
+
+    def insertJobs(self):
         from data import job, reminder
 
         job_a_id = self.db['jobs'].insert_one(job).inserted_id
@@ -39,11 +46,6 @@ class TestReminders(unittest.TestCase):
         id = self.db['reminders'].insert_one(reminder).inserted_id
         self.reminder = self.db['reminders'].find_one({'_id':id})
 
-    def tearDown(self):
-        res = self.db['jobs'].remove({'_id':self.job_a['_id']})
-        res = self.db['jobs'].remove({'_id':self.job_b['_id']})
-        res = self.db['reminders'].remove({'_id':self.reminder['_id']})
-
     def update_db(self, collection, a_id, a_set):
         self.db[collection].update_one({'_id':a_id},{'$set':a_set})
 
@@ -53,6 +55,7 @@ class TestReminders(unittest.TestCase):
 
     def test_get_answer_xml_template_a(self):
         '''Test Case: human answers'''
+        self.insertJobs()
         reminders.get_answer_xml_template({
             'CallSid': self.reminder['voice']['sid'],
             'To': self.reminder['voice']['to'],
@@ -62,6 +65,7 @@ class TestReminders(unittest.TestCase):
 
     def test_get_answer_xml_template_b(self):
         '''Test Case: answering machine'''
+        self.insertJobs()
         reminders.get_answer_xml_template({
             'CallSid': self.reminder['voice']['sid'],
             'To': self.reminder['voice']['to'],
@@ -71,6 +75,7 @@ class TestReminders(unittest.TestCase):
 
     def test_get_resp_xml_template_b(self):
         '''Test Case: answering machine'''
+        self.insertJobs()
         reminders.get_answer_xml_template({
             'CallSid': self.reminder['voice']['sid'],
             'Digits': 1,
@@ -81,6 +86,7 @@ class TestReminders(unittest.TestCase):
 
     def test_monitor_pending_jobs_a(self):
         '''Test Case: job_a is pending'''
+        self.insertJobs()
         self.update_db('jobs', self.job_a['_id'],{'voice.fire_at':datetime.now()+timedelta(hours=1)})
         self.update_db('jobs', self.job_b['_id'],{'voice.fire_at':datetime.now()+timedelta(hours=1)})
         status = reminders.monitor_pending_jobs()
@@ -88,6 +94,7 @@ class TestReminders(unittest.TestCase):
 
     def test_monitor_pending_jobs_b(self):
         '''Test Case: job_a ready but job_b in progress'''
+        self.insertJobs()
         self.update_db('jobs', self.job_b['_id'],{'status':'in-progress'})
         self.update_db('jobs', self.job_a['_id'],{'status':'pending','voice.fire_at':datetime.now()-timedelta(hours=1)})
         status = reminders.monitor_pending_jobs()
@@ -95,6 +102,7 @@ class TestReminders(unittest.TestCase):
 
     def test_monitor_pending_jobs_c(self):
         '''Test Case: starting new job'''
+        self.insertJobs()
         self.update_db('jobs', self.job_a['_id'],{'voice.fire_at':datetime.now()-timedelta(hours=1)})
         self.update_db('jobs', self.job_b['_id'],{'voice.fire_at':datetime.now()+timedelta(hours=1)})
         status = reminders.monitor_pending_jobs()
@@ -102,6 +110,7 @@ class TestReminders(unittest.TestCase):
 
     def test_monitor_active_jobs_a(self):
         '''Test Case: job_a hung (went over time limit)'''
+        self.insertJobs()
         self.update_db('jobs', self.job_a['_id'],{'status':'in-progress','voice.started_at':datetime.now()-timedelta(hours=1)})
         self.update_db('jobs', self.job_b['_id'],{'voice.fire_at':datetime.now()+timedelta(hours=1)})
         status = reminders.monitor_active_jobs()
@@ -109,6 +118,7 @@ class TestReminders(unittest.TestCase):
 
     def test_monitor_active_jobs_b(self):
         '''Test Case: job_a is active'''
+        self.insertJobs()
         self.update_db('jobs',
         self.job_a['_id'],{'status':'in-progress','voice.fire_at':datetime.now()-timedelta(hours=1),'voice.started_at':datetime.now()})
         self.update_db('jobs', self.job_b['_id'],{'voice.fire_at':datetime.now()+timedelta(hours=1)})
@@ -117,6 +127,7 @@ class TestReminders(unittest.TestCase):
 
     def test_monitor_active_jobs_c(self):
         '''Test Case: job_a has completed.'''
+        self.insertJobs()
         self.update_db('jobs',self.job_a['_id'],
             {'status':'in-progress','voice.started_at':datetime.now(),'voice.fire_at':datetime.now()-timedelta(hours=1)})
         self.update_db('reminders',self.reminder['_id'],{'voice.status':'completed','voice.attempts':1})
@@ -125,6 +136,7 @@ class TestReminders(unittest.TestCase):
 
     def test_monitor_active_jobs_d(self):
         '''Test Case: job_a is incomplete. redialing.'''
+        self.insertJobs()
         self.update_db('jobs',self.job_a['_id'],
             {'status':'in-progress','voice.started_at':datetime.now(),'voice.fire_at':datetime.now()-timedelta(hours=1)})
         self.update_db('reminders',self.reminder['_id'],{'voice.status':'busy','voice.attempts':1})
@@ -133,6 +145,7 @@ class TestReminders(unittest.TestCase):
         self.assertTrue(str(status[self.job_a['_id']]) == 'redialing')
 
     def test_send_calls(self):
+        self.insertJobs()
         r = reminders.send_calls(self.job_a['_id'])
         self.assertTrue(type(r), int)
 
@@ -150,6 +163,7 @@ class TestReminders(unittest.TestCase):
         '''Test Case: data format doesn't schema'''
 
     def test_csv_line_to_db_a(self):
+        self.insertJobs()
         line = [57515,'Sean','(780) 863-5715','estese@gmail.com','R1R','Dropoff','12/3/2014','']
         errors = []
         self.assertIsNotNone(reminders.csv_line_to_db(self.job_a['_id'],self.job_a['schema'],line, errors))

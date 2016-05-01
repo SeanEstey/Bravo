@@ -16,10 +16,18 @@ class TestViews(unittest.TestCase):
         flask_app.testing = True
         self.app = flask_app.test_client()
         celery_app.conf.CELERY_ALWAYS_EAGER = True
-
         self.db = mongo_client['test']
         self.login(LOGIN_USER, LOGIN_PW)
 
+    def tearDown(self):
+        if hasattr(self, 'job_a'):
+            self.db['jobs'].remove({'_id':self.job_a['_id']})
+        if hasattr(self, 'job_b'):
+            self.db['jobs'].remove({'_id':self.job_b['_id']})
+        if hasattr(self, 'reminder'):
+            self.db['reminders'].remove({'_id':self.reminder['_id']})
+
+    def insertJobs(self):
         from data import job, reminder
 
         job_a_id = self.db['jobs'].insert_one(job).inserted_id
@@ -32,16 +40,6 @@ class TestViews(unittest.TestCase):
         id = self.db['reminders'].insert_one(reminder).inserted_id
         self.reminder = self.db['reminders'].find_one({'_id':id})
 
-    def tearDown(self):
-        self.db['jobs'].remove({'_id':self.job_a['_id']})
-        self.db['jobs'].remove({'_id':self.job_b['_id']})
-        self.db['reminders'].remove({'_id':self.reminder['_id']})
-
-        # Remove job record created by setUp
-        #res = self.db['emails'].remove({'_id':self.test_email_id})
-        #self.assertEquals(res['n'], 1)
-        return True
-
     def login(self, username, password):
         return self.app.post('/login', data=dict(
           username=username,
@@ -52,6 +50,7 @@ class TestViews(unittest.TestCase):
         return self.app.get('/logout', follow_redirects=True)
 
     def test_get_speak(self):
+        self.insertJobs()
         from reminders import bson_to_json
         r = self.app.post('/get_speak', data={
           'template': 'voice/etw_reminder.html',
@@ -111,6 +110,7 @@ class TestViews(unittest.TestCase):
       self.assertEquals(r.status_code, 200)
 
   def test_show_calls(self):
+      self.insertJobs()
       r = self.app.get('/jobs' + str(self.job_id))
       self.assertEquals(r.status_code, 200)
 
@@ -125,6 +125,7 @@ class TestViews(unittest.TestCase):
         self.assertEquals(requests.get(PUB_URL).status_code, 200)
 
     def test_get_speak_etw_dropoff(self):
+        self.insertJobs()
         self.msg['etw_status'] = 'Dropoff'
         speak = bravo.get_speak(self.job_a, self.msg)
         self.assertIsInstance(speak, str)
@@ -133,6 +134,7 @@ class TestViews(unittest.TestCase):
         self.assertEqual(requests.get(PUB_URL+'/jobs').status_code, 200)
 
     def test_show_calls_view(self):
+        self.insertJobs()
         uri = PUB_URL + '/jobs/' + str(self.job_id)
         self.assertEqual(requests.get(uri).status_code, 200)
   """

@@ -12,9 +12,6 @@ from dateutil.parser import parse
 from werkzeug.datastructures import MultiDict
 import xml.dom.minidom
 
-#os.chdir('/home/sean/Bravo/flask')
-#sys.path.insert(0, '/home/sean/Bravo/flask')
-
 os.chdir('/root/bravo_dev/Bravo/flask')
 sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
@@ -23,11 +20,7 @@ import views
 import gsheets
 import receipts
 import views
-from app import log_handler, flask_app, celery_app
-
-logger = logging.getLogger(__name__)
-logger.setLevel(LOG_LEVEL)
-logger.addHandler(log_handler)
+from app import flask_app, celery_app
 
 class BravoTestCase(unittest.TestCase):
 
@@ -179,7 +172,7 @@ class BravoTestCase(unittest.TestCase):
             queue=DB_NAME
           )
       except Exception as e:
-          elogger.error(str(e))
+          receipts.logger.error(str(e))
 
       #logger.info(r.__dict__)
       self.assertEquals(r._state, 'SUCCESS')
@@ -195,5 +188,22 @@ class BravoTestCase(unittest.TestCase):
   """
 
 if __name__ == '__main__':
-    logger.info('********** begin receipts.py unittest **********')
+    mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+    receipts.db = mongo_client['test']
+    receipts.scheduler.db = mongo_client['test']
+    receipts.gsheets.db = mongo_client['test']
+
+    # Modify loggers to redirect to tests.log before getting client
+    test_log_handler = logging.FileHandler(LOG_PATH + 'tests.log')
+    receipts.logger.handlers = []
+    receipts.logger = logging.getLogger(receipts.__name__)
+    receipts.logger.addHandler(test_log_handler)
+    receipts.logger.setLevel(logging.DEBUG)
+    receipts.scheduler.logger = logging.getLogger(receipts.__name__)
+    receipts.gsheets.logger = logging.getLogger(receipts.__name__)
+
+    from datetime import datetime
+    now = datetime.now()
+    receipts.logger.info(now.strftime('\n[%m-%d %H:%M] *** START RECEIPTS UNIT TEST ***\n'))
+
     unittest.main()

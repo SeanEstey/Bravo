@@ -190,7 +190,8 @@ def send_calls(job_id):
         call = dial(reminder['voice']['to'])
 
         if isinstance(call, Exception):
-            logger.info('%s failed (%d: %s)', reminder['voice']['to'], voice.code, voice.msg)
+            logger.info('%s failed (%d: %s)',
+                        reminder['voice']['to'], call.code, call.msg)
 
             db['reminders'].update_one(
               {'_id':reminder['_id']},
@@ -223,10 +224,12 @@ def send_calls(job_id):
 #-------------------------------------------------------------------------------
 @celery_app.task
 def send_emails(job_id):
-    job_id = job_id.encode('utf-8')
+    job_id = ObjectId(job_id)
 
-    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
-    reminders = db['reminders'].find({'job_id':ObjectId(job_id)})
+    job = db['jobs'].find_one({'_id':job_id})
+    reminders = db['reminders'].find({'job_id':job_id})
+
+    emails_sent = 0
 
     for reminder in reminders:
         if 'email' not in reminder:
@@ -245,21 +248,39 @@ def send_emails(job_id):
         #send_socket('update_msg', {'id':str(msg['_id']), 'email_status': 'no_email'})
 
         try:
-            reminder['custom']['account']['name'] = reminder['name']
+            data = reminder['custom']
+            data['account'] = {
+              "name": reminder['name'],
+              "email": reminder['email']['recipient']
+            }
+            # Need this for email/send view
+            data['from'] = {}
 
-            r = requests.post(PUB_URL + '/email/send', data=json.dumps({
-                "recipient": reminder['email']['recipient'],
-                "template": job['schema']['email_template'],
-                "subject": job['schema']['email_subject'],
-                "data": reminder['custom']
-            }))
+            json_args = bson_to_json({
+              "recipient": reminder['email']['recipient'],
+              "template": job['schema']['email_template'],
+              "subject": job['schema']['email_subject'],
+              "data": data
+            })
+
+            logger.debug(json_args)
+
+            r = requests.post(LOCAL_URL + '/email/send', json=json_args)
+
         except requests.exceptions.RequestException as e:
             logger.error('Error sending email: %s', str(e))
+        else:
+            emails_sent += 1
+            logger.debug(r.text)
 
     '''TODO: Add date into subject
     #subject = 'Reminder: Upcoming event on  ' +
     # reminder['imported']['event_date'].strftime('%A, %B %d')
     '''
+
+    logger.info('Job_ID %s: %d emails sent', str(job_id), emails_sent)
+
+    return emails_sent
 
 #-------------------------------------------------------------------------------
 def get_jobs(args):
@@ -379,6 +400,8 @@ def edit_msg(job_id, msg_id, fields):
 
 #-------------------------------------------------------------------------------
 def dial(to):
+    '''Returns twilio call object'''
+
     try:
         twilio_client = twilio.rest.TwilioRestClient(
           TWILIO_ACCOUNT_SID,

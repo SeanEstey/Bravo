@@ -8,6 +8,7 @@ from private_config import *
 # When False, uses gevent (wsgi, threaded) web server.
 DEBUG = False
 
+# Use non-production DB and google sheets
 TEST_DATA = False
 
 if TEST_DATA == True:

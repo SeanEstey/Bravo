@@ -18,7 +18,8 @@ logger.setLevel(logging.DEBUG)
 def get_sorted_orders(form):
     # TODO: Test arguments
 
-    job_id = get_job_id(form['block'], form['driver'], form['date'], form['start_addy'], form['end_addy'])
+    job_id = get_job_id(
+        form['block'], form['driver'], form['date'], form['start_addy'], form['end_addy'])
 
     solution = get_solution(job_id)
 
@@ -62,6 +63,7 @@ def get_gmaps_url(address, lat, lng):
 
     return full_url
 
+#-------------------------------------------------------------------------------
 def get_postal(geo_result):
     for component in geo_result['address_components']:
         if component['types'] == 'postal_code':
@@ -148,6 +150,8 @@ def get_solution(job_id):
 
     data = json.loads(r.text)
 
+    # TODO: Dangerous. This loop could run forever if status
+    # not changed to finished
     while data['status'] != 'finished':
         logger.info('%s: sleeping 5 sec...', data['status'])
 
@@ -219,6 +223,10 @@ def get_job_id(block, driver, date, start_address, depot_address):
             num_skips += 1
             continue
 
+        if account['address'] is None or account['city'] is None:
+            logger.error('Missing address or city in account ID %s', account['id'])
+            continue
+
         formatted_address = account['address'] + ', ' + account['city'] + ', AB'
 
         result = geocode(formatted_address, postal=account['postalCode'])
@@ -238,7 +246,7 @@ def get_job_id(block, driver, date, start_address, depot_address):
 
         payload['visits'][account['id']] = { # location_id
           "location": {
-            "name": address,
+            "name": formatted_address,
             "lat": coords['lat'],
             "lng": coords['lng']
           },

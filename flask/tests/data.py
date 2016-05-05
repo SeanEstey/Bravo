@@ -32,7 +32,9 @@ reminder = {
       'next_pickup': parse('June 21, 2016'),
       'type': 'pickup',
       'status': 'Active',
-      'office_notes': ''
+      'office_notes': '',
+      'cancel_pickup_url':  '',
+      'account': {}
     }
 }
 
@@ -45,3 +47,43 @@ email = {
       'upload_status': 'Success'
     }
 }
+
+gift = {
+    "account_number": 57515, # Test Res
+    "date": "04/06/2016",
+    "amount": 10.00,
+    "status": "Active",
+    "next_pickup": "21/06/2016",
+    "from": {
+        "sheet": "Routes",
+        "row": 3,
+        "upload_status": "Success"
+    }
+}
+
+zero_gift = {
+    "account_number": 57515, # Test Res
+    "date": "04/06/2016",
+    "amount": 0.00,
+    "status": "Active",
+    "next_pickup": "21/06/2016",
+    "from": {
+        "sheet": "Routes",
+        "row": 2,
+        "upload_status": "Success"
+    }
+}
+
+gift_cancelled_act = {
+    "account_number": 71675, # Cancelled Status
+    "date": "04/06/2016",
+    "amount": 0.00,
+    "status": "Cancelled",
+    "next_pickup": "21/06/2016",
+    "from": {
+        "sheet": "Routes",
+        "row": 4,
+        "upload_status": "Success"
+    }
+}
+

@@ -3,7 +3,7 @@ import twilio.twiml
 import flask
 import time
 import requests
-from datetime import datetime,date, timedelta
+#from datetime import datetime,date, timedelta
 from flask import Flask,request,g,Response,url_for, render_template
 from flask.ext.login import login_user, logout_user, login_required
 from bson.objectid import ObjectId
@@ -38,7 +38,6 @@ def load_user(username):
 #-------------------------------------------------------------------------------
 @flask_app.route('/login', methods=['GET','POST'])
 def login():
-    logger.info('Login request')
     return auth.login()
 
 #-------------------------------------------------------------------------------
@@ -289,7 +288,11 @@ def send_email():
     'data': {'from':{ 'worksheet','row','upload_status'}}
     '''
 
+    logger.debug(request)
+
     args = request.get_json(force=True)
+
+    logger.debug(args['data'])
 
     for key in ['template', 'subject', 'recipient']:
         if key not in args:

@@ -49,7 +49,7 @@ class TestViews(unittest.TestCase):
     def logout(self):
         return self.app.get('/logout', follow_redirects=True)
 
-    def test_get_speak(self):
+    def testGetSpeak(self):
         self.insertJobs()
         from reminders import bson_to_json
         r = self.app.post('/get_speak', data={
@@ -59,56 +59,65 @@ class TestViews(unittest.TestCase):
         self.assertTrue(type(r.data) == str)
         print r.data
 
-    """
-    def test_call_event_a(self):
+    def testCallEvent_a(self):
         '''Test Case: rem_a call complete'''
+        self.insertJobs()
         completed_call = {
-        'To': self.reminder['voice']['to'],
-        'CallSid': 'ABC123ABC123ABC123ABC123ABC123AB',
-        'CallStatus': 'completed',
-        'AnsweredBy': 'human',
-        'CallDuration': 16
+            'To': self.reminder['voice']['to'],
+            'CallSid': 'ABC123ABC123ABC123ABC123ABC123AB',
+            'CallStatus': 'completed',
+            'AnsweredBy': 'human',
+            'CallDuration': 16
         }
 
         r = self.app.post('/reminders/call_event', data=completed_call)
         self.assertEquals(r._status_code, 200)
-        #logger.info(self.db['reminders'].find_one({'voice.sid':completed_call['CallSid']}))
 
-  def test_email_status_gsheets_delivered(self):
-      r = self.app.post('/email/status', data={
-        'event': 'delivered',
-        'recipient': 'estese@gmail.com',
-        'Message-Id': 'abc123'
-      })
-      self.assertEquals(r.status_code, 200)
-      self.assertEquals(r.data, 'OK')
+    def testEmailStatus_a(self):
+        '''Case: gsheets delivered'''
+        return True
 
-  def test_email_status_gsheets_bounced(self):
-      r = self.app.post('/email/status', data={
+    def testEmailStatus_b(self):
+        '''Case: bounced email'''
+        from data import email
+        id = self.db['emails'].insert_one(email)
+        r = self.app.post('/email/status', data={
         'event': 'bounced',
         'recipient': 'estesexyz123@gmail.com',
         'Message-Id': 'abc123'
-      })
-      self.assertEquals(r.status_code, 200)
-      self.assertEquals(r.data, 'OK')
+        })
+        self.assertEquals(r.status_code, 200)
+        self.assertEquals(r.data, 'OK')
 
-  def test_email_status_reminder_delivered(self):
-      r = self.app.post('/email/status', data={
-        'event': 'bounced',
-        'recipient': 'estesexyz123@gmail.com',
-        'Message-Id': 'abc123'
-      })
-      self.assertEquals(r.status_code, 200)
-      self.assertEquals(r.data, 'OK')
-
-  def test_root(self):
+    def testRoot(self):
       r = self.app.get('/')
       self.assertEquals(r.status_code, 200)
 
-  def test_show_jobs(self):
-      r = self.app.get('/jobs')
+    def testShowJobs(self):
+      r = self.app.get('/')
       self.assertEquals(r.status_code, 200)
 
+    def testViewLog(self):
+      r = self.app.get('/log')
+      self.assertEquals(r.status_code, 200)
+
+    def testNewJob(self):
+      r = self.app.get('/reminders/new')
+      self.assertEquals(r.status_code, 200)
+
+    def testViewJob(self):
+      self.insertJobs()
+      job_id = str(self.job_a['_id'])
+      r = self.app.get('/reminders/' + job_id)
+      self.assertEquals(r.status_code, 200)
+
+    def testSendEmail(self):
+      data = '{"data": {"from": "", "status": "Active", "next_pickup": "Monday, June 20", "office_notes": "", "type": "pickup", "account": {"name": "Test Res", "email": "estese@gmail.com"}}, "recipient": "estese@gmail.com", "template": "email/etw_reminder.html", "subject": "Your upcoming Empties to Winn event"}'
+      self.insertJobs()
+      r = self.app.post('/email/send', data=data, headers={"content-type": "application/json"})
+      self.assertEquals(r.status_code, 200)
+
+    """
   def test_show_calls(self):
       self.insertJobs()
       r = self.app.get('/jobs' + str(self.job_id))
@@ -141,12 +150,13 @@ class TestViews(unittest.TestCase):
 
 if __name__ == '__main__':
     mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+    views.db = mongo_client['test']
+    views.reminders.db = mongo_client['test']
 
     # Modify loggers to redirect to tests.log before getting client
     test_log_handler = logging.FileHandler(LOG_PATH + 'tests.log')
     views.logger.handlers = []
     views.logger = logging.getLogger(views.__name__)
-    #views.logger.setFormatter(log_formatter)
     views.logger.addHandler(test_log_handler)
     views.logger.setLevel(logging.DEBUG)
     views.auth.logger = logging.getLogger(views.__name__)

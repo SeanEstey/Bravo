@@ -2,14 +2,11 @@ import eventlet
 # Allow for non-blocking standard library
 #eventlet.monkey_patch()
 
-import flask
-from flask import Flask, g
-import pymongo
-import logging
-
 from config import *
 
 # Setup Loggers
+import logging
+
 log_formatter = logging.Formatter('[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M')
 
 debug_handler = logging.FileHandler(LOG_PATH + 'debug.log')
@@ -25,29 +22,35 @@ error_handler.setLevel(logging.ERROR)
 error_handler.setFormatter(log_formatter)
 
 # Setup MongoDB
+import pymongo
+
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT, connect=False)
 db = mongo_client[DB_NAME]
 
-from flask_socketio import SocketIO
+# Set up Flask Application
+from flask import Flask, g
 from flask.ext.socketio import *
 from flask.ext.login import LoginManager
+from flask_socketio import SocketIO
+from werkzeug.contrib.fixers import ProxyFix
 
-# Set up Flask Application
 flask_app = Flask(__name__)
 flask_app.config.from_pyfile('config.py')
-from werkzeug.contrib.fixers import ProxyFix
 flask_app.wsgi_app = ProxyFix(flask_app.wsgi_app)
 flask_app.jinja_env.add_extension("jinja2.ext.do")
-socketio = SocketIO(flask_app)
 flask_app.logger.addHandler(error_handler)
 flask_app.logger.addHandler(info_handler)
 flask_app.logger.setLevel(logging.DEBUG)
+
+# Setup Socket.io
+socketio = SocketIO(flask_app)
 
 # Setup LoginManager Flask extension
 login_manager = LoginManager()
 login_manager.init_app(flask_app)
 login_manager.login_view = PUB_URL + '/login'
 
+# TODO: What does this do again????
 flask_app.app_context().push()
 
 import auth

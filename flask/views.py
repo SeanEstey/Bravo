@@ -1,22 +1,29 @@
 import json
 import twilio.twiml
-import flask
 import time
 import requests
-from flask import Flask, request, Response, url_for, render_template
+from flask import request, Response, render_template, redirect
 from flask.ext.login import login_required
 from bson.objectid import ObjectId
 
+# Import Application objects
 from app import flask_app, db, socketio
+
+# Import settings
+# TODO: delete this line. access all config data from flask_app.config
+from config import *
+
+# Import methods
+from utils import send_email
+from log import get_tail
+from auth import login, logout
+from routing import get_sorted_orders
+
 import reminders
-import log
 import receipts
 import gsheets
 import scheduler
-from auth import login, logout
-import routing
-from config import *
-import utils
+
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/', methods=['GET'])
@@ -37,7 +44,7 @@ def user_login():
 @flask_app.route('/logout', methods=['GET'])
 def user_logout():
     logout()
-    return flask.redirect(PUB_URL)
+    return redirect(PUB_URL)
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/log')
@@ -45,13 +52,13 @@ def user_logout():
 def view_log():
     lines = log.get_tail(LOG_PATH + 'info.log', LOG_LINES)
 
-    return flask.render_template('views/log.html', lines=lines)
+    return render_template('views/log.html', lines=lines)
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/admin')
 @login_required
 def view_admin():
-    return flask.render_template('views/admin.html')
+    return render_template('views/admin.html')
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/sendsocket', methods=['GET'])
@@ -66,7 +73,7 @@ def request_send_socket():
 def get_route():
     flask_app.logger.info('Routing Block %s', request.form['block'])
 
-    orders = routing.get_sorted_orders(request.form.to_dict())
+    orders = get_sorted_orders(request.form.to_dict())
 
     return json.dumps(orders)
 
@@ -308,7 +315,7 @@ def email_unsubscribe():
               unsubscribe from ETW emails. Please contact to see if they want \
               to cancel the entire service.'
 
-        utils.send_email(['emptiestowinn@wsaf.ca'], 'Unsubscribe request', msg)
+        send_email(['emptiestowinn@wsaf.ca'], 'Unsubscribe request', msg)
 
         return 'We have received your request to unsubscribe ' \
                 + request.args['email'] + ' from Empties to Winn. If you wish \

@@ -3,17 +3,17 @@ import twilio.twiml
 import flask
 import time
 import requests
-from flask import Flask,request,Response,url_for, render_template
+from flask import Flask, request, Response, url_for, render_template
 from flask.ext.login import login_required
 from bson.objectid import ObjectId
 
-from app import flask_app, db, socketio, info_handler, error_handler, debug_handler
+from app import flask_app, db, socketio
 import reminders
 import log
 import receipts
 import gsheets
 import scheduler
-import auth
+from auth import login, logout
 import routing
 from config import *
 import utils
@@ -30,13 +30,13 @@ def view_jobs():
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/login', methods=['GET','POST'])
-def login():
-    return auth.login()
+def user_login():
+    return login()
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/logout', methods=['GET'])
-def logout():
-    auth.logout()
+def user_logout():
+    logout()
     return flask.redirect(PUB_URL)
 
 #-------------------------------------------------------------------------------

@@ -13,6 +13,11 @@ logger.addHandler(error_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
+def logout():
+    logout_user()
+    logger.info('User logged out')
+
+#-------------------------------------------------------------------------------
 def login():
   if request.method == 'GET':
     return render_template('views/login.html')

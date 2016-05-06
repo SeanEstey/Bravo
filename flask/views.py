@@ -18,12 +18,6 @@ import routing
 from config import *
 import utils
 
-logger = logging.getLogger(__name__)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.addHandler(debug_handler)
-logger.setLevel(logging.DEBUG)
-
 #-------------------------------------------------------------------------------
 @flask_app.route('/', methods=['GET'])
 @login_required
@@ -42,8 +36,7 @@ def login():
 #-------------------------------------------------------------------------------
 @flask_app.route('/logout', methods=['GET'])
 def logout():
-    logout_user()
-    logger.info('User logged out')
+    auth.logout()
     return flask.redirect(PUB_URL)
 
 #-------------------------------------------------------------------------------
@@ -71,7 +64,7 @@ def request_send_socket():
 #-------------------------------------------------------------------------------
 @flask_app.route('/routing/get_sorted_orders', methods=['POST'])
 def get_route():
-    logger.info('Routing Block %s', request.form['block'])
+    flask_app.logger.info('Routing Block %s', request.form['block'])
 
     orders = routing.get_sorted_orders(request.form.to_dict())
 
@@ -91,7 +84,7 @@ def submit_job():
         r = reminders.submit_job(request.form.to_dict(), request.files['call_list'])
         return Response(response=json.dumps(r), status=200, mimetype='application/json')
     except Exception as e:
-        logger.error('submit_job: %s', str(e))
+        flask_app.logger.error('submit_job: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------
@@ -152,7 +145,7 @@ def send_calls(job_id):
 def job_complete(job_id):
     '''Email job summary, update job status'''
 
-    logger.info('Job [ID %s] complete!', job_id)
+    flask_app.logger.info('Job [ID %s] complete!', job_id)
 
     # TODO: Send socket to web app to display completed status
 
@@ -194,7 +187,7 @@ def call_xml():
 
         html = html.replace("\n", "")
         html = html.replace("  ", "")
-        logger.info('speak template: %s', html)
+        flask_app.logger.info('speak template: %s', html)
 
         db['reminders'].update({'_id':template['reminder']},{'$set':{'voice.speak':html}})
 
@@ -203,7 +196,7 @@ def call_xml():
 
         return Response(str(response), mimetype='text/xml')
     except Exception as e:
-        logger.info('call.xml: %s', str(e))
+        flask_app.logger.info('call.xml: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------
@@ -214,7 +207,7 @@ def get_template():
         reminder=json.loads(request.form['reminder'])
     )
 
-    logger.debug('returning speak')
+    flask_app.logger.debug('returning speak')
 
     return html.replace("\n", "")
 
@@ -234,7 +227,7 @@ def process_receipts():
     @arg 'keys': JSON dict of etapestry info for PHP script
     '''
 
-    logger.info('Process receipts request received')
+    flask_app.logger.info('Process receipts request received')
 
     entries = json.loads(request.form['data'])
     keys = json.loads(request.form['keys'])
@@ -245,7 +238,7 @@ def process_receipts():
       queue=DB_NAME
     )
 
-    #logger.info('Celery process_receipts task: %s', r.__dict__)
+    #flask_app.logger.info('Celery process_receipts task: %s', r.__dict__)
 
     return 'OK'
 
@@ -259,23 +252,23 @@ def send_email():
     'data': {'from':{ 'worksheet','row','upload_status'}}
     '''
 
-    logger.debug(request)
+    flask_app.logger.debug(request)
 
     args = request.get_json(force=True)
 
-    logger.debug(args['data'])
+    flask_app.logger.debug(args['data'])
 
     for key in ['template', 'subject', 'recipient']:
         if key not in args:
             e = '/email/send: missing one or more required fields'
-            logger.error(e)
+            flask_app.logger.error(e)
             return Response(response=e, status=500, mimetype='application/json')
 
     try:
         html = render_template(args['template'], data=args['data'])
     except Exception as e:
         msg = '/email/send: invalid email template'
-        logger.error('%s: %s', msg, str(e))
+        flask_app.logger.error('%s: %s', msg, str(e))
         return Response(response=e, status=500, mimetype='application/json')
 
     try:
@@ -289,12 +282,12 @@ def send_email():
             'html': html
         })
     except requests.exceptions.RequestException as e:
-        logger.error(str(e))
+        flask_app.logger.error(str(e))
         return Response(response=e, status=500, mimetype='application/json')
 
     if r.status_code != 200:
         e = '/email/send: mailgun error: ' + r.text
-        logger.error(e)
+        flask_app.logger.error(e)
         return Response(response=e, status=500, mimetype='application/json')
 
     db['emails'].insert({
@@ -303,7 +296,7 @@ def send_email():
         'on_status_update': args['data']['from']
     })
 
-    logger.info('Queued email to ' + args['recipient'])
+    flask_app.logger.info('Queued email to ' + args['recipient'])
 
     return 'OK'
 
@@ -333,7 +326,7 @@ def email_spam_complaint():
     try:
         gsheets.create_rfu(request.form['recipient'] + m)
     except Exception, e:
-        logger.error('%s' % request.values.items(), exc_info=True)
+        flask_app.logger.error('%s' % request.values.items(), exc_info=True)
         return str(e)
 
     return 'OK'
@@ -349,7 +342,7 @@ def email_status():
     'reason' (on dropped)
     '''
 
-    logger.info('Email to %s %s',
+    flask_app.logger.info('Email to %s %s',
       request.form['recipient'], request.form['event']
     )
 
@@ -375,7 +368,7 @@ def email_status():
               db_doc['on_status_update']
             )
         except Exception as e:
-            logger.error("Error writing to Google Sheets: " + str(e))
+            flask_app.logger.error("Error writing to Google Sheets: " + str(e))
             return 'Failed'
 
     elif 'reminder_id' in db_doc['on_status_update']:
@@ -403,7 +396,7 @@ def get_romorrow_accounts():
 #-------------------------------------------------------------------------------
 @flask_app.route('/call/nis', methods=['POST'])
 def nis():
-    logger.info('NIS!')
+    flask_app.logger.info('NIS!')
 
     record = request.get_json()
 
@@ -414,7 +407,7 @@ def nis():
           block=record['imported']['block']
         )
     except Exception, e:
-        logger.info('%s /call/nis' % request.values.items(), exc_info=True)
+        flask_app.logger.info('%s /call/nis' % request.values.items(), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------------------
@@ -424,7 +417,7 @@ def rec_signup():
     Adds signup data to Route Importer->Signups gsheet row
     '''
 
-    logger.info('New signup received: %s %s',
+    flask_app.logger.info('New signup received: %s %s',
       request.form.get('first_name'),
       request.form.get('last_name')
     )
@@ -436,8 +429,8 @@ def rec_signup():
         )
     except Exception as e:
         time.sleep(1)
-        logger.info('/receive_signup: %s', str(e), exc_info=True)
-        logger.info('Retrying...')
+        flask_app.logger.info('/receive_signup: %s', str(e), exc_info=True)
+        flask_app.logger.info('Retrying...')
         gsheets.add_signup.apply_async(
           args=(request.form.to_dict(),),
           queue=DB_NAME

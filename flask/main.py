@@ -8,10 +8,6 @@ import time
 import sys
 
 if __name__ == "__main__":
-    flask_app.logger.addHandler(error_handler)
-    flask_app.logger.addHandler(info_handler)
-    flask_app.logger.setLevel(logging.DEBUG)
-
     os.system('kill %1')
 
     # Kill celery nodes with matching queue name. Leave others alone

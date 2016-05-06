@@ -3,12 +3,11 @@ import twilio.twiml
 import flask
 import time
 import requests
-#from datetime import datetime,date, timedelta
-from flask import Flask,request,g,Response,url_for, render_template
-from flask.ext.login import login_user, logout_user, login_required
+from flask import Flask,request,Response,url_for, render_template
+from flask.ext.login import login_required
 from bson.objectid import ObjectId
 
-from app import flask_app,db,login_manager,socketio,info_handler,error_handler,debug_handler
+from app import flask_app, db, socketio, info_handler, error_handler, debug_handler
 import reminders
 import log
 import receipts
@@ -26,14 +25,14 @@ logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
-@flask_app.before_request
-def before_request():
-    g.user = flask.ext.login.current_user
-
-#-------------------------------------------------------------------------------
-@login_manager.user_loader
-def load_user(username):
-    return auth.load_user(username)
+@flask_app.route('/', methods=['GET'])
+@login_required
+def view_jobs():
+    return render_template(
+      'views/job_list.html',
+      title=None,
+      jobs=reminders.get_jobs(request.args.values())
+    )
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/login', methods=['GET','POST'])
@@ -48,16 +47,6 @@ def logout():
     return flask.redirect(PUB_URL)
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/', methods=['GET'])
-@login_required
-def view_jobs():
-    return render_template(
-      'views/job_list.html',
-      title=None,
-      jobs=reminders.get_jobs(request.args.values())
-    )
-
-#-------------------------------------------------------------------------------
 @flask_app.route('/log')
 @login_required
 def view_log():
@@ -70,24 +59,6 @@ def view_log():
 @login_required
 def view_admin():
     return flask.render_template('views/admin.html')
-
-#-------------------------------------------------------------------------------
-@socketio.on('disconnected')
-def socketio_disconnected():
-    logger.debug('socket disconnected')
-    logger.debug(
-    'num connected sockets: ' +
-    str(len(socketio.server.sockets))
-    )
-
-#-------------------------------------------------------------------------------
-@socketio.on('connected')
-def socketio_connect():
-    logger.debug(
-        'num connected sockets: ' +
-        str(len(socketio.server.sockets))
-    )
-    socketio.emit('msg', 'ping from ' + DB_NAME + ' server!');
 
 #-------------------------------------------------------------------------------
 @flask_app.route('/sendsocket', methods=['GET'])

@@ -1,8 +1,28 @@
 from celery.schedules import crontab
-from app import celery_app
-from config import DB_NAME
+from celery import Celery
 from datetime import timedelta
 
+#-------------------------------------------------------------------------------
+def make_celery(app):
+    CELERY_BROKER_URL = 'amqp://'
+    celery = Celery(app.name, broker=CELERY_BROKER_URL)
+    celery.conf.update(app.config)
+    TaskBase = celery.Task
+    class ContextTask(TaskBase):
+        abstract = True
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return TaskBase.__call__(self, *args, **kwargs)
+    celery.Task = ContextTask
+    return celery
+
+from config import DB_NAME
+from app import flask_app
+
+celery_app = make_celery(flask_app)
+celery_app.config_from_object('tasks')
+
+# Load in registered functions
 from gsheets import add_signup, create_rfu
 from reminders import monitor_jobs, send_calls, send_emails, cancel_pickup, set_no_pickup
 from receipts import process

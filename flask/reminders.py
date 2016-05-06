@@ -13,7 +13,8 @@ import json
 import re
 from pymongo import ReturnDocument
 
-from app import celery_app, db, info_handler, error_handler, debug_handler, socketio
+from app import db, info_handler, error_handler, debug_handler, socketio
+from tasks import celery_app
 import utils
 from config import *
 

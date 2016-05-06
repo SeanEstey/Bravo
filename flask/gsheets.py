@@ -5,7 +5,8 @@ import requests
 from datetime import datetime
 from dateutil.parser import parse
 
-from app import celery_app, db, info_handler, error_handler
+from app import db, info_handler, error_handler
+from tasks import celery_app
 from config import *
 
 logger = logging.getLogger(__name__)

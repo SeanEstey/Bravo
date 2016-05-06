@@ -25,13 +25,11 @@ from app import flask_app, celery_app
 class BravoTestCase(unittest.TestCase):
 
   def setUp(self):
-      flask_app.config['TESTING'] = True
+      flask_app.testing = True
       self.app = flask_app.test_client()
       celery_app.conf.CELERY_ALWAYS_EAGER = True
-
-      mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
-      self.db = mongo_client[DB_NAME]
-      self.login('seane@wsaf.ca', 'wsf')
+      self.db = mongo_client['test']
+      self.login(LOGIN_USER, LOGIN_PW)
 
       self.zero_gift = {
         "account_number": 57515, # Test Res
@@ -45,8 +43,6 @@ class BravoTestCase(unittest.TestCase):
             "upload_status": "Success"
         }
       }
-
-
 
       self.gift = {
         "account_number": 57515, # Test Res
@@ -189,6 +185,7 @@ class BravoTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+    views.db = mongo_client['test']
     receipts.db = mongo_client['test']
     receipts.scheduler.db = mongo_client['test']
     receipts.gsheets.db = mongo_client['test']
@@ -201,6 +198,18 @@ if __name__ == '__main__':
     receipts.logger.setLevel(logging.DEBUG)
     receipts.scheduler.logger = logging.getLogger(receipts.__name__)
     receipts.gsheets.logger = logging.getLogger(receipts.__name__)
+
+    views.logger.handlers = []
+    views.logger = logging.getLogger(views.__name__)
+    views.logger.addHandler(test_log_handler)
+    views.logger.setLevel(logging.DEBUG)
+    views.auth.logger = logging.getLogger(views.__name__)
+    views.reminders.logger = logging.getLogger(views.__name__)
+    views.routing.logger = logging.getLogger(views.__name__)
+    views.receipts.logger = logging.getLogger(views.__name__)
+    views.scheduler.logger = logging.getLogger(views.__name__)
+    views.gsheets.logger = logging.getLogger(views.__name__)
+    views.log.logger = logging.getLogger(views.__name__)
 
     from datetime import datetime
     now = datetime.now()

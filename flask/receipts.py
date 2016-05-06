@@ -10,7 +10,8 @@ from dateutil.parser import parse
 import scheduler
 import gsheets
 import etap
-from app import flask_app, celery_app, db, info_handler, error_handler
+from app import flask_app, db, info_handler, error_handler
+from tasks import celery_app
 from config import *
 
 ZERO_COLLECTION_EMAIL_SUBJECT = "We didn't receive a collection from you"

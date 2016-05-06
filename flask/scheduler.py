@@ -10,7 +10,8 @@ from datetime import datetime,date, timedelta
 from bson import Binary, Code, json_util
 from bson.objectid import ObjectId
 
-from app import celery_app, db, info_handler, error_handler, login_manager
+from app import db, info_handler, error_handler, login_manager
+from tasks import celery_app
 from config import *
 import gsheets
 import etap

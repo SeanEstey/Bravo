@@ -12,10 +12,10 @@ DEBUG = False
 TEST_DATA = False
 
 if TEST_DATA == True:
-    DB_NAME = 'test'
+    DB = 'test'
     ROUTE_IMPORTER_SHEET = 'Test Route Importer'
 else:
-    DB_NAME = 'wsf'
+    DB = 'wsf'
     ROUTE_IMPORTER_SHEET = 'Route Importer'
 
 # App

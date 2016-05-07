@@ -1,16 +1,14 @@
 import json
 from oauth2client.client import SignedJwtAssertionCredentials
 import gspread
-import flask
 import requests
 from datetime import datetime
-from flask import request, current_app, render_template
 from dateutil.parser import parse
 
 import scheduler
 import gsheets
 import etap
-from app import flask_app, db, info_handler, error_handler
+from app import db, info_handler, error_handler
 from tasks import celery_app
 from config import *
 

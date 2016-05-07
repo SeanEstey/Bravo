@@ -7,11 +7,7 @@ from flask.ext.login import login_required
 from bson.objectid import ObjectId
 
 # Import Application objects
-from app import flask_app, db, socketio
-
-# Import settings
-# TODO: delete this line. access all config data from flask_app.config
-from config import *
+from app import app, db, socketio
 
 # Import methods
 from utils import send_email
@@ -26,7 +22,7 @@ import scheduler
 
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/', methods=['GET'])
+@app.route('/', methods=['GET'])
 @login_required
 def view_jobs():
     return render_template(
@@ -36,32 +32,32 @@ def view_jobs():
     )
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/login', methods=['GET','POST'])
+@app.route('/login', methods=['GET','POST'])
 def user_login():
     return login()
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/logout', methods=['GET'])
+@app.route('/logout', methods=['GET'])
 def user_logout():
     logout()
-    return redirect(PUB_URL)
+    return redirect(app.config['PUB_URL'])
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/log')
+@app.route('/log')
 @login_required
 def view_log():
-    lines = log.get_tail(LOG_PATH + 'info.log', LOG_LINES)
+    lines = get_tail(app.config['LOG_PATH'] + 'info.log', app.config['LOG_LINES'])
 
     return render_template('views/log.html', lines=lines)
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/admin')
+@app.route('/admin')
 @login_required
 def view_admin():
     return render_template('views/admin.html')
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/sendsocket', methods=['GET'])
+@app.route('/sendsocket', methods=['GET'])
 def request_send_socket():
     name = request.args.get('name').encode('utf-8')
     data = request.args.get('data').encode('utf-8')
@@ -69,38 +65,38 @@ def request_send_socket():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/routing/get_sorted_orders', methods=['POST'])
+@app.route('/routing/get_sorted_orders', methods=['POST'])
 def get_route():
-    flask_app.logger.info('Routing Block %s', request.form['block'])
+    app.logger.info('Routing Block %s', request.form['block'])
 
     orders = get_sorted_orders(request.form.to_dict())
 
     return json.dumps(orders)
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/new')
+@app.route('/reminders/new')
 @login_required
 def new_job():
-    return render_template('views/new_job.html', title=TITLE)
+    return render_template('views/new_job.html', title=app.config['TITLE'])
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/submit_job', methods=['POST'])
+@app.route('/reminders/submit_job', methods=['POST'])
 @login_required
 def submit_job():
     try:
         r = reminders.submit_job(request.form.to_dict(), request.files['call_list'])
         return Response(response=json.dumps(r), status=200, mimetype='application/json')
     except Exception as e:
-        flask_app.logger.error('submit_job: %s', str(e))
+        app.logger.error('submit_job: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/recordaudio', methods=['GET', 'POST'])
+@app.route('/reminders/recordaudio', methods=['GET', 'POST'])
 def record_msg():
     return reminders.record_audio()
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>')
+@app.route('/reminders/<job_id>')
 @login_required
 def view_job(job_id):
     sort_by = 'name'
@@ -109,7 +105,7 @@ def view_job(job_id):
 
     return render_template(
         'views/job.html',
-        title=TITLE,
+        title=app.config['TITLE'],
         reminders=reminders,
         job_id=job_id,
         job=job,
@@ -117,71 +113,75 @@ def view_job(job_id):
     )
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/cancel')
+@app.route('/reminders/<job_id>/cancel')
 @login_required
 def cancel_job(job_id):
     reminders.cancel_job(job_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/reset')
+@app.route('/reminders/<job_id>/reset')
 @login_required
 def reset_job(job_id):
     reminders.reset_job(job_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/send_emails')
+@app.route('/reminders/<job_id>/send_emails')
 @login_required
 def send_emails(job_id):
-    reminders.send_emails.apply_async((job_id.encode('utf-8'),), queue=DB_NAME)
+    reminders.send_emails.apply_async(
+            (job_id.encode('utf-8'),),
+            queue=app.config['DB'])
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/send_calls')
+@app.route('/reminders/<job_id>/send_calls')
 @login_required
 def send_calls(job_id):
     job_id = job_id.encode('utf-8')
     # Start celery worker
-    reminders.send_calls.apply_async(args=(job_id, ), queue=DB_NAME)
+    reminders.send_calls.apply_async(
+            args=(job_id, ),
+            queue=app.config['DB'])
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/complete')
+@app.route('/reminders/<job_id>/complete')
 @login_required
 def job_complete(job_id):
     '''Email job summary, update job status'''
 
-    flask_app.logger.info('Job [ID %s] complete!', job_id)
+    app.logger.info('Job [ID %s] complete!', job_id)
 
     # TODO: Send socket to web app to display completed status
 
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/<msg_id>/remove', methods=['POST'])
+@app.route('/reminders/<job_id>/<msg_id>/remove', methods=['POST'])
 @login_required
 def rmv_msg():
     reminders.rmv_msg(job_id, msg_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/<msg_id>/edit', methods=['POST'])
+@app.route('/reminders/<job_id>/<msg_id>/edit', methods=['POST'])
 @login_required
 def edit_msg(sid):
     reminders.edit_msg(job_id, msg_id, form.items())
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/<job_id>/<msg_id>/cancel_pickup', methods=['GET'])
+@app.route('/reminders/<job_id>/<msg_id>/cancel_pickup', methods=['GET'])
 def no_pickup(msg_id):
     '''Script run via reminder email'''
 
-    reminders.cancel_pickup.apply_async((msg_id,), queue=DB_NAME)
+    reminders.cancel_pickup.apply_async((msg_id,), queue=app.config['DB'])
     return 'Thank You'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/call.xml',methods=['POST'])
+@app.route('/reminders/call.xml',methods=['POST'])
 def call_xml():
     '''Twilio TwiML Voice Request'''
     try:
@@ -194,7 +194,7 @@ def call_xml():
 
         html = html.replace("\n", "")
         html = html.replace("  ", "")
-        flask_app.logger.info('speak template: %s', html)
+        app.logger.info('speak template: %s', html)
 
         db['reminders'].update({'_id':template['reminder']},{'$set':{'voice.speak':html}})
 
@@ -203,23 +203,23 @@ def call_xml():
 
         return Response(str(response), mimetype='text/xml')
     except Exception as e:
-        flask_app.logger.info('call.xml: %s', str(e))
+        app.logger.info('call.xml: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/get_speak', methods=['POST'])
+@app.route('/get_speak', methods=['POST'])
 def get_template():
     html = render_template(
         request.form['template'],
         reminder=json.loads(request.form['reminder'])
     )
 
-    flask_app.logger.debug('returning speak')
+    app.logger.debug('returning speak')
 
     return html.replace("\n", "")
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/reminders/call_event',methods=['POST','GET'])
+@app.route('/reminders/call_event',methods=['POST','GET'])
 def call_event():
     '''Twilio callback'''
 
@@ -227,14 +227,14 @@ def call_event():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/receipts/process', methods=['POST'])
+@app.route('/receipts/process', methods=['POST'])
 def process_receipts():
     '''Data sent from Routes worksheet in Gift Importer (Google Sheet)
     @arg 'data': JSON array of dict objects with UDF and gift data
     @arg 'keys': JSON dict of etapestry info for PHP script
     '''
 
-    flask_app.logger.info('Process receipts request received')
+    app.logger.info('Process receipts request received')
 
     entries = json.loads(request.form['data'])
     keys = json.loads(request.form['keys'])
@@ -242,15 +242,15 @@ def process_receipts():
     # Start celery workers to run slow eTapestry API calls
     r = receipts.process.apply_async(
       args=(entries, keys),
-      queue=DB_NAME
+      queue=app.config['DB']
     )
 
-    #flask_app.logger.info('Celery process_receipts task: %s', r.__dict__)
+    #app.logger.info('Celery process_receipts task: %s', r.__dict__)
 
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/email/send', methods=['POST'])
+@app.route('/email/send', methods=['POST'])
 def send_email():
     '''Can be collection receipt from gsheets.process_receipts, reminder email,
     or welcome letter from Google Sheets.
@@ -259,42 +259,42 @@ def send_email():
     'data': {'from':{ 'worksheet','row','upload_status'}}
     '''
 
-    flask_app.logger.debug(request)
+    app.logger.debug(request)
 
     args = request.get_json(force=True)
 
-    flask_app.logger.debug(args['data'])
+    app.logger.debug(args['data'])
 
     for key in ['template', 'subject', 'recipient']:
         if key not in args:
             e = '/email/send: missing one or more required fields'
-            flask_app.logger.error(e)
+            app.logger.error(e)
             return Response(response=e, status=500, mimetype='application/json')
 
     try:
         html = render_template(args['template'], data=args['data'])
     except Exception as e:
         msg = '/email/send: invalid email template'
-        flask_app.logger.error('%s: %s', msg, str(e))
+        app.logger.error('%s: %s', msg, str(e))
         return Response(response=e, status=500, mimetype='application/json')
 
     try:
         r = requests.post(
-          'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/messages',
-          auth=('api', MAILGUN_API_KEY),
+          'https://api.mailgun.net/v3/' + app.config['MAILGUN_DOMAIN'] + '/messages',
+          auth=('api', app.config['MAILGUN_API_KEY']),
           data={
-            'from': FROM_EMAIL,
+            'from': app.config['FROM_EMAIL'],
             'to': args['recipient'],
             'subject': args['subject'],
             'html': html
         })
     except requests.exceptions.RequestException as e:
-        flask_app.logger.error(str(e))
+        app.logger.error(str(e))
         return Response(response=e, status=500, mimetype='application/json')
 
     if r.status_code != 200:
         e = '/email/send: mailgun error: ' + r.text
-        flask_app.logger.error(e)
+        app.logger.error(e)
         return Response(response=e, status=500, mimetype='application/json')
 
     db['emails'].insert({
@@ -303,12 +303,12 @@ def send_email():
         'on_status_update': args['data']['from']
     })
 
-    flask_app.logger.info('Queued email to ' + args['recipient'])
+    app.logger.info('Queued email to ' + args['recipient'])
 
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/email/unsubscribe', methods=['GET'])
+@app.route('/email/unsubscribe', methods=['GET'])
 def email_unsubscribe():
     if request.args.get('email'):
         msg = 'Contributor ' + request.args['email'] + ' has requested to \
@@ -326,20 +326,20 @@ def email_unsubscribe():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/email/spam_complaint', methods=['POST'])
+@app.route('/email/spam_complaint', methods=['POST'])
 def email_spam_complaint():
     m = 'received spam complaint'
 
     try:
         gsheets.create_rfu(request.form['recipient'] + m)
     except Exception, e:
-        flask_app.logger.error('%s' % request.values.items(), exc_info=True)
+        app.logger.error('%s' % request.values.items(), exc_info=True)
         return str(e)
 
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/email/status',methods=['POST'])
+@app.route('/email/status',methods=['POST'])
 def email_status():
     '''Relay for Mailgun webhooks. Can originate from reminder_msg, Signups
     sheet, or Route Importer sheet
@@ -349,7 +349,7 @@ def email_status():
     'reason' (on dropped)
     '''
 
-    flask_app.logger.info('Email to %s %s',
+    app.logger.info('Email to %s %s',
       request.form['recipient'], request.form['event']
     )
 
@@ -357,7 +357,7 @@ def email_status():
     if event == 'dropped':
         gsheets.create_rfu.apply_async(
             args=(request.form['recipient'] + ' ' + event, ),
-            queue=DB_NAME)
+            queue=app.config['DB'])
 
     db_doc = db['emails'].find_one_and_update(
       {'mid': request.form['Message-Id']},
@@ -375,7 +375,7 @@ def email_status():
               db_doc['on_status_update']
             )
         except Exception as e:
-            flask_app.logger.error("Error writing to Google Sheets: " + str(e))
+            app.logger.error("Error writing to Google Sheets: " + str(e))
             return 'Failed'
 
     elif 'reminder_id' in db_doc['on_status_update']:
@@ -395,15 +395,15 @@ def email_status():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/get_np', methods=['GET'])
+@app.route('/get_np', methods=['GET'])
 def get_romorrow_accounts():
-    scheduler.find_nps_in_schedule.apply_async(queue=DB_NAME)
+    scheduler.find_nps_in_schedule.apply_async(queue=app.config['DB'])
     return 'Celery process started...'
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/call/nis', methods=['POST'])
+@app.route('/call/nis', methods=['POST'])
 def nis():
-    flask_app.logger.info('NIS!')
+    app.logger.info('NIS!')
 
     record = request.get_json()
 
@@ -414,17 +414,17 @@ def nis():
           block=record['imported']['block']
         )
     except Exception, e:
-        flask_app.logger.info('%s /call/nis' % request.values.items(), exc_info=True)
+        app.logger.info('%s /call/nis' % request.values.items(), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------------------
-@flask_app.route('/receive_signup', methods=['POST'])
+@app.route('/receive_signup', methods=['POST'])
 def rec_signup():
     '''Forwarded signup submision from emptiestowinn.com
     Adds signup data to Route Importer->Signups gsheet row
     '''
 
-    flask_app.logger.info('New signup received: %s %s',
+    app.logger.info('New signup received: %s %s',
       request.form.get('first_name'),
       request.form.get('last_name')
     )
@@ -432,15 +432,15 @@ def rec_signup():
     try:
         gsheets.add_signup.apply_async(
           args=(request.form.to_dict(),), # Must include comma
-          queue=DB_NAME
+          queue=app.config['DB']
         )
     except Exception as e:
         time.sleep(1)
-        flask_app.logger.info('/receive_signup: %s', str(e), exc_info=True)
-        flask_app.logger.info('Retrying...')
+        app.logger.info('/receive_signup: %s', str(e), exc_info=True)
+        app.logger.info('Retrying...')
         gsheets.add_signup.apply_async(
           args=(request.form.to_dict(),),
-          queue=DB_NAME
+          queue=app.config['DB']
         )
         return str(e)
 

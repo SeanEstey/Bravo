@@ -5,7 +5,7 @@ import os
 import time
 import pymongo
 import codecs
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.parser import parse
 from werkzeug.datastructures import MultiDict
 import xml.dom.minidom
@@ -14,14 +14,14 @@ from bson.objectid import ObjectId
 os.chdir('/root/bravo_dev/Bravo/flask')
 sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
-from config import *
-from app import flask_app, celery_app
+from app import app
+from tasks import celery_app
 import reminders
 
 class TestReminders(unittest.TestCase):
     def setUp(self):
-        flask_app.testing = True
-        self.app = flask_app.test_client()
+        app.testing = True
+        self.app = app.test_client()
         celery_app.conf.CELERY_ALWAYS_EAGER = True
         self.db = mongo_client['test']
 
@@ -189,18 +189,20 @@ class TestReminders(unittest.TestCase):
         return True
 
 if __name__ == '__main__':
-    mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+    mongo_client = pymongo.MongoClient(app.config['MONGO_URL'], app.config['MONGO_PORT'])
     reminders.db = mongo_client['test']
 
     # Use test endpoints
-    reminders.TWILIO_ACCOUNT_SID = TWILIO_TEST_ACCOUNT_SID
-    reminders.TWILIO_AUTH_ID = TWILIO_TEST_AUTH_ID
+    reminders.TWILIO_ACCOUNT_SID = app.config['TWILIO_TEST_ACCOUNT_SID']
+    reminders.TWILIO_AUTH_ID = app.config['TWILIO_TEST_AUTH_ID']
     reminders.FROM_NUMBER = '+15005550006'
     INVALID_NUMBER = '+15005550001'
     UNROUTABLE_NUMBER = '+15005550002'
 
+    import logging
+
     # Set logger to redirect to tests.log
-    test_log_handler = logging.FileHandler(LOG_PATH + 'tests.log')
+    test_log_handler = logging.FileHandler(app.config['LOG_PATH'] + 'tests.log')
     reminders.logger.handlers = []
     reminders.logger = logging.getLogger(reminders.__name__)
     reminders.logger.addHandler(test_log_handler)

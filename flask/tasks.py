@@ -16,10 +16,10 @@ def make_celery(app):
     celery.Task = ContextTask
     return celery
 
-from config import DB_NAME
-from app import flask_app
+#from config import DB
+from app import app
 
-celery_app = make_celery(flask_app)
+celery_app = make_celery(app)
 celery_app.config_from_object('tasks')
 
 # Load in registered functions
@@ -42,11 +42,11 @@ CELERYBEAT_SCHEDULE = {
   'get_non_participants': {
     'task': 'scheduler.analyze_non_participants',
     'schedule': crontab(hour=7, minute=0, day_of_week='*'),
-    'options': { 'queue': DB_NAME }
+    'options': { 'queue': app.config['DB'] }
   },
   'check_jobs': {
     'task': 'reminders.monitor_jobs',
     'schedule': crontab(minute='*/5'),
-    'options': { 'queue': DB_NAME }
+    'options': { 'queue': app.config['DB'] }
   },
 }

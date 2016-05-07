@@ -13,7 +13,7 @@ import json
 import re
 from pymongo import ReturnDocument
 
-from app import db, info_handler, error_handler, debug_handler, socketio
+from app import app, db, info_handler, error_handler, debug_handler, socketio
 from tasks import celery_app
 import utils
 from config import *
@@ -77,7 +77,7 @@ def monitor_pending_jobs():
         # May not be able to start celery task from inside another.
         # Make a server request to /reminders/<job_id>/execute if this doesn't
         # work
-        send_calls.apply_async((str(job['_id']).encode('utf-8'),), queue=DB_NAME)
+        send_calls.apply_async((str(job['_id']).encode('utf-8'),),queue=app.config['DB'])
 
     if datetime.now().minute == 0:
         logger.info('%d pending jobs', pending.count())
@@ -159,7 +159,7 @@ def monitor_active_jobs():
 
             # Redial busy or no-answer incompletes
             # This should be a new celery worker task
-            send_calls.apply_async((str(job['_id']).encode('utf-8'),), queue=DB_NAME)
+            send_calls.apply_async((str(job['_id']).encode('utf-8'),), queue=app.config['DB'])
 
     return status
 
@@ -483,7 +483,7 @@ def get_resp_xml_template(args):
         'account': msg['account_id'],
         'date': msg['event_date'].strftime('%d/%m/%Y'),
         'next_pickup': msg['custom']['next_pickup'].strftime('%d/%m/%Y')
-      },), queue=DB_NAME)
+      },), queue=app.config['DB'])
     except Exception as e:
       logger.error('Could not write to eTap to update pickup date. ' + str(e))
 
@@ -1024,7 +1024,7 @@ def submit_job(form, file):
 
         # Special case
         if form['template_name'] == 'etw':
-            #scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=DB_NAME)
+            #scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=app.config['DB'])
 
             banner_msg = 'Job \'' + job_name + '\' successfully created! '\
                     + str(len(reminders)) + ' messages imported.'

@@ -25,7 +25,7 @@ error_handler.setFormatter(log_formatter)
 import pymongo
 
 mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT, connect=False)
-db = mongo_client[DB_NAME]
+db = mongo_client[DB]
 
 # Set up Flask Application
 from flask import Flask, g
@@ -34,29 +34,29 @@ from flask.ext.login import LoginManager
 from flask_socketio import SocketIO
 from werkzeug.contrib.fixers import ProxyFix
 
-flask_app = Flask(__name__)
-flask_app.config.from_pyfile('config.py')
-flask_app.wsgi_app = ProxyFix(flask_app.wsgi_app)
-flask_app.jinja_env.add_extension("jinja2.ext.do")
-flask_app.logger.addHandler(error_handler)
-flask_app.logger.addHandler(info_handler)
-flask_app.logger.setLevel(logging.DEBUG)
+app = Flask(__name__)
+app.config.from_pyfile('config.py')
+app.wsgi_app = ProxyFix(app.wsgi_app)
+app.jinja_env.add_extension("jinja2.ext.do")
+app.logger.addHandler(error_handler)
+app.logger.addHandler(info_handler)
+app.logger.setLevel(logging.DEBUG)
 
 # Setup Socket.io
-socketio = SocketIO(flask_app)
+socketio = SocketIO(app)
 
 # Setup LoginManager Flask extension
 login_manager = LoginManager()
-login_manager.init_app(flask_app)
+login_manager.init_app(app)
 login_manager.login_view = PUB_URL + '/login'
 
 # TODO: What does this do again????
-flask_app.app_context().push()
+app.app_context().push()
 
 import auth
 
 #-------------------------------------------------------------------------------
-@flask_app.before_request
+@app.before_request
 def before_request():
     g.user = flask.ext.login.current_user
 
@@ -81,4 +81,4 @@ def socketio_connect():
         'num connected sockets: ' +
         str(len(socketio.server.sockets))
     )
-    socketio.emit('msg', 'ping from ' + DB_NAME + ' server!');
+    socketio.emit('msg', 'ping from server!');

@@ -1,8 +1,6 @@
-<h2>Instructions</h2>
-<br>
+### Setup Instructions
 
-Install Dependencies
-<br>
+###### Install Dependencies
 ```
 apt-get install python-pip python-dev mongodb nginx rabbitmq-server logrotate
 pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio apiclient oauth2client gspread
@@ -10,41 +8,40 @@ pip install --upgrade google-api-python-client
 pip install oauth2client==1.5.2
 ```
 
-Clone repository
-<br>
+###### Clone repository
 ```
 git clone https://github.com/SeanEstey/Bravo
 cd Bravo
 ```
 
-<br>
-Nginx/PHP Setup
-<br>
--Copy PHP files to webroot (/var/www/bravo/php)
-<br>
+###### PHP Setup
+-Copy bravo/php files to webroot /var/www/bravo/php
+
+-Create log folder:
+
+'$mkdir /var/www/bravo/logs'
+-Create blank log files in this folder: debug.log, info.log, error.log, tests.log
 -Set proper webroot permissions for www-data user:
 ```
-chown -R root:www-data /var/www/bravo/logs
-chmod -R 660 /var/www/bravo/logs
+chown -R root:www-data /var/www/bravo
+chmod -R 660 /var/www/bravo
 ```
--Create virtualhost file for nginx (/etc/nginx/sites-enabled/default)
-<br>
 
-Logrotate Setup
-<br>
+###### Setup Nginx Virtual Host
+-Copy bravo/virtual_host/default to /etc/nginx/sites-enabled
+
+###### Logrotate Setup
 -Copy logrotate/bravo to /etc/logrotate.d/
 <br>
 
-Setup Mongo Logins
-<br>
+###### Setup Mongo Logins
 ```
 $mongo
 >> use wsf
 >> db.logins.insert({'user':'name', 'pass':'password'})
 ```
 
-Get Google Service Account Credentials
-<br>
+###### Get Google Service Account Credentials
 -Open Google Developer Console
 <br>
 -Find Service Account
@@ -54,13 +51,7 @@ Get Google Service Account Credentials
 -Save to flask dir as "oauth_credentials.json"
 <br>
 
-Start RabbitMQ daemon<br>
-`rabbitmqctl start_app`<br>
-Start Flask Server:<br>
-`python main.py`<br>
-
-Create private_config.py file with following variables set:
-<br>
+###### Create auth_keys.py in flask/ with following variables:
 ```
 ETW_RES_CALENDAR_ID = 
 GOOGLE_SERVICE_ACCOUNT = [Google Service Email Address]
@@ -85,17 +76,20 @@ ETAP_WRAPPER_KEYS = {
 }
 ```
 
-Setup front end server to redirect to proper proxy addresses (see /config for Nginx .conf file)<br>
+### Run Instructions
 
-To manually shutdown server running in background<br>
-get pid<br>
-`ps aux | grep -m 1 'python main.py' | awk '{print $2}'`<br>
+###### Start RabbitMQ daemon
+`rabbitmqctl start_app`
+
+###### Start Flask Server
+`python main.py`
+
+### Shutdown Instructions
+
+If running in foreground, kill with CTRL+C. This will kill Celery workers.
+
+If running in background, get pid
+`ps aux | grep -m 1 'python main.py' | awk '{print $2}'`
 Kill it<br>
 `kill -9 <PID>`<br>
 (May need to run twice)
-
-<br>
-Start Server
-```
-python main.py
-```

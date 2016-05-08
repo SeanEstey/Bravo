@@ -2,8 +2,19 @@
 
 ###### Install Dependencies
 ```
-apt-get install python-pip python-dev mongodb nginx rabbitmq-server logrotate
-pip install celery flask flask-socketio flask-login pymongo python-dateutil twilio apiclient oauth2client gspread
+apt-get install \
+    python-pip python-dev \
+    mongodb \
+    nginx \
+    rabbitmq-server \
+    logrotate
+pip install \
+    celery \
+    pymongo \
+    python-dateutil \
+    twilio \
+    apiclient oauth2client gspread \
+    flask flask-socketio flask-login 
 pip install --upgrade google-api-python-client
 pip install oauth2client==1.5.2
 ```
@@ -28,11 +39,10 @@ chmod -R 660 /var/www/bravo
 ```
 
 ###### Setup Nginx Virtual Host
--Copy bravo/virtual_host/default to /etc/nginx/sites-enabled
+Copy bravo/virtual_host/default to /etc/nginx/sites-enabled
 
 ###### Logrotate Setup
--Copy logrotate/bravo to /etc/logrotate.d/
-<br>
+Copy logrotate/bravo to /etc/logrotate.d/
 
 ###### Setup Mongo Logins
 ```
@@ -42,14 +52,10 @@ $mongo
 ```
 
 ###### Get Google Service Account Credentials
--Open Google Developer Console
-<br>
--Find Service Account
-<br>
--Generate JSON key
-<br>
--Save to flask dir as "oauth_credentials.json"
-<br>
+1. Open Google Developer Console
+2. Find Service Account
+3. Generate JSON key
+4. Save to Bravo/flask as `oauth_credentials.json`
 
 ###### Create auth_keys.py in flask/ with following variables:
 ```
@@ -79,17 +85,23 @@ ETAP_WRAPPER_KEYS = {
 ### Run Instructions
 
 ###### Start RabbitMQ daemon
-`rabbitmqctl start_app`
+`$rabbitmqctl start_app`
 
 ###### Start Flask Server
-`python main.py`
+`$python main.py`
+
+This will start the celery workers.
 
 ### Shutdown Instructions
 
 If running in foreground, kill with CTRL+C. This will kill Celery workers.
 
-If running in background, get pid
-`ps aux | grep -m 1 'python main.py' | awk '{print $2}'`
-Kill it<br>
-`kill -9 <PID>`<br>
+If running in background, get pid:
+
+`$ps aux | grep -m 1 'python main.py' | awk '{print $2}'`
+
+Now kill it using that PID:
+
+`$kill -9 <PID>`
+
 (May need to run twice)

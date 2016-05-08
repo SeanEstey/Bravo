@@ -20,12 +20,12 @@ cd Bravo
 <br>
 Nginx/PHP Setup
 <br>
--Copy PHP files to webroot (/var/www/empties/etap/)
+-Copy PHP files to webroot (/var/www/bravo/php)
 <br>
 -Set proper webroot permissions for www-data user:
 ```
-chown -R root:www-data /var/www/bravologs
-chmod -R 770 /var/www/bravologs
+chown -R root:www-data /var/www/bravo/logs
+chmod -R 660 /var/www/bravo/logs
 ```
 -Create virtualhost file for nginx (/etc/nginx/sites-enabled/default)
 <br>
@@ -64,14 +64,19 @@ Create private_config.py file with following variables set:
 ```
 ETW_RES_CALENDAR_ID = 
 GOOGLE_SERVICE_ACCOUNT = [Google Service Email Address]
+GOOGLE_API_KEY = ''
 MAILGUN_API_KEY = ''
 MAILGUN_DOMAIN = ''
 SECRET_KEY = ''
+BRAVO_AUTH_KEY = ''
 TWILIO_ACCOUNT_SID = ''
 TWILIO_AUTH_ID = ''
-BRAVO_AUTH_KEY = ''
+TWILIO_TEST_ACCOUNT_SID = ''
+TWILIO_TEST_AUTH_ID = ''
+SECRET_KEY = ''
 LOGIN_USER = ''
 LOGIN_PW = ''
+ROUTIFIC_KEY = ''
 ETAP_WRAPPER_KEYS = {
   'association_name': '',
   'etap_endpoint': '',

@@ -1,12 +1,8 @@
 venv*
-log.*
 *.pyc
 *.swp
 *.swo
 *~
-google_api_key.p12
-log
 oauth_credentials.json
-celery.log
 celerybeat-schedule
-private_config.py
+auth_keys.py

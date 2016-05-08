@@ -1,4 +1,5 @@
 import json
+import logging
 import requests
 import datetime
 from dateutil.parser import parse
@@ -10,7 +11,7 @@ from datetime import datetime,date, timedelta
 from bson import Binary, Code, json_util
 from bson.objectid import ObjectId
 
-from app import db, info_handler, error_handler, login_manager
+from app import app, db, info_handler, error_handler, login_manager
 from tasks import celery_app
 from config import *
 import gsheets

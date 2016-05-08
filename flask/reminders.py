@@ -1,4 +1,5 @@
 import twilio.twiml
+import logging
 from datetime import datetime,date
 from dateutil.parser import parse
 import time
@@ -16,7 +17,6 @@ from pymongo import ReturnDocument
 from app import app, db, info_handler, error_handler, debug_handler, socketio
 from tasks import celery_app
 import utils
-from config import *
 
 logger = logging.getLogger(__name__)
 logger.addHandler(debug_handler)
@@ -98,7 +98,7 @@ def monitor_active_jobs():
     for job in in_progress:
         now = datetime.now()
 
-        if (now - job['voice']['started_at']).seconds > JOB_TIME_LIMIT:
+        if (now - job['voice']['started_at']).seconds > app.config['JOB_TIME_LIMIT']:
             # The celery process will have already killed the worker task if
             # it hung, but we'll catch the error here and clean up.
 
@@ -132,7 +132,7 @@ def monitor_active_jobs():
         # Any needing redial?
         incompletes = db['reminders'].find({
           'job_id': job['_id'],
-          'voice.attempts': {'$lt': MAX_CALL_ATTEMPTS},
+          'voice.attempts': {'$lt': app.config['MAX_CALL_ATTEMPTS']},
           '$or':[
             {'voice.status': 'busy'},
             {'voice.status': 'no-answer'}]})
@@ -148,7 +148,7 @@ def monitor_active_jobs():
             status[job['_id']] = 'completed'
 
             # Connect back to server and notify
-            requests.get(LOCAL_URL + '/complete/' + str(job['_id']))
+            requests.get(app.config['LOCAL_URL'] + '/complete/' + str(job['_id']))
 
             #email_job_summary(job['_id'])
 
@@ -185,7 +185,7 @@ def send_calls(job_id):
         if reminder['voice']['status'] not in ['pending', 'no-answer', 'busy']:
             continue
 
-        if reminder['voice']['attempts'] >= MAX_CALL_ATTEMPTS:
+        if reminder['voice']['attempts'] >= app.config['MAX_CALL_ATTEMPTS']:
             continue
 
         call = dial(reminder['voice']['to'])
@@ -266,7 +266,7 @@ def send_emails(job_id):
 
             logger.debug(json_args)
 
-            r = requests.post(LOCAL_URL + '/email/send', json=json_args)
+            r = requests.post(app.config['LOCAL_URL'] + '/email/send', json=json_args)
 
         except requests.exceptions.RequestException as e:
             logger.error('Error sending email: %s', str(e))
@@ -292,7 +292,7 @@ def get_jobs(args):
     jobs = db['jobs'].find()
 
     if jobs:
-        jobs = jobs.sort('fire_calls_dtime',-1).limit(JOBS_PER_PAGE)
+        jobs = jobs.sort('fire_calls_dtime',-1).limit(app.config['JOBS_PER_PAGE'])
 
     return jobs
 
@@ -405,15 +405,15 @@ def dial(to):
 
     try:
         twilio_client = twilio.rest.TwilioRestClient(
-          TWILIO_ACCOUNT_SID,
-          TWILIO_AUTH_ID
+          app.config['TWILIO_ACCOUNT_SID'],
+          app.config['TWILIO_AUTH_ID']
         )
 
         call = twilio_client.calls.create(
-          from_ = FROM_NUMBER,
+          from_ = app.config['FROM_NUMBER'],
           to = '+1'+to,
           url = PUB_URL + '/reminders/call.xml',
-          status_callback = PUB_URL + '/reminders/call_event',
+          status_callback = app.config['PUB_URL'] + '/reminders/call_event',
           status_method = 'POST',
           status_events = ["completed"], # adding more status events adds cost
           method = 'POST',
@@ -543,7 +543,7 @@ def get_answer_xml_template(args):
         )
         response_xml.record(
             method= 'GET',
-            action= PUB_URL+'/recordaudio',
+            action= app.config['PUB_URL'] + '/recordaudio',
             playBeep= True,
             finishOnKey='#'
         )
@@ -604,13 +604,13 @@ def call_event(args):
 def sms(to, msg):
     try:
         twilio_client = twilio.rest.TwilioRestClient(
-          TWILIO_ACCOUNT_SID,
-          TWILIO_AUTH_ID
+          app.config['TWILIO_ACCOUNT_SID'],
+          app.config['TWILIO_AUTH_ID']
         )
         message = twilio_client.messages.create(
           body = msg,
           to = '+1' + to,
-          from_ = SMS_NUMBER,
+          from_ = app.config['SMS_NUMBER'],
           status_callback = PUB_URL + '/sms/status'
         )
     except twilio.TwilioRestException as e:
@@ -663,8 +663,8 @@ def email_job_summary(job_id):
     job = db['jobs'].find_one({'_id':job_id})
 
     try:
-        r = requests.post(LOCAL_URL + '/email/send', data=json.dumps({
-          "recipient": FROM_EMAIL,
+        r = requests.post(app.config['LOCAL_URL'] + '/email/send', data=json.dumps({
+          "recipient": app.config['FROM_EMAIL'],
           "template": 'email/job_summary.html',
           "subject": 'Job Summary %s' % job['name'],
           "data": {
@@ -735,7 +735,7 @@ def cancel_pickup(msg_id):
 
         # Send email w/ next pickup
         if 'next_pickup' in msg['custom']:
-          requests.post(PUB_URL + '/email/send', {
+          requests.post(app.config['PUB_URL'] + '/email/send', {
             "recipient": msg['email']['recipient'],
             "template": "email_no_pickup.html",
             "subject": "Your next pickup"
@@ -912,8 +912,8 @@ def submit_job(form, file):
     try:
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file.save(os.path.join(UPLOAD_FOLDER, filename))
-            file_path = UPLOAD_FOLDER + '/' + filename
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            file_path = app.config['UPLOAD_FOLDER'] + '/' + filename
         else:
             logger.info('could not save file')
 

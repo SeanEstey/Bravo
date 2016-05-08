@@ -2,7 +2,7 @@ import eventlet
 # Allow for non-blocking standard library
 #eventlet.monkey_patch()
 
-from config import *
+from config import LOG_PATH
 
 # Setup Loggers
 import logging
@@ -21,11 +21,6 @@ error_handler = logging.FileHandler(LOG_PATH + 'error.log')
 error_handler.setLevel(logging.ERROR)
 error_handler.setFormatter(log_formatter)
 
-# Setup MongoDB
-import pymongo
-
-mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT, connect=False)
-db = mongo_client[DB]
 
 # Set up Flask Application
 from flask import Flask, g
@@ -48,10 +43,16 @@ socketio = SocketIO(app)
 # Setup LoginManager Flask extension
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = PUB_URL + '/login'
+login_manager.login_view = app.config['PUB_URL'] + '/login'
 
 # TODO: What does this do again????
 app.app_context().push()
+
+# Setup MongoDB
+import pymongo
+
+mongo_client = pymongo.MongoClient(app.config['MONGO_URL'], app.config['MONGO_PORT'], connect=False)
+db = mongo_client[app.config['DB']]
 
 import auth
 

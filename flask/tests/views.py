@@ -6,18 +6,18 @@ import pymongo
 os.chdir('/root/bravo_dev/Bravo/flask')
 sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
-from config import *
-from app import flask_app, celery_app
+from app import app
+from tasks import celery_app
 
-import views # This should register the view functions for the flask_app application
+import views # This should register the view functions for the app application
 
 class TestViews(unittest.TestCase):
     def setUp(self):
-        flask_app.testing = True
-        self.app = flask_app.test_client()
+        app.testing = True
+        self.app = app.test_client()
         celery_app.conf.CELERY_ALWAYS_EAGER = True
         self.db = mongo_client['test']
-        self.login(LOGIN_USER, LOGIN_PW)
+        self.login(app.config['LOGIN_USER'], app.config['LOGIN_PW'])
 
     def tearDown(self):
         if hasattr(self, 'job_a'):
@@ -117,58 +117,60 @@ class TestViews(unittest.TestCase):
       r = self.app.post('/email/send', data=data, headers={"content-type": "application/json"})
       self.assertEquals(r.status_code, 200)
 
-    """
-  def test_show_calls(self):
+    def test_show_calls(self):
       self.insertJobs()
       r = self.app.get('/jobs' + str(self.job_id))
       self.assertEquals(r.status_code, 200)
 
-  def test_schedule_jobs(self):
+    def test_schedule_jobs(self):
       r = self.app.get('/new')
-      self.assertEquals(r.status_code, 200)
-
-    def test_schedule_jobs_view(self):
-        self.assertEqual(requests.get(PUB_URL+'/new').status_code, 200)
-
-    def test_root_view(self):
-        self.assertEquals(requests.get(PUB_URL).status_code, 200)
+      #self.assertEquals(r.status_code, 200)
 
     def test_get_speak_etw_dropoff(self):
         self.insertJobs()
         self.msg['etw_status'] = 'Dropoff'
-        speak = bravo.get_speak(self.job_a, self.msg)
-        self.assertIsInstance(speak, str)
-
-    def test_show_jobs_view(self):
-        self.assertEqual(requests.get(PUB_URL+'/jobs').status_code, 200)
+        #speak = bravo.get_speak(self.job_a, self.msg)
+        #self.assertIsInstance(speak, str)
 
     def test_show_calls_view(self):
         self.insertJobs()
-        uri = PUB_URL + '/jobs/' + str(self.job_id)
-        self.assertEqual(requests.get(uri).status_code, 200)
-  """
+        #r = self.app.get('/jobs/'+str(self.job_id))
+        #self.assertEqual(r.status_code, 200)
 
 if __name__ == '__main__':
-    mongo_client = pymongo.MongoClient(MONGO_URL, MONGO_PORT)
+    mongo_client = pymongo.MongoClient(app.config['MONGO_URL'],app.config['MONGO_PORT'])
     views.db = mongo_client['test']
     views.reminders.db = mongo_client['test']
 
+    import logging
+
     # Modify loggers to redirect to tests.log before getting client
-    test_log_handler = logging.FileHandler(LOG_PATH + 'tests.log')
-    views.logger.handlers = []
-    views.logger = logging.getLogger(views.__name__)
-    views.logger.addHandler(test_log_handler)
-    views.logger.setLevel(logging.DEBUG)
-    views.auth.logger = logging.getLogger(views.__name__)
-    views.reminders.logger = logging.getLogger(views.__name__)
-    views.routing.logger = logging.getLogger(views.__name__)
-    views.receipts.logger = logging.getLogger(views.__name__)
-    views.scheduler.logger = logging.getLogger(views.__name__)
-    views.gsheets.logger = logging.getLogger(views.__name__)
-    views.log.logger = logging.getLogger(views.__name__)
+    log_formatter = logging.Formatter('[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M')
+    test_log_handler = logging.FileHandler(app.config['LOG_PATH'] + 'tests.log')
+    test_log_handler.setLevel(logging.DEBUG)
+    test_log_handler.setFormatter(log_formatter)
+
+    app.logger.handlers = []
+    app.logger.addHandler(test_log_handler)
+    app.logger.setLevel(logging.DEBUG)
+
+    import auth
+    auth.logger = logging.getLogger(__name__)
+    auth.logger.addHandler(test_log_handler)
+    auth.logger.setLevel(logging.DEBUG)
+
+    views.app.logger.handlers = []
+    views.app.logger.addHandler(test_log_handler)
+    views.app.logger.setLevel(logging.DEBUG)
+
+    #views.routing.logger = logging.getLogger(views.__name__)
+    #views.receipts.logger = logging.getLogger(views.__name__)
+    #views.scheduler.logger = logging.getLogger(views.__name__)
+    #views.gsheets.logger = logging.getLogger(views.__name__)
+    #views.log.logger = logging.getLogger(views.__name__)
 
     from datetime import datetime
     now = datetime.now()
-    views.logger.info(now.strftime('\n[%m-%d %H:%M] *** START VIEWS UNIT TEST ***\n'))
+    app.logger.info(now.strftime('\n[%m-%d %H:%M] *** START VIEWS UNIT TEST ***\n'))
 
     unittest.main()

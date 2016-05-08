@@ -1,30 +1,21 @@
-import os
-import logging
-import pymongo
-from datetime import timedelta
-from private_config import *
-
-# When True, uses Werkzeug dev server. Server auto-restarts on code changes
-# When False, uses gevent (wsgi, threaded) web server.
-DEBUG = False
-
-# Use non-production DB and google sheets
-TEST_DATA = False
-
-if TEST_DATA == True:
-    DB = 'test'
-    ROUTE_IMPORTER_SHEET = 'Test Route Importer'
-else:
-    DB = 'wsf'
-    ROUTE_IMPORTER_SHEET = 'Route Importer'
+# Import all sensitive keys
+from auth_keys import *
 
 # App
+DEBUG = False # Uses Werkzeug dev server when True, otherwise gevent (wsgi, threaded)
+AGENCIES = ['vec', 'wsf']
+DB = 'bravo' # Mongo Database
+MONGO_URL = 'localhost'
+MONGO_PORT = 27017
 LOCAL_PORT = 8000
 LOCAL_URL = 'http://localhost:8000'
 PUB_URL = 'http://bravoweb.ca'
 TITLE = 'Bravo'
 LOG_PATH = '/var/www/bravo/logs/'
 LOG_LINES = 200
+
+# Gsheets.py module
+GSHEET_NAME = 'Route Importer'
 
 # Reminders
 JOB_TIME_LIMIT = 3000
@@ -37,10 +28,6 @@ REDIAL_DELAY = 300
 UPLOAD_FOLDER = '/tmp'
 JOBS_PER_PAGE = 10
 ALLOWED_EXTENSIONS = set(['csv','xls'])
-
-# Ports/Domains
-MONGO_URL = 'localhost'
-MONGO_PORT = 27017
 
 # Mailgun
 MAILGUN_DOMAIN = 'wsaf.ca'

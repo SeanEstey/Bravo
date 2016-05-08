@@ -4,10 +4,10 @@ import gspread
 import requests
 from datetime import datetime
 from dateutil.parser import parse
+import logging
 
-from app import db, info_handler, error_handler
+from app import app, db, info_handler, error_handler
 from tasks import celery_app
-from config import *
 
 logger = logging.getLogger(__name__)
 logger.addHandler(info_handler)
@@ -39,7 +39,7 @@ def update_entry(status, destination):
 
     try:
         gc = auth(['https://spreadsheets.google.com/feeds'])
-        sheet = gc.open(ROUTE_IMPORTER_SHEET)
+        sheet = gc.open(app.config['GSHEET_NAME'])
         wks = sheet.worksheet(destination['worksheet'])
     except Exception as e:
         logger.error(
@@ -104,7 +104,7 @@ def update_entry(status, destination):
 def create_rfu(request_note, account_number=None, next_pickup=None, block=None, date=None):
     try:
         gc = auth(['https://spreadsheets.google.com/feeds'])
-        sheet = gc.open(ROUTE_IMPORTER_SHEET)
+        sheet = gc.open(app.config['GSHEET_NAME'])
         wks = sheet.worksheet('RFU')
     except Exception as e:
         logger.error('Could not open RFU worksheet: %s', str(e))
@@ -143,7 +143,7 @@ def create_rfu(request_note, account_number=None, next_pickup=None, block=None, 
 def add_signup(signup):
     try:
       gc = auth(['https://spreadsheets.google.com/feeds'])
-      wks = gc.open(ROUTE_IMPORTER_SHEET).worksheet('Signups')
+      wks = gc.open(app.config['GSHEET_NAME']).worksheet('Signups')
 
       form_data = {
         'Signup Date': datetime.now().strftime('%-m/%-d/%Y'),

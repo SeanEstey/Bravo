@@ -1,4 +1,5 @@
 import json
+import logging
 from dateutil.parser import parse
 from datetime import datetime
 import requests

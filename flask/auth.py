@@ -3,9 +3,9 @@ from flask import Flask, request, g, Response, render_template
 from flask.ext.login import login_user, logout_user, login_required
 from user import User
 import json
+import logging
 
 from app import db, info_handler, error_handler, login_manager
-from config import *
 
 logger = logging.getLogger(__name__)
 logger.addHandler(info_handler)

@@ -35,6 +35,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 app.jinja_env.add_extension("jinja2.ext.do")
 app.logger.addHandler(error_handler)
 app.logger.addHandler(info_handler)
+app.logger.addHandler(debug_handler)
 app.logger.setLevel(logging.DEBUG)
 
 # Setup Socket.io

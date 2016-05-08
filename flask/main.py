@@ -1,7 +1,8 @@
 from app import app, socketio, info_handler, error_handler
 from tasks import celery_app
 
-from views import * # Register all view functions with Flask application
+# Register all view functions with Flask application
+import views
 
 import os
 import time

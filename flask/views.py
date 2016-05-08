@@ -20,7 +20,6 @@ import receipts
 import gsheets
 import scheduler
 
-
 #-------------------------------------------------------------------------------
 @app.route('/', methods=['GET'])
 @login_required
@@ -257,13 +256,10 @@ def send_email():
     Required fields: 'recipient', 'template', 'subject', and 'data'
     Required fields for updating Google Sheets:
     'data': {'from':{ 'worksheet','row','upload_status'}}
+    Returns mailgun_id of email
     '''
 
-    app.logger.debug(request)
-
     args = request.get_json(force=True)
-
-    app.logger.debug(args['data'])
 
     for key in ['template', 'subject', 'recipient']:
         if key not in args:
@@ -305,7 +301,7 @@ def send_email():
 
     app.logger.info('Queued email to ' + args['recipient'])
 
-    return 'OK'
+    return json.loads(r.text)['id']
 
 #-------------------------------------------------------------------------------
 @app.route('/email/unsubscribe', methods=['GET'])
@@ -381,7 +377,7 @@ def email_status():
     elif 'reminder_id' in db_doc['on_status_update']:
         # Update Reminder record
         db['reminders'].update_one(
-          {'email.mid': request.form['Message-Id']},
+          {'_id': ObjectId(db_doc['on_status_update']['reminder_id'])},
           {'$set':{
             "email.status": request.form['event'],
             "email.code": request.form.get('code'),

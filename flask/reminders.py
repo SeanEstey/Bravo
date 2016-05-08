@@ -240,7 +240,7 @@ def send_emails(job_id):
             continue
 
         if not reminder['email']['recipient']:
-            db['reminders'].update(
+            db['reminders'].update_one(
                 {'_id':reminder['_id']},
                 {'$set': {'email.status': 'no_email'}}
             )
@@ -250,12 +250,13 @@ def send_emails(job_id):
 
         try:
             data = reminder['custom']
+            data['event_date'] = reminder['event_date']
             data['account'] = {
               "name": reminder['name'],
               "email": reminder['email']['recipient']
             }
             # Need this for email/send view
-            data['from'] = {}
+            data['from'] = {'reminder_id': str(reminder['_id'])}
 
             json_args = bson_to_json({
               "recipient": reminder['email']['recipient'],
@@ -264,9 +265,12 @@ def send_emails(job_id):
               "data": data
             })
 
-            logger.debug(json_args)
+            headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+            r = requests.post(app.config['LOCAL_URL'] + '/email/send', headers=headers, data=json_args)
 
-            r = requests.post(app.config['LOCAL_URL'] + '/email/send', json=json_args)
+            db['reminders'].update_one(
+                {'_id':reminder['_id']},
+                {'$set': {'email.mid': r.text}})
 
         except requests.exceptions.RequestException as e:
             logger.error('Error sending email: %s', str(e))
@@ -297,7 +301,7 @@ def get_jobs(args):
     return jobs
 
 #-------------------------------------------------------------------------------
-def csv_line_to_db(job_id, schema, buf_row, errors):
+def csv_line_to_db(job_id, schema, idx, buf_row, errors):
     '''Create mongodb "reminder" record from .CSV line
     job_id: mongo "job" record_id in ObjectId format
     schema: template dict from reminder_templates.json file
@@ -412,7 +416,7 @@ def dial(to):
         call = twilio_client.calls.create(
           from_ = app.config['FROM_NUMBER'],
           to = '+1'+to,
-          url = PUB_URL + '/reminders/call.xml',
+          url = app.config['PUB_URL'] + '/reminders/call.xml',
           status_callback = app.config['PUB_URL'] + '/reminders/call_event',
           status_method = 'POST',
           status_events = ["completed"], # adding more status events adds cost
@@ -890,7 +894,7 @@ def job_print(job_id):
 #-------------------------------------------------------------------------------
 def allowed_file(filename):
     return '.' in filename and \
-     filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+     filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
 
 #-------------------------------------------------------------------------------
 def cancel_job(job_id):

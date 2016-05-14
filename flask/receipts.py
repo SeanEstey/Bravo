@@ -147,7 +147,7 @@ def process(entries, keys):
                 gift_accounts.append({'entry': entries[i], 'account': accounts[i]})
 
         except Exception as e:
-            logger.error('Error processing receipt on row #%s',str(entries[i]['row']))
+            logger.error('Error processing receipt on row #%s',str(entries[i]['from']['row']))
 
         # All receipts sent except Gifts. Query Journal Histories
 

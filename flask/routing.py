@@ -67,7 +67,7 @@ def get_gmaps_url(address, lat, lng):
 #-------------------------------------------------------------------------------
 def get_postal(geo_result):
     for component in geo_result['address_components']:
-        if component['types'] == 'postal_code':
+        if 'postal_code' in component['types']:
             return component['short_name']
 
     return False
@@ -75,8 +75,10 @@ def get_postal(geo_result):
 #-------------------------------------------------------------------------------
 def geocode(formatted_address, postal=None):
     '''documentation: https://developers.google.com/maps/documentation/geocoding
-    Returns first result
-    Note: including Postal Code in address seems to lower accuracy of results
+    formatted_address: string with address + city + province
+    Should NOT include postal code
+    postal: optional arg. Used to identify correct location when multiple
+    results found
     '''
 
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
@@ -103,8 +105,6 @@ def geocode(formatted_address, postal=None):
         logger.info("Error geocoding %s. %s", formatted_address, response)
         return False
 
-    match_index = 0
-
     if len(response['results']) == 1 and 'partial_match' in response['results'][0]:
         logger.info('Warning: Only partial match found for "%s". Using "%s". '\
                     'Geo-coordinates may be incorrect.',
@@ -113,27 +113,28 @@ def geocode(formatted_address, postal=None):
         logger.info('Multiple results geocoded for "%s". Finding best match...',
                     formatted_address)
 
+        # No way to identify best match
         if postal is None:
-            logger.error('No postal code provided. Returning first result.')
-            return response['results'][match_index]
+            logger.error('Warning: no postal code provided. Returning first result: "%s"',
+                         response['results'][0]['formatted_address'])
+            return response['results'][0]
 
-        # Go through results, look for Postal Code match
+        # Let's use the Postal Code to find the best match
         for idx, result in enumerate(response['results']):
-            if get_postal(result):
-                short_postal = get_postal(result)[0:3]
+            if not get_postal(result):
+                continue
 
-                if short_postal == postal[0:3]:
-                    logger.info('First half of Postal Code "%s" matched in ' \
-                                'result[%s]: address "%s". Using as best match.',
-                                short_postal, str(idx))
-                    match_index = idx
+            if get_postal(result)[0:3] == postal[0:3]:
+                logger.info('First half of Postal Code "%s" matched in ' \
+                            'result[%s]: "%s". Using as best match.',
+                            get_postal(result), str(idx), result['formatted_address'])
+                return result
 
-        if match_index == 0:
-            logger.info('Using first result as match: "%s, %s"',
-            response['results'][0]['formatted_address'],
-            get_postal(response['results'][0]))
+        logger.error('Warning: unable to identify correct match. Using first '\
+                    'result as best guess: %s',
+                    response['results'][0]['formatted_address'])
 
-    return response['results'][match_index]
+    return response['results'][0]
 
 #-------------------------------------------------------------------------------
 def get_accounts(block):

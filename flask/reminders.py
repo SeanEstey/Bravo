@@ -374,7 +374,7 @@ def reset_job(job_id):
         'email.status': 'pending',
     }})
 
-    logger.info('%d reminders reset', n)
+    logger.info('%s reminders reset', n)
 
     n = db['jobs'].update(
       {'_id': ObjectId(job_id)},
@@ -382,7 +382,7 @@ def reset_job(job_id):
         'status': 'pending',
     }})
 
-    logger.info('%d jobs reset', n)
+    logger.info('%s jobs reset', n)
 
 #-------------------------------------------------------------------------------
 def edit_msg(job_id, msg_id, fields):

@@ -193,7 +193,7 @@ def call_xml():
 
         html = html.replace("\n", "")
         html = html.replace("  ", "")
-        app.logger.info('speak template: %s', html)
+        app.logger.debug('speak template: %s', html)
 
         db['reminders'].update({'_id':template['reminder']},{'$set':{'voice.speak':html}})
 

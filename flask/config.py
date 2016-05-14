@@ -15,7 +15,7 @@ LOG_PATH = '/var/www/bravo/logs/'
 LOG_LINES = 200
 
 # Gsheets.py module
-GSHEET_NAME = 'Route Importer'
+GSHEET_NAME = 'Bravo Sheets'
 
 # Reminders
 JOB_TIME_LIMIT = 3000

@@ -1,0 +1,2 @@
+$gapps -b auth /path/to/client_secret.json
+$gapps init <gdrive_script_id>

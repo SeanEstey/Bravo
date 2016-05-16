@@ -113,7 +113,9 @@ $cd Bravo/gscript
 $gapps init <gdrive_script_id>
 ```
 
-I had some kind of permissions issue, can't recall how I sorted it out. Think I had to change the gapps executable permissions or change the npm install directory...
+Make sure the .gs files are in Bravo/gscript/src.
+
+<b>[I had some kind of permissions issue, can't recall how I sorted it out. Think I had to change the gapps executable permissions or change the npm install directory...]</b>
 
 ### Run Instructions
 

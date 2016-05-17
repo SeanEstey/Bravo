@@ -1,4 +1,4 @@
-### Setup Instructions
+### Python/PHP Setup Instructions
 
 ###### Install Dependencies
 ```
@@ -26,13 +26,15 @@ cd Bravo
 ```
 
 ###### PHP Setup
--Copy bravo/php files to webroot /var/www/bravo/php
+Copy bravo/php files to webroot /var/www/bravo/php
 
--Create log folder:
+Create log folder:
 
-'$mkdir /var/www/bravo/logs'
--Create blank log files in this folder: debug.log, info.log, error.log, tests.log
--Set proper webroot permissions for www-data user:
+`$mkdir /var/www/bravo/logs`
+
+Create blank log files in this folder: debug.log, info.log, error.log, tests.log
+
+Set proper webroot permissions for www-data user:
 ```
 chown -R root:www-data /var/www/bravo
 chmod -R 660 /var/www/bravo
@@ -81,6 +83,39 @@ ETAP_WRAPPER_KEYS = {
   'etap_pass': ''
 }
 ```
+
+### Google Sheets / Google Script Setup Instructions
+
+From Google Drive, create new Sheet named `Bravo Sheets` with worksheets `Routes`, `RFU`, `MPU`, `Signups`
+
+From Google Drive, create new Script. Open it. Tools->Script Editor, copy the ID in URL.
+
+Install node.js and npm:
+
+`apt-get install npm nodejs`
+
+Install node-google-apps-script (https://github.com/danthareja/node-google-apps-script)
+
+`npm install -g node-google-apps-script`
+
+Go to Google Developer Console, create new project, create Google ClientID Oauth key, download JSON file.
+
+Place in Bravo/gscript.
+
+Setup gapps:
+
+`gapps auth -b /path/to/key.json`
+
+Init gapps:
+
+```
+$cd Bravo/gscript
+$gapps init <gdrive_script_id>
+```
+
+Make sure the .gs files are in Bravo/gscript/src.
+
+<b>[I had some kind of permissions issue, can't recall how I sorted it out. Think I had to change the gapps executable permissions or change the npm install directory...]</b>
 
 ### Run Instructions
 

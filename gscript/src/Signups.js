@@ -1,11 +1,17 @@
 //---------------------------------------------------------------------
-function Signups() {
+function Signups(config) {
   /* Constructor that pulls data from entries in Signups worksheet, some
    * schedule data, etc
+   * config: Config object in Config.gs
    */
+ 
+  this.etap_query_category = config['etap_query_category'];
+  this.twilio_auth_key = config['twilio_auth_key'];
+  this.rules = config['booking'];
+  this.cal_ids = config['cal_ids'];
   
-  this.ss = SpreadsheetApp.getActiveSpreadsheet();
-  this.sheet = this.ss.getSheetByName("Signups");
+  var ss = SpreadsheetApp.openById(config['bravo_ss_id']);
+  this.sheet = ss.getSheetByName("Signups");
   
   var data_range = this.sheet.getDataRange();
   var rows = data_range.getValues();
@@ -16,37 +22,35 @@ function Signups() {
   var tomorrow = new Date(Date.now() + (24 * 3600 * 1000));
   var ten_weeks = new Date(Date.now() + (24 * 3600 * 7 * 10 * 1000));
   
-  this.calendar_events = Schedule.getCalEventsBetween(Config['res_calendar_id'], tomorrow, ten_weeks);
+  this.calendar_events = Schedule.getCalEventsBetween(this.cal_ids['res'], tomorrow, ten_weeks);
 }
 
 //---------------------------------------------------------------------
-function processSignups() {
+Signups.prototype.process = function() {
   /* Go through all Signup entries and assign their
    * Blocks/Neighborhoods/Dropoffs, validate address/phone, and check
    * for duplicates in eTapestry
    */
-  
-  var signupObj = new Signups();
 
-  for(var index=0; index<signupObj.signups_values.length; index++) {
-    var signup = signupObj.signups_values[index];
-    var headers = signupObj.headers;
+  for(var index=0; index<this.signups_values.length; index++) {
+    var signup = this.signups_values[index];
+    var headers = this.headers;
     
     if(signup[headers.indexOf('Dropoff Date')])
       continue;
     
-    signupObj.sheet.getRange(index+2, headers.indexOf('Validation')+1).setNote('');
+    this.sheet.getRange(index+2, headers.indexOf('Validation')+1).setNote('');
     signup[headers.indexOf('Validation')] = '';
     
     /*** If no Dropoff date, do full validation ***/
     
-    signupObj.assignNaturalBlock(index);
-    signupObj.assignBookingBlock(index);
-    signupObj.assignTemporaryNotes(index);
-    signupObj.validateAddress(index);
-    signupObj.checkForDuplicates(index);
-    signupObj.validatePhone(index);
-    signupObj.validateEmail(index);
+    this.assignNaturalBlock(index);
+    this.assignBookingBlock(index);
+    this.assignTemporaryNotes(index);
+    this.validateAddress(index);
+    this.checkForDuplicates(index);
+    this.validatePhone(index);
+    this.validateEmail(index);
     
     // Fix any minor formatting issues
     
@@ -85,18 +89,18 @@ function processSignups() {
     if(missing.length > 0)
       signup[headers.indexOf('Validation')] += 'Missing: ' + missing.join(', ');
     
-    signupObj.sheet.getRange(index+2, 1, 1, signupObj.sheet.getLastColumn()).setValues([signup]);
+    this.sheet.getRange(index+2, 1, 1, this.sheet.getLastColumn()).setValues([signup]);
     
     // Add formula for Projected Route Size and # Occurences
-    signupObj.sheet.getRange(
-      index+2, signupObj.headers.indexOf('Projected Route Size')+1,
+    this.sheet.getRange(
+      index+2, this.headers.indexOf('Projected Route Size')+1,
       1, 1
-    ).setFormula(signupObj.signups_formulas[index][signupObj.headers.indexOf('Projected Route Size')]);
+    ).setFormula(this.signups_formulas[index][this.headers.indexOf('Projected Route Size')]);
   }
   
-  signupObj.sheet.getDataRange().setHorizontalAlignment('right');
-  signupObj.sheet.getDataRange().setFontSize(9);
-  signupObj.sheet.getDataRange().setWrap(true);
+  this.sheet.getDataRange().setHorizontalAlignment('right');
+  this.sheet.getDataRange().setFontSize(9);
+  this.sheet.getDataRange().setWrap(true);
 }
 
 
@@ -138,11 +142,14 @@ Signups.prototype.getPresetBookingBlock = function(index) {
   var address = signup[headers.indexOf("Address")] + ', ' + signup[headers.indexOf("City")] + ", AB";
   var geo = Maps.newGeocoder().geocode(address);
   
+  Logger.log('Looking for preset block for entry #' + String(index+1));
+  
   var blocks = Geo.findBlocksWithin(
     geo.results[0].geometry.location.lat,
     geo.results[0].geometry.location.lng,
     10.0,
-    date
+    date,
+    this.cal_ids['res']
   );
   
   date.setHours(0,0,0,0,0);
@@ -227,9 +234,11 @@ Signups.prototype.assignBookingBlock = function(index) {
   }
   
   // Get all posssible bookings within 10km
-  var alt_bookings = getBookingOptionsByRadius(
+  var alt_bookings = Booking.getOptionsByRadius(
     geo.results[0].geometry.location.lat, 
-    geo.results[0].geometry.location.lng
+    geo.results[0].geometry.location.lng,
+    this.cal_ids,
+    this.rules
   );
   
   var alt_schedule = '';
@@ -237,7 +246,7 @@ Signups.prototype.assignBookingBlock = function(index) {
   
   // Disqualify any booking that is maxed out or closer than 2 days away
   for(var i=0; i<alt_bookings.length; i++) {
-    if(alt_bookings[i]['booking_size'] > Config['booking']['size']['residential']['max'])
+    if(alt_bookings[i]['booking_size'] > this.rules['size']['res']['max'])
       continue;
     
     var diff = alt_bookings[i]['date'] - new Date();
@@ -283,12 +292,12 @@ Signups.prototype.assignBookingBlock = function(index) {
   
   if(signup[headers.indexOf('Projected Route Size')] == '?') {
     var data = {
-      'query_category': Config['etap_query_category'],
+      'query_category': this.etap_query_category,
       'query':signup[headers.indexOf('Booking Block')], 
       'date':date_to_ddmmyyyy(signup[headers.indexOf('Dropoff Date')])
     };
     
-    var response = bravoPOST(Config['etap_api_url'], 'get_scheduled_route_size', data);
+    var response = bravoPOST(BRAVO_PHP_URL, 'get_scheduled_route_size', data);
     
     if(response.getResponseCode() == 200) {
       var booked = response.getContentText().substring(0, response.getContentText().indexOf('/'));
@@ -370,9 +379,9 @@ Signups.prototype.assignNaturalBlock = function(index) {
   // C. Get Block Size
   
   var response = bravoPOST(
-    Config['etap_api_url'], 
+    BRAVO_PHP_URL, 
     'get_block_size', {
-      'query_category':Config['etap_query_category'],
+      'query_category':this.etap_query_category,
       'query': signup[this.headers.indexOf('Natural Block')]
     }
   );
@@ -468,7 +477,7 @@ Signups.prototype.checkForDuplicates = function(index) {
   if(signup[headers.indexOf('Email')])
     criteria['email'] = signup[headers.indexOf('Email')];
   
-  var response = bravoPOST(Config['etap_api_url'], 'check_duplicates', criteria);
+  var response = bravoPOST(BRAVO_PHP_URL, 'check_duplicates', criteria);
   
   if(response.getResponseCode() == 200 && response.getContentText())
     signup[headers.indexOf('Existing Account')] = response.getContentText();
@@ -498,11 +507,11 @@ Signups.prototype.validatePhone = function(index) {
     signup[this.headers.indexOf('Primary Phone')] = phone;
   }
   
-  if(!Config['twilio_auth_key'])
+  if(!this.twilio_auth_key)
     return true;
   
   var headers = {
-    "Authorization" : "Basic " + Utilities.base64Encode(Config['twilio_auth_key'])
+    "Authorization" : "Basic " + Utilities.base64Encode(this.twilio_auth_key)
   };
     
   try {
@@ -537,94 +546,88 @@ Signups.prototype.validatePhone = function(index) {
 }
 
 //---------------------------------------------------------------------
-function uploadAuditedSignups() {
+Signups.prototype.buildPayload = function(ui) {
   /* Send 'em to eTapestry via Bravo */
   
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName('Signups');
-  var ui = SpreadsheetApp.getUi();
-  var rows = sheet.getDataRange().getValues();
-  var headers = rows[0];
-  var signups = rows.slice(1);
   var request_id = (new Date).getTime();
   var payload = [];
   
   // Select signups which have been audited but not yet uploaded,
   // have all required fields
-  for(var i=0; i<signups.length; i++) {
-    var signup = signups[i];
+  for(var i=0; i<this.signups_values.length; i++) {
+    var signup = this.signups_values[i];
 
-    if(!signup[headers.indexOf('Audited')])
+    if(!signup[this.headers.indexOf('Audited')])
       continue;
-    if(signup[headers.indexOf('Upload Status')])
+    if(signup[this.headers.indexOf('Upload Status')])
       continue;
-    if(!signup[headers.indexOf('Dropoff Date')])
+    if(!signup[this.headers.indexOf('Dropoff Date')])
       continue;
-    if(!signup[headers.indexOf('Natural Block')])
+    if(!signup[this.headers.indexOf('Natural Block')])
       continue;
-    if(!signup[headers.indexOf('Booking Block')])
+    if(!signup[this.headers.indexOf('Booking Block')])
       continue;
-    if(!signup[headers.indexOf('Neighborhood')])
+    if(!signup[this.headers.indexOf('Neighborhood')])
       continue;
     
-    var block = signup[headers.indexOf('Natural Block')] + ',' + signup[headers.indexOf('Booking Block')];
+    var block = signup[this.headers.indexOf('Natural Block')] + ',' + signup[this.headers.indexOf('Booking Block')];
     
-    if(signup[headers.indexOf('Natural Block')] == signup[headers.indexOf('Booking Block')])
-      block = signup[headers.indexOf('Natural Block')];
+    if(signup[this.headers.indexOf('Natural Block')] == signup[this.headers.indexOf('Booking Block')])
+      block = signup[this.headers.indexOf('Natural Block')];
     
     var udf = {
-      'Status': signup[headers.indexOf('Status')],
-      'Signup Date': date_to_ddmmyyyy(signup[headers.indexOf('Signup Date')]),
-      'Dropoff Date': date_to_ddmmyyyy(signup[headers.indexOf('Dropoff Date')]),
-      'Next Pickup Date': date_to_ddmmyyyy(signup[headers.indexOf('Dropoff Date')]),
-      'Neighborhood': signup[headers.indexOf('Neighborhood')],
+      'Status': signup[this.headers.indexOf('Status')],
+      'Signup Date': date_to_ddmmyyyy(signup[this.headers.indexOf('Signup Date')]),
+      'Dropoff Date': date_to_ddmmyyyy(signup[this.headers.indexOf('Dropoff Date')]),
+      'Next Pickup Date': date_to_ddmmyyyy(signup[this.headers.indexOf('Dropoff Date')]),
+      'Neighborhood': signup[this.headers.indexOf('Neighborhood')],
       'Block': block,
-      'Driver Notes': signup[headers.indexOf('Driver Notes')],
-      'Office Notes': signup[headers.indexOf('Office Notes')],
-      'Tax Receipt': signup[headers.indexOf('Tax Receipt')],
-      'Reason Joined': signup[headers.indexOf('Reason Joined')],
-      'Referrer': signup[headers.indexOf('Referrer')],
+      'Driver Notes': signup[this.headers.indexOf('Driver Notes')],
+      'Office Notes': signup[this.headers.indexOf('Office Notes')],
+      'Tax Receipt': signup[this.headers.indexOf('Tax Receipt')],
+      'Reason Joined': signup[this.headers.indexOf('Reason Joined')],
+      'Referrer': signup[this.headers.indexOf('Referrer')],
      };
     
     var persona = {
-      'personaType': signup[headers.indexOf('Persona Type')],
-      'address': signup[headers.indexOf('Address')],
-      'city': signup[headers.indexOf('City')],
+      'personaType': signup[this.headers.indexOf('Persona Type')],
+      'address': signup[this.headers.indexOf('Address')],
+      'city': signup[this.headers.indexOf('City')],
       'state': 'AB',
       'country': 'CA',
-      'postalCode': signup[headers.indexOf('Postal Code')],
-      'email': signup[headers.indexOf('Email')],
+      'postalCode': signup[this.headers.indexOf('Postal Code')],
+      'email': signup[this.headers.indexOf('Email')],
       'phones': [
-      {'type': 'Voice', 'number': signup[headers.indexOf('Primary Phone')]},
-        {'type': 'Mobile', 'number': signup[headers.indexOf('Mobile Phone')]}
+      {'type': 'Voice', 'number': signup[this.headers.indexOf('Primary Phone')]},
+        {'type': 'Mobile', 'number': signup[this.headers.indexOf('Mobile Phone')]}
       ]
     };
     
-    if(signup[headers.indexOf('Name Format')] == 'Individual') {
+    if(signup[this.headers.indexOf('Name Format')] == 'Individual') {
       persona['nameFormat'] = 1;
-      persona['name'] = signup[headers.indexOf('First Name')] + ' ' + 
-        signup[headers.indexOf('Last Name')];
-      persona['sortName'] = signup[headers.indexOf('Last Name')] + ', ' + 
-        signup[headers.indexOf('First Name')];
-      persona['firstName'] = signup[headers.indexOf('First Name')];
-      persona['lastName'] = signup[headers.indexOf('Last Name')];
-      persona['shortSalutation'] = signup[headers.indexOf('First Name')];
-      persona['longSalutation'] = signup[headers.indexOf('Title')] + ' ' + 
-        signup[headers.indexOf('Last Name')];
-      persona['envelopeSalutation'] = signup[headers.indexOf('Title')] + ' ' + 
-        signup[headers.indexOf('First Name')] + ' ' + signup[headers.indexOf('Last Name')];
+      persona['name'] = signup[this.headers.indexOf('First Name')] + ' ' + 
+        signup[this.headers.indexOf('Last Name')];
+      persona['sortName'] = signup[this.headers.indexOf('Last Name')] + ', ' + 
+        signup[this.headers.indexOf('First Name')];
+      persona['firstName'] = signup[this.headers.indexOf('First Name')];
+      persona['lastName'] = signup[this.headers.indexOf('Last Name')];
+      persona['shortSalutation'] = signup[this.headers.indexOf('First Name')];
+      persona['longSalutation'] = signup[this.headers.indexOf('Title')] + ' ' + 
+        signup[this.headers.indexOf('Last Name')];
+      persona['envelopeSalutation'] = signup[this.headers.indexOf('Title')] + ' ' + 
+        signup[this.headers.indexOf('First Name')] + ' ' + signup[this.headers.indexOf('Last Name')];
     }
     else {
       persona['nameFormat'] = 3;
-      persona['name'] = signup[headers.indexOf('Business Name')];
+      persona['name'] = signup[this.headers.indexOf('Business Name')];
       persona['sortName'] = persona['name'];
-      udf['Contact'] = signup[headers.indexOf('Contact Person')];
+      udf['Contact'] = signup[this.headers.indexOf('Contact Person')];
     }    
     
     payload.push({
       'row': i+2,
       'request_id': request_id,
-      'existing_account': signup[headers.indexOf('Existing Account')],
+      'existing_account': signup[this.headers.indexOf('Existing Account')],
       'persona': persona,
       'udf': udf
     });
@@ -635,60 +638,29 @@ function uploadAuditedSignups() {
     payload.length + ' accounts audited and prepared for upload. Go ahead?',
      ui.ButtonSet.YES_NO) == ui.Button.NO)
   return false;
-  
-  var trigger = ScriptApp.newTrigger('job_monitor')
-  .timeBased()
-  .everyMinutes(1)
-  .create();
-  
-  var now = new Date();
-  
-  var job_info = {
-    'request_id': request_id,
-    'script_name': 'add_accounts',
-    'sheet_name': 'Signups',
-    'status_column': headers.indexOf('Upload Status') + 1,
-    'trigger_id': trigger.getUniqueId(),
-    'trigger_frequency': 1,
-    'task':{
-      'start_row': payload[0]['row'],
-      'end_row': payload[payload.length-1]['row']
-    }
-  }
-  
-  set_property('job_info', JSON.stringify(job_info));
-  
-  log('add_accounts job: ' +  payload.length + ' accounts.', true);
-   
-  bravoPOST(Config['etap_api_url'], 'add_accounts', payload);
+    
+  return payload;
 }
 
 //---------------------------------------------------------------------
-function emailUploadedSignups() {
+Signups.prototype.emailUploaded = function() {
   /* Email welcome letters w/ Dropoff Date to uploaded Signups */
   
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName('Signups');
-  var ui = SpreadsheetApp.getUi();
-  var rows = sheet.getDataRange().getValues();
-  var headers = rows[0];
-  var signups = rows.slice(1);
-
   var num_welcomes_sent = 0;
   
   // Email all Uploaded signups who have registered email addresses  
   
-  for(var i=0; i<signups.length; i++) {
-    var signup = signups[i];
+  for(var i=0; i<this.signups_values.length; i++) {
+    var signup = this.signups_values[i];
     
-    if(!isNumber(signup[headers.indexOf('Upload Status')]) && 
-       signup[headers.indexOf('Upload Status')] != 'Success')
+    if(!isNumber(signup[this.headers.indexOf('Upload Status')]) && 
+       signup[this.headers.indexOf('Upload Status')] != 'Success')
       continue;
     
-    if(!signup[headers.indexOf('Email')])
+    if(!signup[this.headers.indexOf('Email')])
       continue;
     
-    if(signup[headers.indexOf('Email Status')])
+    if(signup[this.headers.indexOf('Email Status')])
       continue;
     
     var options = {
@@ -698,25 +670,25 @@ function emailUploadedSignups() {
       "payload" : JSON.stringify({
         "subject": "Welcome to Empties to Winn",
         "template": "email/welcome.html",
-        "recipient": signup[headers.indexOf('Email')],
+        "recipient": signup[this.headers.indexOf('Email')],
         "data": { 
-          "first_name": signup[headers.indexOf('First Name')],
-          "address": signup[headers.indexOf('Address')],
-          "postal": signup[headers.indexOf('Postal Code')],
-          "dropoff_date": signup[headers.indexOf('Dropoff Date')].toDateString(),
+          "first_name": signup[this.headers.indexOf('First Name')],
+          "address": signup[this.headers.indexOf('Address')],
+          "postal": signup[this.headers.indexOf('Postal Code')],
+          "dropoff_date": signup[this.headers.indexOf('Dropoff Date')].toDateString(),
           "account": {
-            "email": signup[headers.indexOf('Email')]
+            "email": signup[this.headers.indexOf('Email')]
           },
           "from": {
             "worksheet": "Signups",
             "row": i+2,
-            "upload_status": signup[headers.indexOf('Upload Status')],
+            "upload_status": signup[this.headers.indexOf('Upload Status')],
           }
         }
       })
     };
   
-    var response = UrlFetchApp.fetch(Config['server_url'] + '/email/send', options);
+    var response = UrlFetchApp.fetch(BRAVO_URL + '/email/send', options);
     
     Logger.log(response.getContentText());
      

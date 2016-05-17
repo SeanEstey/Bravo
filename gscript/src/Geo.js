@@ -1,14 +1,14 @@
 function Geo() {}
 
 //---------------------------------------------------------------------    
-Geo.findBlocksWithin = function(lat, lng, radius, end_date) {
+Geo.findBlocksWithin = function(lat, lng, radius, end_date, cal_id) {
   /* Return list of scheduled Blocks within given radius of lat/lng, up 
    * to end_date, sorted by date. Block Object defined in Config.
    * Returns empty array if none found 
    */
   
   var today = new Date();
-  var events = Schedule.getCalEventsBetween(Config['res_calendar_id'], today, end_date);
+  var events = Schedule.getCalEventsBetween(cal_id, today, end_date);
   
   var eligible_blocks = [];
   

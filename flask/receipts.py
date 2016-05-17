@@ -65,7 +65,7 @@ def process(entries, keys):
         return False
 
     gc = gsheets.auth(['https://spreadsheets.google.com/feeds'])
-    wks = gc.open('Route Importer').worksheet('Routes')
+    wks = gc.open(GSHEET_NAME).worksheet('Routes')
     headers = wks.row_values(1)
 
     num_zeros = 0

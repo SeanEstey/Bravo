@@ -1,5 +1,7 @@
+function Booking() {}
+
 //----------------------------------------------------------------------------
-function search(term) {
+Booking.search = function(term, cal_ids, rules) {
   /* Search query invoked from Booker client
    * Parses the term arg for conducts appropriate search.
    * term: either Account Number, Postal Code, Address, or Block
@@ -20,13 +22,13 @@ function search(term) {
   
   switch(results['search_type']) {
     case 'block':
-      results['booking_results'] = getBookingOptionsByBlock(term);
+      results['booking_results'] = Booking.getOptionsByBlock(term, cal_ids, rules);
       results['message'] = 'Booking suggestions for Block <b>' + term + '</b> within next <b>sixteen weeks</b>';
       
       break;
       
     case 'postal':
-      results['booking_results'] = getBookingOptionsByPostal(term);
+      results['booking_results'] = Booking.getOptionsByPostal(term, cal_ids, rules);
       results['message'] = 'Booking suggestions for Postal Code <b>' + term.substring(0,3) + '</b> within next <b>ten weeks</b>';
       
       break;
@@ -34,7 +36,7 @@ function search(term) {
     case 'account':
       Logger.log('search by account #');
    
-      var response = bravoPOST(Config['etap_api_url'], 'get_account', {'account_number':term.slice(1)});
+      var response = bravoPOST(BRAVO_PHP_URL, 'get_account', {'account_number':term.slice(1)});
       
       Logger.log('responseCode: ' + JSON.stringify(response.getResponseCode()));
       
@@ -58,13 +60,15 @@ function search(term) {
       }
       
       if(account['nameFormat'] == 3) { // BUSINESS
-        results['booking_results'] = getBookingOptionsByPostal(account['postalCode']);
+        results['booking_results'] = Booking.getOptionsByPostal(account['postalCode'], cal_ids, rules);
         results['message'] = 'Booking suggestions for account <b>' + account['name'] + '</b> in <b>' + account['postalCode'].substring(0,3) + '</b> within next <b>14 days</b>';
       }
       else {
-        results['booking_results'] = getBookingOptionsByRadius(
+        results['booking_results'] = Booking.getOptionsByRadius(
           geo.results[0].geometry.location.lat, 
-          geo.results[0].geometry.location.lng
+          geo.results[0].geometry.location.lng,
+          cal_ids,
+          rules
         );
         results['message'] = 'Booking suggestions for account <b>' + account['name'] + '</b> in <b>10km</b> within next <b>14 days</b>';
       }
@@ -84,9 +88,11 @@ function search(term) {
       }
 
       results['message'] = 'Booking suggestions for <b>' + term + '</b> in <b>10km</b> within next <b>14 days</b>';
-      results['booking_results'] = getBookingOptionsByRadius(
+      results['booking_results'] = Booking.getOptionsByRadius(
         geo.results[0].geometry.location.lat, 
-        geo.results[0].geometry.location.lng
+        geo.results[0].geometry.location.lng,
+        cal_ids,
+        rules
       );
  
       break;
@@ -97,7 +103,7 @@ function search(term) {
 
 
 //----------------------------------------------------------------------------
-function makeBooking(account_num, udf, type) {
+Booking.make = function(url, account_num, udf, type) {
   /* Makes the booking in eTapestry by posting to Bravo. 
    * This function is invoked from the booker client.
    * type: 'delivery, pickup'
@@ -105,7 +111,7 @@ function makeBooking(account_num, udf, type) {
   
   Logger.log('Making ' + type + ' booking for account ' + account_num + ', udf: ' + udf);
   
-  var response = bravoPOST(Config['etap_api_url'], 'make_booking', {'account_num':account_num, 'udf':udf, 'type':type});
+  var response = bravoPOST(url, 'make_booking', {'account_num':account_num, 'udf':udf, 'type':type});
   
   Logger.log(response.getContentText());
   
@@ -114,14 +120,14 @@ function makeBooking(account_num, udf, type) {
 
 
 //----------------------------------------------------------------------------
-function getBookingOptionsByRadius(lat, lng) {
+Booking.getOptionsByRadius = function(lat, lng, cal_ids, rules) {
   /* Find booking options within number of days wait and radius defined in
    * Config['booking'].
    * Returns array of Blocks on success, empty array on failure
    */
   
   var today = new Date();
-  var two_weeks = new Date(today.getTime() + (1000 * 3600 * 24 * Config['booking']['max_schedule_days_wait']));
+  var two_weeks = new Date(today.getTime() + (1000 * 3600 * 24 * rules['max_schedule_days_wait']));
   var radius = 4.0;
   
   var found = false;
@@ -130,10 +136,10 @@ function getBookingOptionsByRadius(lat, lng) {
   
   // Start with small radius, continually expand radius until match found
   while(!found) {
-    if(radius > Config['booking']['max_block_radius'])
+    if(radius > rules['max_block_radius'])
       break;
     
-    bookings = Geo.findBlocksWithin(lat, lng, radius, two_weeks);
+    bookings = Geo.findBlocksWithin(lat, lng, radius, two_weeks, cal_ids['res']);
     
     if(bookings.length > 0)
       found = true;
@@ -146,9 +152,9 @@ function getBookingOptionsByRadius(lat, lng) {
   if(found) {
     for(var i=0; i<bookings.length; i++) {
       if(Parser.isRes(bookings[i].block))
-        bookings[i]['max_size'] = Config['booking']['size']['residential']['max'];
+        bookings[i]['max_size'] = rules['size']['res']['max'];
       else
-        bookings[i]['max_size'] = Config['booking']['size']['business']['max'];
+        bookings[i]['max_size'] = rules['size']['bus']['max'];
     }
   }
  
@@ -156,23 +162,18 @@ function getBookingOptionsByRadius(lat, lng) {
   return bookings;
 }
 
-function getBlocksOnDate(date) {
-  return Schedule.getCalEventsBetween(Config['res_calendar_id'], date, date);
-  
-}
-
 
 //----------------------------------------------------------------------------
-function getBookingOptionsByBlock(block) {
+Booking.getOptionsByBlock = function(block, cal_ids, rules) {
   /* Searches schedule for all occurences of block within Config['booking']['search_weeks']
    * On success, returns list of objects: {'block','date','location','event_name','booking_size'},
    * empty list on failure.
    */
   
   var today = new Date();
-  var end_date = new Date(today.getTime() + (1000 * 3600 * 24 * 7 * Config['booking']['search_weeks']));
-  var res_events = Schedule.getCalEventsBetween(Config['res_calendar_id'], today, end_date);
-  var bus_events = Schedule.getCalEventsBetween(Config['bus_calendar_id'], today, end_date);
+  var end_date = new Date(today.getTime() + (1000 * 3600 * 24 * 7 * rules['search_weeks']));
+  var res_events = Schedule.getCalEventsBetween(cal_ids['res'], today, end_date);
+  var bus_events = Schedule.getCalEventsBetween(cal_ids['bus'], today, end_date);
   var events = res_events.concat(bus_events);
   
   var results = [];
@@ -191,9 +192,9 @@ function getBookingOptionsByBlock(block) {
     };
     
     if(Parser.isRes(block))
-      result['max_size'] = Config['booking']['size']['residential']['max'];
+      result['max_size'] = rules['size']['res']['max'];
     else
-      result['max_size'] = Config['booking']['size']['business']['max'];
+      result['max_size'] = rules['size']['bus']['max'];
         
     results.push(result);
   }
@@ -207,7 +208,7 @@ function getBookingOptionsByBlock(block) {
   
 
 //----------------------------------------------------------------------------
-function getBookingOptionsByPostal(postal) {
+Booking.getOptionsByPostal = function(postal, cal_ids, rules) {
   /* Return Bus and Res calendar events matching postal code, sorted by date. 
    * JSON format 
    */
@@ -215,8 +216,8 @@ function getBookingOptionsByPostal(postal) {
   postal = postal.toUpperCase();
   var today = new Date();
   var ten_weeks = new Date(today.getTime() + (1000 * 3600 * 24 * 7 * 10));
-  var res_events = Schedule.getCalEventsBetween(Config['res_calendar_id'], today, ten_weeks);
-  var bus_events = Schedule.getCalEventsBetween(Config['bus_calendar_id'], today, ten_weeks);
+  var res_events = Schedule.getCalEventsBetween(cal_ids['res'], today, ten_weeks);
+  var bus_events = Schedule.getCalEventsBetween(cal_ids['bus'], today, ten_weeks);
   var events = res_events.concat(bus_events);
   
   var results = [];
@@ -244,9 +245,9 @@ function getBookingOptionsByPostal(postal) {
       };
       
       if(Parser.isRes(block))
-        result['max_size'] = Config['booking']['size']['residential']['max'];
+        result['max_size'] = rules['size']['res']['max'];
       else
-        result['max_size'] = Config['booking']['size']['business']['max'];
+        result['max_size'] = rules['size']['bus']['max'];
         
       results.push(result);
     }

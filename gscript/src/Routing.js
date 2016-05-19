@@ -1,12 +1,12 @@
 function Routing() {}
 
 //---------------------------------------------------------------------
-Routing.buildScheduled = function(calendar_id, date) {
+Routing.buildScheduled = function(calendar_id, routed_folder, template_id, date, depots) {
   /* Pull eTapestry data from all Residential/Business runs scheduled for
      specified date and submit to Bravo */
   
-  var routed_folder = DriveApp.getFolderById(Config['gdrive_routed_folder_id']);
-  var route_template = DriveApp.getFileById('1Sr3aPhB277lESuOKgr2EJ_XHGPUhuhEEJOXfAoMnK5c');
+  var routed_folder = DriveApp.getFolderById(routed_folder);
+  var route_template = DriveApp.getFileById(template_id);
   
   var later = new Date(date.getTime() + (1000 * 3600 * 1));
   
@@ -24,7 +24,8 @@ Routing.buildScheduled = function(calendar_id, date) {
     var depot = Routing.lookupDepot(
         event.description, 
         block, 
-        event.location.split(",")
+        event.location.split(","),
+        depots
       );
     
     if(!depot) {
@@ -56,13 +57,11 @@ Routing.buildScheduled = function(calendar_id, date) {
 }
 
 //----------------------------------------------------------------------------
-Routing.lookupDepot = function(event_desc, block, postal_codes) {
+Routing.lookupDepot = function(event_desc, block, postal_codes, depots) {
   /* 3 different ways of looking up depot: explicitly in calendar event description,
    * defined by Block in Config, or defined by postal code in Config
    */
-  
-  var depots = Config['depots'];
-    
+      
   // A. Is the depot defined explicitly in Calendar Event description?
   
   if(event_desc) {
@@ -148,6 +147,7 @@ Routing.writeToSheet = function(file, data) {
   
   var ss = SpreadsheetApp.open(file);
   var sheet = ss.getSheetByName("Route");
+  var headers = ss.getSheetByName('Route').getRange('1:1').getValues()[0];
   
   for(var i=0; i<data.length; i++) {
     if(i == data.length - 1) {
@@ -175,11 +175,12 @@ Routing.writeToSheet = function(file, data) {
     if(order['customNotes']['driver notes']) {
       info += 'NOTE: ' + order['customNotes']['driver notes'] + '\n\n';
       
-      sheet.getRange(i+2, Config['route_format']['Order Info']['column']).setFontWeight("bold");
+      //route.headers.indexOf('Order Info')+1
+      sheet.getRange(i+2, headers.indexOf('Order Info')+1).setFontWeight("bold");
       
       if(order['customNotes']['driver notes'].indexOf('***') > -1) {
         info = info.replace(/\*\*\*/g, '');
-        sheet.getRange(i+2, Config['route_format']['Order Info']['column']).setFontColor("red");
+        sheet.getRange(i+2, headers.indexOf('Order Info')+1).setFontColor("red");
       }
     }
     

@@ -2,13 +2,14 @@
 
 require("./lib/nusoap.php");
 
+//-----------------------------------------------------------------------
 function connect($db) {
   if($db->connect_errno > 0){
     die('Unable to connect to database [' . $db->connect_error . ']');
   }
 }
 
-
+//-----------------------------------------------------------------------
 function checkForError($nsc) {
   if($nsc->fault || $nsc->getError()) {
     if(!$nsc->fault) {
@@ -146,9 +147,11 @@ function get_block_size($nsc, $query_category, $query) {
 
 
 //-----------------------------------------------------------------------
-// Returns array of journal gift histories where amount > $0 and format
-// {'date': '2016-01-05T05:00:00:000Z', 'amount': 16.00}
 function get_gift_history($nsc, $ref, $start_date, $end_date) {
+	/* Returns array of journal gift histories where amount > $0 and format
+	 * {'date': '2016-01-05T05:00:00:000Z', 'amount': 16.00}
+	 */
+
   ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
 
   // Return filtered journal entries for provided year
@@ -186,8 +189,8 @@ function get_gift_history($nsc, $ref, $start_date, $end_date) {
 
 
 //-----------------------------------------------------------------------
-/* Check on progress of update_accounts, add_gifts, add_accounts */
 function get_upload_status($db, $request_id, $from_row) {
+	/* Check on progress of update_accounts, add_gifts, add_accounts */
   
   $cursor = $db->find(['request_id'=>$request_id]);
   $results = [];
@@ -204,14 +207,20 @@ function get_upload_status($db, $request_id, $from_row) {
 
 //-----------------------------------------------------------------------
 function process_route_entry($nsc, $entry) {
+	/* If no Date present, UDF will be updated but not cleared
+	 * If Gift + Date, UDF wil be updated and cleared
+	 */
+
   ini_set('max_execution_time', 30000); // IMPORTANT: To prevent fatail error timeout
 
   $etap_account = $nsc->call("getAccountById", array($entry['account_number']));
 
   if(!$etap_account)
-    return 'Acct # ' . (string)$entry['account_number'] . ' not found.';
+		return 'Acct # ' . (string)$entry['account_number'] . ' not found.';
 
-  remove_udf($nsc, $etap_account, $entry['udf']);
+	if(!empty($entry['gift']['date']))
+		remove_udf($nsc, $etap_account, $entry['udf']);
+
   apply_udf($nsc, $etap_account, $entry['udf']);
   
   if(checkForError($nsc))
@@ -241,9 +250,10 @@ function process_route_entry($nsc, $entry) {
 
 
 //-----------------------------------------------------------------------
-/* $note format: {'id': account_number, 'Note': note, 'Date': date} */
-/* Returns response code 200 on success, 400 on failure */
 function add_note($nsc, $note) {
+	/* $note format: {'id': account_number, 'Note': note, 'Date': date} */
+	/* Returns response code 200 on success, 400 on failure */
+
   $account = $nsc->call("getAccountById", array($note["id"]));
   checkForError($nsc);
 
@@ -368,11 +378,14 @@ function add_accounts($db, $nsc, $submissions) {
   write_log((string)count($submissions) . ' accounts added/updated. ' . (string)$num_errors . ' errors.');
 }
 
-// $udf is associative array ie. ["Status"=>"Active", ...], not DefinedValue object.
-// the call to apply_udf() converts to DefinedValue format
-// $persona is associative array
+
 //-----------------------------------------------------------------------
 function modify_account($db, $nsc, $id, $udf, $persona) {
+	/* $udf is associative array ie. ["Status"=>"Active", ...], not 
+	 * DefinedValue object. The call to apply_udf() converts to DefinedValue 
+	 * format.
+	 * $persona is associative array
+	 */
   
   $account = $nsc->call("getAccountById", [$id]);
 
@@ -408,7 +421,6 @@ function modify_account($db, $nsc, $id, $udf, $persona) {
 
   return 'Success';
 }
-
 
 //-----------------------------------------------------------------------
 function no_pickup($nsc, $account_id, $date, $next_pickup) {
@@ -447,10 +459,12 @@ function no_pickup($nsc, $account_id, $date, $next_pickup) {
 }
 
 //-----------------------------------------------------------------------
-//Clear all the User Defined Field values
-//$udf: array of defined field names
-//$account: eTap account
 function remove_udf($nsc, $account, $udf) {
+	/* Clear all the User Defined Field values
+	 * $udf: array of defined field names
+	 * $account: eTap account
+	 */
+
   $udf_remove = [];
 
   // Cycle through numbered array of all UDF values. Defined Fields with
@@ -470,11 +484,13 @@ function remove_udf($nsc, $account, $udf) {
 }
 
 //-----------------------------------------------------------------------
-// Converts associative array of defined values into DefinedValue eTap 
-// object, modifies account
-// $udf: associative array of udf_names=>values
-// $account: eTap Account object
 function apply_udf($nsc, $account, $udf) {
+	/* Converts associative array of defined values into DefinedValue eTap 
+	 * object, modifies account
+	 * $udf: associative array of udf_names=>values
+	 * $account: eTap Account object
+	 */
+
   $definedvalues = [];
   
   foreach($udf as $fieldname=>$fieldvalue) {
@@ -543,8 +559,9 @@ function check_duplicates($nsc, $persona_fields) {
 }
 
 //-----------------------------------------------------------------------
-// Type: either 'pickup' or 'delivery'
 function make_booking($nsc, $account_num, $udf, $type) {
+	/* Type: either 'pickup' or 'delivery' */
+
   $account = $nsc->call("getAccountById", array($account_num));
   
   if(!$account)
@@ -570,7 +587,6 @@ function make_booking($nsc, $account_num, $udf, $type) {
     }
   }
 
-
   if($has_status && $type == 'delivery') {
     if($status != 'Active' || $status != 'Dropoff' || $status != 'Cancelling')
       $udf['Status'] = 'Green Goods Delivery';
@@ -592,8 +608,9 @@ function make_booking($nsc, $account_num, $udf, $type) {
 }
 
 //-----------------------------------------------------------------------
-/* returns date value from eTapestry API */
 function get_next_pickup($nsc, $email) {
+	/* returns date value from eTapestry API */
+
   $dv = [
     'email' => $email,
     'accountRoleTypes' => 1,
@@ -620,27 +637,5 @@ function get_next_pickup($nsc, $email) {
     }
   }
 }
-
-/********* Misc Helper Functions ************/
-
-function default_value($var, $default) {
-  return empty($var) ? $default : $var;
-}
-
-function add_if_key_exists($dest, $key, $arr) {
-  if(array_key_exists($key, $arr))
-    $dest[$key] = $arr[$key];
-}
-
-function remove_key($array,$key){
-    $holding=array();
-    foreach($array as $k => $v){
-        if($key!=$k){
-            $holding[$k]=$v;
-        }
-    }    
-    return $holding;
-}
-
 
 ?>

@@ -5,16 +5,7 @@
   ini_set('log_errors', 1);
   ini_set('error_log', $ERROR_LOG);
   
-	function write_log($msg) {
-		global $LOG_FILE;
-    global $association;
-    $line = '[' . date('j-M-Y g:iA') . ' php ' . strtoupper($association) . ']: ' . $msg . "\n";
-
-		// IMPORTANT: this function requires execute permissions on the folder to write!!
-    file_put_contents($LOG_FILE, $line, FILE_APPEND);
-    return $msg;
-  }
-
+	require('misc.php');
   require('empties.php');
   require 'vendor/autoload.php';
 

@@ -1,15 +1,14 @@
 //---------------------------------------------------------------------
-function RouteProcessor(bravo_ss_id, stats_ss_id, stats_archive_ss_id, inventory_ss_id) {
-  
-  this.bravo_ss = SpreadsheetApp.openById(bravo_ss_id);
-  this.stats_ss = SpreadsheetApp.openById(stats_ss_id);
-  this.stats_archive_ss = SpreadsheetApp.openById(stats_archive_ss_id);
-  this.inventory_ss = SpreadsheetApp.openById(inventory_ss_id);
+function RouteProcessor(ss_ids, cal_ids, folder_ids, etap_id) {
+  this.ss_ids = ss_ids;
+  this.cal_ids = cal_ids;
+  this.folder_ids = folder_ids;
+  this.etap_id = etap_id;
   
   this.sheets = {
-    'Routes': this.bravo_ss.getSheetByName('Routes'),
-    'RFU': this.bravo_ss.getSheetByName('RFU'),
-    'MPU': this.bravo_ss.getSheetByName('MPU'), 
+    'Routes': this.ss_ids['bravo'].getSheetByName('Routes'),
+    'RFU': this.ss_ids['bravo'].getSheetByName('RFU'),
+    'MPU': this.ss_ids['bravo'].getSheetByName('MPU'), 
   };
   
   this.headers = this.sheets['Routes'].getRange(1,1,1,this.sheets['Routes'].getMaxColumns()).getValues()[0];
@@ -20,8 +19,8 @@ function RouteProcessor(bravo_ss_id, stats_ss_id, stats_archive_ss_id, inventory
   var six_weeks = new Date(today.getTime() + (1000 * 3600 * 24 * 7 * 6));
   var sixteen_weeks = new Date(today.getTime() + (1000 * 3600 * 24 * 7 * 16));
   
-  var res_events = Schedule.getCalEventsBetween(Config['cal_ids']['res'], one_month, sixteen_weeks);
-  var bus_events = Schedule.getCalEventsBetween(Config['cal_ids']['bus'], tomorrow, six_weeks);
+  var res_events = Schedule.getCalEventsBetween(this.cal_ids['res'], one_month, sixteen_weeks);
+  var bus_events = Schedule.getCalEventsBetween(this.cal_ids['bus'], tomorrow, six_weeks);
   this.calendar_events = res_events.concat(bus_events);
   
   this.calendar_events.sort(function(a, b) {
@@ -48,9 +47,9 @@ RouteProcessor.prototype.importRoutes = function(file_ids) {
     
     this.import(route);
     
-    updateStats(this.stats_ss, this.stats_archive_ss, route);
+    updateStats(this.ss_ids['stats'], this.ss_ids['stats_archive'], route);
     
-    updateInventory(this.inventory_ss, route);
+    updateInventory(this.ss_ids['inventory'], route);
         
     this.archive(route.id); 
   }
@@ -320,8 +319,8 @@ RouteProcessor.prototype.processRow = function(row, row_num, date, driver, picku
 
 //---------------------------------------------------------------------
 RouteProcessor.prototype.archive = function(id) {
-  var entered_folder = DriveApp.getFolderById(Config['gdrive']['folder_ids']['entered']);
-  var routed_folder = DriveApp.getFolderById(Config['gdrive']['folder_ids']['routed']);
+  var entered_folder = DriveApp.getFolderById(this.folder_ids['entered']);
+  var routed_folder = DriveApp.getFolderById(this.folder_ids['routed']);
   
   var routed_files = routed_folder.getFiles();
   var found = false;
@@ -371,9 +370,9 @@ RouteProcessor.prototype.uploadEntries = function() {
       },
       'gift': {
         'amount': entry[this.headers.indexOf('Gift Estimate')],
-        'fund': Config['etapestry']['fund'],
-        'campaign': Config['etapestry']['campaign'],
-        'approach': Config['etapestry']['approach'],
+        'fund': this.etap_id['fund'],
+        'campaign': this.etap_id['campaign'],
+        'approach': this.etap_id['approach'],
         'date': date_to_ddmmyyyy(entry[this.headers.indexOf('Date')]),
         'note': 
           'Driver: ' + entry[this.headers.indexOf('Driver')] + '\n' + 
@@ -426,10 +425,10 @@ RouteProcessor.prototype.sendReceipts = function() {
     },
     "payload" : {
       "keys": JSON.stringify({
-        "association_name": Config['association_name'],
-        "etap_endpoint": Config['etapestry']['endpoint'],
-        "etap_user": Config['etapestry']['user'],
-        "etap_pass": Config['etapestry']['pw']
+        "association_name": this.etap_id['association'],
+        "etap_endpoint": this.etap_id['endpoint'],
+        "etap_user": this.etap_id['user'],
+        "etap_pass": this.etap_id['pw']
       }),
       "data": JSON.stringify(data)
     }

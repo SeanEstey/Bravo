@@ -1,7 +1,7 @@
 function Booking() {}
 
 //----------------------------------------------------------------------------
-Booking.search = function(term, cal_ids, rules) {
+Booking.search = function(term, config) {
   /* Search query invoked from Booker client
    * Parses the term arg for conducts appropriate search.
    * term: either Account Number, Postal Code, Address, or Block
@@ -22,13 +22,13 @@ Booking.search = function(term, cal_ids, rules) {
   
   switch(results['search_type']) {
     case 'block':
-      results['booking_results'] = Booking.getOptionsByBlock(term, cal_ids, rules);
+      results['booking_results'] = Booking.getOptionsByBlock(term, config['cal_ids'], config['booking']);
       results['message'] = 'Booking suggestions for Block <b>' + term + '</b> within next <b>sixteen weeks</b>';
       
       break;
       
     case 'postal':
-      results['booking_results'] = Booking.getOptionsByPostal(term, cal_ids, rules);
+      results['booking_results'] = Booking.getOptionsByPostal(term, config['cal_ids'], config['booking']);
       results['message'] = 'Booking suggestions for Postal Code <b>' + term.substring(0,3) + '</b> within next <b>ten weeks</b>';
       
       break;
@@ -36,7 +36,7 @@ Booking.search = function(term, cal_ids, rules) {
     case 'account':
       Logger.log('search by account #');
    
-      var response = bravoPOST(BRAVO_PHP_URL, 'get_account', {'account_number':term.slice(1)});
+      var response = Server.call('get_account', {'account_number':term.slice(1)}, config['etapestry']);
       
       Logger.log('responseCode: ' + JSON.stringify(response.getResponseCode()));
       
@@ -60,7 +60,7 @@ Booking.search = function(term, cal_ids, rules) {
       }
       
       if(account['nameFormat'] == 3) { // BUSINESS
-        results['booking_results'] = Booking.getOptionsByPostal(account['postalCode'], cal_ids, rules);
+        results['booking_results'] = Booking.getOptionsByPostal(account['postalCode'], config['cal_ids'], config['booking']);
         results['message'] = 'Booking suggestions for account <b>' + account['name'] + '</b> in <b>' + account['postalCode'].substring(0,3) + '</b> within next <b>14 days</b>';
       }
       else {
@@ -91,8 +91,8 @@ Booking.search = function(term, cal_ids, rules) {
       results['booking_results'] = Booking.getOptionsByRadius(
         geo.results[0].geometry.location.lat, 
         geo.results[0].geometry.location.lng,
-        cal_ids,
-        rules
+        config['cal_ids'],
+        config['booking']
       );
  
       break;
@@ -103,7 +103,7 @@ Booking.search = function(term, cal_ids, rules) {
 
 
 //----------------------------------------------------------------------------
-Booking.make = function(url, account_num, udf, type) {
+Booking.make = function(account_num, udf, type, config) {
   /* Makes the booking in eTapestry by posting to Bravo. 
    * This function is invoked from the booker client.
    * type: 'delivery, pickup'
@@ -111,7 +111,7 @@ Booking.make = function(url, account_num, udf, type) {
   
   Logger.log('Making ' + type + ' booking for account ' + account_num + ', udf: ' + udf);
   
-  var response = bravoPOST(url, 'make_booking', {'account_num':account_num, 'udf':udf, 'type':type});
+  var response = Server.call('make_booking', {'account_num':account_num, 'udf':udf, 'type':type}, config['etapestry']);
   
   Logger.log(response.getContentText());
   

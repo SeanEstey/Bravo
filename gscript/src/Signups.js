@@ -5,12 +5,12 @@ function Signups(config) {
    * config: Config object in Config.gs
    */
  
-  this.etap_query_category = config['etap_query_category'];
+  this.etapestry_id = config['etapestry'];
   this.twilio_auth_key = config['twilio_auth_key'];
   this.rules = config['booking'];
   this.cal_ids = config['cal_ids'];
   
-  var ss = SpreadsheetApp.openById(config['bravo_ss_id']);
+  var ss = SpreadsheetApp.openById(config['gdrive']['ss_ids']['bravo']);
   this.sheet = ss.getSheetByName("Signups");
   
   var data_range = this.sheet.getDataRange();
@@ -297,7 +297,7 @@ Signups.prototype.assignBookingBlock = function(index) {
       'date':date_to_ddmmyyyy(signup[headers.indexOf('Dropoff Date')])
     };
     
-    var response = bravoPOST(BRAVO_PHP_URL, 'get_scheduled_route_size', data);
+    var response = Server.call('get_scheduled_route_size', data, this.etapestry_id);
     
     if(response.getResponseCode() == 200) {
       var booked = response.getContentText().substring(0, response.getContentText().indexOf('/'));
@@ -378,12 +378,11 @@ Signups.prototype.assignNaturalBlock = function(index) {
   
   // C. Get Block Size
   
-  var response = bravoPOST(
-    BRAVO_PHP_URL, 
-    'get_block_size', {
+  var response = Server.call('get_block_size', {
       'query_category':this.etap_query_category,
       'query': signup[this.headers.indexOf('Natural Block')]
-    }
+    },
+    this.etapestry_id
   );
   
   if(response.getResponseCode() == 200)
@@ -401,7 +400,7 @@ Signups.prototype.assignNaturalBlock = function(index) {
   // in the list in the map title, then assign the entire group of neighborhoods
   
   if(map_neighborhoods.indexOf(geo.Neighborhood) == -1)
-    signup[this.headers.indexOf('Neighborhood')] = map_neighborhoods.join(', ');
+    signup[this.headers.indexOf('Neighborhood')] = map_neighborhoods.join(',');
   else
     signup[this.headers.indexOf('Neighborhood')] = geo.Neighborhood;
  
@@ -477,7 +476,7 @@ Signups.prototype.checkForDuplicates = function(index) {
   if(signup[headers.indexOf('Email')])
     criteria['email'] = signup[headers.indexOf('Email')];
   
-  var response = bravoPOST(BRAVO_PHP_URL, 'check_duplicates', criteria);
+  var response = Server.call('check_duplicates', criteria, this.etapestry_id);
   
   if(response.getResponseCode() == 200 && response.getContentText())
     signup[headers.indexOf('Existing Account')] = response.getContentText();

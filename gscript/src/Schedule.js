@@ -11,6 +11,8 @@ function Schedule() {}
 //----------------------------------------------------------------------------
 // Returns all events from ETW Residential calendar between provided Dates
 Schedule.getCalEventsBetween = function(calendar_id, start_date, end_date) {
+  Logger.log("getCalEventsBetween args: %s %s %s", calendar_id, start_date, end_date);
+  
   if(start_date == end_date)
     end_date = new Date(start_date.getTime() + (1000 * 3600 * 1));
     

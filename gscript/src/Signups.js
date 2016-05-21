@@ -1,10 +1,11 @@
 //---------------------------------------------------------------------
-function Signups(config) {
+function Signups(config, map_data) {
   /* Constructor that pulls data from entries in Signups worksheet, some
    * schedule data, etc
    * config: Config object in Config.gs
    */
  
+  this.map_data = map_data;
   this.etapestry_id = config['etapestry'];
   this.twilio_auth_key = config['twilio_auth_key'];
   this.rules = config['booking'];
@@ -147,6 +148,7 @@ Signups.prototype.getPresetBookingBlock = function(index) {
   var blocks = Geo.findBlocksWithin(
     geo.results[0].geometry.location.lat,
     geo.results[0].geometry.location.lng,
+    this.map_data,
     10.0,
     date,
     this.cal_ids['res']
@@ -237,6 +239,7 @@ Signups.prototype.assignBookingBlock = function(index) {
   var alt_bookings = Booking.getOptionsByRadius(
     geo.results[0].geometry.location.lat, 
     geo.results[0].geometry.location.lng,
+    this.map_data,
     this.cal_ids,
     this.rules
   );
@@ -292,7 +295,7 @@ Signups.prototype.assignBookingBlock = function(index) {
   
   if(signup[headers.indexOf('Projected Route Size')] == '?') {
     var data = {
-      'query_category': this.etap_query_category,
+      'query_category': this.etapestry_id['query_category'],
       'query':signup[headers.indexOf('Booking Block')], 
       'date':date_to_ddmmyyyy(signup[headers.indexOf('Dropoff Date')])
     };
@@ -366,7 +369,7 @@ Signups.prototype.assignNaturalBlock = function(index) {
       
   // B. Search KML map data to identify Natural Block
   
-  var map_title = Geo.findMapTitle(geo.Coords.lat, geo.Coords.lng);
+  var map_title = Geo.findMapTitle(geo.Coords.lat, geo.Coords.lng, this.map_data);
   
   if(!map_title) {
     Logger.log(signup[this.headers.indexOf('Validation')] += err + "Failed to find KML map");
@@ -379,7 +382,7 @@ Signups.prototype.assignNaturalBlock = function(index) {
   // C. Get Block Size
   
   var response = Server.call('get_block_size', {
-      'query_category':this.etap_query_category,
+      'query_category':this.etapestry_id['query_category'],
       'query': signup[this.headers.indexOf('Natural Block')]
     },
     this.etapestry_id

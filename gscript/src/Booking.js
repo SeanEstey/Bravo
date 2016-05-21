@@ -1,7 +1,7 @@
 function Booking() {}
 
 //----------------------------------------------------------------------------
-Booking.search = function(term, config) {
+Booking.search = function(term, config, map_data) {
   /* Search query invoked from Booker client
    * Parses the term arg for conducts appropriate search.
    * term: either Account Number, Postal Code, Address, or Block
@@ -67,8 +67,9 @@ Booking.search = function(term, config) {
         results['booking_results'] = Booking.getOptionsByRadius(
           geo.results[0].geometry.location.lat, 
           geo.results[0].geometry.location.lng,
-          cal_ids,
-          rules
+          map_data,
+          config['cal_ids'],
+          config['booking']
         );
         results['message'] = 'Booking suggestions for account <b>' + account['name'] + '</b> in <b>10km</b> within next <b>14 days</b>';
       }
@@ -91,6 +92,7 @@ Booking.search = function(term, config) {
       results['booking_results'] = Booking.getOptionsByRadius(
         geo.results[0].geometry.location.lat, 
         geo.results[0].geometry.location.lng,
+        map_data,
         config['cal_ids'],
         config['booking']
       );
@@ -120,7 +122,7 @@ Booking.make = function(account_num, udf, type, config) {
 
 
 //----------------------------------------------------------------------------
-Booking.getOptionsByRadius = function(lat, lng, cal_ids, rules) {
+Booking.getOptionsByRadius = function(lat, lng, map_data, cal_ids, rules) {
   /* Find booking options within number of days wait and radius defined in
    * Config['booking'].
    * Returns array of Blocks on success, empty array on failure
@@ -139,7 +141,7 @@ Booking.getOptionsByRadius = function(lat, lng, cal_ids, rules) {
     if(radius > rules['max_block_radius'])
       break;
     
-    bookings = Geo.findBlocksWithin(lat, lng, radius, two_weeks, cal_ids['res']);
+    bookings = Geo.findBlocksWithin(lat, lng, map_data, radius, two_weeks, cal_ids['res']);
     
     if(bookings.length > 0)
       found = true;

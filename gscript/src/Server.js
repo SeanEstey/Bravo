@@ -38,12 +38,14 @@ Server.call = function(function_name, data, id) {
   var response = UrlFetchApp.fetch(Settings['bravo_php_url'], options);
   
   if(!response) {
-    log('Unknown exception calling ' + function_name, true);
+    Logger.log('Unknown exception calling ' + function_name);
+  //  log('Unknown exception calling ' + function_name, true);
     return false;
   }
   
   if(response.getResponseCode() != 200 && response.getResponseCode() != 408) {
-    log(func_name + ' exception! : ' + response.getContentText(), true);
+    Logger.log(function_name + ' exception! : ' + JSON.stringify(response.getContentText()));
+//    log(func_name + ' exception! : ' + response.getContentText(), true);
   }
    
   return response;

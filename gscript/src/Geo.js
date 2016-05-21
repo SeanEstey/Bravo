@@ -1,26 +1,28 @@
 function Geo() {}
 
 //---------------------------------------------------------------------    
-Geo.findBlocksWithin = function(lat, lng, radius, end_date, cal_id) {
+Geo.findBlocksWithin = function(lat, lng, map_data, radius, end_date, cal_id) {
   /* Return list of scheduled Blocks within given radius of lat/lng, up 
    * to end_date, sorted by date. Block Object defined in Config.
    * Returns empty array if none found 
    */
+  
+  Logger.log("findBlocksWithin args: end date: %s, cal_id: %s", end_date, cal_id);
   
   var today = new Date();
   var events = Schedule.getCalEventsBetween(cal_id, today, end_date);
   
   var eligible_blocks = [];
   
-  for(var i=0; i<MAP_DATA.features.length; i++) {
-    var map_name = MAP_DATA.features[i].properties.name;
+  for(var i=0; i < map_data.features.length; i++) {
+    var map_name = map_data.features[i].properties.name;
      
     var block = Schedule.getNextBlock(events, Parser.getBlockFromTitle(map_name));
     
     if(!block)
       continue;
     
-    var center = Geo.centerPoint(MAP_DATA.features[i].geometry.coordinates[0]);
+    var center = Geo.centerPoint(map_data.features[i].geometry.coordinates[0]);
     
     // Take the first lat/lon vertex in the rectangle and calculate distance
     var dist = Geo.distance(lat, lng, center[1], center[0]);
@@ -114,18 +116,18 @@ Geo.getLatLng = function(kml_map) {
 
 
 //---------------------------------------------------------------------
-Geo.findMapTitle = function(lat, lng) {
+Geo.findMapTitle = function(lat, lng, map_data) {
   /* Returns the title of the map (from MAP_DATA) the provided coords belongs
    * to, false if no match found
    */
   
-  for(var i=0; i < MAP_DATA.features.length; i++) {
-    var map = Geo.getLatLng(MAP_DATA.features[i]);
+  for(var i=0; i < map_data.features.length; i++) {
+    var map = Geo.getLatLng(map_data.features[i]);
     
     if(Geo.pointInPoly(map['lat'].length, map['lng'], map['lat'], lng, lat)) {
-      Logger.log("Found map: %s", MAP_DATA.features[i].properties.name);
+      Logger.log("Found map: %s", map_data.features[i].properties.name);
       
-      return MAP_DATA.features[i].properties.name;
+      return map_data.features[i].properties.name;
     }
   }
 

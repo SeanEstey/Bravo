@@ -1,28 +1,24 @@
 function Geo() {}
 
 //---------------------------------------------------------------------    
-Geo.findBlocksWithin = function(lat, lng, map_data, radius, end_date, cal_id) {
+Geo.findBlocksWithin = function(lat, lng, map_data, radius, end_date, cal_id, _events) {
   /* Return list of scheduled Blocks within given radius of lat/lng, up 
    * to end_date, sorted by date. Block Object defined in Config.
    * @radius: distance in kilometres
    * @map_data: JSON object with lat/lng coords
+   * @events: optional list of calendar events
    *
    * Returns empty array if none found 
    */
     
-  var today = new Date();
-  var events = Schedule.getCalEventsBetween(cal_id, today, end_date);
+  var events = _events || Schedule.getEventsBetween(cal_id, new Date(), end_date);
   
   var eligible_blocks = [];
   
   for(var i=0; i < map_data.features.length; i++) {
     var map_name = map_data.features[i].properties.name;
-    
-    Logger.log(map_name);
-     
-    var block = Schedule.getNextBlock(events, Parser.getBlockFromTitle(map_name));
-    
-    Logger.log(block);
+        
+    var block = Schedule.findBlock(Parser.getBlockFromTitle(map_name), events);
     
     if(!block)
       continue;

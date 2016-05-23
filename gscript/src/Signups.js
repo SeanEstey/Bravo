@@ -1,8 +1,10 @@
 //---------------------------------------------------------------------
-function Signups(config, map_data) {
+function Signups(map_data, config, events) {
   /* Constructor that pulls data from entries in Signups worksheet, some
    * schedule data, etc
-   * config: Config object in Config.gs
+   * @config: object containing keys: ['etapestry', 'twilio_auth_key', 
+   * 'booking', 'cal_ids', 'gdrive']
+   * @events: optional list of calendar events
    */
  
   this.map_data = map_data;
@@ -23,7 +25,7 @@ function Signups(config, map_data) {
   var tomorrow = new Date(Date.now() + (24 * 3600 * 1000));
   var ten_weeks = new Date(Date.now() + (24 * 3600 * 7 * 10 * 1000));
   
-  this.calendar_events = Schedule.getCalEventsBetween(this.cal_ids['res'], tomorrow, ten_weeks);
+  this.events = events || Schedule.getEventsBetween(this.cal_ids['res'], tomorrow, ten_weeks);
 }
 
 //---------------------------------------------------------------------
@@ -151,7 +153,8 @@ Signups.prototype.getPresetBookingBlock = function(index) {
     this.map_data,
     10.0,
     date,
-    this.cal_ids['res']
+    this.cal_ids['res'],
+    this.events
   );
   
   date.setHours(0,0,0,0,0);
@@ -221,9 +224,9 @@ Signups.prototype.assignBookingBlock = function(index) {
   
   // B. Look through Schedule for optimized Booking Block  
 
-  var natural_schedule = Schedule.getNextBlock(
-    this.calendar_events, 
-    signup[headers.indexOf('Natural Block')]
+  var natural_schedule = Schedule.findBlock(
+    signup[headers.indexOf('Natural Block')],
+    this.events
   );
   
   var geo = Maps.newGeocoder().geocode(
@@ -241,7 +244,8 @@ Signups.prototype.assignBookingBlock = function(index) {
     geo.results[0].geometry.location.lng,
     this.map_data,
     this.cal_ids,
-    this.rules
+    this.rules,
+    this.events
   );
   
   var alt_schedule = '';

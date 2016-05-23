@@ -3,9 +3,8 @@ function Booking() {}
 //----------------------------------------------------------------------------
 Booking.search = function(term, config, map_data) {
   /* Search query invoked from Booker client
-   * Parses the term arg for conducts appropriate search.
-   * term: either Account Number, Postal Code, Address, or Block
-   * Returns JSON string: {'search_type': str, 'status': str, 'message': str, 'booking_results': array }
+   * @term: either Account Number, Postal Code, Address, or Block
+   * Returns: JSON object: {'search_type': str, 'status': str, 'message': str, 'booking_results': array }
    */
   
   var results = {
@@ -22,7 +21,7 @@ Booking.search = function(term, config, map_data) {
   
   switch(results['search_type']) {
     case 'block':
-      results['booking_results'] = Booking.getOptionsByBlock(term, config['cal_ids'], config['booking']);
+      results['booking_results'] = Booking.findBlockSchedule(term, config['cal_ids'], config['booking']);
       results['message'] = 'Booking suggestions for Block <b>' + term + '</b> within next <b>sixteen weeks</b>';
       
       break;
@@ -122,10 +121,11 @@ Booking.make = function(account_num, udf, type, config) {
 
 
 //----------------------------------------------------------------------------
-Booking.getOptionsByRadius = function(lat, lng, map_data, cal_ids, rules) {
-  /* Find booking options within number of days wait and radius defined in
-   * Config['booking'].
-   * Returns array of Blocks on success, empty array on failure
+Booking.getOptionsByRadius = function(lat, lng, map_data, cal_ids, rules, _events) {
+  /* Find a list of Blocks within the smallest radius of given coordinates.
+   * Constraints: must be within provided radius, schedule date, and block size.
+   * @rules: specifies schedule, radius and block size constraints
+   * Returns: list of Block objects on success, [] on failure
    */
   
   var today = new Date();
@@ -141,7 +141,7 @@ Booking.getOptionsByRadius = function(lat, lng, map_data, cal_ids, rules) {
     if(radius > rules['max_block_radius'])
       break;
     
-    bookings = Geo.findBlocksWithin(lat, lng, map_data, radius, two_weeks, cal_ids['res']);
+    bookings = Geo.findBlocksWithin(lat, lng, map_data, radius, two_weeks, cal_ids['res'], _events);
     
     if(bookings.length > 0)
       found = true;
@@ -166,34 +166,35 @@ Booking.getOptionsByRadius = function(lat, lng, map_data, cal_ids, rules) {
 
 
 //----------------------------------------------------------------------------
-Booking.getOptionsByBlock = function(block, cal_ids, rules) {
-  /* Searches schedule for all occurences of block within Config['booking']['search_weeks']
-   * On success, returns list of objects: {'block','date','location','event_name','booking_size'},
-   * empty list on failure.
+Booking.findBlockSchedule = function(block_name, cal_ids, rules) {
+  /* Find all the scheduled dates/info for the given block. 
+   * @rules: Object specifying search parameters: 'search_weeks' and
+   * 'size':'res':'max' and 'size:'bus':'max'
+   * Returns: list of Block objects on success, [] on failure
    */
   
   var today = new Date();
   var end_date = new Date(today.getTime() + (1000 * 3600 * 24 * 7 * rules['search_weeks']));
-  var res_events = Schedule.getCalEventsBetween(cal_ids['res'], today, end_date);
-  var bus_events = Schedule.getCalEventsBetween(cal_ids['bus'], today, end_date);
+  var res_events = Schedule.getEventsBetween(cal_ids['res'], today, end_date);
+  var bus_events = Schedule.getEventsBetween(cal_ids['bus'], today, end_date);
   var events = res_events.concat(bus_events);
   
   var results = [];
   for(var i=0; i<events.length; i++) { 
     var cal_block = Parser.getBlockFromTitle(events[i].summary);
     
-    if(block != cal_block)
+    if(block_name != cal_block)
       continue;
     
     var result = {
-      'block': block, 
+      'block': block_name, 
       'date': parseDate(events[i].start.date), 
       'location': events[i].location,
       'event_name': events[i].summary.substring(0, events[i].summary.indexOf(']')+1),
       'booking_size':Parser.getBookingSize(events[i].summary)
     };
     
-    if(Parser.isRes(block))
+    if(Parser.isRes(block_name))
       result['max_size'] = rules['size']['res']['max'];
     else
       result['max_size'] = rules['size']['bus']['max'];
@@ -211,15 +212,15 @@ Booking.getOptionsByBlock = function(block, cal_ids, rules) {
 
 //----------------------------------------------------------------------------
 Booking.getOptionsByPostal = function(postal, cal_ids, rules) {
-  /* Return Bus and Res calendar events matching postal code, sorted by date. 
-   * JSON format 
+  /* Finds all Blocks within given postal code, sorted, sorted by date. 
+   * Returns: list of Block objects on success, [] on failure.
    */
   
   postal = postal.toUpperCase();
   var today = new Date();
   var ten_weeks = new Date(today.getTime() + (1000 * 3600 * 24 * 7 * 10));
-  var res_events = Schedule.getCalEventsBetween(cal_ids['res'], today, ten_weeks);
-  var bus_events = Schedule.getCalEventsBetween(cal_ids['bus'], today, ten_weeks);
+  var res_events = Schedule.getEventsBetween(cal_ids['res'], today, ten_weeks);
+  var bus_events = Schedule.getEventsBetween(cal_ids['bus'], today, ten_weeks);
   var events = res_events.concat(bus_events);
   
   var results = [];

@@ -1,5 +1,9 @@
 //---------------------------------------------------------------------
-function RouteProcessor(ss_ids, cal_ids, folder_ids, etap_id) {
+function RouteProcessor(ss_ids, cal_ids, folder_ids, etap_id, _events) {
+  /*
+   * @_events: optional. sorted list of res/bus cal events
+   */
+  
   this.ss_ids = ss_ids;
   this.cal_ids = cal_ids;
   this.folder_ids = folder_ids;
@@ -21,13 +25,17 @@ function RouteProcessor(ss_ids, cal_ids, folder_ids, etap_id) {
   var six_weeks = new Date(today.getTime() + (1000 * 3600 * 24 * 7 * 6));
   var sixteen_weeks = new Date(today.getTime() + (1000 * 3600 * 24 * 7 * 16));
   
-  var res_events = Schedule.getCalEventsBetween(this.cal_ids['res'], one_month, sixteen_weeks);
-  var bus_events = Schedule.getCalEventsBetween(this.cal_ids['bus'], tomorrow, six_weeks);
-  this.calendar_events = res_events.concat(bus_events);
-  
-  this.calendar_events.sort(function(a, b) {
-    return parseDate(a.start.date).getTime() - parseDate(b.start.date).getTime();
-  });
+  if(_events == undefined) {
+    var res_events = Schedule.getEventsBetween(this.cal_ids['res'], one_month, sixteen_weeks);
+    var bus_events = Schedule.getEventsBetween(this.cal_ids['bus'], tomorrow, six_weeks);
+    this.events = res_events.concat(bus_events);
+    
+    this.events.sort(function(a, b) {
+      return parseDate(a.start.date).getTime() - parseDate(b.start.date).getTime();
+    });
+  }
+  else
+    this.events = _events;
   
   this.gifts = [];
   this.rfus = [];
@@ -148,7 +156,7 @@ RouteProcessor.prototype.getPickupDates = function(route) {
     
     for(var j=0; j<blocks.length; j++) {
       if(!this.pickup_dates.hasOwnProperty(blocks[j]))
-        this.pickup_dates[blocks[j]] = Schedule.getNextBlock(this.calendar_events, blocks[j]).date;
+        this.pickup_dates[blocks[j]] = Schedule.findBlock(blocks[j], this.events).date;
     }
   }
     

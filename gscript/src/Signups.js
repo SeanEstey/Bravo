@@ -315,6 +315,8 @@ Signups.prototype.assignBookingBlock = function(index) {
   this.signups_formulas[index][this.headers.indexOf('Projected Route Size')] = formula;
   
   Logger.log('Booking block found: ' + signup[headers.indexOf('Booking Block')]);
+  
+  return true;
 }
 
 //---------------------------------------------------------------------

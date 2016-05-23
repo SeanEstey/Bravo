@@ -10,9 +10,7 @@ function Schedule() {}
 
 //----------------------------------------------------------------------------
 // Returns all events from ETW Residential calendar between provided Dates
-Schedule.getCalEventsBetween = function(calendar_id, start_date, end_date) {
-  Logger.log("getCalEventsBetween args: %s %s %s", calendar_id, start_date, end_date);
-  
+Schedule.getCalEventsBetween = function(calendar_id, start_date, end_date) {  
   if(start_date == end_date)
     end_date = new Date(start_date.getTime() + (1000 * 3600 * 1));
     
@@ -38,9 +36,11 @@ Schedule.getCalEventsBetween = function(calendar_id, start_date, end_date) {
 }
 
 //----------------------------------------------------------------------------
-// Search events argument for first occuring block
-// Return JSON {'block': String, 'date': Date Object, 'block_size': Number, 'booking_size': Number, 'event_name': String }
 Schedule.getNextBlock = function(events, block) {
+  /* Search events argument for first occuring block
+   * Return JSON {'block': String, 'date': Date Object, 'block_size': Number, 'booking_size': Number, 'event_name': String }
+   */
+  
   for(var i=0; i < events.length; i++) {
     var event = events[i];
     

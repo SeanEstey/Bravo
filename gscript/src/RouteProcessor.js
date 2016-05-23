@@ -5,10 +5,12 @@ function RouteProcessor(ss_ids, cal_ids, folder_ids, etap_id) {
   this.folder_ids = folder_ids;
   this.etap_id = etap_id;
   
+  var bravo_ss = SpreadsheetApp.openById(ss_ids['bravo']);
+  
   this.sheets = {
-    'Routes': this.ss_ids['bravo'].getSheetByName('Routes'),
-    'RFU': this.ss_ids['bravo'].getSheetByName('RFU'),
-    'MPU': this.ss_ids['bravo'].getSheetByName('MPU'), 
+    'Routes': bravo_ss.getSheetByName('Routes'),
+    'RFU': bravo_ss.getSheetByName('RFU'),
+    'MPU': bravo_ss.getSheetByName('MPU'), 
   };
   
   this.headers = this.sheets['Routes'].getRange(1,1,1,this.sheets['Routes'].getMaxColumns()).getValues()[0];
@@ -150,7 +152,7 @@ RouteProcessor.prototype.getPickupDates = function(route) {
     }
   }
     
-  Logger.log('pickup_dates: ' + JSON.stringify(this.pickup_dates));
+ // Logger.log('pickup_dates: ' + JSON.stringify(this.pickup_dates));
 }
 
 //---------------------------------------------------------------------
@@ -184,8 +186,10 @@ RouteProcessor.prototype.getNextPickup = function(blocks) {
 }
 
 //---------------------------------------------------------------------
-/* Process a line entry from a route */
-RouteProcessor.prototype.processRow = function(row, row_num, date, driver, pickup_dates) { 
+RouteProcessor.prototype.processRow = function(row, row_num, date, driver) { 
+  /* Process a line entry from a route
+   * Returns non-empty string if error(s) found, nothing otherwise
+   */
   
   /*** Test for invalid data ***/
   
@@ -222,7 +226,6 @@ RouteProcessor.prototype.processRow = function(row, row_num, date, driver, picku
       }
       row['blocks'] = block_list.join(',');
       row['office_notes'] = row['office_notes'].replace(rmv_note, '');
-      Logger.log('replaced office notes: ['+row['office_notes']+']');
     }
   }
   

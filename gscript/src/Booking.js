@@ -146,7 +146,7 @@ Booking.getOptionsByRadius = function(lat, lng, map_data, cal_ids, rules) {
     if(bookings.length > 0)
       found = true;
     else {
-      Logger.log('No match found within ' + radius.toString() + ' km. Expanding search.');
+      //Logger.log('No match found within ' + radius.toString() + ' km. Expanding search.');
       radius += 1.0;
     }
   }

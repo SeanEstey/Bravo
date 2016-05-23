@@ -4,11 +4,12 @@ function Geo() {}
 Geo.findBlocksWithin = function(lat, lng, map_data, radius, end_date, cal_id) {
   /* Return list of scheduled Blocks within given radius of lat/lng, up 
    * to end_date, sorted by date. Block Object defined in Config.
+   * @radius: distance in kilometres
+   * @map_data: JSON object with lat/lng coords
+   *
    * Returns empty array if none found 
    */
-  
-  Logger.log("findBlocksWithin args: end date: %s, cal_id: %s", end_date, cal_id);
-  
+    
   var today = new Date();
   var events = Schedule.getCalEventsBetween(cal_id, today, end_date);
   
@@ -16,8 +17,12 @@ Geo.findBlocksWithin = function(lat, lng, map_data, radius, end_date, cal_id) {
   
   for(var i=0; i < map_data.features.length; i++) {
     var map_name = map_data.features[i].properties.name;
+    
+    Logger.log(map_name);
      
     var block = Schedule.getNextBlock(events, Parser.getBlockFromTitle(map_name));
+    
+    Logger.log(block);
     
     if(!block)
       continue;
@@ -26,6 +31,8 @@ Geo.findBlocksWithin = function(lat, lng, map_data, radius, end_date, cal_id) {
     
     // Take the first lat/lon vertex in the rectangle and calculate distance
     var dist = Geo.distance(lat, lng, center[1], center[0]);
+    
+    Logger.log(dist);
     
     if(dist > radius)
       continue;
@@ -179,9 +186,6 @@ Geo.geocode = function(address_str) {
       continue;
     
     geo_info.Neighborhood = result.address_components[i].long_name;
-      
-    Logger.log("Found neighborhood match for '%s': %s",
-                 address_str,  geo_info.Neighborhood);
   }
   
   for(var i=0; i<result.address_components.length; i++) { 

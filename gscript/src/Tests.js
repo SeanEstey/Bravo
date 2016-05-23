@@ -1,97 +1,253 @@
-function test_geocode() {
-  Logger.log(geocode('411 Heffernan Drive NW, Edmonton, AB'));
+//---------------------------------------------------------------------
+function main() {
+ runTests(GeoTests);
+ runTests(ScheduleTests);
+ runTests(RouteProcessorTests);
+ runTests(SignupsTests);
 }
 
-function test_headers() {
- var sheet = SpreadsheetApp.openById('1Sr3aPhB277lESuOKgr2EJ_XHGPUhuhEEJOXfAoMnK5c'); 
-  var headers = sheet.getSheetByName('Route').getRange('1:1').getValues()[0];
-  Logger.log(headers);
-
-}
-
-function test_inven_update() {  
-  var inventory_ss = SpreadsheetApp.openById(Config['gdrive']['ss_ids']['inventory']);
-  var routeProcessor = new RouteProcessor();
+//---------------------------------------------------------------------
+function runTests(module) {
+  /* Run through all functions in module object, execute these tests */
   
-  var ids = [
-    '1iVGKcqf7Knq8Rlaf9Ol2KbEByPF_n5uLNrYSHB55g4I',
-    '1DEy3hsxiIUWgidk4pv-a6Re1YT1DRG5A80WVerJOM_s',
-    '1Sg8bt3S6TY4ZwEoKG8gPARVDan2SxliagoFFe6_vQBE',
-    '1J_642LnU6zar0OBKbgxsQjgBEAFYNnpyEdzQA8JvnzY'
-    ];
+  Logger.log("*** Running %s Unit Tests ***", module['name']);
   
-  for(var i=0; i<ids.length; i++) {
-    var route = new Route(ids[i]);
-    route.getInventoryChanges();
-    updateInventory(inventory_ss, route);
-  }
- 
-}
+  var n_fails = 0;
+  var n_passes = 0;
+  
+  var old_log = Logger.getLog();
+  var log_lines = [];
 
-function test_route_get_info() {
-  var route = new Route('1uRvRNJxl_1oVeNJJg-INDt2cdZbnHcxeUu_0OKWRQ_4');
-//  Logger.log(route.getInventoryChanges());
-  //Logger.log(route.getInfo());
-    var routeProcessor = new RouteProcessor();
-
+  for(var f in module) {    
+    if(typeof(module[f]) != "function")
+       continue;
     
-    routeProcessor.import(route);
+    // Skip non-test functions like _init()
+    if(f[0] == "_")
+      continue;
+       
+    if(module[f]()) {
+      n_passes++;
+      log_lines.push(f + "...SUCCESS");
+    }
+    else {
+      log_lines.push(f + "...FAILED");
+      n_fails++;
+    }
+  }
   
+  // Clear any output so we can view only unit test log info
+  Logger.clear();
   
-}
-
-function test_login_script() {
-  var res = bravoPOST(BRAVO_PHP_URL, 'get_num_active_processes', {'ok':'ok'});
-  Logger.log(res.getContentText() + ', code: ' + res.getResponseCode());
-}
-
-function test_gift_entries_constructor() {
-  var entries = new RunProcessor();
-  Logger.log(entries.headers);
-}
-
-function test_gift_entries_import_run() {
-  var run = new Run('1RWINK1VyN_KQEY5ujMgFdaCmaMghtvUmF472GysQeb0');
-  var entries = new RunProcessor();
-  entries.import(run);
-}
-
-function test_gift_entries_getPickupDates() {
-  var run = new Run('1RWINK1VyN_KQEY5ujMgFdaCmaMghtvUmF472GysQeb0');
-  var entries = new RunProcessor();
-  entries.getPickupDates(run);
-}
-
-function test_gift_entries_getNextPickup() {
-  var run = new Run('1RWINK1VyN_KQEY5ujMgFdaCmaMghtvUmF472GysQeb0');
-  var entries = new RunProcessor();
-  var pickup_dates = entries.getPickupDates(run);
+  Logger.log(old_log);
   
-  Logger.log(entries.getNextPickup("R4P, B4A, R2A, B5A", pickup_dates));
-  Logger.log(entries.getNextPickup("R4P", pickup_dates));
+  for(var i in log_lines) {
+    Logger.log(log_lines[i]);
+  }
+  
+  Logger.log("%s tests passed, %s tests failed", 
+             Number(n_passes).toString(), 
+             Number(n_fails).toString());
 }
 
-function test_gift_entries_process_run_row() {
-  var row = {
-    'account_num': 12345, 
-    'name_or_address': '1234 5 st', 
+
+/******************************* TESTS *****************************/
+
+
+//---------------------------------------------------------------------
+var GeoTests = {
+  "name": "Geo",
+  "geocode": function() {
+    return Geo.geocode('411 Heffernan Drive NW, Edmonton, AB') ||
+           Geo.geocode('8 Garden Crescent, St Albert, AB') ||
+           Geo.geocode('979 Fir Street, Sherwood Park, AB'); 
+  },
+  "findBlocksWithin": function() {
+    return (GeoTests._blocksWithin(53.499753, -113.546706, 10, 90)).length > 0;
+  },
+  "findBlocksWithin_invalid": function() {
+    return (GeoTests._blocksWithin(51.035519, -114.120903, 10, 7)).length > 0;
+  },
+  
+  "_blocksWithin": function(lat, lng, radius, days) {
+    return Geo.findBlocksWithin(
+      lat, lng, 
+      TestVars['map_data'], 
+      radius, 
+      new Date(new Date().getTime() + (1000 * 3600 * 24 * days)), 
+      TestVars['cal_ids']['res']);
+  },
+};
+
+//---------------------------------------------------------------------
+var ScheduleTests = {
+  "name": "Schedule",
+  "getCalEventsBetween": function() {
+    return Schedule.getCalEventsBetween(
+      TestVars['etw_res_cal_id'], 
+      new Date(), 
+      new Date((new Date()).getTime() + 1000*3600*24*7));
+  }
+};
+
+//---------------------------------------------------------------------
+var RouteProcessorTests = {
+  "name": "RouteProcessor",
+  "processRow": function() {
+    var rp = RouteProcessorTests._init();
+    rp.pickup_dates = TestVars['pickup_dates'];
+    rp.processRow(TestVars['route_row'], 1, new Date(), "Kevin");
+    return true;
+  },
+  
+  "_init": function() {
+    return new RouteProcessor(
+      TestVars['gdrive']['ss_ids'], 
+      TestVars['cal_ids'], 
+      TestVars['gdrive']['folder_ids'], 
+      JSON.parse(PropertiesService.getScriptProperties().getProperty("etapestry")));  
+  }
+};
+
+//---------------------------------------------------------------------
+var SignupsTests = {
+  "name": "Signups",
+  "assignBookingBlock": function() {
+    var s = SignupsTests._init();
+    return s.assignBookingBlock(1);                              
+  },
+  
+  "_init": function() {
+    return new Signups({
+      'twilio_auth_key':'ABC', 
+      'booking':TestVars['booking'],
+      'etapestry': JSON.parse(PropertiesService.getScriptProperties().getProperty("etapestry")),
+      'cal_ids': TestVars['cal_ids'], 
+      'gdrive': TestVars['gdrive']}, 
+      TestVars['map_data']);
+  }
+};
+
+
+/***************************** TEST DATA *****************************/
+
+
+//---------------------------------------------------------------------
+var TestVars = {
+  "route_id": "1nLxNgkkCtXftPzASc09RRO29bJGqU2PI3UGcnrsz0LY", // May 18: B6C (Rod) 
+  "edmonton_address": "411 Heffernan Drive NW, Edmonton, AB",
+  "etw_res_cal_id": "7d4fdfke5mllck8pclcerbqk50@group.calendar.google.com",
+  "testGeocode": function() {
+  },
+  "gdrive": {
+    "ss_ids": {
+      'bravo': '1JjibGqBivKpQt4HSW0RFfuTPYAI9LxJu-QOd6dWySDE',   // DEV_SS
+      'stats': '1iBRJOkSH2LEJID0FEGcE3MHOoC5OKQsz0aH4AAPpTR4',
+      'stats_archive': '1BTS-r3PZS3QVR4j5rfsm6Z4kBXoGQY8ur60uH-DKF3o',
+      'inventory': '1Mb6qOvYVUF9mxyn3rRSoOik427VOrltGAy7LSIR9mnU',
+      'route_template': '1Sr3aPhB277lESuOKgr2EJ_XHGPUhuhEEJOXfAoMnK5c'
+    },
+    'folder_ids': {
+      'routed': '0BxWL2eIF0hwCRnV6YmtRLVBDc0E',
+      'entered': '0BxWL2eIF0hwCOTNSSy1HcWRKUFk'
+    },
+  },
+  "cal_ids": {
+    'res': '7d4fdfke5mllck8pclcerbqk50@group.calendar.google.com',
+    'bus': 'bsmoacn3nsn8lio6vk892tioes@group.calendar.google.com'
+  },
+  "pickup_dates": {
+    "B4A": new Date("Oct 24, 2015"),
+    "R5G": new Date("Dec 24, 2015"),
+    "R7B": new Date("Sep 24, 2015")
+  },
+  "route_row": {
+    'name_or_address': '1234 5 st',
+    'gift': '5',
     'driver_input': 'nh', 
-    'gift': '$5', 
+    'order_info': '_placeholder_',
+    'account_num': 12345, 
     'driver_notes': 'dropoff today', 
     'blocks': 'B4A, R5G, R7B',
     'neighborhood': 'Oliver', 
     'status': 'Dropoff', 
     'office_notes': '***RMV R5G*** no tax receipt'
-  };
-  var date = new Date();
-  var entries = new RunProcessor();
-  entries.process(row, 5, date, 'Ryan');
-}
-
-function test_update_stats() {
-  var stats_archive_ss = SpreadsheetApp.openById(Config['gdrive']['ss_ids']['stats_archive']);
-  var route = new Route('1e96IuRL0SrfDoccpDSB0F8MrbyrK3uANuz-e7PIXNho');
-  var stats_ss = SpreadsheetApp.openById(Config['gdrive']['ss_ids']['stats']);
-  updateStats(stats_ss, stats_archive_ss, route);
-  
-}
+  },
+  'booking': {
+    'max_block_radius': 10,
+    'max_schedule_days_wait': 14,
+    'search_weeks': 16,
+    'size': {
+      'res': {
+        'medium': 60,
+        'large': 75,
+        'max': 90,
+      },
+      'bus': {
+        'medium': 20,
+        'large': 23,
+        'max': 25
+      }
+    }
+  },
+  "map_data": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -113.5555673,
+                53.502387,
+                0
+              ],
+              [
+                -113.5570264,
+                53.501365899999996,
+                0
+              ],
+              [
+                -113.5565114,
+                53.49748580000001,
+                0
+              ],
+              [
+                -113.5411048,
+                53.4975113,
+                0
+              ],
+              [
+                -113.5411477,
+                53.5044034,
+                0
+              ],
+              [
+                -113.5438943,
+                53.5047097,
+                0
+              ],
+              [
+                -113.5461259,
+                53.50302510000001,
+                0
+              ],
+              [
+                -113.5555673,
+                53.502387,
+                0
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "name": "R3E [Grandview Heights]",
+          "description": "gx_image_links: ",
+          "gx_image_links": ""
+        }
+      }
+    ]
+  }
+};

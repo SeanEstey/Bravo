@@ -203,7 +203,7 @@ Routing.writeToSheet = function(file, data) {
     rows[i] = [
       order['gmaps_url'] || '',
       '',
-      order['customNotes']['next pickup'] || '',   // Temporary. Remove future pickups from route
+      '',   
       info,
       order['customNotes']['id'] || '',
       order['customNotes']['driver notes'] || '',
@@ -241,6 +241,12 @@ Routing.writeToSheet = function(file, data) {
   addressRange.setFormulas(formulas);
   addressRange.setVerticalAlignment("middle");
   addressRange.setHorizontalAlignment("center");
+  
+  // Hide unused rows
+  var a = sheet.getRange("A:$A").getValues().join("//").split("//");
+  var hide_start = 1 + rows.length + 1;
+  var hide_end = a.indexOf("***Route Info***");
+  sheet.deleteRows(hide_start, hide_end - hide_start + 1);
 }
 
 

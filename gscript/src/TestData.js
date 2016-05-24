@@ -41,11 +41,21 @@ var TestConfig = {
 
 //---------------------------------------------------------------------
 var TestData = {
+  // 12 weeks
   "res_cal_events": Schedule.getEventsBetween(
     TestConfig['etw_res_cal_id'], 
     new Date(Date.now() + (24 * 3600 * 1000)), 
-    new Date(Date.now() + (24 * 3600 * 7 * 10 * 1000))
-  ),  
+    new Date(Date.now() + (1000 * 3600 * 24 *  7 * 12))
+  ),
+  "res_bus_cal_events": Schedule.getEventsBetween(
+    TestConfig['etw_res_cal_id'], 
+    new Date(), 
+    new Date(Date.now() + (1000 * 3600 * 24 *  7 * 12)))
+    .concat(Schedule.getEventsBetween(
+      TestConfig['cal_ids']['bus'], 
+      new Date(), 
+      new Date(Date.now() + (1000 * 3600 * 24 *  7 * 12)))
+  ),
   "route_id": "1nLxNgkkCtXftPzASc09RRO29bJGqU2PI3UGcnrsz0LY", // May 18: B6C (Rod) 
   "edmonton_address": "411 Heffernan Drive NW, Edmonton, AB",
   "pickup_dates": {

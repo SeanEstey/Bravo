@@ -1,13 +1,13 @@
 //---------------------------------------------------------------------
 function main() {
-  runTests(GeoTests);
-  runTests(ScheduleTests);
-  runTests(SignupsTests);
-  runTests(RouteProcessorTests);
+  //runTests(GeoTests);
+  //runTests(ScheduleTests);
+  runTests(SignupsTests, true);
+  //runTests(RouteProcessorTests);
 }
 
 //---------------------------------------------------------------------
-function runTests(module) {
+function runTests(module, silence_log) {
   /* Run through all functions in module object, execute these tests */
   
   var log_lines = [];
@@ -29,34 +29,33 @@ function runTests(module) {
        
     if(module[f]()) {
       n_passes++;
-      log_lines.push(f + "...SUCCESS");
+      log_lines.push(f + "...Success");
     }
     else {
-      log_lines.push(f + "...FAILED");
+      log_lines.push(f + "...Failed!");
       n_fails++;
     }
   }
   
-  // Clear the log so only unit testing messages are visible
-  
-  Logger.clear();
-  
-  old_log = old_log.replace(/.{29}INFO\:/g, "???");
-  old_log = old_log.replace(/\n/g, '');
-  old_log = old_log.split("???");
- 
-  for(var i=0; i < old_log.length; i++) {
-    if(old_log[i] && old_log[i].length > 0)
-      Logger.log(old_log[i].trim());
+  if(silence_log) {
+    Logger.clear();
+    
+    old_log = old_log.replace(/.{29}INFO\:/g, "???");
+    old_log = old_log.split("???");
+    
+    for(var i=0; i < old_log.length; i++) {
+      if(old_log[i] && old_log[i].length > 0)
+        Logger.log(old_log[i].trim());
+    }
   }
   
   for(var i=0; i<log_lines.length; i++) {
     Logger.log(log_lines[i]);  
   }
   
-  Logger.log("%s tests passed, %s tests failed", 
-             Number(n_passes).toString(), 
-             Number(n_fails).toString());
+  Logger.log("%s tests failed (%s ran)", 
+             Number(n_fails).toString(),
+             Number(n_passes+n_fails).toString());
 }
 
 
@@ -127,15 +126,40 @@ var RouteProcessorTests = {
 //---------------------------------------------------------------------
 var SignupsTests = {
   "name": "Signups",
+  "assignNaturalBlock": function() {
+    var s = SignupsTests._init();
+    return s.assignNaturalBlock(0);
+  },
   "assignBookingBlock": function() {
     var s = SignupsTests._init();
-    return s.assignBookingBlock(1);                              
+    s.signups_values[0][s.headers.indexOf('Natural Block')] = 'R3E';
+    return s.assignBookingBlock(0);                              
   },
+  "validateEmail (valid)": function() {
+    var s = SignupsTests._init();
+    return (s.validateEmail(0) == true);
+  },
+  "validateEmail (invalid)": function() {
+    var s = SignupsTests._init();
+    s.signups_values[0][s.headers.indexOf('Email')] = "foo@";
+    return (s.validateEmail(0) == false);
+  },
+  "validatePhone (valid)": function() {
+    var s = SignupsTests._init();
+    s.signups_values[0][s.headers.indexOf('Primary Phone')] = "780-453-6707";
+    return (s.validatePhone(0) == true);
+  },
+  "validatePhone (invalid)": function() {
+    var s = SignupsTests._init();
+    s.signups_values[0][s.headers.indexOf('Primary Phone')] = "555-555-5555";
+    return (s.validatePhone(0) == false);
+  },
+
   
   "_init": function() {
     return new Signups(
       TestData['map_data'], {
-        'twilio_auth_key':'ABC', 
+        'twilio_auth_key': JSON.parse(PropertiesService.getScriptProperties().getProperty("twilio_auth_key")), 
         'booking':TestConfig['booking'],
         'etapestry': JSON.parse(PropertiesService.getScriptProperties().getProperty("etapestry")),
         'cal_ids': TestConfig['cal_ids'], 

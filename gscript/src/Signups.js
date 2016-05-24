@@ -498,7 +498,11 @@ Signups.prototype.validateEmail = function(index) {
   if(!signup_values[this.headers.indexOf('Email')].match(/[\w-]+@([\w-]+\.)+[\w-]+/gi)) {
     signup_values[this.headers.indexOf('Validation')] += "Deleted invalid email '" + signup_values[this.headers.indexOf('Email')] + "'\n";
     signup_values[this.headers.indexOf('Email')] = '';
+    
+    return false;
   }
+  
+  return true;
 }
 
 //---------------------------------------------------------------------
@@ -516,7 +520,7 @@ Signups.prototype.validatePhone = function(index) {
   }
   
   if(!this.twilio_auth_key)
-    return true;
+    return false;
   
   var headers = {
     "Authorization" : "Basic " + Utilities.base64Encode(this.twilio_auth_key)
@@ -549,8 +553,12 @@ Signups.prototype.validatePhone = function(index) {
       var msg = phone + ': Invalid Number';
     }
 
-    Logger.log(responseJSON);   
+    Logger.log(responseJSON);
+    
+    return false;
   }
+  
+  return true;
 }
 
 //---------------------------------------------------------------------

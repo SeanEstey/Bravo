@@ -1,21 +1,15 @@
-function testyrouty() {
-  var r = new Route('1T8dQb6s-Gk7k7-zpYGK50BbmdxNY6vAFrnbsee2LZ4E');
-  Logger.log(r.headers);
-  Logger.log(r.orders[r.orders.length-1]);
-}
-
 //---------------------------------------------------------------------
 function Route(id) {
   this.id = id;
   this.ss = SpreadsheetApp.openById(id);
   this.sheet = this.ss.getSheets()[0];
   
-  var num_orders = this.sheet.getRange("E1:E")
-    .getValues().filter(String).length - 1;
-  
   var data = this.sheet.getDataRange().getValues();
   
   this.headers = data.slice(0,1)[0];
+  
+  var num_orders = this.sheet.getRange("E1:E")
+    .getValues().filter(String).length - 1;
   
   // Order rows excluding last Depot row
   this.orders = data.slice(1, num_orders + 1);
@@ -52,25 +46,44 @@ function Route(id) {
 
 //---------------------------------------------------------------------
 Route.prototype.getValue = function(order_idx, column_name) {
-  return this.orders[i][this.headers.indexOf(column_name)];
+  return this.orders[order_idx][this.headers.indexOf(column_name)] || '';
 }
 
 //---------------------------------------------------------------------
-/* Gather Stats and Inven fields from bottom section of Route, build dictionary: 
-{
-  "inventory": {
-    "Bag Buddies In": 3,
-    "Bag Buddies Out": 0,
-    ...
-  },
-  "stats": {
-    "Mileage": 55150,
-    "Depot": "Strathcona",
-    ...
+Route.prototype.orderToDict = function(idx) {
+  /* For RouteProcessor processing */
+  
+  if(idx >= this.orders.length)
+    return false;
+  
+  var order_info = this.getValue(idx,'Order Info');
+  var act_name_regex = /Name\:\s(([a-zA-Z]*?\s)*){1,5}/g;
+  var account_name = '';
+      
+  // Parse Account Name from "Order Info" string
+  if(act_name_regex.test(order_info))
+    account_name = order_info.match(act_name_regex)[0] + '\n';    
+    
+  return {
+    'Account Number': this.getValue(idx,'ID'),
+    'Name & Address': account_name + this.getValue(idx,'Address'),
+    'Gift Estimate': this.getValue(idx,'$'),
+    'Driver Input': this.getValue(idx,'Notes'),
+    'Driver Notes': this.getValue(idx,'Driver Notes'),
+    'Block': this.getValue(idx,'Block').replace(/, /g, ','),
+    'Neighborhood': this.getValue(idx,'Neighborhood').replace(/, /g, ','),
+    'Status': this.getValue(idx,'Status'),
+    'Office Notes': this.getValue(idx,'Office Notes')
   }
 }
-*/
-Route.prototype.getInfo = function() {  
+
+//---------------------------------------------------------------------
+Route.prototype.getInfo = function() { 
+  /* Gather Stats and Inven fields from bottom section of Route, build 
+   * dictionary
+   * Returns: Dict object on success, false on error
+   */
+  
   var a = this.sheet.getRange(
     this.orders.length+3,
     1,
@@ -79,13 +92,24 @@ Route.prototype.getInfo = function() {
 
   // Make into 1D array of field names: ["Total", "Participants", ...]
   a = a.join('//').split('//');
- 
-  var start = a.indexOf('***Route Info***') + 1;
+   
+  var start = a.indexOf('***Route Info***');
+  
+  if(start < 0)
+    return false;
+  else
+    start++;
+  
   a.splice(0, start);
+  
+  var inven_idx = a.indexOf('***Inventory***');
+  
+  if(inven_idx < 0)
+    return false;
   
   // Now left with Stats and Inventory field names
   
-  stats_fields = a.splice(0, a.indexOf('***Inventory***'));
+  stats_fields = a.splice(0, inven_idx);
   
   var stats = {};
   
@@ -113,7 +137,10 @@ Route.prototype.getInventoryChanges = function() {
   a = a.join('//').split('//');
   b = b.join('//').split('//');
   
- var inven_idx = a.indexOf('***Inventory***');
+  var inven_idx = a.indexOf('***Inventory***');
+  
+  if(inven_idx < 0)
+    return false;
   
   a = a.slice(inven_idx + 1, a.length);
   b = b.slice(inven_idx + 1, b.length);

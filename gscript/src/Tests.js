@@ -1,14 +1,22 @@
 //---------------------------------------------------------------------
 function main() {
-  //runTests(GeoTests);
-  //runTests(ScheduleTests);
-  runTests(SignupsTests, true);
-  //runTests(RouteProcessorTests);
+  //runModuleTests(GeoTests);
+  //runModuleTests(ScheduleTests);
+  //runModuleTests(SignupsTests);
+  runModuleTests(RouteProcessorTests, false);
+  //runModuleTests(RouteTests);
 }
 
 //---------------------------------------------------------------------
-function runTests(module, silence_log) {
-  /* Run through all functions in module object, execute these tests */
+function runModuleTests(module, mute_log) {
+  /* Runs all tests within module object, where a test is any function without
+   * a leading underscore in its name.
+   * @mute_log: optional bool argument to mute non-test logs, showing only
+   * testing output. True by default.
+   */
+  
+  if(mute_log == undefined)
+    mute_log = true;
   
   var log_lines = [];
   
@@ -20,24 +28,32 @@ function runTests(module, silence_log) {
   var old_log = Logger.getLog();
   
   for(var f in module) {    
-    if(typeof(module[f]) != "function")
-       continue;
-    
-    // Skip non-test functions like _init()
-    if(f[0] == "_")
-      continue;
-       
-    if(module[f]()) {
-      n_passes++;
-      log_lines.push(f + "...Success");
+    try {
+      if(typeof(module[f]) != "function")
+        continue;
+      
+      // Skip non-test functions like _init()
+      if(f[0] == "_")
+        continue;
+      
+      if(module[f]()) {
+        n_passes++;
+        log_lines.push(f + "...passed");
+      }
+      else {
+        log_lines.push(f + "...FAILED");
+        n_fails++;
+      }
     }
-    else {
-      log_lines.push(f + "...Failed!");
+    catch(e) {
       n_fails++;
+      var e_msg = e.message+" file: " + e.fileName + ".gs, line: " + e.lineNumber;  
+      log_lines.push(f + "...Exception! (" + e_msg + ")");
     }
   }
+ 
   
-  if(silence_log) {
+  if(mute_log) {
     Logger.clear();
     
     old_log = old_log.replace(/.{29}INFO\:/g, "???");
@@ -53,9 +69,10 @@ function runTests(module, silence_log) {
     Logger.log(log_lines[i]);  
   }
   
-  Logger.log("%s tests failed (%s ran)", 
-             Number(n_fails).toString(),
-             Number(n_passes+n_fails).toString());
+  Logger.log(
+    "%s tests failed (%s ran)", 
+    Number(n_fails).toString(),
+    Number(n_passes+n_fails).toString());
 }
 
 
@@ -104,6 +121,28 @@ var ScheduleTests = {
   }
 };
 
+
+//---------------------------------------------------------------------
+var RouteTests = {
+  "name": "Route",
+  "orderToDict": function() {
+    var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
+    return typeof(r.orderToDict(1)) == "object";
+  },
+  "orderToDict (invalid)": function() {
+    var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
+    return r.orderToDict(100) == false;
+  },
+  "getInfo": function() {
+    var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
+    return r.getInfo();
+  },
+  "getInventoryChanges": function() {
+    var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
+    return r.getInventoryChanges();
+  }
+};
+
 //---------------------------------------------------------------------
 var RouteProcessorTests = {
   "name": "RouteProcessor",
@@ -111,6 +150,38 @@ var RouteProcessorTests = {
     var rp = RouteProcessorTests._init();
     rp.pickup_dates = TestData['pickup_dates'];
     rp.processRow(TestData['route_row'], 1, new Date(), "Kevin");
+    return true;
+  },
+  "getPickupDates": function() {
+    var rp = RouteProcessorTests._init();
+    var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
+    return rp.getPickupDates(r);
+  },
+  "getPickupDates (invalid)": function() {
+    var rp = RouteProcessorTests._init();
+    var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
+    r.orders[0][r.headers.indexOf('Block')] += ", B18F";
+    return rp.getPickupDates(r) == false;
+  },
+  "getNextPickup": function() {
+    var rp = RouteProcessorTests._init();
+    var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
+    rp.getPickupDates(r);
+    return rp.getNextPickup(r.orders[0][r.headers.indexOf('Block')]);
+  },
+  "importRoute": function() {
+    return true;
+  },
+  "processRow": function() {
+    return true;
+  },
+  "archive": function() {
+    return true;
+  },
+  "uploadEntries": function() {
+    return true;
+  },
+  "sendReceipts": function() {
     return true;
   },
   

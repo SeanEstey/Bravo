@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------
-function Signups(map_data, config, events) {
+function Signups(map_data, config, _events) {
   /* Constructor that pulls data from entries in Signups worksheet, some
    * schedule data, etc
    * @config: object containing keys: ['etapestry', 'twilio_auth_key', 
@@ -15,7 +15,7 @@ function Signups(map_data, config, events) {
   
   var ss = SpreadsheetApp.openById(config['gdrive']['ss_ids']['bravo']);
   this.sheet = ss.getSheetByName("Signups");
-  
+
   var data_range = this.sheet.getDataRange();
   var rows = data_range.getValues();
   this.headers = rows.slice(0,1)[0];
@@ -25,7 +25,7 @@ function Signups(map_data, config, events) {
   var tomorrow = new Date(Date.now() + (24 * 3600 * 1000));
   var ten_weeks = new Date(Date.now() + (24 * 3600 * 7 * 10 * 1000));
   
-  this.events = events || Schedule.getEventsBetween(this.cal_ids['res'], tomorrow, ten_weeks);
+  this.events = _events || Schedule.getEventsBetween(this.cal_ids['res'], tomorrow, ten_weeks);
 }
 
 //---------------------------------------------------------------------

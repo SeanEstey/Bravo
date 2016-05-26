@@ -11,6 +11,7 @@ function main() {
 function runModuleTests(module, mute_log) {
   /* Runs all tests within module object, where a test is any function without
    * a leading underscore in its name.
+   * Function "_cleanup" called explicitly at end if it exists
    * @mute_log: optional bool argument to mute non-test logs, showing only
    * testing output. True by default.
    */
@@ -20,7 +21,7 @@ function runModuleTests(module, mute_log) {
   
   var log_lines = [];
   
-  log_lines.push("***** Running " + module['name'] + " Unit Tests *****");
+  log_lines.push("running module \"" + module['name'] + "\" tests");
   
   var n_fails = 0;
   var n_passes = 0;
@@ -51,7 +52,6 @@ function runModuleTests(module, mute_log) {
       log_lines.push(f + "...Exception! (" + e_msg + ")");
     }
   }
- 
   
   if(mute_log) {
     Logger.clear();
@@ -69,10 +69,16 @@ function runModuleTests(module, mute_log) {
     Logger.log(log_lines[i]);  
   }
   
+  if("_cleanup" in module) {
+    module['_cleanup']();
+  }
+  
   Logger.log(
     "%s tests failed (%s ran)", 
     Number(n_fails).toString(),
     Number(n_passes+n_fails).toString());
+  
+  Logger.log("-----------------------------------");
 }
 
 
@@ -146,11 +152,23 @@ var RouteTests = {
 //---------------------------------------------------------------------
 var RouteProcessorTests = {
   "name": "RouteProcessor",
-  "processRow": function() {
+  "processRow (gift)": function() {
     var rp = RouteProcessorTests._init();
-    rp.pickup_dates = TestData['pickup_dates'];
-    rp.processRow(TestData['route_row'], 1, new Date(), "Kevin");
-    return true;
+    var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
+    rp.getPickupDates(r);
+    return rp.processRow(r, 0).length > 0;
+  },
+  "processRow (rfu)": function() {
+    var rp = RouteProcessorTests._init();
+    var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
+    rp.getPickupDates(r);
+    return rp.processRow(r, 1).length == 2;
+  },
+  "processRow (mpu)": function() {
+    var rp = RouteProcessorTests._init();
+    var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
+    rp.getPickupDates(r);
+    return rp.processRow(r, 2)[0]['sheet'] == 'MPU';
   },
   "getPickupDates": function() {
     var rp = RouteProcessorTests._init();
@@ -160,7 +178,7 @@ var RouteProcessorTests = {
   "getPickupDates (invalid)": function() {
     var rp = RouteProcessorTests._init();
     var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
-    r.orders[0][r.headers.indexOf('Block')] += ", B18F";
+    r.orders[0][r.headers.indexOf('Block')] += ", B18F"; // Invalid block
     return rp.getPickupDates(r) == false;
   },
   "getNextPickup": function() {
@@ -169,17 +187,21 @@ var RouteProcessorTests = {
     rp.getPickupDates(r);
     return rp.getNextPickup(r.orders[0][r.headers.indexOf('Block')]);
   },
-  "importRoute": function() {
-    return true;
-  },
-  "processRow": function() {
+  "import": function() {
+    var rp = RouteProcessorTests._init();
+    // Gifts: 16  RFUs: 1  MPUs: 9  
+    var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
+    rp.import(r);
     return true;
   },
   "archive": function() {
     return true;
   },
-  "uploadEntries": function() {
-    return true;
+  "buildEntriesPayload": function() {
+    var rp = RouteProcessorTests._init();
+    var payload = rp.buildEntriesPayload();
+    Logger.log("payload length: %s", payload.length);
+    return payload;
   },
   "sendReceipts": function() {
     return true;
@@ -191,6 +213,16 @@ var RouteProcessorTests = {
       TestConfig['cal_ids'], 
       TestConfig['gdrive']['folder_ids'], 
       JSON.parse(PropertiesService.getScriptProperties().getProperty("etapestry")));  
+  },
+  "_cleanup": function() {
+    // Reverse import from "import" test. Delete 16 gifts, 1 RFU, 9 MPU
+    var ss = SpreadsheetApp.openById(TestConfig['gdrive']['ss_ids']['bravo']);
+    var routes_sheet = ss.getSheetByName("Routes");
+    routes_sheet.deleteRows(routes_sheet.getMaxRows() - 16 + 1, 16);
+    var rfu_sheet = ss.getSheetByName("RFU");
+    rfu_sheet.deleteRows(rfu_sheet.getMaxRows() - 1 + 1, 1);
+    var mpu_sheet = ss.getSheetByName("MPU");
+    mpu_sheet.deleteRows(mpu_sheet.getMaxRows() - 9 + 1, 9); 
   }
 };
 
@@ -204,7 +236,7 @@ var SignupsTests = {
   "assignBookingBlock": function() {
     var s = SignupsTests._init();
     s.signups_values[0][s.headers.indexOf('Natural Block')] = 'R3E';
-    return s.assignBookingBlock(0);                              
+    return s.assignBookingBlock(0);
   },
   "validateEmail (valid)": function() {
     var s = SignupsTests._init();

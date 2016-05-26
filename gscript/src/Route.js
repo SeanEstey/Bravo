@@ -26,7 +26,7 @@ function Route(id) {
     this.title.indexOf(")")
   );
    
-  Logger.log('New Route block: ' + this.title_block);
+//  Logger.log('New Route block: ' + this.title_block);
     
   this.months = [
     "Jan", 

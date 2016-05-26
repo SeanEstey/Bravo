@@ -37,10 +37,6 @@ function RouteProcessor(ss_ids, cal_ids, folder_ids, etap_id, _events) {
   else
     this.events = _events;
   
-  this.gifts = [];
-  this.rfus = [];
-  this.mpus = [];
-  this.errors = [];
   this.pickup_dates = [];
 }
 
@@ -66,13 +62,15 @@ RouteProcessor.prototype.importRoutes = function(file_ids) {
 }
 
 //---------------------------------------------------------------------
-RouteProcessor.prototype.import = function(route) {
-  /* Updates all stops then writes them to appropriate GiftEntry sheets */
+RouteProcessor.prototype.import = function(route, ui) {
+  /* Updates all stops then writes them to appropriate GiftEntry sheets 
+   * @ui: optional UI to display MsgBox
+   */
   
-  this.gifts = [];
-  this.rfus = [];
-  this.mpus = [];
-  this.errors = [];
+  var gifts = [];
+  var rfus = [];
+  var mpus = [];
+  var errors = [];
   
   this.getPickupDates(route);
   
@@ -80,10 +78,19 @@ RouteProcessor.prototype.import = function(route) {
   
   for(var i=0; i<route.orders.length; i++) {
     try {  
-      var res = this.processRow(route, i);
+      var results = this.processRow(route, i);
       
-      if(res)
-        this.errors.push(res);
+      for(var j in results) {
+        if(results[j]['sheet'] == 'Routes')
+          gifts.push(results[j]['row']);
+        else if(results[j]['sheet'] == 'MPU')
+          mpus.push(results[j]['row']);
+        else if(results[j]['sheet'] == 'RFU')
+          rfus.push(results[j]['row']);
+        
+        if(results[j]['row'][0])
+          errors.push(results[j]['row'][0]);
+      }
     }
     catch(e) {
       var msg = 
@@ -92,31 +99,35 @@ RouteProcessor.prototype.import = function(route) {
         'Msg: ' + e.message + '\\n' +
         'File: ' + e.fileName + '\\n' + 
         'Line: ' + e.lineNumber;    
-      log(msg, true);
-      Browser.msgBox(msg, Browser.Buttons.OK);
+  
+      if(ui == undefined)
+        Logger.log(msg);
+      else
+        Browser.msgBox(msg, Browser.Buttons.OK);
     }
   }
   
-  appendRowsToSheet(this.sheets['Routes'], this.gifts, 1);
-  appendRowsToSheet(this.sheets['RFU'], this.rfus, 1);
-  appendRowsToSheet(this.sheets['MPU'], this.mpus, 1);
+  appendRowsToSheet(this.sheets['Routes'], gifts, 1);
+  appendRowsToSheet(this.sheets['RFU'], rfus, 1);
+  appendRowsToSheet(this.sheets['MPU'], mpus, 1);
   
   // Print Import Summary
   
   var summary_msg = 
     route.title + ' import complete.\\n' +
-    'Gifts: ' + String(this.gifts.length) + '\\n' +
-    'RFUs: ' + String(this.rfus.length) + '\\n' +
-    'MPUs: ' + String(this.mpus.length) + '\\n';       
+    'Gifts: ' + String(gifts.length) + '\\n' +
+    'RFUs: ' + String(rfus.length) + '\\n' +
+    'MPUs: ' + String(mpus.length) + '\\n';       
       
-  if(this.errors.length > 0)
-    summary_msg += '\\nErrors: ' + this.errors
- 
-  Browser.msgBox(summary_msg, Browser.Buttons.OK);
+  if(errors.length > 0)
+    summary_msg += '\\nErrors: ' + errors;
   
-  summary_msg = summary_msg.replace(/\\n/g, '  ');
-  Logger.log('summary_msg: ' + summary_msg);
-  log(summary_msg, true);
+  if(ui == undefined) {
+    summary_msg = summary_msg.replace(/\\n/g, '  ');
+    Logger.log('summary_msg: ' + summary_msg);
+  }
+  else
+    Browser.msgBox(summary_msg, Browser.Buttons.OK);
 }
 
 //---------------------------------------------------------------------
@@ -190,7 +201,7 @@ RouteProcessor.prototype.getNextPickup = function(blocks) {
 //---------------------------------------------------------------------
 RouteProcessor.prototype.processRow = function(route, order_idx) { 
   /* Process a line entry from a route
-   * Returns: string if data contains any errors, true otherwise
+   * Returns: array of objects: {'sheet': name, 'row': array}
    */
   
   /*** Test for invalid data ***/
@@ -198,6 +209,8 @@ RouteProcessor.prototype.processRow = function(route, order_idx) {
   var row = route.orderToDict(order_idx);
   
   var errors = '';
+  
+  var results = [];
   
   if(!isNumber(row['Account Number']))
     errors += 'Stop #' + String(order_idx+1) + ': Invalid Account #';
@@ -244,12 +257,12 @@ RouteProcessor.prototype.processRow = function(route, order_idx) {
   // Test for MPU
   if(!isNumber(row['Gift Estimate']) || String(row['Driver Input']).match(/MPU/gi)) {
     
-    var mpu_headers = this.sheets['MPU'].getDataRange("1:1").getValues()[0];
+    var mpu_headers = this.sheets['MPU'].getRange("1:1").getValues()[0];
     var mpu = [];
     
-    for(var header in mpu_headers) {
-      if(row[header])
-        mpu.push(row[header]);
+    for(var idx in mpu_headers) {
+      if(row[mpu_headers[idx]])
+        mpu.push(row[mpu_headers[idx]]);
       else
         mpu.push('');      
     }
@@ -257,12 +270,9 @@ RouteProcessor.prototype.processRow = function(route, order_idx) {
     mpu[mpu_headers.indexOf('Date')] = route.date;
     mpu[mpu_headers.indexOf('Driver')] = route.driver;
     mpu[mpu_headers.indexOf('Request Note')] = row['Driver Input'] + '\n' + temp_driver_notes;
+    mpu[0] = errors;
     
-    this.mpus.push(mpu);
-  
-    Logger.log('MPU: ' + JSON.stringify(mpu));
-    
-    return errors;
+    results.push({'sheet': 'MPU', 'row': mpu});
   }
   
   // Is a gift. Update Next Pickup, Status, clear Notes
@@ -280,12 +290,12 @@ RouteProcessor.prototype.processRow = function(route, order_idx) {
 
   // Test for RFU
   if(String(row['Driver Input']).match(/RFU/gi) || row['Status'] == 'Cancelling') {
-    var rfu_headers = this.sheets['RFU'].getDataRange("1:1").getValues()[0];
+    var rfu_headers = this.sheets['RFU'].getRange("1:1").getValues()[0];
     var rfu = [];
     
-    for(var header in rfu_headers) {
-      if(row[header])
-        rfu.push(row[header]);
+    for(var idx in rfu_headers) {
+      if(row[rfu_headers[idx]])
+        rfu.push(row[rfu_headers[idx]]);
       else
         rfu.push('');      
     }
@@ -294,18 +304,20 @@ RouteProcessor.prototype.processRow = function(route, order_idx) {
     rfu[rfu_headers.indexOf('Next Pickup Date')] = this.getNextPickup(row['Block']); 
     rfu[rfu_headers.indexOf('Driver')] = route.driver;
     rfu[rfu_headers.indexOf('Request Note')] = row['Driver Input'] + '\n' + temp_driver_notes;
-   
-    this.rfus.push(rfu);
+    rfu[0] = errors;
+    
+    results.push({'sheet': 'RFU', 'row': rfu});
   }
   
   // Must be Gift by default
   if(isNumber(row['Gift Estimate'])) {
-    var gift_headers = this.sheets['Routes'].getDataRange("1:1").getValues()[0];
+    var gift_headers = this.sheets['Routes'].getRange("1:1").getValues()[0];
+    
     var gift = [];
     
-    for(var header in gift_headers) {
-      if(row[header])
-        gift.push(row[header]);
+    for(var idx in gift_headers) {
+      if(row[gift_headers[idx]])
+        gift.push(row[gift_headers[idx]]);
       else
         gift.push('');      
     }
@@ -314,11 +326,13 @@ RouteProcessor.prototype.processRow = function(route, order_idx) {
     gift[gift_headers.indexOf('Date')] = route.date;
     gift[gift_headers.indexOf('Next Pickup Date')] = this.getNextPickup(row['Block']); 
     gift[gift_headers.indexOf('Driver')] = route.driver;
-    gift[rfu_headers.indexOf('Driver Input')] = row['Driver Input'] + '\n' + temp_driver_notes;
-       
-    this.gifts.push(gift);
-    return errors;
+    gift[gift_headers.indexOf('Driver Input')] = row['Driver Input'] + '\n' + temp_driver_notes;
+    gift[0] = errors;
+    
+    results.push({'sheet': 'Routes', 'row': gift});
   }
+  
+  return results;
 }
 
 //---------------------------------------------------------------------
@@ -343,7 +357,13 @@ RouteProcessor.prototype.archive = function(id) {
 }
 
 //---------------------------------------------------------------------
-RouteProcessor.prototype.uploadEntries = function() {
+RouteProcessor.prototype.buildEntriesPayload = function(ui) {
+  /* Prepare entries on "Routes" sheet for update/upload to eTapestry via
+   * Bravo server
+   * @ui: optional arg to display confirmation Dialog
+   * Returns: payload array
+   */
+  
   var entries = this.sheets['Routes'].getDataRange().getValues().slice(1);
   
   var request_id = new Date().getTime();
@@ -385,13 +405,13 @@ RouteProcessor.prototype.uploadEntries = function() {
     });
   }
   
-  var ui = SpreadsheetApp.getUi();
-
-  if(ui.alert(
-    'Please confirm',
-    payload['entries'].length + ' entries to upload. Go ahead?',
-     ui.ButtonSet.YES_NO) == ui.Button.NO)
-  return false;
+  if(ui != undefined) {    
+    if(ui.alert(
+      'Please confirm',
+      payload['entries'].length + ' entries to upload. Go ahead?',
+      ui.ButtonSet.YES_NO) == ui.Button.NO)
+      return false;
+  }
 
   return payload;
 }

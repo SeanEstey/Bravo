@@ -18,7 +18,7 @@ var TestConfig = {
   },
   "cal_ids": {
     'res': '7d4fdfke5mllck8pclcerbqk50@group.calendar.google.com',
-    'bus': 'bsmoacn3nsn8lio6vk892tioes@group.calendar.google.com'
+    'bus': 'bsmoacn3nsn8lio6vk892tioes@group.calendar.google.com',
   },
   'booking': {
     'max_block_radius': 10,

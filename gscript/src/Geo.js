@@ -133,8 +133,6 @@ Geo.findMapTitle = function(lat, lng, map_data) {
       return map_data.features[i].properties.name;
     }
   }
-
-  Logger.log("find_map: Could not find map");
   
   return false;
 }

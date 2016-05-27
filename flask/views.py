@@ -10,7 +10,7 @@ from bson.objectid import ObjectId
 from app import app, db, socketio
 
 # Import methods
-from utils import send_email
+from utils import send_mailgun_email
 from log import get_tail
 from auth import login, logout
 from routing import get_sorted_orders
@@ -311,7 +311,7 @@ def email_unsubscribe():
               unsubscribe from ETW emails. Please contact to see if they want \
               to cancel the entire service.'
 
-        send_email(['emptiestowinn@wsaf.ca'], 'Unsubscribe request', msg)
+        send_mailgun_email(['emptiestowinn@wsaf.ca'], 'Unsubscribe request', msg)
 
         return 'We have received your request to unsubscribe ' \
                 + request.args['email'] + ' from Empties to Winn. If you wish \

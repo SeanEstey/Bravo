@@ -40,7 +40,7 @@ def get_today_fails():
   )
 
 
-def send_email(recipients, subject, msg):
+def send_mailgun_email(recipients, subject, msg):
   send_url = 'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/messages'
   return requests.post(
     send_url,

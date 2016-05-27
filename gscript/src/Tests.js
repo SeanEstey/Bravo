@@ -113,7 +113,7 @@ var GeoTests = {
       TestConfig['cal_ids']['res'],
       TestData['res_cal_events']
     );
-  },
+  }
 };
 
 //---------------------------------------------------------------------
@@ -188,23 +188,33 @@ var RouteProcessorTests = {
     return rp.getNextPickup(r.orders[0][r.headers.indexOf('Block')]);
   },
   "import": function() {
+    /*
     var rp = RouteProcessorTests._init();
     // Gifts: 16  RFUs: 1  MPUs: 9  
     var r = new Route("1Nk0BF84Wbu5oWJS4eix3CCh1bIJddPNgFmuWgmF8Txc");
-    rp.import(r);
-    return true;
+    var res = rp.import(r);
+    if(res) {
+       var ss = SpreadsheetApp.openById(TestConfig['gdrive']['ss_ids']['bravo']);
+      var routes_sheet = ss.getSheetByName("Routes");
+      routes_sheet.deleteRows(routes_sheet.getMaxRows() - 16 + 1, 16);
+      var rfu_sheet = ss.getSheetByName("RFU");
+      rfu_sheet.deleteRows(rfu_sheet.getMaxRows() - 1 + 1, 1);
+      var mpu_sheet = ss.getSheetByName("MPU");
+      mpu_sheet.deleteRows(mpu_sheet.getMaxRows() - 9 + 1, 9); 
+    }
+    return res;
+    */
   },
   "archive": function() {
     return true;
   },
   "buildEntriesPayload": function() {
     var rp = RouteProcessorTests._init();
-    var payload = rp.buildEntriesPayload();
-    Logger.log("payload length: %s", payload.length);
-    return payload;
+    return rp.buildEntriesPayload();
   },
   "sendReceipts": function() {
-    return true;
+    var rp = RouteProcessorTests._init();
+    return rp.sendReceipts();
   },
   
   "_init": function() {
@@ -216,13 +226,6 @@ var RouteProcessorTests = {
   },
   "_cleanup": function() {
     // Reverse import from "import" test. Delete 16 gifts, 1 RFU, 9 MPU
-    var ss = SpreadsheetApp.openById(TestConfig['gdrive']['ss_ids']['bravo']);
-    var routes_sheet = ss.getSheetByName("Routes");
-    routes_sheet.deleteRows(routes_sheet.getMaxRows() - 16 + 1, 16);
-    var rfu_sheet = ss.getSheetByName("RFU");
-    rfu_sheet.deleteRows(rfu_sheet.getMaxRows() - 1 + 1, 1);
-    var mpu_sheet = ss.getSheetByName("MPU");
-    mpu_sheet.deleteRows(mpu_sheet.getMaxRows() - 9 + 1, 9); 
   }
 };
 

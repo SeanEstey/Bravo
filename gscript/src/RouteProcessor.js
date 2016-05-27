@@ -128,6 +128,8 @@ RouteProcessor.prototype.import = function(route, ui) {
   }
   else
     Browser.msgBox(summary_msg, Browser.Buttons.OK);
+  
+  return true;
 }
 
 //---------------------------------------------------------------------
@@ -413,21 +415,29 @@ RouteProcessor.prototype.buildEntriesPayload = function(ui) {
       return false;
   }
 
+
+  var data = [this.headers].concat(entries);
+  this.sheets['Routes'].getDataRange().setValues(data);
+
   return payload;
 }
 
 
 //---------------------------------------------------------------------
-RouteProcessor.prototype.sendReceipts = function() {
-  var entries = this.sheets['Routes'].getDataRange().getValues().slice(1);
+RouteProcessor.prototype.sendReceipts = function(ui) {
+  var entries = this.sheets['Routes'].getDataRange().getValues();//.slice(1);
   
-  for(var i=0; i<entries.length; i++) {
+  var payload = [];
+  
+  for(var i=1; i<entries.length; i++) {
     var entry = entries[i];
     
     if(!entry[this.headers.indexOf('Upload Status')] || entry[this.headers.indexOf('Email Status')])
       continue;
+    else
+      entry[this.headers.indexOf('Email Status')] = '...';
     
-    data.push({
+    payload.push({
       "account_number": entry[this.headers.indexOf("Account Number")],
       "date": entry[this.headers.indexOf("Date")],
       "amount": entry[this.headers.indexOf("Gift Estimate")],
@@ -441,12 +451,20 @@ RouteProcessor.prototype.sendReceipts = function() {
     });
   }
   
-  var options = {
+  if(ui != undefined) {    
+    if(ui.alert(
+      'Please confirm',
+      payload['entries'].length + ' entries to upload. Go ahead?',
+      ui.ButtonSet.YES_NO) == ui.Button.NO)
+      return false;
+  }
+  
+  // Add "..." to email status
+  this.sheets['Routes'].getDataRange().setValues(entries);
+    
+  return UrlFetchApp.fetch(Settings['bravo_url'] + '/receipts/process', {
     "muteHttpExceptions": true,
     "method" : 'post',
-    "headers" : {
-      "Authorization": "Basic " + Utilities.base64Encode(Settings['bravo_auth_key'])
-    },
     "payload" : {
       "keys": JSON.stringify({
         "association_name": this.etap_id['association'],
@@ -454,9 +472,7 @@ RouteProcessor.prototype.sendReceipts = function() {
         "etap_user": this.etap_id['user'],
         "etap_pass": this.etap_id['pw']
       }),
-      "data": JSON.stringify(data)
+      "data": JSON.stringify(payload)
     }
-  };
-  
-  var response = UrlFetchApp.fetch(BRAVO_URL + '/receipts/process', options);
+  });
 }

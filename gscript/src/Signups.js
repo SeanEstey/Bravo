@@ -565,7 +565,7 @@ Signups.prototype.validatePhone = function(index) {
 Signups.prototype.buildPayload = function(ui) {
   /* Send 'em to eTapestry via Bravo */
   
-  var request_id = (new Date).getTime();
+  var request_id = new Date().getTime();
   var payload = [];
   
   // Select signups which have been audited but not yet uploaded,
@@ -649,11 +649,13 @@ Signups.prototype.buildPayload = function(ui) {
     });
   }
   
-  if(ui.alert(
-    'Please confirm',
-    payload.length + ' accounts audited and prepared for upload. Go ahead?',
-     ui.ButtonSet.YES_NO) == ui.Button.NO)
-  return false;
+  if(ui != undefined) {
+    if(ui.alert(
+      'Please confirm',
+      payload.length + ' accounts audited and prepared for upload. Go ahead?',
+      ui.ButtonSet.YES_NO) == ui.Button.NO)
+      return false;
+  }
     
   return payload;
 }
@@ -704,7 +706,7 @@ Signups.prototype.emailUploaded = function() {
       })
     };
   
-    var response = UrlFetchApp.fetch(BRAVO_URL + '/email/send', options);
+    var response = UrlFetchApp.fetch(Settings['bravo_url'] + '/email/send', options);
     
     Logger.log(response.getContentText());
      

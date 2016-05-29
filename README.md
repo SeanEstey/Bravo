@@ -117,6 +117,22 @@ Make sure the .gs files are in Bravo/gscript/src.
 
 <b>[I had some kind of permissions issue, can't recall how I sorted it out. Think I had to change the gapps executable permissions or change the npm install directory...]</b>
 
+### Google Sheets User Permissions
+
+Share the Bravo Library script with new user with View permissions.
+
+Have the user open the Library in Script Editor, run a test function. 
+
+Authorize permissions.
+
+Share Bravo Sheets with new user with Edit permissions.
+
+Have user open Bravo Sheets Script Editor, Resources->Libraries, paste in Bravo Library Project Key
+
+Have user remove Bravo Library script from Google Drive.
+
+Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with them.
+
 ### Run Instructions
 
 ###### Start RabbitMQ daemon

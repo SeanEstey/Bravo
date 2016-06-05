@@ -242,7 +242,8 @@ function process_route_entry($nsc, $entry) {
     'valuable' => [
       'type' => 5,
       'inKind' => []
-    ]
+		],
+		'definedValues' => $entry['gift']['definedValues']
   ], 
     false
   ]);

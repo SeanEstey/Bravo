@@ -16,27 +16,27 @@
 
     $func = $arr['func'];
     $data = get_object_vars($arr['data']);
-    $keys = get_object_vars($arr['keys']);
+    $etapestry = get_object_vars($arr['etapestry']);
   }
   else {
     $func = $_POST['func'];
     $data = json_decode($_POST['data'], true);
-    $keys = json_decode($_POST['keys'], true);
+    $etapestry = json_decode($_POST['etapestry'], true);
   }
 
-  $association = $keys['association_name'];
+  $agency = $etapestry['agency'];
   
   $m = new MongoDB\Driver\Manager('mongodb://localhost:27017');
-  $db = new MongoDB\Collection($m, "$association.entries");
+  $db = new MongoDB\Collection($m, "$agency.entries");
 
-  $nsc = new nusoap_client($keys['etap_endpoint'], true);
+  $nsc = new nusoap_client($etapestry['endpoint'], true);
 
   if(checkForError($nsc)) {
     echo $nsc->faultcode . ': ' . $nsc->faultstring;
     exit;
   }
 
-  $newEndpoint = $nsc->call('login', array($keys['etap_user'], $keys['etap_pass']));
+  $newEndpoint = $nsc->call('login', array($etapestry['user'], $etapestry['pw']));
 
   if(checkForError($nsc)) {
     echo $nsc->faultcode . ': ' . $nsc->faultstring;
@@ -46,7 +46,7 @@
   if($newEndpoint != "") {
     $nsc = new nusoap_client($newEndpoint, true);
     checkForError($nsc);
-    $nsc->call("login", array($keys['etap_user'], $keys['etap_pass']));
+    $nsc->call("login", array($etapestry['user'], $etapestry['pw']));
     checkForError($nsc);
   }
 
@@ -76,9 +76,19 @@
 
     case 'process_route_entries':
       $entries = $data['entries'];
-      $num_errors = 0;
+			$num_errors = 0;
 
       for($i=0; $i<count($data['entries']); $i++) { 
+
+				if($agency == 'vec') {
+					$entries[$i]['gift']['definedValues'] = [[
+						'fieldName' => 'T3010 code',  
+						'value' => '4000-560'
+					]];
+				}
+				else
+					$entries[$i]['gift']['definedValues'] = [];
+
         $status = process_route_entry($nsc, $entries[$i]);
 
         if(floatval($status) == 0)

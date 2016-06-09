@@ -10,13 +10,15 @@
   require 'vendor/autoload.php';
 
   if(!isset($_POST['data'])) {
-    $association = 'wsf';
+		// FIX
+		$agency = 'wsf';
+
     $arr = json_decode(file_get_contents("php://input"));
     $arr = get_object_vars($arr);
 
     $func = $arr['func'];
     $data = get_object_vars($arr['data']);
-    $etapestry = get_object_vars($arr['etapestry']);
+		$etapestry = get_object_vars($arr['etapestry']);
   }
   else {
     $func = $_POST['func'];
@@ -24,22 +26,36 @@
     $etapestry = json_decode($_POST['etapestry'], true);
   }
 
-  $agency = $etapestry['agency'];
-  
-  $m = new MongoDB\Driver\Manager('mongodb://localhost:27017');
-  $db = new MongoDB\Collection($m, "$agency.entries");
+	$agency = $etapestry['agency'];
+
+	try {
+		$m = new MongoDB\Driver\Manager('mongodb://localhost:27017');
+		$db = new MongoDB\Collection($m, "$agency.entries");
+	}
+	catch (Exception $e) {
+		error_log(
+			"MongoDB error attempting to call gscript function '" . $func . 
+			"'. Message: '" . $e->getMessage() . "'");
+		http_response_code(500);
+		exit;
+	}
 
   $nsc = new nusoap_client($etapestry['endpoint'], true);
 
   if(checkForError($nsc)) {
     echo $nsc->faultcode . ': ' . $nsc->faultstring;
+		http_response_code(500);
     exit;
   }
 
   $newEndpoint = $nsc->call('login', array($etapestry['user'], $etapestry['pw']));
 
   if(checkForError($nsc)) {
+		error_log(
+			"eTapestry login error for user '" . $etapestry['user'] . 
+			"'. Message: '" . $nsc->faultstring . "'");
     echo $nsc->faultcode . ': ' . $nsc->faultstring;
+		http_response_code(500);
     exit;
   }
 

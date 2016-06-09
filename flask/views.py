@@ -230,17 +230,17 @@ def call_event():
 def process_receipts():
     '''Data sent from Routes worksheet in Gift Importer (Google Sheet)
     @arg 'data': JSON array of dict objects with UDF and gift data
-    @arg 'keys': JSON dict of etapestry info for PHP script
+    @arg 'etapestry': JSON dict of etapestry info for PHP script
     '''
 
     app.logger.info('Process receipts request received')
 
     entries = json.loads(request.form['data'])
-    keys = json.loads(request.form['keys'])
+    etapestry = json.loads(request.form['etapestry'])
 
     # Start celery workers to run slow eTapestry API calls
     r = receipts.process.apply_async(
-      args=(entries, keys),
+      args=(entries, etapestry),
       queue=app.config['DB']
     )
 

@@ -9,12 +9,12 @@ function RouteProcessor(ss_ids, cal_ids, folder_ids, etap_id, _events) {
   this.folder_ids = folder_ids;
   this.etap_id = etap_id;
   
-  var bravo_ss = SpreadsheetApp.openById(ss_ids['bravo']);
+  this.bravo_ss = SpreadsheetApp.openById(ss_ids['bravo']);
   
   this.sheets = {
-    'Routes': bravo_ss.getSheetByName('Routes'),
-    'RFU': bravo_ss.getSheetByName('RFU'),
-    'MPU': bravo_ss.getSheetByName('MPU'), 
+    'Routes': this.bravo_ss.getSheetByName('Routes'),
+    'RFU': this.bravo_ss.getSheetByName('RFU'),
+    'MPU': this.bravo_ss.getSheetByName('MPU'), 
   };
   
   this.headers = this.sheets['Routes'].getRange(1,1,1,this.sheets['Routes'].getMaxColumns()).getValues()[0];
@@ -100,10 +100,8 @@ RouteProcessor.prototype.import = function(route, ui) {
         'File: ' + e.fileName + '\\n' + 
         'Line: ' + e.lineNumber;    
   
-      if(ui == undefined)
-        Logger.log(msg);
-      else
-        Browser.msgBox(msg, Browser.Buttons.OK);
+      this.bravo_ss.toast(msg);
+      Logger.log(msg);
     }
   }
   
@@ -122,12 +120,8 @@ RouteProcessor.prototype.import = function(route, ui) {
   if(errors.length > 0)
     summary_msg += '\\nErrors: ' + errors;
   
-  if(ui == undefined) {
-    summary_msg = summary_msg.replace(/\\n/g, '  ');
-    Logger.log('summary_msg: ' + summary_msg);
-  }
-  else
-    Browser.msgBox(summary_msg, Browser.Buttons.OK);
+  Logger.log('summary_msg: ' + summary_msg);
+  this.bravo_ss.toast(summary_msg);
   
   return true;
 }
@@ -207,9 +201,9 @@ RouteProcessor.prototype.processRow = function(route, order_idx) {
    */
   
   /*** Test for invalid data ***/
-  
+    
   var row = route.orderToDict(order_idx);
-  
+    
   var errors = '';
   
   var results = [];
@@ -324,9 +318,10 @@ RouteProcessor.prototype.processRow = function(route, order_idx) {
         gift.push('');      
     }
     
+    gift[gift_headers.indexOf('Gift Estimate')] = Number(row['Gift Estimate']);
     gift[gift_headers.indexOf('Upload Status')] = errors;
     gift[gift_headers.indexOf('Date')] = route.date;
-    gift[gift_headers.indexOf('Next Pickup Date')] = this.getNextPickup(row['Block']); 
+    gift[gift_headers.indexOf('Next Pickup Date')] = this.getNextPickup(row['Block']) || ''; 
     gift[gift_headers.indexOf('Driver')] = route.driver;
     gift[gift_headers.indexOf('Driver Input')] = row['Driver Input'] + '\n' + temp_driver_notes;
     gift[0] = errors;
@@ -396,9 +391,9 @@ RouteProcessor.prototype.buildEntriesPayload = function(ui) {
       },
       'gift': {
         'amount': entry[this.headers.indexOf('Gift Estimate')],
-        'fund': this.etap_id['fund'],
-        'campaign': this.etap_id['campaign'],
-        'approach': this.etap_id['approach'],
+        'fund': this.etap_id['gifts']['fund'],
+        'campaign': this.etap_id['gifts']['campaign'],
+        'approach': this.etap_id['gifts']['approach'],
         'date': date_to_ddmmyyyy(entry[this.headers.indexOf('Date')]),
         'note': 
           'Driver: ' + entry[this.headers.indexOf('Driver')] + '\n' + 
@@ -425,7 +420,7 @@ RouteProcessor.prototype.buildEntriesPayload = function(ui) {
 
 //---------------------------------------------------------------------
 RouteProcessor.prototype.sendReceipts = function(ui) {
-  var entries = this.sheets['Routes'].getDataRange().getValues();//.slice(1);
+  var entries = this.sheets['Routes'].getDataRange().getValues();//slice(1);
   
   var payload = [];
   
@@ -444,7 +439,7 @@ RouteProcessor.prototype.sendReceipts = function(ui) {
       "next_pickup": entry[this.headers.indexOf("Next Pickup Date")],
       "status": entry[this.headers.indexOf("Status")],
       "from": {
-        "row": i+2,
+        "row": i+1,
         "upload_status": entry[this.headers.indexOf('Upload Status')],
         "worksheet": "Routes"
       }
@@ -454,24 +449,21 @@ RouteProcessor.prototype.sendReceipts = function(ui) {
   if(ui != undefined) {    
     if(ui.alert(
       'Please confirm',
-      payload['entries'].length + ' entries to upload. Go ahead?',
+      payload.length + ' entries to upload. Go ahead?',
       ui.ButtonSet.YES_NO) == ui.Button.NO)
       return false;
   }
   
+
   // Add "..." to email status
   this.sheets['Routes'].getDataRange().setValues(entries);
+
     
   return UrlFetchApp.fetch(Settings['bravo_url'] + '/receipts/process', {
     "muteHttpExceptions": true,
     "method" : 'post',
     "payload" : {
-      "keys": JSON.stringify({
-        "association_name": this.etap_id['association'],
-        "etap_endpoint": this.etap_id['endpoint'],
-        "etap_user": this.etap_id['user'],
-        "etap_pass": this.etap_id['pw']
-      }),
+      "etapestry": JSON.stringify(this.etap_id),
       "data": JSON.stringify(payload)
     }
   });

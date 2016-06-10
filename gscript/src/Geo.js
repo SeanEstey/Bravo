@@ -28,8 +28,6 @@ Geo.findBlocksWithin = function(lat, lng, map_data, radius, end_date, cal_id, _e
     // Take the first lat/lon vertex in the rectangle and calculate distance
     var dist = Geo.distance(lat, lng, center[1], center[0]);
     
-    Logger.log(dist);
-    
     if(dist > radius)
       continue;
     
@@ -139,6 +137,87 @@ Geo.findMapTitle = function(lat, lng, map_data) {
 
 
 //---------------------------------------------------------------------
+Geo.geocodeBeta = function(address, city, postal) { 
+  /* Returns most accurate Google Maps Geocoder result object.
+   * If multiple results are returned, postal code is used to
+   * discern correct match.
+   * https://developers.google.com/maps/documentation/geocoding/start#geocoding-request-and-response-latitudelongitude-lookup
+   * Returns result object: {
+   *   "address_components" : [{
+   *     "long_name" : "T2K 3Y1",
+   *     "short_name" : "T2K 3Y1",
+   *     "types" : [ "postal_code" ]
+   *     },
+   *     {...}
+   *   ],
+   *   "formatted_address" : "1600 Amphitheatre Parkway, Mountain View, CA 94043, USA",
+   *   "geometry" : {
+   *     "location" : {   // This key only present is precise match found
+   *       "lat" : 37.4224764,
+   *       "lng" : -122.0842499
+   *     },
+   *     {...}
+   *   },
+   *   "place_id": "ChIJ2eUgeAK6j4ARbn5u_wAGqWA",
+   *   "partial_match": true  // This key only present if full match not found
+   * }
+   */
+  
+  try {
+    var response = Maps.newGeocoder().geocode(address + ", " + city + ", AB");
+  }
+  catch(e) {
+    Logger.log('geocode failed: ' + e.msg);
+    return false;
+  }
+  
+  if(response.results.length == 1 && 'partial_match' in response.results[0]) {
+    Logger.log(
+      'Warning: Only partial match found for "%s". Using "%s". Geo-coordinates may be incorrect.',
+      address, response['results'][0]);
+  }
+  else if(response.results.length > 1) {
+    Logger.log('Multiple results geocoded for "%s". Finding best match...', address);
+    
+    // No way to identify best match
+    if(postal === undefined) {
+      Logger.log('Warning: no postal code provided. Returning first result: "%s"',
+                 response['results'][0]);
+      return response.results[0];
+    }
+    
+    // Let's use the Postal Code to find the best match
+    for(var i=0; i<response.results.length; i++) {
+      var result = response.results[i];
+      
+      var postal = '';
+      
+      for(var j=0; j<result.address_components.length; j++) {
+        if(result.address_components[j]['types'].indexOf('postal_code') > -1)
+          postal = result.address_components[j]['short_name'];
+      }
+      
+      if(!postal)
+        continue;
+      
+      if(postal.substring(0,3) == postal.substring(0,3)) {
+        Logger.log(
+          'First half of Postal Code "%s" matched in result[%s]: "%s". Using as best match.',
+          postal, i, result['formatted_address']);
+        return result;
+      }
+    }
+    
+    Logger.log(
+      'Warning: unable to identify correct match. Using first result as best guess: %s',
+      response['results'][0]['formatted_address']);
+    
+  }
+
+  return response['results'][0];
+}
+
+//---------------------------------------------------------------------
 Geo.geocode = function(address_str) {  
   /* Wrapper for Google Maps geocoder, returns object with properties:
    * "Neighborhood": str, "Coords": lat/lng array, "Postal_Code": str,
@@ -149,12 +228,12 @@ Geo.geocode = function(address_str) {
     var r = Maps.newGeocoder().geocode(address_str);
   }
   catch(e) {
-    log('geocode failed: ' + e.msg);
+    Logger.log('geocode failed: ' + e.msg);
     return false;
   }
   
   if(!r.results) {
-    log('no result for geocode of ' + address_str);
+    Logger.log('no result for geocode of ' + address_str);
     
     return false;
   }

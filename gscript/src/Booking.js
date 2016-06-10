@@ -1,5 +1,7 @@
 function Booking() {}
 
+
+
 //----------------------------------------------------------------------------
 Booking.search = function(term, config, map_data) {
   /* Search query invoked from Booker client

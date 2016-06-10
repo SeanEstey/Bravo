@@ -1,11 +1,20 @@
+function foo() {
+  var r = Geo.geocodeBeta("Huntbourne", "Calgary", "T2K 3Y4");
+  
+  Logger.log(r.formatted_address.substring(0, r.formatted_address.indexOf(',')));
+}
+
+
+
 //---------------------------------------------------------------------
 function main() {
   //runModuleTests(GeoTests);
   //runModuleTests(ScheduleTests);
-  //runModuleTests(SignupsTests);
+  runModuleTests(SignupsTests);
   //runModuleTests(RouteProcessorTests, false);
   //runModuleTests(RouteTests);
   runModuleTests(PermissionTests);
+  runModuleTests(RoutingTests);
 }
 
 
@@ -93,89 +102,75 @@ var PermissionTests = {
    */
   
   "name": "Permissions",
-  "calendars": function(cal_ids, ui) { 
-      if(cal_ids == undefined)
-        cal_ids = TestConfig['cal_ids'];
-
-      for(id in cal_ids) {
-        try {   
-          Calendar.Events.list(cal_ids[id]);
-        }
-        catch(e) {
-          var msg = "Error accessing Calendars:\\n\\n" + e.name + ": " + e.message + ". \\n\\nContact Sean for help";
-          
-          if(e.message ==  "Not Found")
-            msg = "You do not have permission to access calendar \"" + cal_ids[id] + "\" " +
-                  "required by this script. Contact Sean for help.";
-           
-          if(ui != undefined)
-            Browser.msgBox(msg, Browser.Buttons.OK);
-          else
-            Logger.log(e.name + ": " + e.message);
-          
-          return false;
-        }
-      }
-    
-    Logger.log("calendarPermissions: success");
-  
-    return true;
-  },
-  "folders": function(folder_ids, ui) {
+  "test": function(cal_ids, folder_ids, ss_ids, ui) { 
+    if(cal_ids == undefined)
+      cal_ids = TestConfig['cal_ids'];
     if(folder_ids == undefined)
       folder_ids = TestConfig['gdrive']['folder_ids'];
-    
-    for(id in folder_ids) {
-      try {
-        DriveApp.getFolderById(folder_ids[id]);
+    if(ss_ids == undefined)
+      ss_ids = TestConfig['gdrive']['ss_ids'];
+
+    try {  
+      var type='';
+      var id = '';
+      for(var key in cal_ids) {
+        type = 'calendar';
+        id = cal_ids[key];
+        Calendar.Events.list(cal_ids[key]);
       }
-      catch(e) {
-        var msg = "Error accessing Google Drive Folders:\\n\\n \"" + e.message + "\". \\n\\nContact Sean for help";
-        
-        if(e.message ==  "Not Found")
-            msg = "You do not have permission to access Drive Folder \"" + folder_ids[id] + "\" " +
-                  "required by this script. Contact Sean for help.";
-           
-        if(ui != undefined)
-          Browser.msgBox(msg, Browser.Buttons.OK);
-        else
-          Logger.log(e.name + ": " + e.message);
-          
-        return false;
+      for(var key in folder_ids) {
+        type = 'folder';
+        id = folder_ids[key];
+        DriveApp.getFolderById(folder_ids[key]);
+      }
+      for(var key in ss_ids) {
+        type = 'sheet';
+        id = ss_ids[key];
+        SpreadsheetApp.openById(ss_ids[key]);
       }
     }
-    
-    Logger.log("folderPermissions: success");
-   
+    catch(e) {
+      var msg = 
+        "Error accessing " + type + " \"" + key + "\" (ID " + id + ")" +
+          ":\\n\\nMessage: \"" + e.name + ": " + e.message + "\" \\n\\nContact Sean for help";
+      
+      if(e.message ==  "Not Found")
+        msg = "You do not have permission to access " + type + "\"" + id + "\" " +
+          "required by this script. Contact Sean for help.";
+      
+      if(ui != undefined)
+        Browser.msgBox(msg, Browser.Buttons.OK);
+      else
+        Logger.log(e.name + ": " + e.message);
+      
+      return false;
+    }
+
+    Logger.log("Calendar/Sheet/Folder permissions OK");
+  
     return true;
+  }
+};
+
+//---------------------------------------------------------------------
+var RoutingTests = {
+  "name": "Routing",
+  "buildScheduled": function() {
+    /*return Routing.buildScheduled(
+      TestConfig['cal_ids']['res'], 
+      TestConfig['gdrive']['folder_ids']['routed'],
+      TestConfig['gdrive']['ss_ids']['route_template'],
+      new Date(),
+      TestConfig['depots']);*/
   },
-  "sheets": function(sheet_ids, ui) {
-    if(sheet_ids == undefined)
-      sheet_ids = TestConfig['gdrive']['sheet_ids'];
-    
-    for(id in sheet_ids) {
-      try {
-        SpreadsheetApp.openById(sheet_ids[id]);
-      }
-      catch(e) {
-        var msg = "Error accessing Google Sheet:\\n\\n \"" + e.message + "\". \\n\\nContact Sean for help";
-        
-        if(e.message ==  "Not Found")
-          msg = "You do not have permission to access 1 or more Google Sheets: \"" + sheet_ids[id] + "\" " +
-                  "required by this script. Contact Sean for help.";
-           
-        if(ui != undefined)
-          Browser.msgBox(msg, Browser.Buttons.OK);
-        else
-          Logger.log(e.name + ": " + e.message);
-          
-        return false;
-      }
-    }
-    
-    Logger.log("sheetPermissions: success");
-    
-    return true;
+  "lookupDepot": function() {
+    //Routing.lookupDepot(event_desc, block, postal_codes, depots);
+  },
+  "solve": function() {
+    //return Routing.solve(block, driver, date, start_addy, end_addy);
+  },
+  "writeToSheet": function() {
+    //return Routing.writeToSheet(file, data);
   }
 };
 

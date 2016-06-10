@@ -1,6 +1,6 @@
 /* Data for use in Tests.gs */
 
-
+/*
 var TestConfig = {
   "etw_res_cal_id": "7d4fdfke5mllck8pclcerbqk50@group.calendar.google.com",
   "gdrive": {
@@ -19,6 +19,29 @@ var TestConfig = {
   "cal_ids": {
     'res': '7d4fdfke5mllck8pclcerbqk50@group.calendar.google.com',
     'bus': 'bsmoacn3nsn8lio6vk892tioes@group.calendar.google.com',
+  },
+  'depots' : {
+    'abc': {
+      'name': 'ABC',
+      'location': '14142 140 St NW, Edmonton, AB',
+      'blocks': ['B1A', 'B2A', 'B3A', 'B4A', 'B5A', 'B6A']
+    },
+    'univer' : {
+      'name': 'Univer', 
+      'location': '8221 127 Ave NW, Edmonton, AB',
+      'blocks': ['R2C', 'R2M', 'R1A'], 
+      'postal': ['T8N', 'T5E', 'T5A', 'T5C', 'T5L', 'T5Y', 'T5Z', 'T5X', 'T6V']
+    },
+    'strathcona': {
+      'name': 'Strathcona',
+      'location': '10347 73 Ave NW, Edmonton, AB',
+      'blocks': ['B1D', 'B2D', 'B3D', 'B4D', 'B5D', 'B6D']
+    },
+    'fir street': {
+      'name': 'Fir Street',
+      'location': '979 Fir St, Sherwood Park, AB',
+      'postal': ['T8A', 'T8H', 'T8L']
+    }
   },
   'booking': {
     'max_block_radius': 10,
@@ -136,3 +159,4 @@ var TestData = {
     ]
   }
 };
+*/

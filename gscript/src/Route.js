@@ -67,7 +67,7 @@ Route.prototype.orderToDict = function(idx) {
   return {
     'Account Number': this.getValue(idx,'ID'),
     'Name & Address': account_name + this.getValue(idx,'Address'),
-    'Gift Estimate': this.getValue(idx,'$'),
+    'Gift Estimate': Number(this.getValue(idx,'$')),
     'Driver Input': this.getValue(idx,'Notes'),
     'Driver Notes': this.getValue(idx,'Driver Notes'),
     'Block': this.getValue(idx,'Block').replace(/, /g, ','),

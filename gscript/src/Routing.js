@@ -20,7 +20,10 @@ Routing.buildScheduled = function(calendar_id, routed_folder, template_id, date,
   for(var i=0; i < res_events.items.length; i++) {
     var event = res_events.items[i];
     var block = Parser.getBlockFromTitle(event.summary);
-      
+    
+ //   if(block != "R7D")
+ //     continue;
+          
     var depot = Routing.lookupDepot(
         event.description, 
         block, 
@@ -29,9 +32,9 @@ Routing.buildScheduled = function(calendar_id, routed_folder, template_id, date,
       );
     
     if(!depot) {
-      log('Error: Could not identify depot for Block ' + block + 
+      Logger.log('Error: Could not identify depot for Block ' + block + 
           '. Could not send to Bravo for routing. Try specifying the depot name ' +
-          'in the Google Calendar event description: "Depot: Strathcona"', true);
+          'in the Google Calendar event description: "Depot: Strathcona"');
       continue;
     }
     
@@ -52,8 +55,10 @@ Routing.buildScheduled = function(calendar_id, routed_folder, template_id, date,
     
     Routing.writeToSheet(file, orders);
     
-    log('Route created for Block ' + block, true);
+    Logger.log('Route created for Block ' + block);
   }
+  
+  return true;
 }
 
 //----------------------------------------------------------------------------
@@ -61,6 +66,11 @@ Routing.lookupDepot = function(event_desc, block, postal_codes, depots) {
   /* 3 different ways of looking up depot: explicitly in calendar event description,
    * defined by Block in Config, or defined by postal code in Config
    */
+  
+  // Vecova (single depot)
+  if(Object.keys(depots).length == 1) {
+    return depots[Object.keys(depots)[0]];
+  }
       
   // A. Is the depot defined explicitly in Calendar Event description?
   
@@ -114,8 +124,7 @@ Routing.solve = function(block, driver, date, start_addy, end_addy) {
     );
   }
   catch(e) {
-    Logger.log('exception!');
-    Logger.log(e);
+    Logger.log(e.name + ': ' + e.message);
     return false;
   }
   
@@ -247,6 +256,8 @@ Routing.writeToSheet = function(file, data) {
   var hide_start = 1 + rows.length + 1;
   var hide_end = a.indexOf("***Route Info***");
   sheet.deleteRows(hide_start, hide_end - hide_start + 1);
+  
+  return true;
 }
 
 

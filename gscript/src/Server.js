@@ -21,18 +21,16 @@ var Settings = {
 function Server() {}
 
 Server.call = function(function_name, data, id) {
-  var etap = JSON.parse(PropertiesService.getScriptProperties().getProperty("etapestry")); 
+  if(id === undefined)
+    Logger.log("Server.call: etapestry id not passed in!");
+  
+  //  id = JSON.parse(PropertiesService.getScriptProperties().getProperty("etapestry")); 
   
   var options = {
     'muteHttpExceptions': true,
     'method' : 'post',
     'payload' : {
-      'keys': JSON.stringify({
-        'association_name': etap['association'],
-        'etap_endpoint': etap['endpoint'],
-        'etap_user': etap['user'],
-        'etap_pass': etap['pw']
-      }),
+      'etapestry': JSON.stringify(id),
       'func': function_name,
       'data' : JSON.stringify(data)}
   };

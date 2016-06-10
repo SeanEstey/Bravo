@@ -13,10 +13,13 @@ function findStatsEntryRow(sheet, block) {
 }
 
 //---------------------------------------------------------------------
-function updateStats(ss, archive_ss, route) {
+function updateStats(ss_id, archive_ss_id, route) {
   try {
+    var ss = SpreadsheetApp.openById(ss_id);
+    
     var month = route.title.substring(0,3);
     var route_type;
+    
     if(Parser.isRes(route.title_block))
       route_type = 'Res';
     else if(Parser.isBus(route.title_block))
@@ -72,6 +75,7 @@ function updateStats(ss, archive_ss, route) {
       stats_row[headers.indexOf('Part')] = (num_core_gifts) / (route.orders.length - num_dropoffs);
       var str_part = String(Math.floor(stats_row[headers.indexOf('Part')]*100)) + '% ';
         
+      var archive_ss = SpreadsheetApp.openById(archive_ss_id);
       var archive_sheet = archive_ss.getSheetByName('Residential');
       var prev_stats_index = findStatsEntryRow(archive_sheet, route.title_block);
       
@@ -149,8 +153,9 @@ function updateStats(ss, archive_ss, route) {
 }
 
 //---------------------------------------------------------------------
-function updateInventory(ss, route) {
+function updateInventory(ss_id, route) {
   try {
+    var ss = SpreadsheetApp.openById(ss_id);
     var sheet = ss.getSheetByName(route.months[route.date.getMonth()]); 
     
     var rows = sheet.getDataRange().getValues();

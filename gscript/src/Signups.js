@@ -50,7 +50,7 @@ Signups.prototype.process = function() {
     this.assignNaturalBlock(index);
     this.assignBookingBlock(index);
     this.assignTemporaryNotes(index);
-    this.validateAddress(index);
+ //   this.validateAddress(index);
     this.checkForDuplicates(index);
     this.validatePhone(index);
     this.validateEmail(index);
@@ -233,7 +233,7 @@ Signups.prototype.assignBookingBlock = function(index) {
     signup[headers.indexOf('Address')] + ', ' +
     signup[headers.indexOf('City')] + ', AB');
       
-  if(geo.status != 'OK' || geo.results.length != 1) {
+  if(geo.status != 'OK') { //|| geo.results.length != 1) {
     signup[headers.indexOf('Validation')] += 'Could not geolocate address to find Booking Block';
     return false;
   }
@@ -344,7 +344,7 @@ Signups.prototype.assignTemporaryNotes = function(index) {
 Signups.prototype.assignNaturalBlock = function(index) {
   /* Use Google Maps Geolocator and KML rows to set Residential Block and Neighborhood defined 
    * fields. 
-   * Returns ETW map title if found, false if partial or no match found.
+   * Returns: map title string on success, false if partial or no match found.
    * Map title format:
    * '1E [Neighborhood1, Neighborhood2, Neighborhood3]' for Edmonton
    * '3G GREATER_AREA_CITY [Neighborhood1, Neighborhood2, Neighborhood3]' for surrounding area
@@ -356,30 +356,38 @@ Signups.prototype.assignNaturalBlock = function(index) {
   
   // A. Geolocate Address
 
-  var geo = Geo.geocode(signup[headers.indexOf('Address')] + ', ' + signup[headers.indexOf('City')] + ', AB');
+  var result = Geo.geocodeBeta(signup[headers.indexOf('Address')], 
+                            signup[headers.indexOf('City')], 
+                            signup[headers.indexOf('Postal Code')]);
   
-  if(geo.Partial_Match && !geo.Coords) {
+  if("partial_match" in result && !("location" in result.geometry)) {
     Logger.log(signup[headers.indexOf('Validation')] += err + 'Could not geolocate address');
     
     return false;
   }
- 
-  if(geo.Postal_Code)
-    if(geo.Postal_Code.substring(0,2) != signup[headers.indexOf('Postal Code')].substring(0,2)) {
-      signup[headers.indexOf('Validation')] += 'Postal Code may be incorrect.';
-      
-      var msg = 'Postal code mismatch: geocoded value is ' + geo.Postal_Code;
-      
-      addCellNote(this.sheet.getRange(index+2,1), msg);
+  
+  for(var j=0; j<result.address_components.length; j++) {
+    if(result.address_components[j]['types'].indexOf('postal_code') == -1)
+      continue;
+    
+    var postal = result.address_components[j]['short_name'];
+    
+    if(postal.substring(0,3) != signup[headers.indexOf('Postal Code')].substring(0,3)) {
+      signup[headers.indexOf('Validation')] += "Replacing postal code \"" + 
+        signup[headers.indexOf('Postal Code')] + "\"\n";
+      signup[headers.indexOf('Postal Code')] = postal;
     }
-      
+  }
+ 
   // B. Search KML map data to identify Natural Block
   
-  var map_title = Geo.findMapTitle(geo.Coords.lat, geo.Coords.lng, this.map_data);
+  var map_title = Geo.findMapTitle(
+    result.geometry.location.lat, 
+    result.geometry.location.lng, 
+    this.map_data);
   
   if(!map_title) {
     Logger.log(signup[this.headers.indexOf('Validation')] += err + "Failed to find KML map");
-    
     return false;
   }
   
@@ -408,10 +416,19 @@ Signups.prototype.assignNaturalBlock = function(index) {
   // If either no Neighborhood name geolocated, or Neighborhood is not found
   // in the list in the map title, then assign the entire group of neighborhoods
   
-  if(map_neighborhoods.indexOf(geo.Neighborhood) == -1)
+  for(var i=0; i<result.address_components.length; i++) {
+    if(result.address_components[i].types.indexOf('neighborhood') > -1) {
+      signup[this.headers.indexOf('Neighborhood')] = result.address_components[i]['short_name'];
+    }
+  }
+
+  if(!signup[this.headers.indexOf('Neighborhood')])
     signup[this.headers.indexOf('Neighborhood')] = map_neighborhoods.join(',');
-  else
-    signup[this.headers.indexOf('Neighborhood')] = geo.Neighborhood;
+  
+  if(signup[this.headers.indexOf('Address')] != result.formatted_address) {
+    signup[this.headers.indexOf('Validation')] += "Corrected address spelling: " + signup[this.headers.indexOf('Address')] + '\n';
+    signup[this.headers.indexOf('Address')] = result.formatted_address.substring(0, result.formatted_address.indexOf(','));
+  }
  
   return map_title;
 }

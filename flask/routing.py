@@ -8,7 +8,7 @@ import time
 from config import *
 import etap
 
-from app import info_handler, error_handler
+from app import info_handler, error_handler, db
 
 logger = logging.getLogger(__name__)
 logger.addHandler(info_handler)
@@ -16,23 +16,35 @@ logger.addHandler(error_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
-def get_sorted_orders(form):
-    # TODO: Test arguments
+def get_completed_route(job_id):
+    '''Check routific to see if process for job_id is complete.
+    Returns list of orders formatted for Google Sheets Route Template
+    on success, job status if still processing, False on error
+    '''
 
-    job_id = get_job_id(
-        form['block'], form['driver'], form['date'], form['start_addy'], form['end_addy'])
+    r = requests.get('https://api.routific.com/jobs/' + job_id)
+    solution = json.loads(r.text)
 
-    solution = get_solution(job_id)
+    if solution['status'] != 'finished':
+        return solution['status']
+
+    logger.info('Got solution! Status code: %s', r.status_code)
+
+    route_info = db['routes'].find_one({'job_id':job_id})
+
+    if not route_info:
+        logger.error("No mongo record for job_id '%s'", job_id)
+        return False
 
     # Routific doesn't include custom fields in the solution object.
     # Copy them over manually.
     # Also create Google Maps url
 
-    for order in solution['output']['solution'][form['driver']]:
+    for order in solution['output']['solution'][route_info['driver']]:
         id = order['location_id']
 
         if id == 'depot':
-            location = geocode(form['end_addy'])['geometry']['location']
+            location = geocode(route_info['end_address'])['geometry']['location']
 
             order['gmaps_url'] = get_gmaps_url(
                 order['location_name'],
@@ -50,7 +62,7 @@ def get_sorted_orders(form):
                 order['customNotes']['lng']
             )
 
-    return solution['output']['solution'][form['driver']]
+    return solution['output']['solution'][route_info['driver']]
 
 #-------------------------------------------------------------------------------
 def get_gmaps_url(address, lat, lng):
@@ -146,35 +158,17 @@ def get_accounts(block):
 
     return accounts
 
-#-------------------------------------------------------------------------------
-def get_solution(job_id):
-    r = requests.get('https://api.routific.com/jobs/' + job_id)
-
-    data = json.loads(r.text)
-
-    # TODO: Dangerous. This loop could run forever if status
-    # not changed to finished
-    while data['status'] != 'finished':
-        logger.info('%s: sleeping 5 sec...', data['status'])
-
-        time.sleep(5)
-
-        r = requests.get('https://api.routific.com/jobs/' + job_id)
-
-        data = json.loads(r.text)
-
-    logger.info('Got solution! Status code: %s', r.status_code)
-
-    return data
 
 #-------------------------------------------------------------------------------
-def get_job_id(block, driver, date, start_address, depot_address):
-    '''Use Routific long-running process endpoint to generate a job_id'''
+def start_job(block, driver, date, start_address, end_address):
+    '''Use Routific long-running process endpoint.
+    Returns: job_id
+    '''
 
     accounts = get_accounts(block)
 
     start = geocode(start_address)['geometry']['location']
-    end = geocode(depot_address)['geometry']['location']
+    end = geocode(end_address)['geometry']['location']
 
     payload = {
       "visits": {},
@@ -192,7 +186,7 @@ def get_job_id(block, driver, date, start_address, depot_address):
         "id": "depot",
         "lat": end['lat'],
         "lng": end['lng'],
-        "name": depot_address,
+        "name": end_address,
       },
       "shift_start": "8:00",
       "shift_end": "17:00"
@@ -304,6 +298,16 @@ def get_job_id(block, driver, date, start_address, depot_address):
         job_id = json.loads(r.text)['job_id']
 
         logger.info('job_id: %s', job_id)
+
+        db['routes'].insert_one({
+            'job_id': job_id,
+            'driver': driver,
+            'status': 'processing',
+            'block': block,
+            'date': date,
+            'start_address': start_address,
+            'end_address': end_address
+            })
 
         return job_id
     else:

@@ -350,6 +350,8 @@ Signups.prototype.assignNaturalBlock = function(index) {
    * '3G GREATER_AREA_CITY [Neighborhood1, Neighborhood2, Neighborhood3]' for surrounding area
    */
   
+  /* TODO: Split this into 2 functions. 1) Validate address, postal, assign neighborhood, 2) Assign Block */
+  
   var signup = this.signups_values[index];
   var headers = this.headers;
   var err = 'Failed to find Natural Block. Reason: ';
@@ -424,6 +426,14 @@ Signups.prototype.assignNaturalBlock = function(index) {
 
   if(!signup[this.headers.indexOf('Neighborhood')])
     signup[this.headers.indexOf('Neighborhood')] = map_neighborhoods.join(',');
+  
+  if(map_neighborhoods.indexOf(signup[this.headers.indexOf('Neighborhood')]) == -1) {
+    var msg = "Geolocated  neighborhood '" + signup[this.headers.indexOf('Neighborhood')] + "' not matching Map neighborhood group. Using group"; 
+    signup[this.headers.indexOf('Validation')] += msg + '\n';
+    Logger.log(msg);
+    
+    signup[this.headers.indexOf('Neighborhood')] = map_neighborhoods.join(',');
+  }
   
   if(signup[this.headers.indexOf('Address')] != result.formatted_address) {
     signup[this.headers.indexOf('Validation')] += "Corrected address spelling: " + signup[this.headers.indexOf('Address')] + '\n';

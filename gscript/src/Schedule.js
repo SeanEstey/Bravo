@@ -91,8 +91,8 @@ Schedule.updateCalendarRunSizes = function(cal_id, start_date, num_events,
     var end_index = event.summary.indexOf("(")-2;
     
     // Left uncommented, Will not update block count values
-    if(end_index >= 0)
-      continue;
+    //if(end_index >= 0)
+    //  continue;
     
     if(end_index < 0)
       end_index = event.summary.length-1;

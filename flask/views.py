@@ -13,7 +13,7 @@ from app import app, db, socketio
 from utils import send_mailgun_email
 from log import get_tail
 from auth import login, logout
-from routing import get_sorted_orders
+from routing import get_completed_route, start_job
 
 import reminders
 import receipts
@@ -64,13 +64,21 @@ def request_send_socket():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/routing/get_sorted_orders', methods=['POST'])
-def get_route():
-    app.logger.info('Routing Block %s', request.form['block'])
+@app.route('/routing/get_route/<job_id>', methods=['GET'])
+def get_route(job_id):
+    return json.dumps(get_completed_route(job_id))
 
-    orders = get_sorted_orders(request.form.to_dict())
+#-------------------------------------------------------------------------------
+@app.route('/routing/start_job', methods=['POST'])
+def get_routing_job_id():
+    app.logger.info('Routing Block %s...', request.form['block'])
 
-    return json.dumps(orders)
+    return start_job(
+            request.form['block'],
+            request.form['driver'],
+            request.form['date'],
+            request.form['start_address'],
+            request.form['end_address'])
 
 #-------------------------------------------------------------------------------
 @app.route('/reminders/new')

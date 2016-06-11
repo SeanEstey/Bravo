@@ -1,12 +1,88 @@
 function Routing() {}
 
 //---------------------------------------------------------------------
-Routing.buildScheduled = function(calendar_id, routed_folder, template_id, date, depots) {
+Routing.buildScheduledRoutes = function(calendar_id, routed_folder_id, template_id, date, start_address, depots) {
+  var job_ids = Routing.submitJobs(calendar_id, date, start_address, depots);
+  
+  var all_done = false;
+  
+  var routed_folder = DriveApp.getFolderById(routed_folder_id);
+  
+  /* TODO: Add a timeout length */
+  
+  while(!all_done) {
+    for(var block in job_ids) {
+      if(Routing.isComplete(job_ids[block])) {
+        var r = Routing.buildSheet(job_ids[block], date, block, routed_folder, template_id);
+        
+        if(r)
+          delete job_ids[block];     
+      } 
+    }
+    
+    if(Object.keys(job_ids).length == 0)
+      all_done = true;
+    else {
+      Logger.log(Object.keys(job_ids).length + " routes left to build. Sleeping...");
+      Utilities.sleep(5000);
+    }
+  }
+}
+
+//---------------------------------------------------------------------
+Routing.isComplete = function(job_id) {
+  try {
+    var url = "https://api.routific.com/jobs/" + job_id;
+    var r = UrlFetchApp.fetch(url, {'method':'get'});
+  }
+  catch(e) {
+    Logger.log(e.name + ': ' + e.message);
+    return false;
+  }
+  
+  var solution = JSON.parse(r.getContentText());
+  
+  if(solution['status'] == 'finished')
+    return true;
+  
+  return false;
+}
+
+//---------------------------------------------------------------------
+Routing.buildSheet = function(job_id, date, block, routed_folder, template_id) {  
+  try {
+    var url = "http://www.bravoweb.ca/routing/get_route/" + job_id;
+    var r = UrlFetchApp.fetch(url, {'method':'get'});
+  }
+  catch(e) {
+    Logger.log(e.name + ': ' + e.message);
+    return false;
+  }
+  
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+ //  var routed_folder = DriveApp.getFolderById(routed_folder);
+  var route_template = DriveApp.getFileById(template_id);
+  
+  var route_title = months[date.getMonth()] + ' ' + date.getDate() + ': ' + block;
+          
+  // Build empty Route Template in Routed folder
+  var file = route_template.makeCopy(route_title, routed_folder);
+  
+  var orders = JSON.parse(r.getContentText());  
+    
+  if(!Routing.writeToSheet(file, orders))
+    return false;
+    
+  Logger.log('Route created for Block ' + block);
+  
+  return true;
+}
+
+//---------------------------------------------------------------------
+Routing.submitJobs = function(calendar_id, date, start_address, depots) {
   /* Pull eTapestry data from all Residential/Business runs scheduled for
      specified date and submit to Bravo */
-  
-  var routed_folder = DriveApp.getFolderById(routed_folder);
-  var route_template = DriveApp.getFileById(template_id);
   
   var later = new Date(date.getTime() + (1000 * 3600 * 1));
   
@@ -17,13 +93,12 @@ Routing.buildScheduled = function(calendar_id, routed_folder, template_id, date,
     orderBy: 'startTime',
   });
   
+  var job_ids = {};
+  
   for(var i=0; i < res_events.items.length; i++) {
     var event = res_events.items[i];
     var block = Parser.getBlockFromTitle(event.summary);
     
- //   if(block != "R7D")
- //     continue;
-          
     var depot = Routing.lookupDepot(
         event.description, 
         block, 
@@ -38,28 +113,16 @@ Routing.buildScheduled = function(calendar_id, routed_folder, template_id, date,
       continue;
     }
     
-    var orders = Routing.solve(
-      block, 
-      'driver',
-      date,
-      '11130 131 St NW, Edmonton, AB',
-      depot['location']
-    );
+    var job_id = Routing.submitJob(block, 'driver', date, start_address, depot['location']);
     
-     // Build Template file in routed folder
-    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  
-    var route_title = months[date.getMonth()] + ' ' + date.getDate() + ': ' + block;
-          
-    var file = route_template.makeCopy(route_title, routed_folder);
-    
-    Routing.writeToSheet(file, orders);
-    
-    Logger.log('Route created for Block ' + block);
+    job_ids[block] = job_id;
   }
   
-  return true;
+  Logger.log("job_ids: " + job_ids);
+  
+  return job_ids;
 }
+
 
 //----------------------------------------------------------------------------
 Routing.lookupDepot = function(event_desc, block, postal_codes, depots) {
@@ -104,21 +167,20 @@ Routing.lookupDepot = function(event_desc, block, postal_codes, depots) {
   return false;
 }
 
-
 //----------------------------------------------------------------------------
-Routing.solve = function(block, driver, date, start_addy, end_addy) {
-  /* Get ordered stops from Bravo */
+Routing.submitJob = function(block, driver, date, start_address, end_address) {
+  /* Returns: job_id for long-running Routific process */
   
   try {
     var r = UrlFetchApp.fetch(
-      "http://www.bravoweb.ca/routing/get_sorted_orders", {
+      "http://www.bravoweb.ca/routing/start_job", {
         'method' : 'post',
         'payload' : {
           'block': block,
           'driver': driver,
           'date': date.toDateString(),
-          'start_addy': start_addy,
-          'end_addy': end_addy
+          'start_address': start_address,
+          'end_address': end_address
         }
       }
     );
@@ -128,17 +190,9 @@ Routing.solve = function(block, driver, date, start_addy, end_addy) {
     return false;
   }
   
-  if(r.getResponseCode() != 200 && r.getResponseCode() != 408) {
-    // Deal with errors
-  }
+  Logger.log("submitJob returning job_id '%s'", r.getContentText());
   
-  // TODO: Remove any control characters first
-  
-  var stops = JSON.parse(r.getContentText());
-  
-  Logger.log("%s stops returned", stops.length);
-  
-  return stops;
+  return r.getContentText();
 }
 
 
@@ -259,8 +313,3 @@ Routing.writeToSheet = function(file, data) {
   
   return true;
 }
-
-
-// Add this in writeToSheet() for testing
-//   var data = '[{"location_name": "11130 131 St NW", "location_id": "Office", "arrival_time": "08:00"}, {"customNotes": {"status": "Active", "neighborhood": "Killarney", "name": "Tammy Peyton", "lat": 53.5872183, "lng": -113.4888864, "id": 69691, "block": "R1A"}, "location_name": "12839 95a St NW", "finish_time": "08:11", "gmaps_url": "https://www.google.ca/maps/place/12839+95a+St+NW,+T5E+3Z8/@53.5872183,-113.4888864,17z", "arrival_time": "08:08", "location_id": "69691"}, {"customNotes": {"status": "Active", "neighborhood": "Killarney", "name": "Candace Cleveland", "lat": 53.58635, "driver notes": "Empties behind gate (theft issues)", "lng": -113.486316, "id": 65001, "block": "R1A"}, "location_name": "9408 128 Ave NW", "finish_time": "08:15", "gmaps_url": "https://www.google.ca/maps/place/9408+128+Ave+NW,+T5E+0H2/@53.58635,-113.486316,17z", "arrival_time": "08:12", "location_id": "65001"}, {"customNotes": {"status": "Active", "neighborhood": "Killarney", "name": "Alexandra Poletz", "lat": 53.587245, "lng": -113.485289, "id": 56230, "block": "R1A"}, "location_name": "12816 93 St NW, T5E 3T2", "finish_time": "08:18", "gmaps_url": "https://www.google.ca/maps/place/12816+93+St+NW,+T5E+3T2/@53.587245,-113.485289,17z", "arrival_time": "08:15", "location_id": "56230"}, {"customNotes": {"status": "Dropoff", "office notes": "***RMV R1B***", "neighborhood": "Killarney", "name": "June Olson", "lat": 53.5883708, "driver notes": "***Dropoff Wed Apr 27 2016***", "lng": -113.4862602, "id": 71843, "block": "R1B, R1A"}, "location_name": "9408 129A Ave NW, T5E -0N7", "finish_time": "08:22", "gmaps_url": "https://www.google.ca/maps/place/9408+129A+Ave+NW,+T5E+-0N7/@53.5883708,-113.4862602,17z", "arrival_time": "08:19", "location_id": "71843"}]';
-//   data = JSON.parse(data);

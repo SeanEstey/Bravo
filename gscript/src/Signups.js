@@ -39,18 +39,24 @@ Signups.prototype.process = function() {
     var signup = this.signups_values[index];
     var headers = this.headers;
     
-    if(signup[headers.indexOf('Dropoff Date')])
+    if(signup[headers.indexOf('Dropoff Date')] && signup[headers.indexOf('Natural Block')] && signup[headers.indexOf('Neighborhood')])
       continue;
     
-    this.sheet.getRange(index+2, headers.indexOf('Validation')+1).setNote('');
+    if(!signup[headers.indexOf('Status')])
+      signup[headers.indexOf('Status')] = 'Dropoff';
+    
+    this.sheet.getRange(index+2, headers.indexOf('Validation')+1).clearNote();
     signup[headers.indexOf('Validation')] = '';
+    this.sheet.getRange(index+2, 1, 1, this.sheet.getMaxColumns()).setFontColor('black');
+  
+    
+ //   this.sheet.getRange(index+2+":"+index+2).setFontColor('black');
     
     /*** If no Dropoff date, do full validation ***/
     
     this.assignNaturalBlock(index);
     this.assignBookingBlock(index);
     this.assignTemporaryNotes(index);
- //   this.validateAddress(index);
     this.checkForDuplicates(index);
     this.validatePhone(index);
     this.validateEmail(index);
@@ -89,8 +95,15 @@ Signups.prototype.process = function() {
     if(!signup[headers.indexOf('Postal Code')])
       missing.push('Postal');
     
-    if(missing.length > 0)
-      signup[headers.indexOf('Validation')] += 'Missing: ' + missing.join(', ');
+    if(missing.length > 0) {
+      var msg = 'Missing fields: ' + missing.join(', ');
+      signup[headers.indexOf('Validation')] += msg;
+      appendCellNote(this.getRange(index+2, 'Validation'), msg);
+      this.getRange(index+2, 'Validation').setFontColor('red');
+    }
+    
+    if(!signup[headers.indexOf('Validation')])
+      signup[headers.indexOf('Validation')] = 'OK';
     
     this.sheet.getRange(index+2, 1, 1, this.sheet.getLastColumn()).setValues([signup]);
     
@@ -119,23 +132,28 @@ Signups.prototype.getPresetBookingBlock = function(index) {
   var dod = /(DOD)|(dropoff)/gi;
   var extra_char = /[^\w\s]/gi;
   
-  var lines = signup[this.headers.indexOf('Office Notes')].split('\n');
-  
-  for(var i=0; i<lines.length; i++) {
-    if(lines[i].match(dod)) {
-      lines[i] = lines[i].replace(dod, '').trim();
-      lines[i] = lines[i].replace(extra_char, '');
-      
-      if(!Date.parse(lines[i])) {
-         lines[i] += ', 2016';
-         
-         if(!Date.parse(lines[i]))
-           return false;
+  if(signup[headers.indexOf('Dropoff Date')]) {
+    var date = signup[headers.indexOf('Dropoff Date')];
+  }
+  else { 
+    var lines = signup[this.headers.indexOf('Office Notes')].split('\n');
+    
+    for(var i=0; i<lines.length; i++) {
+      if(lines[i].match(dod)) {
+        lines[i] = lines[i].replace(dod, '').trim();
+        lines[i] = lines[i].replace(extra_char, '');
+        
+        if(!Date.parse(lines[i])) {
+          lines[i] += ', 2016';
+          
+          if(!Date.parse(lines[i]))
+            return false;
+        }
+        
+        lines[i] += " 09:00:00 GMT-0600 (MDT)";
+        
+        var date = new Date(Date.parse(lines[i]));
       }
-      
-      lines[i] += " 09:00:00 GMT-0600 (MDT)";
-      
-      var date = new Date(Date.parse(lines[i]));
     }
   }
   
@@ -262,7 +280,9 @@ Signups.prototype.assignBookingBlock = function(index) {
       continue;
     
     alt_schedule = alt_bookings[i];
-    signup[headers.indexOf('Validation')] += 'Distance: ' + alt_schedule['distance'] + '\n';
+    
+    var msg = 'Booking Block Distance: ' + alt_schedule['distance'] + '\n';
+    appendCellNote(this.getRange(index+2, 'Validation'), msg);
     
     break;
   }
@@ -357,16 +377,31 @@ Signups.prototype.assignNaturalBlock = function(index) {
   var err = 'Failed to find Natural Block. Reason: ';
   
   // A. Geolocate Address
+  
+  if(!signup[headers.indexOf('Address')])
+    return false;
+  
+  var replace_address = true;
 
   var result = Geo.geocodeBeta(signup[headers.indexOf('Address')], 
                             signup[headers.indexOf('City')], 
                             signup[headers.indexOf('Postal Code')]);
   
-  if("partial_match" in result && !("location" in result.geometry)) {
-    Logger.log(signup[headers.indexOf('Validation')] += err + 'Could not geolocate address');
-    
-    return false;
-  }
+  if(!Geo.hasAddressComponent(result, 'postal_code') || 
+     !Geo.hasAddressComponent(result, 'route') || 
+     !Geo.hasAddressComponent(result, 'street_number') ||
+     !("location" in result.geometry)) {
+       
+       replace_address = false;
+       
+       Logger.log(signup[headers.indexOf('Validation')] += 'Couldnt validate address. Using approximation.\n\n');
+       
+       appendCellNote(this.getRange(index+2, 'Validation'), 
+                      'Using address approximation "' + result.formatted_address + '"\n');
+       
+       this.getRange(index+2, 'Validation').setFontColor('red');
+       this.getRange(index+2, 'Address').setFontColor('red');
+    }
   
   for(var j=0; j<result.address_components.length; j++) {
     if(result.address_components[j]['types'].indexOf('postal_code') == -1)
@@ -375,8 +410,8 @@ Signups.prototype.assignNaturalBlock = function(index) {
     var postal = result.address_components[j]['short_name'];
     
     if(postal.substring(0,3) != signup[headers.indexOf('Postal Code')].substring(0,3)) {
-      signup[headers.indexOf('Validation')] += "Replacing postal code \"" + 
-        signup[headers.indexOf('Postal Code')] + "\"\n";
+      var msg = "Replacing postal code \"" + signup[headers.indexOf('Postal Code')] + "\"\n";
+      appendCellNote(this.getRange(index+2, 'Validation'), msg);
       signup[headers.indexOf('Postal Code')] = postal;
     }
   }
@@ -428,73 +463,27 @@ Signups.prototype.assignNaturalBlock = function(index) {
     signup[this.headers.indexOf('Neighborhood')] = map_neighborhoods.join(',');
   
   if(map_neighborhoods.indexOf(signup[this.headers.indexOf('Neighborhood')]) == -1) {
-    var msg = "Geolocated  neighborhood '" + signup[this.headers.indexOf('Neighborhood')] + "' not matching Map neighborhood group. Using group"; 
-    signup[this.headers.indexOf('Validation')] += msg + '\n';
+    var msg = "Neighborhood \"" + signup[this.headers.indexOf('Neighborhood')] + "\" may be invalid. Using group from Block definition.\n"; 
+    appendCellNote(this.getRange(index+2, 'Validation'), msg);
     Logger.log(msg);
     
     signup[this.headers.indexOf('Neighborhood')] = map_neighborhoods.join(',');
   }
   
-  if(signup[this.headers.indexOf('Address')] != result.formatted_address) {
-    signup[this.headers.indexOf('Validation')] += "Corrected address spelling: " + signup[this.headers.indexOf('Address')] + '\n';
-    signup[this.headers.indexOf('Address')] = result.formatted_address.substring(0, result.formatted_address.indexOf(','));
+  if(replace_address) {
+    if(signup[this.headers.indexOf('Address')] != result.formatted_address.substring(0, result.formatted_address.indexOf(','))) {
+      var msg = "Corrected address spelling: \"" + signup[this.headers.indexOf('Address')] + "\"\n"; 
+      appendCellNote(this.getRange(index+2, 'Validation'), msg);   
+      signup[this.headers.indexOf('Address')] = result.formatted_address.substring(0, result.formatted_address.indexOf(','));
+    }
   }
  
   return map_title;
 }
 
-
-
 //---------------------------------------------------------------------
-Signups.prototype.validateAddress = function(index) {
-  /* Adds title case, quadrants, etc to addresses */
-  
-  var signup = this.signups_values[index];
-  
-  // Validate Address
-  
-  var address_index = this.headers.indexOf('Address');
-  
-  signup[address_index] = toTitleCase(signup[address_index]).trim();
-  
-  // Remove unecessary dashes and periods
-  signup[address_index] = signup[address_index].replace(/(\-|\.)/g, ' ');
-  
-  // Fix any numbers with 'A', 'B', 'C' as in '10510 100A St' appended to end that are now lowercase
-  var num_letter = /[0-9]{1,5}[a-d]{1}/;
-  if(signup[address_index].match(num_letter))
-    signup[address_index] = signup[address_index].replace(num_letter, signup[address_index].match(num_letter)[0].toUpperCase());  
-  
-  signup[address_index] = signup[address_index].replace(/\bCt\b/g, 'Court');
-  signup[address_index] = signup[address_index].replace(/\bCl\b/g, 'Close');
-  signup[address_index] = signup[address_index].replace(/\bNw\b/g, 'NW');
-  signup[address_index] = signup[address_index].replace(/\bSw\b/g, 'SW');
-  signup[address_index] = signup[address_index].replace(/\bStreet\b/g, 'St');
-  signup[address_index] = signup[address_index].replace(/\bAvenue\b/g, 'Ave');
-    
-  var postal_index = this.headers.indexOf('Postal Code');
-  
-  if(signup[this.headers.indexOf('City')] == 'Edmonton') {
-    var SW = ['T6W', 'T6X'];
-    // Replace missing SW quadrant
-    if(signup[postal_index].substring(0,3) == SW[0] || 
-       signup[postal_index].substring(0,3) == SW[1]) {
-      if(!signup[address_index].match(/SW$/g))
-        signup[address_index] += ' SW';
-    }    
-    else {
-      // Replace missing NW quadrant
-      if(!signup[address_index].match(/NW$/g))
-        signup[address_index] += ' NW';
-    }
-  }
-  
-  // Correct Postal Code formatting issues
-  
-  signup[postal_index] = signup[postal_index].trim();
-  
-  if(signup[postal_index][3] != ' ')
-    signup[postal_index] = signup[postal_index].substring(0,3) + ' ' + signup[postal_index].substring(3,6);
+Signups.prototype.getRange = function(row, header) {
+  return this.sheet.getRange(row, this.headers.indexOf(header)+1);
 }
 
 //---------------------------------------------------------------------
@@ -523,7 +512,9 @@ Signups.prototype.validateEmail = function(index) {
   var signup_values = this.signups_values[index];
   
   if(!signup_values[this.headers.indexOf('Email')].match(/[\w-]+@([\w-]+\.)+[\w-]+/gi)) {
-    signup_values[this.headers.indexOf('Validation')] += "Deleted invalid email '" + signup_values[this.headers.indexOf('Email')] + "'\n";
+    var msg = "Deleted invalid email '" + signup_values[this.headers.indexOf('Email')] + "'\n";
+    appendCellNote(this.getRange(index+2, 'Validation'), msg);
+  
     signup_values[this.headers.indexOf('Email')] = '';
     
     return false;
@@ -554,7 +545,7 @@ Signups.prototype.validatePhone = function(index) {
   };
     
   try {
-    var response = UrlFetchApp.fetch(url+phone+'?Type=carrier', {'method':'GET', 'headers':headers});
+    var response = UrlFetchApp.fetch(url+phone+'?Type=carrier', {'method':'GET',  'muteHttpExceptions': true, 'headers':headers});
   }
   catch(e) {
     Logger.log(e);
@@ -565,19 +556,21 @@ Signups.prototype.validatePhone = function(index) {
   
   // Success
   if(responseJSON.hasOwnProperty('carrier')) {
-    var msg = phone + ': ' + responseJSON['carrier']['type'] + ' (' + responseJSON['carrier']['name'].split(' ')[0] + ')';
+    var carrier = responseJSON['carrier']['name'].split(' ')[0];
     
-   // addCellNote(this.sheet.getRange(row,1), msg);
+    appendCellNote(this.getRange(index+2, 'Validation'), 'Phone type: ' + toTitleCase(responseJSON['carrier']['type']) + ' (' + carrier + ')\n');
     
     if(responseJSON['carrier']['type'] == 'mobile')
       signup[this.headers.indexOf('Mobile Phone')] = phone;
-    
-    Logger.log(responseJSON);
   }
   // Fail
   else {
     if(responseJSON['status'] == 404) {
-      var msg = phone + ': Invalid Number';
+      var msg = 'Invalid phone number: ' + phone + '\n';
+      appendCellNote(this.getRange(index+2, 'Validation'), msg);
+      this.getRange(index+2, 'Validation').setFontColor('red');
+      this.getRange(index+2, 'Primary Phone').setFontColor('red');
+      signup[this.headers.indexOf('Validation')] += msg;
     }
 
     Logger.log(responseJSON);

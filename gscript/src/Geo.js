@@ -137,6 +137,20 @@ Geo.findMapTitle = function(lat, lng, map_data) {
 
 
 //---------------------------------------------------------------------
+Geo.hasAddressComponent = function(result, name) {
+  /* Return true if geocoder result has address component name, false
+   * otherwise
+   */
+  
+  for(var j=0; j<result.address_components.length; j++) {
+    if(result.address_components[j]['types'].indexOf(name) > -1)
+      return true;
+  }
+  
+  return false;
+}
+
+//---------------------------------------------------------------------
 Geo.geocodeBeta = function(address, city, postal) { 
   /* Returns most accurate Google Maps Geocoder result object.
    * If multiple results are returned, postal code is used to

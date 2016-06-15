@@ -136,9 +136,11 @@ function addCellValue(sheet, row, col, value) {
 }
 
 //---------------------------------------------------------------------
-function addCellNote(range, note) {
+function appendCellNote(range, note) {
+
   if(range.getNote())
     range.setNote(range.getNote() + '\n' + note);
   else
     range.setNote(note);
 }
+

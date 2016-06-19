@@ -38,6 +38,7 @@
 }
 
 "jobs": {
+  "agency": "name",
   "status": ["pending", "in-progress", "completed", "failed"], 
   "voice": {
     "fire_at": "<bson.date>",

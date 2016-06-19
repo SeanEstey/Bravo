@@ -10,9 +10,6 @@
   require 'vendor/autoload.php';
 
   if(!isset($_POST['data'])) {
-		// FIX
-		$agency = 'wsf';
-
     $arr = json_decode(file_get_contents("php://input"));
     $arr = get_object_vars($arr);
 
@@ -34,6 +31,7 @@
 	}
 	catch (Exception $e) {
 		error_log(
+      $agency . " " .
 			"MongoDB error attempting to call gscript function '" . $func . 
 			"'. Message: '" . $e->getMessage() . "'");
 		http_response_code(500);
@@ -52,6 +50,7 @@
 
   if(checkForError($nsc)) {
 		error_log(
+      $ageny . " " .
 			"eTapestry login error for user '" . $etapestry['user'] . 
 			"'. Message: '" . $nsc->faultstring . "'");
     echo $nsc->faultcode . ': ' . $nsc->faultstring;
@@ -229,7 +228,7 @@
       break;
 
     default:
-      error_log("Invalid function '" . $func . "'");
+      error_log($agency . ": invalid function '" . $func . "'");
       echo 'Invalid Function';
       http_response_code(500);
       break;

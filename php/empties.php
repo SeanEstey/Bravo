@@ -11,14 +11,15 @@ function connect($db) {
 
 //-----------------------------------------------------------------------
 function checkForError($nsc) {
+  global $agency;
+
   if($nsc->fault || $nsc->getError()) {
     if(!$nsc->fault) {
-      error_log("Error: " . $nsc->getError());
+      error_log($agency . ": Error: " . $nsc->getError());
       return true;
     }
     else {
-      error_log("Fault Code: " . $nsc->faultcode);
-      error_log("Fault String: " .$nsc->faultstring);
+      error_log($agency . ": fault code " . $nsc->faultcode . ", msg: " . $nsc->faultstring);
       http_response_code(400);  
       return true;
     }
@@ -173,6 +174,8 @@ function get_gift_history($nsc, $ref, $start_date, $end_date) {
   for($i=0; $i<$response['count']; $i++) {
     $entry = $response['data'][$i];
 
+    /*** TODO: FIX ME. ***/
+
     if($entry['campaign'] != 'Empties to WINN')
       continue;
 
@@ -300,6 +303,8 @@ function update_note($nsc, $data) {
 
 //-----------------------------------------------------------------------
 function add_accounts($db, $nsc, $submissions) {
+  global $agency;
+
   $num_errors = 0;
   
   for($n=0; $n<count($submissions); $n++) {
@@ -361,7 +366,7 @@ function add_accounts($db, $nsc, $submissions) {
     
     if(is_array($status)) {
       $status = $status['faultstring'];
-      error_log('Add account error: ' . $status);
+      error_log($agency . ': Add account error: ' . $status);
       $num_errors++;
     }
     else
@@ -529,6 +534,8 @@ function apply_udf($nsc, $account, $udf) {
 
 //-----------------------------------------------------------------------
 function check_duplicates($nsc, $persona_fields) {
+  global $agency;
+
   $search = array(
     'accountRoleTypes' => 1,
     'allowEmailOnlyMatch' => false,
@@ -538,7 +545,7 @@ function check_duplicates($nsc, $persona_fields) {
   
   if(checkForError($nsc)) {
     echo $nsc->faultcode . ': ' . $nsc->faultstring;
-    error_log('getDuplicateAccounts error');
+    error_log($agency . ': getDuplicateAccounts error');
     return false;
   }
 

@@ -3,7 +3,7 @@ import twilio.twiml
 import time
 import requests
 from flask import request, Response, render_template, redirect
-from flask.ext.login import login_required
+from flask.ext.login import login_required, current_user
 from bson.objectid import ObjectId
 
 # Import Application objects
@@ -34,6 +34,7 @@ def view_jobs():
 @app.route('/login', methods=['GET','POST'])
 def user_login():
     return login()
+
 
 #-------------------------------------------------------------------------------
 @app.route('/logout', methods=['GET'])
@@ -78,7 +79,8 @@ def get_routing_job_id():
             request.form['driver'],
             request.form['date'],
             request.form['start_address'],
-            request.form['end_address'])
+            request.form['end_address'],
+            json.loads(request.form["etapestry_id"]))
 
 #-------------------------------------------------------------------------------
 @app.route('/reminders/new')

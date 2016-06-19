@@ -149,23 +149,23 @@ def geocode(formatted_address, postal=None):
     return response['results'][0]
 
 #-------------------------------------------------------------------------------
-def get_accounts(block):
+def get_accounts(block, etapestry_id):
     # Get data from route via eTap API
-    accounts = etap.call('get_query_accounts', ETAP_WRAPPER_KEYS, {
+    accounts = etap.call('get_query_accounts', etapestry_id, {
       "query": block,
-      "query_category": "ETW: Routes"
+      "query_category": etapestry_id['query_category']
     })
 
     return accounts
 
 
 #-------------------------------------------------------------------------------
-def start_job(block, driver, date, start_address, end_address):
+def start_job(block, driver, date, start_address, end_address, etapestry_id):
     '''Use Routific long-running process endpoint.
     Returns: job_id
     '''
 
-    accounts = get_accounts(block)
+    accounts = get_accounts(block, etapestry_id)
 
     start = geocode(start_address)['geometry']['location']
     end = geocode(end_address)['geometry']['location']

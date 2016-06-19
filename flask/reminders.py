@@ -982,9 +982,12 @@ def submit_job(form, file):
           'msg':'Could not parse the schedule date you entered: ' + str(e)
         }
 
+    agency = db['admin_logins'].find_one({'user': current_user.username})['agency']
+
     # D. Create mongo 'reminder_job' and 'reminder_msg' records
     job = {
         'name': job_name,
+        'agency': agency,
         'schema': schema,
         'voice': {
             'fire_at': fire_calls_dtime,

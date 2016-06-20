@@ -13,6 +13,7 @@ import bson.json_util
 import json
 import re
 from pymongo import ReturnDocument
+from flask.ext.login import current_user
 
 from app import app, db, info_handler, error_handler, debug_handler, socketio
 from tasks import celery_app
@@ -289,11 +290,14 @@ def send_emails(job_id):
 
 #-------------------------------------------------------------------------------
 def get_jobs(args):
-    '''If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
+    '''Display jobs for agency associated with current_user
+    If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
     If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
     '''
 
-    jobs = db['jobs'].find()
+    agency = db['admin_logins'].find_one({'user': current_user.username})['agency']
+
+    jobs = db['jobs'].find({'agency':agency})
 
     if jobs:
         jobs = jobs.sort('fire_calls_dtime',-1).limit(app.config['JOBS_PER_PAGE'])
@@ -798,6 +802,8 @@ def parse_csv(csvfile, template):
 
     # B. Read each line from file into buffer
 
+    logger.info('Reading rows...')
+
     line_num = 1
     for row in reader:
         # verify columns match template
@@ -809,7 +815,7 @@ def parse_csv(csvfile, template):
                 buffer.append(row)
             line_num += 1
         except Exception as e:
-            logger.info('Error reading line num %d: %s (stack trace: %s)',
+            logger.error('Error reading line num %d: %s (stack trace: %s)',
                         line_num, row, str(e))
     return buffer
 
@@ -925,7 +931,7 @@ def submit_job(form, file):
                     'title': 'Filename Problem',
                     'msg':'Could not save file'}
     except Exception as e:
-        logger.info(str(e))
+        logger.error(str(e))
 
         return {
           'status':'error',
@@ -960,7 +966,7 @@ def submit_job(form, file):
 
             logger.info('Parsed %d rows from %s', len(buffer), filename)
     except Exception as e:
-        logger.info('submit_job: parse_csv: %s', str(e))
+        logger.error('submit_job: parse_csv: %s', str(e))
 
         return {'status':'error',
                 'title': 'Problem Reading File',
@@ -981,6 +987,8 @@ def submit_job(form, file):
           'title': 'Invalid Date',
           'msg':'Could not parse the schedule date you entered: ' + str(e)
         }
+
+    logger.info('about to create job')
 
     agency = db['admin_logins'].find_one({'user': current_user.username})['agency']
 
@@ -1027,7 +1035,7 @@ def submit_job(form, file):
 
         db['reminders'].insert(reminders)
 
-        logger.info('Job "%s" Created [ID %s]', job_name, str(job_id))
+        logger.info('[%s] Job "%s" Created [ID %s]', agency, job_name, str(job_id))
 
         # Special case
         if form['template_name'] == 'etw':
@@ -1039,7 +1047,7 @@ def submit_job(form, file):
         return {'status':'success', 'msg':banner_msg}
 
     except Exception as e:
-        logger.info(str(e))
+        logger.error(str(e))
 
         return {'status':'error', 'title':'error', 'msg':str(e)}
 

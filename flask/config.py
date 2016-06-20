@@ -35,3 +35,4 @@ FROM_EMAIL= 'Empties to WINN <emptiestowinn@wsaf.ca>'
 
 # PHP
 ETAP_WRAPPER_URL = 'http://www.bravoweb.ca/php/views.php'
+ETAPESTRY_ENDPOINT = 'https://sna.etapestry.com/v3messaging/service?WSDL'

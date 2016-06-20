@@ -1,31 +1,74 @@
 {
-  "vec": {
-    "import_fields": [
-      {"file_header": "Account", "db_field": "account_id", "type":"string", "hide": true},
-      {"file_header": "Name", "db_field": "name", "type":"string"},
-      {"file_header": "Phone", "db_field": "voice.to" ,"type":"string"},
-      {"file_header": "Email", "db_field": "email.recipient", "type":"string"},
-      {"file_header": "Block", "db_field": "custom.block", "type":"string"},
-      {"file_header": "Status", "db_field": "custom.status", "type":"string"},
-      {"file_header": "Next Pickup", "db_field": "event_date", "type":"date"},
-      {"file_header": "Office Notes", "db_field": "custom.office_notes", "type":"string"}
-    ],
-    "voice_template": "voice/vec/reminder.html",
-    "email_template": "email/vec/reminder.html",
-    "email_subject": "Your upcoming Vecova Bottle Service pickup"
+  "signups": {
+    "welcome": {
+      "file": "email/vec/welcome.html",
+      "subject": "Welcome to Vecova Bottle Service"
+    }
   },
-  "announce_text": {
-    "import_fields": [
-      {"file_header": "Name", "db_field": "name"},
-      {"file_header": "Phone","db_field": "voice.to"}
-    ],
-    "voice_template": "voice/announce.html"
+  "receipts": {
+    "cancelled": {
+      "file": "email/vec/cancelled.html",
+      "subject": "You have been removed from the collection schedule"
+    },
+    "dropoff_followup": {
+      "file": "email/vec/dropoff_followup.html",
+      "subject": "Your Dropoff is complete"
+    },
+    "collection": {
+      "file": "email/vec/collection_receipt.html",
+      "subject": "Thank you for your donation!"
+    },
+    "zero_collection": {
+      "file": "email/vec/zero_collection.html",
+      "subject": "We'll see you next time"
+    },
+    "no_collection": {
+      "file": "email/vec/no_collection.html",
+      "subject": "We didn't receive a collection from you"
+    }
   },
-  "announce_voice": {
-    "import_fields": [
-      {"file_header": "Name", "db_field": "name"},
-      {"file_header": "Phone", "db_field": "voice.to"}
-    ],
-    "voice_template": "voice/announce.html"
-  }
+  "reminders": {
+    "pickup": {
+      "import_fields": [
+        {"file_header": "Account", "db_field": "account_id", "type":"string", "hide": true},
+        {"file_header": "Name", "db_field": "name", "type":"string"},
+        {"file_header": "Phone", "db_field": "voice.to" ,"type":"string"},
+        {"file_header": "Email", "db_field": "email.recipient", "type":"string"},
+        {"file_header": "Block", "db_field": "custom.block", "type":"string"},
+        {"file_header": "Status", "db_field": "custom.status", "type":"string"},
+        {"file_header": "Next Pickup", "db_field": "event_date", "type":"date"},
+        {"file_header": "Office Notes", "db_field": "custom.office_notes", "type":"string"}
+      ],
+      "templates": {
+        "email": {
+            "reminder": {
+              "file": "email/vec/reminder.html",
+              "subject": "Your upcoming Vecova Bottle Service pickup"
+            },
+            "no_pickup": {
+              "file": "email/vec/no_pickup.html",
+              "subject": "Thank you. You have been removed from this pickup schedule"
+            }
+        },
+        "voice": {
+          "reminder": {
+            "file": "voice/vec/reminder.html"
+          }
+        }
+      }
+    },
+    "announce_text": {
+      "import_fields": [
+        {"file_header": "Name", "db_field": "name"},
+        {"file_header": "Phone","db_field": "voice.to"}
+      ],
+      "voice_template": "voice/announce.html"
+    },
+    "announce_voice": {
+      "import_fields": [
+        {"file_header": "Name", "db_field": "name"},
+        {"file_header": "Phone", "db_field": "voice.to"}
+      ],
+      "voice_template": "voice/announce.html"
+    }
 }

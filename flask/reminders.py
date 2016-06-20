@@ -707,23 +707,28 @@ def email_job_summary(job_id):
 
 #-------------------------------------------------------------------------------
 @celery_app.task
-def cancel_pickup(msg_id):
+def cancel_pickup(reminder_id):
+    '''Update users eTapestry account with next pickup date and send user
+    confirmation email
+    '''
+    reminder = db['reminders'].find_one({'_id':ObjectId(reminder_id)})
+
+    # Link clicked for an outdated/in-progress or deleted job?
+    if not reminder:
+      logger.error('No pickup request fail. Invalid reminder_id \'%s\'', reminder_id)
+      return False
+
+    if 'no_pickup' in reminder['custom']:
+      logger.info('No pickup already processed for account %s', reminder['account_id'])
+      return False
+
+    job = db['jobs'].find_one({'_id':reminder['job_id']})
+
     try:
-        msg = db['reminders'].find_one({'_id':ObjectId(msg_id)})
-        # Link clicked for an outdated/in-progress or deleted job?
-        if not msg:
-          logger.info('No pickup request fail. Invalid msg_id')
-          return 'Request unsuccessful'
+        no_pickup = 'No Pickup ' + reminder['event_date'].strftime('%A, %B %d')
 
-        if 'no_pickup' in msg['custom']:
-          logger.info('No pickup already processed for account %s', msg['imported']['account'])
-          return 'Thank you'
-
-        job = db['jobs'].find_one({'_id':msg['job_id']})
-
-        no_pickup = 'No Pickup ' + msg['imported']['event_date'].strftime('%A, %B %d')
         db['reminders'].update(
-          {'_id':msg['_id']},
+          {'_id':reminder['_id']},
           {'$set': {
             "custom.office_notes": no_pickup,
             "custom.no_pickup": True
@@ -734,25 +739,28 @@ def cancel_pickup(msg_id):
         #  'office_notes':no_pickup
         #  })
 
+        etap = db['admin_logins'].find_one({'user':current_user.username})
+        keys = {'user':etap['user'], 'pw': etap['pw'], 'agency':etap['agency'],'endpoint':ETAPESTRY_ENDPOINT}
+
         # Write to eTapestry
         etap.call('no_pickup', keys, {
-          "account": msg['account_id'],
-          "date": msg['custom']['next_pickup'].strftime('%d/%m/%Y'),
-          "next_pickup": msg['custom']['next_pickup'].strftime('%d/%m/%Y')
+          "account": reminder['account_id'],
+          "date": reminder['custom']['next_pickup'].strftime('%d/%m/%Y'),
+          "next_pickup": reminder['custom']['next_pickup'].strftime('%d/%m/%Y')
         })
 
         # Send email w/ next pickup
-        if 'next_pickup' in msg['custom']:
+        if 'next_pickup' in reminder['custom']:
           requests.post(app.config['PUB_URL'] + '/email/send', {
-            "recipient": msg['email']['recipient'],
+            "recipient": reminder['email']['recipient'],
             "template": "email_no_pickup.html",
             "subject": "Your next pickup"
         })
 
-        logger.info('Emailed Next Pickup to %s', msg['email']['recipient'])
-    except Exception, e:
-        logger.error('/nopickup/msg_id', exc_info=True)
-        return str(e)
+        logger.info('Emailed Next Pickup to %s', reminder['email']['recipient'])
+    except Exception as e:
+        logger.error('/cancel_pickup: %s', str(e)
+        return False
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -769,54 +777,53 @@ def set_no_pickup(url, params):
 
 #-------------------------------------------------------------------------------
 def parse_csv(csvfile, template):
+    '''Checks the .csv file buffer for correct headers/rows
+    csvfile: buffer from opened .csv file
+    returns: buffer of rows on success, error str on failure
+    '''
+
+    reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
+    buffer = []
+    header_err = False
+
     try:
-        reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
-        buffer = []
-        header_err = False
-        header_row = reader.next()
-
-        # A. Test if file header names matche template definition
-
-        if len(header_row) != len(template['import_fields']):
-            header_err = True
-        else:
-            for col in range(0, len(header_row)):
-              if header_row[col] != template['import_fields'][col]['file_header']:
+        for row in reader:
+            # Test header row
+            if reader.line_num == 1:
+                if len(row) != len(template['import_fields']):
                     header_err = True
-                    break
+                else:
+                    for col in range(0, len(row)):
+                      if row[col] != template['import_fields'][col]['file_header']:
+                          header_err = True
+                          break
 
-        if header_err:
-            columns = []
-            for element in template['import_fields']:
-                columns.append(element['file_header'])
+                if header_err:
+                    columns = []
+                    for element in template['import_fields']:
+                        columns.append(element['file_header'])
 
-            return 'Your file is missing the proper header rows:<br> \
-            <b>' + str(columns) + '</b><br><br>' \
-            'Here is your header row:<br><b>' + str(header_row) + '</b><br><br>' \
-            'Please fix your mess and try again.'
+                    logger.error('Invalid header row. Missing columns: %s', str(columns))
 
-        reader.next() # Delete empty Row 2 in eTapestry export file
+                    return 'Your file is missing the proper header rows:<br> \
+                    <b>' + str(columns) + '</b><br><br>' \
+                    'Here is your header row:<br><b>' + str(row) + '</b><br><br>' \
+                    'Please fix your mess and try again.'
+
+            # Skip over empty Row 2 in eTapestry export files
+            elif reader.line_num == 2:
+                continue
+            # Read each line from file into buffer
+            else:
+                if len(row) != len(template['import_fields']):
+                    return 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
+                    ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
+                else:
+                    buffer.append(row)
     except Exception as e:
         logger.error('reminders.parse_csv: %s', str(e))
         return False
 
-    # B. Read each line from file into buffer
-
-    logger.info('Reading rows...')
-
-    line_num = 1
-    for row in reader:
-        # verify columns match template
-        try:
-            if len(row) != len(template['import_fields']):
-                return 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
-                ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
-            else:
-                buffer.append(row)
-            line_num += 1
-        except Exception as e:
-            logger.error('Error reading line num %d: %s (stack trace: %s)',
-                        line_num, row, str(e))
     return buffer
 
 #-------------------------------------------------------------------------------
@@ -916,7 +923,7 @@ def cancel_job(job_id):
 #-------------------------------------------------------------------------------
 def submit_job(form, file):
     '''POST request to create new job from new_job.html template'''
-    logger.info(form)
+    logger.debug('new job form: %s', str(form))
 
     # A. Validate file
     try:
@@ -925,7 +932,7 @@ def submit_job(form, file):
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             file_path = app.config['UPLOAD_FOLDER'] + '/' + filename
         else:
-            logger.info('could not save file')
+            logger.error('could not save file')
 
             return {'status':'error',
                     'title': 'Filename Problem',
@@ -988,8 +995,6 @@ def submit_job(form, file):
           'msg':'Could not parse the schedule date you entered: ' + str(e)
         }
 
-    logger.info('about to create job')
-
     agency = db['admin_logins'].find_one({'user': current_user.username})['agency']
 
     # D. Create mongo 'reminder_job' and 'reminder_msg' records
@@ -1010,10 +1015,10 @@ def submit_job(form, file):
     elif form['template_name'] == 'announce_text':
         job['message'] = form['message']
 
+    logger.debug('new job dump: %s', json.dumps(job))
+
     job_id = db['jobs'].insert(job)
     job['_id'] = job_id
-
-    logger.info(job)
 
     try:
         errors = []

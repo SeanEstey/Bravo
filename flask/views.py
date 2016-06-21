@@ -86,7 +86,16 @@ def get_routing_job_id():
 @app.route('/reminders/new')
 @login_required
 def new_job():
-    return render_template('views/new_job.html', title=app.config['TITLE'])
+    agency = db['admin_logins'].find_one({'user': current_user.username})['agency']
+
+    try:
+        with open('templates/schemas/'+agency+'.json') as json_file:
+          templates = json.load(json_file)['reminders']
+    except Exception as e:
+        app.logger.error("Couldn't open json schemas file")
+        return "Error"
+
+    return render_template('views/new_job.html', templates=templates, title=app.config['TITLE'])
 
 #-------------------------------------------------------------------------------
 @app.route('/reminders/submit_job', methods=['POST'])
@@ -192,7 +201,10 @@ def no_pickup(msg_id):
 #-------------------------------------------------------------------------------
 @app.route('/reminders/call.xml',methods=['POST'])
 def call_xml():
-    '''Twilio TwiML Voice Request'''
+    '''Twilio TwiML Voice Request
+    Returns twilio.twiml.Response obj
+    '''
+
     try:
         template = reminders.get_voice_template(request.values.to_dict())
 

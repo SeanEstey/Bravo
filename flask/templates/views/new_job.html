@@ -48,10 +48,9 @@
             Template
           </div>
           <select name='template_name' class='form-control' id='template-select'>
-            <option value='etw'>Empties to Winn Reminder (Email/Voice)</option>
-            <option value='green_goods'>Green Goods Delivery</option>
-            <option value='announce_voice'>Voice Announcement (Recording)</option>
-            <option value='announce_text'>Voice Announcement (Text)</option>
+            {% for template in templates %}
+              <option value='{{ template.name }}'>{{ template.description }}</option>
+            {% endfor %}
           </select>
           
           <!-- Special Message Div -->

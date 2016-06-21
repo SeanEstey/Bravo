@@ -445,7 +445,6 @@ def dial(to):
 
 #-------------------------------------------------------------------------------
 def get_voice_template(args):
-    '''Returns twilio.twiml.Response obj'''
 
     if 'msg' in args or 'Digits' in args:
         return get_resp_xml_template(args)
@@ -464,43 +463,26 @@ def get_resp_xml_template(args):
 
     response = twilio.twiml.Response()
 
+    # Repeat message request...
     if args.get('Digits') == '1':
-        # Repeat message request...
         return get_speak_template(job, msg)
+    # Cancel Pickup special request...
     elif args.get('Digits') == '2':
-        # Cancel Pickup special request...
+        if not cancel_pickup(str(msg['_id'])):
+            response.say("Thank you.", voice='alice')
+            return response
 
-        if msg['custom']['next_pickup'] is None:
-          logger.error("Next Pickup for reminder_msg _id %s is missing.", str(msg['_id']))
-          response.say("Thank you.", voice='alice')
-          return response
+            #send_socket('update_msg', {
+            #  'id': str(call['_id']),
+            #  'office_notes':no_pickup
+            #  })
 
-        db['reminders'].update(
-          {'sid': args.get('CallSid')},
-          {'$set': {'custom.office_notes': msg['event_date'].strftime('%A, %B %d')}}
-        )
+        response.say(
+          'Thank you. Your next pickup will be on ' +\
+          msg['custom']['next_pickup'].strftime('%A, %B %d') + '. Goodbye',
+          voice='alice')
 
-    #send_socket('update_msg', {
-    #  'id': str(call['_id']),
-    #  'office_notes':no_pickup
-    #  })
-
-    try:
-      # Update eTap with future pickup date
-      etap.call.apply_async(('no_pickup', keys, {
-        'account': msg['account_id'],
-        'date': msg['event_date'].strftime('%d/%m/%Y'),
-        'next_pickup': msg['custom']['next_pickup'].strftime('%d/%m/%Y')
-      },), queue=app.config['DB'])
-    except Exception as e:
-      logger.error('Could not write to eTap to update pickup date. ' + str(e))
-
-    response.say(
-        'Thank you. Your next pickup will be on ' +\
-        msg['custom']['next_pickup'].strftime('%A, %B %d') + '. Goodbye',
-        voice='alice')
-
-    return response
+        return response
 
 #-------------------------------------------------------------------------------
 def get_answer_xml_template(args):
@@ -561,9 +543,9 @@ def get_answer_xml_template(args):
 
 #-------------------------------------------------------------------------------
 def call_event(args):
-    '''Twilio callback handler
-    Unless multiple event handlers specified, this callback only called on 'completed'.
-    Registering more events costs $.00001 per event
+    '''Callback handler called by Twilio on 'completed' event (more events can be 
+    specified, at $0.00001 per event). Updates status of event in DB.
+    Returns: 'OK' string to twilio if no problems.
     '''
 
     if args.get('SipResponseCode') != 200:
@@ -644,16 +626,18 @@ def strip_phone(to):
 
 #-------------------------------------------------------------------------------
 def get_speak_template(job, reminder):
+    '''Returns appropriate .html template file'''
+
     try:
         # Simplest case: announce_voice template. Play audio file
-        if job['schema']['name'] == 'announce_voice':
+        if job['schema']['type'] == 'announce_voice':
             # TODO: Fixme
             response = twilio.twiml.Response()
             response.play(job['audio_url'])
             return response
 
         return {
-          'template': job['schema']['voice_template'],
+          'template': job['schema']['templates']['voice']['reminder']['file'],
           'reminder': reminder
         }
 
@@ -713,14 +697,19 @@ def cancel_pickup(reminder_id):
     '''
     reminder = db['reminders'].find_one({'_id':ObjectId(reminder_id)})
 
-    # Link clicked for an outdated/in-progress or deleted job?
+    # Outdated/in-progress or deleted job?
     if not reminder:
-      logger.error('No pickup request fail. Invalid reminder_id \'%s\'', reminder_id)
-      return False
+        logger.error('No pickup request fail. Invalid reminder_id \'%s\'', reminder_id)
+        return False
 
+    # Already cancelled?
     if 'no_pickup' in reminder['custom']:
-      logger.info('No pickup already processed for account %s', reminder['account_id'])
-      return False
+        logger.info('No pickup already processed for account %s', reminder['account_id'])
+        return False
+
+    # No next pickup date?
+    if msg['custom']['next_pickup'] is None:
+        logger.error("Next Pickup for reminder_msg _id %s is missing.", str(msg['_id']))
 
     job = db['jobs'].find_one({'_id':reminder['job_id']})
 
@@ -759,7 +748,7 @@ def cancel_pickup(reminder_id):
 
         logger.info('Emailed Next Pickup to %s', reminder['email']['recipient'])
     except Exception as e:
-        logger.error('/cancel_pickup: %s', str(e)
+        logger.error('/cancel_pickup: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------
@@ -776,10 +765,11 @@ def set_no_pickup(url, params):
     return r.status_code
 
 #-------------------------------------------------------------------------------
-def parse_csv(csvfile, template):
+def parse_csv(csvfile, import_fields):
     '''Checks the .csv file buffer for correct headers/rows
     csvfile: buffer from opened .csv file
     returns: buffer of rows on success, error str on failure
+    import_fields: list of header column mappings from json schema
     '''
 
     reader = csv.reader(csvfile, dialect=csv.excel, delimiter=',', quotechar='"')
@@ -790,17 +780,17 @@ def parse_csv(csvfile, template):
         for row in reader:
             # Test header row
             if reader.line_num == 1:
-                if len(row) != len(template['import_fields']):
+                if len(row) != len(import_fields):
                     header_err = True
                 else:
                     for col in range(0, len(row)):
-                      if row[col] != template['import_fields'][col]['file_header']:
+                      if row[col] != import_fields[col]['file_header']:
                           header_err = True
                           break
 
                 if header_err:
                     columns = []
-                    for element in template['import_fields']:
+                    for element in import_fields:
                         columns.append(element['file_header'])
 
                     logger.error('Invalid header row. Missing columns: %s', str(columns))
@@ -815,7 +805,7 @@ def parse_csv(csvfile, template):
                 continue
             # Read each line from file into buffer
             else:
-                if len(row) != len(template['import_fields']):
+                if len(row) != len(import_fields):
                     return 'Line #' + str(line_num) + ' has ' + str(len(row)) + \
                     ' columns. Look at your mess:<br><br><b>' + str(row) + '</b>'
                 else:
@@ -946,9 +936,11 @@ def submit_job(form, file):
           'msg':'could not upload file'
         }
 
+    agency = db['admin_logins'].find_one({'user': current_user.username})['agency']
+
     # B. Get schema definitions from json file
     try:
-        with open('templates/reminder_schemas.json') as json_file:
+        with open('templates/schemas/'+agency+'.json') as json_file:
           schemas = json.load(json_file)
     except Exception as e:
         logger.error(str(e))
@@ -956,13 +948,16 @@ def submit_job(form, file):
                 'title': 'Problem Reading reminder_templates.json File',
                 'msg':'Could not parse file: ' + str(e)}
 
-    schema = schemas[form['template_name']]
-    schema['name'] = form['template_name']
+    schema = ''
+    for s in schemas:
+        if schema['name'] == form['template_name']:
+            schema = s
+            break
 
     # C. Open and parse submitted .CSV file
     try:
         with codecs.open(file_path, 'r', 'utf-8-sig') as f:
-            buffer = parse_csv(f, schema)
+            buffer = parse_csv(f, schema['import_fields'])
 
             if type(buffer) == str:
                 return {
@@ -995,8 +990,6 @@ def submit_job(form, file):
           'msg':'Could not parse the schedule date you entered: ' + str(e)
         }
 
-    agency = db['admin_logins'].find_one({'user': current_user.username})['agency']
-
     # D. Create mongo 'reminder_job' and 'reminder_msg' records
     job = {
         'name': job_name,
@@ -1015,7 +1008,7 @@ def submit_job(form, file):
     elif form['template_name'] == 'announce_text':
         job['message'] = form['message']
 
-    logger.debug('new job dump: %s', json.dumps(job))
+    #logger.debug('new job dump: %s', json.dumps(job))
 
     job_id = db['jobs'].insert(job)
     job['_id'] = job_id

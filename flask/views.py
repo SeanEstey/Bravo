@@ -206,18 +206,25 @@ def call_xml():
     '''
 
     try:
-        template = reminders.get_voice_template(request.values.to_dict())
+        r = reminders.get_voice_response(request.values.to_dict())
+
+        if type(r) is twilio.twiml.Response:
+            return Response(str(r), mimetype='text/xml')
+
+        # Returned .html template file for rendering
+
+        reminder = db['reminders'].find_one({'sid': args.get('CallSid')})
 
         html = render_template(
-            template['template'],
-            reminder=json.loads(reminders.bson_to_json(template['reminder']))
+            r,
+            reminder=json.loads(reminders.bson_to_json(reminder))
         )
 
         html = html.replace("\n", "")
         html = html.replace("  ", "")
         app.logger.debug('speak template: %s', html)
 
-        db['reminders'].update({'_id':template['reminder']},{'$set':{'voice.speak':html}})
+        db['reminders'].update({'_id':r['reminder']},{'$set':{'voice.speak':html}})
 
         response = twilio.twiml.Response()
         response.say(html, voice='alice')

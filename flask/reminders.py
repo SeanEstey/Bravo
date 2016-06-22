@@ -444,7 +444,10 @@ def dial(to):
     return call
 
 #-------------------------------------------------------------------------------
-def get_voice_template(args):
+def get_voice_response(args):
+    '''Returns a twilio.twiml.Response object if voice recording,
+    returns a .html template file for rendering by view otherwise
+    '''
 
     if 'msg' in args or 'Digits' in args:
         return get_resp_xml_template(args)
@@ -455,7 +458,7 @@ def get_voice_template(args):
 def get_resp_xml_template(args):
     '''Twilio TwiML Voice Request
     User has made interaction with call
-    Returns twilio.twiml.Response obj
+    Returns either twilio.twiml.Response obj or .html template
     '''
 
     msg = db['reminders'].find_one({'sid': args.get('CallSid')})
@@ -465,22 +468,27 @@ def get_resp_xml_template(args):
 
     # Repeat message request...
     if args.get('Digits') == '1':
-        return get_speak_template(job, msg)
+        try:
+            # Simplest case: announce_voice template. Play audio file
+            if job['schema']['type'] == 'announce_voice':
+                # TODO: Fixme
+                response = twilio.twiml.Response()
+                response.play(job['audio_url'])
+                return response
+
+            return job['schema']['templates']['voice']['reminder']['file']
+        except Exception as e:
+            logger.error('Error generating xml response: %s', str(e))
+            return False
     # Cancel Pickup special request...
     elif args.get('Digits') == '2':
         if not cancel_pickup(str(msg['_id'])):
             response.say("Thank you.", voice='alice')
-            return response
-
-            #send_socket('update_msg', {
-            #  'id': str(call['_id']),
-            #  'office_notes':no_pickup
-            #  })
-
-        response.say(
-          'Thank you. Your next pickup will be on ' +\
-          msg['custom']['next_pickup'].strftime('%A, %B %d') + '. Goodbye',
-          voice='alice')
+        else:
+            response.say(
+              'Thank you. Your next pickup will be on ' +\
+              msg['custom']['next_pickup'].strftime('%A, %B %d') + '. Goodbye',
+              voice='alice')
 
         return response
 
@@ -488,7 +496,7 @@ def get_resp_xml_template(args):
 def get_answer_xml_template(args):
     '''TwiML Voice Request
     Call has been answered (by machine or human)
-    Returns twilio.twiml.Response obj
+    Returns either twilio.twiml.Response obj or .html template
     '''
 
     logger.info('%s %s (%s)', args['To'], args['CallStatus'], args.get('AnsweredBy'))
@@ -506,12 +514,18 @@ def get_answer_xml_template(args):
 
         job = db['jobs'].find_one({'_id': reminder['job_id']})
 
-        try:
-            return get_speak_template(job, reminder)
-            #response_xml = get_speak(job, reminder)
-        except Exception as e:
-            logger.error('reminders.get_answer_xml_template', exc_info=True)
-            return str(e)
+            try:
+                # Simplest case: announce_voice template. Play audio file
+                if job['schema']['type'] == 'announce_voice':
+                    # TODO: Fixme
+                    response = twilio.twiml.Response()
+                    response.play(job['audio_url'])
+                    return response
+
+                return job['schema']['templates']['voice']['reminder']['file']
+            except Exception as e:
+                logger.error('reminders.get_answer_xml_template', exc_info=True)
+                return False
 
     # Not a reminder. Maybe a special msg recording?
     if reminder is None:
@@ -625,29 +639,6 @@ def strip_phone(to):
     return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
 
 #-------------------------------------------------------------------------------
-def get_speak_template(job, reminder):
-    '''Returns appropriate .html template file'''
-
-    try:
-        # Simplest case: announce_voice template. Play audio file
-        if job['schema']['type'] == 'announce_voice':
-            # TODO: Fixme
-            response = twilio.twiml.Response()
-            response.play(job['audio_url'])
-            return response
-
-        return {
-          'template': job['schema']['templates']['voice']['reminder']['file'],
-          'reminder': reminder
-        }
-
-    except Exception as e:
-        logger.info('get_speak_template: %s', str(e))
-        return False
-
-    return response
-
-#-------------------------------------------------------------------------------
 def email_job_summary(job_id):
     if isinstance(job_id, str):
         job_id = ObjectId(job_id)
@@ -694,6 +685,8 @@ def email_job_summary(job_id):
 def cancel_pickup(reminder_id):
     '''Update users eTapestry account with next pickup date and send user
     confirmation email
+    reminder_id: string ObjectId
+    Returns: True if no errors, False otherwise
     '''
     reminder = db['reminders'].find_one({'_id':ObjectId(reminder_id)})
 
@@ -709,7 +702,8 @@ def cancel_pickup(reminder_id):
 
     # No next pickup date?
     if msg['custom']['next_pickup'] is None:
-        logger.error("Next Pickup for reminder_msg _id %s is missing.", str(msg['_id']))
+        logger.error("Next Pickup for reminder_msg _id %s is missing.", str(reminder['_id']))
+        return False
 
     job = db['jobs'].find_one({'_id':reminder['job_id']})
 
@@ -742,14 +736,16 @@ def cancel_pickup(reminder_id):
         if 'next_pickup' in reminder['custom']:
           requests.post(app.config['PUB_URL'] + '/email/send', {
             "recipient": reminder['email']['recipient'],
-            "template": "email_no_pickup.html",
-            "subject": "Your next pickup"
+            "template": job['schema']['templates']['email']['no_pickup']['file'],
+            "subject": job['schema']['templates']['email']['no_pickup']['subject']
         })
 
         logger.info('Emailed Next Pickup to %s', reminder['email']['recipient'])
     except Exception as e:
         logger.error('/cancel_pickup: %s', str(e))
         return False
+
+    return True
 
 #-------------------------------------------------------------------------------
 @celery_app.task

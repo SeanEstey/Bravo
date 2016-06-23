@@ -1,0 +1,30 @@
+  {% extends "email/vec/base.html" %}
+  {% block content %}  
+    <tr>
+      <td>
+        Hi {{ data['account']['name'] }},
+      </td>
+    </tr>
+    <tr>
+      <td>
+        We came by for a pickup on 
+        <b>{{ data['entry']['date'] }}</b> 
+        and saw that you didn't have any empties.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        {% if data['entry']['next_pickup'] %}
+          Your next scheduled pickup is <b>{{ data['entry']['next_pickup'] }}</b>.
+        {% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td>
+        {% if data['entry']['status'] == "Call-in" %}
+          Please call us when you need your next pickup at 
+          <b>1-888-YOU-WINN</b> (968-9466).
+        {% endif %}
+      </td>
+    </tr>
+  {% endblock %}

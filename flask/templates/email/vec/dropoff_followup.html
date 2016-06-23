@@ -1,0 +1,29 @@
+  {% extends "email/vec/base.html" %}
+  {% block content %}  
+    <tr>
+      <td>
+        Hi {{ data['account']['name'] }},
+      </td>
+    </tr>
+    <tr>
+      <td>
+        You should have had your collection supplies dropped off on 
+        {{ data['entry']['date'] }} at 
+        {{ data['account']['address'] }}, 
+        {{ data['account']['postal'] }}.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        You should be all set! Let us know if you have any questions.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        {% if data['entry']['next_pickup'] %}
+        Your next pickup is scheduled for 
+        <b>{{ data['entry']['next_pickup'] }}</b>.
+        {% endif %}
+      </td>
+    </tr>
+  {% endblock %}

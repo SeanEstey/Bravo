@@ -261,8 +261,8 @@ def send_emails(job_id):
 
             json_args = bson_to_json({
               "recipient": reminder['email']['recipient'],
-              "template": job['schema']['email_template'],
-              "subject": job['schema']['email_subject'],
+              "template": job['schema']['templates']['email']['reminder']['file'],
+              "subject": job['schema']['templates']['email']['reminder']['subject'],
               "data": data
             })
 
@@ -511,21 +511,19 @@ def get_answer_xml_template(args):
     if reminder:
         # send_socket('update_msg',
         # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
-
         job = db['jobs'].find_one({'_id': reminder['job_id']})
+        try:
+            # Simplest case: announce_voice template. Play audio file
+            if job['schema']['type'] == 'announce_voice':
+                # TODO: Fixme
+                response = twilio.twiml.Response()
+                response.play(job['audio_url'])
+                return response
 
-            try:
-                # Simplest case: announce_voice template. Play audio file
-                if job['schema']['type'] == 'announce_voice':
-                    # TODO: Fixme
-                    response = twilio.twiml.Response()
-                    response.play(job['audio_url'])
-                    return response
-
-                return job['schema']['templates']['voice']['reminder']['file']
-            except Exception as e:
-                logger.error('reminders.get_answer_xml_template', exc_info=True)
-                return False
+            return job['schema']['templates']['voice']['reminder']['file']
+        except Exception as e:
+            logger.error('reminders.get_answer_xml_template', exc_info=True)
+            return False
 
     # Not a reminder. Maybe a special msg recording?
     if reminder is None:
@@ -937,7 +935,7 @@ def submit_job(form, file):
     # B. Get schema definitions from json file
     try:
         with open('templates/schemas/'+agency+'.json') as json_file:
-          schemas = json.load(json_file)
+          schemas = json.load(json_file)['reminders']
     except Exception as e:
         logger.error(str(e))
         return {'status':'error',
@@ -946,7 +944,7 @@ def submit_job(form, file):
 
     schema = ''
     for s in schemas:
-        if schema['name'] == form['template_name']:
+        if s['name'] == form['template_name']:
             schema = s
             break
 

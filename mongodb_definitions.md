@@ -21,22 +21,22 @@
                "ringing","in-progress","busy","no-answer","completed"], 
     "answered_by": ["human", "machine"], 
     "ended_at": "<BSON.Date>",
-    "to": "phone_number",
-    "speak": "",
-    "attempts": "",
-    "duration": "",
+    "to": "PHONE_NUMBER",
+    "speak": "[Text string spoken to user]",
+    "attempts": "NUM_CALL_ATTEMPTS",
+    "duration": "CALL_DURATION_IN_SECONDS",
     "error": "",
     "code": "",
   },
   "email": {
     "mid":  "mailgun_msg_id", 
     "status": ["pending", "bounced", "dropped", "delivered"],
-    "recipient": "email",
+    "recipient": "EMAIL_ADDRESS",
     "error": "",
     "code": ""
   },
   "custom": {
-    "no_pickup": "[bool]",
+    "no_pickup": "[True,False]",
     "next_pickup": "<BSON.Date>",
     "status": "",
     "block": "",
@@ -50,17 +50,17 @@
 
 ```json
 {
-  "agency": "name",
+  "agency": "AGENCY_NAME",
   "status": ["pending", "in-progress", "completed", "failed"], 
   "voice": {
-    "fire_at": "<bson.date>",
-    "started_at": "<bson.date>",
-    "count": "[Number]"
+    "fire_at": "<BSON.Date>",
+    "started_at": "<BSON.Date>",
+    "count": "[Number of calls]"
   },
   "email": {
     "fire_at": "<bson.date>",
     "started_at": "<bson.date>",
-    "count": "[Number]"
+    "count": "[Number of emails]"
   },
   "schema": {
     "name": "",

@@ -23,12 +23,14 @@ logger.addHandler(error_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
-def get_cal_events(cal_id, start, end):
-    json_key = json.load(open('oauth_credentials.json'))
+def get_cal_events(agency, cal_id, start, end):
+    oauth = db['agencies'].find_one({'name':agency})['oauth']
+
+    #json_key = json.load(open('oauth_credentials.json'))
 
     credentials = SignedJwtAssertionCredentials(
-        json_key['client_email'],
-        json_key['private_key'],
+        oauth['client_email'],
+        oauth['private_key'],
         ['https://www.googleapis.com/auth/calendar.readonly']
     )
 
@@ -47,13 +49,13 @@ def get_cal_events(cal_id, start, end):
 
 
 #-------------------------------------------------------------------------------
-def get_blocks(start_date, end_date):
+def get_blocks(agency, cal_id, start_date, end_date):
     '''Return list of Res Blocks between scheduled dates'''
 
     blocks = []
 
     try:
-        events = get_cal_events(ETW_RES_CALENDAR_ID, start_date, end_date)
+        events = get_cal_events(agency, cal_id, start_date, end_date)
     except Exception as e:
         logger.error('Could not access Res calendar: %s', str(e))
         return False
@@ -70,13 +72,15 @@ def get_blocks(start_date, end_date):
 
 
 #-------------------------------------------------------------------------------
-def get_accounts(days_from_now=None):
+def get_accounts(agency, days_from_now=None):
     '''Return list of eTapestry Accounts in schedule'''
 
     start_date = datetime.now() + timedelta(days=days_from_now)
     end_date = start_date + timedelta(hours=1)
 
-    blocks = get_blocks(start_date, end_date)
+    cal_id = db['agencies'].find_one({'name':agency})['cal_ids']['res']
+
+    blocks = get_blocks(agency, cal_id, start_date, end_date)
 
     if len(blocks) < 1:
         logger.info('No Blocks found on given date')
@@ -84,10 +88,14 @@ def get_accounts(days_from_now=None):
 
     accounts = []
 
+    etap = db['agencies'].find_one({'name':agency})['etapestry']
+    keys = {'user':etap['user'], 'pw':etap['pw'],
+            'agency':agency,'endpoint':app.config['ETAPESTRY_ENDPOINT']}
+
     for block in blocks:
         try:
             a = etap.call('get_query_accounts',
-                ETAP_WRAPPER_KEYS,
+                keys,
                 { 'query':block, 'query_category':'ETW: Routes'}
             )
         except Exception as e:
@@ -101,7 +109,7 @@ def get_accounts(days_from_now=None):
     return accounts
 
 #-------------------------------------------------------------------------------
-def get_nps(accounts):
+def get_nps(agency, accounts):
     '''Analyze list of eTap account objects for non-participants
     (Dropoff Date >= 12 monthss ago and no collections in that time
     '''
@@ -124,13 +132,12 @@ def get_nps(accounts):
             older_accounts.append(account)
 
     try:
-        agency = db['users'].find_one({'user':current_user.username})['agency']
-        settings = db['agencies'].find_one({'name':agency})
-        keys = {'user':settings['etapestry']['user'], 'pw':settings['etapestry']['pw'],
+        etap = db['agencies'].find_one({'name':agency})['etapestry']
+        keys = {'user':etap['user'], 'pw':etap['pw'],
                 'agency':agency,'endpoint':app.config['ETAPESTRY_ENDPOINT']}
 
         gift_histories = etap.call('get_gift_histories',
-          ETAP_WRAPPER_KEYS, {
+          keys, {
           "account_refs": [i['ref'] for i in older_accounts],
           "start_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year-1),
           "end_date": str(now.day) + "/" + str(now.month) + "/" + str(now.year)
@@ -158,12 +165,14 @@ def analyze_non_participants():
 
     logger.info('Analyzing non-participants in 4 days...')
 
-    accounts = get_accounts(days_from_now=4)
+    agency = 'wsf' # for now
+
+    accounts = get_accounts(agency, days_from_now=4)
 
     if len(accounts) < 1:
         return False
 
-    nps = get_nps(accounts)
+    nps = get_nps(agency, accounts)
 
     now = datetime.now()
 

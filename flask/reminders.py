@@ -707,7 +707,7 @@ def cancel_pickup(reminder_id):
         return False
 
     # No next pickup date?
-    if reminder['custom']['next_pickup'] is None:
+    if 'next_pickup' not in reminder['custom']:
         logger.error("Next Pickup for reminder_msg _id %s is missing.", str(reminder['_id']))
         return False
 
@@ -728,12 +728,8 @@ def cancel_pickup(reminder_id):
         #  'office_notes':no_pickup
         #  })
 
-        #user = db['users'].find_one({'user':current_user.username})
-        #keys = {'user':user['etapestry']['user'], 'pw':user['etapestry']['pw'],
-        #        'agency':user['agency'],'endpoint':app.config['ETAPESTRY_ENDPOINT']}
-
-        agency = db['users'].find_one({'user':current_user.username})['agency']
-        settings = db['agencies'].find_one({'name':agency})
+        job = db['jobs'].find_one({'_id':reminder['job_id']})
+        settings = db['agencies'].find_one({'name':job['agency']})
         keys = {'user':settings['etapestry']['user'], 'pw':settings['etapestry']['pw'],
                 'agency':agency,'endpoint':app.config['ETAPESTRY_ENDPOINT']}
 

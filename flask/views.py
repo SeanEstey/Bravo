@@ -86,7 +86,7 @@ def get_routing_job_id():
 @app.route('/reminders/new')
 @login_required
 def new_job():
-    agency = db['admin_logins'].find_one({'user': current_user.username})['agency']
+    agency = db['users'].find_one({'user': current_user.username})['agency']
 
     try:
         with open('templates/schemas/'+agency+'.json') as json_file:
@@ -192,7 +192,7 @@ def edit_msg(sid):
 
 #-------------------------------------------------------------------------------
 @app.route('/reminders/<job_id>/<msg_id>/cancel_pickup', methods=['GET'])
-def no_pickup(msg_id):
+def no_pickup(job_id, msg_id):
     '''Script run via reminder email'''
 
     reminders.cancel_pickup.apply_async((msg_id,), queue=app.config['DB'])

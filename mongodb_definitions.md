@@ -138,6 +138,18 @@
   "cal_ids": {
     "res": "7d4fdfke5mllck8pclcerbqk50@group.calendar.google.com",
     "bus": "bsmoacn3nsn8lio6vk892tioes@group.calendar.google.com"
+  },
+  "oauth": {
+    "type": "service_account",
+    "project_id": "project-id-uicnlcvxxveqfuokxwj",
+    "private_key_id": "8a11b7ea91f73f3490b347848e69e6c5d1174804",
+    "private_key": "-----BEGIN PRIVATE KEY-----KEY_DATA-----END PRIVATE KEY-----",
+    "client_email": "bravo-738@project-id-uicnlcvxxveqfuokxwj.iam.gserviceaccount.com",
+    "client_id": "100311906177554855345",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://accounts.google.com/o/oauth2/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bravo-738%40project-id-uicnlcvxxveqfuokxwj.iam.gserviceaccount.com"
   }
 }
 ```

@@ -88,36 +88,36 @@
 
 ```json
 {
-  'name': 'AGENCY_NAME',
-  'etapestry': {
-    'agency': 'AGENCY_NAME',
-    'user': 'USERNAME',
-    'pw': 'PASSWORD',
-    'endpoint': 'https://sna.etapestry.com/v3messaging/service?WSDL',
-    'query_category': 'ETW: Routes',
-    'gifts': {
-      'fund': 'WSF',
-      'campaign': 'Empties to WINN',
-      'approach': 'Bottle Donation'
+  "name": "AGENCY_NAME",
+  "etapestry": {
+    "agency": "AGENCY_NAME",
+    "user": "USERNAME",
+    "pw": "PASSWORD",
+    "endpoint': "https://sna.etapestry.com/v3messaging/service?WSDL",
+    "query_category": "ETW: Routes",
+    "gifts": {
+      "fund": "WSF",
+      "campaign": "Empties to WINN",
+      "approach": "Bottle Donation"
     }
   },
-  'twilio_auth_key': 'ACef54e4a38c29aa6a5ed6e5064e02e511:47dbc1c341222df40eaaa941e48044bb',
-  'gdrive': {
-    'ss_ids': {
-      'bravo': '1P51j2vTcaw0cNXGvvu_48J7yIztvS2-Yg4d1PwfWl3k',  // LIVE_SS
-      'stats': '1iBRJOkSH2LEJID0FEGcE3MHOoC5OKQsz0aH4AAPpTR4',
-      'stats_archive': '1BTS-r3PZS3QVR4j5rfsm6Z4kBXoGQY8ur60uH-DKF3o',
-      'inventory': '1Mb6qOvYVUF9mxyn3rRSoOik427VOrltGAy7LSIR9mnU',
-      'route_template': '1Sr3aPhB277lESuOKgr2EJ_XHGPUhuhEEJOXfAoMnK5c',
+  "twilio_auth_key": "PRIVATE_KEY",
+  "gdrive": {
+    "ss_ids": {
+      "bravo": "1P51j2vTcaw0cNXGvvu_48J7yIztvS2-Yg4d1PwfWl3k",
+      "stats': '1iBRJOkSH2LEJID0FEGcE3MHOoC5OKQsz0aH4AAPpTR4",
+      "stats_archive": '1BTS-r3PZS3QVR4j5rfsm6Z4kBXoGQY8ur60uH-DKF3o",
+      "inventory": '1Mb6qOvYVUF9mxyn3rRSoOik427VOrltGAy7LSIR9mnU",
+      "route_template": "1Sr3aPhB277lESuOKgr2EJ_XHGPUhuhEEJOXfAoMnK5c",
     },
-    'folder_ids': {
-      'routed': '0BxWL2eIF0hwCRnV6YmtRLVBDc0E',
-      'entered': '0BxWL2eIF0hwCOTNSSy1HcWRKUFk'
+    "folder_ids": {
+      "routed": "0BxWL2eIF0hwCRnV6YmtRLVBDc0E",
+      "entered": "0BxWL2eIF0hwCOTNSSy1HcWRKUFk"
     },
   },
-  'cal_ids': {
-    'res': '7d4fdfke5mllck8pclcerbqk50@group.calendar.google.com',
-    'bus': 'bsmoacn3nsn8lio6vk892tioes@group.calendar.google.com'
+  "cal_ids": {
+    "res": "7d4fdfke5mllck8pclcerbqk50@group.calendar.google.com",
+    "bus": "bsmoacn3nsn8lio6vk892tioes@group.calendar.google.com"
   }
 }
 ```

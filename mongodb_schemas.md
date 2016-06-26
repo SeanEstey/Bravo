@@ -77,7 +77,7 @@
   "on_status_update": {
     "reminder_id": "<BSON.OjectId> (only for reminders)",
     "sheet": "sheet name (Google Sheets)",
-    "worksheet": "worksheet name (Google Sheets)"
+    "worksheet": "worksheet name (Google Sheets)",
     "row": "row (Google Sheets)",
     "upload_status": "cell value (Google Sheets)"
   }

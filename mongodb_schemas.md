@@ -93,7 +93,7 @@
     "agency": "AGENCY_NAME",
     "user": "USERNAME",
     "pw": "PASSWORD",
-    "endpoint': "https://sna.etapestry.com/v3messaging/service?WSDL",
+    "endpoint": "https://sna.etapestry.com/v3messaging/service?WSDL",
     "query_category": "ETW: Routes",
     "gifts": {
       "fund": "WSF",

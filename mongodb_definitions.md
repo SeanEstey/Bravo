@@ -62,14 +62,26 @@
     "started_at": "<bson.date>",
     "count": "[Number of emails]"
   },
+  "audio_url": "AUDIO_MSG_URL",
   "schema": {
-    "name": "",
-    "voice_template": "file.html",
-    "email_template": "file.html",
-    "email_subject": "",
-    "import_fields": {}
-  },
-  "audio_url": "saved_audio_message_url"
+    "name": "pickup_reminder",
+    "type": "reminder",
+    "description": "Vecova Bottle Service Reminder (Email/Voice)",
+    "import_fields": [
+      {"file_header": "Account", "db_field": "account_id", "type":"string", "hide": true}
+    ],
+    "email": {
+      "reminder": {
+        "file": "email/vec/reminder.html",
+        "subject": "Your upcoming Vecova Bottle Service pickup"
+      }
+    },
+    "voice": {
+      "reminder": {
+        "file": "voice/vec/reminder.html"
+      }
+    }
+  }
 }
 ```
 

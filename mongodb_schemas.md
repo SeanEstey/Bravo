@@ -1,3 +1,12 @@
+<h3>"users" collection</h3>
+```json
+{
+  "user": "USERNAME",
+  "password": "PASSWORD",
+  "agency": "AGENCY_NAME"
+}
+```
+
 <h3>"reminders" collection</h3>
 
 ```json

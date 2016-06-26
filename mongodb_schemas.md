@@ -16,7 +16,7 @@
   "account_id": "etapestry_account_id",
   "event_date": "<BSON.Date>",
   "voice": {
-    "sid": "CA7d1d19877dc768fd0c701cfcdc706fdd"       // 32 char twilio ID
+    "sid": "CA7d1d19877dc768fd0c701cfcdc706fdd [32 char Twilio ID]",
     "status": ["pending","active","failed","pending","queued",
                "ringing","in-progress","busy","no-answer","completed"], 
     "answered_by": ["human", "machine"], 

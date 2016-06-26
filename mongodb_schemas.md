@@ -1,4 +1,4 @@
-<h3>reminders collection</h3>
+<h3>"reminders" collection</h3>
 
 ```json
 {
@@ -78,7 +78,7 @@
     "reminder_id": "<BSON.OjectId> (only for reminders)",
     "sheet": "sheet name (Google Sheets)",
     "worksheet": "worksheet name (Google Sheets)"
-    "row": "row (Google Sheets),
+    "row": "row (Google Sheets)",
     "upload_status": "cell value (Google Sheets)"
   }
 }
@@ -128,5 +128,3 @@
   "status": ""
 }
 ```
-
-

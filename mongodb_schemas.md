@@ -46,12 +46,12 @@
   "status": ["pending", "in-progress", "completed", "failed"], 
   "voice": {
     "fire_at": "<bson.date>",
-    "started_at": "<bson.date>"
+    "started_at": "<bson.date>",
     "count": "[Number]"
   },
   "email": {
     "fire_at": "<bson.date>",
-    "started_at": "<bson.date>"
+    "started_at": "<bson.date>",
     "count": "[Number]"
   },
   "schema": {

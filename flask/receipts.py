@@ -6,7 +6,6 @@ import requests
 from datetime import datetime
 from dateutil.parser import parse
 
-import scheduler
 import gsheets
 import etap
 from app import db, info_handler, error_handler

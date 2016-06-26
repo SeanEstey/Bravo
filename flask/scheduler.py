@@ -26,8 +26,6 @@ logger.setLevel(logging.DEBUG)
 def get_cal_events(agency, cal_id, start, end):
     oauth = db['agencies'].find_one({'name':agency})['oauth']
 
-    #json_key = json.load(open('oauth_credentials.json'))
-
     credentials = SignedJwtAssertionCredentials(
         oauth['client_email'],
         oauth['private_key'],

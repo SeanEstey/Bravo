@@ -106,7 +106,7 @@
     "ss_ids": {
       "bravo": "1P51j2vTcaw0cNXGvvu_48J7yIztvS2-Yg4d1PwfWl3k",
       "stats": "1iBRJOkSH2LEJID0FEGcE3MHOoC5OKQsz0aH4AAPpTR4",
-      "stats_archive": '1BTS-r3PZS3QVR4j5rfsm6Z4kBXoGQY8ur60uH-DKF3o",
+      "stats_archive": "1BTS-r3PZS3QVR4j5rfsm6Z4kBXoGQY8ur60uH-DKF3o",
       "inventory": "1Mb6qOvYVUF9mxyn3rRSoOik427VOrltGAy7LSIR9mnU",
       "route_template": "1Sr3aPhB277lESuOKgr2EJ_XHGPUhuhEEJOXfAoMnK5c",
     },

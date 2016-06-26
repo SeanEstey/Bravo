@@ -41,21 +41,19 @@
       {"file_header": "Next Pickup", "db_field": "event_date", "type":"date"},
       {"file_header": "Office Notes", "db_field": "custom.office_notes", "type":"string"}
     ],
-    "templates": {
-      "email": {
-          "reminder": {
-            "file": "email/vec/reminder.html",
-            "subject": "Your upcoming Vecova Bottle Service pickup"
-          },
-          "no_pickup": {
-            "file": "email/vec/no_pickup.html",
-            "subject": "Thank you. You have been removed from this pickup schedule"
-          }
+    "email": {
+      "reminder": {
+        "file": "email/vec/reminder.html",
+        "subject": "Your upcoming Vecova Bottle Service pickup"
       },
-      "voice": {
-        "reminder": {
-          "file": "voice/vec/reminder.html"
-        }
+      "no_pickup": {
+        "file": "email/vec/no_pickup.html",
+        "subject": "Thank you. You have been removed from this pickup schedule"
+      }
+    },
+    "voice": {
+      "reminder": {
+        "file": "voice/vec/reminder.html"
       }
     }
   }, {
@@ -66,10 +64,8 @@
       {"file_header": "Name", "db_field": "name"},
       {"file_header": "Phone","db_field": "voice.to"}
     ],
-    "templates": {
-      "voice": {
-        "file": "voice/vec/announce.html"
-      }
+    "voice": {
+      "file": "voice/vec/announce.html"
     }
   }, {
     "name": "voice_announcement",
@@ -79,10 +75,8 @@
       {"file_header": "Name", "db_field": "name"},
       {"file_header": "Phone", "db_field": "voice.to"}
     ],
-    "templates": {
-      "voice": {
-        "file": "voice/vec/announce.html"
-      }
+    "voice": {
+      "file": "voice/vec/announce.html"
     }
   }]
 }

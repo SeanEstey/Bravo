@@ -25,7 +25,7 @@ def login():
     username = request.form['username']
     password = request.form['password']
 
-    login_record = db['admin_logins'].find_one({'user': username})
+    login_record = db['users'].find_one({'user': username})
 
     if not login_record:
         r = json.dumps({
@@ -58,7 +58,7 @@ def login():
 
 #-------------------------------------------------------------------------------
 def load_user(username):
-    user_record = db['admin_logins'].find_one({'user':username})
+    user_record = db['users'].find_one({'user':username})
 
     if user_record:
         user = User(user_record['user'],user_record['password'])

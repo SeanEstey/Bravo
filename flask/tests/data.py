@@ -1,11 +1,12 @@
 import json
 from dateutil.parser import parse
 
-with open('templates/reminder_schemas.json') as json_file:
+with open('templates/schemas/vec.json') as json_file:
   schemas = json.load(json_file)
 
 job = {
-  'schema': schemas['etw'],
+  'agency': 'vec',
+  'schema': schemas['reminders'][0],
   'status': 'pending',
   'name': 'job_a',
   'voice': {
@@ -16,7 +17,7 @@ job = {
 
 reminder = {
     'name': 'Test Res',
-    'account_id': '57515',
+    'account_id': '269',
     'event_date': parse('December 31, 2014'),
     'voice': {
       'sid': 'ABC123ABC123ABC123ABC123ABC123AB',
@@ -29,7 +30,7 @@ reminder = {
       'recipient': 'estese@gmail.com'
     },
     'custom': {
-      'next_pickup': parse('June 21, 2016'),
+      'next_pickup': parse('Sept 11, 2016'),
       'type': 'pickup',
       'status': 'Active',
       'office_notes': '',

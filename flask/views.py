@@ -213,7 +213,7 @@ def call_xml():
 
         # Returned .html template file for rendering
 
-        reminder = db['reminders'].find_one({'sid': args.get('CallSid')})
+        reminder = db['reminders'].find_one({'voice.sid': request.form['CallSid']})
 
         html = render_template(
             r,
@@ -224,14 +224,14 @@ def call_xml():
         html = html.replace("  ", "")
         app.logger.debug('speak template: %s', html)
 
-        db['reminders'].update({'_id':r['reminder']},{'$set':{'voice.speak':html}})
+        db['reminders'].update({'_id':reminder['_id']},{'$set':{'voice.speak':html}})
 
         response = twilio.twiml.Response()
         response.say(html, voice='alice')
 
         return Response(str(response), mimetype='text/xml')
     except Exception as e:
-        app.logger.info('call.xml: %s', str(e))
+        app.logger.error('call.xml: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------

@@ -17,13 +17,16 @@ sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 from app import app
 from tasks import celery_app
 import reminders
+import views
 
 class TestReminders(unittest.TestCase):
     def setUp(self):
         app.testing = True
-        self.app = app.test_client()
+        self.client = app.test_client()
         celery_app.conf.CELERY_ALWAYS_EAGER = True
         self.db = mongo_client['test']
+        self.login('sestey@vecova.ca', 'vec')
+
 
     def tearDown(self):
         if hasattr(self, 'job_a'):
@@ -49,6 +52,13 @@ class TestReminders(unittest.TestCase):
     def update_db(self, collection, a_id, a_set):
         self.db[collection].update_one({'_id':a_id},{'$set':a_set})
 
+    def login(self, username, password):
+        return self.client.post('/login', data=dict(
+          username=username,
+          password=password
+        ), follow_redirects=True)
+
+    """
     def test_dial_a(self):
         call = reminders.dial('7808635715')
         self.assertEquals(call.status, 'queued')
@@ -187,6 +197,15 @@ class TestReminders(unittest.TestCase):
 
     def test_create_job(self):
         return True
+    """
+
+    def test_cancel_pickup(self):
+        with self.client:
+            self.login('sestey@vecova.ca', 'vec')
+            reminders.logger.info(self.client.__dict__)
+            self.insertJobsAndReminder()
+            reminders.cancel_pickup(str(self.reminder['_id']))
+
 
 if __name__ == '__main__':
     mongo_client = pymongo.MongoClient(app.config['MONGO_URL'], app.config['MONGO_PORT'])

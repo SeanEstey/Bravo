@@ -124,6 +124,11 @@ def get_nps(accounts):
             older_accounts.append(account)
 
     try:
+        agency = db['users'].find_one({'user':current_user.username})['agency']
+        settings = db['agencies'].find_one({'name':agency})
+        keys = {'user':settings['etapestry']['user'], 'pw':settings['etapestry']['pw'],
+                'agency':agency,'endpoint':app.config['ETAPESTRY_ENDPOINT']}
+
         gift_histories = etap.call('get_gift_histories',
           ETAP_WRAPPER_KEYS, {
           "account_refs": [i['ref'] for i in older_accounts],

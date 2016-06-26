@@ -18,6 +18,7 @@ from flask.ext.login import current_user
 from app import app, db, info_handler, error_handler, debug_handler, socketio
 from tasks import celery_app
 import utils
+import etap
 
 logger = logging.getLogger(__name__)
 logger.addHandler(debug_handler)
@@ -259,10 +260,12 @@ def send_emails(job_id):
             # Need this for email/send view
             data['from'] = {'reminder_id': str(reminder['_id'])}
 
+            data['cancel_pickup_url'] = app.config['PUB_URL'] + '/reminders/' + str(job['_id']) + '/' + str(reminder['_id']) + '/cancel_pickup'
+
             json_args = bson_to_json({
               "recipient": reminder['email']['recipient'],
-              "template": job['schema']['templates']['email']['reminder']['file'],
-              "subject": job['schema']['templates']['email']['reminder']['subject'],
+              "template": job['schema']['email']['reminder']['file'],
+              "subject": job['schema']['email']['reminder']['subject'],
               "data": data
             })
 
@@ -295,7 +298,7 @@ def get_jobs(args):
     If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
     '''
 
-    agency = db['admin_logins'].find_one({'user': current_user.username})['agency']
+    agency = db['users'].find_one({'user': current_user.username})['agency']
 
     jobs = db['jobs'].find({'agency':agency})
 
@@ -368,6 +371,7 @@ def reset_job(job_id):
       {'job_id': ObjectId(job_id)},
       {'$set': {
         'voice.status': 'pending',
+        'voice.sid': None,
         'voice.answered_by': None,
         'voice.ended_at': None,
         'voice.speak': None,
@@ -456,13 +460,15 @@ def get_voice_response(args):
 
 #-------------------------------------------------------------------------------
 def get_resp_xml_template(args):
-    '''Twilio TwiML Voice Request
-    User has made interaction with call
-    Returns either twilio.twiml.Response obj or .html template
+    '''Twilio TwiML Voice Request. User has made interaction with call.
+    @args: dict of flask request.form
+    Returns: either twilio.twiml.Response obj or .html template
     '''
 
-    msg = db['reminders'].find_one({'sid': args.get('CallSid')})
-    job = db['jobs'].find_one({'_id': msg['job_id']})
+    logger.info('get_resp_xml: CallSid %s', args['CallSid'])
+
+    reminder = db['reminders'].find_one({'voice.sid': args.get('CallSid')})
+    job = db['jobs'].find_one({'_id': reminder['job_id']})
 
     response = twilio.twiml.Response()
 
@@ -476,19 +482,18 @@ def get_resp_xml_template(args):
                 response.play(job['audio_url'])
                 return response
 
-            return job['schema']['templates']['voice']['reminder']['file']
+            return job['schema']['voice']['reminder']['file']
         except Exception as e:
             logger.error('Error generating xml response: %s', str(e))
             return False
     # Cancel Pickup special request...
     elif args.get('Digits') == '2':
-        if not cancel_pickup(str(msg['_id'])):
-            response.say("Thank you.", voice='alice')
-        else:
-            response.say(
-              'Thank you. Your next pickup will be on ' +\
-              msg['custom']['next_pickup'].strftime('%A, %B %d') + '. Goodbye',
-              voice='alice')
+        cancel_pickup.apply_async((str(reminder['_id']),), queue=app.config['DB'])
+
+        response.say(
+          'Thank you. Your next pickup will be on ' +\
+          reminder['custom']['next_pickup'].strftime('%A, %B %d') + '. Goodbye',
+          voice='alice')
 
         return response
 
@@ -500,6 +505,7 @@ def get_answer_xml_template(args):
     '''
 
     logger.info('%s %s (%s)', args['To'], args['CallStatus'], args.get('AnsweredBy'))
+    logger.info('get_answer_xml: CallSid %s', args['CallSid'])
 
     reminder = db['reminders'].find_one_and_update(
       {'voice.sid': args['CallSid']},
@@ -520,7 +526,7 @@ def get_answer_xml_template(args):
                 response.play(job['audio_url'])
                 return response
 
-            return job['schema']['templates']['voice']['reminder']['file']
+            return job['schema']['voice']['reminder']['file']
         except Exception as e:
             logger.error('reminders.get_answer_xml_template', exc_info=True)
             return False
@@ -683,9 +689,11 @@ def email_job_summary(job_id):
 def cancel_pickup(reminder_id):
     '''Update users eTapestry account with next pickup date and send user
     confirmation email
-    reminder_id: string ObjectId
+    @reminder_id: string form of ObjectId
     Returns: True if no errors, False otherwise
     '''
+    logger.info('Cancelling pickup for \'%s\'', reminder_id)
+
     reminder = db['reminders'].find_one({'_id':ObjectId(reminder_id)})
 
     # Outdated/in-progress or deleted job?
@@ -699,7 +707,7 @@ def cancel_pickup(reminder_id):
         return False
 
     # No next pickup date?
-    if msg['custom']['next_pickup'] is None:
+    if reminder['custom']['next_pickup'] is None:
         logger.error("Next Pickup for reminder_msg _id %s is missing.", str(reminder['_id']))
         return False
 
@@ -720,8 +728,16 @@ def cancel_pickup(reminder_id):
         #  'office_notes':no_pickup
         #  })
 
-        etap = db['admin_logins'].find_one({'user':current_user.username})
-        keys = {'user':etap['user'], 'pw': etap['pw'], 'agency':etap['agency'],'endpoint':ETAPESTRY_ENDPOINT}
+        #user = db['users'].find_one({'user':current_user.username})
+        #keys = {'user':user['etapestry']['user'], 'pw':user['etapestry']['pw'],
+        #        'agency':user['agency'],'endpoint':app.config['ETAPESTRY_ENDPOINT']}
+
+        agency = db['users'].find_one({'user':current_user.username})['agency']
+        settings = db['agencies'].find_one({'name':agency})
+        keys = {'user':settings['etapestry']['user'], 'pw':settings['etapestry']['pw'],
+                'agency':agency,'endpoint':app.config['ETAPESTRY_ENDPOINT']}
+
+        logger.info(keys)
 
         # Write to eTapestry
         etap.call('no_pickup', keys, {
@@ -734,8 +750,8 @@ def cancel_pickup(reminder_id):
         if 'next_pickup' in reminder['custom']:
           requests.post(app.config['PUB_URL'] + '/email/send', {
             "recipient": reminder['email']['recipient'],
-            "template": job['schema']['templates']['email']['no_pickup']['file'],
-            "subject": job['schema']['templates']['email']['no_pickup']['subject']
+            "template": job['schema']['email']['no_pickup']['file'],
+            "subject": job['schema']['email']['no_pickup']['subject']
         })
 
         logger.info('Emailed Next Pickup to %s', reminder['email']['recipient'])
@@ -930,7 +946,7 @@ def submit_job(form, file):
           'msg':'could not upload file'
         }
 
-    agency = db['admin_logins'].find_one({'user': current_user.username})['agency']
+    agency = db['users'].find_one({'user': current_user.username})['agency']
 
     # B. Get schema definitions from json file
     try:

@@ -54,15 +54,13 @@ $mongo
 ```
 
 ###### Get Google Service Account Credentials
-1. Open Google Developer Console
+1. For each agency, open Google Developer Console
 2. Find Service Account
 3. Generate JSON key
-4. Save to Bravo/flask as `oauth_credentials.json`
+4. Add contents to MongoDB "agencies" collection under "oauth" key
 
 ###### Create auth_keys.py in flask/ with following variables:
 ```
-ETW_RES_CALENDAR_ID = 
-GOOGLE_SERVICE_ACCOUNT = [Google Service Email Address]
 GOOGLE_API_KEY = ''
 MAILGUN_API_KEY = ''
 MAILGUN_DOMAIN = ''
@@ -73,15 +71,7 @@ TWILIO_AUTH_ID = ''
 TWILIO_TEST_ACCOUNT_SID = ''
 TWILIO_TEST_AUTH_ID = ''
 SECRET_KEY = ''
-LOGIN_USER = ''
-LOGIN_PW = ''
 ROUTIFIC_KEY = ''
-ETAP_WRAPPER_KEYS = {
-  'association_name': '',
-  'etap_endpoint': '',
-  'etap_user': '',
-  'etap_pass': ''
-}
 ```
 
 ### Google Sheets / Google Script Setup Instructions

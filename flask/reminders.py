@@ -1043,7 +1043,7 @@ def submit_job(form, file):
 
         # Special case
         if form['template_name'] == 'etw':
-            #scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=app.config['DB'])
+            scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=app.config['DB'])
 
             banner_msg = 'Job \'' + job_name + '\' successfully created! '\
                     + str(len(reminders)) + ' messages imported.'

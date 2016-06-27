@@ -23,8 +23,10 @@ logger.addHandler(error_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
-def get_cal_events(agency, cal_id, start, end):
-    oauth = db['agencies'].find_one({'name':agency})['oauth']
+def get_cal_events(cal_id, start, end, oauth):
+    '''Returns all Google Calendar events between given dates.
+    @oauth: dict oauth keys for google service account authentication
+    '''
 
     credentials = SignedJwtAssertionCredentials(
         oauth['client_email'],
@@ -47,13 +49,13 @@ def get_cal_events(agency, cal_id, start, end):
 
 
 #-------------------------------------------------------------------------------
-def get_blocks(agency, cal_id, start_date, end_date):
+def get_blocks(cal_id, start_date, end_date, oauth):
     '''Return list of Res Blocks between scheduled dates'''
 
     blocks = []
 
     try:
-        events = get_cal_events(agency, cal_id, start_date, end_date)
+        events = get_cal_events(cal_id, start_date, end_date, oauth)
     except Exception as e:
         logger.error('Could not access Res calendar: %s', str(e))
         return False
@@ -70,15 +72,15 @@ def get_blocks(agency, cal_id, start_date, end_date):
 
 
 #-------------------------------------------------------------------------------
-def get_accounts(agency, days_from_now=None):
-    '''Return list of eTapestry Accounts in schedule'''
+def get_accounts(etapestry_id, cal_id, oauth, days_from_now=None):
+    '''Return list of eTapestry Accounts from all scheduled routes in given
+    calendar on the date specified.
+    '''
 
     start_date = datetime.now() + timedelta(days=days_from_now)
     end_date = start_date + timedelta(hours=1)
 
-    cal_id = db['agencies'].find_one({'name':agency})['cal_ids']['res']
-
-    blocks = get_blocks(agency, cal_id, start_date, end_date)
+    blocks = get_blocks(cal_id, start_date, end_date, oauth)
 
     if len(blocks) < 1:
         logger.info('No Blocks found on given date')
@@ -86,15 +88,16 @@ def get_accounts(agency, days_from_now=None):
 
     accounts = []
 
-    etap = db['agencies'].find_one({'name':agency})['etapestry']
-    keys = {'user':etap['user'], 'pw':etap['pw'],
-            'agency':agency,'endpoint':app.config['ETAPESTRY_ENDPOINT']}
-
     for block in blocks:
         try:
-            a = etap.call('get_query_accounts',
-                keys,
-                { 'query':block, 'query_category':'ETW: Routes'}
+            a = etap.call(
+                'get_query_accounts', {
+                  'user':etapestry_id['user'],
+                  'pw':etapestry_id['pw'],
+                  'agency':etapestry_id['agency'],
+                  'endpoint':app.config['ETAPESTRY_ENDPOINT']
+                },
+                {'query':block, 'query_category':etapestry_id['query_category']}
             )
         except Exception as e:
             logger.error('Error retrieving accounts for query %s', block)
@@ -164,8 +167,13 @@ def analyze_non_participants():
     logger.info('Analyzing non-participants in 4 days...')
 
     agency = 'wsf' # for now
+    agency = db['agencies'].find_one({'name':agency})
 
-    accounts = get_accounts(agency, days_from_now=4)
+    accounts = get_accounts(
+        agency['etapestry'],
+        agency['cal_ids']['res'],
+        agency['oauth'],
+        days_from_now=4)
 
     if len(accounts) < 1:
         return False
@@ -191,19 +199,28 @@ def analyze_non_participants():
 #-------------------------------------------------------------------------------
 @celery_app.task
 def get_next_pickups(job_id):
+    '''Update all reminders for given job with their future pickup dates to
+    relay to opt-outs
+    @job_id: str of ObjectID
+    '''
+
+    logger.info('Getting next pickups for Job ID \'%s\'', job_id)
+
     try:
-        job_id = ObjectId(job_id)
-        messages = db['msgs'].find({'job_id':job_id}, {'imported.block':1})
+        reminders = db['reminders'].find({'job_id':ObjectId(job_id)}, {'imported.block':1})
         blocks = []
 
-        for msg in messages:
-            if msg['imported']['block'] not in blocks:
-                blocks.append(msg['imported']['block'])
+        for reminder in reminders:
+            if reminder['imported']['block'] not in blocks:
+                blocks.append(reminder['imported']['block'])
 
         start = datetime.now() + timedelta(days=30)
         end = start_search + timedelta(days=70)
 
-        events = get_cal_events(ETW_RES_CALENDAR_ID, start, end)
+        job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+        agency = db['agencies'].find_one({'name':job['agency']})
+
+        events = get_cal_events(agency['cal_ids']['res'], start, end, agency['oauth'])
 
         logger.info('%i calendar events pulled', len(events['items']))
 
@@ -229,9 +246,9 @@ def get_next_pickups(job_id):
         for block, date in pickup_dates.iteritems():
           logger.debug('Updating all %s with Next Pickup: %s', block, date)
 
-          db['msgs'].update(
-            {'job_id':job_id, 'imported.block':block},
-            {'$set':{'next_pickup':date}},
+          db['reminders'].update(
+            {'job_id':ObjectId(job_id), 'custom.block':block},
+            {'$set':{'custom.next_pickup':date}},
             multi=True
           )
 

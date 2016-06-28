@@ -174,6 +174,8 @@ def send_calls(job_id):
 
     # Default call order is alphabetically by name
     reminders = db['reminders'].find({'job_id': ObjectId(job_id)}).sort('name',1)
+    agency = db['jobs'].find_one({'_id':ObjectId(job_id)})['agency']
+    twilio = db['agencies'].find_one({'name':agency})['twilio']
 
     calls_fired = 0
 
@@ -190,7 +192,7 @@ def send_calls(job_id):
         if reminder['voice']['attempts'] >= app.config['MAX_CALL_ATTEMPTS']:
             continue
 
-        call = dial(reminder['voice']['to'])
+        call = dial(reminder['voice']['to'], twilio['ph'], twilio['keys']['main'])
 
         if isinstance(call, Exception):
             logger.info('%s failed (%d: %s)',
@@ -263,6 +265,7 @@ def send_emails(job_id):
             data['cancel_pickup_url'] = app.config['PUB_URL'] + '/reminders/' + str(job['_id']) + '/' + str(reminder['_id']) + '/cancel_pickup'
 
             json_args = bson_to_json({
+              "agency": job['agency'],
               "recipient": reminder['email']['recipient'],
               "template": job['schema']['email']['reminder']['file'],
               "subject": job['schema']['email']['reminder']['subject'],
@@ -270,6 +273,7 @@ def send_emails(job_id):
             })
 
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+
             r = requests.post(app.config['LOCAL_URL'] + '/email/send', headers=headers, data=json_args)
 
             db['reminders'].update_one(
@@ -412,17 +416,17 @@ def edit_msg(job_id, msg_id, fields):
         )
 
 #-------------------------------------------------------------------------------
-def dial(to):
+def dial(to, from_, twilio_keys):
     '''Returns twilio call object'''
 
     try:
         twilio_client = twilio.rest.TwilioRestClient(
-          app.config['TWILIO_ACCOUNT_SID'],
-          app.config['TWILIO_AUTH_ID']
+          twilio_keys['sid'],
+          twilio_keys['auth_id']
         )
 
         call = twilio_client.calls.create(
-          from_ = app.config['FROM_NUMBER'],
+          from_ = from_,
           to = '+1'+to,
           url = app.config['PUB_URL'] + '/reminders/call.xml',
           status_callback = app.config['PUB_URL'] + '/reminders/call_event',

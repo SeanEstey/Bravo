@@ -24,11 +24,12 @@ logger.addHandler(error_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
-def send(account, entry, template, subject):
+def send(agency, account, entry, template, subject):
     logger.debug('%s %s', str(account['id']), template)
 
     try:
         r = requests.post(LOCAL_URL + '/email/send', json={
+            "agency": agency,
             "recipient": account['email'],
             "template": template,
             "subject": subject,
@@ -99,7 +100,7 @@ def process(entries, keys):
 
             # Cancelled Receipt
             if etap.get_udf('Status', accounts[i]) == 'Cancelled':
-                send(accounts[i], entries[i], "email/cancelled.html",
+                send(keys['agency'], accounts[i], entries[i], "email/cancelled.html",
                         CANCELLED_EMAIL_SUBJECT)
 
                 num_cancels += 1
@@ -114,7 +115,7 @@ def process(entries, keys):
                 collection_date = parse(entries[i]['date']).date()
 
                 if drop_date == collection_date:
-                    send(accounts[i], entries[i], "email/dropoff_followup.html",
+                    send(keys['agency'], accounts[i], entries[i], "email/dropoff_followup.html",
                             DROPOFF_FOLLOWUP_EMAIL_SUBJECT)
 
                     num_drop_followups += 1
@@ -127,13 +128,15 @@ def process(entries, keys):
                     entries[i]['next_pickup'] = npu.strftime('%B %-d, %Y')
 
                 if accounts[i]['nameFormat'] == 3: # Business
-                    send(accounts[i],
+                    send(keys['agency'],
+                         accounts[i],
                          entries[i],
                          "email/zero_collection_receipt.html",
                          ZERO_COLLECTION_EMAIL_SUBJECT
                     )
                 else: # Residential
-                    send(accounts[i],
+                    send(keys['agency'],
+                         accounts[i],
                          entries[i],
                          "email/no_collection_receipt.html",
                          ZERO_COLLECTION_EMAIL_SUBJECT
@@ -178,7 +181,7 @@ def process(entries, keys):
                     npu = parse(entry['next_pickup']).date()
                     entry['next_pickup'] = npu.strftime('%B %-d, %Y')
 
-                send(gift_accounts[i]['account'], gift_accounts[i]['entry'],
+                send(keys['agency'], gift_accounts[i]['account'], gift_accounts[i]['entry'],
                 "email/collection_receipt.html", GIFT_RECEIPT_EMAIL_SUBJECT)
             except Exception as e:
                 logger.error('Error processing gift receipt on row #%s: %s',

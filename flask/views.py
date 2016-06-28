@@ -282,12 +282,11 @@ def process_receipts():
 def send_email():
     '''Can be collection receipt from gsheets.process_receipts, reminder email,
     or welcome letter from Google Sheets.
-    Required fields: 'recipient', 'template', 'subject', and 'data'
+    Required fields: 'agency', 'recipient', 'template', 'subject', and 'data'
     Required fields for updating Google Sheets:
     'data': {'from':{ 'worksheet','row','upload_status'}}
     Returns mailgun_id of email
     '''
-
     args = request.get_json(force=True)
 
     for key in ['template', 'subject', 'recipient']:
@@ -303,12 +302,14 @@ def send_email():
         app.logger.error('%s: %s', msg, str(e))
         return Response(response=e, status=500, mimetype='application/json')
 
+    mailgun = db['agencies'].find_one({'name':args['agency']})['mailgun']
+
     try:
         r = requests.post(
-          'https://api.mailgun.net/v3/' + app.config['MAILGUN_DOMAIN'] + '/messages',
-          auth=('api', app.config['MAILGUN_API_KEY']),
+          'https://api.mailgun.net/v3/' + mailgun['domain'] + '/messages',
+          auth=('api', mailgun['api_key']),
           data={
-            'from': app.config['FROM_EMAIL'],
+            'from': mailgun['from'],
             'to': args['recipient'],
             'subject': args['subject'],
             'html': html

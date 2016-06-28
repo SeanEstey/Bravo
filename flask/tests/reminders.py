@@ -27,7 +27,6 @@ class TestReminders(unittest.TestCase):
         self.db = mongo_client['test']
         self.login('sestey@vecova.ca', 'vec')
 
-
     def tearDown(self):
         if hasattr(self, 'job_a'):
             self.db['jobs'].remove({'_id':self.job_a['_id']})

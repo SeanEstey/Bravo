@@ -16,12 +16,13 @@ logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 # scope is array of Google service URL's to authorize
-def auth(scope):
+def auth(oauth, scope):
     try:
-      json_key = json.load(open('oauth_credentials.json'))
+      #json_key = json.load(open('oauth_credentials.json'))
+
       credentials = SignedJwtAssertionCredentials(
-        json_key['client_email'],
-        json_key['private_key'],
+        oauth['client_email'],
+        oauth['private_key'],
         scope
       )
 
@@ -32,13 +33,14 @@ def auth(scope):
         return False
 
 #-------------------------------------------------------------------------------
-def update_entry(status, destination):
+def update_entry(agency, status, destination):
     '''Updates the 'Email Status' column in a worksheet
     destination: dict containing 'sheet', 'worksheet', 'row', 'upload_status'
     '''
 
     try:
-        gc = auth(['https://spreadsheets.google.com/feeds'])
+        oauth = db['agencies'].find_one({'name':agency})['oauth']
+        gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
         sheet = gc.open(app.config['GSHEET_NAME'])
         wks = sheet.worksheet(destination['worksheet'])
     except Exception as e:
@@ -101,9 +103,10 @@ def update_entry(status, destination):
 
 #-------------------------------------------------------------------------------
 @celery_app.task
-def create_rfu(request_note, account_number=None, next_pickup=None, block=None, date=None):
+def create_rfu(agency, request_note, account_number=None, next_pickup=None, block=None, date=None):
     try:
-        gc = auth(['https://spreadsheets.google.com/feeds'])
+        oauth = db['agencies'].find_one({'name':agency})['oauth']
+        gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
         sheet = gc.open(app.config['GSHEET_NAME'])
         wks = sheet.worksheet('RFU')
     except Exception as e:
@@ -141,6 +144,9 @@ def create_rfu(request_note, account_number=None, next_pickup=None, block=None, 
 #-------------------------------------------------------------------------------
 @celery_app.task
 def add_signup(signup):
+    '''Called by emptiestowinn.com signup form only for now
+    '''
+
     try:
       gc = auth(['https://spreadsheets.google.com/feeds'])
       wks = gc.open(app.config['GSHEET_NAME']).worksheet('Signups')

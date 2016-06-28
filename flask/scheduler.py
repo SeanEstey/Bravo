@@ -24,20 +24,24 @@ logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 def get_cal_events(cal_id, start, end, oauth):
-    '''Returns all Google Calendar events between given dates.
+    '''Get a list of Google Calendar events between given dates.
     @oauth: dict oauth keys for google service account authentication
+    Returns: list on success, False on error
     '''
 
-    credentials = SignedJwtAssertionCredentials(
-        oauth['client_email'],
-        oauth['private_key'],
-        ['https://www.googleapis.com/auth/calendar.readonly']
-    )
+    try:
+        credentials = SignedJwtAssertionCredentials(
+            oauth['client_email'],
+            oauth['private_key'],
+            ['https://www.googleapis.com/auth/calendar.readonly']
+        )
 
-    http = httplib2.Http()
-    http = credentials.authorize(http)
-
-    service = build('calendar', 'v3', http=http)
+        http = httplib2.Http()
+        http = credentials.authorize(http)
+        service = build('calendar', 'v3', http=http)
+    except Exception as e:
+        logger.error('Error authorizing Google Calendar ID \'%s\'\n%s', cal_id,str(e))
+        return False
 
     return service.events().list(
         calendarId = cal_id,
@@ -61,6 +65,7 @@ def get_blocks(cal_id, start_date, end_date, oauth):
         return False
 
     for item in events['items']:
+        # TODO: Only matches Residential blocks on 10 week cycle
         res_block = re.match(r'^R([1-9]|10)[a-zA-Z]{1}', item['summary'])
 
         if res_block:
@@ -69,7 +74,6 @@ def get_blocks(cal_id, start_date, end_date, oauth):
     logger.info('%d blocks found: %s', len(blocks), blocks)
 
     return blocks
-
 
 #-------------------------------------------------------------------------------
 def get_accounts(etapestry_id, cal_id, oauth, days_from_now=None):
@@ -189,6 +193,7 @@ def analyze_non_participants():
         # Update Driver/Office Notes
 
         gsheets.create_rfu(
+          agency,
           'Non-participant',
           account_number = np['id'],
           next_pickup = next_pickup,
@@ -206,20 +211,20 @@ def get_next_pickups(job_id):
 
     logger.info('Getting next pickups for Job ID \'%s\'', job_id)
 
+    reminders = db['reminders'].find({'job_id':ObjectId(job_id)}, {'custom.block':1})
+    blocks = []
+
+    for reminder in reminders:
+        if reminder['custom']['block'] not in blocks:
+            blocks.append(reminder['custom']['block'])
+
+    start = datetime.now() + timedelta(days=30)
+    end = start_search + timedelta(days=70)
+
+    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+    agency = db['agencies'].find_one({'name':job['agency']})
+
     try:
-        reminders = db['reminders'].find({'job_id':ObjectId(job_id)}, {'imported.block':1})
-        blocks = []
-
-        for reminder in reminders:
-            if reminder['imported']['block'] not in blocks:
-                blocks.append(reminder['imported']['block'])
-
-        start = datetime.now() + timedelta(days=30)
-        end = start_search + timedelta(days=70)
-
-        job = db['jobs'].find_one({'_id':ObjectId(job_id)})
-        agency = db['agencies'].find_one({'name':job['agency']})
-
         events = get_cal_events(agency['cal_ids']['res'], start, end, agency['oauth'])
 
         logger.info('%i calendar events pulled', len(events['items']))

@@ -1,36 +1,36 @@
 {
   "signups": {
     "welcome": {
-      "file": "email/vec/welcome.html",
-      "subject": "Welcome to Vecova Bottle Service"
+      "file": "email/wsf/welcome.html",
+      "subject": "Welcome to Empties to Winn"
     }
   },
   "receipts": {
     "cancelled": {
-      "file": "email/vec/cancelled.html",
+      "file": "email/wsf/cancelled.html",
       "subject": "You have been removed from the collection schedule"
     },
     "dropoff_followup": {
-      "file": "email/vec/dropoff_followup.html",
+      "file": "email/wsf/dropoff_followup.html",
       "subject": "Your Dropoff is complete"
     },
     "collection": {
-      "file": "email/vec/collection_receipt.html",
+      "file": "email/wsf/collection_receipt.html",
       "subject": "Thank you for your donation!"
     },
     "zero_collection": {
-      "file": "email/vec/zero_collection.html",
+      "file": "email/wsf/zero_collection.html",
       "subject": "We'll see you next time"
     },
     "no_collection": {
-      "file": "email/vec/no_collection.html",
+      "file": "email/wsf/no_collection.html",
       "subject": "We didn't receive a collection from you"
     }
   },
   "reminders": [{
     "name": "pickup_reminder",
     "type": "reminder",
-    "description": "Vecova Bottle Service Reminder (Email/Voice)",
+    "description": "Empties to Winn Reminder (Email/Voice)",
     "import_fields": [
       {"file_header": "Account", "db_field": "account_id", "type":"string", "hide": true},
       {"file_header": "Name", "db_field": "name", "type":"string"},
@@ -43,17 +43,17 @@
     ],
     "email": {
       "reminder": {
-        "file": "email/vec/reminder.html",
-        "subject": "Your upcoming Vecova Bottle Service pickup"
+        "file": "email/wsf/reminder.html",
+        "subject": "Your upcoming Empties to Winn pickup"
       },
       "no_pickup": {
-        "file": "email/vec/no_pickup.html",
+        "file": "email/wsf/no_pickup.html",
         "subject": "Thank you. You have been removed from this pickup schedule"
       }
     },
     "voice": {
       "reminder": {
-        "file": "voice/vec/reminder.html"
+        "file": "voice/wsf/reminder.html"
       }
     }
   }, {
@@ -65,7 +65,7 @@
       {"file_header": "Phone","db_field": "voice.to"}
     ],
     "voice": {
-      "file": "voice/vec/announce.html"
+      "file": "voice/wsf/announce.html"
     }
   }, {
     "name": "voice_announcement",
@@ -76,7 +76,7 @@
       {"file_header": "Phone", "db_field": "voice.to"}
     ],
     "voice": {
-      "file": "voice/vec/announce.html"
+      "file": "voice/wsf/announce.html"
     }
   }]
 }

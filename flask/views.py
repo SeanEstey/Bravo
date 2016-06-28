@@ -324,6 +324,7 @@ def send_email():
         return Response(response=e, status=500, mimetype='application/json')
 
     db['emails'].insert({
+        'agency': args['agency'],
         'mid': json.loads(r.text)['id'],
         'status': 'queued',
         'on_status_update': args['data']['from']
@@ -380,34 +381,36 @@ def email_status():
     )
 
     event = request.form['event']
-    if event == 'dropped':
-        gsheets.create_rfu.apply_async(
-            args=(request.form['recipient'] + ' ' + event, ),
-            queue=app.config['DB'])
 
-    db_doc = db['emails'].find_one_and_update(
+    email = db['emails'].find_one_and_update(
       {'mid': request.form['Message-Id']},
       {'$set': { 'status': request.form['event']}}
     )
 
-    if db_doc is None or 'on_status_update' not in db_doc:
+    if email is None or 'on_status_update' not in email:
         return 'No record to update'
 
-    if 'worksheet' in db_doc['on_status_update']:
+    if event == 'dropped':
+        gsheets.create_rfu.apply_async(
+            args=(email['agency'], request.form['recipient'] + ' ' + event, ),
+            queue=app.config['DB'])
+
+    if 'worksheet' in email['on_status_update']:
         # Update Google Sheets
         try:
             gsheets.update_entry(
+              email['agency'],
               request.form['event'],
-              db_doc['on_status_update']
+              email['on_status_update']
             )
         except Exception as e:
             app.logger.error("Error writing to Google Sheets: " + str(e))
             return 'Failed'
 
-    elif 'reminder_id' in db_doc['on_status_update']:
+    elif 'reminder_id' in email['on_status_update']:
         # Update Reminder record
         db['reminders'].update_one(
-          {'_id': ObjectId(db_doc['on_status_update']['reminder_id'])},
+          {'_id': ObjectId(email['on_status_update']['reminder_id'])},
           {'$set':{
             "email.status": request.form['event'],
             "email.code": request.form.get('code'),
@@ -435,9 +438,9 @@ def nis():
 
     try:
         gsheets.create_rfu(
-          record['imported']['to'] + ' not in service',
-          account_number=record['imported']['account'],
-          block=record['imported']['block']
+          record['custom']['to'] + ' not in service',
+          account_number=record['account_id'],
+          block=record['custom']['block']
         )
     except Exception, e:
         app.logger.info('%s /call/nis' % request.values.items(), exc_info=True)

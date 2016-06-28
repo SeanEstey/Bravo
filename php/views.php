@@ -27,7 +27,7 @@
 
 	try {
 		$m = new MongoDB\Driver\Manager('mongodb://localhost:27017');
-		$db = new MongoDB\Collection($m, "$agency.entries");
+		$db = new MongoDB\Collection($m, "bravo.entries");
 	}
 	catch (Exception $e) {
 		error_log(
@@ -50,7 +50,7 @@
 
   if(checkForError($nsc)) {
 		error_log(
-      $ageny . " " .
+      $agency . " " .
 			"eTapestry login error for user '" . $etapestry['user'] . 
 			"'. Message: '" . $nsc->faultstring . "'");
     echo $nsc->faultcode . ': ' . $nsc->faultstring;

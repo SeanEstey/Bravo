@@ -12,12 +12,6 @@ from app import db, info_handler, error_handler
 from tasks import celery_app
 from config import *
 
-ZERO_COLLECTION_EMAIL_SUBJECT = "We didn't receive a collection from you"
-DROPOFF_FOLLOWUP_EMAIL_SUBJECT = 'Your Dropoff is Complete'
-GIFT_RECEIPT_EMAIL_SUBJECT = 'Thanks for your donation!'
-WELCOME_EMAIL_SUBJECT = 'Welcome to Empties to Winn'
-CANCELLED_EMAIL_SUBJECT = 'You have been removed from the collection schedule'
-
 logger = logging.getLogger(__name__)
 logger.addHandler(info_handler)
 logger.addHandler(error_handler)
@@ -78,6 +72,9 @@ def process(entries, etapestry_id):
     num_no_emails = 0
     gift_accounts = []
 
+    with open('templates/schemas/'+etapestry_id['agency']+'.json') as json_file:
+      schemas = json.load(json_file)['receipts']
+
     for i in range(0, len(accounts)):
         try:
             if not accounts[i]['email']:
@@ -104,8 +101,9 @@ def process(entries, etapestry_id):
 
             # Cancelled Receipt
             if etap.get_udf('Status', accounts[i]) == 'Cancelled':
-                send(etapestry_id['agency'], accounts[i], entries[i], "email/cancelled.html",
-                        CANCELLED_EMAIL_SUBJECT)
+                send(etapestry_id['agency'], accounts[i], entries[i],
+                schemas['cancelled']['file'],
+                schemas['cancelled']['subject'])
 
                 num_cancels += 1
                 continue
@@ -119,8 +117,11 @@ def process(entries, etapestry_id):
                 collection_date = parse(entries[i]['date']).date()
 
                 if drop_date == collection_date:
-                    send(etapestry_id['agency'], accounts[i], entries[i], "email/dropoff_followup.html",
-                            DROPOFF_FOLLOWUP_EMAIL_SUBJECT)
+                    send(etapestry_id['agency'],
+                        accounts[i],
+                        entries[i],
+                        schemas['dropoff_followup']['file'],
+                        schemas['dropoff_followup']['subject'])
 
                     num_drop_followups += 1
                     continue
@@ -135,15 +136,15 @@ def process(entries, etapestry_id):
                     send(etapestry_id['agency'],
                          accounts[i],
                          entries[i],
-                         "email/zero_collection_receipt.html",
-                         ZERO_COLLECTION_EMAIL_SUBJECT
+                         schemas['zero_collection']['file'],
+                         schemas['zero_collection']['subject'])
                     )
                 else: # Residential
                     send(etapestry_id['agency'],
                          accounts[i],
                          entries[i],
-                         "email/no_collection_receipt.html",
-                         ZERO_COLLECTION_EMAIL_SUBJECT
+                         schemas['no_collection']['file'],
+                         schemas['no_collection'['subject'])
                     )
 
                 num_zeros +=1
@@ -161,11 +162,14 @@ def process(entries, etapestry_id):
         try:
             year = parse(gift_accounts[0]['entry']['date']).year
 
-            gift_histories = etap.call('get_gift_histories', etapestry_id, {
-              "account_refs": [i['account']['ref'] for i in gift_accounts],
-              "start_date": "01/01/" + str(year),
-              "end_date": "31/12/" + str(year)
-            })
+            gift_histories = etap.call(
+              'get_gift_histories',
+              etapestry_id, {
+                "account_refs": [i['account']['ref'] for i in gift_accounts],
+                "start_date": "01/01/" + str(year),
+                "end_date": "31/12/" + str(year)
+              }
+            )
 
             #logger.info('%s gift histories retrieved', str(len(gift_histories)))
 
@@ -185,8 +189,12 @@ def process(entries, etapestry_id):
                     npu = parse(entry['next_pickup']).date()
                     entry['next_pickup'] = npu.strftime('%B %-d, %Y')
 
-                send(etapestry_id['agency'], gift_accounts[i]['account'], gift_accounts[i]['entry'],
-                "email/collection_receipt.html", GIFT_RECEIPT_EMAIL_SUBJECT)
+                send(
+                  etapestry_id['agency'],
+                  gift_accounts[i]['account'],
+                  gift_accounts[i]['entry'],
+                  schemas['collection']['file'],
+                  schemas['collection']['subject'])
             except Exception as e:
                 logger.error('Error processing gift receipt on row #%s: %s',
                             str(entry['row']), str(e)

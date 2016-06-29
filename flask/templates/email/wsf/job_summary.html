@@ -1,0 +1,64 @@
+  {% extends "email/wsf/base.html" %}
+  {% block content %}  
+    <tr>
+      <td>
+      </td>
+    </tr>
+    <tr>
+      <td>
+      </td>
+    </tr>
+    <tr>
+      <td>
+      </td>
+    </tr>
+    <tr>
+      <td>
+      </td>
+    </tr>
+    <tr>
+      <td>
+      </td>
+    </tr>
+
+  {% endblock %}
+
+
+
+
+
+        if fails:
+          td = '<td style="padding:5px; border:1px solid black">'
+          th = '<th style="padding:5px; border:1px solid black">'
+
+          fails_table = '<table style="padding:5px; border-collapse:collapse; border:1px solid black"><tr>'
+          # Column Headers
+          for field in fails[0]['imported'].keys():
+            fails_table += th + field.replace('_', ' ').title() + '</th>'
+          fails_table += th + 'Email Error</th>' + th + 'Call Error</th>' + th + 'Code</th>'
+          fails_table += '</tr>'
+
+          # Column Data
+          for row in fails:
+            fails_table += '<tr>'
+            for key, val in row['imported'].iteritems():
+              fails_table += td + str(val) + '</td>'
+            if 'email_error' in row:
+              if row['email_error'].find('550') > -1:
+                row['error_code'] = 550
+                row['email_error'] = 'Address does not exist'
+              fails_table += td + row['email_error']  + '</td>'
+            else:
+              fails_table += td + '</td>'
+            if 'call_error' in row:
+              fails_table += td + row['call_error'].replace('_', ' ').title()  + '</td>'
+            else:
+              fails_table += td + '</td>'
+            if 'error_code' in row:
+              fails_table += td + str(row['error_code']) + '</td>'
+            else:
+              fails_table += td + '</td>'
+            fails_table += '</tr>'
+          fails_table += '</table>'
+
+          msg += '<br><br>' + fails_table

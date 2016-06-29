@@ -138,14 +138,12 @@ def process(entries, etapestry_id):
                          entries[i],
                          schemas['zero_collection']['file'],
                          schemas['zero_collection']['subject'])
-                    )
                 else: # Residential
                     send(etapestry_id['agency'],
                          accounts[i],
                          entries[i],
                          schemas['no_collection']['file'],
-                         schemas['no_collection'['subject'])
-                    )
+                         schemas['no_collection']['subject'])
 
                 num_zeros +=1
 

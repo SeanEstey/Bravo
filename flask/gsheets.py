@@ -148,7 +148,8 @@ def add_signup(signup):
     '''
 
     try:
-      gc = auth(['https://spreadsheets.google.com/feeds'])
+      oauth = db['agencies'].find_one({'name':'wsf'})['oauth']
+      gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
       wks = gc.open(app.config['GSHEET_NAME']).worksheet('Signups')
 
       form_data = {

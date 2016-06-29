@@ -338,14 +338,28 @@ def send_email():
 @app.route('/email/unsubscribe', methods=['GET'])
 def email_unsubscribe():
     if request.args.get('email'):
-        msg = 'Contributor ' + request.args['email'] + ' has requested to \
-              unsubscribe from ETW emails. Please contact to see if they want \
+        msg = 'Contributor ' + request.args.get('email') + ' has requested to \
+              unsubscribe from emails. Please contact to see if they want \
               to cancel the entire service.'
 
-        send_mailgun_email(['emptiestowinn@wsaf.ca'], 'Unsubscribe request', msg)
+        mailgun = db['agencies'].find_one({})['mailgun']
+
+        try:
+            r = requests.post(
+              'https://api.mailgun.net/v3/' + 'bravoweb.ca' + '/messages',
+              auth=('api', mailgun['api_key']),
+              data={
+                'from': mailgun['from'],
+                'to': ['sestey@vecova.ca', 'emptiestowinn@wsaf.ca'],
+                'subject': 'Unsubscribe Request',
+                'html': msg
+            })
+        except requests.exceptions.RequestException as e:
+            app.logger.error(str(e))
+            return Response(response=e, status=500, mimetype='application/json')
 
         return 'We have received your request to unsubscribe ' \
-                + request.args['email'] + ' from Empties to Winn. If you wish \
+                + request.args.get('email') + ' If you wish \
                 to cancel the service, please allow us to contact you once \
                 more to arrange for retrieval of the Bag Buddy or other \
                 collection materials provided to you. As a non-profit, \
@@ -450,7 +464,7 @@ def nis():
 @app.route('/receive_signup', methods=['POST'])
 def rec_signup():
     '''Forwarded signup submision from emptiestowinn.com
-    Adds signup data to Route Importer->Signups gsheet row
+    Adds signup data to Bravo Sheets->Signups gsheet row
     '''
 
     app.logger.info('New signup received: %s %s',

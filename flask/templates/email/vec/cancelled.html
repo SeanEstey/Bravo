@@ -1,0 +1,21 @@
+{% extends "email/vec/base.html" %}
+  {% block content %}  
+    <tr>
+      <td>
+        Hi {{ data['account']['name'] }},
+      </td>
+    </tr>
+    <tr>
+      <td>
+        This is a confirmation that your address 
+        <b>{{ data['account']['address'] }}</b>, 
+        <b>{{ data['account']['postal'] }}</b> 
+        has been removed from the pickup schedule.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Thank you for your support.
+      </td>
+    </tr>
+  {% endblock %}

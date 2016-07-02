@@ -19,6 +19,7 @@ from app import app, db, info_handler, error_handler, debug_handler, socketio
 from tasks import celery_app
 import utils
 import etap
+from scheduler import get_next_pickups
 
 logger = logging.getLogger(__name__)
 logger.addHandler(debug_handler)
@@ -384,6 +385,7 @@ def reset_job(job_id):
         'voice.duration': None,
         'voice.error': None,
         'email.status': 'pending',
+        'custom.no_pickup': None
     }})
 
     logger.info('%s reminders reset', n)
@@ -397,7 +399,10 @@ def reset_job(job_id):
     logger.info('%s jobs reset', n)
 
 #-------------------------------------------------------------------------------
-def edit_msg(job_id, msg_id, fields):
+def edit_msg(reminder_id, fields):
+    '''User editing a reminder value from GUI
+    '''
+
     for fieldname, value in fields:
         if fieldname == 'event_date':
           try:
@@ -408,11 +413,11 @@ def edit_msg(job_id, msg_id, fields):
 
         logger.info('Editing ' + fieldname + ' to value: ' + str(value))
 
-        field = 'imported.'+fieldname
+        #field = 'custom.'+fieldname
 
         db['reminders'].update(
-            {'_id':ObjectId(sid)},
-            {'$set':{field: value}}
+            {'_id':ObjectId(reminder_id)},
+            {'$set':{fieldname: value}}
         )
 
 #-------------------------------------------------------------------------------
@@ -707,8 +712,9 @@ def cancel_pickup(reminder_id):
 
     # Already cancelled?
     if 'no_pickup' in reminder['custom']:
-        logger.info('No pickup already processed for account %s', reminder['account_id'])
-        return False
+        if reminder['custom']['no_pickup'] == True:
+            logger.info('No pickup already processed for account %s', reminder['account_id'])
+            return False
 
     # No next pickup date?
     if 'next_pickup' not in reminder['custom']:
@@ -717,47 +723,65 @@ def cancel_pickup(reminder_id):
 
     job = db['jobs'].find_one({'_id':reminder['job_id']})
 
+    no_pickup = 'No Pickup ' + reminder['event_date'].strftime('%A, %B %d')
+
+    db['reminders'].update(
+      {'_id':reminder['_id']},
+      {'$set': {
+        "custom.office_notes": no_pickup,
+        "custom.no_pickup": True
+      }}
+    )
+    # send_socket('update_msg', {
+    #  'id': str(msg['_id']),
+    #  'office_notes':no_pickup
+    #  })
+
+    job = db['jobs'].find_one({'_id':reminder['job_id']})
+    settings = db['agencies'].find_one({'name':job['agency']})
+    keys = {'user':settings['etapestry']['user'], 'pw':settings['etapestry']['pw'],
+            'agency':job['agency'],'endpoint':app.config['ETAPESTRY_ENDPOINT']}
+
+    logger.info(keys)
+
+    logger.info('writing to etap')
+
     try:
-        no_pickup = 'No Pickup ' + reminder['event_date'].strftime('%A, %B %d')
-
-        db['reminders'].update(
-          {'_id':reminder['_id']},
-          {'$set': {
-            "custom.office_notes": no_pickup,
-            "custom.no_pickup": True
-          }}
-        )
-        # send_socket('update_msg', {
-        #  'id': str(msg['_id']),
-        #  'office_notes':no_pickup
-        #  })
-
-        job = db['jobs'].find_one({'_id':reminder['job_id']})
-        settings = db['agencies'].find_one({'name':job['agency']})
-        keys = {'user':settings['etapestry']['user'], 'pw':settings['etapestry']['pw'],
-                'agency':agency,'endpoint':app.config['ETAPESTRY_ENDPOINT']}
-
-        logger.info(keys)
-
         # Write to eTapestry
         etap.call('no_pickup', keys, {
           "account": reminder['account_id'],
           "date": reminder['custom']['next_pickup'].strftime('%d/%m/%Y'),
           "next_pickup": reminder['custom']['next_pickup'].strftime('%d/%m/%Y')
         })
-
-        # Send email w/ next pickup
-        if 'next_pickup' in reminder['custom']:
-          requests.post(app.config['PUB_URL'] + '/email/send', {
-            "recipient": reminder['email']['recipient'],
-            "template": job['schema']['email']['no_pickup']['file'],
-            "subject": job['schema']['email']['no_pickup']['subject']
-        })
-
-        logger.info('Emailed Next Pickup to %s', reminder['email']['recipient'])
     except Exception as e:
-        logger.error('/cancel_pickup: %s', str(e))
-        return False
+        logger.error("Error writing to eTap: %s", str(e))
+
+    # Send email w/ next pickup
+    if 'next_pickup' in reminder['custom']:
+        next_pickup = reminder['custom']['next_pickup'].strftime('%A, %B %d')
+        data = {
+          "agency": job['agency'],
+          "recipient": reminder['email']['recipient'],
+          "template": job['schema']['email']['no_pickup']['file'],
+          "subject": job['schema']['email']['no_pickup']['subject'],
+          "data": {
+            "name": reminder['name'],
+            "from": reminder['email']['recipient'],
+            "next_pickup": next_pickup,
+            "account": {
+              "email": reminder['email']['recipient']
+            }
+          }
+        }
+
+        try:
+            requests.post(
+              app.config['LOCAL_URL'] + '/email/send', json=data)
+
+            logger.info('Emailed Next Pickup to %s', reminder['email']['recipient'])
+        except Exception as e:
+            logger.error("Error sending no_pickup followup email: %s", str(e))
+            return False
 
     return True
 
@@ -1046,11 +1070,11 @@ def submit_job(form, file):
         logger.info('[%s] Job "%s" Created [ID %s]', agency, job_name, str(job_id))
 
         # Special case
-        if form['template_name'] == 'etw':
-            scheduler.get_next_pickups.apply_async((str(job['_id']), ), queue=app.config['DB'])
+        #if form['template_name'] == 'etw':
+        get_next_pickups.apply_async((str(job['_id']), ), queue=app.config['DB'])
 
-            banner_msg = 'Job \'' + job_name + '\' successfully created! '\
-                    + str(len(reminders)) + ' messages imported.'
+        banner_msg = 'Job \'' + job_name + '\' successfully created! '\
+                + str(len(reminders)) + ' messages imported.'
 
         return {'status':'success', 'msg':banner_msg}
 

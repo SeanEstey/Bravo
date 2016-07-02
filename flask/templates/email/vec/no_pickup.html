@@ -2,7 +2,7 @@
   {% block content %}  
     <tr>
       <td>
-        Hi {{ args.name }},
+        Hi {{ data.name }},
       </td>
     </tr>
     <tr>
@@ -13,7 +13,7 @@
     </tr>
     <tr>
       <td>
-        Your next pickup date will be on <b>{{ args.next_pickup }}</b>
+        Your next pickup date will be on <b>{{ data.next_pickup }}</b>
       </td>
     </tr>
   {% endblock %}

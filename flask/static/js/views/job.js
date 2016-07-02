@@ -230,7 +230,7 @@ function makeCallFieldsClickable() {
 
       $.ajax({
         type: 'POST',
-        url: $URL_ROOT + 'edit/call/' + $cell.parent().attr('id'),
+        url: $URL_ROOT + 'reminders/' + $cell.parent().attr('id') + '/edit',
         data: payload,
         done: function(msg){
           if(msg != 'OK') {

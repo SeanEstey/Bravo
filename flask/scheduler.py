@@ -10,6 +10,7 @@ import re
 from datetime import datetime,date, timedelta
 from bson import Binary, Code, json_util
 from bson.objectid import ObjectId
+import dateutil
 
 from app import app, db, info_handler, error_handler, login_manager
 from tasks import celery_app
@@ -219,7 +220,7 @@ def get_next_pickups(job_id):
             blocks.append(reminder['custom']['block'])
 
     start = datetime.now() + timedelta(days=30)
-    end = start_search + timedelta(days=70)
+    end = start + timedelta(days=70)
 
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
     agency = db['agencies'].find_one({'name':job['agency']})

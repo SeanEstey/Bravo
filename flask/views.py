@@ -2,6 +2,7 @@ import json
 import twilio.twiml
 import time
 import requests
+import datetime
 from flask import request, Response, render_template, redirect
 from flask.ext.login import login_required, current_user
 from bson.objectid import ObjectId
@@ -158,7 +159,14 @@ def send_emails(job_id):
 @login_required
 def send_calls(job_id):
     job_id = job_id.encode('utf-8')
-    # Start celery worker
+
+    # Start new job
+    db['jobs'].update_one(
+      {'_id': ObjectId(job_id)},
+      {'$set': {
+        "status": "in-progress",
+        "voice.started_at": datetime.datetime.now()}})
+
     reminders.send_calls.apply_async(
             args=(job_id, ),
             queue=app.config['DB'])
@@ -184,10 +192,10 @@ def rmv_msg():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<job_id>/<msg_id>/edit', methods=['POST'])
+@app.route('/reminders/<reminder_id>/edit', methods=['POST'])
 @login_required
-def edit_msg(sid):
-    reminders.edit_msg(job_id, msg_id, form.items())
+def edit_msg(reminder_id):
+    reminders.edit_msg(reminder_id, request.form.items())
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -288,6 +296,8 @@ def send_email():
     Returns mailgun_id of email
     '''
     args = request.get_json(force=True)
+
+    app.logger.info(args)
 
     for key in ['template', 'subject', 'recipient']:
         if key not in args:

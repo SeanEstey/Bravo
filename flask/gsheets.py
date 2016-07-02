@@ -18,8 +18,6 @@ logger.setLevel(logging.DEBUG)
 # scope is array of Google service URL's to authorize
 def auth(oauth, scope):
     try:
-      #json_key = json.load(open('oauth_credentials.json'))
-
       credentials = SignedJwtAssertionCredentials(
         oauth['client_email'],
         oauth['private_key'],

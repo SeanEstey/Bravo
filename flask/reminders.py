@@ -376,27 +376,39 @@ def reset_job(job_id):
       {'job_id': ObjectId(job_id)},
       {'$set': {
         'voice.status': 'pending',
-        'voice.sid': None,
-        'voice.answered_by': None,
-        'voice.ended_at': None,
-        'voice.speak': None,
         'voice.attempts': 0,
-        'voice.code': None,
-        'voice.duration': None,
-        'voice.error': None,
-        'email.status': 'pending',
-        'custom.no_pickup': None
-    }})
+        'email.status': 'pending'
+    },
+    '$unset': {
+        'custom.no_pickup': '',
+        'voice.sid': '',
+        'voice.answered_by': '',
+        'voice.ended_at': '',
+        'voice.speak': '',
+        'voice.code': '',
+        'voice.duration': '',
+        'voice.error': '',
+        'email.error': '',
+        'email.reason': '',
+        'email.code': ''
+        }
+    })
 
-    logger.info('%s reminders reset', n)
+
+    logger.info('%s reminders reset', n['nModified'])
 
     n = db['jobs'].update(
-      {'_id': ObjectId(job_id)},
-      {'$set': {
-        'status': 'pending',
-    }})
+      {'_id': ObjectId(job_id)}, {
+        '$set': {
+            'status': 'pending',
+        },
+        '$unset': {
+            'voice.started_at': '',
+            'email.started_at': ''
+        }
+    })
 
-    logger.info('%s jobs reset', n)
+    logger.info('%s jobs reset', n['nModified'])
 
 #-------------------------------------------------------------------------------
 def edit_msg(reminder_id, fields):

@@ -214,6 +214,8 @@ def call_xml():
     '''
 
     try:
+        app.logger.debug('call.xml request values: %s', request.values.to_dict())
+
         r = reminders.get_voice_response(request.values.to_dict())
 
         if type(r) is twilio.twiml.Response:
@@ -236,6 +238,9 @@ def call_xml():
 
         response = twilio.twiml.Response()
         response.say(html, voice='alice')
+
+        # ONLY FOR REMINDER MESSAGES
+        response.gather(numDigits=1, action='/reminders/call.xml', method='POST')
 
         return Response(str(response), mimetype='text/xml')
     except Exception as e:

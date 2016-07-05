@@ -526,7 +526,7 @@ def get_answer_xml_template(args):
     '''
 
     logger.info('%s %s (%s)', args['To'], args['CallStatus'], args.get('AnsweredBy'))
-    logger.info('get_answer_xml: CallSid %s', args['CallSid'])
+    logger.debug('get_answer_xml: CallSid %s', args['CallSid'])
 
     reminder = db['reminders'].find_one_and_update(
       {'voice.sid': args['CallSid']},
@@ -582,19 +582,28 @@ def get_answer_xml_template(args):
 
 #-------------------------------------------------------------------------------
 def call_event(args):
-    '''Callback handler called by Twilio on 'completed' event (more events can be 
-    specified, at $0.00001 per event). Updates status of event in DB.
+    '''Callback handler called by Twilio on 'completed' event (more events can
+    be specified, at $0.00001 per event). Updates status of event in DB.
     Returns: 'OK' string to twilio if no problems.
     '''
 
-    if args.get('SipResponseCode') != 200:
+    # Call ended on error
+    if 'SipResponseCode' in args:
         if args.get('SipResonseCode') == 404:
             e = 'nis'
         else:
             e = 'unknown error'
 
-        logger.info('%s %s (%s: %s)',
+        logger.error('%s %s (%s: %s)',
                     args['To'], args['CallStatus'], args.get('SipResponseCode'), e)
+
+        db['reminders'].update_one(
+            {'voice.sid': args['CallSid']},
+            {'$set': {
+                "voice.code": args.get('SipResponseCode'), # in case of failure
+                "voice.error": e
+            }})
+    # Call completed without error
     else:
         logger.info('%s %s', args['To'], args['CallStatus'])
 
@@ -604,9 +613,7 @@ def call_event(args):
         "voice.status": args['CallStatus'],
         "voice.ended_at": datetime.now(),
         "voice.duration": args['CallDuration'],
-        "voice.answered_by": args.get('AnsweredBy'),
-        "voice.code": args.get('SipResponseCode'), # in case of failure
-        "voice.error": e
+        "voice.answered_by": args.get('AnsweredBy')
       }}
     )
 

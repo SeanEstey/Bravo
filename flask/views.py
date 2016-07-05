@@ -185,10 +185,10 @@ def job_complete(job_id):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<job_id>/<msg_id>/remove', methods=['POST'])
+@app.route('/reminders/<job_id>/<reminder_id>/remove', methods=['POST'])
 @login_required
-def rmv_msg():
-    reminders.rmv_msg(job_id, msg_id)
+def rmv_msg(job_id, reminder_id):
+    reminders.rmv_msg(job_id, reminder_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -302,7 +302,7 @@ def send_email():
     '''
     args = request.get_json(force=True)
 
-    app.logger.info(args)
+    app.logger.debug('/email/send: "%s"', args)
 
     for key in ['template', 'subject', 'recipient']:
         if key not in args:

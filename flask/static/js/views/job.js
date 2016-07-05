@@ -26,8 +26,6 @@ function init() {
               var call_uuid = $(this).attr('id');
               var $tr = $(this).parent().parent();
 
-              console.log(url);
-
               $.ajax({
                 type: 'POST',
 								url: $URL_ROOT + '/reminders/' + job_uuid + '/' + call_uuid + '/remove',

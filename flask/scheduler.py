@@ -216,8 +216,12 @@ def get_next_pickups(job_id):
     blocks = []
 
     for reminder in reminders:
-        if reminder['custom']['block'] not in blocks:
-            blocks.append(reminder['custom']['block'])
+        for block in reminder['custom']['block'].split(', '):
+            if block not in blocks:
+                blocks.append(block)
+
+    #if reminder['custom']['block'] not in blocks:
+    #    blocks.append(reminder['custom']['block'])
 
     start = datetime.now() + timedelta(days=30)
     end = start + timedelta(days=70)

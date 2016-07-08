@@ -8,11 +8,12 @@ import time
 from config import *
 import etap
 
-from app import info_handler, error_handler, db
+from app import info_handler, error_handler, debug_handler, db
 
 logger = logging.getLogger(__name__)
 logger.addHandler(info_handler)
 logger.addHandler(error_handler)
+logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
@@ -24,6 +25,8 @@ def get_completed_route(job_id):
 
     r = requests.get('https://api.routific.com/jobs/' + job_id)
     solution = json.loads(r.text)
+
+    logger.debug(solution)
 
     if solution['status'] != 'finished':
         return solution['status']
@@ -160,7 +163,8 @@ def get_accounts(block, etapestry_id):
 
 
 #-------------------------------------------------------------------------------
-def start_job(block, driver, date, start_address, end_address, etapestry_id):
+def start_job(block, driver, date, start_address, end_address, etapestry_id,
+        min_per_stop=3, shift_start="08:00"):
     '''Use Routific long-running process endpoint.
     Returns: job_id
     '''
@@ -188,7 +192,7 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id):
         "lng": end['lng'],
         "name": end_address,
       },
-      "shift_start": "8:00",
+      "shift_start": shift_start,
       "shift_end": "17:00"
     }
 
@@ -246,9 +250,9 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id):
             "lat": coords['lat'],
             "lng": coords['lng']
           },
-          "start": "8:00",
+          "start": shift_start,
           "end": "17:00",
-          "duration": 3,
+          "duration": min_per_stop,
           "customNotes": {
             "lat": coords['lat'],
             "lng": coords['lng'],

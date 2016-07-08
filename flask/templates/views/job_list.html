@@ -50,20 +50,20 @@
       <tr id='{{job._id}}'>
         <td>
           <a class='hover' href="{{ show_calls_url }}">
-            <!--{ job.fire_dtime.strftime("%A %b %d @ %I:%M %p") -->
+						{{ job.voice.fire_at.strftime("%A %b %d @ %I:%M %p") }}
           </a>
         </td>
         <td name='job-name'>
           <a class='hover' href="{{ show_calls_url }}">{{ job.name }}</a>
         </td>
-        <td>
+        <td name='job-type'>
           <a class='hover' href="{{ show_calls_url }}">
-            <!-- job.template.replace('_', ' ').title() -->
+						{{ job.schema.type }}
           </a>
         </td>
         <td>
           <a class='hover' href="{{ show_calls_url }}">
-            {{ job.num_calls }}
+            {{ job.voice.count }}
           </a>
         </td>
         <td name='job-status'>

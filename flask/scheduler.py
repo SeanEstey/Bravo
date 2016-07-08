@@ -11,6 +11,7 @@ from datetime import datetime,date, timedelta
 from bson import Binary, Code, json_util
 from bson.objectid import ObjectId
 import dateutil
+import re
 
 from app import app, db, info_handler, error_handler, login_manager
 from tasks import celery_app
@@ -202,6 +203,7 @@ def analyze_non_participants():
           date = str(now.month) + '/' + str(now.day) + '/' + str(now.year)
         )
 
+
 #-------------------------------------------------------------------------------
 @celery_app.task
 def get_next_pickups(job_id):
@@ -261,6 +263,21 @@ def get_next_pickups(job_id):
             {'$set':{'custom.next_pickup':date}},
             multi=True
           )
+
+        # Finish all reminders still missing pickup dates (i.e. have multiple
+        # blocks)
+        reminders = db['reminders'].find(
+            {'job_id':ObjectId(job_id),
+             'custom.next_pickup': {'$exists': False}})
+
+        # Only works for residential blocks with a booking block and
+        # 1 natural block...fixme...
+        for reminder in reminders:
+            for block in reminder['custom']['block'].split(', '):
+                if pickup_dates[block] > reminder['event_date']:
+                    db['reminders'].update_one(
+                        reminder,
+                        {'$set':{'custom.next_pickup':pickup_dates[block]}})
 
     except Exception as e:
         logger.error('get_next_pickups', exc_info=True)

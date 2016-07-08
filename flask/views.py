@@ -81,7 +81,9 @@ def get_routing_job_id():
             request.form['date'],
             request.form['start_address'],
             request.form['end_address'],
-            json.loads(request.form["etapestry_id"]))
+            json.loads(request.form["etapestry_id"]),
+            request.form['min_per_stop'],
+            request.form['shift_start'])
 
 #-------------------------------------------------------------------------------
 @app.route('/reminders/new')

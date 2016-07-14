@@ -342,7 +342,7 @@ def csv_line_to_db(job_id, schema, idx, buf_row, errors):
             # Convert any date strings to datetime obj
             elif field['type'] == 'date':
                 try:
-                    buf_row[i] = parse(buf_row[i])
+                    buf_row[i] = parse(parse(buf_row[i]).isoformat() + '-07:00')
                 except TypeError as e:
                     errors.append('Row %d: %s <b>Invalid Date</b><br>',
                                 (idx+1), str(buf_row))
@@ -761,15 +761,11 @@ def cancel_pickup(reminder_id):
     keys = {'user':settings['etapestry']['user'], 'pw':settings['etapestry']['pw'],
             'agency':job['agency'],'endpoint':app.config['ETAPESTRY_ENDPOINT']}
 
-    logger.info(keys)
-
-    logger.info('writing to etap')
-
     try:
         # Write to eTapestry
         etap.call('no_pickup', keys, {
           "account": reminder['account_id'],
-          "date": reminder['custom']['next_pickup'].strftime('%d/%m/%Y'),
+          "date": reminder['event_date'].strftime('%d/%m/%Y'),
           "next_pickup": reminder['custom']['next_pickup'].strftime('%d/%m/%Y')
         })
     except Exception as e:

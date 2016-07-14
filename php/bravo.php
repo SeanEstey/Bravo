@@ -440,7 +440,8 @@ function no_pickup($nsc, $account_id, $date, $next_pickup) {
   }
 
   $no_pickup_note = $office_notes . ' No Pickup ' . $date;
-  echo 'No Pickup request received! Thanks';
+
+  echo json_encode(['No Pickup request received! Thanks']);
 
   // params: db_ref, defined_values, create_field_and_values (bool)
   $status = $nsc->call("applyDefinedValues", [
@@ -476,6 +477,11 @@ function remove_udf($nsc, $account, $udf) {
   // Cycle through numbered array of all UDF values. Defined Fields with
   // multiple values like checkboxes will contain an array element for each value
   foreach($account['accountDefinedValues'] as $key=> $field) {
+		if($field['fieldName'] == 'Data Source' || $field['fieldName'] == 'Are you ready to start collecting empty beverage containers?' || $field['fieldName'] == 'Beverage Container Customer' || $field['fieldName'] == 'Mailing Address' || $field['fieldName'] == 'Location Type') {
+			$udf_remove[] = $account['accountDefinedValues'][$key];
+			continue;
+		}
+
     if(array_key_exists($field['fieldName'], $udf))
       $udf_remove[] = $account["accountDefinedValues"][$key];       
   }
@@ -514,7 +520,7 @@ function apply_udf($nsc, $account, $udf) {
           'value' => $e
         ];
       }
-    }
+		}
     else {
       $definedvalues[] = [
         'fieldName' => $fieldname,

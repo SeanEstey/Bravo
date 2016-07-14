@@ -138,9 +138,11 @@ def get_nps(agency, accounts):
         if delta.days >= 365:
             older_accounts.append(account)
 
+    logger.info('found %s older accounts', str(len(older_accounts)))
+
     try:
-        etap = db['agencies'].find_one({'name':agency})['etapestry']
-        keys = {'user':etap['user'], 'pw':etap['pw'],
+        etap_id = db['agencies'].find_one({'name':agency})['etapestry']
+        keys = {'user':etap_id['user'], 'pw':etap_id['pw'],
                 'agency':agency,'endpoint':app.config['ETAPESTRY_ENDPOINT']}
 
         gift_histories = etap.call('get_gift_histories',
@@ -152,6 +154,8 @@ def get_nps(agency, accounts):
     except Exception as e:
         logger.error('Failed to get gift_histories', exc_info=True)
         return str(e)
+
+    logger.info('found %s gift histories', str(len(gift_histories)))
 
     now = datetime.now()
 
@@ -172,8 +176,8 @@ def analyze_non_participants():
 
     logger.info('Analyzing non-participants in 4 days...')
 
-    agency = 'wsf' # for now
-    agency = db['agencies'].find_one({'name':agency})
+    agency_name = 'wsf' # for now
+    agency = db['agencies'].find_one({'name':agency_name})
 
     accounts = get_accounts(
         agency['etapestry'],
@@ -184,7 +188,7 @@ def analyze_non_participants():
     if len(accounts) < 1:
         return False
 
-    nps = get_nps(agency, accounts)
+    nps = get_nps(agency_name, accounts)
 
     now = datetime.now()
 
@@ -195,7 +199,7 @@ def analyze_non_participants():
         # Update Driver/Office Notes
 
         gsheets.create_rfu(
-          agency,
+          agency_name,
           'Non-participant',
           account_number = np['id'],
           next_pickup = next_pickup,

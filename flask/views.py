@@ -321,6 +321,10 @@ def send_email():
 
     mailgun = db['agencies'].find_one({'name':args['agency']})['mailgun']
 
+    # TEMPORARY HACK DUE TO RECYCLE.VECOVA.CA AND SHAW DOMAIN ISSUE
+    if args['agency'] == 'vec' and args['recipient'].find('shaw.ca') > -1:
+        mailgun['domain'] = mailgun['alt_domain']
+
     try:
         r = requests.post(
           'https://api.mailgun.net/v3/' + mailgun['domain'] + '/messages',

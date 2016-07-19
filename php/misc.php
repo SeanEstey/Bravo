@@ -1,14 +1,39 @@
 <?php
 
 //-----------------------------------------------------------------------
-function write_log($msg) {
-	global $LOG_FILE;
+function utf8_converter($array) {
+  array_walk_recursive($array, function(&$item, $key){
+    if(!mb_detect_encoding($item, 'utf-8', true)){
+      $item = utf8_encode($item);
+    }
+  });
+       
+  return $array;
+}
+
+
+//-----------------------------------------------------------------------
+function info_log($msg) {
+	global $INFO_LOG;
 	global $agency;
 
 	$line = '[' . date('m-j G:i') . ' php ' . $agency . ']: ' . $msg . "\n";
 
 	// IMPORTANT: this function requires execute permissions on the folder to write!!
-	file_put_contents($LOG_FILE, $line, FILE_APPEND);
+	file_put_contents($INFO_LOG, $line, FILE_APPEND);
+
+	return $msg;
+}
+
+//-----------------------------------------------------------------------
+function debug_log($msg) {
+	global $DEBUG_LOG;
+	global $agency;
+
+	$line = '[' . date('m-j G:i') . ' php ' . $agency . ']: ' . $msg . "\n";
+
+	// IMPORTANT: this function requires execute permissions on the folder to write!!
+	file_put_contents($DEBUG_LOG, $line, FILE_APPEND);
 
 	return $msg;
 }

@@ -17,7 +17,7 @@
   "event_date": "<BSON.Date>",
   "voice": {
     "sid": "CA7d1d19877dc768fd0c701cfcdc706fdd [32 char Twilio ID]",
-    "status": ["pending","active","failed","pending","queued",
+    "status": ["pending","active","cancelled", "failed","queued",
                "ringing","in-progress","busy","no-answer","completed"], 
     "answered_by": ["human", "machine"], 
     "ended_at": "<BSON.Date>",

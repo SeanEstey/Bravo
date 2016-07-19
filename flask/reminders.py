@@ -17,6 +17,7 @@ from flask.ext.login import current_user
 
 from app import app, db, info_handler, error_handler, debug_handler, socketio
 from tasks import celery_app
+from gsheets import create_rfu
 import utils
 import etap
 from scheduler import get_next_pickups
@@ -191,6 +192,14 @@ def send_calls(job_id):
             continue
 
         if reminder['voice']['attempts'] >= app.config['MAX_CALL_ATTEMPTS']:
+            continue
+
+        if not reminder['voice']['to']:
+            db['reminders'].update_one(
+              {'_id': reminder['_id']},
+              {'$set': {
+                  'voice.status': 'no_number'
+              }})
             continue
 
         call = dial(reminder['voice']['to'], twilio['ph'], twilio['keys']['main'])
@@ -453,6 +462,8 @@ def dial(to, from_, twilio_keys):
           if_machine = 'Continue'
         )
     except twilio.TwilioRestException as e:
+        logger.error(e)
+
         if not e.msg:
             if e.code == 21216:
                 e.msg = 'not_in_service'
@@ -589,7 +600,9 @@ def call_event(args):
 
     # Call ended on error
     if 'SipResponseCode' in args:
-        if args.get('SipResonseCode') == 404:
+        logger.debug('call_event args: %s', args)
+
+        if args.get('SipResponseCode') == 404:
             e = 'nis'
         else:
             e = 'unknown error'
@@ -603,6 +616,19 @@ def call_event(args):
                 "voice.code": args.get('SipResponseCode'), # in case of failure
                 "voice.error": e
             }})
+
+        reminder = db['reminders'].find_one({'voice.sid': args['CallSid']})
+        job = db['jobs'].find_one({'_id': reminder['job_id']})
+
+        create_rfu.apply_async(
+            args=(
+                job['agency'],
+                'Account ' + reminder['account_id'] + ' error calling ' + args['To'] + '. ' + args['SipResponseCode']
+                + ': ' + e,
+                #date=args['Timestamp']
+            ),
+            queue=app.config['DB'])
+
     # Call completed without error
     else:
         logger.info('%s %s', args['To'], args['CallStatus'])
@@ -747,6 +773,7 @@ def cancel_pickup(reminder_id):
     db['reminders'].update(
       {'_id':reminder['_id']},
       {'$set': {
+        "voice.status": "cancelled",
         "custom.office_notes": no_pickup,
         "custom.no_pickup": True
       }}

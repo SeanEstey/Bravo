@@ -140,6 +140,9 @@ def get_nps(agency, accounts):
 
     logger.info('found %s older accounts', str(len(older_accounts)))
 
+    if len(older_accounts) == 0:
+        return False
+
     try:
         etap_id = db['agencies'].find_one({'name':agency})['etapestry']
         keys = {'user':etap_id['user'], 'pw':etap_id['pw'],
@@ -174,38 +177,38 @@ def get_nps(agency, accounts):
 def analyze_non_participants():
     '''Create RFU's for all non-participants on scheduled dates'''
 
-    logger.info('Analyzing non-participants in 4 days...')
+    agencies = db['agencies'].find({})
 
-    agency_name = 'wsf' # for now
-    agency = db['agencies'].find_one({'name':agency_name})
+    for agency in agencies:
+        logger.info('%s: Analyzing non-participants in 4 days...', agency['name'])
 
-    accounts = get_accounts(
-        agency['etapestry'],
-        agency['cal_ids']['res'],
-        agency['oauth'],
-        days_from_now=4)
+        accounts = get_accounts(
+            agency['etapestry'],
+            agency['cal_ids']['res'],
+            agency['oauth'],
+            days_from_now=4)
 
-    if len(accounts) < 1:
-        return False
+        if len(accounts) < 1:
+            return False
 
-    nps = get_nps(agency_name, accounts)
+        nps = get_nps(agency['name'], accounts)
 
-    now = datetime.now()
+        now = datetime.now()
 
-    for np in nps:
-        npu = etap.get_udf('Next Pickup Date', np).split('/')
-        next_pickup = npu[1] + '/' + npu[0] + '/' + npu[2]
+        for np in nps:
+            npu = etap.get_udf('Next Pickup Date', np).split('/')
+            next_pickup = npu[1] + '/' + npu[0] + '/' + npu[2]
 
-        # Update Driver/Office Notes
+            # Update Driver/Office Notes
 
-        gsheets.create_rfu(
-          agency_name,
-          'Non-participant',
-          account_number = np['id'],
-          next_pickup = next_pickup,
-          block = etap.get_udf('Block', np),
-          date = str(now.month) + '/' + str(now.day) + '/' + str(now.year)
-        )
+            gsheets.create_rfu(
+              agency['name'],
+              'Non-participant',
+              account_number = np['id'],
+              next_pickup = next_pickup,
+              block = etap.get_udf('Block', np),
+              date = str(now.month) + '/' + str(now.day) + '/' + str(now.year)
+            )
 
 
 #-------------------------------------------------------------------------------

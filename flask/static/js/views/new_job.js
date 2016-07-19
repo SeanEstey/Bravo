@@ -365,22 +365,23 @@ function validateNewJobForm() {
 
     var form_data = new FormData($('#myform')[0]);
 
-    var request = $.ajax({
+    $.ajax({
       type: 'POST',
       url: $URL_ROOT + '/reminders/submit_job',
       data: form_data,
       contentType: false,
       processData: false,
-      dataType: 'json',
-      done: submitSuccess,
-      fail: submitFailure
-    })
+      dataType: 'json'
+		})
+		.done(submitSuccess)
+		.fail(submitFailure);
   }
 }
 
 //------------------------------------------------------------------------------
 function submitSuccess(response) {
     console.log(response);
+		console.log('url_root: ' + $URL_ROOT);
 
     if(typeof response == 'string')
       response = JSON.parse(response);

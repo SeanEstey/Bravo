@@ -120,7 +120,7 @@ function get_scheduled_block_size($nsc, $query_category, $query, $date) {
   else
     $ratio .= '?';
   
-  write_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
+  info_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
   echo $ratio;
 
   http_response_code(200);
@@ -141,7 +141,7 @@ function get_block_size($nsc, $query_category, $query) {
   }
 
   // Next P/U Date returns in dd/mm/yyyy format
-  write_log('Query ' . $query . ' count: ' . $response['count']);
+  info_log('Query ' . $query . ' count: ' . $response['count']);
   echo $response['count'];
   http_response_code(200);  
 }
@@ -176,8 +176,8 @@ function get_gift_history($nsc, $ref, $start_date, $end_date) {
 
     /*** TODO: FIX ME. ***/
 
-    if($entry['campaign'] != 'Empties to WINN')
-      continue;
+    //if($entry['campaign'] != 'Empties to WINN')
+    //  continue;
 
     if($entry['amount'] > 0) {
       $gifts[] = [
@@ -276,7 +276,7 @@ function add_note($nsc, $note) {
     echo 'add_note failed: ' . $status;
   }
   else {
-    write_log('Note added for account ' . $note['id']);
+    info_log('Note added for account ' . $note['id']);
     http_response_code(200);
     echo $status;
   }
@@ -294,7 +294,7 @@ function update_note($nsc, $data) {
     echo 'update_note failed';
   }
   else {
-    write_log('Note updated for account ' . $data['id']);
+    info_log('Note updated for account ' . $data['id']);
     http_response_code(200);
     echo $status;
   }
@@ -370,7 +370,7 @@ function add_accounts($db, $nsc, $submissions) {
       $num_errors++;
     }
     else
-      write_log('Added account ' . $account['name']);
+      info_log('Added account ' . $account['name']);
 
     $result = $db->insertOne([ 
       'function' => 'add_accounts',
@@ -381,7 +381,7 @@ function add_accounts($db, $nsc, $submissions) {
 
   }
 
-  write_log((string)count($submissions) . ' accounts added/updated. ' . (string)$num_errors . ' errors.');
+  info_log((string)count($submissions) . ' accounts added/updated. ' . (string)$num_errors . ' errors.');
 }
 
 
@@ -396,7 +396,7 @@ function modify_account($db, $nsc, $id, $udf, $persona) {
   $account = $nsc->call("getAccountById", [$id]);
 
   if(!$account)
-    return write_log('modify_account(): Id ' . (string)$id . ' does not exist');
+    return info_log('modify_account(): Id ' . (string)$id . ' does not exist');
 
   foreach($persona as $key=>$value) {
     $account[$key] = $value;
@@ -414,16 +414,16 @@ function modify_account($db, $nsc, $id, $udf, $persona) {
   $ref = $nsc->call("updateAccount", [$account, false]);
 
   if(checkForError($nsc))
-    return write_log('in modify_account(): eTap API updateAccount() error: ' . $nsc->faultcode . ': ' . $nsc->faultstring);
+    return info_log('in modify_account(): eTap API updateAccount() error: ' . $nsc->faultcode . ': ' . $nsc->faultstring);
 
   // Now update UDF fields 
   remove_udf($nsc, $account, $udf);
   apply_udf($nsc, $account, $udf);
   
   if(checkForError($nsc))
-    return write_log('in modify_account(): Error ' . $nsc->faultcode . ': ' . $nsc->faultstring);
+    return info_log('in modify_account(): Error ' . $nsc->faultcode . ': ' . $nsc->faultstring);
 
-  write_log('Updated account ' . $account['firstName'] . ' ' . $account['lastName'] . ' (' . $account['id'] . ')');
+  info_log('Updated account ' . $account['firstName'] . ' ' . $account['lastName'] . ' (' . $account['id'] . ')');
 
   return 'Success';
 }
@@ -462,7 +462,7 @@ function no_pickup($nsc, $account_id, $date, $next_pickup) {
     false
   ]);
   
-  write_log('Account ' . $account_id . ' No Pickup');
+  info_log('Account ' . $account_id . ' No Pickup');
 }
 
 //-----------------------------------------------------------------------
@@ -567,7 +567,7 @@ function check_duplicates($nsc, $persona_fields) {
         $duplicates .= ',' . (string)$account;
     }
 
-    write_log($duplicates);
+    info_log($duplicates);
     echo $duplicates;
   }
 }
@@ -617,7 +617,7 @@ function make_booking($nsc, $account_num, $udf, $type) {
   }
 
   http_response_code(200);  
-  write_log('Booked Account #' . $account_num . ' on Block ' . $udf['Block']);
+  info_log('Booked Account #' . $account_num . ' on Block ' . $udf['Block']);
   echo 'Booked successfully!';
 }
 
@@ -644,7 +644,7 @@ function get_next_pickup($nsc, $email) {
       foreach($search as $searchArray) {
         extract($searchArray);
         if($fieldName == 'Next Pickup Date') {
-          write_log('Next Pickup for ' . $email . ': ' . formatDateAsDateTimeString($value));
+          info_log('Next Pickup for ' . $email . ': ' . formatDateAsDateTimeString($value));
           return formatDateAsDateTimeString($value);
         }
       }

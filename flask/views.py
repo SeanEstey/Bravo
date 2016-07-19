@@ -321,10 +321,6 @@ def send_email():
 
     mailgun = db['agencies'].find_one({'name':args['agency']})['mailgun']
 
-    # TEMPORARY HACK DUE TO RECYCLE.VECOVA.CA AND SHAW DOMAIN ISSUE
-    if args['agency'] == 'vec' and args['recipient'].find('shaw.ca') > -1:
-        mailgun['domain'] = mailgun['alt_domain']
-
     try:
         r = requests.post(
           'https://api.mailgun.net/v3/' + mailgun['domain'] + '/messages',
@@ -340,9 +336,13 @@ def send_email():
         return Response(response=e, status=500, mimetype='application/json')
 
     if r.status_code != 200:
-        e = '/email/send: mailgun error: ' + r.text
-        app.logger.error(e)
-        return Response(response=e, status=500, mimetype='application/json')
+        err = 'Invalid email address "' + args['recipient'] + '": ' + json.loads(r.text)['message']
+
+        app.logger.error(err)
+
+        gsheets.create_rfu(args['agency'], err)
+
+        return Response(response=str(r), status=500, mimetype='application/json')
 
     db['emails'].insert({
         'agency': args['agency'],

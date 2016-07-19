@@ -1,12 +1,13 @@
 <?php
-  $LOG_FILE = '/var/www/bravo/logs/info.log';
+  $INFO_LOG = '/var/www/bravo/logs/info.log';
+  $DEBUG_LOG = '/var/www/bravo/logs/debug.log';
   $ERROR_LOG = '/var/www/bravo/logs/error.log';
 
   ini_set('log_errors', 1);
   ini_set('error_log', $ERROR_LOG);
   
 	require('misc.php');
-  require('empties.php');
+  require('bravo.php');
   require 'vendor/autoload.php';
 
   if(!isset($_POST['data'])) {
@@ -117,7 +118,7 @@
         ]);
       }
 
-      write_log('Processed ' . (string)count($data['entries']) . ' route entries. ' . (string)$num_errors . ' errors.');
+      info_log('Processed ' . (string)count($data['entries']) . ' route entries. ' . (string)$num_errors . ' errors.');
 
       break;
       
@@ -142,7 +143,7 @@
           $accounts[] = $account;
       }
 
-      write_log(count($accounts) . ' accounts retrieved.');
+      info_log(count($accounts) . ' accounts retrieved.');
 
       echo json_encode($accounts);
       break;
@@ -165,7 +166,7 @@
         $accounts[] = get_gift_history($nsc, $data['account_refs'][$i], $data['start_date'], $data['end_date']);
       }
       
-      write_log(count($accounts) . ' gift histories retrieved.');
+      info_log(count($accounts) . ' gift histories retrieved.');
 
       echo json_encode($accounts);
       break;
@@ -204,7 +205,7 @@
       break;
     
     case 'no_pickup':
-      no_pickup($nsc, $data['account'], $data['date'], $data['next_pickup']);
+      echo no_pickup($nsc, $data['account'], $data['date'], $data['next_pickup']);
       break;
 
     case 'make_booking':
@@ -222,8 +223,20 @@
         ]]
       );
 
-      write_log($response['count'] . ' accounts in query ' . $data['query'] . ', category: ' . $data['query_category']);
-      echo json_encode($response);
+      if(checkForError($nsc)) {
+        echo $nsc->faultcode . ': ' . $nsc->faultstring;
+        error_log($agency . ': getExistingQueryResults error for Block ' . $query);
+        http_response_code(500);
+        break;
+      }
+
+      info_log($response['count'] . ' accounts in query ' . $data['query'] . ', category: ' . $data['query_category']);
+
+      // Necessary in case of non-utf8 characters are present. json_encode()
+      // will fail in that case.
+      $utf8_data = utf8_converter($response);
+
+      echo json_encode($utf8_data);
 
       break;
 

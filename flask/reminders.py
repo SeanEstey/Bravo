@@ -322,15 +322,17 @@ def get_jobs(args):
     return jobs
 
 #-------------------------------------------------------------------------------
-def csv_line_to_db(job_id, schema, idx, buf_row, errors):
-    '''Create mongodb "reminder" record from .CSV line
-    job_id: mongo "job" record_id in ObjectId format
-    schema: template dict from reminder_templates.json file
-    buf_row: array of values from csv file
+def create(job, schema, idx, buf_row, errors):
+    '''Create a Reminder record in MongoDB
+    @job: MongoDB job record
+    @schema: template dict from reminder_templates.json file
+    @idx: .csv file row index (in case of error)
+    @buf_row: array of values from csv file
     '''
 
     reminder = {
-        "job_id": job_id,
+        "job_id": job['_id'],
+        "agency": job['agency'],
         "voice": {
           "status": "pending",
           "attempts": 0,
@@ -401,8 +403,8 @@ def reset_job(job_id):
         'email.reason': '',
         'email.code': ''
         }
-    })
-
+    },
+    multi=True)
 
     logger.info('%s reminders reset', n['nModified'])
 
@@ -445,15 +447,19 @@ def edit_msg(reminder_id, fields):
 def dial(to, from_, twilio_keys):
     '''Returns twilio call object'''
 
+    if to[0:2] != "+1":
+        to = "+1" + to
+
     try:
         twilio_client = twilio.rest.TwilioRestClient(
           twilio_keys['sid'],
           twilio_keys['auth_id']
         )
 
+
         call = twilio_client.calls.create(
           from_ = from_,
-          to = '+1'+to,
+          to = to,
           url = app.config['PUB_URL'] + '/reminders/call.xml',
           status_callback = app.config['PUB_URL'] + '/reminders/call_event',
           status_method = 'POST',
@@ -461,6 +467,9 @@ def dial(to, from_, twilio_keys):
           method = 'POST',
           if_machine = 'Continue'
         )
+
+        logger.debug(vars(call))
+
     except twilio.TwilioRestException as e:
         logger.error(e)
 
@@ -598,56 +607,56 @@ def call_event(args):
     Returns: 'OK' string to twilio if no problems.
     '''
 
-    # Call ended on error
-    if 'SipResponseCode' in args:
-        logger.debug('call_event args: %s', args)
+    logger.debug('call_event args: %s', args)
 
-        if args.get('SipResponseCode') == 404:
-            e = 'nis'
-        else:
-            e = 'unknown error'
+    if args['CallStatus'] == 'completed':
+        reminder = db['reminders'].find_one_and_update(
+          {'voice.sid': args['CallSid']},
+          {'$set': {
+            "voice.status": args['CallStatus'],
+            "voice.ended_at": datetime.now(),
+            "voice.duration": args['CallDuration'],
+            "voice.answered_by": args.get('AnsweredBy')
+          }},
+          return_document=ReturnDocument.AFTER)
+    else:
+        reminder = db['reminders'].find_one_and_update(
+          {'voice.sid': args['CallSid']},
+          {'$set': {
+            "voice.code": args.get('SipResponseCode'), # in case of failure
+            "voice.status": args['CallStatus']
+          }},
+          return_document=ReturnDocument.AFTER)
 
-        logger.error('%s %s (%s: %s)',
-                    args['To'], args['CallStatus'], args.get('SipResponseCode'), e)
+    if args['CallStatus'] == 'failed':
+        logger.error(
+          '%s %s (%s)',
+          args['To'], args['CallStatus'], args.get('SipResponseCode'))
 
-        db['reminders'].update_one(
-            {'voice.sid': args['CallSid']},
-            {'$set': {
-                "voice.code": args.get('SipResponseCode'), # in case of failure
-                "voice.error": e
-            }})
-
-        reminder = db['reminders'].find_one({'voice.sid': args['CallSid']})
+        # TODO: Remove this line after Aug 1st reminders. agency will be stored
+        # in each reminder record. no need to
         job = db['jobs'].find_one({'_id': reminder['job_id']})
 
+        msg = ('Account {a} error {e} calling {to}').format(a=reminder['account_id'],
+            e=args['SipResponseCode'], to=args['To'])
+
+        # TODO: Change to reminder['agency'] after Aug 1 calls
         create_rfu.apply_async(
-            args=(
-                job['agency'],
-                'Account ' + reminder['account_id'] + ' error calling ' + args['To'] + '. ' + args['SipResponseCode']
-                + ': ' + e,
-                #date=args['Timestamp']
-            ),
-            queue=app.config['DB'])
+          args=(job['agency'], msg),
+          queue=app.config['DB'])
 
     # Call completed without error
+    elif args['CallStatus'] == 'completed':
+        logger.info('%s %s (%s, %ss)',
+          args['To'], args['CallStatus'], args['AnsweredBy'], args['CallDuration'])
     else:
         logger.info('%s %s', args['To'], args['CallStatus'])
 
-    msg = db['reminders'].find_one_and_update(
-      {'voice.sid': args['CallSid']},
-      {'$set': {
-        "voice.status": args['CallStatus'],
-        "voice.ended_at": datetime.now(),
-        "voice.duration": args['CallDuration'],
-        "voice.answered_by": args.get('AnsweredBy')
-      }}
-    )
-
-    if msg:
+    if reminder:
         return 'OK'
 
-    # Might be an audio recording call
-    if msg is None:
+    # If no Mongo reminder record returned, this call might be an audio recording call
+    if reminder is None:
         audio = db['audio_msg'].find_one({'sid': args['CallSid']})
 
         if audio:
@@ -1066,7 +1075,7 @@ def submit_job(form, file):
           'msg':'Could not parse the schedule date you entered: ' + str(e)
         }
 
-    # D. Create mongo 'reminder_job' and 'reminder_msg' records
+    # D. Create mongo 'job' and 'reminder' records
     job = {
         'name': job_name,
         'agency': agency,
@@ -1094,7 +1103,7 @@ def submit_job(form, file):
         reminders = []
 
         for idx, row in enumerate(buffer):
-            msg = csv_line_to_db(job_id, schema, idx, row, errors)
+            msg = create(job, schema, idx, row, errors)
 
             if msg:
                 reminders.append(msg)

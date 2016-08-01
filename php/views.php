@@ -94,6 +94,8 @@
       $entries = $data['entries'];
 			$num_errors = 0;
 
+      info_log('Processing entries for ' . (string)count($data['entries']) . ' accounts');
+
       for($i=0; $i<count($data['entries']); $i++) { 
 
 				if($agency == 'vec') {
@@ -140,7 +142,7 @@
         $account = get_account($nsc, $data['account_numbers'][$i]);
         
         if($account)
-          $accounts[] = $account;
+          $accounts[] = utf8_converter($account);
       }
 
       info_log(count($accounts) . ' accounts retrieved.');

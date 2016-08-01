@@ -90,7 +90,7 @@ def get_accounts(etapestry_id, cal_id, oauth, days_from_now=None):
 
     if len(blocks) < 1:
         logger.info('No Blocks found on given date')
-        return False
+        return []
 
     accounts = []
 
@@ -120,6 +120,9 @@ def get_nps(agency, accounts):
     '''Analyze list of eTap account objects for non-participants
     (Dropoff Date >= 12 monthss ago and no collections in that time
     '''
+
+    # TODO: If missing Signup Date use 'accountCreatedDate'
+    # If missing Dropoff Date, use 'accountCreatedDate' + 4 weeks
 
     # Build list of accounts to query gift_histories for
     older_accounts = []
@@ -177,19 +180,19 @@ def get_nps(agency, accounts):
 def analyze_non_participants():
     '''Create RFU's for all non-participants on scheduled dates'''
 
-    agencies = db['agencies'].find({})
+    agencies = db['agencies'].find()
 
     for agency in agencies:
-        logger.info('%s: Analyzing non-participants in 4 days...', agency['name'])
+        logger.info('%s: Analyzing non-participants in 5 days...', agency['name'])
 
         accounts = get_accounts(
             agency['etapestry'],
             agency['cal_ids']['res'],
             agency['oauth'],
-            days_from_now=4)
+            days_from_now=5)
 
         if len(accounts) < 1:
-            return False
+            continue
 
         nps = get_nps(agency['name'], accounts)
 

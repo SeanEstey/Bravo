@@ -12,6 +12,7 @@
 ```json
 {
   "job_id": "<BSON.ObjectId>",
+  "agency": "agency name <string>",
   "name": "",
   "account_id": "etapestry_account_id",
   "event_date": "<BSON.Date>",

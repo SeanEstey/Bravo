@@ -58,7 +58,7 @@ def process(entries, etapestry_id):
           "account_numbers": [i['account_number'] for i in entries]
         })
     except Exception as e:
-        logger.error('Error retrieving accounts from etap')
+        logger.error('Error retrieving accounts from etap: %s', str(e))
         return False
 
     oauth = db['agencies'].find_one({'name':etapestry_id['agency']})['oauth']

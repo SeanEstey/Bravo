@@ -8,6 +8,7 @@ apt-get install \
     nginx \
     rabbitmq-server \
     logrotate
+    python-json-logger
 pip install \
     celery \
     pymongo \

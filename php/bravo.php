@@ -174,11 +174,6 @@ function get_gift_history($nsc, $ref, $start_date, $end_date) {
   for($i=0; $i<$response['count']; $i++) {
     $entry = $response['data'][$i];
 
-    /*** TODO: FIX ME. ***/
-
-    //if($entry['campaign'] != 'Empties to WINN')
-    //  continue;
-
     if($entry['amount'] > 0) {
       $gifts[] = [
         'amount' => floatval($entry['amount']),

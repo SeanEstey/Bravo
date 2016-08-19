@@ -171,6 +171,8 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
 
     accounts = get_accounts(block, etapestry_id)
 
+    shift_end = "19:00"
+
     start = geocode(start_address)['geometry']['location']
     end = geocode(end_address)['geometry']['location']
 
@@ -193,7 +195,7 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
         "name": end_address,
       },
       "shift_start": shift_start,
-      "shift_end": "17:00"
+      "shift_end": shift_end
     }
 
     date = parse(date)
@@ -251,7 +253,7 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
             "lng": coords['lng']
           },
           "start": shift_start,
-          "end": "17:00",
+          "end": shift_end,
           "duration": min_per_stop,
           "customNotes": {
             "lat": coords['lat'],

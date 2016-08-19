@@ -41,7 +41,7 @@ CELERYD_CONCURRENCY = 1
 CELERYBEAT_SCHEDULE = {
   'get_non_participants': {
     'task': 'scheduler.analyze_non_participants',
-    'schedule': crontab(hour=8, minute=45, day_of_week='*'),
+    'schedule': crontab(hour=6, minute=45, day_of_week='*'),
     'options': { 'queue': app.config['DB'] }
   },
   'check_jobs': {

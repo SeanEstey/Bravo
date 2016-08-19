@@ -183,35 +183,42 @@ def analyze_non_participants():
     agencies = db['agencies'].find()
 
     for agency in agencies:
-        logger.info('%s: Analyzing non-participants in 5 days...', agency['name'])
+        try:
+            logger.info('%s: Analyzing non-participants in 5 days...', agency['name'])
 
-        accounts = get_accounts(
-            agency['etapestry'],
-            agency['cal_ids']['res'],
-            agency['oauth'],
-            days_from_now=5)
+            accounts = get_accounts(
+                agency['etapestry'],
+                agency['cal_ids']['res'],
+                agency['oauth'],
+                days_from_now=5)
 
-        if len(accounts) < 1:
+            if len(accounts) < 1:
+                continue
+
+            nps = get_nps(agency['name'], accounts)
+
+            #if len(nps) < 1:
+            #    continue
+
+            now = datetime.now()
+
+            for np in nps:
+                npu = etap.get_udf('Next Pickup Date', np).split('/')
+                next_pickup = npu[1] + '/' + npu[0] + '/' + npu[2]
+
+                # Update Driver/Office Notes
+
+                gsheets.create_rfu(
+                  agency['name'],
+                  'Non-participant',
+                  account_number = np['id'],
+                  next_pickup = next_pickup,
+                  block = etap.get_udf('Block', np),
+                  date = str(now.month) + '/' + str(now.day) + '/' + str(now.year)
+                )
+        except Exception as e:
+            logger.error('non-participation exception: %s' + str(e))
             continue
-
-        nps = get_nps(agency['name'], accounts)
-
-        now = datetime.now()
-
-        for np in nps:
-            npu = etap.get_udf('Next Pickup Date', np).split('/')
-            next_pickup = npu[1] + '/' + npu[0] + '/' + npu[2]
-
-            # Update Driver/Office Notes
-
-            gsheets.create_rfu(
-              agency['name'],
-              'Non-participant',
-              account_number = np['id'],
-              next_pickup = next_pickup,
-              block = etap.get_udf('Block', np),
-              date = str(now.month) + '/' + str(now.day) + '/' + str(now.year)
-            )
 
 
 #-------------------------------------------------------------------------------

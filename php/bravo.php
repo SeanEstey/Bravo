@@ -57,6 +57,35 @@ function get_account($nsc, $account_number) {
 }
 
 //-----------------------------------------------------------------------
+function find_account_by_phone($nsc, $phone) {
+  info_log('finding account for ' . $phone);
+
+  /*$dv = [
+    'fieldName'=>'phones',
+    'value'=>[
+      'type'=>'Mobile',
+      'number'=>$phone
+    ]
+  ];*/
+
+  $dv = [
+    'fieldName'=>'Mobile',
+    'value'=> $phone
+  ];
+
+  $account = $nsc->call('getAccountByUniqueDefinedValue', array($dv));
+
+  info_log(json_encode($account));
+
+  if(!$account) {
+    info_log('No matching account found for phone number ' . $phone);
+    return false;
+  }
+
+  return $account;
+}
+
+//-----------------------------------------------------------------------
 function get_scheduled_block_size($nsc, $query_category, $query, $date) {
 	/* Returns amount of stops booked for pickup/delivery on given date */
 

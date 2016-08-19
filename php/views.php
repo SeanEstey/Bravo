@@ -150,6 +150,18 @@
       echo json_encode($accounts);
       break;
 
+    case 'find_account_by_phone':
+      $account = find_account_by_phone($nsc, $data['phone']);
+
+      if($account) {
+        $account = utf8_converter($account);
+        echo json_encode($account);
+      }
+      else
+        echo json_encode("No account found");
+
+      break;
+
     case 'modify_account':
       $status = modify_account($db, $nsc, $data['id'], $data['udf'], $data['persona']);
       

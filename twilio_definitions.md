@@ -78,3 +78,8 @@ TwiML Voice Request (POST data)
   "ToCountry": "The country of the called party (optional)"
 }
 ```
+
+SMS Callback
+```json
+{'Body': u'Bonjourno!', 'MessageSid': u'SM9372aed07fc3e9baeb295d3846ce48b1', 'FromZip': u'', 'From': u'+17808635715', 'SmsMessageSid': u'SM9372aed07fc3e9baeb295d3846ce48b1', 'SmsStatus': u'received', 'FromCity': u'EDMONTON', 'ApiVersion': u'2010-04-01', 'To': u'+15873192488', 'NumMedia': u'0', 'ToZip': u'', 'ToCountry': u'CA', 'AccountSid': u'ACcc7d275199429677243e3b9ee7936488', 'NumSegments': u'1', 'ToState': u'Alberta', 'SmsSid': u'SM9372aed07fc3e9baeb295d3846ce48b1', 'ToCity': u'Calgary', 'FromState': u'AB', 'FromCountry': u'CA'}
+```

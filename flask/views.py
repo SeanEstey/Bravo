@@ -20,6 +20,7 @@ import reminders
 import receipts
 import gsheets
 import scheduler
+import etap
 
 #-------------------------------------------------------------------------------
 @app.route('/', methods=['GET'])
@@ -267,6 +268,72 @@ def call_event():
     '''Twilio callback'''
 
     reminders.call_event(request.form.to_dict())
+    return 'OK'
+
+
+#-------------------------------------------------------------------------------
+@app.route('/sms/test', methods=['GET'])
+def sms_test():
+    app.logger.info('sending sms')
+
+    sms = reminders.sms('7808635715', 'testing')
+
+    app.logger.debug(vars(sms))
+
+    return 'OK'
+
+#-------------------------------------------------------------------------------
+@app.route('/sms/status', methods=['POST', 'GET'])
+def sms_status():
+    '''Callback for sending/receiving SMS messages.
+    If receiving, write to RFU for follow-up.
+    If sending, determine if part of reminder or reply to original received msg
+    '''
+
+    app.logger.info('sms status update')
+    app.logger.debug(request.form.to_dict())
+
+    db['sms'].insert_one(request.form.to_dict())
+
+    if request.form['SmsStatus'] != 'received':
+        return False
+
+    # Received incoming SMS message. Find agency and write to RFU
+
+    agency = db['agencies'].find_one({'twilio.sms' : request.form['To']})
+
+    if agency == None:
+        app.logger.error('No agency found matching SMS number %s', request.form['To'])
+        return False
+
+    # Look up number in eTap to see if existing account
+    keys = {'user':agency['etapestry']['user'], 'pw':agency['etapestry']['pw'],
+            'agency':agency['name'],'endpoint':app.config['ETAPESTRY_ENDPOINT']}
+    try:
+        # Write to eTapestry
+        account = etap.call(
+          'find_account_by_phone',
+          keys,
+          {"phone": request.form['From']}
+        )
+    except Exception as e:
+        app.logger.error("Error writing to eTap: %s", str(e))
+
+    app.logger.debug(account)
+
+    account_id = None
+
+    if account:
+        account_id = account['id']
+
+    gsheets.create_rfu(
+      agency['name'],
+      'SMS received: \"' + request.form['Body'] + '\"',
+      account_number = account_id,
+      name_address = request.form['From'],
+      date = datetime.datetime.now().strftime('%-m/%-d/%Y')
+    )
+
     return 'OK'
 
 #-------------------------------------------------------------------------------

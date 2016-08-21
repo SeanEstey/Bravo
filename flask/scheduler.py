@@ -119,6 +119,7 @@ def get_accounts(etapestry_id, cal_id, oauth, days_from_now=None):
 def get_nps(agency, accounts):
     '''Analyze list of eTap account objects for non-participants
     (Dropoff Date >= 12 monthss ago and no collections in that time
+    Output: list of np's, empty list if none found
     '''
 
     # TODO: If missing Signup Date use 'accountCreatedDate'
@@ -144,7 +145,7 @@ def get_nps(agency, accounts):
     logger.info('found %s older accounts', str(len(older_accounts)))
 
     if len(older_accounts) == 0:
-        return False
+        return []
 
     try:
         etap_id = db['agencies'].find_one({'name':agency})['etapestry']
@@ -197,8 +198,8 @@ def analyze_non_participants():
 
             nps = get_nps(agency['name'], accounts)
 
-            #if len(nps) < 1:
-            #    continue
+            if len(nps) < 1:
+                continue
 
             now = datetime.now()
 

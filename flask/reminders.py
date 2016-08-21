@@ -672,40 +672,6 @@ def call_event(args):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-def sms(to, msg):
-
-    # For testing
-    agency = 'vec'
-    #agency = db['jobs'].find_one({'_id':ObjectId(job_id)})['agency']
-
-    twilio_keys = db['agencies'].find_one({'name':agency})['twilio']
-
-    try:
-        twilio_client = twilio.rest.TwilioRestClient(
-          twilio_keys['keys']['main']['sid'],
-          twilio_keys['keys']['main']['auth_id']
-        )
-
-        sms = twilio_client.messages.create(
-          body = msg,
-          to = '+1' + to,
-          from_ = twilio_keys['sms'],
-          status_callback = app.config['PUB_URL'] + '/sms/status'
-        )
-    except twilio.TwilioRestException as e:
-        logger.error('sms exception %s', str(e), exc_info=True)
-
-        #if e.code == 14101:
-          #"To" Attribute is Invalid
-          #error_msg = 'number_not_mobile'
-        #elif e.code == 30006:
-          #erorr_msg = 'landline_unreachable'
-        #else:
-          #error_msg = e.message
-
-    return sms
-
-#-------------------------------------------------------------------------------
 def strip_phone(to):
     if not to:
         return ''

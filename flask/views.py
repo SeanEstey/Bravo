@@ -280,10 +280,20 @@ def sms_status():
 
     app.logger.debug(request.form.to_dict())
 
-    db['sms'].insert_one(request.form.to_dict())
+    doc = db['sms'].find_one_and_update(
+      {'SmsSid': request.form['SmsSid']},
+      {'$set': { 'SmsStatus': request.form['SmsStatus']}}
+    )
+
+    if not doc:
+        db['sms'].insert_one(request.form.to_dict())
 
     if request.form['SmsStatus'] == 'received':
-        sms.do_request(request.form['To'], request.form['From'], request.form['Body'])
+        sms.do_request(
+          request.form['To'],
+          request.form['From'],
+          request.form['Body'],
+          request.form['SmsSid'])
 
     return 'OK'
 

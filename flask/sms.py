@@ -13,78 +13,92 @@ logger.addHandler(info_handler)
 logger.addHandler(error_handler)
 logger.setLevel(logging.DEBUG)
 
+
 #-------------------------------------------------------------------------------
-def do_request(to, from_, msg):
-    '''Received an incoming SMS message. Process keyword and respond.
-    Keywords: SCHEDULE, PICKUP, SIGNUP
+def do_request(to, from_, msg, sms_sid):
+    '''Received an incoming SMS message.
+    Either initiating a keyword request or replying to conversation.
+    Keywords: SCHEDULE, PICKUP
     '''
 
     agency = db['agencies'].find_one({'twilio.sms' : to})
 
-    if agency == None:
-        logger.error('No agency found matching SMS number %s', to)
-        return False
+    # Part of message thread?
+    doc = db['sms'].find_one({'awaiting_reply': True, 'From': from_})
 
-    # Find keyword
+    if doc:
+        # Msg reply should contain address
+        logger.info('Pickup request address: \"%s\" (SMS: %s)', msg, from_)
 
-    if msg.upper().find('SIGNUP') >= 0:
-        # New signup
-        logger.info('Signup request received from ' + from_ + ' via SMS')
-
-        send(agency['twilio'], from_, "We've received your request.")
-
-        return True
-    elif msg.upper().find('PICKUP') >= 0:
-        # New donor requesting pickup. Try to parse address.
-        logger.info(from_ + ' requested a pickup via SMS')
+        db['sms'].update_one(doc, {'$set': {'awaiting_reply': False}})
 
         create_rfu(
           agency['name'],
-          'SMS received: \"' + msg + '\"',
-          name_address = from_,
+          'Pickup request received (SMS: ' + from_ + ')',
+          name_address = msg,
           date = datetime.datetime.now().strftime('%-m/%-d/%Y')
         )
 
-        send(agency['twilio'], from_, "Stand by while we schedule you for a pickup")
+        send(agency['twilio'], from_,
+          "Thank you. We'll get back to you shortly with a pickup date")
 
         return True
 
-    if msg.upper().find('SCHEDULE') == -1:
-        logger.info('Invalid or missing sms keyword')
+    # Check if initiating keyword request
 
-        send(agency['twilio'], from_, "Invalid keyword. Your request must include either \
-        SCHEDULE, PICKUP, or SIGNUP")
+    if msg.upper().find('PICKUP') >= 0:
+        logger.info('New pickup request (SMS: %s)', from_)
+
+        db['sms'].update_one(
+          {'SmsSid':sms_sid},
+          {'$set': { 'awaiting_reply': True, 'request': 'pickup'}})
+
+        send(agency['twilio'], from_,
+            "We've received your request. Please \
+            reply with your address and postal code")
+
+        return True
+    elif msg.upper().find('SCHEDULE') >= 0:
+        # Look up number in eTap to see if existing account
+        keys = {'user':agency['etapestry']['user'], 'pw':agency['etapestry']['pw'],
+                'agency':agency['name'],'endpoint':app.config['ETAPESTRY_ENDPOINT']}
+        try:
+            account = etap.call(
+              'find_account_by_phone',
+              keys,
+              {"phone": from_}
+            )
+        except Exception as e:
+            logger.error("Error calling eTap API: %s", str(e))
+
+        if not account:
+            logger.error('No matching etapestry account found (SMS: %s)', from_)
+
+            return False
+
+        logger.info('Account %s requested schedule (SMS: %s)', str(account['id']), from_)
+
+        date = etap.get_udf('Next Pickup Date', account)
+
+        if not date:
+            logger.error('Missing Next Pickup Date for account %s (SMS: %s)', str(account['id'], from_))
+
+            send(agency['twilio'], from_,
+                "You are not currently scheduled for pickup. Please contact us recycle@vecova.ca")
+
+            return False
+
+        send(agency['twilio'], from_, "Your next pickup is " + date)
+
+        return True
+    else:
+        logger.info('Invalid or missing keyword in msg \"%s\" (SMS: %s)', msg, from_)
+
+        send(agency['twilio'], from_,
+            "Invalid keyword. Your request must include either \
+            SCHEDULE or PICKUP")
 
         return False
-
-    # Keyword == SCHEDULE
-
-    # Look up number in eTap to see if existing account
-    keys = {'user':agency['etapestry']['user'], 'pw':agency['etapestry']['pw'],
-            'agency':agency['name'],'endpoint':app.config['ETAPESTRY_ENDPOINT']}
-    try:
-        account = etap.call(
-          'find_account_by_phone',
-          keys,
-          {"phone": from_}
-        )
-    except Exception as e:
-        logger.error("Error writing to eTap: %s", str(e))
-
-    logger.debug(account)
-
-    if not account:
-        logger.error('No etapestry account associated with ' + from_)
-
-        return False
-
-    logger.info('Account ' + str(account['id']) + ' requested next pickup via SMS')
-
-    date = etap.get_udf('Next Pickup Date', account)
-    send(agency['twilio'], from_, "Your next pickup is " + date)
-
-    return True
-
 
 #-------------------------------------------------------------------------------
 def send(twilio_keys, to, msg):
@@ -110,13 +124,5 @@ def send(twilio_keys, to, msg):
         )
     except twilio.TwilioRestException as e:
         logger.error('sms exception %s', str(e), exc_info=True)
-
-        #if e.code == 14101:
-          #"To" Attribute is Invalid
-          #error_msg = 'number_not_mobile'
-        #elif e.code == 30006:
-          #erorr_msg = 'landline_unreachable'
-        #else:
-          #error_msg = e.message
 
     return response

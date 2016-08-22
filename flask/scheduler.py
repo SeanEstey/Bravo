@@ -122,24 +122,40 @@ def get_nps(agency, accounts):
     Output: list of np's, empty list if none found
     '''
 
-    # TODO: If missing Signup Date use 'accountCreatedDate'
-    # If missing Dropoff Date, use 'accountCreatedDate' + 4 weeks
-
     # Build list of accounts to query gift_histories for
     older_accounts = []
+
+    agency_settings = db['agencies'].find_one({'name':agency})
+
+    etap_id = agency_settings['etapestry']
+
+    keys = {'user':etap_id['user'], 'pw':etap_id['pw'],
+            'agency':agency,'endpoint':app.config['ETAPESTRY_ENDPOINT']}
 
     for account in accounts:
         # Test if Dropoff Date was at least 12 months ago
         d = etap.get_udf('Dropoff Date', account).split('/')
 
         if len(d) < 3:
+            # If missing Signup Date or Dropoff Date, use 'accountCreatedDate'
+            try:
+                etap.call('modify_account', keys, {
+                  'id': account['id'],
+                  'udf': [
+                    {'Dropoff Date':account['accountCreatedDate']},
+                    {'Signup Date': account['accountCreatedDate']}
+                  ],
+                  'persona': []})
+            except Exception as e:
+                logger.error('Error modifying account %s: %e', account['id'], str(e))
+
             continue
 
         dropoff_date = datetime(int(d[2]), int(d[1]), int(d[0]))
         now = datetime.now()
         delta = now - dropoff_date
 
-        if delta.days >= 365:
+        if delta.days >= agency_settings['config']['non_participant_days']:
             older_accounts.append(account)
 
     logger.info('found %s older accounts', str(len(older_accounts)))
@@ -148,10 +164,6 @@ def get_nps(agency, accounts):
         return []
 
     try:
-        etap_id = db['agencies'].find_one({'name':agency})['etapestry']
-        keys = {'user':etap_id['user'], 'pw':etap_id['pw'],
-                'agency':agency,'endpoint':app.config['ETAPESTRY_ENDPOINT']}
-
         gift_histories = etap.call('get_gift_histories',
           keys, {
           "account_refs": [i['ref'] for i in older_accounts],

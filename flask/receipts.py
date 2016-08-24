@@ -42,8 +42,8 @@ def send(agency, account, entry, template, subject):
 #-------------------------------------------------------------------------------
 @celery_app.task
 def process(entries, etapestry_id):
-    '''Celery process that sends email receipts to entries in Route
-    Importer->Routes worksheet. Lots of account data retrieved from eTap
+    '''Celery process that sends email receipts to entries in Bravo
+    Sheets->Routes worksheet. Lots of account data retrieved from eTap
     (accounts + journal data) so can take awhile to run 4 templates:
     gift_collection, zero_collection, dropoff_followup, cancelled entries:
     list of row entries to receive emailed receipts
@@ -53,7 +53,8 @@ def process(entries, etapestry_id):
     '''
 
     try:
-        # Get all eTapestry account data
+        # Get all eTapestry account data.
+        # List is indexed the same as @entries arg list
         accounts = etap.call('get_accounts', etapestry_id, {
           "account_numbers": [i['account_number'] for i in entries]
         })
@@ -99,7 +100,7 @@ def process(entries, etapestry_id):
                 entries[i]['next_pickup'] = parse(
                         entries[i]['next_pickup']).strftime('%B %-d, %Y')
 
-            # Cancelled Receipt
+            # Send Cancelled Receipt
             if etap.get_udf('Status', accounts[i]) == 'Cancelled':
                 send(etapestry_id['agency'], accounts[i], entries[i],
                 schemas['cancelled']['file'],
@@ -107,6 +108,8 @@ def process(entries, etapestry_id):
 
                 num_cancels += 1
                 continue
+
+            # If UDF['SMS'] is defined, include it
 
             # Dropoff Followup Receipt
             drop_date = etap.get_udf('Dropoff Date', accounts[i])

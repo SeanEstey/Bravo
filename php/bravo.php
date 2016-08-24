@@ -60,16 +60,8 @@ function get_account($nsc, $account_number) {
 function find_account_by_phone($nsc, $phone) {
   info_log('finding account for ' . $phone);
 
-  /*$dv = [
-    'fieldName'=>'phones',
-    'value'=>[
-      'type'=>'Mobile',
-      'number'=>$phone
-    ]
-  ];*/
-
   $dv = [
-    'fieldName'=>'Mobile',
+    'fieldName'=>'SMS',
     'value'=> $phone
   ];
 
@@ -81,6 +73,8 @@ function find_account_by_phone($nsc, $phone) {
     info_log('No matching account found for phone number ' . $phone);
     return false;
   }
+  else
+    info_log('Found account Id ' . $account['id'] . ' matching ' . $phone);
 
   return $account;
 }
@@ -175,7 +169,6 @@ function get_block_size($nsc, $query_category, $query) {
   http_response_code(200);  
 }
 
-
 //-----------------------------------------------------------------------
 function get_gift_history($nsc, $ref, $start_date, $end_date) {
 	/* Returns array of journal gift histories where amount > $0 and format
@@ -214,7 +207,6 @@ function get_gift_history($nsc, $ref, $start_date, $end_date) {
   return $gifts;
 }
 
-
 //-----------------------------------------------------------------------
 function get_upload_status($db, $request_id, $from_row) {
 	/* Check on progress of update_accounts, add_gifts, add_accounts */
@@ -230,7 +222,6 @@ function get_upload_status($db, $request_id, $from_row) {
 
   echo json_encode($results);
 }
-
 
 //-----------------------------------------------------------------------
 function process_route_entry($nsc, $entry) {
@@ -275,7 +266,6 @@ function process_route_entry($nsc, $entry) {
     false
   ]);
 }
-
 
 //-----------------------------------------------------------------------
 function add_note($nsc, $note) {
@@ -323,7 +313,6 @@ function update_note($nsc, $data) {
     echo $status;
   }
 }
-
 
 //-----------------------------------------------------------------------
 function add_accounts($db, $nsc, $submissions) {
@@ -408,7 +397,6 @@ function add_accounts($db, $nsc, $submissions) {
   info_log((string)count($submissions) . ' accounts added/updated. ' . (string)$num_errors . ' errors.');
 }
 
-
 //-----------------------------------------------------------------------
 function modify_account($db, $nsc, $id, $udf, $persona) {
 	/* $udf is associative array ie. ["Status"=>"Active", ...], not 
@@ -423,7 +411,27 @@ function modify_account($db, $nsc, $id, $udf, $persona) {
     return info_log('modify_account(): Id ' . (string)$id . ' does not exist');
 
   foreach($persona as $key=>$value) {
-    $account[$key] = $value;
+		// TODO: Big mess. Clean up
+		if($key == 'phones') {
+			$value = json_decode(json_encode($value), true);
+
+			$found = false;
+
+			if(isset($account['phones'])) {
+				foreach($account['phones'] as $phone_key=>$phone_value) {
+					if($phone_value['type'] == $value['type']) {
+						$found = true;
+						$account['phones'][$phone_key] = $value;
+					}
+				}	
+			}
+
+			if($found == false) {
+				$account['phones'][] = $value;
+			}
+		}
+		else
+			$account[$key] = $value;
   }
 
   // Fix blank firstName / lastName bug in non-business accounts
@@ -501,7 +509,7 @@ function remove_udf($nsc, $account, $udf) {
   // Cycle through numbered array of all UDF values. Defined Fields with
   // multiple values like checkboxes will contain an array element for each value
   foreach($account['accountDefinedValues'] as $key=> $field) {
-		if($field['fieldName'] == 'Data Source' || $field['fieldName'] == 'Are you ready to start collecting empty beverage containers?' || $field['fieldName'] == 'Beverage Container Customer' || $field['fieldName'] == 'Mailing Address' || $field['fieldName'] == 'Location Type') {
+		if($field['fieldName'] == 'Data Source' || $field['fieldName'] == 'Are you ready to start collecting empty beverage containers?' || $field['fieldName'] == 'Beverage Container Customer' || $field['fieldName'] == 'Mailing Address' || $field['fieldName'] == 'Location Type' || $field['fieldName'] == 'Pick Up Frequency') {
 			$udf_remove[] = $account['accountDefinedValues'][$key];
 			continue;
 		}

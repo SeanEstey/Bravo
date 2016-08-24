@@ -33,10 +33,18 @@
     </tr>
     <tr>
       <td>
-        {% if data['entry']['next_pickup'] %}
+        {% if data['entry']['next_pickup'] is defined %}
           Your next pickup is scheduled for 
           <b>{{ data['entry']['next_pickup'] }}</b>
           .
+
+					{% for phone in data['account']['phones'] %}
+						{% if phone['type'] == 'Mobile' %}
+							{# TODO: Promote SMS number for querying pickup schedule #}
+							{# New: You can now text the keyword 'SCHEDULE' to 587-401-CANS to get your next pickup date! #}
+						{% endif %}
+					{% endfor %}
+
         {% endif %}
       </td>
     </tr>

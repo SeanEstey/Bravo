@@ -137,19 +137,23 @@ def get_nps(agency, accounts):
         d = etap.get_udf('Dropoff Date', account).split('/')
 
         if len(d) < 3:
+            date_str = parse(account['accountCreatedDate']).strftime("%d/%m/%Y")
+
+            d = date_str.split('/')
+
             # If missing Signup Date or Dropoff Date, use 'accountCreatedDate'
             try:
                 etap.call('modify_account', keys, {
                   'id': account['id'],
-                  'udf': [
-                    {'Dropoff Date':account['accountCreatedDate']},
-                    {'Signup Date': account['accountCreatedDate']}
-                  ],
-                  'persona': []})
+                  'udf': {
+                    'Dropoff Date': date_str,
+                    'Signup Date': date_str
+                  },
+                  'persona': []
+                })
             except Exception as e:
-                logger.error('Error modifying account %s: %e', account['id'], str(e))
-
-            continue
+                logger.error('Error modifying account %s: %s', account['id'], str(e))
+                continue
 
         dropoff_date = datetime(int(d[2]), int(d[1]), int(d[0]))
         now = datetime.now()

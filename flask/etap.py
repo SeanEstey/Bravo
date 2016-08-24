@@ -30,3 +30,14 @@ def get_udf(field_name, etap_account):
           field_values.append(field['value'])
 
     return ", ".join(field_values)
+
+#-------------------------------------------------------------------------------
+def get_phone(phone_type, account):
+    if 'phones' not in account or account['phones'] == None:
+        return False
+
+    for phone in account['phones']:
+        if phone['type'] == phone_type:
+            return phone
+
+    return False

@@ -23,6 +23,12 @@ import scheduler
 import etap
 import sms
 
+@app.route('/phones', methods=['GET'])
+def test_phones():
+    import sms
+    sms.verify_sms_status()
+    return 'OK'
+
 #-------------------------------------------------------------------------------
 @app.route('/', methods=['GET'])
 @login_required

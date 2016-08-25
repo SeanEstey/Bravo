@@ -411,27 +411,8 @@ function modify_account($db, $nsc, $id, $udf, $persona) {
     return info_log('modify_account(): Id ' . (string)$id . ' does not exist');
 
   foreach($persona as $key=>$value) {
-		// TODO: Big mess. Clean up
-		if($key == 'phones') {
-			$value = json_decode(json_encode($value), true);
-
-			$found = false;
-
-			if(isset($account['phones'])) {
-				foreach($account['phones'] as $phone_key=>$phone_value) {
-					if($phone_value['type'] == $value['type']) {
-						$found = true;
-						$account['phones'][$phone_key] = $value;
-					}
-				}	
-			}
-
-			if($found == false) {
-				$account['phones'][] = $value;
-			}
-		}
-		else
-			$account[$key] = $value;
+		// If 'phones' array is included, all phone types must be present or data will be lost
+		$account[$key] = $value;
   }
 
   // Fix blank firstName / lastName bug in non-business accounts

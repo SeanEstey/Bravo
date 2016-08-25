@@ -27,6 +27,7 @@ from gsheets import add_signup, create_rfu
 from reminders import monitor_jobs, send_calls, send_emails, cancel_pickup, set_no_pickup
 from receipts import process
 from scheduler import analyze_non_participants, get_next_pickups
+from sms import update_scheduled_accounts_for_sms
 
 # Celery
 BROKER_URI= 'amqp://'
@@ -43,6 +44,11 @@ CELERYBEAT_SCHEDULE = {
     'task': 'scheduler.analyze_non_participants',
     'schedule': crontab(hour=6, minute=00, day_of_week='*'),
     'options': { 'queue': app.config['DB'] }
+  },
+  'update_sms_accounts': {
+      'task': 'sms.update_scheduled_accounts_for_sms',
+      'schedule': crontab(hour=5, minute=00, day_of_week='*'),
+      'options': { 'queue': app.config['DB'] }
   },
   'check_jobs': {
     'task': 'reminders.monitor_jobs',

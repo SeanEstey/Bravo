@@ -170,7 +170,7 @@
       else
         http_response_code(200);
       
-      echo $status;
+      echo json_encode($status);
 
       break;
 

@@ -73,13 +73,11 @@ def do_request(to, from_, msg, sms_sid):
 
         return True
     elif msg.upper().find('SCHEDULE') >= 0:
-        # Look up number in eTap to see if existing account
-        keys = {'user':agency['etapestry']['user'], 'pw':agency['etapestry']['pw'],
-                'agency':agency['name'],'endpoint':app.config['ETAPESTRY_ENDPOINT']}
         try:
+            # Look up number in eTap to see if existing account
             account = etap.call(
               'find_account_by_phone',
-              keys,
+              agency['etapestry'],
               {"phone": from_}
             )
         except Exception as e:
@@ -145,32 +143,29 @@ def send(twilio_keys, to, msg):
 
 #-------------------------------------------------------------------------------
 @celery_app.task
-def verify_sms_status():
+def update_scheduled_accounts_for_sms():
     # Verify that all accounts in upcoming residential routes with mobile
     # numbers are set up to interact with Bravo SMS system
 
     agency_name = 'vec'
+    days_from_now = 3
 
     agency_settings = db['agencies'].find_one({'name':agency_name})
-
-    agency_settings['twilio']['keys']['main']['auth_id']
 
     # Get accounts scheduled on Residential routes 3 days from now
     accounts = get_accounts(
         agency_settings['etapestry'],
         agency_settings['cal_ids']['res'],
         agency_settings['oauth'],
-        days_from_now=3)
+        days_from_now=days_from_now)
 
     if len(accounts) < 1:
         return False
 
-    etap_auth_keys = {
-      'user':agency_settings['etapestry']['user'],
-      'pw':agency_settings['etapestry']['pw'],
-      'agency':agency_name,
-      'endpoint':app.config['ETAPESTRY_ENDPOINT']
-    }
+    client = TwilioLookupsClient(
+      account = agency_settings['twilio']['keys']['main']['sid'],
+      token = agency_settings['twilio']['keys']['main']['auth_id']
+    )
 
     for account in accounts:
         # A. Verify Mobile phone setup for SMS
@@ -182,17 +177,17 @@ def verify_sms_status():
             sms_udf = etap.get_udf('SMS', account)
 
             if not sms_udf:
-                international_format = re.sub(r'\-|\(|\)|\s', '', mobile['number'])
+                int_format = re.sub(r'[^0-9.]', '', mobile['number'])
 
-                if international_format[0:2] != "+1":
-                    international_format = "+1" + international_format
+                if int_format[0:1] != "1":
+                    int_format = "+1" + int_format
 
-                logger.info('Account %s has Mobile number but missing SMS udf. Updating', str(account['id']))
+                logger.info('Adding SMS field to Account %s', str(account['id']))
 
                 try:
-                    etap.call('modify_account', etap_auth_keys, {
+                    etap.call('modify_account', agency_settings['etapestry'], {
                       'id': account['id'],
-                      'udf': {'SMS': international_format},
+                      'udf': {'SMS': int_format},
                       'persona': []
                     })
                 except Exception as e:
@@ -206,17 +201,15 @@ def verify_sms_status():
         if not voice:
             continue
 
-        try:
-            client = TwilioLookupsClient(
-              account = agency_settings['twilio']['keys']['main']['sid'],
-              token = agency_settings['twilio']['keys']['main']['auth_id']
-            )
+        int_format = re.sub(r'[^0-9.]', '', voice['number'])
 
-            international_format = '+1' + re.sub(r'\-|\(|\)|\s', '', voice['number'])
-            info = client.phone_numbers.get(international_format, include_carrier_info=True)
+        if int_format[0:1] != "1":
+            int_format = "+1" + int_format
+
+        try:
+            info = client.phone_numbers.get(int_format, include_carrier_info=True)
         except Exception as e:
-            logger.error('Carrier lookup error on Account %s: %s',
-                    str(account['id']), str(e))
+            logger.error('Carrier lookup error (Account %s): %s', str(account['id']), str(e))
             continue
 
         if info.carrier['type'] != 'mobile':
@@ -225,17 +218,18 @@ def verify_sms_status():
         # Found a Mobile number labelled as Voice
         # Update Persona and SMS udf
 
-        logger.info('Account %s had mobile number mislabelled. Updating Mobile persona and SMS udf', str(account['id']))
+        logger.info('Acct #%s had mobile number mislabelled. Updating ' +
+                    'Mobile persona and SMS udf', str(account['id']))
 
         try:
-            etap.call('modify_account', etap_auth_keys, {
+            etap.call('modify_account', agency_settings['etapestry'], {
               'id': account['id'],
               'udf': {'SMS': info.phone_number},
               'persona': {
-                  'phones':{
-                      'type':'Mobile',
-                      'number': info.national_format
-                  }
+                'phones':[
+                  {'type':'Mobile', 'number': info.national_format},
+                  {'type':'Voice', 'number': info.national_format}
+                ]
               }
             })
         except Exception as e:

@@ -43,9 +43,7 @@
           {% set col_arr=[] %}
           {% for column in template if not column.hide %}
             <th style='text-align:left' id='col{{ col_num }}'>
-              <a title='Sort' class='hover' href='#'>
-                {{ column['file_header'] }}
-              </a>
+              <a title='Sort' class='hover' href='#'>{{ column['file_header'] }}</a>
             </th>
             {% set col_num = col_num + 1 %}
             {% do col_arr.append(1) %}
@@ -56,9 +54,7 @@
             <th name='Call Status' 
               style='text-align:right'  
               id='col{{col_arr|length+1}}'>
-              <a title='Sort' class='hover' href='#'>
-                Call Status
-              </a>
+              <a title='Sort' class='hover' href='#'>Call Status</a>
             </th>
 
             {% set col_num = col_num + 1 %}
@@ -70,9 +66,7 @@
             <th name='Email Status' 
               style='text-align:right'  
               id='col{{col_arr|length+1}}'>
-              <a title='Sort' class='hover' href='#'>
-                Email Status
-              </a>
+              <a title='Sort' class='hover' href='#'>Email Status</a>
             </th>
 
             {% set col_num = col_num + 1 %}

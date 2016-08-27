@@ -218,8 +218,7 @@ def update_scheduled_accounts_for_sms():
         # Found a Mobile number labelled as Voice
         # Update Persona and SMS udf
 
-        logger.info('Acct #%s had mobile number mislabelled. Updating ' +
-                    'Mobile persona and SMS udf', str(account['id']))
+        logger.info('Acct #%s: Found mobile number. SMS ready.', str(account['id']))
 
         try:
             etap.call('modify_account', agency_settings['etapestry'], {

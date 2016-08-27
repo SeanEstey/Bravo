@@ -28,12 +28,13 @@ function init() {
 
               $.ajax({
                 type: 'POST',
-								url: $URL_ROOT + '/reminders/' + job_uuid + '/' + call_uuid + '/remove',
-								done: function(msg) {
+								url: $URL_ROOT + '/reminders/' + job_uuid + '/' + call_uuid + '/remove'
+							}).done(function(msg) {
+									console.log('reminder removed. msg: %s', msg);
+
 									if(msg == 'OK')
 										$tr.remove();
-								}
-              });
+							});
           });
       });
     }
@@ -142,6 +143,11 @@ function init() {
 
 //------------------------------------------------------------------------------
 function sortCalls(table, column) {
+	/* @arg column: column number
+	 */
+
+	console.log('Sorting reminders by column %s', column);
+
   var tbody = table.find('tbody');
 
   var $th = $('th:nth-child(' + column + ')');
@@ -152,8 +158,10 @@ function sortCalls(table, column) {
   else
     var sort_by = 'ascending';
    
+  var num_a = 0;
   // Clear existing sort arrows 
   $('th a').each(function () {
+		num_a++;
     var html = HTMLEncode($(this).text());
 
     html = html.replace(window.unicode['UP_ARROW'], '');
@@ -229,13 +237,12 @@ function makeCallFieldsClickable() {
       $.ajax({
         type: 'POST',
         url: $URL_ROOT + 'reminders/' + $cell.parent().attr('id') + '/edit',
-        data: payload,
-        done: function(msg){
+        data: payload
+			}).done(function(msg){
           if(msg != 'OK') {
             showDialog($('#dialog'), 'Your edit failed. Please enter a correct value: ' + msg);
             $cell.html(text);
           }
-        }
       });
 
       $input.focus();

@@ -165,7 +165,7 @@ def get_nps(agency, accounts):
     if len(viable_accounts) == 0:
         return []
 
-    np_cutoff = now - timedelta(days=agency_setings['config']['non_participant_days'])
+    np_cutoff = now - timedelta(days=agency_settings['config']['non_participant_days'])
 
     logger.info('Non-participant cutoff date is %', np_cutoff.strftime('%b %d %Y'))
 

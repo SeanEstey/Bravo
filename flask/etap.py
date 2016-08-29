@@ -10,9 +10,6 @@ def call(func_name, keys, data):
     Returns: any data or messages
     '''
 
-    #if 
-
-
     return json.loads(
         requests.post(ETAP_WRAPPER_URL, data=json.dumps({
           "func": func_name,

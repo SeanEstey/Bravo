@@ -24,6 +24,88 @@ logger.addHandler(info_handler)
 logger.addHandler(error_handler)
 logger.setLevel(logging.DEBUG)
 
+
+#-------------------------------------------------------------------------------
+def setup_reminder_jobs():
+    '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
+    '''
+
+    agency = 'vec'
+    vec = db['agencies'].find_one({'name':agency})
+    settings = vec['reminders']
+
+    accounts = get_accounts(
+        vec['etapestry'],
+        vec['cal_ids']['res'],
+        vec['oauth'],
+        days_from_now=settings['days_in_advance_to_schedule'])
+
+    if len(accounts) < 1:
+        continue
+
+    block_date = datetime.now() + timedelta(days=settings['days_in_advance_to_schedule'])
+
+    blocks = get_blocks(
+      vec['cal_ids']['res'],
+      block_date,
+      block_date + timedelta(hours=1),
+      vec['oauth'])
+
+    # Load reminder schema
+    try:
+        with open('templates/schemas/'+agency+'.json') as json_file:
+          schemas = json.load(json_file)['reminders']
+    except Exception as e:
+        logger.error(str(e))
+
+    # Create mongo 'job' and 'reminder' records
+
+    # TODO: Fixme
+    reminder_schema = schemas[0]
+
+    # TODO: Fixme
+    fire_calls_dtime = datetime.now() + timedelta(days=1)
+
+    job = {
+        'name': ', '.join(blocks),
+        'agency': 'vec',
+        'schema': reminder_schema,
+        'voice': {
+            'fire_at': fire_calls_dtime,
+            'count': len(accounts)
+        },
+        'status': 'pending'
+    }
+
+    job_id = db['jobs'].insert(job)
+
+    for account in accounts:
+        db['reminders'].insert({
+          "job_id": job['_id'],
+          "agency": job['agency'],
+          "name": account['name'],
+          "account_id": account['id'],
+          "event_date": block_date, # TODO: Fixme
+          "voice": {
+            "status": "pending",
+            "to": account['phones'][0]['number'] # TODO: Fixme
+            "attempts": 0,
+          },
+          "email": {
+            "recipient": account['email'],  # TODO: fixme
+            "status": "pending"
+          },
+          "custom": {
+            "status": etap.get_udf('Status', account),
+            "office_notes": etap.get_udf('Office Notes', account),
+            "block": etap.get_udf('Block', account),
+            "next_pickup": "" # TODO: add me
+          }
+        })
+
+    return True
+
+
 #-------------------------------------------------------------------------------
 def get_cal_events(cal_id, start, end, oauth):
     '''Get a list of Google Calendar events between given dates.
@@ -56,7 +138,7 @@ def get_cal_events(cal_id, start, end, oauth):
 
 #-------------------------------------------------------------------------------
 def get_blocks(cal_id, start_date, end_date, oauth):
-    '''Return list of Res Blocks between scheduled dates'''
+    '''Return list of Block names between scheduled dates'''
 
     blocks = []
 

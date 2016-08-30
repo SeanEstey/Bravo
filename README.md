@@ -15,7 +15,9 @@ pip install \
     python-dateutil \
     twilio \
     apiclient oauth2client gspread \
-    flask flask-socketio flask-login 
+    flask flask-socketio flask-login \
+    numpy \
+    matplotlib
 pip install --upgrade google-api-python-client
 pip install oauth2client==1.5.2
 ```

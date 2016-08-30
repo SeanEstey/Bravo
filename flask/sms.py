@@ -10,6 +10,7 @@ from tasks import celery_app
 from gsheets import create_rfu
 import etap
 import routing
+import geo
 from scheduler import get_accounts
 
 logger = logging.getLogger(__name__)
@@ -35,14 +36,16 @@ def do_request(to, from_, msg, sms_sid):
         # Msg reply should contain address
         logger.info('Pickup request address: \"%s\" (SMS: %s)', msg, from_)
 
-        geocoded_address = routing.geocode(msg)
+        block = geo.find_block(msg)
 
-        if not geocoded_address:
+        if not block:
             logger.error('Could not geocode address')
 
             send(agency['twilio'], from_, 'We could not locate your address')
 
             return False
+
+        logger.info('Address belongs to Block %s', block)
 
         db['sms'].update_one(doc, {'$set': {'awaiting_reply': False}})
 
@@ -84,7 +87,10 @@ def do_request(to, from_, msg, sms_sid):
             logger.error("Error calling eTap API: %s", str(e))
 
         if not account:
-            logger.error('No matching etapestry account found (SMS: %s)', from_)
+            logger.info('No matching etapestry account found (SMS: %s)', from_)
+            send(agency['twilio'], from_,
+                "Your phone number is not associated with an active account. \
+                To update your account, contact us at recycle@vecova.ca")
 
             return False
 

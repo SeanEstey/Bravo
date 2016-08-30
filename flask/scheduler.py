@@ -43,7 +43,8 @@ def setup_reminder_jobs():
     if len(accounts) < 1:
         continue
 
-    block_date = datetime.now() + timedelta(days=settings['days_in_advance_to_schedule'])
+    today = date.today()
+    block_date = today + timedelta(days=settings['days_in_advance_to_schedule'])
 
     blocks = get_blocks(
       vec['cal_ids']['res'],
@@ -63,16 +64,22 @@ def setup_reminder_jobs():
     # TODO: Fixme
     reminder_schema = schemas[0]
 
-    # TODO: Fixme
-    fire_calls_dtime = datetime.now() + timedelta(days=1)
+    call_d = block_date + timedelta(days=settings['phone']['fire_days_delta'])
+    call_t = datetime.time(settings['phone']['fire_hour'], settings['phone']['fire_min'])
+
+    email_d = block_date + timedelta(days=settings['email']['fire_days_delta'])
+    email_t = datetime.time(settings['email']['fire_hour'], settings['email']['fire_min'])
 
     job = {
         'name': ', '.join(blocks),
         'agency': 'vec',
         'schema': reminder_schema,
         'voice': {
-            'fire_at': fire_calls_dtime,
+            'fire_at': datetime(call_d, call_t),
             'count': len(accounts)
+        },
+        'email': {
+            'fire_at': datetime(email_d, email_t)
         },
         'status': 'pending'
     }

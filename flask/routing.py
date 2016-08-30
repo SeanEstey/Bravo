@@ -90,10 +90,11 @@ def get_postal(geo_result):
 #-------------------------------------------------------------------------------
 def geocode(formatted_address, postal=None):
     '''documentation: https://developers.google.com/maps/documentation/geocoding
-    formatted_address: string with address + city + province
-    Should NOT include postal code
-    postal: optional arg. Used to identify correct location when multiple
+    @formatted_address: string with address + city + province. Should NOT
+    include postal code.
+    @postal: optional arg. Used to identify correct location when multiple
     results found
+    Returns: geocode result (dict), False on error
     '''
 
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
@@ -105,19 +106,19 @@ def geocode(formatted_address, postal=None):
     try:
         r = requests.get(url, params=params)
     except Exception as e:
-        logger.info('Geocoding exception %s', str(e))
+        logger.error('Geocoding exception %s', str(e))
         return False
 
     response = json.loads(r.text)
 
     if response['status'] == 'ZERO_RESULTS':
-        logger.info("No geocode result for %s", formatted_address)
+        logger.error("No geocode result for %s", formatted_address)
         return False
     elif response['status'] == 'INVALID_REQUEST':
-        logger.info("Improper address %s", formatted_address)
+        logger.error("Improper address %s", formatted_address)
         return False
     elif response['status'] != 'OK':
-        logger.info("Error geocoding %s. %s", formatted_address, response)
+        logger.error("Error geocoding %s. %s", formatted_address, response)
         return False
 
     if len(response['results']) == 1 and 'partial_match' in response['results'][0]:
@@ -234,6 +235,9 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
         result = geocode(formatted_address, postal=account['postalCode'])
 
         if not result:
+            logger.info(
+              'Omitting Account %s from route due to geocode error',
+              account['id'])
             continue
 
         coords = {}

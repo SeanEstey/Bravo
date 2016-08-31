@@ -7,15 +7,16 @@ from oauth2client.client import SignedJwtAssertionCredentials
 import httplib2
 from apiclient.discovery import build
 import re
-from datetime import datetime,date, timedelta
+from datetime import datetime, date, time, timedelta
 from bson import Binary, Code, json_util
 from bson.objectid import ObjectId
 import dateutil
 import re
+import pytz
 
+from config import *
 from app import app, db, info_handler, error_handler, login_manager
 from tasks import celery_app
-from config import *
 import gsheets
 import etap
 
@@ -30,6 +31,8 @@ def setup_reminder_jobs():
     '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
     '''
 
+    # TODO: Add timezone to all datetime objects
+
     agency = 'vec'
     vec = db['agencies'].find_one({'name':agency})
     settings = vec['reminders']
@@ -41,15 +44,15 @@ def setup_reminder_jobs():
         days_from_now=settings['days_in_advance_to_schedule'])
 
     if len(accounts) < 1:
-        continue
+        return False
 
     today = date.today()
     block_date = today + timedelta(days=settings['days_in_advance_to_schedule'])
 
     blocks = get_blocks(
       vec['cal_ids']['res'],
-      block_date,
-      block_date + timedelta(hours=1),
+      datetime.combine(block_date,time(8,0)),
+      datetime.combine(block_date,time(9,0)),
       vec['oauth'])
 
     # Load reminder schema
@@ -64,22 +67,30 @@ def setup_reminder_jobs():
     # TODO: Fixme
     reminder_schema = schemas[0]
 
+    local = pytz.timezone("Canada/Mountain")
+
+    # Convert naive datetimes to local tz. Pymongo will convert to UTC when
+    # inserted
     call_d = block_date + timedelta(days=settings['phone']['fire_days_delta'])
-    call_t = datetime.time(settings['phone']['fire_hour'], settings['phone']['fire_min'])
+    call_t = time(settings['phone']['fire_hour'], settings['phone']['fire_min'])
+    call_dt = local.localize(datetime.combine(call_d, call_t), is_dst=True)
 
     email_d = block_date + timedelta(days=settings['email']['fire_days_delta'])
-    email_t = datetime.time(settings['email']['fire_hour'], settings['email']['fire_min'])
+    email_t = time(settings['email']['fire_hour'], settings['email']['fire_min'])
+    email_dt = local.localize(datetime.combine(email_d, email_t), is_dst=True)
+
+    event_date = local.localize(datetime.combine(block_date, time(8,0)), is_dst=True)
 
     job = {
         'name': ', '.join(blocks),
         'agency': 'vec',
         'schema': reminder_schema,
         'voice': {
-            'fire_at': datetime(call_d, call_t),
+            'fire_at': call_dt,
             'count': len(accounts)
         },
         'email': {
-            'fire_at': datetime(email_d, email_t)
+            'fire_at': email_dt
         },
         'status': 'pending'
     }
@@ -87,15 +98,29 @@ def setup_reminder_jobs():
     job_id = db['jobs'].insert(job)
 
     for account in accounts:
+        if account['phones'] != None:
+            to = account['phones'][0]['number']
+        else:
+            to = ''
+
+        npu = etap.get_udf('Next Pickup Date', account).split('/')
+
+        if len(npu) < 3:
+            logger.error('missing npu. skipping account')
+            continue
+
+        npu = npu[1] + '/' + npu[0] + '/' + npu[2]
+        pickup_date = parse(npu + " T08:00:00").replace(tzinfo=pytz.utc).astimezone(local)
+
         db['reminders'].insert({
           "job_id": job['_id'],
           "agency": job['agency'],
           "name": account['name'],
           "account_id": account['id'],
-          "event_date": block_date, # TODO: Fixme
+          "event_date": pickup_date, # the current pickup date
           "voice": {
             "status": "pending",
-            "to": account['phones'][0]['number'] # TODO: Fixme
+            "to": to, # TODO: Fixme
             "attempts": 0,
           },
           "email": {
@@ -110,6 +135,14 @@ def setup_reminder_jobs():
           }
         })
 
+    # Update their pickup dates
+    get_next_pickups(str(job_id))
+
+    logger.info(
+      'Created reminder job for Blocks %s. Emails fire at %s, calls fire at %s',
+      str(blocks), job['email']['fire_at'].isoformat(),
+      job['voice']['fire_at'].isoformat())
+
     return True
 
 
@@ -117,7 +150,10 @@ def setup_reminder_jobs():
 def get_cal_events(cal_id, start, end, oauth):
     '''Get a list of Google Calendar events between given dates.
     @oauth: dict oauth keys for google service account authentication
+    @start, @end: naive datetime objects
     Returns: list on success, False on error
+    Full-day events have datetime.date objects for start date
+    Event object definition: lhttps://developers.google.com/google-apps/calendar/v3/reference/events#resource
     '''
 
     try:
@@ -134,13 +170,17 @@ def get_cal_events(cal_id, start, end, oauth):
         logger.error('Error authorizing Google Calendar ID \'%s\'\n%s', cal_id,str(e))
         return False
 
-    return service.events().list(
+    events_result = service.events().list(
         calendarId = cal_id,
         timeMin = start.isoformat()+'-07:00', # MST ofset
         timeMax = end.isoformat()+'-07:00', # MST offset
         singleEvents = True,
         orderBy = 'startTime'
     ).execute()
+
+    events = events_result.get('items', [])
+
+    return events
 
 
 #-------------------------------------------------------------------------------
@@ -155,7 +195,7 @@ def get_blocks(cal_id, start_date, end_date, oauth):
         logger.error('Could not access Res calendar: %s', str(e))
         return False
 
-    for item in events['items']:
+    for item in events:
         # TODO: Only matches Residential blocks on 10 week cycle
         res_block = re.match(r'^R([1-9]|10)[a-zA-Z]{1}', item['summary'])
 
@@ -358,13 +398,13 @@ def get_next_pickups(job_id):
     try:
         events = get_cal_events(agency['cal_ids']['res'], start, end, agency['oauth'])
 
-        logger.info('%i calendar events pulled', len(events['items']))
+        logger.info('%i calendar events pulled', len(events))
 
         pickup_dates = {}
 
         for block in blocks:
             # Search calendar events to find pickup date
-            for event in events['items']:
+            for event in events:
                 cal_block = event['summary'].split(' ')[0]
 
                 if cal_block == block:
@@ -372,8 +412,12 @@ def get_next_pickups(job_id):
                         block,
                         event['start']['date']
                     )
-                    dt = dateutil.parser.parse(event['start']['date'])
-                    pickup_dates[block] = dt
+
+                    dt = dateutil.parser.parse(event['start']['date'] + " T08:00:00")
+                    local = pytz.timezone("Canada/Mountain")
+                    local_dt = local.localize(dt,is_dst=True)
+
+                    pickup_dates[block] = local_dt
             if block not in pickup_dates:
                 logger.info('No pickup found for Block %s', block)
 

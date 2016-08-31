@@ -2,6 +2,9 @@ import logging
 import matplotlib.path as mplPath
 import numpy as np
 
+from config import *
+from routing import geocode
+
 from app import app,db,info_handler,error_handler,debug_handler,socketio
 
 logger = logging.getLogger(__name__)
@@ -9,8 +12,6 @@ logger.addHandler(debug_handler)
 logger.addHandler(info_handler)
 logger.addHandler(error_handler)
 logger.setLevel(logging.DEBUG)
-
-from routing import geocode
 
 #-------------------------------------------------------------------------------
 def find_block(address):
@@ -46,5 +47,3 @@ def find_map(point):
 
     print 'Map not found'
     return False
-
-print find_block("6348 33 Ave NW, Calgary, AB")

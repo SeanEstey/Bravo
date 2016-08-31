@@ -4,6 +4,7 @@ import datetime
 import re
 from twilio.rest.lookups import TwilioLookupsClient
 
+from config import *
 from app import app,db,info_handler,error_handler,debug_handler,socketio
 from tasks import celery_app
 

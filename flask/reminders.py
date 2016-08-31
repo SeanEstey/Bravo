@@ -12,6 +12,7 @@ from bson.objectid import ObjectId
 import bson.json_util
 import json
 import re
+import pytz
 from pymongo import ReturnDocument
 from flask.ext.login import current_user
 
@@ -50,9 +51,9 @@ def monitor_pending_jobs():
     status = {}
 
     for job in pending:
-        if datetime.now() < job['voice']['fire_at']:
+        if datetime.utcnow() < job['voice']['fire_at']:
             print('Job_ID %s: Pending in %s' %
-            (str(job['_id']), str(job['voice']['fire_at'] - datetime.now())))
+            (str(job['_id']), str(job['voice']['fire_at'] - datetime.utcnow())))
             status[job['_id']] = 'pending'
             continue
 
@@ -67,7 +68,7 @@ def monitor_pending_jobs():
           {'_id': job['_id']},
           {'$set': {
             "status": "in-progress",
-            "voice.started_at": datetime.now()}})
+            "voice.started_at": datetime.utcnow()}})
 
         logger.info('Job_ID %s: Sending calls', job['_id'])
 
@@ -83,7 +84,7 @@ def monitor_pending_jobs():
         # work
         send_calls.apply_async((str(job['_id']).encode('utf-8'),),queue=app.config['DB'])
 
-    if datetime.now().minute == 0:
+    if datetime.utcnow().minute == 0:
         logger.info('%d pending jobs', pending.count())
 
     return status
@@ -100,7 +101,7 @@ def monitor_active_jobs():
     status = {}
 
     for job in in_progress:
-        now = datetime.now()
+        now = datetime.utcnow()
 
         if (now - job['voice']['started_at']).seconds > app.config['JOB_TIME_LIMIT']:
             # The celery process will have already killed the worker task if
@@ -264,7 +265,8 @@ def send_emails(job_id):
 
         try:
             data = reminder['custom']
-            data['event_date'] = reminder['event_date']
+            local = pytz.timezone("Canada/Mountain")
+            data['event_date'] = reminder['event_date'].replace(tzinfo=pytz.utc).astimezone(local)
             data['account'] = {
               "name": reminder['name'],
               "email": reminder['email']['recipient']
@@ -310,6 +312,7 @@ def get_jobs(args):
     '''Display jobs for agency associated with current_user
     If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
     If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
+    Returns: list of job dict objects
     '''
 
     agency = db['users'].find_one({'user': current_user.username})['agency']
@@ -318,6 +321,18 @@ def get_jobs(args):
 
     if jobs:
         jobs = jobs.sort('fire_calls_dtime',-1).limit(app.config['JOBS_PER_PAGE'])
+
+    # Convert naive UTC datetime objects to local
+    local = pytz.timezone("Canada/Mountain")
+
+    # Convert to list so we don't exhaust the cursor by modifying and
+    # can return iterable list
+    jobs = list(jobs)
+
+    for job in jobs:
+        fire_dt = job['voice']['fire_at']
+        local_fire_dt = fire_dt.replace(tzinfo=pytz.utc).astimezone(local)
+        job['voice']['fire_at'] = local_fire_dt
 
     return jobs
 
@@ -353,7 +368,8 @@ def create(job, schema, idx, buf_row, errors):
             # Convert any date strings to datetime obj
             elif field['type'] == 'date':
                 try:
-                    buf_row[i] = parse(parse(buf_row[i]).isoformat() + '-07:00')
+                    local = pytz.timezone("Canada/Mountain")
+                    buf_row[i] = parse(buf_row[i]).replace(tzinfo=pytz.utc).astimezone(local)
                 except TypeError as e:
                     errors.append('Row %d: %s <b>Invalid Date</b><br>',
                                 (idx+1), str(buf_row))
@@ -531,9 +547,10 @@ def get_resp_xml_template(args):
     elif args.get('Digits') == '2':
         cancel_pickup.apply_async((str(reminder['_id']),), queue=app.config['DB'])
 
+        local = pytz.timezone("Canada/Mountain")
         response.say(
           'Thank you. Your next pickup will be on ' +\
-          reminder['custom']['next_pickup'].strftime('%A, %B %d') + '. Goodbye',
+          reminder['custom']['next_pickup'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d') + '. Goodbye',
           voice='alice')
 
         return response
@@ -749,7 +766,8 @@ def cancel_pickup(reminder_id):
 
     job = db['jobs'].find_one({'_id':reminder['job_id']})
 
-    no_pickup = 'No Pickup ' + reminder['event_date'].strftime('%A, %B %d')
+    local = pytz.timezone("Canada/Mountain")
+    no_pickup = 'No Pickup ' + reminder['event_date'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d')
 
     db['reminders'].update(
       {'_id':reminder['_id']},
@@ -781,7 +799,8 @@ def cancel_pickup(reminder_id):
 
     # Send email w/ next pickup
     if 'next_pickup' in reminder['custom']:
-        next_pickup = reminder['custom']['next_pickup'].strftime('%A, %B %d')
+        local = pytz.timezone("Canada/Mountain")
+        next_pickup = reminder['custom']['next_pickup'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d')
         data = {
           "agency": job['agency'],
           "recipient": reminder['email']['recipient'],

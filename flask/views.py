@@ -6,6 +6,7 @@ import datetime
 from flask import request, Response, render_template, redirect
 from flask.ext.login import login_required, current_user
 from bson.objectid import ObjectId
+import pytz
 
 # Import Application objects
 from app import app, db, socketio
@@ -27,6 +28,12 @@ import sms
 def test_phones():
     import sms
     sms.update_scheduled_accounts_for_sms()
+    return 'OK'
+
+@app.route('/test', methods=['GET'])
+def test_schedule_reminders():
+    import scheduler
+    scheduler.setup_reminder_jobs()
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -234,6 +241,13 @@ def call_xml():
         # Returned .html template file for rendering
 
         reminder = db['reminders'].find_one({'voice.sid': request.form['CallSid']})
+
+        # Localize datetimes
+        local = pytz.timezone("Canada/Mountain")
+        if reminder['voice']['event_date']:
+            reminder['voice']['event_date'] = reminder['voice']['event_date'].replace(tzinfo=pytz.utc).astimezone(local)
+        if reminder['custom']['next_pickup']:
+            reminder['custom']['next_pickup'] = reminder['custom']['next_pickup'].replace(tzinfo=pytz.utc).astimezone(local)
 
         html = render_template(
             r,

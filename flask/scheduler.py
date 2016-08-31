@@ -15,7 +15,7 @@ import re
 import pytz
 
 from config import *
-from app import app, db, info_handler, error_handler, login_manager
+from app import app, db, info_handler, error_handler, debug_handler, login_manager
 from tasks import celery_app
 import gsheets
 import etap
@@ -23,7 +23,9 @@ import etap
 logger = logging.getLogger(__name__)
 logger.addHandler(info_handler)
 logger.addHandler(error_handler)
+logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
+
 
 
 #-------------------------------------------------------------------------------
@@ -110,7 +112,7 @@ def setup_reminder_jobs():
             continue
 
         npu = npu[1] + '/' + npu[0] + '/' + npu[2]
-        pickup_date = parse(npu + " T08:00:00").replace(tzinfo=pytz.utc).astimezone(local)
+        pickup_date = local.localize(parse(npu + " T08:00:00"), is_dst=True)
 
         db['reminders'].insert({
           "job_id": job['_id'],
@@ -130,8 +132,7 @@ def setup_reminder_jobs():
           "custom": {
             "status": etap.get_udf('Status', account),
             "office_notes": etap.get_udf('Office Notes', account),
-            "block": etap.get_udf('Block', account),
-            "next_pickup": "" # TODO: add me
+            "block": etap.get_udf('Block', account)
           }
         })
 
@@ -421,6 +422,8 @@ def get_next_pickups(job_id):
             if block not in pickup_dates:
                 logger.info('No pickup found for Block %s', block)
 
+        logger.debug(json.dumps(pickup_dates, default=json_util.default))
+
         # Now we should have pickup dates for all blocks on job
         # Iterate through each msg and store pickup_date
         for block, date in pickup_dates.iteritems():
@@ -438,11 +441,15 @@ def get_next_pickups(job_id):
             {'job_id':ObjectId(job_id),
              'custom.next_pickup': {'$exists': False}})
 
+        logger.info('%s missing next_pickups to update', str(reminders.count()))
+
         # Only works for residential blocks with a booking block and
         # 1 natural block...fixme...
         for reminder in reminders:
+            event_date = reminder['event_date'].replace(tzinfo=pytz.utc).astimezone(local)
+
             for block in reminder['custom']['block'].split(', '):
-                if pickup_dates[block] > reminder['event_date']:
+                if pickup_dates[block] > event_date:
                     db['reminders'].update_one(
                         reminder,
                         {'$set':{'custom.next_pickup':pickup_dates[block]}})

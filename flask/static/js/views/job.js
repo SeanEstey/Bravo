@@ -347,7 +347,10 @@ function updateCountdown() {
 
   $summary_lbl = $('#job-summary');
 
-  var scheduled_date = Date.parse($('#scheduled_datetime').text());
+	// remove last 6 char offset ("-06:00") so Date.parse() will work
+	var date_str = $('#scheduled_datetime').text();
+	date_str = date_str.substring(0, date_str.length-6);
+  var scheduled_date = Date.parse(date_str);
   var today = new Date();
   var diff_ms = scheduled_date.getTime() - today.getTime();
 

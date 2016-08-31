@@ -139,6 +139,9 @@ def view_job(job_id):
     reminders = db['reminders'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
 
+    local = pytz.timezone("Canada/Mountain")
+    job['voice']['fire_at'] = job['voice']['fire_at'].replace(tzinfo=pytz.utc).astimezone(local)
+
     return render_template(
         'views/job.html',
         title=app.config['TITLE'],
@@ -244,8 +247,8 @@ def call_xml():
 
         # Localize datetimes
         local = pytz.timezone("Canada/Mountain")
-        if reminder['voice']['event_date']:
-            reminder['voice']['event_date'] = reminder['voice']['event_date'].replace(tzinfo=pytz.utc).astimezone(local)
+        reminder['event_date'] = reminder['event_date'].replace(tzinfo=pytz.utc).astimezone(local)
+
         if reminder['custom']['next_pickup']:
             reminder['custom']['next_pickup'] = reminder['custom']['next_pickup'].replace(tzinfo=pytz.utc).astimezone(local)
 

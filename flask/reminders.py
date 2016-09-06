@@ -338,7 +338,7 @@ def get_jobs(args):
 
 #-------------------------------------------------------------------------------
 def create(job, schema, idx, buf_row, errors):
-    '''Create a Reminder record in MongoDB
+    '''Create a Reminder document in MongoDB from file input row.
     @job: MongoDB job record
     @schema: template dict from reminder_templates.json file
     @idx: .csv file row index (in case of error)
@@ -529,6 +529,44 @@ def get_resp_xml_template(args):
 
     response = twilio.twiml.Response()
 
+    # Voice recording?
+    if reminder is None:
+
+        record = db['audio'].find_one({'sid': args['CallSid']})
+
+        if not record:
+            logger.error('Unknown SID %s (reminders.get_answer_xml)',
+                        args['CallSid'])
+            return response
+
+        if args['Digits']:
+            digits = args['Digits']
+            logger.info('recordaudio digit='+digits)
+
+            if digits == '#':
+                logger.info('Recording completed. Sending audio_url to client')
+
+                recording_info = {
+                  'audio_url': args['RecordingUrl'],
+                  'audio_duration': args['RecordingDuration'],
+                  'sid': args['CallSid'],
+                  'call_status': args['CallStatus']
+                }
+
+                db['audio'].update_one(
+                  {'sid': args['CallSid']},
+                  {'$set': recording_info})
+
+                socketio.emit('record_audio', recording_info)
+                response = twilio.twiml.Response()
+                response.say('Message recorded', voice='alice')
+
+                return Response(str(response), mimetype='text/xml')
+        else:
+            logger.info('recordaudio: no digits')
+
+        return True
+
     # Repeat message request...
     if args.get('Digits') == '1':
         try:
@@ -591,7 +629,7 @@ def get_answer_xml_template(args):
 
     # Not a reminder. Maybe a special msg recording?
     if reminder is None:
-        record = db['bravo'].find_one({'sid': args['CallSid']})
+        record = db['audio'].find_one({'sid': args['CallSid']})
 
         response_xml = twilio.twiml.Response()
 
@@ -609,7 +647,7 @@ def get_answer_xml_template(args):
         )
         response_xml.record(
             method= 'GET',
-            action= app.config['PUB_URL'] + '/recordaudio',
+            action= app.config['PUB_URL'] + '/reminders.call.xml',
             playBeep= True,
             finishOnKey='#'
         )
@@ -674,12 +712,12 @@ def call_event(args):
 
     # If no Mongo reminder record returned, this call might be an audio recording call
     if reminder is None:
-        audio = db['audio_msg'].find_one({'sid': args['CallSid']})
+        audio = db['audio'].find_one({'sid': args['CallSid']})
 
         if audio:
             logger.info('Record audio call complete')
 
-            db['audio_msg'].update({
+            db['audio'].update({
               'sid':args['CallSid']},
               {'$set': {"status": args['CallStatus']}
             })
@@ -893,46 +931,30 @@ def parse_csv(csvfile, import_fields):
     return buffer
 
 #-------------------------------------------------------------------------------
-def record_audio():
-    if request.method == 'POST':
-        to = request.form.get('to')
-        logger.info('Record audio request from ' + to)
+def record_audio(args, agency):
+    '''Used to initiate voice recording reminder.
+    1. User POST request to /reminders/recordaudio->this function->Dial
+    user->Success response
+    2. User answers->Twilio POST request to /reminders/call.xml->Record XML
+    response
+    3. User ends recording, hits '#'->Twilio GET request to /reminders/call.xml->Recording
+    saved->Confirmation XML response
+    '''
 
-        r = dial(to)
+    if method == 'POST':
+        logger.info('Record audio request from ' + args['To'])
+
+        twilio = db['agencies'].find_one({'name':agency})
+
+        r = dial(args['To'], twilio['ph'], twilio['keys']['main'])
 
         logger.info('Dial response=' + json.dumps(r))
 
         if r['call_status'] == 'queued':
-            db['bravo'].insert(r)
+            db['audio'].insert(r)
             del r['_id']
 
         return flask.json.jsonify(r)
-    elif request.method == 'GET':
-        if request.args.get('Digits'):
-            digits = request.args.get('Digits')
-            logger.info('recordaudio digit='+digits)
-
-            if digits == '#':
-                logger.info('Recording completed. Sending audio_url to client')
-
-                recording_info = {
-                  'audio_url': request.args.get('RecordingUrl'),
-                  'audio_duration': request.args.get('RecordingDuration'),
-                  'sid': request.args.get('CallSid'),
-                  'call_status': request.args.get('CallStatus')
-                }
-
-                db['bravo'].update(
-                  {'sid': request.args.get('CallSid')},
-                  {'$set': recording_info})
-
-                socketio.emit('record_audio', recording_info)
-                response = twilio.twiml.Response()
-                response.say('Message recorded', voice='alice')
-
-                return Response(str(response), mimetype='text/xml')
-        else:
-            logger.info('recordaudio: no digits')
 
     return 'OK'
 

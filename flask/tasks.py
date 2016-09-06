@@ -26,7 +26,7 @@ celery_app.config_from_object('tasks')
 from gsheets import add_signup, create_rfu
 from reminders import monitor_jobs, send_calls, send_emails, cancel_pickup, set_no_pickup
 from receipts import process
-from scheduler import analyze_non_participants, get_next_pickups
+from scheduler import analyze_non_participants, get_next_pickups, setup_reminder_jobs
 from sms import update_scheduled_accounts_for_sms
 
 # Celery
@@ -48,6 +48,11 @@ CELERYBEAT_SCHEDULE = {
   'update_sms_accounts': {
       'task': 'sms.update_scheduled_accounts_for_sms',
       'schedule': crontab(hour=5, minute=00, day_of_week='*'),
+      'options': { 'queue': app.config['DB'] }
+  },
+  'setup_reminders': {
+      'task': 'scheduler.setup_reminder_jobs',
+      'schedule': crontab(hour=7, minute=00, day_of_week='*'),
       'options': { 'queue': app.config['DB'] }
   },
   'check_jobs': {

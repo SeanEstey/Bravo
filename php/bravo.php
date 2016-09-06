@@ -11,6 +11,11 @@ function connect($db) {
 
 //-----------------------------------------------------------------------
 function checkForError($nsc) {
+	/* Checks SOAP object for errors from the previous API call. Writes
+	 * fault code and fault string to errorlog on error.
+	 * Returns: true on error, false otherwise.
+	 */
+
   global $agency;
 
   if($nsc->fault || $nsc->getError()) {
@@ -58,6 +63,13 @@ function get_account($nsc, $account_number) {
 
 //-----------------------------------------------------------------------
 function find_account_by_phone($nsc, $phone) {
+	/* Searches accounts for matching User Defined Field 'SMS', which
+	 * is filled in by Bravo if an accounts Persona has a valid Mobile Phone.
+	 * Field is international format: +14035551111
+	 * @phone: international format phone number
+	 * Returns: eTap Account object on success, false on no result.
+	 */
+
   info_log('finding account for ' . $phone);
 
   $dv = [
@@ -81,7 +93,11 @@ function find_account_by_phone($nsc, $phone) {
 
 //-----------------------------------------------------------------------
 function get_scheduled_block_size($nsc, $query_category, $query, $date) {
-	/* Returns amount of stops booked for pickup/delivery on given date */
+	/* Find out how many stops in given Query are scheduled for given Date
+	 * @date: eTap formatted date string dd/mm/yyyy
+	 * Returns: string "num_accounts_booked/num_query_accounts" on success,
+	 * error string on fail (http_response_code 400)
+	 */
 
   ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
   
@@ -95,8 +111,7 @@ function get_scheduled_block_size($nsc, $query_category, $query, $date) {
   // Fault Code 103: Invalid Query
   if(checkForError($nsc)) {
     http_response_code(400);
-    echo $response['faultstring'];
-    return false;
+    return $response['faultstring'];
   }
 
 	// Convert from str dd/mm/yyyy to date object
@@ -144,13 +159,17 @@ function get_scheduled_block_size($nsc, $query_category, $query, $date) {
     $ratio .= '?';
   
   info_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
-  echo $ratio;
 
   http_response_code(200);
+
+  return $ratio;
 }
 
 //-----------------------------------------------------------------------
 function get_block_size($nsc, $query_category, $query) {
+	/* Return number of accounts in given query
+	 */
+
   $response = $nsc->call('getExistingQueryResults', [[
     'start' => 0,
     'count' => 500,
@@ -159,14 +178,16 @@ function get_block_size($nsc, $query_category, $query) {
   );
 
   if(checkForError($nsc)) {
-    echo $response;
-    return false; 
+		http_response_code(400);
+    return $response;
   }
 
   // Next P/U Date returns in dd/mm/yyyy format
   info_log('Query ' . $query . ' count: ' . $response['count']);
-  echo $response['count'];
-  http_response_code(200);  
+
+	http_response_code(200); 
+
+	return $response['count'];	
 }
 
 //-----------------------------------------------------------------------
@@ -443,6 +464,13 @@ function modify_account($db, $nsc, $id, $udf, $persona) {
 
 //-----------------------------------------------------------------------
 function no_pickup($nsc, $account_id, $date, $next_pickup) {
+	/* Updates given Accounts "Next Pickup Date" UDF to given
+	 * next date and adds "No Pickup" Journal Note for given event date
+	 * @date: dd/mm/yyyy string
+	 * @next_pickup: dd/mm/yyyy string
+	 * Returns: JSON string
+	 */
+
   $account = $nsc->call("getAccountById", array($account_id));
   $office_notes = "";
   $udf = $account['accountDefinedValues'];
@@ -453,8 +481,6 @@ function no_pickup($nsc, $account_id, $date, $next_pickup) {
   }
 
   $no_pickup_note = $office_notes . ' No Pickup ' . $date;
-
-  echo json_encode(['No Pickup request received! Thanks']);
 
   // params: db_ref, defined_values, create_field_and_values (bool)
   $status = $nsc->call("applyDefinedValues", [
@@ -476,6 +502,8 @@ function no_pickup($nsc, $account_id, $date, $next_pickup) {
   ]);
   
   info_log('Account ' . $account_id . ' No Pickup');
+
+	return json_encode(["No Pickup request received. Thanks"]);
 }
 
 //-----------------------------------------------------------------------
@@ -490,7 +518,7 @@ function remove_udf($nsc, $account, $udf) {
   // Cycle through numbered array of all UDF values. Defined Fields with
   // multiple values like checkboxes will contain an array element for each value
   foreach($account['accountDefinedValues'] as $key=> $field) {
-		if($field['fieldName'] == 'Data Source' || $field['fieldName'] == 'Are you ready to start collecting empty beverage containers?' || $field['fieldName'] == 'Beverage Container Customer' || $field['fieldName'] == 'Mailing Address' || $field['fieldName'] == 'Location Type' || $field['fieldName'] == 'Pick Up Frequency') {
+		if($field['fieldName'] == 'Data Source' || $field['fieldName'] == 'Are you ready to start collecting empty beverage containers?' || $field['fieldName'] == 'Beverage Container Customer' || $field['fieldName'] =='Next PickUp Date' || $field['fieldName'] == 'Mailing Address' || $field['fieldName'] == 'Location Type' || $field['fieldName'] == 'Pick Up Frequency') {
 			$udf_remove[] = $account['accountDefinedValues'][$key];
 			continue;
 		}
@@ -564,7 +592,6 @@ function check_duplicates($nsc, $persona_fields) {
   
   if(checkForError($nsc)) {
     echo $nsc->faultcode . ': ' . $nsc->faultstring;
-    error_log($agency . ': getDuplicateAccounts error');
     return false;
   }
 
@@ -636,7 +663,11 @@ function make_booking($nsc, $account_num, $udf, $type) {
 
 //-----------------------------------------------------------------------
 function get_next_pickup($nsc, $email) {
-	/* returns date value from eTapestry API */
+	/* Find account matching given Email and get it's "Next Pickup Date" 
+	 * User Defined Field.
+	 * Returns: dd/mm/yyyy string on success, false if account not found
+	 * or empty Next Pickup Date field
+	 */
 
   $dv = [
     'email' => $email,
@@ -644,25 +675,28 @@ function get_next_pickup($nsc, $email) {
     'allowEmailOnlyMatch' => true
   ]; 
 
-  $response = $nsc->call("getDuplicateAccount", array($dv));
+	$response = $nsc->call("getDuplicateAccount", array($dv));
 
   if(empty($response))
-    return false;
-  else {
-    // Loop through array and extract fieldName = "Next Pickup Date"
-    foreach($response as $search) {
-      if(!is_array($search))
-        continue;
+		return false;
 
-      foreach($search as $searchArray) {
-        extract($searchArray);
-        if($fieldName == 'Next Pickup Date') {
-          info_log('Next Pickup for ' . $email . ': ' . formatDateAsDateTimeString($value));
-          return formatDateAsDateTimeString($value);
-        }
-      }
-    }
-  }
+	// Loop through array and extract fieldName = "Next Pickup Date"
+	foreach($response as $search) {
+		if(!is_array($search))
+			continue;
+
+		foreach($search as $searchArray) {
+			extract($searchArray);
+
+			if($fieldName == 'Next Pickup Date') {
+				info_log('Next Pickup for ' . $email . ': ' . formatDateAsDateTimeString($value));
+
+				return formatDateAsDateTimeString($value);
+			}
+		}
+	}
+
+	return false;
 }
 
 ?>

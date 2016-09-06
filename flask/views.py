@@ -127,9 +127,11 @@ def submit_job():
         return False
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/recordaudio', methods=['GET', 'POST'])
+@app.route('/reminders/recordaudio', methods=['POST'])
 def record_msg():
-    return reminders.record_audio()
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+
+    return reminders.record_audio(request.values.to_dict(), agency)
 
 #-------------------------------------------------------------------------------
 @app.route('/reminders/<job_id>')
@@ -227,7 +229,7 @@ def no_pickup(job_id, msg_id):
     return 'Thank You'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/call.xml',methods=['POST'])
+@app.route('/reminders/call.xml',methods=['GET', 'POST'])
 def call_xml():
     '''Twilio TwiML Voice Request
     Returns twilio.twiml.Response obj

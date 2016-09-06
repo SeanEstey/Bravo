@@ -29,11 +29,10 @@ logger.setLevel(logging.DEBUG)
 
 
 #-------------------------------------------------------------------------------
+@celery_app.task
 def setup_reminder_jobs():
     '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
     '''
-
-    # TODO: Add timezone to all datetime objects
 
     agency = 'vec'
     vec = db['agencies'].find_one({'name':agency})
@@ -56,6 +55,8 @@ def setup_reminder_jobs():
       datetime.combine(block_date,time(8,0)),
       datetime.combine(block_date,time(9,0)),
       vec['oauth'])
+
+    logger.info('Scheduling reminders for blocks %s', ', '.join(blocks))
 
     # Load reminder schema
     try:
@@ -88,8 +89,7 @@ def setup_reminder_jobs():
         'agency': 'vec',
         'schema': reminder_schema,
         'voice': {
-            'fire_at': call_dt,
-            'count': len(accounts)
+            'fire_at': call_dt
         },
         'email': {
             'fire_at': email_dt
@@ -98,6 +98,7 @@ def setup_reminder_jobs():
     }
 
     job_id = db['jobs'].insert(job)
+    count = 0
 
     for account in accounts:
         if account['phones'] != None:
@@ -108,7 +109,7 @@ def setup_reminder_jobs():
         npu = etap.get_udf('Next Pickup Date', account).split('/')
 
         if len(npu) < 3:
-            logger.error('missing npu. skipping account')
+            logger.error('Account %s missing npu. Skipping.', account['id'])
             continue
 
         npu = npu[1] + '/' + npu[0] + '/' + npu[2]
@@ -135,6 +136,10 @@ def setup_reminder_jobs():
             "block": etap.get_udf('Block', account)
           }
         })
+
+        count+=1
+
+    db['jobs'].update_one(job, {'$set':{'voice.count':count}})
 
     # Update their pickup dates
     get_next_pickups(str(job_id))

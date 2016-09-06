@@ -131,7 +131,7 @@ def geocode(formatted_address, postal=None):
 
         # No way to identify best match
         if postal is None:
-            logger.error('Warning: no postal code provided. Returning first result: "%s"',
+            logger.info('Warning: no postal code provided. Returning first result: "%s"',
                          response['results'][0]['formatted_address'])
             return response['results'][0]
 

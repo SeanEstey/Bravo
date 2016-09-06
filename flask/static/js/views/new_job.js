@@ -85,7 +85,7 @@ function init() {
     var request =  $.ajax({
       type: 'POST',
       url: $URL_ROOT + 'recordaudio',
-      data: {'to':phone}
+      data: {'To':phone}
     });
     
     $('#record-status').text('Attempting Call...');

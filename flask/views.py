@@ -249,10 +249,10 @@ def call_xml():
 
         # Localize datetimes
         local = pytz.timezone("Canada/Mountain")
-        reminder['event_date'] = reminder['event_date'].replace(tzinfo=pytz.utc).astimezone(local)
+        reminder['event_dt'] = reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
 
-        if reminder['custom']['next_pickup']:
-            reminder['custom']['next_pickup'] = reminder['custom']['next_pickup'].replace(tzinfo=pytz.utc).astimezone(local)
+        if reminder['custom']['future_pickup_dt']:
+            reminder['custom']['future_pickup_dt'] = reminder['custom']['future_pickup_dt'].replace(tzinfo=pytz.utc).astimezone(local)
 
         html = render_template(
             r,

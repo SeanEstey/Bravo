@@ -266,7 +266,7 @@ def send_emails(job_id):
         try:
             data = reminder['custom']
             local = pytz.timezone("Canada/Mountain")
-            data['event_date'] = reminder['event_date'].replace(tzinfo=pytz.utc).astimezone(local)
+            data['event_dt'] = reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
             data['account'] = {
               "name": reminder['name'],
               "email": reminder['email']['recipient']
@@ -300,7 +300,7 @@ def send_emails(job_id):
 
     '''TODO: Add date into subject
     #subject = 'Reminder: Upcoming event on  ' +
-    # reminder['imported']['event_date'].strftime('%A, %B %d')
+    # reminder['imported']['event_dt'].strftime('%A, %B %d')
     '''
 
     logger.info('Job_ID %s: %d emails sent', str(job_id), emails_sent)
@@ -320,7 +320,7 @@ def get_jobs(args):
     jobs = db['jobs'].find({'agency':agency})
 
     if jobs:
-        jobs = jobs.sort('fire_calls_dtime',-1).limit(app.config['JOBS_PER_PAGE'])
+        jobs = jobs.sort('event_dt',-1).limit(app.config['JOBS_PER_PAGE'])
 
     # Convert naive UTC datetime objects to local
     local = pytz.timezone("Canada/Mountain")
@@ -330,9 +330,15 @@ def get_jobs(args):
     jobs = list(jobs)
 
     for job in jobs:
-        fire_dt = job['voice']['fire_at']
-        local_fire_dt = fire_dt.replace(tzinfo=pytz.utc).astimezone(local)
-        job['voice']['fire_at'] = local_fire_dt
+        if 'voice' in job:
+            job['voice']['fire_at'] = job['voice']['fire_at'].replace(tzinfo=pytz.utc).astimezone(local)
+
+        if 'email' in job:
+            job['email']['fire_at'] = job['email']['fire_at'].replace(tzinfo=pytz.utc).astimezone(local)
+
+        if 'event_dt' in job:
+            job['event_dt'] = job['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
+
 
     return jobs
 
@@ -443,11 +449,11 @@ def edit_msg(reminder_id, fields):
     '''
 
     for fieldname, value in fields:
-        if fieldname == 'event_date':
+        if fieldname == 'event_dt':
           try:
             value = parse(value)
           except Exception, e:
-            logger.error('Could not parse event_date in /edit/call')
+            logger.error('Could not parse event_dt in /edit/call')
             return '400'
 
         logger.info('Editing ' + fieldname + ' to value: ' + str(value))
@@ -518,13 +524,13 @@ def get_voice_response(args):
 #-------------------------------------------------------------------------------
 def get_resp_xml_template(args):
     '''Twilio TwiML Voice Request. User has made interaction with call.
-    @args: dict of flask request.form
+    @args: dict of flask request.form (POST) or request.args (GET)
     Returns: either twilio.twiml.Response obj or .html template
     '''
 
     logger.debug('get_resp_xml: CallSid %s', args['CallSid'])
 
-    reminder = db['reminders'].find_one({'voice.sid': args.get('CallSid')})
+    reminder = db['reminders'].find_one({'voice.sid': args['CallSid']})
     job = db['jobs'].find_one({'_id': reminder['job_id']})
 
     response = twilio.twiml.Response()
@@ -534,12 +540,11 @@ def get_resp_xml_template(args):
 
         record = db['audio'].find_one({'sid': args['CallSid']})
 
-        if not record:
-            logger.error('Unknown SID %s (reminders.get_answer_xml)',
-                        args['CallSid'])
+        if record is None:
+            logger.error('Unknown SID %s (reminders.get_answer_xml)', args['CallSid'])
             return response
 
-        if args['Digits']:
+        if 'Digits' in args:
             digits = args['Digits']
             logger.info('recordaudio digit='+digits)
 
@@ -567,6 +572,8 @@ def get_resp_xml_template(args):
 
         return True
 
+    # Must be reminder call
+
     # Repeat message request...
     if args.get('Digits') == '1':
         try:
@@ -588,7 +595,7 @@ def get_resp_xml_template(args):
         local = pytz.timezone("Canada/Mountain")
         response.say(
           'Thank you. Your next pickup will be on ' +\
-          reminder['custom']['next_pickup'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d') + '. Goodbye',
+          reminder['custom']['future_pickup_dt'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d') + '. Goodbye',
           voice='alice')
 
         return response
@@ -597,7 +604,7 @@ def get_resp_xml_template(args):
 def get_answer_xml_template(args):
     '''TwiML Voice Request
     Call has been answered (by machine or human)
-    Returns either twilio.twiml.Response obj or .html template
+    Returns: either twilio.twiml.Response obj or .html template
     '''
 
     logger.info('%s %s (%s)', args['To'], args['CallStatus'], args.get('AnsweredBy'))
@@ -633,7 +640,7 @@ def get_answer_xml_template(args):
 
         response_xml = twilio.twiml.Response()
 
-        if not record:
+        if record is None:
             logger.error('Unknown SID %s (reminders.get_answer_xml)',
                         args['CallSid'])
             return response_xml
@@ -793,19 +800,19 @@ def cancel_pickup(reminder_id):
 
     # Already cancelled?
     if 'no_pickup' in reminder['custom']:
-        if reminder['custom']['no_pickup'] == True:
+        if reminder['custom']['future_pickup_dt'] == True:
             logger.info('No pickup already processed for account %s', reminder['account_id'])
             return False
 
     # No next pickup date?
-    if 'next_pickup' not in reminder['custom']:
+    if 'future_pickup_dt' not in reminder['custom']:
         logger.error("Next Pickup for reminder_msg _id %s is missing.", str(reminder['_id']))
         return False
 
     job = db['jobs'].find_one({'_id':reminder['job_id']})
 
     local = pytz.timezone("Canada/Mountain")
-    no_pickup = 'No Pickup ' + reminder['event_date'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d')
+    no_pickup = 'No Pickup ' + reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d')
 
     db['reminders'].update(
       {'_id':reminder['_id']},
@@ -829,16 +836,17 @@ def cancel_pickup(reminder_id):
         # Write to eTapestry
         etap.call('no_pickup', keys, {
           "account": reminder['account_id'],
-          "date": reminder['event_date'].strftime('%d/%m/%Y'),
-          "next_pickup": reminder['custom']['next_pickup'].strftime('%d/%m/%Y')
+          "date": reminder['event_dt'].strftime('%d/%m/%Y'),
+          "next_pickup": reminder['custom']['future_pickup_dt'].strftime('%d/%m/%Y')
         })
     except Exception as e:
         logger.error("Error writing to eTap: %s", str(e))
 
     # Send email w/ next pickup
-    if 'next_pickup' in reminder['custom']:
+    if 'future_pickup_dt' in reminder['custom']:
         local = pytz.timezone("Canada/Mountain")
-        next_pickup = reminder['custom']['next_pickup'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d')
+        next_pickup_str = reminder['custom']['future_pickup_dt'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d')
+
         data = {
           "agency": job['agency'],
           "recipient": reminder['email']['recipient'],
@@ -847,7 +855,7 @@ def cancel_pickup(reminder_id):
           "data": {
             "name": reminder['name'],
             "from": reminder['email']['recipient'],
-            "next_pickup": next_pickup,
+            "next_pickup": next_pickup_str,
             "account": {
               "email": reminder['email']['recipient']
             }
@@ -1011,6 +1019,11 @@ def cancel_job(job_id):
 #-------------------------------------------------------------------------------
 def submit_job(form, file):
     '''POST request to create new job from new_job.html template'''
+
+    # TODO: Add event_date field to form.
+
+    # TODO: Add timezone info to datetimes before inserting into mongodb
+
     logger.debug('new job form: %s', str(form))
 
     # A. Validate file
@@ -1088,11 +1101,15 @@ def submit_job(form, file):
           'msg':'Could not parse the schedule date you entered: ' + str(e)
         }
 
+    #local = pytz.timezone("Canada/Mountain")
+    #event_dt = local.localize(datetime.combine(block_date, time(8,0)), is_dst=True)
+
     # D. Create mongo 'job' and 'reminder' records
     job = {
         'name': job_name,
         'agency': agency,
         'schema': schema,
+        #'event_dt':
         'voice': {
             'fire_at': fire_calls_dtime,
             'count': len(buffer)

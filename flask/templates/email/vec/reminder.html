@@ -9,14 +9,14 @@
         {% if data['status'] == "Cancelling" %}
           <p>
             This is a reminder that a driver will be by on 
-            <b>{{ data['event_date'] }}</b>
+            <b>{{ data['event_dt'] }}</b>
             to collect your Bag Buddy stand.
           </p>
         {% elif data['status'] == "Active" or data['status'] == "Call-in" or
         data['status'] == "One-time" %}
           <p>
             Your upcoming Bottle Service pickup is 
-            <b>{{ data['event_date'] }}</b>.
+            <b>{{ data['event_dt'] }}</b>.
           </p>
           <p>
             Your bags can be placed at your front entrance, visible from 
@@ -27,7 +27,7 @@
         {% elif data['status'] == "Dropoff"%}
           <p>
             This is a reminder that a driver will be by on 
-            <b>{{ data['event_date'] }}</b>
+            <b>{{ data['event_dt'] }}</b>
             to dropoff your Bag Buddy and collection bags. 
             You do not need to be home. 
             If you have empties, you can label them <b>'Vecova'</b> and place them 

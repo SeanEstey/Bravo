@@ -34,8 +34,9 @@
     <table class='table table-hover table-colored'>
       <thead>
         <tr>
-         <th style='width:245px'>Scheduled</th>
-        <!-- <th style='min-width:200px'>Scheduled</th>-->
+					<th>Event Date</th>
+					<th style='width:245px'>Email Reminders Scheduled</th>
+					<th style='width:245px'>Phone Reminders Scheduled</th>
           <th>Name</th>
           <th>Type</th>
           <th>Calls</th>
@@ -47,48 +48,58 @@
       {% for job in jobs %}
       {% set show_calls_url = url_for('view_job', job_id=job._id)
       %}
-      <tr id='{{job._id}}'>
-        <td>
-          <a class='hover' href="{{ show_calls_url }}">
-						{{ job.voice.fire_at.strftime("%A %b %d @ %I:%M %p") }}
-          </a>
-        </td>
-        <td name='job-name'>
-          <a class='hover' href="{{ show_calls_url }}">{{ job.name }}</a>
-        </td>
-        <td name='job-type'>
-          <a class='hover' href="{{ show_calls_url }}">
-						{{ job.schema.type }}
-          </a>
-        </td>
-        <td>
-          <a class='hover' href="{{ show_calls_url }}">
-            {{ job.voice.count }}
-          </a>
-        </td>
-        <td name='job-status'>
-        {% if job.status == "completed" %}
-          <p style='color:green;'>
-          {{ job.status.title() }}
-        {% elif job.status == "pending" %}
-          <p style='color:blue;'>
-          {{ job.status.title() }}
-        {% elif job.status == "in-progress" %}
-          <p style='color:red;'>
-          {{ job.status.title() }}
-          </p>
-        {% endif %}
-        </td>
-        <td>
-          <button 
-            class='delete-btn' 
-            type="button" 
-            id="{{ url_for('cancel_job',job_id=job._id) }}" 
-            title='Delete this job'
-            name="delete-btn">
-          </button>
-        </td>
-      </tr>
+				<tr id='{{job._id}}'>
+					<td>
+						{% if job.event_dt is defined %}
+							<a class='hover' href="{{ show_calls_url }}">{{ job.event_dt.strftime("%b %d") }}</a>
+						{% endif %}
+					</td>
+					<td>
+						{% if job.email.fire_at is defined %}
+							<a class='hover' href="{{ show_calls_url }}">{{ job.email.fire_at.strftime("%A %b %d @ %I:%M %p") }}</a>
+						{% endif %}
+					</td>
+					<td>
+						{% if job.voice.fire_at is defined %}
+							<a class='hover' href="{{ show_calls_url }}">{{ job.voice.fire_at.strftime("%A %b %d @ %I:%M %p") }}</a>
+						{% endif %}
+					</td>
+					<td name='job-name'>
+						<a class='hover' href="{{ show_calls_url }}">{{ job.name }}</a>
+					</td>
+					<td name='job-type'>
+						<a class='hover' href="{{ show_calls_url }}">
+							{{ job.schema.type }}
+						</a>
+					</td>
+					<td>
+						<a class='hover' href="{{ show_calls_url }}">
+							{{ job.voice.count }}
+						</a>
+					</td>
+					<td name='job-status'>
+					{% if job.status == "completed" %}
+						<p style='color:green;'>
+						{{ job.status.title() }}
+					{% elif job.status == "pending" %}
+						<p style='color:blue;'>
+						{{ job.status.title() }}
+					{% elif job.status == "in-progress" %}
+						<p style='color:red;'>
+						{{ job.status.title() }}
+						</p>
+					{% endif %}
+					</td>
+					<td>
+						<button 
+							class='delete-btn' 
+							type="button" 
+							id="{{ url_for('cancel_job',job_id=job._id) }}" 
+							title='Delete this job'
+							name="delete-btn">
+						</button>
+					</td>
+				</tr>
       {% endfor %}
       </tbody>
     </table>

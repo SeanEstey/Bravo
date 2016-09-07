@@ -82,12 +82,13 @@ def setup_reminder_jobs():
     email_t = time(settings['email']['fire_hour'], settings['email']['fire_min'])
     email_dt = local.localize(datetime.combine(email_d, email_t), is_dst=True)
 
-    event_date = local.localize(datetime.combine(block_date, time(8,0)), is_dst=True)
+    event_dt = local.localize(datetime.combine(block_date, time(8,0)), is_dst=True)
 
     job = {
         'name': ', '.join(blocks),
         'agency': 'vec',
         'schema': reminder_schema,
+        'event_dt': event_dt,
         'voice': {
             'fire_at': call_dt
         },
@@ -110,17 +111,19 @@ def setup_reminder_jobs():
 
         if len(npu) < 3:
             logger.error('Account %s missing npu. Skipping.', account['id'])
-            continue
 
-        npu = npu[1] + '/' + npu[0] + '/' + npu[2]
-        pickup_date = local.localize(parse(npu + " T08:00:00"), is_dst=True)
+            # Use the event_date as next pickup
+            pickup_dt = event_dt
+        else:
+            npu = npu[1] + '/' + npu[0] + '/' + npu[2]
+            pickup_dt = local.localize(parse(npu + " T08:00:00"), is_dst=True)
 
         db['reminders'].insert({
           "job_id": job['_id'],
           "agency": job['agency'],
           "name": account['name'],
           "account_id": account['id'],
-          "event_date": pickup_date, # the current pickup date
+          "event_dt": pickup_dt, # the current pickup date
           "voice": {
             "status": "pending",
             "to": to, # TODO: Fixme
@@ -436,7 +439,7 @@ def get_next_pickups(job_id):
 
           db['reminders'].update(
             {'job_id':ObjectId(job_id), 'custom.block':block},
-            {'$set':{'custom.next_pickup':date}},
+            {'$set':{'custom.future_pickup_dt':date}},
             multi=True
           )
 
@@ -444,20 +447,22 @@ def get_next_pickups(job_id):
         # blocks)
         reminders = db['reminders'].find(
             {'job_id':ObjectId(job_id),
-             'custom.next_pickup': {'$exists': False}})
+             'custom.future_pickup_dt': {'$exists': False}})
 
         logger.info('%s missing next_pickups to update', str(reminders.count()))
+
+        local = pytz.timezone("Canada/Mountain")
 
         # Only works for residential blocks with a booking block and
         # 1 natural block...fixme...
         for reminder in reminders:
-            event_date = reminder['event_date'].replace(tzinfo=pytz.utc).astimezone(local)
+            event_dt = reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
 
             for block in reminder['custom']['block'].split(', '):
-                if pickup_dates[block] > event_date:
+                if pickup_dates[block] > event_dt:
                     db['reminders'].update_one(
                         reminder,
-                        {'$set':{'custom.next_pickup':pickup_dates[block]}})
+                        {'$set':{'custom.future_pickup_dt':pickup_dates[block]}})
 
     except Exception as e:
         logger.error('get_next_pickups', exc_info=True)

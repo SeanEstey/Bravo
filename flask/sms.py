@@ -12,6 +12,7 @@ from gsheets import create_rfu
 import etap
 import routing
 import geo
+import scheduler
 from scheduler import get_accounts
 
 logger = logging.getLogger(__name__)

@@ -22,6 +22,7 @@ def call(func_name, keys, data):
 def get_udf(field_name, etap_account):
     '''Extract User Defined Fields from eTap Account object. Allows
     for UDF's which contain multiple fields (Block, Neighborhood)
+    Returns: field value on success or '' if field empty
     '''
 
     field_values = []

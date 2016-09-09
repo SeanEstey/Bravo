@@ -11,7 +11,6 @@ from datetime import datetime, date, time, timedelta
 from bson import Binary, Code, json_util
 from bson.objectid import ObjectId
 import dateutil
-import re
 import pytz
 
 from config import *
@@ -27,7 +26,6 @@ logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
 
-
 #-------------------------------------------------------------------------------
 @celery_app.task
 def setup_reminder_jobs():
@@ -38,23 +36,29 @@ def setup_reminder_jobs():
     vec = db['agencies'].find_one({'name':agency})
     settings = vec['reminders']
 
-    accounts = get_accounts(
-        vec['etapestry'],
-        vec['cal_ids']['res'],
-        vec['oauth'],
-        days_from_now=settings['days_in_advance_to_schedule'])
+    accounts = []
+
+    # Get combined Res/Bus accounts from Blocks on given date
+    for cal_id in vec['cal_ids']:
+        accounts += get_accounts(
+          vec['etapestry'],
+          vec['cal_ids'][cal_id],
+          vec['oauth'],
+          days_from_now=settings['days_in_advance_to_schedule'])
 
     if len(accounts) < 1:
         return False
 
     today = date.today()
     block_date = today + timedelta(days=settings['days_in_advance_to_schedule'])
+    blocks = []
 
-    blocks = get_blocks(
-      vec['cal_ids']['res'],
-      datetime.combine(block_date,time(8,0)),
-      datetime.combine(block_date,time(9,0)),
-      vec['oauth'])
+    for cal_id in vec['cal_ids']:
+        blocks += get_blocks(
+          vec['cal_ids']['res'],
+          datetime.combine(block_date,time(8,0)),
+          datetime.combine(block_date,time(9,0)),
+          vec['oauth'])
 
     logger.info('Scheduling reminders for blocks %s', ', '.join(blocks))
 
@@ -130,7 +134,7 @@ def setup_reminder_jobs():
             "attempts": 0,
           },
           "email": {
-            "recipient": account['email'],  # TODO: fixme
+            "recipient": account['email'],
             "status": "pending"
           },
           "custom": {
@@ -145,7 +149,7 @@ def setup_reminder_jobs():
     db['jobs'].update_one(job, {'$set':{'voice.count':count}})
 
     # Update their pickup dates
-    get_next_pickups(str(job_id))
+    add_future_pickups(str(job_id))
 
     logger.info(
       'Created reminder job for Blocks %s. Emails fire at %s, calls fire at %s',
@@ -360,7 +364,11 @@ def analyze_non_participants():
 
             for np in nps:
                 npu = etap.get_udf('Next Pickup Date', np).split('/')
-                next_pickup = npu[1] + '/' + npu[0] + '/' + npu[2]
+
+                if len(npu) < 3:
+                    next_pickup = False
+                else:
+                    next_pickup = npu[1] + '/' + npu[0] + '/' + npu[2]
 
                 # Update Driver/Office Notes
 
@@ -376,10 +384,39 @@ def analyze_non_participants():
             logger.error('non-participation exception: %s' + str(e))
             continue
 
+#-------------------------------------------------------------------------------
+def get_next_pickup(blocks, office_notes, block_dates):
+    '''Given list of blocks, find next scheduled date
+    @blocks: string of comma-separated block names
+    '''
+
+    block_list = blocks.split(', ')
+
+    # Remove temporary blocks
+    if office_notes:
+        rmv = re.search(r'(\*{3}RMV\s(B|R)\d{1,2}[a-zA-Z]{1}\*{3})', office_notes)
+
+        if rmv:
+            block_list.remove(re.search(r'(B|R\d{1,2}[a-zA-Z]{1})', rmv.group(0)).group(0))
+            logger.info("Removed temp block %s from %s", str(rmv.group(0)), str(block_list))
+
+    # Find all matching dates and sort chronologically to find solution
+    dates = []
+
+    for block in block_list:
+        if block in block_dates:
+            dates.append(block_dates[block])
+
+    dates.sort()
+
+    logger.info("next_pickup for %s: %s", blocks, dates[0].strftime('%b %d %Y'))
+
+    return dates[0]
+
 
 #-------------------------------------------------------------------------------
 @celery_app.task
-def get_next_pickups(job_id):
+def add_future_pickups(job_id):
     '''Update all reminders for given job with their future pickup dates to
     relay to opt-outs
     @job_id: str of ObjectID
@@ -387,49 +424,49 @@ def get_next_pickups(job_id):
 
     logger.info('Getting next pickups for Job ID \'%s\'', job_id)
 
-    reminders = db['reminders'].find({'job_id':ObjectId(job_id)}, {'custom.block':1})
-    blocks = []
-
-    for reminder in reminders:
-        for block in reminder['custom']['block'].split(', '):
-            if block not in blocks:
-                blocks.append(block)
-
-    #if reminder['custom']['block'] not in blocks:
-    #    blocks.append(reminder['custom']['block'])
-
-    start = datetime.now() + timedelta(days=30)
-    end = start + timedelta(days=70)
-
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
     agency = db['agencies'].find_one({'name':job['agency']})
 
+    start = datetime.now() + timedelta(days=3)
+    end = start + timedelta(days=90)
+    events = []
+
     try:
-        events = get_cal_events(agency['cal_ids']['res'], start, end, agency['oauth'])
+        for cal_id in agency['cal_ids']:
+            events += get_cal_events(agency['cal_ids'][cal_id], start, end, agency['oauth'])
 
         logger.info('%i calendar events pulled', len(events))
 
-        pickup_dates = {}
+        block_dates = {}
+        local = pytz.timezone("Canada/Mountain")
 
-        for block in blocks:
-            # Search calendar events to find pickup date
-            for event in events:
-                cal_block = event['summary'].split(' ')[0]
+        # Search calendar events to find pickup date
+        for event in events:
+            block = event['summary'].split(' ')[0]
 
-                if cal_block == block:
-                    logger.debug('Block %s Pickup Date: %s',
-                        block,
-                        event['start']['date']
-                    )
+            if block not in block_dates:
+                dt = dateutil.parser.parse(event['start']['date'] + " T08:00:00")
+                local_dt = local.localize(dt,is_dst=True)
+                block_dates[block] = local_dt
 
-                    dt = dateutil.parser.parse(event['start']['date'] + " T08:00:00")
-                    local = pytz.timezone("Canada/Mountain")
-                    local_dt = local.localize(dt,is_dst=True)
+        reminders = db['reminders'].find({'job_id':ObjectId(job_id)})
 
-                    pickup_dates[block] = local_dt
-            if block not in pickup_dates:
-                logger.info('No pickup found for Block %s', block)
+        for reminder in reminders:
+            npu = get_next_pickup(
+              reminder['custom']['block'],
+              reminder['custom']['office_notes'],
+              block_dates)
 
+            if npu:
+                db['reminders'].update_one(
+                  reminder,
+                  {'$set':{'custom.future_pickup_dt':npu}}
+                )
+    except Exception as e:
+        logger.error('add_future_pickups: %s', str(e))
+        return str(e)
+
+        '''
         logger.debug(json.dumps(pickup_dates, default=json_util.default))
 
         # Now we should have pickup dates for all blocks on job
@@ -463,7 +500,4 @@ def get_next_pickups(job_id):
                     db['reminders'].update_one(
                         reminder,
                         {'$set':{'custom.future_pickup_dt':pickup_dates[block]}})
-
-    except Exception as e:
-        logger.error('get_next_pickups', exc_info=True)
-        return str(e)
+        '''

@@ -15,7 +15,7 @@ from app import app, db, socketio
 from utils import send_mailgun_email
 from log import get_tail
 from auth import login, logout
-from routing import get_completed_route, start_job
+from routing import get_completed_route, get_scheduled_route, start_job
 
 import reminders
 import receipts
@@ -79,6 +79,14 @@ def request_send_socket():
     data = request.args.get('data').encode('utf-8')
     socketio.emit(name, data)
     return 'OK'
+
+#-------------------------------------------------------------------------------
+@app.route('/routing/get_scheduled_route', methods=['POST'])
+def get_today_route():
+    return json.dumps(get_scheduled_route(
+      etapestry_id['agency'],
+      request.form['block'],
+      request.form['date']))
 
 #-------------------------------------------------------------------------------
 @app.route('/routing/get_route/<job_id>', methods=['GET'])

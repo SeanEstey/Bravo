@@ -21,7 +21,7 @@ from tasks import celery_app
 from gsheets import create_rfu
 import utils
 import etap
-from scheduler import get_next_pickups
+from scheduler import add_future_pickups
 
 logger = logging.getLogger(__name__)
 logger.addHandler(debug_handler)

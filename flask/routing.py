@@ -1,9 +1,9 @@
 import json
 import logging
 from dateutil.parser import parse
-from datetime import datetime
+from datetime import datetime, time, date
 import requests
-import time
+#import time
 
 from config import *
 import etap
@@ -17,10 +17,35 @@ logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
+def get_scheduled_route(agency, block, date):
+    # TODO: Now Google Script doesn't need to do a long while() loop waiting
+    # for Routific engine to process. This can be called by a trigger 15
+    # minutes after submitting initial routes, preventing timeout
+
+    '''Check on a scheduled route if job_id not know.
+    @date: string format 'Sat Sep 10 2016'
+    Returns: see get_completed_route()
+    '''
+
+    status = db['routes'].find_one({
+      'agency': agency,
+      'block': block,
+      'date': parse(date)
+    })
+
+    if status is None:
+        logger.info("No job exists for given agency/block/date")
+        return False
+
+    return get_completed_route(status['job_id'])
+
+#-------------------------------------------------------------------------------
 def get_completed_route(job_id):
+    #TODO: Test changes made Sep 10
+
     '''Check routific to see if process for job_id is complete.
-    Returns list of orders formatted for Google Sheets Route Template
-    on success, job status if still processing, False on error
+    Return: Routific 'solution' dict with orders on success, job status code
+    on incomplete, and False on error.
     '''
 
     r = requests.get('https://api.routific.com/jobs/' + job_id)
@@ -31,9 +56,13 @@ def get_completed_route(job_id):
     if solution['status'] != 'finished':
         return solution['status']
 
-    logger.info('Got solution! Status code: %s', r.status_code)
+    logger.info(
+      'Job_ID \'%s\' finished. Returning sorted orders (Status code: %s)',
+      job_id, r.status_code)
 
-    route_info = db['routes'].find_one({'job_id':job_id})
+    route_info = db['routes'].find_one_and_update(
+      {'job_id':job_id},
+      {'$set': {'status':'finished'}})
 
     if not route_info:
         logger.error("No mongo record for job_id '%s'", job_id)
@@ -167,6 +196,7 @@ def get_accounts(block, etapestry_id):
 def start_job(block, driver, date, start_address, end_address, etapestry_id,
         min_per_stop=3, shift_start="08:00"):
     '''Use Routific long-running process endpoint.
+    @date: string format 'Sat Sep 10 2016'
     Returns: job_id
     '''
 
@@ -199,7 +229,7 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
       "shift_end": shift_end
     }
 
-    date = parse(date)
+    route_date = parse(date).date()
     num_skips = 0
 
     for account in accounts['data']:
@@ -208,21 +238,21 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
 
         if next_pickup:
             np = next_pickup.split('/')
-            next_pickup = parse('/'.join([np[1], np[0], np[2]]))
+            next_pickup = parse('/'.join([np[1], np[0], np[2]])).date()
 
         next_delivery = etap.get_udf('Next Delivery Date', account)
 
         if next_delivery:
             nd = next_delivery.split('/')
-            next_delivery = parse('/'.join([nd[1], nd[0], nd[2]]))
+            next_delivery = parse('/'.join([nd[1], nd[0], nd[2]])).date()
 
-        if next_pickup and next_pickup > date and not next_delivery:
+        if next_pickup and next_pickup > route_date and not next_delivery:
             num_skips += 1
             continue
-        elif next_delivery and next_delivery != date and not next_pickup:
+        elif next_delivery and next_delivery != route_date and not next_pickup:
             num_skips += 1
             continue
-        elif next_pickup and next_delivery and next_pickup > date and next_delivery != date:
+        elif next_pickup and next_delivery and next_pickup > route_date and next_delivery != route_date:
             num_skips += 1
             continue
 
@@ -307,17 +337,35 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
     if r.status_code == 202:
         job_id = json.loads(r.text)['job_id']
 
-        logger.info('job_id: %s', job_id)
+        existing_job = db['routes'].find_one({
+          'agency': etapestry_id['agency'],
+          'block': block,
+          'date': datetime.combine(route_date, time(0,0,0))
+        })
 
-        db['routes'].insert_one({
+        job_info = {
+            'agency': etapestry_id['agency'],
             'job_id': job_id,
             'driver': driver,
             'status': 'processing',
             'block': block,
-            'date': date,
+            'date': datetime.combine(route_date, time(0,0,0)),
             'start_address': start_address,
             'end_address': end_address
-            })
+        }
+
+        if existing_job:
+            logger.info(
+              '%s: Routific job already exists for Block % on %s. Over-writing.',
+              etapestry_id['agency'], block, route_date.strftime('%b %d'))
+
+            db['routes'].update_one(existing_job, {'$set':job_info})
+        else:
+            db['routes'].insert_one(job_info)
+
+            logger.info(
+              '%s: Routific job started for Block %s (Job_ID: %s)',
+              etapestry_id['agency'], block, job_id)
 
         return job_id
     else:

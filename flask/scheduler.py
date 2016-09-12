@@ -55,7 +55,7 @@ def setup_reminder_jobs():
 
     for cal_id in vec['cal_ids']:
         blocks += get_blocks(
-          vec['cal_ids']['res'],
+          vec['cal_ids'][cal_id],
           datetime.combine(block_date,time(8,0)),
           datetime.combine(block_date,time(9,0)),
           vec['oauth'])
@@ -209,13 +209,14 @@ def get_blocks(cal_id, start_date, end_date, oauth):
         return False
 
     for item in events:
-        # TODO: Only matches Residential blocks on 10 week cycle
-        res_block = re.match(r'^R([1-9]|10)[a-zA-Z]{1}', item['summary'])
+        block = re.match(r'^(B|R\d{1,2}[a-zA-Z]{1})', item['summary'])
 
-        if res_block:
-            blocks.append(res_block.group(0))
+        if block:
+            blocks.append(block.group(0))
 
-    logger.info('%d blocks found: %s', len(blocks), blocks)
+
+    if len(blocks) > 0:
+        logger.info('%d scheduled Blocks: %s', len(blocks), blocks)
 
     return blocks
 
@@ -427,7 +428,7 @@ def add_future_pickups(job_id):
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
     agency = db['agencies'].find_one({'name':job['agency']})
 
-    start = datetime.now() + timedelta(days=3)
+    start = job['event_dt'] + timedelta(days=1)
     end = start + timedelta(days=90)
     events = []
 
@@ -465,39 +466,3 @@ def add_future_pickups(job_id):
     except Exception as e:
         logger.error('add_future_pickups: %s', str(e))
         return str(e)
-
-        '''
-        logger.debug(json.dumps(pickup_dates, default=json_util.default))
-
-        # Now we should have pickup dates for all blocks on job
-        # Iterate through each msg and store pickup_date
-        for block, date in pickup_dates.iteritems():
-          logger.debug('Updating all %s with Next Pickup: %s', block, date)
-
-          db['reminders'].update(
-            {'job_id':ObjectId(job_id), 'custom.block':block},
-            {'$set':{'custom.future_pickup_dt':date}},
-            multi=True
-          )
-
-        # Finish all reminders still missing pickup dates (i.e. have multiple
-        # blocks)
-        reminders = db['reminders'].find(
-            {'job_id':ObjectId(job_id),
-             'custom.future_pickup_dt': {'$exists': False}})
-
-        logger.info('%s missing next_pickups to update', str(reminders.count()))
-
-        local = pytz.timezone("Canada/Mountain")
-
-        # Only works for residential blocks with a booking block and
-        # 1 natural block...fixme...
-        for reminder in reminders:
-            event_dt = reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
-
-            for block in reminder['custom']['block'].split(', '):
-                if pickup_dates[block] > event_dt:
-                    db['reminders'].update_one(
-                        reminder,
-                        {'$set':{'custom.future_pickup_dt':pickup_dates[block]}})
-        '''

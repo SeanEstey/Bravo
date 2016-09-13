@@ -15,7 +15,7 @@ from app import app, db, socketio
 from utils import send_mailgun_email
 from log import get_tail
 from auth import login, logout
-from routing import get_completed_route, get_scheduled_route, start_job
+from routing import get_completed_route, start_job, build_route
 
 import reminders
 import receipts
@@ -96,10 +96,12 @@ def show_routing():
 #-------------------------------------------------------------------------------
 @app.route('/routing/get_scheduled_route', methods=['POST'])
 def get_today_route():
-    return json.dumps(get_scheduled_route(
+    return True
+    '''return json.dumps(get_scheduled_route(
       etapestry_id['agency'],
       request.form['block'],
       request.form['date']))
+    '''
 
 #-------------------------------------------------------------------------------
 @app.route('/routing/get_route/<job_id>', methods=['GET'])
@@ -122,10 +124,19 @@ def get_routing_job_id():
             request.form['shift_start'])
 
 #-------------------------------------------------------------------------------
-@app.route('/routing/build/<block>', methods=['POST'])
-def build_route(block):
+@app.route('/routing/build/<block>', methods=['GET', 'POST'])
+def _build_route(block):
+    agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    return True
+    #date_str = request.form['date']
+    date_str = "Sep 13 2016"
+
+    r = build_route.apply_async(
+      args=(agency, block, date_str),
+      queue=app.config['DB']
+    )
+
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 @app.route('/reminders/new')

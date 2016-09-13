@@ -25,6 +25,7 @@
 					<th>Date</th>
 					<th>Block</th>
 					<th>Routing Status</th>
+          <th>Command</th>
         </tr>
       </thead>
       <tbody>
@@ -33,6 +34,8 @@
           <td>{{ route.date.strftime("%A %b %d") }}</td>
           <td>{{ route.block }}</td>
           <td>{{ route.status }}</td>
+          <td>
+            <a class='hover' href="{{ url_for('_build_route',block=route.block) }}">Route It</a>
 				</tr>
       {% endfor %}
       </tbody>

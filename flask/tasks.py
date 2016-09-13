@@ -25,6 +25,7 @@ celery_app.config_from_object('tasks')
 # Load in registered functions
 from gsheets import add_signup, create_rfu
 from reminders import monitor_jobs, send_calls, send_emails, cancel_pickup, set_no_pickup
+from routing import build_route
 from receipts import process
 from scheduler import analyze_non_participants
 from scheduler import add_future_pickups

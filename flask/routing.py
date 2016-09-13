@@ -1,13 +1,20 @@
 import json
 import logging
 from dateutil.parser import parse
+from oauth2client.client import SignedJwtAssertionCredentials
+import httplib2
+from apiclient.discovery import build
+from apiclient.http import BatchHttpRequest
 from datetime import datetime, time, date
+from time import sleep
 import requests
+import re
 
 from config import *
 import etap
 
 from app import info_handler, error_handler, debug_handler, db
+from tasks import celery_app
 
 logger = logging.getLogger(__name__)
 logger.addHandler(info_handler)
@@ -15,33 +22,62 @@ logger.addHandler(error_handler)
 logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
-#-------------------------------------------------------------------------------
-def get_scheduled_route(agency, block, date):
-    # TODO: Now Google Script doesn't need to do a long while() loop waiting
-    # for Routific engine to process. This can be called by a trigger 15
-    # minutes after submitting initial routes, preventing timeout
 
+#-------------------------------------------------------------------------------
+@celery_app.task
+def build_route(agency, block, date_str):
     '''Check on a scheduled route if job_id not know.
-    @date: string format 'Sat Sep 10 2016'
+    @date_str: string format 'Sat Sep 10 2016'
     Returns: see get_completed_route()
     '''
 
-    status = db['routes'].find_one({
-      'agency': agency,
-      'block': block,
-      'date': parse(date)
-    })
+    routific = db['agencies'].find_one({'name':agency})['routific']
+    etap_id = db['agencies'].find_one({'name':agency})['etapestry']
 
-    if status is None:
-        logger.info("No job exists for given agency/block/date")
+    job_id = start_job(
+        block,
+        'driver',
+        date_str,
+        routific['start_address'],
+        routific['end_address'],
+        etap_id,
+        routific['min_per_stop'],
+        routific['shift_start']
+    )
+
+    # Keep looping and sleeping until receive solution or hit
+    # CELERYD_TASK_TIME_LIMIT (3000 s)
+
+    # TODO: Change this func to return entire solution to check status, not
+    # just orders
+    orders = get_completed_route(job_id)
+
+    if orders == False:
+        logger.error('Error retrieving routific solution')
         return False
 
-    return get_completed_route(status['job_id'])
+    while orders == "processing":
+        logger.info('No solution yet. Sleeping 5s...')
+
+        sleep(5)
+
+        orders = get_completed_route(job_id)
+
+    drive_api = auth_gservice(agency, 'drive')
+    sheet_id = create_sheet(agency, drive_api, block)
+
+    sheets_api = auth_gservice(agency, 'sheets')
+    write_orders(sheets_api, sheet_id, orders)
+
+    db['routes'].update_one({'job_id':job_id}, {'$set':{'gsheet':'created'}})
+
+    logger.info('Route %s complete.', block)
+
+    return True
+
 
 #-------------------------------------------------------------------------------
 def get_completed_route(job_id):
-    #TODO: Test changes made Sep 10
-
     '''Check routific to see if process for job_id is complete.
     Return: Routific 'solution' dict with orders on success, job status code
     on incomplete, and False on error.
@@ -94,102 +130,6 @@ def get_completed_route(job_id):
             )
 
     return solution['output']['solution'][route_info['driver']]
-
-#-------------------------------------------------------------------------------
-def get_gmaps_url(address, lat, lng):
-    base_url = 'https://www.google.ca/maps/place/'
-
-    # TODO: use proper urlencode() function here
-    full_url = base_url + address.replace(' ', '+')
-
-    full_url +=  '/@' + str(lat) + ',' + str(lng)
-    full_url += ',17z'
-
-    return full_url
-
-#-------------------------------------------------------------------------------
-def get_postal(geo_result):
-    for component in geo_result['address_components']:
-        if 'postal_code' in component['types']:
-            return component['short_name']
-
-    return False
-
-#-------------------------------------------------------------------------------
-def geocode(formatted_address, postal=None):
-    '''documentation: https://developers.google.com/maps/documentation/geocoding
-    @formatted_address: string with address + city + province. Should NOT
-    include postal code.
-    @postal: optional arg. Used to identify correct location when multiple
-    results found
-    Returns: geocode result (dict), False on error
-    '''
-
-    url = 'https://maps.googleapis.com/maps/api/geocode/json'
-    params = {
-      'address': formatted_address,
-      'key': GOOGLE_API_KEY
-    }
-
-    try:
-        r = requests.get(url, params=params)
-    except Exception as e:
-        logger.error('Geocoding exception %s', str(e))
-        return False
-
-    response = json.loads(r.text)
-
-    if response['status'] == 'ZERO_RESULTS':
-        logger.error("No geocode result for %s", formatted_address)
-        return False
-    elif response['status'] == 'INVALID_REQUEST':
-        logger.error("Improper address %s", formatted_address)
-        return False
-    elif response['status'] != 'OK':
-        logger.error("Error geocoding %s. %s", formatted_address, response)
-        return False
-
-    if len(response['results']) == 1 and 'partial_match' in response['results'][0]:
-        logger.info('Warning: Only partial match found for "%s". Using "%s". '\
-                    'Geo-coordinates may be incorrect.',
-                    formatted_address, response['results'][0]['formatted_address'])
-    elif len(response['results']) > 1:
-        logger.info('Multiple results geocoded for "%s". Finding best match...',
-                    formatted_address)
-
-        # No way to identify best match
-        if postal is None:
-            logger.info('Warning: no postal code provided. Returning first result: "%s"',
-                         response['results'][0]['formatted_address'])
-            return response['results'][0]
-
-        # Let's use the Postal Code to find the best match
-        for idx, result in enumerate(response['results']):
-            if not get_postal(result):
-                continue
-
-            if get_postal(result)[0:3] == postal[0:3]:
-                logger.info('First half of Postal Code "%s" matched in ' \
-                            'result[%s]: "%s". Using as best match.',
-                            get_postal(result), str(idx), result['formatted_address'])
-                return result
-
-        logger.error('Warning: unable to identify correct match. Using first '\
-                    'result as best guess: %s',
-                    response['results'][0]['formatted_address'])
-
-    return response['results'][0]
-
-#-------------------------------------------------------------------------------
-def get_accounts(block, etapestry_id):
-    # Get data from route via eTap API
-    accounts = etap.call('get_query_accounts', etapestry_id, {
-      "query": block,
-      "query_category": etapestry_id['query_category']
-    })
-
-    return accounts
-
 
 #-------------------------------------------------------------------------------
 def start_job(block, driver, date, start_address, end_address, etapestry_id,
@@ -371,3 +311,309 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
         logger.error('Error retrieving Routific job_id. %s %s',
             r.headers, r.text)
         return False
+
+
+#-------------------------------------------------------------------------------
+def get_gmaps_url(address, lat, lng):
+    base_url = 'https://www.google.ca/maps/place/'
+
+    # TODO: use proper urlencode() function here
+    full_url = base_url + address.replace(' ', '+')
+
+    full_url +=  '/@' + str(lat) + ',' + str(lng)
+    full_url += ',17z'
+
+    return full_url
+
+#-------------------------------------------------------------------------------
+def get_postal(geo_result):
+    for component in geo_result['address_components']:
+        if 'postal_code' in component['types']:
+            return component['short_name']
+
+    return False
+
+#-------------------------------------------------------------------------------
+def geocode(formatted_address, postal=None):
+    '''documentation: https://developers.google.com/maps/documentation/geocoding
+    @formatted_address: string with address + city + province. Should NOT
+    include postal code.
+    @postal: optional arg. Used to identify correct location when multiple
+    results found
+    Returns: geocode result (dict), False on error
+    '''
+
+    url = 'https://maps.googleapis.com/maps/api/geocode/json'
+    params = {
+      'address': formatted_address,
+      'key': GOOGLE_API_KEY
+    }
+
+    try:
+        r = requests.get(url, params=params)
+    except Exception as e:
+        logger.error('Geocoding exception %s', str(e))
+        return False
+
+    response = json.loads(r.text)
+
+    if response['status'] == 'ZERO_RESULTS':
+        logger.error("No geocode result for %s", formatted_address)
+        return False
+    elif response['status'] == 'INVALID_REQUEST':
+        logger.error("Improper address %s", formatted_address)
+        return False
+    elif response['status'] != 'OK':
+        logger.error("Error geocoding %s. %s", formatted_address, response)
+        return False
+
+    if len(response['results']) == 1 and 'partial_match' in response['results'][0]:
+        logger.info('Warning: Only partial match found for "%s". Using "%s". '\
+                    'Geo-coordinates may be incorrect.',
+                    formatted_address, response['results'][0]['formatted_address'])
+    elif len(response['results']) > 1:
+        logger.info('Multiple results geocoded for "%s". Finding best match...',
+                    formatted_address)
+
+        # No way to identify best match
+        if postal is None:
+            logger.info('Warning: no postal code provided. Returning first result: "%s"',
+                         response['results'][0]['formatted_address'])
+            return response['results'][0]
+
+        # Let's use the Postal Code to find the best match
+        for idx, result in enumerate(response['results']):
+            if not get_postal(result):
+                continue
+
+            if get_postal(result)[0:3] == postal[0:3]:
+                logger.info('First half of Postal Code "%s" matched in ' \
+                            'result[%s]: "%s". Using as best match.',
+                            get_postal(result), str(idx), result['formatted_address'])
+                return result
+
+        logger.error('Warning: unable to identify correct match. Using first '\
+                    'result as best guess: %s',
+                    response['results'][0]['formatted_address'])
+
+    return response['results'][0]
+
+#-------------------------------------------------------------------------------
+def get_accounts(block, etapestry_id):
+    # Get data from route via eTap API
+    accounts = etap.call('get_query_accounts', etapestry_id, {
+      "query": block,
+      "query_category": etapestry_id['query_category']
+    })
+
+    return accounts
+
+
+
+#-------------------------------------------------------------------------------
+def auth_gservice(agency, name):
+    if name == 'sheets':
+        scope = ['https://www.googleapis.com/auth/spreadsheets']
+        version = 'v4'
+    elif name == 'drive':
+        scope = ['https://www.googleapis.com/auth/drive',
+         'https://www.googleapis.com/auth/drive.file']
+        version = 'v3'
+    elif name == 'calendar':
+       scope = ['https://www.googleapis.com/auth/calendar.readonly']
+       version = 'v3'
+
+    oauth = db['agencies'].find_one({'name': agency})['oauth']
+
+    try:
+        credentials = SignedJwtAssertionCredentials(
+            oauth['client_email'],
+            oauth['private_key'],
+            scope
+        )
+
+        http = httplib2.Http()
+        http = credentials.authorize(http)
+        service = build(name, version, http=http)
+    except Exception as e:
+        logger.error('Error authorizing %s: %s', name, str(e))
+        return False
+
+    logger.info('%s api authorized', name)
+    print('%s api authorized', name)
+
+    return service
+
+#-------------------------------------------------------------------------------
+def create_sheet(agency, drive_api, title):
+    '''Make copy of Route Template, add edit/owner permissions
+    Uses batch request for creating permissions
+    Returns: ID of new Sheet file
+    '''
+
+    template_id = db['agencies'].find_one({'name':agency})['routing']['gdrive_template_id']
+
+    # Copy Route Template
+    file_copy = drive_api.files().copy(
+      fileId=template_id,
+      body={
+        'name': title
+      }
+    ).execute()
+
+    print file_copy
+
+    routed_folder_id = db['agencies'].find_one({'name':agency})['routing']['routed_folder_id']
+
+    # Retrieve the existing parents to remove
+    file = drive_api.files().get(
+      fileId=file_copy['id'],
+      fields='parents').execute()
+
+    previous_parents = ",".join(file.get('parents'))
+
+    # Move the file to the new folder
+    file = drive_api.files().update(
+      fileId=file_copy['id'],
+      addParents=routed_folder_id,
+      removeParents=previous_parents,
+      fields='id, parents').execute()
+
+    return file_copy['id']
+
+
+#-------------------------------------------------------------------------------
+def write_orders(sheets_api, ss_id, orders):
+    '''Write the routed orders to the route sheet
+    '''
+
+    rows = []
+
+    orders = orders[1:-1]
+
+    num_orders = len(orders)
+
+    for order in orders:
+        addy = order['location_name'].split(', ');
+
+        # Remove Postal Code from Google Maps URL label
+        if re.match(r'^T\d[A-Z]$', addy[-1]) or re.match(r'^T\d[A-Z]\s\d[A-Z]\d$', addy[-1]):
+           addy.pop()
+
+        formula = '=HYPERLINK("' + order['gmaps_url'] + '","' + ", ".join(addy) + '")'
+
+        '''
+        Info Column format (column D):
+
+        Notes: Fri Apr 22 2016: Pickup Needed
+        Name: Cindy Borsje
+
+        Neighborhood: Lee Ridge
+        Block: R10Q,R8R
+        Contact (business only): James Schmidt
+        Phone: 780-123-4567
+        Email: Yes/No
+        '''
+
+        order_info = ''
+
+        if order['customNotes'].get('driver notes'):
+          order_info += 'NOTE: ' + order['customNotes']['driver notes'] + '\n\n'
+
+          #sheet.getRange(i+2, headers.indexOf('Order Info')+1).setFontWeight("bold");
+
+          if order['customNotes']['driver notes'].find('***') > -1:
+            order_info = order_info.replace("***", "")
+            #sheet.getRange(i+2, headers.indexOf('Order Info')+1).setFontColor("red");
+
+        order_info += 'Name: ' + order['customNotes']['name'] + '\n'
+
+        if order['customNotes'].get('neighborhood'):
+          order_info += 'Neighborhood: ' + order['customNotes']['neighborhood'] + '\n'
+
+        order_info += 'Block: ' + order['customNotes']['block']
+
+        if order['customNotes'].get('contact'):
+          order_info += '\nContact: ' + order['customNotes']['contact']
+
+        if order['customNotes'].get('phone'):
+          order_info += '\nPhone: ' + order['customNotes']['phone']
+
+        if order['customNotes'].get('email'):
+          order_info += '\nEmail: ' + order['customNotes']['email']
+
+        order_info += '\nArrive: ' + order['arrival_time']
+
+        rows.append([
+          formula,
+          '',
+          '',
+          order_info,
+          order['customNotes'].get('id') or '',
+          order['customNotes'].get('driver notes') or '',
+          order['customNotes'].get('block') or '',
+          order['customNotes'].get('neighborhood') or '',
+          order['customNotes'].get('status') or '',
+          order['customNotes'].get('office notes') or ''
+        ])
+
+    # Start from Row 2 Column A to Column J
+    _range = "A2:J" + str(num_orders+1)
+
+    write_rows(sheets_api, ss_id, rows, _range)
+
+    values = get_values(sheets_api, ss_id, "A1:$A")
+
+    hide_start = 1 + len(rows) + 1;
+    hide_end = values.index(['***Route Info***'])
+
+    hide_rows(sheets_api, ss_id, hide_start, hide_end)
+
+
+#-------------------------------------------------------------------------------
+def write_rows(sheets_api, ss_id, rows, a1_range):
+    sheets_api.spreadsheets().values().update(
+      spreadsheetId = ss_id,
+      valueInputOption = "USER_ENTERED",
+      range = a1_range,
+      body = {
+        "majorDimension": "ROWS",
+        "values": rows
+      }
+    ).execute()
+
+
+#-------------------------------------------------------------------------------
+def get_values(sheets_api, ss_id, a1_range):
+    values = sheets_api.spreadsheets().values().get(
+      spreadsheetId = ss_id,
+      range=a1_range
+    ).execute()
+
+    return values['values']
+
+
+#-------------------------------------------------------------------------------
+def hide_rows(sheets_api, ss_id, start, end):
+    '''
+    @start: inclusive row
+    @end: inclusive row
+    '''
+    sheets_api.spreadsheets().batchUpdate(
+        spreadsheetId = ss_id,
+        body = {
+            'requests': {
+                'updateDimensionProperties': {
+                    'fields': '*',
+                    'range': {
+                        'startIndex': start-1,
+                        'endIndex': end,
+                        'dimension': 'ROWS'
+                    },
+                    'properties': {
+                        'hiddenByUser': True
+                    }
+                }
+            }
+        }
+    ).execute()

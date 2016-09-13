@@ -3,7 +3,6 @@ import logging
 from dateutil.parser import parse
 from datetime import datetime, time, date
 import requests
-#import time
 
 from config import *
 import etap

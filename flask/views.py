@@ -36,6 +36,7 @@ def test_schedule_reminders():
     scheduler.setup_reminder_jobs()
     return 'OK'
 
+
 #-------------------------------------------------------------------------------
 @app.route('/', methods=['GET'])
 @login_required
@@ -81,6 +82,18 @@ def request_send_socket():
     return 'OK'
 
 #-------------------------------------------------------------------------------
+@app.route('/routing', methods=['GET'])
+def show_routing():
+    # send today's Blocks routing status
+    today_dt = datetime.datetime.combine(datetime.date.today(), datetime.time())
+
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+
+    routes = db['routes'].find({'date': today_dt, 'agency': agency})
+
+    return render_template('views/routing.html', routes=routes)
+
+#-------------------------------------------------------------------------------
 @app.route('/routing/get_scheduled_route', methods=['POST'])
 def get_today_route():
     return json.dumps(get_scheduled_route(
@@ -107,6 +120,12 @@ def get_routing_job_id():
             json.loads(request.form["etapestry_id"]),
             request.form['min_per_stop'],
             request.form['shift_start'])
+
+#-------------------------------------------------------------------------------
+@app.route('/routing/build/<block>', methods=['POST'])
+def build_route(block):
+
+    return True
 
 #-------------------------------------------------------------------------------
 @app.route('/reminders/new')

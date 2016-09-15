@@ -25,7 +25,11 @@
 					<th>Date</th>
 					<th>Block</th>
 					<th>Routing Status</th>
+          <th>Orders</th>
+          <th>Block Size</th>
+          <th>Route Length</th>
           <th>Command</th>
+          <th style='width:40%'>Warnings</th>
         </tr>
       </thead>
       <tbody>
@@ -34,8 +38,21 @@
           <td>{{ route.date.strftime("%A %b %d") }}</td>
           <td>{{ route.block }}</td>
           <td>{{ route.status }}</td>
-          <td>
-            <a class='hover' href="{{ url_for('_build_route',block=route.block) }}">Route It</a>
+          <td>{{ route.orders }}</td>
+          <td>{{ route.block_size }}</td>
+          <td>{{ (route.duration/60)|round(0,'floor')|int }} hrs {{ route.duration % 60 }} min</td>
+          <td><a class='hover' href="{{url_for('_build_route',block=route.block) }}">Route It</a></td>
+          {% if route.geocode_warnings is defined %}
+            <td>
+              <table style='width:100%;'>
+              {% for warning in route.geocode_warnings %}
+                <tr><td cellpadding="0" style='font-size:8pt'>{{ warning }}</td></tr>
+              {% endfor %}
+              </table>
+            </td>
+          {% else %}
+            <td></td>
+          {% endif %}
 				</tr>
       {% endfor %}
       </tbody>

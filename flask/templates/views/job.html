@@ -98,21 +98,15 @@
             {% endif %}
 
             {% if value == '' %}
-              <td style='{{style}}' name="{{ field }}">
-                ---
-              </td>
+              <td style='{{style}}' name="{{ field }}">---</td>
             {% else %}
-              <td style='{{style}}' name="{{ field }}">
-                {{ value }}
-              </td>
+              <td style='{{style}}' name="{{ field }}">{{ value }}</td>
             {% endif %}
           {% endfor %}
 
           <!-- Call Status -->
           {% if 'voice' in reminder  %}
-              <td name='call_status' style='text-align:right; font-weight:normal;'>
-								{{ reminder['voice']['status'] }}
-              </td>
+              <td name='call_status' style='text-align:right; font-weight:normal;'>{{reminder['voice']['status']}}</td>
           {% endif %}
 
           <!-- Email Status -->

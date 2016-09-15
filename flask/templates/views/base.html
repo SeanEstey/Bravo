@@ -25,10 +25,21 @@
       
     <div class='container'>
       <ul id='app_menu' class="nav nav-pills" style='float:right'>
-        <li role="presentation"><a href="{{url_for('view_jobs')}}"><span class='glyphicon glyphicon-home'></span> Home</a></li>
-        <li role="presentation"><a href="{{url_for('view_log')}}"><span class='glyphicon glyphicon-console'></span> Log</a></li>
-        <li role="presentation"><a href="{{url_for('view_admin')}}"><span class='glyphicon glyphicon-cog'></span> Settings</a></li>
-        <li role="presentation"><a href="{{url_for('user_logout')}}"><span class='glyphicon glyphicon-log-out'></span> Logout</a></li>
+        <li role="presentation">
+					<a href="{{url_for('view_jobs')}}"><span class='glyphicon glyphicon-home'></span>  Reminders</a>
+				</li>
+        <li role="presentation">
+					<a href="{{url_for('show_routing')}}"><span class='glyphicon glyphicon-road'></span>   Routing</a>
+				</li>
+        <li role="presentation">
+					<a href="{{url_for('view_log')}}"><span class='glyphicon glyphicon-console'></span> Log</a>
+				</li>
+        <li role="presentation">
+					<a href="{{url_for('view_admin')}}"><span class='glyphicon glyphicon-cog'></span> Settings</a>
+				</li>
+        <li role="presentation">
+					<a href="{{url_for('user_logout')}}"><span class='glyphicon glyphicon-log-out'></span> Logout</a>
+				</li>
       </ul>
       <div style='width:200px; margin:0.5em auto' class='center'>
         <a href="{{url_for('view_jobs')}}"><img id='buit' src="{{ url_for('static',

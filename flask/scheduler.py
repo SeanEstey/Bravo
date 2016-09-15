@@ -99,7 +99,8 @@ def setup_reminder_jobs():
         'email': {
             'fire_at': email_dt
         },
-        'status': 'pending'
+        'status': 'pending',
+        'no_pickups': 0
     }
 
     job_id = db['jobs'].insert(job)
@@ -164,7 +165,7 @@ def get_cal_events(cal_id, start, end, oauth):
     '''Get a list of Google Calendar events between given dates.
     @oauth: dict oauth keys for google service account authentication
     @start, @end: naive datetime objects
-    Returns: list on success, False on error
+    Returns: list of Event items on success, False on error
     Full-day events have datetime.date objects for start date
     Event object definition: lhttps://developers.google.com/google-apps/calendar/v3/reference/events#resource
     '''

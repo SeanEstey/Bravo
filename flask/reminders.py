@@ -814,7 +814,7 @@ def cancel_pickup(reminder_id):
     local = pytz.timezone("Canada/Mountain")
     no_pickup = 'No Pickup ' + reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d')
 
-    db['reminders'].update(
+    db['reminders'].update_one(
       {'_id':reminder['_id']},
       {'$set': {
         "voice.status": "cancelled",
@@ -822,6 +822,9 @@ def cancel_pickup(reminder_id):
         "custom.no_pickup": True
       }}
     )
+
+    db['jobs'].update_one(job, {'$set':{'no_pickups':job['no_pickups']+1}})
+
     # send_socket('update_msg', {
     #  'id': str(msg['_id']),
     #  'office_notes':no_pickup

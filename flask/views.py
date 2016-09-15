@@ -89,7 +89,55 @@ def show_routing():
 
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    routes = db['routes'].find({'date': today_dt, 'agency': agency})
+    cal_ids = db['agencies'].find_one({'name':agency})['cal_ids']
+    oauth = db['agencies'].find_one({'name':agency})['oauth']
+
+    end_dt = today_dt + datetime.timedelta(days=5)
+
+    events = []
+
+    for id in cal_ids:
+        events += scheduler.get_cal_events(cal_ids[id], today_dt, end_dt, oauth)
+
+    events = sorted(events, key=lambda k: k['start']['date'])
+
+    from dateutil.parser import parse
+    import re
+
+    routes = []
+
+    for event in events:
+        date = parse(event['start']['date'])
+
+        route = db['routes'].find_one({'date':date, 'agency':agency})
+
+        if route is not None:
+            routes.append(route)
+        else:
+            block = re.match(r'^(B|R\d{1,2}[a-zA-Z]{1})', event['summary']).group(0)
+            size_re = re.findall(r'\(\d{1,3}\/\d{1,3}\)', event['summary'])
+
+            if len(size_re) == 0:
+                block_size = 0
+                orders = 0
+            else:
+                # Chop off outer '(' and ')'
+                size_re = size_re[0][1:-1]
+                orders = size_re[0:size_re.index('/')]
+                block_size = size_re[size_re.index('/')+1:]
+
+            routes.append({
+              'date': date,
+              'block': block,
+              'status': 'pending',
+              'orders': orders,
+              'block_size': block_size,
+              'duration': 0
+            })
+
+    #app.logger.info(json.dumps(routes))
+
+    #routes = db['routes'].find({'date': today_dt, 'agency': agency})
 
     return render_template('views/routing.html', routes=routes)
 
@@ -129,7 +177,9 @@ def _build_route(block):
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
     #date_str = request.form['date']
-    date_str = "Sep 13 2016"
+
+    # TODO: Fixme. Add scheduled date
+    date_str = datetime.date.today().isoformat()
 
     r = build_route.apply_async(
       args=(agency, block, date_str),

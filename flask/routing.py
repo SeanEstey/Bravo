@@ -34,6 +34,8 @@ def build_route(agency, block, date_str):
     routific = db['agencies'].find_one({'name':agency})['routific']
     etap_id = db['agencies'].find_one({'name':agency})['etapestry']
 
+    logger.info("Building %s %s %s", agency, block, date_str)
+
     job_id = start_job(
         block,
         'driver',
@@ -95,9 +97,18 @@ def get_completed_route(job_id):
       'Job_ID \'%s\' finished. Returning sorted orders (Status code: %s)',
       job_id, r.status_code)
 
-    route_info = db['routes'].find_one_and_update(
-      {'job_id':job_id},
-      {'$set': {'status':'finished'}})
+    route_info = db['routes'].find_one({'job_id':job_id})
+
+    orders = solution['output']['solution'][route_info['driver']]
+
+    route_length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
+
+    db['routes'].update_one({'job_id':job_id},
+      {'$set': {
+          'status':'finished',
+          'orders': solution['visits'],
+          'duration': route_length.seconds/60
+          }})
 
     if not route_info:
         logger.error("No mongo record for job_id '%s'", job_id)
@@ -107,7 +118,7 @@ def get_completed_route(job_id):
     # Copy them over manually.
     # Also create Google Maps url
 
-    for order in solution['output']['solution'][route_info['driver']]:
+    for order in orders:
         id = order['location_id']
 
         if id == 'depot':
@@ -171,6 +182,8 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
     route_date = parse(date).date()
     num_skips = 0
 
+    geocode_warnings = []
+
     for account in accounts['data']:
         # Ignore accounts with Next Pickup > today
         next_pickup = etap.get_udf('Next Pickup Date', account)
@@ -208,6 +221,9 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
               'Omitting Account %s from route due to geocode error',
               account['id'])
             continue
+
+        if 'warning' in result:
+            geocode_warnings.append(result['warning'])
 
         coords = {}
 
@@ -288,9 +304,12 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
             'driver': driver,
             'status': 'processing',
             'block': block,
+            'block_size': len(accounts),
+            'orders': len(accounts) - num_skips,
             'date': datetime.combine(route_date, time(0,0,0)),
             'start_address': start_address,
-            'end_address': end_address
+            'end_address': end_address,
+            'geocode_warnings': geocode_warnings
         }
 
         if existing_job:
@@ -334,10 +353,9 @@ def get_postal(geo_result):
     return False
 
 #-------------------------------------------------------------------------------
-def geocode(formatted_address, postal=None):
+def geocode(address, postal=None, save_warnings_to=None):
     '''documentation: https://developers.google.com/maps/documentation/geocoding
-    @formatted_address: string with address + city + province. Should NOT
-    include postal code.
+    @address: string with address + city + province. Should NOT include postal code.
     @postal: optional arg. Used to identify correct location when multiple
     results found
     Returns: geocode result (dict), False on error
@@ -345,7 +363,7 @@ def geocode(formatted_address, postal=None):
 
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
     params = {
-      'address': formatted_address,
+      'address': address,
       'key': GOOGLE_API_KEY
     }
 
@@ -358,27 +376,29 @@ def geocode(formatted_address, postal=None):
     response = json.loads(r.text)
 
     if response['status'] == 'ZERO_RESULTS':
-        logger.error("No geocode result for %s", formatted_address)
+        logger.error("No geocode result for %s", address)
         return False
     elif response['status'] == 'INVALID_REQUEST':
-        logger.error("Improper address %s", formatted_address)
+        logger.error("Improper address %s", address)
         return False
     elif response['status'] != 'OK':
-        logger.error("Error geocoding %s. %s", formatted_address, response)
+        logger.error("Error geocoding %s. %s", address, response)
         return False
 
     if len(response['results']) == 1 and 'partial_match' in response['results'][0]:
-        logger.info('Warning: Only partial match found for "%s". Using "%s". '\
-                    'Geo-coordinates may be incorrect.',
-                    formatted_address, response['results'][0]['formatted_address'])
-    elif len(response['results']) > 1:
-        logger.info('Multiple results geocoded for "%s". Finding best match...',
-                    formatted_address)
+        response['results'][0]['warning'] = 'Warning: partial match for "%s". Using "%s"' % (
+        address, response['results'][0]['formatted_address'])
 
-        # No way to identify best match
+        logger.info(response['results'][0]['warning'])
+    elif len(response['results']) > 1:
         if postal is None:
-            logger.info('Warning: no postal code provided. Returning first result: "%s"',
-                         response['results'][0]['formatted_address'])
+            # No way to identify best match
+            response['results'][0]['warning'] = 'Warning: multiple results for "%s". '\
+              'No postal code. Using 1st result "%s"' % (
+              address, response['results'][0]['formatted_address'])
+
+            logger.info(response['results'][0]['warning'])
+
             return response['results'][0]
 
         # Let's use the Postal Code to find the best match
@@ -387,14 +407,21 @@ def geocode(formatted_address, postal=None):
                 continue
 
             if get_postal(result)[0:3] == postal[0:3]:
-                logger.info('First half of Postal Code "%s" matched in ' \
-                            'result[%s]: "%s". Using as best match.',
-                            get_postal(result), str(idx), result['formatted_address'])
+                result['warning'] = \
+                  'Warning: multiple results for "%s". First half of Postal Code "%s" matched in ' \
+                  'result[%s]: "%s". Using as best match.' % (
+                  address, get_postal(result), str(idx), result['formatted_address'])
+
+                logger.info(result['warning'])
+
                 return result
 
-        logger.error('Warning: unable to identify correct match. Using first '\
-                    'result as best guess: %s',
-                    response['results'][0]['formatted_address'])
+        response['results'][0]['warning'] = \
+          'Warning: multiple results for "%s". No postal code match. '\
+          'Using "%s" as best guess.' % (
+          address, response['results'][0]['formatted_address'])
+
+        logger.error(response['results'][0]['warning'])
 
     return response['results'][0]
 

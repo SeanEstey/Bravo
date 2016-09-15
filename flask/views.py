@@ -71,7 +71,11 @@ def view_log():
 @app.route('/admin')
 @login_required
 def view_admin():
-    return render_template('views/admin.html')
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+    config = db['agencies'].find_one({'name':agency}, {'_id':0})
+    del config['oauth']
+
+    return render_template('views/admin.html', agency_config=config)
 
 #-------------------------------------------------------------------------------
 @app.route('/sendsocket', methods=['GET'])

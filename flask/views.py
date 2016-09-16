@@ -3,7 +3,8 @@ import twilio.twiml
 import time
 import requests
 import datetime
-from flask import request, Response, render_template, redirect
+import flask
+from flask import request, render_template, redirect
 from flask.ext.login import login_required, current_user
 from bson.objectid import ObjectId
 import pytz
@@ -197,8 +198,8 @@ def get_routing_job_id():
             request.form['start_address'],
             request.form['end_address'],
             json.loads(request.form["etapestry_id"]),
-            request.form['min_per_stop'],
-            request.form['shift_start'])
+            min_per_stop=request.form['min_per_stop'],
+            shift_start=request.form['shift_start'])
 
 #-------------------------------------------------------------------------------
 @app.route('/routing/build/<block>', methods=['GET', 'POST'])
@@ -238,7 +239,7 @@ def new_job():
 def submit_job():
     try:
         r = reminders.submit_job(request.form.to_dict(), request.files['call_list'])
-        return Response(response=json.dumps(r), status=200, mimetype='application/json')
+        return flask.Response(response=json.dumps(r), status=200, mimetype='application/json')
     except Exception as e:
         app.logger.error('submit_job: %s', str(e))
         return False
@@ -248,7 +249,10 @@ def submit_job():
 def record_msg():
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    return reminders.record_audio(request.values.to_dict(), agency)
+    r = reminders.record_audio(request.values.to_dict(), agency)
+
+    return flask.Response(response=json.dumps(r), status=200, mimetype='text/xml')
+
 
 #-------------------------------------------------------------------------------
 @app.route('/reminders/<job_id>')
@@ -355,43 +359,52 @@ def call_xml():
     try:
         app.logger.debug('call.xml request values: %s', request.values.to_dict())
 
+        sid = request.values.to_dict()['CallSid']
+
         r = reminders.get_voice_response(request.values.to_dict())
 
+        # Voice Recording
         if type(r) is twilio.twiml.Response:
-            return Response(str(r), mimetype='text/xml')
+            return flask.Response(response=str(r), mimetype='text/xml')
 
-        # Returned .html template file for rendering
+        # Reminder
 
-        reminder = db['reminders'].find_one({'voice.sid': request.form['CallSid']})
+        reminder = db['reminders'].find_one({'voice.sid': sid})
 
-        # Localize datetimes
-        local = pytz.timezone("Canada/Mountain")
-        reminder['event_dt'] = reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
+        if reminder is not None:
+            # Returned .html template file for rendering
 
-        if reminder['custom']['future_pickup_dt']:
-            reminder['custom']['future_pickup_dt'] = reminder['custom']['future_pickup_dt'].replace(tzinfo=pytz.utc).astimezone(local)
+            # Localize datetimes
+            local = pytz.timezone("Canada/Mountain")
+            reminder['event_dt'] = reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
 
-        html = render_template(
-            r,
-            reminder=json.loads(reminders.bson_to_json(reminder))
-        )
+            if reminder['custom']['future_pickup_dt']:
+                reminder['custom']['future_pickup_dt'] = reminder['custom']['future_pickup_dt'].replace(
+                        tzinfo=pytz.utc).astimezone(local)
 
-        html = html.replace("\n", "")
-        html = html.replace("  ", "")
-        app.logger.debug('speak template: %s', html)
+            html = render_template(
+                r,
+                reminder=json.loads(reminders.bson_to_json(reminder))
+            )
 
-        db['reminders'].update({'_id':reminder['_id']},{'$set':{'voice.speak':html}})
+            html = html.replace("\n", "")
+            html = html.replace("  ", "")
+            app.logger.debug('speak template: %s', html)
 
-        response = twilio.twiml.Response()
-        response.say(html, voice='alice')
+            db['reminders'].update({'_id':reminder['_id']},{'$set':{'voice.speak':html}})
 
-        # ONLY FOR REMINDER MESSAGES
-        response.gather(numDigits=1, action='/reminders/call.xml', method='POST')
+            twilio_response = twilio.twiml.Response()
+            twilio_response.say(html, voice='alice')
 
-        return Response(str(response), mimetype='text/xml')
+            # ONLY FOR REMINDER MESSAGES
+            twilio_response.gather(numDigits=1, action='/reminders/call.xml', method='POST')
+
+            return flask.Response(response=str(twilio_response), mimetype='text/xml')
+
+        return flask.Response(response="Unknown SID", status=500, mimetype='text/xml')
     except Exception as e:
         app.logger.error('call.xml: %s', str(e))
-        return False
+        return flask.Response(response="Error", status=500, mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
 @app.route('/get_speak', methods=['POST'])

@@ -84,7 +84,7 @@ function init() {
     var phone = $('#phone-num').val();
     var request =  $.ajax({
       type: 'POST',
-      url: $URL_ROOT + 'recordaudio',
+      url: $URL_ROOT + 'reminders/recordaudio',
       data: {'To':phone}
     });
     
@@ -248,19 +248,19 @@ function onSelectTemplate() {
     updateFilePickerTooltip();
     $('#audioplayer').hide();
 
-    if($template.val() == 'etw_reminder') {
+    if($template.attr('id') == 'pickup_reminder') {
       $('#record-audio').hide();
       $('#record-text').hide();
     }
-    else if($template.val() == 'gg_delivery') {
+    else if($template.attr('id') == 'gg_delivery') {
       $('#record-audio').hide();
       $('#record-text').hide();
     }
-    else if($template.val() == 'announce_voice') {
+    else if($template.attr('id') == 'announce_voice') {
       $('#record-audio').show();
       $('#record-text').hide();
     }
-    else if($template.val() == 'announce_text') {
+    else if($template.attr('id') == 'announce_text') {
       $('#record-text').show();
       $('#record-audio').hide();
     }

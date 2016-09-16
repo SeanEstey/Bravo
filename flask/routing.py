@@ -51,8 +51,8 @@ def build_route(agency, block, date_str):
         routific['start_address'],
         routific['end_address'],
         etap_id,
-        routific['min_per_stop'],
-        routific['shift_start']
+        min_per_stop = routific['min_per_stop'],
+        shift_start = routific['shift_start']
     )
 
     # Keep looping and sleeping until receive solution or hit
@@ -152,15 +152,16 @@ def get_completed_route(job_id):
 
 #-------------------------------------------------------------------------------
 def start_job(block, driver, date, start_address, end_address, etapestry_id,
-        min_per_stop=3, shift_start="08:00"):
+        min_per_stop=3, shift_start="08:00", shift_end="19:00"):
     '''Use Routific long-running process endpoint.
     @date: string format 'Sat Sep 10 2016'
     Returns: job_id
     '''
 
-    accounts = get_accounts(block, etapestry_id)
+    logger.info('Submitting Routific job for %s: start "%s", end "%s", %s min/stop',
+                block, shift_start, shift_end, str(min_per_stop))
 
-    shift_end = "19:00"
+    accounts = get_accounts(block, etapestry_id)
 
     start = geocode(start_address)['geometry']['location']
     end = geocode(end_address)['geometry']['location']

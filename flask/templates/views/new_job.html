@@ -49,7 +49,7 @@
           </div>
           <select name='template_name' class='form-control' id='template-select'>
             {% for template in templates %}
-              <option value='{{ template.name }}'>{{ template.description }}</option>
+						<option id='{{ template.type }}' value='{{ template.name }}'>{{ template.description }}</option>
             {% endfor %}
           </select>
           

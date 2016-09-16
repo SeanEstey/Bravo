@@ -3,6 +3,7 @@ import logging
 from datetime import datetime,date
 from dateutil.parser import parse
 import time
+
 from werkzeug import secure_filename
 import codecs
 import os
@@ -15,7 +16,6 @@ import re
 import pytz
 from pymongo import ReturnDocument
 from flask.ext.login import current_user
-
 from app import app, db, info_handler, error_handler, debug_handler, socketio
 from tasks import celery_app
 from gsheets import create_rfu
@@ -531,13 +531,11 @@ def get_resp_xml_template(args):
     logger.debug('get_resp_xml: CallSid %s', args['CallSid'])
 
     reminder = db['reminders'].find_one({'voice.sid': args['CallSid']})
-    job = db['jobs'].find_one({'_id': reminder['job_id']})
 
     response = twilio.twiml.Response()
 
     # Voice recording?
     if reminder is None:
-
         record = db['audio'].find_one({'sid': args['CallSid']})
 
         if record is None:
@@ -551,28 +549,26 @@ def get_resp_xml_template(args):
             if digits == '#':
                 logger.info('Recording completed. Sending audio_url to client')
 
-                recording_info = {
-                  'audio_url': args['RecordingUrl'],
-                  'audio_duration': args['RecordingDuration'],
-                  'sid': args['CallSid'],
-                  'call_status': args['CallStatus']
-                }
-
                 db['audio'].update_one(
                   {'sid': args['CallSid']},
-                  {'$set': recording_info})
+                  {'$set': {
+                      'audio_url': args['RecordingUrl'],
+                      'audio_duration': args['RecordingDuration'],
+                      'status': args['CallStatus']
+                }})
 
-                socketio.emit('record_audio', recording_info)
+                #socketio.emit('record_audio', recording_info)
                 response = twilio.twiml.Response()
                 response.say('Message recorded', voice='alice')
 
-                return Response(str(response), mimetype='text/xml')
+                return response
         else:
             logger.info('recordaudio: no digits')
 
         return True
 
     # Must be reminder call
+    job = db['jobs'].find_one({'_id': reminder['job_id']})
 
     # Repeat message request...
     if args.get('Digits') == '1':
@@ -654,7 +650,7 @@ def get_answer_xml_template(args):
         )
         response_xml.record(
             method= 'GET',
-            action= app.config['PUB_URL'] + '/reminders.call.xml',
+            action= app.config['PUB_URL'] + '/reminders/call.xml',
             playBeep= True,
             finishOnKey='#'
         )
@@ -823,8 +819,7 @@ def cancel_pickup(reminder_id):
       }}
     )
 
-    no_pickups = job['no_pickups'] + 1
-    db['jobs'].update_one(job, {'$set':{'no_pickups':no_pickups}})
+    db['jobs'].update_one({'_id':job['_id']}, {'$inc':{'no_pickups':1}})
 
     # send_socket('update_msg', {
     #  'id': str(msg['_id']),
@@ -953,22 +948,32 @@ def record_audio(args, agency):
     saved->Confirmation XML response
     '''
 
-    if method == 'POST':
-        logger.info('Record audio request from ' + args['To'])
+    logger.info('Record audio request from ' + args['To'])
 
-        twilio = db['agencies'].find_one({'name':agency})
+    twilio = db['agencies'].find_one({'name':agency})['twilio']
 
-        r = dial(args['To'], twilio['ph'], twilio['keys']['main'])
+    call = dial(args['To'], twilio['ph'], twilio['keys']['main'])
 
-        logger.info('Dial response=' + json.dumps(r))
+    logger.info('Dial status: %s', call.status)
 
-        if r['call_status'] == 'queued':
-            db['audio'].insert(r)
-            del r['_id']
+    if call.status == 'queued':
+        doc = {
+            'date': datetime.utcnow(),
+            'sid': call.sid,
+            'agency': agency,
+            'to': call.to,
+            'from': call.from_,
+            'status': call.status,
+            'direction': call.direction
+        }
 
-        return flask.json.jsonify(r)
+        db['audio'].insert_one(doc)
+        del doc['_id']
+        del doc['date']
+        return doc
 
-    return 'OK'
+    return {'status':call.status}
+
 
 #-------------------------------------------------------------------------------
 def job_print(job_id):

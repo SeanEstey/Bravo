@@ -8,6 +8,7 @@ from apiclient.http import BatchHttpRequest
 from datetime import datetime, time, date
 from time import sleep
 import requests
+from pymongo import ReturnDocument
 import re
 
 from config import *
@@ -22,6 +23,13 @@ logger.addHandler(error_handler)
 logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
+
+#-------------------------------------------------------------------------------
+def get_upcoming_routes():
+    '''Get list of scheduled routes for next X days
+    '''
+
+    return True
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -434,8 +442,6 @@ def get_accounts(block, etapestry_id):
     })
 
     return accounts
-
-
 
 #-------------------------------------------------------------------------------
 def auth_gservice(agency, name):

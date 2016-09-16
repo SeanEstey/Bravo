@@ -12,7 +12,7 @@ import pytz
 from app import app, db, socketio
 
 # Import methods
-from utils import send_mailgun_email
+from utils import send_mailgun_email, dict_to_html_table
 from log import get_tail
 from auth import login, logout
 from routing import get_completed_route, start_job, build_route
@@ -71,11 +71,16 @@ def view_log():
 @app.route('/admin')
 @login_required
 def view_admin():
+    user = db['users'].find_one({'user': current_user.username})
     agency = db['users'].find_one({'user': current_user.username})['agency']
-    config = db['agencies'].find_one({'name':agency}, {'_id':0})
-    del config['oauth']
 
-    return render_template('views/admin.html', agency_config=config)
+    if user['admin'] == True:
+        settings = db['agencies'].find_one({'name':agency}, {'_id':0, 'oauth':0})
+        settings_html = dict_to_html_table(settings)
+    else:
+        settings_html = ''
+
+    return render_template('views/admin.html', agency_config=settings_html)
 
 #-------------------------------------------------------------------------------
 @app.route('/sendsocket', methods=['GET'])
@@ -87,7 +92,10 @@ def request_send_socket():
 
 #-------------------------------------------------------------------------------
 @app.route('/routing', methods=['GET'])
+@login_required
 def show_routing():
+    # TODO: Move this code into routing module
+
     # send today's Blocks routing status
     today_dt = datetime.datetime.combine(datetime.date.today(), datetime.time())
 
@@ -110,15 +118,35 @@ def show_routing():
 
     routes = []
 
+    from pymongo import ReturnDocument
+
     for event in events:
         date = parse(event['start']['date'])
 
-        route = db['routes'].find_one({'date':date, 'agency':agency})
+        block = re.match(r'^(B|R\d{1,2}[a-zA-Z]{1})', event['summary']).group(0)
+
+        # Find reminders job and get number of Dropoffs
+        # TODO: fix scheduler to create job for each block so that this line
+        # doesn't break
+        # TODO: Match by event_dt also
+        job = db['jobs'].find_one({'name':block, 'agency':agency})
+
+        if job is not None:
+            num_dropoffs = db['reminders'].find({
+              'job_id':job['_id'],
+              'custom.status': 'Dropoff'
+            }).count()
+
+            route = db['routes'].find_one_and_update(
+              {'date':date, 'agency':agency},
+              {'$set':{'dropoffs':num_dropoffs}},
+              return_document=ReturnDocument.AFTER)
+        else:
+            route = db['routes'].find_one({'date':date, 'agency':agency})
 
         if route is not None:
             routes.append(route)
         else:
-            block = re.match(r'^(B|R\d{1,2}[a-zA-Z]{1})', event['summary']).group(0)
             size_re = re.findall(r'\(\d{1,3}\/\d{1,3}\)', event['summary'])
 
             if len(size_re) == 0:
@@ -136,12 +164,9 @@ def show_routing():
               'status': 'pending',
               'orders': orders,
               'block_size': block_size,
-              'duration': 0
+              'duration': 0,
+              'dropoffs': '?'
             })
-
-    #app.logger.info(json.dumps(routes))
-
-    #routes = db['routes'].find({'date': today_dt, 'agency': agency})
 
     return render_template('views/routing.html', routes=routes)
 

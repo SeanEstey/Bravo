@@ -6,6 +6,20 @@
 	<script type='text/javascript' 
 					src="{{url_for('static', filename='js/base.js')}}">
 	</script>
+  <script>
+    $(function() {
+        $("td[colspan=10]").find("p").hide();
+        $("table").click(function(event) {
+            event.stopPropagation();
+            var $target = $(event.target);
+            if ( $target.closest("td").attr("colspan") > 1 ) {
+                $target.slideUp();
+            } else {
+                $target.closest("tr").next().find("p").slideToggle();
+            }                    
+        });
+    });
+  </script>
   
   <div style='margin:40px 10px 40px 10px; text-align:center'>
     <h3 class='thin'>
@@ -29,10 +43,11 @@
 					<th style='width:120px;'>Routing Status</th>
           <th>Orders</th>
           <th style='width:90px;'>Block Size</th>
+          <th>Dropoffs</th>
 					<th>Depot</td>
           <th style='width:130px'>Route Length</th>
+          <th>Warnings</th>
           <th>Command</th>
-          <th style='width:30%'>Warnings</th>
         </tr>
       </thead>
       <tbody>
@@ -43,21 +58,20 @@
           <td>{{ route.status }}</td>
           <td>{{ route.orders }}</td>
           <td>{{ route.block_size }}</td>
+          <td>{{ route.dropoffs }}</td>
 					<td>{{ route.end_address }}</td>
           <td>{{ (route.duration/60)|round(0,'floor')|int }} hrs {{ route.duration % 60 }} min</td>
+          <td>{{ route.geocode_warnings|length }}</td>
           <td><a class='hover' href="{{url_for('_build_route',block=route.block) }}">Route It</a></td>
+        </tr>
+        <tr><td style='padding:0;' colspan="10"><p style='padding:15px;'>
           {% if route.geocode_warnings is defined %}
-            <td>
-              <table style='width:100%;'>
-              {% for warning in route.geocode_warnings %}
-                <tr><td cellpadding="0" style='font-size:8pt'>{{ warning }}</td></tr>
-              {% endfor %}
-              </table>
-            </td>
-          {% else %}
-            <td></td>
+            {% for warning in route.geocode_warnings %}
+              {{ warning }} 
+              <br><br>
+            {% endfor %}
           {% endif %}
-				</tr>
+        </p></td></tr>
       {% endfor %}
       </tbody>
     </table>

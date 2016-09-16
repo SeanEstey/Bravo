@@ -10,26 +10,26 @@
 			//displayServerStatus('/get/annual_usage', '', $('#annual-usage'));
     });
   </script>
-  <br>
-  <div class='h1' style='text-align:center'>Admin</div>
 
-  <div><h3>User</h3></div>
+  <div>
+    <h3>User</h3>
+  </div>
 
-  <table class='table'>
-    <tr><td id='user'>User: {{ current_user }} </td></tr>
-    <!--<tr><td id='version'>Version: </td></tr>
-    <tr><td id='celery-status'>Celery Status: </td></tr>
-    <tr><td id='monthly-usage'>Twilio Usage This Month: </td></tr>
-    <tr><td id='annual-usage'>Twilio Usage This Year: </td></tr>-->
-  </table>
+  <div>
+    <table class='table'>
+      <tr><td id='user'>Username: {{ current_user }} </td></tr>
+      <!--<tr><td id='version'>Version: </td></tr>
+      <tr><td id='celery-status'>Celery Status: </td></tr>
+      <tr><td id='monthly-usage'>Twilio Usage This Month: </td></tr>
+      <tr><td id='annual-usage'>Twilio Usage This Year: </td></tr>-->
+    </table>
+  </div>
 
-  <div><h3>Agency Settings</h3></div>
+  <div>
+    <h3>Agency Settings</h3>
+  </div>
+  <div>
+    {{ agency_config|safe }}
+  </div>
 
-  <table class='table'>
-		{% for key, value in agency_config.iteritems() %}
-			<tr>
-				<td>{{ key }}: {{ value }}</td>
-			</tr>
-		{% endfor %}
-  </table>
   {% endblock %}

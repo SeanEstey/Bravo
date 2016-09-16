@@ -823,7 +823,8 @@ def cancel_pickup(reminder_id):
       }}
     )
 
-    db['jobs'].update_one(job, {'$set':{'no_pickups':job['no_pickups']+1}})
+    no_pickups = job['no_pickups'] + 1
+    db['jobs'].update_one(job, {'$set':{'no_pickups':no_pickups}})
 
     # send_socket('update_msg', {
     #  'id': str(msg['_id']),

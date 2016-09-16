@@ -5,6 +5,7 @@ from bson import json_util
 import json
 
 
+#-------------------------------------------------------------------------------
 def has_bounced(address):
   send_url = 'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/bounces'
   r = requests.get(
@@ -19,6 +20,7 @@ def has_bounced(address):
   else:
     return False
 
+#-------------------------------------------------------------------------------
 def get_today_fails():
   from email.Utils import formatdate
   import time
@@ -40,6 +42,7 @@ def get_today_fails():
   )
 
 
+#-------------------------------------------------------------------------------
 def send_mailgun_email(recipients, subject, msg):
   send_url = 'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/messages'
   return requests.post(
@@ -52,6 +55,7 @@ def send_mailgun_email(recipients, subject, msg):
       'html': msg
   })
 
+#-------------------------------------------------------------------------------
 def print_html(dictObj):
   p='<ul style="list-style-type: none;">'
   for k,v in dictObj.iteritems():
@@ -68,26 +72,50 @@ def print_html(dictObj):
   p+='</ul>'
   return p
 
-def dict_to_html_table(dictObj):
-  p='<table>'
-  for k,v in dictObj.iteritems():
-    if isinstance(v, dict):
-      p+='<td>'+ dict_to_html_table(v)+'</td>'
-    elif isinstance(v, list):
-      #p+='<br><li><b>'+to_title_case(k)+': </b></li>'
-      #p+='<ul style="list-style-type: none;">'
-      for idx, item in enumerate(v):
-        p+='<tr>'+dict_to_html_table(item)+'</tr>'
-      #p+='</ul>'
-    else:
-      p+='<td>'+ remove_quotes(json_util.dumps(v)) + '</td>'
-  p+='</table>'
-  return p
 
+#-------------------------------------------------------------------------------
+def dict_to_html_table(dictObj, depth=None):
+    indent = ''
+
+    if depth is not None:
+        for i in range(depth):
+            indent += '&nbsp;&nbsp;&nbsp;&nbsp;'
+    else:
+        depth = 0
+
+    h_open = '<h4>'
+    h_close = '</h4>'
+
+    p='<table>'
+
+    for k,v in dictObj.iteritems():
+        if type(v) is float or type(v) is int or type(v) is str or type(v) is unicode:
+            p+= '<tr>'
+            p+= '<td nowrap>' + indent + to_title_case(k) + ':    ' + str(v) + '</td>'
+            #p+= '<td>' + str(v) + '</td>'
+            p+= '</tr>'
+
+        elif isinstance(v, dict):
+            p+='<tr><td nowrap>' + h_open + indent + to_title_case(k) + h_close + '</td></tr>'
+            p+='<tr><td>'+ dict_to_html_table(v, depth+1)+'</td></tr>'
+
+        elif isinstance(v, list):
+            p+='<tr><td nowrap>' + h_open + indent + to_title_case(k) + h_close + '</td></tr>'
+
+            for idx, item in enumerate(v):
+                p+='<tr><td>'+ dict_to_html_table(item, depth+1)+'</td></tr>'
+
+    p+='</table>'
+
+    return p
+
+
+#-------------------------------------------------------------------------------
 def remove_quotes(s):
   s = re.sub(r'\"', '', s)
   return s
 
+#-------------------------------------------------------------------------------
 def to_title_case(s):
   s = re.sub(r'\"', '', s)
   s = re.sub(r'_', ' ', s)

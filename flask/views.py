@@ -25,11 +25,6 @@ import scheduler
 import etap
 import sms
 
-@app.route('/phones', methods=['GET'])
-def test_phones():
-    import sms
-    sms.update_scheduled_accounts_for_sms()
-    return 'OK'
 
 @app.route('/test', methods=['GET'])
 def test_schedule_reminders():
@@ -83,6 +78,12 @@ def view_admin():
 
     return render_template('views/admin.html', agency_config=settings_html)
 
+
+@app.route('/testsocket', methods=['GET'])
+def test_socket():
+    socketio.emit('test')
+    return 'OK'
+
 #-------------------------------------------------------------------------------
 @app.route('/sendsocket', methods=['GET'])
 def request_send_socket():
@@ -119,55 +120,80 @@ def show_routing():
 
     routes = []
 
-    from pymongo import ReturnDocument
+    import bson.json_util
 
     for event in events:
-        date = parse(event['start']['date'])
+        # yyyy-mm-dd format
+        event_dt = parse(event['start']['date'])
 
-        block = re.match(r'^(B|R\d{1,2}[a-zA-Z]{1})', event['summary']).group(0)
+        block = re.match(r'^((B|R)\d{1,2}[a-zA-Z]{1})', event['summary']).group(0)
 
-        # Find reminders job and get number of Dropoffs
-        # TODO: fix scheduler to create job for each block so that this line
-        # doesn't break
-        # TODO: Match by event_dt also
-        job = db['jobs'].find_one({'name':block, 'agency':agency})
+        # 1. Do we already have this Block in Routes collection?
+        route = db['routes'].find_one({'date':event_dt, 'agency':agency})
 
-        if job is not None:
-            num_dropoffs = db['reminders'].find({
-              'job_id':job['_id'],
-              'custom.status': 'Dropoff'
-            }).count()
+        if route is None:
+            # 1.a Let's grab info from eTapestry
+            etap_info = db['agencies'].find_one({'name':agency})['etapestry']
 
-            route = db['routes'].find_one_and_update(
-              {'date':date, 'agency':agency},
-              {'$set':{'dropoffs':num_dropoffs}},
-              return_document=ReturnDocument.AFTER)
-        else:
-            route = db['routes'].find_one({'date':date, 'agency':agency})
+            try:
+                a = etap.call(
+                  'get_query_accounts',
+                  etap_info,
+                  {'query':block, 'query_category':etap_info['query_category']}
+                )
+            except Exception as e:
+                app.logger.error('Error retrieving accounts for query %s', block)
 
-        if route is not None:
-            routes.append(route)
-        else:
-            size_re = re.findall(r'\(\d{1,3}\/\d{1,3}\)', event['summary'])
+            if 'count' not in a:
+                app.logger.error('No accounts found in query %s', block)
+                continue
 
-            if len(size_re) == 0:
-                block_size = 0
-                orders = 0
-            else:
-                # Chop off outer '(' and ')'
-                size_re = size_re[0][1:-1]
-                orders = size_re[0:size_re.index('/')]
-                block_size = size_re[size_re.index('/')+1:]
+            num_dropoffs = 0
+            num_booked = 0
+
+            event_d = event_dt.date()
+
+            for account in a['data']:
+                npu = etap.get_udf('Next Pickup Date', account)
+
+                if npu == '':
+                    continue
+
+                npu_d = etap.ddmmyyyy_to_date(npu)
+
+                if npu_d == event_d:
+                    num_booked += 1
+
+                if etap.get_udf('Status', account) == 'Dropoff':
+                    num_dropoffs += 1
 
             routes.append({
-              'date': date,
+              'agency': agency,
+              'date': event_dt,
               'block': block,
               'status': 'pending',
-              'orders': orders,
-              'block_size': block_size,
+              'orders': num_booked,
+              'block_size': a['count'],
               'duration': 0,
-              'dropoffs': '?'
+              'dropoffs': num_dropoffs
             })
+
+            app.logger.info('Inserting route %s', bson.json_util.dumps(routes[-1]))
+
+            db['routes'].insert_one(routes[-1])
+        else:
+            # 2. Get updated order count from reminders job
+            job = db['jobs'].find_one({'name':block, 'agency':agency})
+
+            if job is not None:
+                num_reminders = db['reminders'].find({'job_id':job['_id']}).count()
+                orders = num_reminders - job['no_pickups']
+
+                db['routes'].update_one(
+                  {'date':event_dt, 'agency':agency},
+                  {'$set':{'orders':orders}})
+
+            routes.append(route)
 
     return render_template('views/routing.html', routes=routes)
 

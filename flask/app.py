@@ -23,10 +23,11 @@ error_handler.setFormatter(log_formatter)
 
 
 # Set up Flask Application
+import flask
 from flask import Flask, g
-from flask.ext.socketio import *
 from flask.ext.login import LoginManager
 from flask_socketio import SocketIO
+from flask_socketio import send, emit
 from werkzeug.contrib.fixers import ProxyFix
 
 app = Flask(__name__)
@@ -68,19 +69,24 @@ def load_user(username):
     return auth.load_user(username)
 
 #-------------------------------------------------------------------------------
-@socketio.on('disconnected')
+@socketio.on('disconnect')
 def socketio_disconnected():
-    logger.debug('socket disconnected')
-    logger.debug(
-    'num connected sockets: ' +
-    str(len(socketio.server.sockets))
-    )
+    app.logger.debug('socket disconnected')
+
+    #app.logger.debug(
+    #'num connected sockets: ' +
+    #str(len(socketio.server.sockets))
+    #)
 
 #-------------------------------------------------------------------------------
-@socketio.on('connected')
+@socketio.on('connect')
 def socketio_connect():
-    logger.debug(
-        'num connected sockets: ' +
-        str(len(socketio.server.sockets))
-    )
-    socketio.emit('msg', 'ping from server!');
+    app.logger.debug('socket.io connected')
+
+    #app.logger.debug(
+    #    'num connected sockets: ' +
+    #    str(len(socketio.server.sockets))
+    #)
+    #socketio.emit('msg', 'ping from server!');
+
+    emit('connected')

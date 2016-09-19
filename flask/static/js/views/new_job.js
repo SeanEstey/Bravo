@@ -23,13 +23,10 @@ function init() {
   // Init socket.io
   var socketio_url = 'http://' + document.domain + ':' + location.port;
 
-  console.log('attempting socket.io connection to ' + socketio_url + '...');
-
   var socket = io.connect(socketio_url);
 
-  socket.on('connect', function(){
-    socket.emit('connected');
-    console.log('connected!');
+  socket.on('connected', function(){
+    console.log('socket.io connected!');
   });
 
   socket.on('record_audio', function(data) {
@@ -42,7 +39,9 @@ function init() {
       $('#record-status').text('Recording complete. You can listen to the audio below.');
       $('#audio-source').attr('src', data['audio_url']);
       $('#music').load();
-      $('#audioplayer').fadeIn('3000');
+      $('#audioplayer').show();
+     // $('#audioplayer').fadeIn('slow');
+      console.log('showing audio player');
       // Add url to form element for submission
       $('#input-audio-url').val(data['audio_url']);
       return;
@@ -246,7 +245,6 @@ function onSelectTemplate() {
   $select.change(function(){
     var $template = $select.find($('option:selected'));
     updateFilePickerTooltip();
-    $('#audioplayer').hide();
 
     if($template.attr('id') == 'pickup_reminder') {
       $('#record-audio').hide();

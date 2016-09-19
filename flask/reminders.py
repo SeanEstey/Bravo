@@ -4,6 +4,7 @@ from datetime import datetime,date
 from dateutil.parser import parse
 import time
 
+#from flask_socketio import send, emit
 from werkzeug import secure_filename
 import codecs
 import os
@@ -557,7 +558,8 @@ def get_resp_xml_template(args):
                       'status': args['CallStatus']
                 }})
 
-                #socketio.emit('record_audio', recording_info)
+                socketio.emit('record_audio', {'audio_url': args['RecordingUrl']})
+
                 response = twilio.twiml.Response()
                 response.say('Message recorded', voice='alice')
 

@@ -1,8 +1,6 @@
   {% extends "views/base.html" %}
-  {% block content %}  
-  <script type="text/javascript" 
-          src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js">
-  </script>
+  {% block content %} 
+	
 	<script type='text/javascript' 
 					src="{{url_for('static', filename='js/base.js')}}">
 	</script>
@@ -67,7 +65,7 @@
             <audio id="music">
               <source id='audio-source' name='audio-announce' type='audio/mpeg'>
             </audio>
-            <div id="audioplayer"  style='display:none'>
+            <div id="audioplayer"  style='display:block'>
               <button id="pButton" class='play' onclick='play()'></button>
               <div id="timeline">    
                 <div id="playhead"></div>

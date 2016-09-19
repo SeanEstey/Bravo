@@ -1,5 +1,6 @@
 import json
 import requests
+from datetime import date
 
 from config import *
 
@@ -43,3 +44,18 @@ def get_phone(phone_type, account):
             return phone
 
     return False
+
+#-------------------------------------------------------------------------------
+def ddmmyyyy_to_date(date_str):
+    # Makes list [dd, mm, yyyy]
+    parts = date_str.split('/')
+
+    # Date constructor (year, month, day)
+    return date(int(parts[2]), int(parts[1]), int(parts[0]))
+
+
+
+
+
+
+

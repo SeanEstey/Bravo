@@ -167,7 +167,7 @@ def get_cal_events(cal_id, start, end, oauth):
     @start, @end: naive datetime objects
     Returns: list of Event items on success, False on error
     Full-day events have datetime.date objects for start date
-    Event object definition: lhttps://developers.google.com/google-apps/calendar/v3/reference/events#resource
+    Event object definition: https://developers.google.com/google-apps/calendar/v3/reference/events#resource
     '''
 
     try:
@@ -411,7 +411,7 @@ def get_next_pickup(blocks, office_notes, block_dates):
 
     dates.sort()
 
-    logger.info("next_pickup for %s: %s", blocks, dates[0].strftime('%b %d %Y'))
+    #logger.info("next_pickup for %s: %s", blocks, dates[0].strftime('%b %d %Y'))
 
     return dates[0]
 

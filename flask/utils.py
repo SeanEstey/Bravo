@@ -7,18 +7,18 @@ import json
 
 #-------------------------------------------------------------------------------
 def has_bounced(address):
-  send_url = 'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/bounces'
-  r = requests.get(
-    send_url + '/' + address, 
-    auth=('api', MAILGUN_API_KEY)
-  )
-  
-  r = json.loads(r.content)
-  
-  if 'bounce' in r:
-    return True
-  else:
-    return False
+    send_url = 'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/bounces'
+
+    r = requests.get(send_url + '/' + address, auth=('api', MAILGUN_API_KEY))
+
+    print r
+
+    status = json.loads(r.content)
+
+    if 'bounce' in status:
+        return True
+    else:
+        return False
 
 #-------------------------------------------------------------------------------
 def get_today_fails():

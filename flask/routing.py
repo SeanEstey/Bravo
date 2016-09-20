@@ -5,14 +5,17 @@ from oauth2client.client import SignedJwtAssertionCredentials
 import httplib2
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
-from datetime import datetime, time, date
+from datetime import datetime, time, date, timedelta
 from time import sleep
 import requests
 from pymongo import ReturnDocument
 import re
+import bson.json_util
+from flask.ext.login import current_user
 
 from config import *
 import etap
+import scheduler
 
 from app import info_handler, error_handler, debug_handler, db
 from tasks import celery_app
@@ -26,10 +29,106 @@ logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 def get_upcoming_routes():
-    '''Get list of scheduled routes for next X days
+    '''Get list of scheduled routes for next X days.
+    Pullled from db['routes']. Document is inserted for a Block if
+    not already in collection.
+    Return: list of db['routes'] documents
     '''
 
-    return True
+    # send today's Blocks routing status
+    today_dt = datetime.combine(date.today(), time())
+
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+
+    cal_ids = db['agencies'].find_one({'name':agency})['cal_ids']
+    oauth = db['agencies'].find_one({'name':agency})['oauth']
+
+    end_dt = today_dt + timedelta(days=5)
+
+    events = []
+
+    for id in cal_ids:
+        events += scheduler.get_cal_events(cal_ids[id], today_dt, end_dt, oauth)
+
+    events = sorted(events, key=lambda k: k['start']['date'])
+
+    routes = []
+
+    for event in events:
+        # yyyy-mm-dd format
+        event_dt = parse(event['start']['date'])
+
+        block = re.match(r'^((B|R)\d{1,2}[a-zA-Z]{1})', event['summary']).group(0)
+
+        # 1. Do we already have this Block in Routes collection?
+        route = db['routes'].find_one({'date':event_dt, 'block': block, 'agency':agency})
+
+        if route is None:
+            # 1.a Let's grab info from eTapestry
+            etap_info = db['agencies'].find_one({'name':agency})['etapestry']
+
+            try:
+                a = etap.call(
+                  'get_query_accounts',
+                  etap_info,
+                  {'query':block, 'query_category':etap_info['query_category']}
+                )
+            except Exception as e:
+                logger.error('Error retrieving accounts for query %s', block)
+
+            if 'count' not in a:
+                logger.error('No accounts found in query %s', block)
+                continue
+
+            num_dropoffs = 0
+            num_booked = 0
+
+            event_d = event_dt.date()
+
+            for account in a['data']:
+                npu = etap.get_udf('Next Pickup Date', account)
+
+                if npu == '':
+                    continue
+
+                npu_d = etap.ddmmyyyy_to_date(npu)
+
+                if npu_d == event_d:
+                    num_booked += 1
+
+                if etap.get_udf('Status', account) == 'Dropoff':
+                    num_dropoffs += 1
+
+            routes.append({
+              'agency': agency,
+              'date': event_dt,
+              'block': block,
+              'status': 'pending',
+              'orders': num_booked,
+              'block_size': len(a['data']),
+              'duration': 0,
+              'dropoffs': num_dropoffs
+            })
+
+            logger.info('Inserting route %s', bson.json_util.dumps(routes[-1]))
+
+            db['routes'].insert_one(routes[-1])
+        else:
+            # 2. Get updated order count from reminders job
+            job = db['jobs'].find_one({'name':block, 'agency':agency})
+
+            if job is not None:
+                num_reminders = db['reminders'].find({'job_id':job['_id']}).count()
+                orders = num_reminders - job['no_pickups']
+
+                db['routes'].update_one(
+                  {'date':event_dt, 'agency':agency},
+                  {'$set':{'orders':orders}})
+
+            routes.append(route)
+
+    return routes
+
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -79,7 +178,7 @@ def build_route(agency, block, date_str):
     sheets_api = auth_gservice(agency, 'sheets')
     write_orders(sheets_api, sheet_id, orders)
 
-    db['routes'].update_one({'job_id':job_id}, {'$set':{'gsheet':'created'}})
+    db['routes'].update_one({'job_id':job_id},{'$set':{'ss_id':sheet_id}})
 
     logger.info('Route %s complete.', block)
 
@@ -109,6 +208,7 @@ def get_completed_route(job_id):
 
     orders = solution['output']['solution'][route_info['driver']]
 
+    # TODO: Include trip time back to office for WSF
     route_length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
 
     db['routes'].update_one({'job_id':job_id},

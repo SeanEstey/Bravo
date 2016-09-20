@@ -16,8 +16,7 @@ from app import app, db, socketio
 from utils import send_mailgun_email, dict_to_html_table
 from log import get_tail
 from auth import login, logout
-from routing import get_completed_route, start_job, build_route
-
+from routing import get_completed_route, start_job, build_route,get_upcoming_routes
 import reminders
 import receipts
 import gsheets
@@ -79,11 +78,6 @@ def view_admin():
     return render_template('views/admin.html', agency_config=settings_html)
 
 
-@app.route('/testsocket', methods=['GET'])
-def test_socket():
-    socketio.emit('test')
-    return 'OK'
-
 #-------------------------------------------------------------------------------
 @app.route('/sendsocket', methods=['GET'])
 def request_send_socket():
@@ -96,105 +90,7 @@ def request_send_socket():
 @app.route('/routing', methods=['GET'])
 @login_required
 def show_routing():
-    # TODO: Move this code into routing module
-
-    # send today's Blocks routing status
-    today_dt = datetime.datetime.combine(datetime.date.today(), datetime.time())
-
-    agency = db['users'].find_one({'user': current_user.username})['agency']
-
-    cal_ids = db['agencies'].find_one({'name':agency})['cal_ids']
-    oauth = db['agencies'].find_one({'name':agency})['oauth']
-
-    end_dt = today_dt + datetime.timedelta(days=5)
-
-    events = []
-
-    for id in cal_ids:
-        events += scheduler.get_cal_events(cal_ids[id], today_dt, end_dt, oauth)
-
-    events = sorted(events, key=lambda k: k['start']['date'])
-
-    from dateutil.parser import parse
-    import re
-
-    routes = []
-
-    import bson.json_util
-
-    for event in events:
-        # yyyy-mm-dd format
-        event_dt = parse(event['start']['date'])
-
-        block = re.match(r'^((B|R)\d{1,2}[a-zA-Z]{1})', event['summary']).group(0)
-
-        # 1. Do we already have this Block in Routes collection?
-        route = db['routes'].find_one({'date':event_dt, 'agency':agency})
-
-        if route is None:
-            # 1.a Let's grab info from eTapestry
-            etap_info = db['agencies'].find_one({'name':agency})['etapestry']
-
-            try:
-                a = etap.call(
-                  'get_query_accounts',
-                  etap_info,
-                  {'query':block, 'query_category':etap_info['query_category']}
-                )
-            except Exception as e:
-                app.logger.error('Error retrieving accounts for query %s', block)
-
-            if 'count' not in a:
-                app.logger.error('No accounts found in query %s', block)
-                continue
-
-            num_dropoffs = 0
-            num_booked = 0
-
-            event_d = event_dt.date()
-
-            for account in a['data']:
-                npu = etap.get_udf('Next Pickup Date', account)
-
-                if npu == '':
-                    continue
-
-                npu_d = etap.ddmmyyyy_to_date(npu)
-
-                if npu_d == event_d:
-                    num_booked += 1
-
-                if etap.get_udf('Status', account) == 'Dropoff':
-                    num_dropoffs += 1
-
-            routes.append({
-              'agency': agency,
-              'date': event_dt,
-              'block': block,
-              'status': 'pending',
-              'orders': num_booked,
-              'block_size': a['count'],
-              'duration': 0,
-              'dropoffs': num_dropoffs
-            })
-
-            app.logger.info('Inserting route %s', bson.json_util.dumps(routes[-1]))
-
-            db['routes'].insert_one(routes[-1])
-        else:
-            # 2. Get updated order count from reminders job
-            job = db['jobs'].find_one({'name':block, 'agency':agency})
-
-            if job is not None:
-                num_reminders = db['reminders'].find({'job_id':job['_id']}).count()
-                orders = num_reminders - job['no_pickups']
-
-                db['routes'].update_one(
-                  {'date':event_dt, 'agency':agency},
-                  {'$set':{'orders':orders}})
-
-            routes.append(route)
-
+    routes = get_upcoming_routes()
     return render_template('views/routing.html', routes=routes)
 
 #-------------------------------------------------------------------------------
@@ -270,14 +166,7 @@ def submit_job():
         app.logger.error('submit_job: %s', str(e))
         return False
 
-#-------------------------------------------------------------------------------
-@app.route('/reminders/recordaudio', methods=['POST'])
-def record_msg():
-    agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    r = reminders.record_audio(request.values.to_dict(), agency)
-
-    return flask.Response(response=json.dumps(r), status=200, mimetype='text/xml')
 
 
 #-------------------------------------------------------------------------------
@@ -375,77 +264,132 @@ def no_pickup(job_id, msg_id):
     reminders.cancel_pickup.apply_async((msg_id,), queue=app.config['DB'])
     return 'Thank You'
 
+
 #-------------------------------------------------------------------------------
-@app.route('/reminders/call.xml',methods=['GET', 'POST'])
-def call_xml():
-    '''Twilio TwiML Voice Request
-    Returns twilio.twiml.Response obj
+@app.route('/reminders/voice/record/request', methods=['POST'])
+def record_msg():
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+
+    app.logger.info('Record audio request from ' + args['To'])
+
+    twilio = db['agencies'].find_one({'name':agency})['twilio']
+
+    call = reminders.dial(
+      args['To'],
+      twilio['ph'],
+      twilio['keys']['main'],
+      app.config['PUB_URL'] + '/reminders/voice/record/on_answer.xml'
+    )
+
+    app.logger.info('Dial status: %s', call.status)
+
+    if call.status == 'queued':
+        doc = {
+            'date': datetime.utcnow(),
+            'sid': call.sid,
+            'agency': agency,
+            'to': call.to,
+            'from': call.from_,
+            'status': call.status,
+            'direction': call.direction
+        }
+
+        db['audio'].insert_one(doc)
+
+    return flask.Response(response=json.dumps({'status':call.status}), mimetype='text/xml')
+
+
+#-------------------------------------------------------------------------------
+@app.route('/reminders/voice/record/on_answer.xml',methods=['POST'])
+def record_xml():
+    '''
+    '''
+
+    app.logger.info('Sending record twimlo response to client')
+
+    # Record voice message
+    voice = twilio.twiml.Response()
+    voice.say('Record your message after the beep. Press pound when complete.',
+      voice='alice'
+    )
+    voice.record(
+        method= 'POST',
+        action= app.config['PUB_URL'] + '/reminders/voice/record/on_complete.xml',
+        playBeep= True,
+        finishOnKey='#'
+    )
+
+    #send_socket('record_audio', {'msg': 'Listen to the call for instructions'})
+
+    return flask.Response(response=str(voice), mimetype='text/xml')
+
+#-------------------------------------------------------------------------------
+@app.route('/reminders/voice/record/on_complete.xml' methods=['POST'])
+def record_complete_xml():
+    '''
+    '''
+
+    app.logger.debug('/reminders/voice/record_on_complete.xml args: %s',
+      request.form.to_dict())
+
+    if request.form.get('Digits') == '#':
+        record = db['audio'].find_one({'sid': request.form['CallSid']})
+
+        app.logger.info('Recording completed. Sending audio_url to client')
+
+        # Reminder job has not been created yet so save in 'audio' for now
+
+        db['audio'].update_one(
+          {'sid': request.form['CallSid']},
+          {'$set': {
+              'audio_url': request.form['RecordingUrl'],
+              'audio_duration': request.form['RecordingDuration'],
+              'status': 'completed'
+        }})
+
+        socketio.emit('record_audio', {'audio_url': request.form['RecordingUrl']})
+
+        voice = twilio.twiml.Response()
+        voice.say('Message recorded. Goodbye.', voice='alice')
+        voice.hangup()
+
+    return flask.Response(response=str(voice), mimetype='text/xml')
+
+
+#-------------------------------------------------------------------------------
+@app.route('/reminders/voice/play/on_answer.xml',methods=['POST'])
+def get_answer_xml():
+    '''Reminder call is answered.
+    Request: Twilio POST
+    Response: twilio.twiml.Response with voice content
     '''
 
     try:
-        app.logger.debug('call.xml request values: %s', request.values.to_dict())
-
-        sid = request.values.to_dict()['CallSid']
-
-        r = reminders.get_voice_response(request.values.to_dict())
-
-        # Voice Recording
-        if type(r) is twilio.twiml.Response:
-            return flask.Response(response=str(r), mimetype='text/xml')
-
-        # Reminder
-
-        reminder = db['reminders'].find_one({'voice.sid': sid})
-
-        if reminder is not None:
-            # Returned .html template file for rendering
-
-            # Localize datetimes
-            local = pytz.timezone("Canada/Mountain")
-            reminder['event_dt'] = reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
-
-            if reminder['custom']['future_pickup_dt']:
-                reminder['custom']['future_pickup_dt'] = reminder['custom']['future_pickup_dt'].replace(
-                        tzinfo=pytz.utc).astimezone(local)
-
-            html = render_template(
-                r,
-                reminder=json.loads(reminders.bson_to_json(reminder))
-            )
-
-            html = html.replace("\n", "")
-            html = html.replace("  ", "")
-            app.logger.debug('speak template: %s', html)
-
-            db['reminders'].update({'_id':reminder['_id']},{'$set':{'voice.speak':html}})
-
-            twilio_response = twilio.twiml.Response()
-            twilio_response.say(html, voice='alice')
-
-            # ONLY FOR REMINDER MESSAGES
-            twilio_response.gather(numDigits=1, action='/reminders/call.xml', method='POST')
-
-            return flask.Response(response=str(twilio_response), mimetype='text/xml')
-
-        return flask.Response(response="Unknown SID", status=500, mimetype='text/xml')
+        voice = reminders.get_voice_play_answer_response(request.form.to_dict())
+        return flask.Response(response=str(voice), mimetype='text/xml')
     except Exception as e:
-        app.logger.error('call.xml: %s', str(e))
+        app.logger.error('/reminders/on_answer.xml: %s', str(e))
         return flask.Response(response="Error", status=500, mimetype='text/xml')
 
-#-------------------------------------------------------------------------------
-@app.route('/get_speak', methods=['POST'])
-def get_template():
-    html = render_template(
-        request.form['template'],
-        reminder=json.loads(request.form['reminder'])
-    )
-
-    app.logger.debug('returning speak')
-
-    return html.replace("\n", "")
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/call_event',methods=['POST','GET'])
+@app.route('/reminders/voice/play/on_interact.xml', methods=['POST'])
+def get_interact_xml():
+    '''User interacted with reminder call. Send voice response.
+    Request: Twilio POST
+    Response: twilio.twiml.Response
+    '''
+
+    try:
+        voice = reminders.get_voice_play_interact_response(request.form.to_dict())
+        return flask.Response(response=str(voice), mimetype='text/xml')
+    except Exception as e:
+        app.logger.error('/reminders/voice/play/on_interact.xml: %s', str(e))
+        return flask.Response(response="Error", status=500, mimetype='text/xml')
+
+
+#-------------------------------------------------------------------------------
+@app.route('/reminders/voice/on_complete',methods=['POST'])
 def call_event():
     '''Twilio callback'''
 
@@ -560,7 +504,7 @@ def send_email():
         'on_status_update': args['data']['from']
     })
 
-    app.logger.info('Queued email to ' + args['recipient'])
+    app.logger.debug('Queued email to ' + args['recipient'])
 
     return json.loads(r.text)['id']
 
@@ -635,8 +579,19 @@ def email_status():
         return 'No record to update'
 
     if event == 'dropped':
+        msg = request.form['recipient'] + ' ' + event + ': '
+
+        reason = request.form.get('reason')
+
+        if reason == 'old':
+            msg += 'Tried to deliver unsuccessfully for 8 hours'
+        elif reason == 'hardfail':
+            msg +=  'Can\'t deliver to previous invalid address'
+
+        app.logger.info(msg)
+
         gsheets.create_rfu.apply_async(
-            args=(email['agency'], request.form['recipient'] + ' ' + event, ),
+            args=(email['agency'], msg, ),
             queue=app.config['DB'])
 
     if 'worksheet' in email['on_status_update']:

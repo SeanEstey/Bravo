@@ -3,6 +3,7 @@ import logging
 from datetime import datetime,date
 from dateutil.parser import parse
 import time
+from flask import render_template
 
 #from flask_socketio import send, emit
 from werkzeug import secure_filename
@@ -204,7 +205,12 @@ def send_calls(job_id):
               }})
             continue
 
-        call = dial(reminder['voice']['to'], twilio['ph'], twilio['keys']['main'])
+        call = dial(
+          reminder['voice']['to'],
+          twilio['ph'],
+          twilio['keys']['main'],
+          app.config['PUB_URL'] + '/reminders/voice/play/on_answer.xml'
+        )
 
         if isinstance(call, Exception):
             logger.info('%s failed (%d: %s)',
@@ -467,7 +473,7 @@ def edit_msg(reminder_id, fields):
         )
 
 #-------------------------------------------------------------------------------
-def dial(to, from_, twilio_keys):
+def dial(to, from_, twilio_keys, answer_url):
     '''Returns twilio call object'''
 
     if to[0:2] != "+1":
@@ -483,8 +489,8 @@ def dial(to, from_, twilio_keys):
         call = twilio_client.calls.create(
           from_ = from_,
           to = to,
-          url = app.config['PUB_URL'] + '/reminders/call.xml',
-          status_callback = app.config['PUB_URL'] + '/reminders/call_event',
+          url = answer_url,
+          status_callback = app.config['PUB_URL'] + '/reminders/voice/on_complete',
           status_method = 'POST',
           status_events = ["completed"], # adding more status events adds cost
           method = 'POST',
@@ -511,102 +517,45 @@ def dial(to, from_, twilio_keys):
 
     return call
 
-#-------------------------------------------------------------------------------
-def get_voice_response(args):
-    '''Returns a twilio.twiml.Response object if voice recording,
-    returns a .html template file for rendering by view otherwise
-    '''
-
-    if 'msg' in args or 'Digits' in args:
-        return get_resp_xml_template(args)
-    else:
-        return get_answer_xml_template(args)
 
 #-------------------------------------------------------------------------------
-def get_resp_xml_template(args):
-    '''Twilio TwiML Voice Request. User has made interaction with call.
-    @args: dict of flask request.form (POST) or request.args (GET)
-    Returns: either twilio.twiml.Response obj or .html template
+def get_voice_content(reminder, file_path):
+    '''Return rendered HMTL template as string
     '''
 
-    logger.debug('get_resp_xml: CallSid %s', args['CallSid'])
+    # Localize datetimes
+    local = pytz.timezone("Canada/Mountain")
+    reminder['event_dt'] = reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
 
-    reminder = db['reminders'].find_one({'voice.sid': args['CallSid']})
+    if reminder['custom']['future_pickup_dt']:
+        reminder['custom']['future_pickup_dt'] = reminder['custom']['future_pickup_dt'].replace(
+                tzinfo=pytz.utc).astimezone(local)
 
-    response = twilio.twiml.Response()
+    content = render_template(
+      file_path,
+      reminder=json.loads(reminders.bson_to_json(reminder))
+    )
 
-    # Voice recording?
-    if reminder is None:
-        record = db['audio'].find_one({'sid': args['CallSid']})
+    content = content.replace("\n", "")
+    content = content.replace("  ", "")
 
-        if record is None:
-            logger.error('Unknown SID %s (reminders.get_answer_xml)', args['CallSid'])
-            return response
+    logger.debug('speak template: %s', content)
 
-        if 'Digits' in args:
-            digits = args['Digits']
-            logger.info('recordaudio digit='+digits)
+    db['reminders'].update_one({'_id':reminder['_id']},{'$set':{'voice.speak':content}})
 
-            if digits == '#':
-                logger.info('Recording completed. Sending audio_url to client')
-
-                db['audio'].update_one(
-                  {'sid': args['CallSid']},
-                  {'$set': {
-                      'audio_url': args['RecordingUrl'],
-                      'audio_duration': args['RecordingDuration'],
-                      'status': args['CallStatus']
-                }})
-
-                socketio.emit('record_audio', {'audio_url': args['RecordingUrl']})
-
-                response = twilio.twiml.Response()
-                response.say('Message recorded', voice='alice')
-
-                return response
-        else:
-            logger.info('recordaudio: no digits')
-
-        return True
-
-    # Must be reminder call
-    job = db['jobs'].find_one({'_id': reminder['job_id']})
-
-    # Repeat message request...
-    if args.get('Digits') == '1':
-        try:
-            # Simplest case: announce_voice template. Play audio file
-            if job['schema']['type'] == 'announce_voice':
-                # TODO: Fixme
-                response = twilio.twiml.Response()
-                response.play(job['audio_url'])
-                return response
-
-            return job['schema']['voice']['reminder']['file']
-        except Exception as e:
-            logger.error('Error generating xml response: %s', str(e))
-            return False
-    # Cancel Pickup special request...
-    elif args.get('Digits') == '2':
-        cancel_pickup.apply_async((str(reminder['_id']),), queue=app.config['DB'])
-
-        local = pytz.timezone("Canada/Mountain")
-        response.say(
-          'Thank you. Your next pickup will be on ' +\
-          reminder['custom']['future_pickup_dt'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d') + '. Goodbye',
-          voice='alice')
-
-        return response
+    return content
 
 #-------------------------------------------------------------------------------
-def get_answer_xml_template(args):
-    '''TwiML Voice Request
-    Call has been answered (by machine or human)
-    Returns: either twilio.twiml.Response obj or .html template
+def get_voice_play_answer_response(args):
+    '''
+    Return: twilio.twiml.Response
     '''
 
-    logger.info('%s %s (%s)', args['To'], args['CallStatus'], args.get('AnsweredBy'))
-    logger.debug('get_answer_xml: CallSid %s', args['CallSid'])
+    logger.debug('voice_play_answer args: %s', args)
+
+    logger.info('%s %s (%s)',
+      args['To'], args['CallStatus'], args.get('AnsweredBy')
+    )
 
     reminder = db['reminders'].find_one_and_update(
       {'voice.sid': args['CallSid']},
@@ -615,50 +564,86 @@ def get_answer_xml_template(args):
         "voice.answered_by": args.get('AnsweredBy')}},
       return_document=ReturnDocument.AFTER)
 
-    if reminder:
-        # send_socket('update_msg',
-        # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
-        job = db['jobs'].find_one({'_id': reminder['job_id']})
-        try:
-            # Simplest case: announce_voice template. Play audio file
-            if job['schema']['type'] == 'announce_voice':
-                # TODO: Fixme
-                response = twilio.twiml.Response()
-                response.play(job['audio_url'])
-                return response
+    job = db['jobs'].find_one({'_id':reminder['job_id']})
 
-            return job['schema']['voice']['reminder']['file']
-        except Exception as e:
-            logger.error('reminders.get_answer_xml_template', exc_info=True)
-            return False
+    # send_socket('update_msg',
+    # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
 
-    # Not a reminder. Maybe a special msg recording?
-    if reminder is None:
-        record = db['audio'].find_one({'sid': args['CallSid']})
+    # TODO: replace this test with reminder['voice']['source']
 
-        response_xml = twilio.twiml.Response()
+    voice = twilio.twiml.Response()
 
-        if record is None:
-            logger.error('Unknown SID %s (reminders.get_answer_xml)',
-                        args['CallSid'])
-            return response_xml
+    # A. Html template voice content
+    if job['schema']['type'] == 'reminder':
+        content = get_voice_content(
+          reminder,
+          job['schema']['voice']['reminder']['file'])
 
-        logger.info('Sending record twimlo response to client')
+        voice.say(content, voice='alice')
 
-        # Record voice message
-        response_xml.say(
-            'Record your message after the beep. Press pound when complete.',
-            voice='alice'
-        )
-        response_xml.record(
-            method= 'GET',
-            action= app.config['PUB_URL'] + '/reminders/call.xml',
-            playBeep= True,
-            finishOnKey='#'
-        )
-        #send_socket('record_audio', {'msg': 'Listen to the call for instructions'})
+    # B. Audio recording. Play from source url
+    elif job['schema']['type'] == 'announce_voice':
+        voice.play(job['audio_url'])
 
-        return response_xml
+    # C. Other
+    else:
+        logger.error('Unknown schema type!')
+        voice.say("Error!", voice='alice')
+
+    # Prompt user for action after voice audio plays
+    voice.gather(numDigits=1, action='/reminders/voice/play/on_interact.xml', method='POST')
+
+    return voice
+
+
+#-------------------------------------------------------------------------------
+def get_voice_play_interact_response(args):
+    '''
+    Return: twilio.twiml.Response
+    '''
+
+    logger.debug('voice_play_interact args: %s', args)
+
+    reminder = db['reminders'].find_one({'voice.sid': args['CallSid']})
+    job = db['jobs'].find_one({'_id': reminder['job_id']})
+
+    voice = twilio.twiml.Response()
+
+    # TODO: replace job['schema']['type'] with reminder['voice']['from_source']
+
+    if job['schema']['type'] == 'reminder':
+
+        # Digit 1: Repeat message
+        if args.get('Digits') == '1':
+            content = get_voice_content(
+              reminder,
+              job['schema']['voice']['reminder']['file']
+            )
+
+            voice.say(content, voice='alice')
+            voice.gather(numDigits=1, action='/reminders/voice/play/on_interact.xml', method='POST')
+
+        # Digit 2: Cancel pickup
+        elif args.get('Digits') == '2':
+            cancel_pickup.apply_async((str(reminder['_id']),), queue=app.config['DB'])
+
+            dt = reminder['custom']['future_pickup_dt']
+            dt = dt.replace(tzinfo=pytz.utc).astimezone(pytz.timezone('Canada/Mountain'))
+
+            voice.say(
+              'Thank you. Your next pickup will be on ' +\
+              dt.strftime('%A, %B %d') + '. Goodbye',
+              voice='alice'
+            )
+            voice.hangup()
+
+    elif job['schema']['type'] == 'announce_voice':
+        if args.get('Digits') == '1':
+            voice.play(job['audio_url'])
+            voice.gather(numDigits=1, action='/reminders/voice/play/on_interact.xml', method='POST')
+
+    return voice
+
 
 #-------------------------------------------------------------------------------
 def call_event(args):
@@ -829,13 +814,11 @@ def cancel_pickup(reminder_id):
     #  })
 
     job = db['jobs'].find_one({'_id':reminder['job_id']})
-    settings = db['agencies'].find_one({'name':job['agency']})
-    keys = {'user':settings['etapestry']['user'], 'pw':settings['etapestry']['pw'],
-            'agency':job['agency'],'endpoint':app.config['ETAPESTRY_ENDPOINT']}
+    etap_id = db['agencies'].find_one({'name':job['agency']})['etapestry']
 
     try:
         # Write to eTapestry
-        etap.call('no_pickup', keys, {
+        etap.call('no_pickup', etap_id, {
           "account": reminder['account_id'],
           "date": reminder['event_dt'].strftime('%d/%m/%Y'),
           "next_pickup": reminder['custom']['future_pickup_dt'].strftime('%d/%m/%Y')
@@ -938,43 +921,6 @@ def parse_csv(csvfile, import_fields):
         return False
 
     return buffer
-
-#-------------------------------------------------------------------------------
-def record_audio(args, agency):
-    '''Used to initiate voice recording reminder.
-    1. User POST request to /reminders/recordaudio->this function->Dial
-    user->Success response
-    2. User answers->Twilio POST request to /reminders/call.xml->Record XML
-    response
-    3. User ends recording, hits '#'->Twilio GET request to /reminders/call.xml->Recording
-    saved->Confirmation XML response
-    '''
-
-    logger.info('Record audio request from ' + args['To'])
-
-    twilio = db['agencies'].find_one({'name':agency})['twilio']
-
-    call = dial(args['To'], twilio['ph'], twilio['keys']['main'])
-
-    logger.info('Dial status: %s', call.status)
-
-    if call.status == 'queued':
-        doc = {
-            'date': datetime.utcnow(),
-            'sid': call.sid,
-            'agency': agency,
-            'to': call.to,
-            'from': call.from_,
-            'status': call.status,
-            'direction': call.direction
-        }
-
-        db['audio'].insert_one(doc)
-        del doc['_id']
-        del doc['date']
-        return doc
-
-    return {'status':call.status}
 
 
 #-------------------------------------------------------------------------------

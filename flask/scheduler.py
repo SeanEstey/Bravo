@@ -123,6 +123,8 @@ def setup_reminder_jobs():
             npu = npu[1] + '/' + npu[0] + '/' + npu[2]
             pickup_dt = local.localize(parse(npu + " T08:00:00"), is_dst=True)
 
+        # TODO: Insert 'voice.source': 'from_recorded_audio', 'from_html_template'
+
         db['reminders'].insert({
           "job_id": job['_id'],
           "agency": job['agency'],

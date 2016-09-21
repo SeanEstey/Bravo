@@ -4,10 +4,41 @@ from datetime import date
 
 from config import *
 
+def call_(func_name, keys, data):
+    '''Same as call() wrapper but handles exceptions
+    '''
+
+    try:
+        r = call(func_name, keys, data)
+    except Exception as e:
+        logger.error('eTapestry eror calling "%s": %s', func_name, str(e))
+        return e
+
+    return r
+
 #-------------------------------------------------------------------------------
 def call(func_name, keys, data):
     '''Call PHP eTapestry script
-    keys: dict with etap keys {'agency','endpoint','user','pw'}
+    @func_name:
+        'get_num_active_processes'
+        'add_accounts'
+        'add_note'
+        'update_note'
+        'process_route_entries'
+        'get_account'
+        'get_accounts'
+        'find_account_by_phone'
+        'modify_account'
+        'get_gift_histories'
+        'get_upload_status'
+        'get_block_size'
+        'get_scheduled_block_size'
+        'get_next_pickup'
+        'check_duplicates'
+        'no_pickup'
+        'make_booking'
+        'get_query_accounts'
+    @keys: dict with etap keys {'agency','endpoint','user','pw'}
     Returns: any data or messages
     '''
 

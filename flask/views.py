@@ -90,6 +90,13 @@ def show_routing():
     return render_template('views/routing.html', routes=routes)
 
 #-------------------------------------------------------------------------------
+@app.route('/booking', methods=['GET'])
+@login_required
+def show_booking():
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+    return render_template('views/booking.html', agency=agency)
+
+#-------------------------------------------------------------------------------
 @app.route('/routing/get_scheduled_route', methods=['POST'])
 def get_today_route():
     return True
@@ -109,6 +116,10 @@ def get_route(job_id):
 def get_routing_job_id():
     app.logger.info('Routing Block %s...', request.form['block'])
 
+    agency_config = db['agencies'].find_one({
+      'name':request.form['etapestry_id']['agency']
+    })
+
     return start_job(
             request.form['block'],
             request.form['driver'],
@@ -116,6 +127,7 @@ def get_routing_job_id():
             request.form['start_address'],
             request.form['end_address'],
             json.loads(request.form["etapestry_id"]),
+            agency_config['routific']['api_key'],
             min_per_stop=request.form['min_per_stop'],
             shift_start=request.form['shift_start'])
 

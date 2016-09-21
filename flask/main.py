@@ -8,6 +8,7 @@ import os
 import time
 import sys
 
+
 if __name__ == "__main__":
     os.system('kill %1')
 

@@ -18,6 +18,7 @@ import etap
 import scheduler
 
 from app import info_handler, error_handler, debug_handler, db
+
 from tasks import celery_app
 
 logger = logging.getLogger(__name__)
@@ -150,6 +151,7 @@ def build_route(agency, block, date_str):
         routific['start_address'],
         routific['end_address'],
         etap_id,
+        routific['api_key'],
         min_per_stop = routific['min_per_stop'],
         shift_start = routific['shift_start']
     )
@@ -159,7 +161,7 @@ def build_route(agency, block, date_str):
 
     # TODO: Change this func to return entire solution to check status, not
     # just orders
-    orders = get_completed_route(job_id)
+    orders = get_completed_route(job_id, routific['api_key'])
 
     if orders == False:
         logger.error('Error retrieving routific solution')
@@ -170,7 +172,7 @@ def build_route(agency, block, date_str):
 
         sleep(5)
 
-        orders = get_completed_route(job_id)
+        orders = get_completed_route(job_id, routific['api_key'])
 
     drive_api = auth_gservice(agency, 'drive')
     sheet_id = create_sheet(agency, drive_api, block)
@@ -186,7 +188,7 @@ def build_route(agency, block, date_str):
 
 
 #-------------------------------------------------------------------------------
-def get_completed_route(job_id):
+def get_completed_route(job_id, api_key):
     '''Check routific to see if process for job_id is complete.
     Return: Routific 'solution' dict with orders on success, job status code
     on incomplete, and False on error.
@@ -230,7 +232,7 @@ def get_completed_route(job_id):
         id = order['location_id']
 
         if id == 'depot':
-            location = geocode(route_info['end_address'])['geometry']['location']
+            location = geocode(route_info['end_address'], api_key)['geometry']['location']
 
             order['gmaps_url'] = get_gmaps_url(
                 order['location_name'],
@@ -252,7 +254,7 @@ def get_completed_route(job_id):
 
 #-------------------------------------------------------------------------------
 def start_job(block, driver, date, start_address, end_address, etapestry_id,
-        min_per_stop=3, shift_start="08:00", shift_end="19:00"):
+        routific_key, min_per_stop=3, shift_start="08:00", shift_end="19:00"):
     '''Use Routific long-running process endpoint.
     @date: string format 'Sat Sep 10 2016'
     Returns: job_id
@@ -263,8 +265,10 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
 
     accounts = get_accounts(block, etapestry_id)
 
-    start = geocode(start_address)['geometry']['location']
-    end = geocode(end_address)['geometry']['location']
+    api_key = db['agencies'].find_one({'name':etapestry_id['agency']})['google_geocode_api_key']
+
+    start = geocode(start_address, api_key)['geometry']['location']
+    end = geocode(end_address, api_key)['geometry']['location']
 
     payload = {
       "visits": {},
@@ -323,7 +327,7 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
 
         formatted_address = account['address'] + ', ' + account['city'] + ', AB'
 
-        result = geocode(formatted_address, postal=account['postalCode'])
+        result = geocode(formatted_address, api_key, postal=account['postalCode'])
 
         if not result:
             logger.info(
@@ -390,7 +394,7 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
             'https://api.routific.com/v1/vrp-long',
             headers = {
               'content-type': 'application/json',
-              'Authorization': ROUTIFIC_KEY
+              'Authorization': routific_key
             },
             data=json.dumps(payload)
         )
@@ -462,7 +466,7 @@ def get_postal(geo_result):
     return False
 
 #-------------------------------------------------------------------------------
-def geocode(address, postal=None, save_warnings_to=None):
+def geocode(address, api_key, postal=None):
     '''documentation: https://developers.google.com/maps/documentation/geocoding
     @address: string with address + city + province. Should NOT include postal code.
     @postal: optional arg. Used to identify correct location when multiple
@@ -473,7 +477,7 @@ def geocode(address, postal=None, save_warnings_to=None):
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
     params = {
       'address': address,
-      'key': GOOGLE_API_KEY
+      'key': api_key
     }
 
     try:
@@ -481,6 +485,8 @@ def geocode(address, postal=None, save_warnings_to=None):
     except Exception as e:
         logger.error('Geocoding exception %s', str(e))
         return False
+
+    logger.debug(r.text)
 
     response = json.loads(r.text)
 

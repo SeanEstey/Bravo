@@ -32,6 +32,7 @@ from scheduler import add_future_pickups
 from scheduler import setup_reminder_jobs
 from sms import update_scheduled_accounts_for_sms
 
+
 # Celery
 BROKER_URI= 'amqp://'
 CELERY_BROKER_URL = 'amqp://'

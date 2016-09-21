@@ -17,6 +17,7 @@ from config import *
 from app import app, db, info_handler, error_handler, debug_handler, login_manager
 from tasks import celery_app
 import gsheets
+import parser
 import etap
 
 logger = logging.getLogger(__name__)
@@ -214,11 +215,8 @@ def get_blocks(cal_id, start_date, end_date, oauth):
         return False
 
     for item in events:
-        block = re.match(r'^(B|R\d{1,2}[a-zA-Z]{1})', item['summary'])
-
-        if block:
-            blocks.append(block.group(0))
-
+        if parser.get_block(item['summary']):
+            blocks.append(parser.get_block(item['summary']))
 
     if len(blocks) > 0:
         logger.info('%d scheduled Blocks: %s', len(blocks), blocks)
@@ -399,12 +397,15 @@ def get_next_pickup(blocks, office_notes, block_dates):
     block_list = blocks.split(', ')
 
     # Remove temporary blocks
+
+    # TODO: Handle multiple RMV BLK strings in office_notes
+
     if office_notes:
-        rmv = re.search(r'(\*{3}RMV\s(B|R)\d{1,2}[a-zA-Z]{1}\*{3})', office_notes)
+        rmv = parser.block_to_rmv(office_notes)
 
         if rmv:
-            block_list.remove(re.search(r'(B|R\d{1,2}[a-zA-Z]{1})', rmv.group(0)).group(0))
-            logger.info("Removed temp block %s from %s", str(rmv.group(0)), str(block_list))
+            block_list.remove(rmv)
+            logger.info("Removed temp block %s from %s", rmv, str(block_list))
 
     # Find all matching dates and sort chronologically to find solution
     dates = []

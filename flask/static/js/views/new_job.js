@@ -83,7 +83,7 @@ function init() {
     var phone = $('#phone-num').val();
     var request =  $.ajax({
       type: 'POST',
-      url: $URL_ROOT + 'reminders/recordaudio',
+      url: $URL_ROOT + 'reminders/voice/record/request',
       data: {'To':phone}
     });
     

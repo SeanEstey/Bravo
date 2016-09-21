@@ -2,7 +2,7 @@ import json
 import twilio.twiml
 import time
 import requests
-import datetime
+from datetime import datetime,date
 import flask
 from flask import request, render_template, redirect
 from flask.ext.login import login_required, current_user
@@ -25,11 +25,7 @@ import etap
 import sms
 
 
-@app.route('/test', methods=['GET'])
-def test_schedule_reminders():
-    import scheduler
-    scheduler.setup_reminder_jobs()
-    return 'OK'
+import test_views
 
 
 #-------------------------------------------------------------------------------
@@ -131,7 +127,7 @@ def _build_route(block):
     #date_str = request.form['date']
 
     # TODO: Fixme. Add scheduled date
-    date_str = datetime.date.today().isoformat()
+    date_str = date.today().isoformat()
 
     r = build_route.apply_async(
       args=(agency, block, date_str),
@@ -223,7 +219,7 @@ def send_calls(job_id):
       {'_id': ObjectId(job_id)},
       {'$set': {
         "status": "in-progress",
-        "voice.started_at": datetime.datetime.now()}})
+        "voice.started_at": datetime.now()}})
 
     reminders.send_calls.apply_async(
             args=(job_id, ),
@@ -268,14 +264,18 @@ def no_pickup(job_id, msg_id):
 #-------------------------------------------------------------------------------
 @app.route('/reminders/voice/record/request', methods=['POST'])
 def record_msg():
+    '''Request: POST from Bravo javascript client with 'To' arg
+    Response: JSON dict {'status':'string'}
+    '''
+
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    app.logger.info('Record audio request from ' + args['To'])
+    app.logger.info('Record audio request from ' + request.form['To'])
 
     twilio = db['agencies'].find_one({'name':agency})['twilio']
 
     call = reminders.dial(
-      args['To'],
+      request.form['To'],
       twilio['ph'],
       twilio['keys']['main'],
       app.config['PUB_URL'] + '/reminders/voice/record/on_answer.xml'
@@ -302,7 +302,8 @@ def record_msg():
 #-------------------------------------------------------------------------------
 @app.route('/reminders/voice/record/on_answer.xml',methods=['POST'])
 def record_xml():
-    '''
+    '''Request: Twilio POST
+    Response: twilio.twiml.Response with voice content
     '''
 
     app.logger.info('Sending record twimlo response to client')
@@ -324,9 +325,10 @@ def record_xml():
     return flask.Response(response=str(voice), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/voice/record/on_complete.xml' methods=['POST'])
+@app.route('/reminders/voice/record/on_complete.xml', methods=['POST'])
 def record_complete_xml():
-    '''
+    '''Request: Twilio POST
+    Response: twilio.twiml.Response with voice content
     '''
 
     app.logger.debug('/reminders/voice/record_on_complete.xml args: %s',
@@ -366,10 +368,11 @@ def get_answer_xml():
 
     try:
         voice = reminders.get_voice_play_answer_response(request.form.to_dict())
-        return flask.Response(response=str(voice), mimetype='text/xml')
     except Exception as e:
-        app.logger.error('/reminders/on_answer.xml: %s', str(e))
+        app.logger.error('/reminders/voice/play/on_answer.xml: %s', str(e))
         return flask.Response(response="Error", status=500, mimetype='text/xml')
+
+    return flask.Response(response=str(voice), mimetype='text/xml')
 
 
 #-------------------------------------------------------------------------------
@@ -382,10 +385,11 @@ def get_interact_xml():
 
     try:
         voice = reminders.get_voice_play_interact_response(request.form.to_dict())
-        return flask.Response(response=str(voice), mimetype='text/xml')
     except Exception as e:
         app.logger.error('/reminders/voice/play/on_interact.xml: %s', str(e))
         return flask.Response(response="Error", status=500, mimetype='text/xml')
+
+    return flask.Response(response=str(voice), mimetype='text/xml')
 
 
 #-------------------------------------------------------------------------------
@@ -463,14 +467,14 @@ def send_email():
         if key not in args:
             e = '/email/send: missing one or more required fields'
             app.logger.error(e)
-            return Response(response=e, status=500, mimetype='application/json')
+            return flask.Response(response=e, status=500, mimetype='application/json')
 
     try:
         html = render_template(args['template'], data=args['data'])
     except Exception as e:
         msg = '/email/send: invalid email template'
         app.logger.error('%s: %s', msg, str(e))
-        return Response(response=e, status=500, mimetype='application/json')
+        return flask.Response(response=e, status=500, mimetype='application/json')
 
     mailgun = db['agencies'].find_one({'name':args['agency']})['mailgun']
 
@@ -486,7 +490,7 @@ def send_email():
         })
     except requests.exceptions.RequestException as e:
         app.logger.error(str(e))
-        return Response(response=e, status=500, mimetype='application/json')
+        return flask.Response(response=e, status=500, mimetype='application/json')
 
     if r.status_code != 200:
         err = 'Invalid email address "' + args['recipient'] + '": ' + json.loads(r.text)['message']
@@ -495,7 +499,7 @@ def send_email():
 
         gsheets.create_rfu(args['agency'], err)
 
-        return Response(response=str(r), status=500, mimetype='application/json')
+        return flask.Response(response=str(r), status=500, mimetype='application/json')
 
     db['emails'].insert({
         'agency': args['agency'],
@@ -530,7 +534,7 @@ def email_unsubscribe():
             })
         except requests.exceptions.RequestException as e:
             app.logger.error(str(e))
-            return Response(response=e, status=500, mimetype='application/json')
+            return flask.Response(response=e, status=500, mimetype='application/json')
 
         return 'We have received your request to unsubscribe ' \
                 + request.args.get('email') + ' If you wish \

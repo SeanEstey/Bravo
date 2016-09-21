@@ -533,7 +533,7 @@ def get_voice_content(reminder, file_path):
 
     content = render_template(
       file_path,
-      reminder=json.loads(reminders.bson_to_json(reminder))
+      reminder=json.loads(bson_to_json(reminder))
     )
 
     content = content.replace("\n", "")

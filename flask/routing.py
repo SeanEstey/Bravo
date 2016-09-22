@@ -14,6 +14,7 @@ import bson.json_util
 from flask.ext.login import current_user
 
 from config import *
+import google_api
 import etap
 import scheduler
 
@@ -135,6 +136,7 @@ def get_upcoming_routes():
 @celery_app.task
 def build_route(agency, block, date_str):
     '''Check on a scheduled route if job_id not know.
+    @agency: name string
     @date_str: string format 'Sat Sep 10 2016'
     Returns: see get_completed_route()
     '''
@@ -161,7 +163,9 @@ def build_route(agency, block, date_str):
 
     # TODO: Change this func to return entire solution to check status, not
     # just orders
-    orders = get_completed_route(job_id, routific['api_key'])
+    geocode_api_key = db['agencies'].find_one({'name':agency})['google_geocode_api_key']
+
+    orders = get_completed_route(job_id, geocode_api_key)
 
     if orders == False:
         logger.error('Error retrieving routific solution')
@@ -172,12 +176,12 @@ def build_route(agency, block, date_str):
 
         sleep(5)
 
-        orders = get_completed_route(job_id, routific['api_key'])
+        orders = get_completed_route(job_id, geocode_api_key)
 
-    drive_api = auth_gservice(agency, 'drive')
+    drive_api = google_api.auth_gservice(agency, 'drive')
     sheet_id = create_sheet(agency, drive_api, block)
 
-    sheets_api = auth_gservice(agency, 'sheets')
+    sheets_api = google_api.auth_gservice(agency, 'sheets')
     write_orders(sheets_api, sheet_id, orders)
 
     db['routes'].update_one({'job_id':job_id},{'$set':{'ss_id':sheet_id}})
@@ -190,6 +194,8 @@ def build_route(agency, block, date_str):
 #-------------------------------------------------------------------------------
 def get_completed_route(job_id, api_key):
     '''Check routific to see if process for job_id is complete.
+    @job_id: routific id string
+    @api_key: google geocode api key
     Return: Routific 'solution' dict with orders on success, job status code
     on incomplete, and False on error.
     '''
@@ -202,11 +208,11 @@ def get_completed_route(job_id, api_key):
     if solution['status'] != 'finished':
         return solution['status']
 
-    logger.info(
-      'Job_ID \'%s\' finished. Returning sorted orders (Status code: %s)',
-      job_id, r.status_code)
-
     route_info = db['routes'].find_one({'job_id':job_id})
+
+    logger.info(
+      '%s: job_id \'%s\' finished (Block %s). Returning sorted orders (status: %s)',
+      route_info['agency'], job_id, route_info['block'], r.status_code)
 
     orders = solution['output']['solution'][route_info['driver']]
 
@@ -296,6 +302,7 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
     num_skips = 0
 
     geocode_warnings = []
+    geocode_errors = []
 
     for account in accounts['data']:
         # Ignore accounts with Next Pickup > today
@@ -329,10 +336,11 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
 
         result = geocode(formatted_address, api_key, postal=account['postalCode'])
 
-        if not result:
-            logger.info(
-              'Omitting Account %s from route due to geocode error',
-              account['id'])
+        if result == False:
+            logger.error('Exception in start_job. Could not geocode %s', formatted_address)
+            continue
+        elif type(result) == str:
+            geocode_errors.append(result)
             continue
 
         if 'warning' in result:
@@ -422,10 +430,12 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
             'date': datetime.combine(route_date, time(0,0,0)),
             'start_address': start_address,
             'end_address': end_address,
-            'geocode_warnings': geocode_warnings
+            'geocode_warnings': geocode_warnings,
+            'geocode_errors': geocode_errors
         }
 
         if existing_job:
+            # TODO:Creates error. Fixme
             logger.info(
               '%s: Routific job already exists for Block % on %s. Over-writing.',
               etapestry_id['agency'], block, route_date.strftime('%b %d'))
@@ -471,7 +481,7 @@ def geocode(address, api_key, postal=None):
     @address: string with address + city + province. Should NOT include postal code.
     @postal: optional arg. Used to identify correct location when multiple
     results found
-    Returns: geocode result (dict), False on error
+    Returns: geocode result (dict) on success, str msg on error, False on exception
     '''
 
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
@@ -491,20 +501,24 @@ def geocode(address, api_key, postal=None):
     response = json.loads(r.text)
 
     if response['status'] == 'ZERO_RESULTS':
-        logger.error("No geocode result for %s", address)
-        return False
+        e = 'Error: No geocode result for ' + address
+        logger.error(e)
+        return e
     elif response['status'] == 'INVALID_REQUEST':
-        logger.error("Improper address %s", address)
-        return False
+        e = 'Error: Invalid request for ' + address
+        logger.error(e)
+        return e
     elif response['status'] != 'OK':
-        logger.error("Error geocoding %s. %s", address, response)
-        return False
+        e = 'Error: Could not geocode ' + address
+        logger.error(e)
+        return e
 
     if len(response['results']) == 1 and 'partial_match' in response['results'][0]:
         response['results'][0]['warning'] = 'Warning: partial match for "%s". Using "%s"' % (
         address, response['results'][0]['formatted_address'])
 
         logger.info(response['results'][0]['warning'])
+
     elif len(response['results']) > 1:
         if postal is None:
             # No way to identify best match
@@ -550,43 +564,14 @@ def get_accounts(block, etapestry_id):
 
     return accounts
 
-#-------------------------------------------------------------------------------
-def auth_gservice(agency, name):
-    if name == 'sheets':
-        scope = ['https://www.googleapis.com/auth/spreadsheets']
-        version = 'v4'
-    elif name == 'drive':
-        scope = ['https://www.googleapis.com/auth/drive',
-         'https://www.googleapis.com/auth/drive.file']
-        version = 'v3'
-    elif name == 'calendar':
-       scope = ['https://www.googleapis.com/auth/calendar.readonly']
-       version = 'v3'
-
-    oauth = db['agencies'].find_one({'name': agency})['oauth']
-
-    try:
-        credentials = SignedJwtAssertionCredentials(
-            oauth['client_email'],
-            oauth['private_key'],
-            scope
-        )
-
-        http = httplib2.Http()
-        http = credentials.authorize(http)
-        service = build(name, version, http=http)
-    except Exception as e:
-        logger.error('Error authorizing %s: %s', name, str(e))
-        return False
-
-    logger.info('%s api authorized', name)
-    print('%s api authorized', name)
-
-    return service
 
 #-------------------------------------------------------------------------------
 def create_sheet(agency, drive_api, title):
-    '''Make copy of Route Template, add edit/owner permissions
+    '''Makes copy of Route Template, add edit/owner permissions
+    IMPORTANT: Make sure 'Routed' folder has edit permissions for agency
+    service account.
+    IMPORTANT: Make sure route template file has edit permissions for agency
+    service account.
     Uses batch request for creating permissions
     Returns: ID of new Sheet file
     '''
@@ -603,21 +588,37 @@ def create_sheet(agency, drive_api, title):
 
     print file_copy
 
+    # Transfer ownership permission, add writer permissions
+    permissions = db['agencies'].find_one({'name':agency})['routing']['permissions']
+    google_api.add_permissions(drive_api, file_copy['id'], permissions)
+
+    logger.info('permissions added')
+
     routed_folder_id = db['agencies'].find_one({'name':agency})['routing']['routed_folder_id']
 
-    # Retrieve the existing parents to remove
-    file = drive_api.files().get(
-      fileId=file_copy['id'],
-      fields='parents').execute()
+    try:
+        # Retrieve the existing parents to remove
+        file = drive_api.files().get(
+          fileId=file_copy['id'],
+          fields='parents').execute()
+    except Exception as e:
+        logger.error('Error listing files: %s', str(e))
+        return False
 
     previous_parents = ",".join(file.get('parents'))
 
-    # Move the file to the new folder
-    file = drive_api.files().update(
-      fileId=file_copy['id'],
-      addParents=routed_folder_id,
-      removeParents=previous_parents,
-      fields='id, parents').execute()
+    try:
+        # Move the file to the new folder
+        file = drive_api.files().update(
+          fileId=file_copy['id'],
+          addParents=routed_folder_id,
+          removeParents=previous_parents,
+          fields='id, parents').execute()
+    except Exception as e:
+        logger.error('Error moving to folder: %s', str(e))
+        return False
+
+    logger.info('sheet_id %s created', file_copy['id'])
 
     return file_copy['id']
 
@@ -700,60 +701,12 @@ def write_orders(sheets_api, ss_id, orders):
     # Start from Row 2 Column A to Column J
     _range = "A2:J" + str(num_orders+1)
 
-    write_rows(sheets_api, ss_id, rows, _range)
+    google_api.write_rows(sheets_api, ss_id, rows, _range)
 
-    values = get_values(sheets_api, ss_id, "A1:$A")
+    values = google_api.get_values(sheets_api, ss_id, "A1:$A")
 
     hide_start = 1 + len(rows) + 1;
     hide_end = values.index(['***Route Info***'])
 
-    hide_rows(sheets_api, ss_id, hide_start, hide_end)
+    google_api.hide_rows(sheets_api, ss_id, hide_start, hide_end)
 
-
-#-------------------------------------------------------------------------------
-def write_rows(sheets_api, ss_id, rows, a1_range):
-    sheets_api.spreadsheets().values().update(
-      spreadsheetId = ss_id,
-      valueInputOption = "USER_ENTERED",
-      range = a1_range,
-      body = {
-        "majorDimension": "ROWS",
-        "values": rows
-      }
-    ).execute()
-
-
-#-------------------------------------------------------------------------------
-def get_values(sheets_api, ss_id, a1_range):
-    values = sheets_api.spreadsheets().values().get(
-      spreadsheetId = ss_id,
-      range=a1_range
-    ).execute()
-
-    return values['values']
-
-
-#-------------------------------------------------------------------------------
-def hide_rows(sheets_api, ss_id, start, end):
-    '''
-    @start: inclusive row
-    @end: inclusive row
-    '''
-    sheets_api.spreadsheets().batchUpdate(
-        spreadsheetId = ss_id,
-        body = {
-            'requests': {
-                'updateDimensionProperties': {
-                    'fields': '*',
-                    'range': {
-                        'startIndex': start-1,
-                        'endIndex': end,
-                        'dimension': 'ROWS'
-                    },
-                    'properties': {
-                        'hiddenByUser': True
-                    }
-                }
-            }
-        }
-    ).execute()

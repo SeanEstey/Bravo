@@ -109,15 +109,20 @@ def get_today_route():
 #-------------------------------------------------------------------------------
 @app.route('/routing/get_route/<job_id>', methods=['GET'])
 def get_route(job_id):
-    return json.dumps(get_completed_route(job_id))
+    agency = db['routes'].find_one({'job_id':job_id})['agency']
+    api_key = db['agencies'].find_one({'name':agency})['google_geocode_api_key']
+
+    return json.dumps(get_completed_route(job_id, api_key))
 
 #-------------------------------------------------------------------------------
 @app.route('/routing/start_job', methods=['POST'])
 def get_routing_job_id():
     app.logger.info('Routing Block %s...', request.form['block'])
 
+    etap_id = json.loads(request.form['etapestry_id'])
+
     agency_config = db['agencies'].find_one({
-      'name':request.form['etapestry_id']['agency']
+      'name':etap_id['agency']
     })
 
     return start_job(
@@ -126,7 +131,7 @@ def get_routing_job_id():
             request.form['date'],
             request.form['start_address'],
             request.form['end_address'],
-            json.loads(request.form["etapestry_id"]),
+            etap_id,
             agency_config['routific']['api_key'],
             min_per_stop=request.form['min_per_stop'],
             shift_start=request.form['shift_start'])

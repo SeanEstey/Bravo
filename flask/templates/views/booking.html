@@ -2,6 +2,7 @@
 	{% block content %} 
 
   <div class='row' style='padding:80px 0px 30px 0px; text-align:center'>
+
 		 <!-- Form -->
      <form style='width:100%; margin:0 auto;' onsubmit='return false;' id='main_form' name='main_form'>  
 
@@ -59,8 +60,15 @@
      </form>
 		</div><!--End Row-->
 
-		<!-- Search Results -->
-		<div class='row' id='results' name='results' style='text-align:center'>
-			Search Results
-		</div>
+  <div class='data-container'>
+    <div class='navbar-div'>
+      <a class='hover' href="{{ url_for('show_booking') }}">Booking</a>
+    </div>
+    <table id='results-table' class='table table-hover table-colored'>
+      <thead>
+				<tr><td>Address</td></tr>
+			</thead>
+		</table>
+	</div>
+
   {% endblock %}

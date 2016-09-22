@@ -1,4 +1,5 @@
 import pymongo
+import logging
 from oauth2client.client import SignedJwtAssertionCredentials
 import httplib2
 from apiclient.discovery import build
@@ -19,7 +20,7 @@ logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
-def auth_gservice(name):
+def auth_gservice(agency, name):
     if name == 'sheets':
         scope = ['https://www.googleapis.com/auth/spreadsheets']
         version = 'v4'
@@ -31,7 +32,7 @@ def auth_gservice(name):
        scope = ['https://www.googleapis.com/auth/calendar.readonly']
        version = 'v3'
 
-    oauth = db['agencies'].find_one({'name': 'vec'})['oauth']
+    oauth = db['agencies'].find_one({'name': agency})['oauth']
 
     try:
         credentials = SignedJwtAssertionCredentials(
@@ -44,41 +45,76 @@ def auth_gservice(name):
         http = credentials.authorize(http)
         service = build(name, version, http=http)
     except Exception as e:
-        print('Error authorizing %s: %s', name, str(e))
+        logger.error('Error authorizing %s: %s', name, str(e))
         return False
 
-    print 'Authorized'
+    logger.info('%s api authorized', name)
+    print('%s api authorized', name)
 
     return service
 
 #-------------------------------------------------------------------------------
 def add_permissions(drive_api, file_id, permissions):
     '''
-    @permissions: dict of {'role':'owner/writer', 'email': ''} for each user
+    @permissions: list of {'role':'owner/writer', 'email': ''} dicts
+    https://developers.google.com/drive/v3/reference/permissions
     '''
 
     # Add edit/owner permissions for new file
 
-    batch = drive_api.new_batch_http_request()
+    #batch = drive_api.new_batch_http_request()
 
     for p in permissions:
-        transferOwnership = False
 
-        if p['role'] == 'owner':
-            transferOwnership = True
+        #transferOwnership = False
+        if p['role'] == 'writer':
+            try:
+                r = drive_api.permissions().create(
+                  fileId = file_id,
+                  body={
+                    'kind': 'drive#permission',
+                    'type': 'user',
+                    'role': p['role'],
+                    'emailAddress': p['email']}
+                  ).execute()
+            except Exception as e:
+                logger.error('Create permission error %s: %s', json.dumps(p), str(e))
+                return False
 
-        batch.add(drive_api.permissions().create(
-          fileId = file_id,
-          transferOwnership = transferOwnership,
-          body={
-            'kind': 'drive#permission',
-            'type': 'user',
-            'role': p['role'],
-            'emailAddress': p['email']}),
-          callback=batch_callback)
+            logger.info(json.dumps(r))
+        # First add Writer permission, then transfer ownership
+        elif p['role'] == 'owner':
+            try:
+                r = drive_api.permissions().create(
+                  fileId = file_id,
+                  body={
+                    'kind': 'drive#permission',
+                    'type': 'user',
+                    'role': 'writer',
+                    'emailAddress': p['email']}
+                  ).execute()
+            except Exception as e:
+                logger.error('Create permission error %s: %s', json.dumps(p), str(e))
+                return False
 
-    http = httplib2.Http()
-    batch.execute(http=http)
+            logger.info(json.dumps(r))
+
+            permission_id = r['id']
+
+            try:
+                r = drive_api.permissions().update(
+                  fileId = file_id,
+                  permissionId = permission_id,
+                  transferOwnership = True,
+                  body={
+                    'role': 'owner'
+                    }
+                  ).execute()
+            except Exception as e:
+                logger.error('Create permission error %s: %s', json.dumps(p), str(e))
+                return False
+
+            logger.info(json.dumps(r))
 
     return True
 
@@ -223,23 +259,31 @@ def write_sheet(sheets_api, ss_id, route_id):
 
 #-------------------------------------------------------------------------------
 def write_rows(sheets_api, ss_id, rows, a1_range):
-    sheets_api.spreadsheets().values().update(
-      spreadsheetId = ss_id,
-      valueInputOption = "USER_ENTERED",
-      range = a1_range,
-      body = {
-        "majorDimension": "ROWS",
-        "values": rows
-      }
-    ).execute()
+    try:
+        sheets_api.spreadsheets().values().update(
+          spreadsheetId = ss_id,
+          valueInputOption = "USER_ENTERED",
+          range = a1_range,
+          body = {
+            "majorDimension": "ROWS",
+            "values": rows
+          }
+        ).execute()
+    except Exception as e:
+        logger.error('Error writing to sheet: %s', str(e))
+        return False
 
 
 #-------------------------------------------------------------------------------
 def get_values(sheets_api, ss_id, a1_range):
-    values = sheets_api.spreadsheets().values().get(
-      spreadsheetId = ss_id,
-      range=a1_range
-    ).execute()
+    try:
+        values = sheets_api.spreadsheets().values().get(
+          spreadsheetId = ss_id,
+          range=a1_range
+        ).execute()
+    except Exception as e:
+        logger.error('Error getting values from sheet: %s', str(e))
+        return False
 
     return values['values']
 
@@ -250,24 +294,28 @@ def hide_rows(sheets_api, ss_id, start, end):
     @start: inclusive row
     @end: inclusive row
     '''
-    sheets_api.spreadsheets().batchUpdate(
-        spreadsheetId = ss_id,
-        body = {
-            'requests': {
-                'updateDimensionProperties': {
-                    'fields': '*',
-                    'range': {
-                        'startIndex': start-1,
-                        'endIndex': end,
-                        'dimension': 'ROWS'
-                    },
-                    'properties': {
-                        'hiddenByUser': True
+    try:
+        sheets_api.spreadsheets().batchUpdate(
+            spreadsheetId = ss_id,
+            body = {
+                'requests': {
+                    'updateDimensionProperties': {
+                        'fields': '*',
+                        'range': {
+                            'startIndex': start-1,
+                            'endIndex': end,
+                            'dimension': 'ROWS'
+                        },
+                        'properties': {
+                            'hiddenByUser': True
+                        }
                     }
                 }
             }
-        }
-    ).execute()
+        ).execute()
+    except Exception as e:
+        logger.error('Error hiding rows: %s', str(e))
+        return False
 
 
 

@@ -586,8 +586,6 @@ def create_sheet(agency, drive_api, title):
       }
     ).execute()
 
-    print file_copy
-
     # Transfer ownership permission, add writer permissions
     permissions = db['agencies'].find_one({'name':agency})['routing']['permissions']
     google_api.add_permissions(drive_api, file_copy['id'], permissions)

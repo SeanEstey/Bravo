@@ -25,8 +25,11 @@ import etap
 import sms
 
 
-import test_views
 
+@app.route('/get_nps',methods=['GET'])
+def get_the_nps():
+    scheduler.analyze_non_participants()
+    return "OK"
 
 #-------------------------------------------------------------------------------
 @app.route('/', methods=['GET'])

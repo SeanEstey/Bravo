@@ -1,4 +1,3 @@
-# Import all sensitive keys
 from auth_keys import *
 
 # App
@@ -29,7 +28,3 @@ ALLOWED_EXTENSIONS = set(['csv','xls'])
 # PHP
 ETAP_WRAPPER_URL = 'http://www.bravoweb.ca/php/views.php'
 ETAPESTRY_ENDPOINT = 'https://sna.etapestry.com/v3messaging/service?WSDL'
-
-# Regular Expressions
-RE_RMV_BLOCK = r'\*{3}RMV\s(B|R)\d{1,2}[a-zA-Z]{1}\*{3}(\n|\r)?'
-RE_BLOCK = r'(B|R)\d{1,2}[a-zA-Z]{1}'

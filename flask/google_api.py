@@ -168,97 +168,12 @@ def batch_callback(request_id, response, exception):
 
 
 #-------------------------------------------------------------------------------
-def write_sheet(sheets_api, ss_id, route_id):
-    r = requests.get("http://www.bravoweb.ca/routing/get_route/" + route_id)
-    orders = json.loads(r.text)
-
-    # Write those orders to the sheet
-
-    rows = []
-
-    orders = orders[1:-1]
-
-    num_orders = len(orders)
-
-    for order in orders:
-        addy = order['location_name'].split(', ');
-
-        # Remove Postal Code from Google Maps URL label
-        if re.match(r'^T\d[A-Z]$', addy[-1]) or re.match(r'^T\d[A-Z]\s\d[A-Z]\d$', addy[-1]):
-           addy.pop()
-
-        formula = '=HYPERLINK("' + order['gmaps_url'] + '","' + ", ".join(addy) + '")'
-
-        '''
-        Info Column format (column D):
-
-        Notes: Fri Apr 22 2016: Pickup Needed
-        Name: Cindy Borsje
-
-        Neighborhood: Lee Ridge
-        Block: R10Q,R8R
-        Contact (business only): James Schmidt
-        Phone: 780-123-4567
-        Email: Yes/No
-        '''
-
-        order_info = ''
-
-        if order['customNotes'].get('driver notes'):
-          order_info += 'NOTE: ' + order['customNotes']['driver notes'] + '\n\n'
-
-          #sheet.getRange(i+2, headers.indexOf('Order Info')+1).setFontWeight("bold");
-
-          if order['customNotes']['driver notes'].find('***') > -1:
-            order_info = order_info.replace("***", "")
-            #sheet.getRange(i+2, headers.indexOf('Order Info')+1).setFontColor("red");
-
-        order_info += 'Name: ' + order['customNotes']['name'] + '\n'
-
-        if order['customNotes'].get('neighborhood'):
-          order_info += 'Neighborhood: ' + order['customNotes']['neighborhood'] + '\n'
-
-        order_info += 'Block: ' + order['customNotes']['block']
-
-        if order['customNotes'].get('contact'):
-          order_info += '\nContact: ' + order['customNotes']['contact']
-
-        if order['customNotes'].get('phone'):
-          order_info += '\nPhone: ' + order['customNotes']['phone']
-
-        if order['customNotes'].get('email'):
-          order_info += '\nEmail: ' + order['customNotes']['email']
-
-        order_info += '\nArrive: ' + order['arrival_time']
-
-        rows.append([
-          formula,
-          '',
-          '',
-          order_info,
-          order['customNotes'].get('id') or '',
-          order['customNotes'].get('driver notes') or '',
-          order['customNotes'].get('block') or '',
-          order['customNotes'].get('neighborhood') or '',
-          order['customNotes'].get('status') or '',
-          order['customNotes'].get('office notes') or ''
-        ])
-
-    # Start from Row 2 Column A to Column J
-    _range = "A2:J" + str(num_orders+1)
-
-    write_rows(sheets_api, ss_id, rows, _range)
-
-    values = get_values(sheets_api, ss_id, "A1:$A")
-
-    hide_start = 1 + len(rows) + 1;
-    hide_end = values.index(['***Route Info***'])
-
-    hide_rows(sheets_api, ss_id, hide_start, hide_end)
-
-
-#-------------------------------------------------------------------------------
 def write_rows(sheets_api, ss_id, rows, a1_range):
+    '''Write data to sheet
+    Returns: UpdateValuesResponse
+    https://developers.google.com/sheets/reference/rest/v4/UpdateValuesResponse
+    '''
+
     try:
         sheets_api.spreadsheets().values().update(
           spreadsheetId = ss_id,

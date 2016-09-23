@@ -10,14 +10,13 @@ import re
 from datetime import datetime, date, time, timedelta
 from bson import Binary, Code, json_util
 from bson.objectid import ObjectId
-import dateutil
 import pytz
 
 from config import *
 from app import app, db, info_handler, error_handler, debug_handler, login_manager
 from tasks import celery_app
 import gsheets
-import parser
+from block_parser import get_block, block_to_rmv
 import etap
 
 logger = logging.getLogger(__name__)
@@ -215,8 +214,8 @@ def get_blocks(cal_id, start_date, end_date, oauth):
         return False
 
     for item in events:
-        if parser.get_block(item['summary']):
-            blocks.append(parser.get_block(item['summary']))
+        if get_block(item['summary']):
+            blocks.append(get_block(item['summary']))
 
     if len(blocks) > 0:
         logger.info('%d scheduled Blocks: %s', len(blocks), blocks)
@@ -313,7 +312,7 @@ def get_nps(agency, accounts):
 
     np_cutoff = now - timedelta(days=agency_settings['config']['non_participant_days'])
 
-    logger.info('Non-participant cutoff date is %', np_cutoff.strftime('%b %d %Y'))
+    logger.info('Non-participant cutoff date is %s', np_cutoff.strftime('%b %d %Y'))
 
     try:
         # Retrieve non-zero gift donations from non-participant cutoff date to
@@ -385,7 +384,7 @@ def analyze_non_participants():
                   date = str(now.month) + '/' + str(now.day) + '/' + str(now.year)
                 )
         except Exception as e:
-            logger.error('non-participation exception: %s' + str(e))
+            logger.error('non-participation exception: %s', str(e))
             continue
 
 #-------------------------------------------------------------------------------
@@ -401,7 +400,7 @@ def get_next_pickup(blocks, office_notes, block_dates):
     # TODO: Handle multiple RMV BLK strings in office_notes
 
     if office_notes:
-        rmv = parser.block_to_rmv(office_notes)
+        rmv = block_to_rmv(office_notes)
 
         if rmv:
             block_list.remove(rmv)
@@ -452,7 +451,7 @@ def add_future_pickups(job_id):
             block = event['summary'].split(' ')[0]
 
             if block not in block_dates:
-                dt = dateutil.parser.parse(event['start']['date'] + " T08:00:00")
+                dt = parse(event['start']['date'] + " T08:00:00")
                 local_dt = local.localize(dt,is_dst=True)
                 block_dates[block] = local_dt
 

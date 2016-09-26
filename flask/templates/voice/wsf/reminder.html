@@ -1,6 +1,6 @@
 {% if reminder['voice']['digit'] == 2 %}
     Your pickup has been unscheduled. Your next pickup will be
-    {{ reminder['custom']['next_pickup'] }}.
+    {{ reminder['custom']['future_pickup_dt'] }}.
     Thank you.
 {% else %}
 
@@ -12,7 +12,7 @@
         pickup 
     {% endif %}
 
-    is {{ reminder['event_date'] }}. 
+    is {{ reminder['event_dt'] }}. 
 
     {% if reminder['custom']['status'] == "Dropoff" %}
         If you have any empties you can leave them out by 8am.

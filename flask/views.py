@@ -4,7 +4,7 @@ import time
 import requests
 from datetime import datetime,date
 import flask
-from flask import request, render_template, redirect
+from flask import request, jsonify, render_template, redirect
 from flask.ext.login import login_required, current_user
 from bson.objectid import ObjectId
 import pytz
@@ -186,9 +186,6 @@ def submit_job():
         app.logger.error('submit_job: %s', str(e))
         return False
 
-
-
-
 #-------------------------------------------------------------------------------
 @app.route('/reminders/<job_id>')
 @login_required
@@ -283,6 +280,29 @@ def no_pickup(job_id, msg_id):
 
     reminders.cancel_pickup.apply_async((msg_id,), queue=app.config['DB'])
     return 'Thank You'
+
+
+#-------------------------------------------------------------------------------
+@app.route('/reminders/get/token', method=['GET'])
+def get_twilio_token():
+    # get credentials for environment variables
+
+    from twilio.util import TwilioCapability
+
+    # FIXME
+    twilio = db['agencies'].find_one({'name':'vec'})['twilio']['keys']['main']
+
+    # Generate a random user name
+    identity = alphanumeric_only.sub('', fake.user_name())
+
+    # Create a Capability Token
+    capability = TwilioCapability(twilio['sid'] twilio['auth_id'])
+    capability.allow_client_outgoing(twilio['phone_sid'])
+    capability.allow_client_incoming(identity)
+    token = capability.generate()
+
+    # Return token info as JSON
+    return jsonify(identity=identity, token=token)
 
 
 #-------------------------------------------------------------------------------

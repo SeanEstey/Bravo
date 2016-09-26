@@ -1,5 +1,8 @@
   {% extends "views/base.html" %}
   {% block content %} 
+	<script type="text/javascript"
+					src="//media.twiliocdn.com/sdk/js/client/v1.3/twilio.min.js">
+	</script>
 	<script type='text/javascript' 
 					src="{{url_for('static', filename='js/base.js')}}">
 	</script>
@@ -13,7 +16,8 @@
     });
   </script>
   
-  <div class='row' style='padding:20px 0px 30px 0px; text-align:center'>
+	<!-- Countdown Timer -->
+  <div class='row' style='padding:20px 0px 10px 0px; text-align:center'>
     <h2>
       <span id='job-header' class='label label-primary'>
         <label id='job-status'>
@@ -24,6 +28,14 @@
     </h2>
       <p id='scheduled_datetime' style='display:none'>{{ job['voice']['fire_at'] }}</p>
   </div>
+	
+	<!-- Play Sample -->
+	<div class='row' style='padding:0em 0em 3em 0em; text-align:center'>
+		<button id='play-sample-btn' class='btn btn-info'>Play Sample</button>
+		<audio id="music">
+			<source id='audio-sample' name='audio-sample' type='audio/mpeg'>
+		</audio>
+	</div>
   
   <div class='data-container'>
     <div class='navbar-div'>

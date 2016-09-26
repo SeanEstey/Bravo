@@ -1,10 +1,14 @@
 
+
+
+
 //------------------------------------------------------------------------------
 function init() {
     var $a_child = $('th:first-child a');
 
     $a_child.html($a_child.html()+window.unicode['DOWN_ARROW']);
 
+		//setupTwilioClient();
     addBravoTooltip();
     makeCallFieldsClickable();
 		enableColumnSorting();
@@ -139,6 +143,62 @@ function init() {
     $('#reset-job').hide();
     $('#dump').hide();
   }*/
+}
+
+//------------------------------------------------------------------------------
+function setupTwilioClient() {
+		// Set up with TOKEN, a string generated server-side
+
+    $('#play-sample-btn').click(function() {
+			$.ajax({
+				type: 'GET',
+				url: $URL_ROOT + 'reminders/get/token'
+			}).done(function(token) {
+				console.log('token received: ' + token);
+
+				Twilio.Device.setup(token);
+			});
+    });
+
+		Twilio.Device.ready(function() {
+				// Could be called multiple times if network drops and comes back.
+				// When the TOKEN allows incoming connections, this is called when
+				// the incoming channel is open.
+		});
+
+		Twilio.Device.offline(function() {
+				// Called on network connection lost.
+		});
+
+		Twilio.Device.incoming(function(conn) {
+				console.log(conn.parameters.From); // who is calling
+				conn.status // => "pending"
+				conn.accept();
+				conn.status // => "connecting"
+		});
+
+		Twilio.Device.cancel(function(conn) {
+				console.log(conn.parameters.From); // who canceled the call
+				conn.status // => "closed"
+		});
+
+		Twilio.Device.connect(function (conn) {
+				// Called for all new connections
+				console.log(conn.status);
+		});
+
+		Twilio.Device.disconnect(function (conn) {
+				// Called for all disconnections
+				console.log(conn.status);
+		});
+
+		Twilio.Device.error(function (e) {
+				console.log(e.message + " for " + e.connection);
+		});
+
+		$("#hangup").click(function() {
+				Twilio.Device.disconnectAll();
+		});
 }
 
 //------------------------------------------------------------------------------

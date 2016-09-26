@@ -15,9 +15,10 @@ from flask.ext.login import current_user
 from bson import ObjectId
 
 from config import *
-import google_api
 import etap
 import scheduler
+import gdrive
+import gsheets
 
 from app import info_handler, error_handler, debug_handler, db
 
@@ -109,7 +110,6 @@ def get_upcoming_routes():
               'status': 'pending',
               'orders': num_booked,
               'block_size': len(a['data']),
-              'duration': 0,
               'dropoffs': num_dropoffs
             }
 
@@ -189,13 +189,21 @@ def build_route(route_id):
 
         orders = get_completed_route(job_id, agency_conf['google']['geocode']['api_key'])
 
-    drive_api = google_api.auth_gservice(route['agency'], 'drive')
-    sheet_id = create_sheet(route['agency'], drive_api, route['block'])
+    # Build the Google Sheet and copy orders
 
-    sheets_api = google_api.auth_gservice(route['agency'], 'sheets')
-    write_orders(sheets_api, sheet_id, orders)
+    oauth = db['agencies'].find_one({'name':route['agency']})['google']['oauth']
 
-    db['routes'].update_one({'job_id':job_id},{'$set':{'ss_id':sheet_id}})
+    ss_id = create_sheet(
+        route['agency'],
+        gdrive.gauth(oauth),
+        route['block'])
+
+    write_orders(
+        gsheets.gauth(oauth),
+        ss_id,
+        orders)
+
+    db['routes'].update_one({'job_id':job_id},{'$set':{'ss_id':ss_id}})
 
     logger.info('Route %s complete.', route['block'])
 
@@ -587,18 +595,18 @@ def create_sheet(agency, drive_api, title):
     Returns: ID of new Sheet file
     '''
 
-    gdrive = db['agencies'].find_one({'name':agency})['routing']['gdrive']
+    conf = db['agencies'].find_one({'name':agency})['routing']['gdrive']
 
     # Copy Route Template
     file_copy = drive_api.files().copy(
-      fileId = gdrive['template_sheet_id'],
+      fileId = conf['template_sheet_id'],
       body = {
         'name': title
       }
     ).execute()
 
     # Transfer ownership permission, add writer permissions
-    google_api.add_permissions(drive_api, file_copy['id'], gdrive['permissions'])
+    gdrive.add_permissions(drive_api, file_copy['id'], conf['permissions'])
 
     logger.info('permissions added')
 
@@ -617,7 +625,7 @@ def create_sheet(agency, drive_api, title):
         # Move the file to the new folder
         file = drive_api.files().update(
           fileId=file_copy['id'],
-          addParents = gdrive['routed_folder_id'],
+          addParents = conf['routed_folder_id'],
           removeParents=previous_parents,
           fields='id, parents').execute()
     except Exception as e:
@@ -707,12 +715,12 @@ def write_orders(sheets_api, ss_id, orders):
     # Start from Row 2 Column A to Column J
     _range = "A2:J" + str(num_orders+1)
 
-    google_api.write_rows(sheets_api, ss_id, rows, _range)
+    gsheets.write_rows(sheets_api, ss_id, rows, _range)
 
-    values = google_api.get_values(sheets_api, ss_id, "A1:$A")
+    values = gsheets.get_values(sheets_api, ss_id, "A1:$A")
 
     hide_start = 1 + len(rows) + 1;
     hide_end = values.index(['***Route Info***'])
 
-    google_api.hide_rows(sheets_api, ss_id, hide_start, hide_end)
+    gsheets.hide_rows(sheets_api, ss_id, hide_start, hide_end)
 

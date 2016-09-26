@@ -14,7 +14,7 @@
           }                    
       }
     $(function() {
-        $("td[colspan=10]").find("p").hide();
+        $("td[colspan=12]").find("p").hide();
         $("td[name=warnings]").click(toggleWarnings);
     });
   </script>
@@ -38,12 +38,12 @@
         <tr>
 					<th>Date</th>
 					<th>Block</th>
-					<th style='width:120px;'>Routing Status</th>
           <th>Orders</th>
           <th style='width:90px;'>Block Size</th>
           <th>Dropoffs</th>
 					<th>Depot</td>
           <th>Driver</th>
+					<th style='width:120px;'>Routing Status</th>
           <th style='width:130px'>Route Length</th>
           <th>Warnings</th>
           <th>Command</th>
@@ -55,7 +55,6 @@
         <tr>
           <td>{{ route.date.strftime("%A %b %d") }}</td>
           <td>{{ route.block }}</td>
-          <td>{{ route.status }}</td>
           <td>{{ route.orders }}</td>
           <td>{{ route.block_size }}</td>
           <td>{{ route.dropoffs }}</td>
@@ -73,13 +72,21 @@
               {% endfor %}
             </select>
           </td>
-          <td>{{ (route.duration/60)|round(0,'floor')|int }} hrs {{ route.duration % 60 }} min</td>
+          <td>{{ route.status }}</td>
+          <td>
+            {% if route.duration is defined %}
+              {{ (route.duration/60)|round(0,'floor')|int }} hrs {{ route.duration % 60 }} min
+            {% else %}
+              -- : --
+            {% endif %}
+          </td>
           <td name='warnings'>
             <a class='hover'
               onclick="toggleWarnings(event)">{{ route.geocode_warnings|length }}</a>
           </td>
           <td><a class='hover'
-                 href="{{url_for('_build_route', route_id=route['_id']) }}">Route It</a>
+                 href="{{url_for('_build_route', route_id=route['_id'])
+                 }}">Route</a>
           </td>
           <td>
             {% if route.ss_id is defined %}
@@ -88,7 +95,7 @@
             {% endif %}
           </td>
         </tr>
-        <tr><td style='padding:0;' colspan="10"><p style='padding:15px;'>
+        <tr><td style='padding:0;' colspan="12"><p style='padding:15px;'>
           {% if route.geocode_warnings is defined %}
             {% for warning in route.geocode_warnings %}
               {{ warning }} 

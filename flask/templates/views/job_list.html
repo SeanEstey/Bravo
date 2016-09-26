@@ -33,8 +33,8 @@
         <tr>
           <th>Name</th>
 					<th>Date</th>
-					<th style=''>Email Reminders</th>
 					<th style=''>Voice Reminders</th>
+					<th style=''>Email Reminders</th>
           <th>Type</th>
           <th>Reminders</th>
           <th>Status</th>
@@ -56,18 +56,17 @@
 						{% endif %}
 					</td>
 					<td>
-						{% if job.email.fire_at is defined %}
-							<a class='hover' href="{{ show_calls_url }}">{{
-                job.email.fire_at.strftime("%b %d @ %I:%M %p") }}</a>
-						{% endif %}
-					</td>
-					<td>
 						{% if job.voice.fire_at is defined %}
 							<a class='hover' href="{{ show_calls_url }}">{{
                 job.voice.fire_at.strftime("%b %d @ %I:%M %p") }}</a>
 						{% endif %}
 					</td>
-
+					<td>
+						{% if job.email.fire_at is defined %}
+							<a class='hover' href="{{ show_calls_url }}">{{
+                job.email.fire_at.strftime("%b %d @ %I:%M %p") }}</a>
+						{% endif %}
+					</td>
 					<td name='job-type'>
 						<a class='hover' href="{{ show_calls_url }}">
 							{{ job.schema.type }}

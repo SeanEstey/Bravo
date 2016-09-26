@@ -1,22 +1,120 @@
 import json
-from oauth2client.client import SignedJwtAssertionCredentials
 import gspread
 import requests
 from datetime import datetime
 from dateutil.parser import parse
 import logging
 
-from app import app, db, info_handler, error_handler
+# Google
+from oauth2client.client import SignedJwtAssertionCredentials
+import httplib2
+from apiclient.discovery import build
+from apiclient.http import BatchHttpRequest
+
+from app import app, db, debug_handler, info_handler, error_handler
 from tasks import celery_app
 
 logger = logging.getLogger(__name__)
 logger.addHandler(info_handler)
 logger.addHandler(error_handler)
+logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
+
 #-------------------------------------------------------------------------------
-# scope is array of Google service URL's to authorize
+def gauth(oauth):
+    name = 'sheets'
+    scope = ['https://www.googleapis.com/auth/spreadsheets']
+    version = 'v4'
+
+    try:
+        credentials = SignedJwtAssertionCredentials(
+            oauth['client_email'],
+            oauth['private_key'],
+            scope
+        )
+
+        http = httplib2.Http()
+        http = credentials.authorize(http)
+        service = build(name, version, http=http)
+    except Exception as e:
+        logger.error('Error authorizing %s: %s', name, str(e))
+        return False
+
+#-------------------------------------------------------------------------------
+def write_rows(service, ss_id, rows, a1_range):
+    '''Write data to sheet
+    Returns: UpdateValuesResponse
+    https://developers.google.com/sheets/reference/rest/v4/UpdateValuesResponse
+    '''
+
+    try:
+        service.spreadsheets().values().update(
+          spreadsheetId = ss_id,
+          valueInputOption = "USER_ENTERED",
+          range = a1_range,
+          body = {
+            "majorDimension": "ROWS",
+            "values": rows
+          }
+        ).execute()
+    except Exception as e:
+        logger.error('Error writing to sheet: %s', str(e))
+        return False
+
+
+#-------------------------------------------------------------------------------
+def get_values(service, ss_id, a1_range):
+    try:
+        values = service.spreadsheets().values().get(
+          spreadsheetId = ss_id,
+          range=a1_range
+        ).execute()
+    except Exception as e:
+        logger.error('Error getting values from sheet: %s', str(e))
+        return False
+
+    return values['values']
+
+
+#-------------------------------------------------------------------------------
+def hide_rows(service, ss_id, start, end):
+    '''
+    @start: inclusive row
+    @end: inclusive row
+    '''
+    try:
+        service.spreadsheets().batchUpdate(
+            spreadsheetId = ss_id,
+            body = {
+                'requests': {
+                    'updateDimensionProperties': {
+                        'fields': '*',
+                        'range': {
+                            'startIndex': start-1,
+                            'endIndex': end,
+                            'dimension': 'ROWS'
+                        },
+                        'properties': {
+                            'hiddenByUser': True
+                        }
+                    }
+                }
+            }
+        ).execute()
+    except Exception as e:
+        logger.error('Error hiding rows: %s', str(e))
+        return False
+
+# ----- GSPREAD (OLD) --------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
 def auth(oauth, scope):
+    '''python gspread
+    @scope: array of Google service URL's to authorize
+    '''
+
     try:
       credentials = SignedJwtAssertionCredentials(
         oauth['client_email'],

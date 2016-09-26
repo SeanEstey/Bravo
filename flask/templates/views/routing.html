@@ -4,17 +4,18 @@
 					src="{{url_for('static', filename='js/base.js')}}">
 	</script>
   <script>
+    function toggleWarnings(event) {
+          event.stopPropagation();
+          var $target = $(event.target);
+          if ( $target.closest("td").attr("colspan") > 1 ) {
+              $target.slideUp();
+          } else {
+              $target.closest("tr").next().find("p").slideToggle();
+          }                    
+      }
     $(function() {
         $("td[colspan=10]").find("p").hide();
-        $("table").click(function(event) {
-            event.stopPropagation();
-            var $target = $(event.target);
-            if ( $target.closest("td").attr("colspan") > 1 ) {
-                $target.slideUp();
-            } else {
-                $target.closest("tr").next().find("p").slideToggle();
-            }                    
-        });
+        $("td[name=warnings]").click(toggleWarnings);
     });
   </script>
   
@@ -42,9 +43,11 @@
           <th style='width:90px;'>Block Size</th>
           <th>Dropoffs</th>
 					<th>Depot</td>
+          <th>Driver</th>
           <th style='width:130px'>Route Length</th>
           <th>Warnings</th>
           <th>Command</th>
+          <th>Sheet</th>
         </tr>
       </thead>
       <tbody>
@@ -56,10 +59,34 @@
           <td>{{ route.orders }}</td>
           <td>{{ route.block_size }}</td>
           <td>{{ route.dropoffs }}</td>
-					<td>{{ route.end_address }}</td>
+					<td>
+            <select name='depots' class='form-control'>
+              {% for depot in depots %}
+              <option value='{{ depot.name }}'>{{ depot.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            <select name='drivers' class='form-control'>
+              {% for driver in drivers %}
+              <option value='{{ driver.name }}'>{{ driver.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
           <td>{{ (route.duration/60)|round(0,'floor')|int }} hrs {{ route.duration % 60 }} min</td>
-          <td>{{ route.geocode_warnings|length }}</td>
-          <td><a class='hover' href="{{url_for('_build_route',block=route.block) }}">Route It</a></td>
+          <td name='warnings'>
+            <a class='hover'
+              onclick="toggleWarnings(event)">{{ route.geocode_warnings|length }}</a>
+          </td>
+          <td><a class='hover'
+                 href="{{url_for('_build_route', route_id=route['_id']) }}">Route It</a>
+          </td>
+          <td>
+            {% if route.ss_id is defined %}
+              <a class='hover'
+                 href="https://docs.google.com/spreadsheets/d/{{route.ss_id}}">View</a>
+            {% endif %}
+          </td>
         </tr>
         <tr><td style='padding:0;' colspan="10"><p style='padding:15px;'>
           {% if route.geocode_warnings is defined %}

@@ -59,7 +59,7 @@ def find_blocks_within(lat, lng, map_data, radius, end_date, cal_id, _events):
     Returns empty array if none found .
     Returns Error exception on error (invalid KML data).
     '''
-
+    '''
     events = _events || Schedule.getEventsBetween(cal_id, new Date(), end_date)
 
     eligible_blocks = []
@@ -101,7 +101,7 @@ def find_blocks_within(lat, lng, map_data, radius, end_date, cal_id, _events):
         logger.info('Found %s results within radius', str(len(eligible_blocks)))
 
     return eligible_blocks
-
+    '''
 
 #-------------------------------------------------------------------------------
 def center_point(arr):
@@ -109,7 +109,7 @@ def center_point(arr):
     '''
 
     #var minX, maxX, minY, maxY;
-
+    '''
     for i in range(len(arr)):
         minX = (arr[i][0] < minX || minX == null) ? arr[i][0] : minX
         maxX = (arr[i][0] > maxX || maxX == null) ? arr[i][0] : maxX
@@ -118,6 +118,7 @@ def center_point(arr):
     }
 
     return [(minX + maxX) /2, (minY + maxY) /2]
+    '''
 
 
 #-------------------------------------------------------------------------------
@@ -125,6 +126,7 @@ def distance(lat1, lon1, lat2, lon2):
     '''Calculates KM distance between 2 lat/lon coordinates
     '''
 
+    '''
     p = 0.017453292519943295    # Math.PI / 180
     c = Math.cos
     a = 0.5 - c((lat2 - lat1) * p)/2 +
@@ -133,3 +135,4 @@ def distance(lat1, lon1, lat2, lon2):
 
     # 2 * R; R = 6371 km
     return 12742 * Math.asin(Math.sqrt(a))
+    '''

@@ -62,7 +62,7 @@ def process(entries, etapestry_id):
         logger.error('Error retrieving accounts from etap: %s', str(e))
         return False
 
-    oauth = db['agencies'].find_one({'name':etapestry_id['agency']})['oauth']
+    oauth = db['agencies'].find_one({'name':etapestry_id['agency']})['google']['oauth']
     gc = gsheets.auth(oauth, ['https://spreadsheets.google.com/feeds'])
     wks = gc.open(GSHEET_NAME).worksheet('Routes')
     headers = wks.row_values(1)

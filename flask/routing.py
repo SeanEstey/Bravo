@@ -12,6 +12,7 @@ from pymongo import ReturnDocument
 import re
 import bson.json_util
 from flask.ext.login import current_user
+from bson import ObjectId
 
 from config import *
 import google_api
@@ -43,7 +44,7 @@ def get_upcoming_routes():
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
     cal_ids = db['agencies'].find_one({'name':agency})['cal_ids']
-    oauth = db['agencies'].find_one({'name':agency})['oauth']
+    oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
 
     end_dt = today_dt + timedelta(days=5)
 
@@ -101,7 +102,7 @@ def get_upcoming_routes():
                 if etap.get_udf('Status', account) == 'Dropoff':
                     num_dropoffs += 1
 
-            routes.append({
+            _route = {
               'agency': agency,
               'date': event_dt,
               'block': block,
@@ -110,11 +111,14 @@ def get_upcoming_routes():
               'block_size': len(a['data']),
               'duration': 0,
               'dropoffs': num_dropoffs
-            })
+            }
+
+            db['routes'].insert_one(_route)
+
+            routes.append(_route)
 
             logger.info('Inserting route %s', bson.json_util.dumps(routes[-1]))
 
-            db['routes'].insert_one(routes[-1])
         else:
             # 2. Get updated order count from reminders job
             job = db['jobs'].find_one({'name':block, 'agency':agency})
@@ -134,28 +138,36 @@ def get_upcoming_routes():
 
 #-------------------------------------------------------------------------------
 @celery_app.task
-def build_route(agency, block, date_str):
+def build_route(route_id):
     '''Check on a scheduled route if job_id not know.
-    @agency: name string
-    @date_str: string format 'Sat Sep 10 2016'
+    @route_id: string of db['routes']['_id']
     Returns: see get_completed_route()
     '''
 
-    routific = db['agencies'].find_one({'name':agency})['routific']
-    etap_id = db['agencies'].find_one({'name':agency})['etapestry']
+    route = db['routes'].find_one({"_id":ObjectId(route_id)})
 
-    logger.info("Building %s %s %s", agency, block, date_str)
+    agency_conf = db['agencies'].find_one({'name':route['agency']})
+
+    routing = agency_conf['routing']
+    etap_id = agency_conf['etapestry']
+
+    # FIXME. Vec only
+    depot = routing['depots'][0]
+    driver = routing['drivers'][0]
+
+    logger.info("Building %s %s %s",
+            route['agency'], route['block'], route['date'].isoformat())
 
     job_id = start_job(
-        block,
-        'driver',
-        date_str,
-        routific['start_address'],
-        routific['end_address'],
+        route['block'],
+        driver['name'],
+        route['date'].isoformat(),
+        routing['office_address'],
+        depot['formatted_address'],
         etap_id,
-        routific['api_key'],
-        min_per_stop = routific['min_per_stop'],
-        shift_start = routific['shift_start']
+        routing['routific']['api_key'],
+        min_per_stop = routing['min_per_stop'],
+        shift_start = driver['shift_start']
     )
 
     # Keep looping and sleeping until receive solution or hit
@@ -163,9 +175,8 @@ def build_route(agency, block, date_str):
 
     # TODO: Change this func to return entire solution to check status, not
     # just orders
-    geocode_api_key = db['agencies'].find_one({'name':agency})['google_geocode_api_key']
 
-    orders = get_completed_route(job_id, geocode_api_key)
+    orders = get_completed_route(job_id, agency_conf['google']['geocode']['api_key'])
 
     if orders == False:
         logger.error('Error retrieving routific solution')
@@ -176,17 +187,17 @@ def build_route(agency, block, date_str):
 
         sleep(5)
 
-        orders = get_completed_route(job_id, geocode_api_key)
+        orders = get_completed_route(job_id, agency_conf['google']['geocode']['api_key'])
 
-    drive_api = google_api.auth_gservice(agency, 'drive')
-    sheet_id = create_sheet(agency, drive_api, block)
+    drive_api = google_api.auth_gservice(route['agency'], 'drive')
+    sheet_id = create_sheet(route['agency'], drive_api, route['block'])
 
-    sheets_api = google_api.auth_gservice(agency, 'sheets')
+    sheets_api = google_api.auth_gservice(route['agency'], 'sheets')
     write_orders(sheets_api, sheet_id, orders)
 
     db['routes'].update_one({'job_id':job_id},{'$set':{'ss_id':sheet_id}})
 
-    logger.info('Route %s complete.', block)
+    logger.info('Route %s complete.', route['block'])
 
     return True
 
@@ -269,9 +280,9 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
     logger.info('Submitting Routific job for %s: start "%s", end "%s", %s min/stop',
                 block, shift_start, shift_end, str(min_per_stop))
 
-    accounts = get_accounts(block, etapestry_id)
+    accounts = get_accounts(block, etapestry_id)['data']
 
-    api_key = db['agencies'].find_one({'name':etapestry_id['agency']})['google_geocode_api_key']
+    api_key = db['agencies'].find_one({'name':etapestry_id['agency']})['google']['geocode']['api_key']
 
     start = geocode(start_address, api_key)['geometry']['location']
     end = geocode(end_address, api_key)['geometry']['location']
@@ -304,7 +315,7 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
     geocode_warnings = []
     geocode_errors = []
 
-    for account in accounts['data']:
+    for account in accounts:
         # Ignore accounts with Next Pickup > today
         next_pickup = etap.get_udf('Next Pickup Date', account)
 
@@ -576,23 +587,20 @@ def create_sheet(agency, drive_api, title):
     Returns: ID of new Sheet file
     '''
 
-    template_id = db['agencies'].find_one({'name':agency})['routing']['gdrive_template_id']
+    gdrive = db['agencies'].find_one({'name':agency})['routing']['gdrive']
 
     # Copy Route Template
     file_copy = drive_api.files().copy(
-      fileId=template_id,
-      body={
+      fileId = gdrive['template_sheet_id'],
+      body = {
         'name': title
       }
     ).execute()
 
     # Transfer ownership permission, add writer permissions
-    permissions = db['agencies'].find_one({'name':agency})['routing']['permissions']
-    google_api.add_permissions(drive_api, file_copy['id'], permissions)
+    google_api.add_permissions(drive_api, file_copy['id'], gdrive['permissions'])
 
     logger.info('permissions added')
-
-    routed_folder_id = db['agencies'].find_one({'name':agency})['routing']['routed_folder_id']
 
     try:
         # Retrieve the existing parents to remove
@@ -609,7 +617,7 @@ def create_sheet(agency, drive_api, title):
         # Move the file to the new folder
         file = drive_api.files().update(
           fileId=file_copy['id'],
-          addParents=routed_folder_id,
+          addParents = gdrive['routed_folder_id'],
           removeParents=previous_parents,
           fields='id, parents').execute()
     except Exception as e:

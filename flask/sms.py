@@ -164,7 +164,7 @@ def update_scheduled_accounts_for_sms():
     accounts = get_accounts(
         agency_settings['etapestry'],
         agency_settings['cal_ids']['res'],
-        agency_settings['oauth'],
+        agency_settings['google']['oauth'],
         days_from_now=days_from_now)
 
     if len(accounts) < 1:

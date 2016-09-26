@@ -31,10 +31,10 @@
     <table class='table table-hover table-colored'>
       <thead>
         <tr>
-					<th>Event Date</th>
-					<th style='width:245px'>Email Reminders Scheduled</th>
-					<th style='width:245px'>Phone Reminders Scheduled</th>
           <th>Name</th>
+					<th>Date</th>
+					<th style=''>Email Reminders</th>
+					<th style=''>Voice Reminders</th>
           <th>Type</th>
           <th>Reminders</th>
           <th>Status</th>
@@ -46,24 +46,28 @@
       {% set show_calls_url = url_for('view_job', job_id=job._id)
       %}
 				<tr id='{{job._id}}'>
+					<td name='job-name'>
+						<a class='hover' href="{{ show_calls_url }}">{{ job.name }}</a>
+					</td>
 					<td>
 						{% if job.event_dt is defined %}
-							<a class='hover' href="{{ show_calls_url }}">{{ job.event_dt.strftime("%b %d") }}</a>
+							<a class='hover' href="{{ show_calls_url }}">{{
+                job.event_dt.strftime("%A %b %d") }}</a>
 						{% endif %}
 					</td>
 					<td>
 						{% if job.email.fire_at is defined %}
-							<a class='hover' href="{{ show_calls_url }}">{{ job.email.fire_at.strftime("%A %b %d @ %I:%M %p") }}</a>
+							<a class='hover' href="{{ show_calls_url }}">{{
+                job.email.fire_at.strftime("%b %d @ %I:%M %p") }}</a>
 						{% endif %}
 					</td>
 					<td>
 						{% if job.voice.fire_at is defined %}
-							<a class='hover' href="{{ show_calls_url }}">{{ job.voice.fire_at.strftime("%A %b %d @ %I:%M %p") }}</a>
+							<a class='hover' href="{{ show_calls_url }}">{{
+                job.voice.fire_at.strftime("%b %d @ %I:%M %p") }}</a>
 						{% endif %}
 					</td>
-					<td name='job-name'>
-						<a class='hover' href="{{ show_calls_url }}">{{ job.name }}</a>
-					</td>
+
 					<td name='job-type'>
 						<a class='hover' href="{{ show_calls_url }}">
 							{{ job.schema.type }}

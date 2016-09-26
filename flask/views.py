@@ -24,7 +24,10 @@ import scheduler
 import etap
 import sms
 
-
+@app.route('/set_rem', methods=['GET'])
+def set_reminders():
+    scheduler.setup_reminder_jobs()
+    return 'OK'
 
 @app.route('/get_nps',methods=['GET'])
 def get_the_nps():
@@ -69,7 +72,7 @@ def view_admin():
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
     if user['admin'] == True:
-        settings = db['agencies'].find_one({'name':agency}, {'_id':0, 'oauth':0})
+        settings = db['agencies'].find_one({'name':agency}, {'_id':0, 'google.oauth':0})
         settings_html = dict_to_html_table(settings)
     else:
         settings_html = ''
@@ -86,18 +89,26 @@ def request_send_socket():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/routing', methods=['GET'])
-@login_required
-def show_routing():
-    routes = get_upcoming_routes()
-    return render_template('views/routing.html', routes=routes)
-
-#-------------------------------------------------------------------------------
 @app.route('/booking', methods=['GET'])
 @login_required
 def show_booking():
     agency = db['users'].find_one({'user': current_user.username})['agency']
     return render_template('views/booking.html', agency=agency)
+
+#-------------------------------------------------------------------------------
+@app.route('/routing', methods=['GET'])
+@login_required
+def show_routing():
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+    agency_conf = db['agencies'].find_one({'name':agency})
+    routes = get_upcoming_routes()
+
+    return render_template(
+      'views/routing.html',
+      routes=routes,
+      depots=agency_conf['routing']['depots'],
+      drivers=agency_conf['routing']['drivers']
+    )
 
 #-------------------------------------------------------------------------------
 @app.route('/routing/get_scheduled_route', methods=['POST'])
@@ -113,7 +124,7 @@ def get_today_route():
 @app.route('/routing/get_route/<job_id>', methods=['GET'])
 def get_route(job_id):
     agency = db['routes'].find_one({'job_id':job_id})['agency']
-    api_key = db['agencies'].find_one({'name':agency})['google_geocode_api_key']
+    api_key = agency['google']['geocode']['api_key']
 
     return json.dumps(get_completed_route(job_id, api_key))
 
@@ -135,22 +146,15 @@ def get_routing_job_id():
             request.form['start_address'],
             request.form['end_address'],
             etap_id,
-            agency_config['routific']['api_key'],
+            agency_config['routing']['routific']['api_key'],
             min_per_stop=request.form['min_per_stop'],
             shift_start=request.form['shift_start'])
 
 #-------------------------------------------------------------------------------
-@app.route('/routing/build/<block>', methods=['GET', 'POST'])
-def _build_route(block):
-    agency = db['users'].find_one({'user': current_user.username})['agency']
-
-    #date_str = request.form['date']
-
-    # TODO: Fixme. Add scheduled date
-    date_str = date.today().isoformat()
-
+@app.route('/routing/build/<route_id>', methods=['GET', 'POST'])
+def _build_route(route_id):
     r = build_route.apply_async(
-      args=(agency, block, date_str),
+      args=(route_id,),
       queue=app.config['DB']
     )
 

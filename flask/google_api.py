@@ -32,7 +32,7 @@ def auth_gservice(agency, name):
        scope = ['https://www.googleapis.com/auth/calendar.readonly']
        version = 'v3'
 
-    oauth = db['agencies'].find_one({'name': agency})['oauth']
+    oauth = db['agencies'].find_one({'name': agency})['google']['oauth']
 
     try:
         credentials = SignedJwtAssertionCredentials(
@@ -49,7 +49,6 @@ def auth_gservice(agency, name):
         return False
 
     logger.info('%s api authorized', name)
-    print('%s api authorized', name)
 
     return service
 

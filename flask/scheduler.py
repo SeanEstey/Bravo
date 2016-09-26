@@ -43,7 +43,7 @@ def setup_reminder_jobs():
         accounts += get_accounts(
           vec['etapestry'],
           vec['cal_ids'][cal_id],
-          vec['oauth'],
+          vec['google']['oauth'],
           days_from_now=settings['days_in_advance_to_schedule'])
 
     if len(accounts) < 1:
@@ -58,7 +58,7 @@ def setup_reminder_jobs():
           vec['cal_ids'][cal_id],
           datetime.combine(block_date,time(8,0)),
           datetime.combine(block_date,time(9,0)),
-          vec['oauth'])
+          vec['google']['oauth'])
 
     logger.info('Scheduling reminders for blocks %s', ', '.join(blocks))
 
@@ -352,7 +352,7 @@ def analyze_non_participants():
             accounts = get_accounts(
                 agency['etapestry'],
                 agency['cal_ids']['res'],
-                agency['oauth'],
+                agency['google']['oauth'],
                 days_from_now=5)
 
             if len(accounts) < 1:
@@ -439,7 +439,11 @@ def add_future_pickups(job_id):
 
     try:
         for cal_id in agency['cal_ids']:
-            events += get_cal_events(agency['cal_ids'][cal_id], start, end, agency['oauth'])
+            events += get_cal_events(
+                    agency['cal_ids'][cal_id],
+                    start,
+                    end,
+                    agency['google']['oauth'])
 
         logger.info('%i calendar events pulled', len(events))
 

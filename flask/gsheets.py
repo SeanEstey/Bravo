@@ -37,7 +37,7 @@ def update_entry(agency, status, destination):
     '''
 
     try:
-        oauth = db['agencies'].find_one({'name':agency})['oauth']
+        oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
         gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
         sheet = gc.open(app.config['GSHEET_NAME'])
         wks = sheet.worksheet(destination['worksheet'])
@@ -104,7 +104,7 @@ def update_entry(agency, status, destination):
 def create_rfu(agency, request_note, account_number=None, next_pickup=None,
         block=None, date=None, name_address=None):
     try:
-        oauth = db['agencies'].find_one({'name':agency})['oauth']
+        oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
         gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
         sheet = gc.open(app.config['GSHEET_NAME'])
         wks = sheet.worksheet('RFU')
@@ -150,7 +150,7 @@ def add_signup(signup):
     '''
 
     try:
-      oauth = db['agencies'].find_one({'name':'wsf'})['oauth']
+      oauth = db['agencies'].find_one({'name':'wsf'})['google']['oauth']
       gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
       wks = gc.open(app.config['GSHEET_NAME']).worksheet('Signups')
 

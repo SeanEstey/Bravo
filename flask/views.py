@@ -16,7 +16,7 @@ from app import app, db, socketio
 from utils import send_mailgun_email, dict_to_html_table
 from log import get_tail
 from auth import login, logout
-from routing import get_completed_route, start_job, build_route,get_upcoming_routes
+from routing import get_completed_route, start_job,build_route,get_upcoming_routes,build_todays_routes
 import reminders
 import receipts
 import gsheets
@@ -24,15 +24,8 @@ import scheduler
 import etap
 import sms
 
-@app.route('/set_rem', methods=['GET'])
-def set_reminders():
-    scheduler.setup_reminder_jobs()
-    return 'OK'
 
-@app.route('/get_nps',methods=['GET'])
-def get_the_nps():
-    scheduler.analyze_non_participants()
-    return "OK"
+
 
 #-------------------------------------------------------------------------------
 @app.route('/', methods=['GET'])
@@ -120,11 +113,15 @@ def get_today_route():
       request.form['date']))
     '''
 
+
+
+
 #-------------------------------------------------------------------------------
 @app.route('/routing/get_route/<job_id>', methods=['GET'])
 def get_route(job_id):
     agency = db['routes'].find_one({'job_id':job_id})['agency']
-    api_key = agency['google']['geocode']['api_key']
+    conf = db['agencies'].find_one({'name':agency})
+    api_key = conf['google']['geocode']['api_key']
 
     return json.dumps(get_completed_route(job_id, api_key))
 
@@ -158,7 +155,16 @@ def _build_route(route_id):
       queue=app.config['DB']
     )
 
-    return 'OK'
+    return redirect(app.config['PUB_URL'] + '/routing')
+
+#-------------------------------------------------------------------------------
+@app.route('/routing/build_sheet/<route_id>/<job_id>', methods=['GET'])
+def _build_sheet(job_id, route_id):
+    '''non-celery synchronous func for testing
+    '''
+    build_route(route_id, job_id=job_id)
+    return redirect(app.config['PUB_URL'] + '/routing')
+
 
 #-------------------------------------------------------------------------------
 @app.route('/reminders/new')
@@ -281,28 +287,36 @@ def no_pickup(job_id, msg_id):
     reminders.cancel_pickup.apply_async((msg_id,), queue=app.config['DB'])
     return 'Thank You'
 
+#-------------------------------------------------------------------------------
+@app.route('/reminders/play/sample', methods=['POST'])
+def play_sample_rem():
+    voice = twilio.twiml.Response()
+    voice.say("test")
+    return flask.Response(response=str(voice), mimetype='text/xml')
+
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/get/token', method=['GET'])
+@app.route('/reminders/get/token', methods=['GET'])
 def get_twilio_token():
     # get credentials for environment variables
 
+    import re
     from twilio.util import TwilioCapability
 
     # FIXME
     twilio = db['agencies'].find_one({'name':'vec'})['twilio']['keys']['main']
-
+    alphanumeric_only = re.compile('[\W_]+')
     # Generate a random user name
-    identity = alphanumeric_only.sub('', fake.user_name())
+    #identity = alphanumeric_only.sub('', "sean")
 
     # Create a Capability Token
-    capability = TwilioCapability(twilio['sid'] twilio['auth_id'])
-    capability.allow_client_outgoing(twilio['phone_sid'])
-    capability.allow_client_incoming(identity)
+    capability = TwilioCapability(twilio['sid'], twilio['auth_id'])
+    capability.allow_client_outgoing(twilio['app_sid'])
+    capability.allow_client_incoming("sean")
     token = capability.generate()
 
     # Return token info as JSON
-    return jsonify(identity=identity, token=token)
+    return jsonify(identity="sean", token=token)
 
 
 #-------------------------------------------------------------------------------
@@ -721,3 +735,22 @@ def rec_signup():
         return str(e)
 
     return 'OK'
+
+
+
+# TEST VIEWS
+
+@app.route('/set_rem', methods=['GET'])
+def set_reminders():
+    scheduler.setup_reminder_jobs()
+    return 'OK'
+
+@app.route('/get_nps',methods=['GET'])
+def get_the_nps():
+    scheduler.analyze_non_participants()
+    return "OK"
+
+@app.route('/test_build_routes',methods=['GET'])
+def test_build_routes():
+    build_todays_routes.apply_async(queue=app.config['DB'])
+    return "OK"

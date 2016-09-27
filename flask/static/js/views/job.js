@@ -8,7 +8,7 @@ function init() {
 
     $a_child.html($a_child.html()+window.unicode['DOWN_ARROW']);
 
-		//setupTwilioClient();
+		setupTwilioClient();
     addBravoTooltip();
     makeCallFieldsClickable();
 		enableColumnSorting();
@@ -154,9 +154,16 @@ function setupTwilioClient() {
 				type: 'GET',
 				url: $URL_ROOT + 'reminders/get/token'
 			}).done(function(token) {
-				console.log('token received: ' + token);
+				console.log('token received: ' + token['token']);
 
-				Twilio.Device.setup(token);
+				Twilio.Device.setup(token['token']);
+
+				var connection = Twilio.Device.connect();
+			//	{
+				 // agent: "Smith",
+				//	phone_number: "4158675309"
+			//	});
+
 			});
     });
 
@@ -164,6 +171,7 @@ function setupTwilioClient() {
 				// Could be called multiple times if network drops and comes back.
 				// When the TOKEN allows incoming connections, this is called when
 				// the incoming channel is open.
+				console.log('Twilio device ready');
 		});
 
 		Twilio.Device.offline(function() {
@@ -194,6 +202,13 @@ function setupTwilioClient() {
 
 		Twilio.Device.error(function (e) {
 				console.log(e.message + " for " + e.connection);
+		});
+
+		Twilio.Device.incoming(function(connection) {
+			connection.accept();
+			console.log('connection established');
+			// do awesome ui stuff here
+			// $('#call-status').text("you're on a call!");
 		});
 
 		$("#hangup").click(function() {

@@ -87,6 +87,9 @@
           <td><a class='hover'
                  href="{{url_for('_build_route', route_id=route['_id'])
                  }}">Route</a>
+             <a class='hover'
+                 href="{{url_for('_build_sheet', route_id=route['_id'],
+                 job_id=route['job_id'])}}">Make Sheet</a>
           </td>
           <td>
             {% if route.ss_id is defined %}

@@ -40,7 +40,7 @@ def gauth(oauth):
         logger.error('Error authorizing %s: %s', name, str(e))
         return False
 
-    logger.info('%s api authorized', name)
+    logger.debug('Drive service authorized')
 
     return service
 
@@ -48,70 +48,55 @@ def gauth(oauth):
 def add_permissions(service, file_id, permissions):
     '''Add edit/owner permissions for new file
     @permissions: list of {'role':'owner/writer', 'email': ''} dicts
+    @file_id: string google drive id
     https://developers.google.com/drive/v3/reference/permissions
     '''
 
-    #batch = service.new_batch_http_request()
+    batch = service.new_batch_http_request()
 
     for p in permissions:
-        #transferOwnership = False
         if p['role'] == 'writer':
-            try:
-                r = service.permissions().create(
-                  fileId = file_id,
-                  body={
-                    'kind': 'drive#permission',
-                    'type': 'user',
-                    'role': p['role'],
-                    'emailAddress': p['email']}
-                  ).execute()
-            except Exception as e:
-                logger.error('Create permission error %s: %s', json.dumps(p), str(e))
-                return False
-
-            logger.info(json.dumps(r))
-        # First add Writer permission, then transfer ownership
+            batch.add(
+              service.permissions().create(
+                fileId = file_id,
+                body={
+                  'kind': 'drive#permission',
+                  'type': 'user',
+                  'role': p['role'],
+                  'emailAddress': p['email']}),
+              callback=permissions_callback)
         elif p['role'] == 'owner':
-            try:
-                r = service.permissions().create(
-                  fileId = file_id,
-                  body={
-                    'kind': 'drive#permission',
-                    'type': 'user',
-                    'role': 'writer',
-                    'emailAddress': p['email']}
-                  ).execute()
-            except Exception as e:
-                logger.error('Create permission error %s: %s', json.dumps(p), str(e))
-                return False
+            batch.add(
+              service.permissions().create(
+                fileId = file_id,
+                transferOwnership=True,
+                body={
+                  'kind': 'drive#permission',
+                  'type': 'user',
+                  'role': 'owner',
+                  'emailAddress': p['email']}),
+              callback=permissions_callback
+            )
 
-            logger.info(json.dumps(r))
-
-            permission_id = r['id']
-
-            try:
-                r = service.permissions().update(
-                  fileId = file_id,
-                  permissionId = permission_id,
-                  transferOwnership = True,
-                  body={
-                    'role': 'owner'
-                    }
-                  ).execute()
-            except Exception as e:
-                logger.error('Create permission error %s: %s', json.dumps(p), str(e))
-                return False
-
-            logger.info(json.dumps(r))
+    http = httplib2.Http()
+    batch.execute(http=http)
 
     return True
 
 #-------------------------------------------------------------------------------
-def batch_callback(request_id, response, exception):
-    if exception is not None:
-        print str(exception)
-        return False
+def permissions_callback(request_id, response, exception):
+    '''
+    batch.add() returns nothing. All response data returned here.
+    batch.execute() also returns nothing.
+    @request_id: string representing the nth command which raised exception
+    @response:
+    '''
 
-    print request_id
-    print response
-    return response
+    if exception is not None:
+        logger.error(
+          'Request %s raised exception adding permissions: %s',
+          request_id, str(exception))
+        pass
+    else:
+        logger.debug(json.dumps(response))
+        pass

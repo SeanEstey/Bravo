@@ -41,6 +41,10 @@ def gauth(oauth):
         logger.error('Error authorizing %s: %s', name, str(e))
         return False
 
+    logger.debug('Sheets service authorized')
+
+    return service
+
 #-------------------------------------------------------------------------------
 def write_rows(service, ss_id, rows, a1_range):
     '''Write data to sheet
@@ -105,6 +109,84 @@ def hide_rows(service, ss_id, start, end):
     except Exception as e:
         logger.error('Error hiding rows: %s', str(e))
         return False
+
+
+#-------------------------------------------------------------------------------
+def vert_align_cells(service, ss_id, start_row, end_row, start_col, end_col):
+    '''
+    RepeatCell ref: https://developers.google.com/sheets/reference/rest/v4/spreadsheets/request#repeatcellrequest
+    VerticalAlignment ref: https://developers.google.com/sheets/reference/rest/v4/spreadsheets#verticalalign
+    '''
+
+    try:
+        service.spreadsheets().batchUpdate(
+            spreadsheetId = ss_id,
+            body = {
+                "requests": [{
+                  "repeatCell": {
+                    "range": {
+                      "sheetId": 0,
+                      "startRowIndex": start_row-1,
+                      "endRowIndex": end_row-1,
+                      "startColumnIndex": start_col-1
+                    },
+                    "cell": {
+                      "userEnteredFormat": {
+                        "verticalAlignment" : "MIDDLE"
+                      }
+                    },
+                    "fields": "userEnteredFormat(verticalAlignment)"
+                  }
+                }]
+            }).execute()
+    except Exception as e:
+        logger.error('Error formatting cells: %s', str(e))
+        return False
+
+
+#-------------------------------------------------------------------------------
+def bold_cells(service, ss_id, cells):
+    '''
+    @cells: list of [ [row,col], [row,col] ]
+    '''
+    _requests = []
+
+    # startIndex: inclusive, endIndex: exclusive
+
+    for cell in cells:
+        _requests.append({
+          "repeatCell": {
+            "range": {
+              "sheetId": 0,
+              "startRowIndex": cell[0]-1,
+              "endRowIndex": cell[0],
+              "startColumnIndex": cell[1]-1,
+              "endColumnIndex": cell[1]
+            },
+            "cell": {
+              "userEnteredFormat": {
+                "textFormat": {
+                  "bold": True
+                }
+              }
+            },
+            "fields": "userEnteredFormat(textFormat)"
+          }
+        })
+
+    logger.debug(json.dumps(cells))
+
+    try:
+        service.spreadsheets().batchUpdate(
+            spreadsheetId = ss_id,
+            body = {
+                "requests": _requests
+            }).execute()
+    except Exception as e:
+        logger.error('Error bolding cells: %s', str(e))
+        return False
+
+
 
 # ----- GSPREAD (OLD) --------------------------------------------------------
 

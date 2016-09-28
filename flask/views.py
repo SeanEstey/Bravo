@@ -16,15 +16,13 @@ from app import app, db, socketio
 from utils import send_mailgun_email, dict_to_html_table
 from log import get_tail
 from auth import login, logout
-from routing import get_completed_route, start_job,build_route,get_upcoming_routes,build_todays_routes
+from routing import get_orders,submit_job,build_route,get_upcoming_routes,build_todays_routes
 import reminders
 import receipts
 import gsheets
 import scheduler
 import etap
 import sms
-
-
 
 
 #-------------------------------------------------------------------------------
@@ -113,9 +111,6 @@ def get_today_route():
       request.form['date']))
     '''
 
-
-
-
 #-------------------------------------------------------------------------------
 @app.route('/routing/get_route/<job_id>', methods=['GET'])
 def get_route(job_id):
@@ -123,7 +118,7 @@ def get_route(job_id):
     conf = db['agencies'].find_one({'name':agency})
     api_key = conf['google']['geocode']['api_key']
 
-    return json.dumps(get_completed_route(job_id, api_key))
+    return json.dumps(get_orders(job_id, api_key))
 
 #-------------------------------------------------------------------------------
 @app.route('/routing/start_job', methods=['POST'])
@@ -136,16 +131,16 @@ def get_routing_job_id():
       'name':etap_id['agency']
     })
 
-    return start_job(
-            request.form['block'],
-            request.form['driver'],
-            request.form['date'],
-            request.form['start_address'],
-            request.form['end_address'],
-            etap_id,
-            agency_config['routing']['routific']['api_key'],
-            min_per_stop=request.form['min_per_stop'],
-            shift_start=request.form['shift_start'])
+    return submit_job(
+      request.form['block'],
+      request.form['driver'],
+      request.form['date'],
+      request.form['start_address'],
+      request.form['end_address'],
+      etap_id,
+      agency_config['routing']['routific']['api_key'],
+      min_per_stop=request.form['min_per_stop'],
+      shift_start=request.form['shift_start'])
 
 #-------------------------------------------------------------------------------
 @app.route('/routing/build/<route_id>', methods=['GET', 'POST'])

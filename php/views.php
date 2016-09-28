@@ -40,6 +40,7 @@
 	}
 
   $nsc = new nusoap_client($etapestry['endpoint'], true);
+	//$nsc = new nusoap_client($etapestry['endpoint'], true,false,false,false,false,0,300);
 
   if(checkForError($nsc)) {
     echo $nsc->faultcode . ': ' . $nsc->faultstring;
@@ -60,6 +61,9 @@
   }
 
   if($newEndpoint != "") {
+		//$nsc = new nusoap_client($newEndpoint, true,false,false,false,false,0,300);
+		error_log("Given endpoint failed. Using '" . $newEndpoint . "'");
+
     $nsc = new nusoap_client($newEndpoint, true);
     checkForError($nsc);
     $nsc->call("login", array($etapestry['user'], $etapestry['pw']));
@@ -230,6 +234,9 @@
       $query = $data['query'];
       $category = $data['query_category'];
 
+			//$nsc->response_timeout = 180;
+			//$client = new nusoap_client($$creat_url, true,false,false,false,false,0,300);
+
       $response = $nsc->call("getExistingQueryResults", [[
           'start' => 0,
           'count' => 500,
@@ -244,7 +251,7 @@
         break;
       }
 
-      info_log($response['count'] . ' accounts in query ' . $data['query'] . ', category: ' . $data['query_category']);
+      debug_log($response['count'] . ' accounts in query ' . $data['query'] . ', category: ' . $data['query_category']);
 
       // Necessary in case of non-utf8 characters are present. json_encode()
       // will fail in that case.

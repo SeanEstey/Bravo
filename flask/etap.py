@@ -77,6 +77,24 @@ def get_phone(phone_type, account):
     return False
 
 #-------------------------------------------------------------------------------
+def get_primary_phone(account):
+    if 'phones' not in account or account['phones'] == None:
+        return False
+
+    landline = None
+
+    for phone in account['phones']:
+        if phone['type'] == 'Mobile':
+            return phone['number']
+        if phone['type'] == 'Voice':
+            landline = phone['number']
+
+    if landline:
+        return landline
+    else:
+        return False
+
+#-------------------------------------------------------------------------------
 def ddmmyyyy_to_date(date_str):
     # Makes list [dd, mm, yyyy]
     parts = date_str.split('/')

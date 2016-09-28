@@ -30,12 +30,18 @@ logger.addHandler(error_handler)
 logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
+class GeocodeError(Exception):
+    pass
+class EtapBadDataError(Exception):
+    pass
 
 #-------------------------------------------------------------------------------
 @celery_app.task
 def build_todays_routes():
-    # TODO: build db['routes'] documents if not already made
+    '''Route orders for today's Blocks and build Sheets
+    '''
 
+    get_upcoming_routes()
     agency = 'vec'
 
     routes = db['routes'].find({
@@ -58,10 +64,12 @@ def build_todays_routes():
 #-------------------------------------------------------------------------------
 @celery_app.task
 def build_route(route_id, job_id=None):
-    '''Check on a scheduled route if job_id not know.
+    '''Celery task that routes a Block via Routific and writes orders to a Sheet
+    Can take up to a few min to run depending on size of route, speed of
+    dependent API services (geocoder, sheets/drive api)
     @route_id: '_id' of record in 'routes' db collection (str)
-    @job_id: optional Routific id (str)
-    Returns: see get_completed_route()
+    @job_id: routific job string. If passed, creates Sheet without re-routing
+    Returns: True on success, False on error
     '''
 
     route = db['routes'].find_one({"_id":ObjectId(route_id)})
@@ -77,10 +85,7 @@ def build_route(route_id, job_id=None):
 
     # If job_id passed in as arg, skip Routific stage and build spreadsheet
     if job_id is None:
-        #logger.info("Building %s %s %s",
-        #        route['agency'], route['block'], route['date'].isoformat())
-
-        job_id = start_job(
+        job_id = submit_job(
             route['block'],
             driver['name'],
             route['date'].isoformat(),
@@ -94,11 +99,7 @@ def build_route(route_id, job_id=None):
 
     # Keep looping and sleeping until receive solution or hit
     # CELERYD_TASK_TIME_LIMIT (3000 s)
-
-    # TODO: Change this func to return entire solution to check status, not
-    # just orders
-
-    orders = get_completed_route(job_id, agency_conf['google']['geocode']['api_key'])
+    orders = get_orders(job_id, agency_conf['google']['geocode']['api_key'])
 
     if orders == False:
         logger.error('Error retrieving routific solution')
@@ -106,10 +107,8 @@ def build_route(route_id, job_id=None):
 
     while orders == "processing":
         logger.info('No solution yet. Sleeping 5s...')
-
         sleep(5)
-
-        orders = get_completed_route(job_id, agency_conf['google']['geocode']['api_key'])
+        orders = get_orders(job_id, agency_conf['google']['geocode']['api_key'])
 
     # Build the Google Sheet and copy orders
 
@@ -134,17 +133,78 @@ def build_route(route_id, job_id=None):
     return True
 
 #-------------------------------------------------------------------------------
-def get_completed_route(job_id, api_key):
+def build_order(account, warnings, api_key):
+    '''Returns:
+      -Dict order on success
+    Exceptions:
+      -requests.RequestException on geocode service error
+      -EtapBadDataError on missing or invalid account data
+      -GeocodeError on unable to resolve address'''
+
+    if not account.get('address') or not account.get('city'):
+        msg = "Routing error: account %s missing address and/or city" % account['id']
+        logger.error(msg)
+        raise EtapBadDataError(msg)
+    else:
+        formatted_address = account['address'] + ', ' + account['city'] + ', AB'
+
+    try:
+        result = geocode(formatted_address, api_key, postal=account['postalCode'], raise_exceptions=True)
+    except requests.RequestException as e:
+        logger.error(str(e))
+        raise
+
+    if len(result) == 0:
+        msg = "Unable to resolve address: %s, %s" % (account['address'],account['city'])
+        logger.error(msg)
+        raise GeocodeError(msg)
+
+    if 'warning' in result:
+        warnings.append(result['warning'])
+
+    return {
+      "location": {
+        "name": formatted_address,
+        "lat": result['geometry']['location']['lat'],
+        "lng": result['geometry']['location']['lng']
+      },
+      "start": shift_start,
+      "end": shift_end,
+      "duration": min_per_stop,
+      "customNotes": {
+        "id": account['id'],
+        "name": account['name'],
+        "phone": etap.get_primary_phone(account),
+        "email": account.get('email'),
+        "contact": etap.get_udf('Contact', account),
+        "block": etap.get_udf('Block', account),
+        "status": etap.get_udf('Status', account),
+        "neighborhood": etap.get_udf('Neighborhood', account),
+        "driver notes": etap.get_udf('Driver Notes', account),
+        "office notes": etap.get_udf('Office Notes', account),
+        "next pickup": etap.get_udf('Next Pickup Date', account)
+      }
+    }
+
+#-------------------------------------------------------------------------------
+def get_orders(job_id, api_key):
     '''Check Routific for status of asynchronous long-running task
     Job statuses: ['pending', 'processing', 'finished']
     Solution statuses: ['success', ??]
     @job_id: routific id (str)
     @api_key: google geocode api key
-    Return: Routific 'solution' dict with orders on success, job status code
-    on incomplete, and False on error.
-    '''
+    Returns:
+      -List of orders from task['output']['solution']['driver'] on
+      task['status'] == 'finished'
+      -String task['status'] on incomplete
+    Exceptions:
+      -Raises requests.RequestException on Routific endpoint error'''
 
-    r = requests.get('https://api.routific.com/jobs/' + job_id)
+    try:
+        r = requests.get('https://api.routific.com/jobs/' + job_id)
+    except requests.RequestException as e:
+        logger.error('Error calling api.routific.com/jobs: %s', str(e))
+        raise
 
     task = json.loads(r.text)
 
@@ -193,7 +253,7 @@ def get_completed_route(job_id, api_key):
         elif order['location_id'] == 'depot':
             # TODO: Add proper depot name, phone number, hours, and unload duration
 
-            location = geocode(route_info['end_address'], api_key)['geometry']['location']
+            location = geocode(route_info['end_address'], api_key)['geometry']['location'][0]
 
             order['customNotes'] = {
                 'id': 'depot',
@@ -235,13 +295,14 @@ def get_completed_route(job_id, api_key):
     return orders
 
 #-------------------------------------------------------------------------------
-def start_job(block, driver, date, start_address, end_address, etapestry_id,
-        routific_key, min_per_stop=3, shift_start="08:00", shift_end="19:00"):
+def submit_job(block, driver, date, start_address, end_address, etapestry_id,
+    routific_key, min_per_stop=3, shift_start="08:00", shift_end="19:00"):
     '''Submit orders to Routific via asynchronous long-running process endpoint
     API reference: https://docs.routific.com/docs/api-reference
     @date: string format 'Sat Sep 10 2016'
-    Returns: job_id
-    '''
+    Returns:
+      -String job_id on success
+      -False on error'''
 
     logger.info(
       'Submitting Routific job for %s: start "%s", end "%s", %s min/stop',
@@ -251,8 +312,8 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
 
     api_key = db['agencies'].find_one({'name':etapestry_id['agency']})['google']['geocode']['api_key']
 
-    start = geocode(start_address, api_key)['geometry']['location']
-    end = geocode(end_address, api_key)['geometry']['location']
+    start = geocode(start_address, api_key)['geometry']['location'][0]
+    end = geocode(end_address, api_key)['geometry']['location'][0]
 
     payload = {
       "visits": {},
@@ -285,120 +346,33 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
     route_date = parse(date).date()
     num_skips = 0
 
-    geocode_warnings = []
-    geocode_errors = []
+    warnings = []
+    errors = []
 
+    # Build the orders for Routific
     for account in accounts:
-        # TODO: replace code chunk with build_order()
-        '''
-        try:
-            order = build_order(account, geocode_warnings, raise_exceptions=True)
-        except EtapBadDataException as e:
-            logger.error(str(e))
+        if is_scheduled(account, route_date) == False:
+            num_skips += 1
             continue
-        except GeocodeException as e:
-            logger.error(str(e))
+
+        try:
+            order = build_order(account, warnings, raise_exceptions=True)
+        except EtapBadDataError as e:
+            errors.append(str(e))
+            continue
+        except GeocodeError as e:
+            errors.append(str(e))
             continue
         except requests.RequestException as e:
-            logger.error('google geocode service unavailable')
+            errors.append(str(e))
             continue
 
         if order == False:
             num_skips += 1
         else:
             payload['visits'][account['id']] = order
-        '''
 
-        # Ignore accounts with Next Pickup > today
-        next_pickup = etap.get_udf('Next Pickup Date', account)
-
-        if next_pickup:
-            np = next_pickup.split('/')
-            next_pickup = parse('/'.join([np[1], np[0], np[2]])).date()
-
-        next_delivery = etap.get_udf('Next Delivery Date', account)
-
-        if next_delivery:
-            nd = next_delivery.split('/')
-            next_delivery = parse('/'.join([nd[1], nd[0], nd[2]])).date()
-
-        if next_pickup and next_pickup > route_date and not next_delivery:
-            num_skips += 1
-            continue
-        elif next_delivery and next_delivery != route_date and not next_pickup:
-            num_skips += 1
-            continue
-        elif next_pickup and next_delivery and next_pickup > route_date and next_delivery != route_date:
-            num_skips += 1
-            continue
-
-        if account['address'] is None or account['city'] is None:
-            logger.error('Missing address or city in account ID %s', account['id'])
-            continue
-
-        formatted_address = account['address'] + ', ' + account['city'] + ', AB'
-
-        result = geocode(formatted_address, api_key, postal=account['postalCode'])
-
-        if result == False:
-            logger.error('Exception in start_job. Could not geocode %s', formatted_address)
-            continue
-        elif type(result) == str:
-            geocode_errors.append(result)
-            continue
-
-        if 'warning' in result:
-            geocode_warnings.append(result['warning'])
-
-        coords = {}
-
-        if 'partial_match' in result and etap.get_udf('lat', account):
-            logger.info('Retrieved lat/lng from account %s', account['id'])
-
-            coords['lat'] = etap.get_udf('lat', account)
-            coords['lng'] = etap.get_udf('lng', account)
-        else:
-            coords = result['geometry']['location']
-
-        payload['visits'][account['id']] = {
-          "location": {
-            "name": formatted_address,
-            "lat": coords['lat'],
-            "lng": coords['lng']
-          },
-          "start": shift_start,
-          "end": shift_end,
-          "duration": min_per_stop,
-          "customNotes": {
-            "id": account['id'],
-            "name": account['name'],
-            "email": account.get('email'),
-            "contact": etap.get_udf('Contact', account),
-            "block": etap.get_udf('Block', account),
-            "status": etap.get_udf('Status', account),
-            "neighborhood": etap.get_udf('Neighborhood', account),
-            "driver notes": etap.get_udf('Driver Notes', account),
-            "office notes": etap.get_udf('Office Notes', account),
-            "next pickup": etap.get_udf('Next Pickup Date', account)
-          }
-        }
-
-        if account['phones']:
-            for phone in account['phones']:
-                if phone['type'] == 'Mobile' or phone['type'] == 'Cell':
-                    payload['visits'][account['id']]['customNotes']['phone'] = \
-                    phone['number'] + ' (Mobile)'
-                    break
-                else:
-                    payload['visits'][account['id']]['customNotes']['phone'] = \
-                    phone['number'] + ' (' + phone['type'] + ')'
-
-        #if account['email']:
-        #    payload['visits'][account['id']]['customNotes']['email'] = 'Yes'
-        #else:
-        #    payload['visits'][account['id']]['customNotes']['email'] = 'No'
-
-    logger.info('Skipping %s no pickups', str(num_skips))
+    logger.debug('Omitting %s no pickups', str(num_skips))
 
     try:
         r = requests.post(
@@ -413,69 +387,42 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
         logger.error('Routific exception %s', str(e))
         return False
 
-    if r.status_code == 202:
-        job_id = json.loads(r.text)['job_id']
-
-        existing_job = db['routes'].find_one({
-          'agency': etapestry_id['agency'],
-          'block': block,
-          'date': datetime.combine(route_date, time(0,0,0))
-        })
-
-        job_info = {
-            'agency': etapestry_id['agency'],
-            'job_id': job_id,
-            'driver': driver,
-            'status': 'processing',
-            'block': block,
-            'block_size': len(accounts),
-            'orders': len(accounts) - num_skips,
-            'date': datetime.combine(route_date, time(0,0,0)),
-            'start_address': start_address,
-            'end_address': end_address,
-            'geocode_warnings': geocode_warnings,
-            'geocode_errors': geocode_errors
-        }
-
-        if existing_job:
-            # TODO:Creates error. Fixme
-            logger.info(
-              '%s: Routific job already exists for Block %s on %s. Over-writing.',
-              etapestry_id['agency'], block, route_date.strftime('%b %d'))
-
-            db['routes'].update_one(existing_job, {'$set':job_info})
-        else:
-            db['routes'].insert_one(job_info)
-
-            logger.info(
-              '%s: Routific job started for Block %s. %s warnings, %s errors. (Job_ID: %s)',
-              etapestry_id['agency'], block, len(geocode_warnings), len(geocode_errors), job_id)
-
-        return job_id
-    else:
+    if r.status_code != 202:
         logger.error('Error retrieving Routific job_id. %s %s',
             r.headers, r.text)
         return False
 
-'''
-class GeocodeException(Exception):
-    pass
-class EtapBadDataException(Exception):
-    pass
-'''
+    job_id = json.loads(r.text)['job_id']
+
+    # Save route info with job_id to DB
+
+    job_info = {
+        'agency': etapestry_id['agency'],
+        'job_id': job_id,
+        'driver': driver,
+        'status': 'processing',
+        'block': block,
+        'block_size': len(accounts),
+        'orders': len(accounts) - num_skips,
+        'date': datetime.combine(route_date, time(0,0,0)),
+        'start_address': start_address,
+        'end_address': end_address,
+        'geocode_warnings': warnings,
+        'geocode_errors': errors
+    }
+
+    existing_job = db['routes'].find_one({
+      'agency': etapestry_id['agency'],
+      'block': block,
+      'date': datetime.combine(route_date, time(0,0,0))
+    })
+
+    db['routes'].update_one(existing_job, {'$set':job_info})
+
+    return job_id
 
 #-------------------------------------------------------------------------------
-def build_order(account, warnings, api_key):
-    '''Returns:
-        -Order on success (dict)
-        -False on skip account (no pickup)
-      Exceptions:
-        -requests.RequestException on geocode service error
-        -EtapBadDataException on missing or invalid account data
-        -GeocodeException on unable to resolve address
-    '''
-
-    '''
+def is_scheduled(account, route_date):
     # Ignore accounts with Next Pickup > today
     next_pickup = etap.get_udf('Next Pickup Date', account)
 
@@ -496,70 +443,6 @@ def build_order(account, warnings, api_key):
     elif next_pickup and next_delivery and next_pickup > route_date and next_delivery != route_date:
         return False
 
-    if not account.get('address') or not account.get('city'):
-        geocode_errors.append(msg)
-        raise ValueError("Routing error: account %s missing address and/or city" % account['id'])
-    else:
-        formatted_address = account['address'] + ', ' + account['city'] + ', AB'
-
-    try:
-        result = geocode(formatted_address, api_key, postal=account['postalCode'], raise_exceptions=True)
-    except requests.RequestException as e:
-        # Pass it along to start_job()
-        raise
-
-    if len(result) == 0:
-        raise GeocodeException("Unable to resolve address: '%s, %s'" %
-        (account['address'], account['city']))
-
-    if 'warning' in result:
-        geocode_warnings.append(result['warning'])
-
-    coords = {}
-
-    if 'partial_match' in result and etap.get_udf('lat', account):
-        logger.info('Retrieved lat/lng from account %s', account['id'])
-
-        coords['lat'] = etap.get_udf('lat', account)
-        coords['lng'] = etap.get_udf('lng', account)
-    else:
-        coords = result['geometry']['location']
-
-    order = {
-      "location": {
-        "name": formatted_address,
-        "lat": coords['lat'],
-        "lng": coords['lng']
-      },
-      "start": shift_start,
-      "end": shift_end,
-      "duration": min_per_stop,
-      "customNotes": {
-        "id": account['id'],
-        "name": account['name'],
-        "email": account.get('email'),
-        "contact": etap.get_udf('Contact', account),
-        "block": etap.get_udf('Block', account),
-        "status": etap.get_udf('Status', account),
-        "neighborhood": etap.get_udf('Neighborhood', account),
-        "driver notes": etap.get_udf('Driver Notes', account),
-        "office notes": etap.get_udf('Office Notes', account),
-        "next pickup": etap.get_udf('Next Pickup Date', account)
-      }
-    }
-
-    if account['phones']:
-        for phone in account['phones']:
-            if phone['type'] == 'Mobile' or phone['type'] == 'Cell':
-                payload['visits'][account['id']]['customNotes']['phone'] = \
-                phone['number'] + ' (Mobile)'
-                break
-            else:
-                payload['visits'][account['id']]['customNotes']['phone'] = \
-                phone['number'] + ' (' + phone['type'] + ')'
-
-    return order
-    '''
     return True
 
 #-------------------------------------------------------------------------------
@@ -688,65 +571,69 @@ def get_postal(geo_result):
 
 #-------------------------------------------------------------------------------
 def geocode(address, api_key, postal=None, raise_exceptions=False):
-    '''documentation: https://developers.google.com/maps/documentation/geocoding
+    '''Finds best result from Google geocoder given address
+    API Reference: https://developers.google.com/maps/documentation/geocoding
     @address: string with address + city + province. Should NOT include postal code.
     @postal: optional arg. Used to identify correct location when multiple
     results found
     Returns:
-      -Success: single element list containing best result (dict)
+      -Success: single element list containing result (dict)
       -Empty list [] no result
     Exceptions:
-      -Raises requests.exceptions.RequestException on connection error
-    '''
-
-    url = 'https://maps.googleapis.com/maps/api/geocode/json'
-    params = {
-      'address': address,
-      'key': api_key
-    }
+      -Raises requests.RequestException on connection error'''
 
     try:
-        r = requests.get(url, params=params)
-    except Exception as e:
-        logger.error('Geocoding exception %s', str(e))
-        # TODO: Throws requests.exceptions.RequestException
-        # call 'raise' if raise_exceptions == True
-        return False
+        response = requests.get(
+          'https://maps.googleapis.com/maps/api/geocode/json',
+          params = {
+            'address': address,
+            'key': api_key
+          })
+    except requests.RequestException as e:
+        logger.error(str(e))
+        raise
 
-    logger.debug(r.text)
+    logger.debug(response.text)
 
-    response = json.loads(r.text)
+    response = json.loads(response.text)
 
     if response['status'] == 'ZERO_RESULTS':
         e = 'Error: No geocode result for ' + address
         logger.error(e)
-        return e
+        return []
     elif response['status'] == 'INVALID_REQUEST':
         e = 'Error: Invalid request for ' + address
         logger.error(e)
-        return e
+        return []
     elif response['status'] != 'OK':
         e = 'Error: Could not geocode ' + address
         logger.error(e)
-        return e
+        return []
 
-    if len(response['results']) == 1 and 'partial_match' in response['results'][0]:
-        response['results'][0]['warning'] = 'Warning: partial match for "%s". Using "%s"' % (
-        address, response['results'][0]['formatted_address'])
+    # Single result
+
+    if len(response['results']) == 1:
+        if 'partial_match' in response['results'][0]:
+            warning = 'Warning: partial match for "%s". Using "%s"' %
+                      (address, response['results'][0]['formatted_address'])
+
+            response['results'][0]['warning'] = warning
+            logger.debug(warning)
+
+        return response['results']
+
+    # Multiple results
+
+    if postal is None:
+        # No way to identify best match. Return 1st result (best guess)
+        response['results'][0]['warning'] = 'Warning: multiple results for "%s". '\
+          'No postal code. Using 1st result "%s"' % (
+          address, response['results'][0]['formatted_address'])
 
         logger.debug(response['results'][0]['warning'])
 
-    elif len(response['results']) > 1:
-        if postal is None:
-            # No way to identify best match
-            response['results'][0]['warning'] = 'Warning: multiple results for "%s". '\
-              'No postal code. Using 1st result "%s"' % (
-              address, response['results'][0]['formatted_address'])
-
-            logger.debug(response['results'][0]['warning'])
-
-            return response['results'][0]
-
+        return [response['results'][0]]
+    else:
         # Let's use the Postal Code to find the best match
         for idx, result in enumerate(response['results']):
             if not get_postal(result):
@@ -760,16 +647,18 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
 
                 logger.debug(result['warning'])
 
-                return result
+                return [result]
 
-        response['results'][0]['warning'] = \
-          'Warning: multiple results for "%s". No postal code match. '\
-          'Using "%s" as best guess.' % (
-          address, response['results'][0]['formatted_address'])
+            # Last result and still no Postal match.
+            if idx == len(response['results']) -1:
+                response['results'][0]['warning'] = \
+                  'Warning: multiple results for "%s". No postal code match. '\
+                  'Using "%s" as best guess.' % (
+                  address, response['results'][0]['formatted_address'])
 
-        logger.error(response['results'][0]['warning'])
+                logger.error(response['results'][0]['warning'])
 
-    return response['results'][0]
+    return [response['results'][0]]
 
 #-------------------------------------------------------------------------------
 def get_accounts(block, etapestry_id):

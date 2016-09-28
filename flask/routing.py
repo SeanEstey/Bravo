@@ -289,6 +289,26 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
     geocode_errors = []
 
     for account in accounts:
+        # TODO: replace code chunk with build_order()
+        '''
+        try:
+            order = build_order(account, geocode_warnings, raise_exceptions=True)
+        except EtapBadDataException as e:
+            logger.error(str(e))
+            continue
+        except GeocodeException as e:
+            logger.error(str(e))
+            continue
+        except requests.RequestException as e:
+            logger.error('google geocode service unavailable')
+            continue
+
+        if order == False:
+            num_skips += 1
+        else:
+            payload['visits'][account['id']] = order
+        '''
+
         # Ignore accounts with Next Pickup > today
         next_pickup = etap.get_udf('Next Pickup Date', account)
 
@@ -340,7 +360,7 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
         else:
             coords = result['geometry']['location']
 
-        payload['visits'][account['id']] = { # location_id
+        payload['visits'][account['id']] = {
           "location": {
             "name": formatted_address,
             "lat": coords['lat'],
@@ -352,6 +372,7 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
           "customNotes": {
             "id": account['id'],
             "name": account['name'],
+            "email": account.get('email'),
             "contact": etap.get_udf('Contact', account),
             "block": etap.get_udf('Block', account),
             "status": etap.get_udf('Status', account),
@@ -372,10 +393,10 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
                     payload['visits'][account['id']]['customNotes']['phone'] = \
                     phone['number'] + ' (' + phone['type'] + ')'
 
-        if account['email']:
-            payload['visits'][account['id']]['customNotes']['email'] = 'Yes'
-        else:
-            payload['visits'][account['id']]['customNotes']['email'] = 'No'
+        #if account['email']:
+        #    payload['visits'][account['id']]['customNotes']['email'] = 'Yes'
+        #else:
+        #    payload['visits'][account['id']]['customNotes']['email'] = 'No'
 
     logger.info('Skipping %s no pickups', str(num_skips))
 
@@ -435,6 +456,111 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
         logger.error('Error retrieving Routific job_id. %s %s',
             r.headers, r.text)
         return False
+
+'''
+class GeocodeException(Exception):
+    pass
+class EtapBadDataException(Exception):
+    pass
+'''
+
+#-------------------------------------------------------------------------------
+def build_order(account, warnings, api_key):
+    '''Returns:
+        -Order on success (dict)
+        -False on skip account (no pickup)
+      Exceptions:
+        -requests.RequestException on geocode service error
+        -EtapBadDataException on missing or invalid account data
+        -GeocodeException on unable to resolve address
+    '''
+
+    '''
+    # Ignore accounts with Next Pickup > today
+    next_pickup = etap.get_udf('Next Pickup Date', account)
+
+    if next_pickup:
+        np = next_pickup.split('/')
+        next_pickup = parse('/'.join([np[1], np[0], np[2]])).date()
+
+    next_delivery = etap.get_udf('Next Delivery Date', account)
+
+    if next_delivery:
+        nd = next_delivery.split('/')
+        next_delivery = parse('/'.join([nd[1], nd[0], nd[2]])).date()
+
+    if next_pickup and next_pickup > route_date and not next_delivery:
+        return False
+    elif next_delivery and next_delivery != route_date and not next_pickup:
+        return False
+    elif next_pickup and next_delivery and next_pickup > route_date and next_delivery != route_date:
+        return False
+
+    if not account.get('address') or not account.get('city'):
+        geocode_errors.append(msg)
+        raise ValueError("Routing error: account %s missing address and/or city" % account['id'])
+    else:
+        formatted_address = account['address'] + ', ' + account['city'] + ', AB'
+
+    try:
+        result = geocode(formatted_address, api_key, postal=account['postalCode'], raise_exceptions=True)
+    except requests.RequestException as e:
+        # Pass it along to start_job()
+        raise
+
+    if len(result) == 0:
+        raise GeocodeException("Unable to resolve address: '%s, %s'" %
+        (account['address'], account['city']))
+
+    if 'warning' in result:
+        geocode_warnings.append(result['warning'])
+
+    coords = {}
+
+    if 'partial_match' in result and etap.get_udf('lat', account):
+        logger.info('Retrieved lat/lng from account %s', account['id'])
+
+        coords['lat'] = etap.get_udf('lat', account)
+        coords['lng'] = etap.get_udf('lng', account)
+    else:
+        coords = result['geometry']['location']
+
+    order = {
+      "location": {
+        "name": formatted_address,
+        "lat": coords['lat'],
+        "lng": coords['lng']
+      },
+      "start": shift_start,
+      "end": shift_end,
+      "duration": min_per_stop,
+      "customNotes": {
+        "id": account['id'],
+        "name": account['name'],
+        "email": account.get('email'),
+        "contact": etap.get_udf('Contact', account),
+        "block": etap.get_udf('Block', account),
+        "status": etap.get_udf('Status', account),
+        "neighborhood": etap.get_udf('Neighborhood', account),
+        "driver notes": etap.get_udf('Driver Notes', account),
+        "office notes": etap.get_udf('Office Notes', account),
+        "next pickup": etap.get_udf('Next Pickup Date', account)
+      }
+    }
+
+    if account['phones']:
+        for phone in account['phones']:
+            if phone['type'] == 'Mobile' or phone['type'] == 'Cell':
+                payload['visits'][account['id']]['customNotes']['phone'] = \
+                phone['number'] + ' (Mobile)'
+                break
+            else:
+                payload['visits'][account['id']]['customNotes']['phone'] = \
+                phone['number'] + ' (' + phone['type'] + ')'
+
+    return order
+    '''
+    return True
 
 #-------------------------------------------------------------------------------
 def get_upcoming_routes():
@@ -561,12 +687,16 @@ def get_postal(geo_result):
     return False
 
 #-------------------------------------------------------------------------------
-def geocode(address, api_key, postal=None):
+def geocode(address, api_key, postal=None, raise_exceptions=False):
     '''documentation: https://developers.google.com/maps/documentation/geocoding
     @address: string with address + city + province. Should NOT include postal code.
     @postal: optional arg. Used to identify correct location when multiple
     results found
-    Returns: geocode result (dict) on success, str msg on error, False on exception
+    Returns:
+      -Success: single element list containing best result (dict)
+      -Empty list [] no result
+    Exceptions:
+      -Raises requests.exceptions.RequestException on connection error
     '''
 
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
@@ -579,6 +709,8 @@ def geocode(address, api_key, postal=None):
         r = requests.get(url, params=params)
     except Exception as e:
         logger.error('Geocoding exception %s', str(e))
+        # TODO: Throws requests.exceptions.RequestException
+        # call 'raise' if raise_exceptions == True
         return False
 
     logger.debug(r.text)

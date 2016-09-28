@@ -445,7 +445,7 @@ def add_future_pickups(job_id):
                     end,
                     agency['google']['oauth'])
 
-        logger.info('%i calendar events pulled', len(events))
+        logger.debug('%i calendar events pulled', len(events))
 
         block_dates = {}
         local = pytz.timezone("Canada/Mountain")

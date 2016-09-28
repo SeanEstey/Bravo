@@ -34,12 +34,18 @@ logger.setLevel(logging.DEBUG)
 #-------------------------------------------------------------------------------
 @celery_app.task
 def build_todays_routes():
+    # TODO: build db['routes'] documents if not already made
+
     agency = 'vec'
 
     routes = db['routes'].find({
       'agency': agency,
       'date': datetime.combine(date.today(), time(0,0,0))
     })
+
+    logger.info(
+      '%s: -----Building %s routes for %s-----',
+      agency, routes.count(), date.today().strftime("%A %b %d"))
 
     for route in routes:
         r = build_route(str(route['_id']))
@@ -48,7 +54,6 @@ def build_todays_routes():
             logger.error('Error building route %s', route['block'])
 
         sleep(2)
-
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -72,8 +77,8 @@ def build_route(route_id, job_id=None):
 
     # If job_id passed in as arg, skip Routific stage and build spreadsheet
     if job_id is None:
-        logger.info("Building %s %s %s",
-                route['agency'], route['block'], route['date'].isoformat())
+        #logger.info("Building %s %s %s",
+        #        route['agency'], route['block'], route['date'].isoformat())
 
         job_id = start_job(
             route['block'],
@@ -128,31 +133,39 @@ def build_route(route_id, job_id=None):
 
     return True
 
-
 #-------------------------------------------------------------------------------
 def get_completed_route(job_id, api_key):
-    '''Check routific to see if process for job_id is complete.
-    @job_id: routific id string
+    '''Check Routific for status of asynchronous long-running task
+    Job statuses: ['pending', 'processing', 'finished']
+    Solution statuses: ['success', ??]
+    @job_id: routific id (str)
     @api_key: google geocode api key
     Return: Routific 'solution' dict with orders on success, job status code
     on incomplete, and False on error.
     '''
 
     r = requests.get('https://api.routific.com/jobs/' + job_id)
-    solution = json.loads(r.text)
 
-    #logger.debug(solution)
+    task = json.loads(r.text)
 
-    if solution['status'] != 'finished':
-        return solution['status']
+    if task['status'] != 'finished':
+        return task['status']
+
+    logger.debug(r.text)
+
+    output = task['output']
+
+    logger.debug(
+      'job_id: %s\nStatus: %s\nTotal_travel_time: %s\nNum_unserved: %s',
+      job_id, output['status'], output['total_travel_time'], output['num_unserved'])
 
     route_info = db['routes'].find_one({'job_id':job_id})
 
-    logger.info(
-      '%s: job_id \'%s\' finished (Block %s). Returning sorted orders (status: %s)',
-      route_info['agency'], job_id, route_info['block'], r.status_code)
+    orders = task['output']['solution'][route_info['driver']]
 
-    orders = solution['output']['solution'][route_info['driver']]
+    logger.info(
+      '%s: Block %s job finished (id \'%s\')\nSorted orders: %s\nStatus: %s',
+      route_info['agency'], route_info['block'], job_id, len(orders), r.status_code)
 
     # TODO: Include trip time back to office for WSF
     route_length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
@@ -160,7 +173,9 @@ def get_completed_route(job_id, api_key):
     db['routes'].update_one({'job_id':job_id},
       {'$set': {
           'status':'finished',
-          'orders': solution['visits'],
+          'orders': task['visits'],
+          'total_travel_time': output['total_travel_time'],
+          'num_unserved': output['num_unserved'],
           'duration': route_length.seconds/60
           }})
 
@@ -173,9 +188,11 @@ def get_completed_route(job_id, api_key):
     # Also create Google Maps url
 
     for order in orders:
-        id = order['location_id']
+        if order['location_id'] == 'office':
+            continue
+        elif order['location_id'] == 'depot':
+            # TODO: Add proper depot name, phone number, hours, and unload duration
 
-        if id == 'depot':
             location = geocode(route_info['end_address'], api_key)['geometry']['location']
 
             order['customNotes'] = {
@@ -187,29 +204,48 @@ def get_completed_route(job_id, api_key):
                 location['lat'],
                 location['lng']
             )
-            continue
+        # Regular order
+        else:
+            _input = task['input']['visits'][order['location_id']]
 
-        if id in solution['input']['visits']:
-            order['customNotes'] = solution['input']['visits'][id]['customNotes']
+            order['customNotes'] = task['input']['visits'][order['location_id']]['customNotes']
 
             order['gmaps_url'] = get_gmaps_url(
-                order['location_name'],
-                order['customNotes']['lat'],
-                order['customNotes']['lng']
+                _input['location']['name'],
+                _input['location']['lat'],
+                _input['location']['lng']
             )
 
-    return solution['output']['solution'][route_info['driver']]
+    conf = db['agencies'].find_one({'name':route_info['agency']})
+
+    # Add office stop
+    # TODO: Add travel time from depot to office
+    orders.append({
+        "location_id":"office",
+        "location_name": conf['routing']['office']['formatted_address'],
+        "arrival_time":"",
+        "finish_time":"",
+        "gmaps_url": conf['routing']['office']['url'],
+        "customNotes": {
+            "id": "office",
+            "name": conf['routing']['office']['name']
+        }
+    })
+
+    return orders
 
 #-------------------------------------------------------------------------------
 def start_job(block, driver, date, start_address, end_address, etapestry_id,
         routific_key, min_per_stop=3, shift_start="08:00", shift_end="19:00"):
-    '''Use Routific long-running process endpoint.
+    '''Submit orders to Routific via asynchronous long-running process endpoint
+    API reference: https://docs.routific.com/docs/api-reference
     @date: string format 'Sat Sep 10 2016'
     Returns: job_id
     '''
 
-    logger.info('Submitting Routific job for %s: start "%s", end "%s", %s min/stop',
-                block, shift_start, shift_end, str(min_per_stop))
+    logger.info(
+      'Submitting Routific job for %s: start "%s", end "%s", %s min/stop',
+      block, shift_start, shift_end, str(min_per_stop))
 
     accounts = get_accounts(block, etapestry_id)['data']
 
@@ -220,24 +256,30 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
 
     payload = {
       "visits": {},
-      "fleet": {}
-    }
-
-    payload["fleet"][driver] = {
-      "start_location": {
-        "id": "office",
-        "lat": start['lat'],
-        "lng": start['lng'],
-        "name": start_address,
+      "fleet": {
+        driver: {
+          "start_location": {
+            "id": "office",
+            "lat": start['lat'],
+            "lng": start['lng'],
+            "name": start_address,
+           },
+          "end_location": {
+            "id": "depot",
+            "lat": end['lat'],
+            "lng": end['lng'],
+            "name": end_address,
+          },
+          "shift_start": shift_start,
+          "shift_end": shift_end
+        }
       },
-      "end_location": {
-        "id": "depot",
-        "lat": end['lat'],
-        "lng": end['lng'],
-        "name": end_address,
-      },
-      "shift_start": shift_start,
-      "shift_end": shift_end
+      "options": {
+        # TODO: experiment with this
+        # 'traffic': ['faster' (default), 'fast', 'normal', 'slow', 'very slow']
+        "traffic": "slow",
+        "shortest_distance": True
+      }
     }
 
     route_date = parse(date).date()
@@ -308,8 +350,6 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
           "end": shift_end,
           "duration": min_per_stop,
           "customNotes": {
-            "lat": coords['lat'],
-            "lng": coords['lng'],
             "id": account['id'],
             "name": account['name'],
             "contact": etap.get_udf('Contact', account),
@@ -387,8 +427,8 @@ def start_job(block, driver, date, start_address, end_address, etapestry_id,
             db['routes'].insert_one(job_info)
 
             logger.info(
-              '%s: Routific job started for Block %s (Job_ID: %s)',
-              etapestry_id['agency'], block, job_id)
+              '%s: Routific job started for Block %s. %s warnings, %s errors. (Job_ID: %s)',
+              etapestry_id['agency'], block, len(geocode_warnings), len(geocode_errors), job_id)
 
         return job_id
     else:
@@ -562,7 +602,7 @@ def geocode(address, api_key, postal=None):
         response['results'][0]['warning'] = 'Warning: partial match for "%s". Using "%s"' % (
         address, response['results'][0]['formatted_address'])
 
-        logger.info(response['results'][0]['warning'])
+        logger.debug(response['results'][0]['warning'])
 
     elif len(response['results']) > 1:
         if postal is None:
@@ -571,7 +611,7 @@ def geocode(address, api_key, postal=None):
               'No postal code. Using 1st result "%s"' % (
               address, response['results'][0]['formatted_address'])
 
-            logger.info(response['results'][0]['warning'])
+            logger.debug(response['results'][0]['warning'])
 
             return response['results'][0]
 
@@ -586,7 +626,7 @@ def geocode(address, api_key, postal=None):
                   'result[%s]: "%s". Using as best match.' % (
                   address, get_postal(result), str(idx), result['formatted_address'])
 
-                logger.info(result['warning'])
+                logger.debug(result['warning'])
 
                 return result
 
@@ -608,7 +648,6 @@ def get_accounts(block, etapestry_id):
     })
 
     return accounts
-
 
 #-------------------------------------------------------------------------------
 def create_sheet(agency, drive_api, title):
@@ -665,16 +704,32 @@ def create_sheet(agency, drive_api, title):
 
     return file_copy['id']
 
-
 #-------------------------------------------------------------------------------
 def write_orders(sheets_api, ss_id, orders):
-    '''Write the routed orders to the route sheet
-    '''
+    '''Write formatted orders to route sheet.
+    order: {
+        "location_id": etapestry account or ['depot', 'office'],
+        "location_name":"21 Arbour Crest Close NW, Calgary, AB",
+        "arrival_time":"09:11",
+        "finish_time":"09:15",
+        "gmaps_url": url,
+        "customNotes": {
+            "id": etapestry id for order or ['depot', 'office'],
+            "name": account name,
+            "contact": contat person (businesses),
+            "block": blocks,
+            "status": etapestry status,
+            "neighborhood": (optional),
+            "driver notes": (optional),
+            "office notes": (optional),
+            "next pickup": date string
+        }
+    }'''
 
     rows = []
     cells_to_bold = []
 
-    # Chop off start_address
+    # Chop off office start_address
     orders = orders[1:]
 
     for idx in range(len(orders)):
@@ -701,9 +756,11 @@ def write_orders(sheets_api, ss_id, orders):
 
         order_info = ''
 
-
-        if order['customNotes']['id'] == 'depot':
+        if order['location_id'] == 'depot':
             order_info += 'Name: Depot\n'
+            order_info += '\nArrive: ' + order['arrival_time']
+        elif order['location_id'] == 'office':
+            order_info += 'Name: ' + order['customNotes']['name']+ '\n'
             order_info += '\nArrive: ' + order['arrival_time']
         # Regular order
         else:
@@ -713,10 +770,8 @@ def write_orders(sheets_api, ss_id, orders):
 
                 order_info += 'NOTE: ' + order['customNotes']['driver notes'] +'\n\n'
 
-                #sheet.getRange(i+2, headers.indexOf('Order Info')+1).setFontWeight("bold");
                 if order['customNotes']['driver notes'].find('***') > -1:
                     order_info = order_info.replace("***", "")
-                    #sheet.getRange(i+2, headers.indexOf('Order Info')+1).setFontColor("red");
 
             order_info += 'Name: ' + order['customNotes']['name'] + '\n'
 

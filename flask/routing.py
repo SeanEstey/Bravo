@@ -74,6 +74,8 @@ def build_route(route_id, job_id=None):
 
     route = db['routes'].find_one({"_id":ObjectId(route_id)})
 
+    logger.info('%s: Building %s...', route['agency'], route['block'])
+
     agency_conf = db['agencies'].find_one({'name':route['agency']})
 
     routing = agency_conf['routing']
@@ -106,7 +108,7 @@ def build_route(route_id, job_id=None):
         return False
 
     while orders == "processing":
-        logger.info('No solution yet. Sleeping 5s...')
+        logger.debug('No solution yet. Sleeping 5s...')
         sleep(5)
         orders = get_orders(job_id, agency_conf['google']['geocode']['api_key'])
 
@@ -127,13 +129,12 @@ def build_route(route_id, job_id=None):
     db['routes'].update_one({'job_id':job_id},{'$set':{'ss_id':ss_id}})
 
     logger.info(
-        'Route %s complete. %s orders written to Sheet.',
-        route['block'], len(orders))
+        '%s Sheet created. Orders written.', route['block'])
 
     return True
 
 #-------------------------------------------------------------------------------
-def build_order(account, warnings, api_key):
+def build_order(account, warnings, api_key, shift_start, shift_end, min_per_stop):
     '''Returns:
       -Dict order on success
     Exceptions:
@@ -149,7 +150,7 @@ def build_order(account, warnings, api_key):
         formatted_address = account['address'] + ', ' + account['city'] + ', AB'
 
     try:
-        result = geocode(formatted_address, api_key, postal=account['postalCode'], raise_exceptions=True)
+        result = geocode(formatted_address, api_key, postal=account['postalCode'])[0]
     except requests.RequestException as e:
         logger.error(str(e))
         raise
@@ -175,7 +176,7 @@ def build_order(account, warnings, api_key):
         "id": account['id'],
         "name": account['name'],
         "phone": etap.get_primary_phone(account),
-        "email": account.get('email'),
+        "email": 'Yes' if account.get('email') else 'No',
         "contact": etap.get_udf('Contact', account),
         "block": etap.get_udf('Block', account),
         "status": etap.get_udf('Status', account),
@@ -213,19 +214,16 @@ def get_orders(job_id, api_key):
 
     logger.debug(r.text)
 
-    output = task['output']
-
-    logger.debug(
-      'job_id: %s\nStatus: %s\nTotal_travel_time: %s\nNum_unserved: %s',
-      job_id, output['status'], output['total_travel_time'], output['num_unserved'])
-
     route_info = db['routes'].find_one({'job_id':job_id})
 
+    output = task['output']
     orders = task['output']['solution'][route_info['driver']]
 
     logger.info(
-      '%s: Block %s job finished (id \'%s\')\nSorted orders: %s\nStatus: %s',
-      route_info['agency'], route_info['block'], job_id, len(orders), r.status_code)
+        '\nJob_id %s: %s\n'\
+        'Sorted orders: %s\nUnserved orders: %s\nTravel time: %s',
+        job_id, output['status'], len(orders), output['num_unserved'],
+        output['total_travel_time'])
 
     # TODO: Include trip time back to office for WSF
     route_length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
@@ -253,7 +251,7 @@ def get_orders(job_id, api_key):
         elif order['location_id'] == 'depot':
             # TODO: Add proper depot name, phone number, hours, and unload duration
 
-            location = geocode(route_info['end_address'], api_key)['geometry']['location'][0]
+            location = geocode(route_info['end_address'], api_key)[0]['geometry']['location']
 
             order['customNotes'] = {
                 'id': 'depot',
@@ -304,16 +302,12 @@ def submit_job(block, driver, date, start_address, end_address, etapestry_id,
       -String job_id on success
       -False on error'''
 
-    logger.info(
-      'Submitting Routific job for %s: start "%s", end "%s", %s min/stop',
-      block, shift_start, shift_end, str(min_per_stop))
-
     accounts = get_accounts(block, etapestry_id)['data']
 
     api_key = db['agencies'].find_one({'name':etapestry_id['agency']})['google']['geocode']['api_key']
 
-    start = geocode(start_address, api_key)['geometry']['location'][0]
-    end = geocode(end_address, api_key)['geometry']['location'][0]
+    start = geocode(start_address, api_key)[0]['geometry']['location']
+    end = geocode(end_address, api_key)[0]['geometry']['location']
 
     payload = {
       "visits": {},
@@ -356,7 +350,9 @@ def submit_job(block, driver, date, start_address, end_address, etapestry_id,
             continue
 
         try:
-            order = build_order(account, warnings, raise_exceptions=True)
+            order = build_order(
+                account, warnings, api_key, shift_start, shift_end, min_per_stop
+            )
         except EtapBadDataError as e:
             errors.append(str(e))
             continue
@@ -394,22 +390,16 @@ def submit_job(block, driver, date, start_address, end_address, etapestry_id,
 
     job_id = json.loads(r.text)['job_id']
 
+    logger.info(
+        '\nSubmitted routific task\n'\
+        'Job_id: %s\nOrders: %s\nStart: %s\nEnd: %s\n'\
+        'Min/stop: %s\nTraffic: %s',
+        job_id, len(payload['visits']), shift_start,
+        shift_end, min_per_stop, payload['options']['traffic'])
+
     # Save route info with job_id to DB
 
-    job_info = {
-        'agency': etapestry_id['agency'],
-        'job_id': job_id,
-        'driver': driver,
-        'status': 'processing',
-        'block': block,
-        'block_size': len(accounts),
-        'orders': len(accounts) - num_skips,
-        'date': datetime.combine(route_date, time(0,0,0)),
-        'start_address': start_address,
-        'end_address': end_address,
-        'geocode_warnings': warnings,
-        'geocode_errors': errors
-    }
+
 
     existing_job = db['routes'].find_one({
       'agency': etapestry_id['agency'],
@@ -417,7 +407,24 @@ def submit_job(block, driver, date, start_address, end_address, etapestry_id,
       'date': datetime.combine(route_date, time(0,0,0))
     })
 
-    db['routes'].update_one(existing_job, {'$set':job_info})
+    db['routes'].update_one(
+        existing_job,
+        {'$set': {
+            'agency': etapestry_id['agency'],
+            'job_id': job_id,
+            'driver': driver,
+            'traffic': payload['options']['traffic'],
+            'status': 'processing',
+            'block': block,
+            'block_size': len(accounts),
+            'orders': len(payload['visits']),
+            'no_pickups': num_skips,
+            'date': datetime.combine(route_date, time(0,0,0)),
+            'start_address': start_address,
+            'end_address': end_address,
+            'geocode_warnings': warnings,
+            'geocode_errors': errors
+        }})
 
     return job_id
 
@@ -614,7 +621,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
 
     if len(response['results']) == 1:
         if 'partial_match' in response['results'][0]:
-            warning = 'Warning: partial match for "%s". Using "%s"' %
+            warning = 'Warning: partial match for "%s". Using "%s"' %\
                       (address, response['results'][0]['formatted_address'])
 
             response['results'][0]['warning'] = warning

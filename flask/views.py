@@ -92,7 +92,7 @@ def show_booking():
 def show_routing():
     agency = db['users'].find_one({'user': current_user.username})['agency']
     agency_conf = db['agencies'].find_one({'name':agency})
-    routes = get_upcoming_routes()
+    routes = get_upcoming_routes(agency)
 
     return render_template(
       'views/routing.html',
@@ -131,16 +131,22 @@ def get_routing_job_id():
       'name':etap_id['agency']
     })
 
-    return submit_job(
-      request.form['block'],
-      request.form['driver'],
-      request.form['date'],
-      request.form['start_address'],
-      request.form['end_address'],
-      etap_id,
-      agency_config['routing']['routific']['api_key'],
-      min_per_stop=request.form['min_per_stop'],
-      shift_start=request.form['shift_start'])
+    try:
+        job_id = submit_job(
+          request.form['block'],
+          request.form['driver'],
+          request.form['date'],
+          request.form['start_address'],
+          request.form['end_address'],
+          etap_id,
+          agency_config['routing']['routific']['api_key'],
+          min_per_stop=request.form['min_per_stop'],
+          shift_start=request.form['shift_start'])
+    except Exception as e:
+        logger.error(str(e))
+        return False
+
+    return job_id
 
 #-------------------------------------------------------------------------------
 @app.route('/routing/build/<route_id>', methods=['GET', 'POST'])
@@ -179,7 +185,7 @@ def new_job():
 #-------------------------------------------------------------------------------
 @app.route('/reminders/submit_job', methods=['POST'])
 @login_required
-def submit_job():
+def _submit_job():
     try:
         r = reminders.submit_job(request.form.to_dict(), request.files['call_list'])
         return flask.Response(response=json.dumps(r), status=200, mimetype='application/json')
@@ -732,8 +738,25 @@ def rec_signup():
     return 'OK'
 
 
+#-------------------------------------------------------------------------------
+@app.route('/render_html', methods=['POST'])
+def render_html():
+    '''2 args: 'template' html file and data
+    '''
 
-# TEST VIEWS
+    try:
+        args = request.get_json(force=True)
+
+        return render_template(
+          args['template'],
+          data=args['data']
+        )
+    except Exception as e:
+        logger.error('render_html: ' + str(e))
+        return 'Error'
+
+
+#-----------------------TEST VIEWS-----------------------------------------------
 
 @app.route('/set_rem', methods=['GET'])
 def set_reminders():

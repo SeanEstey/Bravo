@@ -5,39 +5,98 @@ import gspread
 import requests
 from datetime import datetime
 from dateutil.parser import parse
+from flask import render_template
 
 import gsheets
 import etap
-from app import db, info_handler, error_handler
+from app import app, db, info_handler, error_handler, debug_handler
 from tasks import celery_app
 from config import *
+import utils
 
 logger = logging.getLogger(__name__)
 logger.addHandler(info_handler)
 logger.addHandler(error_handler)
+logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 def send(agency, account, entry, template, subject):
+    '''Sends a receipt/no collection/dropoff followup/etc for a route entry.
+    Adds an eTapestry journal note with the content.
+    '''
+
     logger.debug('%s %s', str(account['id']), template)
 
-    try:
-        r = requests.post(LOCAL_URL + '/email/send', json={
-            "agency": agency,
-            "recipient": account['email'],
-            "template": template,
-            "subject": subject,
-            "data": {
+    if agency == 'vec':
+        conf = db['agencies'].find_one({'name':agency})
+
+        try:
+            response = requests.post(
+              app.config['LOCAL_URL'] + '/render_html', json={
+              "template": template,
+              "data": {
                 "entry": entry,
                 "from": entry['from'],
                 "account": account
-            }
-        })
-    except Exception as e:
-        logger.error('Failed to send receipt to account ID %s: %s',
-        account['id'], str(e))
+              }})
+        except Exception as e:
+            logger.error('render_template: ' + str(e))
+            return False
 
-    #logger.info(r.text)
+        html_body = response.text
+        cleaned_note = utils.clean_html(html_body)
+        cleaned_note = "Collection Receipt:     \n\r\n" + cleaned_note
+
+        try:
+            response = requests.post(
+              'http://www.bravoweb.ca/php/views.php',
+              json={
+                  'etapestry': conf['etapestry'],
+                  'func': 'add_note',
+                  'data' : {
+                      'id': account['id'],
+                      'Note': cleaned_note,
+                      'Date': etap.dt_to_ddmmyyyy(parse(entry['date']))
+                  }
+                })
+        except Exception as e:
+            logger.error('views.php: ' + str(e))
+            return False
+
+        logger.debug(response.text)
+
+        try:
+            response = requests.post(
+              'https://api.mailgun.net/v3/' + conf['mailgun']['domain'] + '/messages',
+              auth=('api', conf['mailgun']['api_key']),
+              data={
+                'from': conf['mailgun']['from'],
+                'to': account['email'],
+                'subject': subject,
+                'html': html_body
+            })
+        except Exception as e:
+            logger.error('mailgun: ' + str(e))
+            return False
+
+    # Old WSF path
+    else:
+        try:
+            r = requests.post(LOCAL_URL + '/email/send', json={
+                "agency": agency,
+                "recipient": account['email'],
+                "template": template,
+                "subject": subject,
+                "data": {
+                    "entry": entry,
+                    "from": entry['from'],
+                    "account": account
+                }
+            })
+        except Exception as e:
+            logger.error('Failed to send receipt to account ID %s: %s',
+            account['id'], str(e))
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -77,6 +136,8 @@ def process(entries, etapestry_id):
       schemas = json.load(json_file)['receipts']
 
     for i in range(0, len(accounts)):
+        logger.debug(json.dumps(entries[i]))
+
         try:
             if not accounts[i]['email']:
                 wks.update_cell(
@@ -155,7 +216,7 @@ def process(entries, etapestry_id):
                 gift_accounts.append({'entry': entries[i], 'account': accounts[i]})
 
         except Exception as e:
-            logger.error('Error processing receipt on row #%s',str(entries[i]['from']['row']))
+            logger.error('Receipt error. Row %s: %s',str(entries[i]['from']['row']), str(e))
 
         # All receipts sent except Gifts. Query Journal Histories
 

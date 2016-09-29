@@ -41,8 +41,8 @@ def build_todays_routes():
     '''Route orders for today's Blocks and build Sheets
     '''
 
-    get_upcoming_routes()
     agency = 'vec'
+    get_upcoming_routes(agency)
 
     routes = db['routes'].find({
       'agency': agency,
@@ -53,13 +53,23 @@ def build_todays_routes():
       '%s: -----Building %s routes for %s-----',
       agency, routes.count(), date.today().strftime("%A %b %d"))
 
+    successes = 0
+    fails = 0
+
     for route in routes:
         r = build_route(str(route['_id']))
 
         if r != True:
+            fails += 1
             logger.error('Error building route %s', route['block'])
+        else:
+            successes += 1
 
         sleep(2)
+
+    logger.info(
+        '%s: -----%s Routes built. %s failures.-----',
+        agency, successes, fails)
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -453,7 +463,7 @@ def is_scheduled(account, route_date):
     return True
 
 #-------------------------------------------------------------------------------
-def get_upcoming_routes():
+def get_upcoming_routes(agency):
     '''Get list of scheduled routes for next X days.
     Pullled from db['routes']. Document is inserted for a Block if
     not already in collection.
@@ -463,7 +473,7 @@ def get_upcoming_routes():
     # send today's Blocks routing status
     today_dt = datetime.combine(date.today(), time())
 
-    agency = db['users'].find_one({'user': current_user.username})['agency']
+    #agency = db['users'].find_one({'user': current_user.username})['agency']
 
     cal_ids = db['agencies'].find_one({'name':agency})['cal_ids']
     oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
@@ -516,7 +526,7 @@ def get_upcoming_routes():
                 if npu == '':
                     continue
 
-                npu_d = etap.ddmmyyyy_to_date(npu)
+                npu_d = etap.ddmmyyyy_to_list(npu)
 
                 if npu_d == event_d:
                     num_booked += 1

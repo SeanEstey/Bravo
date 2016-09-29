@@ -95,15 +95,18 @@ def get_primary_phone(account):
         return False
 
 #-------------------------------------------------------------------------------
-def ddmmyyyy_to_date(date_str):
+def ddmmyyyy_to_list(date_str):
     # Makes list [dd, mm, yyyy]
+
     parts = date_str.split('/')
 
     # Date constructor (year, month, day)
     return date(int(parts[2]), int(parts[1]), int(parts[0]))
 
 
-
+#-------------------------------------------------------------------------------
+def dt_to_ddmmyyyy(dt):
+    return dt.strftime('%d/%m/%Y')
 
 
 

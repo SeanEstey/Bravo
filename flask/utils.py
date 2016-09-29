@@ -4,44 +4,6 @@ import re
 from bson import json_util
 import json
 
-
-#-------------------------------------------------------------------------------
-def has_bounced(address):
-    send_url = 'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/bounces'
-
-    r = requests.get(send_url + '/' + address, auth=('api', MAILGUN_API_KEY))
-
-    print r
-
-    status = json.loads(r.content)
-
-    if 'bounce' in status:
-        return True
-    else:
-        return False
-
-#-------------------------------------------------------------------------------
-def get_today_fails():
-  from email.Utils import formatdate
-  import time
-  import datetime
-  #fire_dtime = db['jobs'].find({'_id':id})
-  fire_dtime = datetime.datetime.now()
-  timetuple = fire_dtime.timetuple()
-  stamp = time.mktime(timetuple) - 10000
-
-  send_url = 'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/events'
-  return requests.get(
-    send_url,
-    auth=('api', MAILGUN_API_KEY),
-    params={
-      'event' : 'rejected OR failed',
-      'begin' : formatdate(stamp),
-      'ascending' : 'yes'
-    }
-  )
-
-
 #-------------------------------------------------------------------------------
 def send_mailgun_email(recipients, subject, msg):
   send_url = 'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/messages'
@@ -109,6 +71,17 @@ def dict_to_html_table(dictObj, depth=None):
 
     return p
 
+#-------------------------------------------------------------------------------
+def clean_html(raw_html):
+    '''Strips out all HTML tags, line breaks, and extra whitespace from string'''
+
+    no_lines = re.sub(r'\r|\n', '', raw_html)
+    no_tags = re.sub(r'<.*?>', '', no_lines)
+
+    # Remove extra spaces between any charater boundaries
+    no_ws = re.sub(r'(\b|\B)\s{2,}(\b|\B)', ' ', no_tags)
+
+    return no_ws.rstrip().lstrip()
 
 #-------------------------------------------------------------------------------
 def remove_quotes(s):

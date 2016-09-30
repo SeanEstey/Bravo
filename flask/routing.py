@@ -35,6 +35,14 @@ class GeocodeError(Exception):
 class EtapBadDataError(Exception):
     pass
 
+
+#-------------------------------Stuff Todo---------------------------------------
+# TODO: Fix 'office' name on WSF Sheet
+# TODO: Add find_depot() code for WSF so routing can move away from Apps Script
+# TODO: Test permissions for WSF Sheets. Still errors?
+# TODO: Test GeocodeError and EtapBadDataError code paths
+
+
 #-------------------------------------------------------------------------------
 @celery_app.task
 def build_todays_routes():

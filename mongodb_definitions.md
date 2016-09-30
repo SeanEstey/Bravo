@@ -3,7 +3,8 @@
 {
   "user": "USERNAME",
   "password": "PASSWORD",
-  "agency": "AGENCY_NAME"
+  "agency": "AGENCY_NAME",
+  "admin": "True/False"
 }
 ```
 
@@ -11,42 +12,59 @@
 
 ```json
 {
-  "job_id": "<BSON.ObjectId>",
-  "agency": "agency name <string>",
-  "name": "",
-  "account_id": "etapestry_account_id",
-  "event_dt": "<BSON.Date>",
-  "voice": {
-    "sid": "CA7d1d19877dc768fd0c701cfcdc706fdd [32 char Twilio ID]",
-    "status": ["pending","active","cancelled", "failed","queued",
-               "ringing","in-progress","busy","no-answer","completed"], 
-    "answered_by": ["human", "machine"],
-    "source": ["template", "audio_url"],
-    "template": "optional_source_html_file_path",
-    "audio_url": "optional_audio_url",
-    "ended_at": "<BSON.Date>",
-    "to": "PHONE_NUMBER",
-    "speak": "[Text string spoken to user]",
-    "attempts": "NUM_CALL_ATTEMPTS",
-    "duration": "CALL_DURATION_IN_SECONDS",
-    "error": "",
-    "code": "",
-  },
-  "email": {
-    "mid":  "mailgun_msg_id", 
-    "status": ["pending", "bounced", "dropped", "delivered"],
-    "recipient": "EMAIL_ADDRESS",
-    "error": "",
-    "code": ""
-  },
-  "custom": {
-    "no_pickup": "[True,False]",
-    "next_pickup": "<BSON.Date>",
-    "status": "",
-    "block": "",
-    "type": ["pickup", "delivery", "dropoff"],
-    "other imported fields": ""
-  }
+    "job_id": "<BSON.ObjectId>",
+    "agency": "agency name",
+    "name": "customer name",
+    "account_id": "etapestry account number",
+    "event_dt": "<BSON.Date>",
+    "voice": {
+        "conf": {
+            "_comment": "call settings",
+            "to": "phone number string",
+            "fire_dt": "datetime to send",
+            "source": ["template", "audio_url"],
+            "template": ".html path if source=='template'",
+            "audio_url": "url of recorded audio if source=='audio_url'"
+        },
+        "call": {
+            "_comment": "data/status from the outbound call",
+            "sid": "32 char twilio call id",
+            "status": [
+                "pending","active","cancelled", "failed","queued",
+                "ringing","in-progress","busy","no-answer","completed"
+            ], 
+            "answered_by": ["human", "machine"],
+            "ended_dt": "bson.date in UTC",
+            "speak": "text string spoken to user",
+            "attempts": "number call attempts",
+            "duration": "call duration in seconds",
+            "error": "twiilo call error",
+            "code": "twilio call status code"
+        }
+    },
+    "email": {
+        "conf": {
+            "recipient": "email address",
+            "fire_dt": "bson.date in UTC",
+            "template": ".html path of content",
+            "subject": "subject line"
+        },
+        "mailgun": {
+            "mid":  "mailgun email id",
+            "fire_dt": "bson.date in UTC",
+            "status": ["pending", "bounced", "dropped", "delivered"],
+            "error": "mailgun error (if any)",
+            "code": "mailgun status code"
+        }
+    },
+    "custom": {
+        "_comment": "any fields that are specific to the reminder type",
+        "no_pickup": "[True,False]",
+        "future_pickup_dt": "<BSON.Date>",
+        "status": "",
+        "block": "",
+        "type": ["pickup", "delivery", "dropoff"],
+    }
 }
 ```
 
@@ -54,38 +72,34 @@
 
 ```json
 {
-  "agency": "AGENCY_NAME",
-  "status": ["pending", "in-progress", "completed", "failed"], 
-  "voice": {
-    "fire_at": "<BSON.Date>",
-    "started_at": "<BSON.Date>",
-    "count": "[Number of calls]"
-  },
-  "email": {
-    "fire_at": "<bson.date>",
-    "started_at": "<bson.date>",
-    "count": "[Number of emails]"
-  },
-  "audio_url": "AUDIO_MSG_URL",
-  "schema": {
-    "name": "pickup_reminder",
-    "type": "reminder",
-    "description": "Vecova Bottle Service Reminder (Email/Voice)",
-    "import_fields": [
-      {"file_header": "Account", "db_field": "account_id", "type":"string", "hide": true}
-    ],
-    "email": {
-      "reminder": {
-        "file": "email/vec/reminder.html",
-        "subject": "Your upcoming Vecova Bottle Service pickup"
-      }
-    },
+    "agency": "agency name",
+    "status": ["pending", "in-progress", "completed", "failed"], 
+    "name": "name of job",
+    "event_dt": "datetime of event",
+    "no_pickups": "num opt-outs",
     "voice": {
-      "reminder": {
-        "file": "voice/vec/reminder.html"
-      }
+        "fire_dt": "bson.date in UTC",
+        "started_dt": "bson.date in UTC",
+        "count": "num calls to make"
+    },
+    "email": {
+        "fire_dt": "<bson.date>",
+        "started_dt": "<bson.date>",
+        "count": "num emails to send"
+    },
+    "schema": {
+        "_comment": "fields imported from templates/schemas/[name].json",
+        "name": "pickup_reminder",
+        "type": "reminder",
+        "description": "Vecova Bottle Service Reminder (Email/Voice)",
+        "email": {
+            "_comments": "any emails sent as followups to scheduled reminder", 
+            "no_pickup": {
+                "file": "email/vec/no_pickup.html",
+                "subject": "Thank you. You have been removed from this pickup schedule"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -112,49 +126,109 @@
 
 ```json
 {
-  "name": "AGENCY_NAME",
-  "etapestry": {
-    "agency": "AGENCY_NAME",
-    "user": "USERNAME",
-    "pw": "PASSWORD",
-    "endpoint": "https://sna.etapestry.com/v3messaging/service?WSDL",
-    "query_category": "ETW: Routes",
-    "gifts": {
-      "fund": "WSF",
-      "campaign": "Empties to WINN",
-      "approach": "Bottle Donation"
+    "name": "3 char abbrev",
+    "etapestry": {
+        "agency": "3 char abbrev",
+        "user": "login",
+        "pw": "password",
+        "endpoint": "https://sna.etapestry.com/v3messaging/service?WSDL",
+        "query_category": "ETW: Routes",
+        "gifts": {
+            "fund": "WSF",
+            "campaign": "Empties to WINN",
+            "approach": "Bottle Donation"
+        }
+    },
+    "google: {
+        "cal": {
+            "res": "7d4fdfke5mllck8pclcerbqk50@group.calendar.google.com",
+            "bus": "bsmoacn3nsn8lio6vk892tioes@group.calendar.google.com"
+        },
+        "oauth": {
+            "type": "service_account",
+            "project_id": "project-id-uicnlcvxxveqfuokxwj",
+            "private_key_id": "8a11b7ea91f73f3490b347848e69e6c5d1174804",
+            "private_key": "-----BEGIN PRIVATE KEY-----KEY_DATA-----END PRIVATE KEY-----",
+            "client_email": "bravo-738@project-id-uicnlcvxxveqfuokxwj.iam.gserviceaccount.com",
+            "client_id": "100311906177554855345",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://accounts.google.com/o/oauth2/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": "long url"
+        },
+        "geocode": {
+            "api_key": "40 char key from service account"
+        }
+    },
+    "reminders": {
+        "days_in_advance_to_schedule": 2,
+        "email": {
+          "fire_days_delta": -2,
+          "fire_hour": 8,
+          "fire_min": 0
+        },
+        "phone": {
+          "redial_delay": 300,
+          "max_call_attempts": 2,
+          "fire_days_delta": -1,
+          "fire_hour": 19,
+          "fire_min": 0
+        }
+    },
+    "routing": {
+        "office": {
+          "name": "Vecova",
+          "formatted_address": "3304 33 St NW, Calgary, AB",
+          "url": "google maps url"
+        },
+        "depots": [
+          {
+            "name": "Vecova",
+            "formatted_address": "3304 33 St NW, Calgary, AB"
+          }
+        ],
+        "drivers": [
+          {
+            "name": "Steve",
+            "shift_start": "09:00"
+          }
+        ],
+        "gdrive": {
+          "template_sheet_id": "1Sr3aPhB277lESuOKgr2EJ_XHGPUhuhEEJOXfAoMnK5c",
+          "routed_folder_id": "0B2PiOyJMXwxZU0VlNjVDTmlXYUE",
+          "permissions": [
+            {
+              "email": "sean.vecova@gmail.com",
+              "role": "owner"
+            }
+          ]
+        },
+        "routific": {
+            "_comments": "auth/settings for routing engine",
+            "api_key": "long str key"
+            "traffic": "normal",
+            "min_per_stop": 4,
+            "office_address": "3304 33 St NW, Calgary, AB",
+            "shift_end": "18:00"
+        },
+        "view_days_in_advance": 4
+    },
+    "twilio": {
+        "caller_id": "Vecova",
+        "ph": "outgoing number, international format (+14031234567)",
+        "sms": "outgoing text number, international format (+14031234567)",
+        "keys": {
+            "main": {
+                "app_sid": "id of app for calls to/from twilio client",
+                "sid": "34 char account id",
+                "auth_id": "32 auth id"
+            },
+            "test": {
+                "sid": "34 char account id",
+                "auth_id": "32 char auth id"
+            }
+        }
     }
-  },
-  "twilio_auth_key": "PRIVATE_KEY",
-  "gdrive": {
-    "ss_ids": {
-      "bravo": "1P51j2vTcaw0cNXGvvu_48J7yIztvS2-Yg4d1PwfWl3k",
-      "stats": "1iBRJOkSH2LEJID0FEGcE3MHOoC5OKQsz0aH4AAPpTR4",
-      "stats_archive": "1BTS-r3PZS3QVR4j5rfsm6Z4kBXoGQY8ur60uH-DKF3o",
-      "inventory": "1Mb6qOvYVUF9mxyn3rRSoOik427VOrltGAy7LSIR9mnU",
-      "route_template": "1Sr3aPhB277lESuOKgr2EJ_XHGPUhuhEEJOXfAoMnK5c",
-    },
-    "folder_ids": {
-      "routed": "0BxWL2eIF0hwCRnV6YmtRLVBDc0E",
-      "entered": "0BxWL2eIF0hwCOTNSSy1HcWRKUFk"
-    },
-  },
-  "cal_ids": {
-    "res": "7d4fdfke5mllck8pclcerbqk50@group.calendar.google.com",
-    "bus": "bsmoacn3nsn8lio6vk892tioes@group.calendar.google.com"
-  },
-  "oauth": {
-    "type": "service_account",
-    "project_id": "project-id-uicnlcvxxveqfuokxwj",
-    "private_key_id": "8a11b7ea91f73f3490b347848e69e6c5d1174804",
-    "private_key": "-----BEGIN PRIVATE KEY-----KEY_DATA-----END PRIVATE KEY-----",
-    "client_email": "bravo-738@project-id-uicnlcvxxveqfuokxwj.iam.gserviceaccount.com",
-    "client_id": "100311906177554855345",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://accounts.google.com/o/oauth2/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bravo-738%40project-id-uicnlcvxxveqfuokxwj.iam.gserviceaccount.com"
-  }
 }
 ```
 

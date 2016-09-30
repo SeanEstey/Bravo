@@ -21,10 +21,15 @@ logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
-def send(agency, account, entry, template, subject):
+def send_receipt(agency, account, entry, template, subject):
     '''Sends a receipt/no collection/dropoff followup/etc for a route entry.
     Adds an eTapestry journal note with the content.
     '''
+
+    # TODO Only add journal note once Mailgun webhook confirms it's delivered
+
+    # TODO: Insert db['emails'] document so that email status on Sheet
+    # can be updated once delivered/bounced
 
     logger.debug('%s %s', str(account['id']), template)
 
@@ -79,6 +84,14 @@ def send(agency, account, entry, template, subject):
         except Exception as e:
             logger.error('mailgun: ' + str(e))
             return False
+
+        db['emails'].insert({
+            'agency': args['agency'],
+            'mid': json.loads(response.text)['id'],
+            'type': 'receipt',
+            'status': 'queued',
+            'on_status_update': args['data']['from']
+        })
 
     # Old WSF path
     else:
@@ -163,7 +176,7 @@ def process(entries, etapestry_id):
 
             # Send Cancelled Receipt
             if etap.get_udf('Status', accounts[i]) == 'Cancelled':
-                send(etapestry_id['agency'], accounts[i], entries[i],
+                send_receipt(etapestry_id['agency'], accounts[i], entries[i],
                 schemas['cancelled']['file'],
                 schemas['cancelled']['subject'])
 
@@ -181,7 +194,7 @@ def process(entries, etapestry_id):
                 collection_date = parse(entries[i]['date']).date()
 
                 if drop_date == collection_date:
-                    send(etapestry_id['agency'],
+                    send_receipt(etapestry_id['agency'],
                         accounts[i],
                         entries[i],
                         schemas['dropoff_followup']['file'],
@@ -197,13 +210,13 @@ def process(entries, etapestry_id):
                     entries[i]['next_pickup'] = npu.strftime('%B %-d, %Y')
 
                 if accounts[i]['nameFormat'] == 3: # Business
-                    send(etapestry_id['agency'],
+                    send_receipt(etapestry_id['agency'],
                          accounts[i],
                          entries[i],
                          schemas['zero_collection']['file'],
                          schemas['zero_collection']['subject'])
                 else: # Residential
-                    send(etapestry_id['agency'],
+                    send_receipt(etapestry_id['agency'],
                          accounts[i],
                          entries[i],
                          schemas['no_collection']['file'],
@@ -251,7 +264,7 @@ def process(entries, etapestry_id):
                     npu = parse(entry['next_pickup']).date()
                     entry['next_pickup'] = npu.strftime('%B %-d, %Y')
 
-                send(
+                send_receipt(
                   etapestry_id['agency'],
                   gift_accounts[i]['account'],
                   gift_accounts[i]['entry'],

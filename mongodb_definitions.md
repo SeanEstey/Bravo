@@ -30,7 +30,7 @@
             "_comment": "data/status from the outbound call",
             "sid": "32 char twilio call id",
             "status": [
-                "no-number", pending","active","cancelled", "failed","queued",
+                "no-number", "pending","active","cancelled", "failed","queued",
                 "ringing","in-progress","busy","no-answer","completed"
             ], 
             "answered_by": ["human", "machine"],

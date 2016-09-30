@@ -638,8 +638,21 @@ def email_status():
       {'$set': { 'status': request.form['event']}}
     )
 
-    if email is None or 'on_status_update' not in email:
-        return 'No record to update'
+    if email is None:
+        return 'Mid not found'
+
+    #------------- NEW CODE----------------
+
+    # Do any special updates
+
+    if email['type'] == 'reminder':
+        reminders.on_email_status(request.form.to_dict())
+    elif email['type'] == 'receipt':
+        receipts.on_email_status(request.form.to_dict())
+
+    #-----------------------------
+
+    # Every email type gets an RFU created
 
     if event == 'dropped':
         msg = request.form['recipient'] + ' ' + event + ': '
@@ -656,30 +669,6 @@ def email_status():
         gsheets.create_rfu.apply_async(
             args=(email['agency'], msg, ),
             queue=app.config['DB'])
-
-    if 'worksheet' in email['on_status_update']:
-        # Update Google Sheets
-        try:
-            gsheets.update_entry(
-              email['agency'],
-              request.form['event'],
-              email['on_status_update']
-            )
-        except Exception as e:
-            app.logger.error("Error writing to Google Sheets: " + str(e))
-            return 'Failed'
-
-    elif 'reminder_id' in email['on_status_update']:
-        # Update Reminder record
-        db['reminders'].update_one(
-          {'_id': ObjectId(email['on_status_update']['reminder_id'])},
-          {'$set':{
-            "email.status": request.form['event'],
-            "email.code": request.form.get('code'),
-            "email.reason": request.form.get('reason'),
-            "email.error": request.form.get('error')
-          }}
-        )
 
     #socketio.emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
 
@@ -740,7 +729,7 @@ def rec_signup():
 
 #-------------------------------------------------------------------------------
 @app.route('/render_html', methods=['POST'])
-def render_html():
+def _render_html():
     '''2 args: 'template' html file and data
     '''
 

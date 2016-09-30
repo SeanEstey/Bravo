@@ -20,79 +20,80 @@ logger.addHandler(error_handler)
 logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
+
+#-------------------------------Stuff Todo---------------------------------------
+# TODO: Insert db['emails'] document so that email status on Sheet
+# can be updated once delivered/bounced
+
+
+#-------------------------------------------------------------------------------
+def on_email_status(webhook):
+    '''Forwarded Mailgun webhook on receipt email event.
+    Update Sheets accordingly'''
+
+    email = db['emails'].find_one_and_update(
+      {'mid': webhook['Message-Id']},
+      {'$set': {'status':webhook['event']}})
+
+
+    if email['on_status']['command'] == 'update_sheet':
+        # Update Google Sheets
+        try:
+            gsheets.update_entry(
+              email['agency'],
+              webhook['event'],
+              email['on_status']['target']
+            )
+        except Exception as e:
+            app.logger.error("Error writing to Google Sheets: " + str(e))
+            return 'Failed'
+
 #-------------------------------------------------------------------------------
 def send_receipt(agency, account, entry, template, subject):
     '''Sends a receipt/no collection/dropoff followup/etc for a route entry.
+    Should be running in process() celery task
     Adds an eTapestry journal note with the content.
     '''
-
-    # TODO Only add journal note once Mailgun webhook confirms it's delivered
-
-    # TODO: Insert db['emails'] document so that email status on Sheet
-    # can be updated once delivered/bounced
 
     logger.debug('%s %s', str(account['id']), template)
 
     if agency == 'vec':
         conf = db['agencies'].find_one({'name':agency})
 
-        try:
-            response = requests.post(
-              app.config['LOCAL_URL'] + '/render_html', json={
-              "template": template,
-              "data": {
-                "entry": entry,
-                "from": entry['from'],
-                "account": account
-              }})
-        except Exception as e:
-            logger.error('render_template: ' + str(e))
+        body = utils.render_html(template, {
+            "entry": entry,
+            "from": entry['from'],
+            "account": account
+        })
+
+        if body == False:
             return False
 
-        html_body = response.text
-        cleaned_note = utils.clean_html(html_body)
-        cleaned_note = "Collection Receipt:     \n\r\n" + cleaned_note
-
-        try:
-            response = requests.post(
-              'http://www.bravoweb.ca/php/views.php',
-              json={
-                  'etapestry': conf['etapestry'],
-                  'func': 'add_note',
-                  'data' : {
-                      'id': account['id'],
-                      'Note': cleaned_note,
-                      'Date': etap.dt_to_ddmmyyyy(parse(entry['date']))
-                  }
-                })
-        except Exception as e:
-            logger.error('views.php: ' + str(e))
-            return False
+        # Add Journal note
+        etap.call(
+            'add_note',
+            conf['etapestry'], {
+                'id': account['id'],
+                'Note': 'Collection Receipt:]\n' + utils.clean_html(body),
+                'Date': etap.dt_to_ddmmyyyy(parse(entry['date']))},
+            silence_exceptions=True
+        )
 
         logger.debug(response.text)
 
-        try:
-            response = requests.post(
-              'https://api.mailgun.net/v3/' + conf['mailgun']['domain'] + '/messages',
-              auth=('api', conf['mailgun']['api_key']),
-              data={
-                'from': conf['mailgun']['from'],
-                'to': account['email'],
-                'subject': subject,
-                'html': html_body
-            })
-        except Exception as e:
-            logger.error('mailgun: ' + str(e))
-            return False
+        mid = utils.send_email(account['email'], subject, body, conf['mailgun'])
 
         db['emails'].insert({
             'agency': args['agency'],
-            'mid': json.loads(response.text)['id'],
+            'mid': mid,
             'type': 'receipt',
             'status': 'queued',
-            'on_status_update': args['data']['from']
+            'on_status': {
+                'command': 'update_sheet',
+                # contains worksheet, row, upload_status
+                'target': entry['from']
+            }
         })
-
     # Old WSF path
     else:
         try:

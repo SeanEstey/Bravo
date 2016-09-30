@@ -33,8 +33,9 @@ logger.setLevel(logging.DEBUG)
 
 
 #-------------------------------Stuff Todo---------------------------------------
-# TODO: update all reminder['voice'] with either reminder['voice']['call']
-# or reminder['voice']['conf']
+# TODO: update all needed reminder['voice'] with reminder['voice']['conf']
+# TODO: add sms template files
+# TODO: include date in email subject
 
 
 #-------------------------------------------------------------------------------
@@ -54,7 +55,6 @@ def add_job(name, event_dt, call_dt, email_dt, schema, conf):
     email_t = time(conf['email']['fire_hour'], conf['email']['fire_min'])
     email_dt = local.localize(datetime.combine(email_d, email_t), is_dst=True)
 
-    # TODO: update all fire_at->fire_dt
     # TODO: update reminder.send_emails with template in reminder record
     job = {
         'name': name,
@@ -85,43 +85,48 @@ def add_job(name, event_dt, call_dt, email_dt, schema, conf):
 
 
 #-------------------------------------------------------------------------------
-def add_reminder(job, account, reminder_schema, event_dt):
+def add_reminder(job, account, schema, event_dt):
     '''Adds a reminder for given job
     Returns:
       -True on success, False otherwise'''
 
-    # TODO: update all voice references to ['voice']['call'],
-    # ['voice']['conf']
+    sms_enabled = False
 
-    npu = etap.get_udf('Next Pickup Date', account).split('/')
+    # TODO: fix custom so that this method can setup any type of reminder
 
-    if len(npu) < 3:
-        logger.error('Account %s missing npu. Skipping.', account['id'])
-
-        # Use the event_date as next pickup
-        pickup_dt = event_dt
-    else:
-        npu = npu[1] + '/' + npu[0] + '/' + npu[2]
-        pickup_dt = local.localize(parse(npu + " T08:00:00"), is_dst=True)
-
-    phone = account['phones'][0]['number'] if account.get('phones') else None
-    email = account['email'] if account.get('email') else None
-
-    db['reminders'].insert({
+    reminder = {
         "job_id": job['_id'],
         "agency": job['agency'],
         "name": account['name'],
         "account_id": account['id'],
         "event_dt": pickup_dt, # the current pickup date
-        "voice": {
-            "conf": {
-                "to": phone,
-                #"fire_dt": call_dt if phone else None,
-                "source": "template",
-                "template": reminder_schema['voice']['reminder']['file']
-            },
-            "call": {
-                "status": "pending" if phone else "no-number",
+        "custom": {
+            "status": etap.get_udf('Status', account),
+            "office_notes": etap.get_udf('Office Notes', account),
+            "block": etap.get_udf('Block', account),
+            "future_pickup_dt": None
+        }
+    }
+
+    if sms_enabled:
+        if etap.has_mobile(account):
+            reminder['sms'] = {
+                'conf': {
+                    'to': etap.get_primary_phone(account),
+                    "template": schema['sms']['reminder']['file']
+                },
+                "status": "pending",
+                "sid": None
+            }
+    else:
+        if etap.has_mobile(account):
+            reminder['voice'] = {
+                "conf": {
+                    "to": etap.get_primary_phone(account),
+                    "source": "template",
+                    "template": schema['voice']['reminder']['file']
+                },
+                "status": "pending",
                 "sid": None,
                 "answered_by": None,
                 "ended_dt": None,
@@ -129,28 +134,21 @@ def add_reminder(job, account, reminder_schema, event_dt):
                 "attempts": 0,
                 "duration" None
             }
-        },
-        "email": {
+
+    if account.get('email'):
+        reminder['email'] = {
             "conf": {
                 "recipient": account['email'],
-                #"fire_dt": email_dt,
-                "template": reminder_schema['email']['reminder']['file'],
-                "subject": reminder_schema['email']['reminder']['subject']
+                "template": schema['email']['reminder']['file'],
+                "subject": schema['email']['reminder']['subject']
             },
-            "mailgun": {
-                "status": "pending" if email else "no-email",
-                "mid": None,
-                "error": None,
-                "code": None
-            }
-        },
-        "custom": {
-            "status": etap.get_udf('Status', account),
-            "office_notes": etap.get_udf('Office Notes', account),
-            "block": etap.get_udf('Block', account),
-            "future_pickup_dt": None
+            "status": "pending",
+            "mid": None,
+            "error": None,
+            "code": None
         }
-    })
+
+    db['reminders'].insert(reminder)
 
     db['jobs'].update_one(job, {'$inc':{'voice.count':1}})
 
@@ -369,6 +367,22 @@ def send_calls(job_id):
 
     return calls_fired
 
+
+#-------------------------------------------------------------------------------
+def on_email_status(webhook):
+    '''
+    @webhook: webhook args POST'd by mailgun'''
+
+    db['reminders'].update_one(
+      {'mid': webhook['Message-Id']},
+      {'$set':{
+        "email.status": webhook['event'],
+        "email.code": webhook.get('code'),
+        "email.reason": webhook.get('reason'),
+        "email.error": webhook.get('error')
+      }}
+    )
+
 #-------------------------------------------------------------------------------
 @celery_app.task
 def send_emails(job_id):
@@ -379,50 +393,96 @@ def send_emails(job_id):
 
     emails_sent = 0
 
+    mailgun_conf = db['agencies'].find_one({'name':job['agency']})['mailgun']
+
     for reminder in reminders:
-        if 'email' not in reminder:
+        if not reminder.get('email'):
             continue
 
         if reminder['email']['status'] != 'pending':
             continue
 
-        if not reminder['email']['recipient']:
-            db['reminders'].update_one(
-                {'_id':reminder['_id']},
-                {'$set': {'email.status': 'no_email'}}
-            )
-            continue
+        #if not reminder['email']['conf']['recipient']:
+        #    db['reminders'].update_one(
+        #         {'_id':reminder['_id']},
+        #        {'$set': {'email.status': 'no_email'}}
+        #    )
+        #    continue
 
         #send_socket('update_msg', {'id':str(msg['_id']), 'email_status': 'no_email'})
 
         try:
-            data = reminder['custom']
+            _data = reminder['custom']
             local = pytz.timezone("Canada/Mountain")
-            data['event_dt'] = reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
-            data['account'] = {
+            _data['event_dt'] = reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
+            _data['account'] = {
               "name": reminder['name'],
-              "email": reminder['email']['recipient']
+              "email": reminder['email']['conf']['recipient']
             }
             # Need this for email/send view
-            data['from'] = {'reminder_id': str(reminder['_id'])}
+            _data['from'] = {'reminder_id': str(reminder['_id'])}
 
-            data['cancel_pickup_url'] = app.config['PUB_URL'] + '/reminders/' + str(job['_id']) + '/' + str(reminder['_id']) + '/cancel_pickup'
+            _data['cancel_pickup_url'] = app.config['PUB_URL'] + '/reminders/' + str(job['_id']) + '/' + str(reminder['_id']) + '/cancel_pickup'
 
             json_args = bson_to_json({
               "agency": job['agency'],
-              "recipient": reminder['email']['recipient'],
-              "template": job['schema']['email']['reminder']['file'],
-              "subject": job['schema']['email']['reminder']['subject'],
-              "data": data
+              "recipient": reminder['email']['conf']['recipient'],
+              "template": reminder['email']['conf']['template'],
+              "subject": reminder['email']['conf']['subject'],
+              "data": _data
             })
 
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-
             r = requests.post(app.config['LOCAL_URL'] + '/email/send', headers=headers, data=json_args)
+
+
+            #-------- NEW CODE --------
+
+            data = {
+                "from": {'reminder_id': str(reminder['_id'])},
+                "event_dt": reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local),
+                "account": {
+                    "name": reminder['name'],
+                    "email": reminder['email']['conf']['recipient']
+                },
+                'cancel_pickup_url': \
+                    "%s/reminders/%s/%s/cancel_pickup" %
+                    (app.config['PUB_URL'], str(job['_id']), str(reminder['_id']))
+            }
+
+            # Merge dicts
+            data.update(reminder['custom'])
+
+            body = utils.render_html(
+                reminder['email']['conf']['template'],
+                data
+            )
+
+            mid = utils.send_email(
+                reminder['email']['conf']['recipient'],
+                reminder['email']['conf']['subject'],
+                body,
+                mailgun_conf)
+
+            db['emails'].insert({
+                'agency': job['agency'],
+                'mid': json.loads(r.text)['id'],
+                'status': 'queued',
+                'type': 'reminder',
+                'on_status': {
+                    'command': 'update',
+                    'target': 'db',
+                    '_id': reminder['_id']
+                }})
 
             db['reminders'].update_one(
                 {'_id':reminder['_id']},
-                {'$set': {'email.mid': r.text}})
+                {'$set': {'email.mid': mid}})
+
+            #--------------------------
+
+
+
 
         except requests.exceptions.RequestException as e:
             logger.error('Error sending email: %s', str(e))
@@ -430,10 +490,7 @@ def send_emails(job_id):
             emails_sent += 1
             logger.debug(r.text)
 
-    '''TODO: Add date into subject
-    #subject = 'Reminder: Upcoming event on  ' +
-    # reminder['imported']['event_dt'].strftime('%A, %B %d')
-    '''
+
 
     logger.info('Job_ID %s: %d emails sent', str(job_id), emails_sent)
 

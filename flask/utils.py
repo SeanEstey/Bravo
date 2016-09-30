@@ -4,18 +4,56 @@ import re
 from bson import json_util
 import json
 
+from app import app, db, info_handler, error_handler, debug_handler
+
+logger = logging.getLogger(__name__)
+logger.addHandler(info_handler)
+logger.addHandler(error_handler)
+logger.addHandler(debug_handler)
+logger.setLevel(logging.DEBUG)
+
+
 #-------------------------------------------------------------------------------
-def send_mailgun_email(recipients, subject, msg):
-  send_url = 'https://api.mailgun.net/v3/' + MAILGUN_DOMAIN + '/messages'
-  return requests.post(
-    send_url,
-    auth=('api', MAILGUN_API_KEY),
-    data={
-      'from': FROM_EMAIL,
-      'to': recipients,
-      'subject': subject,
-      'html': msg
-  })
+def render_html(template, data):
+    '''Passes JSON data to views._render_html() context. Returns
+    html text'''
+
+    try:
+        response = requests.post(
+          app.config['LOCAL_URL'] + '/render_html',
+          json={
+              "template": template,
+              "data": data
+          })
+    except requests.RequestException as e:
+        logger.error('render_template: ' + str(e))
+        return False
+
+    return json.loads(response.text)
+
+#-------------------------------------------------------------------------------
+def send_email(to, subject, body, conf):
+    '''Send email via mailgun.
+    @conf: 'mailgun' dict from 'agencies' DB
+    Returns:
+      -mid string on success
+      -False on failure'''
+
+    try:
+        response = requests.post(
+          'https://api.mailgun.net/v3/' + conf['domain'] + '/messages',
+          auth=('api', conf['api_key']),
+          data={
+            'from': conf['from'],
+            'to':  to,
+            'subject': subject,
+            'html': body
+        })
+    except requests.RequestException as e:
+        logger.error('mailgun: ' + str(e))
+        return False
+
+    return json.loads(response.text)['id']
 
 #-------------------------------------------------------------------------------
 def print_html(dictObj):

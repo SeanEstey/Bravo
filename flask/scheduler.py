@@ -79,8 +79,20 @@ def setup_reminder_jobs():
 
     job = reminders.add_job(name, event_dt, call_dt, email_dt, reminder_schema, conf)
 
+    # Create reminders
     for account in accounts:
-        reminders.add_reminder(job, account, reminder_schema, event_dt)
+        npu = etap.get_udf('Next Pickup Date', account).split('/')
+
+        if len(npu) < 3:
+            logger.error('Account %s missing npu. Skipping.', account['id'])
+
+            # Use the event_date as next pickup
+            pickup_dt = event_dt
+        else:
+            npu = npu[1] + '/' + npu[0] + '/' + npu[2]
+            pickup_dt = local.localize(parse(npu + " T08:00:00"), is_dst=True)
+
+        reminders.add_reminder(job, account, reminder_schema, pickup_dt)
 
     add_future_pickups(str(job['_id']))
 

@@ -4,20 +4,8 @@ from datetime import date
 
 from config import *
 
-def call_(func_name, keys, data):
-    '''Same as call() wrapper but handles exceptions
-    '''
-
-    try:
-        r = call(func_name, keys, data)
-    except Exception as e:
-        logger.error('eTapestry eror calling "%s": %s', func_name, str(e))
-        return e
-
-    return r
-
 #-------------------------------------------------------------------------------
-def call(func_name, keys, data):
+def call(func_name, keys, data, silence_exceptions=False):
     '''Call PHP eTapestry script
     @func_name:
         'get_num_active_processes'
@@ -39,16 +27,29 @@ def call(func_name, keys, data):
         'make_booking'
         'get_query_accounts'
     @keys: dict with etap keys {'agency','endpoint','user','pw'}
-    Returns: any data or messages
+    @silence_exceptions: if True, returns False on exception, otherwise
+    re-raises to caller method
+    Returns:
+      -Data in native python structures on success
+    Exceptions:
+      -Raises requests.RequestException on POST error (if not silenced)
     '''
 
-    return json.loads(
-        requests.post(ETAP_WRAPPER_URL, data=json.dumps({
-          "func": func_name,
-          "etapestry": keys,
-          "data": data
-        })).text
-    )
+    try:
+        return json.loads(
+            requests.post(ETAP_WRAPPER_URL, data=json.dumps({
+              "func": func_name,
+              "etapestry": keys,
+              "data": data
+            })).text
+        )
+    except requests.RequestException as e:
+        logger.error('etap exception calling %s: %s', func_name, str(e))
+
+        if silence_exceptions == True:
+            return False
+        else:
+            raise
 
 #-------------------------------------------------------------------------------
 def get_udf(field_name, etap_account):
@@ -73,6 +74,17 @@ def get_phone(phone_type, account):
     for phone in account['phones']:
         if phone['type'] == phone_type:
             return phone
+
+    return False
+
+#-------------------------------------------------------------------------------
+def has_mobile(account):
+    if not account.get('phones'):
+        return False
+
+    for phone in account['phones']:
+        if phone['type'] == 'Mobile':
+            return True
 
     return False
 

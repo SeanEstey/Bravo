@@ -34,7 +34,7 @@ def setup_reminder_jobs():
 
     agency = 'vec'
     vec = db['agencies'].find_one({'name':agency})
-    settings = vec['reminders']
+    conf = vec['reminders']
 
     accounts = []
 
@@ -44,13 +44,13 @@ def setup_reminder_jobs():
           vec['etapestry'],
           vec['cal_ids'][cal_id],
           vec['google']['oauth'],
-          days_from_now=settings['days_in_advance_to_schedule'])
+          days_from_now=conf['days_in_advance_to_schedule'])
 
     if len(accounts) < 1:
         return False
 
     today = date.today()
-    block_date = today + timedelta(days=settings['days_in_advance_to_schedule'])
+    block_date = today + timedelta(days=conf['days_in_advance_to_schedule'])
     blocks = []
 
     for cal_id in vec['cal_ids']:
@@ -62,107 +62,34 @@ def setup_reminder_jobs():
 
     logger.info('Scheduling reminders for blocks %s', ', '.join(blocks))
 
-    # Load reminder schema
     try:
+        # Load reminder schema
         with open('templates/schemas/'+agency+'.json') as json_file:
           schemas = json.load(json_file)['reminders']
     except Exception as e:
         logger.error(str(e))
 
-    # Create mongo 'job' and 'reminder' records
+    reminder_schema = schemas[0] # TODO: Fixme
 
-    # TODO: Fixme
-    reminder_schema = schemas[0]
-
+    # Convert naive datetimes to local tz. Will convert to UTC in Mongo
     local = pytz.timezone("Canada/Mountain")
-
-    # Convert naive datetimes to local tz. Pymongo will convert to UTC when
-    # inserted
-    call_d = block_date + timedelta(days=settings['phone']['fire_days_delta'])
-    call_t = time(settings['phone']['fire_hour'], settings['phone']['fire_min'])
-    call_dt = local.localize(datetime.combine(call_d, call_t), is_dst=True)
-
-    email_d = block_date + timedelta(days=settings['email']['fire_days_delta'])
-    email_t = time(settings['email']['fire_hour'], settings['email']['fire_min'])
-    email_dt = local.localize(datetime.combine(email_d, email_t), is_dst=True)
-
     event_dt = local.localize(datetime.combine(block_date, time(8,0)), is_dst=True)
 
-    job = {
-        'name': ', '.join(blocks),
-        'agency': 'vec',
-        'schema': reminder_schema,
-        'event_dt': event_dt,
-        'voice': {
-            'fire_at': call_dt
-        },
-        'email': {
-            'fire_at': email_dt
-        },
-        'status': 'pending',
-        'no_pickups': 0
-    }
+    name = ', '.join(blocks)
 
-    job_id = db['jobs'].insert(job)
-    count = 0
+    job = reminders.add_job(name, event_dt, call_dt, email_dt, reminder_schema, conf)
 
     for account in accounts:
-        if account['phones'] != None:
-            to = account['phones'][0]['number']
-        else:
-            to = ''
+        reminders.add_reminder(job, account, reminder_schema, event_dt)
 
-        npu = etap.get_udf('Next Pickup Date', account).split('/')
-
-        if len(npu) < 3:
-            logger.error('Account %s missing npu. Skipping.', account['id'])
-
-            # Use the event_date as next pickup
-            pickup_dt = event_dt
-        else:
-            npu = npu[1] + '/' + npu[0] + '/' + npu[2]
-            pickup_dt = local.localize(parse(npu + " T08:00:00"), is_dst=True)
-
-        # TODO: Insert 'voice.source': 'audio_url', 'template'
-
-        db['reminders'].insert({
-          "job_id": job['_id'],
-          "agency": job['agency'],
-          "name": account['name'],
-          "account_id": account['id'],
-          "event_dt": pickup_dt, # the current pickup date
-          "voice": {
-            "status": "pending",
-            "to": to, # TODO: Fixme
-            "attempts": 0,
-            "source": "template",
-            "template": reminder_schema['voice']['reminder']['file']
-          },
-          "email": {
-            "recipient": account['email'],
-            "status": "pending"
-          },
-          "custom": {
-            "status": etap.get_udf('Status', account),
-            "office_notes": etap.get_udf('Office Notes', account),
-            "block": etap.get_udf('Block', account)
-          }
-        })
-
-        count+=1
-
-    db['jobs'].update_one(job, {'$set':{'voice.count':count}})
-
-    # Update their pickup dates
-    add_future_pickups(str(job_id))
+    add_future_pickups(str(job['_id']))
 
     logger.info(
       'Created reminder job for Blocks %s. Emails fire at %s, calls fire at %s',
-      str(blocks), job['email']['fire_at'].isoformat(),
-      job['voice']['fire_at'].isoformat())
+      str(blocks), job['email']['fire_dt'].isoformat(),
+      job['voice']['fire_dt'].isoformat())
 
     return True
-
 
 #-------------------------------------------------------------------------------
 def get_cal_events(cal_id, start, end, oauth):
@@ -199,7 +126,6 @@ def get_cal_events(cal_id, start, end, oauth):
     events = events_result.get('items', [])
 
     return events
-
 
 #-------------------------------------------------------------------------------
 def get_blocks(cal_id, start_date, end_date, oauth):
@@ -418,7 +344,6 @@ def get_next_pickup(blocks, office_notes, block_dates):
     #logger.info("next_pickup for %s: %s", blocks, dates[0].strftime('%b %d %Y'))
 
     return dates[0]
-
 
 #-------------------------------------------------------------------------------
 @celery_app.task

@@ -1,6 +1,6 @@
 import twilio.twiml
 import logging
-from datetime import datetime,date
+from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
 import time
 from flask import render_template
@@ -31,6 +31,131 @@ logger.addHandler(info_handler)
 logger.addHandler(error_handler)
 logger.setLevel(logging.DEBUG)
 
+
+#-------------------------------Stuff Todo---------------------------------------
+# TODO: update all reminder['voice'] with either reminder['voice']['call']
+# or reminder['voice']['conf']
+
+
+#-------------------------------------------------------------------------------
+def add_job(name, event_dt, call_dt, email_dt, schema, conf):
+    '''Creates a new job and adds to DB
+    @conf: agency['reminders']
+    Returns:
+      -Job dict with mongo '_id'
+    '''
+
+    local = pytz.timezone("Canada/Mountain")
+    call_d = block_date + timedelta(days=conf['phone']['fire_days_delta'])
+    call_t = time(conf['phone']['fire_hour'], conf['phone']['fire_min'])
+    call_dt = local.localize(datetime.combine(call_d, call_t), is_dst=True)
+
+    email_d = block_date + timedelta(days=conf['email']['fire_days_delta'])
+    email_t = time(conf['email']['fire_hour'], conf['email']['fire_min'])
+    email_dt = local.localize(datetime.combine(email_d, email_t), is_dst=True)
+
+    # TODO: update all fire_at->fire_dt
+    # TODO: update reminder.send_emails with template in reminder record
+    job = {
+        'name': name,
+        'agency': 'vec',
+        'event_dt': event_dt,
+        'status': 'pending',
+        'schema': {
+            'name': schema['name'],
+            'type': schema['type'],
+            # Only need to load opt-out template.
+            # Default template stored in reminder records
+            'email': {
+                'no_pickup': schema['no_pickup']
+            }
+        },
+        'voice': {
+            'fire_dt': call_dt
+        },
+        'email': {
+            'fire_dt': email_dt
+        },
+        'no_pickups': 0
+    }
+
+    job_id = db['jobs'].insert(job)
+
+    return job
+
+
+#-------------------------------------------------------------------------------
+def add_reminder(job, account, reminder_schema, event_dt):
+    '''Adds a reminder for given job
+    Returns:
+      -True on success, False otherwise'''
+
+    # TODO: update all voice references to ['voice']['call'],
+    # ['voice']['conf']
+
+    npu = etap.get_udf('Next Pickup Date', account).split('/')
+
+    if len(npu) < 3:
+        logger.error('Account %s missing npu. Skipping.', account['id'])
+
+        # Use the event_date as next pickup
+        pickup_dt = event_dt
+    else:
+        npu = npu[1] + '/' + npu[0] + '/' + npu[2]
+        pickup_dt = local.localize(parse(npu + " T08:00:00"), is_dst=True)
+
+    phone = account['phones'][0]['number'] if account.get('phones') else None
+    email = account['email'] if account.get('email') else None
+
+    db['reminders'].insert({
+        "job_id": job['_id'],
+        "agency": job['agency'],
+        "name": account['name'],
+        "account_id": account['id'],
+        "event_dt": pickup_dt, # the current pickup date
+        "voice": {
+            "conf": {
+                "to": phone,
+                #"fire_dt": call_dt if phone else None,
+                "source": "template",
+                "template": reminder_schema['voice']['reminder']['file']
+            },
+            "call": {
+                "status": "pending" if phone else "no-number",
+                "sid": None,
+                "answered_by": None,
+                "ended_dt": None,
+                "speak": None,
+                "attempts": 0,
+                "duration" None
+            }
+        },
+        "email": {
+            "conf": {
+                "recipient": account['email'],
+                #"fire_dt": email_dt,
+                "template": reminder_schema['email']['reminder']['file'],
+                "subject": reminder_schema['email']['reminder']['subject']
+            },
+            "mailgun": {
+                "status": "pending" if email else "no-email",
+                "mid": None,
+                "error": None,
+                "code": None
+            }
+        },
+        "custom": {
+            "status": etap.get_udf('Status', account),
+            "office_notes": etap.get_udf('Office Notes', account),
+            "block": etap.get_udf('Block', account),
+            "future_pickup_dt": None
+        }
+    })
+
+    db['jobs'].update_one(job, {'$inc':{'voice.count':1}})
+
+    return True
+
 #-------------------------------------------------------------------------------
 @celery_app.task
 def monitor_jobs():
@@ -53,9 +178,9 @@ def monitor_pending_jobs():
     status = {}
 
     for job in pending:
-        if datetime.utcnow() < job['voice']['fire_at']:
+        if datetime.utcnow() < job['voice']['fire_dt']:
             print('Job_ID %s: Pending in %s' %
-            (str(job['_id']), str(job['voice']['fire_at'] - datetime.utcnow())))
+            (str(job['_id']), str(job['voice']['fire_dt'] - datetime.utcnow())))
             status[job['_id']] = 'pending'
             continue
 
@@ -191,7 +316,7 @@ def send_calls(job_id):
         if 'no_pickup' in reminder['custom']:
             continue
 
-        if reminder['voice']['status'] not in ['pending', 'no-answer', 'busy']:
+        if reminder['voice']['call']['status'] not in ['pending', 'no-answer', 'busy']:
             continue
 
         if reminder['voice']['attempts'] >= app.config['MAX_CALL_ATTEMPTS']:
@@ -338,10 +463,10 @@ def get_jobs(args):
 
     for job in jobs:
         if 'voice' in job:
-            job['voice']['fire_at'] = job['voice']['fire_at'].replace(tzinfo=pytz.utc).astimezone(local)
+            job['voice']['fire_dt'] = job['voice']['fire_dt'].replace(tzinfo=pytz.utc).astimezone(local)
 
         if 'email' in job:
-            job['email']['fire_at'] = job['email']['fire_at'].replace(tzinfo=pytz.utc).astimezone(local)
+            job['email']['fire_dt'] = job['email']['fire_dt'].replace(tzinfo=pytz.utc).astimezone(local)
 
         if 'event_dt' in job:
             job['event_dt'] = job['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
@@ -517,7 +642,6 @@ def dial(to, from_, twilio_keys, answer_url):
 
     return call
 
-
 #-------------------------------------------------------------------------------
 def get_voice_content(reminder, file_path):
     '''Return rendered HMTL template as string
@@ -595,7 +719,6 @@ def get_voice_play_answer_response(args):
 
     return voice
 
-
 #-------------------------------------------------------------------------------
 def get_voice_play_interact_response(args):
     '''
@@ -643,7 +766,6 @@ def get_voice_play_interact_response(args):
             voice.gather(numDigits=1, action='/reminders/voice/play/on_interact.xml', method='POST')
 
     return voice
-
 
 #-------------------------------------------------------------------------------
 def call_event(args):
@@ -922,7 +1044,6 @@ def parse_csv(csvfile, import_fields):
 
     return buffer
 
-
 #-------------------------------------------------------------------------------
 def job_print(job_id):
     if isinstance(job_id, str):
@@ -1068,7 +1189,7 @@ def submit_job(form, file):
         'schema': schema,
         #'event_dt':
         'voice': {
-            'fire_at': fire_calls_dtime,
+            'fire_dt': fire_calls_dtime,
             'count': len(buffer)
         },
         'status': 'pending'

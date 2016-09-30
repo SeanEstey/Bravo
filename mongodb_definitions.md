@@ -30,7 +30,7 @@
             "_comment": "data/status from the outbound call",
             "sid": "32 char twilio call id",
             "status": [
-                "pending","active","cancelled", "failed","queued",
+                "no-number", pending","active","cancelled", "failed","queued",
                 "ringing","in-progress","busy","no-answer","completed"
             ], 
             "answered_by": ["human", "machine"],
@@ -52,7 +52,7 @@
         "mailgun": {
             "mid":  "mailgun email id",
             "fire_dt": "bson.date in UTC",
-            "status": ["pending", "bounced", "dropped", "delivered"],
+            "status": ["no-email", "pending", "bounced", "dropped", "delivered"],
             "error": "mailgun error (if any)",
             "code": "mailgun status code"
         }

@@ -139,7 +139,7 @@
             "approach": "Bottle Donation"
         }
     },
-    "google: {
+    "google": {
         "cal": {
             "res": "7d4fdfke5mllck8pclcerbqk50@group.calendar.google.com",
             "bus": "bsmoacn3nsn8lio6vk892tioes@group.calendar.google.com"

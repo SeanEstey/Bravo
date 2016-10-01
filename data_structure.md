@@ -1,7 +1,54 @@
+<h3>Reminder Jobs</h3>
+-Each document represents a group of reminders for a specific event date
+-Reminder documents contain the "_id" of the parent job as "job_id"
+-Jobs manage fire triggers and overall status for each type of notification ['voice', 'sms', 'email']
+
+<h4>JSON Structure</h4>
+
+```json
+{
+    "agency": "name",
+    "status": ["pending", "in-progress", "completed", "failed"], 
+    "name": "name",
+    "event_dt": "datetime of event",
+    "no_pickups": "num opt-outs",
+    "voice": {
+	"status": ["pending", "in-progress", "completed", "failed"],
+        "fire_dt": "bson.date in UTC",
+        "started_dt": "bson.date in UTC",
+        "count": "number"
+    },
+    "email": {
+	"status": ["pending", "in-progress", "completed", "failed"],
+        "fire_dt": "<bson.date>",
+        "started_dt": "<bson.date>",
+        "count": "number"
+    },
+    "sms": {
+	"status": ["pending", "in-progress", "completed", "failed"],
+	"fire_dt": "bson.date",
+	"count": "number"
+    },
+    "schema": {
+        "_comment": "fields imported from templates/schemas/[name].json",
+        "name": "pickup_reminder",
+        "type": "reminder",
+        "description": "display when adding job",
+        "email": {
+            "_comments": "any emails sent as followups to scheduled reminder", 
+            "no_pickup": {
+                "file": "email/vec/no_pickup.html",
+                "subject": "string"
+            }
+        }
+    }
+}
+```
+
 <h3> Reminders </h3>
-A reminders can contain data for 1-3 mediums: ['voice', 'sms', 'email'].
-Each key contains conf data and status properties
-If a reminder has no 'email' medium, that key is absent
+-Each document represents one or more notifications to a recipient for a specific event date
+-A reminder can have 1 notification for each medium ['voice', 'sms', 'email'], each with its own trigger time set by its parent job
+-If a reminder is set for Email and SMS, it contains 'email' and 'sms' keys, but not 'voice' key
 
 <h4>JSON Structure</h4>
 
@@ -63,47 +110,7 @@ If a reminder has no 'email' medium, that key is absent
 }
 ```
 
-<h3>Reminder Jobs</h3>
--Oversee reminders. Contain datetime triggers "fire_dt" for each medium to know when to execute.
 
-<h4>JSON Structure</h4>
-
-```json
-{
-    "agency": "name",
-    "status": ["pending", "in-progress", "completed", "failed"], 
-    "name": "name",
-    "event_dt": "datetime of event",
-    "no_pickups": "num opt-outs",
-    "voice": {
-        "fire_dt": "bson.date in UTC",
-        "started_dt": "bson.date in UTC",
-        "count": "number"
-    },
-    "email": {
-        "fire_dt": "<bson.date>",
-        "started_dt": "<bson.date>",
-        "count": "number"
-    },
-    "sms": {
-	"fire_dt": "bson.date",
-	"count": "number"
-    },
-    "schema": {
-        "_comment": "fields imported from templates/schemas/[name].json",
-        "name": "pickup_reminder",
-        "type": "reminder",
-        "description": "display when adding job",
-        "email": {
-            "_comments": "any emails sent as followups to scheduled reminder", 
-            "no_pickup": {
-                "file": "email/vec/no_pickup.html",
-                "subject": "string"
-            }
-        }
-    }
-}
-```
 
 <h3>"emails" collection</h3>
 

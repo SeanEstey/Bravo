@@ -71,14 +71,13 @@ def setup_reminder_jobs():
 
     reminder_schema = schemas[0] # TODO: Fixme
 
-    # Convert naive datetimes to local tz. Will convert to UTC in Mongo
-    local = pytz.timezone("Canada/Mountain")
-    event_dt = local.localize(datetime.combine(block_date, time(8,0)), is_dst=True)
 
     name = ', '.join(blocks)
 
-    job = reminders.add_job(name, event_dt, call_dt, email_dt, reminder_schema, conf)
+    job = reminders.add_pickup_job(name, block_d, reminder_schema, conf)
 
+    local = pytz.timezone("Canada/Mountain")
+    event_dt = local.localize(datetime.combine(block_date, time(8,0)), is_dst=True)
     # Create reminders
     for account in accounts:
         npu = etap.get_udf('Next Pickup Date', account).split('/')
@@ -92,7 +91,7 @@ def setup_reminder_jobs():
             npu = npu[1] + '/' + npu[0] + '/' + npu[2]
             pickup_dt = local.localize(parse(npu + " T08:00:00"), is_dst=True)
 
-        reminders.add_reminder(job, account, reminder_schema, pickup_dt)
+        reminders.add_pickup_reminder(job, account, reminder_schema, pickup_dt)
 
     add_future_pickups(str(job['_id']))
 

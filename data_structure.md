@@ -1,9 +1,12 @@
-<h3>Reminder Jobs</h3>
--Each document represents a group of reminders for a specific event date
+<h3>Event Reminder Jobs</h3>
+-Each document represents a group of event reminders for an event date
 <br>
 -Reminder documents contain the "_id" of the parent job as "job_id"
 <br>
--Jobs manage fire triggers and overall status for each type of notification ['voice', 'sms', 'email']
+-A job can contain 1 or more triggers to fire <b>voice</b> or <b>email</b> notifications
+<br>
+-Job status starts as <b>pending</b>, once one of its triggers is fired,
+changes to <b>in-progress</b>, and changes to <b>complete</b> when all triggers are fired
 
 <h4>JSON Structure</h4>
 
@@ -14,23 +17,22 @@
     "name": "name",
     "event_dt": "datetime of event",
     "no_pickups": "num opt-outs",
-    "voice": {
-	"status": ["pending", "in-progress", "completed", "failed"],
-        "fire_dt": "bson.date in UTC",
-        "started_dt": "bson.date in UTC",
-        "count": "number"
-    },
-    "email": {
-	"status": ["pending", "in-progress", "completed", "failed"],
-        "fire_dt": "<bson.date>",
-        "started_dt": "<bson.date>",
-        "count": "number"
-    },
-    "sms": {
-	"status": ["pending", "in-progress", "completed", "failed"],
-	"fire_dt": "bson.date",
-	"count": "number"
-    },
+    "triggers": [
+        {
+            "id": ObjectId(),
+            "type": "phone",
+            "mediums": ['sms', 'voice'],
+            "fire_dt": "bson.date in UTC",
+            "status": ["pending", "in-progress", "completed", "failed"],
+            "count": "number"
+        },
+        {
+            "id": "ObjectId(),
+            "type": "email",
+            "status": ["pending", "in-progress", "completed", "failed"],
+            "fire_dt": "<bson.date>"
+        }
+    ],
     "schema": {
         "_comment": "fields imported from templates/schemas/[name].json",
         "name": "pickup_reminder",
@@ -47,8 +49,8 @@
 }
 ```
 
-<h3> Reminders </h3>
--Each document represents one or more notifications to a recipient for a specific event date
+<h3>Event Reminders</h3>
+-Each document represents a set of notifications to a recipient for an event date
 <br>
 -A reminder can have 1 notification for each medium ['voice', 'sms', 'email'], each with its own trigger time set by its parent job
 <br>
@@ -63,18 +65,11 @@
     "name": "customer name",
     "account_id": "etapestry account number",
     "event_dt": "<BSON.Date>",
-    "voice": {
-        "conf": {
-            "_comment": "call settings",
-            "to": "phone number string",
-            "fire_dt": "datetime to send",
-            "source": ["template", "audio_url"],
-            "template": ".html path if source=='template'",
-            "audio_url": "url of recorded audio if source=='audio_url'"
-        },
-        "call": {
-            "_comment": "data/status from the outbound call",
-            "sid": "32 char twilio call id",
+    "notifications": [
+        "_comment": "can contain 1 or more items",
+        {
+            "type": "voice",
+            "sid": "twilio call id",
             "status": [
                 "no-number", "pending","active","cancelled", "failed","queued",
                 "ringing","in-progress","busy","no-answer","completed"
@@ -85,24 +80,30 @@
             "attempts": "number",
             "duration": "number in sec",
             "error": "twiilo msg",
-            "code": "twilio code"
-        }
-    },
-    "email": {
-        "conf": {
-            "recipient": "email address",
-            "fire_dt": "bson.date in UTC",
-            "template": ".html path of content",
-            "subject": "subject line"
+            "code": "twilio code",
+            "conf": {
+                "_comment": "call settings",
+                "to": "phone number string",
+                "source": ["template", "audio_url"],
+                "template": ".html path if source=='template'",
+                "audio_url": "url of recorded audio if source=='audio_url'"
+            }
         },
-        "mailgun": {
+        {
+            "type": "email",
             "mid":  "mailgun id",
             "fire_dt": "bson.date in UTC",
             "status": ["no-email", "pending", "bounced", "dropped", "delivered"],
             "error": "mailgun error (if any)",
             "code": "mailgun status code"
+            "conf": {
+                "recipient": "email address",
+                "fire_dt": "bson.date in UTC",
+                "template": ".html path of content",
+                "subject": "subject line"
+            }
         }
-    },
+    ],
     "custom": {
         "_comment": "any fields that are specific to the reminder type",
         "no_pickup": "[True,False]",

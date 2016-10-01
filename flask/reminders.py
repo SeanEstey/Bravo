@@ -5,7 +5,6 @@ from dateutil.parser import parse
 import time
 from flask import render_template
 
-#from flask_socketio import send, emit
 from werkzeug import secure_filename
 import codecs
 import os
@@ -36,30 +35,51 @@ logger.setLevel(logging.DEBUG)
 # TODO: update all needed reminder['voice'] with reminder['voice']['conf']
 # TODO: add sms template files
 # TODO: include date in email subject
+# TODO: write general add_job and add_reminder functions
 
 
 #-------------------------------------------------------------------------------
-def add_job(name, event_dt, call_dt, email_dt, schema, conf):
+def add_pickup_job(name, block_d, schema, conf):
     '''Creates a new job and adds to DB
-    @conf: agency['reminders']
+    @conf: db.agencies->'reminders'
     Returns:
       -Job dict with mongo '_id'
     '''
 
+    # Convert naive datetimes to local timezone
     local = pytz.timezone("Canada/Mountain")
-    call_d = block_date + timedelta(days=conf['phone']['fire_days_delta'])
-    call_t = time(conf['phone']['fire_hour'], conf['phone']['fire_min'])
-    call_dt = local.localize(datetime.combine(call_d, call_t), is_dst=True)
 
-    email_d = block_date + timedelta(days=conf['email']['fire_days_delta'])
-    email_t = time(conf['email']['fire_hour'], conf['email']['fire_min'])
-    email_dt = local.localize(datetime.combine(email_d, email_t), is_dst=True)
+    phone_dt = local.localize(
+        datetime.combine(
+            block_d + timedelta(days=conf['phone']['fire_days_delta']),
+            time(conf['phone']['fire_hour'], conf['phone']['fire_min'])
+        ),
+        is_dst=True)
+
+    email_dt = local.localize(
+        datetime.combine(
+            block_d + timedelta(days=conf['email']['fire_days_delta']),
+            time(conf['email']['fire_hour'], conf['email']['fire_min'])
+        ),
+        is_dst=True)
+
+    event_dt = local.localize(
+        datetime.combine(block_d, time(8,0)),
+        is_dst=True)
+
+    # Job triggers can be types ['phone', 'email'].
+    # For 'phone', the 'mediums' key is added with list values ['sms', 'voice']
+    # If both sms and voice in list, reminder will choose which to send
+    # based on mobile/landline phone.
+    # If mediums list has 1 element, reminders be of that type
 
     # TODO: update reminder.send_emails with template in reminder record
     job = {
         'name': name,
         'agency': 'vec',
         'event_dt': event_dt,
+        # Overall status. Once all notifications complete
+        # for each trigger, status is 'complete'
         'status': 'pending',
         'schema': {
             'name': schema['name'],
@@ -70,12 +90,22 @@ def add_job(name, event_dt, call_dt, email_dt, schema, conf):
                 'no_pickup': schema['no_pickup']
             }
         },
-        'voice': {
-            'fire_dt': call_dt
-        },
-        'email': {
-            'fire_dt': email_dt
-        },
+        'triggers': [
+            {
+                'id': ObjectId(),
+                'type': 'phone',
+                'status': 'pending',
+                # Send SMS if mobile phone, Voice for landline
+                'mediums': ['sms', 'voice'],
+                'fire_dt': phone_dt
+            },
+            {
+                'id': ObjectId(),
+                'type': 'email',
+                'status': 'pending',
+                'fire_dt': email_dt
+            }
+        ],
         'no_pickups': 0
     }
 
@@ -84,8 +114,9 @@ def add_job(name, event_dt, call_dt, email_dt, schema, conf):
     return job
 
 #-------------------------------------------------------------------------------
-def add_reminder(job, account, schema, event_dt):
-    '''Adds a reminder for given job
+def add_pickup_reminder(agency, job_id, email_trig_id, phone_trig_id,
+    account, schema, block_d):
+    '''Adds an event reminder for given job
     Can contain 1-3 reminder objects: 'sms', 'voice', 'email'
     Returns:
       -True on success, False otherwise'''
@@ -94,12 +125,15 @@ def add_reminder(job, account, schema, event_dt):
 
     # TODO: fix custom so that this method can setup any type of reminder
 
+    local = pytz.timezone("Canada/Mountain")
+
     reminder = {
         "job_id": job['_id'],
         "agency": job['agency'],
         "name": account['name'],
         "account_id": account['id'],
         "event_dt": pickup_dt, # the current pickup date
+        "notifications": [],
         "custom": {
             "status": etap.get_udf('Status', account),
             "office_notes": etap.get_udf('Office Notes', account),
@@ -110,43 +144,48 @@ def add_reminder(job, account, schema, event_dt):
 
     if sms_enabled:
         if etap.has_mobile(account):
-            reminder['sms'] = {
-                'conf': {
-                    'to': etap.get_primary_phone(account),
-                    "template": schema['sms']['reminder']['file']
-                },
+            reminder['notifications'].append({
+                "type": "sms",
                 "status": "pending",
-                "sid": None
-            }
-    else:
-        if etap.has_mobile(account):
-            reminder['voice'] = {
+                "sid": None,
                 "conf": {
                     "to": etap.get_primary_phone(account),
-                    "source": "template",
-                    "template": schema['voice']['reminder']['file']
-                },
+                    "template": schema['sms']['reminder']['file']
+                }
+            })
+    else:
+        if etap.get_phone(account):
+            reminder['notifications'].append({
+                "trig_id": phone_trig_id,
+                "type": "voice",
                 "status": "pending",
                 "sid": None,
                 "answered_by": None,
                 "ended_dt": None,
                 "speak": None,
                 "attempts": 0,
-                "duration": None
-            }
+                "duration": None,
+                "conf": {
+                    "to": etap.get_primary_phone(account),
+                    "source": "template",
+                    "template": schema['voice']['reminder']['file']
+                }
+            })
 
     if account.get('email'):
-        reminder['email'] = {
+        reminder['notifications'].append({
+            "trig_id": email_trig_id,
+            "type": "email",
+            "status": "pending",
+            "mid": None,
+            "error": None,
+            "code": None,
             "conf": {
                 "recipient": account['email'],
                 "template": schema['email']['reminder']['file'],
                 "subject": schema['email']['reminder']['subject']
-            },
-            "status": "pending",
-            "mid": None,
-            "error": None,
-            "code": None
-        }
+            }
+        })
 
     db['reminders'].insert(reminder)
 
@@ -176,6 +215,10 @@ def monitor_pending_jobs():
     status = {}
 
     for job in pending:
+        # For each trigger, check fire_dt
+        for trigger in job['triggers']:
+
+
         if datetime.utcnow() < job['voice']['fire_dt']:
             print('Job_ID %s: Pending in %s' %
             (str(job['_id']), str(job['voice']['fire_dt'] - datetime.utcnow())))

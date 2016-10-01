@@ -1,6 +1,8 @@
 <h3>Reminder Jobs</h3>
 -Each document represents a group of reminders for a specific event date
+<br>
 -Reminder documents contain the "_id" of the parent job as "job_id"
+<br>
 -Jobs manage fire triggers and overall status for each type of notification ['voice', 'sms', 'email']
 
 <h4>JSON Structure</h4>
@@ -47,7 +49,9 @@
 
 <h3> Reminders </h3>
 -Each document represents one or more notifications to a recipient for a specific event date
+<br>
 -A reminder can have 1 notification for each medium ['voice', 'sms', 'email'], each with its own trigger time set by its parent job
+<br>
 -If a reminder is set for Email and SMS, it contains 'email' and 'sms' keys, but not 'voice' key
 
 <h4>JSON Structure</h4>
@@ -109,8 +113,6 @@
     }
 }
 ```
-
-
 
 <h3>"emails" collection</h3>
 

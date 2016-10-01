@@ -1,14 +1,9 @@
-<h3>"users" collection</h3>
-```json
-{
-  "user": "USERNAME",
-  "password": "PASSWORD",
-  "agency": "AGENCY_NAME",
-  "admin": "True/False"
-}
-```
+<h3> Reminders </h3>
+A reminders can contain data for 1-3 mediums: ['voice', 'sms', 'email'].
+Each key contains conf data and status properties
+If a reminder has no 'email' medium, that key is absent
 
-<h3>"reminders" collection</h3>
+<h4>JSON Structure</h4>
 
 ```json
 {
@@ -35,11 +30,11 @@
             ], 
             "answered_by": ["human", "machine"],
             "ended_dt": "bson.date in UTC",
-            "speak": "text string spoken to user",
-            "attempts": "number call attempts",
-            "duration": "call duration in seconds",
-            "error": "twiilo call error",
-            "code": "twilio call status code"
+            "speak": "text spoken to user",
+            "attempts": "number",
+            "duration": "number in sec",
+            "error": "twiilo msg",
+            "code": "twilio code"
         }
     },
     "email": {
@@ -50,7 +45,7 @@
             "subject": "subject line"
         },
         "mailgun": {
-            "mid":  "mailgun email id",
+            "mid":  "mailgun id",
             "fire_dt": "bson.date in UTC",
             "status": ["no-email", "pending", "bounced", "dropped", "delivered"],
             "error": "mailgun error (if any)",
@@ -63,40 +58,47 @@
         "future_pickup_dt": "<BSON.Date>",
         "status": "",
         "block": "",
-        "type": ["pickup", "delivery", "dropoff"],
+        "type": ["pickup", "delivery", "dropoff"]
     }
 }
 ```
 
-<h3>"jobs" collection</h3>
+<h3>Reminder Jobs</h3>
+-Oversee reminders. Contain datetime triggers "fire_dt" for each medium to know when to execute.
+
+<h4>JSON Structure</h4>
 
 ```json
 {
-    "agency": "agency name",
+    "agency": "name",
     "status": ["pending", "in-progress", "completed", "failed"], 
-    "name": "name of job",
+    "name": "name",
     "event_dt": "datetime of event",
     "no_pickups": "num opt-outs",
     "voice": {
         "fire_dt": "bson.date in UTC",
         "started_dt": "bson.date in UTC",
-        "count": "num calls to make"
+        "count": "number"
     },
     "email": {
         "fire_dt": "<bson.date>",
         "started_dt": "<bson.date>",
-        "count": "num emails to send"
+        "count": "number"
+    },
+    "sms": {
+	"fire_dt": "bson.date",
+	"count": "number"
     },
     "schema": {
         "_comment": "fields imported from templates/schemas/[name].json",
         "name": "pickup_reminder",
         "type": "reminder",
-        "description": "Vecova Bottle Service Reminder (Email/Voice)",
+        "description": "display when adding job",
         "email": {
             "_comments": "any emails sent as followups to scheduled reminder", 
             "no_pickup": {
                 "file": "email/vec/no_pickup.html",
-                "subject": "Thank you. You have been removed from this pickup schedule"
+                "subject": "string"
             }
         }
     }
@@ -122,7 +124,7 @@
 }
 ```
 
-<h3>"agencies" collection</h3>
+<h3>Agencies JSON Structure</h3>
 
 ```json
 {
@@ -232,6 +234,17 @@
 }
 ```
 
+<h3>Users JSON Structure</h3>
+```json
+{
+  "user": "USERNAME",
+  "password": "PASSWORD",
+  "agency": "AGENCY_NAME",
+  "admin": "True/False"
+}
+```
+
+<h3>Audio_msg JSON Structure</h3>
 ```json
 "audio_msg": {
   "sid": "",

@@ -83,10 +83,10 @@ def add_job(name, event_dt, call_dt, email_dt, schema, conf):
 
     return job
 
-
 #-------------------------------------------------------------------------------
 def add_reminder(job, account, schema, event_dt):
     '''Adds a reminder for given job
+    Can contain 1-3 reminder objects: 'sms', 'voice', 'email'
     Returns:
       -True on success, False otherwise'''
 
@@ -132,7 +132,7 @@ def add_reminder(job, account, schema, event_dt):
                 "ended_dt": None,
                 "speak": None,
                 "attempts": 0,
-                "duration" None
+                "duration": None
             }
 
     if account.get('email'):
@@ -320,7 +320,7 @@ def send_calls(job_id):
         if reminder['voice']['attempts'] >= app.config['MAX_CALL_ATTEMPTS']:
             continue
 
-        if not reminder['voice']['to']:
+        if not reminder['voice']['conf']['to']:
             db['reminders'].update_one(
               {'_id': reminder['_id']},
               {'$set': {
@@ -329,7 +329,7 @@ def send_calls(job_id):
             continue
 
         call = dial(
-          reminder['voice']['to'],
+          reminder['voice']['conf']['to'],
           twilio['ph'],
           twilio['keys']['main'],
           app.config['PUB_URL'] + '/reminders/voice/play/on_answer.xml'
@@ -337,7 +337,7 @@ def send_calls(job_id):
 
         if isinstance(call, Exception):
             logger.info('%s failed (%d: %s)',
-                        reminder['voice']['to'], call.code, call.msg)
+                        reminder['voice']['conf']['to'], call.code, call.msg)
 
             db['reminders'].update_one(
               {'_id':reminder['_id']},
@@ -346,7 +346,7 @@ def send_calls(job_id):
                 "voice.error": call.msg,
                 "voice.code": call.code}})
         else:
-            logger.info('%s %s', reminder['voice']['to'], call.status)
+            logger.info('%s %s', reminder['voice']['conf']['to'], call.status)
 
             calls_fired += 1
 
@@ -366,7 +366,6 @@ def send_calls(job_id):
     logger.info('Job_ID %s: %d calls fired', job_id, calls_fired)
 
     return calls_fired
-
 
 #-------------------------------------------------------------------------------
 def on_email_status(webhook):
@@ -750,7 +749,7 @@ def get_voice_play_answer_response(args):
     # send_socket('update_msg',
     # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
 
-    # TODO: replace this test with reminder['voice']['source']
+    # TODO: replace this test with reminder['voice']['conf']['source']
 
     voice = twilio.twiml.Response()
 

@@ -14,6 +14,7 @@ from app import app, db, socketio
 
 # Import methods
 from utils import send_mailgun_email, dict_to_html_table
+import wsf
 from log import get_tail
 from auth import login, logout
 from routing import get_orders,submit_job,build_route,get_upcoming_routes,build_todays_routes
@@ -704,13 +705,8 @@ def rec_signup():
     Adds signup data to Bravo Sheets->Signups gsheet row
     '''
 
-    app.logger.info('New signup received: %s %s',
-      request.form.get('first_name'),
-      request.form.get('last_name')
-    )
-
     try:
-        gsheets.add_signup.apply_async(
+        wsf.add_signup.apply_async(
           args=(request.form.to_dict(),), # Must include comma
           queue=app.config['DB']
         )
@@ -718,7 +714,7 @@ def rec_signup():
         time.sleep(1)
         app.logger.info('/receive_signup: %s', str(e), exc_info=True)
         app.logger.info('Retrying...')
-        gsheets.add_signup.apply_async(
+        wsf.add_signup.apply_async(
           args=(request.form.to_dict(),),
           queue=app.config['DB']
         )

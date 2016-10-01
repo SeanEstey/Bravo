@@ -1,8 +1,9 @@
-from config import *
+
 import requests
 import re
 from bson import json_util
 import json
+import logging
 
 from app import app, db, info_handler, error_handler, debug_handler
 

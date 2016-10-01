@@ -145,6 +145,7 @@ def add_pickup_reminder(agency, job_id, email_trig_id, phone_trig_id,
     if sms_enabled:
         if etap.has_mobile(account):
             reminder['notifications'].append({
+                "id": ObjectId(),
                 "type": "sms",
                 "status": "pending",
                 "sid": None,
@@ -156,6 +157,7 @@ def add_pickup_reminder(agency, job_id, email_trig_id, phone_trig_id,
     else:
         if etap.get_phone(account):
             reminder['notifications'].append({
+                "id": ObjectId(),
                 "trig_id": phone_trig_id,
                 "type": "voice",
                 "status": "pending",
@@ -174,6 +176,7 @@ def add_pickup_reminder(agency, job_id, email_trig_id, phone_trig_id,
 
     if account.get('email'):
         reminder['notifications'].append({
+            "id": ObjectId(),
             "trig_id": email_trig_id,
             "type": "email",
             "status": "pending",
@@ -203,6 +206,39 @@ def monitor_jobs():
     monitor_pending_jobs()
     monitor_active_jobs()
 
+
+
+#-------------------------------------------------------------------------------
+def monitor_triggers():
+    # Find all jobs with pending triggers
+    jobs = db['jobs'].find({},
+        {'triggers':{'$elemMatch':{'status':'pending'}}})
+
+    for job in jobs:
+        for trigger in job['triggers']:
+            if datetime.utcnow() < trigger['fire_dt']:
+                print 'Job_ID %s: %s trigger pending in %s' %
+                (str(job['_id']), trigger['type'],
+                str(trigger['fire_dt'] - datetime.utcnow()))
+
+                continue
+
+            # Start new job
+            db['jobs'].update_one(
+                {'triggers.id':trigger['id']},
+                {'$set':{
+                    'status': 'in-progress',
+                    'triggers.$.status':'fired'}})
+
+            fire_trigger.apply_async(
+                args=(str(job['_id']), str(trigger['_id']),),
+                queue=app.config['DB']
+            )
+
+            logger.info('Job_ID %s: Sending calls', job['_id'])
+
+            return True
+
 #-------------------------------------------------------------------------------
 def monitor_pending_jobs():
     '''Runs on celerybeat schedule with frequency defined in config.py.
@@ -215,10 +251,6 @@ def monitor_pending_jobs():
     status = {}
 
     for job in pending:
-        # For each trigger, check fire_dt
-        for trigger in job['triggers']:
-
-
         if datetime.utcnow() < job['voice']['fire_dt']:
             print('Job_ID %s: Pending in %s' %
             (str(job['_id']), str(job['voice']['fire_dt'] - datetime.utcnow())))
@@ -335,6 +367,116 @@ def monitor_active_jobs():
             send_calls.apply_async((str(job['_id']).encode('utf-8'),), queue=app.config['DB'])
 
     return status
+
+
+#-------------------------------------------------------------------------------
+@celery_app.task
+def fire_trigger(job_id, trig_id):
+    trig_id = ObjectId(trig_id)
+
+    reminders = db['reminders'].find({},
+        {'notifications':{'$elemMatch':{'trig_id':trig_id}}})
+
+    num = 0
+    for reminder in reminders:
+        if 'no_pickup' in reminder['custom']:
+            continue
+
+        notification = reminder['notification'][0]
+
+        if notification['type'] == 'voice':
+            fire_voice_call(reminder['agency'], notification)
+        elif notification['type'] == 'sms':
+            fire_sms(reminder['agency'], notification)
+        elif notification['type'] == 'email':
+            fire_email(reminder['agency'], notification)
+
+        num+=1
+
+    logger.info('trigger_id %s fired. %s notifications sent',
+        str(trig_id), num)
+
+
+#-------------------------------------------------------------------------------
+def fire_voice_call(agency, notification):
+    if notification['attempts'] >= app.config['MAX_CALL_ATTEMPTS']:
+        return False
+
+    twilio = db['agencies'].find_one({'name':agency})['twilio']
+
+    call = dial(
+      notification['conf']['to'],
+      twilio['ph'],
+      twilio['keys']['main'],
+      app.config['PUB_URL'] + '/reminders/voice/play/on_answer.xml'
+    )
+
+    if isinstance(call, Exception):
+        status = 'failed'
+        logger.error('%s failed (%d: %s)',
+                    notification['conf']['to'], call.code, call.msg)
+    else:
+        status = call.status
+
+    db['reminders'].update_one(
+        {'notifications.id': notification['id']},
+        {'$set':{
+            'notifications.$.status': status,
+            'notifications.$.sid': call.sid or None,
+            'notifications.$.code': call.code or None,
+            'notifications.$.error': call.error or None
+            },
+        '$inc': {
+            'notifications.$.attempts': 1
+    }})
+
+    logger.info('Call %s for %s', call.status, notification['conf']['to'])
+
+#-------------------------------------------------------------------------------
+def fire_email(reminder, notification):
+    data = {
+        "from": {'reminder_id': str(reminder['_id'])},
+        "event_dt": reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local),
+        "account": {
+            "name": reminder['name'],
+            "email": reminder['email']['conf']['recipient']
+        },
+        'cancel_pickup_url': \
+            "%s/reminders/%s/%s/cancel_pickup" %
+            (app.config['PUB_URL'], str(job['_id']), str(reminder['_id']))
+    }
+
+    # Merge dicts
+    data.update(reminder['custom'])
+
+    body = utils.render_html(
+        reminder['email']['conf']['template'],
+        data
+    )
+
+    mid = utils.send_email(
+        reminder['email']['conf']['recipient'],
+        reminder['email']['conf']['subject'],
+        body,
+        mailgun_conf)
+
+    db['emails'].insert({
+        'agency': job['agency'],
+        'mid': json.loads(r.text)['id'],
+        'status': 'queued',
+        'type': 'reminder',
+        'on_status': {
+            'command': 'update',
+            'target': 'db',
+            '_id': reminder['_id']
+        }})
+
+    db['reminders'].update_one(
+        {'_id':reminder['_id']},
+        {'$set': {'email.mid': mid}})
+
+    #--------------------------
+
 
 #-------------------------------------------------------------------------------
 @celery_app.task

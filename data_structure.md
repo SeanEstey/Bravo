@@ -23,13 +23,13 @@ changes to <b>in-progress</b>, and changes to <b>complete</b> when all triggers 
             "type": "phone",
             "mediums": ['sms', 'voice'],
             "fire_dt": "bson.date in UTC",
-            "status": ["pending", "in-progress", "completed", "failed"],
+            "status": ["pending", "fired"],
             "count": "number"
         },
         {
             "id": "ObjectId(),
             "type": "email",
-            "status": ["pending", "in-progress", "completed", "failed"],
+            "status": ["pending", "fired"],
             "fire_dt": "<bson.date>"
         }
     ],

@@ -13,7 +13,7 @@ import pytz
 from app import app, db, socketio
 
 # Import methods
-from utils import send_mailgun_email, dict_to_html_table
+from utils import send_email, dict_to_html_table
 import wsf
 from log import get_tail
 from auth import login, logout

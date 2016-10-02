@@ -37,164 +37,65 @@ logger.setLevel(logging.DEBUG)
 # TODO: include date in email subject
 # TODO: write general add_job and add_reminder functions
 
-
 #-------------------------------------------------------------------------------
-def add_pickup_job(name, block_d, schema, conf):
+def add_event(agency, name, date, triggers, schema):
     '''Creates a new job and adds to DB
     @conf: db.agencies->'reminders'
     Returns:
       -Job dict with mongo '_id'
     '''
 
-    # Convert naive datetimes to local timezone
-    local = pytz.timezone("Canada/Mountain")
-
-    phone_dt = local.localize(
-        datetime.combine(
-            block_d + timedelta(days=conf['phone']['fire_days_delta']),
-            time(conf['phone']['fire_hour'], conf['phone']['fire_min'])
-        ),
+    event_dt = pytz.timezone("Canada/Mountain").localize(
+        datetime.combine(date, time(8,0)),
         is_dst=True)
 
-    email_dt = local.localize(
-        datetime.combine(
-            block_d + timedelta(days=conf['email']['fire_days_delta']),
-            time(conf['email']['fire_hour'], conf['email']['fire_min'])
-        ),
-        is_dst=True)
-
-    event_dt = local.localize(
-        datetime.combine(block_d, time(8,0)),
-        is_dst=True)
-
-    # Job triggers can be types ['phone', 'email'].
-    # For 'phone', the 'mediums' key is added with list values ['sms', 'voice']
-    # If both sms and voice in list, reminder will choose which to send
-    # based on mobile/landline phone.
-    # If mediums list has 1 element, reminders be of that type
-
-    # TODO: update reminder.send_emails with template in reminder record
-    job = {
+    return db['reminder_events'].insert_one({
         'name': name,
-        'agency': 'vec',
+        'agency': agency,
         'event_dt': event_dt,
-        # Overall status. Once all notifications complete
-        # for each trigger, status is 'complete'
         'status': 'pending',
-        'schema': {
-            'name': schema['name'],
-            'type': schema['type'],
-            # Only need to load opt-out template.
-            # Default template stored in reminder records
-            'email': {
-                'no_pickup': schema['no_pickup']
-            }
-        },
-        'triggers': [
-            {
-                'id': ObjectId(),
-                'type': 'phone',
-                'status': 'pending',
-                # Send SMS if mobile phone, Voice for landline
-                'mediums': ['sms', 'voice'],
-                'fire_dt': phone_dt
-            },
-            {
-                'id': ObjectId(),
-                'type': 'email',
-                'status': 'pending',
-                'fire_dt': email_dt
-            }
-        ],
-        'no_pickups': 0
-    }
-
-    job_id = db['jobs'].insert(job)
-
-    return job
+        'opt_outs': 0,
+        'triggers': triggers
+        'schema': schema
+    })
 
 #-------------------------------------------------------------------------------
-def add_pickup_reminder(agency, job_id, email_trig_id, phone_trig_id,
-    account, schema, block_d):
-    '''Adds an event reminder for given job
-    Can contain 1-3 reminder objects: 'sms', 'voice', 'email'
+def add_trigger(agency, event_d, _type, conf, mediums=None):
+    '''Job triggers can be types ['phone', 'email'].
+    For 'phone', the 'mediums' key is added with list values ['sms', 'voice']
+    If both sms and voice in list, reminder will choose which to send
+    based on mobile/landline phone.
+    If mediums list has 1 element, reminders be of that type
     Returns:
-      -True on success, False otherwise'''
+        -trigger id (ObjectId)'''
 
-    sms_enabled = False
+    return db['triggers'].insert_one({
+        'status': 'pending',
+        'type': _type,
+        'fire_dt': pytz.timezone("Canada/Mountain").localize(
+            datetime.combine(
+                event_d + timedelta(days=conf['fire_days_delta']),
+                time(conf['fire_hour'], conf['fire_min'])
+            ),
+            is_dst=True
+        ),
+        'mediums': mediums
+    })
 
-    # TODO: fix custom so that this method can setup any type of reminder
-
-    local = pytz.timezone("Canada/Mountain")
-
-    reminder = {
-        "job_id": job['_id'],
-        "agency": job['agency'],
-        "name": account['name'],
-        "account_id": account['id'],
-        "event_dt": pickup_dt, # the current pickup date
-        "notifications": [],
-        "custom": {
-            "status": etap.get_udf('Status', account),
-            "office_notes": etap.get_udf('Office Notes', account),
-            "block": etap.get_udf('Block', account),
-            "future_pickup_dt": None
-        }
-    }
-
-    if sms_enabled:
-        if etap.has_mobile(account):
-            reminder['notifications'].append({
-                "id": ObjectId(),
-                "type": "sms",
-                "status": "pending",
-                "sid": None,
-                "conf": {
-                    "to": etap.get_primary_phone(account),
-                    "template": schema['sms']['reminder']['file']
-                }
-            })
-    else:
-        if etap.get_phone(account):
-            reminder['notifications'].append({
-                "id": ObjectId(),
-                "trig_id": phone_trig_id,
-                "type": "voice",
-                "status": "pending",
-                "sid": None,
-                "answered_by": None,
-                "ended_dt": None,
-                "speak": None,
-                "attempts": 0,
-                "duration": None,
-                "conf": {
-                    "to": etap.get_primary_phone(account),
-                    "source": "template",
-                    "template": schema['voice']['reminder']['file']
-                }
-            })
-
-    if account.get('email'):
-        reminder['notifications'].append({
-            "id": ObjectId(),
-            "trig_id": email_trig_id,
-            "type": "email",
-            "status": "pending",
-            "mid": None,
-            "error": None,
-            "code": None,
-            "conf": {
-                "recipient": account['email'],
-                "template": schema['email']['reminder']['file'],
-                "subject": schema['email']['reminder']['subject']
-            }
-        })
-
-    db['reminders'].insert(reminder)
-
-    db['jobs'].update_one(job, {'$inc':{'voice.count':1}})
-
-    return True
+#-------------------------------------------------------------------------------
+def add_notification(agency, _type, account, trig_id, udf, conf):
+    db['notifications'].insert_one({
+        'status': 'pending',
+        'agency': agency,
+        'type': _type,
+        'trig_id': trig_id,
+        'account': {
+            'name': account['name'],
+            'id': account['id'],
+            'udf': udf
+        },
+        'conf': conf
+    })
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -214,11 +115,12 @@ def monitor_triggers():
     jobs = db['jobs'].find({},
         {'triggers':{'$elemMatch':{'status':'pending'}}})
 
+    num = 0
     for job in jobs:
         for trigger in job['triggers']:
             if datetime.utcnow() < trigger['fire_dt']:
-                print 'Job_ID %s: %s trigger pending in %s' %
-                (str(job['_id']), trigger['type'],
+                num+=1
+                print 'Job_ID %s: %s trigger pending in %s' % (str(job['_id']), trigger['type'],
                 str(trigger['fire_dt'] - datetime.utcnow()))
 
                 continue
@@ -235,9 +137,10 @@ def monitor_triggers():
                 queue=app.config['DB']
             )
 
-            logger.info('Job_ID %s: Sending calls', job['_id'])
+    if datetime.utcnow().minute == 0:
+        logger.info('%d pending triggers', num)
 
-            return True
+    return True
 
 #-------------------------------------------------------------------------------
 def monitor_pending_jobs():

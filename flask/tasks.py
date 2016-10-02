@@ -23,7 +23,8 @@ celery_app = make_celery(app)
 celery_app.config_from_object('tasks')
 
 # Load in registered functions
-from gsheets import add_signup, create_rfu
+from wsf import add_signup
+from gsheets import create_rfu
 from reminders import monitor_jobs, send_calls, send_emails, cancel_pickup, set_no_pickup
 from routing import build_route, build_todays_routes
 from receipts import process
@@ -64,9 +65,9 @@ CELERYBEAT_SCHEDULE = {
       'schedule': crontab(hour=7, minute=10, day_of_week='*'),
       'options': { 'queue': app.config['DB'] }
   },
-  'check_jobs': {
-    'task': 'reminders.monitor_jobs',
-    'schedule': crontab(minute='*/5'),
-    'options': { 'queue': app.config['DB'] }
-  },
+  #'check_jobs': {
+  #  'task': 'reminders.monitor_jobs',
+  #  'schedule': crontab(minute='*/5'),
+  #  'options': { 'queue': app.config['DB'] }
+  #},
 }

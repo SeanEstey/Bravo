@@ -5,7 +5,10 @@ from werkzeug import secure_filename
 import codecs
 from bson.objectid import ObjectId
 from flask.ext.login import current_user
+import csv
+import os
 
+import utils
 from app import app, db, info_handler, error_handler, debug_handler, socketio
 from tasks import celery_app
 
@@ -50,6 +53,7 @@ def get_list(args):
     if jobs:
         jobs = jobs.sort('event_dt',-1).limit(app.config['JOBS_PER_PAGE'])
 
+    import pytz
     # Convert naive UTC datetime objects to local
     local = pytz.timezone("Canada/Mountain")
 

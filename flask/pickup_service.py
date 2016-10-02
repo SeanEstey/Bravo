@@ -236,3 +236,110 @@ def get_next_pickup(blocks, office_notes, block_dates):
     #logger.info("next_pickup for %s: %s", blocks, dates[0].strftime('%b %d %Y'))
 
     return dates[0]
+
+
+#-------------------------------------------------------------------------------
+@celery_app.task
+def cancel_pickup(reminder_id):
+    '''Update users eTapestry account with next pickup date and send user
+    confirmation email
+    @reminder_id: string form of ObjectId
+    Returns: True if no errors, False otherwise
+    '''
+    logger.info('Cancelling pickup for \'%s\'', reminder_id)
+
+    reminder = db['reminders'].find_one({'_id':ObjectId(reminder_id)})
+
+    # Outdated/in-progress or deleted job?
+    if not reminder:
+        logger.error('No pickup request fail. Invalid reminder_id \'%s\'', reminder_id)
+        return False
+
+    # Already cancelled?
+    if 'no_pickup' in reminder['custom']:
+        if reminder['custom']['future_pickup_dt'] == True:
+            logger.info('No pickup already processed for account %s', reminder['account_id'])
+            return False
+
+    # No next pickup date?
+    if 'future_pickup_dt' not in reminder['custom']:
+        logger.error("Next Pickup for reminder_msg _id %s is missing.", str(reminder['_id']))
+        return False
+
+    job = db['jobs'].find_one({'_id':reminder['job_id']})
+
+    local = pytz.timezone("Canada/Mountain")
+    no_pickup = 'No Pickup ' + reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d')
+
+    db['reminders'].update_one(
+      {'_id':reminder['_id']},
+      {'$set': {
+        "voice.status": "cancelled",
+        "custom.office_notes": no_pickup,
+        "custom.no_pickup": True
+      }}
+    )
+
+    db['jobs'].update_one({'_id':job['_id']}, {'$inc':{'no_pickups':1}})
+
+    # send_socket('update_msg', {
+    #  'id': str(msg['_id']),
+    #  'office_notes':no_pickup
+    #  })
+
+    job = db['jobs'].find_one({'_id':reminder['job_id']})
+    etap_id = db['agencies'].find_one({'name':job['agency']})['etapestry']
+
+    try:
+        # Write to eTapestry
+        etap.call('no_pickup', etap_id, {
+          "account": reminder['account_id'],
+          "date": reminder['event_dt'].strftime('%d/%m/%Y'),
+          "next_pickup": reminder['custom']['future_pickup_dt'].strftime('%d/%m/%Y')
+        })
+    except Exception as e:
+        logger.error("Error writing to eTap: %s", str(e))
+
+    # Send email w/ next pickup
+    if 'future_pickup_dt' in reminder['custom']:
+        local = pytz.timezone("Canada/Mountain")
+        next_pickup_str = reminder['custom']['future_pickup_dt'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d')
+
+        data = {
+          "agency": job['agency'],
+          "recipient": reminder['email']['recipient'],
+          "template": job['schema']['email']['no_pickup']['file'],
+          "subject": job['schema']['email']['no_pickup']['subject'],
+          "data": {
+            "name": reminder['name'],
+            "from": reminder['email']['recipient'],
+            "next_pickup": next_pickup_str,
+            "account": {
+              "email": reminder['email']['recipient']
+            }
+          }
+        }
+
+        try:
+            requests.post(
+              app.config['LOCAL_URL'] + '/email/send', json=data)
+
+            logger.info('Emailed Next Pickup to %s', reminder['email']['recipient'])
+        except Exception as e:
+            logger.error("Error sending no_pickup followup email: %s", str(e))
+            return False
+
+    return True
+
+#-------------------------------------------------------------------------------
+@celery_app.task
+def set_no_pickup(url, params):
+    r = requests.get(url, params=params)
+
+    if r.status_code != 200:
+        logger.error('etap script "%s" failed. status_code:%i', url, r.status_code)
+        return r.status_code
+
+    logger.info('No pickup for account %s', params['account'])
+
+    return r.status_code

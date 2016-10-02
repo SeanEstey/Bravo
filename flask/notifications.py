@@ -5,8 +5,6 @@ from dateutil.parser import parse
 import time
 from flask import render_template
 
-from werkzeug import secure_filename
-import codecs
 import os
 import csv
 import requests
@@ -16,13 +14,13 @@ import json
 import re
 import pytz
 from pymongo import ReturnDocument
-from flask.ext.login import current_user
+
 from app import app, db, info_handler, error_handler, debug_handler, socketio
 from tasks import celery_app
 from gsheets import create_rfu
 import utils
 import etap
-from scheduler import add_future_pickups
+#from scheduler import add_future_pickups
 
 logger = logging.getLogger(__name__)
 logger.addHandler(debug_handler)
@@ -434,6 +432,56 @@ def strip_phone(to):
     if not to:
         return ''
     return to.replace(' ', '').replace('(','').replace(')','').replace('-','')
+
+#-------------------------------------------------------------------------------
+def create(job, schema, idx, buf_row, errors):
+    '''Create a Reminder document in MongoDB from file input row.
+    @job: MongoDB job record
+    @schema: template dict from reminder_templates.json file
+    @idx: .csv file row index (in case of error)
+    @buf_row: array of values from csv file
+    '''
+
+    reminder = {
+        "job_id": job['_id'],
+        "agency": job['agency'],
+        "voice": {
+          "status": "pending",
+          "attempts": 0,
+        },
+        "email": {
+          "status": "pending"
+        },
+        "custom": {}
+    }
+
+    try:
+        for i, field in enumerate(schema['import_fields']):
+            db_field = field['db_field']
+
+            # Format phone numbers
+            if db_field == 'voice.to':
+              buf_row[i] = strip_phone(buf_row[i])
+            # Convert any date strings to datetime obj
+            elif field['type'] == 'date':
+                try:
+                    local = pytz.timezone("Canada/Mountain")
+                    buf_row[i] = parse(buf_row[i]).replace(tzinfo=pytz.utc).astimezone(local)
+                except TypeError as e:
+                    errors.append('Row %d: %s <b>Invalid Date</b><br>',
+                                (idx+1), str(buf_row))
+
+            if db_field.find('.') == -1:
+                reminder[db_field] = buf_row[i]
+            else:
+                # dot notation means record is stored as sub-record
+                parent = db_field[0 : db_field.find('.')]
+                child = db_field[db_field.find('.')+1 : len(db_field)]
+                reminder[parent][child] = buf_row[i]
+        return reminder
+    except Exception as e:
+        logger.info('Error writing db reminder: %s', str(e))
+        return False
 
 #-------------------------------------------------------------------------------
 def allowed_file(filename):

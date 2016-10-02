@@ -56,28 +56,7 @@ def add_event(agency, name, event_date):
         #'schema': schema
     })['_id']
 
-#-------------------------------------------------------------------------------
-def add_trigger(event_id, _date, _time, _type):
-    '''Inserts new trigger to DB, updates event with it's id.
-    @_date: naive, non-localized datetime.date
-    @_time: naive, non-localized datetime.time
-    @_type: 'phone' or 'email'
-    Returns:
-        -id (ObjectId)
-    '''
 
-    trigger = db['triggers'].insert_one({
-        'event_id': event_id,
-        'status': 'pending',
-        'type': _type,
-        'fire_dt': utils.localize(datetime.combine(_date, _time))
-    })
-
-    db['notification_events'].update_one(
-        {'_id':event_id},
-        {'$push':{'triggers':{'id':trigger['_id']}})
-
-    return trigger['_id']
 
 #-------------------------------------------------------------------------------
 def add(event_id, trig_id, _type, to, account, udf, content):
@@ -104,199 +83,6 @@ def add(event_id, trig_id, _type, to, account, udf, content):
         },
         'content': content
     })
-
-#-------------------------------------------------------------------------------
-@celery_app.task
-def monitor_jobs():
-    '''Scheduler process. Runs via celerybeat every few minutes.
-    Will finish off any active jobs and begin any pending scheduled jobs.
-    '''
-
-    monitor_pending_jobs()
-    monitor_active_jobs()
-
-#-------------------------------------------------------------------------------
-def monitor_triggers():
-    # Find all jobs with pending triggers
-    expired_triggers = db['triggers'].find(
-        {'status':'pending', 'fire_dt':{'$lt':datetime.utcnow()}})
-
-    for trigger in expired_triggers:
-        # Start new job
-        db['triggers'].update_one(trigger, {'$set':{'status': 'fired'}})
-
-        fire_trigger.apply_async(
-            args=(str(job['_id']), str(trigger['_id']),),
-            queue=app.config['DB']
-        )
-
-    if datetime.utcnow().minute == 0:
-        logger.info('%d pending triggers', num)
-
-    return True
-
-#-------------------------------------------------------------------------------
-def monitor_pending_jobs():
-    '''Runs on celerybeat schedule with frequency defined in config.py.
-    Starts pending jobs as scheduled. Returns # pending jobs'''
-
-    pending = db['jobs'].find({'status': 'pending'})
-
-    in_progress = db['jobs'].find({'status': 'in-progress'})
-
-    status = {}
-
-    for job in pending:
-        if datetime.utcnow() < job['voice']['fire_dt']:
-            print('Job_ID %s: Pending in %s' %
-            (str(job['_id']), str(job['voice']['fire_dt'] - datetime.utcnow())))
-            status[job['_id']] = 'pending'
-            continue
-
-        if in_progress.count() > 0:
-            logger.info('Another job in-progress. Waiting to begin Job_ID %s',
-                        str(job['_id']))
-            status[job['_id']] = 'waiting'
-            continue
-
-        # Start new job
-        db['jobs'].update_one(
-          {'_id': job['_id']},
-          {'$set': {
-            "status": "in-progress",
-            "voice.started_at": datetime.utcnow()}})
-
-        logger.info('Job_ID %s: Sending calls', job['_id'])
-
-        status[job['_id']] = 'in-progress'
-
-        #requests.get(LOCAL_URL + '/sendsocket', params={
-        #  'name': 'update_job',
-        #  'data': json.dumps({'id': str(job['_id']), 'status':'in-progress'})
-        #})
-
-        # May not be able to start celery task from inside another.
-        # Make a server request to /reminders/<job_id>/execute if this doesn't
-        # work
-        send_calls.apply_async((str(job['_id']).encode('utf-8'),),queue=app.config['DB'])
-
-    #if datetime.utcnow() < trigger['fire_dt']:
-    #    num+=1
-    #    print 'Job_ID %s: %s trigger pending in %s' % (str(job['_id']), trigger['type'],
-    #    str(trigger['fire_dt'] - datetime.utcnow()))
-    #    continue
-
-    if datetime.utcnow().minute == 0:
-        logger.info('%d pending jobs', pending.count())
-
-    return status
-
-#-------------------------------------------------------------------------------
-def monitor_active_jobs():
-    '''Runs on celerybeat schedule with frequency defined in config.py.
-    Monitors active jobs to do any redials, mark them as complete, or
-    kill any hung jobs.
-    Returns list of statuses'''
-
-    in_progress = db['jobs'].find({'status': 'in-progress'})
-
-    status = {}
-
-    for job in in_progress:
-        now = datetime.utcnow()
-
-        if (now - job['voice']['started_at']).seconds > app.config['JOB_TIME_LIMIT']:
-            # The celery process will have already killed the worker task if
-            # it hung, but we'll catch the error here and clean up.
-
-            logger.error('Job_ID %s: Ran over time limit! Celery task should '+ \
-                         'have been killed automatically.', str(job['_id']))
-
-            logger.error('Job_ID %s dump: %s', str(job['_id']), job)
-
-            db['jobs'].update_one(
-                {'_id':job['_id']},
-                {'$set': {'status': 'failed'}})
-
-            status[job['_id']] = 'failed'
-
-            continue
-
-        # Job is active. Do nothing.
-        if db['reminders'].find({
-          'job_id': job['_id'],
-          '$or':[
-            {'voice.status': 'pending'},
-            {'voice.status': 'queued'},
-            {'voice.status': 'ringing'},
-            {'voice.status': 'in-progress'}
-        ]}).count() > 0:
-            status[job['_id']] = 'in-progress'
-            continue
-
-        print('Job_ID %s: Active' % ((str(job['_id']))))
-
-        # Any needing redial?
-        incompletes = db['reminders'].find({
-          'job_id': job['_id'],
-          'voice.attempts': {'$lt': app.config['MAX_CALL_ATTEMPTS']},
-          '$or':[
-            {'voice.status': 'busy'},
-            {'voice.status': 'no-answer'}]})
-
-        if incompletes.count() == 0:
-            # Job Complete!
-            db['jobs'].update_one(
-              {'_id': job['_id']},
-              {'$set': { 'status': 'completed'}})
-
-            logger.info('Job_ID %s: Completed', str(job['_id']))
-
-            status[job['_id']] = 'completed'
-
-            # Connect back to server and notify
-            requests.get(app.config['LOCAL_URL'] + '/complete/' + str(job['_id']))
-
-            #email_job_summary(job['_id'])
-
-        else:
-            logger.info('Job ID %s: Redialing %d incompletes', str(job['_id']), incompletes.count())
-
-            status[job['_id']] = 'redialing'
-
-            # Redial busy or no-answer incompletes
-            # This should be a new celery worker task
-            send_calls.apply_async((str(job['_id']).encode('utf-8'),), queue=app.config['DB'])
-
-    return status
-
-#-------------------------------------------------------------------------------
-@celery_app.task
-def fire_trigger(event_id, trig_id):
-    trig_id = ObjectId(trig_id)
-
-    reminders = db['reminders'].find({},
-        {'notifications':{'$elemMatch':{'trig_id':trig_id}}})
-
-    num = 0
-    for reminder in reminders:
-        if 'no_pickup' in reminder['custom']:
-            continue
-
-        notification = reminder['notification'][0]
-
-        if notification['type'] == 'voice':
-            fire_voice_call(reminder['agency'], notification)
-        elif notification['type'] == 'sms':
-            fire_sms(reminder['agency'], notification)
-        elif notification['type'] == 'email':
-            fire_email(reminder['agency'], notification)
-
-        num+=1
-
-    logger.info('trigger_id %s fired. %s notifications sent',
-        str(trig_id), num)
-
 
 #-------------------------------------------------------------------------------
 def fire_voice_call(agency, notification):
@@ -376,83 +162,6 @@ def fire_email(reminder, notification):
         {'_id':reminder['_id']},
         {'$set': {'email.mid': mid}})
 
-    #--------------------------
-
-
-#-------------------------------------------------------------------------------
-@celery_app.task
-def send_calls(job_id):
-    '''job_id: str of BSON.ObjectID
-    Returns number of calls fired
-    '''
-
-    # Default call order is alphabetically by name
-    reminders = db['reminders'].find({'job_id': ObjectId(job_id)}).sort('name',1)
-    agency = db['jobs'].find_one({'_id':ObjectId(job_id)})['agency']
-    twilio = db['agencies'].find_one({'name':agency})['twilio']
-
-    calls_fired = 0
-
-    # Fire all calls
-    for reminder in reminders:
-        # TODO: change voice.status to "cancelled" on no_pickup request,
-        # eliminate this test
-        if 'no_pickup' in reminder['custom']:
-            continue
-
-        if reminder['voice']['call']['status'] not in ['pending', 'no-answer', 'busy']:
-            continue
-
-        if reminder['voice']['attempts'] >= app.config['MAX_CALL_ATTEMPTS']:
-            continue
-
-        if not reminder['voice']['conf']['to']:
-            db['reminders'].update_one(
-              {'_id': reminder['_id']},
-              {'$set': {
-                  'voice.status': 'no_number'
-              }})
-            continue
-
-        call = dial(
-          reminder['voice']['conf']['to'],
-          twilio['ph'],
-          twilio['keys']['main'],
-          app.config['PUB_URL'] + '/reminders/voice/play/on_answer.xml'
-        )
-
-        if isinstance(call, Exception):
-            logger.info('%s failed (%d: %s)',
-                        reminder['voice']['conf']['to'], call.code, call.msg)
-
-            db['reminders'].update_one(
-              {'_id':reminder['_id']},
-              {'$set': {
-                "voice.status": "failed",
-                "voice.error": call.msg,
-                "voice.code": call.code}})
-        else:
-            logger.info('%s %s', reminder['voice']['conf']['to'], call.status)
-
-            calls_fired += 1
-
-            db['reminders'].update_one(
-              {'_id':reminder['_id']},
-              {'$set': {
-                "voice.status": call.status,
-                "voice.sid": call.sid,
-                "voice.attempts": reminder['voice']['attempts']+1}})
-
-    # TODO: Add back in socket.io
-
-    #r['id'] = str(reminder['_id'])
-    #payload = {'name': 'update_call', 'data': json.dumps(r)}
-    #requests.get(LOCAL_URL+'/sendsocket', params=payload)
-
-    logger.info('Job_ID %s: %d calls fired', job_id, calls_fired)
-
-    return calls_fired
-
 #-------------------------------------------------------------------------------
 def on_email_status(webhook):
     '''
@@ -467,119 +176,6 @@ def on_email_status(webhook):
         "email.error": webhook.get('error')
       }}
     )
-
-#-------------------------------------------------------------------------------
-@celery_app.task
-def send_emails(job_id):
-    job_id = ObjectId(job_id)
-
-    job = db['jobs'].find_one({'_id':job_id})
-    reminders = db['reminders'].find({'job_id':job_id})
-
-    emails_sent = 0
-
-    mailgun_conf = db['agencies'].find_one({'name':job['agency']})['mailgun']
-
-    for reminder in reminders:
-        if not reminder.get('email'):
-            continue
-
-        if reminder['email']['status'] != 'pending':
-            continue
-
-        #if not reminder['email']['conf']['recipient']:
-        #    db['reminders'].update_one(
-        #         {'_id':reminder['_id']},
-        #        {'$set': {'email.status': 'no_email'}}
-        #    )
-        #    continue
-
-        #send_socket('update_msg', {'id':str(msg['_id']), 'email_status': 'no_email'})
-
-        try:
-            _data = reminder['custom']
-            local = pytz.timezone("Canada/Mountain")
-            _data['event_dt'] = reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
-            _data['account'] = {
-              "name": reminder['name'],
-              "email": reminder['email']['conf']['recipient']
-            }
-            # Need this for email/send view
-            _data['from'] = {'reminder_id': str(reminder['_id'])}
-
-            _data['cancel_pickup_url'] = app.config['PUB_URL'] + '/reminders/' + str(job['_id']) + '/' + str(reminder['_id']) + '/cancel_pickup'
-
-            json_args = bson_to_json({
-              "agency": job['agency'],
-              "recipient": reminder['email']['conf']['recipient'],
-              "template": reminder['email']['conf']['template'],
-              "subject": reminder['email']['conf']['subject'],
-              "data": _data
-            })
-
-            headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-            r = requests.post(app.config['LOCAL_URL'] + '/email/send', headers=headers, data=json_args)
-
-
-            #-------- NEW CODE --------
-
-            data = {
-                "from": {'reminder_id': str(reminder['_id'])},
-                "event_dt": reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local),
-                "account": {
-                    "name": reminder['name'],
-                    "email": reminder['email']['conf']['recipient']
-                },
-                'cancel_pickup_url': \
-                    "%s/reminders/%s/%s/cancel_pickup" %
-                    (app.config['PUB_URL'], str(job['_id']), str(reminder['_id']))
-            }
-
-            # Merge dicts
-            data.update(reminder['custom'])
-
-            body = utils.render_html(
-                reminder['email']['conf']['template'],
-                data
-            )
-
-            mid = utils.send_email(
-                reminder['email']['conf']['recipient'],
-                reminder['email']['conf']['subject'],
-                body,
-                mailgun_conf)
-
-            db['emails'].insert({
-                'agency': job['agency'],
-                'mid': json.loads(r.text)['id'],
-                'status': 'queued',
-                'type': 'reminder',
-                'on_status': {
-                    'command': 'update',
-                    'target': 'db',
-                    '_id': reminder['_id']
-                }})
-
-            db['reminders'].update_one(
-                {'_id':reminder['_id']},
-                {'$set': {'email.mid': mid}})
-
-            #--------------------------
-
-
-
-
-        except requests.exceptions.RequestException as e:
-            logger.error('Error sending email: %s', str(e))
-        else:
-            emails_sent += 1
-            logger.debug(r.text)
-
-
-
-    logger.info('Job_ID %s: %d emails sent', str(job_id), emails_sent)
-
-    return emails_sent
 
 #-------------------------------------------------------------------------------
 def get_jobs(args):
@@ -678,44 +274,43 @@ def rmv_msg(job_id, msg_id):
     return n
 
 #-------------------------------------------------------------------------------
-def reset_job(job_id):
-    n = db['reminders'].update(
-      {'job_id': ObjectId(job_id)},
-      {'$set': {
-        'voice.status': 'pending',
-        'voice.attempts': 0,
-        'email.status': 'pending'
-    },
-    '$unset': {
-        'custom.no_pickup': '',
-        'voice.sid': '',
-        'voice.answered_by': '',
-        'voice.ended_at': '',
-        'voice.speak': '',
-        'voice.code': '',
-        'voice.duration': '',
-        'voice.error': '',
-        'email.error': '',
-        'email.reason': '',
-        'email.code': ''
-        }
-    },
-    multi=True)
-
-    logger.info('%s reminders reset', n['nModified'])
-
-    n = db['jobs'].update(
-      {'_id': ObjectId(job_id)}, {
-        '$set': {
-            'status': 'pending',
+def reset_event(event_id):
+    event_id = ObjectId(event_id)
+    
+    db['notification_events'].update_one(
+        {'_id':event_id},
+        {'$set':{'status':'pending'}}
+    )
+         
+    n = db['notifications'].update(
+        {'event_id': event_id}, {
+            '$set': {
+                'status': 'pending',
+                'attempts': 0,
+            },
+            '$unset': {
+                'custom.no_pickup': '',
+                'sid': '',
+                'answered_by': '',
+                'ended_at': '',
+                'speak': '',
+                'code': '',
+                'duration': '',
+                'error': '',
+                'reason': '',
+                'code': ''
+            }
         },
-        '$unset': {
-            'voice.started_at': '',
-            'email.started_at': ''
-        }
-    })
+        multi=True
+    )
+         
+    db['triggers'].update(
+        {'event_id': event_id},
+        {'$set': {'status':'pending'}},
+        multi=True
+    )
 
-    logger.info('%s jobs reset', n['nModified'])
+    logger.info('%s notifications reset', n['nModified'])
 
 #-------------------------------------------------------------------------------
 def edit_msg(reminder_id, fields):

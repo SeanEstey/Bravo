@@ -1,3 +1,17 @@
+import logging
+from datetime import datetime,date,time
+
+
+from app import app, db, info_handler, error_handler, debug_handler
+from tasks import celery_app
+import utils
+
+logger = logging.getLogger(__name__)
+logger.addHandler(debug_handler)
+logger.addHandler(info_handler)
+logger.addHandler(error_handler)
+logger.setLevel(logging.DEBUG)
+
 
 #-------------------------------------------------------------------------------
 def add(event_id, _date, _time, _type):

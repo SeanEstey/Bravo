@@ -27,7 +27,7 @@ def add(event_id, _date, _time, _type):
         'event_id': event_id,
         'status': 'pending',
         'type': _type,
-        'fire_dt': utils.localize(datetime.combine(_date, _time))
+        'fire_dt': utils.naive_to_local(datetime.combine(_date, _time))
     })
 
     db['notification_events'].update_one(

@@ -55,44 +55,40 @@ def add(event_id, trig_id, _type, to, account, udf, content):
     })
 
 #-------------------------------------------------------------------------------
-def fire_voice_call(agency, notification):
+def send_voice_call(notification, twilio_conf):
     if notification['attempts'] >= app.config['MAX_CALL_ATTEMPTS']:
         return False
 
-    twilio = db['agencies'].find_one({'name':agency})['twilio']
-
     call = dial(
       notification['conf']['to'],
-      twilio['ph'],
-      twilio['keys']['main'],
+      twilio_conf['ph'],
+      twilio_conf['keys']['main'],
       app.config['PUB_URL'] + '/reminders/voice/play/on_answer.xml'
     )
 
     if isinstance(call, Exception):
         status = 'failed'
         logger.error('%s failed (%d: %s)',
-                    notification['conf']['to'], call.code, call.msg)
+                    notification['to'], call.code, call.msg)
     else:
         status = call.status
 
-    db['reminders'].update_one(
-        {'notifications.id': notification['id']},
-        {'$set':{
-            'notifications.$.status': status,
-            'notifications.$.sid': call.sid or None,
-            'notifications.$.code': call.code or None,
-            'notifications.$.error': call.error or None
-            },
-        '$inc': {
-            'notifications.$.attempts': 1
-    }})
-
+    db['notifications'].update_one(notification, {
+        '$set': {
+            'status': status,
+            'sid': call.sid or None,
+            'code': call.code or None,
+            'error': call.error or None
+        },
+        '$inc': {'attempts':1}
+    })
+    
     logger.info('Call %s for %s', call.status, notification['conf']['to'])
 
 #-------------------------------------------------------------------------------
-def fire_email(reminder, notification):
+def send_email(notification, mailgun_conf):
     data = {
-        "from": {'reminder_id': str(reminder['_id'])},
+        "from": {'reminder_id': str(notification['_id'])},
         "event_dt": reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local),
         "account": {
             "name": reminder['name'],
@@ -133,17 +129,21 @@ def fire_email(reminder, notification):
         {'$set': {'email.mid': mid}})
 
 #-------------------------------------------------------------------------------
+def send_sms(notification, twilio_conf):
+    return True
+    
+#-------------------------------------------------------------------------------
 def on_email_status(webhook):
     '''
     @webhook: webhook args POST'd by mailgun'''
 
-    db['reminders'].update_one(
+    db['notifications'].update_one(
       {'mid': webhook['Message-Id']},
       {'$set':{
-        "email.status": webhook['event'],
-        "email.code": webhook.get('code'),
-        "email.reason": webhook.get('reason'),
-        "email.error": webhook.get('error')
+        "status": webhook['event'],
+        "code": webhook.get('code'),
+        "reason": webhook.get('reason'),
+        "error": webhook.get('error')
       }}
     )
 

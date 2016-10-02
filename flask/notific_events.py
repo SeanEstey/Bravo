@@ -39,42 +39,6 @@ def add(agency, name, event_date):
     })['_id']
 
 #-------------------------------------------------------------------------------
-def get_list(args):
-    '''Display jobs for agency associated with current_user
-    If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
-    If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
-    Returns: list of job dict objects
-    '''
-
-    agency = db['users'].find_one({'user': current_user.username})['agency']
-
-    jobs = db['jobs'].find({'agency':agency})
-
-    if jobs:
-        jobs = jobs.sort('event_dt',-1).limit(app.config['JOBS_PER_PAGE'])
-
-    import pytz
-    # Convert naive UTC datetime objects to local
-    local = pytz.timezone("Canada/Mountain")
-
-    # Convert to list so we don't exhaust the cursor by modifying and
-    # can return iterable list
-    jobs = list(jobs)
-
-    for job in jobs:
-        if 'voice' in job:
-            job['voice']['fire_dt'] = job['voice']['fire_dt'].replace(tzinfo=pytz.utc).astimezone(local)
-
-        if 'email' in job:
-            job['email']['fire_dt'] = job['email']['fire_dt'].replace(tzinfo=pytz.utc).astimezone(local)
-
-        if 'event_dt' in job:
-            job['event_dt'] = job['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
-
-
-    return jobs
-
-#-------------------------------------------------------------------------------
 def reset(event_id):
     event_id = ObjectId(event_id)
     
@@ -112,6 +76,57 @@ def reset(event_id):
     )
 
     logger.info('%s notifications reset', n['nModified'])
+
+#-------------------------------------------------------------------------------
+def remove(event_id):
+    # remove all triggers, notifications, and event
+    event_id = ObjectId(event_id)
+    
+    n_notific = db['notifications'].remove({'event_id':event_id})
+
+    n_triggers = db['triggers'].remove({'event_id': event_id})
+    
+    db['notification_events'].remove({'_id': event_id})
+    
+    logger.info('Removed %s notifications and %s triggers', n_notific, n_triggers)
+    
+    return True
+
+#-------------------------------------------------------------------------------
+def get_list(args):
+    '''Display jobs for agency associated with current_user
+    If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
+    If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
+    Returns: list of job dict objects
+    '''
+
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+
+    jobs = db['jobs'].find({'agency':agency})
+
+    if jobs:
+        jobs = jobs.sort('event_dt',-1).limit(app.config['JOBS_PER_PAGE'])
+
+    import pytz
+    # Convert naive UTC datetime objects to local
+    local = pytz.timezone("Canada/Mountain")
+
+    # Convert to list so we don't exhaust the cursor by modifying and
+    # can return iterable list
+    jobs = list(jobs)
+
+    for job in jobs:
+        if 'voice' in job:
+            job['voice']['fire_dt'] = job['voice']['fire_dt'].replace(tzinfo=pytz.utc).astimezone(local)
+
+        if 'email' in job:
+            job['email']['fire_dt'] = job['email']['fire_dt'].replace(tzinfo=pytz.utc).astimezone(local)
+
+        if 'event_dt' in job:
+            job['event_dt'] = job['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
+
+
+    return jobs
 
 #-------------------------------------------------------------------------------
 def parse_csv(csvfile, import_fields):
@@ -164,22 +179,6 @@ def parse_csv(csvfile, import_fields):
         return False
 
     return buffer
-
-#-------------------------------------------------------------------------------
-def remove(event_id):
-    # remove all triggers, notifications, and event
-    event_id = ObjectId(event_id)
-    
-    n_notific = db['notifications'].remove({'event_id':event_id})
-
-    n_triggers = db['triggers'].remove({'event_id': event_id})
-    
-    db['notification_events'].remove({'_id': event_id})
-    
-    logger.info('Removed %s notifications and %s triggers', n_notific, n_triggers)
-    
-    return True
-
 
 #-------------------------------------------------------------------------------
 def submit_from(form, file):

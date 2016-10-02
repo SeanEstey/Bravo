@@ -57,11 +57,11 @@ def fire(event_id, trig_id):
             continue
 
         if notific['type'] == 'voice':
-            notifications.fire_voice_call(notific, agency_conf['twilio'])
+            notifications.send_voice_call(notific, agency_conf['twilio'])
         elif notification['type'] == 'sms':
-            notifications.fire_sms(notific, agency_conf['twilio'])
+            notifications.send_sms(notific, agency_conf['twilio'])
         elif notification['type'] == 'email':
-            notifications.fire_email(notific, agency_conf['mailgun'])
+            notifications.send_email(notific, agency_conf['mailgun'])
 
         count+=1
 

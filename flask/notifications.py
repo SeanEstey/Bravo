@@ -1,8 +1,9 @@
-import twilio.twiml
+import twilio
 import logging
 from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
 import requests
+from pymongo.collection import ReturnDocument
 from bson.objectid import ObjectId
 import bson.json_util
 import json
@@ -56,26 +57,36 @@ def add(event_id, trig_id, _type, to, account, udf, content):
 
 #-------------------------------------------------------------------------------
 def send_voice_call(notification, twilio_conf):
-    if notification['attempts'] >= app.config['MAX_CALL_ATTEMPTS']:
+    if notification.get('attempts') >= app.config['MAX_CALL_ATTEMPTS']:
         return False
+    
+    if notification['to'][0:2] != "+1":
+        to = "+1" + to
 
-    call = dial(
-      notification['conf']['to'],
-      twilio_conf['ph'],
-      twilio_conf['keys']['main'],
-      app.config['PUB_URL'] + '/reminders/voice/play/on_answer.xml'
-    )
-
-    if isinstance(call, Exception):
-        status = 'failed'
-        logger.error('%s failed (%d: %s)',
-                    notification['to'], call.code, call.msg)
-    else:
-        status = call.status
-
+    try:
+        twilio_client = twilio.rest.TwilioRestClient(
+          twilio_conf['keys']['main']['sid'],
+          twilio_conf['keys']['main']['auth_id']
+        )
+        
+        call = twilio_client.calls.create(
+          from_ = twilio['ph'],
+          to = to,
+          url = app.config['PUB_URL'] + '/reminders/voice/play/on_answer.xml',
+          status_callback = app.config['PUB_URL'] + '/reminders/voice/on_complete',
+          status_method = 'POST',
+          status_events = ["completed"],
+          method = 'POST',
+          if_machine = 'Continue'
+        )
+    except twilio.TwilioRestException as e:
+        logger.error(e)
+        
+    logger.debug(vars(call))
+    
     db['notifications'].update_one(notification, {
         '$set': {
-            'status': status,
+            'status': call.status,
             'sid': call.sid or None,
             'code': call.code or None,
             'error': call.error or None
@@ -83,7 +94,7 @@ def send_voice_call(notification, twilio_conf):
         '$inc': {'attempts':1}
     })
     
-    logger.info('Call %s for %s', call.status, notification['conf']['to'])
+    logger.info('Call %s for %s', call.status, notification['to'])
 
 #-------------------------------------------------------------------------------
 def send_email(notification, mailgun_conf):
@@ -160,7 +171,7 @@ def rmv_msg(job_id, msg_id):
 
 #-------------------------------------------------------------------------------
 def edit(notification_id, fields):
-    '''User editing a reminder value from GUI
+    '''User editing a notification value from GUI
     '''
 
     for fieldname, value in fields:
@@ -181,65 +192,20 @@ def edit(notification_id, fields):
         )
 
 #-------------------------------------------------------------------------------
-def dial(to, from_, twilio_keys, answer_url):
-    '''Returns twilio call object'''
-
-    if to[0:2] != "+1":
-        to = "+1" + to
-
-    try:
-        twilio_client = twilio.rest.TwilioRestClient(
-          twilio_keys['sid'],
-          twilio_keys['auth_id']
-        )
-        
-        call = twilio_client.calls.create(
-          from_ = from_,
-          to = to,
-          url = answer_url,
-          status_callback = app.config['PUB_URL'] + '/reminders/voice/on_complete',
-          status_method = 'POST',
-          status_events = ["completed"], # adding more status events adds cost
-          method = 'POST',
-          if_machine = 'Continue'
-        )
-
-        logger.debug(vars(call))
-
-    except twilio.TwilioRestException as e:
-        logger.error(e)
-
-        if not e.msg:
-            if e.code == 21216:
-                e.msg = 'not_in_service'
-            elif e.code == 21211:
-                e.msg = 'no_number'
-            elif e.code == 13224:
-                e.msg = 'invalid_number'
-            elif e.code == 13223:
-                e.msg = 'invalid_number_format'
-            else:
-                e.msg = 'unknown_error'
-        return e
-
-    return call
-
-#-------------------------------------------------------------------------------
-def get_voice_content(reminder, file_path):
+def get_voice_content(notification, template_key):
     '''Return rendered HMTL template as string
+    @notification: mongodb dict document
+    @template_key: name of content dict containing file path
     '''
 
-    # Localize datetimes
-    local = pytz.timezone("Canada/Mountain")
-    reminder['event_dt'] = reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
-
-    if reminder['custom']['future_pickup_dt']:
-        reminder['custom']['future_pickup_dt'] = reminder['custom']['future_pickup_dt'].replace(
-                tzinfo=pytz.utc).astimezone(local)
-
-    content = render_template(
-      file_path,
-      reminder=json.loads(bson_to_json(reminder))
+    # Go through all UDFs and convert UTC datetimes to local
+    for key, val in notificaton['account']['udf'].iteritems():
+        if isinstance(val, datetime):
+            notification['account']['udf'][key] = utils.utc_to_local(val)
+            
+    content = utils.render_html(
+      notificaton['content']['template'][template_key]['file'],
+      notification=json.loads(bson_to_json(notification))
     )
 
     content = content.replace("\n", "")
@@ -247,13 +213,13 @@ def get_voice_content(reminder, file_path):
 
     logger.debug('speak template: %s', content)
 
-    db['reminders'].update_one({'_id':reminder['_id']},{'$set':{'voice.speak':content}})
+    db['notifications'].update_one({'_id':notification['_id']},{'$set':{'speak':content}})
 
     return content
 
 #-------------------------------------------------------------------------------
 def get_voice_play_answer_response(args):
-    '''
+    '''User answered call. Get voice content.
     Return: twilio.twiml.Response
     '''
 
@@ -263,35 +229,29 @@ def get_voice_play_answer_response(args):
       args['To'], args['CallStatus'], args.get('AnsweredBy')
     )
 
-    reminder = db['reminders'].find_one_and_update(
-      {'voice.sid': args['CallSid']},
+    reminder = db['notifications'].find_one_and_update(
+      {'sid': args['CallSid']},
       {'$set': {
-        "voice.status": args['CallStatus'],
-        "voice.answered_by": args.get('AnsweredBy')}},
+        "status": args['CallStatus'],
+        "answered_by": args.get('AnsweredBy')}},
       return_document=ReturnDocument.AFTER)
-
-    job = db['jobs'].find_one({'_id':reminder['job_id']})
 
     # send_socket('update_msg',
     # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
 
-    # TODO: replace this test with reminder['voice']['conf']['source']
-
     voice = twilio.twiml.Response()
 
-    # A. Html template voice content
-    if job['schema']['type'] == 'reminder':
+    # Html template content or audio url?
+    
+    if notification['content']['source'] == 'template':
         content = get_voice_content(
-          reminder,
-          job['schema']['voice']['reminder']['file'])
-
+            notification, 
+            notification['content']['template']['default']['file']
+        )
+        
         voice.say(content, voice='alice')
-
-    # B. Audio recording. Play from source url
-    elif job['schema']['type'] == 'announce_voice':
-        voice.play(job['audio_url'])
-
-    # C. Other
+    elif notification['content']['source'] == 'audio_url':
+        voice.play(notification['content']['audio_url'])
     else:
         logger.error('Unknown schema type!')
         voice.say("Error!", voice='alice')
@@ -359,13 +319,13 @@ def call_event(args):
     logger.debug('call_event args: %s', args)
 
     if args['CallStatus'] == 'completed':
-        reminder = db['reminders'].find_one_and_update(
-          {'voice.sid': args['CallSid']},
+        reminder = db['notifications'].find_one_and_update(
+          {'sid': args['CallSid']},
           {'$set': {
-            "voice.status": args['CallStatus'],
-            "voice.ended_at": datetime.now(),
-            "voice.duration": args['CallDuration'],
-            "voice.answered_by": args.get('AnsweredBy')
+            'status': args['CallStatus'],
+            'ended_at': datetime.now(),
+            'duration': args['CallDuration'],
+            'answered_by': args.get('AnsweredBy')
           }},
           return_document=ReturnDocument.AFTER)
     else:

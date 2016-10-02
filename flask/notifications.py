@@ -38,63 +38,71 @@ logger.setLevel(logging.DEBUG)
 # TODO: write general add_job and add_reminder functions
 
 #-------------------------------------------------------------------------------
-def add_event(agency, name, date, triggers, schema):
+def add_event(agency, name, event_date):
     '''Creates a new job and adds to DB
     @conf: db.agencies->'reminders'
     Returns:
-      -Job dict with mongo '_id'
+      -id (ObjectId)
     '''
 
-    event_dt = pytz.timezone("Canada/Mountain").localize(
-        datetime.combine(date, time(8,0)),
-        is_dst=True)
-
-    return db['reminder_events'].insert_one({
+    return db['notification_events'].insert_one({
         'name': name,
         'agency': agency,
-        'event_dt': event_dt,
+        'event_dt': utils.localize(datetime.combine(event_date, time(8,0))),
         'status': 'pending',
         'opt_outs': 0,
-        'triggers': triggers
-        'schema': schema
-    })
+        'triggers': []
+        #'triggers': triggers
+        #'schema': schema
+    })['_id']
 
 #-------------------------------------------------------------------------------
-def add_trigger(agency, event_d, _type, conf, mediums=None):
-    '''Job triggers can be types ['phone', 'email'].
-    For 'phone', the 'mediums' key is added with list values ['sms', 'voice']
-    If both sms and voice in list, reminder will choose which to send
-    based on mobile/landline phone.
-    If mediums list has 1 element, reminders be of that type
+def add_trigger(event_id, _date, _time, _type):
+    '''Inserts new trigger to DB, updates event with it's id.
+    @_date: naive, non-localized datetime.date
+    @_time: naive, non-localized datetime.time
+    @_type: 'phone' or 'email'
     Returns:
-        -trigger id (ObjectId)'''
+        -id (ObjectId)
+    '''
 
-    return db['triggers'].insert_one({
+    trigger = db['triggers'].insert_one({
+        'event_id': event_id,
         'status': 'pending',
         'type': _type,
-        'fire_dt': pytz.timezone("Canada/Mountain").localize(
-            datetime.combine(
-                event_d + timedelta(days=conf['fire_days_delta']),
-                time(conf['fire_hour'], conf['fire_min'])
-            ),
-            is_dst=True
-        ),
-        'mediums': mediums
+        'fire_dt': utils.localize(datetime.combine(_date, _time))
     })
 
+    db['notification_events'].update_one(
+        {'_id':event_id},
+        {'$push':{'triggers':{'id':trigger['_id']}})
+
+    return trigger['_id']
+
 #-------------------------------------------------------------------------------
-def add_notification(agency, _type, account, trig_id, udf, conf):
+def add(event_id, trig_id, _type, to, account, udf, content):
+    '''Add a notification tied to an event and trigger
+    @type: one of ['sms', 'voice', 'email']
+    @content:
+        'source': 'template/audio_url',
+        'template': {'default':{'file':'path', 'subject':'email_sub'}}
+        'audio_url': 'url'
+    Returns:
+      -id (ObjectId)
+    '''
+
     db['notifications'].insert_one({
-        'status': 'pending',
-        'agency': agency,
-        'type': _type,
+        'event_id': event_id,
         'trig_id': trig_id,
+        'status': 'pending',
+        'to': to,
+        'type': _type,
         'account': {
             'name': account['name'],
             'id': account['id'],
             'udf': udf
         },
-        'conf': conf
+        'content': content
     })
 
 #-------------------------------------------------------------------------------
@@ -107,35 +115,20 @@ def monitor_jobs():
     monitor_pending_jobs()
     monitor_active_jobs()
 
-
-
 #-------------------------------------------------------------------------------
 def monitor_triggers():
     # Find all jobs with pending triggers
-    jobs = db['jobs'].find({},
-        {'triggers':{'$elemMatch':{'status':'pending'}}})
+    expired_triggers = db['triggers'].find(
+        {'status':'pending', 'fire_dt':{'$lt':datetime.utcnow()}})
 
-    num = 0
-    for job in jobs:
-        for trigger in job['triggers']:
-            if datetime.utcnow() < trigger['fire_dt']:
-                num+=1
-                print 'Job_ID %s: %s trigger pending in %s' % (str(job['_id']), trigger['type'],
-                str(trigger['fire_dt'] - datetime.utcnow()))
+    for trigger in expired_triggers:
+        # Start new job
+        db['triggers'].update_one(trigger, {'$set':{'status': 'fired'}})
 
-                continue
-
-            # Start new job
-            db['jobs'].update_one(
-                {'triggers.id':trigger['id']},
-                {'$set':{
-                    'status': 'in-progress',
-                    'triggers.$.status':'fired'}})
-
-            fire_trigger.apply_async(
-                args=(str(job['_id']), str(trigger['_id']),),
-                queue=app.config['DB']
-            )
+        fire_trigger.apply_async(
+            args=(str(job['_id']), str(trigger['_id']),),
+            queue=app.config['DB']
+        )
 
     if datetime.utcnow().minute == 0:
         logger.info('%d pending triggers', num)
@@ -186,6 +179,12 @@ def monitor_pending_jobs():
         # Make a server request to /reminders/<job_id>/execute if this doesn't
         # work
         send_calls.apply_async((str(job['_id']).encode('utf-8'),),queue=app.config['DB'])
+
+    #if datetime.utcnow() < trigger['fire_dt']:
+    #    num+=1
+    #    print 'Job_ID %s: %s trigger pending in %s' % (str(job['_id']), trigger['type'],
+    #    str(trigger['fire_dt'] - datetime.utcnow()))
+    #    continue
 
     if datetime.utcnow().minute == 0:
         logger.info('%d pending jobs', pending.count())
@@ -271,10 +270,9 @@ def monitor_active_jobs():
 
     return status
 
-
 #-------------------------------------------------------------------------------
 @celery_app.task
-def fire_trigger(job_id, trig_id):
+def fire_trigger(event_id, trig_id):
     trig_id = ObjectId(trig_id)
 
     reminders = db['reminders'].find({},

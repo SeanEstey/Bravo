@@ -1,4 +1,68 @@
 {
+  "notification_events": [
+    {
+        "name": "pickup_reminder",
+        "type": "reminder",
+        "description": "Vecova Bottle Service Reminder (Email/Voice)",
+        "email": {
+            "default": {
+                "file": "email/vec/reminder.html",
+                "subject": "Your upcoming Vecova Bottle Service pickup"
+            },
+            "no_pickup": {
+                "file": "email/vec/no_pickup.html",
+                "subject": "Thank you. You have been removed from this pickup schedule"
+            }
+        },
+        "voice": {
+            "default": {
+                "file": "voice/vec/reminder.html"
+            }
+        },
+        "sms": {
+            "default": {
+                "file": "sms/vec/reminder.html"
+            }
+        },
+        "import_fields": [
+          {"file_header": "Account", "db_field": "account_id",
+           "type":"string", "hide": true},
+          {"file_header": "Name", "db_field": "name", "type":"string"},
+          {"file_header": "Phone", "db_field": "voice.to" ,"type":"string"},
+          {"file_header": "Email", "db_field": "email.recipient",
+           "type":"string"},
+          {"file_header": "Block", "db_field": "custom.block", "type":"string"},
+          {"file_header": "Status", "db_field": "custom.status", "type":"string"},
+          {"file_header": "Next Pickup", "db_field": "event_dt", "type":"date"},
+          {"file_header": "Office Notes", "db_field": "custom.office_notes",
+           "type":"string"}
+        ]
+    }, 
+    {
+        "name": "text_announcement",
+        "type": "announce_text",
+        "description": "Voice Announcement (text)",
+        "import_fields": [
+            {"file_header": "Name", "db_field": "name"},
+            {"file_header": "Phone","db_field": "voice.to"}
+        ],
+        "voice": {
+            "file": "voice/vec/announce.html"
+        }
+    },
+    {
+        "name": "voice_announcement",
+        "type": "announce_voice",
+        "description": "Voice Announcement (recording)",
+        "import_fields": [
+            {"file_header": "Name", "db_field": "name"},
+            {"file_header": "Phone", "db_field": "voice.to"}
+        ],
+        "voice": {
+          "file": "voice/vec/announce.html"
+        }
+    }
+  ],
   "signups": {
     "welcome": {
       "file": "email/vec/welcome.html",
@@ -26,57 +90,5 @@
       "file": "email/vec/no_collection.html",
       "subject": "We didn't receive a collection from you"
     }
-  },
-  "reminders": [{
-    "name": "pickup_reminder",
-    "type": "reminder",
-    "description": "Vecova Bottle Service Reminder (Email/Voice)",
-    "import_fields": [
-      {"file_header": "Account", "db_field": "account_id", "type":"string", "hide": true},
-      {"file_header": "Name", "db_field": "name", "type":"string"},
-      {"file_header": "Phone", "db_field": "voice.to" ,"type":"string"},
-      {"file_header": "Email", "db_field": "email.recipient", "type":"string"},
-      {"file_header": "Block", "db_field": "custom.block", "type":"string"},
-      {"file_header": "Status", "db_field": "custom.status", "type":"string"},
-      {"file_header": "Next Pickup", "db_field": "event_dt", "type":"date"},
-      {"file_header": "Office Notes", "db_field": "custom.office_notes", "type":"string"}
-    ],
-    "email": {
-      "reminder": {
-        "file": "email/vec/reminder.html",
-        "subject": "Your upcoming Vecova Bottle Service pickup"
-      },
-      "no_pickup": {
-        "file": "email/vec/no_pickup.html",
-        "subject": "Thank you. You have been removed from this pickup schedule"
-      }
-    },
-    "voice": {
-      "reminder": {
-        "file": "voice/vec/reminder.html"
-      }
-    }
-  }, {
-    "name": "text_announcement",
-    "type": "announce_text",
-    "description": "Voice Announcement (text)",
-    "import_fields": [
-      {"file_header": "Name", "db_field": "name"},
-      {"file_header": "Phone","db_field": "voice.to"}
-    ],
-    "voice": {
-      "file": "voice/vec/announce.html"
-    }
-  }, {
-    "name": "voice_announcement",
-    "type": "announce_voice",
-    "description": "Voice Announcement (recording)",
-    "import_fields": [
-      {"file_header": "Name", "db_field": "name"},
-      {"file_header": "Phone", "db_field": "voice.to"}
-    ],
-    "voice": {
-      "file": "voice/vec/announce.html"
-    }
-  }]
+  }
 }

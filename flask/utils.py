@@ -1,9 +1,10 @@
-
 import requests
 import re
 from bson import json_util
 import json
 import logging
+import pytz
+from datetime import datetime
 
 from app import app, db, info_handler, error_handler, debug_handler
 
@@ -13,6 +14,9 @@ logger.addHandler(error_handler)
 logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
+
+def localize(dt):
+    return pytz.timezone("Canada/Mountain").localize(dt, is_dst=True)
 
 #-------------------------------------------------------------------------------
 def render_html(template, data):

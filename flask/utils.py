@@ -14,9 +14,13 @@ logger.addHandler(error_handler)
 logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
-
-def localize(dt):
+#-------------------------------------------------------------------------------
+def naive_to_local(dt):
     return pytz.timezone("Canada/Mountain").localize(dt, is_dst=True)
+
+#-------------------------------------------------------------------------------
+def utc_to_local(dt):
+    return dt.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Canada/Mountain"))
 
 #-------------------------------------------------------------------------------
 def render_html(template, data):
@@ -136,3 +140,50 @@ def to_title_case(s):
   s = re.sub(r'\"', '', s)
   s = re.sub(r'_', ' ', s)
   return s.title()
+
+
+#-------------------------------------------------------------------------------
+def dial(to, from_, twilio_keys, answer_url):
+    '''Returns twilio call object'''
+    import twilio
+    import twilio.twiml
+    
+    if to[0:2] != "+1":
+        to = "+1" + to
+
+    try:
+        twilio_client = twilio.rest.TwilioRestClient(
+          twilio_keys['sid'],
+          twilio_keys['auth_id']
+        )
+        
+        call = twilio_client.calls.create(
+          from_ = from_,
+          to = to,
+          url = answer_url,
+          status_callback = app.config['PUB_URL'] + '/reminders/voice/on_complete',
+          status_method = 'POST',
+          status_events = ["completed"], # adding more status events adds cost
+          method = 'POST',
+          if_machine = 'Continue'
+        )
+
+        logger.debug(vars(call))
+
+    except twilio.TwilioRestException as e:
+        logger.error(e)
+
+        if not e.msg:
+            if e.code == 21216:
+                e.msg = 'not_in_service'
+            elif e.code == 21211:
+                e.msg = 'no_number'
+            elif e.code == 13224:
+                e.msg = 'invalid_number'
+            elif e.code == 13223:
+                e.msg = 'invalid_number_format'
+            else:
+                e.msg = 'unknown_error'
+        return e
+
+    return call

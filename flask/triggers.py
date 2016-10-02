@@ -39,47 +39,52 @@ def add(event_id, _date, _time, _type):
 #-------------------------------------------------------------------------------
 @celery_app.task
 def fire(event_id, trig_id):
+    '''Send out all notifications for this trigger for given event
+    '''
+         
     trig_id = ObjectId(trig_id)
+    event_id = ObjectId(event_id)
+         
+    notific_event = db['notification_events'].find_one({'_id':event_id})
+    agency_conf = db['agencies'].find_one({'name':notific_event['agency']})
 
-    reminders = db['reminders'].find({},
-        {'notifications':{'$elemMatch':{'trig_id':trig_id}}})
+    notific_list = db['notifications'].find({'trig_id':trig_id})
 
-    num = 0
-    for reminder in reminders:
-        if 'no_pickup' in reminder['custom']:
+    count = 0
+         
+    for notific in notific_list:
+        if 'no_pickup' in notific['custom']:
             continue
 
-        notification = reminder['notification'][0]
-
-        if notification['type'] == 'voice':
-            fire_voice_call(reminder['agency'], notification)
+        if notific['type'] == 'voice':
+            notifications.fire_voice_call(notific, agency_conf['twilio'])
         elif notification['type'] == 'sms':
-            fire_sms(reminder['agency'], notification)
+            notifications.fire_sms(notific, agency_conf['twilio'])
         elif notification['type'] == 'email':
-            fire_email(reminder['agency'], notification)
+            notifications.fire_email(notific, agency_conf['mailgun'])
 
-        num+=1
+        count+=1
 
+    db['triggers'].update_one(trigger, {'$set':{'status': 'fired'}})
+         
     logger.info('trigger_id %s fired. %s notifications sent',
         str(trig_id), num)
-
+    
+    return True
 
 #-------------------------------------------------------------------------------
 def monitor_all():
-    # Find all jobs with pending triggers
-    expired_triggers = db['triggers'].find(
+    ready_triggers = db['triggers'].find(
         {'status':'pending', 'fire_dt':{'$lt':datetime.utcnow()}})
 
-    for trigger in expired_triggers:
-        # Start new job
-        db['triggers'].update_one(trigger, {'$set':{'status': 'fired'}})
-
-        fire_trigger.apply_async(
-            args=(str(job['_id']), str(trigger['_id']),),
+    for trigger in ready_triggers:
+        # Send notifications
+        fire.apply_async(
+            args=(str(trigger['event_id']), str(trigger['_id']),),
             queue=app.config['DB']
         )
-
-    if datetime.utcnow().minute == 0:
-        logger.info('%d pending triggers', num)
+    
+    #if datetime.utcnow().minute == 0:
+    #    logger.info('%d pending triggers', num)
 
     return True

@@ -1,3 +1,20 @@
+import logging
+from datetime import datetime,date,time,timedelta
+from dateutil.parser import parse
+from werkzeug import secure_filename
+import codecs
+from bson.objectid import ObjectId
+from flask.ext.login import current_user
+
+from app import app, db, info_handler, error_handler, debug_handler, socketio
+from tasks import celery_app
+
+logger = logging.getLogger(__name__)
+logger.addHandler(debug_handler)
+logger.addHandler(info_handler)
+logger.addHandler(error_handler)
+logger.setLevel(logging.DEBUG)
+
 
 #-------------------------------------------------------------------------------
 def add(agency, name, event_date):
@@ -19,7 +36,7 @@ def add(agency, name, event_date):
     })['_id']
 
 #-------------------------------------------------------------------------------
-def get(args):
+def get_list(args):
     '''Display jobs for agency associated with current_user
     If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
     If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
@@ -54,57 +71,7 @@ def get(args):
     return jobs
 
 #-------------------------------------------------------------------------------
-def create(job, schema, idx, buf_row, errors):
-    '''Create a Reminder document in MongoDB from file input row.
-    @job: MongoDB job record
-    @schema: template dict from reminder_templates.json file
-    @idx: .csv file row index (in case of error)
-    @buf_row: array of values from csv file
-    '''
-
-    reminder = {
-        "job_id": job['_id'],
-        "agency": job['agency'],
-        "voice": {
-          "status": "pending",
-          "attempts": 0,
-        },
-        "email": {
-          "status": "pending"
-        },
-        "custom": {}
-    }
-
-    try:
-        for i, field in enumerate(schema['import_fields']):
-            db_field = field['db_field']
-
-            # Format phone numbers
-            if db_field == 'voice.to':
-              buf_row[i] = strip_phone(buf_row[i])
-            # Convert any date strings to datetime obj
-            elif field['type'] == 'date':
-                try:
-                    local = pytz.timezone("Canada/Mountain")
-                    buf_row[i] = parse(buf_row[i]).replace(tzinfo=pytz.utc).astimezone(local)
-                except TypeError as e:
-                    errors.append('Row %d: %s <b>Invalid Date</b><br>',
-                                (idx+1), str(buf_row))
-
-            if db_field.find('.') == -1:
-                reminder[db_field] = buf_row[i]
-            else:
-                # dot notation means record is stored as sub-record
-                parent = db_field[0 : db_field.find('.')]
-                child = db_field[db_field.find('.')+1 : len(db_field)]
-                reminder[parent][child] = buf_row[i]
-        return reminder
-    except Exception as e:
-        logger.info('Error writing db reminder: %s', str(e))
-        return False
-
-#-------------------------------------------------------------------------------
-def reset_event(event_id):
+def reset(event_id):
     event_id = ObjectId(event_id)
     
     db['notification_events'].update_one(
@@ -195,18 +162,23 @@ def parse_csv(csvfile, import_fields):
     return buffer
 
 #-------------------------------------------------------------------------------
-def cancel_job(job_id):
-    n = db['jobs'].remove({'_id':ObjectId(job_id)})
+def remove(event_id):
+    # remove all triggers, notifications, and event
+    event_id = ObjectId(event_id)
+    
+    n_notific = db['notifications'].remove({'event_id':event_id})
 
-    if n is None:
-        logger.error('Could not remove job %s', job_id)
+    n_triggers = db['triggers'].remove({'event_id': event_id})
+    
+    db['notification_events'].remove({'_id': event_id})
+    
+    logger.info('Removed %s notifications and %s triggers', n_notific, n_triggers)
+    
+    return True
 
-    db['reminders'].remove({'job_id':ObjectId(job_id)})
-
-    logger.info('Removed Job [ID %s]', str(job_id))
 
 #-------------------------------------------------------------------------------
-def submit_job(form, file):
+def submit_from(form, file):
     '''POST request to create new job from new_job.html template'''
 
     # TODO: Add event_date field to form.
@@ -354,11 +326,11 @@ def submit_job(form, file):
         return {'status':'error', 'title':'error', 'msg':str(e)}
         
 #-------------------------------------------------------------------------------
-def job_print(job_id):
-    if isinstance(job_id, str):
-        job_id = ObjectId(job_id)
+def print(event_id):
+    if isinstance(event_id, str):
+        event_id = ObjectId(event_id)
 
-    job = db['jobs'].find_one({'_id':job_id})
+    job = db['notification_events'].find_one({'_id':event_id})
 
     if 'ended_at' in job:
         time_elapsed = (job['voice']['ended_at'] - job['voice']['started_at']).total_seconds()

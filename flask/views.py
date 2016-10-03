@@ -29,12 +29,12 @@ import sms
 #-------------------------------------------------------------------------------
 @app.route('/', methods=['GET'])
 @login_required
-def view_jobs():
+def view_events():
     agency = db['users'].find_one({'user': current_user.username})['agency']
-    events = notific_events.list(agency)
-    
+    events = notific_events.get_list(agency)
+
     return render_template(
-      'views/job_list.html',
+      'views/event_list.html',
       title=None,
       events=events
     )
@@ -173,7 +173,7 @@ def _build_sheet(job_id, route_id):
 #-------------------------------------------------------------------------------
 @app.route('/reminders/new')
 @login_required
-def new_job():
+def new_event():
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
     try:
@@ -183,34 +183,34 @@ def new_job():
         app.logger.error("Couldn't open json schemas file")
         return "Error"
 
-    return render_template('views/new_job.html', templates=templates, title=app.config['TITLE'])
+    return render_template('views/new_event.html', templates=templates, title=app.config['TITLE'])
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/submit_job', methods=['POST'])
+@app.route('/reminders/submit_event', methods=['POST'])
 @login_required
-def _submit_job():
+def _submit_event():
     try:
-        r = reminders.submit_job(request.form.to_dict(), request.files['call_list'])
+        r = reminders.submit_event(request.form.to_dict(), request.files['call_list'])
         return flask.Response(response=json.dumps(r), status=200, mimetype='application/json')
     except Exception as e:
-        app.logger.error('submit_job: %s', str(e))
+        app.logger.error('submit_event: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------
 @app.route('/reminders/<event_id>')
 @login_required
-def view_job(event_id):
+def view_event(event_id):
     sort_by = 'name'
-    
-    notific_list = db['notifications'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
-    
-    job = db['jobs'].find_one({'_id':ObjectId(job_id)})
+
+    notific_list = db['notifications'].find({'event_id':ObjectId(event_id)}).sort(sort_by, 1)
+
+    event = db['events'].find_one({'_id':ObjectId(event_id)})
 
     local = pytz.timezone("Canada/Mountain")
     job['voice']['fire_at'] = job['voice']['fire_at'].replace(tzinfo=pytz.utc).astimezone(local)
 
     return render_template(
-        'views/job.html',
+        'views/event.html',
         title=app.config['TITLE'],
         reminders=reminders,
         job_id=job_id,
@@ -219,36 +219,36 @@ def view_job(event_id):
     )
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<job_id>/cancel')
+@app.route('/reminders/<event_id>/cancel')
 @login_required
-def cancel_job(job_id):
-    reminders.cancel_job(job_id)
+def cancel_event(event_id):
+    reminders.cancel_event(event_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<job_id>/reset')
+@app.route('/reminders/<event_id>/reset')
 @login_required
-def reset_job(job_id):
-    reminders.reset_job(job_id)
+def reset_event(event_id):
+    reminders.reset_event(event_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<job_id>/send_emails')
+@app.route('/reminders/<event_id>/send_emails')
 @login_required
-def send_emails(job_id):
+def send_emails(event_id):
     reminders.send_emails.apply_async(
-            (job_id.encode('utf-8'),),
+            (event_id.encode('utf-8'),),
             queue=app.config['DB'])
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<job_id>/send_calls')
+@app.route('/reminders/<event_id>/send_calls')
 @login_required
-def send_calls(job_id):
-    job_id = job_id.encode('utf-8')
+def send_calls(event_id):
+    event_id = event_id.encode('utf-8')
 
-    # Start new job
-    db['jobs'].update_one(
+    # Start new event
+    db['events'].update_one(
       {'_id': ObjectId(job_id)},
       {'$set': {
         "status": "in-progress",

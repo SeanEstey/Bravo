@@ -32,26 +32,26 @@ def add(event_id, _date, _time, _type):
 
     db['notification_events'].update_one(
         {'_id':event_id},
-        {'$push':{'triggers':{'id':trigger['_id']}})
+        {'$push':{'triggers':{'id':trigger['_id']}}})
 
     return trigger['_id']
-    
+
 #-------------------------------------------------------------------------------
 @celery_app.task
 def fire(event_id, trig_id):
     '''Send out all notifications for this trigger for given event
     '''
-         
+
     trig_id = ObjectId(trig_id)
     event_id = ObjectId(event_id)
-         
+
     notific_event = db['notification_events'].find_one({'_id':event_id})
     agency_conf = db['agencies'].find_one({'name':notific_event['agency']})
 
     notific_list = db['notifications'].find({'trig_id':trig_id})
 
     count = 0
-         
+
     for notific in notific_list:
         if 'no_pickup' in notific['custom']:
             continue
@@ -66,13 +66,14 @@ def fire(event_id, trig_id):
         count+=1
 
     db['triggers'].update_one(trigger, {'$set':{'status': 'fired'}})
-         
+
     logger.info('trigger_id %s fired. %s notifications sent',
         str(trig_id), num)
-    
+
     return True
 
 #-------------------------------------------------------------------------------
+@celery_app.task
 def monitor_all():
     ready_triggers = db['triggers'].find(
         {'status':'pending', 'fire_dt':{'$lt':datetime.utcnow()}})
@@ -83,7 +84,7 @@ def monitor_all():
             args=(str(trigger['event_id']), str(trigger['_id']),),
             queue=app.config['DB']
         )
-    
+
     #if datetime.utcnow().minute == 0:
     #    logger.info('%d pending triggers', num)
 

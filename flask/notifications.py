@@ -93,36 +93,29 @@ def send_voice_call(notification, twilio_conf):
         },
         '$inc': {'attempts':1}
     })
-    
+
     logger.info('Call %s for %s', call.status, notification['to'])
 
 #-------------------------------------------------------------------------------
-def send_email(notification, mailgun_conf):
-    data = {
-        "from": {'reminder_id': str(notification['_id'])},
-        "event_dt": reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local),
-        "account": {
-            "name": reminder['name'],
-            "email": reminder['email']['conf']['recipient']
-        },
-        'cancel_pickup_url': \
-            "%s/reminders/%s/%s/cancel_pickup" %
-            (app.config['PUB_URL'], str(job['_id']), str(reminder['_id']))
-    }
-
-    # Merge dicts
-    data.update(reminder['custom'])
+def send_email(notification, mailgun_conf, key='default'):
+    '''
+    @key = dict key in email schemas for which template to use
+    '''
 
     body = utils.render_html(
-        reminder['email']['conf']['template'],
-        data
-    )
+        notification['content']['template']['email'][key]['file'],
+        data = {
+            'to': notification['to'],
+            'event_dt': utils.utc_to_local(notification['event_dt']),
+            'account': notification['account'],
+        })
 
     mid = utils.send_email(
         reminder['email']['conf']['recipient'],
         reminder['email']['conf']['subject'],
         body,
-        mailgun_conf)
+        mailgun_conf
+    )
 
     db['emails'].insert({
         'agency': job['agency'],
@@ -202,7 +195,7 @@ def get_voice_content(notification, template_key):
     for key, val in notificaton['account']['udf'].iteritems():
         if isinstance(val, datetime):
             notification['account']['udf'][key] = utils.utc_to_local(val)
-            
+
     content = utils.render_html(
       notificaton['content']['template'][template_key]['file'],
       notification=json.loads(bson_to_json(notification))

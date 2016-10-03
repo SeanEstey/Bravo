@@ -30,23 +30,21 @@ def add(agency, name, event_date):
     return db['notification_events'].insert_one({
         'name': name,
         'agency': agency,
-        'event_dt': utils.localize(datetime.combine(event_date, time(8,0))),
+        'event_dt': utils.naive_to_local(datetime.combine(event_date, time(8,0))),
         'status': 'pending',
         'opt_outs': 0,
         'triggers': []
-        #'triggers': triggers
-        #'schema': schema
-    })['_id']
+    }).inserted_id
 
 #-------------------------------------------------------------------------------
 def reset(event_id):
     event_id = ObjectId(event_id)
-    
+
     db['notification_events'].update_one(
         {'_id':event_id},
         {'$set':{'status':'pending'}}
     )
-         
+
     n = db['notifications'].update(
         {'event_id': event_id}, {
             '$set': {
@@ -68,7 +66,7 @@ def reset(event_id):
         },
         multi=True
     )
-         
+
     db['triggers'].update(
         {'event_id': event_id},
         {'$set': {'status':'pending'}},
@@ -81,19 +79,19 @@ def reset(event_id):
 def remove(event_id):
     # remove all triggers, notifications, and event
     event_id = ObjectId(event_id)
-    
+
     n_notific = db['notifications'].remove({'event_id':event_id})
 
     n_triggers = db['triggers'].remove({'event_id': event_id})
-    
+
     db['notification_events'].remove({'_id': event_id})
-    
+
     logger.info('Removed %s notifications and %s triggers', n_notific, n_triggers)
-    
+
     return True
 
 #-------------------------------------------------------------------------------
-def list(agency, max=10):
+def get_list(agency, max=10):
     '''Display jobs for agency associated with current_user
     If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
     If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
@@ -106,13 +104,13 @@ def list(agency, max=10):
 
     if events:
         events = events.sort('event_dt',-1).limit(app.config['JOBS_PER_PAGE'])
-        
+
     # Convert from cursor->list so re-iterable
     events = list(events)
-    
+
     for event in events:
         event['event_dt'] = utils.utc_to_local(event['event_dt'])
-  
+
     '''
     for job in jobs:
         if 'voice' in job:
@@ -130,9 +128,8 @@ def list(agency, max=10):
 #-------------------------------------------------------------------------------
 def get_notifications(event_id):
     notific_list = db['notifications'].find({'event_id':event_id})
-    
+
     # TODO: Group them by account['id']
-    
     return notific_list
 
 
@@ -335,9 +332,9 @@ def submit_from(form, file):
         logger.error(str(e))
 
         return {'status':'error', 'title':'error', 'msg':str(e)}
-        
+
 #-------------------------------------------------------------------------------
-def print(event_id):
+def _print(event_id):
     if isinstance(event_id, str):
         event_id = ObjectId(event_id)
 
@@ -369,7 +366,7 @@ def print(event_id):
     }
 
     return summary
-    
+
 #-------------------------------------------------------------------------------
 def email_summary(event_id):
     if isinstance(job_id, str):

@@ -11,6 +11,7 @@ import notific_events
 import notifications
 import triggers
 from app import app, db, info_handler, error_handler, debug_handler
+from tasks import celery_app
 
 logger = logging.getLogger(__name__)
 logger.addHandler(debug_handler)
@@ -110,10 +111,10 @@ def add_notification(event_id, trig_id, _type, account, schema):
       -True on success, False otherwise'''
 
     sms_enabled = False
-    
+
     npu = etap.get_udf('Next Pickup Date', account).split('/')
     npu = "%s/%s/%s T08:00:00" % (npu[1],npu[0],npu[2])
-    npu_dt = utils.localize(parse(npu))
+    npu_dt = utils.naive_to_local(parse(npu))
 
     udf = {
         "status": etap.get_udf('Status', account),
@@ -122,6 +123,9 @@ def add_notification(event_id, trig_id, _type, account, schema):
         "pickup_dt": npu_dt,
         "future_pickup_dt": None,
         "opted_out": False
+        "cancel_pickup_url": \
+            "%s/reminders/%s/%s/cancel_pickup" %
+            (app.config['PUB_URL'], str(event_id),account['id'])
     }
 
     if _type == 'phone':
@@ -186,7 +190,7 @@ def add_future_pickups(event_id):
 
             if block not in block_dates:
                 dt = parse(cal_event['start']['date'] + " T08:00:00")
-                block_dates[block] = utils.localize(dt)
+                block_dates[block] = utils.naive_to_local(dt)
 
         notific_list = db['notifications'].find({'event_id':event_id})
 
@@ -197,7 +201,7 @@ def add_future_pickups(event_id):
               notific['account']['udf']['office_notes'],
               block_dates
             )
-            
+
             if npu:
                 db['notifications'].update_one(notific, {
                     '$set':{'account.udf.future_pickup_dt':npu}
@@ -248,13 +252,15 @@ def cancel_pickup(event_id, account_id):
     Returns: True if no errors, False otherwise
     '''
     event_id = ObjectId(event_id)
-    
+
     logger.info('Cancelling pickup for \'%s\'', account_id)
 
     notific_list = db['notifications'].find({
         'account.id': account_id,
         'event_id': event_id
     })
+
+    email_notification = None
 
     # Outdated/in-progress or deleted job?
     if notific_list == None:
@@ -263,87 +269,50 @@ def cancel_pickup(event_id, account_id):
             'Couldnt find notification for event_id %s',
             account_id, str(event_id))
         return False
-    
-    for notific in notific_list:
+
+    notific_list = list(notific_list)
+
+    for notification in notific_list:
+        if notification['type'] == 'email':
+            email_notification = notification
+
         # Already cancelled?
-        if notific['account']['udf']['opt-out'] == True:
+        if notification['account']['udf']['opt-out'] == True:
             logger.info(
                 'Account %s already opted-out. Ignoring request.',
                 account_id)
             return False
-        
-        db['notifications'].update_one(notific, {
+
+        db['notifications'].update_one(notification, {
             '$set': {
                 'status': 'cancelled',
                 'account.udf.opted_out': True
             }})
-        
-        if notific['account']['udf']['future_pickup_dt'] == None:
+
+        if notification['account']['udf']['future_pickup_dt'] == None:
             logger.error(
                 'Account %s missing future pickup date (event_id %s)',
                 str(event_id))
-        
-    # Update eTapestry account
-    
+        else:
+            future_pickup_dt = notification['account']['udf']['future_pickup_dt']
+
     event = db['notification_events'].find_one({'_id':event_id})
 
-    msg = 'No Pickup ' + reminder['event_dt'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d')
- 
-    #job = db['jobs'].find_one({'_id':reminder['job_id']})
+    msg = 'No Pickup ' + utils.utc_to_local(event['event_dt']).strftime('%A, %B %d')
 
-    local = pytz.timezone("Canada/Mountain")
-    no_pickup = 
-
-
-
-    #db['jobs'].update_one({'_id':job['_id']}, {'$inc':{'no_pickups':1}})
-
-    # send_socket('update_msg', {
-    #  'id': str(msg['_id']),
-    #  'office_notes':no_pickup
-    #  })
-
-    job = db['jobs'].find_one({'_id':reminder['job_id']})
-    etap_id = db['agencies'].find_one({'name':job['agency']})['etapestry']
+    agency_conf = db['agencies'].find_one({'name':event['agency']})
 
     try:
         # Write to eTapestry
-        etap.call('no_pickup', etap_id, {
-          "account": reminder['account_id'],
-          "date": reminder['event_dt'].strftime('%d/%m/%Y'),
-          "next_pickup": reminder['custom']['future_pickup_dt'].strftime('%d/%m/%Y')
+        etap.call('no_pickup', agency_conf['etapestry'], data={
+            "account": account_id,
+            "date": event['event_dt'].strftime('%d/%m/%Y'),
+            "next_pickup": utils.utc_to_local(future_pickup_dt).strftime('%d/%m/%Y')
         })
     except Exception as e:
         logger.error("Error writing to eTap: %s", str(e))
 
-    # Send email w/ next pickup
-    if 'future_pickup_dt' in reminder['custom']:
-        local = pytz.timezone("Canada/Mountain")
-        next_pickup_str = reminder['custom']['future_pickup_dt'].replace(tzinfo=pytz.utc).astimezone(local).strftime('%A, %B %d')
-
-        data = {
-          "agency": job['agency'],
-          "recipient": reminder['email']['recipient'],
-          "template": job['schema']['email']['no_pickup']['file'],
-          "subject": job['schema']['email']['no_pickup']['subject'],
-          "data": {
-            "name": reminder['name'],
-            "from": reminder['email']['recipient'],
-            "next_pickup": next_pickup_str,
-            "account": {
-              "email": reminder['email']['recipient']
-            }
-          }
-        }
-
-        try:
-            requests.post(
-              app.config['LOCAL_URL'] + '/email/send', json=data)
-
-            logger.info('Emailed Next Pickup to %s', reminder['email']['recipient'])
-        except Exception as e:
-            logger.error("Error sending no_pickup followup email: %s", str(e))
-            return False
+    notifications.send_email(email_notification, key='no_pickup')
 
     return True
 

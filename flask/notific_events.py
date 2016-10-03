@@ -93,28 +93,27 @@ def remove(event_id):
     return True
 
 #-------------------------------------------------------------------------------
-def get_list(args):
+def list(agency, max=10):
     '''Display jobs for agency associated with current_user
     If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
     If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
-    Returns: list of job dict objects
+    Returns: list of notification_event dict objects
     '''
 
-    agency = db['users'].find_one({'user': current_user.username})['agency']
+    #agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    jobs = db['jobs'].find({'agency':agency})
+    events = db['notification_events'].find({'agency':agency})
 
-    if jobs:
-        jobs = jobs.sort('event_dt',-1).limit(app.config['JOBS_PER_PAGE'])
-
-    import pytz
-    # Convert naive UTC datetime objects to local
-    local = pytz.timezone("Canada/Mountain")
-
-    # Convert to list so we don't exhaust the cursor by modifying and
-    # can return iterable list
-    jobs = list(jobs)
-
+    if events:
+        events = events.sort('event_dt',-1).limit(app.config['JOBS_PER_PAGE'])
+        
+    # Convert from cursor->list so re-iterable
+    events = list(events)
+    
+    for event in events:
+        event['event_dt'] = utils.utc_to_local(event['event_dt'])
+  
+    '''
     for job in jobs:
         if 'voice' in job:
             job['voice']['fire_dt'] = job['voice']['fire_dt'].replace(tzinfo=pytz.utc).astimezone(local)
@@ -124,9 +123,18 @@ def get_list(args):
 
         if 'event_dt' in job:
             job['event_dt'] = job['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
+    '''
 
+    return events
 
-    return jobs
+#-------------------------------------------------------------------------------
+def get_notifications(event_id):
+    notific_list = db['notifications'].find({'event_id':event_id})
+    
+    # TODO: Group them by account['id']
+    
+    return notific_list
+
 
 #-------------------------------------------------------------------------------
 def parse_csv(csvfile, import_fields):

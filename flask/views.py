@@ -18,7 +18,7 @@ import wsf
 from log import get_tail
 from auth import login, logout
 from routing import get_orders,submit_job,build_route,get_upcoming_routes,build_todays_routes
-import reminders
+import notific_events
 import receipts
 import gsheets
 import scheduler
@@ -30,10 +30,13 @@ import sms
 @app.route('/', methods=['GET'])
 @login_required
 def view_jobs():
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+    events = notific_events.list(agency)
+    
     return render_template(
       'views/job_list.html',
       title=None,
-      jobs=reminders.get_jobs(request.args.values())
+      events=events
     )
 
 #-------------------------------------------------------------------------------
@@ -167,7 +170,6 @@ def _build_sheet(job_id, route_id):
     build_route(route_id, job_id=job_id)
     return redirect(app.config['PUB_URL'] + '/routing')
 
-
 #-------------------------------------------------------------------------------
 @app.route('/reminders/new')
 @login_required
@@ -195,11 +197,13 @@ def _submit_job():
         return False
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<job_id>')
+@app.route('/reminders/<event_id>')
 @login_required
-def view_job(job_id):
+def view_job(event_id):
     sort_by = 'name'
-    reminders = db['reminders'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
+    
+    notific_list = db['notifications'].find({'job_id':ObjectId(job_id)}).sort(sort_by, 1)
+    
     job = db['jobs'].find_one({'_id':ObjectId(job_id)})
 
     local = pytz.timezone("Canada/Mountain")

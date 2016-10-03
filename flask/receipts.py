@@ -35,18 +35,32 @@ def on_email_status(webhook):
       {'mid': webhook['Message-Id']},
       {'$set': {'status':webhook['event']}})
 
-
-    if email['on_status']['command'] == 'update_sheet':
-        # Update Google Sheets
-        try:
-            gsheets.update_entry(
-              email['agency'],
-              webhook['event'],
-              email['on_status']['target']
-            )
-        except Exception as e:
-            app.logger.error("Error writing to Google Sheets: " + str(e))
-            return 'Failed'
+    #--------------- old wsf path ------------------
+    if email['agency'] == 'wsf':
+        if email.get('on_status_update'):
+            if email['on_status_update'].get('worksheet'):
+                try:
+                    gsheets.update_entry(
+                      email['agency'],
+                      webhook['event'],
+                      email['on_status_update']
+                    )
+                except Exception as e:
+                    app.logger.error("Error writing to Google Sheets: " + str(e))
+                    return 'Failed'
+    #-------------------- ------------------
+    else:
+        if email['on_status']['command'] == 'update_sheet':
+            # Update Google Sheets
+            try:
+                gsheets.update_entry(
+                  email['agency'],
+                  webhook['event'],
+                  email['on_status']['target']
+                )
+            except Exception as e:
+                app.logger.error("Error writing to Google Sheets: " + str(e))
+                return 'Failed'
 
 #-------------------------------------------------------------------------------
 def send_receipt(agency, account, entry, template, subject):
@@ -95,7 +109,7 @@ def send_receipt(agency, account, entry, template, subject):
             }
         })
     # Old WSF path
-    else:
+    elif agency == 'wsf':
         try:
             r = requests.post(LOCAL_URL + '/email/send', json={
                 "agency": agency,

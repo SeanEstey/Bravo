@@ -59,7 +59,7 @@ def add(event_id, trig_id, _type, to, account, udf, content):
 def send_voice_call(notification, twilio_conf):
     if notification.get('attempts') >= app.config['MAX_CALL_ATTEMPTS']:
         return False
-    
+
     if notification['to'][0:2] != "+1":
         to = "+1" + to
 
@@ -68,7 +68,7 @@ def send_voice_call(notification, twilio_conf):
           twilio_conf['keys']['main']['sid'],
           twilio_conf['keys']['main']['auth_id']
         )
-        
+
         call = twilio_client.calls.create(
           from_ = twilio['ph'],
           to = to,
@@ -81,9 +81,9 @@ def send_voice_call(notification, twilio_conf):
         )
     except twilio.TwilioRestException as e:
         logger.error(e)
-        
+
     logger.debug(vars(call))
-    
+
     db['notifications'].update_one(notification, {
         '$set': {
             'status': call.status,

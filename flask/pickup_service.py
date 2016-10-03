@@ -122,7 +122,7 @@ def add_notification(event_id, trig_id, _type, account, schema):
         "block": etap.get_udf('Block', account),
         "pickup_dt": npu_dt,
         "future_pickup_dt": None,
-        "opted_out": False
+        "opted_out": False,
         "cancel_pickup_url": \
             "%s/reminders/%s/%s/cancel_pickup" %
             (app.config['PUB_URL'], str(event_id),account['id'])

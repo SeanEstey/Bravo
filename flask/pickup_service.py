@@ -3,15 +3,16 @@ import json
 from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from bson.objectid import ObjectId
+from bson import json_util
 
 import utils
+import block_parser
 import scheduler
 import etap
 import notific_events
 import notifications
 import triggers
 from app import app, db, info_handler, error_handler, debug_handler
-from tasks import celery_app
 
 logger = logging.getLogger(__name__)
 logger.addHandler(debug_handler)
@@ -20,12 +21,12 @@ logger.addHandler(error_handler)
 logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+#@celery_app.task
 def schedule_reminder_events():
     '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
     '''
 
-    DAYS_IN_ADVANCE_TO_SCHEDULE = 3
+    DAYS_IN_ADVANCE_TO_SCHEDULE = 6
     agency = 'vec'
 
     agency_conf = db['agencies'].find_one({'name':agency})
@@ -34,7 +35,7 @@ def schedule_reminder_events():
     block_date = date.today() + timedelta(days=DAYS_IN_ADVANCE_TO_SCHEDULE)
 
     for key in agency_conf['cal_ids']:
-        blocks += get_blocks(
+        blocks += scheduler.get_blocks(
             agency_conf['cal_ids'][key],
             datetime.combine(block_date,time(8,0)),
             datetime.combine(block_date,time(9,0)),
@@ -60,7 +61,7 @@ def schedule_reminder_events():
                 data={
                     'query':block,
                     'query_category':agency_conf['etapestry']['query_category']
-                })
+                })['data']
         except Exception as e:
             logger.error('Error retrieving accounts for query %s', block)
 
@@ -82,16 +83,20 @@ def schedule_reminder_events():
             elif conf['type'] == 'email':
                 email_trig_id = triggers.add(event_id, _date, _time, 'email')
 
+        event_dt = utils.naive_to_local(datetime.combine(block_date,time(8,0)))
+
         # Add notifications
         for account in accounts:
+            logger.debug(json.dumps(account))
+
             npu = etap.get_udf('Next Pickup Date', account).split('/')
 
             if len(npu) < 3:
                 logger.error('Account %s missing npu. Skipping.', account['id'])
                 continue
 
-            add_notification(event_id, phone_trig_id, 'phone', account, schema)
-            add_notification(event_id, email_trig_id, 'email', account, schema)
+            add_notification(event_id, event_dt, phone_trig_id, 'phone', account, schema)
+            add_notification(event_id, event_dt, email_trig_id, 'email', account, schema)
 
         add_future_pickups(str(event_id))
 
@@ -103,7 +108,7 @@ def schedule_reminder_events():
     return True
 
 #-------------------------------------------------------------------------------
-def add_notification(event_id, trig_id, _type, account, schema):
+def add_notification(event_id, event_dt, trig_id, _type, account, schema):
     '''Adds an event reminder for given job
     @schema: pickup_reminder notification_event schema
     @_type: one of ['phone', 'email']
@@ -129,11 +134,11 @@ def add_notification(event_id, trig_id, _type, account, schema):
     }
 
     if _type == 'phone':
-        if not etap.get_phone(account):
+        if not etap.get_primary_phone(account):
             return False
 
         notifications.add(
-            event_id, trig_id, 'voice',
+            event_id, event_dt, trig_id, 'voice',
             etap.get_primary_phone(account), account, udf,
             content={
               'source':'template',
@@ -144,7 +149,7 @@ def add_notification(event_id, trig_id, _type, account, schema):
             return False
 
         notifications.add(
-            event_id, trig_id, 'email',
+            event_id, event_dt, trig_id, 'email',
             account.get('email'), account, udf,
             content={
                 'source': 'template',
@@ -154,7 +159,7 @@ def add_notification(event_id, trig_id, _type, account, schema):
     return True
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+#@celery_app.task
 def add_future_pickups(event_id):
     '''Update all reminders for given job with their future pickup dates to
     relay to opt-outs
@@ -170,7 +175,7 @@ def add_future_pickups(event_id):
 
     start = event['event_dt'] + timedelta(days=1)
     end = start + timedelta(days=90)
-    events = []
+    cal_events = []
 
     try:
         for key in agency_conf['cal_ids']:
@@ -195,7 +200,7 @@ def add_future_pickups(event_id):
         notific_list = db['notifications'].find({'event_id':event_id})
 
         # Update future pickups for every notification under this event
-        for notific in notific__list:
+        for notific in notific_list:
             npu = get_next_pickup(
               notific['account']['udf']['block'],
               notific['account']['udf']['office_notes'],
@@ -223,7 +228,7 @@ def get_next_pickup(blocks, office_notes, block_dates):
     # TODO: Handle multiple RMV BLK strings in office_notes
 
     if office_notes:
-        rmv = block_to_rmv(office_notes)
+        rmv = block_parser.block_to_rmv(office_notes)
 
         if rmv:
             block_list.remove(rmv)
@@ -244,14 +249,15 @@ def get_next_pickup(blocks, office_notes, block_dates):
 
 
 #-------------------------------------------------------------------------------
-@celery_app.task
-def cancel_pickup(event_id, account_id):
+#@celery_app.task
+def _cancel(event_id, account_id):
     '''Update users eTapestry account with next pickup date and send user
     confirmation email
     @reminder_id: string form of ObjectId
     Returns: True if no errors, False otherwise
     '''
     event_id = ObjectId(event_id)
+    account_id = int(account_id)
 
     logger.info('Cancelling pickup for \'%s\'', account_id)
 
@@ -277,7 +283,7 @@ def cancel_pickup(event_id, account_id):
             email_notification = notification
 
         # Already cancelled?
-        if notification['account']['udf']['opt-out'] == True:
+        if notification['account']['udf']['opted_out'] == True:
             logger.info(
                 'Account %s already opted-out. Ignoring request.',
                 account_id)
@@ -289,12 +295,12 @@ def cancel_pickup(event_id, account_id):
                 'account.udf.opted_out': True
             }})
 
-        if notification['account']['udf']['future_pickup_dt'] == None:
+        if not notification['account']['udf'].get('future_pickup_dt'):
             logger.error(
                 'Account %s missing future pickup date (event_id %s)',
                 str(event_id))
         else:
-            future_pickup_dt = notification['account']['udf']['future_pickup_dt']
+            future_pickup_dt = notification['account']['udf'].get('future_pickup_dt')
 
     event = db['notification_events'].find_one({'_id':event_id})
 
@@ -312,12 +318,12 @@ def cancel_pickup(event_id, account_id):
     except Exception as e:
         logger.error("Error writing to eTap: %s", str(e))
 
-    notifications.send_email(email_notification, key='no_pickup')
+    notifications.send_email(email_notification, agency_conf['mailgun'], key='no_pickup')
 
     return True
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+#@celery_app.task
 def set_no_pickup(url, params):
     r = requests.get(url, params=params)
 

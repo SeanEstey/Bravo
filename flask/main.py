@@ -17,6 +17,7 @@ if __name__ == "__main__":
               "' | awk '{print $2}' | xargs kill -9")
 
     # Create workers
+    # -A celery app instance to use
     os.system('celery worker -A tasks.celery_app -B -n ' + \
               app.config['DB'] + ' --queues ' + app.config['DB'] + ' &')
 

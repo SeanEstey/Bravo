@@ -1,72 +1,38 @@
-from celery.schedules import crontab
 from celery import Celery
-from datetime import timedelta
+from bson.objectid import ObjectId
 
-#-------------------------------------------------------------------------------
-def make_celery(app):
-    CELERY_BROKER_URL = 'amqp://'
-    celery = Celery(app.name, broker=CELERY_BROKER_URL)
-    celery.conf.update(app.config)
-    TaskBase = celery.Task
-    class ContextTask(TaskBase):
-        abstract = True
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return TaskBase.__call__(self, *args, **kwargs)
-    celery.Task = ContextTask
-    return celery
+celery_app = Celery(include=['tasks'])
+celery_app.config_from_object('celeryconfig')
 
-#from config import DB
-from app import app
-
-celery_app = make_celery(app)
-celery_app.config_from_object('tasks')
-
-# Load in registered functions
+# Register tasks from modules
 from wsf import add_signup
 from gsheets import create_rfu
 from triggers import fire, monitor_all
-from pickup_service import add_future_pickups, schedule_reminder_events,cancel_pickup
+from pickup_service import add_future_pickups, schedule_reminder_events, _cancel
 from routing import build_route, build_todays_routes
 from receipts import process
 from scheduler import analyze_non_participants
 from sms import update_scheduled_accounts_for_sms
 
+@celery_app.task
+def monitor_triggers():
+    monitor_all()
 
-# Celery
-BROKER_URI= 'amqp://'
-CELERY_BROKER_URL = 'amqp://'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'Canada/Mountain'
-CELERY_ENABLE_UTC = False
-CELERYD_TASK_TIME_LIMIT = 3000
-CELERYD_CONCURRENCY = 1
-CELERYBEAT_SCHEDULE = {
-  'get_non_participants': {
-    'task': 'scheduler.analyze_non_participants',
-    'schedule': crontab(hour=6, minute=00, day_of_week='*'),
-    'options': { 'queue': app.config['DB'] }
-  },
-  'update_sms_accounts': {
-      'task': 'sms.update_scheduled_accounts_for_sms',
-      'schedule': crontab(hour=5, minute=00, day_of_week='*'),
-      'options': { 'queue': app.config['DB'] }
-  },
-  'setup_reminders': {
-      'task': 'scheduler.setup_reminder_jobs',
-      'schedule': crontab(hour=7, minute=00, day_of_week='*'),
-      'options': { 'queue': app.config['DB'] }
-  },
-  'create_routes': {
-      'task': 'routing.build_todays_routes',
-      'schedule': crontab(hour=7, minute=10, day_of_week='*'),
-      'options': { 'queue': app.config['DB'] }
-  },
-  #'check_jobs': {
-  #  'task': 'reminders.monitor_jobs',
-  #  'schedule': crontab(minute='*/5'),
-  #  'options': { 'queue': app.config['DB'] }
-  #},
-}
+@celery_app.task
+def process_receipts(entries, etapestry_id):
+    process(entries, etapestry_id)
+
+@celery_app.task
+def make_rfu(agency, request_note, account_number=None, next_pickup=None,
+            block=None, date=None, name_address=None):
+    create_rfu(agency, request_note, account_number=account_number,
+            next_pickup=next_pickup, block=block, date=date,
+            name_address=name_address)
+
+@celery_app.task
+def cancel_pickup(event_id, account_id):
+    _cancel(event_id, account_id)
+
+@celery_app.task
+def fire_trigger(event_id, trig_id):
+    fire(ObjectId(event_id), ObjectId(trig_id))

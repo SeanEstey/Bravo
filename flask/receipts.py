@@ -10,7 +10,6 @@ from flask import render_template
 import gsheets
 import etap
 from app import app, db, info_handler, error_handler, debug_handler
-from tasks import celery_app
 from config import *
 import utils
 
@@ -50,17 +49,15 @@ def on_email_status(webhook):
                     return 'Failed'
     #-------------------- ------------------
     else:
-        if email['on_status']['command'] == 'update_sheet':
-            # Update Google Sheets
-            try:
-                gsheets.update_entry(
-                  email['agency'],
-                  webhook['event'],
-                  email['on_status']['target']
-                )
-            except Exception as e:
-                app.logger.error("Error writing to Google Sheets: " + str(e))
-                return 'Failed'
+        try:
+            gsheets.update_entry(
+              email['agency'],
+              webhook['event'],
+              email['on_status']['update']
+            )
+        except Exception as e:
+            app.logger.error("Error writing to Google Sheets: " + str(e))
+            return 'Failed'
 
 #-------------------------------------------------------------------------------
 def send_receipt(agency, account, entry, template, subject):
@@ -72,9 +69,9 @@ def send_receipt(agency, account, entry, template, subject):
     logger.debug('%s %s', str(account['id']), template)
 
     if agency == 'vec':
-        conf = db['agencies'].find_one({'name':agency})
+        agency_conf = db['agencies'].find_one({'name':agency})
 
-        body = utils.render_html(template, {
+        body = utils.render_html(template, data={
             "entry": entry,
             "from": entry['from'],
             "account": account
@@ -86,26 +83,24 @@ def send_receipt(agency, account, entry, template, subject):
         # Add Journal note
         etap.call(
             'add_note',
-            conf['etapestry'], {
+            agency_conf['etapestry'],
+            data={
                 'id': account['id'],
                 'Note': 'Collection Receipt:]\n' + utils.clean_html(body),
-                'Date': etap.dt_to_ddmmyyyy(parse(entry['date']))},
-            silence_exceptions=True
+                'Date': etap.dt_to_ddmmyyyy(parse(entry['date']))
+            },
+            silence_exceptions=False
         )
 
-        logger.debug(response.text)
-
-        mid = utils.send_email(account['email'], subject, body, conf['mailgun'])
+        mid = utils.send_email(account['email'], subject, body, agency_conf['mailgun'])
 
         db['emails'].insert({
-            'agency': args['agency'],
+            'agency': agency,
             'mid': mid,
             'type': 'receipt',
             'status': 'queued',
             'on_status': {
-                'command': 'update_sheet',
-                # contains worksheet, row, upload_status
-                'target': entry['from']
+                'update': entry['from']
             }
         })
     # Old WSF path
@@ -127,7 +122,6 @@ def send_receipt(agency, account, entry, template, subject):
             account['id'], str(e))
 
 #-------------------------------------------------------------------------------
-@celery_app.task
 def process(entries, etapestry_id):
     '''Celery process that sends email receipts to entries in Bravo
     Sheets->Routes worksheet. Lots of account data retrieved from eTap
@@ -268,6 +262,8 @@ def process(entries, etapestry_id):
 
         for i in range(0, len(gift_accounts)):
             try:
+                logger.debug('gift_history: %s', str(gift_histories[i]))
+
                 for a_gift in gift_histories[i]:
                     a_date = parse(a_gift['date'])
                     a_gift['date'] = a_date.strftime('%B %-d, %Y')
@@ -275,7 +271,9 @@ def process(entries, etapestry_id):
                 gift_accounts[i]['account']['gift_history'] = gift_histories[i]
                 entry = gift_accounts[i]['entry']
 
-                if entry['next_pickup']:
+                logger.debug('entry: %s' + str(entry))
+
+                if entry.get('next_pickup'):
                     npu = parse(entry['next_pickup']).date()
                     entry['next_pickup'] = npu.strftime('%B %-d, %Y')
 
@@ -287,7 +285,7 @@ def process(entries, etapestry_id):
                   schemas['collection']['subject'])
             except Exception as e:
                 logger.error('Error processing gift receipt on row #%s: %s',
-                            str(entry['row']), str(e)
+                            str(entry['from']['row']), str(e)
                 )
 
     logger.info('Receipts: \n' +

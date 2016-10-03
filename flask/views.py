@@ -19,7 +19,10 @@ from log import get_tail
 from auth import login, logout
 from routing import get_orders,submit_job,build_route,get_upcoming_routes,build_todays_routes
 import notific_events
+import pickup_service
+import tasks
 import receipts
+import notifications
 import gsheets
 import scheduler
 import etap
@@ -286,11 +289,14 @@ def edit_msg(reminder_id):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<job_id>/<msg_id>/cancel_pickup', methods=['GET'])
-def no_pickup(job_id, msg_id):
+@app.route('/reminders/<event_id>/<account_id>/cancel_pickup', methods=['GET'])
+def no_pickup(event_id, account_id):
     '''Script run via reminder email'''
 
-    reminders.cancel_pickup.apply_async((msg_id,), queue=app.config['DB'])
+    tasks.cancel_pickup.apply_async(
+        (event_id, account_id),
+        queue=app.config['DB'])
+
     return 'Thank You'
 
 #-------------------------------------------------------------------------------
@@ -431,7 +437,7 @@ def get_answer_xml():
     '''
 
     try:
-        voice = reminders.get_voice_play_answer_response(request.form.to_dict())
+        voice = notifications.get_voice_play_answer_response(request.form.to_dict())
     except Exception as e:
         app.logger.error('/reminders/voice/play/on_answer.xml: %s', str(e))
         return flask.Response(response="Error", status=500, mimetype='text/xml')
@@ -448,7 +454,7 @@ def get_interact_xml():
     '''
 
     try:
-        voice = reminders.get_voice_play_interact_response(request.form.to_dict())
+        voice = notifications.get_voice_play_interact_response(request.form.to_dict())
     except Exception as e:
         app.logger.error('/reminders/voice/play/on_interact.xml: %s', str(e))
         return flask.Response(response="Error", status=500, mimetype='text/xml')
@@ -461,7 +467,7 @@ def get_interact_xml():
 def call_event():
     '''Twilio callback'''
 
-    reminders.call_event(request.form.to_dict())
+    notifications.call_event(request.form.to_dict())
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -504,7 +510,7 @@ def process_receipts():
     etapestry = json.loads(request.form['etapestry'])
 
     # Start celery workers to run slow eTapestry API calls
-    r = receipts.process.apply_async(
+    r = tasks.process_receipts.apply_async(
       args=(entries, etapestry),
       queue=app.config['DB']
     )
@@ -650,8 +656,8 @@ def email_status():
 
     # Do any special updates
 
-    if email['type'] == 'reminder':
-        reminders.on_email_status(request.form.to_dict())
+    if email['type'] == 'notification':
+        notifications.on_email_status(request.form.to_dict())
     elif email['type'] == 'receipt':
         receipts.on_email_status(request.form.to_dict())
 
@@ -671,7 +677,7 @@ def email_status():
 
         app.logger.info(msg)
 
-        gsheets.create_rfu.apply_async(
+        tasks.make_rfu.apply_async(
             args=(email['agency'], msg, ),
             queue=app.config['DB'])
 
@@ -731,17 +737,24 @@ def rec_signup():
 @app.route('/render_html', methods=['POST'])
 def _render_html():
     '''2 args: 'template' html file and data
+    Can be called to render reminder emails or receipt emails
     '''
 
     try:
         args = request.get_json(force=True)
+        data = args['data']
+
+        app.logger.debug('view: render_html')
 
         return render_template(
           args['template'],
-          data=args['data']
+          account = data.get('account') or None,
+          entry = data.get('entry') or None,
+          to = data.get('to') or None,
+          data=args['data'] # remove this after testing
         )
     except Exception as e:
-        logger.error('render_html: ' + str(e))
+        app.logger.error('render_html: %s ', str(e))
         return 'Error'
 
 

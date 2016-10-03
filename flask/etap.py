@@ -1,8 +1,16 @@
 import json
 import requests
+import logging
 from datetime import date
 
 from config import *
+from app import app, db, info_handler, error_handler, debug_handler
+
+logger = logging.getLogger(__name__)
+logger.addHandler(info_handler)
+logger.addHandler(error_handler)
+logger.addHandler(debug_handler)
+logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 def call(func_name, keys, data, silence_exceptions=False):
@@ -35,13 +43,16 @@ def call(func_name, keys, data, silence_exceptions=False):
       -Raises requests.RequestException on POST error (if not silenced)
     '''
 
+    logger.debug('etap.call data: %s', str(data))
+
     try:
-        return json.loads(
-            requests.post(ETAP_WRAPPER_URL, data=json.dumps({
+        response = requests.post(
+            ETAP_WRAPPER_URL,
+            data=json.dumps({
               "func": func_name,
               "etapestry": keys,
               "data": data
-            })).text
+            })
         )
     except requests.RequestException as e:
         logger.error('etap exception calling %s: %s', func_name, str(e))
@@ -50,6 +61,15 @@ def call(func_name, keys, data, silence_exceptions=False):
             return False
         else:
             raise
+
+    logger.debug('etap.call response.text: %s', response.text)
+
+    try:
+        data = json.loads(response.text)
+    except Exception as e:
+        return False
+
+    return data
 
 #-------------------------------------------------------------------------------
 def get_udf(field_name, etap_account):

@@ -13,6 +13,7 @@ from app import app, db, info_handler, error_handler, debug_handler, socketio
 from tasks import celery_app
 from gsheets import create_rfu
 import utils
+import tasks
 import etap
 #from scheduler import add_future_pickups
 
@@ -30,7 +31,7 @@ logger.setLevel(logging.DEBUG)
 # TODO: write general add_job and add_reminder functions
 
 #-------------------------------------------------------------------------------
-def add(event_id, trig_id, _type, to, account, udf, content):
+def add(event_id, event_dt, trig_id, _type, to, account, udf, content):
     '''Add a notification tied to an event and trigger
     @type: one of ['sms', 'voice', 'email']
     @content:
@@ -41,10 +42,12 @@ def add(event_id, trig_id, _type, to, account, udf, content):
       -id (ObjectId)
     '''
 
-    db['notifications'].insert_one({
+    return db['notifications'].insert_one({
         'event_id': event_id,
+        'event_dt': event_dt,
         'trig_id': trig_id,
         'status': 'pending',
+        'attempts': 0,
         'to': to,
         'type': _type,
         'account': {
@@ -53,15 +56,34 @@ def add(event_id, trig_id, _type, to, account, udf, content):
             'udf': udf
         },
         'content': content
-    })
+    }).inserted_id
 
 #-------------------------------------------------------------------------------
-def send_voice_call(notification, twilio_conf):
+def send(notification, agency_conf):
+    '''TODO: store conf data for twilio or mailgun when created, not on
+    send()
+    '''
+
+    if notification['status'] != 'pending':
+        return False
+
+    if notification['type'] == 'voice':
+        return _send_voice_call(notification, agency_conf['twilio'])
+    elif notification['type'] == 'sms':
+        return _send_sms(notification, agency_conf['twilio'])
+    elif notification['type'] == 'email':
+        return send_email(notification, agency_conf['mailgun'])
+
+#-------------------------------------------------------------------------------
+def _send_voice_call(notification, twilio_conf):
+    '''Private method called by send()
+    '''
+
     if notification.get('attempts') >= app.config['MAX_CALL_ATTEMPTS']:
         return False
 
     if notification['to'][0:2] != "+1":
-        to = "+1" + to
+        to = "+1" + notification['to']
 
     try:
         twilio_client = twilio.rest.TwilioRestClient(
@@ -70,7 +92,7 @@ def send_voice_call(notification, twilio_conf):
         )
 
         call = twilio_client.calls.create(
-          from_ = twilio['ph'],
+          from_ = twilio_conf['ph'],
           to = to,
           url = app.config['PUB_URL'] + '/reminders/voice/play/on_answer.xml',
           status_callback = app.config['PUB_URL'] + '/reminders/voice/on_complete',
@@ -87,55 +109,69 @@ def send_voice_call(notification, twilio_conf):
     db['notifications'].update_one(notification, {
         '$set': {
             'status': call.status,
-            'sid': call.sid or None,
-            'code': call.code or None,
-            'error': call.error or None
+            'sid': call.sid or None
+            #'code': call.code or None,
+            #'error': call.error or None
         },
         '$inc': {'attempts':1}
     })
 
     logger.info('Call %s for %s', call.status, notification['to'])
 
+    if call.status != 'queued':
+        return False
+    else:
+        return True
+
 #-------------------------------------------------------------------------------
 def send_email(notification, mailgun_conf, key='default'):
-    '''
+    '''Private method called by send()
     @key = dict key in email schemas for which template to use
     '''
 
+    template = notification['content']['template'][key]
+
     body = utils.render_html(
-        notification['content']['template']['email'][key]['file'],
+        template['file'],
         data = {
             'to': notification['to'],
             'event_dt': utils.utc_to_local(notification['event_dt']),
-            'account': notification['account'],
+            'account': notification['account']
         })
 
     mid = utils.send_email(
-        reminder['email']['conf']['recipient'],
-        reminder['email']['conf']['subject'],
+        notification['to'],
+        template['subject'],
         body,
         mailgun_conf
     )
 
-    db['emails'].insert({
-        'agency': job['agency'],
-        'mid': json.loads(r.text)['id'],
-        'status': 'queued',
-        'type': 'reminder',
-        'on_status': {
-            'command': 'update',
-            'target': 'db',
-            '_id': reminder['_id']
-        }})
+    if mid == False:
+        status = 'failed'
+    else:
+        status = 'queued'
 
-    db['reminders'].update_one(
-        {'_id':reminder['_id']},
-        {'$set': {'email.mid': mid}})
+    db['emails'].insert({
+        #'agency': job['agency'],
+        'mid': mid,
+        'status': status,
+        'type': 'notification',
+        'on_status': {}
+    })
+
+    db['notifications'].update_one(
+        notification,
+        {'$set': {'status':status, 'mid': mid}})
+
+    return mid
 
 #-------------------------------------------------------------------------------
-def send_sms(notification, twilio_conf):
+def _send_sms(notification, twilio_conf):
+    '''Private method called by send()
+    '''
+
     return True
-    
+
 #-------------------------------------------------------------------------------
 def on_email_status(webhook):
     '''
@@ -185,21 +221,31 @@ def edit(notification_id, fields):
         )
 
 #-------------------------------------------------------------------------------
-def get_voice_content(notification, template_key):
+def get_voice_content(notification, template):
     '''Return rendered HMTL template as string
     @notification: mongodb dict document
     @template_key: name of content dict containing file path
     '''
 
+    logger.debug('get_voice_content')
+
     # Go through all UDFs and convert UTC datetimes to local
-    for key, val in notificaton['account']['udf'].iteritems():
+    for key, val in notification['account']['udf'].iteritems():
         if isinstance(val, datetime):
             notification['account']['udf'][key] = utils.utc_to_local(val)
 
     content = utils.render_html(
-      notificaton['content']['template'][template_key]['file'],
-      notification=json.loads(bson_to_json(notification))
-    )
+        template['file'],
+        data = {
+            'event_dt': utils.utc_to_local(notification['event_dt']),
+            'account': notification['account'],
+            'call': {
+                'digit': notification.get('digit') or None,
+                'answered_by': notification['answered_by']
+            }
+        },
+        flask_context=True
+        )
 
     content = content.replace("\n", "")
     content = content.replace("  ", "")
@@ -222,7 +268,7 @@ def get_voice_play_answer_response(args):
       args['To'], args['CallStatus'], args.get('AnsweredBy')
     )
 
-    reminder = db['notifications'].find_one_and_update(
+    notification = db['notifications'].find_one_and_update(
       {'sid': args['CallSid']},
       {'$set': {
         "status": args['CallStatus'],
@@ -235,13 +281,13 @@ def get_voice_play_answer_response(args):
     voice = twilio.twiml.Response()
 
     # Html template content or audio url?
-    
+
     if notification['content']['source'] == 'template':
         content = get_voice_content(
-            notification, 
-            notification['content']['template']['default']['file']
+            notification,
+            notification['content']['template']['default']
         )
-        
+
         voice.say(content, voice='alice')
     elif notification['content']['source'] == 'audio_url':
         voice.play(notification['content']['audio_url'])
@@ -262,43 +308,44 @@ def get_voice_play_interact_response(args):
 
     logger.debug('voice_play_interact args: %s', args)
 
-    reminder = db['reminders'].find_one({'voice.sid': args['CallSid']})
-    job = db['jobs'].find_one({'_id': reminder['job_id']})
+    notification = db['notifications'].find_one({'sid': args['CallSid']})
+
+    if not notification:
+        return False
 
     voice = twilio.twiml.Response()
 
     # TODO: replace job['schema']['type'] with reminder['voice']['from_source']
 
-    if job['schema']['type'] == 'reminder':
+    # Digit 1: Repeat message
+    if args.get('Digits') == '1':
+        content = get_voice_content(
+          notification,
+          notification['content']['template']['default']
+        )
 
-        # Digit 1: Repeat message
-        if args.get('Digits') == '1':
-            content = get_voice_content(
-              reminder,
-              job['schema']['voice']['reminder']['file']
-            )
+        voice.say(content, voice='alice')
+        voice.gather(numDigits=1, action='/reminders/voice/play/on_interact.xml', method='POST')
+    # Digit 2: Cancel pickup
+    elif args.get('Digits') == '2':
+        tasks.cancel_pickup.apply_async(
+            (str(notification['event_id']), notification['account']['id']),
+            queue=app.config['DB']
+        )
 
-            voice.say(content, voice='alice')
-            voice.gather(numDigits=1, action='/reminders/voice/play/on_interact.xml', method='POST')
+        dt = utils.utc_to_local(notification['account']['udf']['future_pickup_dt'])
 
-        # Digit 2: Cancel pickup
-        elif args.get('Digits') == '2':
-            cancel_pickup.apply_async((str(reminder['_id']),), queue=app.config['DB'])
+        voice.say(
+          'Thank you. Your next pickup will be on ' +\
+          dt.strftime('%A, %B %d') + '. Goodbye',
+          voice='alice'
+        )
+        voice.hangup()
 
-            dt = reminder['custom']['future_pickup_dt']
-            dt = dt.replace(tzinfo=pytz.utc).astimezone(pytz.timezone('Canada/Mountain'))
-
-            voice.say(
-              'Thank you. Your next pickup will be on ' +\
-              dt.strftime('%A, %B %d') + '. Goodbye',
-              voice='alice'
-            )
-            voice.hangup()
-
-    elif job['schema']['type'] == 'announce_voice':
-        if args.get('Digits') == '1':
-            voice.play(job['audio_url'])
-            voice.gather(numDigits=1, action='/reminders/voice/play/on_interact.xml', method='POST')
+    #elif job['schema']['type'] == 'announce_voice':
+    #    if args.get('Digits') == '1':
+    #        voice.play(job['audio_url'])
+    #        voice.gather(numDigits=1, action='/reminders/voice/play/on_interact.xml', method='POST')
 
     return voice
 
@@ -322,11 +369,11 @@ def call_event(args):
           }},
           return_document=ReturnDocument.AFTER)
     else:
-        reminder = db['reminders'].find_one_and_update(
+        reminder = db['notifications'].find_one_and_update(
           {'voice.sid': args['CallSid']},
           {'$set': {
-            "voice.code": args.get('SipResponseCode'), # in case of failure
-            "voice.status": args['CallStatus']
+            "code": args.get('SipResponseCode'), # in case of failure
+            "status": args['CallStatus']
           }},
           return_document=ReturnDocument.AFTER)
 
@@ -335,17 +382,13 @@ def call_event(args):
           '%s %s (%s)',
           args['To'], args['CallStatus'], args.get('SipResponseCode'))
 
-        # TODO: Remove this line after Aug 1st reminders. agency will be stored
-        # in each reminder record. no need to
-        job = db['jobs'].find_one({'_id': reminder['job_id']})
-
         msg = ('Account {a} error {e} calling {to}').format(a=reminder['account_id'],
             e=args['SipResponseCode'], to=args['To'])
 
         # TODO: Change to reminder['agency'] after Aug 1 calls
-        create_rfu.apply_async(
-          args=(job['agency'], msg),
-          queue=app.config['DB'])
+        #create_rfu.apply_async(
+        #  args=(job['agency'], msg),
+        #  queue=app.config['DB'])
 
     # Call completed without error
     elif args['CallStatus'] == 'completed':
@@ -434,21 +477,4 @@ def allowed_file(filename):
     return '.' in filename and \
      filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
 
-#-------------------------------------------------------------------------------
-def bson_to_json(a):
-    '''Convert mongoDB BSON format to JSON.
-    Converts timestamps to formatted date strings
-    '''
 
-    try:
-        a = bson.json_util.dumps(a)
-
-        for group in re.findall(r"\{\"\$date\": [0-9]{13}\}", a):
-            timestamp = json.loads(group)['$date']/1000
-            date_str = '"' + datetime.fromtimestamp(timestamp).strftime('%A, %B %d') + '"'
-            a = a.replace(group, date_str)
-    except Exception as e:
-        logger.error('bson_to_json: %s', str(e))
-        return False
-
-    return a

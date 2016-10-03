@@ -12,7 +12,7 @@ from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
 
 from app import app, db, debug_handler, info_handler, error_handler
-from tasks import celery_app
+#from tasks import celery_app
 
 logger = logging.getLogger(__name__)
 logger.addHandler(info_handler)
@@ -280,7 +280,6 @@ def update_entry(agency, status, destination):
     '''
 
 #-------------------------------------------------------------------------------
-@celery_app.task
 def create_rfu(agency, request_note, account_number=None, next_pickup=None,
         block=None, date=None, name_address=None):
     try:

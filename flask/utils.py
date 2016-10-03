@@ -5,6 +5,7 @@ import json
 import logging
 import pytz
 from datetime import datetime
+import flask
 
 from app import app, db, info_handler, error_handler, debug_handler
 
@@ -23,22 +24,59 @@ def utc_to_local(dt):
     return dt.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Canada/Mountain"))
 
 #-------------------------------------------------------------------------------
-def render_html(template, data):
+def render_html(template, data, flask_context=False):
     '''Passes JSON data to views._render_html() context. Returns
     html text'''
 
+    data = json.loads(json_util.dumps(data))
+    data = json.loads(bson_date_fixer(data))
+
+    logger.debug('rendering_html for dict: %s', data)
+    logger.debug('render template: %s', template)
+
+    if flask_context == False:
+        try:
+            response = requests.post(
+              app.config['LOCAL_URL'] + '/render_html',
+              json={
+                  "template": template,
+                  "data": data
+              })
+        except requests.RequestException as e:
+            logger.error('render_template: %s', str(e))
+            return False
+    else:
+        logger.debug('we have flask context. calling render_template directly')
+
+        try:
+            return flask.render_template(
+                template,
+                account = data.get('account') or None,
+                call = data.get('call') or None)
+        except Exception as e:
+            logger.error('render_html: %s ', str(e))
+            return 'Error'
+
+    return response.text
+
+#-------------------------------------------------------------------------------
+def bson_date_fixer(a):
+    '''Convert all bson datetimes mongoDB BSON format to JSON.
+    Converts timestamps to formatted date strings
+    '''
+
     try:
-        response = requests.post(
-          app.config['LOCAL_URL'] + '/render_html',
-          json={
-              "template": template,
-              "data": data
-          })
-    except requests.RequestException as e:
-        logger.error('render_template: ' + str(e))
+        a = json_util.dumps(a)
+
+        for group in re.findall(r"\{\"\$date\": [0-9]{13}\}", a):
+            timestamp = json.loads(group)['$date']/1000
+            date_str = '"' + datetime.fromtimestamp(timestamp).strftime('%A, %B %d') + '"'
+            a = a.replace(group, date_str)
+    except Exception as e:
+        logger.error('bson_to_json: %s', str(e))
         return False
 
-    return json.loads(response.text)
+    return a
 
 #-------------------------------------------------------------------------------
 def send_email(to, subject, body, conf):
@@ -59,8 +97,10 @@ def send_email(to, subject, body, conf):
             'html': body
         })
     except requests.RequestException as e:
-        logger.error('mailgun: ' + str(e))
+        logger.error('mailgun: %s ', str(e))
         return False
+
+    logger.debug(response.text)
 
     return json.loads(response.text)['id']
 

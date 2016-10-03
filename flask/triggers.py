@@ -1,10 +1,10 @@
 import logging
+from bson.objectid import ObjectId
 from datetime import datetime,date,time
 
-
 from app import app, db, info_handler, error_handler, debug_handler
-from tasks import celery_app
 import utils
+import notifications
 
 logger = logging.getLogger(__name__)
 logger.addHandler(debug_handler)
@@ -23,69 +23,58 @@ def add(event_id, _date, _time, _type):
         -id (ObjectId)
     '''
 
-    trigger = db['triggers'].insert_one({
+    _id = db['triggers'].insert_one({
         'event_id': event_id,
         'status': 'pending',
         'type': _type,
         'fire_dt': utils.naive_to_local(datetime.combine(_date, _time))
-    })
+    }).inserted_id
 
     db['notification_events'].update_one(
         {'_id':event_id},
-        {'$push':{'triggers':{'id':trigger['_id']}}})
+        {'$push':{'triggers':{'id':_id}}})
 
-    return trigger['_id']
+    return _id
 
 #-------------------------------------------------------------------------------
-@celery_app.task
 def fire(event_id, trig_id):
     '''Send out all notifications for this trigger for given event
     '''
 
-    trig_id = ObjectId(trig_id)
-    event_id = ObjectId(event_id)
-
     notific_event = db['notification_events'].find_one({'_id':event_id})
     agency_conf = db['agencies'].find_one({'name':notific_event['agency']})
 
-    notific_list = db['notifications'].find({'trig_id':trig_id})
+    notific_results = db['notifications'].find({'trig_id':trig_id})
 
-    count = 0
+    fails = 0
 
-    for notific in notific_list:
-        if 'no_pickup' in notific['custom']:
-            continue
+    for notific in notific_results:
+        response = notifications.send(notific, agency_conf)
 
-        if notific['type'] == 'voice':
-            notifications.send_voice_call(notific, agency_conf['twilio'])
-        elif notification['type'] == 'sms':
-            notifications.send_sms(notific, agency_conf['twilio'])
-        elif notification['type'] == 'email':
-            notifications.send_email(notific, agency_conf['mailgun'])
+        if response == False:
+            fails += 1
 
-        count+=1
+    db['triggers'].update_one({'_id':trig_id}, {'$set':{'status': 'fired'}})
 
-    db['triggers'].update_one(trigger, {'$set':{'status': 'fired'}})
-
-    logger.info('trigger_id %s fired. %s notifications sent',
-        str(trig_id), num)
+    logger.info('trigger_id %s fired. %s notifications sent, %s failed',
+        str(trig_id), (notific_results.count()-fails), fails)
 
     return True
 
 #-------------------------------------------------------------------------------
-@celery_app.task
 def monitor_all():
     ready_triggers = db['triggers'].find(
         {'status':'pending', 'fire_dt':{'$lt':datetime.utcnow()}})
 
     for trigger in ready_triggers:
+        logger.info('firing %s trigger %s', trigger['type'], str(trigger['_id']))
+
         # Send notifications
-        fire.apply_async(
-            args=(str(trigger['event_id']), str(trigger['_id']),),
-            queue=app.config['DB']
-        )
+        fire(trigger['event_id'], trigger['_id'])
 
     #if datetime.utcnow().minute == 0:
-    #    logger.info('%d pending triggers', num)
+    pending_triggers = db['triggers'].find({'status':'pending'})
+
+    logger.info('%s pending triggers', pending_triggers.count())
 
     return True

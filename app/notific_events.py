@@ -10,7 +10,7 @@ import os
 
 import utils
 from app import app, db, info_handler, error_handler, debug_handler, socketio
-from tasks import celery_app
+from app import celery_app
 
 logger = logging.getLogger(__name__)
 logger.addHandler(debug_handler)

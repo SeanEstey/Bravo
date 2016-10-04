@@ -21,6 +21,10 @@ logger.addHandler(debug_handler)
 logger.setLevel(logging.DEBUG)
 
 
+def test_test():
+    print 'from gsheets!'
+    return True
+
 #-------------------------------------------------------------------------------
 def gauth(oauth):
     name = 'sheets'

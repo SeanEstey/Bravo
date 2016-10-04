@@ -27,26 +27,26 @@
     <div class='container'>
       <ul id='app_menu' class="nav nav-pills" style='float:right'>
         <li role="presentation">
-					<a href="{{url_for('view_events')}}"><span class='glyphicon glyphicon-home'></span>  Reminders</a>
+					<a href="{{url_for('main.view_events')}}"><span class='glyphicon glyphicon-home'></span>  Reminders</a>
 				</li>
         <li role="presentation">
-					<a href="{{url_for('show_routing')}}"><span class='glyphicon glyphicon-road'></span>   Routing</a>
+					<a href="{{url_for('main.show_routing')}}"><span class='glyphicon glyphicon-road'></span>   Routing</a>
 				</li>
         <li role="presentation">
-					<a href="{{url_for('show_booking')}}"><span class='glyphicon glyphicon-book'></span>   Booking</a>
+					<a href="{{url_for('main.show_booking')}}"><span class='glyphicon glyphicon-book'></span>   Booking</a>
 				</li>
         <li role="presentation">
-					<a href="{{url_for('view_log')}}"><span class='glyphicon glyphicon-console'></span> Log</a>
+					<a href="{{url_for('main.view_log')}}"><span class='glyphicon glyphicon-console'></span> Log</a>
 				</li>
         <li role="presentation">
-					<a href="{{url_for('view_admin')}}"><span class='glyphicon glyphicon-cog'></span> Settings</a>
+					<a href="{{url_for('main.view_admin')}}"><span class='glyphicon glyphicon-cog'></span> Settings</a>
 				</li>
         <li role="presentation">
-					<a href="{{url_for('user_logout')}}"><span class='glyphicon glyphicon-log-out'></span> Logout</a>
+					<a href="{{url_for('main.user_logout')}}"><span class='glyphicon glyphicon-log-out'></span> Logout</a>
 				</li>
       </ul>
       <div style='width:200px; margin:0.5em auto' class='center'>
-        <a href="{{url_for('view_events')}}"><img id='buit' src="{{ url_for('static',
+        <a href="{{url_for('main.view_events')}}"><img id='buit' src="{{ url_for('static',
         filename='images/bravo_comfortaa.png') }}"></a>
       </div>
       {% block content %}{% endblock %}

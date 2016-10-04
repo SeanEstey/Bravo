@@ -14,7 +14,7 @@ import pytz
 
 from config import *
 from app import app, db, info_handler, error_handler, debug_handler, login_manager
-from tasks import celery_app
+from app import celery_app
 import gsheets
 from block_parser import get_block, block_to_rmv
 import etap

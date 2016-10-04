@@ -1,6 +1,7 @@
 import eventlet
 # Allow for non-blocking standard library
 #eventlet.monkey_patch()
+from celery import Celery
 
 from config import LOG_PATH
 
@@ -31,7 +32,7 @@ from flask_socketio import send, emit
 from werkzeug.contrib.fixers import ProxyFix
 
 app = Flask(__name__)
-app.config.from_pyfile('config.py')
+app.config.from_object('config')
 app.wsgi_app = ProxyFix(app.wsgi_app)
 app.jinja_env.add_extension("jinja2.ext.do")
 app.logger.addHandler(error_handler)
@@ -42,19 +43,29 @@ app.logger.setLevel(logging.DEBUG)
 # Setup Socket.io
 socketio = SocketIO(app)
 
+celery_app = Celery(include=['app.tasks'])
+celery_app.config_from_object('app.celeryconfig')
+
 # Setup LoginManager Flask extension
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = app.config['PUB_URL'] + '/login'
-
-# TODO: What does this do again????
-app.app_context().push()
 
 # Setup MongoDB
 import pymongo
 
 mongo_client = pymongo.MongoClient(app.config['MONGO_URL'], app.config['MONGO_PORT'], connect=False)
 db = mongo_client[app.config['DB']]
+
+
+from app.api.views import api as api_module
+from app.main.views import main as main_module
+
+# Setup blueprints
+app.register_blueprint(api_module)
+app.register_blueprint(main_module)
+
+
 
 import auth
 

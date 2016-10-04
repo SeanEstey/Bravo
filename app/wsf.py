@@ -4,7 +4,7 @@ import logging
 
 import gsheets
 from app import app, db, debug_handler, info_handler, error_handler
-from tasks import celery_app
+#from app.tasks import celery_app
 
 logger = logging.getLogger(__name__)
 logger.addHandler(info_handler)
@@ -53,7 +53,7 @@ def resolve_depot(block, postal_codes, event_desc=False):
 
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+#@celery_app.task
 def add_signup(signup):
     '''Called by emptiestowinn.com signup form only for now
     '''

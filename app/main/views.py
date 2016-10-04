@@ -4,58 +4,70 @@ import time
 import requests
 from datetime import datetime,date
 import flask
-from flask import request, jsonify, render_template, redirect
+from flask import Blueprint, request, jsonify, render_template, redirect
 from flask.ext.login import login_required, current_user
 from bson.objectid import ObjectId
 import pytz
+import logging
 
 # Import Application objects
-from app import app, db, socketio
+from app import db, socketio
+
+main = Blueprint('main', __name__, url_prefix='/')
 
 # Import methods
-from utils import send_email, dict_to_html_table
-import wsf
-from log import get_tail
-from auth import login, logout
-from routing import get_orders,submit_job,build_route,get_upcoming_routes,build_todays_routes
-import notific_events
-import pickup_service
-import tasks
-import receipts
-import notifications
-import gsheets
-import scheduler
-import etap
-import sms
+from app.utils import send_email, dict_to_html_table
+import app.wsf
+from app.log import get_tail
+from app.auth import login, logout
+from app.routing import get_orders,submit_job,build_route,get_upcoming_routes,build_todays_routes
+import app.notific_events
+import app.pickup_service
+#import app.tasks
+import app.receipts
+import app.notifications
+import app.gsheets
+import app.scheduler
+import app.etap
+import app.sms
+
+from app import db, info_handler, error_handler, debug_handler, login_manager
+
+logger = logging.getLogger(__name__)
+logger.addHandler(info_handler)
+logger.addHandler(error_handler)
+logger.addHandler(debug_handler)
+logger.setLevel(logging.DEBUG)
 
 
 #-------------------------------------------------------------------------------
-@app.route('/', methods=['GET'])
-@login_required
+@main.route('/', methods=['GET'])
+#@login_required
 def view_events():
-    agency = db['users'].find_one({'user': current_user.username})['agency']
-    events = notific_events.get_list(agency)
+
+    #agency = db['users'].find_one({'user': current_user.username})['agency']
+    #events = notific_events.get_list(agency)
 
     return render_template(
       'views/event_list.html',
-      title=None,
-      events=events
+      title=None
+      #events=events
     )
 
 #-------------------------------------------------------------------------------
-@app.route('/login', methods=['GET','POST'])
+@main.route('login', methods=['GET','POST'])
 def user_login():
     return login()
 
 
 #-------------------------------------------------------------------------------
-@app.route('/logout', methods=['GET'])
+@main.route('logout', methods=['GET'])
 def user_logout():
     logout()
     return redirect(app.config['PUB_URL'])
 
 #-------------------------------------------------------------------------------
-@app.route('/log')
+@main.route('/log')
 @login_required
 def view_log():
     lines = get_tail(app.config['LOG_PATH'] + 'info.log', app.config['LOG_LINES'])
@@ -63,7 +75,7 @@ def view_log():
     return render_template('views/log.html', lines=lines)
 
 #-------------------------------------------------------------------------------
-@app.route('/admin')
+@main.route('/admin')
 @login_required
 def view_admin():
     user = db['users'].find_one({'user': current_user.username})
@@ -79,7 +91,7 @@ def view_admin():
 
 
 #-------------------------------------------------------------------------------
-@app.route('/sendsocket', methods=['GET'])
+@main.route('sendsocket', methods=['GET'])
 def request_send_socket():
     name = request.args.get('name').encode('utf-8')
     data = request.args.get('data').encode('utf-8')
@@ -87,14 +99,14 @@ def request_send_socket():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/booking', methods=['GET'])
+@main.route('booking', methods=['GET'])
 @login_required
 def show_booking():
     agency = db['users'].find_one({'user': current_user.username})['agency']
     return render_template('views/booking.html', agency=agency)
 
 #-------------------------------------------------------------------------------
-@app.route('/routing', methods=['GET'])
+@main.route('routing', methods=['GET'])
 @login_required
 def show_routing():
     agency = db['users'].find_one({'user': current_user.username})['agency']
@@ -109,7 +121,7 @@ def show_routing():
     )
 
 #-------------------------------------------------------------------------------
-@app.route('/routing/get_scheduled_route', methods=['POST'])
+@main.route('routing/get_scheduled_route', methods=['POST'])
 def get_today_route():
     return True
     '''return json.dumps(get_scheduled_route(
@@ -119,7 +131,7 @@ def get_today_route():
     '''
 
 #-------------------------------------------------------------------------------
-@app.route('/routing/get_route/<job_id>', methods=['GET'])
+@main.route('routing/get_route/<job_id>', methods=['GET'])
 def get_route(job_id):
     agency = db['routes'].find_one({'job_id':job_id})['agency']
     conf = db['agencies'].find_one({'name':agency})
@@ -128,7 +140,7 @@ def get_route(job_id):
     return json.dumps(get_orders(job_id, api_key))
 
 #-------------------------------------------------------------------------------
-@app.route('/routing/start_job', methods=['POST'])
+@main.route('routing/start_job', methods=['POST'])
 def get_routing_job_id():
     app.logger.info('Routing Block %s...', request.form['block'])
 
@@ -156,7 +168,7 @@ def get_routing_job_id():
     return job_id
 
 #-------------------------------------------------------------------------------
-@app.route('/routing/build/<route_id>', methods=['GET', 'POST'])
+@main.route('routing/build/<route_id>', methods=['GET', 'POST'])
 def _build_route(route_id):
     r = build_route.apply_async(
       args=(route_id,),
@@ -166,7 +178,7 @@ def _build_route(route_id):
     return redirect(app.config['PUB_URL'] + '/routing')
 
 #-------------------------------------------------------------------------------
-@app.route('/routing/build_sheet/<route_id>/<job_id>', methods=['GET'])
+@main.route('routing/build_sheet/<route_id>/<job_id>', methods=['GET'])
 def _build_sheet(job_id, route_id):
     '''non-celery synchronous func for testing
     '''
@@ -174,7 +186,7 @@ def _build_sheet(job_id, route_id):
     return redirect(app.config['PUB_URL'] + '/routing')
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/new')
+@main.route('reminders/new')
 @login_required
 def new_event():
     agency = db['users'].find_one({'user': current_user.username})['agency']
@@ -189,7 +201,7 @@ def new_event():
     return render_template('views/new_event.html', templates=templates, title=app.config['TITLE'])
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/submit_event', methods=['POST'])
+@main.route('reminders/submit_event', methods=['POST'])
 @login_required
 def _submit_event():
     try:
@@ -200,7 +212,7 @@ def _submit_event():
         return False
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<event_id>')
+@main.route('reminders/<event_id>')
 @login_required
 def view_event(event_id):
     sort_by = 'name'
@@ -222,21 +234,21 @@ def view_event(event_id):
     )
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<event_id>/cancel')
+@main.route('reminders/<event_id>/cancel')
 @login_required
 def cancel_event(event_id):
     reminders.cancel_event(event_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<event_id>/reset')
+@main.route('reminders/<event_id>/reset')
 @login_required
 def reset_event(event_id):
     reminders.reset_event(event_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<event_id>/send_emails')
+@main.route('reminders/<event_id>/send_emails')
 @login_required
 def send_emails(event_id):
     reminders.send_emails.apply_async(
@@ -245,7 +257,7 @@ def send_emails(event_id):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<event_id>/send_calls')
+@main.route('reminders/<event_id>/send_calls')
 @login_required
 def send_calls(event_id):
     event_id = event_id.encode('utf-8')
@@ -263,7 +275,7 @@ def send_calls(event_id):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<job_id>/complete')
+@main.route('reminders/<job_id>/complete')
 @login_required
 def job_complete(job_id):
     '''Email job summary, update job status'''
@@ -275,21 +287,21 @@ def job_complete(job_id):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<job_id>/<reminder_id>/remove', methods=['POST'])
+@main.route('reminders/<job_id>/<reminder_id>/remove', methods=['POST'])
 @login_required
 def rmv_msg(job_id, reminder_id):
     reminders.rmv_msg(job_id, reminder_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<reminder_id>/edit', methods=['POST'])
+@main.route('reminders/<reminder_id>/edit', methods=['POST'])
 @login_required
 def edit_msg(reminder_id):
     reminders.edit_msg(reminder_id, request.form.items())
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/<event_id>/<account_id>/cancel_pickup', methods=['GET'])
+@main.route('reminders/<event_id>/<account_id>/cancel_pickup', methods=['GET'])
 def no_pickup(event_id, account_id):
     '''Script run via reminder email'''
 
@@ -300,7 +312,7 @@ def no_pickup(event_id, account_id):
     return 'Thank You'
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/play/sample', methods=['POST'])
+@main.route('reminders/play/sample', methods=['POST'])
 def play_sample_rem():
     voice = twilio.twiml.Response()
     voice.say("test")
@@ -308,7 +320,7 @@ def play_sample_rem():
 
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/get/token', methods=['GET'])
+@main.route('reminders/get/token', methods=['GET'])
 def get_twilio_token():
     # get credentials for environment variables
 
@@ -332,7 +344,7 @@ def get_twilio_token():
 
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/voice/record/request', methods=['POST'])
+@main.route('reminders/voice/record/request', methods=['POST'])
 def record_msg():
     '''Request: POST from Bravo javascript client with 'To' arg
     Response: JSON dict {'status':'string'}
@@ -370,7 +382,7 @@ def record_msg():
 
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/voice/record/on_answer.xml',methods=['POST'])
+@main.route('reminders/voice/record/on_answer.xml',methods=['POST'])
 def record_xml():
     '''Request: Twilio POST
     Response: twilio.twiml.Response with voice content
@@ -395,7 +407,7 @@ def record_xml():
     return flask.Response(response=str(voice), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/voice/record/on_complete.xml', methods=['POST'])
+@main.route('reminders/voice/record/on_complete.xml', methods=['POST'])
 def record_complete_xml():
     '''Request: Twilio POST
     Response: twilio.twiml.Response with voice content
@@ -429,7 +441,7 @@ def record_complete_xml():
 
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/voice/play/on_answer.xml',methods=['POST'])
+@main.route('reminders/voice/play/on_answer.xml',methods=['POST'])
 def get_answer_xml():
     '''Reminder call is answered.
     Request: Twilio POST
@@ -446,7 +458,7 @@ def get_answer_xml():
 
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/voice/play/on_interact.xml', methods=['POST'])
+@main.route('reminders/voice/play/on_interact.xml', methods=['POST'])
 def get_interact_xml():
     '''User interacted with reminder call. Send voice response.
     Request: Twilio POST
@@ -463,7 +475,7 @@ def get_interact_xml():
 
 
 #-------------------------------------------------------------------------------
-@app.route('/reminders/voice/on_complete',methods=['POST'])
+@main.route('reminders/voice/on_complete',methods=['POST'])
 def call_event():
     '''Twilio callback'''
 
@@ -471,7 +483,7 @@ def call_event():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/sms/status', methods=['POST'])
+@main.route('sms/status', methods=['POST'])
 def sms_status():
     '''Callback for sending/receiving SMS messages.
     If sending, determine if part of reminder or reply to original received msg
@@ -497,7 +509,7 @@ def sms_status():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/receipts/process', methods=['POST'])
+@main.route('receipts/process', methods=['POST'])
 def process_receipts():
     '''Data sent from Routes worksheet in Gift Importer (Google Sheet)
     @arg 'data': JSON array of dict objects with UDF and gift data
@@ -520,7 +532,7 @@ def process_receipts():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/email/send', methods=['POST'])
+@main.route('email/send', methods=['POST'])
 def send_email():
     '''Can be collection receipt from gsheets.process_receipts, reminder email,
     or welcome letter from Google Sheets.
@@ -583,7 +595,7 @@ def send_email():
     return json.loads(r.text)['id']
 
 #-------------------------------------------------------------------------------
-@app.route('/email/unsubscribe', methods=['GET'])
+@main.route('email/unsubscribe', methods=['GET'])
 def email_unsubscribe():
     if request.args.get('email'):
         msg = 'Contributor ' + request.args.get('email') + ' has requested to \
@@ -615,7 +627,7 @@ def email_unsubscribe():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/email/spam_complaint', methods=['POST'])
+@main.route('/email/spam_complaint', methods=['POST'])
 def email_spam_complaint():
     m = 'received spam complaint'
 
@@ -628,7 +640,7 @@ def email_spam_complaint():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/email/status',methods=['POST'])
+@main.route('email/status',methods=['POST'])
 def email_status():
     '''Relay for Mailgun webhooks. Can originate from reminder_msg, Signups
     sheet, or Route Importer sheet
@@ -686,13 +698,13 @@ def email_status():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@app.route('/get_np', methods=['GET'])
+@main.route('get_np', methods=['GET'])
 def get_romorrow_accounts():
     scheduler.find_nps_in_schedule.apply_async(queue=app.config['DB'])
     return 'Celery process started...'
 
 #-------------------------------------------------------------------------------
-@app.route('/call/nis', methods=['POST'])
+@main.route('call/nis', methods=['POST'])
 def nis():
     app.logger.info('NIS!')
 
@@ -709,7 +721,7 @@ def nis():
     return str(e)
 
 #-------------------------------------------------------------------------------
-@app.route('/receive_signup', methods=['POST'])
+@main.route('receive_signup', methods=['POST'])
 def rec_signup():
     '''Forwarded signup submision from emptiestowinn.com
     Adds signup data to Bravo Sheets->Signups gsheet row
@@ -734,7 +746,7 @@ def rec_signup():
 
 
 #-------------------------------------------------------------------------------
-@app.route('/render_html', methods=['POST'])
+@main.route('render_html', methods=['POST'])
 def _render_html():
     '''2 args: 'template' html file and data
     Can be called to render reminder emails or receipt emails
@@ -760,17 +772,17 @@ def _render_html():
 
 #-----------------------TEST VIEWS-----------------------------------------------
 
-@app.route('/set_rem', methods=['GET'])
+@main.route('set_rem', methods=['GET'])
 def set_reminders():
     scheduler.setup_reminder_jobs()
     return 'OK'
 
-@app.route('/get_nps',methods=['GET'])
+@main.route('get_nps',methods=['GET'])
 def get_the_nps():
     scheduler.analyze_non_participants()
     return "OK"
 
-@app.route('/test_build_routes',methods=['GET'])
+@main.route('test_build_routes',methods=['GET'])
 def test_build_routes():
     build_todays_routes.apply_async(queue=app.config['DB'])
     return "OK"

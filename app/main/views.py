@@ -305,7 +305,7 @@ def edit_msg(reminder_id):
 def no_pickup(event_id, account_id):
     '''Script run via reminder email'''
 
-    tasks.cancel_pickup.apply_async(
+    app.tasks.cancel_pickup.apply_async(
         (event_id, account_id),
         queue=app.config['DB'])
 
@@ -522,7 +522,7 @@ def process_receipts():
     etapestry = json.loads(request.form['etapestry'])
 
     # Start celery workers to run slow eTapestry API calls
-    r = tasks.process_receipts.apply_async(
+    r = app.tasks.process_receipts.apply_async(
       args=(entries, etapestry),
       queue=app.config['DB']
     )
@@ -689,7 +689,7 @@ def email_status():
 
         app.logger.info(msg)
 
-        tasks.make_rfu.apply_async(
+        app.tasks.make_rfu.apply_async(
             args=(email['agency'], msg, ),
             queue=app.config['DB'])
 

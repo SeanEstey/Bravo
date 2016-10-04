@@ -11,14 +11,8 @@ import httplib2
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
 
-from app import app, db, debug_handler, info_handler, error_handler
-#from tasks import celery_app
-
+from app import app, db
 logger = logging.getLogger(__name__)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.addHandler(debug_handler)
-logger.setLevel(logging.DEBUG)
 
 
 def test_test():

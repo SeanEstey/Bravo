@@ -9,14 +9,8 @@ import csv
 import os
 
 import utils
-from app import app, db, info_handler, error_handler, debug_handler, socketio
-from app import celery_app
-
+from app import app, db, socketio
 logger = logging.getLogger(__name__)
-logger.addHandler(debug_handler)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.setLevel(logging.DEBUG)
 
 
 #-------------------------------------------------------------------------------
@@ -98,7 +92,7 @@ def get_list(agency, max=10):
     Returns: list of notification_event dict objects
     '''
 
-    #agency = db['users'].find_one({'user': current_user.username})['agency']
+    agency = db['users'].find_one({'user': current_user.username})['agency']
 
     events = db['notification_events'].find({'agency':agency})
 
@@ -220,7 +214,7 @@ def submit_from(form, file):
 
     # B. Get schema definitions from json file
     try:
-        with open('templates/schemas/'+agency+'.json') as json_file:
+        with open('app/templates/schemas/'+agency+'.json') as json_file:
           schemas = json.load(json_file)['reminders']
     except Exception as e:
         logger.error(str(e))

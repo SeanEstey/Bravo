@@ -12,13 +12,8 @@ import etap
 import notific_events
 import notifications
 import triggers
-from app import app, db, info_handler, error_handler, debug_handler
-
+from app import app, db
 logger = logging.getLogger(__name__)
-logger.addHandler(debug_handler)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 #@celery_app.task
@@ -43,7 +38,7 @@ def schedule_reminder_events():
         )
 
     try:
-        with open('templates/schemas/'+agency+'.json') as json_file:
+        with open('app/templates/schemas/'+agency+'.json') as json_file:
           schemas = json.load(json_file)
     except Exception as e:
         logger.error(str(e))

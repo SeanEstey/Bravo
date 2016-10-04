@@ -9,19 +9,12 @@ import bson.json_util
 import json
 import re
 
-from app import app, db, info_handler, error_handler, debug_handler, socketio
-from app import celery_app
+from app import app, db, socketio
 from gsheets import create_rfu
 import utils
-#import tasks
 import etap
-#from scheduler import add_future_pickups
-
 logger = logging.getLogger(__name__)
-logger.addHandler(debug_handler)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.setLevel(logging.DEBUG)
+#from scheduler import add_future_pickups
 
 
 #-------------------------------Stuff Todo---------------------------------------
@@ -131,18 +124,25 @@ def send_email(notification, mailgun_conf, key='default'):
 
     template = notification['content']['template'][key]
 
-    body = utils.render_html(
-        template['file'],
-        data = {
-            'to': notification['to'],
-            'event_dt': utils.utc_to_local(notification['event_dt']),
-            'account': notification['account']
-        })
+    data = json.loads(json_util.dumps(notification['account']))
+    data = json.loads(bson_date_fixer(data))
+
+    try:
+        response = requests.post(
+          app.config['LOCAL_URL'] + '/render_notification',
+          json={
+              "template": template,
+              "to": notification['to'],
+              "account": data
+          })
+    except requests.RequestException as e:
+        logger.error('render_notification: %s', str(e))
+        return False
 
     mid = utils.send_email(
         notification['to'],
         template['subject'],
-        body,
+        body = response.text,
         mailgun_conf
     )
 
@@ -223,6 +223,8 @@ def edit(notification_id, fields):
 #-------------------------------------------------------------------------------
 def get_voice_content(notification, template):
     '''Return rendered HMTL template as string
+    Called from flask so has context
+
     @notification: mongodb dict document
     @template_key: name of content dict containing file path
     '''
@@ -234,18 +236,21 @@ def get_voice_content(notification, template):
         if isinstance(val, datetime):
             notification['account']['udf'][key] = utils.utc_to_local(val)
 
-    content = utils.render_html(
-        template['file'],
-        data = {
-            'event_dt': utils.utc_to_local(notification['event_dt']),
-            'account': notification['account'],
-            'call': {
-                'digit': notification.get('digit') or None,
-                'answered_by': notification['answered_by']
-            }
-        },
-        flask_context=True
-        )
+        tmp = json.loads(json_util.dumps(notification['account']))
+        formatted_account = json.loads(bson_date_fixer(dtmp))
+
+        try:
+            content = flask.render_template(
+                template,
+                account = formatted_account,
+                call = {
+                    'digit': notification.get('digit') or None,
+                    'answered_by': notification['answered_by']
+                }
+            )
+        except Exception as e:
+            logger.error('render_html: %s ', str(e))
+            return 'Error'
 
     content = content.replace("\n", "")
     content = content.replace("  ", "")

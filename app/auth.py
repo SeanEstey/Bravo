@@ -5,24 +5,15 @@ from user import User
 import json
 import logging
 
-from app import db, info_handler, error_handler, debug_handler, login_manager
-
+from app import app, db, login_manager
 logger = logging.getLogger(__name__)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.addHandler(debug_handler)
-logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 def logout():
     logout_user()
-    logger.info('User logged out')
 
 #-------------------------------------------------------------------------------
 def login():
-    logger.info('login called')
-    print 'login called!'
-
     if request.method == 'GET':
         return render_template('views/login.html')
     elif request.method == 'POST':

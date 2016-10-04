@@ -9,15 +9,10 @@ from flask import render_template
 
 import gsheets
 import etap
-from app import app, db, info_handler, error_handler, debug_handler
+from app import app, db
 from config import *
 import utils
-
 logger = logging.getLogger(__name__)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.addHandler(debug_handler)
-logger.setLevel(logging.DEBUG)
 
 
 #-------------------------------Stuff Todo---------------------------------------
@@ -34,92 +29,87 @@ def on_email_status(webhook):
       {'mid': webhook['Message-Id']},
       {'$set': {'status':webhook['event']}})
 
-    #--------------- old wsf path ------------------
-    if email['agency'] == 'wsf':
-        if email.get('on_status_update'):
-            if email['on_status_update'].get('worksheet'):
-                try:
-                    gsheets.update_entry(
-                      email['agency'],
-                      webhook['event'],
-                      email['on_status_update']
-                    )
-                except Exception as e:
-                    app.logger.error("Error writing to Google Sheets: " + str(e))
-                    return 'Failed'
-    #-------------------- ------------------
-    else:
-        try:
-            gsheets.update_entry(
-              email['agency'],
-              webhook['event'],
-              email['on_status']['update']
-            )
-        except Exception as e:
-            app.logger.error("Error writing to Google Sheets: " + str(e))
-            return 'Failed'
+    try:
+        gsheets.update_entry(
+          email['agency'],
+          webhook['event'],
+          email['on_status']['update']
+        )
+    except Exception as e:
+        logger.error("Error writing to Google Sheets: " + str(e))
+        return 'Failed'
+
 
 #-------------------------------------------------------------------------------
-def send_receipt(agency, account, entry, template, subject):
+def render_body(template, data):
+    '''Convert all dates in data to long format strings, render into
+    html'''
+
+    # Bravo php returned gift histories as ISOFormat
+    if data.get('history'):
+        for gift in data['history']:
+            gift['date'] = parse(gift['date']).strftime('%B %-d, %Y')
+
+    # Entry dates are in ISOFormat string. Convert to long format
+    if data.get('entry'):
+        data['entry']['date'] = parse(data['entry']['date']).strftime('%B %-d, %Y')
+
+        if data['entry'].get('next_pickup'):
+            npu = parse(data['entry']['next_pickup'])
+            data['entry']['next_pickup'] = npu.strftime('%B %-d, %Y')
+
+    try:
+        response = requests.post(
+          app.config['LOCAL_URL'] + '/render_receipt',
+          json={
+              "template": template,
+              "data": data
+          })
+    except requests.RequestException as e:
+        logger.error('render_template: %s', str(e))
+        return False
+
+    return response.text
+
+#-------------------------------------------------------------------------------
+def send_receipt(agency, to, template, subject, data):
     '''Sends a receipt/no collection/dropoff followup/etc for a route entry.
     Should be running in process() celery task
     Adds an eTapestry journal note with the content.
     '''
 
-    logger.debug('%s %s', str(account['id']), template)
+    logger.debug('%s %s', str(data['account']['id']), template)
 
-    if agency == 'vec':
-        agency_conf = db['agencies'].find_one({'name':agency})
+    agency_conf = db['agencies'].find_one({'name':agency})
 
-        body = utils.render_html(template, data={
-            "entry": entry,
-            "from": entry['from'],
-            "account": account
-        })
+    body = render_body(template, data=data)
 
-        if body == False:
-            return False
+    if body == False:
+        return False
 
-        # Add Journal note
-        etap.call(
-            'add_note',
-            agency_conf['etapestry'],
-            data={
-                'id': account['id'],
-                'Note': 'Collection Receipt:]\n' + utils.clean_html(body),
-                'Date': etap.dt_to_ddmmyyyy(parse(entry['date']))
-            },
-            silence_exceptions=False
-        )
+    # Add Journal note
+    etap.call(
+        'add_note',
+        agency_conf['etapestry'],
+        data={
+            'id': data['account']['id'],
+            'Note': 'Collection Receipt:]\n' + utils.clean_html(body),
+            'Date': etap.dt_to_ddmmyyyy(parse(data['entry']['date']))
+        },
+        silence_exceptions=False
+    )
 
-        mid = utils.send_email(account['email'], subject, body, agency_conf['mailgun'])
+    mid = utils.send_email(to, subject, body, agency_conf['mailgun'])
 
-        db['emails'].insert({
-            'agency': agency,
-            'mid': mid,
-            'type': 'receipt',
-            'status': 'queued',
-            'on_status': {
-                'update': entry['from']
-            }
-        })
-    # Old WSF path
-    elif agency == 'wsf':
-        try:
-            r = requests.post(LOCAL_URL + '/email/send', json={
-                "agency": agency,
-                "recipient": account['email'],
-                "template": template,
-                "subject": subject,
-                "data": {
-                    "entry": entry,
-                    "from": entry['from'],
-                    "account": account
-                }
-            })
-        except Exception as e:
-            logger.error('Failed to send receipt to account ID %s: %s',
-            account['id'], str(e))
+    db['emails'].insert({
+        'agency': agency,
+        'mid': mid,
+        'type': 'receipt',
+        'status': 'queued',
+        'on_status': {
+            'update': data['entry']['from']
+        }
+    })
 
 #-------------------------------------------------------------------------------
 def process(entries, etapestry_id):
@@ -154,8 +144,10 @@ def process(entries, etapestry_id):
     num_no_emails = 0
     gift_accounts = []
 
-    with open('templates/schemas/'+etapestry_id['agency']+'.json') as json_file:
+    with open('app/templates/schemas/'+etapestry_id['agency']+'.json') as json_file:
       schemas = json.load(json_file)['receipts']
+
+    agency = etapestry_id['agency']
 
     for i in range(0, len(accounts)):
         logger.debug(json.dumps(entries[i]))
@@ -177,17 +169,17 @@ def process(entries, etapestry_id):
                   'queued'
                 )
 
-            entries[i]['date'] = parse(entries[i]['date']).strftime('%B %-d, %Y')
-
-            if 'next_pickup' in entries[i]:
-                entries[i]['next_pickup'] = parse(
-                        entries[i]['next_pickup']).strftime('%B %-d, %Y')
-
             # Send Cancelled Receipt
             if etap.get_udf('Status', accounts[i]) == 'Cancelled':
-                send_receipt(etapestry_id['agency'], accounts[i], entries[i],
-                schemas['cancelled']['file'],
-                schemas['cancelled']['subject'])
+                send_receipt(
+                    agency,
+                    accounts[i]['email'],
+                    schemas['cancelled']['file'],
+                    schemas['cancelled']['subject'],
+                    data={
+                        'account': accounts[i],
+                        'entry': entries[i]
+                    })
 
                 num_cancels += 1
                 continue
@@ -198,38 +190,43 @@ def process(entries, etapestry_id):
             drop_date = etap.get_udf('Dropoff Date', accounts[i])
 
             if drop_date:
-                d = drop_date.split('/')
-                drop_date = datetime(int(d[2]),int(d[1]),int(d[0])).date()
-                collection_date = parse(entries[i]['date']).date()
-
-                if drop_date == collection_date:
-                    send_receipt(etapestry_id['agency'],
-                        accounts[i],
-                        entries[i],
+                if etap.ddmmyyyy_to_date(drop_date) == parse(entries[i]['date']).date():
+                    send_receipt(
+                        agency,
+                        accounts[i]['email'],
                         schemas['dropoff_followup']['file'],
-                        schemas['dropoff_followup']['subject'])
+                        schemas['dropoff_followup']['subject'],
+                        data={
+                            'account': accounts[i],
+                            'entry': entries[i]
+                        })
 
                     num_drop_followups += 1
                     continue
 
             # Zero Collection Receipt
             if entries[i]['amount'] == 0:
-                if entries[i]['next_pickup']:
-                    npu = parse(entries[i]['next_pickup']).date()
-                    entries[i]['next_pickup'] = npu.strftime('%B %-d, %Y')
-
                 if accounts[i]['nameFormat'] == 3: # Business
-                    send_receipt(etapestry_id['agency'],
-                         accounts[i],
-                         entries[i],
-                         schemas['zero_collection']['file'],
-                         schemas['zero_collection']['subject'])
+                    send_receipt(
+                        agency,
+                        accounts[i]['email'],
+                        schemas['zero_collection']['file'],
+                        schemas['zero_collection']['subject'],
+                        data={
+                            'account': accounts[i],
+                            'entry': entries[i]
+                        })
+
                 else: # Residential
-                    send_receipt(etapestry_id['agency'],
-                         accounts[i],
-                         entries[i],
-                         schemas['no_collection']['file'],
-                         schemas['no_collection']['subject'])
+                    send_receipt(
+                        agency,
+                        accounts[i]['email'],
+                        schemas['no_collection']['file'],
+                        schemas['no_collection']['subject'],
+                        data={
+                            'account': accounts[i],
+                            'entry': entries[i]
+                        })
 
                 num_zeros +=1
 
@@ -254,8 +251,7 @@ def process(entries, etapestry_id):
                 "end_date": "31/12/" + str(year)
               }
             )
-
-            #logger.info('%s gift histories retrieved', str(len(gift_histories)))
+            logger.info('%s gift histories retrieved', str(len(gift_histories)))
 
         except Exception as e:
             logger.error('Error retrieving gift histories: %s', str(e))
@@ -264,28 +260,20 @@ def process(entries, etapestry_id):
             try:
                 logger.debug('gift_history: %s', str(gift_histories[i]))
 
-                for a_gift in gift_histories[i]:
-                    a_date = parse(a_gift['date'])
-                    a_gift['date'] = a_date.strftime('%B %-d, %Y')
-
-                gift_accounts[i]['account']['gift_history'] = gift_histories[i]
-                entry = gift_accounts[i]['entry']
-
-                logger.debug('entry: %s' + str(entry))
-
-                if entry.get('next_pickup'):
-                    npu = parse(entry['next_pickup']).date()
-                    entry['next_pickup'] = npu.strftime('%B %-d, %Y')
-
                 send_receipt(
-                  etapestry_id['agency'],
-                  gift_accounts[i]['account'],
-                  gift_accounts[i]['entry'],
-                  schemas['collection']['file'],
-                  schemas['collection']['subject'])
+                    agency,
+                    gift_accounts[i]['account']['email'],
+                    schemas['collection']['file'],
+                    schemas['collection']['subject'],
+                    data={
+                        'account': gift_accounts[i]['account'],
+                        'entry': gift_accounts[i]['entry'],
+                        'history': gift_histories[i]
+                    })
+
             except Exception as e:
                 logger.error('Error processing gift receipt on row #%s: %s',
-                            str(entry['from']['row']), str(e)
+                            str(gift_accounts[i]['entry']['from']['row']), str(e)
                 )
 
     logger.info('Receipts: \n' +

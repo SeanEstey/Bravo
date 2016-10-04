@@ -3,13 +3,8 @@ from routing import geocode
 import etap
 from block_parser import get_block, is_res_block
 
-from app import app, db, info_handler, error_handler, debug_handler, login_manager
-
+from app import app, db
 logger = logging.getLogger(__name__)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.addHandler(debug_handler)
-logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 def search(term, config, agency)

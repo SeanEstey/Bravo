@@ -3,12 +3,8 @@ import logging
 import os
 
 from config import *
-from app import info_handler, error_handler
-
+from app import app
 logger = logging.getLogger(__name__)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.setLevel(logging.DEBUG)
 
 def get_tail(file_path, num_lines):
     try:

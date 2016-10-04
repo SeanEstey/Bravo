@@ -2,21 +2,21 @@
   {% block content %}  
     <tr>
       <td>
-        Hi {{ data['account']['name'] }},
+        Hi {{ account['name'] }},
       </td>
     </tr>
     <tr>
       <td>
         Thank you for your donation of 
-        <b>${{ data['entry']['amount'] }}</b> 
+        <b>${{ entry['amount'] }}</b> 
         on
-        <b>{{ data['entry']['date'] }}</b>.
+        <b>{{ entry['date'] }}</b>.
       </td>
     </tr>
     <tr>
       <td>
         <table style='font-size:12pt;' cellpadding='5'>
-          {% for gift in data['account']['gift_history'] %}
+          {% for gift in history %}
             {% if loop.index0 < 6 %}
               <tr>
                 <td>
@@ -33,9 +33,9 @@
     </tr>
     <tr>
       <td>
-        {% if data['entry']['next_pickup'] is defined %}
+        {% if entry['next_pickup'] is defined %}
           Your next pickup is scheduled for 
-          <b>{{ data['entry']['next_pickup'] }}</b>.
+          <b>{{ entry['next_pickup'] }}</b>.
 					{#{% if data['account']['phones'] is defined %}#}
 					{#  {% for phone in data['account']['phones'] %} #}
 					{#	  {% if phone['type'] == 'Mobile' %} #}
@@ -49,7 +49,7 @@
     </tr>
     <tr>
       <td>
-        {% if data['entry']['status'] == "Call-in" %}
+        {% if entry['status'] == "Call-in" %}
           Please call us when you need your next pickup at 
           <b>403-267-1240</b>.
         {% endif %}

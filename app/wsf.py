@@ -3,14 +3,8 @@ from datetime import datetime
 import logging
 
 import gsheets
-from app import app, db, debug_handler, info_handler, error_handler
-#from app.tasks import celery_app
-
+from app import app, db
 logger = logging.getLogger(__name__)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.addHandler(debug_handler)
-logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 def resolve_depot(block, postal_codes, event_desc=False):

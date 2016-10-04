@@ -7,13 +7,8 @@ import pytz
 from datetime import datetime
 import flask
 
-from app import app, db, info_handler, error_handler, debug_handler
-
+from app import app, db
 logger = logging.getLogger(__name__)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.addHandler(debug_handler)
-logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 def naive_to_local(dt):

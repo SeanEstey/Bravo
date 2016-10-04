@@ -4,13 +4,8 @@ import logging
 from datetime import date
 
 from config import *
-from app import app, db, info_handler, error_handler, debug_handler
-
+from app import db
 logger = logging.getLogger(__name__)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.addHandler(debug_handler)
-logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 def call(func_name, keys, data, silence_exceptions=False):
@@ -43,7 +38,7 @@ def call(func_name, keys, data, silence_exceptions=False):
       -Raises requests.RequestException on POST error (if not silenced)
     '''
 
-    logger.debug('etap.call data: %s', str(data))
+    #logger.debug('etap.call data: %s', str(data))
 
     try:
         response = requests.post(
@@ -62,7 +57,7 @@ def call(func_name, keys, data, silence_exceptions=False):
         else:
             raise
 
-    logger.debug('etap.call response.text: %s', response.text)
+    #logger.debug('etap.call response.text: %s', response.text)
 
     try:
         data = json.loads(response.text)
@@ -127,7 +122,7 @@ def get_primary_phone(account):
         return False
 
 #-------------------------------------------------------------------------------
-def ddmmyyyy_to_list(date_str):
+def ddmmyyyy_to_date(date_str):
     # Makes list [dd, mm, yyyy]
 
     parts = date_str.split('/')
@@ -139,6 +134,9 @@ def ddmmyyyy_to_list(date_str):
 #-------------------------------------------------------------------------------
 def dt_to_ddmmyyyy(dt):
     return dt.strftime('%d/%m/%Y')
+
+
+
 
 
 

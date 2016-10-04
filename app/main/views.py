@@ -2,51 +2,44 @@ import json
 import twilio.twiml
 import time
 import requests
-from datetime import datetime,date
+from datetime import datetime, date
 import flask
 from flask import Blueprint, request, jsonify, render_template, redirect
 from flask.ext.login import login_required, current_user
 from bson.objectid import ObjectId
-import pytz
 import logging
 
-# Import Application objects
-from app import db, socketio
-
+# Setup Blueprint
 main = Blueprint('main', __name__, url_prefix='/')
 
-# Import methods
-from app.utils import send_email, dict_to_html_table
-import app.wsf
-from app.log import get_tail
-from app.auth import login, logout
-from app.routing import get_orders,submit_job,build_route,get_upcoming_routes,build_todays_routes
-import app.notific_events
-import app.pickup_service
-#import app.tasks
-import app.receipts
-import app.notifications
-import app.gsheets
-import app.scheduler
-import app.etap
-import app.sms
+# Import modules and objects
+from app import db, app, socketio
+from app import auth
+from app import log
+from app import utils
+from app import routing
+from app import wsf
+from app import notific_events
+from app import pickup_service
+from app import receipts
+from app import notifications
+from app import gsheets
+from app import scheduler
+from app import etap
+from app import notific_events
+from app import sms
+from app import tasks
 
-from app import db, info_handler, error_handler, debug_handler, login_manager
-
+# Get logger
 logger = logging.getLogger(__name__)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.addHandler(debug_handler)
-logger.setLevel(logging.DEBUG)
 
 
 #-------------------------------------------------------------------------------
 @main.route('/', methods=['GET'])
-#@login_required
+@login_required
 def view_events():
-
-    #agency = db['users'].find_one({'user': current_user.username})['agency']
-    #events = notific_events.get_list(agency)
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+    events = notific_events.get_list(agency)
 
     return render_template(
       'views/event_list.html',
@@ -57,20 +50,20 @@ def view_events():
 #-------------------------------------------------------------------------------
 @main.route('login', methods=['GET','POST'])
 def user_login():
-    return login()
+    return auth.login()
 
 
 #-------------------------------------------------------------------------------
 @main.route('logout', methods=['GET'])
 def user_logout():
-    logout()
+    auth.logout()
     return redirect(app.config['PUB_URL'])
 
 #-------------------------------------------------------------------------------
 @main.route('/log')
 @login_required
 def view_log():
-    lines = get_tail(app.config['LOG_PATH'] + 'info.log', app.config['LOG_LINES'])
+    lines = log.get_tail(app.config['LOG_PATH'] + 'info.log', app.config['LOG_LINES'])
 
     return render_template('views/log.html', lines=lines)
 
@@ -83,7 +76,7 @@ def view_admin():
 
     if user['admin'] == True:
         settings = db['agencies'].find_one({'name':agency}, {'_id':0, 'google.oauth':0})
-        settings_html = dict_to_html_table(settings)
+        settings_html = utils.dict_to_html_table(settings)
     else:
         settings_html = ''
 
@@ -111,7 +104,7 @@ def show_booking():
 def show_routing():
     agency = db['users'].find_one({'user': current_user.username})['agency']
     agency_conf = db['agencies'].find_one({'name':agency})
-    routes = get_upcoming_routes(agency)
+    routes = routing.get_upcoming_routes(agency)
 
     return render_template(
       'views/routing.html',
@@ -137,12 +130,12 @@ def get_route(job_id):
     conf = db['agencies'].find_one({'name':agency})
     api_key = conf['google']['geocode']['api_key']
 
-    return json.dumps(get_orders(job_id, api_key))
+    return json.dumps(routing.get_orders(job_id, api_key))
 
 #-------------------------------------------------------------------------------
 @main.route('routing/start_job', methods=['POST'])
 def get_routing_job_id():
-    app.logger.info('Routing Block %s...', request.form['block'])
+    logger.info('Routing Block %s...', request.form['block'])
 
     etap_id = json.loads(request.form['etapestry_id'])
 
@@ -151,7 +144,7 @@ def get_routing_job_id():
     })
 
     try:
-        job_id = submit_job(
+        job_id = routing.submit_job(
           request.form['block'],
           request.form['driver'],
           request.form['date'],
@@ -170,7 +163,7 @@ def get_routing_job_id():
 #-------------------------------------------------------------------------------
 @main.route('routing/build/<route_id>', methods=['GET', 'POST'])
 def _build_route(route_id):
-    r = build_route.apply_async(
+    r = routing.build_route.apply_async(
       args=(route_id,),
       queue=app.config['DB']
     )
@@ -182,7 +175,7 @@ def _build_route(route_id):
 def _build_sheet(job_id, route_id):
     '''non-celery synchronous func for testing
     '''
-    build_route(route_id, job_id=job_id)
+    routing.build_route(route_id, job_id=job_id)
     return redirect(app.config['PUB_URL'] + '/routing')
 
 #-------------------------------------------------------------------------------
@@ -192,10 +185,10 @@ def new_event():
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
     try:
-        with open('templates/schemas/'+agency+'.json') as json_file:
+        with open('app/templates/schemas/'+agency+'.json') as json_file:
           templates = json.load(json_file)['reminders']
     except Exception as e:
-        app.logger.error("Couldn't open json schemas file")
+        logger.error("Couldn't open json schemas file")
         return "Error"
 
     return render_template('views/new_event.html', templates=templates, title=app.config['TITLE'])
@@ -208,7 +201,7 @@ def _submit_event():
         r = reminders.submit_event(request.form.to_dict(), request.files['call_list'])
         return flask.Response(response=json.dumps(r), status=200, mimetype='application/json')
     except Exception as e:
-        app.logger.error('submit_event: %s', str(e))
+        logger.error('submit_event: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------
@@ -219,18 +212,16 @@ def view_event(event_id):
 
     notific_list = db['notifications'].find({'event_id':ObjectId(event_id)}).sort(sort_by, 1)
 
-    event = db['events'].find_one({'_id':ObjectId(event_id)})
-
-    local = pytz.timezone("Canada/Mountain")
-    job['voice']['fire_at'] = job['voice']['fire_at'].replace(tzinfo=pytz.utc).astimezone(local)
+    event = db['notification_events'].find_one({'_id':ObjectId(event_id)})
+    event['event_dt'] = utils.utc_to_local(event['event_dt'])
 
     return render_template(
         'views/event.html',
         title=app.config['TITLE'],
-        reminders=reminders,
-        job_id=job_id,
-        job=job,
-        template=job['schema']['import_fields']
+        notifications=notifications,
+        event_id=event_id,
+        event=event
+        #template=job['schema']['import_fields']
     )
 
 #-------------------------------------------------------------------------------
@@ -248,39 +239,12 @@ def reset_event(event_id):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('reminders/<event_id>/send_emails')
-@login_required
-def send_emails(event_id):
-    reminders.send_emails.apply_async(
-            (event_id.encode('utf-8'),),
-            queue=app.config['DB'])
-    return 'OK'
-
-#-------------------------------------------------------------------------------
-@main.route('reminders/<event_id>/send_calls')
-@login_required
-def send_calls(event_id):
-    event_id = event_id.encode('utf-8')
-
-    # Start new event
-    db['events'].update_one(
-      {'_id': ObjectId(job_id)},
-      {'$set': {
-        "status": "in-progress",
-        "voice.started_at": datetime.now()}})
-
-    reminders.send_calls.apply_async(
-            args=(job_id, ),
-            queue=app.config['DB'])
-    return 'OK'
-
-#-------------------------------------------------------------------------------
 @main.route('reminders/<job_id>/complete')
 @login_required
 def job_complete(job_id):
     '''Email job summary, update job status'''
 
-    app.logger.info('Job [ID %s] complete!', job_id)
+    logger.info('Job [ID %s] complete!', job_id)
 
     # TODO: Send socket to web app to display completed status
 
@@ -305,7 +269,7 @@ def edit_msg(reminder_id):
 def no_pickup(event_id, account_id):
     '''Script run via reminder email'''
 
-    app.tasks.cancel_pickup.apply_async(
+    tasks.cancel_pickup.apply_async(
         (event_id, account_id),
         queue=app.config['DB'])
 
@@ -352,7 +316,7 @@ def record_msg():
 
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    app.logger.info('Record audio request from ' + request.form['To'])
+    logger.info('Record audio request from ' + request.form['To'])
 
     twilio = db['agencies'].find_one({'name':agency})['twilio']
 
@@ -363,7 +327,7 @@ def record_msg():
       app.config['PUB_URL'] + '/reminders/voice/record/on_answer.xml'
     )
 
-    app.logger.info('Dial status: %s', call.status)
+    logger.info('Dial status: %s', call.status)
 
     if call.status == 'queued':
         doc = {
@@ -388,7 +352,7 @@ def record_xml():
     Response: twilio.twiml.Response with voice content
     '''
 
-    app.logger.info('Sending record twimlo response to client')
+    logger.info('Sending record twimlo response to client')
 
     # Record voice message
     voice = twilio.twiml.Response()
@@ -413,13 +377,13 @@ def record_complete_xml():
     Response: twilio.twiml.Response with voice content
     '''
 
-    app.logger.debug('/reminders/voice/record_on_complete.xml args: %s',
+    logger.debug('/reminders/voice/record_on_complete.xml args: %s',
       request.form.to_dict())
 
     if request.form.get('Digits') == '#':
         record = db['audio'].find_one({'sid': request.form['CallSid']})
 
-        app.logger.info('Recording completed. Sending audio_url to client')
+        logger.info('Recording completed. Sending audio_url to client')
 
         # Reminder job has not been created yet so save in 'audio' for now
 
@@ -451,7 +415,7 @@ def get_answer_xml():
     try:
         voice = notifications.get_voice_play_answer_response(request.form.to_dict())
     except Exception as e:
-        app.logger.error('/reminders/voice/play/on_answer.xml: %s', str(e))
+        logger.error('/reminders/voice/play/on_answer.xml: %s', str(e))
         return flask.Response(response="Error", status=500, mimetype='text/xml')
 
     return flask.Response(response=str(voice), mimetype='text/xml')
@@ -468,7 +432,7 @@ def get_interact_xml():
     try:
         voice = notifications.get_voice_play_interact_response(request.form.to_dict())
     except Exception as e:
-        app.logger.error('/reminders/voice/play/on_interact.xml: %s', str(e))
+        logger.error('/reminders/voice/play/on_interact.xml: %s', str(e))
         return flask.Response(response="Error", status=500, mimetype='text/xml')
 
     return flask.Response(response=str(voice), mimetype='text/xml')
@@ -489,7 +453,7 @@ def sms_status():
     If sending, determine if part of reminder or reply to original received msg
     '''
 
-    app.logger.debug(request.form.to_dict())
+    logger.debug(request.form.to_dict())
 
     doc = db['sms'].find_one_and_update(
       {'SmsSid': request.form['SmsSid']},
@@ -516,24 +480,24 @@ def process_receipts():
     @arg 'etapestry': JSON dict of etapestry info for PHP script
     '''
 
-    app.logger.info('Process receipts request received')
+    logger.info('Process receipts request received')
 
     entries = json.loads(request.form['data'])
     etapestry = json.loads(request.form['etapestry'])
 
     # Start celery workers to run slow eTapestry API calls
-    r = app.tasks.process_receipts.apply_async(
+    r = tasks.process_receipts.apply_async(
       args=(entries, etapestry),
       queue=app.config['DB']
     )
 
-    #app.logger.info('Celery process_receipts task: %s', r.__dict__)
+    #logger.info('Celery process_receipts task: %s', r.__dict__)
 
     return 'OK'
 
 #-------------------------------------------------------------------------------
 @main.route('email/send', methods=['POST'])
-def send_email():
+def _send_email():
     '''Can be collection receipt from gsheets.process_receipts, reminder email,
     or welcome letter from Google Sheets.
     Required fields: 'agency', 'recipient', 'template', 'subject', and 'data'
@@ -543,19 +507,19 @@ def send_email():
     '''
     args = request.get_json(force=True)
 
-    app.logger.debug('/email/send: "%s"', args)
+    logger.debug('/email/send: "%s"', args)
 
     for key in ['template', 'subject', 'recipient']:
         if key not in args:
             e = '/email/send: missing one or more required fields'
-            app.logger.error(e)
+            logger.error(e)
             return flask.Response(response=e, status=500, mimetype='application/json')
 
     try:
         html = render_template(args['template'], data=args['data'])
     except Exception as e:
         msg = '/email/send: invalid email template'
-        app.logger.error('%s: %s', msg, str(e))
+        logger.error('%s: %s', msg, str(e))
         return flask.Response(response=e, status=500, mimetype='application/json')
 
     mailgun = db['agencies'].find_one({'name':args['agency']})['mailgun']
@@ -571,13 +535,13 @@ def send_email():
             'html': html
         })
     except requests.exceptions.RequestException as e:
-        app.logger.error(str(e))
+        logger.error(str(e))
         return flask.Response(response=e, status=500, mimetype='application/json')
 
     if r.status_code != 200:
         err = 'Invalid email address "' + args['recipient'] + '": ' + json.loads(r.text)['message']
 
-        app.logger.error(err)
+        logger.error(err)
 
         gsheets.create_rfu(args['agency'], err)
 
@@ -590,7 +554,7 @@ def send_email():
         'on_status_update': args['data']['from']
     })
 
-    app.logger.debug('Queued email to ' + args['recipient'])
+    logger.debug('Queued email to ' + args['recipient'])
 
     return json.loads(r.text)['id']
 
@@ -615,7 +579,7 @@ def email_unsubscribe():
                 'html': msg
             })
         except requests.exceptions.RequestException as e:
-            app.logger.error(str(e))
+            logger.error(str(e))
             return flask.Response(response=e, status=500, mimetype='application/json')
 
         return 'We have received your request to unsubscribe ' \
@@ -634,7 +598,7 @@ def email_spam_complaint():
     try:
         gsheets.create_rfu(request.form['recipient'] + m)
     except Exception, e:
-        app.logger.error('%s' % request.values.items(), exc_info=True)
+        logger.error('%s' % request.values.items(), exc_info=True)
         return str(e)
 
     return 'OK'
@@ -650,7 +614,7 @@ def email_status():
     'reason' (on dropped)
     '''
 
-    app.logger.info('Email to %s %s',
+    logger.info('Email to %s %s',
       request.form['recipient'], request.form['event']
     )
 
@@ -687,9 +651,9 @@ def email_status():
         elif reason == 'hardfail':
             msg +=  'Can\'t deliver to previous invalid address'
 
-        app.logger.info(msg)
+        logger.info(msg)
 
-        app.tasks.make_rfu.apply_async(
+        tasks.make_rfu.apply_async(
             args=(email['agency'], msg, ),
             queue=app.config['DB'])
 
@@ -706,7 +670,7 @@ def get_romorrow_accounts():
 #-------------------------------------------------------------------------------
 @main.route('call/nis', methods=['POST'])
 def nis():
-    app.logger.info('NIS!')
+    logger.info('NIS!')
 
     record = request.get_json()
 
@@ -717,7 +681,7 @@ def nis():
           block=record['custom']['block']
         )
     except Exception, e:
-        app.logger.info('%s /call/nis' % request.values.items(), exc_info=True)
+        logger.info('%s /call/nis' % request.values.items(), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------------------
@@ -734,8 +698,8 @@ def rec_signup():
         )
     except Exception as e:
         time.sleep(1)
-        app.logger.info('/receive_signup: %s', str(e), exc_info=True)
-        app.logger.info('Retrying...')
+        logger.info('/receive_signup: %s', str(e), exc_info=True)
+        logger.info('Retrying...')
         wsf.add_signup.apply_async(
           args=(request.form.to_dict(),),
           queue=app.config['DB']
@@ -746,27 +710,41 @@ def rec_signup():
 
 
 #-------------------------------------------------------------------------------
-@main.route('render_html', methods=['POST'])
-def _render_html():
-    '''2 args: 'template' html file and data
-    Can be called to render reminder emails or receipt emails
+@main.route('render_receipt', methods=['POST'])
+def render_receipt_body():
+    try:
+        args = request.get_json(force=True)
+
+        return render_template(
+          args['template'],
+          to = args['data'].get('account').get('email'),
+          account = args['data'].get('account'),
+          entry = args['data'].get('entry'),
+          history = args['data'].get('history'),
+          data=args['data'] # remove this after testing
+        )
+    except Exception as e:
+        logger.error('render_receipt: %s ', str(e))
+        return 'Error'
+
+#-------------------------------------------------------------------------------
+@main.route('render_notification', methods=['POST'])
+def render_notification():
+    '''Used for notification emails and receipts
+    2 args: 'template' html file and 'data'
+    Notification emails: 'data' contains ['account' (not etap format), 'to']
     '''
 
     try:
         args = request.get_json(force=True)
-        data = args['data']
-
-        app.logger.debug('view: render_html')
 
         return render_template(
           args['template'],
-          account = data.get('account') or None,
-          entry = data.get('entry') or None,
-          to = data.get('to') or None,
-          data=args['data'] # remove this after testing
+          to = args['to'],
+          account = args['account']
         )
     except Exception as e:
-        app.logger.error('render_html: %s ', str(e))
+        logger.error('render_notification: %s ', str(e))
         return 'Error'
 
 
@@ -784,5 +762,5 @@ def get_the_nps():
 
 @main.route('test_build_routes',methods=['GET'])
 def test_build_routes():
-    build_todays_routes.apply_async(queue=app.config['DB'])
+    routing.build_todays_routes.apply_async(queue=app.config['DB'])
     return "OK"

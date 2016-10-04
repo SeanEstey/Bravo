@@ -2,15 +2,11 @@ import logging
 from bson.objectid import ObjectId
 from datetime import datetime,date,time
 
-from app import app, db, info_handler, error_handler, debug_handler
+from app import app, db
 import utils
 import notifications
 
 logger = logging.getLogger(__name__)
-logger.addHandler(debug_handler)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.setLevel(logging.DEBUG)
 
 
 #-------------------------------------------------------------------------------

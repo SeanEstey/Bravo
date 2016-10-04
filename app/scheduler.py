@@ -13,17 +13,11 @@ from bson.objectid import ObjectId
 import pytz
 
 from config import *
-from app import app, db, info_handler, error_handler, debug_handler, login_manager
-from app import celery_app
+from app import app, db, login_manager, celery_app
 import gsheets
 from block_parser import get_block, block_to_rmv
 import etap
-
 logger = logging.getLogger(__name__)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.addHandler(debug_handler)
-logger.setLevel(logging.DEBUG)
 
 
 #-------------------------------------------------------------------------------

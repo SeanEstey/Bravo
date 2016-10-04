@@ -2,15 +2,15 @@
   {% block content %}  
     <tr>
       <td>
-        Hi {{ data['account']['name'] }},
+        Hi {{ account['name'] }},
       </td>
     </tr>
     <tr>
       <td>
         You should have had your collection supplies dropped off on 
-        {{ data['entry']['date'] }} at 
-        {{ data['account']['address'] }}, 
-        {{ data['account']['postal'] }}.
+        {{ entry['date'] }} at 
+        {{ account['address'] }}, 
+        {{ account['postal'] }}.
       </td>
     </tr>
     <tr>
@@ -20,9 +20,9 @@
     </tr>
     <tr>
       <td>
-        {% if data['entry']['next_pickup'] %}
+        {% if entry['next_pickup'] %}
         Your next pickup is scheduled for 
-        <b>{{ data['entry']['next_pickup'] }}</b>.
+        <b>{{ entry['next_pickup'] }}</b>.
         {% endif %}
       </td>
     </tr>

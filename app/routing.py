@@ -20,15 +20,8 @@ import scheduler
 import gdrive
 import gsheets
 
-from app import info_handler, error_handler, debug_handler, db
-
-from app import celery_app
-
+from app import db, celery_app
 logger = logging.getLogger(__name__)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.addHandler(debug_handler)
-logger.setLevel(logging.DEBUG)
 
 class GeocodeError(Exception):
     pass

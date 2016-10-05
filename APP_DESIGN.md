@@ -1,11 +1,9 @@
-<h3>Event Reminder Jobs</h3>
--Each document represents a group of event reminders for an event date
+<h3>Notification Events</h3>
+-Each document represents a set of triggers and corresponding notifications for an event
 <br>
--Reminder documents contain the "_id" of the parent job as "job_id"
+-An event can contain 1 or more triggers for <b>voice</b> or <b>email</b> notifications
 <br>
--A job can contain 1 or more triggers to fire <b>voice</b> or <b>email</b> notifications
-<br>
--Job status starts as <b>pending</b>, once one of its triggers is fired,
+-Status status starts as <b>pending</b>, once one of its triggers is fired,
 changes to <b>in-progress</b>, and changes to <b>complete</b> when all triggers are fired
 
 <h4>JSON Structure</h4>
@@ -16,121 +14,63 @@ changes to <b>in-progress</b>, and changes to <b>complete</b> when all triggers 
     "status": ["pending", "in-progress", "completed", "failed"], 
     "name": "name",
     "event_dt": "datetime of event",
-    "no_pickups": "num opt-outs",
     "triggers": [
-        {
-            "id": ObjectId(),
-            "type": "phone",
-            "mediums": ['sms', 'voice'],
-            "fire_dt": "bson.date in UTC",
-            "status": ["pending", "fired"],
-            "count": "number"
-        },
-        {
-            "id": "ObjectId(),
-            "type": "email",
-            "status": ["pending", "fired"],
-            "fire_dt": "<bson.date>"
-        }
-    ],
-    "schema": {
-        "_comment": "fields imported from templates/schemas/[name].json",
-        "name": "pickup_reminder",
-        "type": "reminder",
-        "description": "display when adding job",
-        "email": {
-            "_comments": "any emails sent as followups to scheduled reminder", 
-            "no_pickup": {
-                "file": "email/vec/no_pickup.html",
-                "subject": "string"
-            }
-        }
-    }
+        {"id": "bson.objectid"},
+        {"id": "bson.objectid"}
+    ]
 }
 ```
 
-<h3>Event Reminders</h3>
--Each document represents a set of notifications to a recipient for an event date
+<h3>Triggers</h3>
+-Represent 1 or more notifications
 <br>
--A reminder can have 1 notification for each medium ['voice', 'sms', 'email'], each with its own trigger time set by its parent job
+-Monitored by cron process. When a triggers "fire_dt" datetime is reached, it is triggered, and all it's dependent notifications are sent
 <br>
--If a reminder is set for Email and SMS, it contains 'email' and 'sms' keys, but not 'voice' key
+
+<h4>JSON Structure</h4>
+```json
+{
+  "event_id": ObjectId("57f2ae87fd9ab4312024a8c7"),
+  "status": "pending",
+  "fire_dt": new Date("2016-10-07T08:00:00-0600"),
+  "type": "email"
+}
+```
+
+<h3>Notifications</h3>
+-The actual <b>email</b>, <b>voice</b>, or <b>sms</b> notification to send
+<br>
+-Contains recipient account properties, 
 
 <h4>JSON Structure</h4>
 
 ```json
 {
-    "job_id": "<BSON.ObjectId>",
-    "agency": "agency name",
-    "name": "customer name",
-    "account_id": "etapestry account number",
-    "event_dt": "<BSON.Date>",
-    "notifications": [
-        "_comment": "can contain 1 or more items",
-        {
-            "type": "voice",
-            "sid": "twilio call id",
-            "status": [
-                "no-number", "pending","active","cancelled", "failed","queued",
-                "ringing","in-progress","busy","no-answer","completed"
-            ], 
-            "answered_by": ["human", "machine"],
-            "ended_dt": "bson.date in UTC",
-            "speak": "text spoken to user",
-            "attempts": "number",
-            "duration": "number in sec",
-            "error": "twiilo msg",
-            "code": "twilio code",
-            "conf": {
-                "_comment": "call settings",
-                "to": "phone number string",
-                "source": ["template", "audio_url"],
-                "template": ".html path if source=='template'",
-                "audio_url": "url of recorded audio if source=='audio_url'"
-            }
-        },
-        {
-            "type": "email",
-            "mid":  "mailgun id",
-            "fire_dt": "bson.date in UTC",
-            "status": ["no-email", "pending", "bounced", "dropped", "delivered"],
-            "error": "mailgun error (if any)",
-            "code": "mailgun status code"
-            "conf": {
-                "recipient": "email address",
-                "fire_dt": "bson.date in UTC",
-                "template": ".html path of content",
-                "subject": "subject line"
-            }
-        }
-    ],
-    "custom": {
-        "_comment": "any fields that are specific to the reminder type",
-        "no_pickup": "[True,False]",
-        "future_pickup_dt": "<BSON.Date>",
-        "status": "",
-        "block": "",
-        "type": ["pickup", "delivery", "dropoff"]
+  "status": "completed",
+  "trig_id": "bson.object",
+  "account": {
+    "udf": {
+    },
+    "name": "Sean Estey",
+    "id": 5075
+  },
+  "to": "(780) 863-5715",
+  "event_id": ObjectId("57f2ae87fd9ab4312024a8c7"),
+  "content": {
+    "source": "template",
+    "template": {
+      "default": {
+        "file": "voice/vec/reminder.html"
+      }
     }
-}
-```
-
-<h3>"emails" collection</h3>
-
-```json
-{
-  "mid": "mailgun_msg_id",
-  "status": ["queued", "delivered", "bounced", "dropped"],
-  "code": "error code (if any)",
-  "error": "(if any)",
-  "reason": "error desc (if any)",
-  "on_status_update": {
-    "reminder_id": "<BSON.OjectId> (only for reminders)",
-    "sheet": "sheet name (Google Sheets)",
-    "worksheet": "worksheet name (Google Sheets)",
-    "row": "row (Google Sheets)",
-    "upload_status": "cell value (Google Sheets)"
-  }
+  },
+  "type": "voice",
+  "event_dt": new Date("2016-10-09T08:00:00-0600"),
+  "sid": "CA78b7529052a8c7bd161728fecd2480d4",
+  "attempts": 1,
+  "answered_by": "human",
+  "duration": "28",
+  "ended_at": new Date(1475507397211),
 }
 ```
 
@@ -244,7 +184,10 @@ changes to <b>in-progress</b>, and changes to <b>complete</b> when all triggers 
 }
 ```
 
-<h3>Users JSON Structure</h3>
+<h3>Users</h3>
+
+<h4>Users JSON Structure</h4>
+
 ```json
 {
   "user": "USERNAME",
@@ -259,5 +202,26 @@ changes to <b>in-progress</b>, and changes to <b>complete</b> when all triggers 
 "audio_msg": {
   "sid": "",
   "status": ""
+}
+```
+
+<h3>Emails</h3>
+
+<h4>JSON Structure</h4>
+
+```json
+{
+  "mid": "mailgun_msg_id",
+  "status": ["queued", "delivered", "bounced", "dropped"],
+  "code": "error code (if any)",
+  "error": "(if any)",
+  "reason": "error desc (if any)",
+  "on_status_update": {
+    "reminder_id": "<BSON.OjectId> (only for reminders)",
+    "sheet": "sheet name (Google Sheets)",
+    "worksheet": "worksheet name (Google Sheets)",
+    "row": "row (Google Sheets)",
+    "upload_status": "cell value (Google Sheets)"
+  }
 }
 ```

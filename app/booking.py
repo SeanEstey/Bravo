@@ -7,12 +7,12 @@ from app import etap
 from app import app, db
 logger = logging.getLogger(__name__)
 
+'''
 #-------------------------------------------------------------------------------
-def search(term, config, agency)
-    '''Search query invoked from Booker client
+def search(term, config, agency):
+    Search query invoked from Booker client
     @term: either Account Number, Postal Code, Address, or Block
     Returns: JSON object: {'search_type': str, 'status': str, 'message': str, 'booking_results': array }
-    '''
 
     results = {
     'search_term': term,
@@ -142,10 +142,10 @@ def search(term, config, agency)
 
 #-------------------------------------------------------------------------------
 def make(account_num, udf, type, config):
-    '''Makes the booking in eTapestry by posting to Bravo.
+    Makes the booking in eTapestry by posting to Bravo.
     This function is invoked from the booker client.
     @type: 'delivery, pickup'
-    '''
+    
 
     logger.info('Making ' + type + ' booking for account ' + account_num + ', udf: ' + udf)
 
@@ -158,11 +158,11 @@ def make(account_num, udf, type, config):
 
 #-------------------------------------------------------------------------------
 def get_options_by_radius(lat, lng, map_data, cal_ids, rules, _events):
-    '''Find a list of Blocks within the smallest radius of given coordinates.
+    Find a list of Blocks within the smallest radius of given coordinates.
     Constraints: must be within provided radius, schedule date, and block size.
     @rules: specifies schedule, radius and block size constraints
     Returns: list of Block objects on success, [] on failure
-    '''
+    
 
     today = new Date()
     two_weeks = new Date(today.getTime() + (1000 * 3600 * 24 * rules['max_schedule_days_wait']))
@@ -199,11 +199,11 @@ def get_options_by_radius(lat, lng, map_data, cal_ids, rules, _events):
 
 #-------------------------------------------------------------------------------
 def find_block_schedule(block_name, cal_ids, rules):
-    '''Find all the scheduled dates/info for the given block.
+    Find all the scheduled dates/info for the given block.
     @rules: Object specifying search parameters: 'search_weeks' and
     'size':'res':'max' and 'size:'bus':'max'
     Returns: list of Block objects on success, [] on failure
-    '''
+    
 
     today = new Date()
     end_date = new Date(today.getTime() + (1000 * 3600 * 24 * 7 * rules['search_weeks']))
@@ -244,9 +244,9 @@ def find_block_schedule(block_name, cal_ids, rules):
 
 #-------------------------------------------------------------------------------
 def get_options_by_postal(postal, cal_ids, rules):
-    '''Finds all Blocks within given postal code, sorted, sorted by date.
+    Finds all Blocks within given postal code, sorted, sorted by date.
     Returns: list of Block objects on success, [] on failure.
-    '''
+    
 
     postal = postal.toUpperCase()
     today = new Date()
@@ -294,3 +294,4 @@ def get_options_by_postal(postal, cal_ids, rules):
 
     return results
     }
+'''

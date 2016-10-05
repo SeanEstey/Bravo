@@ -1,27 +1,5 @@
 ### Python/PHP Setup Instructions
 
-###### Install Dependencies
-```
-apt-get install \
-    python-pip python-dev \
-    mongodb \
-    nginx \
-    rabbitmq-server \
-    logrotate
-    python-json-logger
-pip install \
-    celery \
-    pymongo \
-    python-dateutil \
-    twilio \
-    apiclient oauth2client gspread \
-    flask flask-socketio flask-login \
-    numpy \
-    matplotlib
-pip install --upgrade google-api-python-client
-pip install oauth2client==1.5.2
-```
-
 ###### Clone repository
 ```
 git clone https://github.com/SeanEstey/Bravo
@@ -62,20 +40,6 @@ $mongo
 3. Generate JSON key
 4. Add contents to MongoDB "agencies" collection under "oauth" key
 
-###### Create auth_keys.py in flask/ with following variables:
-```
-GOOGLE_API_KEY = ''
-MAILGUN_API_KEY = ''
-MAILGUN_DOMAIN = ''
-SECRET_KEY = ''
-BRAVO_AUTH_KEY = ''
-TWILIO_ACCOUNT_SID = ''
-TWILIO_AUTH_ID = ''
-TWILIO_TEST_ACCOUNT_SID = ''
-TWILIO_TEST_AUTH_ID = ''
-SECRET_KEY = ''
-ROUTIFIC_KEY = ''
-```
 
 ### Google Sheets / Google Script Setup Instructions
 
@@ -132,7 +96,7 @@ Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with t
 `$rabbitmqctl start_app`
 
 ###### Start Flask Server
-`$python main.py`
+`$ python run.py`
 
 This will start the celery workers.
 

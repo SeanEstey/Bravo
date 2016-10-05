@@ -57,8 +57,7 @@
 				<div></div>
 				<br>
 				<div style='text-align:center; font-size:9pt'>
-					<a href="http://www.bravoweb.ca{{ url_for('main.email_unsubscribe')
-							}}?email={{ to }}">
+					<a href="http://www.bravoweb.ca{{ url_for('main.email_unsubscribe', agency='vec') }}?email={{ to }}">
 						Unsubscribe</a>
 				</div>
       </td>

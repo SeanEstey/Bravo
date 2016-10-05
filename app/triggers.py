@@ -71,6 +71,6 @@ def monitor_all():
     #if datetime.utcnow().minute == 0:
     pending_triggers = db['triggers'].find({'status':'pending'})
 
-    logger.info('%s pending triggers', pending_triggers.count())
+    print '%s pending triggers' % pending_triggers.count()
 
     return True

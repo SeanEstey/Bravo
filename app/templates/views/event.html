@@ -21,12 +21,12 @@
     <h2>
       <span id='job-header' class='label label-primary'>
         <label id='job-status'>
-						{{job.status.title().replace('-',' ')}}
+						{{event.status.title().replace('-',' ')}}
 				</label>
         <label id='job-summary'></label>
       </span>
     </h2>
-      <p id='scheduled_datetime' style='display:none'>{{ job['voice']['fire_at'] }}</p>
+      <p id='scheduled_datetime' style='display:none'>{{ event.event_dt.date() }}</p>
   </div>
 	
 	<!-- Play Sample -->
@@ -39,107 +39,72 @@
   
   <div class='data-container'>
     <div class='navbar-div'>
-      <a class='hover' href="{{ url_for('view_jobs') }}">Jobs</a> / 
-      {{ job.name }}
+      <a class='hover' href="{{ url_for('main.view_events') }}">Notification Events</a> / 
+      {{ event.name }}
     </div>
     <table id='show-calls-table' class='table table-hover table-colored'>
       <thead>
         <tr>
-          <!-- Imported Headers -->
-          {% set col_num=1 %}
-          {% set col_arr=[] %}
-          {% for column in template if not column.hide %}
-            <th style='text-align:left' id='col{{ col_num }}'>
-              <a title='Sort' class='hover' href='#'>{{ column['file_header'] }}</a>
-            </th>
-            {% set col_num = col_num + 1 %}
-            {% do col_arr.append(1) %}
-          {% endfor %}
-
-          <!-- Call Status Header -->
-          {% if 'voice' in reminders[0] %}
-            <th name='Call Status' 
-              style='text-align:right'  
-              id='col{{col_arr|length+1}}'>
-              <a title='Sort' class='hover' href='#'>Call Status</a>
-            </th>
-
-            {% set col_num = col_num + 1 %}
-            {% do col_arr.append(1) %}
-          {% endif %}
-
-          <!-- Email Status Header -->
-          {% if 'email' in reminders[0] %}
-            <th name='Email Status' 
-              style='text-align:right'  
-              id='col{{col_arr|length+1}}'>
-              <a title='Sort' class='hover' href='#'>Email Status</a>
-            </th>
-
-            {% set col_num = col_num + 1 %}
-            {% do col_arr.append(1) %}
-          {% endif %}
-
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th>Block</th>
+          <th>Status</th>
+          <th>Driver Notes</th>
+          <th>Office Notes</th>
+          <th>Pickup Date</th>
+          <th>Email Status</th>
+          <th>Call Status</th>
           <th class='cancel-call-col' style='width:50px'></th>
         </tr>
       </thead>
 
-      <!-- Data Rows -->
+      <!-- Notifications Rows -->
       <tbody>
-      {% set row_num=1 %}
-
-      {% for reminder in reminders %}
-        <tr id='{{ reminder._id }}'>
-          <!-- Imported Field Columns -->
-          {% for column in template if not column.hide %}
-            {% set field = column['db_field'] %}
-
-            {% if "." in field %}
-              {% set dot_ind = field.index('.') %}
-              {% set len = field|length %}
-              {% set value = reminder[field[0:dot_ind]][field[dot_ind+1:field|length]] %}
-            {% else %}
-              {% set value = reminder[field] %}
-            {% endif %}
-
-            {% if field == "email" %}
-              {% set style="WORD-BREAK:BREAK-ALL" %}
-            {% endif %}
-
-            {% if value == '' %}
-              <td style='{{style}}' name="{{ field }}">---</td>
-            {% else %}
-              <td style='{{style}}' name="{{ field }}">{{ value }}</td>
+      {% for notific_group in notific_list %}
+      {% set notific = notific_group['results'][0] %}
+        <tr id='fixme'>
+          <td>{{notific['account']['name']}}</td>
+          <!-- phone -->
+          {% for notification in notific_group['results'] %}
+            {% if notification['type'] == 'voice' %}
+              <td>{{notification.to}}</td>
             {% endif %}
           {% endfor %}
-
-          <!-- Call Status -->
-          {% if 'voice' in reminder  %}
-              <td name='call_status' style='text-align:right; font-weight:normal;'>{{reminder['voice']['status']}}</td>
-          {% endif %}
-
-          <!-- Email Status -->
-          {% if 'email' in reminder %}
-						{% set e_status = reminder['email']['status'] %}
-						{% if e_status == 'bounced' or e_status == 'dropped' %}
-              {% set tooltip = reminder['email']['error'] %}
+          <!-- email -->
+          {% for notification in notific_group['results'] %}
+            {% if notification['type'] == 'email' %}
+              <td>{{notification.to}}</td>
             {% endif %}
-            <td title='{{ tooltip }}' style='text-align:right; font-weight:normal;' 
-                name='email_status'>{{ e_status }}
-            </td>
-          {% endif %}
+          {% endfor %}
+          <td>{{notific['account']['udf']['block']}}</td>
+          <td>{{notific['account']['udf']['status']}}</td>
+          <td>{{notific['account']['udf']['driver_notes']}}</td>
+          <td>{{notific['account']['udf']['office_notes']}}</td>
+          <td>{{notific['account']['udf']['pickup_dt']}}</td>
+          <!-- call status -->
+          {% for notification in notific_group['results'] %}
+            {% if notification['type'] == 'voice' %}
+              <td>{{notification.status}}</td>
+            {% endif %}
+          {% endfor %}
+          <!-- email status -->
+          {% for notification in notific_group['results'] %}
+            {% if notification['type'] == 'voice' %}
+              <td>{{notification.status}}</td>
+            {% endif %}
+          {% endfor %}
 
           <!-- Delete Button -->
           <td class='cancel-call-col'>
             <button 
               class='delete-btn' 
               type="button" 
-              id="{{ reminder['_id'] }}" 
+              id="fixme" 
               name="delete-btn">
             </button>
           </td>
         </tr>
-      {% set row_num = row_num + 1 %}
       {% endfor %}
     </tbody>
     </table>

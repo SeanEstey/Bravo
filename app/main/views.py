@@ -38,13 +38,23 @@ logger = logging.getLogger(__name__)
 @main.route('/', methods=['GET'])
 @login_required
 def view_events():
+
     agency = db['users'].find_one({'user': current_user.username})['agency']
+
     events = notific_events.get_list(agency)
+
+    for event in events:
+        for trigger in event['triggers']:
+            t = db['triggers'].find_one({'_id':trigger['id']})
+            trigger['type'] = t['type']
+            trigger['status'] = t['status']
+            trigger['fire_dt'] = t['fire_dt']
+            trigger['count'] = db['notifications'].find({'trig_id':trigger['id']}).count()
 
     return render_template(
       'views/event_list.html',
-      title=None
-      #events=events
+      title=None,
+      events=list(events)
     )
 
 #-------------------------------------------------------------------------------
@@ -208,9 +218,45 @@ def _submit_event():
 @main.route('reminders/<event_id>')
 @login_required
 def view_event(event_id):
+
+
+    notific_list = db.notifications.aggregate([
+        {
+            '$match': {
+                'event_id': ObjectId(event_id)
+            }
+        },
+        {
+            '$group': {
+                '_id': '$account.id',
+                'results': {
+                    '$push': {
+                        'status': '$status',
+                        'to': '$to',
+                        'type': '$type',
+                        'account': {
+                          'name': '$account.name',
+                          'udf': {
+                            'status': '$account.udf.status',
+                            'block': '$account.udf.block',
+                            'pickup_dt': '$account.udf.pickup_date',
+                            'driver_notes': '$account.udf.driver_notes',
+                            'office_notes': '$account.udf.office_notes'
+                          }
+                        }
+                    }
+                }
+            }
+        }
+    ])
+
+    #import bson.json_util
+    #logger.info(bson.json_util.dumps(list(notific_list)))
+
+
     sort_by = 'name'
 
-    notific_list = db['notifications'].find({'event_id':ObjectId(event_id)}).sort(sort_by, 1)
+    #notific_list = db['notifications'].find({'event_id':ObjectId(event_id)}).sort(sort_by, 1)
 
     event = db['notification_events'].find_one({'_id':ObjectId(event_id)})
     event['event_dt'] = utils.utc_to_local(event['event_dt'])
@@ -218,7 +264,7 @@ def view_event(event_id):
     return render_template(
         'views/event.html',
         title=app.config['TITLE'],
-        notifications=notifications,
+        notific_list=list(notific_list),
         event_id=event_id,
         event=event
         #template=job['schema']['import_fields']
@@ -551,7 +597,7 @@ def _send_email():
         'agency': args['agency'],
         'mid': json.loads(r.text)['id'],
         'status': 'queued',
-        'on_status_update': args['data']['from']
+        'on_status': args['data']['from']
     })
 
     logger.debug('Queued email to ' + args['recipient'])
@@ -559,12 +605,18 @@ def _send_email():
     return json.loads(r.text)['id']
 
 #-------------------------------------------------------------------------------
-@main.route('email/unsubscribe', methods=['GET'])
-def email_unsubscribe():
+@main.route('email/<agency>/unsubscribe', methods=['GET'])
+def email_unsubscribe(agency):
+
     if request.args.get('email'):
         msg = 'Contributor ' + request.args.get('email') + ' has requested to \
               unsubscribe from emails. Please contact to see if they want \
               to cancel the entire service.'
+
+        if agency == 'wsf':
+            to = 'emptiestowinn@wsaf.ca'
+        elif agency == 'vec':
+            to = 'recycle@vecova.ca'
 
         mailgun = db['agencies'].find_one({})['mailgun']
 
@@ -574,7 +626,7 @@ def email_unsubscribe():
               auth=('api', mailgun['api_key']),
               data={
                 'from': mailgun['from'],
-                'to': ['sestey@vecova.ca', 'emptiestowinn@wsaf.ca'],
+                'to': to,
                 'subject': 'Unsubscribe Request',
                 'html': msg
             })
@@ -631,11 +683,23 @@ def email_status():
     #------------- NEW CODE----------------
 
     # Do any special updates
-
-    if email['type'] == 'notification':
-        notifications.on_email_status(request.form.to_dict())
-    elif email['type'] == 'receipt':
-        receipts.on_email_status(request.form.to_dict())
+    if email.get('type'):
+        if email['type'] == 'notification':
+            notifications.on_email_status(request.form.to_dict())
+        elif email['type'] == 'receipt':
+            receipts.on_email_status(request.form.to_dict())
+    # -----------------------------------
+    # Signup welcomeor booking confirmation email?
+    else:
+        try:
+            gsheets.update_entry(
+              email['agency'],
+              request.form['event'],
+              email['on_status']
+            )
+        except Exception as e:
+            logger.error("Error writing to Google Sheets: " + str(e))
+            return 'Failed'
 
     #-----------------------------
 

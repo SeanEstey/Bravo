@@ -25,7 +25,7 @@
   
   <div class='data-container'>
     <div class='navbar-div'>
-      <a class='hover' href="{{ url_for('main.view_events') }}">Jobs</a> / 
+      <a class='hover' href="{{ url_for('main.view_events') }}">Notification Events</a> / 
       <a style='font-weight:bold; text-decoration:none;' title='Schedule a new event' href="{{ url_for('main.new_event') }}">+</a>
     </div>
     <table class='table table-hover table-colored'>
@@ -33,67 +33,43 @@
         <tr>
           <th>Name</th>
 					<th>Date</th>
-					<th style=''>Voice Reminders</th>
-					<th style=''>Email Reminders</th>
-          <th>Type</th>
-          <th>Reminders</th>
-          <th>Status</th>
+          {% for trigger in [1,2] %}
+            <th>Type</th>
+            <th>Scheduled</th>
+            <th>Count</th>
+            <th>Status</th>
+          {% endfor %}
           <th style='width:50px'></th>
         </tr>
       </thead>
       <tbody>
       {% for event in events %}
-      {% set show_calls_url = url_for('main.view_event', event_id=event._id)
+      {% set show_event_url = url_for('main.view_event', event_id=event._id)
       %}
 				<tr id='{{event._id}}'>
 					<td name='job-name'>
-						<a class='hover' href="{{ show_calls_url }}">{{ event.name }}</a>
+						<a class='hover' href="{{ show_event_url }}">{{ event.name }}</a>
 					</td>
 					<td>
 						{% if event.event_dt is defined %}
-							<a class='hover' href="{{ show_calls_url }}">{{
+							<a class='hover' href="{{ show_event_url }}">{{
                 event.event_dt.strftime("%A %b %d") }}</a>
 						{% endif %}
 					</td>
-					<td>
-						{% if event.fire_dt is defined %}
-							<a class='hover' href="{{ show_calls_url }}">{{
-                event.fire_dt.strftime("%b %d @ %I:%M %p") }}</a>
-						{% endif %}
-					</td>
-					<td>
-						{% if event.fire_dt is defined %}
-							<a class='hover' href="{{ show_calls_url }}">{{
-                event.fire_dt.strftime("%b %d @ %I:%M %p") }}</a>
-						{% endif %}
-					</td>
-					<td name='job-type'>
-						<a class='hover' href="{{ show_calls_url }}">
-							{% if event.schema is defined %}
-							 {{ event.schema.type }}
-							{% endif %}
-						</a>
-					</td>
-					<td>
-						<a class='hover' href="{{ show_calls_url }}">
-							{% if event.count is defined %}
-								{{ event.count }}
-						  {% endif %}
-						</a>
-					</td>
-					<td name='job-status'>
-					{% if event.status == "completed" %}
-						<p style='color:green;'>
-						{{ event.status.title() }}
-					{% elif event.status == "pending" %}
-						<p style='color:blue;'>
-						{{ event.status.title() }}
-					{% elif event.status == "in-progress" %}
-						<p style='color:red;'>
-						{{ event.status.title() }}
-						</p>
-					{% endif %}
-					</td>
+          {% for trigger in event.triggers %}
+            <td>{{trigger.type}}</td>
+            <td>{{trigger.fire_dt.strftime("%b %d @ %I:%M %p")}}</td>
+            <td>{{trigger.count}}</td>
+            <td name='event-status'>
+              {% if trigger.status == "fired" %}
+                <p style='color:green;'>
+              {% elif event.status == "pending" %}
+                <p style='color:blue;'>
+              {% endif %}
+              {{trigger.status}}
+                </p>
+            </td>
+          {% endfor %}
 					<td>
 						<button 
 							class='delete-btn' 

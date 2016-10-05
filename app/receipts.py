@@ -16,8 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------Stuff Todo---------------------------------------
-# TODO: Insert db['emails'] document so that email status on Sheet
-# can be updated once delivered/bounced
 
 
 #-------------------------------------------------------------------------------
@@ -93,7 +91,7 @@ def send_receipt(agency, to, template, subject, data):
         agency_conf['etapestry'],
         data={
             'id': data['account']['id'],
-            'Note': 'Collection Receipt:]\n' + utils.clean_html(body),
+            'Note': 'Receipt:\n' + utils.clean_html(body),
             'Date': etap.dt_to_ddmmyyyy(parse(data['entry']['date']))
         },
         silence_exceptions=False
@@ -150,8 +148,6 @@ def process(entries, etapestry_id):
     agency = etapestry_id['agency']
 
     for i in range(0, len(accounts)):
-        logger.debug(json.dumps(entries[i]))
-
         try:
             if not accounts[i]['email']:
                 wks.update_cell(

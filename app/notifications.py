@@ -142,7 +142,7 @@ def send_email(notification, mailgun_conf, key='default'):
     mid = utils.send_email(
         notification['to'],
         template['subject'],
-        body = response.text,
+        response.text,
         mailgun_conf
     )
 

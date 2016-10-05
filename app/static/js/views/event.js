@@ -14,9 +14,9 @@ function init() {
 		enableColumnSorting();
 		formatColumns();
 
-    if($('#job-status').text().indexOf('Pending') > -1) {
+    if($('#event-status').text().indexOf('Pending') > -1) {
       var args =  window.location.pathname.split('/');
-      var job_uuid = args.slice(-1)[0];
+      var event_uuid = args.slice(-1)[0];
 
       $('.delete-btn').each(function(){ 
           $(this).button({
@@ -32,7 +32,7 @@ function init() {
 
               $.ajax({
                 type: 'POST',
-								url: $URL_ROOT + '/reminders/' + job_uuid + '/' + call_uuid + '/remove'
+								url: $URL_ROOT + 'notify/' + event_uuid + '/' + call_uuid + '/remove'
 							}).done(function(msg) {
 									console.log('reminder removed. msg: %s', msg);
 
@@ -42,25 +42,25 @@ function init() {
           });
       });
     }
-    else if($('#job-status').text() == 'In Progress') {
+    else if($('#event-status').text() == 'In Progress') {
         $('.cancel-call-col').each(function() {
           $(this).hide();
         });
     }
-    else if($('#job-status').text() == 'Completed') {
-        $('#job-header').removeClass('label-primary');
-        $('#job-header').addClass('label-success');
-        $('#job-status').text('Completed');
-        $('#job-summary').text('');
+    else if($('#event-status').text() == 'Completed') {
+        $('#event-header').removeClass('label-primary');
+        $('#event-header').addClass('label-success');
+        $('#event-status').text('Completed');
+        $('#event-summary').text('');
         $('.delete-btn').hide();
         $('.cancel-call-col').each(function() {
             $(this).hide();
         });
 
-        console.log('job complete!');
+        console.log('event complete!');
     }
 
-    if($('#job-status').text().indexOf('Pending') > -1) {
+    if($('#event-status').text().indexOf('Pending') > -1) {
         updateCountdown();
         window.countdown_id = setInterval(updateCountdown, 1000);
     }
@@ -85,7 +85,7 @@ function init() {
         receiveMsgUpdate(data);
     });
 
-    socket.on('update_job', function(data) {
+    socket.on('update_event', function(data) {
         if(typeof data == 'string')
             data = JSON.parse(data);
 
@@ -93,54 +93,54 @@ function init() {
 
         if(data['status'] == 'in-progress') {
             console.log('in progress!');
-            $('#job-status').text('In Progress');
+            $('#event-status').text('In Progress');
             $('.cancel-call-col').each(function() {
                 $(this).hide();
             });
         }
         else if(data['status'] == 'completed') {
-            $('#job-header').removeClass('label-primary');
-            $('#job-header').addClass('label-success');
-            $('#job-status').text('Completed');
-            $('#job-summary').text('');
+            $('#event-header').removeClass('label-primary');
+            $('#event-header').addClass('label-success');
+            $('#event-status').text('Completed');
+            $('#event-summary').text('');
 
-            console.log('job complete!');
+            console.log('event complete!');
         }
           updateJobStatus();
     });
 
     //  if(location.port == 8080) {
     var args =  window.location.pathname.split('/');
-    var job_uuid = args.slice(-1)[0];
+    var event_uuid = args.slice(-1)[0];
 
-    $('#execute-job').click(function() {
+    $('#execute-event').click(function() {
 			$.ajax({
 				type: 'GET',
-				url: $URL_ROOT + 'reminders/' + job_uuid + '/send_calls'
+				url: $URL_ROOT + 'notify/' + event_uuid + '/send_calls'
 			});
     });
 
-    $('#email-job').click(function() {
+    $('#email-event').click(function() {
 			$.ajax({
 				type: 'GET',
-				url: $URL_ROOT + '/reminders/' + job_uuid + '/send_emails'
+				url: $URL_ROOT + 'notify/' + event_uuid + '/send_emails'
 			});
     });
 
-    $('#reset-job').click(function() {
+    $('#reset-event').click(function() {
       $.ajax({
 				type: 'GET',
-				url: $URL_ROOT + '/reminders/' + job_uuid + '/reset'
+				url: $URL_ROOT + 'notify/' + event_uuid + '/reset'
 			});
     });
 
     $('#dump').click(function() {
-        window.location.assign($URL_ROOT + 'summarize/' + String(job_uuid));
+        window.location.assign($URL_ROOT + 'summarize/' + String(event_uuid));
     });
   
   /*else {
-    $('#execute-job').hide();
-    $('#reset-job').hide();
+    $('#execute-event').hide();
+    $('#reset-event').hide();
     $('#dump').hide();
   }*/
 }
@@ -152,7 +152,7 @@ function setupTwilioClient() {
     $('#play-sample-btn').click(function() {
 			$.ajax({
 				type: 'GET',
-				url: $URL_ROOT + 'reminders/get/token'
+				url: $URL_ROOT + 'notify/get/token'
 			}).done(function(token) {
 				console.log('token received: ' + token['token']);
 
@@ -279,7 +279,7 @@ function makeCallFieldsClickable() {
     if(name == 'call_status' || name == 'email_status')
       return;
 
-    if($('#job-status').text().indexOf('Pending') < 0)
+    if($('#event-status').text().indexOf('Pending') < 0)
       return;
 
     if($cell.find('input').length > 0)
@@ -311,7 +311,7 @@ function makeCallFieldsClickable() {
 
       $.ajax({
         type: 'POST',
-        url: $URL_ROOT + 'reminders/' + $cell.parent().attr('id') + '/edit',
+        url: $URL_ROOT + 'notify/' + $cell.parent().attr('id') + '/edit',
         data: payload
 			}).done(function(msg){
           if(msg != 'OK') {
@@ -327,7 +327,7 @@ function makeCallFieldsClickable() {
 
 //------------------------------------------------------------------------------
 function updateJobStatus() {
-  if($('#job-status').text() == 'In Progress') {
+  if($('#event-status').text() == 'In Progress') {
       var sum = 0;
       var n_sent = 0;
       var n_incomplete = 0;
@@ -342,7 +342,7 @@ function updateJobStatus() {
       });
 
       var delivered_percent = Math.floor((n_sent / sum) * 100);
-      $('#job-summary').text((String(delivered_percent) + '%'));
+      $('#event-summary').text((String(delivered_percent) + '%'));
   }
 }
 
@@ -420,7 +420,7 @@ function receiveMsgUpdate(data) {
 function updateCountdown() {
   /* Display timer counting down until event_datetime */
 
-  $summary_lbl = $('#job-summary');
+  $summary_lbl = $('#event-summary');
 
 	// remove last 6 char offset ("-06:00") so Date.parse() will work
 	var date_str = $('#scheduled_datetime').text();

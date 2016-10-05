@@ -27,7 +27,7 @@
     <div class='container'>
       <ul id='app_menu' class="nav nav-pills" style='float:right'>
         <li role="presentation">
-					<a href="{{url_for('main.view_events')}}"><span class='glyphicon glyphicon-home'></span>  Reminders</a>
+					<a href="{{url_for('notify.view_event_list')}}"><span class='glyphicon glyphicon-home'></span>  Reminders</a>
 				</li>
         <li role="presentation">
 					<a href="{{url_for('main.show_routing')}}"><span class='glyphicon glyphicon-road'></span>   Routing</a>
@@ -46,7 +46,7 @@
 				</li>
       </ul>
       <div style='width:200px; margin:0.5em auto' class='center'>
-        <a href="{{url_for('main.view_events')}}"><img id='buit' src="{{ url_for('static',
+        <a href="{{url_for('notify.view_event_list')}}"><img id='buit' src="{{ url_for('static',
         filename='images/bravo_comfortaa.png') }}"></a>
       </div>
       {% block content %}{% endblock %}

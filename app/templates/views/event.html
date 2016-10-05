@@ -7,7 +7,7 @@
 					src="{{url_for('static', filename='js/base.js')}}">
 	</script>
 	<script type='text/javascript' 
-					src="{{url_for('static', filename='js/views/job.js')}}">
+					src="{{url_for('static', filename='js/views/event.js')}}">
 	</script>
   <script>
     document.write('<style type="text/css">body{display:none}</style>');
@@ -19,11 +19,11 @@
 	<!-- Countdown Timer -->
   <div class='row' style='padding:20px 0px 10px 0px; text-align:center'>
     <h2>
-      <span id='job-header' class='label label-primary'>
-        <label id='job-status'>
+      <span id='event-header' class='label label-primary'>
+        <label id='event-status'>
 						{{event.status.title().replace('-',' ')}}
 				</label>
-        <label id='job-summary'></label>
+        <label id='event-summary'></label>
       </span>
     </h2>
       <p id='scheduled_datetime' style='display:none'>{{ event.event_dt.date() }}</p>
@@ -39,7 +39,7 @@
   
   <div class='data-container'>
     <div class='navbar-div'>
-      <a class='hover' href="{{ url_for('main.view_events') }}">Notification Events</a> / 
+      <a class='hover' href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
       {{ event.name }}
     </div>
     <table id='show-calls-table' class='table table-hover table-colored'>
@@ -112,11 +112,11 @@
     <br><br>
   <div style='text-align:center;'>
     <button style='margin:0 auto;' class='btn btn-primary' 
-						type='button' id='execute-job'>Execute Now </button>
+						type='button' id='execute-event'>Execute Now </button>
     <button style='margin:0 auto;' class='btn btn-primary' 
-						type='button' id='email-job'>Email Now </button>
+						type='button' id='email-event'>Email Now </button>
     <button style='margin:0 auto;' class='btn btn-primary' 
-						type='button' id='reset-job'>Reset </button>
+						type='button' id='reset-event'>Reset </button>
     <button style='margin:0 auto;' class='btn btn-primary' 
 						type='button' id='dump'>Job Info </button>
   </div>

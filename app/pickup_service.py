@@ -16,8 +16,7 @@ from app import app, db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-#@celery_app.task
-def schedule_reminder_events():
+def create_scheduled_events():
     '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
     '''
 
@@ -154,7 +153,6 @@ def add_notification(event_id, event_dt, trig_id, _type, account, schema):
     return True
 
 #-------------------------------------------------------------------------------
-#@celery_app.task
 def add_future_pickups(event_id):
     '''Update all reminders for given job with their future pickup dates to
     relay to opt-outs
@@ -244,7 +242,6 @@ def get_next_pickup(blocks, office_notes, block_dates):
 
 
 #-------------------------------------------------------------------------------
-#@celery_app.task
 def _cancel(event_id, account_id):
     '''Update users eTapestry account with next pickup date and send user
     confirmation email
@@ -318,7 +315,6 @@ def _cancel(event_id, account_id):
     return True
 
 #-------------------------------------------------------------------------------
-#@celery_app.task
 def set_no_pickup(url, params):
     r = requests.get(url, params=params)
 

@@ -31,7 +31,7 @@ function loginSuccess(response) {
 
 		if(response['status'] == 'success') {
 			console.log('login success');
-			location.href = $URL_ROOT;
+			location.href = $URL_ROOT + '/notify';
 		}
 		else if(response['status'] == 'error') {
 			$('.modal-title').text(response['title']);

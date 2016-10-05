@@ -32,6 +32,9 @@ def add(agency, name, event_date):
 
 #-------------------------------------------------------------------------------
 def reset(event_id):
+    '''Reset the notification_event document, all triggers and associated
+    notifications'''
+
     event_id = ObjectId(event_id)
 
     db['notification_events'].update_one(
@@ -46,7 +49,7 @@ def reset(event_id):
                 'attempts': 0,
             },
             '$unset': {
-                'custom.no_pickup': '',
+                'account.udf.opted_out': '',
                 'sid': '',
                 'answered_by': '',
                 'ended_at': '',

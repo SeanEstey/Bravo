@@ -20,7 +20,7 @@ import scheduler
 import gdrive
 import gsheets
 
-from app import db, celery_app
+from app import db
 logger = logging.getLogger(__name__)
 
 class GeocodeError(Exception):
@@ -37,7 +37,6 @@ class EtapBadDataError(Exception):
 
 
 #-------------------------------------------------------------------------------
-@celery_app.task
 def build_todays_routes():
     '''Route orders for today's Blocks and build Sheets
     '''
@@ -73,7 +72,6 @@ def build_todays_routes():
         agency, successes, fails)
 
 #-------------------------------------------------------------------------------
-@celery_app.task
 def build_route(route_id, job_id=None):
     '''Celery task that routes a Block via Routific and writes orders to a Sheet
     Can take up to a few min to run depending on size of route, speed of
@@ -527,7 +525,7 @@ def get_upcoming_routes(agency):
                 if npu == '':
                     continue
 
-                npu_d = etap.ddmmyyyy_to_list(npu)
+                npu_d = etap.ddmmyyyy_to_date(npu)
 
                 if npu_d == event_d:
                     num_booked += 1

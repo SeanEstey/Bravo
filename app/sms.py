@@ -6,7 +6,6 @@ from twilio.rest.lookups import TwilioLookupsClient
 
 from config import *
 from app import app,db,info_handler,error_handler,debug_handler,socketio
-from app import celery_app
 
 from gsheets import create_rfu
 import etap
@@ -150,7 +149,6 @@ def send(twilio_keys, to, msg):
     return response
 
 #-------------------------------------------------------------------------------
-@celery_app.task
 def update_scheduled_accounts_for_sms():
     # Verify that all accounts in upcoming residential routes with mobile
     # numbers are set up to interact with Bravo SMS system

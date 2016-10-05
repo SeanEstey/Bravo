@@ -13,7 +13,7 @@ from bson.objectid import ObjectId
 import pytz
 
 from config import *
-from app import app, db, login_manager, celery_app
+from app import app, db, login_manager
 import gsheets
 from block_parser import get_block, block_to_rmv
 import etap
@@ -194,7 +194,6 @@ def get_nps(agency, accounts):
     return nps
 
 #-------------------------------------------------------------------------------
-@celery_app.task
 def analyze_non_participants():
     '''Create RFU's for all non-participants on scheduled dates'''
 

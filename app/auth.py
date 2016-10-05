@@ -17,6 +17,10 @@ def login():
     if request.method == 'GET':
         return render_template('views/login.html')
     elif request.method == 'POST':
+        # login attempt
+        if not request.form.get('username'):
+            return Response('No username', status=500)
+
         username = request.form['username']
         password = request.form['password']
 

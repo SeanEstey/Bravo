@@ -129,7 +129,7 @@ def send_email(notification, mailgun_conf, key='default'):
 
     try:
         response = requests.post(
-          app.config['LOCAL_URL'] + '/render_notification',
+          app.config['LOCAL_URL'] + '/notify/render',
           json={
               "template": template,
               "to": notification['to'],

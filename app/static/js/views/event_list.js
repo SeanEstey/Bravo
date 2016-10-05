@@ -73,9 +73,9 @@ function init() {
   $('.delete-btn').each(function(){ 
     $(this).click(function(){
       var $tr = $(this).parent().parent();
-      var job_uuid = $tr.attr('id');
+      var event_uuid = $tr.attr('id');
 
-      console.log('prompt to delete job_id: ' + job_uuid);
+      console.log('prompt to delete job_id: ' + event_uuid);
 
       $('.modal-title').text('Confirm');
       $('.modal-body').text('Really delete this job?');
@@ -85,7 +85,7 @@ function init() {
       $('#btn-primary').click(function() {
           var request =  $.ajax({
               type: 'GET',
-              url: $URL_ROOT + 'reminders/'+job_uuid+'/cancel'
+              url: $URL_ROOT + 'notify/'+event_uuid+'/cancel'
           });
 
           request.done(function(msg){

@@ -61,11 +61,13 @@ db = mongo_client[app.config['DB']]
 from app.api.views import api as api_module
 from app.main.views import main as main_module
 from app.notify.views import notify as notify_module
+from app.routing.views import routing as routing_module
 
 # Setup blueprints
 app.register_blueprint(api_module)
 app.register_blueprint(main_module)
 app.register_blueprint(notify_module)
+app.register_blueprint(routing_module)
 
 
 

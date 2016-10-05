@@ -8,6 +8,7 @@ from datetime import datetime
 import flask
 
 from app import app, db
+
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

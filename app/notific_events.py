@@ -8,8 +8,9 @@ from flask.ext.login import current_user
 import csv
 import os
 
-import utils
+from app import utils
 from app import app, db, socketio
+
 logger = logging.getLogger(__name__)
 
 

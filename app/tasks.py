@@ -2,20 +2,21 @@ from celery import Celery
 from bson.objectid import ObjectId
 from app import celery_app
 
-import wsf
-import triggers
-import gsheets
-import pickup_service
-import routing
-import receipts
-import scheduler
-import sms
+from app import wsf
+import app.triggers
+from app import triggers
+from app import gsheets
+from app import pickup_service
+from app import routes
+from app import receipts
+from app import scheduler
+from app import sms
 
 # Tasks called manually in views
 
 @celery_app.task
 def build_route(route_id, job_id=None):
-    return routing.build_route(route_id, job_id=job_id)
+    return routes.build_route(route_id, job_id=job_id)
 
 @celery_app.task
 def add_signup(signup):
@@ -52,7 +53,7 @@ def create_scheduled_events():
 
 @celery_app.task
 def build_todays_routes():
-    return routing.build_todays_routes()
+    return routes.build_todays_routes()
 
 @celery_app.task
 def monitor_triggers():

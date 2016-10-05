@@ -3,7 +3,7 @@ import matplotlib.path as mplPath
 import numpy as np
 
 from config import *
-from routing import geocode
+from app.routes import geocode
 
 from app import app,db,info_handler,error_handler,debug_handler,socketio
 

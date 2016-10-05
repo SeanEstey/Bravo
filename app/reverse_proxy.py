@@ -1,9 +1,9 @@
 import os
 import json
 
-'''Wrap the application in this middleware and configure the 
-front-end server to add these headers, to let you quietly bind 
-this to a URL other than / and to an HTTP scheme that is 
+'''Wrap the application in this middleware and configure the
+front-end server to add these headers, to let you quietly bind
+this to a URL other than / and to an HTTP scheme that is
 different than what is used locally
 '''
 class ReverseProxied(object):
@@ -24,7 +24,7 @@ class ReverseProxied(object):
     if scheme:
       environ['wsgi.url_scheme'] = scheme
 
-    if server: 
+    if server:
       environ['HTTP_HOST'] = server
 
     full_url = scheme + '://' + environ['HTTP_HOST'] + script_name

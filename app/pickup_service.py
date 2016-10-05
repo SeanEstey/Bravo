@@ -5,13 +5,13 @@ from dateutil.parser import parse
 from bson.objectid import ObjectId
 from bson import json_util
 
-import utils
-import block_parser
-import scheduler
-import etap
-import notific_events
-import notifications
-import triggers
+from app import utils
+from app import block_parser
+from app import scheduler
+from app import etap
+from app import notific_events
+from app import notifications
+from app import triggers
 from app import app, db
 logger = logging.getLogger(__name__)
 

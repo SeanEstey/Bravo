@@ -7,11 +7,11 @@ from datetime import datetime
 from dateutil.parser import parse
 from flask import render_template
 
-import gsheets
-import etap
+from app import gsheets
+from app import etap
 from app import app, db
-from config import *
-import utils
+from app import utils
+
 logger = logging.getLogger(__name__)
 
 
@@ -133,7 +133,7 @@ def process(entries, etapestry_id):
 
     oauth = db['agencies'].find_one({'name':etapestry_id['agency']})['google']['oauth']
     gc = gsheets.auth(oauth, ['https://spreadsheets.google.com/feeds'])
-    wks = gc.open(GSHEET_NAME).worksheet('Routes')
+    wks = gc.open(app.config['GSHEET_NAME']).worksheet('Routes')
     headers = wks.row_values(1)
 
     num_zeros = 0

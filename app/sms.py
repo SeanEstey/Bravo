@@ -4,21 +4,15 @@ import datetime
 import re
 from twilio.rest.lookups import TwilioLookupsClient
 
-from config import *
-from app import app,db,info_handler,error_handler,debug_handler,socketio
+from app import gsheets
+from app import etap
+from app import routes
+from app import geo
+from app import scheduler
 
-from gsheets import create_rfu
-import etap
-import routing
-import geo
-import scheduler
-from scheduler import get_accounts
+from app import app,db
 
 logger = logging.getLogger(__name__)
-logger.addHandler(debug_handler)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.setLevel(logging.DEBUG)
 
 
 #-------------------------------------------------------------------------------
@@ -50,7 +44,7 @@ def do_request(to, from_, msg, sms_sid):
 
         db['sms'].update_one(doc, {'$set': {'awaiting_reply': False}})
 
-        create_rfu(
+        gsheets.create_rfu(
           agency['name'],
           'Pickup request received (SMS: ' + from_ + ')',
           name_address = msg,

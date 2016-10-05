@@ -17,17 +17,9 @@ from app import db, app, socketio
 from app import auth
 from app import log
 from app import utils
-from app import routing
-from app import wsf
-from app import notific_events
-from app import pickup_service
 from app import receipts
 from app import notifications
 from app import gsheets
-from app import scheduler
-from app import etap
-from app import notific_events
-from app import sms
 from app import tasks
 
 # Get logger
@@ -51,7 +43,7 @@ def user_logout():
     return redirect(app.config['PUB_URL'])
 
 #-------------------------------------------------------------------------------
-@main.route('/log')
+@main.route('log')
 @login_required
 def view_log():
     lines = log.get_tail(app.config['LOG_PATH'] + 'info.log', app.config['LOG_LINES'])
@@ -59,7 +51,7 @@ def view_log():
     return render_template('views/log.html', lines=lines)
 
 #-------------------------------------------------------------------------------
-@main.route('/admin')
+@main.route('admin')
 @login_required
 def view_admin():
     user = db['users'].find_one({'user': current_user.username})
@@ -88,85 +80,7 @@ def show_booking():
     agency = db['users'].find_one({'user': current_user.username})['agency']
     return render_template('views/booking.html', agency=agency)
 
-#-------------------------------------------------------------------------------
-@main.route('routing', methods=['GET'])
-@login_required
-def show_routing():
-    agency = db['users'].find_one({'user': current_user.username})['agency']
-    agency_conf = db['agencies'].find_one({'name':agency})
-    routes = routing.get_upcoming_routes(agency)
 
-    return render_template(
-      'views/routing.html',
-      routes=routes,
-      depots=agency_conf['routing']['depots'],
-      drivers=agency_conf['routing']['drivers']
-    )
-
-#-------------------------------------------------------------------------------
-@main.route('routing/get_scheduled_route', methods=['POST'])
-def get_today_route():
-    return True
-    '''return json.dumps(get_scheduled_route(
-      etapestry_id['agency'],
-      request.form['block'],
-      request.form['date']))
-    '''
-
-#-------------------------------------------------------------------------------
-@main.route('routing/get_route/<job_id>', methods=['GET'])
-def get_route(job_id):
-    agency = db['routes'].find_one({'job_id':job_id})['agency']
-    conf = db['agencies'].find_one({'name':agency})
-    api_key = conf['google']['geocode']['api_key']
-
-    return json.dumps(routing.get_orders(job_id, api_key))
-
-#-------------------------------------------------------------------------------
-@main.route('routing/start_job', methods=['POST'])
-def get_routing_job_id():
-    logger.info('Routing Block %s...', request.form['block'])
-
-    etap_id = json.loads(request.form['etapestry_id'])
-
-    agency_config = db['agencies'].find_one({
-      'name':etap_id['agency']
-    })
-
-    try:
-        job_id = routing.submit_job(
-          request.form['block'],
-          request.form['driver'],
-          request.form['date'],
-          request.form['start_address'],
-          request.form['end_address'],
-          etap_id,
-          agency_config['routing']['routific']['api_key'],
-          min_per_stop=request.form['min_per_stop'],
-          shift_start=request.form['shift_start'])
-    except Exception as e:
-        logger.error(str(e))
-        return False
-
-    return job_id
-
-#-------------------------------------------------------------------------------
-@main.route('routing/build/<route_id>', methods=['GET', 'POST'])
-def _build_route(route_id):
-    r = tasks.build_route.apply_async(
-      args=(route_id,),
-      queue=app.config['DB']
-    )
-
-    return redirect(app.config['PUB_URL'] + '/routing')
-
-#-------------------------------------------------------------------------------
-@main.route('routing/build_sheet/<route_id>/<job_id>', methods=['GET'])
-def _build_sheet(job_id, route_id):
-    '''non-celery synchronous func for testing
-    '''
-    routing.build_route(route_id, job_id=job_id)
-    return redirect(app.config['PUB_URL'] + '/routing')
 
 #-------------------------------------------------------------------------------
 @main.route('receipts/process', methods=['POST'])
@@ -293,7 +207,7 @@ def email_unsubscribe(agency):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/email/spam_complaint', methods=['POST'])
+@main.route('email/spam_complaint', methods=['POST'])
 def email_spam_complaint():
     m = 'received spam complaint'
 

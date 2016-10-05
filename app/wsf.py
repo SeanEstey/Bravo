@@ -2,8 +2,9 @@ import json
 from datetime import datetime
 import logging
 
-import gsheets
+from app import gsheets
 from app import app, db
+
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

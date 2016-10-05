@@ -1,7 +1,8 @@
-from parser import is_block, is_postal_code, is_account_id
-from routing import geocode
-import etap
-from block_parser import get_block, is_res_block
+
+
+from app import block_parser
+from app import routes
+from app import etap
 
 from app import app, db
 logger = logging.getLogger(__name__)

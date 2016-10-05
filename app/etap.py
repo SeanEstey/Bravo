@@ -3,9 +3,10 @@ import requests
 import logging
 from datetime import date
 
-from config import *
-from app import db
+from app import app, db
+
 logger = logging.getLogger(__name__)
+
 
 #-------------------------------------------------------------------------------
 def call(func_name, keys, data, silence_exceptions=False):
@@ -42,7 +43,7 @@ def call(func_name, keys, data, silence_exceptions=False):
 
     try:
         response = requests.post(
-            ETAP_WRAPPER_URL,
+            app.config['ETAP_WRAPPER_URL'],
             data=json.dumps({
               "func": func_name,
               "etapestry": keys,
@@ -134,10 +135,3 @@ def ddmmyyyy_to_date(date_str):
 #-------------------------------------------------------------------------------
 def dt_to_ddmmyyyy(dt):
     return dt.strftime('%d/%m/%Y')
-
-
-
-
-
-
-

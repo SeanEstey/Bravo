@@ -8,15 +8,13 @@ import httplib2
 from apiclient.discovery import build
 import re
 from datetime import datetime, date, time, timedelta
-from bson import Binary, Code, json_util
-from bson.objectid import ObjectId
-import pytz
 
-from config import *
-from app import app, db, login_manager
-import gsheets
-from block_parser import get_block, block_to_rmv
-import etap
+from app import gsheets
+from app import etap
+from app.block_parser import get_block, block_to_rmv
+
+from app import app, db
+
 logger = logging.getLogger(__name__)
 
 

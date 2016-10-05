@@ -3,8 +3,8 @@ from bson.objectid import ObjectId
 from datetime import datetime,date,time
 
 from app import app, db
-import utils
-import notifications
+from app import utils
+from app import notifications
 
 logger = logging.getLogger(__name__)
 

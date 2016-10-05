@@ -15,10 +15,6 @@ from app import app, db
 logger = logging.getLogger(__name__)
 
 
-def test_test():
-    print 'from gsheets!'
-    return True
-
 #-------------------------------------------------------------------------------
 def gauth(oauth):
     name = 'sheets'

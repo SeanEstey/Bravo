@@ -10,11 +10,14 @@ import bson.json_util
 import json
 import re
 
-from app import app, db, socketio
+# Import modules
 from app import gsheets
 from app import utils
 from app import tasks
 from app import etap
+
+# Import objects
+from app import app, db, socketio
 
 logger = logging.getLogger(__name__)
 

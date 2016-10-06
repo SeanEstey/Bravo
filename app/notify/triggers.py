@@ -2,9 +2,10 @@ import logging
 from bson.objectid import ObjectId
 from datetime import datetime,date,time
 
-from app import app, db
 from app import utils
 from app.notify import notifications
+
+from app import app, db
 
 logger = logging.getLogger(__name__)
 

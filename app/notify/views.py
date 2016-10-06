@@ -12,8 +12,7 @@ import logging
 
 notify = Blueprint('notify', __name__, url_prefix='/notify')
 
-# Import modules and objects
-
+# Import bravo modules
 from app import utils
 from app import sms
 from app import tasks
@@ -21,7 +20,9 @@ from app.notify import notific_events
 from app.notify import triggers
 from app.notify import notifications
 from app.notify import pickup_service
+from app.notify import recording
 
+# Import objects
 from app import db, app, socketio
 
 # Get logger
@@ -81,45 +82,9 @@ def _submit_event():
 @notify.route('/<event_id>')
 @login_required
 def view_event(event_id):
-    notific_list = db.notifications.aggregate([
-        {
-            '$match': {
-                'event_id': ObjectId(event_id)
-            }
-        },
-        {
-            '$group': {
-                '_id': '$account.id',
-                'results': {
-                    '$push': {
-                        'status': '$status',
-                        'to': '$to',
-                        'type': '$type',
-                        'account': {
-                          'name': '$account.name',
-                          'udf': {
-                            'status': '$account.udf.status',
-                            'block': '$account.udf.block',
-                            'pickup_dt': '$account.udf.pickup_dt',
-                            'driver_notes': '$account.udf.driver_notes',
-                            'office_notes': '$account.udf.office_notes'
-                          }
-                        }
-                    }
-                }
-            }
-        }
-    ])
-
-    #import bson.json_util
-    #logger.debug(bson.json_util.dumps(notific_list))
-
-    #logger.info(bson.json_util.dumps(list(notific_list)))
-
+    n = notific_events.get_grouped_notifications(ObjectId(event_id))
 
     sort_by = 'name'
-
-    #notific_list = db['notifications'].find({'event_id':ObjectId(event_id)}).sort(sort_by, 1)
 
     event = db['notification_events'].find_one({'_id':ObjectId(event_id)})
     event['event_dt'] = utils.utc_to_local(event['event_dt'])
@@ -133,7 +98,7 @@ def view_event(event_id):
     return render_template(
         'views/event.html',
         title=app.config['TITLE'],
-        notific_list=list(notific_list),
+        notific_list=list(n),
         event_id=event_id,
         event=event,
         triggers=triggers
@@ -235,97 +200,20 @@ def get_twilio_token():
 #-------------------------------------------------------------------------------
 @notify.route('/voice/record/request', methods=['POST'])
 def record_msg():
-    '''Request: POST from Bravo javascript client with 'To' arg
-    Response: JSON dict {'status':'string'}
-    '''
-
-    agency = db['users'].find_one({'user': current_user.username})['agency']
-
-    logger.info('Record audio request from ' + request.form['To'])
-
-    twilio = db['agencies'].find_one({'name':agency})['twilio']
-
-    call = reminders.dial(
-      request.form['To'],
-      twilio['ph'],
-      twilio['keys']['main'],
-      app.config['PUB_URL'] + '/voice/record/on_answer.xml'
-    )
-
-    logger.info('Dial status: %s', call.status)
-
-    if call.status == 'queued':
-        doc = {
-            'date': datetime.utcnow(),
-            'sid': call.sid,
-            'agency': agency,
-            'to': call.to,
-            'from': call.from_,
-            'status': call.status,
-            'direction': call.direction
-        }
-
-        db['audio'].insert_one(doc)
-
+    call = recording.dial(request.values.to_dict())
     return Response(response=json.dumps({'status':call.status}), mimetype='text/xml')
 
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/record/on_answer.xml',methods=['POST'])
 def record_xml():
-    '''Request: Twilio POST
-    Response: twilio.twiml.Response with voice content
-    '''
-
-    logger.info('Sending record twimlo response to client')
-
-    # Record voice message
-    voice = twilio.twiml.Response()
-    voice.say('Record your message after the beep. Press pound when complete.',
-      voice='alice'
-    )
-    voice.record(
-        method= 'POST',
-        action= app.config['PUB_URL'] + '/voice/record/on_complete.xml',
-        playBeep= True,
-        finishOnKey='#'
-    )
-
-    #send_socket('record_audio', {'msg': 'Listen to the call for instructions'})
-
+    voice = recording.on_answer(request.values.to_dict())
     return Response(response=str(voice), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/record/on_complete.xml', methods=['POST'])
 def record_complete_xml():
-    '''Request: Twilio POST
-    Response: twilio.twiml.Response with voice content
-    '''
-
-    logger.debug('/voice/record_on_complete.xml args: %s',
-      request.form.to_dict())
-
-    if request.form.get('Digits') == '#':
-        record = db['audio'].find_one({'sid': request.form['CallSid']})
-
-        logger.info('Recording completed. Sending audio_url to client')
-
-        # Reminder job has not been created yet so save in 'audio' for now
-
-        db['audio'].update_one(
-          {'sid': request.form['CallSid']},
-          {'$set': {
-              'audio_url': request.form['RecordingUrl'],
-              'audio_duration': request.form['RecordingDuration'],
-              'status': 'completed'
-        }})
-
-        socketio.emit('record_audio', {'audio_url': request.form['RecordingUrl']})
-
-        voice = twilio.twiml.Response()
-        voice.say('Message recorded. Goodbye.', voice='alice')
-        voice.hangup()
-
+    voice = recording.on_complete(request.values.to_dict())
     return Response(response=str(voice), mimetype='text/xml')
 
 

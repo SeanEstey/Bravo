@@ -9,7 +9,7 @@ from bson.json_util import dumps
 import unittest
 from flask import Flask, Blueprint, request
 
-#from .app import app
+from app import app
 from app.notify import notific_events
 
 
@@ -57,7 +57,8 @@ class NotifyTests(unittest.TestCase):
 
     def test_first(self):
         event_id = ObjectId("57f64ad7fd9ab44c64784ef3")
-        print dumps(notific_events.get_grouped_notifications(event_id))
+        print dumps(notific_events.get_grouped_notifications(event_id),
+                sort_keys=True, indent=4)
         return True
 
 

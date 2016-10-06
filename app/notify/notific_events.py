@@ -8,7 +8,10 @@ from flask.ext.login import current_user
 import csv
 import os
 
+# Import bravo modules
 from app import utils
+
+# Import objects
 from app import app, db, socketio
 
 logger = logging.getLogger(__name__)
@@ -39,34 +42,14 @@ def get_triggers(event_id):
 #-------------------------------------------------------------------------------
 def get_grouped_notifications(event_id):
     return db['notifications'].aggregate([
-        {
-            '$match': {
-                'event_id': event_id
+        {'$match': {
+            'event_id': event_id
             }
         },
-        {
-            '$group': {
-                '_id': None,
-                #'$account.id',
-                'results': {
-                    '$push': {
-                        'status': '$status',
-                        'to': '$to',
-                        'type': '$type',
-                        'account': {
-                          'name': '$account.name',
-                          'udf': {
-                            'status': '$account.udf.status',
-                            'block': '$account.udf.block',
-                            'pickup_dt': '$account.udf.pickup_dt',
-                            'driver_notes': '$account.udf.driver_notes',
-                            'office_notes': '$account.udf.office_notes'
-                          }
-                        }
-                    }
-                }
-            }
-        }
+        {'$group': {
+            '_id': '$account.id',
+            'results': { '$push': '$$ROOT'}
+        }}
     ])
 
 

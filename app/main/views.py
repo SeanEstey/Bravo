@@ -20,9 +20,10 @@ from app import tasks
 from app.main import auth
 from app.main import log
 from app.main import receipts
+from app.notify import views
 import app.notify
 
-# Must be imported after
+# Import objects
 from app import db, app, socketio
 
 # Get logger

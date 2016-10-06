@@ -13,16 +13,17 @@ import logging
 main = Blueprint('main', __name__, url_prefix='/')
 
 # Import modules and objects
-from app import db, app, socketio
-from app import auth
-from app import log
+
 from app import utils
-from app import receipts
-#from app import notifications
 from app import gsheets
 from app import tasks
-
+from app.main import auth
+from app.main import log
+from app.main import receipts
 import app.notify
+
+# Must be imported after
+from app import db, app, socketio
 
 # Get logger
 logger = logging.getLogger(__name__)

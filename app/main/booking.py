@@ -1,7 +1,7 @@
 
 
 from app import block_parser
-from app import routes
+from app.routing import routes
 from app import etap
 
 from app import app, db

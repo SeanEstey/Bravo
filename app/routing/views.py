@@ -14,13 +14,9 @@ routing = Blueprint('routing', __name__, url_prefix='/routing')
 # Import modules and objects
 from app import db, app, socketio
 from app import utils
-from app import notific_events
-from app import pickup_service
-from app import notifications
-from app import notific_events
 from app import sms
 from app import tasks
-from app import routes
+from app.routing import routes
 
 # Get logger
 logger = logging.getLogger(__name__)

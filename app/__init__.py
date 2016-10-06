@@ -71,7 +71,7 @@ app.register_blueprint(routing_module)
 
 
 
-import auth
+from app.main import auth
 
 #-------------------------------------------------------------------------------
 @app.before_request

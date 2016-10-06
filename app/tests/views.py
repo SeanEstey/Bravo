@@ -3,9 +3,6 @@ import sys
 import os
 import pymongo
 
-os.chdir('/root/bravo_dev/Bravo/flask')
-sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
-
 from app import app
 from tasks import celery_app
 
@@ -154,7 +151,7 @@ if __name__ == '__main__':
     app.logger.addHandler(test_log_handler)
     app.logger.setLevel(logging.DEBUG)
 
-    import auth
+    from app.main import auth
     auth.logger = logging.getLogger(__name__)
     auth.logger.addHandler(test_log_handler)
     auth.logger.setLevel(logging.DEBUG)

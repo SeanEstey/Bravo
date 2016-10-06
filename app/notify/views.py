@@ -13,15 +13,16 @@ import logging
 notify = Blueprint('notify', __name__, url_prefix='/notify')
 
 # Import modules and objects
-from app import db, app, socketio
+
 from app import utils
-from app import notific_events
-from app import pickup_service
-from app import notifications
-from app import notific_events
 from app import sms
 from app import tasks
-from app import triggers
+from app.notify import notific_events
+from app.notify import triggers
+from app.notify import notifications
+from app.notify import pickup_service
+
+from app import db, app, socketio
 
 # Get logger
 logger = logging.getLogger(__name__)

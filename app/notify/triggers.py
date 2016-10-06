@@ -4,7 +4,7 @@ from datetime import datetime,date,time
 
 from app import app, db
 from app import utils
-from app import notifications
+from app.notify import notifications
 
 logger = logging.getLogger(__name__)
 

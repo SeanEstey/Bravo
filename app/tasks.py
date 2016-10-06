@@ -6,7 +6,7 @@ from app import celery_app
 
 @celery_app.task
 def build_route(route_id, job_id=None):
-    from app import routes
+    from app.routing import routes
     return routes.build_route(route_id, job_id=job_id)
 
 @celery_app.task
@@ -16,12 +16,12 @@ def add_signup(signup):
 
 @celery_app.task
 def fire_trigger(event_id, trig_id):
-    from app import triggers
+    from app.notify import triggers
     return triggers.fire(ObjectId(event_id), ObjectId(trig_id))
 
 @celery_app.task
 def process_receipts(entries, etapestry_id):
-    from app import receipts
+    from app.main import receipts
     return receipts.process(entries, etapestry_id)
 
 @celery_app.task
@@ -34,7 +34,7 @@ def create_rfu(agency, request_note, account_number=None, next_pickup=None,
 
 @celery_app.task
 def cancel_pickup(event_id, account_id):
-    from app import pickup_service
+    from app.notify import pickup_service
     return pickup_service._cancel(event_id, account_id)
 
 # -------- Celerybeat methods ----------
@@ -46,17 +46,17 @@ def update_sms_accounts():
 
 @celery_app.task
 def create_scheduled_events():
-    from app import pickup_service
+    from app.nofity import pickup_service
     return pickup_service.create_scheduled_events()
 
 @celery_app.task
 def build_todays_routes():
-    from app import routes
+    from app.routing import routes
     return routes.build_todays_routes()
 
 @celery_app.task
 def monitor_triggers():
-    from app import triggers
+    from app.notify import triggers
     return triggers.monitor_all()
 
 @celery_app.task

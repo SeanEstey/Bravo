@@ -31,6 +31,45 @@ def add(agency, name, event_date):
         'triggers': []
     }).inserted_id
 
+
+#-------------------------------------------------------------------------------
+def get_triggers(event_id):
+    return db['triggers'].find({'event_id':event_id})
+
+#-------------------------------------------------------------------------------
+def get_grouped_notifications(event_id):
+    return db['notifications'].aggregate([
+        {
+            '$match': {
+                'event_id': event_id
+            }
+        },
+        {
+            '$group': {
+                '_id': None,
+                #'$account.id',
+                'results': {
+                    '$push': {
+                        'status': '$status',
+                        'to': '$to',
+                        'type': '$type',
+                        'account': {
+                          'name': '$account.name',
+                          'udf': {
+                            'status': '$account.udf.status',
+                            'block': '$account.udf.block',
+                            'pickup_dt': '$account.udf.pickup_dt',
+                            'driver_notes': '$account.udf.driver_notes',
+                            'office_notes': '$account.udf.office_notes'
+                          }
+                        }
+                    }
+                }
+            }
+        }
+    ])
+
+
 #-------------------------------------------------------------------------------
 def reset(event_id):
     '''Reset the notification_event document, all triggers and associated

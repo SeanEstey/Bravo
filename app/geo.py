@@ -2,20 +2,14 @@ import logging
 import matplotlib.path as mplPath
 import numpy as np
 
-from config import *
-from app.routes import geocode
-
-from app import app,db,info_handler,error_handler,debug_handler,socketio
+from app import app,db
+from app.routing import routes
 
 logger = logging.getLogger(__name__)
-logger.addHandler(debug_handler)
-logger.addHandler(info_handler)
-logger.addHandler(error_handler)
-logger.setLevel(logging.DEBUG)
 
 #-------------------------------------------------------------------------------
 def find_block(address):
-    r = geocode(address)
+    r = routes.geocode(address)
 
     coords = [
       r['geometry']['location']['lat'],

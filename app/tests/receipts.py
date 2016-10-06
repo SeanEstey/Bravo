@@ -18,7 +18,7 @@ sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 from config import *
 import views
 import gsheets
-import receipts
+from app.main import receipts
 import views
 from app import flask_app, celery_app
 

@@ -4,8 +4,6 @@ import os
 import pymongo
 from datetime import datetime, timedelta
 
-os.chdir('/root/bravo_dev/Bravo/flask')
-sys.path.insert(0, '/root/bravo_dev/Bravo/flask')
 
 from app import app
 from tasks import celery_app

@@ -1,7 +1,7 @@
 import flask
 from flask import Flask, request, g, Response, render_template
 from flask.ext.login import login_user, logout_user, login_required
-from user import User
+from app.main.user import User
 import json
 import logging
 

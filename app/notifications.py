@@ -1,4 +1,5 @@
 import twilio
+from flask import render_template
 import logging
 from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
@@ -12,10 +13,10 @@ import re
 from app import app, db, socketio
 from app import gsheets
 from app import utils
+from app import tasks
 from app import etap
 
 logger = logging.getLogger(__name__)
-#from scheduler import add_future_pickups
 
 
 #-------------------------------Stuff Todo---------------------------------------
@@ -58,6 +59,9 @@ def send(notification, agency_conf):
     send()
     '''
 
+    logger.info('notification type %s status %s sending',
+            notification['type'], notification['status'])
+
     if notification['status'] != 'pending':
         return False
 
@@ -88,8 +92,8 @@ def _send_voice_call(notification, twilio_conf):
         call = twilio_client.calls.create(
           from_ = twilio_conf['ph'],
           to = to,
-          url = app.config['PUB_URL'] + '/reminders/voice/play/on_answer.xml',
-          status_callback = app.config['PUB_URL'] + '/reminders/voice/on_complete',
+          url = app.config['PUB_URL'] + '/notify/voice/play/on_answer.xml',
+          status_callback = app.config['PUB_URL'] + '/notify/voice/on_complete',
           status_method = 'POST',
           status_events = ["completed"],
           method = 'POST',
@@ -100,12 +104,11 @@ def _send_voice_call(notification, twilio_conf):
 
     logger.debug(vars(call))
 
-    db['notifications'].update_one(notification, {
+    db['notifications'].update_one(
+        {'_id': notification['_id']}, {
         '$set': {
             'status': call.status,
             'sid': call.sid or None
-            #'code': call.code or None,
-            #'error': call.error or None
         },
         '$inc': {'attempts':1}
     })
@@ -125,19 +128,21 @@ def send_email(notification, mailgun_conf, key='default'):
 
     template = notification['content']['template'][key]
 
-    data = json.loads(json_util.dumps(notification['account']))
-    data = json.loads(bson_date_fixer(data))
+    data = json.loads(bson.json_util.dumps(notification['account']))
+    data = json.loads(utils.bson_date_fixer(data))
 
     try:
         response = requests.post(
           app.config['LOCAL_URL'] + '/notify/render',
           json={
-              "template": template,
+              "template": template['file'],
               "to": notification['to'],
-              "account": data
+              "account": data,
+              "event_id": str(notification['event_id'])
           })
     except requests.RequestException as e:
-        logger.error('render_notification: %s', str(e))
+        logger.error('render_notification: %s. response: %s',
+                str(e), response.json())
         return False
 
     mid = utils.send_email(
@@ -161,7 +166,7 @@ def send_email(notification, mailgun_conf, key='default'):
     })
 
     db['notifications'].update_one(
-        notification,
+        {'_id':notification['_id']},
         {'$set': {'status':status, 'mid': mid}})
 
     return mid
@@ -177,6 +182,8 @@ def _send_sms(notification, twilio_conf):
 def on_email_status(webhook):
     '''
     @webhook: webhook args POST'd by mailgun'''
+
+    logger.info('notific email handler')
 
     db['notifications'].update_one(
       {'mid': webhook['Message-Id']},
@@ -222,7 +229,7 @@ def edit(notification_id, fields):
         )
 
 #-------------------------------------------------------------------------------
-def get_voice_content(notification, template):
+def get_voice(notific, template_file):
     '''Return rendered HMTL template as string
     Called from flask so has context
 
@@ -230,27 +237,27 @@ def get_voice_content(notification, template):
     @template_key: name of content dict containing file path
     '''
 
-    logger.debug('get_voice_content')
+    logger.debug('get_voice')
 
     # Go through all UDFs and convert UTC datetimes to local
-    for key, val in notification['account']['udf'].iteritems():
+    for key, val in notific['account']['udf'].iteritems():
         if isinstance(val, datetime):
-            notification['account']['udf'][key] = utils.utc_to_local(val)
+            notific['account']['udf'][key] = utils.utc_to_local(val)
 
-        tmp = json.loads(json_util.dumps(notification['account']))
-        formatted_account = json.loads(bson_date_fixer(dtmp))
+        tmp = json.loads(bson.json_util.dumps(notific['account']))
+        formatted_account = json.loads(utils.bson_date_fixer(tmp))
 
         try:
-            content = flask.render_template(
-                template,
+            content = render_template(
+                template_file,
                 account = formatted_account,
                 call = {
-                    'digit': notification.get('digit') or None,
-                    'answered_by': notification['answered_by']
+                    'digit': notific.get('digit') or None,
+                    'answered_by': notific['answered_by']
                 }
             )
         except Exception as e:
-            logger.error('render_html: %s ', str(e))
+            logger.error('get_voice render_template: %s ', str(e))
             return 'Error'
 
     content = content.replace("\n", "")
@@ -258,12 +265,12 @@ def get_voice_content(notification, template):
 
     logger.debug('speak template: %s', content)
 
-    db['notifications'].update_one({'_id':notification['_id']},{'$set':{'speak':content}})
+    db['notifications'].update_one({'_id':notific['_id']},{'$set':{'speak':content}})
 
     return content
 
 #-------------------------------------------------------------------------------
-def get_voice_play_answer_response(args):
+def on_call_answered(args):
     '''User answered call. Get voice content.
     Return: twilio.twiml.Response
     '''
@@ -274,7 +281,7 @@ def get_voice_play_answer_response(args):
       args['To'], args['CallStatus'], args.get('AnsweredBy')
     )
 
-    notification = db['notifications'].find_one_and_update(
+    notific = db['notifications'].find_one_and_update(
       {'sid': args['CallSid']},
       {'$set': {
         "status": args['CallStatus'],
@@ -288,58 +295,61 @@ def get_voice_play_answer_response(args):
 
     # Html template content or audio url?
 
-    if notification['content']['source'] == 'template':
-        content = get_voice_content(
-            notification,
-            notification['content']['template']['default']
+    if notific['content']['source'] == 'template':
+        voice.say(
+            get_voice(
+                notific,
+                notific['content']['template']['default']['file']),
+            voice='alice'
         )
-
-        voice.say(content, voice='alice')
-    elif notification['content']['source'] == 'audio_url':
-        voice.play(notification['content']['audio_url'])
+    elif notific['content']['source'] == 'audio_url':
+        voice.play(notific['content']['audio_url'])
     else:
         logger.error('Unknown schema type!')
         voice.say("Error!", voice='alice')
 
     # Prompt user for action after voice audio plays
-    voice.gather(numDigits=1, action='/reminders/voice/play/on_interact.xml', method='POST')
+    voice.gather(numDigits=1,
+                action='/notify/voice/play/on_interact.xml',
+                method='POST')
 
     return voice
 
 #-------------------------------------------------------------------------------
-def get_voice_play_interact_response(args):
+def on_call_interact(args):
     '''
     Return: twilio.twiml.Response
     '''
 
     logger.debug('voice_play_interact args: %s', args)
 
-    notification = db['notifications'].find_one({'sid': args['CallSid']})
+    notific = db['notifications'].find_one({'sid': args['CallSid']})
 
-    if not notification:
+    if not notific:
         return False
 
     voice = twilio.twiml.Response()
 
-    # TODO: replace job['schema']['type'] with reminder['voice']['from_source']
-
     # Digit 1: Repeat message
     if args.get('Digits') == '1':
-        content = get_voice_content(
-          notification,
-          notification['content']['template']['default']
+        content = get_voice(
+          notific,
+          notific['content']['template']['default']['file']
         )
 
         voice.say(content, voice='alice')
-        voice.gather(numDigits=1, action='/reminders/voice/play/on_interact.xml', method='POST')
+
+        voice.gather(numDigits=1,
+                    action='/notify/voice/play/on_interact.xml',
+                    method='POST')
     # Digit 2: Cancel pickup
     elif args.get('Digits') == '2':
         tasks.cancel_pickup.apply_async(
-            (str(notification['event_id']), notification['account']['id']),
+            (str(notific['event_id']), str(notific['account']['id'])),
             queue=app.config['DB']
         )
 
-        dt = utils.utc_to_local(notification['account']['udf']['future_pickup_dt'])
+        dt = utils.utc_to_local(notific['account']['udf']['future_pickup_dt'])
 
         voice.say(
           'Thank you. Your next pickup will be on ' +\
@@ -376,7 +386,7 @@ def call_event(args):
           return_document=ReturnDocument.AFTER)
     else:
         reminder = db['notifications'].find_one_and_update(
-          {'voice.sid': args['CallSid']},
+          {'sid': args['CallSid']},
           {'$set': {
             "code": args.get('SipResponseCode'), # in case of failure
             "status": args['CallStatus']
@@ -413,8 +423,8 @@ def call_event(args):
         if audio:
             logger.info('Record audio call complete')
 
-            db['audio'].update({
-              'sid':args['CallSid']},
+            db['audio'].update(
+                {'sid':args['CallSid']},
               {'$set': {"status": args['CallStatus']}
             })
         else:

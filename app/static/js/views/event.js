@@ -113,19 +113,20 @@ function init() {
     var args =  window.location.pathname.split('/');
     var event_uuid = args.slice(-1)[0];
 
-    $('#execute-event').click(function() {
-			$.ajax({
-				type: 'GET',
-				url: $URL_ROOT + 'notify/' + event_uuid + '/send_calls'
-			});
-    });
+    $("button[name='trigger']").each(function() {
 
-    $('#email-event').click(function() {
-			$.ajax({
-				type: 'GET',
-				url: $URL_ROOT + 'notify/' + event_uuid + '/send_emails'
+			//var _id = $(this).attr('id');
+
+			$(this).on("click", function(e){
+				console.log('clicked id %s' + e.target.id);
+
+				$.ajax({
+					type: 'POST',
+					url: $URL_ROOT + 'notify/' + e.target.id + '/fire'
+				});
 			});
-    });
+
+		});
 
     $('#reset-event').click(function() {
       $.ajax({

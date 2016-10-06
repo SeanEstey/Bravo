@@ -59,6 +59,7 @@ def render_html(template, data, flask_context=False):
 def bson_date_fixer(a):
     '''Convert all bson datetimes mongoDB BSON format to JSON.
     Converts timestamps to formatted date strings
+    @a: dict
     '''
 
     try:

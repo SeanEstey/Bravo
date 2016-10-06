@@ -121,10 +121,7 @@ def add_notification(event_id, event_dt, trig_id, _type, account, schema):
         "block": etap.get_udf('Block', account),
         "pickup_dt": npu_dt,
         "future_pickup_dt": None,
-        "opted_out": False,
-        "cancel_pickup_url": \
-            "%s/reminders/%s/%s/cancel_pickup" %
-            (app.config['PUB_URL'], str(event_id),account['id'])
+        "opted_out": False
     }
 
     if _type == 'phone':
@@ -275,7 +272,7 @@ def _cancel(event_id, account_id):
             email_notification = notification
 
         # Already cancelled?
-        if notification['account']['udf']['opted_out'] == True:
+        if notification['account']['udf'].get('opted_out') == True:
             logger.info(
                 'Account %s already opted-out. Ignoring request.',
                 account_id)

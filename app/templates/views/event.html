@@ -81,19 +81,15 @@
           <td>{{notific['account']['udf']['status']}}</td>
           <td>{{notific['account']['udf']['driver_notes']}}</td>
           <td>{{notific['account']['udf']['office_notes']}}</td>
-          <td>{{notific['account']['udf']['pickup_dt']}}</td>
-          <!-- call status -->
-          {% for notification in notific_group['results'] %}
-            {% if notification['type'] == 'voice' %}
-              <td>{{notification.status}}</td>
-            {% endif %}
-          {% endfor %}
+          <td>{{notific['account']['udf']['pickup_dt'].strftime("%-m/%-d/%Y")}}</td>
           <!-- email status -->
-          {% for notification in notific_group['results'] %}
-            {% if notification['type'] == 'voice' %}
-              <td>{{notification.status}}</td>
-            {% endif %}
-          {% endfor %}
+					{% for notification in notific_group['results'] if notification['type'] == 'email' %}
+              <td>{{notification['status']}}</td>
+					{% endfor %}
+
+					{% for notification in notific_group['results'] if notification['type'] == 'voice' %}
+              <td>{{notification['status']}}</td>
+					{% endfor %}
 
           <!-- Delete Button -->
           <td class='cancel-call-col'>
@@ -111,10 +107,14 @@
   </div>
     <br><br>
   <div style='text-align:center;'>
-    <button style='margin:0 auto;' class='btn btn-primary' 
-						type='button' id='execute-event'>Execute Now </button>
-    <button style='margin:0 auto;' class='btn btn-primary' 
-						type='button' id='email-event'>Email Now </button>
+		{% for trigger in triggers %}
+			<button style='margin:0 auto;'
+							class='btn btn-primary'
+							name='trigger'
+							id='{{trigger['_id']}}'
+							type='button' 
+							>Fire {{trigger['type']}}</button>
+		{% endfor %}
     <button style='margin:0 auto;' class='btn btn-primary' 
 						type='button' id='reset-event'>Reset </button>
     <button style='margin:0 auto;' class='btn btn-primary' 

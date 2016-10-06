@@ -18,9 +18,11 @@ from app import auth
 from app import log
 from app import utils
 from app import receipts
-from app import notifications
+#from app import notifications
 from app import gsheets
 from app import tasks
+
+import app.notify
 
 # Get logger
 logger = logging.getLogger(__name__)
@@ -241,6 +243,9 @@ def email_status():
       {'$set': { 'status': request.form['event']}}
     )
 
+    import bson.json_util
+    logger.debug('email: %s', bson.json_util.dumps(email))
+
     if email is None:
         return 'Mid not found'
 
@@ -249,7 +254,9 @@ def email_status():
     # Do any special updates
     if email.get('type'):
         if email['type'] == 'notification':
-            notifications.on_email_status(request.form.to_dict())
+            app.notify.views.on_email_status(request.form.to_dict())
+            #return redirect(url_for('notify.on_email_status'))
+            #notifications.on_email_status(request.form.to_dict())
         elif email['type'] == 'receipt':
             receipts.on_email_status(request.form.to_dict())
     # -----------------------------------

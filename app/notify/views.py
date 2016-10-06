@@ -3,7 +3,9 @@ import json
 import twilio.twiml
 import requests
 from datetime import datetime, date, time, timedelta
-from flask import Blueprint, request, jsonify, render_template, redirect
+from flask import \
+    Blueprint, request, jsonify, \
+    render_template, redirect, Response
 from flask.ext.login import login_required, current_user
 from bson.objectid import ObjectId
 import logging
@@ -19,6 +21,7 @@ from app import notifications
 from app import notific_events
 from app import sms
 from app import tasks
+from app import triggers
 
 # Get logger
 logger = logging.getLogger(__name__)
@@ -68,7 +71,7 @@ def new_event():
 def _submit_event():
     try:
         r = reminders.submit_event(request.form.to_dict(), request.files['call_list'])
-        return flask.Response(response=json.dumps(r), status=200, mimetype='application/json')
+        return Response(response=json.dumps(r), status=200, mimetype='application/json')
     except Exception as e:
         logger.error('submit_event: %s', str(e))
         return False
@@ -77,8 +80,6 @@ def _submit_event():
 @notify.route('/<event_id>')
 @login_required
 def view_event(event_id):
-
-
     notific_list = db.notifications.aggregate([
         {
             '$match': {
@@ -98,7 +99,7 @@ def view_event(event_id):
                           'udf': {
                             'status': '$account.udf.status',
                             'block': '$account.udf.block',
-                            'pickup_dt': '$account.udf.pickup_date',
+                            'pickup_dt': '$account.udf.pickup_dt',
                             'driver_notes': '$account.udf.driver_notes',
                             'office_notes': '$account.udf.office_notes'
                           }
@@ -110,6 +111,8 @@ def view_event(event_id):
     ])
 
     #import bson.json_util
+    #logger.debug(bson.json_util.dumps(notific_list))
+
     #logger.info(bson.json_util.dumps(list(notific_list)))
 
 
@@ -120,12 +123,19 @@ def view_event(event_id):
     event = db['notification_events'].find_one({'_id':ObjectId(event_id)})
     event['event_dt'] = utils.utc_to_local(event['event_dt'])
 
+    triggers = []
+    for trigger in event['triggers']:
+        t = db['triggers'].find_one({'_id':trigger['id']})
+        t['_id'] = str(t['_id'])
+        triggers.append(t)
+
     return render_template(
         'views/event.html',
         title=app.config['TITLE'],
         notific_list=list(notific_list),
         event_id=event_id,
-        event=event
+        event=event,
+        triggers=triggers
         #template=job['schema']['import_fields']
     )
 
@@ -144,33 +154,43 @@ def reset_event(event_id):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/<job_id>/complete')
+@notify.route('/<event_id>/complete')
 @login_required
-def job_complete(job_id):
+def job_complete(event_id):
     '''Email job summary, update job status'''
 
-    logger.info('Job [ID %s] complete!', job_id)
+    logger.info('Job [ID %s] complete!', event_id)
 
     # TODO: Send socket to web app to display completed status
 
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/<job_id>/<reminder_id>/remove', methods=['POST'])
+@notify.route('/<event_id>/<notific_id>/remove', methods=['POST'])
 @login_required
-def rmv_msg(job_id, reminder_id):
-    reminders.rmv_msg(job_id, reminder_id)
+def rmv_msg(event_id, notific_id):
+    reminders.rmv_msg(event_id, notific_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/<reminder_id>/edit', methods=['POST'])
+@notify.route('/<notific_id>/edit', methods=['POST'])
 @login_required
-def edit_msg(reminder_id):
-    reminders.edit_msg(reminder_id, request.form.items())
+def edit_msg(notific_id):
+    reminders.edit_msg(notific_id, request.form.items())
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/<event_id>/<account_id>/cancel_pickup', methods=['GET'])
+@notify.route('/<trigger_id>/fire', methods=['POST'])
+@login_required
+def fire_trigger(trigger_id):
+    trigger = db['triggers'].find_one({'_id':ObjectId(trigger_id)})
+    tasks.fire_trigger.apply_async(
+            (str(trigger['event_id']), trigger_id),
+            queue=app.config['DB'])
+    return 'OK'
+
+#-------------------------------------------------------------------------------
+@notify.route('/<event_id>/<account_id>/no_pickup', methods=['GET'])
 def no_pickup(event_id, account_id):
     '''Script run via reminder email'''
 
@@ -185,11 +205,10 @@ def no_pickup(event_id, account_id):
 def play_sample_rem():
     voice = twilio.twiml.Response()
     voice.say("test")
-    return flask.Response(response=str(voice), mimetype='text/xml')
-
+    return Response(response=str(voice), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
-@notify.route('get/token', methods=['GET'])
+@notify.route('/get/token', methods=['GET'])
 def get_twilio_token():
     # get credentials for environment variables
 
@@ -213,7 +232,7 @@ def get_twilio_token():
 
 
 #-------------------------------------------------------------------------------
-@notify.route('voice/record/request', methods=['POST'])
+@notify.route('/voice/record/request', methods=['POST'])
 def record_msg():
     '''Request: POST from Bravo javascript client with 'To' arg
     Response: JSON dict {'status':'string'}
@@ -247,11 +266,11 @@ def record_msg():
 
         db['audio'].insert_one(doc)
 
-    return flask.Response(response=json.dumps({'status':call.status}), mimetype='text/xml')
+    return Response(response=json.dumps({'status':call.status}), mimetype='text/xml')
 
 
 #-------------------------------------------------------------------------------
-@notify.route('voice/record/on_answer.xml',methods=['POST'])
+@notify.route('/voice/record/on_answer.xml',methods=['POST'])
 def record_xml():
     '''Request: Twilio POST
     Response: twilio.twiml.Response with voice content
@@ -273,10 +292,10 @@ def record_xml():
 
     #send_socket('record_audio', {'msg': 'Listen to the call for instructions'})
 
-    return flask.Response(response=str(voice), mimetype='text/xml')
+    return Response(response=str(voice), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
-@notify.route('voice/record/on_complete.xml', methods=['POST'])
+@notify.route('/voice/record/on_complete.xml', methods=['POST'])
 def record_complete_xml():
     '''Request: Twilio POST
     Response: twilio.twiml.Response with voice content
@@ -306,11 +325,11 @@ def record_complete_xml():
         voice.say('Message recorded. Goodbye.', voice='alice')
         voice.hangup()
 
-    return flask.Response(response=str(voice), mimetype='text/xml')
+    return Response(response=str(voice), mimetype='text/xml')
 
 
 #-------------------------------------------------------------------------------
-@notify.route('voice/play/on_answer.xml',methods=['POST'])
+@notify.route('/voice/play/on_answer.xml',methods=['POST'])
 def get_answer_xml():
     '''Reminder call is answered.
     Request: Twilio POST
@@ -318,16 +337,15 @@ def get_answer_xml():
     '''
 
     try:
-        voice = notifications.get_voice_play_answer_response(request.form.to_dict())
+        voice = notifications.on_call_answered(request.form.to_dict())
     except Exception as e:
         logger.error('/voice/play/on_answer.xml: %s', str(e))
-        return flask.Response(response="Error", status=500, mimetype='text/xml')
+        return Response(response="Error", status=500, mimetype='text/xml')
 
-    return flask.Response(response=str(voice), mimetype='text/xml')
-
+    return Response(response=str(voice), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
-@notify.route('voice/play/on_interact.xml', methods=['POST'])
+@notify.route('/voice/play/on_interact.xml', methods=['POST'])
 def get_interact_xml():
     '''User interacted with reminder call. Send voice response.
     Request: Twilio POST
@@ -335,16 +353,16 @@ def get_interact_xml():
     '''
 
     try:
-        voice = notifications.get_voice_play_interact_response(request.form.to_dict())
+        voice = notifications.on_call_interact(request.form.to_dict())
     except Exception as e:
         logger.error('/voice/play/on_interact.xml: %s', str(e))
-        return flask.Response(response="Error", status=500, mimetype='text/xml')
+        return Response(response="Error", status=500, mimetype='text/xml')
 
-    return flask.Response(response=str(voice), mimetype='text/xml')
+    return Response(response=str(voice), mimetype='text/xml')
 
 
 #-------------------------------------------------------------------------------
-@notify.route('voice/on_complete',methods=['POST'])
+@notify.route('/voice/on_complete',methods=['POST'])
 def call_event():
     '''Twilio callback'''
 
@@ -352,7 +370,7 @@ def call_event():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('sms/status', methods=['POST'])
+@notify.route('/sms/status', methods=['POST'])
 def sms_status():
     '''Callback for sending/receiving SMS messages.
     If sending, determine if part of reminder or reply to original received msg
@@ -377,6 +395,7 @@ def sms_status():
 
     return 'OK'
 
+
 #-------------------------------------------------------------------------------
 @notify.route('/render', methods=['POST'])
 def render_notification():
@@ -387,12 +406,20 @@ def render_notification():
 
     try:
         args = request.get_json(force=True)
+        logger.debug(args)
 
         return render_template(
           args['template'],
           to = args['to'],
-          account = args['account']
+          account = args['account'],
+          event_id=args['event_id']
         )
     except Exception as e:
-        logger.error('render_notification: %s ', str(e))
+        logger.error('render: %s ', str(e))
         return 'Error'
+
+#-------------------------------------------------------------------------------
+@notify.route('/on_email_status', methods=['GET'])
+def on_email_status(args):
+    notifications.on_email_status(args)
+    return 'OK'

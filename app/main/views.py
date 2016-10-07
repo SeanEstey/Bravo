@@ -20,8 +20,7 @@ from app import tasks
 from app.main import auth
 from app.main import log
 from app.main import receipts
-from app.notify import views
-import app.notify
+from app.notify.views import on_email_status as notify_on_email_status
 
 # Import objects
 from app import db, app, socketio
@@ -256,7 +255,7 @@ def email_status():
     # Do any special updates
     if email.get('type'):
         if email['type'] == 'notification':
-            app.notify.views.on_email_status(request.form.to_dict())
+            notify_on_email_status(request.form.to_dict())
             #return redirect(url_for('notify.on_email_status'))
             #notifications.on_email_status(request.form.to_dict())
         elif email['type'] == 'receipt':
@@ -356,3 +355,5 @@ def render_receipt_body():
     except Exception as e:
         logger.error('render_receipt: %s ', str(e))
         return 'Error'
+
+

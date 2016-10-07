@@ -15,9 +15,9 @@ def add_signup(signup):
     return wsf.add_signup(signup)
 
 @celery_app.task
-def fire_trigger(event_id, trig_id):
+def fire_trigger(evnt_id, trig_id):
     from app.notify import triggers
-    return triggers.fire(ObjectId(event_id), ObjectId(trig_id))
+    return triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
 
 @celery_app.task
 def process_receipts(entries, etapestry_id):
@@ -33,9 +33,9 @@ def create_rfu(agency, request_note, account_number=None, next_pickup=None,
             name_address=name_address)
 
 @celery_app.task
-def cancel_pickup(event_id, account_id):
+def cancel_pickup(evnt_id, acct_id):
     from app.notify import pickup_service
-    return pickup_service._cancel(event_id, account_id)
+    return pickup_service._cancel(evnt_id, acct_id)
 
 # -------- Celerybeat methods ----------
 
@@ -45,19 +45,20 @@ def update_sms_accounts():
     return sms.update_scheduled_accounts_for_sms()
 
 @celery_app.task
-def create_scheduled_events():
-    from app.nofity import pickup_service
-    return pickup_service.create_scheduled_events()
+def schedule_reminders():
+    from app.notify import pickup_service
+    return pickup_service.schedule_reminders()
 
 @celery_app.task
-def build_todays_routes():
+def build_routes():
     from app.routing import routes
-    return routes.build_todays_routes()
+    return routes.build_scheduled_routes()
 
 @celery_app.task
 def monitor_triggers():
     from app.notify import triggers
-    return triggers.monitor_all()
+    #return triggers.monitor_all()
+    return True
 
 @celery_app.task
 def find_non_participants():

@@ -21,17 +21,18 @@ from app import app, db, socketio
 
 logger = logging.getLogger(__name__)
 
-
 #-------------------------------Stuff Todo---------------------------------------
-# TODO: update all needed reminder['voice'] with reminder['voice']['conf']
 # TODO: add sms template files
 # TODO: include date in email subject
-# TODO: write general add_job and add_reminder functions
 
 #-------------------------------------------------------------------------------
-def add(event_id, event_dt, trig_id, _type, to, account, udf, content):
+def insert(evnt_id, event_dt, trig_id, acct_id, _type, to, content):
     '''Add a notification tied to an event and trigger
+    @evnt_id: _id of db.notific_events document
+    @trig_id: _id of db.triggers document
+    @acct_id: _id of db.accounts document
     @type: one of ['sms', 'voice', 'email']
+    @to: phone number or email
     @content:
         'source': 'template/audio_url',
         'template': {'default':{'file':'path', 'subject':'email_sub'}}
@@ -41,19 +42,16 @@ def add(event_id, event_dt, trig_id, _type, to, account, udf, content):
     '''
 
     return db['notifications'].insert_one({
-        'event_id': event_id,
-        'event_dt': event_dt,
+        'evnt_id': evnt_id,
         'trig_id': trig_id,
+        'acct_id': acct_id,
+        'event_dt': event_dt,
         'status': 'pending',
         'attempts': 0,
         'to': to,
         'type': _type,
-        'account': {
-            'name': account['name'],
-            'id': account['id'],
-            'udf': udf
-        },
-        'content': content
+        'content': content,
+        'opted_out': False
     }).inserted_id
 
 #-------------------------------------------------------------------------------
@@ -69,14 +67,14 @@ def send(notification, agency_conf):
         return False
 
     if notification['type'] == 'voice':
-        return _send_voice_call(notification, agency_conf['twilio'])
+        return _send_call(notification, agency_conf['twilio'])
     elif notification['type'] == 'sms':
         return _send_sms(notification, agency_conf['twilio'])
     elif notification['type'] == 'email':
         return send_email(notification, agency_conf['mailgun'])
 
 #-------------------------------------------------------------------------------
-def _send_voice_call(notification, twilio_conf):
+def _send_call(notification, twilio_conf):
     '''Private method called by send()
     '''
 
@@ -87,12 +85,12 @@ def _send_voice_call(notification, twilio_conf):
         to = "+1" + notification['to']
 
     try:
-        twilio_client = twilio.rest.TwilioRestClient(
+        client = twilio.rest.TwilioRestClient(
           twilio_conf['keys']['main']['sid'],
           twilio_conf['keys']['main']['auth_id']
         )
 
-        call = twilio_client.calls.create(
+        call = client.calls.create(
           from_ = twilio_conf['ph'],
           to = to,
           url = app.config['PUB_URL'] + '/notify/voice/play/on_answer.xml',
@@ -131,17 +129,18 @@ def send_email(notification, mailgun_conf, key='default'):
 
     template = notification['content']['template'][key]
 
-    data = json.loads(bson.json_util.dumps(notification['account']))
-    data = json.loads(utils.bson_date_fixer(data))
-
     try:
         response = requests.post(
-          app.config['LOCAL_URL'] + '/notify/render',
-          json={
-              "template": template['file'],
-              "to": notification['to'],
-              "account": data,
-              "event_id": str(notification['event_id'])
+            app.config['LOCAL_URL'] + '/notify/render',
+            json={
+                "template": template['file'],
+                "to": notification['to'],
+                "account": utils.mongo_formatter(
+                    db['accounts'].find_one({'_id':notification['acct_id']}),
+                    to_local_time=True,
+                    to_strftime="%A, %B %d",
+                    bson_to_json=True),
+                "evnt_id": str(notification['evnt_id'])
           })
     except requests.RequestException as e:
         logger.error('render_notification: %s. response: %s',
@@ -235,33 +234,30 @@ def edit(notification_id, fields):
 def get_voice(notific, template_file):
     '''Return rendered HMTL template as string
     Called from flask so has context
-
     @notification: mongodb dict document
     @template_key: name of content dict containing file path
     '''
 
     logger.debug('get_voice')
 
-    # Go through all UDFs and convert UTC datetimes to local
-    for key, val in notific['account']['udf'].iteritems():
-        if isinstance(val, datetime):
-            notific['account']['udf'][key] = utils.utc_to_local(val)
+    account = db['accounts'].find_one({'_id':notific['acct_id']})
 
-        tmp = json.loads(bson.json_util.dumps(notific['account']))
-        formatted_account = json.loads(utils.bson_date_fixer(tmp))
-
-        try:
-            content = render_template(
-                template_file,
-                account = formatted_account,
-                call = {
-                    'digit': notific.get('digit') or None,
-                    'answered_by': notific['answered_by']
-                }
-            )
-        except Exception as e:
-            logger.error('get_voice render_template: %s ', str(e))
-            return 'Error'
+    try:
+        content = render_template(
+            template_file,
+            account = utils.mongo_formatter(
+                account,
+                to_local_time=True,
+                to_strftime="%A, %B %d",
+                bson_to_json=True),
+            call = {
+                'digit': notific.get('digit') or None,
+                'answered_by': notific['answered_by']
+            }
+        )
+    except Exception as e:
+        logger.error('get_voice: %s ', str(e))
+        return 'Error'
 
     content = content.replace("\n", "")
     content = content.replace("  ", "")
@@ -348,11 +344,12 @@ def on_call_interact(args):
     # Digit 2: Cancel pickup
     elif args.get('Digits') == '2':
         tasks.cancel_pickup.apply_async(
-            (str(notific['event_id']), str(notific['account']['id'])),
+            (str(notific['evnt_id']), str(notific['acct_id'])),
             queue=app.config['DB']
         )
 
-        dt = utils.utc_to_local(notific['account']['udf']['future_pickup_dt'])
+        account = db['accounts'].find_one({'_id':notific['acct_id']})
+        dt = utils.tz_utc_to_local(account['udf']['future_pickup_dt'])
 
         voice.say(
           'Thank you. Your next pickup will be on ' +\

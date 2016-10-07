@@ -2,7 +2,7 @@
 
 python-pip
 python-dev=2.7
-mongodb=1.2.6
+mongodb=3.2
 php7.0-dev=7.0.2
 php7.0-fpm=7.0.2
 rabbitmq-server=3.5.4

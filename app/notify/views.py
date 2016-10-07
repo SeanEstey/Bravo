@@ -9,6 +9,7 @@ from flask import \
 from flask.ext.login import login_required, current_user
 from bson.objectid import ObjectId
 import logging
+import bson.json_util
 
 notify = Blueprint('notify', __name__, url_prefix='/notify')
 
@@ -16,7 +17,7 @@ notify = Blueprint('notify', __name__, url_prefix='/notify')
 from app import utils
 from app import sms
 from app import tasks
-from app.notify import notific_events
+from app.notify import events
 from app.notify import triggers
 from app.notify import notifications
 from app.notify import pickup_service
@@ -36,20 +37,16 @@ def view_event_list():
 
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    events = notific_events.get_list(agency)
+    event_list = list(events.get_all(agency))
 
-    for event in events:
-        for trigger in event['triggers']:
-            t = db['triggers'].find_one({'_id':trigger['id']})
-            trigger['type'] = t['type']
-            trigger['status'] = t['status']
-            trigger['fire_dt'] = t['fire_dt']
-            trigger['count'] = db['notifications'].find({'trig_id':trigger['id']}).count()
+    for event in event_list:
+        # triggers in local time
+        event['triggers'] = events.get_triggers(event['_id'])
 
     return render_template(
       'views/event_list.html',
       title=None,
-      events=list(events)
+      events=event_list
     )
 
 #-------------------------------------------------------------------------------
@@ -79,63 +76,60 @@ def _submit_event():
         return False
 
 #-------------------------------------------------------------------------------
-@notify.route('/<event_id>')
+@notify.route('/<evnt_id>')
 @login_required
-def view_event(event_id):
-    n = notific_events.get_grouped_notifications(ObjectId(event_id))
+def view_event(evnt_id):
+    '''GUI event view'''
 
-    sort_by = 'name'
+    event = events.get(ObjectId(evnt_id))
+    notific_list = events.get_notifications(ObjectId(evnt_id))
+    trigger_list = events.get_triggers(ObjectId(evnt_id))
 
-    event = db['notification_events'].find_one({'_id':ObjectId(event_id)})
-    event['event_dt'] = utils.utc_to_local(event['event_dt'])
 
-    triggers = []
-    for trigger in event['triggers']:
-        t = db['triggers'].find_one({'_id':trigger['id']})
-        t['_id'] = str(t['_id'])
-        triggers.append(t)
+    logger.debug(bson.json_util.dumps(notific_list, indent=4))
+
 
     return render_template(
         'views/event.html',
         title=app.config['TITLE'],
-        notific_list=list(n),
-        event_id=event_id,
+        notific_list=notific_list,
+        evnt_id=evnt_id,
         event=event,
-        triggers=triggers
+        triggers=trigger_list
         #template=job['schema']['import_fields']
     )
 
 #-------------------------------------------------------------------------------
-@notify.route('/<event_id>/cancel')
+@notify.route('/<evnt_id>/cancel')
 @login_required
-def cancel_event(event_id):
-    reminders.cancel_event(event_id)
+def cancel_event(evnt_id):
+    reminders.cancel_event(evnt_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/<event_id>/reset')
+@notify.route('/<evnt_id>/reset')
 @login_required
-def reset_event(event_id):
-    notific_events.reset(event_id)
+def reset_event(evnt_id):
+    events.reset(evnt_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/<event_id>/complete')
+@notify.route('/<evnt_id>/complete')
 @login_required
-def job_complete(event_id):
+def job_complete(evnt_id):
     '''Email job summary, update job status'''
 
-    logger.info('Job [ID %s] complete!', event_id)
+    logger.info('Job [ID %s] complete!', evnt_id)
 
     # TODO: Send socket to web app to display completed status
 
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/<event_id>/<notific_id>/remove', methods=['POST'])
+@notify.route('/<evnt_id>/<notific_id>/remove', methods=['POST'])
 @login_required
-def rmv_msg(event_id, notific_id):
-    reminders.rmv_msg(event_id, notific_id)
+def rmv_msg(evnt_id, notific_id):
+    reminders.rmv_msg(evnt_id, notific_id)
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -146,22 +140,22 @@ def edit_msg(notific_id):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/<trigger_id>/fire', methods=['POST'])
+@notify.route('/<trig_id>/fire', methods=['POST'])
 @login_required
-def fire_trigger(trigger_id):
-    trigger = db['triggers'].find_one({'_id':ObjectId(trigger_id)})
+def fire_trigger(trig_id):
+    trigger = db['triggers'].find_one({'_id':ObjectId(trig_id)})
     tasks.fire_trigger.apply_async(
-            (str(trigger['event_id']), trigger_id),
+            (str(trigger['evnt_id']), trig_id),
             queue=app.config['DB'])
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/<event_id>/<account_id>/no_pickup', methods=['GET'])
-def no_pickup(event_id, account_id):
+@notify.route('/<evnt_id>/<acct_id>/no_pickup', methods=['GET'])
+def no_pickup(evnt_id, acct_id):
     '''Script run via reminder email'''
 
     tasks.cancel_pickup.apply_async(
-        (event_id, account_id),
+        (evnt_id, acct_id),
         queue=app.config['DB'])
 
     return 'Thank You'
@@ -288,10 +282,7 @@ def sms_status():
 #-------------------------------------------------------------------------------
 @notify.route('/render', methods=['POST'])
 def render_notification():
-    '''Used for notification emails and receipts
-    2 args: 'template' html file and 'data'
-    Notification emails: 'data' contains ['account' (not etap format), 'to']
-    '''
+    '''Render notification email HTML'''
 
     try:
         args = request.get_json(force=True)
@@ -301,14 +292,20 @@ def render_notification():
           args['template'],
           to = args['to'],
           account = args['account'],
-          event_id=args['event_id']
+          evnt_id=args['evnt_id']
         )
     except Exception as e:
-        logger.error('render: %s ', str(e))
+        logger.error('render email: %s ', str(e))
         return 'Error'
 
 #-------------------------------------------------------------------------------
 @notify.route('/on_email_status', methods=['GET'])
 def on_email_status(args):
     notifications.on_email_status(args)
+    return 'OK'
+
+
+@notify.route('/secret_scheduler', methods=['GET'])
+def secret_scheduler():
+    tasks.schedule_reminders.apply_async(args=None, queue=app.config['DB'])
     return 'OK'

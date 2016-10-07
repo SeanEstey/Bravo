@@ -22,13 +22,13 @@ CELERYBEAT_SCHEDULE = {
       'schedule': crontab(hour=5, minute=00, day_of_week='*'),
       'options': { 'queue': app.config['DB'] }
   },
-  'create_scheduled_events': {
-      'task': 'app.tasks.create_scheduled_events',
+  'schedule_reminders': {
+      'task': 'app.tasks.schedule_reminders',
       'schedule': crontab(hour=7, minute=00, day_of_week='*'),
       'options': { 'queue': app.config['DB'] }
   },
-  'build_todays_routes': {
-      'task': 'app.tasks.build_todays_routes',
+  'build_routes': {
+      'task': 'app.tasks.build_routes',
       'schedule': crontab(hour=6, minute=45, day_of_week='*'),
       'options': { 'queue': app.config['DB'] }
   },

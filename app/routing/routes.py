@@ -37,7 +37,7 @@ class EtapBadDataError(Exception):
 
 
 #-------------------------------------------------------------------------------
-def build_todays_routes():
+def build_scheduled_routes():
     '''Route orders for today's Blocks and build Sheets
     '''
 

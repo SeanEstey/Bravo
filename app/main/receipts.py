@@ -7,10 +7,12 @@ from datetime import datetime
 from dateutil.parser import parse
 from flask import render_template
 
-from app import app, db
+
 from app import gsheets
 from app import etap
 from app import utils
+
+from app import app, db
 
 logger = logging.getLogger(__name__)
 

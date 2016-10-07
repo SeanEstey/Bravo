@@ -6,12 +6,13 @@ from app import utils
 from app.notify import notifications
 
 from app import app, db
+from app.utils import local_tz
 
 logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-def add(event_id, _date, _time, _type):
+def insert(evnt_id, _date, _time, _type):
     '''Inserts new trigger to DB, updates event with it's id.
     @_date: naive, non-localized datetime.date
     @_time: naive, non-localized datetime.time
@@ -20,25 +21,45 @@ def add(event_id, _date, _time, _type):
         -id (ObjectId)
     '''
 
-    _id = db['triggers'].insert_one({
-        'event_id': event_id,
+    trig_id = db['triggers'].insert_one({
+        'evnt_id': evnt_id,
         'status': 'pending',
         'type': _type,
         'fire_dt': utils.naive_to_local(datetime.combine(_date, _time))
     }).inserted_id
 
     db['notification_events'].update_one(
-        {'_id':event_id},
-        {'$push':{'triggers':{'id':_id}}})
+        {'_id':evnt_id},
+        {'$push':{'trig_ids': trig_id}})
 
-    return _id
+    return trig_id
+
+
 
 #-------------------------------------------------------------------------------
-def fire(event_id, trig_id):
+def get(trig_id, local_time=False):
+    trig = db['triggers'].find_one({'_id':trig_id})
+
+    if local_time == True:
+        return utils.all_utc_to_local_time(trig)
+
+    return trig
+
+    #trig = db.triggers.aggregate([
+    #    {'$match': {'_id': trig_id}},
+    #    {'$project': {'fire_dt':{'$add': ['$fire_dt', 25200000]}, 'fields':'$$ROOT'}}
+    #    ])
+
+    #if local_time == True:
+    #    trig['fire_dt'] =  trig['fire_dt'].astimezone(local_tz)
+
+
+#-------------------------------------------------------------------------------
+def fire(evnt_id, trig_id):
     '''Send out all notifications for this trigger for given event
     '''
 
-    notific_event = db['notification_events'].find_one({'_id':event_id})
+    notific_event = db['notification_events'].find_one({'_id':evnt_id})
     agency_conf = db['agencies'].find_one({'name':notific_event['agency']})
 
     notific_results = db['notifications'].find({'trig_id':trig_id})
@@ -67,7 +88,7 @@ def monitor_all():
         logger.info('firing %s trigger %s', trigger['type'], str(trigger['_id']))
 
         # Send notifications
-        fire(trigger['event_id'], trigger['_id'])
+        fire(trigger['evnt_id'], trigger['_id'])
 
     #if datetime.utcnow().minute == 0:
     pending_triggers = db['triggers'].find({'status':'pending'})

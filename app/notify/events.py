@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-def add(agency, name, event_date):
+def insert(agency, name, event_date):
     '''Creates a new job and adds to DB
     @conf: db.agencies->'reminders'
     Returns:
@@ -31,45 +31,87 @@ def add(agency, name, event_date):
         'event_dt': utils.naive_to_local(datetime.combine(event_date, time(8,0))),
         'status': 'pending',
         'opt_outs': 0,
-        'triggers': []
+        'trig_ids': []
     }).inserted_id
 
 
 #-------------------------------------------------------------------------------
-def get_triggers(event_id):
-    return db['triggers'].find({'event_id':event_id})
+def get(evnt_id, local_time=True):
+    event = db['notification_events'].find_one({'_id':evnt_id})
+
+    if local_time == True:
+        return utils.all_utc_to_local_time(event)
+
+    return event
+
 
 #-------------------------------------------------------------------------------
-def get_grouped_notifications(event_id):
-    return db['notifications'].aggregate([
+def get_triggers(evnt_id, local_time=True):
+
+    trigger_list = list(db['triggers'].find({'evnt_id': evnt_id}))
+
+    if local_time == True:
+        for trigger in trigger_list:
+            trigger = utils.all_utc_to_local_time(trigger)
+
+        #triggers_curs.rewind()
+
+    return trigger_list
+
+
+#-------------------------------------------------------------------------------
+def get_notifications(evnt_id, local_time=True):
+    notific_results = db['notifications'].aggregate([
         {'$match': {
-            'event_id': event_id
+            'evnt_id': evnt_id
+            }
+        },
+        {'$lookup':
+            {
+              'from': "accounts",
+              'localField': "acct_id",
+              'foreignField': "_id",
+              'as': "account"
             }
         },
         {'$group': {
-            '_id': '$account.id',
+            '_id': '$acct_id',
             'results': { '$push': '$$ROOT'}
         }}
     ])
 
+    if local_time==True:
+        # Convert to list since not possible to rewind aggregate cursors
+
+        notific_list = list(notific_results)
+
+        for notific in notific_list:
+            notific = utils.all_utc_to_local_time(notific)
+
+        # Returning list
+        return notific_list
+
+    # Returning cursor
+    return notific_results
 
 #-------------------------------------------------------------------------------
-def reset(event_id):
+def reset(evnt_id):
     '''Reset the notification_event document, all triggers and associated
     notifications'''
 
-    event_id = ObjectId(event_id)
+    evnt_id = ObjectId(evnt_id)
 
     db['notification_events'].update_one(
-        {'_id':event_id},
+        {'_id':evnt_id},
         {'$set':{'status':'pending'}}
     )
 
     n = db['notifications'].update(
-        {'event_id': event_id}, {
+        {'evnt_id': evnt_id}, {
             '$set': {
                 'status': 'pending',
                 'attempts': 0,
+                'opted_out': False
             },
             '$unset': {
                 'account.udf.opted_out': '',
@@ -88,7 +130,7 @@ def reset(event_id):
     )
 
     db['triggers'].update(
-        {'event_id': event_id},
+        {'evnt_id': evnt_id},
         {'$set': {'status':'pending'}},
         multi=True
     )
@@ -96,22 +138,22 @@ def reset(event_id):
     logger.info('%s notifications reset', n['nModified'])
 
 #-------------------------------------------------------------------------------
-def remove(event_id):
+def remove(evnt_id):
     # remove all triggers, notifications, and event
-    event_id = ObjectId(event_id)
+    evnt_id = ObjectId(evnt_id)
 
-    n_notific = db['notifications'].remove({'event_id':event_id})
+    n_notific = db['notifications'].remove({'evnt_id':evnt_id})
 
-    n_triggers = db['triggers'].remove({'event_id': event_id})
+    n_triggers = db['triggers'].remove({'evnt_id': evnt_id})
 
-    db['notification_events'].remove({'_id': event_id})
+    db['notification_events'].remove({'_id': evnt_id})
 
     logger.info('Removed %s notifications and %s triggers', n_notific, n_triggers)
 
     return True
 
 #-------------------------------------------------------------------------------
-def get_list(agency, max=10):
+def get_all(agency, local_time=True, max=10):
     '''Display jobs for agency associated with current_user
     If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
     If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
@@ -120,16 +162,21 @@ def get_list(agency, max=10):
 
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    events = db['notification_events'].find({'agency':agency})
+    events_curs = db['notification_events'].find({'agency':agency})
 
-    if events:
-        events = events.sort('event_dt',-1).limit(app.config['JOBS_PER_PAGE'])
+    # TODO: do this sort on the query itself
+    #if events_curs:
+    #    events_curs = events.sort('event_dt',-1)
+        #.limit(app.config['JOBS_PER_PAGE'])
 
     # Convert from cursor->list so re-iterable
-    events = list(events)
+    #events = list(events)
 
-    for event in events:
-        event['event_dt'] = utils.utc_to_local(event['event_dt'])
+    if local_time == True:
+        for event in events_curs:
+            event = utils.all_utc_to_local_time(event)
+
+        events_curs.rewind()
 
     '''
     for job in jobs:
@@ -143,15 +190,7 @@ def get_list(agency, max=10):
             job['event_dt'] = job['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
     '''
 
-    return events
-
-#-------------------------------------------------------------------------------
-def get_notifications(event_id):
-    notific_list = db['notifications'].find({'event_id':event_id})
-
-    # TODO: Group them by account['id']
-    return notific_list
-
+    return events_curs
 
 #-------------------------------------------------------------------------------
 def parse_csv(csvfile, import_fields):
@@ -354,11 +393,11 @@ def submit_from(form, file):
         return {'status':'error', 'title':'error', 'msg':str(e)}
 
 #-------------------------------------------------------------------------------
-def _print(event_id):
-    if isinstance(event_id, str):
-        event_id = ObjectId(event_id)
+def _print(evnt_id):
+    if isinstance(evnt_id, str):
+        evnt_id = ObjectId(evnt_id)
 
-    job = db['notification_events'].find_one({'_id':event_id})
+    job = db['notification_events'].find_one({'_id':evnt_id})
 
     if 'ended_at' in job:
         time_elapsed = (job['voice']['ended_at'] - job['voice']['started_at']).total_seconds()
@@ -388,7 +427,7 @@ def _print(event_id):
     return summary
 
 #-------------------------------------------------------------------------------
-def email_summary(event_id):
+def email_summary(evnt_id):
     if isinstance(job_id, str):
         job_id = ObjectId(job_id)
 

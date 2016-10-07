@@ -34,18 +34,16 @@
         <tr>
           <th>Name</th>
 					<th>Date</th>
-          {% for trigger in [1,2] %}
-            <th>Type</th>
-            <th>Scheduled</th>
-            <th>Count</th>
-            <th>Status</th>
-          {% endfor %}
+					<th>Emails Scheduled</th>
+          <th>Status</th>
+					<th>Calls Scheduled</th>
+          <th>Status</th>
           <th style='width:50px'></th>
         </tr>
       </thead>
       <tbody>
       {% for event in events %}
-      {% set show_event_url = url_for('notify.view_event', event_id=event._id)
+      {% set show_event_url = url_for('notify.view_event', evnt_id=event._id)
       %}
 				<tr id='{{event._id}}'>
 					<td name='job-name'>
@@ -58,9 +56,8 @@
 						{% endif %}
 					</td>
           {% for trigger in event.triggers %}
-            <td>{{trigger.type}}</td>
             <td>{{trigger.fire_dt.strftime("%b %d @ %I:%M %p")}}</td>
-            <td>{{trigger.count}}</td>
+						{# <td>{{trigger.count}}</td>#}
             <td name='event-status'>
               {% if trigger.status == "fired" %}
                 <p style='color:green;'>
@@ -75,7 +72,7 @@
 						<button 
 							class='delete-btn' 
 							type="button" 
-							id="{{ url_for('notify.cancel_event',event_id=event._id) }}" 
+							id="{{ url_for('notify.cancel_event',evnt_id=event._id) }}" 
 							title='Delete this event'
 							name="delete-btn">
 						</button>

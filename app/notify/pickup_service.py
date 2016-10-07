@@ -5,23 +5,24 @@ from dateutil.parser import parse
 from bson.objectid import ObjectId
 from bson import json_util
 
-from app import app, db
 from app import utils
 from app import block_parser
 from app import scheduler
 from app import etap
-from app.notify import notific_events
+from app.notify import events
 from app.notify import notifications
 from app.notify import triggers
+
+from app import app, db
 
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def create_scheduled_events():
+def schedule_reminders():
     '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
     '''
 
-    DAYS_IN_ADVANCE_TO_SCHEDULE = 6
+    DAYS_IN_ADVANCE_TO_SCHEDULE = 1
     agency = 'vec'
 
     agency_conf = db['agencies'].find_one({'name':agency})
@@ -65,7 +66,7 @@ def create_scheduled_events():
 
         # Create notification event and add triggers
 
-        event_id = notific_events.add(agency, block, block_date)
+        evnt_id = events.insert(agency, block, block_date)
 
         for conf in agency_conf['notifications']:
             _date = block_date + timedelta(days=conf['fire_days_delta'])
@@ -74,9 +75,9 @@ def create_scheduled_events():
             if conf['type'] == 'sms':
                 continue
             elif conf['type'] == 'voice':
-                phone_trig_id = triggers.add(event_id, _date, _time, 'phone')
+                phone_trig_id = triggers.insert(evnt_id, _date, _time, 'phone')
             elif conf['type'] == 'email':
-                email_trig_id = triggers.add(event_id, _date, _time, 'email')
+                email_trig_id = triggers.insert(evnt_id, _date, _time, 'email')
 
         event_dt = utils.naive_to_local(datetime.combine(block_date,time(8,0)))
 
@@ -90,10 +91,14 @@ def create_scheduled_events():
                 logger.error('Account %s missing npu. Skipping.', account['id'])
                 continue
 
-            add_notification(event_id, event_dt, phone_trig_id, 'phone', account, schema)
-            add_notification(event_id, event_dt, email_trig_id, 'email', account, schema)
+            acct_id = insert_account(account)
 
-        add_future_pickups(str(event_id))
+            insert_reminder(evnt_id, event_dt, phone_trig_id,
+                            'phone', acct_id, schema)
+            insert_reminder(evnt_id, event_dt, email_trig_id,
+                            'email', acct_id, schema)
+
+        add_future_pickups(str(evnt_id))
 
     #logger.info(
     #  'Created reminder job for Blocks %s. Emails fire at %s, calls fire at %s',
@@ -103,7 +108,24 @@ def create_scheduled_events():
     return True
 
 #-------------------------------------------------------------------------------
-def add_notification(event_id, event_dt, trig_id, _type, account, schema):
+def insert_account(account):
+    return db['accounts'].insert_one({
+        'name': account['name'],
+        'id': account['id'],
+        'phone': etap.get_primary_phone(account),
+        'email': account.get('email'),
+        'udf': {
+            'status': etap.get_udf('Status',account),
+            'block': etap.get_udf('Block', account),
+            'driver_notes': etap.get_udf('Driver Notes', account),
+            'office_notes': etap.get_udf('Office Notes', account),
+            'pickup_dt': etap.ddmmyyyy_to_local_dt(
+                etap.get_udf('Next Pickup Date', account))
+        }
+    }).inserted_id
+
+#-------------------------------------------------------------------------------
+def insert_reminder(evnt_id, event_dt, trig_id, _type, acct_id, schema):
     '''Adds an event reminder for given job
     @schema: pickup_reminder notification_event schema
     @_type: one of ['phone', 'email']
@@ -112,26 +134,19 @@ def add_notification(event_id, event_dt, trig_id, _type, account, schema):
 
     sms_enabled = False
 
-    npu = etap.get_udf('Next Pickup Date', account).split('/')
-    npu = "%s/%s/%s T08:00:00" % (npu[1],npu[0],npu[2])
-    npu_dt = utils.naive_to_local(parse(npu))
-
-    udf = {
-        "status": etap.get_udf('Status', account),
-        "office_notes": etap.get_udf('Office Notes', account),
-        "block": etap.get_udf('Block', account),
-        "pickup_dt": npu_dt,
-        "future_pickup_dt": None,
-        "opted_out": False
-    }
+    account = db['accounts'].find_one({'_id':acct_id})
 
     if _type == 'phone':
-        if not etap.get_primary_phone(account):
+        if not account.get('phone'):
             return False
 
-        notifications.add(
-            event_id, event_dt, trig_id, 'voice',
-            etap.get_primary_phone(account), account, udf,
+        _id =notifications.insert(
+            evnt_id,
+            event_dt,
+            trig_id,
+            acct_id,
+            'voice',
+            account['phone'],
             content={
               'source':'template',
               'template': schema['voice']
@@ -140,28 +155,33 @@ def add_notification(event_id, event_dt, trig_id, _type, account, schema):
         if not account.get('email'):
             return False
 
-        notifications.add(
-            event_id, event_dt, trig_id, 'email',
-            account.get('email'), account, udf,
+        _id = notifications.insert(
+            evnt_id,
+            event_dt,
+            trig_id,
+            acct_id,
+            'email',
+            account.get('email'),
             content={
                 'source': 'template',
                 'template': schema['email']
             })
 
+    logger.info('Inserted reminder _id %s', str(_id))
     return True
 
 #-------------------------------------------------------------------------------
-def add_future_pickups(event_id):
+def add_future_pickups(evnt_id):
     '''Update all reminders for given job with their future pickup dates to
     relay to opt-outs
-    @event_id: str of ObjectID
+    @evnt_id: str of ObjectID
     '''
 
-    event_id = ObjectId(event_id)
+    evnt_id = ObjectId(evnt_id)
 
-    logger.info('Getting next pickups for notification vent ID \'%s\'', str(event_id))
+    logger.info('Getting next pickups for notification event ID \'%s\'', str(evnt_id))
 
-    event = db['notification_events'].find_one({'_id':event_id})
+    event = db['notification_events'].find_one({'_id':evnt_id})
     agency_conf = db['agencies'].find_one({'name':event['agency']})
 
     start = event['event_dt'] + timedelta(days=1)
@@ -188,19 +208,21 @@ def add_future_pickups(event_id):
                 dt = parse(cal_event['start']['date'] + " T08:00:00")
                 block_dates[block] = utils.naive_to_local(dt)
 
-        notific_list = db['notifications'].find({'event_id':event_id})
+        notific_list = db['notifications'].find({'evnt_id':evnt_id})
 
         # Update future pickups for every notification under this event
         for notific in notific_list:
+            account = db['accounts'].find_one({'_id':notific['acct_id']})
+
             npu = get_next_pickup(
-              notific['account']['udf']['block'],
-              notific['account']['udf']['office_notes'],
+              account['udf']['block'],
+              account['udf']['office_notes'],
               block_dates
             )
 
             if npu:
-                db['notifications'].update_one(notific, {
-                    '$set':{'account.udf.future_pickup_dt':npu}
+                db['accounts'].update_one({'_id':notific['acct_id']}, {
+                    '$set':{'udf.future_pickup_dt':npu}
                 })
     except Exception as e:
         logger.error('add_future_pickups: %s', str(e))
@@ -238,88 +260,44 @@ def get_next_pickup(blocks, office_notes, block_dates):
 
     return dates[0]
 
-
 #-------------------------------------------------------------------------------
-def _cancel(event_id, account_id):
+def _cancel(evnt_id, acct_id):
     '''Update users eTapestry account with next pickup date and send user
-    confirmation email
-    @reminder_id: string form of ObjectId
-    Returns: True if no errors, False otherwise
-    '''
-    event_id = ObjectId(event_id)
-    account_id = int(account_id)
+    confirmation email'''
 
-    logger.info('Cancelling pickup for \'%s\'', account_id)
+    evnt_id = ObjectId(evnt_id)
+    acct_id = ObjectId(acct_id)
 
-    notific_list = db['notifications'].find({
-        'account.id': account_id,
-        'event_id': event_id
-    })
+    logger.info('Cancelling pickup for \'%s\'', acct_id)
 
-    email_notification = None
-
-    # Outdated/in-progress or deleted job?
-    if notific_list == None:
-        logger.error(
-            'Account %s opt-out request failed. '\
-            'Couldnt find notification for event_id %s',
-            account_id, str(event_id))
-        return False
-
-    notific_list = list(notific_list)
-
-    for notification in notific_list:
-        if notification['type'] == 'email':
-            email_notification = notification
-
-        # Already cancelled?
-        if notification['account']['udf'].get('opted_out') == True:
-            logger.info(
-                'Account %s already opted-out. Ignoring request.',
-                account_id)
-            return False
-
-        db['notifications'].update_one(notification, {
-            '$set': {
-                'status': 'cancelled',
-                'account.udf.opted_out': True
-            }})
-
-        if not notification['account']['udf'].get('future_pickup_dt'):
-            logger.error(
-                'Account %s missing future pickup date (event_id %s)',
-                str(event_id))
-        else:
-            future_pickup_dt = notification['account']['udf'].get('future_pickup_dt')
-
-    event = db['notification_events'].find_one({'_id':event_id})
-
-    msg = 'No Pickup ' + utils.utc_to_local(event['event_dt']).strftime('%A, %B %d')
-
-    agency_conf = db['agencies'].find_one({'name':event['agency']})
+    db['notifications'].update(
+        {'acct_id': acct_id, 'evnt_id': evnt_id},
+        {'$set': {'status':'cancelled', 'opted_out':True}},
+        multi=True
+    )
+    account = db['accounts'].find_one({'_id':acct_id})
+    agency_conf = db['agencies'].find_one(
+        {'name': db['notification_events'].find_one({'_id':evnt_id})['agency']}
+    )
 
     try:
         # Write to eTapestry
-        etap.call('no_pickup', agency_conf['etapestry'], data={
-            "account": account_id,
-            "date": event['event_dt'].strftime('%d/%m/%Y'),
-            "next_pickup": utils.utc_to_local(future_pickup_dt).strftime('%d/%m/%Y')
-        })
+        etap.call(
+            'no_pickup',
+            agency_conf['etapestry'],
+            data={
+                "account": account['id'],
+                "date": account['udf']['pickup_dt'].strftime('%d/%m/%Y'),
+                "next_pickup": utils.tz_utc_to_local(
+                    account['udf']['future_pickup_dt']).strftime('%d/%m/%Y')
+            })
     except Exception as e:
         logger.error("Error writing to eTap: %s", str(e))
 
-    notifications.send_email(email_notification, agency_conf['mailgun'], key='no_pickup')
+    notific = db['notifications'].find_one({'acct_id':acct_id,
+        'evnt_id':evnt_id, 'type':'email'})
+
+    if notific:
+        notifications.send_email(notific, agency_conf['mailgun'], key='no_pickup')
 
     return True
-
-#-------------------------------------------------------------------------------
-def set_no_pickup(url, params):
-    r = requests.get(url, params=params)
-
-    if r.status_code != 200:
-        logger.error('etap script "%s" failed. status_code:%i', url, r.status_code)
-        return r.status_code
-
-    logger.info('No pickup for account %s', params['account'])
-
-    return r.status_code

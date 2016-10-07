@@ -42,13 +42,21 @@ def get_cal_events(cal_id, start, end, oauth):
         logger.error('Error authorizing Google Calendar ID \'%s\'\n%s', cal_id,str(e))
         return False
 
-    events_result = service.events().list(
-        calendarId = cal_id,
-        timeMin = start.isoformat()+'-07:00', # MST ofset
-        timeMax = end.isoformat()+'-07:00', # MST offset
-        singleEvents = True,
-        orderBy = 'startTime'
-    ).execute()
+    start = start.replace(tzinfo=None)
+    end = end.replace(tzinfo=None)
+
+    try:
+        events_result = service.events().list(
+            calendarId = cal_id,
+            timeMin = start.isoformat() +'-07:00', # MST ofset
+            timeMax = end.isoformat() +'-07:00', # MST offset
+            singleEvents = True,
+            orderBy = 'startTime'
+        ).execute()
+    except Exception as e:
+        logger.error('Error pulling cal events: %s', str(e))
+        logger.error(start.isoformat())
+        return False
 
     events = events_result.get('items', [])
 

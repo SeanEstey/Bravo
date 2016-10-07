@@ -11,13 +11,59 @@ from app import app, db
 
 logger = logging.getLogger(__name__)
 
-#-------------------------------------------------------------------------------
-def naive_to_local(dt):
-    return pytz.timezone("Canada/Mountain").localize(dt, is_dst=True)
+local_tz = pytz.timezone("Canada/Mountain")
 
 #-------------------------------------------------------------------------------
-def utc_to_local(dt):
-    return dt.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Canada/Mountain"))
+def naive_to_local(dt):
+    return local_tz.localize(dt, is_dst=True)
+
+#-------------------------------------------------------------------------------
+def naive_utc_to_local(dt):
+    '''dt contains UTC time but has no tz. add tz and convert'''
+    return dt.replace(tzinfo=pytz.utc).astimezone(local_tz)
+
+def tz_utc_to_local(dt):
+    '''dt is tz-aware. convert time and tz'''
+    return dt.astimezone(local_tz)
+
+#-------------------------------------------------------------------------------
+def all_utc_to_local_time(obj, to_strftime=None):
+    '''Recursively scan through MongoDB document and convert all
+    UTC datetimes to local time'''
+
+    if isinstance(obj, dict):
+        for k, v in obj.iteritems():
+            obj[k] = all_utc_to_local_time(v, to_strftime=to_strftime)
+    elif isinstance(obj, list):
+        for idx, item in enumerate(obj):
+            obj[idx] = all_utc_to_local_time(item, to_strftime=to_strftime)
+    elif isinstance(obj, datetime):
+        if obj.tzinfo is None:
+            obj = obj.replace(tzinfo=pytz.utc)
+
+        obj = obj.astimezone(local_tz)
+
+        if to_strftime:
+            obj = obj.strftime(to_strftime)
+
+    return obj
+
+#-------------------------------------------------------------------------------
+def mongo_formatter(doc, to_local_time=False, to_strftime=None, bson_to_json=False):
+    '''
+    @bson_to_json:
+        convert ObjectIds->{'oid': 'string'}
+    @to_local_time, to_strftime:
+        convert utc datetimes to local time (and to string optionally)
+    '''
+
+    if to_local_time == True:
+        doc = all_utc_to_local_time(doc, to_strftime=to_strftime)
+
+    if bson_to_json == True:
+        doc = json.loads(json_util.dumps(doc))
+
+    return doc
 
 #-------------------------------------------------------------------------------
 def render_html(template, data, flask_context=False):
@@ -56,24 +102,24 @@ def render_html(template, data, flask_context=False):
     return response.text
 
 #-------------------------------------------------------------------------------
-def bson_date_fixer(a):
+def bson_date_fixer(bson_dict):
     '''Convert all bson datetimes mongoDB BSON format to JSON.
     Converts timestamps to formatted date strings
     @a: dict
     '''
 
     try:
-        a = json_util.dumps(a)
+        bson_str = json_util.dumps(bson_dict)
 
-        for group in re.findall(r"\{\"\$date\": [0-9]{13}\}", a):
+        for group in re.findall(r"\{\"\$date\": [0-9]{13}\}", bson_str):
             timestamp = json.loads(group)['$date']/1000
             date_str = '"' + datetime.fromtimestamp(timestamp).strftime('%A, %B %d') + '"'
-            a = a.replace(group, date_str)
+            bson_str = bson_str.replace(group, date_str)
     except Exception as e:
         logger.error('bson_to_json: %s', str(e))
         return False
 
-    return a
+    return bson_str
 
 #-------------------------------------------------------------------------------
 def send_email(to, subject, body, conf):

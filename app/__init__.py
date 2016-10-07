@@ -46,16 +46,20 @@ socketio = SocketIO(app)
 celery_app = Celery(include=['app.tasks'])
 celery_app.config_from_object('app.celeryconfig')
 
-# Setup LoginManager Flask extension
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = app.config['PUB_URL'] + '/login'
 
-# Setup MongoDB
+# Setup pymongo with timezone-awareness
 import pymongo
 
-mongo_client = pymongo.MongoClient(app.config['MONGO_URL'], app.config['MONGO_PORT'], connect=False)
-db = mongo_client[app.config['DB']]
+client = pymongo.MongoClient(
+    host=app.config['MONGO_URL'],
+    port=app.config['MONGO_PORT'],
+    tz_aware=True,
+    connect=False)
+
+db = client[app.config['DB']]
 
 
 from app.api.views import api as api_module
@@ -63,12 +67,10 @@ from app.main.views import main as main_module
 from app.notify.views import notify as notify_module
 from app.routing.views import routing as routing_module
 
-# Setup blueprints
 app.register_blueprint(api_module)
 app.register_blueprint(main_module)
 app.register_blueprint(notify_module)
 app.register_blueprint(routing_module)
-
 
 
 from app.main import auth

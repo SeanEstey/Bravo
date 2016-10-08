@@ -1,25 +1,16 @@
 import json
 import logging
-from oauth2client.client import SignedJwtAssertionCredentials
 import gspread
 import requests
 from datetime import datetime
 from dateutil.parser import parse
-from flask import render_template
-
 
 from app import gsheets
 from app import etap
 from app import mailgun
 from app import html
-
 from app import app, db
-
 logger = logging.getLogger(__name__)
-
-
-#-------------------------------Stuff Todo---------------------------------------
-
 
 #-------------------------------------------------------------------------------
 def on_email_status(webhook):

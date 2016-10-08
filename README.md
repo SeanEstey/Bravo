@@ -1,4 +1,4 @@
-### Python/PHP Setup Instructions
+### Setup Instructions
 
 ###### Clone repository
 ```
@@ -6,7 +6,7 @@ git clone https://github.com/SeanEstey/Bravo
 cd Bravo
 ```
 
-###### PHP Setup
+###### PHP
 Copy bravo/php files to webroot /var/www/bravo/php
 
 Create log folder:
@@ -21,17 +21,22 @@ chown -R root:www-data /var/www/bravo
 chmod -R 660 /var/www/bravo
 ```
 
-###### Setup Nginx Virtual Host
+###### Nginx Virtual Host
 Copy bravo/virtual_host/default to /etc/nginx/sites-enabled
 
-###### Logrotate Setup
+###### Logrotate
 Copy logrotate/bravo to /etc/logrotate.d/
 
-###### Setup Mongo Logins
+###### Mongo Logins
 ```
 $mongo
->> use wsf
->> db.logins.insert({'user':'name', 'pass':'password'})
+>> use bravo
+>> db.logins.insert({
+  'agency': 'name'
+  'user': 'name', 
+  'password': 'pw',
+  'admin': 'true/false'
+})
 ```
 
 ###### Get Google Service Account Credentials
@@ -46,33 +51,6 @@ $mongo
 From Google Drive, create new Sheet named `Bravo Sheets` with worksheets `Routes`, `RFU`, `MPU`, `Signups`
 
 From Google Drive, create new Script. Open it. Tools->Script Editor, copy the ID in URL.
-
-Install node.js and npm:
-
-`apt-get install npm nodejs`
-
-Install node-google-apps-script (https://github.com/danthareja/node-google-apps-script)
-
-`npm install -g node-google-apps-script`
-
-Go to Google Developer Console, create new project, create Google ClientID Oauth key, download JSON file.
-
-Place in Bravo/gscript.
-
-Setup gapps:
-
-`gapps auth -b /path/to/key.json`
-
-Init gapps:
-
-```
-$cd Bravo/gscript
-$gapps init <gdrive_script_id>
-```
-
-Make sure the .gs files are in Bravo/gscript/src.
-
-<b>[I had some kind of permissions issue, can't recall how I sorted it out. Think I had to change the gapps executable permissions or change the npm install directory...]</b>
 
 ### Google Sheets User Permissions
 
@@ -95,7 +73,7 @@ Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with t
 ###### Start RabbitMQ daemon
 `$rabbitmqctl start_app`
 
-###### Start Flask Server
+###### Start Flask
 `$ python run.py`
 
 This will start the celery workers.

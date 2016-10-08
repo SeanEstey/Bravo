@@ -1,5 +1,12 @@
+
+# TODO: rename all "render_html" calls to "html.render". Is this function even still used???
+# TODO: rename all "print_html" calls to "to_list_tags"
+# TODO: rename all " dict_to_html_table" to "to_table"
+# TODO: rename all "clean_html" to "clean_whitespace"
+
+
 #-------------------------------------------------------------------------------
-def render_html(template, data, flask_context=False):
+def render(template, data, flask_context=False):
     '''Passes JSON data to views._render_html() context. Returns
     html text'''
 
@@ -35,7 +42,7 @@ def render_html(template, data, flask_context=False):
     return response.text
     
 #-------------------------------------------------------------------------------
-def print_html(dictObj):
+def to_list_tags(dictObj):
   p='<ul style="list-style-type: none;">'
   for k,v in dictObj.iteritems():
     if isinstance(v, dict):
@@ -53,7 +60,7 @@ def print_html(dictObj):
 
 
 #-------------------------------------------------------------------------------
-def dict_to_html_table(dictObj, depth=None):
+def to_table(dictObj, depth=None):
     indent = ''
 
     if depth is not None:
@@ -89,7 +96,7 @@ def dict_to_html_table(dictObj, depth=None):
     return p
 
 #-------------------------------------------------------------------------------
-def clean_html(raw_html):
+def clean_whitespace(raw_html):
     '''Strips out all HTML tags, line breaks, and extra whitespace from string'''
 
     no_lines = re.sub(r'\r|\n', '', raw_html)

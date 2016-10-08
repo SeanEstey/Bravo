@@ -1,15 +1,9 @@
-from app import app, socketio, info_handler, error_handler
-#from tasks import celery_app
-
-# Register all view functions with Flask application
-#import views
-
 import os
 import time
 import sys
+import getopt
 
-import sys, getopt
-
+from app import app, socketio
 
 def restart_celery_worker():
     os.system('kill %1')
@@ -32,16 +26,20 @@ def restart_celery_worker():
     
 
 def main(argv):
-   try:
-      opts, args = getopt.getopt(argv,"r:")
-   except getopt.GetoptError:
-      sys.exit(2)
-   for opt, arg in opts:
-      if opt == '-r':
+    '''Optionally restart celery worker with:
+        python run.py -r celery
+    '''
+    
+    try:
+        opts, args = getopt.getopt(argv,"r:")
+    except getopt.GetoptError:
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-r':
             if arg == 'celery':
                 print 'restarting celery worker'
                 restart_celery_worker()
-  
+
     if app.config['DEBUG'] == True:
         # Werkzeug server (Test Mode)
         app.run(port=app.config['LOCAL_PORT'], debug=True, threaded=True)

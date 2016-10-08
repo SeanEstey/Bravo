@@ -127,40 +127,41 @@ def send_email(notification, mailgun_conf, key='default'):
     @key = dict key in email schemas for which template to use
     '''
 
-    template = notification['content']['template'][key]
-
+    template = notification['content']['template'][key]    
+        
+    # TODO: Should have app context now when invoked from celery task
+    
     try:
-        response = requests.post(
-            app.config['LOCAL_URL'] + '/notify/render',
-            json={
-                "template": template['file'],
-                "to": notification['to'],
-                "account": utils.mongo_formatter(
-                    db['accounts'].find_one({'_id':notification['acct_id']}),
-                    to_local_time=True,
-                    to_strftime="%A, %B %d",
-                    bson_to_json=True),
-                "evnt_id": str(notification['evnt_id'])
-          })
-    except requests.RequestException as e:
-        logger.error('render_notification: %s. response: %s',
-                str(e), response.json())
+        body = render_template(
+            template['file'],
+            to = notification['to'],
+            account = utils.mongo_formatter(
+                db['accounts'].find_one({'_id':notification['acct_id']}),
+                to_local_time=True,
+                to_strftime="%A, %B %d",
+                bson_to_json=True
+            ),
+            evnt_id = notification['evnt_id']
+        )
+    except Exception as e:
+        logger.error('render email: %s ', str(e))
         return False
 
     mid = utils.send_email(
         notification['to'],
         template['subject'],
-        response.text,
-        mailgun_conf
-    )
+        body,
+        mailgun_conf)
 
     if mid == False:
         status = 'failed'
     else:
         status = 'queued'
 
+    agency = db['agencies'].find_one({'mailgun.domain': mailgun_conf['domain']})
+    
     db['emails'].insert({
-        #'agency': job['agency'],
+        'agency': agency['name'],
         'mid': mid,
         'status': status,
         'type': 'notification',

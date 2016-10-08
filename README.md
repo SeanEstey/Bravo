@@ -39,20 +39,18 @@ $mongo
 })
 ```
 
-###### Get Google Service Account Credentials
+###### Google Service Account
+
 1. For each agency, open Google Developer Console
 2. Find Service Account
 3. Generate JSON key
 4. Add contents to MongoDB "agencies" collection under "oauth" key
 
-
-### Google Sheets / Google Script Setup Instructions
+##### Google Sheets
 
 From Google Drive, create new Sheet named `Bravo Sheets` with worksheets `Routes`, `RFU`, `MPU`, `Signups`
 
 From Google Drive, create new Script. Open it. Tools->Script Editor, copy the ID in URL.
-
-### Google Sheets User Permissions
 
 Share the Bravo Library script with new user with View permissions.
 

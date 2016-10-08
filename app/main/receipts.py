@@ -10,7 +10,8 @@ from flask import render_template
 
 from app import gsheets
 from app import etap
-from app import utils
+from app import mailgun
+from app import html
 
 from app import app, db
 
@@ -93,13 +94,13 @@ def send_receipt(agency, to, template, subject, data):
         agency_conf['etapestry'],
         data={
             'id': data['account']['id'],
-            'Note': 'Receipt:\n' + utils.clean_html(body),
+            'Note': 'Receipt:\n' + html.clean_whitespace(body),
             'Date': etap.dt_to_ddmmyyyy(parse(data['entry']['date']))
         },
         silence_exceptions=False
     )
 
-    mid = utils.send_email(to, subject, body, agency_conf['mailgun'])
+    mid = mailgun.send(to, subject, body, agency_conf['mailgun'])
 
     db['emails'].insert({
         'agency': agency,

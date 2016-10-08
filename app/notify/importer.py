@@ -197,3 +197,58 @@ def submit_from(form, file):
         logger.error(str(e))
 
         return {'status':'error', 'title':'error', 'msg':str(e)}
+
+    #-------------------------------------------------------------------------------
+def create(job, schema, idx, buf_row, errors):
+    '''Create a Reminder document in MongoDB from file input row.
+    @job: MongoDB job record
+    @schema: template dict from reminder_templates.json file
+    @idx: .csv file row index (in case of error)
+    @buf_row: array of values from csv file
+    '''
+
+    reminder = {
+        "job_id": job['_id'],
+        "agency": job['agency'],
+        "voice": {
+          "status": "pending",
+          "attempts": 0,
+        },
+        "email": {
+          "status": "pending"
+        },
+        "custom": {}
+    }
+
+    try:
+        for i, field in enumerate(schema['import_fields']):
+            db_field = field['db_field']
+
+            # Format phone numbers
+            if db_field == 'voice.to':
+              buf_row[i] = strip_phone(buf_row[i])
+            # Convert any date strings to datetime obj
+            elif field['type'] == 'date':
+                try:
+                    local = pytz.timezone("Canada/Mountain")
+                    buf_row[i] = parse(buf_row[i]).replace(tzinfo=pytz.utc).astimezone(local)
+                except TypeError as e:
+                    errors.append('Row %d: %s <b>Invalid Date</b><br>',
+                                (idx+1), str(buf_row))
+
+            if db_field.find('.') == -1:
+                reminder[db_field] = buf_row[i]
+            else:
+                # dot notation means record is stored as sub-record
+                parent = db_field[0 : db_field.find('.')]
+                child = db_field[db_field.find('.')+1 : len(db_field)]
+                reminder[parent][child] = buf_row[i]
+        return reminder
+    except Exception as e:
+        logger.info('Error writing db reminder: %s', str(e))
+        return False
+
+#-------------------------------------------------------------------------------
+def allowed_file(filename):
+    return '.' in filename and \
+     filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']

@@ -147,3 +147,9 @@ def ddmmyyyy_to_local_dt(ddmmyyyy):
 #-------------------------------------------------------------------------------
 def dt_to_ddmmyyyy(dt):
     return dt.strftime('%d/%m/%Y')
+
+#-------------------------------------------------------------------------------
+def ddmmyyyy_to_mmddyyyy(ddmmyyyy):
+    p = ddmmyyyy.split('/')
+    return '%s/%s/%s' % (p[1],p[0],p[2])
+  

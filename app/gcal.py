@@ -2,11 +2,10 @@
 #-------------------------------------------------------------------------------
 def gauth(oauth):
     scope = [
-        'https://www.googleapis.com/auth/drive',
-        'https://www.googleapis.com/auth/drive.file'
+       ['https://www.googleapis.com/auth/calendar.readonly']
     ]
     version = 'v3'
-    name = 'drive'
+    name = 'calendar'
 
     try:
         credentials = SignedJwtAssertionCredentials(
@@ -28,7 +27,7 @@ def gauth(oauth):
 
 
 #-------------------------------------------------------------------------------
-def get_events(cal_id, start, end, oauth):
+def get_events(service, cal_id, start, end, oauth):
     '''Get a list of Google Calendar events between given dates.
     @oauth: dict oauth keys for google service account authentication
     @start, @end: naive datetime objects

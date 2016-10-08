@@ -68,6 +68,8 @@ Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with t
 
 ### Run Instructions
 
+
+
 Start RabbitMQ daemon:
 
 `$ rabbitmqctl start_app`
@@ -81,6 +83,8 @@ Start server and restart celery worker:
 `$ python run.py -c restart`
 
 ### Shutdown Instructions
+
+
 
 If running in foreground, kill with CTRL+C. This will kill Celery workers.
 

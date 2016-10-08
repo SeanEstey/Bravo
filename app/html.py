@@ -4,43 +4,6 @@
 # TODO: rename all " dict_to_html_table" to "to_table"
 # TODO: rename all "clean_html" to "clean_whitespace"
 
-
-#-------------------------------------------------------------------------------
-def render(template, data, flask_context=False):
-    '''Passes JSON data to views._render_html() context. Returns
-    html text'''
-
-    data = json.loads(json_util.dumps(data))
-    data = json.loads(bson_date_fixer(data))
-
-    logger.debug('rendering_html for dict: %s', data)
-    logger.debug('render template: %s', template)
-
-    if flask_context == False:
-        try:
-            response = requests.post(
-              app.config['LOCAL_URL'] + '/render_html',
-              json={
-                  "template": template,
-                  "data": data
-              })
-        except requests.RequestException as e:
-            logger.error('render_template: %s', str(e))
-            return False
-    else:
-        logger.debug('we have flask context. calling render_template directly')
-
-        try:
-            return flask.render_template(
-                template,
-                account = data.get('account') or None,
-                call = data.get('call') or None)
-        except Exception as e:
-            logger.error('render_html: %s ', str(e))
-            return 'Error'
-
-    return response.text
-    
 #-------------------------------------------------------------------------------
 def to_list_tags(dictObj):
   p='<ul style="list-style-type: none;">'

@@ -73,7 +73,7 @@ def render_body(template, data):
     return response.text
 
 #-------------------------------------------------------------------------------
-def send_receipt(agency, to, template, subject, data):
+def send(agency, to, template, subject, data):
     '''Sends a receipt/no collection/dropoff followup/etc for a route entry.
     Should be running in process() celery task
     Adds an eTapestry journal note with the content.
@@ -170,7 +170,7 @@ def process(entries, etapestry_id):
 
             # Send Cancelled Receipt
             if etap.get_udf('Status', accounts[i]) == 'Cancelled':
-                send_receipt(
+                send(
                     agency,
                     accounts[i]['email'],
                     schemas['cancelled']['file'],
@@ -190,7 +190,7 @@ def process(entries, etapestry_id):
 
             if drop_date:
                 if etap.ddmmyyyy_to_date(drop_date) == parse(entries[i]['date']).date():
-                    send_receipt(
+                    send(
                         agency,
                         accounts[i]['email'],
                         schemas['dropoff_followup']['file'],
@@ -206,7 +206,7 @@ def process(entries, etapestry_id):
             # Zero Collection Receipt
             if entries[i]['amount'] == 0:
                 if accounts[i]['nameFormat'] == 3: # Business
-                    send_receipt(
+                    send(
                         agency,
                         accounts[i]['email'],
                         schemas['zero_collection']['file'],
@@ -217,7 +217,7 @@ def process(entries, etapestry_id):
                         })
 
                 else: # Residential
-                    send_receipt(
+                    send(
                         agency,
                         accounts[i]['email'],
                         schemas['no_collection']['file'],
@@ -243,13 +243,13 @@ def process(entries, etapestry_id):
             year = parse(gift_accounts[0]['entry']['date']).year
 
             gift_histories = etap.call(
-              'get_gift_histories',
-              etapestry_id, {
-                "account_refs": [i['account']['ref'] for i in gift_accounts],
-                "start_date": "01/01/" + str(year),
-                "end_date": "31/12/" + str(year)
-              }
-            )
+                'get_gift_histories',
+                etapestry_id, 
+                data={
+                    "account_refs": [i['account']['ref'] for i in gift_accounts],
+                    "start_date": "01/01/" + str(year),
+                    "end_date": "31/12/" + str(year)
+                })
             logger.info('%s gift histories retrieved', str(len(gift_histories)))
 
         except Exception as e:
@@ -259,7 +259,7 @@ def process(entries, etapestry_id):
             try:
                 logger.debug('gift_history: %s', str(gift_histories[i]))
 
-                send_receipt(
+                send(
                     agency,
                     gift_accounts[i]['account']['email'],
                     schemas['collection']['file'],
@@ -280,5 +280,4 @@ def process(entries, etapestry_id):
       str(len(gift_accounts)) + ' gift receipts sent\n' +
       str(num_drop_followups) + ' dropoff followups sent\n' +
       str(num_cancels) + ' cancellations sent\n' +
-      str(num_no_emails) + ' no emails'
-    )
+      str(num_no_emails) + ' no emails')

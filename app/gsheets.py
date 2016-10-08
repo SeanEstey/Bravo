@@ -275,7 +275,7 @@ def update_entry(agency, status, destination):
 
 #-------------------------------------------------------------------------------
 def create_rfu(agency, note, 
-               a_id=None, npu=None, block=None, date=None, name_addy=None):
+               a_id=None, npu=None, block=None, _date=None, name_addy=None):
     try:
         oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
         gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
@@ -300,8 +300,8 @@ def create_rfu(agency, note,
     if block != None:
         rfu[headers.index('Block')] = block
 
-    if date != None:
-        rfu[headers.index('Date')] = date
+    if _date != None:
+        rfu[headers.index('Date')] = _date
 
     if name_addy != None:
         rfu[headers.index('Name & Address')] = name_addy

@@ -70,8 +70,6 @@ Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with t
 
 ### Run Instructions
 
-<br>
-
 Start RabbitMQ daemon:
 
 `$ rabbitmqctl start_app`

@@ -18,25 +18,11 @@ from app import app, db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def schedule_reminders():
+def create_reminder_event(agency, block, _date):
     '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
     '''
-
-    DAYS_IN_ADVANCE_TO_SCHEDULE = 1
-    agency = 'vec'
-
+    
     agency_conf = db['agencies'].find_one({'name':agency})
-
-    blocks = []
-    block_date = date.today() + timedelta(days=DAYS_IN_ADVANCE_TO_SCHEDULE)
-
-    for key in agency_conf['cal_ids']:
-        blocks += scheduler.get_blocks(
-            agency_conf['cal_ids'][key],
-            datetime.combine(block_date,time(8,0)),
-            datetime.combine(block_date,time(9,0)),
-            agency_conf['google']['oauth']
-        )
 
     try:
         with open('app/templates/schemas/'+agency+'.json') as json_file:
@@ -49,56 +35,55 @@ def schedule_reminders():
             schema = event
             break
 
-    for block in blocks:
-        try:
-            accounts = etap.call(
-                'get_query_accounts',
-                agency_conf['etapestry'],
-                data={
-                    'query':block,
-                    'query_category':agency_conf['etapestry']['query_category']
-                })['data']
-        except Exception as e:
-            logger.error('Error retrieving accounts for query %s', block)
+    try:
+        accounts = etap.call(
+            'get_query_accounts',
+            agency_conf['etapestry'],
+            data={
+                'query':block,
+                'query_category':agency_conf['etapestry']['query_category']
+            })['data']
+    except Exception as e:
+        logger.error('Error retrieving accounts for query %s', block)
 
-        if len(accounts) < 1:
+    if len(accounts) < 1:
+        continue
+
+    # Create notification event and add triggers
+
+    evnt_id = events.insert(agency, block, _date)
+
+    for conf in agency_conf['notifications']:
+        fire_date = _date + timedelta(days=conf['fire_days_delta'])
+        fire_time = time(conf['fire_hour'], conf['fire_min'])
+
+        if conf['type'] == 'sms':
+            continue
+        elif conf['type'] == 'voice':
+            phone_trig_id = triggers.insert(evnt_id, fire_date, fire_time, 'phone')
+        elif conf['type'] == 'email':
+            email_trig_id = triggers.insert(evnt_id, fire_date, fire_time, 'email')
+
+    event_dt = utils.naive_to_local(datetime.combine(_date,time(8,0)))
+
+    # Add notifications
+    for account in accounts:
+        logger.debug(json.dumps(account))
+
+        npu = etap.get_udf('Next Pickup Date', account).split('/')
+
+        if len(npu) < 3:
+            logger.error('Account %s missing npu. Skipping.', account['id'])
             continue
 
-        # Create notification event and add triggers
+        acct_id = insert_account(account)
 
-        evnt_id = events.insert(agency, block, block_date)
+        insert_reminder(evnt_id, event_dt, phone_trig_id,
+                        'phone', acct_id, schema)
+        insert_reminder(evnt_id, event_dt, email_trig_id,
+                        'email', acct_id, schema)
 
-        for conf in agency_conf['notifications']:
-            _date = block_date + timedelta(days=conf['fire_days_delta'])
-            _time = time(conf['fire_hour'], conf['fire_min'])
-
-            if conf['type'] == 'sms':
-                continue
-            elif conf['type'] == 'voice':
-                phone_trig_id = triggers.insert(evnt_id, _date, _time, 'phone')
-            elif conf['type'] == 'email':
-                email_trig_id = triggers.insert(evnt_id, _date, _time, 'email')
-
-        event_dt = utils.naive_to_local(datetime.combine(block_date,time(8,0)))
-
-        # Add notifications
-        for account in accounts:
-            logger.debug(json.dumps(account))
-
-            npu = etap.get_udf('Next Pickup Date', account).split('/')
-
-            if len(npu) < 3:
-                logger.error('Account %s missing npu. Skipping.', account['id'])
-                continue
-
-            acct_id = insert_account(account)
-
-            insert_reminder(evnt_id, event_dt, phone_trig_id,
-                            'phone', acct_id, schema)
-            insert_reminder(evnt_id, event_dt, email_trig_id,
-                            'email', acct_id, schema)
-
-        add_future_pickups(str(evnt_id))
+    add_future_pickups(str(evnt_id))
 
     #logger.info(
     #  'Created reminder job for Blocks %s. Emails fire at %s, calls fire at %s',

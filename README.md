@@ -67,7 +67,6 @@ Have user remove Bravo Library script from Google Drive.
 Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with them.
 
 <br>
-
 ### Run Instructions
 
 Start RabbitMQ daemon:
@@ -82,9 +81,8 @@ Start server and restart celery worker:
 
 `$ python run.py -c restart`
 
+<br>
 ### Shutdown Instructions
-
-
 
 If running in foreground, kill with CTRL+C. This will kill Celery workers.
 

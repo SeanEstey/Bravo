@@ -39,7 +39,9 @@ def add_signup(signup):
 @celery_app.task
 def fire_trigger(evnt_id, trig_id):
     from app.notify import triggers
-    return triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
+    
+    with app.app_context():
+        return triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
 
 #-------------------------------------------------------------------------------
 @celery_app.task

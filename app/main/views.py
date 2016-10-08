@@ -212,12 +212,20 @@ def email_unsubscribe(agency):
 #-------------------------------------------------------------------------------
 @main.route('email/spam_complaint', methods=['POST'])
 def email_spam_complaint():
-    m = 'received spam complaint'
+    mmg = request.form['recipient']'received spam complaint'
+    
+    if request.form['domain'] == 'recycle.vecova.ca':
+        agency = 'vec'
+    elif request.form['domain'] == 'wsaf.ca':
+        agency = 'wsf'
 
     try:
-        gsheets.create_rfu(request.form['recipient'] + m)
-    except Exception, e:
-        logger.error('%s' % request.values.items(), exc_info=True)
+        gsheets.create_rfu(
+            agency,
+            "%s sent spam complaint" % request.form['recipient']
+        )     
+    except Exception as e:
+        logger.error('create spam rfu: %s', str(e))
         return str(e)
 
     return 'OK'
@@ -307,7 +315,7 @@ def nis():
     try:
         gsheets.create_rfu(
           record['custom']['to'] + ' not in service',
-          account_number=record['account_id'],
+          a_id=record['account_id'],
           block=record['custom']['block']
         )
     except Exception, e:

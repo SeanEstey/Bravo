@@ -68,10 +68,9 @@ Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with t
 
 ### Run Instructions
 
-###### Start RabbitMQ daemon
-`$rabbitmqctl start_app`
+Start RabbitMQ daemon:
 
-###### Running Server
+`$ rabbitmqctl start_app`
 
 Start server w/ celery worker:
 

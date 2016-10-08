@@ -8,8 +8,10 @@ import os
 import time
 import sys
 
+import sys, getopt
 
-if __name__ == "__main__":
+
+def restart_celery_worker():
     os.system('kill %1')
 
     # Kill celery nodes with matching queue name. Leave others alone
@@ -22,12 +24,24 @@ if __name__ == "__main__":
 
     # Pause to give workers time to initialize before starting server
     time.sleep(3)
-
+    
     #if not celery_app.control.inspect().registered_tasks():
     #    app.logger.info('Celery process failed to start!')
     #else:
     #    app.logger.info('Server starting using \'%s\' DB', app.config['DB'])
+    
 
+def main(argv):
+   try:
+      opts, args = getopt.getopt(argv,"r:")
+   except getopt.GetoptError:
+      sys.exit(2)
+   for opt, arg in opts:
+      if opt == '-r':
+            if arg == 'celery':
+                print 'restarting celery worker'
+                restart_celery_worker()
+  
     if app.config['DEBUG'] == True:
         # Werkzeug server (Test Mode)
         app.run(port=app.config['LOCAL_PORT'], debug=True, threaded=True)
@@ -35,3 +49,8 @@ if __name__ == "__main__":
     else:
         # Start eventlet server w/ socket.io enabled
         socketio.run(app, port=app.config['LOCAL_PORT'])
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
+    
+

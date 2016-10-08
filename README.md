@@ -74,9 +74,11 @@ Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with t
 ###### Running Server
 
 Start server w/ celery worker:
+
 `$ python run.py -c start`
 
 Start server and restart celery worker:
+
 `$ python run.py -c restart`
 
 ### Shutdown Instructions

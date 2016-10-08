@@ -1,6 +1,6 @@
 
 #-------------------------------------------------------------------------------
-def get_nps(agency, accounts):
+def find(agency, accounts):
     '''Analyze list of eTap account objects for non-participants
     which is an active account with no > $0 gifts in past X days where X is
     set by db['agency']['config']['non-participant days']
@@ -80,51 +80,3 @@ def get_nps(agency, accounts):
     logger.info('Found %d non-participants', len(nps))
 
     return nps
-
-#-------------------------------------------------------------------------------
-def analyze_non_participants():
-    '''Create RFU's for all non-participants on scheduled dates'''
-
-    agencies = db['agencies'].find()
-
-    for agency in agencies:
-        try:
-            logger.info('%s: Analyzing non-participants in 5 days...', agency['name'])
-
-            accounts = get_accounts(
-                agency['etapestry'],
-                agency['cal_ids']['res'],
-                agency['google']['oauth'],
-                days_from_now=5)
-
-            if len(accounts) < 1:
-                continue
-
-            nps = get_nps(agency['name'], accounts)
-
-            if len(nps) < 1:
-                continue
-
-            now = datetime.now()
-
-            for np in nps:
-                npu = etap.get_udf('Next Pickup Date', np).split('/')
-
-                if len(npu) < 3:
-                    next_pickup = False
-                else:
-                    next_pickup = npu[1] + '/' + npu[0] + '/' + npu[2]
-
-                # Update Driver/Office Notes
-
-                gsheets.create_rfu(
-                  agency['name'],
-                  'Non-participant',
-                  account_number = np['id'],
-                  next_pickup = next_pickup,
-                  block = etap.get_udf('Block', np),
-                  date = str(now.month) + '/' + str(now.day) + '/' + str(now.year)
-                )
-        except Exception as e:
-            logger.error('non-participation exception: %s', str(e))
-            continue

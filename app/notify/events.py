@@ -8,14 +8,9 @@ from flask.ext.login import current_user
 import csv
 import os
 
-# Import bravo modules
 from app import utils
-
-# Import objects
 from app import app, db, socketio
-
 logger = logging.getLogger(__name__)
-
 
 #-------------------------------------------------------------------------------
 def insert(agency, name, event_date):
@@ -34,7 +29,6 @@ def insert(agency, name, event_date):
         'trig_ids': []
     }).inserted_id
 
-
 #-------------------------------------------------------------------------------
 def get(evnt_id, local_time=True):
     event = db['notification_events'].find_one({'_id':evnt_id})
@@ -43,7 +37,6 @@ def get(evnt_id, local_time=True):
         return utils.all_utc_to_local_time(event)
 
     return event
-
 
 #-------------------------------------------------------------------------------
 def get_triggers(evnt_id, local_time=True):
@@ -54,10 +47,7 @@ def get_triggers(evnt_id, local_time=True):
         for trigger in trigger_list:
             trigger = utils.all_utc_to_local_time(trigger)
 
-        #triggers_curs.rewind()
-
     return trigger_list
-
 
 #-------------------------------------------------------------------------------
 def get_notifications(evnt_id, local_time=True):
@@ -177,17 +167,5 @@ def get_all(agency, local_time=True, max=10):
             event = utils.all_utc_to_local_time(event)
 
         events_curs.rewind()
-
-    '''
-    for job in jobs:
-        if 'voice' in job:
-            job['voice']['fire_dt'] = job['voice']['fire_dt'].replace(tzinfo=pytz.utc).astimezone(local)
-
-        if 'email' in job:
-            job['email']['fire_dt'] = job['email']['fire_dt'].replace(tzinfo=pytz.utc).astimezone(local)
-
-        if 'event_dt' in job:
-            job['event_dt'] = job['event_dt'].replace(tzinfo=pytz.utc).astimezone(local)
-    '''
 
     return events_curs

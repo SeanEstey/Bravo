@@ -71,10 +71,13 @@ Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with t
 ###### Start RabbitMQ daemon
 `$rabbitmqctl start_app`
 
-###### Start Flask
-`$ python run.py`
+###### Running Server
 
-This will start the celery workers.
+Start server w/ celery worker:
+`$ python run.py -c start`
+
+Start server and restart celery worker:
+`$ python run.py -c restart`
 
 ### Shutdown Instructions
 

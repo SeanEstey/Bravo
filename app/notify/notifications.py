@@ -243,6 +243,8 @@ def get_voice(notific, template_file):
 
     account = db['accounts'].find_one({'_id':notific['acct_id']})
 
+    # IMPORTANT: Needs flask app context if called from celery task
+    
     try:
         content = render_template(
             template_file,

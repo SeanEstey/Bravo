@@ -1,44 +1,94 @@
 from celery import Celery
 from bson.objectid import ObjectId
-from app import celery_app
+from app import app, celery_app 
 
-# Tasks called manually in views
-
-@celery_app.task
-def build_route(route_id, job_id=None):
-    from app.routing import routes
-    return routes.build_route(route_id, job_id=job_id)
-
-@celery_app.task
-def add_signup(signup):
-    from app import wsf
-    return wsf.add_signup(signup)
-
-@celery_app.task
-def fire_trigger(evnt_id, trig_id):
-    from app.notify import triggers
-    return triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
-
-@celery_app.task
-def process_receipts(entries, etapestry_id):
-    from app.main import receipts
-    return receipts.process(entries, etapestry_id)
-
-@celery_app.task
-def create_rfu(agency, request_note, account_number=None, next_pickup=None,
-            block=None, date=None, name_address=None):
-    from app import gsheets
-    return gsheets.create_rfu(agency, request_note, account_number=account_number,
-            next_pickup=next_pickup, block=block, date=date,
-            name_address=name_address)
-
+#-------------------------------------------------------------------------------
 @celery_app.task
 def cancel_pickup(evnt_id, acct_id):
     from app.notify import pickup_service
     return pickup_service._cancel(evnt_id, acct_id)
 
-# -------- Celerybeat methods ----------
+#-------------------------------------------------------------------------------
+@celery_app.task
+def build_route(route_id, job_id=None):
+    from app.routing import routes
+    return routes.build_route(route_id, job_id=job_id)
 
+#-------------------------------------------------------------------------------
+@celery_app.task
+def add_signup(signup):
+    from app import wsf
+    return wsf.add_signup(signup)
+
+#-------------------------------------------------------------------------------
+@celery_app.task
+def fire_trigger(evnt_id, trig_id):
+    from app.notify import triggers
+    return triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
+
+#-------------------------------------------------------------------------------
+@celery_app.task
+def send_receipts(entries, etapestry_id):
+    from app.main import receipts
+    
+    # Should allow access to render_template() without making HTTP request for each receipt
+    with app.app_context():
+        return receipts.process(entries, etapestry_id)
+
+#-------------------------------------------------------------------------------
+@celery_app.task
+def create_rfu(agency, note,
+               a_id=None, npu=None, block=None, _date=None, name_addy=None):
+    from app import gsheets
+    
+    return gsheets.create_rfu(
+        agency, note,
+        a_id=a_id, npu=npu, block=block, 
+        _date=_date, name_addy=name_addy
+    )
+
+#-------------------------------------------------------------------------------
+@celery_app.task
+def schedule_reminders():
+    from app.notify import pickup_service
+    from app import schedule
+    from datetime import datetime, date, time, timedelta
+    
+    PRESCHEDULE_BY_DAYS = 5
+    agency = 'vec'
+
+    blocks = []
+    _date = date.today() + timedelta(days=PRESCHEDULE_BY_DAYS)
+    
+    agency_conf = db['agencies'].find_one({'name':agency})
+
+    for key in agency_conf['cal_ids']:
+        blocks += schedule.get_blocks(
+            agency_conf['cal_ids'][key],
+            datetime.combine(_date,time(8,0)),
+            datetime.combine(_date,time(9,0)),
+            agency_conf['google']['oauth']
+        )
+
+    for block in blocks:
+        pickup_service.crate_reminder_event(agency, block, _date)
+
+#-------------------------------------------------------------------------------
+@celery_app.task
+def build_routes():
+    from app.routing import routes
+    return routes.build_scheduled_routes()
+
+#-------------------------------------------------------------------------------
+@celery_app.task
+def monitor_triggers():
+    from app.notify import triggers
+    
+    with app.app_context():
+        #return triggers.monitor_all()
+        return True
+
+#-------------------------------------------------------------------------------
 @celery_app.task
 def update_sms_accounts():
     '''Verify that all accounts in upcoming residential routes with mobile
@@ -135,29 +185,14 @@ def update_sms_accounts():
 
     return True
 
-@celery_app.task
-def schedule_reminders():
-    from app.notify import pickup_service
-    return pickup_service.schedule_reminders()
-
-@celery_app.task
-def build_routes():
-    from app.routing import routes
-    return routes.build_scheduled_routes()
-
-@celery_app.task
-def monitor_triggers():
-    from app.notify import triggers
-    #return triggers.monitor_all()
-    return True
-
+#-------------------------------------------------------------------------------
 @celery_app.task
 def find_non_participants():
     '''Create RFU's for all non-participants on scheduled dates'''
     from app import schedule
     from app.main import non_participants
- 
-    agencies = db['agencies'].find()
+    
+    agencies = db['agencies'].find({})
 
     for agency in agencies:
         try:

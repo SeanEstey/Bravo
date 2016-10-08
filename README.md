@@ -66,9 +66,11 @@ Have user remove Bravo Library script from Google Drive.
 
 Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with them.
 
+<br>
+
 ### Run Instructions
 
-<br><br>
+<br>
 
 Start RabbitMQ daemon:
 

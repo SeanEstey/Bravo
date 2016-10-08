@@ -4,6 +4,7 @@ import gspread
 import requests
 from datetime import datetime
 from dateutil.parser import parse
+from flask import render_template
 
 from app import gsheets
 from app import etap
@@ -33,7 +34,7 @@ def on_email_status(webhook):
 
 
 #-------------------------------------------------------------------------------
-def render_body(template, data):
+def render_body(template_file, data):
     '''Convert all dates in data to long format strings, render into
     html'''
 
@@ -50,18 +51,21 @@ def render_body(template, data):
             npu = parse(data['entry']['next_pickup'])
             data['entry']['next_pickup'] = npu.strftime('%B %-d, %Y')
 
+    # TODO: Should work now that celery task has flask context
+            
     try:
-        response = requests.post(
-          app.config['LOCAL_URL'] + '/render_receipt',
-          json={
-              "template": template,
-              "data": data
-          })
-    except requests.RequestException as e:
-        logger.error('render_template: %s', str(e))
+        body = render_template(
+            template_file,
+            to = data['account']['email'],
+            account = data['account'],
+            entry = data['entry'],
+            history = args['data'].get('history') # optional
+        )
+    except Exception as e:
+        logger.error('render receipt template: %s', str(e))
         return False
 
-    return response.text
+    return body
 
 #-------------------------------------------------------------------------------
 def send(agency, to, template, subject, data):

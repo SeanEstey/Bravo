@@ -345,23 +345,3 @@ def rec_signup():
         return str(e)
 
     return 'OK'
-
-#-------------------------------------------------------------------------------
-@main.route('render_receipt', methods=['POST'])
-def render_receipt_body():
-    try:
-        args = request.get_json(force=True)
-
-        return render_template(
-          args['template'],
-          to = args['data'].get('account').get('email'),
-          account = args['data'].get('account'),
-          entry = args['data'].get('entry'),
-          history = args['data'].get('history'),
-          data=args['data'] # remove this after testing
-        )
-    except Exception as e:
-        logger.error('render_receipt: %s ', str(e))
-        return 'Error'
-
-

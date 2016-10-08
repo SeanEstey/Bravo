@@ -99,7 +99,7 @@ def process_receipts():
     etapestry = json.loads(request.form['etapestry'])
 
     # Start celery workers to run slow eTapestry API calls
-    r = tasks.process_receipts.apply_async(
+    r = tasks.send_receipts.apply_async(
       args=(entries, etapestry),
       queue=app.config['DB']
     )

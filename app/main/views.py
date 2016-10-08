@@ -29,6 +29,14 @@ from app import db, app, socketio
 logger = logging.getLogger(__name__)
 
 
+
+
+# ------------ Stuff TODO ----------------------
+# TODO: add view endpoint awaiting return value from send_receipts task
+# http://blog.miguelgrinberg.com/post/using-celery-with-flask
+
+
+
 #-------------------------------------------------------------------------------
 @main.route('')
 def landing_page():

@@ -62,5 +62,41 @@ def monitor_triggers():
 
 @celery_app.task
 def find_non_participants():
-    from app import scheduler
-    return scheduler.analyze_non_participants()
+    '''Create RFU's for all non-participants on scheduled dates'''
+    from app import schedule
+    from app.main import non_participants
+ 
+    agencies = db['agencies'].find()
+
+    for agency in agencies:
+        try:
+            logger.info('%s: Analyzing non-participants in 5 days...', agency['name'])
+
+            accounts = schedule.get_accounts(
+                agency['etapestry'],
+                agency['cal_ids']['res'],
+                agency['google']['oauth'],
+                days_from_now=5)
+
+            if len(accounts) < 1:
+                continue
+
+            nps = non_participants.find(agency['name'], accounts)
+
+            for np in nps:
+                npu = etap.get_udf('Next Pickup Date', np)
+
+                if len(npu.split('/')) == 3:
+                    npu = etap.ddmmyyyy_to_mmddyyyy(npu)
+
+                gsheets.create_rfu(
+                  agency['name'],
+                  'Non-participant',
+                  account_number = np['id'],
+                  next_pickup = npu,
+                  block = etap.get_udf('Block', np),
+                  date = date.today().strftime('%-m/%-d/%Y')             
+                )
+        except Exception as e:
+            logger.error('non-participation exception: %s', str(e))
+            continue

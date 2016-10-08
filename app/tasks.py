@@ -4,6 +4,21 @@ from app import app, celery_app
 
 #-------------------------------------------------------------------------------
 @celery_app.task
+def build_routes():
+    from app.routing import routes
+    return routes.build_scheduled_routes()
+
+#-------------------------------------------------------------------------------
+@celery_app.task
+def monitor_triggers():
+    from app.notify import triggers
+    
+    with app.app_context():
+        #return triggers.monitor_all()
+        return True
+    
+#-------------------------------------------------------------------------------
+@celery_app.task
 def cancel_pickup(evnt_id, acct_id):
     from app.notify import pickup_service
     return pickup_service._cancel(evnt_id, acct_id)
@@ -72,21 +87,6 @@ def schedule_reminders():
 
     for block in blocks:
         pickup_service.crate_reminder_event(agency, block, _date)
-
-#-------------------------------------------------------------------------------
-@celery_app.task
-def build_routes():
-    from app.routing import routes
-    return routes.build_scheduled_routes()
-
-#-------------------------------------------------------------------------------
-@celery_app.task
-def monitor_triggers():
-    from app.notify import triggers
-    
-    with app.app_context():
-        #return triggers.monitor_all()
-        return True
 
 #-------------------------------------------------------------------------------
 @celery_app.task

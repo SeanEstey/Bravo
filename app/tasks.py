@@ -41,8 +41,99 @@ def cancel_pickup(evnt_id, acct_id):
 
 @celery_app.task
 def update_sms_accounts():
+    '''Verify that all accounts in upcoming residential routes with mobile
+    numbers are set up to interact with SMS system'''
+    
     from app import sms
-    return sms.update_scheduled_accounts_for_sms()
+
+    agency_name = 'vec'
+    days_from_now = 3
+
+    agency_settings = db['agencies'].find_one({'name':agency_name})
+
+    # Get accounts scheduled on Residential routes 3 days from now
+    accounts = schedule.get_accounts(
+        agency_settings['etapestry'],
+        agency_settings['cal_ids']['res'],
+        agency_settings['google']['oauth'],
+        days_from_now=days_from_now)
+
+    if len(accounts) < 1:
+        return False
+
+    client = TwilioLookupsClient(
+      account = agency_settings['twilio']['keys']['main']['sid'],
+      token = agency_settings['twilio']['keys']['main']['auth_id']
+    )
+
+    for account in accounts:
+        # A. Verify Mobile phone setup for SMS
+        mobile = etap.get_phone('Mobile', account)
+
+        if mobile:
+            # Make sure SMS udf exists
+
+            sms_udf = etap.get_udf('SMS', account)
+
+            if not sms_udf:
+                int_format = re.sub(r'[^0-9.]', '', mobile['number'])
+
+                if int_format[0:1] != "1":
+                    int_format = "+1" + int_format
+
+                logger.info('Adding SMS field to Account %s', str(account['id']))
+
+                try:
+                    etap.call('modify_account', agency_settings['etapestry'], {
+                      'id': account['id'],
+                      'udf': {'SMS': int_format},
+                      'persona': []
+                    })
+                except Exception as e:
+                    logger.error('Error modifying account %s: %s', str(account['id']), str(e))
+            # Move onto next account
+            continue
+
+        # B. Analyze Voice phone in case it's actually Mobile.
+        voice = etap.get_phone('Voice', account)
+
+        if not voice:
+            continue
+
+        int_format = re.sub(r'[^0-9.]', '', voice['number'])
+
+        if int_format[0:1] != "1":
+            int_format = "+1" + int_format
+
+        try:
+            info = client.phone_numbers.get(int_format, include_carrier_info=True)
+        except Exception as e:
+            logger.error('Carrier lookup error (Account %s): %s', str(account['id']), str(e))
+            continue
+
+        if info.carrier['type'] != 'mobile':
+            continue
+
+        # Found a Mobile number labelled as Voice
+        # Update Persona and SMS udf
+
+        logger.info('Acct #%s: Found mobile number. SMS ready.', str(account['id']))
+
+        try:
+            etap.call('modify_account', agency_settings['etapestry'], {
+              'id': account['id'],
+              'udf': {'SMS': info.phone_number},
+              'persona': {
+                'phones':[
+                  {'type':'Mobile', 'number': info.national_format},
+                  {'type':'Voice', 'number': info.national_format}
+                ]
+              }
+            })
+        except Exception as e:
+            logger.error('Error modifying account %s: %s', str(account['id']), str(e))
+
+    return True
 
 @celery_app.task
 def schedule_reminders():

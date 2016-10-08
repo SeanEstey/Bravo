@@ -274,8 +274,8 @@ def update_entry(agency, status, destination):
     '''
 
 #-------------------------------------------------------------------------------
-def create_rfu(agency, request_note, account_number=None, next_pickup=None,
-        block=None, date=None, name_address=None):
+def create_rfu(agency, note, 
+               a_id=None, npu=None, block=None, date=None, name_addy=None):
     try:
         oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
         gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
@@ -289,13 +289,13 @@ def create_rfu(agency, request_note, account_number=None, next_pickup=None,
 
     rfu = [''] * len(headers)
 
-    rfu[headers.index('Request Note')] = request_note
+    rfu[headers.index('Request Note')] = note
 
-    if account_number != None:
-        rfu[headers.index('Account Number')] = account_number
+    if a_id != None:
+        rfu[headers.index('Account Number')] = a_id
 
-    if next_pickup != None:
-        rfu[headers.index('Next Pickup Date')] = next_pickup
+    if npu != None:
+        rfu[headers.index('Next Pickup Date')] = npu
 
     if block != None:
         rfu[headers.index('Block')] = block
@@ -303,8 +303,8 @@ def create_rfu(agency, request_note, account_number=None, next_pickup=None,
     if date != None:
         rfu[headers.index('Date')] = date
 
-    if name_address != None:
-        rfu[headers.index('Name & Address')] = name_address
+    if name_addy != None:
+        rfu[headers.index('Name & Address')] = name_addy
 
     logger.info('Creating RFU: ' + json.dumps([item for item in rfu if item]))
 

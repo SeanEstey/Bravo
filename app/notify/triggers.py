@@ -56,7 +56,8 @@ def get(trig_id, local_time=False):
 
 #-------------------------------------------------------------------------------
 def fire(evnt_id, trig_id):
-    '''Send out all notifications for this trigger for given event
+    '''Sends out all dependent sms/voice/email notifications messages
+    Important: requires Flask context if called from celery task
     '''
 
     notific_event = db['notification_events'].find_one({'_id':evnt_id})
@@ -81,6 +82,11 @@ def fire(evnt_id, trig_id):
 
 #-------------------------------------------------------------------------------
 def monitor_all():
+    '''Any due triggers are fired. See celeryconfig.py for heartbeat frequency.
+    IMPORTANT: Requires Flask app context. Can block server if called without
+    context.
+    TODO: add flask context to all celery tasks'''
+        
     ready_triggers = db['triggers'].find(
         {'status':'pending', 'fire_dt':{'$lt':datetime.utcnow()}})
 

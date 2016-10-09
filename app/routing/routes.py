@@ -15,7 +15,7 @@ from flask.ext.login import current_user
 from bson import ObjectId
 
 from app import etap
-from app import scheduler
+from app import schedule
 from app import gdrive
 from app import gsheets
 

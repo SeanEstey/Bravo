@@ -7,7 +7,7 @@ from bson import json_util
 
 from app import utils
 from app import block_parser
-from app import scheduler
+from app import schedule
 from app import etap
 from app.notify import events
 from app.notify import notifications
@@ -47,7 +47,7 @@ def create_reminder_event(agency, block, _date):
         logger.error('Error retrieving accounts for query %s', block)
 
     if len(accounts) < 1:
-        continue
+        return False
 
     # Create notification event and add triggers
 

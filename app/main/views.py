@@ -220,7 +220,6 @@ def email_unsubscribe(agency):
 #-------------------------------------------------------------------------------
 @main.route('email/spam_complaint', methods=['POST'])
 def email_spam_complaint():
-    mmg = request.form['recipient']'received spam complaint'
     
     if request.form['domain'] == 'recycle.vecova.ca':
         agency = 'vec'

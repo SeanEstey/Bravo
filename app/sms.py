@@ -8,7 +8,7 @@ from app import gsheets
 from app import etap
 from app.routing import routes
 from app import geo
-from app import scheduler
+from app import schedule
 
 from app import app,db
 

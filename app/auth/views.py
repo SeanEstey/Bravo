@@ -17,13 +17,13 @@ logger = logging.getLogger(__name__)
 def before_request():
     g.user = current_user
 
-
 #-------------------------------------------------------------------------------
 @login_manager.user_loader
 def load_user(user_id):
-    user = db['users'].find_one({'username':user_id})
+
+    user = db['users'].find_one({'user':user_id})
     if user:
-        return User(user_id, user.password)
+        return User(user_id, user['password'])
     else:
         return None
 
@@ -60,18 +60,14 @@ def login():
             'title': 'login info',
             'msg':'Incorrect password'})
 
-    r = json.dumps({
-        'status':'success',
-        'title': 'yes',
-        'msg':'success!'})
-
     user = User(username, password)
 
     login_user(user)
 
     logger.info('User %s logged in', username)
 
-    return Response(response=r, status=200, mimetype='application/json')
+    return redirect(url_for('notify.view_event_list'))
+    #return Response(response=r, status=200, mimetype='application/json')
 
 
 #-------------------------------------------------------------------------------

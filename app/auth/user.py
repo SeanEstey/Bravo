@@ -4,6 +4,7 @@
 class User():
   username = ''
   password = ''
+  _id = ''
 
   def is_authenticated(self):
     return True
@@ -26,3 +27,4 @@ class User():
   def __init__(self, user, pw):
     self.username = user
     self.password = pw
+    #self._id = id

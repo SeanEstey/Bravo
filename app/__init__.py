@@ -36,11 +36,9 @@ client = pymongo.MongoClient(
 db = client[config.DB]
 
 
-#-------------------------------------------------------------------------------
-def create_celery_app(flask_app):
-    celery_app = Celery(include=['tasks'])
-    celery_app.config_from_object('celeryconfig')
-    return celery_app
+celery = Celery(__name__, broker='amqp://')
+celery.config_from_object('celeryconfig')
+
 
 #-------------------------------------------------------------------------------
 def create_app():
@@ -66,6 +64,10 @@ def create_app():
     app.register_blueprint(main_mod)
     app.register_blueprint(notify_mod)
     app.register_blueprint(routing_mod)
+
+
+    #celery.conf.update(app.config)
+    #celery.config_from_object('app.celeryconfig')
 
     return app
 

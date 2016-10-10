@@ -1,3 +1,5 @@
+'''routing.views'''
+
 import json
 import twilio.twiml
 import requests
@@ -9,9 +11,8 @@ import logging
 
 from . import routing
 from . import routes
-from app import utils
-from app import tasks
-#from app.routing import routes
+from .. import utils
+from .. import tasks
 
 from app import db
 logger = logging.getLogger(__name__)

@@ -1,52 +1,53 @@
 from celery import Celery
 from bson.objectid import ObjectId
-from app import db, create_celery_app
-from flask import current_app
-from run import celery_app, flask_app
+from . import db, celery
+from . import create_app
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+@celery.task
 def build_routes():
     from app.routing import routes
     return routes.build_scheduled_routes()
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+@celery.task
 def monitor_triggers():
     from app.notify import triggers
 
-    with flask_app.app_context():
+    app = create_app()
+    with app.app_context():
         return triggers.monitor_all()
         return True
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+@celery.task
 def cancel_pickup(evnt_id, acct_id):
     from app.notify import pickup_service
     return pickup_service._cancel(evnt_id, acct_id)
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+@celery.task
 def build_route(route_id, job_id=None):
     from app.routing import routes
     return routes.build_route(route_id, job_id=job_id)
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+@celery.task
 def add_signup(signup):
     from app import wsf
     return wsf.add_signup(signup)
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+@celery.task
 def fire_trigger(evnt_id, trig_id):
     from app.notify import triggers
 
-    with current_app.app_context():
+    app = create_app()
+    with app.app_context():
         return triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+@celery.task
 def send_receipts(entries, etapestry_id):
     from app.main import receipts
 
@@ -55,7 +56,7 @@ def send_receipts(entries, etapestry_id):
         return receipts.process(entries, etapestry_id)
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+@celery.task
 def create_rfu(agency, note,
                a_id=None, npu=None, block=None, _date=None, name_addy=None):
     from app import gsheets
@@ -71,7 +72,7 @@ def create_rfu(agency, note,
     )
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+@celery.task
 def schedule_reminders():
     from app.notify import pickup_service
     from app import schedule
@@ -97,12 +98,12 @@ def schedule_reminders():
         pickup_service.crate_reminder_event(agency, block, _date)
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+@celery.task
 def update_sms_accounts():
     '''Verify that all accounts in upcoming residential routes with mobile
     numbers are set up to interact with SMS system'''
 
-    from app import sms
+    from . import sms, schedule
 
     agency_name = 'vec'
     days_from_now = 3
@@ -194,7 +195,7 @@ def update_sms_accounts():
     return True
 
 #-------------------------------------------------------------------------------
-@celery_app.task
+@celery.task
 def find_non_participants():
     '''Create RFU's for all non-participants on scheduled dates'''
     from app import schedule

@@ -5,11 +5,11 @@ function init() {
 
 		$('#submit_btn').click(function(event) {
 			// This line needs to be here for Firefox browsers
-			event.preventDefault(event);
+			//event.preventDefault(event);
 			
 			$.ajax({
 				type: 'POST',
-				url: $URL_ROOT + 'login',
+				url: $URL_ROOT + '/login',
 				data: new FormData($('#myform')[0]),
 				contentType: false,
 				processData: false,
@@ -24,6 +24,8 @@ function init() {
 
 //------------------------------------------------------------------------------
 function loginSuccess(response) {
+    location.href = $URL_ROOT + '/notify';
+
 		console.log(response);
 
 		if(typeof response == 'string')

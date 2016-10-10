@@ -12,11 +12,15 @@ from bson.objectid import ObjectId
 import logging
 
 from . import main # from current pkg import 'main' blueprint
-from app import utils
-from app import gsheets
-from app import tasks
-from app.main import log
-from app.main import receipts
+from . import log
+from . import receipts
+
+from .. import utils
+from .. import html
+from .. import gsheets
+from .. import tasks
+
+
 from app.notify.views import on_email_status as notify_on_email_status
 
 from app import db
@@ -30,9 +34,9 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-@main.route('/')
-def landing_page():
-    return redirect(url_for('notify.view_event_list'))
+#@main.route('/')
+#def landing_page():
+#    return redirect(url_for('notify.view_event_list'))
 
 #-------------------------------------------------------------------------------
 @main.route('/log')
@@ -51,7 +55,7 @@ def view_admin():
 
     if user['admin'] == True:
         settings = db['agencies'].find_one({'name':agency}, {'_id':0, 'google.oauth':0})
-        settings_html = utils.dict_to_html_table(settings)
+        settings_html = html.to_table(settings)
     else:
         settings_html = ''
 
@@ -278,7 +282,7 @@ def email_status():
             args=(email['agency'], msg, ),
             queue=current_app.config['DB'])
 
-    emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
+    #emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
 
     return 'OK'
 

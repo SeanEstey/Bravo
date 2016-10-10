@@ -6,7 +6,10 @@ MONGO_URL = 'localhost'
 MONGO_PORT = 27017
 LOCAL_PORT = 8000
 LOCAL_URL = 'http://localhost:8000'
-PUB_URL = 'http://bravoweb.ca'
+
+#PUB_URL = 'http://bravoweb.ca'
+PUB_URL = 'http://45.55.14.215'
+
 TITLE = 'Bravo'
 LOG_PATH = '/var/www/bravo/logs/'
 LOG_LINES = 200

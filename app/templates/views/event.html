@@ -30,12 +30,13 @@
   </div>
 	
 	<!-- Play Sample -->
+	<!--
 	<div class='row' style='padding:0em 0em 3em 0em; text-align:center'>
 		<button id='play-sample-btn' class='btn btn-info'>Play Sample</button>
 		<audio id="music">
 			<source id='audio-sample' name='audio-sample' type='audio/mpeg'>
 		</audio>
-	</div>
+	</div>-->
   
   <div class='data-container'>
     <div class='navbar-div'>
@@ -62,20 +63,25 @@
       <!-- Notifications Rows -->
       <tbody>
       {% for row in notific_list %}
-        <tr id='fixme'>
-					<td>{{row['results'][0]['account'][0]['name']}}</td>
+        <tr id='{{row[_id']['$iod']}}>
+	  <td>{{row['results'][0]['account'][0]['name']}}</td>
           <!-- phone -->
+	  <td>
           {% for notific in row['results'] %}
             {% if notific['type'] == 'voice' %}
-              <td>{{notific.to}}</td>
+              {{notific.to}}
             {% endif %}
           {% endfor %}
-          <!-- email -->
-          {% for notific in row['results'] %}
+	  </td>
+          
+	  <!-- email -->
+          <td>
+	  {% for notific in row['results'] %}
             {% if notific['type'] == 'email' %}
-              <td>{{notific.to}}</td>
+              {{notific.to}}
             {% endif %}
           {% endfor %}
+	  </td>
 					
 
 
@@ -86,20 +92,25 @@
           <td>{{row['results'][0]['account'][0]['udf']['pickup_dt'].strftime("%-m/%-d/%Y")}}</td>
 
           <!-- email status -->
-					{% for notific in row['results'] if notific['type'] == 'email' %}
-              <td>{{notific['status']}}</td>
-					{% endfor %}
+	  <td>
+	  {% for notific in row['results'] if notific['type'] == 'email' %}
+            {{notific['status']}}
+	  {% endfor %}
+	  </td>
 
-					{% for notific in row['results'] if notific['type'] == 'voice' %}
-              <td>{{notific['status']}}</td>
-					{% endfor %}
+	  <!-- call status -->
+	  <td>
+	  {% for notific in row['results'] if notific['type'] == 'voice' %}
+            {{notific['status']}}
+	  {% endfor %}
+	  </td>
 
           <!-- Delete Button -->
-          <td class='cancel-call-col'>
+          <td class='cancel-notific'>
             <button 
               class='delete-btn' 
               type="button" 
-              id="fixme" 
+              id="{{row['_id']['$oid']}}" 
               name="delete-btn">
             </button>
           </td>

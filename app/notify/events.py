@@ -128,6 +128,12 @@ def reset(evnt_id):
     logger.info('%s notifications reset', n['nModified'])
 
 #-------------------------------------------------------------------------------
+def rmv_notifics(evnt_id, acct_id):
+    n = db['notifications'].remove({'acct_id':acct_id})
+    logger.info('Removed %s notifics for evnt_id %s', n, evnt_id)
+    return n
+
+#-------------------------------------------------------------------------------
 def remove(evnt_id):
     # remove all triggers, notifications, and event
     evnt_id = ObjectId(evnt_id)

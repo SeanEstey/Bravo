@@ -121,11 +121,11 @@ def job_complete(evnt_id):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/<evnt_id>/<notific_id>/remove', methods=['POST'])
+@notify.route('/<evnt_id>/<acct_id>/remove', methods=['POST'])
 @login_required
-def rmv_msg(evnt_id, notific_id):
-    reminders.rmv_msg(evnt_id, notific_id)
-    return 'OK'
+def rmv_notifics(evnt_id, acct_id):
+    n = events.rmv_notifics(ObjectId(evnt_id), ObjectId(acct_id))
+    return str(n)
 
 #-------------------------------------------------------------------------------
 @notify.route('/<notific_id>/edit', methods=['POST'])

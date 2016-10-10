@@ -6,7 +6,7 @@ from datetime import datetime, date
 
 import utils
 from app import db
-
+import config
 logger = logging.getLogger(__name__)
 
 
@@ -45,7 +45,7 @@ def call(func_name, keys, data, silence_exceptions=False):
 
     try:
         response = requests.post(
-            current_app.config['ETAP_WRAPPER_URL'],
+            config.ETAP_API_URL,
             data=json.dumps({
               "func": func_name,
               "etapestry": keys,

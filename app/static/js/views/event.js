@@ -16,7 +16,7 @@ function init() {
 
     if($('#event-status').text().indexOf('Pending') > -1) {
       var args =  window.location.pathname.split('/');
-      var event_uuid = args.slice(-1)[0];
+      var evnt_id = args.slice(-1)[0];
 
       $('.delete-btn').each(function(){ 
           $(this).button({
@@ -27,18 +27,18 @@ function init() {
           });
 
           $(this).click(function() {
-              var call_uuid = $(this).attr('id');
+              var acct_id = $(this).attr('id');
               var $tr = $(this).parent().parent();
 
               $.ajax({
                 type: 'POST',
-								url: $URL_ROOT + 'notify/' + event_uuid + '/' + call_uuid + '/remove'
-							}).done(function(msg) {
-									console.log('reminder removed. msg: %s', msg);
+		url: $URL_ROOT + 'notify/' + evnt_id + '/' + acct_id + '/remove'
+	}).done(function(msg) {
+		console.log('%s notifications removed', msg);
 
-									if(msg == 'OK')
-										$tr.remove();
-							});
+		//if(msg == 'OK')
+		$tr.remove();
+	});
           });
       });
     }
@@ -111,7 +111,7 @@ function init() {
 
     //  if(location.port == 8080) {
     var args =  window.location.pathname.split('/');
-    var event_uuid = args.slice(-1)[0];
+    var evnt_id = args.slice(-1)[0];
 
     $("button[name='trigger']").each(function() {
 
@@ -131,12 +131,12 @@ function init() {
     $('#reset-event').click(function() {
       $.ajax({
 				type: 'GET',
-				url: $URL_ROOT + 'notify/' + event_uuid + '/reset'
+				url: $URL_ROOT + 'notify/' + evnt_id + '/reset'
 			});
     });
 
     $('#dump').click(function() {
-        window.location.assign($URL_ROOT + 'summarize/' + String(event_uuid));
+        window.location.assign($URL_ROOT + 'summarize/' + String(evnt_id));
     });
   
   /*else {

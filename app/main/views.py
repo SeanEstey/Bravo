@@ -1,34 +1,27 @@
+'''main.views'''
+
 import json
 import twilio.twiml
 import time
 import requests
 from datetime import datetime, date
 import flask
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for
-from flask.ext.login import login_required, current_user
+from flask import g, request, render_template, redirect, url_for, current_app
+from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 import logging
 
-# Setup Blueprint
-main = Blueprint('main', __name__, url_prefix='/')
-
-# Import modules and objects
-
+from . import main # from current pkg import 'main' blueprint
 from app import utils
 from app import gsheets
 from app import tasks
-from app.main import auth
 from app.main import log
 from app.main import receipts
 from app.notify.views import on_email_status as notify_on_email_status
 
-# Import objects
-from app import db, app, socketio
-
-# Get logger
+from app import db
+from flask_socketio import SocketIO, emit
 logger = logging.getLogger(__name__)
-
-
 
 
 # ------------ Stuff TODO ----------------------
@@ -36,33 +29,21 @@ logger = logging.getLogger(__name__)
 # http://blog.miguelgrinberg.com/post/using-celery-with-flask
 
 
-
 #-------------------------------------------------------------------------------
-@main.route('')
+@main.route('/')
 def landing_page():
     return redirect(url_for('notify.view_event_list'))
 
 #-------------------------------------------------------------------------------
-@main.route('login', methods=['GET','POST'])
-def user_login():
-    return auth.login()
-
-#-------------------------------------------------------------------------------
-@main.route('logout', methods=['GET'])
-def user_logout():
-    auth.logout()
-    return redirect(app.config['PUB_URL'])
-
-#-------------------------------------------------------------------------------
-@main.route('log')
+@main.route('/log')
 @login_required
 def view_log():
-    lines = log.get_tail(app.config['LOG_PATH'] + 'info.log', app.config['LOG_LINES'])
+    lines = log.get_tail(current_app.config['LOG_PATH'] + 'info.log', current_app.config['LOG_LINES'])
 
     return render_template('views/log.html', lines=lines)
 
 #-------------------------------------------------------------------------------
-@main.route('admin')
+@main.route('/admin')
 @login_required
 def view_admin():
     user = db['users'].find_one({'user': current_user.username})
@@ -77,24 +58,14 @@ def view_admin():
     return render_template('views/admin.html', agency_config=settings_html)
 
 #-------------------------------------------------------------------------------
-@main.route('sendsocket', methods=['GET'])
-def request_send_socket():
-    name = request.args.get('name').encode('utf-8')
-    data = request.args.get('data').encode('utf-8')
-    socketio.emit(name, data)
-    return 'OK'
-
-#-------------------------------------------------------------------------------
-@main.route('booking', methods=['GET'])
+@main.route('/booking', methods=['GET'])
 @login_required
 def show_booking():
     agency = db['users'].find_one({'user': current_user.username})['agency']
     return render_template('views/booking.html', agency=agency)
 
-
-
 #-------------------------------------------------------------------------------
-@main.route('receipts/process', methods=['POST'])
+@main.route('/receipts/process', methods=['POST'])
 def process_receipts():
     '''Data sent from Routes worksheet in Gift Importer (Google Sheet)
     @arg 'data': JSON array of dict objects with UDF and gift data
@@ -109,7 +80,7 @@ def process_receipts():
     # Start celery workers to run slow eTapestry API calls
     r = tasks.send_receipts.apply_async(
       args=(entries, etapestry),
-      queue=app.config['DB']
+      queue=current_app.config['DB']
     )
 
     #logger.info('Celery process_receipts task: %s', r.__dict__)
@@ -117,7 +88,7 @@ def process_receipts():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('email/send', methods=['POST'])
+@main.route('/email/send', methods=['POST'])
 def _send_email():
     '''Can be collection receipt from gsheets.process_receipts, reminder email,
     or welcome letter from Google Sheets.
@@ -180,7 +151,7 @@ def _send_email():
     return json.loads(r.text)['id']
 
 #-------------------------------------------------------------------------------
-@main.route('email/<agency>/unsubscribe', methods=['GET'])
+@main.route('/email/<agency>/unsubscribe', methods=['GET'])
 def email_unsubscribe(agency):
 
     if request.args.get('email'):
@@ -218,9 +189,9 @@ def email_unsubscribe(agency):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('email/spam_complaint', methods=['POST'])
+@main.route('/email/spam_complaint', methods=['POST'])
 def email_spam_complaint():
-    
+
     if request.form['domain'] == 'recycle.vecova.ca':
         agency = 'vec'
     elif request.form['domain'] == 'wsaf.ca':
@@ -229,8 +200,7 @@ def email_spam_complaint():
     try:
         gsheets.create_rfu(
             agency,
-            "%s sent spam complaint" % request.form['recipient']
-        )     
+            "%s sent spam complaint" % request.form['recipient'])
     except Exception as e:
         logger.error('create spam rfu: %s', str(e))
         return str(e)
@@ -238,7 +208,7 @@ def email_spam_complaint():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('email/status',methods=['POST'])
+@main.route('/email/status',methods=['POST'])
 def email_status():
     '''Relay for Mailgun webhooks. Can originate from reminder_msg, Signups
     sheet, or Route Importer sheet
@@ -306,14 +276,14 @@ def email_status():
 
         tasks.create_rfu.apply_async(
             args=(email['agency'], msg, ),
-            queue=app.config['DB'])
+            queue=current_app.config['DB'])
 
-    #socketio.emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
+    emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
 
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('call/nis', methods=['POST'])
+@main.route('/call/nis', methods=['POST'])
 def nis():
     logger.info('NIS!')
 
@@ -330,7 +300,7 @@ def nis():
     return str(e)
 
 #-------------------------------------------------------------------------------
-@main.route('receive_signup', methods=['POST'])
+@main.route('/receive_signup', methods=['POST'])
 def rec_signup():
     '''Forwarded signup submision from emptiestowinn.com
     Adds signup data to Bravo Sheets->Signups gsheet row
@@ -339,7 +309,7 @@ def rec_signup():
     try:
         tasks.add_signup.apply_async(
           args=(request.form.to_dict(),), # Must include comma
-          queue=app.config['DB']
+          queue=current_app.config['DB']
         )
     except Exception as e:
         time.sleep(1)
@@ -347,7 +317,7 @@ def rec_signup():
         logger.info('Retrying...')
         tasks.add_signup.apply_async(
           args=(request.form.to_dict(),),
-          queue=app.config['DB']
+          queue=current_app.config['DB']
         )
         return str(e)
 

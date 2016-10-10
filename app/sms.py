@@ -3,6 +3,7 @@ import twilio.twiml
 import datetime
 import re
 from twilio.rest.lookups import TwilioLookupsClient
+from flask import current_app
 
 from app import gsheets
 from app import etap
@@ -10,7 +11,7 @@ from app.routing import routes
 from app import geo
 from app import schedule
 
-from app import app,db
+from app import db
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +136,7 @@ def send(twilio_keys, to, msg):
           body = msg,
           to = to,
           from_ = twilio_keys['sms'],
-          status_callback = app.config['PUB_URL'] + '/sms/status'
+          status_callback = current_app.config['PUB_URL'] + '/sms/status'
         )
     except twilio.TwilioRestException as e:
         logger.error('sms exception %s', str(e), exc_info=True)

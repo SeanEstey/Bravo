@@ -1,25 +1,21 @@
-# routing blueprint
-
 import json
 import twilio.twiml
 import requests
 from datetime import datetime, date, time, timedelta
-from flask import Blueprint, request, jsonify, render_template, redirect
-from flask.ext.login import login_required, current_user
+from flask import request, jsonify, render_template, redirect
+from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 import logging
 
-routing = Blueprint('routing', __name__, url_prefix='/routing')
-
+from . import routing
+from . import routes
 from app import utils
-from app import sms
 from app import tasks
-from app.routing import routes
+#from app.routing import routes
 
-from app import db, app, socketio
-
-# Get logger
+from app import db
 logger = logging.getLogger(__name__)
+
 
 #-------------------------------------------------------------------------------
 @routing.route('', methods=['GET'])
@@ -88,10 +84,10 @@ def get_routing_job_id():
 def _build_route(route_id):
     r = tasks.build_route.apply_async(
       args=(route_id,),
-      queue=app.config['DB']
+      queue=current_app.config['DB']
     )
 
-    return redirect(app.config['PUB_URL'] + '/routing')
+    return redirect(current_app.config['PUB_URL'] + '/routing')
 
 #-------------------------------------------------------------------------------
 @routing.route('/build_sheet/<route_id>/<job_id>', methods=['GET'])
@@ -99,6 +95,6 @@ def _build_sheet(job_id, route_id):
     '''non-celery synchronous func for testing
     '''
     routes.build_route(route_id, job_id=job_id)
-    return redirect(app.config['PUB_URL'] + '/routing')
+    return redirect(current_app.config['PUB_URL'] + '/routing')
 
 

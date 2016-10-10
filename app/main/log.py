@@ -2,7 +2,6 @@ import mmap
 import logging
 import os
 
-from app import app
 logger = logging.getLogger(__name__)
 
 def get_tail(file_path, num_lines):

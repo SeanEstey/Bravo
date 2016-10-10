@@ -1,11 +1,11 @@
 import json
 import requests
 import logging
+from flask import current_app
 from datetime import datetime, date
 
-from app import utils
-
-from app import app, db
+import utils
+from app import db
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ def call(func_name, keys, data, silence_exceptions=False):
 
     try:
         response = requests.post(
-            app.config['ETAP_WRAPPER_URL'],
+            current_app.config['ETAP_WRAPPER_URL'],
             data=json.dumps({
               "func": func_name,
               "etapestry": keys,

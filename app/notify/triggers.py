@@ -5,7 +5,7 @@ from datetime import datetime,date,time
 from app import utils
 from app.notify import notifications
 
-from app import app, db
+from app import db
 from app.utils import local_tz
 
 logger = logging.getLogger(__name__)

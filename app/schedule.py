@@ -13,7 +13,7 @@ from app import gsheets
 from app import etap
 from app.block_parser import get_block, block_to_rmv
 
-from app import app, db
+from app import db
 
 logger = logging.getLogger(__name__)
 

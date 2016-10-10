@@ -1,7 +1,7 @@
 
-# App
-DEBUG = False # Uses Werkzeug dev server when True, otherwise gevent (wsgi, threaded)
-DB = 'bravo' # Mongo Database
+# Uses Werkzeug dev server when True, otherwise gevent (wsgi, threaded)
+DEBUG = False
+DB = 'bravo'
 MONGO_URL = 'localhost'
 MONGO_PORT = 27017
 LOCAL_PORT = 8000
@@ -16,12 +16,6 @@ GSHEET_NAME = 'Bravo Sheets'
 
 # Universal app settings
 JOB_TIME_LIMIT = 3000
-EMERGENCY_CONTACT='7808635715'
-MAX_CALL_ATTEMPTS= 2
-REDIAL_DELAY = 300
-UPLOAD_FOLDER = '/tmp'
-JOBS_PER_PAGE = 10
-ALLOWED_EXTENSIONS = set(['csv','xls'])
 
 # PHP
 ETAP_WRAPPER_URL = 'http://www.bravoweb.ca/php/views.php'

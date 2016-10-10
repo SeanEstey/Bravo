@@ -11,7 +11,7 @@ import requests
 from pymongo import ReturnDocument
 import re
 import bson.json_util
-from flask.ext.login import current_user
+from flask_login import current_user
 from bson import ObjectId
 
 from app import etap
@@ -19,7 +19,7 @@ from app import schedule
 from app import gdrive
 from app import gsheets
 
-from app import app, db
+from app import db
 
 logger = logging.getLogger(__name__)
 

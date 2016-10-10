@@ -4,12 +4,12 @@ from dateutil.parser import parse
 from werkzeug import secure_filename
 import codecs
 from bson.objectid import ObjectId
-from flask.ext.login import current_user
+from flask_login import current_user
 import csv
 import os
 
 from app import utils
-from app import app, db, socketio
+from app import db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

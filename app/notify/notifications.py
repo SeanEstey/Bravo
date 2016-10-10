@@ -1,5 +1,5 @@
 import twilio
-from flask import render_template
+from flask import render_template, current_app
 import logging
 from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
@@ -16,8 +16,7 @@ from app import utils
 from app import tasks
 from app import etap
 
-# Import objects
-from app import app, db, socketio
+from app import db
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +77,7 @@ def _send_call(notification, twilio_conf):
     '''Private method called by send()
     '''
 
-    if notification.get('attempts') >= app.config['MAX_CALL_ATTEMPTS']:
+    if notification.get('attempts') >= current_app.config['MAX_CALL_ATTEMPTS']:
         return False
 
     if notification['to'][0:2] != "+1":
@@ -93,8 +92,8 @@ def _send_call(notification, twilio_conf):
         call = client.calls.create(
           from_ = twilio_conf['ph'],
           to = to,
-          url = app.config['PUB_URL'] + '/notify/voice/play/on_answer.xml',
-          status_callback = app.config['PUB_URL'] + '/notify/voice/on_complete',
+          url = current_app.config['PUB_URL'] + '/notify/voice/play/on_answer.xml',
+          status_callback = current_app.config['PUB_URL'] + '/notify/voice/on_complete',
           status_method = 'POST',
           status_events = ["completed"],
           method = 'POST',
@@ -348,7 +347,7 @@ def on_call_interact(args):
     elif args.get('Digits') == '2':
         tasks.cancel_pickup.apply_async(
             (str(notific['evnt_id']), str(notific['acct_id'])),
-            queue=app.config['DB']
+            queue=current_app.config['DB']
         )
 
         account = db['accounts'].find_one({'_id':notific['acct_id']})

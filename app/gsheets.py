@@ -4,6 +4,7 @@ import requests
 from datetime import datetime
 from dateutil.parser import parse
 import logging
+from flask import current_app
 
 # Google
 from oauth2client.client import SignedJwtAssertionCredentials
@@ -11,7 +12,7 @@ import httplib2
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
 
-from app import app, db
+from . import db
 logger = logging.getLogger(__name__)
 
 
@@ -213,7 +214,7 @@ def update_entry(agency, status, destination):
     try:
         oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
         gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
-        sheet = gc.open(app.config['GSHEET_NAME'])
+        sheet = gc.open(current_app.config['GSHEET_NAME'])
         wks = sheet.worksheet(destination['worksheet'])
     except Exception as e:
         logger.error(
@@ -267,7 +268,7 @@ def update_entry(agency, status, destination):
             )
 
             try:
-                wks.append_row(rfu)
+                wks.current_append_row(rfu)
             except Exception as e:
                 logger.error('Error writing to RFU worksheet: %s', str(e))
                 return False
@@ -279,7 +280,7 @@ def create_rfu(agency, note,
     try:
         oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
         gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
-        sheet = gc.open(app.config['GSHEET_NAME'])
+        sheet = gc.open(current_app.config['GSHEET_NAME'])
         wks = sheet.worksheet('RFU')
     except Exception as e:
         logger.error('Could not open RFU worksheet: %s', str(e))

@@ -8,7 +8,7 @@ import re
 import requests
 import json
 
-from app import app, db
+from app import db
 logger = logging.getLogger(__name__)
 
 

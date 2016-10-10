@@ -1,13 +1,35 @@
 from twilio import twiml
 import logging
 from datetime import datetime,date,time,timedelta
-from flask import request
+from flask import request, current_app
 
-# Import objects
-from app import app, db, socketio
-
+from app import db
 logger = logging.getLogger(__name__)
 
+
+#-------------------------------------------------------------------------------
+def get_twilio_token():
+    # get credentials for environment variables
+
+    import re
+    from twilio.util import TwilioCapability
+
+    # FIXME
+    twilio = db['agencies'].find_one({'name':'vec'})['twilio']['keys']['main']
+    alphanumeric_only = re.compile('[\W_]+')
+    # Generate a random user name
+    #identity = alphanumeric_only.sub('', "sean")
+
+    # Create a Capability Token
+    capability = TwilioCapability(twilio['sid'], twilio['auth_id'])
+    capability.allow_client_outgoing(twilio['app_sid'])
+    capability.allow_client_incoming("sean")
+    token = capability.generate()
+
+    # Return token info as JSON
+    return token
+
+#-------------------------------------------------------------------------------
 def dial(args):
     '''Request: POST from Bravo javascript client with 'To' arg
     Response: JSON dict {'status':'string'}
@@ -24,7 +46,7 @@ def dial(args):
       request.form['To'],
       twilio['ph'],
       twilio['keys']['main'],
-      app.config['PUB_URL'] + '/voice/record/on_answer.xml'
+      current_app.config['PUB_URL'] + '/voice/record/on_answer.xml'
     )'''
 
     logger.info('Dial status: %s', call.status)
@@ -44,6 +66,7 @@ def dial(args):
 
     return call
 
+#-------------------------------------------------------------------------------
 def on_answer(args):
     '''Request: Twilio POST
     Response: twilio.twiml.Response with voice content
@@ -58,13 +81,14 @@ def on_answer(args):
     )
     voice.record(
         method= 'POST',
-        action= app.config['PUB_URL'] + '/voice/record/on_complete.xml',
+        action= current_app.config['PUB_URL'] + '/voice/record/on_complete.xml',
         playBeep= True,
         finishOnKey='#'
     )
 
     #send_socket('record_audio', {'msg': 'Listen to the call for instructions'})
 
+#-------------------------------------------------------------------------------
 def on_complete(args):
     '''Request: Twilio POST
     Response: twilio.twiml.Response with voice content

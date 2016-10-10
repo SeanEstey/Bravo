@@ -2,7 +2,7 @@ import logging
 import matplotlib.path as mplPath
 import numpy as np
 
-from app import app,db
+from app import db
 from app.routing import routes
 
 logger = logging.getLogger(__name__)

@@ -2,6 +2,7 @@ import json
 import logging
 import gspread
 import requests
+from flask import current_app
 from datetime import datetime
 from dateutil.parser import parse
 from flask import render_template
@@ -10,7 +11,7 @@ from app import gsheets
 from app import etap
 from app import mailgun
 from app import html
-from app import app, db
+from app import db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -131,7 +132,7 @@ def process(entries, etapestry_id):
 
     oauth = db['agencies'].find_one({'name':etapestry_id['agency']})['google']['oauth']
     gc = gsheets.auth(oauth, ['https://spreadsheets.google.com/feeds'])
-    wks = gc.open(app.config['GSHEET_NAME']).worksheet('Routes')
+    wks = gc.open(current_app.config['GSHEET_NAME']).worksheet('Routes')
     headers = wks.row_values(1)
 
     num_zeros = 0

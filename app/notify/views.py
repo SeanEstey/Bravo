@@ -1,21 +1,20 @@
-# notify view
+'''notify.views'''
+
 import json
 import twilio.twiml
 import requests
 from datetime import datetime, date, time, timedelta
-from flask import \
-    Blueprint, request, jsonify, \
-    render_template, redirect, Response
-from flask.ext.login import login_required, current_user
+from flask import request, jsonify, render_template, \
+    redirect, Response, current_app
+from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 import logging
 import bson.json_util
+from flask_socketio import SocketIO, emit
 
-notify = Blueprint('notify', __name__, url_prefix='/notify')
-
-# Import bravo modules
-from app import utils
-from app import sms
+from . import notify
+from .. import utils
+from .. import sms
 from app import tasks
 from app.notify import events
 from app.notify import triggers
@@ -23,10 +22,7 @@ from app.notify import notifications
 from app.notify import pickup_service
 from app.notify import recording
 
-# Import objects
-from app import db, app, socketio
-
-# Get logger
+from app import db
 logger = logging.getLogger(__name__)
 
 
@@ -62,7 +58,7 @@ def new_event():
         logger.error("Couldn't open json schemas file")
         return "Error"
 
-    return render_template('views/new_event.html', templates=templates, title=app.config['TITLE'])
+    return render_template('views/new_event.html', templates=templates, title=current_app.config['TITLE'])
 
 #-------------------------------------------------------------------------------
 @notify.route('/submit_event', methods=['POST'])
@@ -91,7 +87,7 @@ def view_event(evnt_id):
 
     return render_template(
         'views/event.html',
-        title=app.config['TITLE'],
+        title=current_app.config['TITLE'],
         notific_list=notific_list,
         evnt_id=evnt_id,
         event=event,
@@ -122,7 +118,6 @@ def job_complete(evnt_id):
     logger.info('Job [ID %s] complete!', evnt_id)
 
     # TODO: Send socket to web app to display completed status
-
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -146,7 +141,7 @@ def fire_trigger(trig_id):
     trigger = db['triggers'].find_one({'_id':ObjectId(trig_id)})
     tasks.fire_trigger.apply_async(
             (str(trigger['evnt_id']), trig_id),
-            queue=app.config['DB'])
+            queue=current_app.config['DB'])
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -156,7 +151,7 @@ def no_pickup(evnt_id, acct_id):
 
     tasks.cancel_pickup.apply_async(
         (evnt_id, acct_id),
-        queue=app.config['DB'])
+        queue=current_app.config['DB'])
 
     return 'Thank You'
 
@@ -170,24 +165,7 @@ def play_sample_rem():
 #-------------------------------------------------------------------------------
 @notify.route('/get/token', methods=['GET'])
 def get_twilio_token():
-    # get credentials for environment variables
-
-    import re
-    from twilio.util import TwilioCapability
-
-    # FIXME
-    twilio = db['agencies'].find_one({'name':'vec'})['twilio']['keys']['main']
-    alphanumeric_only = re.compile('[\W_]+')
-    # Generate a random user name
-    #identity = alphanumeric_only.sub('', "sean")
-
-    # Create a Capability Token
-    capability = TwilioCapability(twilio['sid'], twilio['auth_id'])
-    capability.allow_client_outgoing(twilio['app_sid'])
-    capability.allow_client_incoming("sean")
-    token = capability.generate()
-
-    # Return token info as JSON
+    token = recording.get_twilio_token()
     return jsonify(identity="sean", token=token)
 
 
@@ -307,5 +285,13 @@ def on_email_status(args):
 
 @notify.route('/secret_scheduler', methods=['GET'])
 def secret_scheduler():
-    tasks.schedule_reminders.apply_async(args=None, queue=app.config['DB'])
+    tasks.schedule_reminders.apply_async(args=None, queue=current_app.config['DB'])
+    return 'OK'
+
+#-------------------------------------------------------------------------------
+@notify.route('/sendsocket', methods=['GET'])
+def request_send_socket():
+    name = request.args.get('name').encode('utf-8')
+    data = request.args.get('data').encode('utf-8')
+    emit(name, data)
     return 'OK'

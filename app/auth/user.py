@@ -1,3 +1,5 @@
+'''auth/user.py'''
+
 # Flask user for sessions
 class User():
   username = ''

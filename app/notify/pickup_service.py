@@ -13,7 +13,7 @@ from app.notify import events
 from app.notify import notifications
 from app.notify import triggers
 
-from app import app, db
+from app import db
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 def create_reminder_event(agency, block, _date):
     '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
     '''
-    
+
     agency_conf = db['agencies'].find_one({'name':agency})
 
     try:

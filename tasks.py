@@ -1,6 +1,8 @@
 from celery import Celery
 from bson.objectid import ObjectId
-from app import app, celery_app 
+from app import db, create_celery_app
+from flask import current_app
+from run import celery_app, flask_app
 
 #-------------------------------------------------------------------------------
 @celery_app.task
@@ -12,11 +14,11 @@ def build_routes():
 @celery_app.task
 def monitor_triggers():
     from app.notify import triggers
-    
-    with app.app_context():
-        #return triggers.monitor_all()
+
+    with flask_app.app_context():
+        return triggers.monitor_all()
         return True
-    
+
 #-------------------------------------------------------------------------------
 @celery_app.task
 def cancel_pickup(evnt_id, acct_id):
@@ -39,17 +41,17 @@ def add_signup(signup):
 @celery_app.task
 def fire_trigger(evnt_id, trig_id):
     from app.notify import triggers
-    
-    with app.app_context():
+
+    with current_app.app_context():
         return triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
 
 #-------------------------------------------------------------------------------
 @celery_app.task
 def send_receipts(entries, etapestry_id):
     from app.main import receipts
-    
+
     # Should allow access to render_template() without making HTTP request for each receipt
-    with app.app_context():
+    with current_app.app_context():
         return receipts.process(entries, etapestry_id)
 
 #-------------------------------------------------------------------------------
@@ -57,14 +59,14 @@ def send_receipts(entries, etapestry_id):
 def create_rfu(agency, note,
                a_id=None, npu=None, block=None, _date=None, name_addy=None):
     from app import gsheets
-    
+
     return gsheets.create_rfu(
-        agency, 
+        agency,
         note,
-        a_id=a_id, 
-        npu=npu, 
-        block=block, 
-        _date=_date, 
+        a_id=a_id,
+        npu=npu,
+        block=block,
+        _date=_date,
         name_addy=name_addy
     )
 
@@ -74,13 +76,13 @@ def schedule_reminders():
     from app.notify import pickup_service
     from app import schedule
     from datetime import datetime, date, time, timedelta
-    
+
     PRESCHEDULE_BY_DAYS = 5
     agency = 'vec'
 
     blocks = []
     _date = date.today() + timedelta(days=PRESCHEDULE_BY_DAYS)
-    
+
     agency_conf = db['agencies'].find_one({'name':agency})
 
     for key in agency_conf['cal_ids']:
@@ -99,7 +101,7 @@ def schedule_reminders():
 def update_sms_accounts():
     '''Verify that all accounts in upcoming residential routes with mobile
     numbers are set up to interact with SMS system'''
-    
+
     from app import sms
 
     agency_name = 'vec'
@@ -197,7 +199,7 @@ def find_non_participants():
     '''Create RFU's for all non-participants on scheduled dates'''
     from app import schedule
     from app.main import non_participants
-    
+
     agencies = db['agencies'].find({})
 
     for agency in agencies:
@@ -227,7 +229,7 @@ def find_non_participants():
                   account_number = np['id'],
                   next_pickup = npu,
                   block = etap.get_udf('Block', np),
-                  date = date.today().strftime('%-m/%-d/%Y')             
+                  date = date.today().strftime('%-m/%-d/%Y')
                 )
         except Exception as e:
             logger.error('non-participation exception: %s', str(e))

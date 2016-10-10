@@ -282,12 +282,6 @@ def on_email_status(args):
     notifications.on_email_status(args)
     return 'OK'
 
-
-@notify.route('/secret_scheduler', methods=['GET'])
-def secret_scheduler():
-    tasks.schedule_reminders.apply_async(args=None, queue=current_app.config['DB'])
-    return 'OK'
-
 #-------------------------------------------------------------------------------
 @notify.route('/sendsocket', methods=['GET'])
 def request_send_socket():
@@ -295,3 +289,11 @@ def request_send_socket():
     data = request.args.get('data').encode('utf-8')
     emit(name, data)
     return 'OK'
+
+#-------------------------------------------------------------------------------
+@notify.route('/secret_scheduler', methods=['GET'])
+def secret_scheduler():
+    tasks.schedule_reminders.apply_async(args=None, queue=current_app.config['DB'])
+    return 'OK'
+
+

@@ -8,8 +8,8 @@ from flask_login import current_user
 import csv
 import os
 
-from app import utils
-from app import db
+from .. import utils
+from .. import db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

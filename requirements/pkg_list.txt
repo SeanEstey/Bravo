@@ -1,5 +1,7 @@
 # list package versions: sudo dpkg -l | less
 
+
+pyOpenSSL==0.15.1
 python-pip
 python-dev=2.7
 mongodb=3.2

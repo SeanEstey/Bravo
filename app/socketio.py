@@ -1,7 +1,7 @@
 from flask_socketio import SocketIO
 
 #-------------------------------------------------------------------------------
-@socketio.on('disconnect')
+#@socketio.on('disconnect')
 def socketio_disconnected():
     return True
     #app.logger.debug('socket disconnected')
@@ -12,7 +12,7 @@ def socketio_disconnected():
     #)
 
 #-------------------------------------------------------------------------------
-@socketio.on('connect')
+#@socketio.on('connect')
 def socketio_connect():
     return True
     #app.logger.debug('socket.io connected')

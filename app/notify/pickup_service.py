@@ -5,17 +5,11 @@ from dateutil.parser import parse
 from bson.objectid import ObjectId
 from bson import json_util
 
-from app import utils
-from app import block_parser
-from app import schedule
-from app import etap
-from app.notify import events
-from app.notify import notifications
-from app.notify import triggers
-
-from app import db
-
+from .. import utils, block_parser, gcal, etap
+from .. import db
+from . import events, notifications, triggers
 logger = logging.getLogger(__name__)
+
 
 #-------------------------------------------------------------------------------
 def create_reminder_event(agency, block, _date):
@@ -44,7 +38,8 @@ def create_reminder_event(agency, block, _date):
                 'query_category':agency_conf['etapestry']['query_category']
             })['data']
     except Exception as e:
-        logger.error('Error retrieving accounts for query %s', block)
+        logger.error('Error getting accounts for query %s: %s', block, str(e))
+        return False
 
     if len(accounts) < 1:
         return False
@@ -174,12 +169,15 @@ def add_future_pickups(evnt_id):
     cal_events = []
 
     try:
+        service = gcal.gauth(agency_conf['google']['oauth'])
+
         for key in agency_conf['cal_ids']:
-            cal_events += scheduler.get_cal_events(
-                    agency_conf['cal_ids'][key],
-                    start,
-                    end,
-                    agency_conf['google']['oauth'])
+            cal_events += gcal.get_events(
+                service,
+                agency_conf['cal_ids'][key],
+                start,
+                end
+            )
 
         logger.debug('%i calendar events pulled', len(cal_events))
 

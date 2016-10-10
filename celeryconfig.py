@@ -1,7 +1,6 @@
 from celery.schedules import crontab
 import config
 
-# Celery
 BROKER_URI= 'amqp://'
 CELERY_BROKER_URL = 'amqp://'
 CELERY_ACCEPT_CONTENT = ['json']

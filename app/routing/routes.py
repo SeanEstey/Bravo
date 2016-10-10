@@ -14,10 +14,7 @@ import bson.json_util
 from flask_login import current_user
 from bson import ObjectId
 
-from app import etap
-from app import schedule
-from app import gdrive
-from app import gsheets
+from .. import gcal, gdrive, gsheets, etap, schedule
 
 from app import db
 
@@ -472,8 +469,6 @@ def get_upcoming_routes(agency):
     # send today's Blocks routing status
     today_dt = datetime.combine(date.today(), time())
 
-    #agency = db['users'].find_one({'user': current_user.username})['agency']
-
     cal_ids = db['agencies'].find_one({'name':agency})['cal_ids']
     oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
 
@@ -481,8 +476,8 @@ def get_upcoming_routes(agency):
 
     events = []
 
-    for id in cal_ids:
-        events += scheduler.get_cal_events(cal_ids[id], today_dt, end_dt, oauth)
+    for _id in cal_ids:
+        events += gcal.get_events(gcal.gauth(oauth), cal_ids[_id], today_dt, end_dt)
 
     events = sorted(events, key=lambda k: k['start']['date'])
 

@@ -9,13 +9,12 @@ from apiclient.discovery import build
 import re
 from datetime import datetime, date, time, timedelta
 
-from app import gsheets
-from app import etap
-from app.block_parser import get_block, block_to_rmv
-
-from app import db
+from .block_parser import get_block, block_to_rmv
+from . import gcal, gsheets, etap
+from . import db
 
 logger = logging.getLogger(__name__)
+
 
 #-------------------------------------------------------------------------------
 def get_blocks(cal_id, start_date, end_date, oauth):
@@ -24,7 +23,8 @@ def get_blocks(cal_id, start_date, end_date, oauth):
     blocks = []
 
     try:
-        events = get_cal_events(cal_id, start_date, end_date, oauth)
+        service = gcal.gauth(oauth)
+        events = gcal.get_events(service, cal_id, start_date, end_date)
     except Exception as e:
         logger.error('Could not access Res calendar: %s', str(e))
         return False
@@ -71,6 +71,3 @@ def get_accounts(etapestry_id, cal_id, oauth, days_from_now=None):
     logger.info('Found %d accounts in blocks %s', len(accounts), blocks)
 
     return accounts
-
-
-

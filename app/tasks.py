@@ -1,7 +1,11 @@
 from celery import Celery
+import logging
 from bson.objectid import ObjectId
 from . import db, celery
 from . import create_app
+
+logger = logging.getLogger(__name__)
+
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -52,7 +56,8 @@ def send_receipts(entries, etapestry_id):
     from app.main import receipts
 
     # Should allow access to render_template() without making HTTP request for each receipt
-    with current_app.app_context():
+    app = create_app()
+    with app.app_context():
         return receipts.process(entries, etapestry_id)
 
 #-------------------------------------------------------------------------------
@@ -94,8 +99,10 @@ def schedule_reminders():
             agency_conf['google']['oauth']
         )
 
-    for block in blocks:
-        pickup_service.crate_reminder_event(agency, block, _date)
+    app = create_app()
+    with app.app_context():
+        for block in blocks:
+            pickup_service.create_reminder_event(agency, block, _date)
 
 #-------------------------------------------------------------------------------
 @celery.task

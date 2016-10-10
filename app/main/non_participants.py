@@ -1,3 +1,9 @@
+from datetime import datetime, timedelta
+from dateutil.parser import parse
+from .. import etap
+from .. import db
+logger = logging.getLogger(__name__)
+
 
 #-------------------------------------------------------------------------------
 def find(agency, accounts):
@@ -25,7 +31,7 @@ def find(agency, accounts):
             try:
                 etap.call(
                     'modify_account',
-                    agency_conf['etapestry'], 
+                    agency_conf['etapestry'],
                     data={
                         'id': account['id'],
                         'udf': {
@@ -59,7 +65,7 @@ def find(agency, accounts):
         # Retrieve non-zero gifts from cutoff date
         gift_histories = etap.call(
             'get_gift_histories',
-            keys, 
+            keys,
             data = {
                 "account_refs": [i['ref'] for i in viable_accounts],
                 "start_date": str(np_cutoff.day) + "/" + str(np_cutoff.month) + "/" +str(np_cutoff.year),

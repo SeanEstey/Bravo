@@ -1,10 +1,20 @@
 from celery import Celery
 import logging
 from bson.objectid import ObjectId
-from . import db, celery
-from . import create_app
+
+
+#from run import celery
+
+
+from . import db
+from . import create_app, create_celery_app
+
+flask_app = create_app('app')
+celery = create_celery_app(flask_app)
 
 logger = logging.getLogger(__name__)
+
+
 
 
 #-------------------------------------------------------------------------------
@@ -18,10 +28,10 @@ def build_routes():
 def monitor_triggers():
     from app.notify import triggers
 
-    app = create_app()
-    with app.app_context():
-        return triggers.monitor_all()
-        return True
+    #app = create_app('config')
+    #with app.app_context():
+    return triggers.monitor_all()
+    #    return True
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -46,9 +56,7 @@ def add_signup(signup):
 def fire_trigger(evnt_id, trig_id):
     from app.notify import triggers
 
-    app = create_app()
-    with app.app_context():
-        return triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
+    return triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -56,9 +64,9 @@ def send_receipts(entries, etapestry_id):
     from app.main import receipts
 
     # Should allow access to render_template() without making HTTP request for each receipt
-    app = create_app()
-    with app.app_context():
-        return receipts.process(entries, etapestry_id)
+    #app = create_app('config')
+    #with app.app_context():
+    return receipts.process(entries, etapestry_id)
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -99,10 +107,10 @@ def schedule_reminders():
             agency_conf['google']['oauth']
         )
 
-    app = create_app()
-    with app.app_context():
-        for block in blocks:
-            pickup_service.create_reminder_event(agency, block, _date)
+    #app = create_app()
+    #with app.app_context():
+    for block in blocks:
+        pickup_service.create_reminder_event(agency, block, _date)
 
 #-------------------------------------------------------------------------------
 @celery.task

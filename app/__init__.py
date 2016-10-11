@@ -36,14 +36,33 @@ client = pymongo.MongoClient(
 db = client[config.DB]
 
 
-celery = Celery(__name__, broker='amqp://')
-celery.config_from_object('celeryconfig')
+#celery = Celery(__name__, broker='amqp://')
+#celery.config_from_object('celeryconfig')
+
 
 
 #-------------------------------------------------------------------------------
-def create_app():
-    app = Flask(__name__)
-    app.config.from_object('config')
+def create_celery_app(app=None):
+    app = app or create_app('app')
+    celery = Celery(__name__, broker='amqp://')
+    celery.config_from_object('celeryconfig')
+    celery.conf.update(app.config)
+    TaskBase = celery.Task
+
+    class ContextTask(TaskBase):
+        abstract = True
+
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return TaskBase.__call__(self, *args, **kwargs)
+
+    celery.Task = ContextTask
+    return celery
+
+#-------------------------------------------------------------------------------
+def create_app(pkg_name):
+    app = Flask(pkg_name)
+    app.config.from_object(config)
 
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.jinja_env.add_extension("jinja2.ext.do")
@@ -65,6 +84,15 @@ def create_app():
     app.register_blueprint(notify_mod)
     app.register_blueprint(routing_mod)
 
+    '''absolute_url_adapter = app.url_map.bind_to_environ({
+        'wsgi.url_scheme': 'http',
+        'HTTP_HOST': app.config['SERVER_NAME'],
+        'SCRIPT_NAME': '/notify',
+        'REQUEST_METHOD': 'GET',
+    })
+
+    absolute_url_adapter.build('app.notify', force_external=True)
+    '''
 
     #celery.conf.update(app.config)
     #celery.config_from_object('app.celeryconfig')

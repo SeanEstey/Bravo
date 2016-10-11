@@ -1,4 +1,5 @@
-DEBUG = False
+DEBUG = True
+#SERVER_NAME = 'http://104.236.184.177:8000'
 TITLE = 'Bravo'
 LOG_PATH = '/var/www/bravo/logs/'
 LOG_LINES = 200

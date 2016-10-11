@@ -5,20 +5,23 @@ import getopt
 from flask_socketio import SocketIO
 
 import config
-from app import create_app
-from app import celery
+from app import create_app, create_celery_app
+#from app import celery
 
-flask_app = create_app()
+#flask_app = create_app('app')
+from app.tasks import flask_app
 socketio_app = SocketIO(flask_app)
 
-celery.conf.update(flask_app.config)
+#celery = create_celery_app(flask_app)
+
+#celery.conf.update(flask_app.config)
 
 
 
 def start_worker():
     # Create worker w/ embedded beat. Does not work
     # if more than 1 worker
-    os.system('celery worker -A run.celery -B -n ' + \
+    os.system('celery worker -A app.tasks.celery -B -n ' + \
               config.DB + ' --queues ' + config.DB + ' &')
     # Pause to give workers time to initialize before starting server
     time.sleep(2)

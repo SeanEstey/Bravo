@@ -10,11 +10,8 @@ import bson.json_util
 import json
 import re
 
-# Import modules
-from app import gsheets
-from app import utils
-from app import tasks
-from app import etap
+from .. import mailgun, gsheets, utils, etap
+#from app import tasks
 
 from app import db
 
@@ -126,27 +123,29 @@ def send_email(notification, mailgun_conf, key='default'):
     @key = dict key in email schemas for which template to use
     '''
 
-    template = notification['content']['template'][key]    
-        
-    # TODO: Should have app context now when invoked from celery task
-    
-    try:
-        body = render_template(
-            template['file'],
-            to = notification['to'],
-            account = utils.mongo_formatter(
-                db['accounts'].find_one({'_id':notification['acct_id']}),
-                to_local_time=True,
-                to_strftime="%A, %B %d",
-                bson_to_json=True
-            ),
-            evnt_id = notification['evnt_id']
-        )
-    except Exception as e:
-        logger.error('render email: %s ', str(e))
-        return False
+    template = notification['content']['template'][key]
 
-    mid = utils.send_email(
+    # IMPORTANT: Need these 2 lines to allow url generation
+    # in a celery task outside request context
+    current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
+    with current_app.test_request_context():
+        try:
+            body = render_template(
+                template['file'],
+                to = notification['to'],
+                account = utils.mongo_formatter(
+                    db['accounts'].find_one({'_id':notification['acct_id']}),
+                    to_local_time=True,
+                    to_strftime="%A, %B %d",
+                    bson_to_json=True
+                ),
+                evnt_id = notification['evnt_id']
+            )
+        except Exception as e:
+            logger.error('render email: %s ', str(e))
+            return False
+
+    mid = mailgun.send(
         notification['to'],
         template['subject'],
         body,
@@ -158,7 +157,7 @@ def send_email(notification, mailgun_conf, key='default'):
         status = 'queued'
 
     agency = db['agencies'].find_one({'mailgun.domain': mailgun_conf['domain']})
-    
+
     db['emails'].insert({
         'agency': agency['name'],
         'mid': mid,

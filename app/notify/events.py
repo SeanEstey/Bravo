@@ -1,3 +1,5 @@
+'''app.notify.events'''
+
 import logging
 from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
@@ -138,13 +140,18 @@ def remove(evnt_id):
     # remove all triggers, notifications, and event
     evnt_id = ObjectId(evnt_id)
 
-    n_notific = db['notifications'].remove({'evnt_id':evnt_id})
+    notifics = db['notifications'].find({'evnt_id':evnt_id})
+    for notific in notifics:
+        db['accounts'].remove({'_id':notific['acct_id']})
 
-    n_triggers = db['triggers'].remove({'evnt_id': evnt_id})
+    n_notifics = db['notifications'].remove({'evnt_id':evnt_id}).get('n')
 
-    db['notification_events'].remove({'_id': evnt_id})
+    n_triggers = db['triggers'].remove({'evnt_id': evnt_id}).get('n')
 
-    logger.info('Removed %s notifications and %s triggers', n_notific, n_triggers)
+    n_events = db['notification_events'].remove({'_id': evnt_id}).get('n')
+
+    logger.info('Removed %s event, %s notifics, and %s triggers',
+        n_events, n_notifics, n_triggers)
 
     return True
 

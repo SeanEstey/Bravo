@@ -1,3 +1,9 @@
+import requests
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
 # TODO: rename all "send_email" calls to "mailgun.send"
 
 

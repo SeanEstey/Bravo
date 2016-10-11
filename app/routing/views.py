@@ -12,7 +12,7 @@ import logging
 from . import routing
 from . import routes
 from .. import utils
-from .. import tasks
+#from .. import tasks
 
 from app import db
 logger = logging.getLogger(__name__)

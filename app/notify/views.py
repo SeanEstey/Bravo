@@ -13,16 +13,11 @@ import bson.json_util
 from flask_socketio import SocketIO, emit
 
 from . import notify
-from .. import utils
-from .. import sms
-from app import tasks
-from app.notify import events
-from app.notify import triggers
-from app.notify import notifications
-from app.notify import pickup_service
-from app.notify import recording
+from . import events, triggers, notifications, recording, pickup_service
+from .. import utils, sms#, tasks
 
-from app import db
+from .. import db
+from .. import create_app
 logger = logging.getLogger(__name__)
 
 
@@ -78,11 +73,18 @@ def view_event(evnt_id):
     '''GUI event view'''
 
     event = events.get(ObjectId(evnt_id))
-    notific_list = events.get_notifications(ObjectId(evnt_id))
+    notific_list = list(events.get_notifications(ObjectId(evnt_id)))
     trigger_list = events.get_triggers(ObjectId(evnt_id))
 
+    notific_list = utils.mongo_formatter(
+        notific_list,
+        to_local_time=True,
+        to_strftime="%m/%-d/%Y",
+        bson_to_json=True
+    )
 
-    logger.debug(bson.json_util.dumps(notific_list, indent=4))
+
+    #logger.debug(json.dumps(notific_list[0], indent=4))
 
 
     return render_template(
@@ -99,7 +101,7 @@ def view_event(evnt_id):
 @notify.route('/<evnt_id>/cancel')
 @login_required
 def cancel_event(evnt_id):
-    reminders.cancel_event(evnt_id)
+    events.remove(ObjectId(evnt_id))
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -138,10 +140,14 @@ def edit_msg(notific_id):
 @notify.route('/<trig_id>/fire', methods=['POST'])
 @login_required
 def fire_trigger(trig_id):
+    import config
+    from .. import tasks
+
     trigger = db['triggers'].find_one({'_id':ObjectId(trig_id)})
+
     tasks.fire_trigger.apply_async(
             (str(trigger['evnt_id']), trig_id),
-            queue=current_app.config['DB'])
+            queue=config.DB)
     return 'OK'
 
 #-------------------------------------------------------------------------------

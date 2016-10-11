@@ -63,57 +63,56 @@
       <!-- Notifications Rows -->
       <tbody>
       {% for row in notific_list %}
-        <tr id='{{row[_id']['$iod']}}>
-	  <td>{{row['results'][0]['account'][0]['name']}}</td>
-          <!-- phone -->
-	  <td>
-          {% for notific in row['results'] %}
-            {% if notific['type'] == 'voice' %}
-              {{notific.to}}
-            {% endif %}
-          {% endfor %}
-	  </td>
+        <tr id="{{row['_id']['$iod']}}">
+				<td>{{row['results'][0]['account'][0]['name']}}</td>
+
+				<!-- phone -->
+				<td>
+				{% for notific in row['results'] %}
+					{% if notific['type'] == 'voice' %}
+						{{notific.to}}
+					{% endif %}
+				{% endfor %}
+				</td>
           
-	  <!-- email -->
-          <td>
-	  {% for notific in row['results'] %}
-            {% if notific['type'] == 'email' %}
-              {{notific.to}}
-            {% endif %}
-          {% endfor %}
-	  </td>
+				<!-- email -->
+				<td>
+				{% for notific in row['results'] %}
+					{% if notific['type'] == 'email' %}
+						{{notific.to}}
+					{% endif %}
+				{% endfor %}
+				</td>
 					
+				<td>{{row['results'][0]['account'][0]['udf']['block']}}</td>
+				<td>{{row['results'][0]['account'][0]['udf']['status']}}</td>
+				<td>{{row['results'][0]['account'][0]['udf']['driver_notes']}}</td>
+				<td>{{row['results'][0]['account'][0]['udf']['office_notes']}}</td>
+				<td>{{row['results'][0]['account'][0]['udf']['pickup_dt']}}</td>
 
+        <!-- email status -->
+				<td>
+				{% for notific in row['results'] if notific['type'] == 'email' %}
+								{{notific['status']}}
+				{% endfor %}
+				</td>
 
-          <td>{{row['results'][0]['account'][0]['udf']['block']}}</td>
-          <td>{{row['results'][0]['account'][0]['udf']['status']}}</td>
-          <td>{{row['results'][0]['account'][0]['udf']['driver_notes']}}</td>
-          <td>{{row['results'][0]['account'][0]['udf']['office_notes']}}</td>
-          <td>{{row['results'][0]['account'][0]['udf']['pickup_dt'].strftime("%-m/%-d/%Y")}}</td>
+				<!-- call status -->
+				<td>
+				{% for notific in row['results'] if notific['type'] == 'voice' %}
+								{{notific['status']}}
+				{% endfor %}
+				</td>
 
-          <!-- email status -->
-	  <td>
-	  {% for notific in row['results'] if notific['type'] == 'email' %}
-            {{notific['status']}}
-	  {% endfor %}
-	  </td>
-
-	  <!-- call status -->
-	  <td>
-	  {% for notific in row['results'] if notific['type'] == 'voice' %}
-            {{notific['status']}}
-	  {% endfor %}
-	  </td>
-
-          <!-- Delete Button -->
-          <td class='cancel-notific'>
-            <button 
-              class='delete-btn' 
-              type="button" 
-              id="{{row['_id']['$oid']}}" 
-              name="delete-btn">
-            </button>
-          </td>
+				<!-- Delete Button -->
+				<td class='cancel-notific'>
+					<button 
+						class='delete-btn' 
+						type="button" 
+						id="{{row['_id']['$oid']}}" 
+						name="delete-btn">
+					</button>
+				</td>
         </tr>
       {% endfor %}
     </tbody>

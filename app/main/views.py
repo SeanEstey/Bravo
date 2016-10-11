@@ -18,7 +18,7 @@ from . import receipts
 from .. import utils
 from .. import html
 from .. import gsheets
-from .. import tasks
+#from .. import tasks
 
 
 from app.notify.views import on_email_status as notify_on_email_status

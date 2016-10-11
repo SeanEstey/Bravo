@@ -86,7 +86,7 @@ def monitor_all():
     IMPORTANT: Requires Flask app context. Can block server if called without
     context.
     TODO: add flask context to all celery tasks'''
-        
+
     ready_triggers = db['triggers'].find(
         {'status':'pending', 'fire_dt':{'$lt':datetime.utcnow()}})
 

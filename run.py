@@ -10,7 +10,7 @@ from app import create_app, create_celery_app
 
 #flask_app = create_app('app')
 from app.tasks import flask_app
-socketio_app = SocketIO(flask_app)
+
 
 #celery = create_celery_app(flask_app)
 
@@ -49,18 +49,22 @@ def main(argv):
                 start_worker()
         elif opt == '-m':
             if arg == 'debug':
+                print 'starting test server'
                 flask_app.config['DEBUG'] = True
             elif arg == 'release':
+                print 'starting release server'
                 flask_app.config['DEBUG'] = False
 
+    socketio_app = SocketIO(flask_app)
 
-    if flask_app.config['DEBUG'] == True:
-        # Werkzeug server (Test Mode)
-        flask_app.run(port=flask_app.config['LOCAL_PORT'], debug=True, threaded=True)
-        #socketio.run(app, port=app.config['LOCAL_PORT'], threaded=THREADED)
-    else:
-        # Start eventlet server w/ socket.io enabled
-        socketio.run(flask_app, port=flask_app.config['LOCAL_PORT'])
+    # if DEBUG == True, Werkzeug server will auto-run
+    # if DEBUG == False, Eventlet server w/ socket.io enabled
+
+    socketio_app.run(
+        flask_app,
+        port=flask_app.config['LOCAL_PORT'],
+        use_reloader=False
+    )
 
 if __name__ == "__main__":
     main(sys.argv[1:])

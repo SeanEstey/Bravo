@@ -1,4 +1,4 @@
-'''app/__init__.py'''
+'''app'''
 
 from celery import Celery
 import pymongo

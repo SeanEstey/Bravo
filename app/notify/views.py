@@ -289,13 +289,13 @@ def on_email_status(args):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/sendsocket', methods=['GET'])
+'''@notify.route('/sendsocket', methods=['GET'])
 def request_send_socket():
     name = request.args.get('name').encode('utf-8')
     data = request.args.get('data').encode('utf-8')
     emit(name, data)
     return 'OK'
-
+'''
 #-------------------------------------------------------------------------------
 @notify.route('/secret_scheduler', methods=['GET'])
 def secret_scheduler():

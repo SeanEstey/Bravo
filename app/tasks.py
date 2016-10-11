@@ -28,10 +28,7 @@ def build_routes():
 def monitor_triggers():
     from app.notify import triggers
 
-    #app = create_app('config')
-    #with app.app_context():
     return triggers.monitor_all()
-    #    return True
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -63,9 +60,6 @@ def fire_trigger(evnt_id, trig_id):
 def send_receipts(entries, etapestry_id):
     from app.main import receipts
 
-    # Should allow access to render_template() without making HTTP request for each receipt
-    #app = create_app('config')
-    #with app.app_context():
     return receipts.process(entries, etapestry_id)
 
 #-------------------------------------------------------------------------------
@@ -107,8 +101,6 @@ def schedule_reminders():
             agency_conf['google']['oauth']
         )
 
-    #app = create_app()
-    #with app.app_context():
     for block in blocks:
         pickup_service.create_reminder_event(agency, block, _date)
 

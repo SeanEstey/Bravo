@@ -84,19 +84,6 @@ def create_app(pkg_name):
     app.register_blueprint(notify_mod)
     app.register_blueprint(routing_mod)
 
-    '''absolute_url_adapter = app.url_map.bind_to_environ({
-        'wsgi.url_scheme': 'http',
-        'HTTP_HOST': app.config['SERVER_NAME'],
-        'SCRIPT_NAME': '/notify',
-        'REQUEST_METHOD': 'GET',
-    })
-
-    absolute_url_adapter.build('app.notify', force_external=True)
-    '''
-
-    #celery.conf.update(app.config)
-    #celery.config_from_object('app.celeryconfig')
-
     return app
 
 #-------------------------------------------------------------------------------

@@ -1,3 +1,5 @@
+'''notify.pickup_service'''
+
 import logging
 import json
 from datetime import datetime, date, time, timedelta
@@ -147,7 +149,7 @@ def insert_reminder(evnt_id, event_dt, trig_id, _type, acct_id, schema):
                 'template': schema['email']
             })
 
-    logger.info('Inserted reminder _id %s', str(_id))
+    logger.debug('Inserted reminder _id %s', str(_id))
     return True
 
 #-------------------------------------------------------------------------------
@@ -165,7 +167,7 @@ def add_future_pickups(evnt_id):
     agency_conf = db['agencies'].find_one({'name':event['agency']})
 
     start = event['event_dt'] + timedelta(days=1)
-    end = start + timedelta(days=90)
+    end = start + timedelta(days=110)
     cal_events = []
 
     try:
@@ -178,28 +180,35 @@ def add_future_pickups(evnt_id):
                 start,
                 end
             )
+    except Exception as e:
+        logger.error('%s', str(e))
+        return str(e)
 
-        logger.debug('%i calendar events pulled', len(cal_events))
+    logger.debug('%i calendar events pulled', len(cal_events))
 
-        block_dates = {}
+    block_dates = {}
 
-        # Search calendar events to find pickup date
-        for cal_event in cal_events:
-            block = cal_event['summary'].split(' ')[0]
+    # Search calendar events to find pickup date
+    for cal_event in cal_events:
+        block = cal_event['summary'].split(' ')[0]
 
-            if block not in block_dates:
-                dt = parse(cal_event['start']['date'] + " T08:00:00")
-                block_dates[block] = utils.naive_to_local(dt)
+        if block not in block_dates:
+            dt = parse(cal_event['start']['date'] + " T08:00:00")
+            block_dates[block] = utils.naive_to_local(dt)
 
-        notific_list = db['notifications'].find({'evnt_id':evnt_id})
+    notific_list = db['notifications'].find({'evnt_id':evnt_id})
 
-        # Update future pickups for every notification under this event
-        for notific in notific_list:
+    logger.debug('block_dats: %s', json_util.dumps(block_dates, sort_keys=True,indent=4))
+
+    # Update future pickups for every notification under this event
+    npu = ''
+    for notific in notific_list:
+        try:
             account = db['accounts'].find_one({'_id':notific['acct_id']})
 
             npu = get_next_pickup(
               account['udf']['block'],
-              account['udf']['office_notes'],
+              account['udf']['office_notes'] or '',
               block_dates
             )
 
@@ -207,9 +216,10 @@ def add_future_pickups(evnt_id):
                 db['accounts'].update_one({'_id':notific['acct_id']}, {
                     '$set':{'udf.future_pickup_dt':npu}
                 })
-    except Exception as e:
-        logger.error('add_future_pickups: %s', str(e))
-        return str(e)
+        except Exception as e:
+            logger.error('Assigning future_dt %s to acct_id %s: %s',
+            str(npu), str(account['_id']), str(e))
+
 
 #-------------------------------------------------------------------------------
 def get_next_pickup(blocks, office_notes, block_dates):
@@ -237,9 +247,13 @@ def get_next_pickup(blocks, office_notes, block_dates):
         if block in block_dates:
             dates.append(block_dates[block])
 
+    if len(dates) < 1:
+        logger.error("Coudn't find npu for %s. office_notes: %s", blocks,office_notes)
+        return False
+
     dates.sort()
 
-    logger.info("next_pickup for %s: %s", blocks, dates[0].strftime('%b %d %Y'))
+    logger.debug("npu for %s: %s", blocks, dates[0].strftime('%-m/%-d/%Y'))
 
     return dates[0]
 

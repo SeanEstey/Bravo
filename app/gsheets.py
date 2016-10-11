@@ -275,7 +275,7 @@ def update_entry(agency, status, destination):
     '''
 
 #-------------------------------------------------------------------------------
-def create_rfu(agency, note, 
+def create_rfu(agency, note,
                a_id=None, npu=None, block=None, _date=None, name_addy=None):
     try:
         oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
@@ -307,7 +307,7 @@ def create_rfu(agency, note,
     if name_addy != None:
         rfu[headers.index('Name & Address')] = name_addy
 
-    logger.info('Creating RFU: ' + json.dumps([item for item in rfu if item]))
+    #logger.info('Creating RFU: ' + json.dumps([item for item in rfu if item]))
 
     try:
         wks.append_row(rfu)

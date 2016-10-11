@@ -56,11 +56,10 @@ def send(notification, agency_conf):
     send()
     '''
 
-    logger.info('notification type %s status %s sending',
-            notification['type'], notification['status'])
-
     if notification['status'] != 'pending':
         return False
+
+    logger.debug('Sending %s', notification['type'])
 
     if notification['type'] == 'voice':
         return _send_call(notification, agency_conf['twilio'])
@@ -74,7 +73,7 @@ def _send_call(notification, twilio_conf):
     '''Private method called by send()
     '''
 
-    if notification.get('attempts') >= current_app.config['MAX_CALL_ATTEMPTS']:
+    if notification.get('attempts') >= 2: #current_app.config['MAX_CALL_ATTEMPTS']:
         return False
 
     if notification['to'][0:2] != "+1":
@@ -89,12 +88,14 @@ def _send_call(notification, twilio_conf):
         call = client.calls.create(
           from_ = twilio_conf['ph'],
           to = to,
-          url = current_app.config['PUB_URL'] + '/notify/voice/play/on_answer.xml',
-          status_callback = current_app.config['PUB_URL'] + '/notify/voice/on_complete',
+          url = current_app.config['PUB_URL'] + '/notify/voice/play/answer.xml',
+          method = 'POST',
+          if_machine = 'Continue',
+          status_callback = current_app.config['PUB_URL'] + '/notify/voice/complete',
           status_method = 'POST',
           status_events = ["completed"],
-          method = 'POST',
-          if_machine = 'Continue'
+          fallback_url = current_app.config['PUB_URL'] + '/notify/voice/fallback',
+          fallback_method = 'POST'
         )
     except twilio.TwilioRestException as e:
         logger.error(e)
@@ -125,10 +126,8 @@ def send_email(notification, mailgun_conf, key='default'):
 
     template = notification['content']['template'][key]
 
-    # IMPORTANT: Need these 2 lines to allow url generation
-    # in a celery task outside request context
-    current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
     with current_app.test_request_context():
+        current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
         try:
             body = render_template(
                 template['file'],
@@ -143,7 +142,9 @@ def send_email(notification, mailgun_conf, key='default'):
             )
         except Exception as e:
             logger.error('render email: %s ', str(e))
+            current_app.config['SERVER_NAME'] = None
             return False
+        current_app.config['SERVER_NAME'] = None
 
     mid = mailgun.send(
         notification['to'],
@@ -173,13 +174,6 @@ def send_email(notification, mailgun_conf, key='default'):
     return mid
 
 #-------------------------------------------------------------------------------
-def _send_sms(notification, twilio_conf):
-    '''Private method called by send()
-    '''
-
-    return True
-
-#-------------------------------------------------------------------------------
 def on_email_status(webhook):
     '''
     @webhook: webhook args POST'd by mailgun'''
@@ -195,6 +189,12 @@ def on_email_status(webhook):
         "error": webhook.get('error')
       }}
     )
+
+#-------------------------------------------------------------------------------
+def _send_sms(notification, twilio_conf):
+    '''Private method called by send()
+    '''
+    return True
 
 #-------------------------------------------------------------------------------
 def rmv_msg(job_id, msg_id):
@@ -241,24 +241,25 @@ def get_voice(notific, template_file):
 
     account = db['accounts'].find_one({'_id':notific['acct_id']})
 
-    # IMPORTANT: Needs flask app context if called from celery task
-    
-    try:
-        content = render_template(
-            template_file,
-            account = utils.mongo_formatter(
-                account,
-                to_local_time=True,
-                to_strftime="%A, %B %d",
-                bson_to_json=True),
-            call = {
-                'digit': notific.get('digit') or None,
-                'answered_by': notific['answered_by']
-            }
-        )
-    except Exception as e:
-        logger.error('get_voice: %s ', str(e))
-        return 'Error'
+    with current_app.app_context():
+        current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
+        try:
+            content = render_template(
+                template_file,
+                account = utils.mongo_formatter(
+                    account,
+                    to_local_time=True,
+                    to_strftime="%A, %B %d",
+                    bson_to_json=True),
+                call = {
+                    'digit': notific.get('digit') or None,
+                    'answered_by': notific['answered_by']
+                }
+            )
+        except Exception as e:
+            logger.error('get_voice: %s ', str(e))
+            return 'Error'
+        current_app.config['SERVER_NAME'] = None
 
     content = content.replace("\n", "")
     content = content.replace("  ", "")
@@ -310,7 +311,7 @@ def on_call_answered(args):
 
     # Prompt user for action after voice audio plays
     voice.gather(numDigits=1,
-                action='/notify/voice/play/on_interact.xml',
+                action=current_app.config['PUB_URL'] + '/notify/voice/play/interact.xml',
                 method='POST')
 
     return voice
@@ -334,16 +335,18 @@ def on_call_interact(args):
     if args.get('Digits') == '1':
         content = get_voice(
           notific,
-          notific['content']['template']['default']['file']
-        )
+          notific['content']['template']['default']['file'])
 
         voice.say(content, voice='alice')
 
-        voice.gather(numDigits=1,
-                    action='/notify/voice/play/on_interact.xml',
-                    method='POST')
+        voice.gather(
+            numDigits=1,
+            action=current_app.config['PUB_URL'] + '/notify/voice/play/interact.xml',
+            method='POST')
+
     # Digit 2: Cancel pickup
     elif args.get('Digits') == '2':
+        from .. import tasks
         tasks.cancel_pickup.apply_async(
             (str(notific['evnt_id']), str(notific['acct_id'])),
             queue=current_app.config['DB']

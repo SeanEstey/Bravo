@@ -12,7 +12,7 @@ from app import etap
 from app import mailgun
 from app import html
 from app import db
-logger = logging.getLogger(__name__)
+from . import logger
 
 #-------------------------------------------------------------------------------
 def on_email_status(webhook):

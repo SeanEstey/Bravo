@@ -131,8 +131,10 @@ def reset(evnt_id):
 
 #-------------------------------------------------------------------------------
 def rmv_notifics(evnt_id, acct_id):
-    n = db['notifications'].remove({'acct_id':acct_id})
-    logger.info('Removed %s notifics for evnt_id %s', n, evnt_id)
+    n_notifics = db['notifications'].remove({'acct_id':acct_id})['n']
+    n_accounts = db['accounts'].remove({'_id':acctid})['n']
+    logger.info('Removed %s notifics, %s account for evnt_id %s', n_notifics,
+    n_accounts, evnt_id)
     return n
 
 #-------------------------------------------------------------------------------

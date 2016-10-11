@@ -1,9 +1,11 @@
+'''main.non_participants'''
+
+import logging
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 from .. import etap
 from .. import db
-logger = logging.getLogger(__name__)
-
+from . import logger
 
 #-------------------------------------------------------------------------------
 def find(agency, accounts):

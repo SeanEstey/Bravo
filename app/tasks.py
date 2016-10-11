@@ -1,10 +1,8 @@
+'''app.tasks'''
+
 from celery import Celery
 import logging
 from bson.objectid import ObjectId
-
-
-#from run import celery
-
 
 from . import db
 from . import create_app, create_celery_app
@@ -13,8 +11,6 @@ flask_app = create_app('app')
 celery = create_celery_app(flask_app)
 
 logger = logging.getLogger(__name__)
-
-
 
 
 #-------------------------------------------------------------------------------
@@ -27,7 +23,6 @@ def build_routes():
 @celery.task
 def monitor_triggers():
     from app.notify import triggers
-
     return triggers.monitor_all()
 
 #-------------------------------------------------------------------------------
@@ -64,8 +59,8 @@ def send_receipts(entries, etapestry_id):
 
 #-------------------------------------------------------------------------------
 @celery.task
-def create_rfu(agency, note,
-               a_id=None, npu=None, block=None, _date=None, name_addy=None):
+def rfu(agency, note,
+        a_id=None, npu=None, block=None, _date=None, name_addy=None):
     from app import gsheets
 
     return gsheets.create_rfu(
@@ -85,7 +80,7 @@ def schedule_reminders():
     from app import schedule
     from datetime import datetime, date, time, timedelta
 
-    PRESCHEDULE_BY_DAYS = 5
+    PRESCHEDULE_BY_DAYS = 6
     agency = 'vec'
 
     blocks = []
@@ -101,8 +96,19 @@ def schedule_reminders():
             agency_conf['google']['oauth']
         )
 
+    logger.info('%s: scheduling reminders for %s on %s',
+        agency_conf['name'], blocks, _date.strftime('%b %-d'))
+
     for block in blocks:
-        pickup_service.create_reminder_event(agency, block, _date)
+        res = pickup_service.create_reminder_event(agency_conf['name'], block, _date)
+
+        if res == False:
+            logger.info("No reminders created for %s", block)
+
+    logger.info('%s: Done scheduling reminders', agency_conf['name'])
+
+    return True
+
 
 #-------------------------------------------------------------------------------
 @celery.task

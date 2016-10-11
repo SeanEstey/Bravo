@@ -1,3 +1,5 @@
+'''run'''
+
 import os
 import time
 import sys
@@ -5,19 +7,11 @@ import getopt
 from flask_socketio import SocketIO
 
 import config
-from app import create_app, create_celery_app
-#from app import celery
-
-#flask_app = create_app('app')
+from app import create_app
 from app.tasks import flask_app
 
 
-#celery = create_celery_app(flask_app)
-
-#celery.conf.update(flask_app.config)
-
-
-
+#-------------------------------------------------------------------------------
 def start_worker():
     # Create worker w/ embedded beat. Does not work
     # if more than 1 worker
@@ -26,6 +20,7 @@ def start_worker():
     # Pause to give workers time to initialize before starting server
     time.sleep(2)
 
+#-------------------------------------------------------------------------------
 def restart_worker():
     os.system('kill %1')
     # Kill celery nodes with matching queue name. Leave others alone
@@ -34,6 +29,7 @@ def restart_worker():
     start_worker()
 
 
+#-------------------------------------------------------------------------------
 def main(argv):
     try:
         opts, args = getopt.getopt(argv,"c:m:")
@@ -49,16 +45,13 @@ def main(argv):
                 start_worker()
         elif opt == '-m':
             if arg == 'debug':
-                print 'starting test server'
                 flask_app.config['DEBUG'] = True
+                print 'starting werkzeug test server'
             elif arg == 'release':
-                print 'starting release server'
                 flask_app.config['DEBUG'] = False
+                print 'starting eventlet release server'
 
     socketio_app = SocketIO(flask_app)
-
-    # if DEBUG == True, Werkzeug server will auto-run
-    # if DEBUG == False, Eventlet server w/ socket.io enabled
 
     socketio_app.run(
         flask_app,
@@ -66,6 +59,7 @@ def main(argv):
         use_reloader=False
     )
 
+#-------------------------------------------------------------------------------
 if __name__ == "__main__":
     main(sys.argv[1:])
 

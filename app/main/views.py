@@ -1,31 +1,20 @@
 '''main.views'''
 
 import json
-import twilio.twiml
 import time
 import requests
 from datetime import datetime, date
-import flask
 from flask import g, request, render_template, redirect, url_for, current_app
 from flask_login import login_required, current_user
+from flask_socketio import SocketIO, emit
 from bson.objectid import ObjectId
 import logging
 
-from . import main # from current pkg import 'main' blueprint
-from . import log
-from . import receipts
-
-from .. import utils
-from .. import html
-from .. import gsheets
-#from .. import tasks
-
-
-from app.notify.views import on_email_status as notify_on_email_status
-
-from app import db
-from flask_socketio import SocketIO, emit
-logger = logging.getLogger(__name__)
+from . import main, logger
+from . import log, receipts
+from .. import utils, html, gsheets#, tasks
+from app.notify import notifications
+from .. import db
 
 
 # ------------ Stuff TODO ----------------------
@@ -34,9 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-#@main.route('/')
-#def landing_page():
-#    return redirect(url_for('notify.view_event_list'))
+@main.route('/')
+def landing_page():
+    return 'LANDING PAGE'
+    #return redirect(url_for('notify.view_event_list'))
 
 #-------------------------------------------------------------------------------
 @main.route('/log')
@@ -81,6 +71,7 @@ def process_receipts():
     entries = json.loads(request.form['data'])
     etapestry = json.loads(request.form['etapestry'])
 
+    from .. import tasks
     # Start celery workers to run slow eTapestry API calls
     r = tasks.send_receipts.apply_async(
       args=(entries, etapestry),
@@ -212,15 +203,9 @@ def email_spam_complaint():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/email/status',methods=['POST'])
-def email_status():
-    '''Relay for Mailgun webhooks. Can originate from reminder_msg, Signups
-    sheet, or Route Importer sheet
-    Guaranteed POST data: 'event', 'recipient', 'Message-Id'
-    event param can be: 'delivered', 'bounced', or 'dropped'
-    Optional POST data: 'code' (on dropped/bounced), 'error' (on bounced),
-    'reason' (on dropped)
-    '''
+@main.route('/email/delivered',methods=['POST'])
+def on_email_delivered():
+    '''Relay for Mailgun webhook'''
 
     logger.info('Email to %s %s',
       request.form['recipient'], request.form['event']
@@ -233,24 +218,16 @@ def email_status():
       {'$set': { 'status': request.form['event']}}
     )
 
-    import bson.json_util
-    logger.debug('email: %s', bson.json_util.dumps(email))
-
     if email is None:
         return 'Mid not found'
 
-    #------------- NEW CODE----------------
+    # Route to specialized handlers
 
-    # Do any special updates
     if email.get('type'):
         if email['type'] == 'notification':
-            notify_on_email_status(request.form.to_dict())
-            #return redirect(url_for('notify.on_email_status'))
-            #notifications.on_email_status(request.form.to_dict())
+            notifications.on_email_status(request.form.to_dict())
         elif email['type'] == 'receipt':
             receipts.on_email_status(request.form.to_dict())
-    # -----------------------------------
-    # Signup welcomeor booking confirmation email?
     else:
         try:
             gsheets.update_entry(
@@ -262,46 +239,51 @@ def email_status():
             logger.error("Error writing to Google Sheets: " + str(e))
             return 'Failed'
 
-    #-----------------------------
-
-    # Every email type gets an RFU created
-
-    if event == 'dropped':
-        msg = request.form['recipient'] + ' ' + event + ': '
-
-        reason = request.form.get('reason')
-
-        if reason == 'old':
-            msg += 'Tried to deliver unsuccessfully for 8 hours'
-        elif reason == 'hardfail':
-            msg +=  'Can\'t deliver to previous invalid address'
-
-        logger.info(msg)
-
-        tasks.create_rfu.apply_async(
-            args=(email['agency'], msg, ),
-            queue=current_app.config['DB'])
-
     #emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
 
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/call/nis', methods=['POST'])
-def nis():
-    logger.info('NIS!')
+@main.route('/email/dropped', methods=['POST'])
+def on_email_dropped():
+    '''Relay for Mailgun webhook
+    POST args: 'code', 'error', 'reason'
+    '''
 
-    record = request.get_json()
+    logger.debug(request.values.to_dict())
 
-    try:
-        gsheets.create_rfu(
-          record['custom']['to'] + ' not in service',
-          a_id=record['account_id'],
-          block=record['custom']['block']
-        )
-    except Exception, e:
-        logger.info('%s /call/nis' % request.values.items(), exc_info=True)
-    return str(e)
+    event = request.form['event']
+
+    logger.info('Email to %s %s', request.form['recipient'], event)
+
+    email = db['emails'].find_one_and_update(
+      {'mid': request.form['Message-Id']},
+      {'$set': { 'status': event}}
+    )
+
+    #if email is None:
+    #    return 'Mid not found'
+
+    msg = request.form['recipient'] + ' ' + event + ': '
+
+    reason = request.form.get('reason')
+
+    msg = '%s %s. reason: %s. ' % (request.form['recipient'], event, request.form['reason'])
+    logger.info(msg)
+
+    # TEST CODE ONLY
+    email = {'agency':'vec'}
+
+    from .. import tasks
+    tasks.rfu.apply_async(
+        args=[
+            email['agency'],
+            msg + request.form.get('description')],
+        kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
+        queue=current_app.config['DB']
+    )
+
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 @main.route('/receive_signup', methods=['POST'])
@@ -310,6 +292,7 @@ def rec_signup():
     Adds signup data to Bravo Sheets->Signups gsheet row
     '''
 
+    from .. import tasks
     try:
         tasks.add_signup.apply_async(
           args=(request.form.to_dict(),), # Must include comma

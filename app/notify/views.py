@@ -12,12 +12,11 @@ import logging
 import bson.json_util
 from flask_socketio import SocketIO, emit
 
-from . import notify
+from . import notify#, logger
 from . import events, triggers, notifications, recording, pickup_service
-from .. import utils, sms#, tasks
-
+from .. import utils, sms
 from .. import db
-from .. import create_app
+
 logger = logging.getLogger(__name__)
 
 
@@ -146,8 +145,9 @@ def fire_trigger(trig_id):
     trigger = db['triggers'].find_one({'_id':ObjectId(trig_id)})
 
     tasks.fire_trigger.apply_async(
-            (str(trigger['evnt_id']), trig_id),
-            queue=config.DB)
+        args=[str(trigger['evnt_id']), trig_id],
+        queue=current_app.config['DB'])
+
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -155,8 +155,10 @@ def fire_trigger(trig_id):
 def no_pickup(evnt_id, acct_id):
     '''Script run via reminder email'''
 
+    from .. import tasks
+
     tasks.cancel_pickup.apply_async(
-        (evnt_id, acct_id),
+        args=[evnt_id, acct_id],
         queue=current_app.config['DB'])
 
     return 'Thank You'
@@ -183,36 +185,36 @@ def record_msg():
 
 
 #-------------------------------------------------------------------------------
-@notify.route('/voice/record/on_answer.xml',methods=['POST'])
+@notify.route('/voice/record/answer.xml',methods=['POST'])
 def record_xml():
     voice = recording.on_answer(request.values.to_dict())
     return Response(response=str(voice), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
-@notify.route('/voice/record/on_complete.xml', methods=['POST'])
+@notify.route('/voice/record/complete.xml', methods=['POST'])
 def record_complete_xml():
     voice = recording.on_complete(request.values.to_dict())
     return Response(response=str(voice), mimetype='text/xml')
 
-
 #-------------------------------------------------------------------------------
-@notify.route('/voice/play/on_answer.xml',methods=['POST'])
+@notify.route('/voice/play/answer.xml',methods=['GET', 'POST'])
 def get_answer_xml():
     '''Reminder call is answered.
     Request: Twilio POST
     Response: twilio.twiml.Response with voice content
     '''
+    logger.info('call answered')
 
     try:
         voice = notifications.on_call_answered(request.form.to_dict())
     except Exception as e:
-        logger.error('/voice/play/on_answer.xml: %s', str(e))
+        logger.error('/voice/play/answer.xml: %s', str(e))
         return Response(response="Error", status=500, mimetype='text/xml')
 
     return Response(response=str(voice), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
-@notify.route('/voice/play/on_interact.xml', methods=['POST'])
+@notify.route('/voice/play/interact.xml', methods=['GET','POST'])
 def get_interact_xml():
     '''User interacted with reminder call. Send voice response.
     Request: Twilio POST
@@ -222,19 +224,36 @@ def get_interact_xml():
     try:
         voice = notifications.on_call_interact(request.form.to_dict())
     except Exception as e:
-        logger.error('/voice/play/on_interact.xml: %s', str(e))
+        logger.error('/voice/play/interact.xml: %s', str(e))
         return Response(response="Error", status=500, mimetype='text/xml')
 
     return Response(response=str(voice), mimetype='text/xml')
 
+#-------------------------------------------------------------------------------
+@notify.route('/voice/complete',methods=['GET', 'POST'])
+def complete():
+    '''Twilio callback
+    '''
+
+    notifications.on_call_complete(request.form.to_dict())
+    return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/voice/on_complete',methods=['POST'])
-def call_event():
-    '''Twilio callback'''
+@notify.route('/voice/fallback', methods=['GET', 'POST'])
+def fallback():
+    '''Twilio callback. Error.
+    https://www.twilio.com/docs/api/errors/reference
+    '''
+    logger.info('fallback')
+    logger.debug('fallback debug')
 
-    notifications.call_event(request.form.to_dict())
+    logger.debug('%s', request.form.to_dict())
+
+    logger.error('Call fallback: %s. %s',
+        request.form['ErrorCode'], request.form['ErrorUrl'])
+
     return 'OK'
+
 
 #-------------------------------------------------------------------------------
 @notify.route('/sms/status', methods=['POST'])
@@ -262,32 +281,6 @@ def sms_status():
 
     return 'OK'
 
-
-#-------------------------------------------------------------------------------
-@notify.route('/render', methods=['POST'])
-def render_notification():
-    '''Render notification email HTML'''
-
-    try:
-        args = request.get_json(force=True)
-        logger.debug(args)
-
-        return render_template(
-          args['template'],
-          to = args['to'],
-          account = args['account'],
-          evnt_id=args['evnt_id']
-        )
-    except Exception as e:
-        logger.error('render email: %s ', str(e))
-        return 'Error'
-
-#-------------------------------------------------------------------------------
-@notify.route('/on_email_status', methods=['GET'])
-def on_email_status(args):
-    notifications.on_email_status(args)
-    return 'OK'
-
 #-------------------------------------------------------------------------------
 '''@notify.route('/sendsocket', methods=['GET'])
 def request_send_socket():
@@ -299,7 +292,32 @@ def request_send_socket():
 #-------------------------------------------------------------------------------
 @notify.route('/secret_scheduler', methods=['GET'])
 def secret_scheduler():
-    tasks.schedule_reminders.apply_async(args=None, queue=current_app.config['DB'])
+    from .. import tasks
+    tasks.schedule_reminders.apply_async(
+        args=None,
+        queue=current_app.config['DB'])
+
     return 'OK'
 
+'''
+#-------------------------------------------------------------------------------
+@main.route('/call/nis', methods=['POST'])
+def nis():
+    logger.info('NIS!')
 
+    record = request.get_json()
+
+    agency = db['agencies']
+
+    try:
+    from .. import tasks
+    tasks.rfu.apply_async(
+        args=[
+          record['custom']['to'] + ' not in service',
+          a_id=record['account_id'],
+          block=record['custom']['block']
+        )
+    except Exception, e:
+        logger.info('%s /call/nis' % request.values.items(), exc_info=True)
+    return str(e)
+'''

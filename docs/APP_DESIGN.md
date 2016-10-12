@@ -14,9 +14,8 @@ changes to <b>in-progress</b>, and changes to <b>complete</b> when all triggers 
     "status": ["pending", "in-progress", "completed", "failed"], 
     "name": "name",
     "event_dt": "datetime of event",
-    "triggers": [
-        {"id": "bson.objectid"},
-        {"id": "bson.objectid"}
+    "trig_ids": [ 
+        "ObjectId(...)" 
     ]
 }
 ```
@@ -30,9 +29,9 @@ changes to <b>in-progress</b>, and changes to <b>complete</b> when all triggers 
 <h4>JSON Structure</h4>
 ```json
 {
-  "event_id": ObjectId("57f2ae87fd9ab4312024a8c7"),
+  "evnt_id": "ObjectId(...)",
   "status": "pending",
-  "fire_dt": new Date("2016-10-07T08:00:00-0600"),
+  "fire_dt": "new Date(2016-10-07T08:00:00-0600)",
   "type": "email"
 }
 ```
@@ -47,15 +46,12 @@ changes to <b>in-progress</b>, and changes to <b>complete</b> when all triggers 
 ```json
 {
   "status": "completed",
+  "type": "voice",
   "trig_id": "bson.object",
-  "account": {
-    "udf": {
-    },
-    "name": "Sean Estey",
-    "id": 5075
-  },
+  "acct_id": "ObjectId(...)",
   "to": "(780) 863-5715",
-  "event_id": ObjectId("57f2ae87fd9ab4312024a8c7"),
+  "evnt_id": "ObjectId(...)",
+  "event_dt": "new Date(2016-10-09T08:00:00-0600)",
   "content": {
     "source": "template",
     "template": {
@@ -64,13 +60,13 @@ changes to <b>in-progress</b>, and changes to <b>complete</b> when all triggers 
       }
     }
   },
-  "type": "voice",
-  "event_dt": new Date("2016-10-09T08:00:00-0600"),
-  "sid": "CA78b7529052a8c7bd161728fecd2480d4",
-  "attempts": 1,
-  "answered_by": "human",
-  "duration": "28",
-  "ended_at": new Date(1475507397211),
+  "tracking": {
+    "sid": "CA78b7529052a8c7bd161728fecd2480d4",
+    "attempts": 1,
+    "answered_by": "human",
+    "duration": "28",
+    "ended_at": "new Date(1475507397211)",
+  }
 }
 ```
 
@@ -78,7 +74,7 @@ changes to <b>in-progress</b>, and changes to <b>complete</b> when all triggers 
 
 ```json
 {
-    "name": "3 char abbrev",
+    "name": "vec",
     "etapestry": {
         "agency": "3 char abbrev",
         "user": "login",
@@ -112,19 +108,23 @@ changes to <b>in-progress</b>, and changes to <b>complete</b> when all triggers 
             "api_key": "40 char key from service account"
         }
     },
-    "reminders": {
-        "days_in_advance_to_schedule": 2,
-        "email": {
-          "fire_days_delta": -2,
-          "fire_hour": 8,
-          "fire_min": 0
-        },
-        "phone": {
-          "redial_delay": 300,
-          "max_call_attempts": 2,
-          "fire_days_delta": -1,
-          "fire_hour": 19,
-          "fire_min": 0
+    "notify": {
+        "preschedule_by_days": 2,
+        "mediums": {
+            "email": {
+              "enabled": true,
+              "fire_days_delta": -2,
+              "fire_hour": 8,
+              "fire_min": 0
+            },
+            "phone": {
+              "enabled": true,
+              "redial_delay": 300,
+              "max_call_attempts": 2,
+              "fire_days_delta": -1,
+              "fire_hour": 19,
+              "fire_min": 0
+            }
         }
     },
     "routing": {

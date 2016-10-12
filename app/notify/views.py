@@ -203,7 +203,6 @@ def get_answer_xml():
     Request: Twilio POST
     Response: twilio.twiml.Response with voice content
     '''
-    logger.info('call answered')
 
     try:
         voice = notifications.on_call_answered(request.form.to_dict())

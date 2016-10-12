@@ -84,8 +84,7 @@ def fire(evnt_id, trig_id):
 def monitor_all():
     '''Any due triggers are fired. See celeryconfig.py for heartbeat frequency.
     IMPORTANT: Requires Flask app context. Can block server if called without
-    context.
-    TODO: add flask context to all celery tasks'''
+    context.'''
 
     ready_triggers = db['triggers'].find(
         {'status':'pending', 'fire_dt':{'$lt':datetime.utcnow()}})
@@ -94,7 +93,8 @@ def monitor_all():
         logger.info('firing %s trigger %s', trigger['type'], str(trigger['_id']))
 
         # Send notifications
-        fire(trigger['evnt_id'], trigger['_id'])
+        logger.info('trigger not fired. uncomment line to activate')
+        #fire(trigger['evnt_id'], trigger['_id'])
 
     #if datetime.utcnow().minute == 0:
     pending_triggers = db['triggers'].find({'status':'pending'})

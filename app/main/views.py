@@ -25,8 +25,8 @@ from .. import db
 #-------------------------------------------------------------------------------
 @main.route('/')
 def landing_page():
-    return 'LANDING PAGE'
-    #return redirect(url_for('notify.view_event_list'))
+    #return 'LANDING PAGE'
+    return redirect(url_for('notify.view_event_list'))
 
 #-------------------------------------------------------------------------------
 @main.route('/log')

@@ -178,8 +178,6 @@ def on_email_status(webhook):
     '''
     @webhook: webhook args POST'd by mailgun'''
 
-    logger.info('notific email handler')
-
     db['notifications'].update_one(
       {'mid': webhook['Message-Id']},
       {'$set':{

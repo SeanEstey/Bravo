@@ -17,17 +17,19 @@
   </script>
   
 	<!-- Countdown Timer -->
-  <div class='row' style='padding:20px 0px 10px 0px; text-align:center'>
+  <div class='row' style='padding:20px 0px 10px 0px; text-align:center;
+  display:none'>
     <h2>
       <span id='event-header' class='label label-primary'>
         <label id='event-status'>
-						{{event.status.title().replace('-',' ')}}
+						{{ event.status.title().replace('-',' ') }}
 				</label>
         <label id='event-summary'></label>
       </span>
     </h2>
-      <p id='scheduled_datetime' style='display:none'>{{ event.event_dt.date() }}</p>
+      <p id='scheduled_datetime' style='display:none'> {{ event.event_dt.date() }}</p>
   </div>
+
 	
 	<!-- Play Sample -->
 	<!--
@@ -37,6 +39,8 @@
 			<source id='audio-sample' name='audio-sample' type='audio/mpeg'>
 		</audio>
 	</div>-->
+
+  <div style='padding: 2em 0em'></div>
   
   <div class='data-container'>
     <div class='navbar-div'>
@@ -76,7 +80,7 @@
 				</td>
           
 				<!-- email -->
-				<td>
+				<td name='email'>
 				{% for notific in row['results'] %}
 					{% if notific['type'] == 'email' %}
 						{{notific.to}}
@@ -91,18 +95,18 @@
 				<td>{{row['results'][0]['account'][0]['udf']['pickup_dt']}}</td>
 
         <!-- email status -->
-				<td>
+        {% set status = {'email':'---'} %}
 				{% for notific in row['results'] if notific['type'] == 'email' %}
-								{{notific['status']}}
+            {% do status.update({'email': notific['status']}) %}
 				{% endfor %}
-				</td>
+        <td>{{ status['email'] }}</td>
 
 				<!-- call status -->
-				<td>
+        {% do status.update({'phone':'---'}) %}
 				{% for notific in row['results'] if notific['type'] == 'voice' %}
-								{{notific['status']}}
+            {% do status.update({'phone': notific['status']}) %}
 				{% endfor %}
-				</td>
+        <td>{{ status['phone'] }}</td>
 
 				<!-- Delete Button -->
 				<td class='cancel-notific'>
@@ -130,8 +134,6 @@
 		{% endfor %}
     <button style='margin:0 auto;' class='btn btn-primary' 
 						type='button' id='reset-event'>Reset </button>
-    <button style='margin:0 auto;' class='btn btn-primary' 
-						type='button' id='dump'>Job Info </button>
   </div>
     <br><br>
   {% endblock %}

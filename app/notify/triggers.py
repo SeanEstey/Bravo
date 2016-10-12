@@ -34,8 +34,6 @@ def insert(evnt_id, _date, _time, _type):
 
     return trig_id
 
-
-
 #-------------------------------------------------------------------------------
 def get(trig_id, local_time=False):
     trig = db['triggers'].find_one({'_id':trig_id})
@@ -45,14 +43,9 @@ def get(trig_id, local_time=False):
 
     return trig
 
-    #trig = db.triggers.aggregate([
-    #    {'$match': {'_id': trig_id}},
-    #    {'$project': {'fire_dt':{'$add': ['$fire_dt', 25200000]}, 'fields':'$$ROOT'}}
-    #    ])
-
-    #if local_time == True:
-    #    trig['fire_dt'] =  trig['fire_dt'].astimezone(local_tz)
-
+#-------------------------------------------------------------------------------
+def get_count(trig_id):
+    return db['notifications'].find({'trig_id':trig_id}).count()
 
 #-------------------------------------------------------------------------------
 def fire(evnt_id, trig_id):

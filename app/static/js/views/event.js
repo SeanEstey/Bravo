@@ -61,8 +61,8 @@ function init() {
     }
 
     if($('#event-status').text().indexOf('Pending') > -1) {
-        updateCountdown();
-        window.countdown_id = setInterval(updateCountdown, 1000);
+        //updateCountdown();
+        //window.countdown_id = setInterval(updateCountdown, 1000);
     }
 
     updateJobStatus();

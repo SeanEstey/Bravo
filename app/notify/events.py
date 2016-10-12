@@ -41,8 +41,23 @@ def get(evnt_id, local_time=True):
     return event
 
 #-------------------------------------------------------------------------------
-def get_triggers(evnt_id, local_time=True):
+def get_list(agency, local_time=True, max=10):
+    '''Return list of all events for agency
+    '''
 
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+
+    sorted_events = list(db['notification_events'].find(
+        {'agency':agency}).sort('event_dt',-1).limit(max))
+
+    if local_time == True:
+        for event in sorted_events:
+            event = utils.all_utc_to_local_time(event)
+
+    return sorted_events
+
+#-------------------------------------------------------------------------------
+def get_triggers(evnt_id, local_time=True):
     trigger_list = list(db['triggers'].find({'evnt_id': evnt_id}))
 
     if local_time == True:
@@ -52,7 +67,7 @@ def get_triggers(evnt_id, local_time=True):
     return trigger_list
 
 #-------------------------------------------------------------------------------
-def get_notifications(evnt_id, local_time=True):
+def get_notifications(evnt_id, local_time=True, sorted_by='account.event_dt'):
     notific_results = db['notifications'].aggregate([
         {'$match': {
             'evnt_id': evnt_id
@@ -157,30 +172,4 @@ def remove(evnt_id):
 
     return True
 
-#-------------------------------------------------------------------------------
-def get_all(agency, local_time=True, max=10):
-    '''Display jobs for agency associated with current_user
-    If no 'n' specified, display records (sorted by date) {1 .. JOBS_PER_PAGE}
-    If 'n' arg, display records {n .. n+JOBS_PER_PAGE}
-    Returns: list of notification_event dict objects
-    '''
 
-    agency = db['users'].find_one({'user': current_user.username})['agency']
-
-    events_curs = db['notification_events'].find({'agency':agency})
-
-    # TODO: do this sort on the query itself
-    #if events_curs:
-    #    events_curs = events.sort('event_dt',-1)
-        #.limit(app.config['JOBS_PER_PAGE'])
-
-    # Convert from cursor->list so re-iterable
-    #events = list(events)
-
-    if local_time == True:
-        for event in events_curs:
-            event = utils.all_utc_to_local_time(event)
-
-        events_curs.rewind()
-
-    return events_curs

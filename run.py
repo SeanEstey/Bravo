@@ -56,7 +56,7 @@ def main(argv):
     socketio_app.run(
         flask_app,
         port=flask_app.config['LOCAL_PORT'],
-        use_reloader=False
+        use_reloader=True
     )
 
 #-------------------------------------------------------------------------------

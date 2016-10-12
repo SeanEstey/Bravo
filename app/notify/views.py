@@ -27,16 +27,49 @@ def view_event_list():
 
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    event_list = list(events.get_all(agency))
+    event_list = events.get_list(agency)
 
     for event in event_list:
-        # triggers in local time
+        # modifying 'notification_event' structure for view rendering
         event['triggers'] = events.get_triggers(event['_id'])
+
+        for trigger in event['triggers']:
+            # modifying 'triggers' structure for view rendering
+            trigger['count'] = triggers.get_count(trigger['_id'])
 
     return render_template(
       'views/event_list.html',
       title=None,
       events=event_list
+    )
+
+#-------------------------------------------------------------------------------
+@notify.route('/<evnt_id>')
+@login_required
+def view_event(evnt_id):
+    '''GUI event view'''
+
+    event = events.get(ObjectId(evnt_id))
+    notific_list = list(events.get_notifications(ObjectId(evnt_id)))
+    trigger_list = events.get_triggers(ObjectId(evnt_id))
+
+    notific_list = utils.mongo_formatter(
+        notific_list,
+        to_local_time=True,
+        to_strftime="%m/%-d/%Y",
+        bson_to_json=True
+    )
+
+    #logger.debug(json.dumps(notific_list[0], indent=4))
+
+    return render_template(
+        'views/event.html',
+        title=current_app.config['TITLE'],
+        notific_list=notific_list,
+        evnt_id=evnt_id,
+        event=event,
+        triggers=trigger_list
+        #template=job['schema']['import_fields']
     )
 
 #-------------------------------------------------------------------------------
@@ -64,37 +97,6 @@ def _submit_event():
     except Exception as e:
         logger.error('submit_event: %s', str(e))
         return False
-
-#-------------------------------------------------------------------------------
-@notify.route('/<evnt_id>')
-@login_required
-def view_event(evnt_id):
-    '''GUI event view'''
-
-    event = events.get(ObjectId(evnt_id))
-    notific_list = list(events.get_notifications(ObjectId(evnt_id)))
-    trigger_list = events.get_triggers(ObjectId(evnt_id))
-
-    notific_list = utils.mongo_formatter(
-        notific_list,
-        to_local_time=True,
-        to_strftime="%m/%-d/%Y",
-        bson_to_json=True
-    )
-
-
-    #logger.debug(json.dumps(notific_list[0], indent=4))
-
-
-    return render_template(
-        'views/event.html',
-        title=current_app.config['TITLE'],
-        notific_list=notific_list,
-        evnt_id=evnt_id,
-        event=event,
-        triggers=trigger_list
-        #template=job['schema']['import_fields']
-    )
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/cancel')

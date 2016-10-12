@@ -1,81 +1,115 @@
 '''app.tasks'''
 
+import logging
+import traceback as tb
 from celery import Celery
 import logging
 from bson.objectid import ObjectId
 
 from . import db
-from . import create_app, create_celery_app
+from . import create_app, create_celery_app, \
+        debug_handler, info_handler, error_handler, exception_handler
 
 flask_app = create_app('app')
 celery = create_celery_app(flask_app)
 
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
+
+from celery.utils.log import get_task_logger
+
+logger = get_task_logger(__name__)
+logger.addHandler(error_handler)
+logger.addHandler(info_handler)
+logger.addHandler(debug_handler)
+logger.addHandler(exception_handler)
+logger.setLevel(logging.DEBUG)
 
 
 #-------------------------------------------------------------------------------
 @celery.task
 def build_routes():
-    from app.routing import routes
-    return routes.build_scheduled_routes()
+    try:
+        from app.routing import routes
+        return routes.build_scheduled_routes()
+    except Exception as e:
+        logger.error('%s\n%s', str(e), tb.format_exc())
 
 #-------------------------------------------------------------------------------
 @celery.task
 def monitor_triggers():
+    try:
+        from app.notify import triggers
+        from datetime import datetime, timedelta
+        import pytz
+        #from app.notify
 
-    from app.notify import triggers
-    from datetime import datetime
-    #from app.notify
+        ready_triggers = db['triggers'].find(
+            {'status':'pending', 'fire_dt':{'$lt':datetime.utcnow()}})
 
-    ready_triggers = db['triggers'].find(
-        {'status':'pending', 'fire_dt':{'$lt':datetime.utcnow()}})
+        #for trigger in ready_triggers:
+            #logger.info('firing %s trigger %s', trigger['type'], str(trigger['_id']))
+            # Send notifications
+            #logger.info('trigger not fired. uncomment line to activate')
+            #triggers.fire(trigger['evnt_id'], trigger['_id'])
 
-    #for trigger in ready_triggers:
-        #logger.info('firing %s trigger %s', trigger['type'], str(trigger['_id']))
-        # Send notifications
-        #logger.info('trigger not fired. uncomment line to activate')
-        #triggers.fire(trigger['evnt_id'], trigger['_id'])
+        #if datetime.utcnow().minute == 0:
+        pending_triggers = db['triggers'].find(
+            {'status':'pending', 'fire_dt': {'$gt':datetime.utcnow()}})
 
-    #if datetime.utcnow().minute == 0:
-    pending_triggers = db['triggers'].find({'status':'pending'})
-
-    print '%s pending triggers' % pending_triggers.count()
+        for trigger in pending_triggers:
+            delta = trigger['fire_dt'] - datetime.utcnow().replace(tzinfo=pytz.utc)
+            print '%s trigger pending in %s' %  (trigger['type'], str(delta)[:-7])
+    except Exception as e:
+        logger.error('%s\n%s', str(e), tb.format_exc())
+        return False
 
     return True
-
-    #return triggers.monitor_all()
 
 #-------------------------------------------------------------------------------
 @celery.task
 def cancel_pickup(evnt_id, acct_id):
-    from app.notify import pickup_service
-    return pickup_service._cancel(evnt_id, acct_id)
+    try:
+        from app.notify import pickup_service
+        return pickup_service._cancel(evnt_id, acct_id)
+    except Exception as e:
+        logger.error('%s\n%s', str(e), tb.format_exc())
 
 #-------------------------------------------------------------------------------
 @celery.task
 def build_route(route_id, job_id=None):
-    from app.routing import routes
-    return routes.build_route(route_id, job_id=job_id)
+    try:
+        from app.routing import routes
+        return routes.build_route(route_id, job_id=job_id)
+    except Exception as e:
+        logger.error('%s\n%s', str(e), tb.format_exc())
 
 #-------------------------------------------------------------------------------
 @celery.task
 def add_signup(signup):
-    from app import wsf
-    return wsf.add_signup(signup)
+    try:
+        from app import wsf
+        return wsf.add_signup(signup)
+    except Exception as e:
+        logger.error('%s\n%s', str(e), tb.format_exc())
 
 #-------------------------------------------------------------------------------
 @celery.task
 def fire_trigger(evnt_id, trig_id):
-    from app.notify import triggers
-
-    return triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
+    try:
+        from app.notify import triggers
+        return triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
+    except Exception as e:
+        logger.error('%s\n%s', str(e), tb.format_exc())
 
 #-------------------------------------------------------------------------------
 @celery.task
 def send_receipts(entries, etapestry_id):
-    from app.main import receipts
+    try:
+        from app.main import receipts
+        return receipts.process(entries, etapestry_id)
+    except Exception as e:
+        logger.error('%s\n%s', str(e), tb.format_exc())
 
-    return receipts.process(entries, etapestry_id)
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -96,39 +130,41 @@ def rfu(agency, note,
 #-------------------------------------------------------------------------------
 @celery.task
 def schedule_reminders():
-    from app.notify import pickup_service
-    from app import schedule
-    from datetime import datetime, date, time, timedelta
+    try:
+        from app.notify import pickup_service
+        from app import schedule
+        from datetime import datetime, date, time, timedelta
 
-    PRESCHEDULE_BY_DAYS = 2
-    agency = 'vec'
+        PRESCHEDULE_BY_DAYS = 2
+        agency = 'vec'
 
-    blocks = []
-    _date = date.today() + timedelta(days=PRESCHEDULE_BY_DAYS)
+        blocks = []
+        _date = date.today() + timedelta(days=PRESCHEDULE_BY_DAYS)
 
-    agency_conf = db['agencies'].find_one({'name':agency})
+        agency_conf = db['agencies'].find_one({'name':agency})
 
-    for key in agency_conf['cal_ids']:
-        blocks += schedule.get_blocks(
-            agency_conf['cal_ids'][key],
-            datetime.combine(_date,time(8,0)),
-            datetime.combine(_date,time(9,0)),
-            agency_conf['google']['oauth']
-        )
+        for key in agency_conf['cal_ids']:
+            blocks += schedule.get_blocks(
+                agency_conf['cal_ids'][key],
+                datetime.combine(_date,time(8,0)),
+                datetime.combine(_date,time(9,0)),
+                agency_conf['google']['oauth']
+            )
 
-    logger.info('%s: scheduling reminders for %s on %s',
-        agency_conf['name'], blocks, _date.strftime('%b %-d'))
+        logger.info('%s: scheduling reminders for %s on %s',
+            agency_conf['name'], blocks, _date.strftime('%b %-d'))
 
-    for block in blocks:
-        res = pickup_service.create_reminder_event(agency_conf['name'], block, _date)
+        for block in blocks:
+            res = pickup_service.create_reminder_event(agency_conf['name'], block, _date)
 
-        if res == False:
-            logger.info("No reminders created for %s", block)
+            if res == False:
+                logger.info("No reminders created for %s", block)
 
-    logger.info('%s: Done scheduling reminders', agency_conf['name'])
+        logger.info('%s: Done scheduling reminders', agency_conf['name'])
+    except Exception as e:
+        logger.error('%s\n%s', str(e), tb.format_exc())
 
     return True
-
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -266,4 +302,5 @@ def find_non_participants():
                   date = date.today().strftime('%-m/%-d/%Y')
                 )
         except Exception as e:
-            logger.error('non-participation exception: %s', str(e))
+            logger.error('%s\n%s', str(e), tb.format_exc())
+

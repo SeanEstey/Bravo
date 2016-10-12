@@ -24,6 +24,10 @@ error_handler = logging.FileHandler(config.LOG_PATH + 'error.log')
 error_handler.setLevel(logging.ERROR)
 error_handler.setFormatter(log_formatter)
 
+exception_handler = logging.FileHandler(config.LOG_PATH + 'error.log')
+exception_handler.setLevel(logging.CRITICAL)
+exception_handler.setFormatter(log_formatter)
+
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 

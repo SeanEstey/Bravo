@@ -1,9 +1,10 @@
 import json
 from datetime import datetime
+from flask import current_app
 import logging
 
-from app import gsheets
-from app import app, db
+from . import gsheets
+from . import db
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ def add_signup(signup):
     try:
       oauth = db['agencies'].find_one({'name':'wsf'})['google']['oauth']
       gc = gsheets.auth(oauth, ['https://spreadsheets.google.com/feeds'])
-      wks = gc.open(app.config['GSHEET_NAME']).worksheet('Signups')
+      wks = gc.open(current_app.config['GSHEET_NAME']).worksheet('Signups')
 
       form_data = {
         'Signup Date': datetime.now().strftime('%-m/%-d/%Y'),

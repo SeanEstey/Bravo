@@ -50,16 +50,16 @@
     <table id='show-calls-table' class='table table-hover table-colored'>
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Email</th>
-          <th>Block</th>
-          <th>Status</th>
-          <th>Driver Notes</th>
-          <th>Office Notes</th>
-          <th>Pickup Date</th>
-          <th>Email Status</th>
-          <th>Call Status</th>
+					<th id='col1'><a class='hover' href='#'>Name</a></th>
+					<th id='col2'><a class='hover' href='#'>Phone</a></th>
+					<th id='col3'><a class='hover' href='#'>Email</a></th>
+					<th id='col4'><a class='hover' href='#'>Block</a></th>
+					<th id='col5'><a class='hover' href='#'>Status</a></th>
+					<th id='col6'><a class='hover' href='#'>Driver Notes</a></th>
+					<th id='col7'><a class='hover' href='#'>Office Notes</a></th>
+					<th id='col8'><a class='hover' href='#'>Pickup Date</a></th>
+					<th id='col9'><a class='hover' href='#'>Email Status</a></th>
+					<th id='col10'><a class='hover' href='#'>Call Status</a></th>
           <th class='cancel-call-col' style='width:50px'></th>
         </tr>
       </thead>
@@ -67,46 +67,46 @@
       <!-- Notifications Rows -->
       <tbody>
       {% for row in notific_list %}
-        <tr id="{{row['_id']['$iod']}}">
-				<td>{{row['results'][0]['account'][0]['name']}}</td>
+        <tr id="{{row['_id']['$oid']}}">
+				<td name='name'>{{row['results'][0]['account'][0]['name']}}</td>
 
 				<!-- phone -->
-				<td>
+				{% set vars = {'phone':'---'} %}
 				{% for notific in row['results'] %}
 					{% if notific['type'] == 'voice' %}
-						{{notific.to}}
+						{% do vars.update({'phone': notific.to}) %}
 					{% endif %}
 				{% endfor %}
-				</td>
+				<td name='phone'>{{ vars['phone'] }}</td>
           
 				<!-- email -->
-				<td name='email'>
+				{% set vars = {'email': '---'} %}
 				{% for notific in row['results'] %}
 					{% if notific['type'] == 'email' %}
-						{{notific.to}}
+						{% do vars.update({'email': notific.to}) %}
 					{% endif %}
 				{% endfor %}
-				</td>
+				<td name='email'>{{ vars['email'] }}</td>
 					
 				<td>{{row['results'][0]['account'][0]['udf']['block']}}</td>
 				<td>{{row['results'][0]['account'][0]['udf']['status']}}</td>
-				<td>{{row['results'][0]['account'][0]['udf']['driver_notes']}}</td>
-				<td>{{row['results'][0]['account'][0]['udf']['office_notes']}}</td>
-				<td>{{row['results'][0]['account'][0]['udf']['pickup_dt']}}</td>
+				<td name='udf.driver_notes'>{{row['results'][0]['account'][0]['udf']['driver_notes']}}</td>
+				<td name='udf.office_notes'>{{row['results'][0]['account'][0]['udf']['office_notes']}}</td>
+				<td name='udf.pickup_dt'>{{row['results'][0]['account'][0]['udf']['pickup_dt']}}</td>
 
         <!-- email status -->
         {% set status = {'email':'---'} %}
 				{% for notific in row['results'] if notific['type'] == 'email' %}
             {% do status.update({'email': notific['status']}) %}
 				{% endfor %}
-        <td>{{ status['email'] }}</td>
+        <td name='email_status'>{{ status['email'] }}</td>
 
-				<!-- call status -->
+				<!-- phone status -->
         {% do status.update({'phone':'---'}) %}
 				{% for notific in row['results'] if notific['type'] == 'voice' %}
             {% do status.update({'phone': notific['status']}) %}
 				{% endfor %}
-        <td>{{ status['phone'] }}</td>
+        <td name='phone_status'>{{ status['phone'] }}</td>
 
 				<!-- Delete Button -->
 				<td class='cancel-notific'>

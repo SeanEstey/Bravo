@@ -1,7 +1,4 @@
 
-
-
-
 //------------------------------------------------------------------------------
 function init() {
     var $a_child = $('th:first-child a');
@@ -222,7 +219,7 @@ function sortCalls(table, column) {
 	/* @arg column: column number
 	 */
 
-	console.log('Sorting reminders by column %s', column);
+	console.log('Sorting notifications by column %s', column);
 
   var tbody = table.find('tbody');
 
@@ -277,7 +274,7 @@ function makeCallFieldsClickable() {
     if(!name)
       return;
 
-    if(name == 'call_status' || name == 'email_status')
+    if(name == 'phone_status' || name == 'email_status')
       return;
 
     if($('#event-status').text().indexOf('Pending') < 0)
@@ -333,7 +330,7 @@ function updateJobStatus() {
       var n_sent = 0;
       var n_incomplete = 0;
 
-      $('[name="call_status"]').each(function() {
+      $('[name="phone_status"]').each(function() {
         sum++;
 
         if($(this).text().indexOf('Sent') > -1)
@@ -360,11 +357,11 @@ function receiveMsgUpdate(data) {
   var $row = $('#'+data['id']);
  
   // Update to CALL state 
-  if('call_status' in data) {
-    $lbl = $row.find('[name="call_status"]');
-    var caption = data['call_status'];
+  if('phone_status' in data) {
+    $lbl = $row.find('[name="phone_status"]');
+    var caption = data['phone_status'];
     
-    if(data['call_status'] == 'completed') {
+    if(data['phone_status'] == 'completed') {
       $lbl.css('color', window.colors['SUCCESS_STATUS']);
 
       if(data['answered_by'] == 'human')
@@ -372,7 +369,7 @@ function receiveMsgUpdate(data) {
       else if(data['answered_by'] == 'machine')
         caption = 'Sent Voicemail';
     }
-    else if(data['call_status'] == 'failed') {
+    else if(data['phone_status'] == 'failed') {
       $lbl.css('color', window.colors['FAILED_STATUS']);
 
       if('error_msg' in data)
@@ -380,7 +377,7 @@ function receiveMsgUpdate(data) {
       else
         caption = 'Failed';
     }
-    else if(data['call_status'] == 'busy' || data['call_status'] == 'no-answer')
+    else if(data['phone_status'] == 'busy' || data['phone_status'] == 'no-answer')
       caption += ' (' + data['attempts'] + 'x)';
     else {
       $lbl.css('color', window.colors['IN_PROGRESS_STATUS']);
@@ -411,7 +408,7 @@ function receiveMsgUpdate(data) {
 
   if('speak' in data) {
     var title = 'Msg: ' + data['speak'];
-    $row.find('[name="call_status"]').attr('title', title);
+    $row.find('[name="phone_status"]').attr('title', title);
   }
 
   updateJobStatus();
@@ -462,8 +459,8 @@ function enableColumnSorting() {
 
 			$a.click(function() {
 					var id = $(this).parent().attr('id');
-					var sort_col = id.split('col')[1];
-					sortCalls($('#show-calls-table'), sort_col);
+					var column_number = id.split('col')[1];
+					sortCalls($('#show-calls-table'), column_number);
 					var encoded_text = HTMLEncode($(this).text());
 
 					if(encoded_text.indexOf(window.unicode['DOWN_ARROW']) > -1)
@@ -481,8 +478,8 @@ function formatColumns() {
 		$(this).css('width', '125px');
 	});
 
-	// "To" column
-	$('[name="to"]').each(function() {
+	// "phone" column
+	$('[name="phone"]').each(function() {
 		// Make this cell wide enough
 		$(this).css('width', '135px');
 
@@ -519,9 +516,9 @@ function formatColumns() {
 	});
 
 	// "Call Status" column
-	$('thead [name="call_status"]').css('width', '110px');
+	$('thead [name="phone_status"]').css('width', '110px');
 
-	$('tbody [name="call_status"]').each(function() {
+	$('tbody [name="phone_status"]').each(function() {
 			$(this).css('width', '110px');
 
 			var status = $(this).text();

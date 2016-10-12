@@ -131,10 +131,10 @@ def rmv_notifics(evnt_id, acct_id):
     return str(n)
 
 #-------------------------------------------------------------------------------
-@notify.route('/<notific_id>/edit', methods=['POST'])
+@notify.route('/<acct_id>/edit', methods=['POST'])
 @login_required
-def edit_msg(notific_id):
-    reminders.edit_msg(notific_id, request.form.items())
+def edit_msg(acct_id):
+    notifications.edit(ObjectId(acct_id), request.form.items())
     return 'OK'
 
 #-------------------------------------------------------------------------------

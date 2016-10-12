@@ -52,19 +52,21 @@ def render_body(template_file, data):
             npu = parse(data['entry']['next_pickup'])
             data['entry']['next_pickup'] = npu.strftime('%B %-d, %Y')
 
-    # TODO: Should work now that celery task has flask context
-            
-    try:
-        body = render_template(
-            template_file,
-            to = data['account']['email'],
-            account = data['account'],
-            entry = data['entry'],
-            history = args['data'].get('history') # optional
-        )
-    except Exception as e:
-        logger.error('render receipt template: %s', str(e))
-        return False
+    with current_app.test_request_context():
+        current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
+        try:
+            body = render_template(
+                template_file,
+                to = data['account']['email'],
+                account = data['account'],
+                entry = data['entry'],
+                history = data.get('history') # optional
+            )
+        except Exception as e:
+            logger.error('render receipt template: %s', str(e))
+            current_app.config['SERVER_NAME'] = None
+            return False
+        current_app.config['SERVER_NAME'] = None
 
     return body
 

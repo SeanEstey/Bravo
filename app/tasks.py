@@ -30,11 +30,10 @@ def monitor_triggers():
     ready_triggers = db['triggers'].find(
         {'status':'pending', 'fire_dt':{'$lt':datetime.utcnow()}})
 
-    for trigger in ready_triggers:
-        logger.info('firing %s trigger %s', trigger['type'], str(trigger['_id']))
-
+    #for trigger in ready_triggers:
+        #logger.info('firing %s trigger %s', trigger['type'], str(trigger['_id']))
         # Send notifications
-        logger.info('trigger not fired. uncomment line to activate')
+        #logger.info('trigger not fired. uncomment line to activate')
         #triggers.fire(trigger['evnt_id'], trigger['_id'])
 
     #if datetime.utcnow().minute == 0:
@@ -268,4 +267,3 @@ def find_non_participants():
                 )
         except Exception as e:
             logger.error('non-participation exception: %s', str(e))
-            continue

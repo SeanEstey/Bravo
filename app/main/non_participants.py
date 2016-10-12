@@ -51,7 +51,7 @@ def find(agency, accounts):
         time_active = now - dropoff_date
 
         # Account must have been active for >= non_participant_days
-        if time_active.days >= agency_settings['config']['non_participant_days']:
+        if time_active.days >= agency_conf['config']['non_participant_days']:
             viable_accounts.append(account)
 
     logger.info('found %s older accounts', str(len(viable_accounts)))
@@ -59,7 +59,7 @@ def find(agency, accounts):
     if len(viable_accounts) == 0:
         return []
 
-    np_cutoff = now - timedelta(days=agency_settings['config']['non_participant_days'])
+    np_cutoff = now - timedelta(days=agency_conf['config']['non_participant_days'])
 
     logger.info('Non-participant cutoff date is %s', np_cutoff.strftime('%b %d %Y'))
 
@@ -67,7 +67,7 @@ def find(agency, accounts):
         # Retrieve non-zero gifts from cutoff date
         gift_histories = etap.call(
             'get_gift_histories',
-            keys,
+            agency_conf['etapestry'],
             data = {
                 "account_refs": [i['ref'] for i in viable_accounts],
                 "start_date": str(np_cutoff.day) + "/" + str(np_cutoff.month) + "/" +str(np_cutoff.year),

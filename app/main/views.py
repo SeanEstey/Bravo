@@ -74,7 +74,7 @@ def process_receipts():
     from .. import tasks
     # Start celery workers to run slow eTapestry API calls
     r = tasks.send_receipts.apply_async(
-      args=(entries, etapestry),
+      args=[entries, etapestry],
       queue=current_app.config['DB']
     )
 

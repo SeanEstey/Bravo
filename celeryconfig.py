@@ -33,7 +33,7 @@ CELERYBEAT_SCHEDULE = {
   },
   'monitor_triggers': {
     'task': 'app.tasks.monitor_triggers',
-    'schedule': crontab(minute='*/1'),
+    'schedule': crontab(minute='*/5'),
     'options': { 'queue': config.DB }
   }
 }

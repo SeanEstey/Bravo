@@ -11,9 +11,7 @@ import json
 import re
 
 from .. import mailgun, gsheets, utils, etap
-#from app import tasks
-
-from app import db
+from .. import db
 
 logger = logging.getLogger(__name__)
 
@@ -195,17 +193,6 @@ def _send_sms(notification, twilio_conf):
     return True
 
 #-------------------------------------------------------------------------------
-def rmv_msg(job_id, msg_id):
-    n = db['reminders'].remove({'_id':ObjectId(msg_id)})
-
-    db['jobs'].update(
-        {'_id':ObjectId(job_id)},
-        {'$inc':{'voice.count':-1}}
-    )
-
-    return n
-
-#-------------------------------------------------------------------------------
 def edit(acct_id, fields):
     '''User editing a notification value from GUI
     '''
@@ -232,7 +219,6 @@ def edit(acct_id, fields):
         logger.info('Editing ' + fieldname + ' to value: ' + str(value))
 
         return True
-
 
 #-------------------------------------------------------------------------------
 def get_voice(notific, template_file):

@@ -10,11 +10,12 @@ from flask_socketio import SocketIO, emit
 from bson.objectid import ObjectId
 import logging
 
-from . import main, logger
+from . import main
 from . import log, receipts
-from .. import utils, html, gsheets#, tasks
+from .. import utils, html, gsheets
 from app.notify import notifications
 from .. import db
+logger = logging.getLogger(__name__)
 
 
 # ------------ Stuff TODO ----------------------
@@ -309,3 +310,10 @@ def rec_signup():
         return str(e)
 
     return 'OK'
+
+@main.route('/secret_run_non_par', methods=['GET'])
+def run_non_par():
+    from .. import tasks
+    tasks.find_non_participants.apply_async(queue=current_app.config['DB'])
+    return 'OK'
+

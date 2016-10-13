@@ -9,7 +9,7 @@ from bson import json_util
 
 from .. import utils, block_parser, gcal, etap
 from .. import db
-from . import events, notifications, triggers
+from . import events, notifics, triggers
 logger = logging.getLogger(__name__)
 
 
@@ -122,7 +122,12 @@ def insert_reminder(evnt_id, event_dt, trig_id, _type, acct_id, schema):
         if not account.get('phone'):
             return False
 
-        _id =notifications.insert(
+        _id = voice.add(
+            evnt_id, event_dt, trig_id, acct_id, account['phones'],
+            {'source':'template', 'path':schema['voice']},
+            {'module': 'pickup_service', 'func': 'on_call_interact'})
+
+        _id =notifics.insert(
             evnt_id,
             event_dt,
             trig_id,
@@ -137,7 +142,7 @@ def insert_reminder(evnt_id, event_dt, trig_id, _type, acct_id, schema):
         if not account.get('email'):
             return False
 
-        _id = notifications.insert(
+        _id = notifics.insert(
             evnt_id,
             event_dt,
             trig_id,
@@ -196,7 +201,7 @@ def add_future_pickups(evnt_id):
             dt = parse(cal_event['start']['date'] + " T08:00:00")
             block_dates[block] = utils.naive_to_local(dt)
 
-    notific_list = db['notifications'].find({'evnt_id':evnt_id})
+    notific_list = db['notifics'].find({'evnt_id':evnt_id})
 
     logger.debug('block_dats: %s', json_util.dumps(block_dates, sort_keys=True,indent=4))
 
@@ -266,7 +271,7 @@ def _cancel(evnt_id, acct_id):
 
     logger.info('Cancelling pickup for \'%s\'', acct_id)
 
-    db['notifications'].update(
+    db['notifics'].update(
         {'acct_id': acct_id, 'evnt_id': evnt_id},
         {'$set': {'status':'cancelled', 'opted_out':True}},
         multi=True
@@ -290,11 +295,11 @@ def _cancel(evnt_id, acct_id):
     except Exception as e:
         logger.error("Error writing to eTap: %s", str(e))
 
-    notific = db['notifications'].find_one({'acct_id':acct_id,
+    notific = db['notifics'].find_one({'acct_id':acct_id,
         'evnt_id':evnt_id, 'type':'email'})
 
     if notific:
-        notifications.send_email(notific, agency_conf['mailgun'], key='no_pickup')
+        notifics.send_email(notific, agency_conf['mailgun'], key='no_pickup')
 
     return True
 

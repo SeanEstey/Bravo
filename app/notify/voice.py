@@ -1,32 +1,7 @@
-import twilio
-from flask import render_template, current_app
-import logging
-from datetime import datetime,date,time,timedelta
-from dateutil.parser import parse
-import requests
-from pymongo.collection import ReturnDocument
-from bson.objectid import ObjectId
-import bson.json_util
-import json
-import re
+'''notify.voice'''
 
-from .. import mailgun, gsheets, utils, etap
-from .. import db
-
-logger = logging.getLogger(__name__)
-
-#-------------------------------Stuff Todo---------------------------------------
-# TODO: add sms template files
-# TODO: include date in email subject
-
-# TODO: Redo notification structure:
-'''
-{
-    "_id" : ObjectId("57fd41a106dc2a34bc4d9cd8"),
-    "status" : "pending",
-    "trig_id" : ObjectId("57fd41a106dc2a34bc4d9ccd"),
-    "attempts" : 0,
-    "event_dt" : ISODate("2016-10-17T14:00:00.000Z"),
+'''{
+    (...),
     "on_answer" : {
         "source" : "template",
         "path" : "voice/vec/reminder.html"
@@ -36,66 +11,40 @@ logger = logging.getLogger(__name__)
         "func": "on_call_interact"
     },
     "tracking": {
+        "attempts": 0,
+        "duration": 13,
+        "
+        "ended_dt": "ISODate(...)",
         "sid": "49959jfd93jd"
     },
-    "evnt_id" : ObjectId("57fd41a106dc2a34bc4d9ccb"),
-    "acct_id" : ObjectId("57fd41a106dc2a34bc4d9cd7"),
     "to" : "(403) 874-9467",
     "type" : "voice"
-}
-'''
-
-
+}'''
 
 #-------------------------------------------------------------------------------
-def insert(evnt_id, event_dt, trig_id, acct_id, _type, to, content):
-    '''Add a notification tied to an event and trigger
-    @evnt_id: _id of db.notific_events document
-    @trig_id: _id of db.triggers document
-    @acct_id: _id of db.accounts document
-    @type: one of ['sms', 'voice', 'email']
-    @to: phone number or email
-    @content:
-        'source': 'template/audio_url',
-        'template': {'default':{'file':'path', 'subject':'email_sub'}}
-        'audio_url': 'url'
-    Returns:
-      -id (ObjectId)
-    '''
-
-    return db['notifications'].insert_one({
+def add(evnt_id, event_dt, trig_id, acct_id, to, on_answer, on_interact):
+    return db['notifics'].insert_one({
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
         'event_dt': event_dt,
         'status': 'pending',
-        'attempts': 0,
+        'on_answer': on_answer,
+        'on_interact': on_interact,
         'to': to,
-        'type': _type,
-        'on_answer': content,
+        'type': 'voice',
         'opted_out': False
+        'tracking': {
+            'sid': None,
+            'duration': None,
+            'answered_by': None,
+            'attempts': 0
+        }
     }).inserted_id
 
-#-------------------------------------------------------------------------------
-def send(notification, agency_conf):
-    '''TODO: store conf data for twilio or mailgun when created, not on
-    send()
-    '''
-
-    if notification['status'] != 'pending':
-        return False
-
-    logger.debug('Sending %s', notification['type'])
-
-    if notification['type'] == 'voice':
-        return _send_call(notification, agency_conf['twilio'])
-    elif notification['type'] == 'sms':
-        return _send_sms(notification, agency_conf['twilio'])
-    elif notification['type'] == 'email':
-        return send_email(notification, agency_conf['mailgun'])
 
 #-------------------------------------------------------------------------------
-def _send_call(notification, twilio_conf):
+def call(notification, twilio_conf):
     '''Private method called by send()
     '''
 
@@ -145,111 +94,7 @@ def _send_call(notification, twilio_conf):
         return True
 
 #-------------------------------------------------------------------------------
-def send_email(notification, mailgun_conf, key='default'):
-    '''Private method called by send()
-    @key = dict key in email schemas for which template to use
-    '''
-
-    template = notification['on_answer']['template'][key]
-
-    with current_app.test_request_context():
-        current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
-        try:
-            body = render_template(
-                template['file'],
-                to = notification['to'],
-                account = utils.mongo_formatter(
-                    db['accounts'].find_one({'_id':notification['acct_id']}),
-                    to_local_time=True,
-                    to_strftime="%A, %B %d",
-                    bson_to_json=True
-                ),
-                evnt_id = notification['evnt_id']
-            )
-        except Exception as e:
-            logger.error('render email: %s ', str(e))
-            current_app.config['SERVER_NAME'] = None
-            return False
-        current_app.config['SERVER_NAME'] = None
-
-    mid = mailgun.send(
-        notification['to'],
-        template['subject'],
-        body,
-        mailgun_conf)
-
-    if mid == False:
-        status = 'failed'
-    else:
-        status = 'queued'
-
-    agency = db['agencies'].find_one({'mailgun.domain': mailgun_conf['domain']})
-
-    db['emails'].insert({
-        'agency': agency['name'],
-        'mid': mid,
-        'status': status,
-        'type': 'notification',
-        'on_status': {}
-    })
-
-    db['notifications'].update_one(
-        {'_id':notification['_id']},
-        {'$set': {'status':status, 'mid': mid}})
-
-    return mid
-
-#-------------------------------------------------------------------------------
-def on_email_status(webhook):
-    '''
-    @webhook: webhook args POST'd by mailgun'''
-
-    db['notifications'].update_one(
-      {'mid': webhook['Message-Id']},
-      {'$set':{
-        "status": webhook['event'],
-        "code": webhook.get('code'),
-        "reason": webhook.get('reason'),
-        "error": webhook.get('error')
-      }}
-    )
-
-#-------------------------------------------------------------------------------
-def _send_sms(notification, twilio_conf):
-    '''Private method called by send()
-    '''
-    return True
-
-#-------------------------------------------------------------------------------
-def edit(acct_id, fields):
-    '''User editing a notification value from GUI
-    '''
-    for fieldname, value in fields:
-        if fieldname == 'udf.pickup_dt':
-          try:
-            value = parse(value)
-          except Exception, e:
-            logger.error('Could not parse event_dt in /edit/call')
-            return '400'
-
-        db['accounts'].update({'_id':acct_id}, {'$set':{fieldname:value}})
-
-        # update notification 'to' fields if phone/email edited
-        if fieldname == 'email':
-            db['notifications'].update_one(
-                {'acct_id':acct_id},
-                {'$set':{'to':value}})
-        elif fieldname == 'phone':
-            db['notifications'].update_one(
-                {'acct_id':acct_id, '$or': [{'type':'voice'},{'type':'sms'}]},
-                {'$set': {'to':value}})
-
-        logger.info('Editing ' + fieldname + ' to value: ' + str(value))
-
-        return True
-
-#-------------------------------------------------------------------------------
-def get_voice(notific, template_file):
+def get_speak(notific, template_file):
     '''Return rendered HMTL template as string
     Called from flask so has context
     @notification: mongodb dict document
@@ -275,7 +120,7 @@ def get_voice(notific, template_file):
                 }
             )
         except Exception as e:
-            logger.error('get_voice: %s ', str(e))
+            logger.error('get_speak: %s ', str(e))
             return 'Error'
         current_app.config['SERVER_NAME'] = None
 
@@ -289,7 +134,7 @@ def get_voice(notific, template_file):
     return content
 
 #-------------------------------------------------------------------------------
-def on_call_answered(args):
+def on_answer(args):
     '''User answered call. Get voice content.
     Return: twilio.twiml.Response
     '''
@@ -319,7 +164,7 @@ def on_call_answered(args):
 
     if notific['on_answer']['source'] == 'template':
         voice.say(
-            get_voice(
+            get_speak(
                 db['accounts'].find_one({'_id':notific['acct_id']}),
                 notific,
                 notific['on_answer']['template']['default']['file']),
@@ -339,7 +184,7 @@ def on_call_answered(args):
     return voice
 
 #-------------------------------------------------------------------------------
-def on_call_interact(args):
+def on_interact(args):
     '''The user has entered input. Invoke handler function to get response.
     Returns: twilio.twiml.Response
     '''
@@ -367,7 +212,7 @@ def on_call_interact(args):
     return voice
 
 #-------------------------------------------------------------------------------
-def on_call_complete(args):
+def on_complete(args):
     '''Callback handler called by Twilio on 'completed' event (more events can
     be specified, at $0.00001 per event). Updates status of event in DB.
     Returns: 'OK' string to twilio if no problems.

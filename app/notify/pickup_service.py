@@ -220,7 +220,6 @@ def add_future_pickups(evnt_id):
             logger.error('Assigning future_dt %s to acct_id %s: %s',
             str(npu), str(account['_id']), str(e))
 
-
 #-------------------------------------------------------------------------------
 def get_next_pickup(blocks, office_notes, block_dates):
     '''Given list of blocks, find next scheduled date
@@ -298,3 +297,44 @@ def _cancel(evnt_id, acct_id):
         notifications.send_email(notific, agency_conf['mailgun'], key='no_pickup')
 
     return True
+
+#-------------------------------------------------------------------------------
+def on_call_interact(notific, args):
+    # TODO: import twilio module
+
+    voice = twilio.twiml.Response()
+
+    # Digit 1: Repeat message
+    if args.get('Digits') == '1':
+        content = notifications.get_voice(
+          notific,
+          notific['content']['template']['default']['file'])
+
+        voice.say(content, voice='alice')
+
+        voice.gather(
+            numDigits=1,
+            action=current_app.config['PUB_URL'] + '/notify/voice/play/interact.xml',
+            method='POST')
+
+        return voice
+
+    # Digit 2: Cancel pickup
+    elif args.get('Digits') == '2':
+        from .. import tasks
+        tasks.cancel_pickup.apply_async(
+            (str(notific['evnt_id']), str(notific['acct_id'])),
+            queue=current_app.config['DB']
+        )
+
+        account = db['accounts'].find_one({'_id':notific['acct_id']})
+        dt = utils.tz_utc_to_local(account['udf']['future_pickup_dt'])
+
+        voice.say(
+          'Thank you. Your next pickup will be on ' +\
+          dt.strftime('%A, %B %d') + '. Goodbye',
+          voice='alice'
+        )
+        voice.hangup()
+
+        return voice

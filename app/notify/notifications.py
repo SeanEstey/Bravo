@@ -19,6 +19,34 @@ logger = logging.getLogger(__name__)
 # TODO: add sms template files
 # TODO: include date in email subject
 
+# TODO: Redo notification structure:
+'''
+{
+    "_id" : ObjectId("57fd41a106dc2a34bc4d9cd8"),
+    "status" : "pending",
+    "trig_id" : ObjectId("57fd41a106dc2a34bc4d9ccd"),
+    "attempts" : 0,
+    "event_dt" : ISODate("2016-10-17T14:00:00.000Z"),
+    "on_answer" : {
+        "source" : "template",
+        "path" : "voice/vec/reminder.html"
+    },
+    "on_interact": {
+        "module": "pickup_service",
+        "func": "on_call_interact"
+    },
+    "tracking": {
+        "sid": "49959jfd93jd"
+    },
+    "evnt_id" : ObjectId("57fd41a106dc2a34bc4d9ccb"),
+    "acct_id" : ObjectId("57fd41a106dc2a34bc4d9cd7"),
+    "to" : "(403) 874-9467",
+    "type" : "voice"
+}
+'''
+
+
+
 #-------------------------------------------------------------------------------
 def insert(evnt_id, event_dt, trig_id, acct_id, _type, to, content):
     '''Add a notification tied to an event and trigger
@@ -44,7 +72,7 @@ def insert(evnt_id, event_dt, trig_id, acct_id, _type, to, content):
         'attempts': 0,
         'to': to,
         'type': _type,
-        'content': content,
+        'on_answer': content,
         'opted_out': False
     }).inserted_id
 
@@ -122,7 +150,7 @@ def send_email(notification, mailgun_conf, key='default'):
     @key = dict key in email schemas for which template to use
     '''
 
-    template = notification['content']['template'][key]
+    template = notification['on_answer']['template'][key]
 
     with current_app.test_request_context():
         current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
@@ -228,8 +256,6 @@ def get_voice(notific, template_file):
     @template_key: name of content dict containing file path
     '''
 
-    logger.debug('get_voice')
-
     account = db['accounts'].find_one({'_id':notific['acct_id']})
 
     with current_app.app_context():
@@ -237,6 +263,7 @@ def get_voice(notific, template_file):
         try:
             content = render_template(
                 template_file,
+                medium='voice',
                 account = utils.mongo_formatter(
                     account,
                     to_local_time=True,
@@ -285,22 +312,26 @@ def on_call_answered(args):
 
     voice = twilio.twiml.Response()
 
+
+    # TODO: replace "content" key with "on_answer" for notification dicts
+
     # Html template content or audio url?
 
-    if notific['content']['source'] == 'template':
+    if notific['on_answer']['source'] == 'template':
         voice.say(
             get_voice(
+                db['accounts'].find_one({'_id':notific['acct_id']}),
                 notific,
-                notific['content']['template']['default']['file']),
+                notific['on_answer']['template']['default']['file']),
             voice='alice'
         )
-    elif notific['content']['source'] == 'audio_url':
-        voice.play(notific['content']['audio_url'])
+    elif notific['on_answer']['source'] == 'audio_url':
+        voice.play(notific['on_answer']['audio_url'])
     else:
         logger.error('Unknown schema type!')
         voice.say("Error!", voice='alice')
 
-    # Prompt user for action after voice audio plays
+    # All voice templates prompt key "1" to repeat message
     voice.gather(numDigits=1,
                 action=current_app.config['PUB_URL'] + '/notify/voice/play/interact.xml',
                 method='POST')
@@ -309,8 +340,8 @@ def on_call_answered(args):
 
 #-------------------------------------------------------------------------------
 def on_call_interact(args):
-    '''
-    Return: twilio.twiml.Response
+    '''The user has entered input. Invoke handler function to get response.
+    Returns: twilio.twiml.Response
     '''
 
     logger.debug('voice_play_interact args: %s', args)
@@ -320,43 +351,18 @@ def on_call_interact(args):
     if not notific:
         return False
 
-    voice = twilio.twiml.Response()
+    '''Notification dict defines:
+          "on_interact": {
+                "module": "pickup_service",
+                "func": "on_call_interact"
+            },
+    '''
 
-    # Digit 1: Repeat message
-    if args.get('Digits') == '1':
-        content = get_voice(
-          notific,
-          notific['content']['template']['default']['file'])
+    # Import assigned handler module and invoke the function
 
-        voice.say(content, voice='alice')
-
-        voice.gather(
-            numDigits=1,
-            action=current_app.config['PUB_URL'] + '/notify/voice/play/interact.xml',
-            method='POST')
-
-    # Digit 2: Cancel pickup
-    elif args.get('Digits') == '2':
-        from .. import tasks
-        tasks.cancel_pickup.apply_async(
-            (str(notific['evnt_id']), str(notific['acct_id'])),
-            queue=current_app.config['DB']
-        )
-
-        account = db['accounts'].find_one({'_id':notific['acct_id']})
-        dt = utils.tz_utc_to_local(account['udf']['future_pickup_dt'])
-
-        voice.say(
-          'Thank you. Your next pickup will be on ' +\
-          dt.strftime('%A, %B %d') + '. Goodbye',
-          voice='alice'
-        )
-        voice.hangup()
-
-    #elif job['schema']['type'] == 'announce_voice':
-    #    if args.get('Digits') == '1':
-    #        voice.play(job['audio_url'])
-    #        voice.gather(numDigits=1, action='/reminders/voice/play/on_interact.xml', method='POST')
+    module = __import__(notific['on_interact']['module'])
+    handler_func = getattr(module, notific['on_interact']['func']
+    voice = handler_func(notific, args)
 
     return voice
 

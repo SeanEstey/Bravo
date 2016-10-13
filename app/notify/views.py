@@ -12,11 +12,10 @@ import logging
 import bson.json_util
 from flask_socketio import SocketIO, emit
 
-from . import notify#, logger
+from . import notify
 from . import events, triggers, notifications, recording, pickup_service
 from .. import utils, sms
 from .. import db
-
 logger = logging.getLogger(__name__)
 
 

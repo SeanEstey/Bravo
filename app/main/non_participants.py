@@ -3,9 +3,10 @@
 import logging
 from datetime import datetime, timedelta
 from dateutil.parser import parse
-from .. import etap
+
+from .. import etap, gsheets
 from .. import db
-from . import logger
+logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def find(agency, accounts):

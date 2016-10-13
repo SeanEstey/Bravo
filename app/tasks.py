@@ -267,6 +267,8 @@ def find_non_participants():
     '''Create RFU's for all non-participants on scheduled dates'''
     from app import schedule
     from app.main import non_participants
+    from . import etap, gsheets
+    from datetime import date
 
     agencies = db['agencies'].find({})
 
@@ -294,10 +296,10 @@ def find_non_participants():
                 gsheets.create_rfu(
                   agency['name'],
                   'Non-participant',
-                  account_number = np['id'],
-                  next_pickup = npu,
+                  a_id = np['id'],
+                  npu = npu,
                   block = etap.get_udf('Block', np),
-                  date = date.today().strftime('%-m/%-d/%Y')
+                  _date = date.today().strftime('%-m/%-d/%Y')
                 )
         except Exception as e:
             logger.error('%s\n%s', str(e), tb.format_exc())

@@ -1,4 +1,4 @@
-'''main.non_participants'''
+'''app.main.non_participants'''
 
 import logging
 from datetime import datetime, timedelta

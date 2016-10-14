@@ -109,16 +109,6 @@ def send(agency, to, template, subject, data):
         to, subject, body, agency_conf['mailgun'],
         v={'type':'receipt'})
 
-    db['emails'].insert({
-        'agency': agency,
-        'mid': mid,
-        'type': 'receipt',
-        'status': 'queued',
-        'on_status': {
-            'update': data['entry']['from']
-        }
-    })
-
 #-------------------------------------------------------------------------------
 def process(entries, etapestry_id):
     '''Celery process that sends email receipts to entries in Bravo

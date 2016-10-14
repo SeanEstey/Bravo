@@ -10,9 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-def send(to, subject, body, conf):
+def send(to, subject, body, conf, v=None):
     '''Send email via mailgun.
-    @conf: 'mailgun' dict from 'agencies' DB
+    @conf: db.agencies.mailgun
+    @v: custom dict to included in webhooks
     Returns:
       -mid string on success
     '''
@@ -25,7 +26,8 @@ def send(to, subject, body, conf):
             'from': conf['from'],
             'to':  to,
             'subject': subject,
-            'html': body
+            'html': body,
+            'v': json.dumps(s)
         })
     except requests.RequestException as e:
         logger.error('mailgun: %s ', str(e))

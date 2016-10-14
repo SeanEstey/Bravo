@@ -18,7 +18,7 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
         'subject': 'msg'}
     @on_reply: {
         'module':'module_name',
-        'func_name':'handler_func'}
+        'func':'handler_func'}
     '''
 
     return db['notifics'].insert_one({
@@ -32,7 +32,7 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
         'type': 'email',
         'tracking': {
             'status': 'pending',
-            'mid': None,
+            'mid': None
         }
     }).inserted_id
 

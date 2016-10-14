@@ -1,4 +1,4 @@
-'''main.views'''
+'''app.main.views'''
 
 import json
 import time

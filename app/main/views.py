@@ -208,6 +208,9 @@ def email_spam_complaint():
 def on_email_delivered():
     '''Relay for Mailgun webhook'''
 
+    # TODO: Cannot manually set webhook URL.
+    # Route any notify.emails to email modulee
+    
     logger.info('Email to %s %s',
       request.form['recipient'], request.form['event']
     )

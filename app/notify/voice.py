@@ -97,15 +97,13 @@ def call(notific, twilio_conf, voice_conf):
 #-------------------------------------------------------------------------------
 def get_speak(notific, template_file):
     '''Return rendered HMTL template as string
-    Called from flask so has context
+    Called inside Flask view so has context
     @notific: mongodb dict document
     @template_key: name of content dict containing file path
     '''
 
     account = db['accounts'].find_one({'_id':notific['acct_id']})
 
-    # If this is run from a Celery task, it is working outside a request
-    # context. render_template() doesn't need a request context but does
     # need an application context for access/editing of apps SERVER_NAME variable,
     # which underlying url_for() requires so it's aware of the domain address
     with current_app.app_context():
@@ -186,7 +184,9 @@ def on_answer(args):
 
 #-------------------------------------------------------------------------------
 def on_interact(args):
-    '''The user has entered input. Invoke handler function to get response.
+    '''User has entered key input.
+    Working under request context
+    request contextuser has entered input. Invoke handler function to get response.
     Returns: twilio.twiml.Response
     '''
 
@@ -198,9 +198,10 @@ def on_interact(args):
     # to get voice response
 
     module = __import__(notific['on_interact']['module'])
-    handler_func = getattr(module, notific['on_interact']['func']
+    handler_func = getattr(module, notific['on_interact']['func'])
 
-    return handler_func(notific, args)
+    response = handler_func(notific, args)
+    return response
 
 #-------------------------------------------------------------------------------
 def on_complete(args):
@@ -235,10 +236,6 @@ def on_complete(args):
             kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
             queue=current_app.config['DB']
         )
-
-        tasks.rfu.apply_async(
-        #  args=(job['agency'], msg),
-        #  queue=app.config['DB'])
 
     # Call completed without error
     elif args['CallStatus'] == 'completed':

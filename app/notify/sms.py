@@ -17,6 +17,9 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
     @on_send: {
         'template': 'path/to/template/file'
     }
+
+    I think I need to register Twilio 'app_sid' to receive text replies
+
     @on_reply: {
         'module':'module_name',
         'func':'handler_func'}
@@ -45,24 +48,61 @@ def send(notific, twilio_conf):
     Output: Twilio response
     '''
 
-    if to[0:2] != "+1":
-        to = "+1" + to
+    if notific['to'][0:2] != "+1":
+        notific['to'] = "+1" + notific['to']
 
     try:
         client = TwilioRestClient(
             twilio_conf['api_keys']['main']['sid'],
             twilio_conf['api_keys']['main']['auth_id'])
-   except twilio.TwilioRestException as e:
+    except twilio.TwilioRestException as e:
         logger.error('SMS not sent. Error getting Twilio REST client. %s', str(e), exc_info=True)
         pass
-    
-    # TODO: write render_template() code to get SMS body
-    
+
+    agency = db['accounts'].find_one({
+          '_id':notific['acct_id']
+        })['agency']
+
+    # Running via celery worker outside request context
+    # Must create one for render_template() and set SERVER_NAME for
+    # url_for() to generate absolute URLs
+    with current_app.test_request_context():
+        current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
+        try:
+            body = render_template(
+                'sms/%s/reminder.html' % agency,
+                account = acct,
+                notific = notific
+            )
+        except Exception as e:
+            logger.error('Error rendering SMS body. %s', str(e))
+            current_app.config['SERVER_NAME'] = None
+            return False
+        current_app.config['SERVER_NAME'] = None
+
     response = client.messages.create(
-        body = ,
-        to = to,
+        body = body,
+        to = notific['to'],
         from_ = twilio_conf['sms'],
         status_callback = '%s/notify/sms/delivered' % current_app.config['PUB_URL'])
- 
 
+    return response
+
+#-------------------------------------------------------------------------------
+def on_reply(notific, args):
+    '''User has replied to text notific.
+    Working under request context
+    Invoke handler function to get response.
+    Returns: twilio.twiml.Response
+    '''
+
+    logger.debug('sms.on_reply: %s', args)
+
+    # Import assigned handler module and invoke function
+    # to get voice response
+
+    module = __import__(notific['on_reply']['module'])
+    handler_func = getattr(module, notific['on_interact']['func'])
+
+    response = handler_func(notific, args)
     return response

@@ -11,14 +11,11 @@ logger = logging.getLogger(__name__)
 # TODO: include date in email subject
 
 #-------------------------------------------------------------------------------
-def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
+def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply=None):
     '''
     @on_send: {
         'template': 'path/to/template/file',
         'subject': 'msg'}
-    @on_reply: {
-        'module':'module_name',
-        'func':'handler_func'}
     '''
 
     return db['notifics'].insert_one({
@@ -27,7 +24,6 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
         'acct_id': acct_id,
         'event_dt': event_dt,
         'on_send': on_send,
-        'on_reply': on_reply,
         'to': to,
         'type': 'email',
         'tracking': {
@@ -99,11 +95,11 @@ def on_email_status(webhook):
     @webhook: webhook args POST'd by mailgun'''
 
     db['notifics'].update_one(
-      {'mid': webhook['Message-Id']},
+      {'tracking.mid': webhook['Message-Id']},
       {'$set':{
-        "status": webhook['event'],
-        "code": webhook.get('code'),
-        "reason": webhook.get('reason'),
-        "error": webhook.get('error')
+        'tracking.status': webhook['event'],
+        'tracking.code': webhook.get('code'),
+        'tracking.reason': webhook.get('reason'),
+        'tracking.error': webhook.get('error')
       }}
     )

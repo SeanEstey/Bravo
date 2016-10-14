@@ -4,7 +4,7 @@ import logging
 import traceback as tb
 from celery import Celery
 import logging
-from bson.objectid import ObjectId
+from bson.objectid import ObjectId as oid
 
 from . import db
 from . import create_app, create_celery_app, \
@@ -40,23 +40,31 @@ def monitor_triggers():
         from datetime import datetime, timedelta
         import pytz
 
-        ready_triggers = db['triggers'].find(
-            {'status':'pending', 'fire_dt':{'$lt':datetime.utcnow()}})
+        ready = db['triggers'].find({
+            'status':'pending',
+            'fire_dt':{
+                '$lt':datetime.utcnow()}})
 
-        for trigger in ready_triggers:
+        for trigger in ready:
             event = events.get(trigger['evnt_id'])
 
             logger.info('----- Firing %s trigger for "%s" event -----',
                 trigger['type'], event['name'])
 
-            triggers.fire(trigger['evnt_id'], trigger['_id'])
+            # IMPORTANT: leave this line commented on test server unless
+            # using test data
+            #triggers.fire(trigger['evnt_id'], trigger['_id'])
 
-        pending_triggers = db['triggers'].find(
-            {'status':'pending', 'fire_dt': {'$gt':datetime.utcnow()}})
+        pending = db['triggers'].find({
+            'status':'pending',
+            'fire_dt': {
+                '$gt':datetime.utcnow()}})
 
-        for trigger in pending_triggers:
+        for trigger in pending:
             delta = trigger['fire_dt'] - datetime.utcnow().replace(tzinfo=pytz.utc)
-            print '%s trigger pending in %s' %  (trigger['type'], str(delta)[:-7])
+
+            print '%s trigger pending in %s' %(
+                trigger['type'], str(delta)[:-7])
     except Exception as e:
         logger.error('%s\n%s', str(e), tb.format_exc())
         return False
@@ -68,7 +76,10 @@ def monitor_triggers():
 def cancel_pickup(evnt_id, acct_id):
     try:
         from app.notify import pickup_service
-        return pickup_service._cancel(evnt_id, acct_id)
+
+        return pickup_service.cancel_pickup(
+            oid(evnt_id),
+            oid(acct_id))
     except Exception as e:
         logger.error('%s\n%s', str(e), tb.format_exc())
 
@@ -95,7 +106,7 @@ def add_signup(signup):
 def fire_trigger(evnt_id, trig_id):
     try:
         from app.notify import triggers
-        return triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
+        return triggers.fire(oid(evnt_id), oid(trig_id))
     except Exception as e:
         logger.error('%s\n%s', str(e), tb.format_exc())
 

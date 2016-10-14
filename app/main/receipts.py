@@ -38,8 +38,7 @@ def on_email_status(webhook):
 
 #-------------------------------------------------------------------------------
 def render_body(template_file, data):
-    '''Convert all dates in data to long format strings, render into
-    html'''
+    '''Convert all dates in data to long format strings, render into html'''
 
     # Bravo php returned gift histories as ISOFormat
     if data.get('history'):

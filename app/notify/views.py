@@ -14,7 +14,7 @@ from flask_socketio import SocketIO, emit
 
 from . import notify
 from . import events, triggers, email, voice, sms, recording#, pickup_service
-from .. import utils, sms
+from .. import utils
 from .. import db
 logger = logging.getLogger(__name__)
 
@@ -177,13 +177,11 @@ def get_twilio_token():
     token = recording.get_twilio_token()
     return jsonify(identity="sean", token=token)
 
-
 #-------------------------------------------------------------------------------
 @notify.route('/voice/record/request', methods=['POST'])
 def record_msg():
     call = recording.dial(request.values.to_dict())
     return Response(response=json.dumps({'status':call.status}), mimetype='text/xml')
-
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/record/answer.xml',methods=['POST'])
@@ -204,7 +202,7 @@ def get_answer_xml():
     Request: Twilio POST
     Response: twilio.twiml.Response with voice content
     '''
-    
+
     try:
         twiml = voice.on_answer(request.form.to_dict())
     except Exception as e:
@@ -254,7 +252,6 @@ def fallback():
 
     return 'OK'
 
-
 #-------------------------------------------------------------------------------
 @notify.route('/sms/delivered', methods=['POST'])
 def sms_status():
@@ -266,15 +263,15 @@ def sms_status():
 
     db['notifics'].find_one_and_update({
         'tracking.sid': request.form['SmsSid']}, {
-        '$set'{
+        '$set':{
             'tracking.status': request.form['SmsStatus']}
         })
-    
+
     if request.form['SmsStatus'] != 'received':
         logger.error('Error, SMS status %s', request.form['SmsStatus'])
-    
+
     # TODO: Move this code into app.sms
-    
+
     #doc = db['sms'].find_one_and_update(
     #  {'SmsSid': request.form['SmsSid']},
     #  {'$set': { 'SmsStatus': request.form['SmsStatus']}}
@@ -291,6 +288,21 @@ def sms_status():
     #      request.form['SmsSid'])
 
     return 'OK'
+
+#-------------------------------------------------------------------------------
+@notify.route('/sms/receive', methods=['POST'])
+def receive_sms():
+    # Notify system and Pickup Date System share same number and webhooks.
+    # Route to appropriate functions
+
+    notific = db['notifics'].find_one({'tracking.sid': request.form['SmsSid']})
+
+    if notific:
+        return sms.on_reply(notific, request.form.to_dict())
+    else:
+        # BPU Pickup Date Request
+        # TODO: add code
+        return 'OK'
 
 #-------------------------------------------------------------------------------
 '''@notify.route('/sendsocket', methods=['GET'])

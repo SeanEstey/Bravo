@@ -8,10 +8,11 @@ logger = logging.getLogger(__name__)
 # TODO: rename all refs to 'id' field to 'etap_id'
 
 #-------------------------------------------------------------------------------
-def add(agency, a_id, name, phone=None, email=None, udf=None):
+def add(agency, etap_id, name, phone=None, email=None, udf=None):
     return db['accounts'].insert_one({
+        'agency': agency,
         'name': name,
-        'id': a_id,
+        'etap_id': a_id,
         'phone': phone,
         'email': email,
         'udf': udf

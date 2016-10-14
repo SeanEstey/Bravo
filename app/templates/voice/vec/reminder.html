@@ -1,4 +1,4 @@
-{% if medium == 'voice' and notific['response']['call.digit == 2 %}
+{% if and notific['response']['call.digit == 2 %}
     Your pickup has been unscheduled. Your next pickup will be
     {{ account['udf'].future_pickup_dt }}.
     Thank you.

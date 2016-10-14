@@ -78,7 +78,7 @@ def fire(evnt_id, trig_id):
             elif notific['type'] == 'email':
                 status = email.send(notific, mailgun_conf)
         except Exception as e:
-            errors.append('Notific %s failed. %s' % (str(n['_id']), str(e))
+            errors.append('Notific %s failed. %s' % (str(n['_id']), str(e)))
 
         if status == 'failed':
             fails += 1

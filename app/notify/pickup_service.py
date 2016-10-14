@@ -2,9 +2,10 @@
 
 import logging
 import json
+from flask import current_app, render_template
 from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
-from bson.objectid import ObjectId
+from bson.objectid import ObjectId as oid
 from bson import json_util
 
 from .. import utils, block_parser, gcal, etap
@@ -76,7 +77,7 @@ def create_reminder_event(agency, block, _date):
         npu = etap.get_udf('Next Pickup Date', acct_obj).split('/')
 
         if len(npu) < 3:
-            logger.error('Account %s missing npu. Skipping.', account['id'])
+            logger.error('Account %s missing npu. Skipping.', acct_obj['id'])
             continue
 
         acct_id = accounts.add(
@@ -135,15 +136,11 @@ def create_reminder_event(agency, block, _date):
                 'template': 'email/%s/reminder.html' % agency,
                 'subject': 'Your upcoming Vecova Bottle Service pickup'}
 
-            on_reply = {
-                'module': 'pickup_service',
-                'func': 'on_email_reply'}
-
             email.add(
                 evnt_id, event_dt,
                 email_trig_id,
                 acct_id, acct_obj.get('email'),
-                on_send, on_reply)
+                on_send)
 
     add_future_pickups(str(evnt_id))
 
@@ -156,7 +153,7 @@ def add_future_pickups(evnt_id):
     @evnt_id: str of ObjectID
     '''
 
-    evnt_id = ObjectId(evnt_id)
+    evnt_id = oid(evnt_id)
 
     logger.info('Getting next pickups for notification event ID \'%s\'', str(evnt_id))
 
@@ -201,11 +198,11 @@ def add_future_pickups(evnt_id):
     npu = ''
     for notific in notific_list:
         try:
-            account = db['accounts'].find_one({'_id':notific['acct_id']})
+            acct = db['accounts'].find_one({'_id':notific['acct_id']})
 
             npu = get_next_pickup(
-              account['udf']['block'],
-              account['udf']['office_notes'] or '',
+              acct['udf']['block'],
+              acct['udf']['office_notes'] or '',
               block_dates
             )
 
@@ -215,7 +212,7 @@ def add_future_pickups(evnt_id):
                 })
         except Exception as e:
             logger.error('Assigning future_dt %s to acct_id %s: %s',
-            str(npu), str(account['_id']), str(e))
+            str(npu), str(acct['_id']), str(e))
 
 #-------------------------------------------------------------------------------
 def get_next_pickup(blocks, office_notes, block_dates):
@@ -254,56 +251,71 @@ def get_next_pickup(blocks, office_notes, block_dates):
     return dates[0]
 
 #-------------------------------------------------------------------------------
-def _cancel(evnt_id, acct_id):
-    '''Update users eTapestry account with next pickup date and send user
-    confirmation email'''
-
-    evnt_id = ObjectId(evnt_id)
-    acct_id = ObjectId(acct_id)
+def cancel_pickup(evnt_id, acct_id):
+    '''Called via either SMS, voice, or email reminder. eTap API is slow so runs as Celery
+    background task.
+    @acct_id: db['accounts']['_id']
+    '''
 
     logger.info('Cancelling pickup for \'%s\'', acct_id)
 
+    # Cancel any pending parent notifications
+
     db['notifics'].update({
           'acct_id': acct_id,
-          'evnt_id': evnt_id
+          'evnt_id': evnt_id,
+          'tracking.status': 'pending'
         },{
           '$set': {
-            'status':'cancelled',
+            'tracking.status':'cancelled',
             'opted_out':True}
         },
         multi=True)
 
-    account = db['accounts'].find_one({'_id':acct_id})
+    acct = db['accounts'].find_one_and_update({
+        '_id':acct_id},{
+        '$set': {
+          'udf.opted_out': True
+      }})
 
-    agency_conf = db['agencies'].find_one({
+    conf = db['agencies'].find_one({
         'name': db['notific_events'].find_one({
-            '_id':evnt_id}
-        )['agency']
-    })
+            '_id':evnt_id})['agency']})
 
     try:
         etap.call(
             'no_pickup',
-            agency_conf['etapestry'],
+            conf['etapestry'],
             data={
-                "account": account['id'],
-                "date": account['udf']['pickup_dt'].strftime('%d/%m/%Y'),
-                "next_pickup": utils.tz_utc_to_local(
-                    account['udf']['future_pickup_dt']
+                'account': acct['etap_id'],
+                'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
+                'next_pickup': utils.tz_utc_to_local(
+                    acct['udf']['future_pickup_dt']
                 ).strftime('%d/%m/%Y')
             })
     except Exception as e:
         logger.error("Error writing to eTap: %s", str(e))
 
-    notific = db['notifics'].find_one({
-        'acct_id':acct_id,
-        'evnt_id':evnt_id,
-        'type':'email'})
+    if not acct.get('email'):
+        return True
 
-
-    # TODO: send opt_out email using mailgun. write render_template() wrapper
-    #if notific:
-    #    notifics.send_email(notific, agency_conf['mailgun'], key='no_pickup')
+    # Send confirmation email
+    # Running via celery worker outside request context
+    # Must create one for render_template() and set SERVER_NAME for
+    # url_for() to generate absolute URLs
+    with current_app.test_request_context():
+        current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
+        try:
+            body = render_template(
+                'email/%s/no_pickup.html' % conf['agency'],
+                to = acct['email'],
+                account = acct
+            )
+        except Exception as e:
+            logger.error('Error rendering no_pickup email. %s', str(e))
+            current_app.config['SERVER_NAME'] = None
+            return False
+        current_app.config['SERVER_NAME'] = None
 
     return True
 
@@ -336,8 +348,8 @@ def on_call_interact(notific, args):
             queue=current_app.config['DB']
         )
 
-        account = db['accounts'].find_one({'_id':notific['acct_id']})
-        dt = utils.tz_utc_to_local(account['udf']['future_pickup_dt'])
+        acct = db['accounts'].find_one({'_id':notific['acct_id']})
+        dt = utils.tz_utc_to_local(acct['udf']['future_pickup_dt'])
 
         response.say(
           'Thank you. Your next pickup will be on ' +\
@@ -347,3 +359,12 @@ def on_call_interact(notific, args):
         response.hangup()
 
         return response
+
+
+#-------------------------------------------------------------------------------
+def on_sms_reply(notific, args):
+    # TODO: import twilio module
+
+    response = twilio.twiml.Response()
+    return True
+

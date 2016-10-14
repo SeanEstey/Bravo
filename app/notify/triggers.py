@@ -1,20 +1,22 @@
+'''app.notify.triggers'''
+
 import logging
 from bson.objectid import ObjectId
 from datetime import datetime,date,time
 
 from .. import utils
 from .. import db
-from . import notifications
+from . import voice, email, sms
 
 logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-def insert(evnt_id, _date, _time, _type):
+def add(evnt_id, _type, _date, _time):
     '''Inserts new trigger to DB, updates event with it's id.
     @_date: naive, non-localized datetime.date
     @_time: naive, non-localized datetime.time
-    @_type: 'phone' or 'email'
+    @_type: 'voice_sms' or 'email'
     Returns:
         -id (ObjectId)
     '''
@@ -26,7 +28,7 @@ def insert(evnt_id, _date, _time, _type):
         'fire_dt': utils.naive_to_local(datetime.combine(_date, _time))
     }).inserted_id
 
-    db['notification_events'].update_one(
+    db['notific_events'].update_one(
         {'_id':evnt_id},
         {'$push':{'trig_ids': trig_id}})
 
@@ -43,33 +45,52 @@ def get(trig_id, local_time=False):
 
 #-------------------------------------------------------------------------------
 def get_count(trig_id):
-    return db['notifications'].find({'trig_id':trig_id}).count()
+    return db['notifics'].find({'trig_id':trig_id}).count()
 
 #-------------------------------------------------------------------------------
 def fire(evnt_id, trig_id):
-    '''Sends out all dependent sms/voice/email notifications messages
-    Important: requires Flask context if called from celery task
+    '''Sends out all dependent sms/voice/email notifics messages
     '''
 
-    notific_event = db['notification_events'].find_one({'_id':evnt_id})
-    agency_conf = db['agencies'].find_one({'name':notific_event['agency']})
+    agency_conf = db['agencies'].find_one({
+        'name':event['agency']})
 
-    rdy_notifics = db['notifications'].find({
+    twilio_conf = agency_conf['twilio']
+    notify_conf = agency_conf['notify']
+    mailgun_conf = agency_conf['mailgun']
+
+    event = db['notific_events'].find_one({
+        '_id':evnt_id})
+
+    ready_notifics = db['notifics'].find({
         'trig_id':trig_id,
-        'status':'pending'
-    })
+        'status':'pending'})
 
-    fails = 0
+    errors = []
+    status = ''
 
-    for notific in rdy_notifics:
-        response = notifications.send(notific, agency_conf)
+    for notific in ready_notifics:
+        try:
+            if notific['type'] == 'voice':
+                status = voice.call(notific, twilio_conf, notify_conf['voice'])
+            elif notific['type'] == 'sms':
+                status = sms.send(notific, twilio_conf)
+            elif notific['type'] == 'email':
+                status = email.send(notific, mailgun_conf)
+        except Exception as e:
+            errors.append('Notific %s failed. %s' % (str(n['_id']), str(e))
 
-        if response == False:
+        if status == 'failed':
             fails += 1
 
-    db['triggers'].update_one({'_id':trig_id}, {'$set':{'status': 'fired'}})
+    db['triggers'].update_one(
+        {'_id':trig_id},
+        {'$set': {
+            'status': 'fired',
+            'errors': errors
+    }})
 
-    logger.info('trigger_id %s fired. %s notifications sent, %s failed',
-        str(trig_id), (rdy_notifics.count()-fails), fails)
+    logger.info('trigger_id %s fired. %s notifics sent, %s failed, %s errors',
+        str(trig_id), (ready_notifics.count()-fails), fails, len(errors))
 
     return True

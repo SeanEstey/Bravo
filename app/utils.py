@@ -46,7 +46,7 @@ def all_utc_to_local_time(obj, to_strftime=None):
     return obj
 
 #-------------------------------------------------------------------------------
-def mongo_formatter(doc, to_local_time=False, to_strftime=None, bson_to_json=False):
+def formatter(doc, to_local_time=False, to_strftime=None, bson_to_json=False):
     '''
     @bson_to_json:
         convert ObjectIds->{'oid': 'string'}

@@ -1,28 +1,28 @@
 '''notify.voice'''
 
-'''{
-    (...),
-    "on_answer" : {
-        "source" : "template",
-        "path" : "voice/vec/reminder.html"
-    },
-    "on_interact": {
-        "module": "pickup_service",
-        "func": "on_call_interact"
-    },
-    "tracking": {
-        "attempts": 0,
-        "duration": 13,
-        "
-        "ended_dt": "ISODate(...)",
-        "sid": "49959jfd93jd"
-    },
-    "to" : "(403) 874-9467",
-    "type" : "voice"
-}'''
+import logging
+from datetime import datetime
+from twilio.rest import TwilioRestClient
+from twilio import TwilioRestException, twiml
+from flask import current_app, render_template
+from pymongo.collection import ReturnDocument
+from .. import db
+from .. import utils
+logger = logging.getLogger(__name__)
+
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_dt, trig_id, acct_id, to, on_answer, on_interact):
+    '''
+    @on_answer: {
+        'source': 'template/audio',
+        'template': 'path/to/template/file',
+        'url': 'audio_url'}
+    @on_interact: {
+        'module':'module_name',
+        'func':'handler_func'}
+    '''
+
     return db['notifics'].insert_one({
         'evnt_id': evnt_id,
         'trig_id': trig_id,
@@ -33,83 +33,88 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_answer, on_interact):
         'on_interact': on_interact,
         'to': to,
         'type': 'voice',
-        'opted_out': False
         'tracking': {
+            'status': None,
             'sid': None,
             'duration': None,
             'answered_by': None,
-            'attempts': 0
+            'attempts': 0,
+            'ended_dt': None
         }
     }).inserted_id
 
 
 #-------------------------------------------------------------------------------
-def call(notification, twilio_conf):
+def call(notific, twilio_conf, voice_conf):
     '''Private method called by send()
     '''
 
-    if notification.get('attempts') >= 2: #current_app.config['MAX_CALL_ATTEMPTS']:
+    if notific['tracking']['attempts'] >= voice_conf['max_attempts']:
         return False
 
-    if notification['to'][0:2] != "+1":
-        to = "+1" + notification['to']
+    if notific['to'][0:2] != "+1":
+        to = "+1" + notific['to']
+
+    PUB_URL = current_app.config['PUB_URL']
 
     try:
-        client = twilio.rest.TwilioRestClient(
-          twilio_conf['keys']['main']['sid'],
-          twilio_conf['keys']['main']['auth_id']
+        client = TwilioRestClient(
+          twilio_conf['api_keys']['main']['sid'],
+          twilio_conf['api_keys']['main']['auth_id']
         )
+    except TwilioRestException as e:
+        logger.error('Call not made. Could not get Twilio client. %s', str(e))
+        pass
 
-        call = client.calls.create(
-          from_ = twilio_conf['ph'],
-          to = to,
-          url = current_app.config['PUB_URL'] + '/notify/voice/play/answer.xml',
-          method = 'POST',
-          if_machine = 'Continue',
-          status_callback = current_app.config['PUB_URL'] + '/notify/voice/complete',
-          status_method = 'POST',
-          status_events = ["completed"],
-          fallback_url = current_app.config['PUB_URL'] + '/notify/voice/fallback',
-          fallback_method = 'POST'
-        )
-    except twilio.TwilioRestException as e:
-        logger.error(e)
+    call = client.calls.create(
+        from_ = twilio_conf['ph'],
+        to = to,
+        url ='%s/notify/voice/play/answer.xml' % PUB_URL,
+        method = 'POST',
+        if_machine = 'Continue',
+        fallback_url = '%s/notify/voice/fallback' % PUB_URL,
+        fallback_method = 'POST',
+        status_callback = '%s/notify/voice/complete' % PUB_URL,
+        status_events = ["completed"],
+        status_method = 'POST'
+    )
 
     logger.debug(vars(call))
 
-    db['notifications'].update_one(
-        {'_id': notification['_id']}, {
+    db['notifics'].update_one({
+        '_id': notific['_id']}, {
         '$set': {
-            'status': call.status,
-            'sid': call.sid or None
-        },
-        '$inc': {'attempts':1}
-    })
+            'tracking.status': call.status,
+            'tracking.sid': call.sid or None},
+        '$inc': {'tracking.attempts':1}})
 
-    logger.info('Call %s for %s', call.status, notification['to'])
+    logger.info('Call %s for %s', call.status, notific['to'])
 
-    if call.status != 'queued':
-        return False
-    else:
-        return True
+    return call.status
 
 #-------------------------------------------------------------------------------
 def get_speak(notific, template_file):
     '''Return rendered HMTL template as string
     Called from flask so has context
-    @notification: mongodb dict document
+    @notific: mongodb dict document
     @template_key: name of content dict containing file path
     '''
 
     account = db['accounts'].find_one({'_id':notific['acct_id']})
 
+    # If this is run from a Celery task, it is working outside a request
+    # context. render_template() doesn't need a request context but does
+    # need an application context for access/editing of apps SERVER_NAME variable,
+    # which underlying url_for() requires so it's aware of the domain address
     with current_app.app_context():
+        # Required even though voice templates aren't calling url_for()
+        # function. No idea why...
         current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
         try:
             content = render_template(
                 template_file,
                 medium='voice',
-                account = utils.mongo_formatter(
+                account = utils.formatter(
                     account,
                     to_local_time=True,
                     to_strftime="%A, %B %d",
@@ -129,7 +134,7 @@ def get_speak(notific, template_file):
 
     logger.debug('speak template: %s', content)
 
-    db['notifications'].update_one({'_id':notific['_id']},{'$set':{'speak':content}})
+    db['notifics'].update_one({'_id':notific['_id']},{'$set':{'speak':content}})
 
     return content
 
@@ -142,46 +147,40 @@ def on_answer(args):
     logger.debug('voice_play_answer args: %s', args)
 
     logger.info('%s %s (%s)',
-      args['To'], args['CallStatus'], args.get('AnsweredBy')
-    )
+        args['To'], args['CallStatus'], args.get('AnsweredBy'))
 
-    notific = db['notifications'].find_one_and_update(
-      {'sid': args['CallSid']},
-      {'$set': {
-        "status": args['CallStatus'],
-        "answered_by": args.get('AnsweredBy')}},
-      return_document=ReturnDocument.AFTER)
+    notific = db['notifics'].find_one_and_update({
+        'tracking.sid': args['CallSid']}, {
+        '$set': {
+            'tracking.status': args['CallStatus'],
+            'tracking.answered_by': args.get('AnsweredBy')}},
+        return_document=ReturnDocument.AFTER)
 
     # send_socket('update_msg',
     # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
 
-    voice = twilio.twiml.Response()
-
-
-    # TODO: replace "content" key with "on_answer" for notification dicts
-
     # Html template content or audio url?
 
+    response = twiml.Response()
+
     if notific['on_answer']['source'] == 'template':
-        voice.say(
+        response.say(
             get_speak(
                 db['accounts'].find_one({'_id':notific['acct_id']}),
                 notific,
-                notific['on_answer']['template']['default']['file']),
-            voice='alice'
-        )
-    elif notific['on_answer']['source'] == 'audio_url':
-        voice.play(notific['on_answer']['audio_url'])
-    else:
-        logger.error('Unknown schema type!')
-        voice.say("Error!", voice='alice')
+                notific['on_answer']['template'],
+            voice='alice'))
+    elif notific['on_answer']['source'] == 'audio':
+        response.play(notific['on_answer']['url'])
 
     # All voice templates prompt key "1" to repeat message
-    voice.gather(numDigits=1,
-                action=current_app.config['PUB_URL'] + '/notify/voice/play/interact.xml',
-                method='POST')
 
-    return voice
+    response.gather(
+        numDigits=1,
+        action='%s/notify/voice/play/interact.xml' % current_app.config['PUB_URL'],
+        method='POST')
+
+    return response
 
 #-------------------------------------------------------------------------------
 def on_interact(args):
@@ -191,64 +190,51 @@ def on_interact(args):
 
     logger.debug('voice_play_interact args: %s', args)
 
-    notific = db['notifications'].find_one({'sid': args['CallSid']})
+    notific = db['notifics'].find_one({'tracking.sid': args['CallSid']})
 
-    if not notific:
-        return False
-
-    '''Notification dict defines:
-          "on_interact": {
-                "module": "pickup_service",
-                "func": "on_call_interact"
-            },
-    '''
-
-    # Import assigned handler module and invoke the function
+    # Import assigned handler module and invoke function
+    # to get voice response
 
     module = __import__(notific['on_interact']['module'])
     handler_func = getattr(module, notific['on_interact']['func']
-    voice = handler_func(notific, args)
 
-    return voice
+    return handler_func(notific, args)
 
 #-------------------------------------------------------------------------------
 def on_complete(args):
-    '''Callback handler called by Twilio on 'completed' event (more events can
-    be specified, at $0.00001 per event). Updates status of event in DB.
-    Returns: 'OK' string to twilio if no problems.
+    '''Twilio call is complete. Create RFU if failed.
     '''
 
     logger.debug('call_event args: %s', args)
 
-    if args['CallStatus'] == 'completed':
-        reminder = db['notifications'].find_one_and_update(
-          {'sid': args['CallSid']},
-          {'$set': {
-            'status': args['CallStatus'],
-            'ended_at': datetime.now(),
-            'duration': args['CallDuration'],
-            'answered_by': args.get('AnsweredBy')
-          }},
-          return_document=ReturnDocument.AFTER)
-    else:
-        reminder = db['notifications'].find_one_and_update(
-          {'sid': args['CallSid']},
-          {'$set': {
-            "code": args.get('SipResponseCode'), # in case of failure
-            "status": args['CallStatus']
-          }},
-          return_document=ReturnDocument.AFTER)
+    notific = db['notifics'].find_one_and_update({
+        'tracking.sid': args['CallSid']}, {
+        '$set': {
+            'tracking.status': args['CallStatus'],
+            'tracking.ended_dt': datetime.now(),
+            'tracking.duration': args.get('CallDuration'),
+            'tracking.answered_by': args.get('AnsweredBy')}},
+        return_document=ReturnDocument.AFTER)
 
     if args['CallStatus'] == 'failed':
-        logger.error(
-          '%s %s (%s)',
-          args['To'], args['CallStatus'], args.get('SipResponseCode'))
+        logger.error('%s %s (%s)',
+            args['To'], args['CallStatus'], args.get('SipResponseCode'))
 
-        msg = ('Account {a} error {e} calling {to}').format(a=reminder['account_id'],
-            e=args['SipResponseCode'], to=args['To'])
+        account = db['accounts'].find_one({
+            '_id':notific['acct_id']})
 
-        # TODO: Change to reminder['agency'] after Aug 1 calls
-        #create_rfu.apply_async(
+        msg = 'Account %s error %s calling %s' % (account['id'], notific['to'])
+
+        from .. import tasks
+        tasks.rfu.apply_async(
+            args=[
+                email['agency'],
+                msg + request.form.get('description')],
+            kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
+            queue=current_app.config['DB']
+        )
+
+        tasks.rfu.apply_async(
         #  args=(job['agency'], msg),
         #  queue=app.config['DB'])
 

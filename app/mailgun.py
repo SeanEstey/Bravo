@@ -13,7 +13,7 @@ def send(to, subject, body, conf):
     @conf: 'mailgun' dict from 'agencies' DB
     Returns:
       -mid string on success
-      -False on failure'''
+    '''
 
     try:
         response = requests.post(

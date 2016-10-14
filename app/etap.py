@@ -85,7 +85,10 @@ def get_udf(field_name, etap_account):
     return ", ".join(field_values)
 
 #-------------------------------------------------------------------------------
-def get_phone(phone_type, account):
+def get_phone(_type, account):
+    '''@_type: ['Voice', 'Mobile']
+    '''
+
     if 'phones' not in account or account['phones'] == None:
         return False
 

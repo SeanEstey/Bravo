@@ -32,129 +32,121 @@ def create_reminder_event(agency, block, _date):
             break
 
     try:
-        accounts = etap.call(
+        etap_accts = etap.call(
             'get_query_accounts',
             agency_conf['etapestry'],
             data={
                 'query':block,
                 'query_category':agency_conf['etapestry']['query_category']
-            })['data']
+            }
+        )['data']
     except Exception as e:
-        logger.error('Error getting accounts for query %s: %s', block, str(e))
+        logger.error('Failed retrieving accounts for %s: %s', block, str(e))
         return False
 
     if len(accounts) < 1:
         return False
 
-    # Create notification event and add triggers
+    # Create event + triggers
 
     evnt_id = events.insert(agency, block, _date)
 
-    for conf in agency_conf['notifications']:
-        fire_date = _date + timedelta(days=conf['fire_days_delta'])
-        fire_time = time(conf['fire_hour'], conf['fire_min'])
+    trig_conf = agency_conf['scheduler']['notify']['triggers']
 
-        if conf['type'] == 'sms':
-            continue
-        elif conf['type'] == 'voice':
-            phone_trig_id = triggers.insert(evnt_id, fire_date, fire_time, 'phone')
-        elif conf['type'] == 'email':
-            email_trig_id = triggers.insert(evnt_id, fire_date, fire_time, 'email')
+    email_trig_id = triggers.add(
+        evnt_id,
+        'email',
+        trig_conf['email']['fire_date'],
+        trig_conf['email']['fire_time'])
+
+    phone_trig_id = triggers.add(
+        evnt_id,
+        'voice_sms',
+        trig_conf['voice_sms']['fire_date'],
+        trig_conf['voice_sms']['fire_time'])
 
     event_dt = utils.naive_to_local(datetime.combine(_date,time(8,0)))
 
-    # Add notifications
-    for account in accounts:
-        logger.debug(json.dumps(account))
+    # Create notifications
 
-        npu = etap.get_udf('Next Pickup Date', account).split('/')
+    for acct_obj in etap_accts:
+
+        logger.debug(json.dumps(acct_obj))
+
+        npu = etap.get_udf('Next Pickup Date', acct_obj).split('/')
 
         if len(npu) < 3:
             logger.error('Account %s missing npu. Skipping.', account['id'])
             continue
 
-        acct_id = insert_account(account)
+        acct_id = accounts.add(
+            agency,
+            acct_obj['id'],
+            acct_obj['name'],
+            phone = etap.get_primary_phone(acct_obj),
+            email = acct_obj.get('email'),
+            udf = {
+                'status': etap.get_udf('Status', acct_obj),
+                'block': etap.get_udf('Block', acct_obj),
+                'driver_notes': etap.get_udf('Driver Notes', acct_obj),
+                'office_notes': etap.get_udf('Office Notes', acct_obj),
+                'pickup_dt': etap.ddmmyyyy_to_local_dt(
+                    etap.get_udf('Next Pickup Date', acct_obj)
+                )
+            }
+        )
 
-        insert_reminder(evnt_id, event_dt, phone_trig_id,
-                        'phone', acct_id, schema)
-        insert_reminder(evnt_id, event_dt, email_trig_id,
-                        'email', acct_id, schema)
+        # A. Either Voice or SMS notification
+
+        if etap.get_phone('Mobile', acct_obj):
+            on_send = {
+                'source': 'template',
+                'template': 'sms/%s/reminder.html' % agency}
+
+            on_reply = {
+                'module': 'pickup_service',
+                'func': 'on_sms_reply'}
+
+            sms.add(
+                evnt_id, event_dt,
+                phone_trig_id,
+                acct_id, etap.get_phone('Mobile', acct_obj),
+                on_send, on_reply)
+
+        elif etap.get_phone('Voice', acct_obj):
+            on_answer = {
+                'source': 'template',
+                'template': 'voice/%s/reminder.html' % agency}
+
+            on_interact = {
+                'module': 'pickup_service',
+                'func': 'on_call_interact'}
+
+            voice.add(
+                evnt_id, event_dt,
+                phone_trig_id,
+                acct_id, etap.get_phone('Voice', acct_obj),
+                on_answer, on_interact)
+
+        # B. Email notification
+
+        if acct_obj.get('email'):
+            on_send = {
+                'template': 'email/%s/reminder.html' % agency,
+                'subject': 'Your upcoming Vecova Bottle Service pickup'}
+
+            on_reply = {
+                'module': 'pickup_service',
+                'func': 'on_email_reply'}
+
+            email.add(
+                evnt_id, event_dt,
+                email_trig_id,
+                acct_id, acct_obj.get('email'),
+                on_send, on_reply)
 
     add_future_pickups(str(evnt_id))
 
-    #logger.info(
-    #  'Created reminder job for Blocks %s. Emails fire at %s, calls fire at %s',
-    #  str(blocks), job['email']['fire_dt'].isoformat(),
-    #  job['voice']['fire_dt'].isoformat())
-
-    return True
-
-#-------------------------------------------------------------------------------
-def insert_account(account):
-    return db['accounts'].insert_one({
-        'name': account['name'],
-        'id': account['id'],
-        'phone': etap.get_primary_phone(account),
-        'email': account.get('email'),
-        'udf': {
-            'status': etap.get_udf('Status',account),
-            'block': etap.get_udf('Block', account),
-            'driver_notes': etap.get_udf('Driver Notes', account),
-            'office_notes': etap.get_udf('Office Notes', account),
-            'pickup_dt': etap.ddmmyyyy_to_local_dt(
-                etap.get_udf('Next Pickup Date', account))
-        }
-    }).inserted_id
-
-#-------------------------------------------------------------------------------
-def insert_reminder(evnt_id, event_dt, trig_id, _type, acct_id, schema):
-    '''Adds an event reminder for given job
-    @schema: pickup_reminder notification_event schema
-    @_type: one of ['phone', 'email']
-    Returns:
-      -True on success, False otherwise'''
-
-    sms_enabled = False
-
-    account = db['accounts'].find_one({'_id':acct_id})
-
-    if _type == 'phone':
-        if not account.get('phone'):
-            return False
-
-        _id = voice.add(
-            evnt_id, event_dt, trig_id, acct_id, account['phones'],
-            {'source':'template', 'path':schema['voice']},
-            {'module': 'pickup_service', 'func': 'on_call_interact'})
-
-        _id =notifics.insert(
-            evnt_id,
-            event_dt,
-            trig_id,
-            acct_id,
-            'voice',
-            account['phone'],
-            content={
-              'source':'template',
-              'template': schema['voice']
-            })
-    elif _type == 'email':
-        if not account.get('email'):
-            return False
-
-        _id = notifics.insert(
-            evnt_id,
-            event_dt,
-            trig_id,
-            acct_id,
-            'email',
-            account.get('email'),
-            content={
-                'source': 'template',
-                'template': schema['email']
-            })
-
-    logger.debug('Inserted reminder _id %s', str(_id))
     return True
 
 #-------------------------------------------------------------------------------
@@ -168,7 +160,7 @@ def add_future_pickups(evnt_id):
 
     logger.info('Getting next pickups for notification event ID \'%s\'', str(evnt_id))
 
-    event = db['notification_events'].find_one({'_id':evnt_id})
+    event = db['notific_events'].find_one({'_id':evnt_id})
     agency_conf = db['agencies'].find_one({'name':event['agency']})
 
     start = event['event_dt'] + timedelta(days=1)
@@ -271,18 +263,25 @@ def _cancel(evnt_id, acct_id):
 
     logger.info('Cancelling pickup for \'%s\'', acct_id)
 
-    db['notifics'].update(
-        {'acct_id': acct_id, 'evnt_id': evnt_id},
-        {'$set': {'status':'cancelled', 'opted_out':True}},
-        multi=True
-    )
+    db['notifics'].update({
+          'acct_id': acct_id,
+          'evnt_id': evnt_id
+        },{
+          '$set': {
+            'status':'cancelled',
+            'opted_out':True}
+        },
+        multi=True)
+
     account = db['accounts'].find_one({'_id':acct_id})
-    agency_conf = db['agencies'].find_one(
-        {'name': db['notification_events'].find_one({'_id':evnt_id})['agency']}
-    )
+
+    agency_conf = db['agencies'].find_one({
+        'name': db['notific_events'].find_one({
+            '_id':evnt_id}
+        )['agency']
+    })
 
     try:
-        # Write to eTapestry
         etap.call(
             'no_pickup',
             agency_conf['etapestry'],
@@ -290,16 +289,21 @@ def _cancel(evnt_id, acct_id):
                 "account": account['id'],
                 "date": account['udf']['pickup_dt'].strftime('%d/%m/%Y'),
                 "next_pickup": utils.tz_utc_to_local(
-                    account['udf']['future_pickup_dt']).strftime('%d/%m/%Y')
+                    account['udf']['future_pickup_dt']
+                ).strftime('%d/%m/%Y')
             })
     except Exception as e:
         logger.error("Error writing to eTap: %s", str(e))
 
-    notific = db['notifics'].find_one({'acct_id':acct_id,
-        'evnt_id':evnt_id, 'type':'email'})
+    notific = db['notifics'].find_one({
+        'acct_id':acct_id,
+        'evnt_id':evnt_id,
+        'type':'email'})
 
-    if notific:
-        notifics.send_email(notific, agency_conf['mailgun'], key='no_pickup')
+
+    # TODO: send opt_out email using mailgun. write render_template() wrapper
+    #if notific:
+    #    notifics.send_email(notific, agency_conf['mailgun'], key='no_pickup')
 
     return True
 
@@ -307,17 +311,17 @@ def _cancel(evnt_id, acct_id):
 def on_call_interact(notific, args):
     # TODO: import twilio module
 
-    voice = twilio.twiml.Response()
+    response = twilio.twiml.Response()
 
     # Digit 1: Repeat message
     if args.get('Digits') == '1':
-        content = notifications.get_voice(
+        content = voice.get_speak(
           notific,
           notific['content']['template']['default']['file'])
 
-        voice.say(content, voice='alice')
+        response.say(content, voice='alice')
 
-        voice.gather(
+        response.gather(
             numDigits=1,
             action=current_app.config['PUB_URL'] + '/notify/voice/play/interact.xml',
             method='POST')
@@ -335,11 +339,11 @@ def on_call_interact(notific, args):
         account = db['accounts'].find_one({'_id':notific['acct_id']})
         dt = utils.tz_utc_to_local(account['udf']['future_pickup_dt'])
 
-        voice.say(
+        response.say(
           'Thank you. Your next pickup will be on ' +\
           dt.strftime('%A, %B %d') + '. Goodbye',
           voice='alice'
         )
-        voice.hangup()
+        response.hangup()
 
-        return voice
+        return response

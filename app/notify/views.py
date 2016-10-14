@@ -52,7 +52,7 @@ def view_event(evnt_id):
     notific_list = list(events.get_notifications(ObjectId(evnt_id)))
     trigger_list = events.get_triggers(ObjectId(evnt_id))
 
-    notific_list = utils.mongo_formatter(
+    notific_list = utils.formatter(
         notific_list,
         to_local_time=True,
         to_strftime="%m/%-d/%Y",

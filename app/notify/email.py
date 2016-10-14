@@ -1,26 +1,39 @@
-'''notify.email'''
+'''app.notify.email'''
 
-'''{
-    (...),
-    "on_send" : {
-        "source" : "template",
-        "path" : "voice/vec/reminder.html"
-    },
-    "on_reply": {
-        "module": "pickup_service",
-        "func": "on_call_interact"
-    },
-    "tracking": {
-        "attempts": 0,
-        "duration": 13,
-        "
-        "ended_dt": "ISODate(...)",
-        "sid": "49959jfd93jd"
-    },
-    "to" : "foo@bar.com",
-    "type" : "email"
-}'''
+import logging
+from flask import render_template, current_app
+from .. import db
+from .. import utils, mailgun
+logger = logging.getLogger(__name__)
 
+# TODO: include date in email subject
+
+#-------------------------------------------------------------------------------
+def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
+    '''
+    @on_send: {
+        'template': 'path/to/template/file',
+        'subject': 'msg'}
+    @on_reply: {
+        'module':'module_name',
+        'func_name':'handler_func'}
+    '''
+
+    return db['notifics'].insert_one({
+        'evnt_id': evnt_id,
+        'trig_id': trig_id,
+        'acct_id': acct_id,
+        'event_dt': event_dt,
+        'status': 'pending',
+        'on_send': on_send,
+        'on_reply': on_reply,
+        'to': to,
+        'type': 'voice',
+        'tracking': {
+            'status': None,
+            'mid': None,
+        }
+    }).inserted_id
 
 #-------------------------------------------------------------------------------
 def send(notific, mailgun_conf, key='default'):
@@ -28,15 +41,23 @@ def send(notific, mailgun_conf, key='default'):
     @key = dict key in email schemas for which template to use
     '''
 
-    template = notific['on_send']['template'][key]
+    #template = notific['on_send']['template'][key]
 
+    # If this is run from a Celery task, it is working outside a request
+    # context. Create one so that render_template behaves as if it were in
+    # a view function.
+    # This template uses url_for() and must require the 'request' variable, which
+    # is probably why voice.get_speak() can call render_template() by only
+    # creating an application context (without request context)
     with current_app.test_request_context():
+        # Required for underlying url_for() function in render_template() to
+        # generate absolute URL's
         current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
         try:
             body = render_template(
-                template['file'],
+                notific['template'],
                 to = notific['to'],
-                account = utils.mongo_formatter(
+                account = utils.formatter(
                     db['accounts'].find_one({'_id':notific['acct_id']}),
                     to_local_time=True,
                     to_strftime="%A, %B %d",
@@ -45,9 +66,10 @@ def send(notific, mailgun_conf, key='default'):
                 evnt_id = notific['evnt_id']
             )
         except Exception as e:
-            logger.error('render email: %s ', str(e))
+            logger.error('Email not sent because render_template error. %s ', str(e))
             current_app.config['SERVER_NAME'] = None
-            return False
+            pass
+
         current_app.config['SERVER_NAME'] = None
 
     mid = mailgun.send(
@@ -61,19 +83,20 @@ def send(notific, mailgun_conf, key='default'):
     else:
         status = 'queued'
 
-    agency = db['agencies'].find_one({'mailgun.domain': mailgun_conf['domain']})
-
     db['emails'].insert({
-        'agency': agency['name'],
+        'agency': db['agencies'].find_one({
+            'mailgun.domain':mailgun_conf['domain']})['name'],
         'mid': mid,
         'status': status,
         'type': 'notification',
-        'on_status': {}
-    })
+        'on_status': {}})
 
-    db['notifics'].update_one(
-        {'_id':notific['_id']},
-        {'$set': {'status':status, 'mid': mid}})
+    db['notifics'].update_one({
+        '_id':notific['_id']}, {
+        '$set': {
+            'tracking.status':status,
+            'tracking.mid': mid}
+        })
 
     return mid
 

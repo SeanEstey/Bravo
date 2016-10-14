@@ -1,3 +1,5 @@
+'''app.html'''
+
 import re
 from bson import json_util
 

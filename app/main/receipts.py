@@ -105,7 +105,9 @@ def send(agency, to, template, subject, data):
         silence_exceptions=False
     )
 
-    mid = mailgun.send(to, subject, body, agency_conf['mailgun'])
+    mid = mailgun.send(
+        to, subject, body, agency_conf['mailgun'],
+        v={'type':'receipt'})
 
     db['emails'].insert({
         'agency': agency,

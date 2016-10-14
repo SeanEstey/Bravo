@@ -133,7 +133,7 @@ def rmv_notifics(evnt_id, acct_id):
 @notify.route('/<acct_id>/edit', methods=['POST'])
 @login_required
 def edit_msg(acct_id):
-    notifications.edit(ObjectId(acct_id), request.form.items())
+    accounts.edit(ObjectId(acct_id), request.form.items())
     return 'OK'
 
 #-------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-'''notify.pickup_service'''
+'''app.notify.pickup_service'''
 
 import logging
 import json

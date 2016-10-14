@@ -1,3 +1,5 @@
+'''app.schedule'''
+
 import json
 import logging
 import requests

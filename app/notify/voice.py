@@ -210,6 +210,10 @@ def on_complete(args):
 
     logger.debug('call_event args: %s', args)
 
+    if args['CallStatus'] == 'completed':
+        logger.info('%s %s (%s, %ss)',
+            args['To'], args['CallStatus'], args.get('AnsweredBy'), args.get('CallDuration'))
+
     notific = db['notifics'].find_one_and_update({
         'tracking.sid': args['CallSid']}, {
         '$set': {
@@ -226,40 +230,20 @@ def on_complete(args):
         account = db['accounts'].find_one({
             '_id':notific['acct_id']})
 
-        msg = 'Account %s error %s calling %s' % (account['id'], notific['to'])
 
+
+        # TODO: is there an error 'description' arg passed on fails?
         from .. import tasks
         tasks.rfu.apply_async(
             args=[
                 email['agency'],
-                msg + request.form.get('description')],
+                'Account %s error %s calling %s. %s' %(
+                    account['id'], notific['to'], request.form.get('description')
+                )
+            ],
             kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
             queue=current_app.config['DB']
         )
-
-    # Call completed without error
-    elif args['CallStatus'] == 'completed':
-        logger.info('%s %s (%s, %ss)',
-          args['To'], args['CallStatus'], args['AnsweredBy'], args['CallDuration'])
-    else:
-        logger.info('%s %s', args['To'], args['CallStatus'])
-
-    if reminder:
-        return 'OK'
-
-    # If no Mongo reminder record returned, this call might be an audio recording call
-    if reminder is None:
-        audio = db['audio'].find_one({'sid': args['CallSid']})
-
-        if audio:
-            logger.info('Record audio call complete')
-
-            db['audio'].update(
-                {'sid':args['CallSid']},
-              {'$set': {"status": args['CallStatus']}
-            })
-        else:
-            logger.error('Unknown SID %s (reminders.call_event)', args['CallSid'])
 
     return 'OK'
 

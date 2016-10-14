@@ -90,9 +90,13 @@ def send(notific, mailgun_conf, key='default'):
     return mid
 
 #-------------------------------------------------------------------------------
-def on_email_status(webhook):
+def on_delivered(webhook):
     '''
     @webhook: webhook args POST'd by mailgun'''
+
+    logger.info('Email to %s %s <notific>',
+      request.form['recipient'],
+      request.form['event'])
 
     db['notifics'].update_one(
       {'tracking.mid': webhook['Message-Id']},

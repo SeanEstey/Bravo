@@ -17,11 +17,17 @@ from app import db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def on_email_status(webhook):
+def on_email_delivered(email, webhook):
     '''Forwarded Mailgun webhook on receipt email event.
     Update Sheets accordingly'''
 
-    email = db['emails'].find_one_and_update(
+    # DOES FLASK CONTEXT STILL EXIST HERE?? CALLED FROM INSIDE VIEW
+
+    logger.info('Email to %s %s <receipt>',
+      webhook['recipient'],
+      webhook['event'])
+
+    db['emails'].update_one(
       {'mid': webhook['Message-Id']},
       {'$set': {'status':webhook['event']}})
 

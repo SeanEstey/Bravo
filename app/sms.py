@@ -138,14 +138,30 @@ def send(twilio_keys, to, msg):
           body = msg,
           to = to,
           from_ = twilio_keys['sms'],
-          status_callback = current_app.config['PUB_URL'] + '/sms/status'
+          status_callback = current_app.config['PUB_URL'] + '/sms/pickup/status'
         )
     except twilio.TwilioRestException as e:
         logger.error('sms exception %s', str(e), exc_info=True)
 
     return response
 
+#-------------------------------------------------------------------------------
+def on_status(args):
+    #    logger.error('Error, SMS status %s', request.form['SmsStatus'])
 
+    # TODO: Move this code into app.sms
 
+    #doc = db['sms'].find_one_and_update(
+    #  {'SmsSid': request.form['SmsSid']},
+    #  {'$set': { 'SmsStatus': request.form['SmsStatus']}}
+    #)
 
-def update
+    #if not doc:
+    #    db['sms'].insert_one(request.form.to_dict())
+
+    #if request.form['SmsStatus'] == 'received':
+    #    sms.do_request(
+    #      request.form['To'],
+    #      request.form['From'],
+    #      request.form['Body'],
+    #      request.form['SmsSid'])

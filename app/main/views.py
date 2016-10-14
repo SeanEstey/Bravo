@@ -11,9 +11,10 @@ from bson.objectid import ObjectId
 import logging
 
 from . import main
-from . import log, receipts
+from . import log, receipts, sms
 from .. import utils, html, gsheets
-from app.notify import notifications
+import app.notify.email
+from app.notify import email
 from .. import db
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,6 @@ logger = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 @main.route('/')
 def landing_page():
-    #return 'LANDING PAGE'
     return redirect(url_for('notify.view_event_list'))
 
 #-------------------------------------------------------------------------------
@@ -84,6 +84,13 @@ def process_receipts():
     return 'OK'
 
 #-------------------------------------------------------------------------------
+@notify.route('/sms/pickup/status', methods=['POST'])
+def on_pickup_sms_status():
+    # queued, failed, sent, delivered, or undelivered.
+    sms.on_status(request.form.to_dict())
+    return 'OK'
+
+#-------------------------------------------------------------------------------
 @main.route('/email/send', methods=['POST'])
 def _send_email():
     '''Can be collection receipt from gsheets.process_receipts, reminder email,
@@ -137,6 +144,7 @@ def _send_email():
 
     db['emails'].insert({
         'agency': args['agency'],
+        'type': args.get('type'),
         'mid': json.loads(r.text)['id'],
         'status': 'queued',
         'on_status': args['data']['from']
@@ -206,42 +214,23 @@ def email_spam_complaint():
 #-------------------------------------------------------------------------------
 @main.route('/email/delivered',methods=['POST'])
 def on_email_delivered():
-    '''Relay for Mailgun webhook'''
+    '''Mailgun webhook. Do any followup actions.'''
 
-    # TODO: Cannot manually set webhook URL.
-    # Route any notify.emails to email modulee
-    
-    logger.info('Email to %s %s',
-      request.form['recipient'], request.form['event']
-    )
+    # Receipts, Signup followups stored here
+    doc = db['emails'].find_one({
+        'mid':request.form['Message-Id']})
 
-    event = request.form['event']
+    if doc and doc['type'] == 'receipt':
+        receipts.on_email_delivered(request.form.to_dict())
+        return 'OK'
+    elif doc and doc['type'] == 'signup':
+        signups.on_email_delivered(request.form.to_dict())
+        return 'OK'
 
-    email = db['emails'].find_one_and_update(
-      {'mid': request.form['Message-Id']},
-      {'$set': { 'status': request.form['event']}}
-    )
-
-    if email is None:
-        return 'Mid not found'
-
-    # Route to specialized handlers
-
-    if email.get('type'):
-        if email['type'] == 'notification':
-            notifications.on_email_status(request.form.to_dict())
-        elif email['type'] == 'receipt':
-            receipts.on_email_status(request.form.to_dict())
-    else:
-        try:
-            gsheets.update_entry(
-              email['agency'],
-              request.form['event'],
-              email['on_status']
-            )
-        except Exception as e:
-            logger.error("Error writing to Google Sheets: " + str(e))
-            return 'Failed'
+    if db['notifics'].find_one({
+        'tracking.mid':request.form['Message-Id']
+    }):
+        app.notify.email.on_delivered(request.form.to_dict())
 
     #emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
 

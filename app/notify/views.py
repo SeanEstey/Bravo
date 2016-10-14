@@ -253,9 +253,10 @@ def fallback():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/sms/delivered', methods=['POST'])
+@notify.route('/sms/status', methods=['POST'])
 def sms_status():
-    '''Callback for sending/receiving SMS messages.
+
+    '''Callback for sending notific SMS
     If sending, determine if part of reminder or reply to original received msg
     '''
 
@@ -267,32 +268,13 @@ def sms_status():
             'tracking.status': request.form['SmsStatus']}
         })
 
-    if request.form['SmsStatus'] != 'received':
-        logger.error('Error, SMS status %s', request.form['SmsStatus'])
-
-    # TODO: Move this code into app.sms
-
-    #doc = db['sms'].find_one_and_update(
-    #  {'SmsSid': request.form['SmsSid']},
-    #  {'$set': { 'SmsStatus': request.form['SmsStatus']}}
-    #)
-
-    #if not doc:
-    #    db['sms'].insert_one(request.form.to_dict())
-
-    #if request.form['SmsStatus'] == 'received':
-    #    sms.do_request(
-    #      request.form['To'],
-    #      request.form['From'],
-    #      request.form['Body'],
-    #      request.form['SmsSid'])
-
     return 'OK'
 
 #-------------------------------------------------------------------------------
 @notify.route('/sms/receive', methods=['POST'])
 def receive_sms():
-    # Notify system and Pickup Date System share same number and webhooks.
+    # Shared endpoint for Pickup Date System and notify.sms system
+
     # Route to appropriate functions
 
     notific = db['notifics'].find_one({'tracking.sid': request.form['SmsSid']})

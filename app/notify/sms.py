@@ -84,7 +84,7 @@ def send(notific, twilio_conf):
         body = body,
         to = notific['to'],
         from_ = twilio_conf['sms'],
-        status_callback = '%s/notify/sms/delivered' % current_app.config['PUB_URL'])
+        status_callback = '%s/notify/sms/status' % current_app.config['PUB_URL'])
 
     return response
 
@@ -106,3 +106,8 @@ def on_reply(notific, args):
 
     response = handler_func(notific, args)
     return response
+
+#-------------------------------------------------------------------------------
+def on_status(args):
+    # do updates
+    return True

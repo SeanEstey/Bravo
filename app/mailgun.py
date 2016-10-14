@@ -1,3 +1,5 @@
+'''app.mailgun'''
+
 import requests
 import json
 import logging

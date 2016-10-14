@@ -11,6 +11,8 @@ from .. import utils
 logger = logging.getLogger(__name__)
 
 
+# TODO: remove db['emails'].update op. in app.notify.views.on_delivered just search mid in db['notifics']
+
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_dt, trig_id, acct_id, to, on_answer, on_interact):
     '''
@@ -28,13 +30,12 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_answer, on_interact):
         'trig_id': trig_id,
         'acct_id': acct_id,
         'event_dt': event_dt,
-        'status': 'pending',
         'on_answer': on_answer,
         'on_interact': on_interact,
         'to': to,
         'type': 'voice',
         'tracking': {
-            'status': None,
+            'status': 'pending',
             'sid': None,
             'duration': None,
             'answered_by': None,

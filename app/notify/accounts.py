@@ -5,6 +5,7 @@ from dateutil.parser import parse
 from .. import db
 logger = logging.getLogger(__name__)
 
+# TODO: rename all refs to 'id' field to 'etap_id'
 
 #-------------------------------------------------------------------------------
 def add(agency, a_id, name, phone=None, email=None, udf=None):

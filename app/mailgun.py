@@ -27,7 +27,7 @@ def send(to, subject, body, conf, v=None):
             'to':  to,
             'subject': subject,
             'html': body,
-            'v': json.dumps(s)
+            'v': json.dumps(v)
         })
     except requests.RequestException as e:
         logger.error('mailgun: %s ', str(e))

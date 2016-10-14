@@ -6,26 +6,15 @@ git clone https://github.com/SeanEstey/Bravo
 cd Bravo
 ```
 
-###### PHP
-Copy bravo/php files to webroot /var/www/bravo/php
+###### Run setup
 
-Create log folder:
-
-`$mkdir /var/www/bravo/logs`
-
-Create blank log files in this folder: debug.log, info.log, error.log, tests.log
+`python setup.py`
 
 Set proper webroot permissions for www-data user:
 ```
 chown -R root:www-data /var/www/bravo
 chmod -R 660 /var/www/bravo
 ```
-
-###### Nginx Virtual Host
-Copy bravo/virtual_host/default to /etc/nginx/sites-enabled
-
-###### Logrotate
-Copy logrotate/bravo to /etc/logrotate.d/
 
 ###### Mongo Logins
 ```
@@ -73,13 +62,20 @@ Start RabbitMQ daemon:
 
 `$ rabbitmqctl start_app`
 
-Start server w/ celery worker:
+Run app:
+  python run.py
 
-`$ python run.py -c start`
+Arguments
 
-Start server and restart celery worker:
-
-`$ python run.py -c restart`
+Start celery worker:
+  `-c start`
+Restart celery worker:
+  `-c restart`
+  
+Run debug mode w/ Werkzeug server:
+  `-m debug`
+Run release mode w/ eventlet serveR:
+  `-m release`
 
 <br>
 ### Shutdown Instructions

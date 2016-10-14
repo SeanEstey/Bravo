@@ -1,4 +1,4 @@
-'''notify.voice'''
+'''app.notify.voice'''
 
 import logging
 from datetime import datetime
@@ -11,7 +11,8 @@ from .. import utils
 logger = logging.getLogger(__name__)
 
 
-# TODO: remove db['emails'].update op. in app.notify.views.on_delivered just search mid in db['notifics']
+# TODO: remove all refs to 'status' outside 'tracking' dict. Redundant
+# TODO: finish writing RFU code on call.status == 'failed'
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_dt, trig_id, acct_id, to, on_answer, on_interact):

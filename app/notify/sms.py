@@ -8,6 +8,8 @@ from .. import db
 from .. import utils
 logger = logging.getLogger(__name__)
 
+# TODO: remove all refs to 'status' outside 'tracking' dict. Redundant
+# TODO: write render_template() code to get SMS body
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
@@ -17,7 +19,7 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
     }
     @on_reply: {
         'module':'module_name',
-        'func_name':'handler_func'}
+        'func':'handler_func'}
     '''
 
     return db['notifics'].insert_one({
@@ -25,11 +27,10 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
         'trig_id': trig_id,
         'acct_id': acct_id,
         'event_dt': event_dt,
-        'status': 'pending',
         'on_send': on_send,
         'on_reply': on_reply,
         'to': to,
-        'type': 'voice',
+        'type': 'sms',
         'tracking': {
             'status': None,
             'sid': None,
@@ -51,14 +52,17 @@ def send(notific, twilio_conf):
         client = TwilioRestClient(
             twilio_conf['api_keys']['main']['sid'],
             twilio_conf['api_keys']['main']['auth_id'])
-
-        response = client.messages.create(
-            body = ,
-            to = to,
-            from_ = twilio_conf['sms'],
-            status_callback = '%s/notify/sms/delivered' % current_app.config['PUB_URL'])
-    except twilio.TwilioRestException as e:
-        logger.error('sms exception %s', str(e), exc_info=True)
+   except twilio.TwilioRestException as e:
+        logger.error('SMS not sent. Error getting Twilio REST client. %s', str(e), exc_info=True)
         pass
+    
+    # TODO: write render_template() code to get SMS body
+    
+    response = client.messages.create(
+        body = ,
+        to = to,
+        from_ = twilio_conf['sms'],
+        status_callback = '%s/notify/sms/delivered' % current_app.config['PUB_URL'])
+ 
 
     return response

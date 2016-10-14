@@ -6,6 +6,8 @@ from .. import db
 from .. import utils, mailgun
 logger = logging.getLogger(__name__)
 
+# TODO: remove db['emails'].update op. in app.notify.views.on_delivered just search mid in db['notifics']
+# TODO: remove 'status' outside of tracking. Redundant? Replace all refs with 'tracking.status'
 # TODO: include date in email subject
 
 #-------------------------------------------------------------------------------
@@ -24,13 +26,12 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
         'trig_id': trig_id,
         'acct_id': acct_id,
         'event_dt': event_dt,
-        'status': 'pending',
         'on_send': on_send,
         'on_reply': on_reply,
         'to': to,
-        'type': 'voice',
+        'type': 'email',
         'tracking': {
-            'status': None,
+            'status': 'pending',
             'mid': None,
         }
     }).inserted_id
@@ -82,14 +83,6 @@ def send(notific, mailgun_conf, key='default'):
         status = 'failed'
     else:
         status = 'queued'
-
-    db['emails'].insert({
-        'agency': db['agencies'].find_one({
-            'mailgun.domain':mailgun_conf['domain']})['name'],
-        'mid': mid,
-        'status': status,
-        'type': 'notification',
-        'on_status': {}})
 
     db['notifics'].update_one({
         '_id':notific['_id']}, {

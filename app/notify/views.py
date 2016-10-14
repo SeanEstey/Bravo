@@ -13,7 +13,7 @@ import bson.json_util
 from flask_socketio import SocketIO, emit
 
 from . import notify
-from . import events, triggers, notifications, recording, pickup_service
+from . import events, triggers, email, voice, sms, recording#, pickup_service
 from .. import utils, sms
 from .. import db
 logger = logging.getLogger(__name__)
@@ -167,9 +167,9 @@ def no_pickup(evnt_id, acct_id):
 #-------------------------------------------------------------------------------
 @notify.route('/play/sample', methods=['POST'])
 def play_sample_rem():
-    voice = twilio.twiml.Response()
-    voice.say("test")
-    return Response(response=str(voice), mimetype='text/xml')
+    twiml = twilio.twiml.Response()
+    twiml.say("test")
+    return Response(response=str(twiml), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
 @notify.route('/get/token', methods=['GET'])
@@ -188,30 +188,30 @@ def record_msg():
 #-------------------------------------------------------------------------------
 @notify.route('/voice/record/answer.xml',methods=['POST'])
 def record_xml():
-    voice = recording.on_answer(request.values.to_dict())
-    return Response(response=str(voice), mimetype='text/xml')
+    twiml = recording.on_answer(request.values.to_dict())
+    return Response(response=str(twiml), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/record/complete.xml', methods=['POST'])
 def record_complete_xml():
-    voice = recording.on_complete(request.values.to_dict())
-    return Response(response=str(voice), mimetype='text/xml')
+    twiml = recording.on_complete(request.values.to_dict())
+    return Response(response=str(twiml), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
-@notify.route('/voice/play/answer.xml',methods=['GET', 'POST'])
+@notify.route('/voice/play/answer.xml',methods=['POST'])
 def get_answer_xml():
     '''Reminder call is answered.
     Request: Twilio POST
     Response: twilio.twiml.Response with voice content
     '''
-
+    
     try:
-        voice = notifications.on_call_answered(request.form.to_dict())
+        twiml = voice.on_answer(request.form.to_dict())
     except Exception as e:
         logger.error('/voice/play/answer.xml: %s', str(e))
         return Response(response="Error", status=500, mimetype='text/xml')
 
-    return Response(response=str(voice), mimetype='text/xml')
+    return Response(response=str(twiml), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/play/interact.xml', methods=['GET','POST'])
@@ -222,12 +222,12 @@ def get_interact_xml():
     '''
 
     try:
-        voice = notifications.on_call_interact(request.form.to_dict())
+        twiml = voice.on_interact(request.form.to_dict())
     except Exception as e:
         logger.error('/voice/play/interact.xml: %s', str(e))
         return Response(response="Error", status=500, mimetype='text/xml')
 
-    return Response(response=str(voice), mimetype='text/xml')
+    return Response(response=str(twiml), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/complete',methods=['GET', 'POST'])
@@ -235,7 +235,7 @@ def complete():
     '''Twilio callback
     '''
 
-    notifications.on_call_complete(request.form.to_dict())
+    voice.on_complete(request.form.to_dict())
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -256,7 +256,7 @@ def fallback():
 
 
 #-------------------------------------------------------------------------------
-@notify.route('/sms/status', methods=['POST'])
+@notify.route('/sms/delivered', methods=['POST'])
 def sms_status():
     '''Callback for sending/receiving SMS messages.
     If sending, determine if part of reminder or reply to original received msg
@@ -264,20 +264,31 @@ def sms_status():
 
     logger.debug(request.form.to_dict())
 
-    doc = db['sms'].find_one_and_update(
-      {'SmsSid': request.form['SmsSid']},
-      {'$set': { 'SmsStatus': request.form['SmsStatus']}}
-    )
+    db['notifics'].find_one_and_update({
+        'tracking.sid': request.form['SmsSid']}, {
+        '$set'{
+            'tracking.status': request.form['SmsStatus']}
+        })
+    
+    if request.form['SmsStatus'] != 'received':
+        logger.error('Error, SMS status %s', request.form['SmsStatus'])
+    
+    # TODO: Move this code into app.sms
+    
+    #doc = db['sms'].find_one_and_update(
+    #  {'SmsSid': request.form['SmsSid']},
+    #  {'$set': { 'SmsStatus': request.form['SmsStatus']}}
+    #)
 
-    if not doc:
-        db['sms'].insert_one(request.form.to_dict())
+    #if not doc:
+    #    db['sms'].insert_one(request.form.to_dict())
 
-    if request.form['SmsStatus'] == 'received':
-        sms.do_request(
-          request.form['To'],
-          request.form['From'],
-          request.form['Body'],
-          request.form['SmsSid'])
+    #if request.form['SmsStatus'] == 'received':
+    #    sms.do_request(
+    #      request.form['To'],
+    #      request.form['From'],
+    #      request.form['Body'],
+    #      request.form['SmsSid'])
 
     return 'OK'
 

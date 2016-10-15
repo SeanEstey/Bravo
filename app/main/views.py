@@ -117,42 +117,24 @@ def _send_email():
         logger.error('%s: %s', msg, str(e))
         return flask.Response(response=e, status=500, mimetype='application/json')
 
-    mailgun = db['agencies'].find_one({'name':args['agency']})['mailgun']
+    conf = db['agencies'].find_one({'name':args['agency']})['mailgun']
 
     try:
-        r = requests.post(
-          'https://api.mailgun.net/v3/' + mailgun['domain'] + '/messages',
-          auth=('api', mailgun['api_key']),
-          data={
-            'from': mailgun['from'],
-            'to': args['recipient'],
-            'subject': args['subject'],
-            'html': html
-        })
-    except requests.exceptions.RequestException as e:
-        logger.error(str(e))
-        return flask.Response(response=e, status=500, mimetype='application/json')
-
-    if r.status_code != 200:
-        err = 'Invalid email address "' + args['recipient'] + '": ' + json.loads(r.text)['message']
-
-        logger.error(err)
-
+        mid = mailgun.send(
+            args['recipient'], args['subject'], html, conf,
+            v={'type':args.get('type')}
+        )
+    catch Exception as e:
         gsheets.create_rfu(args['agency'], err)
-
         return flask.Response(response=str(r), status=500, mimetype='application/json')
 
-    db['emails'].insert({
-        'agency': args['agency'],
-        'type': args.get('type'),
-        'mid': json.loads(r.text)['id'],
-        'status': 'queued',
-        'on_status': args['data']['from']
-    })
+        #   if r.status_code != 200:
+        #       err = 'Invalid email address "' + args['recipient'] + '": ' + json.loads(r.text)['message']
+        #    logger.error(err)
 
     logger.debug('Queued email to ' + args['recipient'])
 
-    return json.loads(r.text)['id']
+    return mid
 
 #-------------------------------------------------------------------------------
 @main.route('/email/<agency>/unsubscribe', methods=['GET'])

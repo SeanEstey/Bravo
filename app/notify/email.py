@@ -108,3 +108,5 @@ def on_delivered(webhook):
         'tracking.error': webhook.get('error')
       }}
     )
+    
+    #emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})

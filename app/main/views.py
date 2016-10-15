@@ -198,24 +198,15 @@ def email_spam_complaint():
 def on_email_delivered():
     '''Mailgun webhook. Do any followup actions.'''
 
-    # Receipts, Signup followups stored here
-    doc = db['emails'].find_one({
-        'mid':request.form['Message-Id']})
-
-    if doc and doc['type'] == 'receipt':
+    v = request.form.get('X-Mailgun-Variables')
+    
+    if v.get('type') == 'receipt':
         receipts.on_email_delivered(request.form.to_dict())
-        return 'OK'
-    elif doc and doc['type'] == 'signup':
+    elif v.get('type') == 'signup':
         signups.on_email_delivered(request.form.to_dict())
-        return 'OK'
-
-    if db['notifics'].find_one({
-        'tracking.mid':request.form['Message-Id']
-    }):
+    elif v.get('type') == 'notific':
         app.notify.email.on_delivered(request.form.to_dict())
-
-    #emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
-
+        
     return 'OK'
 
 #-------------------------------------------------------------------------------

@@ -31,7 +31,7 @@ def send(to, subject, body, conf, v=None):
         })
     except requests.RequestException as e:
         logger.error('mailgun: %s ', str(e))
-        return False
+        pass
 
     logger.debug(response.text)
 

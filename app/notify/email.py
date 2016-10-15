@@ -73,7 +73,8 @@ def send(notific, mailgun_conf, key='default'):
         notific['to'],
         template['subject'],
         body,
-        mailgun_conf)
+        mailgun_conf,
+        v={'type':'notific'})
 
     if mid == False:
         status = 'failed'

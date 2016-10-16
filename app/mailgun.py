@@ -10,8 +10,10 @@ logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def send(to, subject, body, conf):
-    '''@conf: 'mailgun' dict from 'agencies' DB
-    Returns mid string on success
+    '''Send email via mailgun.
+    @conf: db.agencies.mailgun
+    @v: custom dict to included in webhooks
+    Returns: mid string on success
     '''
 
     # Mailgun has no test API keys for use in test environment
@@ -27,11 +29,12 @@ def send(to, subject, body, conf):
             'from': conf['from'],
             'to':  to,
             'subject': subject,
-            'html': body
+            'html': body,
+            'v': json.dumps(v)
         })
     except requests.RequestException as e:
         logger.error('mailgun: %s ', str(e))
-        return False
+        pass
 
     logger.debug(response.text)
 

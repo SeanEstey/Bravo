@@ -74,7 +74,8 @@ def send(notific, mailgun_conf, key='default'):
         notific['to'],
         notific['on_send']['subject'],
         body,
-        mailgun_conf)
+        mailgun_conf,
+        v={'type':'notific'})
 
     if mid == False:
         status = 'failed'
@@ -108,3 +109,5 @@ def on_delivered(webhook):
         'tracking.error': webhook.get('error')
       }}
     )
+    
+    #emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})

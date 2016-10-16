@@ -105,17 +105,9 @@ def send(agency, to, template, subject, data):
         silence_exceptions=False
     )
 
-    mid = mailgun.send(to, subject, body, agency_conf['mailgun'])
-
-    db['emails'].insert({
-        'agency': agency,
-        'mid': mid,
-        'type': 'receipt',
-        'status': 'queued',
-        'on_status': {
-            'update': data['entry']['from']
-        }
-    })
+    mid = mailgun.send(
+        to, subject, body, agency_conf['mailgun'],
+        v={'type':'receipt'})
 
 #-------------------------------------------------------------------------------
 def process(entries, etapestry_id):

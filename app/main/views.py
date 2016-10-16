@@ -112,42 +112,24 @@ def _send_email():
         logger.error('%s: %s', msg, str(e))
         return flask.Response(response=e, status=500, mimetype='application/json')
 
-    mailgun = db['agencies'].find_one({'name':args['agency']})['mailgun']
+    conf = db['agencies'].find_one({'name':args['agency']})['mailgun']
 
     try:
-        r = requests.post(
-          'https://api.mailgun.net/v3/' + mailgun['domain'] + '/messages',
-          auth=('api', mailgun['api_key']),
-          data={
-            'from': mailgun['from'],
-            'to': args['recipient'],
-            'subject': args['subject'],
-            'html': html
-        })
-    except requests.exceptions.RequestException as e:
-        logger.error(str(e))
-        return flask.Response(response=e, status=500, mimetype='application/json')
-
-    if r.status_code != 200:
-        err = 'Invalid email address "' + args['recipient'] + '": ' + json.loads(r.text)['message']
-
-        logger.error(err)
-
+        mid = mailgun.send(
+            args['recipient'], args['subject'], html, conf,
+            v={'type':args.get('type')}
+        )
+    catch Exception as e:
         gsheets.create_rfu(args['agency'], err)
-
         return flask.Response(response=str(r), status=500, mimetype='application/json')
 
-    db['emails'].insert({
-        'agency': args['agency'],
-        'type': args.get('type'),
-        'mid': json.loads(r.text)['id'],
-        'status': 'queued',
-        'on_status': args['data']['from']
-    })
+        #   if r.status_code != 200:
+        #       err = 'Invalid email address "' + args['recipient'] + '": ' + json.loads(r.text)['message']
+        #    logger.error(err)
 
     logger.debug('Queued email to ' + args['recipient'])
 
-    return json.loads(r.text)['id']
+    return mid
 
 #-------------------------------------------------------------------------------
 @main.route('/email/<agency>/unsubscribe', methods=['GET'])
@@ -211,24 +193,15 @@ def email_spam_complaint():
 def on_email_delivered():
     '''Mailgun webhook. Do any followup actions.'''
 
-    # Receipts, Signup followups stored here
-    doc = db['emails'].find_one({
-        'mid':request.form['Message-Id']})
-
-    if doc and doc['type'] == 'receipt':
+    v = request.form.get('X-Mailgun-Variables')
+    
+    if v.get('type') == 'receipt':
         receipts.on_email_delivered(request.form.to_dict())
-        return 'OK'
-    elif doc and doc['type'] == 'signup':
+    elif v.get('type') == 'signup':
         signups.on_email_delivered(request.form.to_dict())
-        return 'OK'
-
-    if db['notifics'].find_one({
-        'tracking.mid':request.form['Message-Id']
-    }):
+    elif v.get('type') == 'notific':
         app.notify.email.on_delivered(request.form.to_dict())
-
-    #emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
-
+        
     return 'OK'
 
 #-------------------------------------------------------------------------------

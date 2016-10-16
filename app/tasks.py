@@ -1,6 +1,7 @@
 '''app.tasks'''
 
 import logging
+import os
 import traceback as tb
 from celery import Celery
 import logging
@@ -22,6 +23,11 @@ logger.addHandler(debug_handler)
 logger.addHandler(exception_handler)
 logger.setLevel(logging.DEBUG)
 
+
+@celery.task
+def mod_environ(args):
+    for key in args:
+        os.environ[key] = args[key]
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -144,7 +150,7 @@ def schedule_reminders():
         from app import schedule
         from datetime import datetime, date, time, timedelta
 
-        agency = 'test'
+        agency = 'vec'
 
 
         preschedule_days = db['agencies'].find_one({

@@ -116,21 +116,19 @@ def reset(evnt_id):
     n = db['notifics'].update(
         {'evnt_id': evnt_id}, {
             '$set': {
-                'status': 'pending',
-                'attempts': 0,
-                'opted_out': False
+                'tracking.status': 'pending',
+                'tracking.attempts': 0
             },
             '$unset': {
-                'account.udf.opted_out': '',
-                'sid': '',
-                'answered_by': '',
-                'ended_at': '',
-                'speak': '',
-                'code': '',
-                'duration': '',
-                'error': '',
-                'reason': '',
-                'code': ''
+                'tracking.sid': '',
+                'tracking.answered_by': '',
+                'tracking.ended_dt': '',
+                'tracking.speak': '',
+                'tracking.code': '',
+                'tracking.duration': '',
+                'tracking.error': '',
+                'tracking.reason': '',
+                'tracking.code': ''
             }
         },
         multi=True

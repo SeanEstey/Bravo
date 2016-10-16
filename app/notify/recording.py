@@ -1,4 +1,5 @@
 from twilio import twiml
+import os
 import logging
 from datetime import datetime,date,time,timedelta
 from flask import request, current_app
@@ -42,12 +43,6 @@ def dial(args):
 
     # FIXME
     call = None
-    '''reminders.dial(
-      request.form['To'],
-      twilio['ph'],
-      twilio['keys']['main'],
-      current_app.config['PUB_URL'] + '/voice/record/on_answer.xml'
-    )'''
 
     logger.info('Dial status: %s', call.status)
 
@@ -81,7 +76,7 @@ def on_answer(args):
     )
     voice.record(
         method= 'POST',
-        action= current_app.config['PUB_URL'] + '/voice/record/on_complete.xml',
+        action= '%s/voice/record/on_complete.xml' % os.environ.get('BRAVO_HTTP_HOST'),
         playBeep= True,
         finishOnKey='#'
     )

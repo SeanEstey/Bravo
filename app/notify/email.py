@@ -2,7 +2,7 @@
 
 import logging
 import os
-from flask import render_template, current_app
+from flask import render_template, current_app, request
 from .. import db
 from .. import utils, mailgun
 logger = logging.getLogger(__name__)
@@ -39,8 +39,6 @@ def send(notific, mailgun_conf, key='default'):
     @key = dict key in email schemas for which template to use
     '''
 
-    #template = notific['on_send']['template'][key]
-
     # If this is run from a Celery task, it is working outside a request
     # context. Create one so that render_template behaves as if it were in
     # a view function.
@@ -48,12 +46,10 @@ def send(notific, mailgun_conf, key='default'):
     # is probably why voice.get_speak() can call render_template() by only
     # creating an application context (without request context)
     with current_app.test_request_context():
-        # Required for underlying url_for() function in render_template() to
-        # generate absolute URL's
-        current_app.config['SERVER_NAME'] = os.environ.get('BRAVO_HTTP_HOST')
         try:
             body = render_template(
                 notific['on_send']['template'],
+                http_host = os.environ.get('BRAVO_HTTP_HOST'),
                 to = notific['to'],
                 account = utils.formatter(
                     db['accounts'].find_one({'_id':notific['acct_id']}),
@@ -65,10 +61,7 @@ def send(notific, mailgun_conf, key='default'):
             )
         except Exception as e:
             logger.error('Email not sent because render_template error. %s ', str(e))
-            current_app.config['SERVER_NAME'] = None
             pass
-
-        current_app.config['SERVER_NAME'] = None
 
     mid = mailgun.send(
         notific['to'],
@@ -92,22 +85,32 @@ def send(notific, mailgun_conf, key='default'):
     return mid
 
 #-------------------------------------------------------------------------------
-def on_delivered(webhook):
-    '''
-    @webhook: webhook args POST'd by mailgun'''
+def on_delivered():
+    '''Called from view webhook. Has request context'''
 
-    logger.info('Email to %s %s <notific>',
-      request.form['recipient'],
-      request.form['event'])
+    logger.info('notification to %s delivered', request.form['recipient'])
 
     db['notifics'].update_one(
-      {'tracking.mid': webhook['Message-Id']},
+      {'tracking.mid': request.form['Message-Id']},
       {'$set':{
-        'tracking.status': webhook['event'],
-        'tracking.code': webhook.get('code'),
-        'tracking.reason': webhook.get('reason'),
-        'tracking.error': webhook.get('error')
+        'tracking.status': request.form['event'],
       }}
     )
-    
+
+    #emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})
+
+#-------------------------------------------------------------------------------
+def on_dropped():
+    '''Called from view webhook. Has request context'''
+
+    logger.info('notification to %s dropped. %s',
+        request.form['recipient'], request.form.get('reason'))
+
+    db['notifics'].update_one(
+      {'tracking.mid': request.form['Message-Id']},
+      {'$set':{
+        'tracking.status': request.form['event'],
+      }}
+    )
+
     #emit('update_msg', {'id':str(msg['_id']), 'emails': request.form['event']})

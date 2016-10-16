@@ -31,6 +31,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
+
 #-------------------------------------------------------------------------------
 def get_local_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -57,22 +58,13 @@ def restart_worker():
     start_worker()
 
 #-------------------------------------------------------------------------------
-def test_mode():
-    set_test_mode()
-    os.environ['BRAVO_TEST_MODE'] = 'True'
+def main(bravo_conf, argv):
 
-#-------------------------------------------------------------------------------
-def main(argv):
-
-    os.environ['BRAVO_TEST_MODE'] = 'False' # default
     os.environ['BRAVO_HTTP_HOST'] = 'http://' + get_local_ip()
 
-    bravo_conf = [
-        "FLASK: " + flask.__version__,
-        "NGINX_HOST: http://%s:%s" % (
-            os.environ['BRAVO_HTTP_HOST'],
-            flask_app.config['PUB_PORT'])
-    ]
+    bravo_conf += ["NGINX_HOST: %s:%s" %(
+        os.environ['BRAVO_HTTP_HOST'],
+        flask_app.config['PUB_PORT'])]
 
     if socketio_app.server.async_mode == 'eventlet':
         bravo_conf += ['SERVER_SOFTWARE: EVENTLET (%s)' % eventlet.__version__]
@@ -83,6 +75,7 @@ def main(argv):
         opts, args = getopt.getopt(argv,"c:dt", ['celery=', 'debug', 'testmode'])
     except getopt.GetoptError:
         sys.exit(2)
+
     for opt, arg in opts:
         if opt in('-c', '--celery'):
             bravo_conf += ['CELERY: ENABLED (' + celery.__version__ +')' ]
@@ -92,11 +85,25 @@ def main(argv):
                 start_worker()
                 celery_cmd = arg
         elif opt in ('-d', '--debug'):
-            bravo_conf.append('DEBUG MODE: ENABLED')
+            bravo_conf += ['DEBUG MODE: ENABLED']
             flask_app.config['DEBUG'] = True
         elif opt in ('-t', '--testmode'):
-            test_mode()
-            bravo_conf += ['TEST MODE: ENABLED']
+            is_test = True
+
+    if is_test:
+        bravo_conf += ['TEST MODE: ENABLED']
+        os.environ['BRAVO_TEST_MODE'] = 'True'
+    else:
+        bravo_conf += ['TEST MODE: DISABLED']
+        os.environ['BRAVO_TEST_MODE'] = 'False'
+
+    set_test_mode(is_test)
+
+    app.tasks.mod_environ.apply_async(
+        args=[{'BRAVO_TEST_MODE':os.environ['BRAVO_TEST_MODE'],
+        'BRAVO_HTTP_HOST': os.environ['BRAVO_HTTP_HOST']}],
+        queue=flask_app.config['DB']
+    )
 
     print bcolors.HEADER + '\n--------------------------------------' + bcolors.ENDC
     print bcolors.BOLD + 'Bravo' + bcolors.ENDC
@@ -111,4 +118,8 @@ def main(argv):
 
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    bravo_conf = [
+        "FLASK: " + flask.__version__
+    ]
+
+    main(bravo_conf, sys.argv[1:])

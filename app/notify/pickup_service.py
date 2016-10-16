@@ -1,6 +1,7 @@
 '''app.notify.pickup_service'''
 
 import logging
+import os
 import json
 from flask import current_app, render_template
 from datetime import datetime, date, time, timedelta
@@ -77,11 +78,11 @@ def create_reminder_event(agency, block, _date):
 
         acct_id = accounts.add(
             agency,
-            acct_obj['id'],
             acct_obj['name'],
             phone = etap.get_primary_phone(acct_obj),
             email = acct_obj.get('email'),
             udf = {
+                'etap_id': acct_obj['id'],
                 'status': etap.get_udf('Status', acct_obj),
                 'block': etap.get_udf('Block', acct_obj),
                 'driver_notes': etap.get_udf('Driver Notes', acct_obj),
@@ -260,11 +261,8 @@ def cancel_pickup(evnt_id, acct_id):
           'acct_id': acct_id,
           'evnt_id': evnt_id,
           'tracking.status': 'pending'
-        },{
-          '$set': {
-            'tracking.status':'cancelled',
-            'opted_out':True}
         },
+        {'$set':{'tracking.status':'cancelled'}},
         multi=True)
 
     acct = db['accounts'].find_one_and_update({
@@ -273,16 +271,16 @@ def cancel_pickup(evnt_id, acct_id):
           'udf.opted_out': True
       }})
 
-    conf = db['agencies'].find_one({
-        'name': db['notific_events'].find_one({
-            '_id':evnt_id})['agency']})
+    conf = db['agencies'].find_one(
+        {'name': db['notific_events'].find_one(
+            {'_id':evnt_id})['agency']})
 
     try:
         etap.call(
             'no_pickup',
             conf['etapestry'],
             data={
-                'account': acct['etap_id'],
+                'account': acct['udf']['etap_id'],
                 'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
                 'next_pickup': utils.tz_utc_to_local(
                     acct['udf']['future_pickup_dt']
@@ -299,18 +297,19 @@ def cancel_pickup(evnt_id, acct_id):
     # Must create one for render_template() and set SERVER_NAME for
     # url_for() to generate absolute URLs
     with current_app.test_request_context():
-        current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
+        #current_app.config['SERVER_NAME'] = os.environ.get('BRAVO_HTTP_HOST')
         try:
             body = render_template(
-                'email/%s/no_pickup.html' % conf['agency'],
+                'email/%s/no_pickup.html' % conf['name'],
                 to = acct['email'],
-                account = acct
+                account = acct,
+                http_host= os.environ.get('BRAVO_HTTP_HOST')
             )
         except Exception as e:
             logger.error('Error rendering no_pickup email. %s', str(e))
-            current_app.config['SERVER_NAME'] = None
+            #current_app.config['SERVER_NAME'] = None
             return False
-        current_app.config['SERVER_NAME'] = None
+        #current_app.config['SERVER_NAME'] = None
 
     return True
 
@@ -330,7 +329,7 @@ def on_call_interact(notific, args):
 
         response.gather(
             numDigits=1,
-            action=current_app.config['PUB_URL'] + '/notify/voice/play/interact.xml',
+            action= '%s/notify/voice/play/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
             method='POST')
 
         return voice

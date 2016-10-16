@@ -55,10 +55,10 @@ def get_route(job_id):
 def get_routing_job_id():
     logger.info('Routing Block %s...', request.form['block'])
 
-    etap_id = json.loads(request.form['etapestry_id'])
+    etap_conf = json.loads(request.form['etapestry_id'])
 
     agency_config = db['agencies'].find_one({
-      'name':etap_id['agency']
+      'name':etap_conf['agency']
     })
 
     try:
@@ -68,7 +68,7 @@ def get_routing_job_id():
           request.form['date'],
           request.form['start_address'],
           request.form['end_address'],
-          etap_id,
+          etap_conf,
           agency_config['routing']['routific']['api_key'],
           min_per_stop=request.form['min_per_stop'],
           shift_start=request.form['shift_start'])
@@ -86,7 +86,7 @@ def _build_route(route_id):
       queue=current_app.config['DB']
     )
 
-    return redirect(current_app.config['PUB_URL'] + '/routing')
+    return redirect(url_for('show_routing'))
 
 #-------------------------------------------------------------------------------
 @routing.route('/build_sheet/<route_id>/<job_id>', methods=['GET'])
@@ -94,6 +94,4 @@ def _build_sheet(job_id, route_id):
     '''non-celery synchronous func for testing
     '''
     routes.build_route(route_id, job_id=job_id)
-    return redirect(current_app.config['PUB_URL'] + '/routing')
-
-
+    return redirect(url_for('show_routing'))

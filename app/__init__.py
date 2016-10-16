@@ -96,12 +96,25 @@ def create_db():
     return client[app.config['DB']]
 
 #-------------------------------------------------------------------------------
-def set_test_mode():
+def set_test_mode(is_test):
     # Replaces Twilio config with Test config
     # Replaces Mailgun config with Test config
 
     test_db = client['test']
-    test_credentials = test_db.credentials.find_one()
-    test_twilio = test_credentials['twilio']['test']
 
-    db.agencies.update({},{'$set':{'twilio':test_twilio}})
+    agencies = db.agencies.find()
+
+    cred = test_db.credentials.find_one()
+
+    for agency in agencies:
+        if is_test:
+            source = 'test'
+        else:
+            source = agency['name']
+
+        db.agencies.update_one(
+            {'name': agency['name']},
+            {'$set':{
+                'twilio': cred['twilio'][source],
+                'mailgun': cred['mailgun'][source]
+            }})

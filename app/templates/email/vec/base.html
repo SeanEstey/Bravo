@@ -10,7 +10,7 @@
           <!-- Row 1: Header -->
           <tr>
             <td align='center' bgcolor='#ffffff' height='1'>
-              <img src="http://bravoweb.ca/static/images/bpu_banner.jpg" 
+              <img src="{{http_host}}/static/images/bpu_banner.jpg" 
 									 alt='Vecova Bottle Service', width='450' height='87'/>
             </td>
           </tr>
@@ -46,18 +46,18 @@
 				</div>
 				<div style='text-align:center'>
 					<a href="http://www.facebook.com/vecova">
-						<img src="http://www.bravoweb.ca/static/images/facebook-circle-128.jpg"
+						<img src="{{http_host}}/static/images/facebook-circle-128.jpg"
 								 alt='Follow us on Facebook', width='48' height='48'/>
 					</a>
 					<a href="http://www.twitter.com/vecova">
-						<img src="http://www.bravoweb.ca/static/images/twitter-circle-128.jpg"
+						<img src="{{http_host}}/static/images/twitter-circle-128.jpg"
 								 alt='Follow us on Twitter', width='48' height='48'/>
 					</a>
 				</div>
 				<div></div>
 				<br>
 				<div style='text-align:center; font-size:9pt'>
-					<a href="http://www.bravoweb.ca{{ url_for('main.email_unsubscribe', agency='vec') }}?email={{ to }}">
+					<a href="{{http_host}}{{ url_for('main.email_unsubscribe', agency='vec') }}?email={{ to }}">
 						Unsubscribe</a>
 				</div>
       </td>

@@ -1,3 +1,7 @@
+'''app.notify.voice_announce'''
+
+import twilio
+import os
 
 def on_call_interact(notific, args):
     if args.get('Digits') == '1':
@@ -7,7 +11,7 @@ def on_call_interact(notific, args):
 
         voice.gather(
             numDigits=1,
-            action="%s/notify/voice/play/interact.xml" % current_app.config['PUB_URL'],
+            action="%s/notify/voice/play/interact.xml" % os.environ.get('BRAVO_HTTP_HOST'),
             method='POST')
 
         return voice

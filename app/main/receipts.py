@@ -2,45 +2,61 @@
 
 import json
 import logging
+import os
 import gspread
 import requests
-from flask import current_app
-from datetime import datetime
+from flask import current_app, request
+from datetime import datetime, date
 from dateutil.parser import parse
-from flask import render_template
+from flask import render_template, request
 
-from app import gsheets
-from app import etap
-from app import mailgun
-from app import html
-from app import db
+from .. import html, mailgun, etap, gsheets
+from .. import db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def on_email_delivered(email, webhook):
-    '''Forwarded Mailgun webhook on receipt email event.
-    Update Sheets accordingly'''
+def on_delivered():
+    '''Mailgun webhook called from view. Has request context'''
 
-    # DOES FLASK CONTEXT STILL EXIST HERE?? CALLED FROM INSIDE VIEW
+    logger.info('receipt delivered to %s', request.form['recipient'])
 
-    logger.info('Email to %s %s <receipt>',
-      webhook['recipient'],
-      webhook['event'])
+    email = db['emails'].find_one_and_update(
+        {'mid': request.form['Message-Id']},
+        {'$set': {'status': request.form['event']}})
 
-    db['emails'].update_one(
-      {'mid': webhook['Message-Id']},
-      {'$set': {'status':webhook['event']}})
+    gsheets.update_entry(
+      email['agency'],
+      request.form['event'],
+      email['on_status']['update']
+    )
 
-    try:
-        gsheets.update_entry(
-          email['agency'],
-          webhook['event'],
-          email['on_status']['update']
-        )
-    except Exception as e:
-        logger.error("Error writing to Google Sheets: " + str(e))
-        return 'Failed'
+#-------------------------------------------------------------------------------
+def on_dropped():
+    '''Mailgun webhook called from view. Has request context'''
 
+    msg = 'receipt to %s dropped. %s. %s' %(
+        request.form['recipient'], request.form['reason'])
+
+    logger.info(msg)
+
+    email = db['emails'].find_one_and_update(
+        {'mid': request.form['Message-Id']},
+        {'$set': {'status': request.form['event']}})
+
+    gsheets.update_entry(
+      email['agency'],
+      request.form['event'],
+      email['on_status']['update']
+    )
+
+    from .. import tasks
+    tasks.rfu.apply_async(
+        args=[
+            email['agency'],
+            msg + request.form.get('description')],
+        kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
+        queue=current_app.config['DB']
+    )
 
 #-------------------------------------------------------------------------------
 def render_body(template_file, data):
@@ -60,14 +76,15 @@ def render_body(template_file, data):
             data['entry']['next_pickup'] = npu.strftime('%B %-d, %Y')
 
     with current_app.test_request_context():
-        current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
+        current_app.config['SERVER_NAME'] = os.environ.get('BRAVO_HTTP_HOST')
         try:
             body = render_template(
                 template_file,
                 to = data['account']['email'],
                 account = data['account'],
                 entry = data['entry'],
-                history = data.get('history') # optional
+                history = data.get('history'), # optional
+                http_host= os.environ.get('BRAVO_HTTP_HOST')
             )
         except Exception as e:
             logger.error('render receipt template: %s', str(e))

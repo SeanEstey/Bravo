@@ -106,7 +106,11 @@ def _send_email():
             return flask.Response(response=e, status=500, mimetype='application/json')
 
     try:
-        html = render_template(args['template'], data=args['data'])
+        html = render_template(
+            args['template'],
+            data=args['data'],
+            http_host= os.environ.get('BRAVO_HTTP_HOST')
+        )
     except Exception as e:
         msg = '/email/send: invalid email template'
         logger.error('%s: %s', msg, str(e))
@@ -119,7 +123,7 @@ def _send_email():
             args['recipient'], args['subject'], html, conf,
             v={'type':args.get('type')}
         )
-    catch Exception as e:
+    except Exception as e:
         gsheets.create_rfu(args['agency'], err)
         return flask.Response(response=str(r), status=500, mimetype='application/json')
 
@@ -191,58 +195,42 @@ def email_spam_complaint():
 #-------------------------------------------------------------------------------
 @main.route('/email/delivered',methods=['POST'])
 def on_email_delivered():
-    '''Mailgun webhook. Do any followup actions.'''
+    '''Mailgun webhook. Route to appropriate handler'''
 
-    v = request.form.get('X-Mailgun-Variables')
-    
+    logger.debug(request.values.to_dict())
+
+    if not request.form.get('my-custom-data'):
+        return 'Unknown type'
+
+    v = json.loads(request.form['my-custom-data'])
+
     if v.get('type') == 'receipt':
-        receipts.on_email_delivered(request.form.to_dict())
+        receipts.on_delivered()
     elif v.get('type') == 'signup':
-        signups.on_email_delivered(request.form.to_dict())
+        signups.on_email_delivered()
     elif v.get('type') == 'notific':
-        app.notify.email.on_delivered(request.form.to_dict())
-        
+        app.notify.email.on_delivered()
+
     return 'OK'
 
 #-------------------------------------------------------------------------------
 @main.route('/email/dropped', methods=['POST'])
 def on_email_dropped():
-    '''Relay for Mailgun webhook
-    POST args: 'code', 'error', 'reason'
-    '''
+    '''Mailgun webhook. Route to appropriate handler'''
 
     logger.debug(request.values.to_dict())
 
-    event = request.form['event']
+    if not request.form.get('my-custom-data'):
+        return 'Unknown type'
 
-    logger.info('Email to %s %s', request.form['recipient'], event)
+    v = json.loads(request.form['my-custom-data'])
 
-    email = db['emails'].find_one_and_update(
-      {'mid': request.form['Message-Id']},
-      {'$set': { 'status': event}}
-    )
-
-    #if email is None:
-    #    return 'Mid not found'
-
-    msg = request.form['recipient'] + ' ' + event + ': '
-
-    reason = request.form.get('reason')
-
-    msg = '%s %s. reason: %s. ' % (request.form['recipient'], event, request.form['reason'])
-    logger.info(msg)
-
-    # TEST CODE ONLY
-    email = {'agency':'vec'}
-
-    from .. import tasks
-    tasks.rfu.apply_async(
-        args=[
-            email['agency'],
-            msg + request.form.get('description')],
-        kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
-        queue=current_app.config['DB']
-    )
+    if v.get('type') == 'receipt':
+        receipts.on_dropped()
+    elif v.get('type') == 'signup':
+        signups.on_email_dropped()
+    elif v.get('type') == 'notific':
+        app.notify.email.on_dropped()
 
     return 'OK'
 

@@ -4,6 +4,7 @@ import logging
 import twilio.twiml
 import datetime
 import re
+import os
 from twilio.rest.lookups import TwilioLookupsClient
 from flask import current_app
 
@@ -138,7 +139,7 @@ def send(twilio_keys, to, msg):
           body = msg,
           to = to,
           from_ = twilio_keys['sms'],
-          status_callback = current_app.config['PUB_URL'] + '/sms/pickup/status'
+          status_callback = '%s/sms/pickup/status' % os.environ.get('BRAVO_HTTP_HOST')
         )
     except twilio.TwilioRestException as e:
         logger.error('sms exception %s', str(e), exc_info=True)

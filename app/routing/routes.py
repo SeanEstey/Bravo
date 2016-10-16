@@ -85,7 +85,7 @@ def build_route(route_id, job_id=None):
     agency_conf = db['agencies'].find_one({'name':route['agency']})
 
     routing = agency_conf['routing']
-    etap_id = agency_conf['etapestry']
+    etap_conf = agency_conf['etapestry']
 
     # FIXME. Vec only
     depot = routing['depots'][0]
@@ -99,7 +99,7 @@ def build_route(route_id, job_id=None):
             route['date'].isoformat(),
             routing['office_address'],
             depot['formatted_address'],
-            etap_id,
+            etap_conf,
             routing['routific']['api_key'],
             min_per_stop = routing['min_per_stop'],
             shift_start = driver['shift_start']

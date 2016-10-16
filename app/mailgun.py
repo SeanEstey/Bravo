@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-def send(to, subject, body, conf):
+def send(to, subject, body, conf, v=None):
     '''Send email via mailgun.
     @conf: db.agencies.mailgun
     @v: custom dict to included in webhooks
@@ -19,6 +19,7 @@ def send(to, subject, body, conf):
     # Mailgun has no test API keys for use in test environment
     # If test mode enabled, re-route all emails to test address
     if os.environ.get('BRAVO_TEST_MODE') == 'True':
+        logger.debug('test mode enabled. rerouting email')
         to = 'estese@gmail.com'
 
     try:
@@ -30,7 +31,7 @@ def send(to, subject, body, conf):
             'to':  to,
             'subject': subject,
             'html': body,
-            'v': json.dumps(v)
+            'v:my-custom-data': json.dumps(v)
         })
     except requests.RequestException as e:
         logger.error('mailgun: %s ', str(e))

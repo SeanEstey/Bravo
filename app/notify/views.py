@@ -59,8 +59,6 @@ def view_event(evnt_id):
         bson_to_json=True
     )
 
-    #logger.debug(json.dumps(notific_list[0], indent=4))
-
     return render_template(
         'views/event.html',
         title=current_app.config['TITLE'],

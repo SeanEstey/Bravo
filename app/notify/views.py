@@ -49,7 +49,7 @@ def view_event(evnt_id):
     '''GUI event view'''
 
     event = events.get(ObjectId(evnt_id))
-    notific_list = list(events.get_notifications(ObjectId(evnt_id)))
+    notific_list = list(events.get_notifics(ObjectId(evnt_id)))
     trigger_list = events.get_triggers(ObjectId(evnt_id))
 
     notific_list = utils.formatter(
@@ -198,7 +198,7 @@ def record_complete_xml():
 #-------------------------------------------------------------------------------
 @notify.route('/voice/play/answer.xml',methods=['POST'])
 def get_answer_xml():
-    '''Reminder call is answered.
+    '''Notification call is answered.
     Request: Twilio POST
     Response: twilio.twiml.Response with voice content
     '''

@@ -12,7 +12,7 @@ def add(agency, etap_id, name, phone=None, email=None, udf=None):
     return db['accounts'].insert_one({
         'agency': agency,
         'name': name,
-        'etap_id': a_id,
+        'etap_id': etap_id,
         'phone': phone,
         'email': email,
         'udf': udf

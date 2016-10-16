@@ -1,6 +1,7 @@
 '''app.notify.voice'''
 
 import logging
+import os
 from datetime import datetime
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
@@ -55,28 +56,23 @@ def call(notific, twilio_conf, voice_conf):
         return False
 
     if notific['to'][0:2] != "+1":
-        to = "+1" + notific['to']
-
-    PUB_URL = current_app.config['PUB_URL']
+        notific['to'] = "+1" + notific['to']
 
     try:
-        client = TwilioRestClient(
-          twilio_conf['api_keys']['main']['sid'],
-          twilio_conf['api_keys']['main']['auth_id']
-        )
+        client = TwilioRestClient(twilio_conf['api']['sid'], twilio_conf['api']['auth_id'])
     except TwilioRestException as e:
         logger.error('Call not made. Could not get Twilio client. %s', str(e))
         pass
 
     call = client.calls.create(
-        from_ = twilio_conf['ph'],
-        to = to,
-        url ='%s/notify/voice/play/answer.xml' % PUB_URL,
+        from_ = twilio_conf['voice']['number'],
+        to = notific['to'],
+        url ='%s/notify/voice/play/answer.xml' % os.environ.get('BRAVO_HTTP_HOST'),
         method = 'POST',
         if_machine = 'Continue',
-        fallback_url = '%s/notify/voice/fallback' % PUB_URL,
+        fallback_url = '%s/notify/voice/fallback' % os.environ.get('BRAVO_HTTP_HOST'),
         fallback_method = 'POST',
-        status_callback = '%s/notify/voice/complete' % PUB_URL,
+        status_callback = '%s/notify/voice/complete' % os.environ.get('BRAVO_HTTP_HOST'),
         status_events = ["completed"],
         status_method = 'POST'
     )
@@ -109,7 +105,7 @@ def get_speak(notific, template_file):
     with current_app.app_context():
         # Required even though voice templates aren't calling url_for()
         # function. No idea why...
-        current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
+        current_app.config['SERVER_NAME'] = os.environ.get('BRAVO_HTTP_HOST')
         try:
             content = render_template(
                 template_file,
@@ -177,7 +173,7 @@ def on_answer(args):
 
     response.gather(
         numDigits=1,
-        action='%s/notify/voice/play/interact.xml' % current_app.config['PUB_URL'],
+        action='%s/notify/voice/play/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
         method='POST')
 
     return response

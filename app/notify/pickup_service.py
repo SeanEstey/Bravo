@@ -10,7 +10,7 @@ from bson import json_util
 
 from .. import utils, block_parser, gcal, etap
 from .. import db
-from . import events, notifics, triggers
+from . import events, email, sms, voice, triggers, accounts
 logger = logging.getLogger(__name__)
 
 
@@ -20,17 +20,6 @@ def create_reminder_event(agency, block, _date):
     '''
 
     agency_conf = db['agencies'].find_one({'name':agency})
-
-    try:
-        with open('app/templates/schemas/'+agency+'.json') as json_file:
-          schemas = json.load(json_file)
-    except Exception as e:
-        logger.error(str(e))
-
-    for event in schemas['notification_events']:
-        if event['name'] == 'pickup_reminder':
-            schema = event
-            break
 
     try:
         etap_accts = etap.call(
@@ -45,26 +34,32 @@ def create_reminder_event(agency, block, _date):
         logger.error('Failed retrieving accounts for %s: %s', block, str(e))
         return False
 
-    if len(accounts) < 1:
+    if len(etap_accts) < 1:
         return False
 
     # Create event + triggers
 
-    evnt_id = events.insert(agency, block, _date)
+    evnt_id = events.add(agency, block, _date)
 
     trig_conf = agency_conf['scheduler']['notify']['triggers']
 
     email_trig_id = triggers.add(
         evnt_id,
         'email',
-        trig_conf['email']['fire_date'],
-        trig_conf['email']['fire_time'])
+        _date + timedelta(days=trig_conf['email']['fire_days_delta']),
+        time(
+            trig_conf['email']['fire_hour'],
+            trig_conf['email']['fire_min'])
+    )
 
     phone_trig_id = triggers.add(
         evnt_id,
         'voice_sms',
-        trig_conf['voice_sms']['fire_date'],
-        trig_conf['voice_sms']['fire_time'])
+        _date + timedelta(days=trig_conf['voice_sms']['fire_days_delta']),
+        time(
+            trig_conf['voice_sms']['fire_hour'],
+            trig_conf['voice_sms']['fire_min'])
+    )
 
     event_dt = utils.naive_to_local(datetime.combine(_date,time(8,0)))
 

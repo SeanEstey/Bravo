@@ -147,6 +147,7 @@ def send(twilio_keys, to, msg):
 
 #-------------------------------------------------------------------------------
 def on_status(args):
+    return True
     #    logger.error('Error, SMS status %s', request.form['SmsStatus'])
 
     # TODO: Move this code into app.sms

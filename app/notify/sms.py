@@ -1,6 +1,7 @@
 '''app.notify.sms'''
 
 import logging
+import os
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import current_app, render_template
@@ -53,8 +54,8 @@ def send(notific, twilio_conf):
 
     try:
         client = TwilioRestClient(
-            twilio_conf['api_keys']['main']['sid'],
-            twilio_conf['api_keys']['main']['auth_id'])
+            twilio_conf['sms']['api']['sid'],
+            twilio_conf['sms']['api']['auth_id'])
     except twilio.TwilioRestException as e:
         logger.error('SMS not sent. Error getting Twilio REST client. %s', str(e), exc_info=True)
         pass
@@ -67,7 +68,7 @@ def send(notific, twilio_conf):
     # Must create one for render_template() and set SERVER_NAME for
     # url_for() to generate absolute URLs
     with current_app.test_request_context():
-        current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
+        current_app.config['SERVER_NAME'] = os.environ.get('BRAVO_HTTP_HOST')
         try:
             body = render_template(
                 'sms/%s/reminder.html' % agency,
@@ -84,7 +85,7 @@ def send(notific, twilio_conf):
         body = body,
         to = notific['to'],
         from_ = twilio_conf['sms'],
-        status_callback = '%s/notify/sms/status' % current_app.config['PUB_URL'])
+        status_callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST'))
 
     return response
 

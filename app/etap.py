@@ -95,8 +95,8 @@ def get_phone(_type, account):
         return False
 
     for phone in account['phones']:
-        if phone['type'] == phone_type:
-            return phone
+        if phone['type'] == _type:
+            return phone['number']
 
     return False
 

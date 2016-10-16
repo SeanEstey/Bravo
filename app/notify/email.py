@@ -1,6 +1,7 @@
 '''app.notify.email'''
 
 import logging
+import os
 from flask import render_template, current_app
 from .. import db
 from .. import utils, mailgun
@@ -49,10 +50,10 @@ def send(notific, mailgun_conf, key='default'):
     with current_app.test_request_context():
         # Required for underlying url_for() function in render_template() to
         # generate absolute URL's
-        current_app.config['SERVER_NAME'] = current_app.config['PUB_URL']
+        current_app.config['SERVER_NAME'] = os.environ.get('BRAVO_HTTP_HOST')
         try:
             body = render_template(
-                notific['template'],
+                notific['on_send']['template'],
                 to = notific['to'],
                 account = utils.formatter(
                     db['accounts'].find_one({'_id':notific['acct_id']}),
@@ -71,7 +72,7 @@ def send(notific, mailgun_conf, key='default'):
 
     mid = mailgun.send(
         notific['to'],
-        template['subject'],
+        notific['on_send']['subject'],
         body,
         mailgun_conf)
 

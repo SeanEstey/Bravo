@@ -144,11 +144,16 @@ def schedule_reminders():
         from app import schedule
         from datetime import datetime, date, time, timedelta
 
-        PRESCHEDULE_BY_DAYS = 2
-        agency = 'vec'
+        agency = 'test'
+
+
+        preschedule_days = db['agencies'].find_one({
+            'name': agency}
+        )['scheduler']['notify']['preschedule_by_days']
+
+        _date = date.today() + timedelta(days=preschedule_days)
 
         blocks = []
-        _date = date.today() + timedelta(days=PRESCHEDULE_BY_DAYS)
 
         agency_conf = db['agencies'].find_one({'name':agency})
 

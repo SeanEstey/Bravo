@@ -15,14 +15,14 @@ from .. import db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def insert(agency, name, event_date):
+def add(agency, name, event_date):
     '''Creates a new job and adds to DB
     @conf: db.agencies->'reminders'
     Returns:
       -id (ObjectId)
     '''
 
-    return db['notification_events'].insert_one({
+    return db['notific_events'].insert_one({
         'name': name,
         'agency': agency,
         'event_dt': utils.naive_to_local(datetime.combine(event_date, time(8,0))),
@@ -33,7 +33,7 @@ def insert(agency, name, event_date):
 
 #-------------------------------------------------------------------------------
 def get(evnt_id, local_time=True):
-    event = db['notification_events'].find_one({'_id':evnt_id})
+    event = db['notific_events'].find_one({'_id':evnt_id})
 
     if local_time == True:
         return utils.all_utc_to_local_time(event)
@@ -47,7 +47,7 @@ def get_list(agency, local_time=True, max=10):
 
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    sorted_events = list(db['notification_events'].find(
+    sorted_events = list(db['notific_events'].find(
         {'agency':agency}).sort('event_dt',-1).limit(max))
 
     if local_time == True:
@@ -67,8 +67,8 @@ def get_triggers(evnt_id, local_time=True):
     return trigger_list
 
 #-------------------------------------------------------------------------------
-def get_notifications(evnt_id, local_time=True, sorted_by='account.event_dt'):
-    notific_results = db['notifications'].aggregate([
+def get_notifics(evnt_id, local_time=True, sorted_by='account.event_dt'):
+    notific_results = db['notifics'].aggregate([
         {'$match': {
             'evnt_id': evnt_id
             }
@@ -103,17 +103,17 @@ def get_notifications(evnt_id, local_time=True, sorted_by='account.event_dt'):
 
 #-------------------------------------------------------------------------------
 def reset(evnt_id):
-    '''Reset the notification_event document, all triggers and associated
-    notifications'''
+    '''Reset the notific_event document, all triggers and associated
+    notifics'''
 
     evnt_id = ObjectId(evnt_id)
 
-    db['notification_events'].update_one(
+    db['notific_events'].update_one(
         {'_id':evnt_id},
         {'$set':{'status':'pending'}}
     )
 
-    n = db['notifications'].update(
+    n = db['notifics'].update(
         {'evnt_id': evnt_id}, {
             '$set': {
                 'status': 'pending',
@@ -142,11 +142,11 @@ def reset(evnt_id):
         multi=True
     )
 
-    logger.info('%s notifications reset', n['nModified'])
+    logger.info('%s notifics reset', n['nModified'])
 
 #-------------------------------------------------------------------------------
 def rmv_notifics(evnt_id, acct_id):
-    n_notifics = db['notifications'].remove({'acct_id':acct_id})['n']
+    n_notifics = db['notifics'].remove({'acct_id':acct_id})['n']
     n_accounts = db['accounts'].remove({'_id':acct_id})['n']
     logger.info('Removed %s notifics, %s account for evnt_id %s', n_notifics,
     n_accounts, evnt_id)
@@ -154,18 +154,18 @@ def rmv_notifics(evnt_id, acct_id):
 
 #-------------------------------------------------------------------------------
 def remove(evnt_id):
-    # remove all triggers, notifications, and event
+    # remove all triggers, notifics, and event
     evnt_id = ObjectId(evnt_id)
 
-    notifics = db['notifications'].find({'evnt_id':evnt_id})
+    notifics = db['notifics'].find({'evnt_id':evnt_id})
     for notific in notifics:
         db['accounts'].remove({'_id':notific['acct_id']})
 
-    n_notifics = db['notifications'].remove({'evnt_id':evnt_id}).get('n')
+    n_notifics = db['notifics'].remove({'evnt_id':evnt_id}).get('n')
 
     n_triggers = db['triggers'].remove({'evnt_id': evnt_id}).get('n')
 
-    n_events = db['notification_events'].remove({'_id': evnt_id}).get('n')
+    n_events = db['notific_events'].remove({'_id': evnt_id}).get('n')
 
     logger.info('Removed %s event, %s notifics, and %s triggers',
         n_events, n_notifics, n_triggers)

@@ -2,20 +2,22 @@
 
 import requests
 import json
+import os
 import logging
 
 logger = logging.getLogger(__name__)
 
-# TODO: rename all "send_email" calls to "mailgun.send"
-
 
 #-------------------------------------------------------------------------------
 def send(to, subject, body, conf):
-    '''Send email via mailgun.
-    @conf: 'mailgun' dict from 'agencies' DB
-    Returns:
-      -mid string on success
+    '''@conf: 'mailgun' dict from 'agencies' DB
+    Returns mid string on success
     '''
+
+    # Mailgun has no test API keys for use in test environment
+    # If test mode enabled, re-route all emails to test address
+    if os.environ.get('BRAVO_TEST_MODE') == 'True':
+        to = 'estese@gmail.com'
 
     try:
         response = requests.post(

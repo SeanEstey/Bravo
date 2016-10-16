@@ -40,11 +40,6 @@ client = pymongo.MongoClient(
 db = client[config.DB]
 
 
-#celery = Celery(__name__, broker='amqp://')
-#celery.config_from_object('celeryconfig')
-
-
-
 #-------------------------------------------------------------------------------
 def create_celery_app(app=None):
     app = app or create_app('app')
@@ -99,3 +94,14 @@ def create_db():
         connect=False)
 
     return client[app.config['DB']]
+
+#-------------------------------------------------------------------------------
+def set_test_mode():
+    # Replaces Twilio config with Test config
+    # Replaces Mailgun config with Test config
+
+    test_db = client['test']
+    test_credentials = test_db.credentials.find_one()
+    test_twilio = test_credentials['twilio']['test']
+
+    db.agencies.update({},{'$set':{'twilio':test_twilio}})

@@ -1,7 +1,7 @@
 '''app.notify.triggers'''
 
 import logging
-from bson.objectid import ObjectId
+import os
 from datetime import datetime,date,time
 
 from .. import utils
@@ -52,6 +52,9 @@ def fire(evnt_id, trig_id):
     '''Sends out all dependent sms/voice/email notifics messages
     '''
 
+    event = db['notific_events'].find_one({
+        '_id':evnt_id})
+
     agency_conf = db['agencies'].find_one({
         'name':event['agency']})
 
@@ -59,15 +62,13 @@ def fire(evnt_id, trig_id):
     notify_conf = agency_conf['notify']
     mailgun_conf = agency_conf['mailgun']
 
-    event = db['notific_events'].find_one({
-        '_id':evnt_id})
-
     ready_notifics = db['notifics'].find({
         'trig_id':trig_id,
         'status':'pending'})
 
     errors = []
     status = ''
+    fails = 0
 
     for notific in ready_notifics:
         try:
@@ -78,7 +79,8 @@ def fire(evnt_id, trig_id):
             elif notific['type'] == 'email':
                 status = email.send(notific, mailgun_conf)
         except Exception as e:
-            errors.append('Notific %s failed. %s' % (str(n['_id']), str(e)))
+            logger.error(str(e))
+            errors.append('Notific %s failed. %s' % (str(notific['_id']), str(e)))
 
         if status == 'failed':
             fails += 1

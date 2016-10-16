@@ -1,26 +1,21 @@
-from flask_socketio import SocketIO
+'''app.socketio'''
+
+from flask import request, jsonify
+from flask_socketio import SocketIO, send, emit
+import logging
+
+from run import socketio_app
+logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-#@socketio.on('disconnect')
-def socketio_disconnected():
+@socketio_app.on('disconnect')
+def disconnected():
+    print 'disconnect'
     return True
-    #app.logger.debug('socket disconnected')
-
-    #app.logger.debug(
-    #'num connected sockets: ' +
-    #str(len(socketio.server.sockets))
-    #)
 
 #-------------------------------------------------------------------------------
-#@socketio.on('connect')
-def socketio_connect():
-    return True
-    #app.logger.debug('socket.io connected')
+@socketio_app.on('connect')
+def connected():
+    #logger.info('socket.io connected')
 
-    #app.logger.debug(
-    #    'num connected sockets: ' +
-    #    str(len(socketio.server.sockets))
-    #)
-    #socketio.emit('msg', 'ping from server!');
-
-    #emit('connected')
+    emit('connected')

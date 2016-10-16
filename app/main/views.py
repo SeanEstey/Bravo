@@ -11,17 +11,12 @@ from bson.objectid import ObjectId
 import logging
 
 from . import main
-from . import log, receipts, sms
+from . import log, receipts, sms_assistant
 from .. import utils, html, gsheets
 import app.notify.email
 from app.notify import email
 from .. import db
 logger = logging.getLogger(__name__)
-
-
-# ------------ Stuff TODO ----------------------
-# TODO: add view endpoint awaiting return value from send_receipts task
-# http://blog.miguelgrinberg.com/post/using-celery-with-flask
 
 
 #-------------------------------------------------------------------------------
@@ -84,10 +79,10 @@ def process_receipts():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/sms/pickup/status', methods=['POST'])
+@main.route('/sms/pickup/status', methods=['POST'])
 def on_pickup_sms_status():
     # queued, failed, sent, delivered, or undelivered.
-    sms.on_status(request.form.to_dict())
+    sms_assistant.on_status(request.form.to_dict())
     return 'OK'
 
 #-------------------------------------------------------------------------------

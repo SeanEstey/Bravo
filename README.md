@@ -63,14 +63,17 @@ Start RabbitMQ daemon:
 `$ rabbitmqctl start_app`
 
 Run app:
+
   `python run.py`
 
 Arguments
 
 -Start with celerybeat:
   `-c, --celerybeat` 
+
 -Start in debug mode:
   `-d, --debug`
+
 -Start in sandbox mode:
   `-s, --sandbox`
 

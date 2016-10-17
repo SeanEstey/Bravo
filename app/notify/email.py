@@ -71,8 +71,11 @@ def send(notific, mailgun_conf, key='default'):
         v={'type':'notific'})
 
     if mid == False:
+        logger.error('failed to queue email to %s', notific['to'])
+        logger.info('email to %s failed', notific['to'])
         status = 'failed'
     else:
+        logger.info('queued email to %s', notific['to'])
         status = 'queued'
 
     db['notifics'].update_one({
@@ -88,7 +91,7 @@ def send(notific, mailgun_conf, key='default'):
 def on_delivered():
     '''Called from view webhook. Has request context'''
 
-    logger.info('notification to %s delivered', request.form['recipient'])
+    logger.info('notific to %s delivered', request.form['recipient'])
 
     db['notifics'].update_one(
       {'tracking.mid': request.form['Message-Id']},

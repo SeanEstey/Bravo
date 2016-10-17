@@ -18,9 +18,9 @@ def send(to, subject, body, conf, v=None):
 
     # Mailgun has no test API keys for use in test environment
     # If test mode enabled, re-route all emails to test address
-    if os.environ.get('BRAVO_TEST_MODE') == 'True':
-        logger.debug('test mode enabled. rerouting email')
-        to = conf['test_to']
+    if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
+        logger.debug('sandbox mode enabled. rerouting email')
+        to = conf['sandbox_to']
 
     try:
         response = requests.post(

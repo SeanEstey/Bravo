@@ -197,7 +197,7 @@ def email_spam_complaint():
 def on_email_delivered():
     '''Mailgun webhook. Route to appropriate handler'''
 
-    logger.debug(request.values.to_dict())
+    logger.debug(json.dumps(request.values.to_dict(), indent=4))
 
     if not request.form.get('my-custom-data'):
         return 'Unknown type'
@@ -218,7 +218,7 @@ def on_email_delivered():
 def on_email_dropped():
     '''Mailgun webhook. Route to appropriate handler'''
 
-    logger.debug(request.values.to_dict())
+    logger.debug(json.dumps(request.values.to_dict(), indent=4))
 
     if not request.form.get('my-custom-data'):
         return 'Unknown type'

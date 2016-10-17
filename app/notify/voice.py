@@ -64,8 +64,14 @@ def call(notific, twilio_conf, voice_conf):
         logger.error('Call not made. Could not get Twilio client. %s', str(e))
         pass
 
+    # Protect against sending real calls if in sandbox
+    if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
+        from_ = twilio_conf['voice']['valid_from_number']
+    else:
+        from_ = twilio_conf['voice']['number']
+
     call = client.calls.create(
-        from_ = twilio_conf['voice']['number'],
+        from_ = from_,
         to = notific['to'],
         url ='%s/notify/voice/play/answer.xml' % os.environ.get('BRAVO_HTTP_HOST'),
         method = 'POST',
@@ -77,7 +83,7 @@ def call(notific, twilio_conf, voice_conf):
         status_method = 'POST'
     )
 
-    logger.debug(vars(call))
+    logger.debug(utils.print_vars(call))
 
     db['notifics'].update_one({
         '_id': notific['_id']}, {
@@ -86,7 +92,7 @@ def call(notific, twilio_conf, voice_conf):
             'tracking.sid': call.sid or None},
         '$inc': {'tracking.attempts':1}})
 
-    logger.info('Call %s for %s', call.status, notific['to'])
+    logger.info('%s call to %s', call.status, notific['to'])
 
     return call.status
 

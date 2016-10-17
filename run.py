@@ -13,7 +13,7 @@ import celery
 from flask_socketio import SocketIO
 
 import config
-from app import create_app, set_test_mode
+from app import create_app, config_test_server, is_test_server
 from app.tasks import flask_app
 
 socketio_app = SocketIO(flask_app)
@@ -31,85 +31,92 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
+#-------------------------------------------------------------------------------
+def startup_msg():
+    print bcolors.OKGREEN + '\n--------------------------------------'
+    print bcolors.BOLD + 'Bravo' + bcolors.ENDC + bcolors.OKGREEN
+    if os.environ['BRAVO_TEST_SERVER'] == 'True':
+        print 'HOSTNAME: Test Server'
+    else:
+        print 'HOSTNAME: Deploy Server'
+    print "HTTP_HOST: %s:%s" %(
+        os.environ['BRAVO_HTTP_HOST'],
+        flask_app.config['PUB_PORT'])
+    if flask_app.config['DEBUG'] == True:
+        print 'DEBUG MODE: ENABLED'
+    else:
+        print 'DEBUG MODE: DISABLED'
+    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
+        print 'SANDBOX MODE: ENABLED (blocking all outgoing Voice/Sms/Email messages) '
+    else:
+        print 'SANDBOX MODE: DISABLED'
+    if os.environ['BRAVO_CELERY_BEAT'] == 'True':
+        print 'CELERY_BEAT: ENABLED'
+    elif os.environ['BRAVO_CELERY_BEAT'] == 'False':
+        print 'CELERY_BEAT: DISABLED (no automatic task scheduling)'
+    if socketio_app.server.async_mode == 'eventlet':
+        print 'SERVER_SOFTWARE: Eventlet (%s)' % eventlet.__version__
+    else:
+        print 'SERVER_SOFTWARE: %s' % socketio_app.server.async_mode
+    print 'CELERY: ' + celery.__version__
+    print 'FLASK: ' + flask.__version__
+    print '--------------------------------------\n' + bcolors.ENDC
+
 
 #-------------------------------------------------------------------------------
-def get_local_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("gmail.com",80))
-    ip = s.getsockname()[0]
-    s.close
-    return ip
+def start_worker(celery_beat):
+    # Kill any existing workers
+    os.system('kill %1')
+    os.system("ps aux | grep 'queues " + config.DB + \
+              "' | awk '{print $2}' | xargs kill -9")
 
-#-------------------------------------------------------------------------------
-def start_worker():
-    # Create worker w/ embedded beat. Does not work
-    # if more than 1 worker
-    os.system('celery worker -A app.tasks.celery -B -n ' + \
-              config.DB + ' --queues ' + config.DB + ' &')
+    if celery_beat:
+        # Start worker with embedded beat (will fail if > 1 worker)
+        os.environ['BRAVO_CELERY_BEAT'] = 'True'
+        os.system('celery worker -A app.tasks.celery -B -n ' + \
+                  config.DB + ' --queues ' + config.DB + ' &')
+    else:
+        # Start worker without beat
+        os.environ['BRAVO_CELERY_BEAT'] = 'False'
+        os.system('celery worker -A app.tasks.celery -n ' + \
+                  config.DB + ' --queues ' + config.DB + ' &')
+
     # Pause to give workers time to initialize before starting server
     time.sleep(2)
 
-#-------------------------------------------------------------------------------
-def restart_worker():
-    os.system('kill %1')
-    # Kill celery nodes with matching queue name. Leave others alone
-    os.system("ps aux | grep 'queues " + config.DB + \
-              "' | awk '{print $2}' | xargs kill -9")
-    start_worker()
 
 #-------------------------------------------------------------------------------
-def main(bravo_conf, argv):
-
-    is_test = False # default
-    os.environ['BRAVO_HTTP_HOST'] = 'http://' + get_local_ip()
-
-    bravo_conf += ["NGINX_HOST: %s:%s" %(
-        os.environ['BRAVO_HTTP_HOST'],
-        flask_app.config['PUB_PORT'])]
-
-    if socketio_app.server.async_mode == 'eventlet':
-        bravo_conf += ['SERVER_SOFTWARE: EVENTLET (%s)' % eventlet.__version__]
-    else:
-        bravo_conf += ['SERVER_SOFTWARE: %s' % socketio_app.server.async_mode]
-
+def main(argv):
     try:
-        opts, args = getopt.getopt(argv,"c:dt", ['celery=', 'debug', 'testmode'])
+        opts, args = getopt.getopt(argv,"cds", ['celerybeat', 'debug', 'sandbox'])
     except getopt.GetoptError:
         sys.exit(2)
 
+    celery_beat = None
+
     for opt, arg in opts:
-        if opt in('-c', '--celery'):
-            bravo_conf += ['CELERY: ENABLED (' + celery.__version__ +')' ]
-            if arg == 'restart':
-                restart_worker()
-            elif arg == 'start':
-                start_worker()
-                celery_cmd = arg
+        if opt in('-c', '--celerybeat'):
+            celery_beat = True
         elif opt in ('-d', '--debug'):
-            bravo_conf += ['DEBUG MODE: ENABLED']
             flask_app.config['DEBUG'] = True
-        elif opt in ('-t', '--testmode'):
-            is_test = True
+        elif opt in ('-s', '--sandbox'):
+            sandbox = True
 
-    if is_test:
-        bravo_conf += ['TEST MODE: ENABLED']
-        os.environ['BRAVO_TEST_MODE'] = 'True'
-    else:
-        bravo_conf += ['TEST MODE: DISABLED']
-        os.environ['BRAVO_TEST_MODE'] = 'False'
+    if is_test_server():
+        if sandbox == True:
+            config_test_server('sandbox')
+        else:
+            config_test_server('test_server')
 
-    set_test_mode(is_test)
+    start_worker(celery_beat)
 
     app.tasks.mod_environ.apply_async(
-        args=[{'BRAVO_TEST_MODE':os.environ['BRAVO_TEST_MODE'],
+        args=[{'BRAVO_SANDBOX_MODE':os.environ['BRAVO_SANDBOX_MODE'],
         'BRAVO_HTTP_HOST': os.environ['BRAVO_HTTP_HOST']}],
         queue=flask_app.config['DB']
     )
 
-    print bcolors.HEADER + '\n--------------------------------------' + bcolors.ENDC
-    print bcolors.BOLD + 'Bravo' + bcolors.ENDC
-    print json.dumps(bravo_conf, indent=0)[1:-2].replace('"', '')
-    print bcolors.HEADER + '--------------------------------------\n' + bcolors.ENDC
+    startup_msg()
 
     socketio_app.run(
         flask_app,
@@ -119,8 +126,4 @@ def main(bravo_conf, argv):
 
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":
-    bravo_conf = [
-        "FLASK: " + flask.__version__
-    ]
-
-    main(bravo_conf, sys.argv[1:])
+    main(sys.argv[1:])

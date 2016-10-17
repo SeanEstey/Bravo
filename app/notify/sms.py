@@ -1,8 +1,8 @@
 '''app.notify.sms'''
 
 import logging
+import json
 import os
-import re
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import current_app, render_template
@@ -85,9 +85,8 @@ def send(notific, twilio_conf):
             return False
         #current_app.config['SERVER_NAME'] = None
 
-    # Replace 'from_' with sandbox number
-    # Any 'to' is valid with twilio test credentials
-    if os.environ.get('BRAVO_TEST_MODE') == 'True':
+    # Prevent sending live msgs if in sandbox
+    if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
         from_ = twilio_conf['sms']['valid_from_number']
     else:
         from_ = twilio_conf['sms']['number']
@@ -98,10 +97,13 @@ def send(notific, twilio_conf):
         from_ = from_,
         status_callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST'))
 
-    logger.debug(vars(sms_))
+    logger.debug(utils.print_vars(sms_))
 
     if sms_.status != 'queued':
+        logger.info('sms to %s %s', notific['to'], sms_.status)
         logger.error('sms notific failed to send. %s', str(notific['_id']))
+    else:
+        logger.info('queued sms to %s', notific['to'])
 
     db['notifics'].update_one(
         {'_id': notific['_id']},

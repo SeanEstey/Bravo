@@ -5,7 +5,7 @@ import os
 from datetime import datetime,date,time
 
 from .. import utils
-from .. import db
+from .. import db, bcolors
 from . import voice, email, sms
 
 logger = logging.getLogger(__name__)
@@ -66,9 +66,19 @@ def fire(evnt_id, trig_id):
         'trig_id':trig_id,
         'tracking.status':'pending'})
 
+    trigger = db['triggers'].find_one({'_id':trig_id})
+
     errors = []
     status = ''
     fails = 0
+    count = ready_notifics.count()
+
+    logger.info('%s---------- firing %s trigger for "%s" event ----------%s',
+    bcolors.OKGREEN, trigger['type'], event['name'], bcolors.ENDC)
+
+    if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
+        logger.info('sandbox mode detected.')
+        logger.info('simulating voice/sms msgs, re-routing emails')
 
     for notific in ready_notifics:
         try:
@@ -92,7 +102,7 @@ def fire(evnt_id, trig_id):
             'errors': errors
     }})
 
-    logger.info('trigger_id %s fired. %s notifics sent, %s failed, %s errors',
-        str(trig_id), (ready_notifics.count()-fails), fails, len(errors))
+    logger.info('%s---------- queued: %s, failed: %s, errors: %s ----------%s',
+        bcolors.OKGREEN, count-fails-len(errors), fails, len(errors), bcolors.ENDC)
 
     return True

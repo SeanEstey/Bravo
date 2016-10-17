@@ -54,12 +54,9 @@ def monitor_triggers():
         for trigger in ready:
             event = events.get(trigger['evnt_id'])
 
-            logger.info('----- Firing %s trigger for "%s" event -----',
-                trigger['type'], event['name'])
+            logger.debug('trigger %s scheduled. firing.', str(trigger['_id']))
 
-            # IMPORTANT: leave this line commented on test server unless
-            # using test data
-            #triggers.fire(trigger['evnt_id'], trigger['_id'])
+            triggers.fire(trigger['evnt_id'], trigger['_id'])
 
         pending = db['triggers'].find({
             'status':'pending',

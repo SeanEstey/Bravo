@@ -2,6 +2,7 @@
 
 from celery import Celery
 import pymongo
+import os
 import logging
 import socket
 from flask import Flask
@@ -40,6 +41,15 @@ client = pymongo.MongoClient(
 
 db = client[config.DB]
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 #-------------------------------------------------------------------------------
 def create_celery_app(app=None):
@@ -96,47 +106,56 @@ def create_db():
 
     return client[app.config['DB']]
 
+
 #-------------------------------------------------------------------------------
-def set_test_mode(is_test):
-    '''Create sandbox environment by toggling test/live credentials for
-    underlying services.'''
+def is_test_server():
+    if os.environ.get('BRAVO_TEST_SERVER'):
+        return os.environ['BRAVO_TEST_SERVER']
 
+    # Don't know. Get IP and do reverse DNS lookup for domain
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("gmail.com",80))
+    ip = s.getsockname()[0]
+    s.close
+
+    os.environ['BRAVO_HTTP_HOST'] = 'http://' + ip
+
+    try:
+        domain = socket.gethostbyaddr(ip)
+    except Exception as e:
+        print 'no domain registered. using twilio test server SMS number'
+        os.environ['BRAVO_TEST_SERVER'] = 'True'
+        return True
+
+    if domain[0] == 'bravoweb.ca':
+        os.environ['BRAVO_TEST_SERVER'] = 'False'
+        return False
+
+    print 'unknown domain found. assuming test server'
+    os.environ['BRAVO_TEST_SERVER'] = 'True'
+    return True
+
+#-------------------------------------------------------------------------------
+def config_test_server(source):
+    # Swap out any sandbox credentials that may be present
     test_db = client['test']
-
     agencies = db.agencies.find()
-
     cred = test_db.credentials.find_one()
 
-    for agency in agencies:
-        if is_test:
-            source = 'test'
-        else:
-            source = agency['name']
+    if source == 'sandbox':
+        os.environ['BRAVO_SANDBOX_MODE'] = 'True'
+    else:
+        os.environ['BRAVO_SANDBOX_MODE'] = 'False'
 
+    for agency in agencies:
         db.agencies.update_one(
             {'name': agency['name']},
             {'$set':{
                 'twilio': cred['twilio'][source],
-                'mailgun': cred['mailgun'][source],
                 'etapestry': cred['etapestry'][source]
             }})
 
-    print 'looking up domain...'
-    # Choose either Deploy or Test Server SMS number
-
     # Set SmsUrl callback to point to correct server
     #https://www.twilio.com/docs/api/rest/incoming-phone-numbers#instance
-
-    try:
-        domain = socket.gethostbyaddr(os.environ['BRAVO_HTTP_HOST'])
-    except Exception as e:
-        print 'no domain registered. using twilio test server SMS number'
-
-        # no domain. must be test server.
-        # use twilio test server SMS number
-        return True
-
-    if domain[0] == 'bravoweb.ca':
-        print 'bravoweb.ca domain. assuming deploy server'
-        # live server. use twilio live server SMS number
-        return True
+    return True

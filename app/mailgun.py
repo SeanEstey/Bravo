@@ -20,7 +20,7 @@ def send(to, subject, body, conf, v=None):
     # If test mode enabled, re-route all emails to test address
     if os.environ.get('BRAVO_TEST_MODE') == 'True':
         logger.debug('test mode enabled. rerouting email')
-        to = 'estese@gmail.com'
+        to = conf['test_to']
 
     try:
         response = requests.post(

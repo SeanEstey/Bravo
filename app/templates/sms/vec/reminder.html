@@ -1,0 +1,19 @@
+    Hi, this is a friendly reminder that your Vecova 
+
+    {% if account['udf']['status'] == "Dropoff" %}
+				dropoff 
+    {% else %}
+        pickup 
+    {% endif %}
+
+    is {{ account['udf']['pickup_dt'] }}. 
+
+    {% if account['udf']['status'] == "Dropoff" %}
+        If you have any empties you can leave them out by 8am.
+    {% elif account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
+        Please have your empties out by 8am. Glass can be separated into cases.
+    {% elif account['udf']['status'] == "Cancelling" %}
+        A driver will be by to collect your bag buddy frame. Thanks for your past support.
+    {% endif %}
+
+		If you do not need a pickup, reply with 'NO PICKUP'.

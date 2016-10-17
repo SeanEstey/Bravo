@@ -73,7 +73,7 @@
 				<!-- phone -->
 				{% set vars = {'phone':'---'} %}
 				{% for notific in row['results'] %}
-					{% if notific['type'] == 'voice' %}
+					{% if notific['type'] == 'voice' or notific['type'] == 'sms' %}
 						{% do vars.update({'phone': notific.to}) %}
 					{% endif %}
 				{% endfor %}

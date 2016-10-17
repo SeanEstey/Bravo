@@ -8,7 +8,7 @@ from twilio import TwilioRestException, twiml
 from flask import current_app, render_template
 from pymongo.collection import ReturnDocument
 from .. import db
-from .. import utils
+from .. import utils, html
 logger = logging.getLogger(__name__)
 
 
@@ -107,7 +107,7 @@ def get_speak(notific, template_file):
         # function. No idea why...
         current_app.config['SERVER_NAME'] = os.environ.get('BRAVO_HTTP_HOST')
         try:
-            content = render_template(
+            speak = render_template(
                 template_file,
                 medium='voice',
                 account = utils.formatter(
@@ -125,14 +125,13 @@ def get_speak(notific, template_file):
             return 'Error'
         current_app.config['SERVER_NAME'] = None
 
-    content = content.replace("\n", "")
-    content = content.replace("  ", "")
+    speak = html.clean_whitespace(speak)
 
-    logger.debug('speak template: %s', content)
+    logger.debug('speak template: %s', speak)
 
-    db['notifics'].update_one({'_id':notific['_id']},{'$set':{'speak':content}})
+    db['notifics'].update_one({'_id':notific['_id']},{'$set':{'speak':speak}})
 
-    return content
+    return speak
 
 #-------------------------------------------------------------------------------
 def on_answer(args):

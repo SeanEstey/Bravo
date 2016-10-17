@@ -253,7 +253,6 @@ def fallback():
 #-------------------------------------------------------------------------------
 @notify.route('/sms/status', methods=['POST'])
 def sms_status():
-
     '''Callback for sending notific SMS
     If sending, determine if part of reminder or reply to original received msg
     '''
@@ -292,6 +291,14 @@ def request_send_socket():
     emit(name, data)
     return 'OK'
 '''
+
+
+
+
+
+
+
+
 #-------------------------------------------------------------------------------
 @notify.route('/secret_scheduler', methods=['GET'])
 def secret_scheduler():

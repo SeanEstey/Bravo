@@ -1,6 +1,7 @@
 '''app.etap'''
 
 import json
+import os
 import requests
 import logging
 from flask import current_app

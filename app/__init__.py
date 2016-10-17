@@ -3,6 +3,7 @@
 from celery import Celery
 import pymongo
 import logging
+import socket
 from flask import Flask
 from flask_login import LoginManager
 from flask_socketio import SocketIO, emit, send
@@ -97,8 +98,8 @@ def create_db():
 
 #-------------------------------------------------------------------------------
 def set_test_mode(is_test):
-    # Replaces Twilio config with Test config
-    # Replaces Mailgun config with Test config
+    '''Create sandbox environment by toggling test/live credentials for
+    underlying services.'''
 
     test_db = client['test']
 
@@ -116,5 +117,26 @@ def set_test_mode(is_test):
             {'name': agency['name']},
             {'$set':{
                 'twilio': cred['twilio'][source],
-                'mailgun': cred['mailgun'][source]
+                'mailgun': cred['mailgun'][source],
+                'etapestry': cred['etapestry'][source]
             }})
+
+    print 'looking up domain...'
+    # Choose either Deploy or Test Server SMS number
+
+    # Set SmsUrl callback to point to correct server
+    #https://www.twilio.com/docs/api/rest/incoming-phone-numbers#instance
+
+    try:
+        domain = socket.gethostbyaddr(os.environ['BRAVO_HTTP_HOST'])
+    except Exception as e:
+        print 'no domain registered. using twilio test server SMS number'
+
+        # no domain. must be test server.
+        # use twilio test server SMS number
+        return True
+
+    if domain[0] == 'bravoweb.ca':
+        print 'bravoweb.ca domain. assuming deploy server'
+        # live server. use twilio live server SMS number
+        return True

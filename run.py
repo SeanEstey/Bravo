@@ -60,6 +60,7 @@ def restart_worker():
 #-------------------------------------------------------------------------------
 def main(bravo_conf, argv):
 
+    is_test = False # default
     os.environ['BRAVO_HTTP_HOST'] = 'http://' + get_local_ip()
 
     bravo_conf += ["NGINX_HOST: %s:%s" %(

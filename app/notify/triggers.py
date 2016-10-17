@@ -64,7 +64,7 @@ def fire(evnt_id, trig_id):
 
     ready_notifics = db['notifics'].find({
         'trig_id':trig_id,
-        'status':'pending'})
+        'tracking.status':'pending'})
 
     errors = []
     status = ''

@@ -63,19 +63,22 @@ Start RabbitMQ daemon:
 `$ rabbitmqctl start_app`
 
 Run app:
-  python run.py
+
+`python run.py`
 
 Arguments
 
-Start celery worker:
-  `-c start`
-Restart celery worker:
-  `-c restart`
-  
-Run debug mode w/ Werkzeug server:
-  `-m debug`
-Run release mode w/ eventlet serveR:
-  `-m release`
+-Start with celerybeat:
+
+`-c, --celerybeat` 
+
+-Start in debug mode:
+
+`-d, --debug`
+
+-Start in sandbox mode:
+
+`-s, --sandbox`
 
 <br>
 ### Shutdown Instructions

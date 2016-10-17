@@ -473,15 +473,20 @@ function enableColumnSorting() {
 
 //------------------------------------------------------------------------------
 function formatColumns() {
+	// Default all columns to display ... for overflow
+	$('#notific-rows td').each(function() {
+			//$(this).css('white-space', 'nowrap');
+			//$(this).css('overflow', 'hidden');
+			//$(this).css('text-overflow', 'ellipsis');
+	});
+
 	// "Name" column
 	$('[name="name"]').each(function() {
-		$(this).css('width', '125px');
 	});
 
 	// "phone" column
 	$('[name="phone"]').each(function() {
 		// Make this cell wide enough
-		$(this).css('width', '135px');
 
 		if($(this).text() != '---') {
 				var to = $(this).text();
@@ -494,32 +499,13 @@ function formatColumns() {
 		}
 	});
 
-	// "Office Notes" column
-	$('tbody [name="office_notes"]').each(function() {
-			$(this).css('white-space', 'nowrap');
-			$(this).css('overflow', 'hidden');
-			$(this).css('text-overflow', 'ellipsis');
-	});
-
-	// "Status" column
-	$('tbody [name="status"]').each(function() {
-			$(this).css('white-space', 'nowrap');
-	});
-
 	// "Email" column
-	$('thead [name="email"]').css('width', '150px');
 	$('tbody [name="email"]').each(function() {
-			$(this).css('width', '150px');
-			$(this).css('white-space', 'nowrap');
-			$(this).css('overflow', 'hidden');
-			$(this).css('text-overflow', 'ellipsis');
 	});
 
 	// "Call Status" column
-	$('thead [name="phone_status"]').css('width', '110px');
 
 	$('tbody [name="phone_status"]').each(function() {
-			$(this).css('width', '110px');
 
 			var status = $(this).text();
 		
@@ -565,7 +551,6 @@ function formatColumns() {
 		});
 
 	// "Email Status" column
-	$('thead [name="email_status"]').css('width', '110px');
 
 	$('tbody [name="email_status"]').each(function() {
 		var status = $(this).text();
@@ -592,7 +577,6 @@ function formatColumns() {
 	});
 
 	$('[name="event_date"]').each(function() {
-		$(this).css('width', '145px');
 		var date = Date.parse($(this).html());
 		var string = date.toDateString();
 		$(this).html(string);

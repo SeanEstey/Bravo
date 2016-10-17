@@ -59,13 +59,13 @@
 					<th id='col7'><a class='hover' href='#'>Office Notes</a></th>
 					<th id='col8'><a class='hover' href='#'>Pickup Date</a></th>
 					<th id='col9'><a class='hover' href='#'>Email Status</a></th>
-					<th id='col10'><a class='hover' href='#'>Call Status</a></th>
+					<th id='col10'><a class='hover' href='#'>Voice/SMS Status</a></th>
           <th class='cancel-call-col' style='width:50px'></th>
         </tr>
       </thead>
 
       <!-- Notifications Rows -->
-      <tbody>
+      <tbody id='notific-rows'>
       {% for row in notific_list %}
         <tr id="{{row['_id']['$oid']}}">
 				<td name='name'>{{row['results'][0]['account'][0]['name']}}</td>
@@ -101,9 +101,9 @@
 				{% endfor %}
         <td name='email_status'>{{ status['email'] }}</td>
 
-				<!-- phone status -->
+				<!-- voice/sms status -->
         {% do status.update({'phone':'---'}) %}
-				{% for notific in row['results'] if notific['type'] == 'voice' %}
+				{% for notific in row['results'] if notific['type'] == 'voice' or notific['type'] == 'sms' %}
             {% do status.update({'phone': notific['tracking']['status']}) %}
 				{% endfor %}
         <td name='phone_status'>{{ status['phone'] }}</td>

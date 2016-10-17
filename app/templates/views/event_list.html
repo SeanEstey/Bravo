@@ -31,22 +31,13 @@
     </div>
     <table class='table table-hover table-colored'>
       <thead>
-				<tr>
-					<th></th>
-					<th></th>
-					<th style='font-weight:normal; text-align:center' colspan='3'>---------- Email Notifications ----------</th>
-					<th style='font-weight:normal; text-align:center' colspan='3'>---------- Voice/SMS Notifications ----------</th>
-					<th></th>
-				</tr>
         <tr>
           <th>Name</th>
 					<th>Date</th>
-					<th>Scheduled</th>
+					<th>Email Notifications</th>
 					<th>Count</th>
-          <th>Status</th>
-					<th>Scheduled</th>
+					<th>Voice/SMS Notifications</th>
 					<th>Count</th>
-          <th>Status</th>
           <th style='width:50px'></th>
         </tr>
       </thead>
@@ -65,17 +56,16 @@
 						{% endif %}
 					</td>
           {% for trigger in event.triggers %}
-            <td>{{trigger.fire_dt.strftime("%b %d, %I:%M %p")}}</td>
-					  <td>{{trigger.count}}</td>
-            <td name='event-status'>
               {% if trigger.status == "fired" %}
-                <p style='color:green;'>
+                <td><font color='green'>Sent</font> @ {{
+									trigger.fire_dt.strftime("%b %d, %I:%M %p")
+								}}</td>
               {% elif event.status == "pending" %}
-                <p style='color:blue;'>
+                <td><font color='blue'>Pending</font> @ {{
+									trigger.fire_dt.strftime("%b %d, %I:%M %p")
+								}}</td>
               {% endif %}
-              {{trigger.status}}
-                </p>
-            </td>
+						<td>{{trigger.count}}</td>
           {% endfor %}
 					<td>
 						<button 

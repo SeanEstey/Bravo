@@ -54,8 +54,17 @@ a.hover:visited {
   color: #365766;
 }
 
+
+/* Adjust container only if user has wide screen */
+@media (min-width: 1200px) {
+    .container{
+        width: 1300px;
+    }
+}
+
 /* Outer frame for tables in show_jobs / show_calls views */
 .data-container {
+	max-width:1300px;
   border:1px solid #bbbbbb; 
   border-radius:7px; 
   -webkit-border-radius:7px 7px 0px 0px;
@@ -63,6 +72,7 @@ a.hover:visited {
 }
 
 .navbar-div {
+	max-width:1300px;
   -webkit-border-radius:7px 7px 0px 0px; 
   background-color: white; 
   border-bottom: solid 1px #bbbbbb; 
@@ -329,6 +339,7 @@ textarea.special-msg {
 }
 
 .table.table-colored {
+	max-width: 1300px;
   /*table-layout: fixed;*/
   /*word-wrap: break-word;*/
   word-wrap: normal;
@@ -341,6 +352,9 @@ textarea.special-msg {
 }
 
 .table.table-colored td {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
   max-width:150px;
   padding:12px 12px 12px 12px;
   /*color: #2b547e;*/

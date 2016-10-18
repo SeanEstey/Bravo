@@ -92,6 +92,7 @@ def main(argv):
     except getopt.GetoptError:
         sys.exit(2)
 
+    sandbox = None
     celery_beat = None
 
     for opt, arg in opts:

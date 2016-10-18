@@ -149,7 +149,7 @@
           $accounts[] = utf8_converter($account);
       }
 
-      info_log(count($accounts) . ' accounts retrieved.');
+      //info_log((string)count($accounts) . ' accounts retrieved.');
 
       echo json_encode($accounts);
       break;

@@ -44,11 +44,12 @@ def call(func_name, keys, data, silence_exceptions=False):
       -Raises requests.RequestException on POST error (if not silenced)
     '''
 
-    #logger.debug('etap.call data: %s', str(data))
+    url = '%s/php/views.php' % os.environ['BRAVO_HTTP_HOST']
+    logger.info('php url: %s', url)
 
     try:
         response = requests.post(
-            config.ETAP_API_URL,
+            url,
             data=json.dumps({
               "func": func_name,
               "etapestry": keys,

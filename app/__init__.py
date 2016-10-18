@@ -153,7 +153,7 @@ def config_test_server(source):
             {'name': agency['name']},
             {'$set':{
                 'twilio': cred['twilio'][source],
-                'etapestry': cred['etapestry'][source]
+                'etapestry': cred['etapestry']['test_server']
             }})
 
     # Set SmsUrl callback to point to correct server

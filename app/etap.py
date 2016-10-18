@@ -44,16 +44,19 @@ def call(func_name, keys, data, silence_exceptions=False):
       -Raises requests.RequestException on POST error (if not silenced)
     '''
 
-    url = '%s/php/views.php' % os.environ['BRAVO_HTTP_HOST']
-    logger.info('php url: %s', url)
+    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
+        sandbox = True
+    else:
+        sandbox = False
 
     try:
         response = requests.post(
-            url,
+            '%s/php/views.php' % os.environ['BRAVO_HTTP_HOST'],
             data=json.dumps({
-              "func": func_name,
-              "etapestry": keys,
-              "data": data
+              'func': func_name,
+              'etapestry': keys,
+              'data': data,
+              'sandbox_mode': sandbox
             })
         )
     except requests.RequestException as e:

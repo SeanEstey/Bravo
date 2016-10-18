@@ -2,6 +2,7 @@
 
 require("./lib/nusoap.php");
 
+
 //-----------------------------------------------------------------------
 function connect($db) {
   if($db->connect_errno > 0){
@@ -241,7 +242,7 @@ function get_upload_status($db, $request_id, $from_row) {
     $results[] = $array;
   }
 
-  echo json_encode($results);
+  return $results;
 }
 
 //-----------------------------------------------------------------------
@@ -293,6 +294,11 @@ function add_note($nsc, $note) {
 	/* $note format: {'id': account_number, 'Note': note, 'Date': date} */
 	/* Returns response code 200 on success, 400 on failure */
 
+  global $sandbox_mode;
+  if($sandbox_mode == true) {
+    return 'sandbox mode. writes are protected';
+  }
+
   $account = $nsc->call("getAccountById", array($note["id"]));
   checkForError($nsc);
 
@@ -308,36 +314,42 @@ function add_note($nsc, $note) {
   if(is_array($status)) {
     $status = $status["faultstring"];
     http_response_code(400);
-    echo 'add_note failed: ' . $status;
+    return 'add_note failed: ' . $status;
   }
   else {
     info_log('Note added for account ' . $note['id']);
-    http_response_code(200);
-    echo $status;
+    return $status;
   }
 }
 
 //-----------------------------------------------------------------------
 function update_note($nsc, $data) {
+  global $sandbox_mode;
+  if($sandbox_mode == true) {
+    return 'sandbox mode. writes are protected';
+  }
+
   $note = $nsc->call('getNote', array($data['ReferenceNumber']));
   $note['note'] = $data['Note'];
   $status = $nsc->call('updateNote', array($note, false));
   
   if(is_array($status)) {
     $status = $status["faultstring"];
-    http_response_code(400);
-    echo 'update_note failed';
+    return 'update_note_failed. ' . $status;
   }
   else {
     info_log('Note updated for account ' . $data['id']);
-    http_response_code(200);
-    echo $status;
+    return $status;
   }
 }
 
 //-----------------------------------------------------------------------
 function add_accounts($db, $nsc, $submissions) {
   global $agency;
+  global $sandbox_mode;
+  if($sandbox_mode == true) {
+    return 'sandbox mode. writes are protected';
+  }
 
   $num_errors = 0;
   
@@ -416,6 +428,8 @@ function add_accounts($db, $nsc, $submissions) {
   }
 
   info_log((string)count($submissions) . ' accounts added/updated. ' . (string)$num_errors . ' errors.');
+
+  return 'OK';
 }
 
 //-----------------------------------------------------------------------
@@ -425,6 +439,11 @@ function modify_account($nsc, $id, $udf, $persona) {
 	 * format.
 	 * $persona is associative array
 	 */
+
+  global $sandbox_mode;
+
+  if($sandbox_mode == true)
+    return 'Success';
   
   $account = $nsc->call("getAccountById", [$id]);
 
@@ -470,6 +489,10 @@ function no_pickup($nsc, $account_id, $date, $next_pickup) {
 	 * @next_pickup: dd/mm/yyyy string
 	 * Returns: JSON string
 	 */
+
+  global $sandbox_mode;
+  if($sandbox_mode == true)
+    return json_encode(["Sandbox mode. No changes made"]);
 
   $account = $nsc->call("getAccountById", array($account_id));
   $office_notes = "";
@@ -591,8 +614,7 @@ function check_duplicates($nsc, $persona_fields) {
   $response = $nsc->call("getDuplicateAccounts", array($persona_fields));
   
   if(checkForError($nsc)) {
-    echo $nsc->faultcode . ': ' . $nsc->faultstring;
-    return false;
+    return $nsc->faultcode . ': ' . $nsc->faultstring;
   }
 
   if(!empty($response)) {
@@ -608,7 +630,7 @@ function check_duplicates($nsc, $persona_fields) {
     }
 
     info_log($duplicates);
-    echo $duplicates;
+    return $duplicates;
   }
 }
 
@@ -652,13 +674,12 @@ function make_booking($nsc, $account_num, $udf, $type) {
 
   if(checkForError($nsc)) {
     http_response_code(400);  
-    echo $nsc->faultcode . ': ' . $nsc->faultstring;
-    return;
+    return $nsc->faultcode . ': ' . $nsc->faultstring;
   }
 
   http_response_code(200);  
   info_log('Booked Account #' . $account_num . ' on Block ' . $udf['Block']);
-  echo 'Booked successfully!';
+  return 'Booked successfully!';
 }
 
 //-----------------------------------------------------------------------

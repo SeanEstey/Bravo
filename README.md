@@ -10,11 +10,8 @@ cd Bravo
 
 `python setup.py`
 
-Set proper webroot permissions for www-data user:
-```
-chown -R root:www-data /var/www/bravo
-chmod -R 660 /var/www/bravo
-```
+May have to add execution permissions to log files created in /var/www/bravo/logs for PHP script.
+
 
 ###### Mongo Logins
 ```

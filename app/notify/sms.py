@@ -37,7 +37,7 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
         'to': to,
         'type': 'sms',
         'tracking': {
-            'status': None,
+            'status': 'pending',
             'sid': None,
         }
     }).inserted_id

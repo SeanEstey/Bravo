@@ -419,7 +419,7 @@ function add_accounts($db, $nsc, $submissions) {
 }
 
 //-----------------------------------------------------------------------
-function modify_account($db, $nsc, $id, $udf, $persona) {
+function modify_account($nsc, $id, $udf, $persona) {
 	/* $udf is associative array ie. ["Status"=>"Active", ...], not 
 	 * DefinedValue object. The call to apply_udf() converts to DefinedValue 
 	 * format.

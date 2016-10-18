@@ -8,7 +8,7 @@
   
 	require('misc.php');
   require('bravo.php');
-  require 'vendor/autoload.php';
+  //require 'vendor/autoload.php';
 
   if(!isset($_POST['data'])) {
     $arr = json_decode(file_get_contents("php://input"));
@@ -28,7 +28,7 @@
 
 	try {
 		$m = new MongoDB\Driver\Manager('mongodb://localhost:27017');
-		$db = new MongoDB\Collection($m, "bravo.entries");
+		//$db = new MongoDB\Collection($m, "bravo.entries");
 	}
 	catch (Exception $e) {
 		error_log(
@@ -167,7 +167,7 @@
       break;
 
     case 'modify_account':
-      $status = modify_account($db, $nsc, $data['id'], $data['udf'], $data['persona']);
+      $status = modify_account($nsc, $data['id'], $data['udf'], $data['persona']);
       
       if($status != 'Success')
         http_response_code(400);

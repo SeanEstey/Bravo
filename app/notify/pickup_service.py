@@ -370,8 +370,9 @@ def on_sms_reply(notific):
             conf['twilio']['api']['sid'],
             conf['twilio']['api']['auth_id'])
     except twilio.TwilioRestException as e:
-        logger.error('Twilio REST error. %s', str(e), exc_info=True)
-        pass
+        e_msg = 'twilio REST error. %s' % str(e)
+        logger.error(e_msg, exc_info=True)
+        return e_msg
 
     acct = db['accounts'].find_one(
         {'_id': notific['acct_id']})
@@ -387,13 +388,19 @@ def on_sms_reply(notific):
             notific = notific
         )
     except Exception as e:
-        logger.error('Error rendering SMS body. %s', str(e))
-        return False
+        e_msg = 'error rendering SMS body. %s' % str(e)
+        logger.error(e_msg, exc_info=True)
+        return e_msg
 
-    client.messages.create(
-        body = html.clean_whitespace(body),
-        to = notific['to'],
-        from_ = conf['twilio']['sms']['number'],
-        status_callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST'))
+    try:
+        client.messages.create(
+            body = html.clean_whitespace(body),
+            to = notific['to'],
+            from_ = conf['twilio']['sms']['number'],
+            status_callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST'))
+    except Exception as e:
+        e_msg = 'error sending SMS to %s. %s' % (notific['to'], str(e))
+        logger.error(e_msg, exc_info=True)
+        return e_msg
 
     return 'OK'

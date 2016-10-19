@@ -59,7 +59,7 @@ def send(notific, twilio_conf):
             twilio_conf['api']['auth_id'])
     except twilio.TwilioRestException as e:
         logger.error('SMS not sent. Error getting Twilio REST client. %s', str(e), exc_info=True)
-        pass
+        return 'failed'
 
     acct = db['accounts'].find_one(
         {'_id': notific['acct_id']})
@@ -79,7 +79,7 @@ def send(notific, twilio_conf):
             )
         except Exception as e:
             logger.error('Error rendering SMS body. %s', str(e))
-            return False
+            return 'failed'
 
     # Prevent sending live msgs if in sandbox
     if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
@@ -123,10 +123,24 @@ def send(notific, twilio_conf):
     return sms_.status
 
 #-------------------------------------------------------------------------------
+def is_reply():
+    notific = db['notifics'].find_one({
+          'to': request.form['From'],
+          'type': 'sms',
+          'tracking.sent_dt': utils.naive_to_local(
+            datetime.combine(date.today(),time()))})
+
+    if notific:
+        return True
+    else:
+        return False
+
+#-------------------------------------------------------------------------------
 def on_reply():
     '''Received reply from user. Invoke handler function.
     Working under request context
-    Returns: twilio.twiml.Response
+    Returns:
+        'OK' on success or error string on fail
     '''
 
     logger.debug('sms.on_reply: %s', request.form.to_dict())
@@ -147,10 +161,6 @@ def on_reply():
         }},
         return_document=ReturnDocument.AFTER)
 
-    if not notific:
-        logger.info('sms reply not matched to notific')
-        return False
-
     # Import assigned handler module and invoke function
     # to get voice response
 
@@ -158,7 +168,7 @@ def on_reply():
 
     handler_func = getattr(module, notific['on_reply']['func'])
 
-    return handler_func(notific)
+    response = handler_func(notific)
 
 #-------------------------------------------------------------------------------
 def on_status():

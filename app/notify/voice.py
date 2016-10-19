@@ -58,8 +58,8 @@ def call(notific, twilio_conf, voice_conf):
     try:
         client = TwilioRestClient(twilio_conf['api']['sid'], twilio_conf['api']['auth_id'])
     except TwilioRestException as e:
-        logger.error('Call not made. Could not get Twilio client. %s', str(e))
-        pass
+        logger.error('twilio REST error. %s', str(e), exc_info=True)
+        return 'failed'
 
     # Protect against sending real calls if in sandbox
     if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
@@ -67,18 +67,22 @@ def call(notific, twilio_conf, voice_conf):
     else:
         from_ = twilio_conf['voice']['number']
 
-    call = client.calls.create(
-        from_ = from_,
-        to = notific['to'],
-        url ='%s/notify/voice/play/answer.xml' % os.environ.get('BRAVO_HTTP_HOST'),
-        method = 'POST',
-        if_machine = 'Continue',
-        fallback_url = '%s/notify/voice/fallback' % os.environ.get('BRAVO_HTTP_HOST'),
-        fallback_method = 'POST',
-        status_callback = '%s/notify/voice/complete' % os.environ.get('BRAVO_HTTP_HOST'),
-        status_events = ["completed"],
-        status_method = 'POST'
-    )
+    try:
+        call = client.calls.create(
+            from_ = from_,
+            to = notific['to'],
+            url ='%s/notify/voice/play/answer.xml' % os.environ.get('BRAVO_HTTP_HOST'),
+            method = 'POST',
+            if_machine = 'Continue',
+            fallback_url = '%s/notify/voice/fallback' % os.environ.get('BRAVO_HTTP_HOST'),
+            fallback_method = 'POST',
+            status_callback = '%s/notify/voice/complete' % os.environ.get('BRAVO_HTTP_HOST'),
+            status_events = ["completed"],
+            status_method = 'POST'
+        )
+    except Exception as e:
+        logger.error('call to %s failed. %s', notific['to'], str(e), exc_info=True)
+        return 'failed'
 
     logger.debug(utils.print_vars(call))
 

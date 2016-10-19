@@ -220,16 +220,13 @@ def sms_status():
 #-------------------------------------------------------------------------------
 @notify.route('/sms/receive', methods=['POST'])
 def sms_received():
-    '''Shared endpoint for incoming SMS. Route to appropriate handlers.
+    '''Shared endpoint for incoming SMS.
     '''
 
-    status = sms.on_reply()
-
-    if status:
-        return str(status)
+    if sms.is_reply():
+        return sms.on_reply()
     else:
-        # BPU Pickup Date Request
-        # TODO: add code
+        #return sms_assistant.on_cmd()
         return 'OK'
 
 #-------------------------------------------------------------------------------

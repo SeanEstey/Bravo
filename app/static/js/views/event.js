@@ -473,27 +473,15 @@ function enableColumnSorting() {
 
 //------------------------------------------------------------------------------
 function formatColumns() {
-	// Default all columns to display ... for overflow
-	$('#notific-rows td').each(function() {
-			//$(this).css('white-space', 'nowrap');
-			//$(this).css('overflow', 'hidden');
-			//$(this).css('text-overflow', 'ellipsis');
-	});
-
-	// "Name" column
 	$('[name="name"]').each(function() {
 	});
 
-	// "phone" column
 	$('[name="phone"]').each(function() {
-		// Make this cell wide enough
-
 		if($(this).text() != '---') {
+        // convert intl format to (###) ###-####
 				var to = $(this).text();
-				// Strip parentheses, dashes and spaces
-				to = to.replace(/[\s\)\(-]/g, '');
 				// Format: (780) 123-4567
-				to = '('+to.substring(0,3)+') '+to.substring(3,6)+'-'+to.substring(6,11);
+				to = '('+to.substring(2,5)+') '+to.substring(5,8)+'-'+to.substring(8,12);
 
 				$(this).text(to);
 		}

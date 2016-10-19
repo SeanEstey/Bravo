@@ -16,30 +16,12 @@ logger = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 def call(func_name, keys, data, silence_exceptions=False):
     '''Call PHP eTapestry script
-    @func_name:
-        'get_num_active_processes'
-        'add_accounts'
-        'add_note'
-        'update_note'
-        'process_route_entries'
-        'get_account'
-        'get_accounts'
-        'find_account_by_phone'
-        'modify_account'
-        'get_gift_histories'
-        'get_upload_status'
-        'get_block_size'
-        'get_scheduled_block_size'
-        'get_next_pickup'
-        'check_duplicates'
-        'no_pickup'
-        'make_booking'
-        'get_query_accounts'
-    @keys: dict with etap keys {'agency','endpoint','user','pw'}
+    @func_name: name of view function
+    @keys: etap auth
     @silence_exceptions: if True, returns False on exception, otherwise
     re-raises to caller method
     Returns:
-      -Data in native python structures on success
+      -response as python structures
     Exceptions:
       -Raises requests.RequestException on POST error (if not silenced)
     '''
@@ -66,8 +48,6 @@ def call(func_name, keys, data, silence_exceptions=False):
             return False
         else:
             raise
-
-    #logger.debug('etap.call response.text: %s', response.text)
 
     try:
         data = json.loads(response.text)

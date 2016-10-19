@@ -1,0 +1,19 @@
+{% extends "email/vec/base.html" %}
+  {% block content %}  
+    <tr>
+      <td>
+        Hi {{ account['name'] }},
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Thanks for letting us know you don't need a pickup. 
+        This helps us to be more efficient with our resources.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Your next pickup date will be on <b>{{ account['udf'].get('future_pickup_dt') }}</b>
+      </td>
+    </tr>
+  {% endblock %}

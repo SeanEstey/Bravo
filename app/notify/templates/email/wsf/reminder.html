@@ -3,46 +3,52 @@
     <tr>
       <td>
         <p>
-          Hi {{ data['account']['name'] }},
+          Hi {{ account['name'] }},
         </p>
      
-        {% if data['status'] == "Cancelling" %}
+        {% if account['udf']['status'] == "Cancelling" %}
           <p>
             This is a reminder that a driver will be by on 
-            <b>{{ data['event_date'] }}</b>
+            <b>{{ account['udf']['pickup_dt'] }}</b>
             to collect your Bag Buddy stand.
           </p>
-        {% elif data['status'] == "Active" or data['status'] == "Call-in" or
-        data['status'] == "One-time" %}
+        {% elif account['udf']['status'] == "Active" or account['udf']['status'] == "Call-in" or
+        account['udf']['status'] == "One-time" %}
           <p>
             Your upcoming Empties to Winn pickup is 
-            <b>{{ data['event_date'] }}</b>.
+            <b>{{ account['udf']['pickup_dt'] }}</b>.
           </p>
           <p>
-            Your green bags can be placed at your front entrance, visible from 
+            Your bags can be placed at your front entrance, visible from 
             the street, by 8am. 
             Please keep each bag under 30lbs.  
             Extra glass can be left in cases to the side.
           </p>
-        {% elif data['status'] == "Dropoff"%}
+        {% elif account['udf']['status'] == "Dropoff"%}
           <p>
             This is a reminder that a driver will be by on 
-            <b>{{ data['event_date'] }}</b>
+            <b>{{ account['udf']['pickup_dt'] }}</b>
             to dropoff your Bag Buddy and collection bags. 
             You do not need to be home. 
-            If you have empties, you can label them <b>'WSA'</b> and place them 
+            If you have empties, you can label them <b>'WSF'</b> and place them 
             at your front entrance by 8am.
           </p>
         {% endif %}
       </td>
     </tr>
+    {% if account['udf']['status'] != "Dropoff" and account['udf']['status'] != "Cancelling" %}
     <tr>
       <td style='text-align:center;'>
         <a style="color:#ffffff!important; display:inline-block; font-weight:500; font-size:16px; 
         line-height:42px; font-family:'Helvetica',Arial,sans-serif; width:auto; white-space:nowrap; min-height:42px; 
         margin-top:12px; margin-bottom:12px; padding-top:0px; padding-bottom:0px; padding-left:22px; padding-right:22px;
         text-decoration:none; text-align:center; border:0; border-radius:3px; vertical-align:top; background-color:#337ab7!important" 
-        href= {{ data['cancel_pickup_url'] }} >Click here to cancel your pickup</a>
+        href="{{http_host}}{{url_for(
+            'notify.no_pickup',
+             acct_id=account['_id']['$oid'],
+             evnt_id=evnt_id
+          )}}">Click here to cancel your pickup</a>
       </td>
     </tr>
+    {% endif %}
   {% endblock %}

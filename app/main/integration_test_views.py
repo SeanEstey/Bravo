@@ -24,7 +24,7 @@ def test_non_participants():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/test_reminder_scheduler', methods=['GET'])
+@main.route('/test_reminder_r1z', methods=['GET'])
 @login_required
 def test_reminder_scheduler():
     test_block = 'R1Z'

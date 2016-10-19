@@ -77,6 +77,22 @@ def to_title_case(s):
   return s.title()
 
 #-------------------------------------------------------------------------------
+def to_intl_format(to):
+    if not to:
+        return None
+
+    no_symbols = re.sub(r'\s|\-|\(|\)|[a-zA-Z]', '', to)
+
+    if no_symbols[0:2] == '+1':
+        return no_symbols
+
+    if len(no_symbols) == 10:
+        return '+1' + no_symbols
+
+    if no_symbols[0] == '1':
+        return '+' + no_symbols
+
+#-------------------------------------------------------------------------------
 def print_vars(obj, depth=0, l="    "):
 
     #fall back to repr

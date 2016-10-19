@@ -79,13 +79,6 @@ def process_receipts():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/sms/pickup/status', methods=['POST'])
-def on_pickup_sms_status():
-    # queued, failed, sent, delivered, or undelivered.
-    sms_assistant.on_status(request.form.to_dict())
-    return 'OK'
-
-#-------------------------------------------------------------------------------
 @main.route('/email/send', methods=['POST'])
 def _send_email():
     '''Can be collection receipt from gsheets.process_receipts, reminder email,
@@ -259,9 +252,4 @@ def rec_signup():
 
     return 'OK'
 
-@main.route('/secret_run_non_par', methods=['GET'])
-def run_non_par():
-    from .. import tasks
-    tasks.find_non_participants.apply_async(queue=current_app.config['DB'])
-    return 'OK'
 

@@ -1,4 +1,4 @@
-{% if and notific['response']['call.digit == 2 %}
+{% if digit == 2 %}
     Your pickup has been unscheduled. Your next pickup will be
     {{ account['udf'].future_pickup_dt }}.
     Thank you.
@@ -21,14 +21,11 @@
         A driver will be by to collect your bag buddy frame. Thanks for your past support.
     {% endif %}
 
-    {% if notific['type'] == 'voice' and notific['tracking']['answered_by'] == "human" %}
+    {% if type == 'voice' and answered_by == 'human' %}
         To repeat this message, press 1.
     {% endif %}
 
-    {% if notific['type'] == 'voice' and 
-			    notific['tracking']['answered_by'] == "human" and 
-					account['udf']['status'] == "Active" 
-		%}
+    {% if answered_by == 'human' and account['udf']['status'] == "Active" %}
         If you do not need a pickup, press 2.
     {% endif %}
 {% endif %}

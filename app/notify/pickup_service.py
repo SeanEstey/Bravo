@@ -3,7 +3,10 @@
 import logging
 import os
 import json
+from twilio.rest import TwilioRestClient
+from twilio import TwilioRestException, twiml
 from flask import current_app, render_template
+from flask_login import current_user
 from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from bson.objectid import ObjectId as oid
@@ -101,7 +104,7 @@ def create_reminder_event(agency, block, _date):
                 'template': 'sms/%s/reminder.html' % agency}
 
             on_reply = {
-                'module': 'pickup_service',
+                'module': 'app.notify.pickup_service',
                 'func': 'on_sms_reply'}
 
             sms.add(
@@ -116,7 +119,7 @@ def create_reminder_event(agency, block, _date):
                 'template': 'voice/%s/reminder.html' % agency}
 
             on_interact = {
-                'module': 'pickup_service',
+                'module': 'app.notify.pickup_service',
                 'func': 'on_call_interact'}
 
             voice.add(
@@ -356,9 +359,41 @@ def on_call_interact(notific, args):
 
 
 #-------------------------------------------------------------------------------
-def on_sms_reply(notific, args):
-    # TODO: import twilio module
+def on_sms_reply(notific):
 
-    response = twilio.twiml.Response()
-    return True
+    logger.info('sms reply handler')
+    from .. import html
 
+    account = db['accounts'].find_one({'_id':notific['acct_id']})
+    conf = db['agencies'].find_one({'name': account['agency']})
+
+    try:
+        client = TwilioRestClient(
+            conf['twilio']['api']['sid'],
+            conf['twilio']['api']['auth_id'])
+    except twilio.TwilioRestException as e:
+        logger.error('Twilio REST error. %s', str(e), exc_info=True)
+        pass
+
+    acct = db['accounts'].find_one(
+        {'_id': notific['acct_id']})
+
+    try:
+        body = render_template(
+            'sms/%s/reminder.html' % acct['agency'],
+            account = utils.formatter(
+                acct,
+                to_local_time=True,
+                to_strftime="%A, %B %d",
+                bson_to_json=True),
+            notific = notific
+        )
+    except Exception as e:
+        logger.error('Error rendering SMS body. %s', str(e))
+        return False
+
+    client.messages.create(
+        body = html.clean_whitespace(body),
+        to = notific['to'],
+        from_ = conf['twilio']['sms']['number'],
+        status_callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST'))

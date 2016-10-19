@@ -5,7 +5,8 @@ import json
 import os
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
-from flask import current_app, render_template
+from flask import current_app, render_template, request
+from datetime import datetime, date, time
 from .. import db
 from .. import utils, html
 logger = logging.getLogger(__name__)
@@ -27,6 +28,8 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
         'func':'handler_func'}
     '''
 
+
+
     return db['notifics'].insert_one({
         'evnt_id': evnt_id,
         'trig_id': trig_id,
@@ -34,7 +37,7 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
         'event_dt': event_dt,
         'on_send': on_send,
         'on_reply': on_reply,
-        'to': to,
+        'to': utils.to_intl_format(to),
         'type': 'sms',
         'tracking': {
             'status': 'pending',
@@ -42,16 +45,12 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
         }
     }).inserted_id
 
-
 #-------------------------------------------------------------------------------
 def send(notific, twilio_conf):
     '''Send an SMS message to recipient
     @agency: mongo document wtih twilio auth info and sms number
     Output: Twilio response
     '''
-
-    if notific['to'][0:2] != "+1":
-        notific['to'] = "+1" + notific['to']
 
     try:
         client = TwilioRestClient(
@@ -65,10 +64,8 @@ def send(notific, twilio_conf):
         {'_id': notific['acct_id']})
 
     # Running via celery worker outside request context
-    # Must create one for render_template() and set SERVER_NAME for
-    # url_for() to generate absolute URLs
+    # Must create one for render_template()
     with current_app.test_request_context():
-        #current_app.config['SERVER_NAME'] = os.environ.get('BRAVO_HTTP_HOST')
         try:
             body = render_template(
                 'sms/%s/reminder.html' % acct['agency'],
@@ -81,9 +78,7 @@ def send(notific, twilio_conf):
             )
         except Exception as e:
             logger.error('Error rendering SMS body. %s', str(e))
-            #current_app.config['SERVER_NAME'] = None
             return False
-        #current_app.config['SERVER_NAME'] = None
 
     # Prevent sending live msgs if in sandbox
     if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
@@ -117,25 +112,53 @@ def send(notific, twilio_conf):
     return sms_.status
 
 #-------------------------------------------------------------------------------
-def on_reply(notific, args):
-    '''User has replied to text notific.
+def on_reply():
+    '''Received reply from user. Invoke handler function.
     Working under request context
-    Invoke handler function to get response.
     Returns: twilio.twiml.Response
     '''
 
-    logger.debug('sms.on_reply: %s', args)
+    logger.info('sms.on_reply: %s', request.form.to_dict())
+
+    # It's a notific reply if from same number as a notific
+    # was sent on same date
+
+    notific = db['notifics'].find_one({
+        'to': request.form['From'],
+        'type': 'sms',
+        'tracking.sent_dt':
+        utils.naive_to_local(datetime.combine(date.today(),time()))})
+
+    if notific:
+        logger.info(utils.formatter(notific))
+    else:
+        logger.info('reply sms doesnt match any notific sms from today')
+        return 'not found'
+
 
     # Import assigned handler module and invoke function
     # to get voice response
 
-    module = __import__(notific['on_reply']['module'])
-    handler_func = getattr(module, notific['on_interact']['func'])
+    module = __import__(notific['on_reply']['module'], fromlist='.' )
 
-    response = handler_func(notific, args)
-    return response
+    logger.info(utils.print_vars(module))
+
+    handler_func = getattr(module, notific['on_reply']['func'])
+
+    return handler_func(notific)
 
 #-------------------------------------------------------------------------------
-def on_status(args):
-    # do updates
+def on_status():
+    '''Callback for sending notific SMS
+    '''
+
+    logger.info('sms.on_status: %s', request.form.to_dict())
+
+    db['notifics'].find_one_and_update({
+        'tracking.sid': request.form['SmsSid']}, {
+        '$set':{
+            'tracking.status': request.form['SmsStatus'],
+            'tracking.sent_dt':
+            utils.naive_to_local(datetime.combine(date.today(), time()))}
+        })
     return True

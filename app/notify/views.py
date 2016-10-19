@@ -138,7 +138,6 @@ def edit_msg(acct_id):
 @notify.route('/<trig_id>/fire', methods=['POST'])
 @login_required
 def fire_trigger(trig_id):
-    import config
     from .. import tasks
 
     trigger = db['triggers'].find_one({'_id':ObjectId(trig_id)})
@@ -195,139 +194,64 @@ def record_complete_xml():
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/play/answer.xml',methods=['POST'])
-def get_answer_xml():
-    '''Notification call is answered.
-    Request: Twilio POST
-    Response: twilio.twiml.Response with voice content
-    '''
-
-    try:
-        twiml = voice.on_answer(request.form.to_dict())
-    except Exception as e:
-        logger.error('/voice/play/answer.xml: %s', str(e))
-        return Response(response="Error", status=500, mimetype='text/xml')
-
-    return Response(response=str(twiml), mimetype='text/xml')
+def get_call_answer_xml():
+    return Response(str(voice.on_answer()), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
-@notify.route('/voice/play/interact.xml', methods=['GET','POST'])
-def get_interact_xml():
-    '''User interacted with reminder call. Send voice response.
-    Request: Twilio POST
-    Response: twilio.twiml.Response
-    '''
-
-    try:
-        twiml = voice.on_interact(request.form.to_dict())
-    except Exception as e:
-        logger.error('/voice/play/interact.xml: %s', str(e))
-        return Response(response="Error", status=500, mimetype='text/xml')
-
-    return Response(response=str(twiml), mimetype='text/xml')
+@notify.route('/voice/play/interact.xml', methods=['POST'])
+def get_call_interact_xml():
+    return Response(str(voice.on_interact()), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
-@notify.route('/voice/complete',methods=['GET', 'POST'])
-def complete():
-    '''Twilio callback
-    '''
-
-    voice.on_complete(request.form.to_dict())
-    return 'OK'
+@notify.route('/voice/complete', methods=['POST'])
+def call_complete():
+    return voice.on_complete()
 
 #-------------------------------------------------------------------------------
-@notify.route('/voice/fallback', methods=['GET', 'POST'])
-def fallback():
-    '''Twilio callback. Error.
-    https://www.twilio.com/docs/api/errors/reference
-    '''
-    logger.info('fallback')
-    logger.debug('fallback debug')
-
-    logger.debug('%s', request.form.to_dict())
-
-    logger.error('Call fallback: %s. %s',
-        request.form['ErrorCode'], request.form['ErrorUrl'])
-
-    return 'OK'
+@notify.route('/voice/fallback', methods=['POST'])
+def call_fallback():
+    return voice.on_error()
 
 #-------------------------------------------------------------------------------
 @notify.route('/sms/status', methods=['POST'])
 def sms_status():
-    '''Callback for sending notific SMS
-    If sending, determine if part of reminder or reply to original received msg
-    '''
-
-    logger.debug(request.form.to_dict())
-
-    db['notifics'].find_one_and_update({
-        'tracking.sid': request.form['SmsSid']}, {
-        '$set':{
-            'tracking.status': request.form['SmsStatus']}
-        })
-
-    return 'OK'
+    return str(sms.on_status())
 
 #-------------------------------------------------------------------------------
 @notify.route('/sms/receive', methods=['POST'])
-def receive_sms():
-    # Shared endpoint for Pickup Date System and notify.sms system
+def sms_received():
+    '''Shared endpoint for incoming SMS. Route to appropriate handlers.
+    '''
 
-    # Route to appropriate functions
+    logger.info('sms received')
+    logger.debug(request.form.to_dict())
 
-    notific = db['notifics'].find_one({'tracking.sid': request.form['SmsSid']})
+    r = sms.on_reply()
 
-    if notific:
-        return sms.on_reply(notific, request.form.to_dict())
+    if r:
+        return Response(str(r), mimetype='text/xml')
     else:
         # BPU Pickup Date Request
         # TODO: add code
         return 'OK'
 
 #-------------------------------------------------------------------------------
-'''@notify.route('/sendsocket', methods=['GET'])
-def request_send_socket():
-    name = request.args.get('name').encode('utf-8')
-    data = request.args.get('data').encode('utf-8')
-    emit(name, data)
-    return 'OK'
-'''
-
-
-
-
-
-
-
-
-#-------------------------------------------------------------------------------
-@notify.route('/secret_scheduler', methods=['GET'])
-def secret_scheduler():
-    from .. import tasks
-    tasks.schedule_reminders.apply_async(
-        args=None,
-        queue=current_app.config['DB'])
-
-    return 'OK'
-
-'''
-#-------------------------------------------------------------------------------
-@main.route('/call/nis', methods=['POST'])
+@notify.route('/call/nis', methods=['POST'])
 def nis():
     logger.info('NIS!')
 
     record = request.get_json()
 
-    agency = db['agencies']
+    #agency = db['agencies'].
 
     try:
-    from .. import tasks
-    tasks.rfu.apply_async(
-        args=[
-          record['custom']['to'] + ' not in service',
-          a_id=record['account_id'],
-          block=record['custom']['block']
-        )
+        from .. import tasks
+        #tasks.rfu.apply_async(
+        #    args=[
+        #      record['custom']['to'] + ' not in service',
+        #      a_id=record['account_id'],
+        #      block=record['custom']['block']
+        #    )
     except Exception, e:
         logger.info('%s /call/nis' % request.values.items(), exc_info=True)
     return str(e)
-'''

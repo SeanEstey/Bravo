@@ -5,7 +5,7 @@ import os
 import json
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
-from flask import current_app, render_template
+from flask import current_app, render_template, request
 from flask_login import current_user
 from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
@@ -317,28 +317,27 @@ def cancel_pickup(evnt_id, acct_id):
     return True
 
 #-------------------------------------------------------------------------------
-def on_call_interact(notific, args):
-    # TODO: import twilio module
+def on_call_interact(notific):
 
-    response = twilio.twiml.Response()
+    response = twiml.Response()
 
     # Digit 1: Repeat message
-    if args.get('Digits') == '1':
-        content = voice.get_speak(
+    if request.form['Digits'] == '1':
+        speak= voice.get_speak(
           notific,
-          notific['content']['template']['default']['file'])
+          notific['on_answer']['template'])
 
-        response.say(content, voice='alice')
+        response.say(speak, voice='alice')
 
         response.gather(
             numDigits=1,
             action= '%s/notify/voice/play/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
             method='POST')
 
-        return voice
+        return response
 
     # Digit 2: Cancel pickup
-    elif args.get('Digits') == '2':
+    elif request.form['Digits'] == '2':
         from .. import tasks
         tasks.cancel_pickup.apply_async(
             (str(notific['evnt_id']), str(notific['acct_id'])),
@@ -348,15 +347,14 @@ def on_call_interact(notific, args):
         acct = db['accounts'].find_one({'_id':notific['acct_id']})
         dt = utils.tz_utc_to_local(acct['udf']['future_pickup_dt'])
 
-        response.say(
-          'Thank you. Your next pickup will be on ' +\
-          dt.strftime('%A, %B %d') + '. Goodbye',
-          voice='alice'
-        )
+        speak = voice.get_speak(
+            notific,
+            notific['on_answer']['template'])
+
+        response.say(speak, voice='alice')
         response.hangup()
 
         return response
-
 
 #-------------------------------------------------------------------------------
 def on_sms_reply(notific):
@@ -397,3 +395,5 @@ def on_sms_reply(notific):
         to = notific['to'],
         from_ = conf['twilio']['sms']['number'],
         status_callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST'))
+
+    return 'OK'

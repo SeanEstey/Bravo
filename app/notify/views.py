@@ -215,7 +215,7 @@ def call_fallback():
 #-------------------------------------------------------------------------------
 @notify.route('/sms/status', methods=['POST'])
 def sms_status():
-    return str(sms.on_status())
+    return sms.on_status()
 
 #-------------------------------------------------------------------------------
 @notify.route('/sms/receive', methods=['POST'])
@@ -223,13 +223,10 @@ def sms_received():
     '''Shared endpoint for incoming SMS. Route to appropriate handlers.
     '''
 
-    logger.info('sms received')
-    logger.debug(request.form.to_dict())
+    status = sms.on_reply()
 
-    r = sms.on_reply()
-
-    if r:
-        return Response(str(r), mimetype='text/xml')
+    if status:
+        return str(status)
     else:
         # BPU Pickup Date Request
         # TODO: add code

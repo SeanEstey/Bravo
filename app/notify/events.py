@@ -121,6 +121,7 @@ def reset(evnt_id):
             },
             '$unset': {
                 'tracking.sid': '',
+                'tracking.mid': '',
                 'tracking.answered_by': '',
                 'tracking.ended_dt': '',
                 'tracking.speak': '',
@@ -128,7 +129,12 @@ def reset(evnt_id):
                 'tracking.duration': '',
                 'tracking.error': '',
                 'tracking.reason': '',
-                'tracking.code': ''
+                'tracking.code': '',
+                'tracking.reply': '',
+                'tracking.body': '',
+                'tracking.sent_dt': '',
+                'tracking.error_code': '',
+                'tracking.digit': ''
             }
         },
         multi=True

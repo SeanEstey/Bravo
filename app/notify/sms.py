@@ -5,6 +5,7 @@ import json
 import os
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
+from pymongo.collection import ReturnDocument
 from flask import current_app, render_template, request
 from datetime import datetime, date, time
 from .. import db
@@ -86,11 +87,21 @@ def send(notific, twilio_conf):
     else:
         from_ = twilio_conf['sms']['number']
 
-    sms_ = client.messages.create(
-        body = html.clean_whitespace(body),
-        to = notific['to'],
-        from_ = from_,
-        status_callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST'))
+    try:
+        sms_ = client.messages.create(
+            body = html.clean_whitespace(body),
+            to = notific['to'],
+            from_ = from_,
+            status_callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST'))
+    except Exception as e:
+        logger.error('failed to send SMS. %s', str(e))
+        db['notifics'].update_one(
+            {'_id': notific['_id']},
+            {'$set': {
+                'tracking.status': 'failed',
+                'tracking.descripton': str(e),
+            }})
+        return 'failed'
 
     logger.debug(utils.print_vars(sms_))
 
@@ -118,30 +129,32 @@ def on_reply():
     Returns: twilio.twiml.Response
     '''
 
-    logger.info('sms.on_reply: %s', request.form.to_dict())
+    logger.debug('sms.on_reply: %s', request.form.to_dict())
+
+    logger.info('received reply \'%s\' from %s',
+        request.form['Body'], request.form['From'])
 
     # It's a notific reply if from same number as a notific
     # was sent on same date
 
-    notific = db['notifics'].find_one({
-        'to': request.form['From'],
-        'type': 'sms',
-        'tracking.sent_dt':
-        utils.naive_to_local(datetime.combine(date.today(),time()))})
+    notific = db['notifics'].find_one_and_update({
+          'to': request.form['From'],
+          'type': 'sms',
+          'tracking.sent_dt': utils.naive_to_local(datetime.combine(date.today(),time()))
+        }, {
+          '$set': {
+            'tracking.reply': request.form['Body'].upper()
+        }},
+        return_document=ReturnDocument.AFTER)
 
-    if notific:
-        logger.info(utils.formatter(notific))
-    else:
-        logger.info('reply sms doesnt match any notific sms from today')
-        return 'not found'
-
+    if not notific:
+        logger.info('sms reply not matched to notific')
+        return False
 
     # Import assigned handler module and invoke function
     # to get voice response
 
     module = __import__(notific['on_reply']['module'], fromlist='.' )
-
-    logger.info(utils.print_vars(module))
 
     handler_func = getattr(module, notific['on_reply']['func'])
 
@@ -152,7 +165,7 @@ def on_status():
     '''Callback for sending notific SMS
     '''
 
-    logger.info('sms.on_status: %s', request.form.to_dict())
+    logger.debug('sms.on_status: %s', request.form.to_dict())
 
     db['notifics'].find_one_and_update({
         'tracking.sid': request.form['SmsSid']}, {
@@ -161,4 +174,4 @@ def on_status():
             'tracking.sent_dt':
             utils.naive_to_local(datetime.combine(date.today(), time()))}
         })
-    return True
+    return 'OK'

@@ -106,13 +106,12 @@ def get_speak(notific, template_path):
     try:
         speak = render_template(
             template_path,
+            notific = notific,
             account = utils.formatter(
                 account,
                 to_local_time=True,
                 to_strftime="%A, %B %d",
                 bson_to_json=True),
-            digit=notific['tracking'].get('digit') or None,
-            answered_by=notific['tracking']['answered_by']
         )
     except Exception as e:
         logger.error('get_speak: %s ', str(e))
@@ -120,9 +119,7 @@ def get_speak(notific, template_path):
 
     speak = html.clean_whitespace(speak)
 
-    logger.debug('speak template: %s', speak)
-
-    db['notifics'].update_one({'_id':notific['_id']},{'$set':{'speak':speak}})
+    #logger.debug('speak template: %s', speak)
 
     return speak
 
@@ -148,20 +145,19 @@ def on_answer():
     # send_socket('update_msg',
     # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
 
-    # Html template content or audio url?
-
     response = twiml.Response()
 
     if notific['on_answer']['source'] == 'template':
-        response.say(
-            get_speak(
-                notific,
-                notific['on_answer']['template']),
-            voice='alice')
+        speak = get_speak(notific, notific['on_answer']['template'])
+
+        response.say(speak, voice='alice')
+
+        db['notifics'].update_one(
+            {'tracking.sid': request.form['CallSid']},
+            {'$set': {'tracking.speak': speak}}
+        )
     elif notific['on_answer']['source'] == 'audio':
         response.play(notific['on_answer']['url'])
-
-    # All voice templates prompt key "1" to repeat message
 
     response.gather(
         numDigits=1,
@@ -178,18 +174,24 @@ def on_interact():
     Returns: twilio.twiml.Response
     '''
 
-    logger.debug('voice_play_interact args: %s', request.form)
+    logger.debug('on_interact: %s', request.form.to_dict())
 
-    notific = db['notifics'].find_one({'tracking.sid': request.form['CallSid']})
+    notific = db['notifics'].find_one_and_update({
+          'tracking.sid': request.form['CallSid'],
+        }, {
+          '$set': {
+            'tracking.digit': request.form['Digits']
+        }},
+        return_document=ReturnDocument.AFTER)
 
     # Import assigned handler module and invoke function
     # to get voice response
 
-    module = __import__(notific['on_interact']['module'])
+    module = __import__(notific['on_interact']['module'], fromlist='.' )
+
     handler_func = getattr(module, notific['on_interact']['func'])
 
-    response = handler_func(notific, request.form)
-    return response
+    return handler_func(notific)
 
 #-------------------------------------------------------------------------------
 def on_complete():
@@ -243,9 +245,6 @@ def on_error():
     https://www.twilio.com/docs/api/errors/reference
     '''
 
-    logger.debug('%s', request.form.to_dict())
-
-    logger.error('Call fallback: %s. %s',
-        request.form['ErrorCode'], request.form['ErrorUrl'])
+    logger.error('call error. %s', request.form.to_dict())
     return 'OK'
 

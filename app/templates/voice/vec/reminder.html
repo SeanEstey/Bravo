@@ -1,31 +1,48 @@
-{% if digit == 2 %}
+{% if 'digit' in notific['tracking'] and notific['tracking']['digit'] == '2' %}
+
     Your pickup has been unscheduled. Your next pickup will be
     {{ account['udf'].future_pickup_dt }}.
     Thank you.
+
 {% else %}
+
     Hi, this is a friendly reminder that your Vecova 
 
     {% if account['udf']['status'] == "Dropoff" %}
+
         dropoff 
+
     {% else %}
+
         pickup 
+
     {% endif %}
 
     is {{ account['udf']['pickup_dt'] }}. 
 
     {% if account['udf']['status'] == "Dropoff" %}
+
         If you have any empties you can leave them out by 8am.
+
     {% elif account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
+
         Please have your empties out by 8am. Glass can be separated into cases.
+
     {% elif account['udf']['status'] == "Cancelling" %}
+
         A driver will be by to collect your bag buddy frame. Thanks for your past support.
+
     {% endif %}
 
-    {% if type == 'voice' and answered_by == 'human' %}
+    {% if notific['tracking']['answered_by'] == 'human' %}
+
         To repeat this message, press 1.
+
     {% endif %}
 
-    {% if answered_by == 'human' and account['udf']['status'] == "Active" %}
+    {% if notific['tracking']['answered_by'] == 'human' and account['udf']['status'] == "Active" %}
+
         If you do not need a pickup, press 2.
+
     {% endif %}
 {% endif %}

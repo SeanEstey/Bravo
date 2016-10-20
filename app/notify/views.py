@@ -2,6 +2,7 @@
 
 import json
 import twilio.twiml
+import os
 import requests
 from datetime import datetime, date, time, timedelta
 from flask import request, jsonify, render_template, \
@@ -24,7 +25,8 @@ logger = logging.getLogger(__name__)
 @login_required
 def view_event_list():
 
-    agency = db['users'].find_one({'user': current_user.username})['agency']
+    user = db['users'].find_one({'user': current_user.username})
+    agency = user['agency']
 
     event_list = events.get_list(agency)
 
@@ -36,10 +38,26 @@ def view_event_list():
             # modifying 'triggers' structure for view rendering
             trigger['count'] = triggers.get_count(trigger['_id'])
 
+    msg = 'Hi %s. ' % user['name']
+    if os.environ['BRAVO_TEST_SERVER'] == 'True':
+        msg += 'You are on Bravo Test server. '
+    else:
+        msg += 'You are on Bravo Live server. '
+    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
+        msg += 'Running in Sandbox mode. '
+    if os.environ['BRAVO_CELERY_BEAT'] == 'True':
+        msg += 'Scheduler is running. '
+    else:
+        msg += 'Scheduler is disabled. '
+
+    if user['admin']:
+        msg += 'You have admin priviledges.'
+
     return render_template(
       'views/event_list.html',
       title=None,
-      events=event_list
+      events=event_list,
+      banner_msg=msg
     )
 
 #-------------------------------------------------------------------------------
@@ -76,14 +94,19 @@ def view_event(evnt_id):
 def new_event():
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
+    conf= db['agencies'].find_one({'name':agency})
     try:
-        with open('app/templates/schemas/'+agency+'.json') as json_file:
-          templates = json.load(json_file)['reminders']
+        foo = 1
+        #with open('app/templates/schemas/'+agency+'.json') as json_file:
+        #  templates = json.load(json_file)['reminders']
     except Exception as e:
         logger.error("Couldn't open json schemas file")
         return "Error"
 
-    return render_template('views/new_event.html', templates=templates, title=current_app.config['TITLE'])
+    return render_template('views/new_event.html',
+        templates=None,
+        etap_query_folder=conf['etapestry']['schedule_events_folder'],
+        title=current_app.config['TITLE'])
 
 #-------------------------------------------------------------------------------
 @notify.route('/submit_event', methods=['POST'])

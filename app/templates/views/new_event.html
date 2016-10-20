@@ -14,8 +14,8 @@
     });
   </script>
   
-  <div style='text-align:center'> 
-    <h3>Schedule New Job</h3>
+  <div style='margin-top:3em; text-align:center'> 
+    <h3>Schedule a New Notification Event</h3>
   </div>
 
   <div id='my-alert' class="alert alert-danger alert-dismissible center" role="alert">
@@ -25,30 +25,35 @@
     <label id='alert-msg'>Alert! Warning! Alert!</label>
   </div>
 
+  <div class='status-banner'>{{banner_msg}}</div>
+
   <div class='box center' style='width:400px; background-color:#f7f7f7; padding:1.5em'>
     <form id='myform' enctype=multipart/form-data method=post>
       <fieldset class='form-fieldset'>
-        <legend class='scheduler-border'>Calls</legend>
+        <legend class='scheduler-border'>Settings</legend>
 
           <!-- Job Info Section -->
           <div class='form-label'>
-            Job Name
+            Event Name
           </div>
           <input id='job_name' class='input' name='job_name' type='text' 
                  placeholder='Optional'>
           </input>
+
           <div class='form-label'>
-            Call List
+            eTapestry Query
           </div>
-          <input id='call-list-div' title='Upload a .CSV file' class="nice" 
-                 type="file" name="call_list" required >
+          <input id='query_name' class='input' name='job_name' type='text' 
+                 placeholder='Type query name in {{etap_query_folder}} folder'>
+          </input>
+
           <div class='form-label'>
-            Template
+            Event Type
           </div>
           <select name='template_name' class='form-control' id='template-select'>
-            {% for template in templates %}
+           {# {% for template in templates %}
 						<option id='{{ template.type }}' value='{{ template.name }}'>{{ template.description }}</option>
-            {% endfor %}
+            {% endfor %}#}
           </select>
           
           <!-- Special Message Div -->

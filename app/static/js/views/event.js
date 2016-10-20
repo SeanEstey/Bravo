@@ -112,11 +112,11 @@ function init() {
 		// Hook up admin buttons to fire triggers
     $("button[name='trigger']").each(function() {
 		
-			/*var text = $(this).find('span').text();
+			var text = $(this).find('span').text();
 			if(text.indexOf('email') > -1)
 					$(this).find('span').text('Emails');
 			else if(text.indexOf('voice') > -1)
-					$(this).find('span').text('Voice/SMS');*/
+					$(this).find('span').text('Voice/SMS');
 
 		console.log($(this).attr('id'));
 
@@ -132,11 +132,9 @@ function init() {
 					console.log(JSON.stringify(jqXHR));
 					response = JSON.parse(response);
 					if(response['status'] == 'OK') {
-						bannerMsg('Admin panel command accepted. Sending notifications', 'info');
+						bannerMsg('Admin panel command accepted. Sending notifications...', 'info');
 
 						$('#'+response['trig_id']).addClass('btn btn-primary disabled');
-						//console.log($(this).attr('id') + ' in ajax');
-						//i$(this).addClass('btn btn-primary disabled');
 					}
 				});
 			});
@@ -147,6 +145,9 @@ function init() {
       $.ajax({
 				type: 'GET',
 				url: $URL_ROOT + 'notify/' + evnt_id + '/reset'
+			})
+			.done(function(response, textStatus, jqXHR) {
+				window.location.reload();
 			});
     });
 

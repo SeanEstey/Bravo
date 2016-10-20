@@ -31,11 +31,7 @@ function init() {
     var job_name = $job_row.find('[name="job-name"]').text(); 
     var msg = 'Job \''+job_name+'\' ' + data['status'];
 
-    $('#status-banner').text(msg);
-    $('#status-banner').clearQueue();
-    $('#status-banner').fadeIn('slow');
-    $('#status-banner').delay(10000);
-    $('#status-banner').fadeOut(3000);
+		bannerMsg(msg, 'error', 10000);
 
     $status_td = $job_row.find('[name="job-status"]');
 
@@ -48,17 +44,8 @@ function init() {
     //$('.delete-btn').hide();
   });
 
-  if(location.href.indexOf('?msg=') > -1) {
-      var uri = decodeURIComponent(location.href);
-      var ind = uri.indexOf('?msg=');
-      var msg = uri.substring(ind+5, uri.length);
-      $('#status-banner').text(msg);
-  }
-
-  if($('#status-banner').text()) {
-      $('#status-banner').fadeIn('slow');
-      $('#status-banner').delay(10000);
-      $('#status-banner').fadeOut(3000);
+  if($('.status-banner').text()) {
+			bannerMsg($('.status-banner').text(), 'info', 15000);
   }
 
   $('.delete-btn').button({

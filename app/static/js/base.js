@@ -142,7 +142,7 @@ function objToHtml(obj, indents, ignores) {
 }
 
 //------------------------------------------------------------------------------
-function bannerMsg(msg, type) {
+function bannerMsg(msg, type, duration=5000) {
 		var $banner = $('.status-banner');
 
 		if(!$banner)
@@ -162,7 +162,7 @@ function bannerMsg(msg, type) {
 		$banner.fadeTo('slow', 1);
 
 		if(type == 'info')
-				$banner.delay(5000);
+				$banner.delay(duration);
 		else if(type == 'error')
 				$banner.delay(10000);
 	

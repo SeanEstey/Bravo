@@ -129,8 +129,9 @@
 
 	{% if admin == True %}
 	<div>
-	<div style='position:absolute; bottom:3em; margin-right:auto; margin-left:auto; left:0px; right:0px;'>
-			<fieldset style='text-align:center'>
+
+	<div style='-webkit-border-radius:7px 7px 7px 7px; position:absolute; bottom:3em; margin-right:auto; margin-left:auto; left:0px; right:0px;'>
+			<fieldset style='border-style:solid; text-align:center'>
 			<legend style='width:20%;' >Admin Panel</legend>
 
 			{% for trigger in triggers %}
@@ -146,7 +147,7 @@
 			{% endfor %}
 
 			<button style='margin:0 auto;' class='btn btn-primary' name='reset'
-							type='button' id='reset-event'>Reset All</button>
+							type='button' id='reset-event'>Reset All Notifications</button>
 			</fieldset>
 	</div>
 </div>

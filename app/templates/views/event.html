@@ -132,15 +132,20 @@
 	<div style='position:absolute; bottom:3em; margin-right:auto; margin-left:auto; left:0px; right:0px;'>
 			<fieldset style='text-align:center'>
 			<legend style='width:20%;' >Admin Panel</legend>
+
 			{% for trigger in triggers %}
-				<button style='margin:0 auto;'
-								class='btn btn-primary'
-								name='trigger'
-								id='{{trigger['_id']}}'
-								type='button' 
-								>Send <span>{{trigger['type']}}</span> Now</button>
+				{% if trigger['status'] == 'pending' %}
+						<button 
+							style='margin:0 auto;'
+							class='btn btn-primary'
+							name='trigger'
+							id='{{trigger['_id']}}'
+							type='button' 
+						>Send <span>{{trigger['type']}}</span> Now</button>
+				{% endif %}
 			{% endfor %}
-			<button style='margin:0 auto;' class='btn btn-primary' 
+
+			<button style='margin:0 auto;' class='btn btn-primary' name='reset'
 							type='button' id='reset-event'>Reset All</button>
 			</fieldset>
 	</div>

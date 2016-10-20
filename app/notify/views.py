@@ -146,7 +146,7 @@ def fire_trigger(trig_id):
         args=[str(trigger['evnt_id']), trig_id],
         queue=current_app.config['DB'])
 
-    return 'OK'
+    return json.dumps({'trig_id':trig_id, 'status':'OK'})
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/<acct_id>/no_pickup', methods=['GET'])

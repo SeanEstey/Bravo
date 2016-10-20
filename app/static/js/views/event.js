@@ -106,20 +106,29 @@ function init() {
           updateJobStatus();
     });
 
-    //  if(location.port == 8080) {
     var args =  window.location.pathname.split('/');
     var evnt_id = args.slice(-1)[0];
 
+		// Hook up admin buttons to fire triggers
     $("button[name='trigger']").each(function() {
-
-			//var _id = $(this).attr('id');
+		
+			var text = $(this).find('span').text();
+			if(text.indexOf('email') > -1)
+					$(this).find('span').text('Emails');
+			else if(text.indexOf('voice') > -1)
+					$(this).find('span').text('Voice/SMS');
 
 			$(this).on("click", function(e){
 				console.log('clicked id %s' + e.target.id);
+				console.log(e.target.name);
 
 				$.ajax({
 					type: 'POST',
 					url: $URL_ROOT + 'notify/' + e.target.id + '/fire'
+				})
+				.done(function(response) {
+					if(response == 'OK')
+						bannerMsg('Admin panel command accepted. Sending notifications', 'info');
 				});
 			});
 
@@ -135,12 +144,6 @@ function init() {
     $('#dump').click(function() {
         window.location.assign($URL_ROOT + 'summarize/' + String(evnt_id));
     });
-  
-  /*else {
-    $('#execute-event').hide();
-    $('#reset-event').hide();
-    $('#dump').hide();
-  }*/
 }
 
 //------------------------------------------------------------------------------
@@ -274,11 +277,8 @@ function makeCallFieldsClickable() {
     if(!name)
       return;
 
-    if(name == 'phone_status' || name == 'email_status')
-      return;
-
-    if($('#event-status').text().indexOf('Pending') < 0)
-      return;
+		if(name.indexOf('udf') == -1)
+			return;
 
     if($cell.find('input').length > 0)
       return;
@@ -288,9 +288,11 @@ function makeCallFieldsClickable() {
     var text = $cell.text();
     var width = $cell.width()*.90;
     $cell.html("<input type='text' value='" + text + "'>");
+
     var $input = $cell.find('input');
     $input.width(width);
     $input.css('font-size', '16px');
+		$input.focus();
   
     // Save edit to DB when focus lost, remove <input> element 
     $input.blur(function() {
@@ -311,11 +313,14 @@ function makeCallFieldsClickable() {
         type: 'POST',
         url: $URL_ROOT + 'notify/' + $cell.parent().attr('id') + '/edit',
         data: payload
-			}).done(function(msg){
+			}).done(function(msg) {
           if(msg != 'OK') {
-            showDialog($('#dialog'), 'Your edit failed. Please enter a correct value: ' + msg);
+						bannerMsg(msg, 'error');
             $cell.html(text);
           }
+					else {
+							bannerMsg('Edited field successfully', 'info');
+					}
       });
 
       $input.focus();

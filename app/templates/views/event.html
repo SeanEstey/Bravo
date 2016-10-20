@@ -40,7 +40,8 @@
 		</audio>
 	</div>-->
 
-  <div style='padding: 2em 0em'></div>
+  <div class='status-banner'></div>
+
   
   <div class='data-container'>
     <div class='navbar-div'>
@@ -125,17 +126,26 @@
     </table>
   </div>
     <br><br>
-  <div style='text-align:center;'>
-		{% for trigger in triggers %}
-			<button style='margin:0 auto;'
-							class='btn btn-primary'
-							name='trigger'
-							id='{{trigger['_id']}}'
-							type='button' 
-							>Fire {{trigger['type']}}</button>
-		{% endfor %}
-    <button style='margin:0 auto;' class='btn btn-primary' 
-						type='button' id='reset-event'>Reset </button>
-  </div>
+
+	{% if admin == True %}
+	<div>
+	<div style='position:absolute; bottom:3em; margin-right:auto; margin-left:auto; left:0px; right:0px;'>
+			<fieldset style='text-align:center'>
+			<legend style='width:20%;' >Admin Panel</legend>
+			{% for trigger in triggers %}
+				<button style='margin:0 auto;'
+								class='btn btn-primary'
+								name='trigger'
+								id='{{trigger['_id']}}'
+								type='button' 
+								>Send <span>{{trigger['type']}}</span> Now</button>
+			{% endfor %}
+			<button style='margin:0 auto;' class='btn btn-primary' 
+							type='button' id='reset-event'>Reset All</button>
+			</fieldset>
+	</div>
+</div>
+	{% endif %}
     <br><br>
+
   {% endblock %}

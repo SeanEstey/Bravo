@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app
 
-main = Blueprint('main', __name__)
+main = Blueprint('main', __name__, template_folder='receipts')
 
 from . import views
 

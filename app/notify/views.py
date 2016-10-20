@@ -13,7 +13,7 @@ import bson.json_util
 from flask_socketio import SocketIO, emit
 
 from . import notify
-from . import events, triggers, email, voice, sms, recording#, pickup_service
+from . import accounts, events, triggers, email, voice, sms, recording
 from .. import utils
 from .. import db
 logger = logging.getLogger(__name__)
@@ -48,6 +48,7 @@ def view_event_list():
 def view_event(evnt_id):
     '''GUI event view'''
 
+    admin = db['users'].find_one({'user': current_user.username})['admin']
     event = events.get(ObjectId(evnt_id))
     notific_list = list(events.get_notifics(ObjectId(evnt_id)))
     trigger_list = events.get_triggers(ObjectId(evnt_id))
@@ -65,8 +66,8 @@ def view_event(evnt_id):
         notific_list=notific_list,
         evnt_id=evnt_id,
         event=event,
-        triggers=trigger_list
-        #template=job['schema']['import_fields']
+        triggers=trigger_list,
+        admin=admin
     )
 
 #-------------------------------------------------------------------------------
@@ -131,8 +132,7 @@ def rmv_notifics(evnt_id, acct_id):
 @notify.route('/<acct_id>/edit', methods=['POST'])
 @login_required
 def edit_msg(acct_id):
-    accounts.edit(ObjectId(acct_id), request.form.items())
-    return 'OK'
+    return accounts.edit(ObjectId(acct_id), request.form.items())
 
 #-------------------------------------------------------------------------------
 @notify.route('/<trig_id>/fire', methods=['POST'])

@@ -44,14 +44,23 @@ a.hover:visited {
 .opt {font-size: 16px;}
 .hidden {display: none;}
 
-.status-banner-div {
-  display: none;
-  /*border:1px solid #B8CfB8;*/
+.status-banner, .green, .red {
+	margin: 2em 0em;
+	display: block;
+	/*visibility: hidden;*/
   -webkit-border-radius:7px 7px 7px 7px; 
-  background-color: #CDE6CD; 
+  background-color: transparent; 
   padding:0.5em; 
   text-align:center;
   color: #365766;
+}
+
+.status-banner .green {
+  background-color: #CDE6CD; 
+}
+
+.status-banner .red {
+  background-color: red; 
 }
 
 

@@ -12,8 +12,10 @@ this.unicode = {
   'SPACE': '&#32;'
 };
 
-// Returns decimal code for special HTML characters
+//------------------------------------------------------------------------------
 function HTMLEncode(str) {
+  // Returns decimal code for special HTML characters
+
   var i = str.length,
     aRet = [];
 
@@ -28,8 +30,10 @@ function HTMLEncode(str) {
   return aRet.join('');
 }
 
-// Replace underscores with spaces, capitalizes words
+//------------------------------------------------------------------------------
 String.prototype.toTitleCase = function(n) {
+  // Replace underscores with spaces, capitalizes words
+
    var s = this;
    if (1 !== n) 
      s = s.toLowerCase();
@@ -37,6 +41,7 @@ String.prototype.toTitleCase = function(n) {
    return s.replace(/\b[a-z]/g,function(f){return f.toUpperCase()});
 }
 
+//------------------------------------------------------------------------------
 function addBravoTooltip() {
   $(document).tooltip({
     position: {
@@ -54,6 +59,7 @@ function addBravoTooltip() {
   });
 }
 
+//------------------------------------------------------------------------------
 function showDialog($element, msg, _title, _buttons) {
 	/* Error/confirmation dialog UI for all views */
 
@@ -84,6 +90,7 @@ function showDialog($element, msg, _title, _buttons) {
   $element.dialog(dialog_style);
 }
 
+//------------------------------------------------------------------------------
 function objToHtml(obj, indents, ignores) {
   /*Converts a JS Object to indented, color-coded HTML (no braces/brackets)
   Properties are sorted alphabetically
@@ -132,4 +139,32 @@ function objToHtml(obj, indents, ignores) {
     }
   }
   return str;
+}
+
+//------------------------------------------------------------------------------
+function bannerMsg(msg, type) {
+		var $banner = $('.status-banner');
+
+		if(!$banner)
+				return false;
+		
+		if(type == 'info')
+			$banner.css('background-color', 'CDE6CD'); 
+		else if(type == 'error')
+			$banner.css('background-color', 'FFCCCC'); 
+
+		$banner.css('visibility', 'visible');
+		$banner.css('opacity', 0);
+
+		$banner.text(msg);
+		$banner.clearQueue();
+
+		$banner.fadeTo('slow', 1);
+
+		if(type == 'info')
+				$banner.delay(5000);
+		else if(type == 'error')
+				$banner.delay(10000);
+	
+		$banner.fadeTo('slow', 0);
 }

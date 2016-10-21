@@ -1,5 +1,5 @@
-  {% extends "views/base.html" %}
-  {% block content %}  
+{% extends "views/base.html" %}
+{% block content %}  
 	<script type='text/javascript' src="{{url_for('static', filename='js/base.js')}}">
 	</script>
 	<script type='text/javascript' src="{{url_for('static', filename='js/views/event_list.js')}}">
@@ -15,16 +15,6 @@
   
   <div class='status-banner'>{{banner_msg}}</div>
 
-	<!--
-  <div style='text-align:center'>
-    <h3 class='thin'>
-    <script>
-      var date = new Date();
-      document.write('<b>' + date.toString('dddd, MMMM d, yyyy') + '</b>');
-    </script>
-    </h3>
-  </div>-->
-  
   <div class='data-container' style='visibility:hidden'>
     <div class='navbar-div'>
       <a class='hover' href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
@@ -83,12 +73,7 @@
       </tbody>
     </table>
   </div>
-  <!--<nav>
-    <ul class="pager">
-      <li><a id='newer-page' href='#'><span aria-hidden="true">&laquo;</span>  Newer</a></li>
-      <li><a id='older-page' href='#'>Older  <span aria-hidden="true">&raquo;</span></a></li>
-    </ul>
-  </nav>-->
-  {% endblock %}
+	<div style='margin-bottom:15em'></div>
+{% endblock %}
 
 

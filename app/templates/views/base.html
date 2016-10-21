@@ -83,6 +83,39 @@
 
 			<!-- PAGE CONTENT -->
       {% block content %}{% endblock %}
+
+			{% if admin == True %}
+					<div style='background:rgba(255,255,255,0.75); text-align:center; display:inline-block; position: fixed; bottom:0; right:0; left:0'>
+						<fieldset id='panel1' class='admin-fieldset'>
+							<legend class='admin-border'>Admin Panel</legend>
+							<fieldset class='admin-fieldset' style='border: 1px solid #b1b5bc;'>
+								<legend class='admin-border'>Event Commands</legend>
+									{% for trigger in triggers %}
+										<button 
+											style='width:150px; font-size:12px; margin:0 auto;'
+											class='btn btn-primary'
+											name='trigger'
+											id='{{trigger['_id']}}'
+											type='button' 
+										>Send <span>{{trigger['type']}}</span></button>
+									{% endfor %}
+							</fieldset>
+							<fieldset id='panel2' class='admin-fieldset' style='border: 1px solid #b1b5bc;'>
+								<legend class='admin-border'>Test Mode</legend>
+									<button 
+										style='width:150px; font-size:12px; margin:0 auto;' class='btn btn-primary' id='duplicate-acct'
+										type='button' id='duplicate-acct'
+									>Add Account</button>
+									<button style='width:150px; font-size:12px; margin:0 auto;' class='btn btn-primary' name='reset'
+													type='button' id='reset-event'>Reset All</button>
+							</fieldset>
+						</fieldset>
+				</div>
+			{% endif %}
+
+
+
+
     </div>
 
 		<!-- DIALOG BOX -->

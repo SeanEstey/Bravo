@@ -130,9 +130,6 @@ a.hover:visited {
 .admin-fieldset {
 	visibility: visible;
 	display: inline-block;
-	/*position: fixed;
-	bottom: 0;*/
-
   -moz-border-radius: 7px;
   -webkit-border-radius: 7px;
   padding: 1.0em;
@@ -144,6 +141,7 @@ a.hover:visited {
 	box-sizing: border-box;
 	margin-left: 0.5em;
 	margin-right: 0.5em;
+	margin-bottom: 0.25em;
 }
 
 legend.admin-border {
@@ -151,6 +149,7 @@ legend.admin-border {
 	padding: 0.25em 0.5em 0em 0.25em;
   margin:0px 0px 0px 0px;
   border-bottom:none;
+	font-size: 18px;
 }
 
 .opt {font-size: 16px;}

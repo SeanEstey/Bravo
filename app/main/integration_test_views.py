@@ -26,7 +26,7 @@ def test_non_participants():
 #-------------------------------------------------------------------------------
 @main.route('/test_reminder_r1z', methods=['GET'])
 @login_required
-def test_reminder_scheduler():
+def test_reminder_scheduler_r1z():
     test_block = 'R1Z'
     test_agency = 'vec'
     test_date = date(2016, 11, 13)
@@ -45,3 +45,10 @@ def test_reminder_scheduler():
         logger.info("No reminders created for %s", test_block)
 
     return redirect(url_for('notify.view_event_list'))
+
+@main.route('/test_reminders', methods=['GET'])
+@login_required
+def test_reminder_scheduler():
+    from .. import tasks
+    tasks.schedule_reminders.apply_async(queue=current_app.config['DB'])
+    return 'OK'

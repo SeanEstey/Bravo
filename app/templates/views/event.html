@@ -105,29 +105,30 @@
 	<div style='margin-bottom:15em'></div>
 
 	{% if admin == True %}
-		<div class='admin-panel'>
-			<fieldset class='admin-fieldset'>
-				<legend class='admin-border'>Admin Panel</legend>
-					{% for trigger in triggers %}
+		<div class='admin-panel-div'></div>
+			<div style='visibility:hidden; text-align:center; display:inline-block; position: fixed; bottom:0; right:0; left:0'>
+				<fieldset class='admin-fieldset'>
+					<legend class='admin-border'>Admin Panel</legend>
+						{% for trigger in triggers %}
+							<button 
+								style='margin:0 auto;'
+								class='btn btn-primary'
+								name='trigger'
+								id='{{trigger['_id']}}'
+								type='button' 
+							>Send <span>{{trigger['type']}}</span> Now</button>
+						{% endfor %}
+				</fieldset>
+				<fieldset class='admin-fieldset'>
+					<legend class='admin-border'>Test Server Panel</legend>
 						<button 
-							style='margin:0 auto;'
-							class='btn btn-primary'
-							name='trigger'
-							id='{{trigger['_id']}}'
-							type='button' 
-						>Send <span>{{trigger['type']}}</span> Now</button>
-					{% endfor %}
-			</fieldset>
-			<fieldset class='admin-fieldset'>
-				<legend class='admin-border'>Test Server Panel</legend>
-					<button 
-						style='margin:0 auto;' class='btn btn-primary' id='duplicate-acct'
-						type='button' id='duplicate-acct'
-					>Add Random Account</button>
-					<button style='margin:0 auto;' class='btn btn-primary' name='reset'
-									type='button' id='reset-event'>Reset All Notifications</button>
-			</fieldset>
-		</div>
+							style='margin:0 auto;' class='btn btn-primary' id='duplicate-acct'
+							type='button' id='duplicate-acct'
+						>Add Random Account</button>
+						<button style='margin:0 auto;' class='btn btn-primary' name='reset'
+										type='button' id='reset-event'>Reset All Notifications</button>
+				</fieldset>
+			</div>
 	{% endif %}
 
   {% endblock %}

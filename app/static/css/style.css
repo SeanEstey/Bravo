@@ -1,70 +1,5 @@
-#buit {
-  width: 200px;
-  height: 60px;
-}
 
-/***** CLASSES *****/
-
-.new-event-form-fieldset {
-  padding: 5px 10px 15px 10px;
-  border: 1px solid #cccccc;
-  -moz-border-radius: 7px;
-  -webkit-border-radius: 7px;
-  text-align: left;
-  width: 350px;
-}
-
-legend.scheduler-border {
-  font-size: 1.0em !important;
-  font-weight: bold !important;
-  text-align: left !important;
-  width:auto;
-  padding:0 10px;
-  margin:0px 0px 0px 0px;
-  border-bottom:none;
-}
-
-.admin-fieldset {
-  -moz-border-radius: 7px;
-  -webkit-border-radius: 7px;
-  padding: 1em;
-	display: inline-block;
-  border: 1px solid gray;
-	text-align: center;
-	-moz-box-sizing: border-box;
-	-webkit-box-sizing: border-box;
-	box-sizing: border-box;
-	margin: 0;
-}
-
-.admin-panel {
-	border-style: solid;
-	border-top: thin solid gray;
-	border-left: none;
-	border-right: none;
-	border-bottom: none;
-	padding-bottom: 1em;
-	padding-top: 0.25em;
-	background-color: white;
-	display:inline-block;
-	position: fixed;
-	bottom: 0;
-	margin-right: auto;
-	margin-left: auto;
-	left: 0;
-	right: 0;
-	text-align:center;
-}
-
-legend.admin-border {
-  /*font-size: 1.0em !important;*/
- /* font-weight: bold !important;*/
- /* text-align: left !important;*/
-  width:auto;
-  padding:0.5em 0.5em;
-  margin:0px 0px 0px 0px;
- /* border-bottom:none;*/
-}
+/*---------------------------- COMMON -----------------------------*/
 
 a.hover {
   text-decoration: none;
@@ -82,9 +17,6 @@ a.hover:link {
 a.hover:visited {
   color: #365766;
 }
-
-.opt {font-size: 16px;}
-.hidden {display: none;}
 
 .status-banner {
 	position: absolute;
@@ -117,7 +49,7 @@ a.hover:visited {
     }
 }
 
-.bravo-header {
+.header {
 	position: absolute;
 	top: 4em;
 	left: 0;
@@ -126,8 +58,32 @@ a.hover:visited {
   margin-right: auto;
 }
 
+.header-a {
+	display:block; 
+	margin-left:auto; 
+	margin-right:auto;
+}
+
+.header-img {
+	display:block; 
+	margin-left:auto; 
+	margin-right:auto; 
+	text-align:center;
+  width: 200px;
+  height: 60px;
+}
+
+.main-menu-icon {
+  color: #365766;
+}
+
+.main-menu-a {
+  color: #365766;
+}
+
+
 .data-container {
-	margin-top: 17em;
+	margin-top: 15em;
 	margin-bottom: 5em;
 	margin-left: auto;
 	margin-right: auto;
@@ -147,39 +103,59 @@ a.hover:visited {
   text-align:left;
 }
 
-textarea.special-msg {
-  width: 100%;
-  max-width: 300px;
-  height: 50px;
+
+/*-------------------------- VIEW EVENT ---------------------------*/
+
+.admin-panel-div {
+	display:inline-block;
+	position: fixed;
+	bottom: 0;
+	width: inherit;
+	/*left: 0;
+	right: 0;*/
+	height: 7.5em;
+	margin-right: auto;
+	margin-left: auto;
+	text-align:center;/*
+	border-style: solid;
+	border-top: thin solid gray;
+	border-left: none;
+	border-right: none;
+	border-bottom: none;*/
+	padding-bottom: 1em;
+	padding-top: 0.25em;
+	background:rgba(255,255,255,0.75);
 }
 
-.box {
-  background-color: #e8f5f9;
-  min-width: 300px;
-  max-width: 1000px;
-  padding-right: 2em;
-  padding-left: 2em;
-  padding-bottom: 2em;
-  padding-top: 2em;
-  z-index: 20;
-  margin-top: 1em;
-  margin-bottom: 2em;
-  border: 1px solid #cccccc;
+.admin-fieldset {
+	visibility: visible;
+	display: inline-block;
+	/*position: fixed;
+	bottom: 0;*/
+
   -moz-border-radius: 7px;
   -webkit-border-radius: 7px;
-  border-radius: 7px;
+  padding: 1.0em;
+	display: inline-block;
+  border: 1px solid gray;
+	text-align: center;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+	margin-left: 0.5em;
+	margin-right: 0.5em;
 }
 
-.input{
-  -moz-border-radius: 3px; 
-  -webkit-border-radius: 3px;
-  border-radius: 3px; 
-  font-size: 15px;
-  padding: 5px;
-  border: 1px solid #b9bdc1;
-  width: 100%;
-  max-width: 400px;
+legend.admin-border {
+  width:auto;
+	padding: 0.25em 0.5em 0em 0.25em;
+  margin:0px 0px 0px 0px;
+  border-bottom:none;
 }
+
+.opt {font-size: 16px;}
+
+.hidden {display: none;}
 
 .menu-item {
   text-align: center;
@@ -236,12 +212,14 @@ textarea.special-msg {
   background: black;
   border: 0px solid black;
 }
+
 .ui-tooltip {
   padding: 5px 10px;
   color: white;
   border-radius: 20px;
   font: bold 14px "Helvetica Neue", Sans-Serif;
 }
+
 .arrow {
   width: 70px;
   height: 16px;
@@ -251,13 +229,16 @@ textarea.special-msg {
   margin-left: -35px;
   bottom: -16px;
 }
+
 .arrow.top {
   top: -16px;
   bottom: auto;
 }
+
 .arrow.left {
   left: 20%;
 }
+
 .arrow:after {
   content: "";
   position: absolute;
@@ -269,12 +250,123 @@ textarea.special-msg {
   -ms-transform: rotate(45deg);
   transform: rotate(45deg);
 }
+
 .arrow.top:after {
   bottom: -20px;
   top: auto;
 }
 
-/***** AUDIOPLAYER *****/
+
+/*------------------------ BOOTSTRAP3 OVERRIDES ----------------------*/
+
+.thin {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  text-rendering: optimizeLegibility !important;
+  -webkit-font-smoothing: antialiased !important;
+  font-weight: lighter;
+}
+
+.table.table-colored {
+	max-width: 1300px;
+  /*table-layout: fixed;*/
+  /*word-wrap: break-word;*/
+  word-wrap: normal;
+  background-color: #f7f7f7;
+  /*font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;*/
+  text-rendering: optimizeLegibility !important;
+  -webkit-font-smoothing: antialiased !important;
+  font-size:11pt;
+  margin-bottom:0px;
+}
+
+.table.table-colored td {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+  max-width:150px;
+  padding:12px 12px 12px 12px;
+  /*color: #2b547e;*/
+  color: black;
+  vertical-align:middle;
+  font-family: Helvetica, Arial, sans-serif;
+  text-rendering: optimizeLegibility !important;
+  font-weight: lighter;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+.table.table-colored.table-hover tbody tr:hover td {
+  background-color: white;
+}
+
+.table.table-colored.table-hover tbody tr:hover th {
+  background-color: #e8f5f9;
+}
+
+.table.table-colored th {
+  background-color: #e8f5f9;
+}
+
+.center {
+	position: absolute;
+  float: none;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/*-------------------------- NEW NOTIFIC EVENT --------------------*/
+
+legend.new-event-border {
+  font-size: 1.0em !important;
+  font-weight: bold !important;
+  text-align: left !important;
+  width:auto;
+  padding:0 10px;
+  margin:0px 0px 0px 0px;
+  border-bottom:none;
+}
+
+.new-event-form-fieldset {
+  padding: 5px 10px 15px 10px;
+  border: 1px solid #cccccc;
+  -moz-border-radius: 7px;
+  -webkit-border-radius: 7px;
+  text-align: left;
+  width: 350px;
+}
+
+textarea.special-msg {
+  width: 100%;
+  max-width: 300px;
+  height: 50px;
+}
+
+.box {
+  background-color: #e8f5f9;
+  min-width: 300px;
+  max-width: 1000px;
+  padding-right: 2em;
+  padding-left: 2em;
+  padding-bottom: 2em;
+  padding-top: 2em;
+  z-index: 20;
+  margin-top: 1em;
+  margin-bottom: 2em;
+  border: 1px solid #cccccc;
+  -moz-border-radius: 7px;
+  -webkit-border-radius: 7px;
+  border-radius: 7px;
+}
+
+.input{
+  -moz-border-radius: 3px; 
+  -webkit-border-radius: 3px;
+  border-radius: 3px; 
+  font-size: 15px;
+  padding: 5px;
+  border: 1px solid #b9bdc1;
+  width: 100%;
+  max-width: 400px;
+}
 
 #audioplayer{
 /* Original: 480px x 60px */
@@ -339,69 +431,4 @@ textarea.special-msg {
   color: #2b547e;
   text-align: center;
   padding:0.5em;
-}
-
-/*** new_job.html ***/
-
-#my-alert {
-  display: none;
-  width:400px;
-}
-
-
-/***** BOOTSTRAP3 *****/
-
-.thin {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  text-rendering: optimizeLegibility !important;
-  -webkit-font-smoothing: antialiased !important;
-  font-weight: lighter;
-}
-
-.table.table-colored {
-	max-width: 1300px;
-  /*table-layout: fixed;*/
-  /*word-wrap: break-word;*/
-  word-wrap: normal;
-  background-color: #f7f7f7;
-  /*font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;*/
-  text-rendering: optimizeLegibility !important;
-  -webkit-font-smoothing: antialiased !important;
-  font-size:11pt;
-  margin-bottom:0px;
-}
-
-.table.table-colored td {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-  max-width:150px;
-  padding:12px 12px 12px 12px;
-  /*color: #2b547e;*/
-  color: black;
-  vertical-align:middle;
-  font-family: Helvetica, Arial, sans-serif;
-  text-rendering: optimizeLegibility !important;
-  font-weight: lighter;
-  -webkit-font-smoothing: antialiased !important;
-}
-
-.table.table-colored.table-hover tbody tr:hover td {
-  background-color: white;
-}
-
-.table.table-colored.table-hover tbody tr:hover th {
-  background-color: #e8f5f9;
-}
-
-.table.table-colored th {
-  background-color: #e8f5f9;
-}
-
-
-.center {
-	position: absolute;
-  float: none;
-  margin-left: auto;
-  margin-right: auto;
 }

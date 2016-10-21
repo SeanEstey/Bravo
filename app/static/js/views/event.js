@@ -11,17 +11,20 @@ function init() {
 		enableColumnSorting();
 		formatColumns();
 
+			$('.delete-btn').button({
+					icons: {
+						primary: 'ui-icon-trash'
+					},
+					text: false
+			})
+
     if($('#event-status').text().indexOf('Pending') > -1) {
       var args =  window.location.pathname.split('/');
       var evnt_id = args.slice(-1)[0];
 
+
+
       $('.delete-btn').each(function(){ 
-          $(this).button({
-            icons: {
-              primary: 'ui-icon-trash'
-            },
-            text: false
-          });
 
           $(this).click(function() {
               var acct_id = $(this).attr('id');

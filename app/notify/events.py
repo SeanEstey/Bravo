@@ -157,6 +157,29 @@ def rmv_notifics(evnt_id, acct_id):
     return True
 
 #-------------------------------------------------------------------------------
+def dup_random_acct(evnt_id):
+    import random
+    random.seed()
+    size = db.accounts.find({'evnt_id':evnt_id}).count()
+    rand_num = random.randrange(size)
+
+    acct = db.accounts.find({'evnt_id':ObjectId(evnt_id)}).limit(-1).skip(rand_num).next()
+    notifics = db.notifics.find({'acct_id': acct['_id']})
+
+    old_id = acct['_id']
+    acct['_id'] = ObjectId()
+    db.accounts.insert(acct)
+
+    #logger.info('old acct_id %s, new acct_id %s', str(old_id), str(new_acct['_id']))
+
+    for notific in notifics:
+        notific['_id'] = ObjectId()
+        notific['acct_id'] = acct['_id']
+        db.notifics.insert_one(notific)
+
+    return True
+
+#-------------------------------------------------------------------------------
 def remove(evnt_id):
     # remove all triggers, notifics, and event
     evnt_id = ObjectId(evnt_id)

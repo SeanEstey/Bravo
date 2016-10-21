@@ -5,6 +5,15 @@
 
 /***** CLASSES *****/
 
+.form-fieldset {
+  padding: 5px 10px 15px 10px;
+  border: 1px solid #cccccc;
+  -moz-border-radius: 7px;
+  -webkit-border-radius: 7px;
+  text-align: left;
+  width: 350px;
+}
+
 legend.scheduler-border {
   font-size: 1.0em !important;
   font-weight: bold !important;
@@ -14,6 +23,18 @@ legend.scheduler-border {
   margin:0px 0px 0px 0px;
   border-bottom:none;
 }
+
+legend.admin-panel-border {
+  /*font-size: 1.0em !important;*/
+ /* font-weight: bold !important;*/
+ /* text-align: left !important;*/
+  width:auto;
+  padding:0.5em 0.5em;
+  margin:0px 0px 0px 0px;
+ /* border-bottom:none;*/
+}
+
+
 
 a.hover {
   text-decoration: none;
@@ -32,21 +53,19 @@ a.hover:visited {
   color: #365766;
 }
 
-.form-fieldset {
-  padding: 5px 10px 15px 10px;
-  border: 1px solid #cccccc;
-  -moz-border-radius: 7px;
-  -webkit-border-radius: 7px;
-  text-align: left;
-  width: 350px;
-}
+
 
 .opt {font-size: 16px;}
 .hidden {display: none;}
 
-.status-banner, .green, .red {
-	margin: 2em 0em;
-	display: block;
+.status-banner {
+	position: absolute;
+	top: 12em;
+	max-width: 1300px;
+	left: 0;
+	right: 0;
+	margin-left: auto;
+	margin-right: auto;
 	/*visibility: hidden;*/
   -webkit-border-radius:7px 7px 7px 7px; 
   background-color: transparent; 
@@ -71,8 +90,26 @@ a.hover:visited {
     }
 }
 
+.bravo-header {
+	position: absolute;
+	top: 4em;
+	left: 0;
+	right: 0;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+
 /* Outer frame for tables in show_jobs / show_calls views */
 .data-container {
+	position:absolute;
+	top: 20em;
+	left: 0;
+	right: 0;
+	margin-left: auto;
+	margin-right: auto;
+
 	max-width:1300px;
   border:1px solid #bbbbbb; 
   border-radius:7px; 
@@ -172,53 +209,6 @@ textarea.special-msg {
 .form-btn:active {
   background:#FFFFFF;
   color:black;
-}
-
-.nice {
-  width: 100%;
-  font-family: verdana;
-  font-size: 12px;
-  max-width: 400px;
-}
-
-.nice .NFI-button {
-  -moz-border-radius-topleft: 3px; 
-  -moz-border-radius-bottomleft: 3px;
-  -webkit-border-top-left-radius: 3px;
-  -webkit-border-bottom-left-radius: 3px;
-  border-top-left-radius: 3px; 
-  border-bottom-left-radius: 3px;
-  background: white;
-  border: solid #b3b3b3 1px;
-  color:black;
-  padding-left: 0.5em;
-  padding-right: 0.5em;
-  width: 25%;
-  height: 32px;
-  line-height: 32px;
-}
-
-.nice .NFI-button:hover {
-  color: black;
-  background:#6cc644;
-  color:white; 
-}
-
-.nice .NFI-filename {
-  -moz-border-radius-topright: 3px; 
-  -moz-border-radius-bottomright: 3px;
-  -webkit-border-top-right-radius: 3px;
-  -webkit-border-bottom-right-radius: 3px;
-  border-top-right-radius: 3px; 
-  border-bottom-right-radius: 3px;
-  width: 75%;
-  border: solid #c3c3c3 1px;
-  border-left: none;
-  height: 32px;
-  line-height: 30px;
-  background: #fff;
-  color: #777;
-  text-shadow: 0px 1px 0px #fff;
 }
 
 .ui-tooltip, .arrow:after {
@@ -387,7 +377,9 @@ textarea.special-msg {
   background-color: #e8f5f9;
 }
 
+
 .center {
+	position: absolute;
   float: none;
   margin-left: auto;
   margin-right: auto;

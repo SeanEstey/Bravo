@@ -22,33 +22,35 @@
 
     <script type='text/javascript' src="{{url_for('static', filename='js/jquery.nicefileinput.min.js')}}"></script>
     <script type="text/javascript" src="{{url_for('static', filename='js/date.js')}}"></script>
-
       
     <div class='container'>
-      <ul id='app_menu' class="nav nav-pills" style='float:right'>
-        <li role="presentation">
-					<a href="{{url_for('notify.view_event_list')}}"><span class='glyphicon glyphicon-home'></span>  Notify</a>
-				</li>
-        <li role="presentation">
-					<a href="{{url_for('routing.show_routing')}}"><span class='glyphicon glyphicon-road'></span>   Routing</a>
-				</li>
-        <li role="presentation">
-					<a href="{{url_for('main.show_booking')}}"><span class='glyphicon glyphicon-book'></span>   Booking</a>
-				</li>
-        <li role="presentation">
-					<a href="{{url_for('main.view_log')}}"><span class='glyphicon glyphicon-console'></span> Log</a>
-				</li>
-        <li role="presentation">
-					<a href="{{url_for('main.view_admin')}}"><span class='glyphicon glyphicon-cog'></span> Settings</a>
-				</li>
-        <li role="presentation">
-					<a href="{{url_for('auth.logout')}}"><span class='glyphicon glyphicon-log-out'></span> Logout</a>
-				</li>
-      </ul>
-      <div style='width:200px; margin:0.5em auto' class='center'>
-        <a href="{{url_for('notify.view_event_list')}}"><img id='buit' src="{{ url_for('static',
+			<div>
+				<ul id='app_menu' class="nav nav-pills" style='float:right'>
+					<li role="presentation">
+						<a href="{{url_for('notify.view_event_list')}}"><span class='glyphicon glyphicon-home'></span>  Notify</a>
+					</li>
+					<li role="presentation">
+						<a href="{{url_for('routing.show_routing')}}"><span class='glyphicon glyphicon-road'></span>   Routing</a>
+					</li>
+					<li role="presentation">
+						<a href="{{url_for('main.show_booking')}}"><span class='glyphicon glyphicon-book'></span>   Booking</a>
+					</li>
+					<li role="presentation">
+						<a href="{{url_for('main.view_log')}}"><span class='glyphicon glyphicon-console'></span> Log</a>
+					</li>
+					<li role="presentation">
+						<a href="{{url_for('main.view_admin')}}"><span class='glyphicon glyphicon-cog'></span> Settings</a>
+					</li>
+					<li role="presentation">
+						<a href="{{url_for('auth.logout')}}"><span class='glyphicon glyphicon-log-out'></span> Logout</a>
+					</li>
+				</ul>
+			</div>
+      <div class='bravo-header'>
+        <a style='display:block; margin-left:auto; margin-right:auto;' href="{{url_for('notify.view_event_list')}}"><img style='display:block; margin-left:auto; margin-right:auto; text-align:center;' id='buit' src="{{ url_for('static',
         filename='images/bravo_comfortaa.png') }}"></a>
       </div>
+			<div style='margin-bottom:10em'></div>
       {% block content %}{% endblock %}
     </div>
 

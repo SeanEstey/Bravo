@@ -32,9 +32,13 @@ function init() {
 		url: $URL_ROOT + 'notify/' + evnt_id + '/' + acct_id + '/remove'
 	}).done(function(msg) {
 		console.log('%s notifications removed', msg);
+		if(msg == 'OK'){ 
+			$tr.remove();
+			bannerMsg('Notification removed', 'info');
+		}
+		else
+			bannerMsg(msg, 'error');
 
-		//if(msg == 'OK')
-		$tr.remove();
 	});
           });
       });
@@ -57,14 +61,7 @@ function init() {
         console.log('event complete!');
     }
 
-    if($('#event-status').text().indexOf('Pending') > -1) {
-        //updateCountdown();
-        //window.countdown_id = setInterval(updateCountdown, 1000);
-    }
-
     updateJobStatus();
-    
-    $('body').css('display','block');
 
     // Init socket.io
     var socketio_url = 'http://' + document.domain + ':' + location.port;
@@ -78,8 +75,9 @@ function init() {
         console.log('socket.io connected!');
     });
 
-    socket.on('update_msg', function(data) {
-        receiveMsgUpdate(data);
+    socket.on('notific_status', function(data) {
+        console.log('received msg!');
+        //receiveMsgUpdate(data);
     });
 
     socket.on('update_event', function(data) {
@@ -118,7 +116,7 @@ function init() {
 			else if(text.indexOf('voice') > -1)
 					$(this).find('span').text('Voice/SMS');
 
-		console.log($(this).attr('id'));
+			console.log($(this).attr('id'));
 
 			$(this).on("click", function(e){
 				var trig_id = $(this).attr('id'); //console.log($(this).attr('id'));
@@ -138,7 +136,15 @@ function init() {
 					}
 				});
 			});
+		});
 
+		$('#duplicate-acct').click(function() {
+				$.ajax({
+					type: 'GET',
+					url: $URL_ROOT + 'notify/' + evnt_id + '/dup_acct'}
+				).done(function(response, textStatus) {
+					window.location.reload();}
+				);
 		});
 
     $('#reset-event').click(function() {
@@ -154,6 +160,10 @@ function init() {
     $('#dump').click(function() {
         window.location.assign($URL_ROOT + 'summarize/' + String(evnt_id));
     });
+
+    if($('.status-banner').text()) {
+        bannerMsg($('.status-banner').text(), 'info', 15000);
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -584,4 +594,73 @@ function formatColumns() {
 		var string = date.toDateString();
 		$(this).html(string);
 	});
+}
+
+
+
+//------------------------------------------------------------------------------
+function receiveMsgUpdate(data) {
+  // Clear the countdown timer if it is running
+
+  if(typeof data == 'string')
+    data = JSON.parse(data);
+
+  console.log('received update: ' + JSON.stringify(data));
+  var $row = $('#'+data['id']);
+ 
+  // Update to CALL state 
+  if('call_status' in data) {
+    $lbl = $row.find('[name="call_status"]');
+    var caption = data['call_status'];
+    
+    if(data['call_status'] == 'completed') {
+      $lbl.css('color', window.colors['SUCCESS_STATUS']);
+
+      if(data['answered_by'] == 'human')
+        caption = 'Sent Live';
+      else if(data['answered_by'] == 'machine')
+        caption = 'Sent Voicemail';
+    }
+    else if(data['call_status'] == 'failed') {
+      $lbl.css('color', window.colors['FAILED_STATUS']);
+
+      if('error_msg' in data)
+        caption = 'Failed (' + data['error_msg'] + ')';
+      else
+        caption = 'Failed';
+    }
+    else if(data['call_status'] == 'busy' || data['call_status'] == 'no-answer')
+      caption += ' (' + data['attempts'] + 'x)';
+    else {
+      $lbl.css('color', window.colors['IN_PROGRESS_STATUS']);
+    }
+
+    $lbl.html(caption.toTitleCase()); 
+  }
+  // Update to EMAIL state
+  else if('email_status' in data) {
+    $lbl = $row.find('[name="email_status"]');
+    var caption = data['email_status'];
+    
+    if(data['email_status'] == 'delivered') {
+      $lbl.css('color', window.colors['SUCCESS_STATUS']);
+    }
+    else if(data['email_status'] == 'bounced' || data['email_status'] == 'dropped') {
+      $lbl.css('color', window.colors['FAILED_STATUS']);
+    }
+    else if(data['email_status'] == 'queued') {
+      $lbl.css('color', window.colors['IN_PROGRESS_STATUS']);
+    }
+    else if(data['email_status'] == 'no_email') {
+      $lbl.css('color', window.colors['DEFAULT_STATUS']);
+    }
+    
+    $lbl.text(caption.toTitleCase()); 
+  }
+
+  if('speak' in data) {
+    var title = 'Msg: ' + data['speak'];
+    $row.find('[name="call_status"]').attr('title', title);
+  }
+
 }

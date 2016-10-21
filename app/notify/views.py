@@ -78,6 +78,15 @@ def view_event(evnt_id):
         bson_to_json=True
     )
 
+    msg = ''
+    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
+        msg += 'Running in Sandbox mode: eTapestry is read-only, '\
+               'Twilio in simulation mode, Mailgun forwarding mail to '\
+               'sean.vecova@gmail.com. '
+    user = db['users'].find_one({'user': current_user.username})
+    if user['admin']:
+        msg += 'You have admin priviledges.'
+
     return render_template(
         'views/event.html',
         title=current_app.config['TITLE'],
@@ -85,7 +94,8 @@ def view_event(evnt_id):
         evnt_id=evnt_id,
         event=event,
         triggers=trigger_list,
-        admin=admin
+        admin=admin,
+        banner_msg=msg
     )
 
 #-------------------------------------------------------------------------------
@@ -123,8 +133,10 @@ def _submit_event():
 @notify.route('/<evnt_id>/cancel')
 @login_required
 def cancel_event(evnt_id):
-    events.remove(ObjectId(evnt_id))
-    return 'OK'
+    if events.remove(ObjectId(evnt_id)):
+        return 'OK'
+    else:
+        return 'Error removing notification'
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/reset')
@@ -150,6 +162,16 @@ def job_complete(evnt_id):
 def rmv_notifics(evnt_id, acct_id):
     n = events.rmv_notifics(ObjectId(evnt_id), ObjectId(acct_id))
     return str(n)
+
+
+#-------------------------------------------------------------------------------
+@notify.route('/<evnt_id>/dup_acct', methods=['GET'])
+@login_required
+def dup_acct(evnt_id):
+    if events.dup_random_acct(ObjectId(evnt_id)):
+        return 'OK'
+    else:
+        return 'Error'
 
 #-------------------------------------------------------------------------------
 @notify.route('/<acct_id>/edit', methods=['POST'])

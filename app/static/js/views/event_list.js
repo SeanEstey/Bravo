@@ -119,6 +119,4 @@ function init() {
 
     location.href = $URL_ROOT + '?n='+next_n;
   });
-
-  $('body').css('display','block');
 }

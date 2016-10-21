@@ -95,6 +95,12 @@ def fire(evnt_id, trig_id):
 
         if status == 'failed':
             fails += 1
+        else:
+            from app.socketio import socketio_app
+            import requests
+            requests.get('http://localhost/sendsocket', params={'name':'notific_status', 'data':42})
+            # send_socket('update_msg',
+            # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
 
     db['triggers'].update_one(
         {'_id':trig_id},

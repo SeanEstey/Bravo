@@ -19,6 +19,16 @@ from .. import db
 logger = logging.getLogger(__name__)
 
 
+
+#-------------------------------------------------------------------------------
+@main.route('/sendsocket', methods=['GET'])
+def request_send_socket():
+    from app.socketio import socketio_app
+    name = request.args.get('name').encode('utf-8')
+    data = request.args.get('data').encode('utf-8')
+    socketio_app.emit(name, data)
+    return 'OK'
+
 #-------------------------------------------------------------------------------
 @main.route('/')
 def landing_page():

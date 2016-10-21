@@ -4,8 +4,10 @@ from flask import request, jsonify
 from flask_socketio import SocketIO, send, emit
 import logging
 
-from run import socketio_app
+from tasks import flask_app
 logger = logging.getLogger(__name__)
+
+socketio_app = SocketIO(flask_app)
 
 #-------------------------------------------------------------------------------
 @socketio_app.on('disconnect')
@@ -19,3 +21,5 @@ def connected():
     #logger.info('socket.io connected')
 
     emit('connected')
+
+

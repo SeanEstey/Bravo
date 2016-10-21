@@ -7,13 +7,17 @@
 					src="{{url_for('static', filename='js/views/event_list.js')}}">
 	</script>
   <script>
-   document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
       init();
     });
-  </script>
+		jQuery(document).ready(function() {
+				$('.data-container').css('visibility', 'visible');
+			});
+	</script>
   
-  <div style='margin:40px 10px 40px 10px; text-align:center'>
+  <div class='status-banner'>{{banner_msg}}</div>
+
+  <div style='margin-top:17em; margin-bottom:1em; text-align:center'>
     <h3 class='thin'>
     <script>
       var date = new Date();
@@ -21,10 +25,8 @@
     </script>
     </h3>
   </div>
-
-  <div class='status-banner'>{{banner_msg}}</div>
   
-  <div class='data-container'>
+  <div class='data-container' style='visibility:hidden'>
     <div class='navbar-div'>
       <a class='hover' href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
       <a style='font-weight:bold; text-decoration:none;' title='Schedule a new
@@ -82,12 +84,12 @@
       </tbody>
     </table>
   </div>
-  <nav>
+  <!--<nav>
     <ul class="pager">
       <li><a id='newer-page' href='#'><span aria-hidden="true">&laquo;</span>  Newer</a></li>
       <li><a id='older-page' href='#'>Older  <span aria-hidden="true">&raquo;</span></a></li>
     </ul>
-  </nav>
+  </nav>-->
   {% endblock %}
 
 

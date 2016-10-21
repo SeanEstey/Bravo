@@ -15,10 +15,9 @@ from flask_socketio import SocketIO
 import config
 from app import create_app, config_test_server, is_test_server
 from app.tasks import flask_app
+from app.socketio import socketio_app
+import app
 
-socketio_app = SocketIO(flask_app)
-
-import app.socketio
 
 class bcolors:
     HEADER = '\033[95m'

@@ -10,27 +10,14 @@
 					src="{{url_for('static', filename='js/views/event.js')}}">
 	</script>
   <script>
-    document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
-      init();
+				init();
     });
+		jQuery(document).ready(function() {
+				$('.data-container').css('visibility', 'visible');
+			});
   </script>
   
-	<!-- Countdown Timer -->
-  <div class='row' style='padding:20px 0px 10px 0px; text-align:center;
-  display:none'>
-    <h2>
-      <span id='event-header' class='label label-primary'>
-        <label id='event-status'>
-						{{ event.status.title().replace('-',' ') }}
-				</label>
-        <label id='event-summary'></label>
-      </span>
-    </h2>
-      <p id='scheduled_datetime' style='display:none'> {{ event.event_dt.date() }}</p>
-  </div>
-
-	
 	<!-- Play Sample -->
 	<!--
 	<div class='row' style='padding:0em 0em 3em 0em; text-align:center'>
@@ -40,10 +27,9 @@
 		</audio>
 	</div>-->
 
-  <div class='status-banner'></div>
-
+  <div class='status-banner'>{{banner_msg}}</div>
   
-  <div class='data-container'>
+  <div class='data-container' style='visibility:hidden'>
     <div class='navbar-div'>
       <a class='hover' href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
       {{ event.name }}
@@ -130,25 +116,33 @@
 	{% if admin == True %}
 	<div>
 
-	<div style='-webkit-border-radius:7px 7px 7px 7px; position:absolute; bottom:3em; margin-right:auto; margin-left:auto; left:0px; right:0px;'>
-			<fieldset style='border-style:solid; text-align:center'>
-			<legend style='width:20%;' >Admin Panel</legend>
-
-			{% for trigger in triggers %}
-				{% if trigger['status'] == 'pending' %}
-						<button 
-							style='margin:0 auto;'
-							class='btn btn-primary'
-							name='trigger'
-							id='{{trigger['_id']}}'
-							type='button' 
-						>Send <span>{{trigger['type']}}</span> Now</button>
-				{% endif %}
-			{% endfor %}
-
-			<button style='margin:0 auto;' class='btn btn-primary' name='reset'
-							type='button' id='reset-event'>Reset All Notifications</button>
-			</fieldset>
+	<div style='display:inline-block; position:absolute; bottom:3em;
+  margin-right:auto; margin-left:auto; left:0px; right:0px; text-align:center;'>
+    <fieldset class='form-fieldset' style='display:inline-block; border-style:solid; text-align:center;'>
+			<legend class='admin-panel-border'>Admin Panel</legend>
+        {% for trigger in triggers %}
+          {% if trigger['status'] == 'pending' %}
+              <button 
+                style='margin:0 auto;'
+                class='btn btn-primary'
+                name='trigger'
+                id='{{trigger['_id']}}'
+                type='button' 
+              >Send <span>{{trigger['type']}}</span> Now</button>
+          {% endif %}
+        {% endfor %}
+    </fieldset>
+    <fieldset class='form-fieldset' style='display:inline-block; border-style:solid; text-align:center;
+    -moz-box-sizing:border-box; -webkit-box-sizing:border-box;
+    box-sizing:border-box; margin:0'>
+      <legend class='admin-panel-border'>Test Server Panel</legend>
+        <button 
+          style='margin:0 auto;' class='btn btn-primary' id='duplicate-acct'
+          type='button' id='duplicate-acct'
+        >Add Random Account</button>
+        <button style='margin:0 auto;' class='btn btn-primary' name='reset'
+                type='button' id='reset-event'>Reset All Notifications</button>
+    </fieldset>
 	</div>
 </div>
 	{% endif %}

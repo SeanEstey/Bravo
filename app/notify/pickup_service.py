@@ -81,6 +81,7 @@ def create_reminder_event(agency, block, _date):
 
         acct_id = accounts.add(
             agency,
+            event_id,
             acct_obj['name'],
             phone = etap.get_primary_phone(acct_obj),
             email = acct_obj.get('email'),

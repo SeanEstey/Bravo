@@ -5,7 +5,7 @@
 
 /***** CLASSES *****/
 
-.form-fieldset {
+.new-event-form-fieldset {
   padding: 5px 10px 15px 10px;
   border: 1px solid #cccccc;
   -moz-border-radius: 7px;
@@ -24,7 +24,39 @@ legend.scheduler-border {
   border-bottom:none;
 }
 
-legend.admin-panel-border {
+.admin-fieldset {
+  -moz-border-radius: 7px;
+  -webkit-border-radius: 7px;
+  padding: 1em;
+	display: inline-block;
+  border: 1px solid gray;
+	text-align: center;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+	margin: 0;
+}
+
+.admin-panel {
+	border-style: solid;
+	border-top: thin solid gray;
+	border-left: none;
+	border-right: none;
+	border-bottom: none;
+	padding-bottom: 1em;
+	padding-top: 0.25em;
+	background-color: white;
+	display:inline-block;
+	position: fixed;
+	bottom: 0;
+	margin-right: auto;
+	margin-left: auto;
+	left: 0;
+	right: 0;
+	text-align:center;
+}
+
+legend.admin-border {
   /*font-size: 1.0em !important;*/
  /* font-weight: bold !important;*/
  /* text-align: left !important;*/
@@ -33,8 +65,6 @@ legend.admin-panel-border {
   margin:0px 0px 0px 0px;
  /* border-bottom:none;*/
 }
-
-
 
 a.hover {
   text-decoration: none;
@@ -52,8 +82,6 @@ a.hover:link {
 a.hover:visited {
   color: #365766;
 }
-
-
 
 .opt {font-size: 16px;}
 .hidden {display: none;}
@@ -82,7 +110,6 @@ a.hover:visited {
   background-color: red; 
 }
 
-
 /* Adjust container only if user has wide screen */
 @media (min-width: 1200px) {
     .container{
@@ -99,17 +126,11 @@ a.hover:visited {
   margin-right: auto;
 }
 
-
-
-/* Outer frame for tables in show_jobs / show_calls views */
 .data-container {
-	position:absolute;
-	top: 20em;
-	left: 0;
-	right: 0;
+	margin-top: 17em;
+	margin-bottom: 5em;
 	margin-left: auto;
 	margin-right: auto;
-
 	max-width:1300px;
   border:1px solid #bbbbbb; 
   border-radius:7px; 

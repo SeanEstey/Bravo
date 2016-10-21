@@ -116,8 +116,6 @@ function init() {
 			else if(text.indexOf('voice') > -1)
 					$(this).find('span').text('Voice/SMS');
 
-			console.log($(this).attr('id'));
-
 			$(this).on("click", function(e){
 				var trig_id = $(this).attr('id'); //console.log($(this).attr('id'));
 				console.log('firing trigger id ' + trig_id);
@@ -355,7 +353,7 @@ function updateJobStatus() {
       var n_sent = 0;
       var n_incomplete = 0;
 
-      $('[name="phone_status"]').each(function() {
+      $('[name="voice_sms_status"]').each(function() {
         sum++;
 
         if($(this).text().indexOf('Sent') > -1)
@@ -382,11 +380,11 @@ function receiveMsgUpdate(data) {
   var $row = $('#'+data['id']);
  
   // Update to CALL state 
-  if('phone_status' in data) {
-    $lbl = $row.find('[name="phone_status"]');
-    var caption = data['phone_status'];
+  if('voice_sms_status' in data) {
+    $lbl = $row.find('[name="voice_sms_status"]');
+    var caption = data['voice_sms_status'];
     
-    if(data['phone_status'] == 'completed') {
+    if(data['voice_sms_status'] == 'completed') {
       $lbl.css('color', window.colors['SUCCESS_STATUS']);
 
       if(data['answered_by'] == 'human')
@@ -394,7 +392,7 @@ function receiveMsgUpdate(data) {
       else if(data['answered_by'] == 'machine')
         caption = 'Sent Voicemail';
     }
-    else if(data['phone_status'] == 'failed') {
+    else if(data['voice_sms_status'] == 'failed') {
       $lbl.css('color', window.colors['FAILED_STATUS']);
 
       if('error_msg' in data)
@@ -402,7 +400,7 @@ function receiveMsgUpdate(data) {
       else
         caption = 'Failed';
     }
-    else if(data['phone_status'] == 'busy' || data['phone_status'] == 'no-answer')
+    else if(data['voice_sms_status'] == 'busy' || data['voice_sms_status'] == 'no-answer')
       caption += ' (' + data['attempts'] + 'x)';
     else {
       $lbl.css('color', window.colors['IN_PROGRESS_STATUS']);
@@ -433,7 +431,7 @@ function receiveMsgUpdate(data) {
 
   if('speak' in data) {
     var title = 'Msg: ' + data['speak'];
-    $row.find('[name="phone_status"]').attr('title', title);
+    $row.find('[name="voice_sms_status"]').attr('title', title);
   }
 
   updateJobStatus();
@@ -518,7 +516,7 @@ function formatColumns() {
 
 	// "Call Status" column
 
-	$('tbody [name="phone_status"]').each(function() {
+	$('tbody [name="voice_sms_status"]').each(function() {
 
 			var status = $(this).text();
 		
@@ -609,11 +607,11 @@ function receiveMsgUpdate(data) {
   var $row = $('#'+data['id']);
  
   // Update to CALL state 
-  if('call_status' in data) {
-    $lbl = $row.find('[name="call_status"]');
-    var caption = data['call_status'];
+  if('voice_sms_status' in data) {
+    $lbl = $row.find('[name="voice_sms_status"]');
+    var caption = data['voice_sms_status'];
     
-    if(data['call_status'] == 'completed') {
+    if(data['voice_sms_status'] == 'completed') {
       $lbl.css('color', window.colors['SUCCESS_STATUS']);
 
       if(data['answered_by'] == 'human')
@@ -621,7 +619,7 @@ function receiveMsgUpdate(data) {
       else if(data['answered_by'] == 'machine')
         caption = 'Sent Voicemail';
     }
-    else if(data['call_status'] == 'failed') {
+    else if(data['voice_sms_status'] == 'failed') {
       $lbl.css('color', window.colors['FAILED_STATUS']);
 
       if('error_msg' in data)
@@ -629,7 +627,7 @@ function receiveMsgUpdate(data) {
       else
         caption = 'Failed';
     }
-    else if(data['call_status'] == 'busy' || data['call_status'] == 'no-answer')
+    else if(data['voice_sms_status'] == 'busy' || data['voice_sms_status'] == 'no-answer')
       caption += ' (' + data['attempts'] + 'x)';
     else {
       $lbl.css('color', window.colors['IN_PROGRESS_STATUS']);
@@ -660,7 +658,7 @@ function receiveMsgUpdate(data) {
 
   if('speak' in data) {
     var title = 'Msg: ' + data['speak'];
-    $row.find('[name="call_status"]').attr('title', title);
+    $row.find('[name="voice_sms_status"]').attr('title', title);
   }
 
 }

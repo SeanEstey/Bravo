@@ -1,10 +1,8 @@
   {% extends "views/base.html" %}
   {% block content %}  
-	<script type='text/javascript' 
-					src="{{url_for('static', filename='js/base.js')}}">
+	<script type='text/javascript' src="{{url_for('static', filename='js/base.js')}}">
 	</script>
-	<script type='text/javascript' 
-					src="{{url_for('static', filename='js/views/event_list.js')}}">
+	<script type='text/javascript' src="{{url_for('static', filename='js/views/event_list.js')}}">
 	</script>
   <script>
     jQuery(function($){
@@ -17,14 +15,15 @@
   
   <div class='status-banner'>{{banner_msg}}</div>
 
-  <div style='margin-top:17em; margin-bottom:1em; text-align:center'>
+	<!--
+  <div style='text-align:center'>
     <h3 class='thin'>
     <script>
       var date = new Date();
       document.write('<b>' + date.toString('dddd, MMMM d, yyyy') + '</b>');
     </script>
     </h3>
-  </div>
+  </div>-->
   
   <div class='data-container' style='visibility:hidden'>
     <div class='navbar-div'>

@@ -18,15 +18,6 @@
 			});
   </script>
   
-	<!-- Play Sample -->
-	<!--
-	<div class='row' style='padding:0em 0em 3em 0em; text-align:center'>
-		<button id='play-sample-btn' class='btn btn-info'>Play Sample</button>
-		<audio id="music">
-			<source id='audio-sample' name='audio-sample' type='audio/mpeg'>
-		</audio>
-	</div>-->
-
   <div class='status-banner'>{{banner_msg}}</div>
   
   <div class='data-container' style='visibility:hidden'>
@@ -95,7 +86,7 @@
             {% do status.update({'phone': notific['tracking']['status']}) %}
 					{% endif %}
 				{% endfor %}
-        <td name='phone_status'>{{ status['phone'] }}</td>
+        <td name='voice_sms_status'>{{ status['phone'] }}</td>
 
 				<!-- Delete Button -->
 				<td class='cancel-notific'>
@@ -111,41 +102,32 @@
     </tbody>
     </table>
   </div>
-    <br><br>
+	<div style='margin-bottom:15em'></div>
 
 	{% if admin == True %}
-	<div>
-
-	<div style='display:inline-block; position:absolute; bottom:3em;
-  margin-right:auto; margin-left:auto; left:0px; right:0px; text-align:center;'>
-    <fieldset class='form-fieldset' style='display:inline-block; border-style:solid; text-align:center;'>
-			<legend class='admin-panel-border'>Admin Panel</legend>
-        {% for trigger in triggers %}
-          {% if trigger['status'] == 'pending' %}
-              <button 
-                style='margin:0 auto;'
-                class='btn btn-primary'
-                name='trigger'
-                id='{{trigger['_id']}}'
-                type='button' 
-              >Send <span>{{trigger['type']}}</span> Now</button>
-          {% endif %}
-        {% endfor %}
-    </fieldset>
-    <fieldset class='form-fieldset' style='display:inline-block; border-style:solid; text-align:center;
-    -moz-box-sizing:border-box; -webkit-box-sizing:border-box;
-    box-sizing:border-box; margin:0'>
-      <legend class='admin-panel-border'>Test Server Panel</legend>
-        <button 
-          style='margin:0 auto;' class='btn btn-primary' id='duplicate-acct'
-          type='button' id='duplicate-acct'
-        >Add Random Account</button>
-        <button style='margin:0 auto;' class='btn btn-primary' name='reset'
-                type='button' id='reset-event'>Reset All Notifications</button>
-    </fieldset>
-	</div>
-</div>
+		<div class='admin-panel'>
+			<fieldset class='admin-fieldset'>
+				<legend class='admin-border'>Admin Panel</legend>
+					{% for trigger in triggers %}
+						<button 
+							style='margin:0 auto;'
+							class='btn btn-primary'
+							name='trigger'
+							id='{{trigger['_id']}}'
+							type='button' 
+						>Send <span>{{trigger['type']}}</span> Now</button>
+					{% endfor %}
+			</fieldset>
+			<fieldset class='admin-fieldset'>
+				<legend class='admin-border'>Test Server Panel</legend>
+					<button 
+						style='margin:0 auto;' class='btn btn-primary' id='duplicate-acct'
+						type='button' id='duplicate-acct'
+					>Add Random Account</button>
+					<button style='margin:0 auto;' class='btn btn-primary' name='reset'
+									type='button' id='reset-event'>Reset All Notifications</button>
+			</fieldset>
+		</div>
 	{% endif %}
-    <br><br>
 
   {% endblock %}

@@ -89,18 +89,21 @@ def fire(evnt_id, trig_id):
             elif notific['type'] == 'email':
                 status = email.send(notific, mailgun_conf)
         except Exception as e:
+            status = 'error'
             errors.append(str(e))
             logger.error('unexpected exception. notific _id \'%s\'. %s',
                 str(notific['_id']), str(e), exc_info=True)
-
-        if status == 'failed':
-            fails += 1
         else:
-            from app.socketio import socketio_app
-            import requests
-            requests.get('http://localhost/sendsocket', params={'name':'notific_status', 'data':42})
-            # send_socket('update_msg',
-            # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
+            if status == 'failed':
+                fails += 1
+        finally:
+            from .. import socketio
+            socketio.send_from_task(
+                'notific_status',
+                data={
+                    'notific_id': str(notific['_id']),
+                    'status': status})
+
 
     db['triggers'].update_one(
         {'_id':trig_id},

@@ -1,72 +1,32 @@
 
 //------------------------------------------------------------------------------
 function init() {
-    var $a_child = $('th:first-child a');
-
-    $a_child.html($a_child.html()+window.unicode['DOWN_ARROW']);
-
 		setupTwilioClient();
     addBravoTooltip();
-    makeCallFieldsClickable();
+    enableEditableFields();
 		enableColumnSorting();
 		formatColumns();
+    buildAdminPanel();
+    addBtnHandlers();
+    addSocketIOHandlers();
 
-			$('.delete-btn').button({
-					icons: {
-						primary: 'ui-icon-trash'
-					},
-					text: false
-			})
+    var $a_child = $('th:first-child a');
+    $a_child.html($a_child.html()+window.unicode['DOWN_ARROW']);
 
-    if($('#event-status').text().indexOf('Pending') > -1) {
-      var args =  window.location.pathname.split('/');
-      var evnt_id = args.slice(-1)[0];
+    $('.delete-btn').button({
+        icons: {
+          primary: 'ui-icon-trash'
+        },
+        text: false
+    })
 
-
-
-      $('.delete-btn').each(function(){ 
-
-          $(this).click(function() {
-              var acct_id = $(this).attr('id');
-              var $tr = $(this).parent().parent();
-
-              $.ajax({
-                type: 'POST',
-		url: $URL_ROOT + 'notify/' + evnt_id + '/' + acct_id + '/remove'
-	}).done(function(msg) {
-		console.log('%s notifications removed', msg);
-		if(msg == 'OK'){ 
-			$tr.remove();
-			bannerMsg('Notification removed', 'info');
-		}
-		else
-			bannerMsg(msg, 'error');
-
-	});
-          });
-      });
+    if($('.status-banner').text()) {
+        bannerMsg($('.status-banner').text(), 'info', 15000);
     }
-    else if($('#event-status').text() == 'In Progress') {
-        $('.cancel-call-col').each(function() {
-          $(this).hide();
-        });
-    }
-    else if($('#event-status').text() == 'Completed') {
-        $('#event-header').removeClass('label-primary');
-        $('#event-header').addClass('label-success');
-        $('#event-status').text('Completed');
-        $('#event-summary').text('');
-        $('.delete-btn').hide();
-        $('.cancel-call-col').each(function() {
-            $(this).hide();
-        });
+}
 
-        console.log('event complete!');
-    }
-
-    updateJobStatus();
-
-    // Init socket.io
+//------------------------------------------------------------------------------
+function addSocketIOHandlers() {
     var socketio_url = 'http://' + document.domain + ':' + location.port;
 
     console.log('attempting socket.io connection to ' + socketio_url + '...');
@@ -80,6 +40,11 @@ function init() {
 
     socket.on('notific_status', function(data) {
         console.log('received msg!');
+        console.log(JSON.stringify(data));
+
+        // Find "status" column for notification
+        var notific_id = data['notific_id'];
+        //$('td
         //receiveMsgUpdate(data);
     });
 
@@ -106,49 +71,126 @@ function init() {
         }
           updateJobStatus();
     });
+}
+
+//------------------------------------------------------------------------------
+function addBtnHandlers() {
+    //if($('#event-status').text().indexOf('Pending') > -1) {
+      var args =  window.location.pathname.split('/');
+      var evnt_id = args.slice(-1)[0];
+
+      $('.delete-btn').each(function(){ 
+          $(this).click(function() {
+              var acct_id = $(this).attr('id');
+              var $tr = $(this).parent().parent();
+
+              $.ajax({
+                type: 'POST',
+		            url: $URL_ROOT + 'notify/' + evnt_id + '/' + acct_id + '/remove'
+              }).done(function(msg) {
+                console.log('%s notifications removed', msg);
+
+                if(msg == 'OK'){ 
+                  $tr.remove();
+                  bannerMsg('Notification removed', 'info');
+                }
+                else
+                  bannerMsg(msg, 'error');
+              });
+          });
+      });
+
+    /*
+    else if($('#event-status').text() == 'In Progress') {
+        $('.cancel-call-col').each(function() {
+          $(this).hide();
+        });
+    }
+    else if($('#event-status').text() == 'Completed') {
+        $('#event-header').removeClass('label-primary');
+        $('#event-header').addClass('label-success');
+        $('#event-status').text('Completed');
+        $('#event-summary').text('');
+        $('.delete-btn').hide();
+        $('.cancel-call-col').each(function() {
+            $(this).hide();
+        });
+
+        console.log('event complete!');
+    }
+    */
+}
+
+//------------------------------------------------------------------------------
+function buildAdminPanel() {
+   
+    // Add admin_mode pane buttons
+
+    // Add btns to fire each event trigger. trig_ids are stored in data-container 
+    // "Status" columns i.e. "Voice SMS Status"
+    $('th[id] a:contains("Status")').parent().each(function() {
+        console.log('adding fire btn for trig_id ' + $(this).attr('id'));
+
+        var col_caption = $(this).children().text();
+
+        if(col_caption.search("Email") > -1) {
+          var btn_caption = 'Send Emails Now';
+          var btn_id = 'fire-voice-sms-btn';
+        }
+        else if(col_caption.search("Voice") > -1) {
+          var btn_caption = 'Send Voice/SMS Now';
+          var btn_id = 'fire-voice-sms-btn';
+        }
+
+        btn = addAdminPanelBtn(
+          'admin_pane',
+          btn_id,
+          btn_caption,
+          'btn-info', {
+            'trig_id':$(this).attr('id')
+          }
+        );
+
+        btn.click(function() {
+            $.ajax({
+              context: this,
+              type: 'POST',
+              url: $URL_ROOT + 'notify/' + $(this).data('trig_id') + '/fire'
+            })
+            .done(
+              function(response, textStatus, jqXHR) {
+                  response = JSON.parse(response);
+
+                  console.log('request status: %s', response['status']);
+
+                  if(response['status'] == 'OK') {
+                      bannerMsg('Request authorized. Sending notifications...',
+                                'info');
+
+                      $(this).addClass('btn btn-primary disabled');
+                  }
+              }
+            );
+        });
+    });
+
+    stop_btn = addAdminPanelBtn(
+      'admin_pane',
+      'stop_btn',
+      'Stop All',
+      'btn-danger');
+    
+    // Add dev_mode admin pane buttons
 
     var args =  window.location.pathname.split('/');
     var evnt_id = args.slice(-1)[0];
 
-		// Hook up admin buttons to fire triggers
-    $("button[name='trigger']").each(function() {
-		
-			var text = $(this).find('span').text();
-			if(text.indexOf('email') > -1)
-					$(this).find('span').text('Emails');
-			else if(text.indexOf('voice') > -1)
-					$(this).find('span').text('Voice/SMS');
+    reset_btn = addAdminPanelBtn(
+      'dev_pane',
+      'reset_btn',
+      'Reset All');
 
-			$(this).on("click", function(e){
-				var trig_id = $(this).attr('id'); //console.log($(this).attr('id'));
-				console.log('firing trigger id ' + trig_id);
-
-				$.ajax({
-					type: 'POST',
-					url: $URL_ROOT + 'notify/' + trig_id + '/fire'
-				})
-				.done(function(response, textStatus, jqXHR) {
-					console.log(JSON.stringify(jqXHR));
-					response = JSON.parse(response);
-					if(response['status'] == 'OK') {
-						bannerMsg('Admin panel command accepted. Sending notifications...', 'info');
-
-						$('#'+response['trig_id']).addClass('btn btn-primary disabled');
-					}
-				});
-			});
-		});
-
-		$('#duplicate-acct').click(function() {
-				$.ajax({
-					type: 'GET',
-					url: $URL_ROOT + 'notify/' + evnt_id + '/dup_acct'}
-				).done(function(response, textStatus) {
-					window.location.reload();}
-				);
-		});
-
-    $('#reset-event').click(function() {
+    reset_btn.click(function() {
       $.ajax({
 				type: 'GET',
 				url: $URL_ROOT + 'notify/' + evnt_id + '/reset'
@@ -158,13 +200,26 @@ function init() {
 			});
     });
 
-    $('#dump').click(function() {
-        window.location.assign($URL_ROOT + 'summarize/' + String(evnt_id));
-    });
+    /*
+		$('#duplicate-acct').click(function() {
+				$.ajax({
+					type: 'GET',
+					url: $URL_ROOT + 'notify/' + evnt_id + '/dup_acct'}
+				).done(function(response, textStatus) {
+					window.location.reload();}
+				);
+		});*/
 
-    if($('.status-banner').text()) {
-        bannerMsg($('.status-banner').text(), 'info', 15000);
-    }
+    show_debug_info_btn = addAdminPanelBtn(
+      'dev_pane',
+      'debug_info_btn',
+      'Show Debug Info',
+      'btn-info');
+
+    show_debug_info_btn.click(function() {
+        console.log('not implemented yet');
+        //window.location.assign($URL_ROOT + 'summarize/' + String(evnt_id));
+    });
 }
 
 //------------------------------------------------------------------------------
@@ -288,7 +343,7 @@ function sortCalls(table, column) {
 }
 
 //------------------------------------------------------------------------------
-function makeCallFieldsClickable() {
+function enableEditableFields() {
   $("td").on('click',function() {      
     $cell = $(this);
 
@@ -369,6 +424,8 @@ function updateJobStatus() {
       $('#event-summary').text((String(delivered_percent) + '%'));
   }
 }
+
+
 
 //------------------------------------------------------------------------------
 function receiveMsgUpdate(data) {

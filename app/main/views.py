@@ -21,12 +21,17 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-@main.route('/sendsocket', methods=['GET'])
+@main.route('/sendsocket', methods=['POST'])
 def request_send_socket():
+    args = request.get_json(force=True)
+
+    logger.info(args)
+
     from app.socketio import socketio_app
-    name = request.args.get('name').encode('utf-8')
-    data = request.args.get('data').encode('utf-8')
-    socketio_app.emit(name, data)
+
+    socketio_app.emit(
+        args['event'],
+        args['data'])
     return 'OK'
 
 #-------------------------------------------------------------------------------

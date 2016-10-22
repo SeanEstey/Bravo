@@ -18,35 +18,19 @@ a.hover:visited {
   color: #365766;
 }
 
-.status-banner {
-	position: absolute;
-	top: 12em;
-	max-width: 1300px;
-	left: 0;
-	right: 0;
-	margin-left: auto;
-	margin-right: auto;
-	/*visibility: hidden;*/
-  -webkit-border-radius:7px 7px 7px 7px; 
-  background-color: transparent; 
-  padding:0.5em; 
-  text-align:center;
-  color: #365766;
-}
-
-.status-banner .green {
-  background-color: #CDE6CD; 
-}
-
-.status-banner .red {
-  background-color: red; 
-}
-
 /* Adjust container only if user has wide screen */
 @media (min-width: 1200px) {
     .container{
         width: 1300px;
     }
+}
+
+.main-menu-icon {
+  color: #365766;
+}
+
+.main-menu-a {
+  color: #365766;
 }
 
 .header {
@@ -73,14 +57,29 @@ a.hover:visited {
   height: 60px;
 }
 
-.main-menu-icon {
+.status-banner {
+	position: absolute;
+	top: 12em;
+	max-width: 1300px;
+	left: 0;
+	right: 0;
+	margin-left: auto;
+	margin-right: auto;
+	/*visibility: hidden;*/
+  -webkit-border-radius:7px 7px 7px 7px; 
+  background-color: transparent; 
+  padding:0.5em; 
+  text-align:center;
   color: #365766;
 }
 
-.main-menu-a {
-  color: #365766;
+.status-banner .green {
+  background-color: #CDE6CD; 
 }
 
+.status-banner .red {
+  background-color: red; 
+}
 
 .data-container {
 	margin-top: 15em;
@@ -142,8 +141,6 @@ a.hover:visited {
 	margin-left: 0.5em;
 	margin-right: 0.5em;
 	margin-bottom: 0.25em;
-
-  
 }
 
 legend.admin-border {
@@ -157,28 +154,15 @@ legend.admin-border {
 .btn.admin {
   width: 150px;
   font-size: 12px;
+  margin-left: 0.25em;
+  margin-right: 0.25em;
 }
 
 /*-------------------------- VIEW EVENT ---------------------------*/
 
-
-
 .opt {font-size: 16px;}
 
 .hidden {display: none;}
-
-.menu-item {
-  text-align: center;
-  padding-top:0.1em;
-  padding-bottom:0.1em;
-}
-        
-.form-label {
-  padding-bottom:0.3em; 
-  padding-top:0.7em;
-  text-align:left;
-  color: #2b547e;
-}
 
 .delete-btn {
   font-size: 0.75em;
@@ -186,36 +170,11 @@ legend.admin-border {
   height: 24px;
 }
 
-.form-btn {
-  border-radius:3px; 
-  -webkit-border-radius:3px; 
-  -moz-border-radius: 3px; 
-  border:1px solid black; 
-  font-size:14px;
-  background:#0769AD;
-  color:white;
-}
-
-.form-btn.green {
-  background:#6cc644; 
-  border:1px solid grey; 
-}
-
-.form-btn.green:hover {
-  background:#89D169;
-}
-
-.form-btn:hover {
-  -webkit-box-shadow: none;
-  -moz-box-shadow: none;
-  box-shadow: none;
-  background:#3987BD;
-  color:white;
-}
-
-.form-btn:active {
-  background:#FFFFFF;
-  color:black;
+.form-label {
+  padding-bottom:0.3em; 
+  padding-top:0.7em;
+  text-align:left;
+  color: #2b547e;
 }
 
 .ui-tooltip, .arrow:after {
@@ -321,124 +280,4 @@ legend.admin-border {
   float: none;
   margin-left: auto;
   margin-right: auto;
-}
-
-/*-------------------------- NEW NOTIFIC EVENT --------------------*/
-
-legend.new-event-border {
-  font-size: 1.0em !important;
-  font-weight: bold !important;
-  text-align: left !important;
-  width:auto;
-  padding:0 10px;
-  margin:0px 0px 0px 0px;
-  border-bottom:none;
-}
-
-.new-event-form-fieldset {
-  padding: 5px 10px 15px 10px;
-  border: 1px solid #cccccc;
-  -moz-border-radius: 7px;
-  -webkit-border-radius: 7px;
-  text-align: left;
-  width: 350px;
-}
-
-textarea.special-msg {
-  width: 100%;
-  max-width: 300px;
-  height: 50px;
-}
-
-.box {
-  background-color: #e8f5f9;
-  min-width: 300px;
-  max-width: 1000px;
-  padding-right: 2em;
-  padding-left: 2em;
-  padding-bottom: 2em;
-  padding-top: 2em;
-  z-index: 20;
-  margin-top: 1em;
-  margin-bottom: 2em;
-  border: 1px solid #cccccc;
-  -moz-border-radius: 7px;
-  -webkit-border-radius: 7px;
-  border-radius: 7px;
-}
-
-.input{
-  -moz-border-radius: 3px; 
-  -webkit-border-radius: 3px;
-  border-radius: 3px; 
-  font-size: 15px;
-  padding: 5px;
-  border: 1px solid #b9bdc1;
-  width: 100%;
-  max-width: 400px;
-}
-
-#audioplayer{
-/* Original: 480px x 60px */
-  border-radius:3px; 
-  -webkit-border-radius:3px; 
-  -moz-border-radius: 3px; 
-  max-width: 350px;
-  background: white;
-  height: 20px;
-  margin: 10px auto auto auto;
-  border: 1px solid gray;
-}
-
-#pButton{
-/* Original: 60px x 60px */
-  height:20px; 
-  width: 20px;
-  border: none;
-  margin: 0px 0px 0px 0px;
-  background-size: 65% 65%;
-  background-repeat: no-repeat;
-  background-position: center;
-  float:left;
-  outline:none;
-}
-
-/* STORE THESE ON SERVER */
-.play{background: url('http://www.alexkatz.me/codepen/images/play.png') ;}
-.pause{background: url('http://www.alexkatz.me/codepen/images/pause.png') ;}
-
-#duration {
-  font-size:10px;
-  line-height:20px;
-  width:35px; 
-  height:20px; 
-  float:right; 
-  color:gray; 
- /* margin:0px 5px 0px 0px;
-  padding:4px 0px 0px 0px;*/
-}
-
-#timeline{
-/* Original: 400px x 20px */
-  width: 80%;
-  height: 5px;
-  margin-top: 7px;
-  float: left;
-  border-radius: 15px;
-  background: rgba(0,0,0,.3);
-  
-}
-#playhead{
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-top: -2.5px;
-  background: rgba(0, 0, 0,1);
-}
-
-#record-status {
-  font-size: 14px;
-  color: #2b547e;
-  text-align: center;
-  padding:0.5em;
 }

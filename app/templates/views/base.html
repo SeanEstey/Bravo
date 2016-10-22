@@ -4,6 +4,8 @@
     <meta http-equiv="X-UA-Compatible" 
 					content="IE=edge">
 
+		<link rel="shortcut icon" 
+					href="{{ url_for('static', filename='images/favicon.ico') }}">
     <link href='http://fonts.googleapis.com/css?family=Port+Lligat+Sans|Kavoon|Inconsolata' 
 					rel='stylesheet' 
 					type='text/css'>
@@ -11,11 +13,14 @@
 					href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.5/css/bootstrap.min.css" 
 					integrity="sha384-AysaV+vQoT3kOAXZkl02PThvDr8HYKPZhNT5h/CXfBThSRXQ6jW5DO2ekP5ViFdi" 
 					crossorigin="anonymous">
-    <link rel="stylesheet" 
-					href="http://code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css" />
-    <link rel=stylesheet 
-					type=text/css 
-					href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel='stylesheet' 
+					href='http://code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css' />
+    <link rel='stylesheet' 
+					type='text/css'
+					href='{{ url_for('static', filename='css/style.css') }}'>
+    <link rel='stylesheet' 
+					type='text/css'
+					href='{{ url_for('static', filename='css/new_event.css') }}'>
     
     {% if title %}
 			<title>{{ title }}</title>
@@ -130,17 +135,18 @@
 
 			{% if admin == True %}
         <div class='admin-panel-div'>
-						<fieldset d='panel1' class='admin-fieldset'>
-							<legend class='admin-border'>Admin Panel</legend>
-							<fieldset class='admin-fieldset child'>
-								<legend class='admin-border'>Event Commands</legend>
-                  <button class='btn btn-primary admin'>TEST</button>
-							</fieldset>
-							<fieldset id='panel2' class='admin-fieldset child'>
-								<legend class='admin-border'>Test Mode</legend>
-									<button class='btn btn-primary admin'>TEST</button>
-							</fieldset>
-						</fieldset>
+          <fieldset id='outer_pane' class='admin-fieldset'>
+            <legend class='admin-border'>Admin Panel</legend>
+              
+            <fieldset id='admin_pane' class='admin-fieldset child'>
+              <legend class='admin-border'>Admin Commands</legend>
+            </fieldset>
+
+            <fieldset id='dev_pane' class='admin-fieldset child'>
+              <legend class='admin-border'>Developer Commands</legend>
+            </fieldset>
+
+          </fieldset>
 				</div>
 			{% endif %}
 

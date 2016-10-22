@@ -14,7 +14,7 @@ import bson.json_util
 from flask_socketio import SocketIO, emit
 
 from . import notify
-from . import accounts, events, triggers, email, voice, sms, recording
+from . import accounts, admin, events, triggers, email, voice, sms, recording
 from .. import utils
 from .. import db
 logger = logging.getLogger(__name__)
@@ -77,6 +77,9 @@ def view_event(evnt_id):
         to_strftime="%m/%-d/%Y",
         bson_to_json=True
     )
+
+    for trigger in trigger_list:
+        trigger['type'] = utils.to_title_case(trigger['type']);
 
     msg = ''
     if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
@@ -182,15 +185,17 @@ def edit_msg(acct_id):
 @notify.route('/<trig_id>/fire', methods=['POST'])
 @login_required
 def fire_trigger(trig_id):
-    from .. import tasks
+    if not admin.auth_request_type('admin'):
+        return 'Denied'
 
     trigger = db['triggers'].find_one({'_id':ObjectId(trig_id)})
 
+    from .. import tasks
     tasks.fire_trigger.apply_async(
         args=[str(trigger['evnt_id']), trig_id],
         queue=current_app.config['DB'])
 
-    return json.dumps({'trig_id':trig_id, 'status':'OK'})
+    return json.dumps({'status':'OK'})
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/<acct_id>/no_pickup', methods=['GET'])

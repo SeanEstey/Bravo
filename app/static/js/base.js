@@ -142,7 +142,7 @@ function objToHtml(obj, indents, ignores) {
 }
 
 //------------------------------------------------------------------------------
-function bannerMsg(msg, type, duration=5000) {
+function bannerMsg(msg, type, duration=7500) {
 		var $banner = $('.status-banner');
 
 		if(!$banner)
@@ -170,4 +170,16 @@ function bannerMsg(msg, type, duration=5000) {
 }
 
 
-function addAdminPane() {}
+//------------------------------------------------------------------------------
+function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-info', data=false) {
+
+    var btn = $("<button id='"+btn_id+"' class='btn "+style+" admin'>"+caption+"</button>");
+
+    if(data) {
+      btn.data(data);
+    }
+
+    $('#'+pane_id).append(btn);
+
+    return btn;
+}

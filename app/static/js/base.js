@@ -156,7 +156,7 @@ function bannerMsg(msg, type, duration=5000) {
 		$banner.css('visibility', 'visible');
 		$banner.css('opacity', 0);
 
-		$banner.text(msg);
+		$banner.html('<p>' + msg + '</p>');
 		$banner.clearQueue();
 
 		$banner.fadeTo('slow', 1);
@@ -168,3 +168,6 @@ function bannerMsg(msg, type, duration=5000) {
 	
 		$banner.fadeTo('slow', 0);
 }
+
+
+function addAdminPane() {}

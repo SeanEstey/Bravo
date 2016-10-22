@@ -51,7 +51,7 @@ a.hover:visited {
 
 .header {
 	position: absolute;
-	top: 4em;
+	top: 3em;
 	left: 0;
 	right: 0;
   margin-left: auto;
@@ -94,7 +94,7 @@ a.hover:visited {
   padding: 0em;
 }
 
-.navbar-div {
+.data-navbar-div {
 	max-width:1300px;
   -webkit-border-radius:7px 7px 0px 0px; 
   background-color: white; 
@@ -103,45 +103,47 @@ a.hover:visited {
   text-align:left;
 }
 
-
-/*-------------------------- VIEW EVENT ---------------------------*/
-
 .admin-panel-div {
-	display:inline-block;
-	position: fixed;
-	bottom: 0;
-	width: inherit;
-	/*left: 0;
-	right: 0;*/
-	height: 7.5em;
-	margin-right: auto;
-	margin-left: auto;
-	text-align:center;/*
-	border-style: solid;
-	border-top: thin solid gray;
-	border-left: none;
-	border-right: none;
-	border-bottom: none;*/
-	padding-bottom: 1em;
-	padding-top: 0.25em;
-	background:rgba(255,255,255,0.75);
+  background: rgba(255,255,255,0.85); 
+  text-align: center; 
+  display: inline-block; 
+  position: fixed; 
+  bottom:-2.5em;
+  right:0; 
+  left:0;
+  width: inherit;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0;
 }
 
 .admin-fieldset {
+  position: relative;
 	visibility: visible;
 	display: inline-block;
+  width: 100%;
+  margin: 0;
+	text-align: center;
+  border: 1px solid black;
   -moz-border-radius: 7px;
   -webkit-border-radius: 7px;
-  padding: 1.0em;
-	display: inline-block;
-  border: 1px solid gray;
-	text-align: center;
 	-moz-box-sizing: border-box;
 	-webkit-box-sizing: border-box;
 	box-sizing: border-box;
+  padding-left: 2.5em;
+  padding-right: 2.5em; 
+  padding-bottom: 2.5em;
+}
+
+.admin-fieldset.child {
+  border: 1px solid #b1b5bc;
+  padding: 1.0em;
+  width: auto;
 	margin-left: 0.5em;
 	margin-right: 0.5em;
 	margin-bottom: 0.25em;
+
+  
 }
 
 legend.admin-border {
@@ -151,6 +153,15 @@ legend.admin-border {
   border-bottom:none;
 	font-size: 18px;
 }
+
+.btn.admin {
+  width: 150px;
+  font-size: 12px;
+}
+
+/*-------------------------- VIEW EVENT ---------------------------*/
+
+
 
 .opt {font-size: 16px;}
 

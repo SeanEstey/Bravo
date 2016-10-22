@@ -47,33 +47,75 @@
       
     <div class='container'>
 			<!-- MENU -->
-				<nav style='background-color:white;' class="navbar navbar-light bg-faded">
+
+    <nav style='background-color:white;' class="navbar">
+    <div class='container'>
 				<ul id='app_menu' class="nav navbar-nav float-lg-right">
+					<li style='text-align:center' class='nav-item'>
+						<a href="#">
+							<i class="fa fa-calendar-check-o fa-1x main-menu-icon">
+							</i>
+							<p class='main-menu-a'>Notify</p>
+						</a>
+					</li>
+					<li style='text-align:center' class='nav-item'>
+						<a href="#">
+							<i class="fa fa-road fa-1x main-menu-icon">
+							</i>
+							<p class='main-menu-a'>Routing</p>
+						</a>
+          </li>
+					<li style='text-align:center' class='nav-item'>
+						<a href="#">
+							<i class="fa fa-book fa-1x main-menu-icon">
+							</i>
+							<p class='main-menu-a'>Booker</p>
+						</a>
+					</li>
+					<li style='text-align:center' class='nav-item'>
+						<a href="#">
+							<i class="fa fa-cogs fa-1x main-menu-icon">
+							</i>
+							<p class='main-menu-a'>Admin</p>
+						</a>
+					</li>
+					<li style='text-align:center' class='nav-item'>
+						<a href="#">
+							<i class="fa fa-sign-out fa-1x main-menu-icon">
+							</i>
+							<p class='main-menu-a'>Logout</p>
+						</a>
+					</li>
+          <!--
 					<li style='text-align:right' class='nav-item'>
 						<a class='main-menu-a' href="{{url_for('notify.view_event_list')}}"><span
-							 class='fa fa-calendar-check-o fa-2x main-menu-icon' aria-hidden='true'></span>       Notify</a>
+							 width='64px' class='fa fa-calendar-check-o fa-2x main-menu-icon' aria-hidden='true'></span>Notify</a>
 					</li>
 					<li class='nav-item'>
 						<a class='main-menu-a' href="{{url_for('routing.show_routing')}}"><span 
-								class='fa fa-road fa-2x main-menu-icon'></span>        Routing</a>
+								class='fa fa-road fa-2x main-menu-icon'
+                width='64px' style='position:relative; z-index:2;'></span>Routing</a>
 					</li>
 					<li class='nav-item'>
 						<a class='main-menu-a' href="{{url_for('main.show_booking')}}"><span 
-							 class='fa fa-book fa-2x main-menu-icon'></span>        Booking</a>
+							 width='64px' class='fa fa-book fa-2x main-menu-icon'></span>Booking</a>
 					</li>
 					<li class='nav-item'>
 						<a class='main-menu-a' href="{{url_for('main.view_log')}}"><span 
-							 class='fa fa-book fa-2x main-menu-icon'></span>      Log</a>
+							 width='64px' class='fa fa-book fa-2x main-menu-icon'></span>Log</a>
 					</li>
 					<li class='nav-item'>
 						<a class='main-menu-a' href="{{url_for('main.view_admin')}}"><span 
-							 class='fa fa-cogs fa-2x main-menu-icon'></span>      Settings</a>
+							 width='64px' class='fa fa-cogs fa-2x main-menu-icon'></span>Settings</a>
 					</li>
 					<li class='nav-item'>
 						<a class='main-menu-a' href="{{url_for('auth.logout')}}"><span 
-							 class='fa fa-sign-out fa-2x main-menu-icon'></span>      Logout</a>
+      <div class='container'>
+							 width='64px' class='fa fa-sign-out fa-2x main-menu-icon'></span>Logout</a>
 					</li>
+          -->
 				</ul>
+</div>
 				</nav>
 			<!-- HEADER -->
       <div class='header'>
@@ -81,40 +123,26 @@
         filename='images/bravo_comfortaa.png') }}"></a>
       </div>
 
+      <div class='status-banner'><p>{{banner_msg}}</p></div>
+
 			<!-- PAGE CONTENT -->
       {% block content %}{% endblock %}
 
 			{% if admin == True %}
-					<div style='background:rgba(255,255,255,0.75); text-align:center; display:inline-block; position: fixed; bottom:0; right:0; left:0'>
-						<fieldset id='panel1' class='admin-fieldset'>
+        <div class='admin-panel-div'>
+						<fieldset d='panel1' class='admin-fieldset'>
 							<legend class='admin-border'>Admin Panel</legend>
-							<fieldset class='admin-fieldset' style='border: 1px solid #b1b5bc;'>
+							<fieldset class='admin-fieldset child'>
 								<legend class='admin-border'>Event Commands</legend>
-									{% for trigger in triggers %}
-										<button 
-											style='width:150px; font-size:12px; margin:0 auto;'
-											class='btn btn-primary'
-											name='trigger'
-											id='{{trigger['_id']}}'
-											type='button' 
-										>Send <span>{{trigger['type']}}</span></button>
-									{% endfor %}
+                  <button class='btn btn-primary admin'>TEST</button>
 							</fieldset>
-							<fieldset id='panel2' class='admin-fieldset' style='border: 1px solid #b1b5bc;'>
+							<fieldset id='panel2' class='admin-fieldset child'>
 								<legend class='admin-border'>Test Mode</legend>
-									<button 
-										style='width:150px; font-size:12px; margin:0 auto;' class='btn btn-primary' id='duplicate-acct'
-										type='button' id='duplicate-acct'
-									>Add Account</button>
-									<button style='width:150px; font-size:12px; margin:0 auto;' class='btn btn-primary' name='reset'
-													type='button' id='reset-event'>Reset All</button>
+									<button class='btn btn-primary admin'>TEST</button>
 							</fieldset>
 						</fieldset>
 				</div>
 			{% endif %}
-
-
-
 
     </div>
 

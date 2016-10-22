@@ -44,11 +44,11 @@ def view_event_list():
     else:
         msg += 'You are on Bravo Live server. '
     if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
-        msg += 'Running in Sandbox mode. '
+        msg += 'Running in <b>sandbox mode</b> with '
     if os.environ['BRAVO_CELERY_BEAT'] == 'True':
-        msg += 'Scheduler is running. '
+        msg += '<b>scheduler enabled</b>. '
     else:
-        msg += 'Scheduler is disabled. '
+        msg += '<b>scheduler disabled</b>. '
 
     if user['admin']:
         msg += 'You have admin priviledges.'
@@ -80,9 +80,8 @@ def view_event(evnt_id):
 
     msg = ''
     if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
-        msg += 'Running in Sandbox mode: eTapestry is read-only, '\
-               'Twilio in simulation mode, Mailgun forwarding mail to '\
-               'sean.vecova@gmail.com. '
+        msg += 'Sandbox mode. Etapestry: <b>read-only</b>. '\
+               'Twilio: <b>simulation only</b>. Mailgun: <b>forwarding all</b>. '
     user = db['users'].find_one({'user': current_user.username})
     if user['admin']:
         msg += 'You have admin priviledges.'

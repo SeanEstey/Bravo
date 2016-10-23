@@ -34,10 +34,10 @@ a.hover:visited {
 }
 
 .header {
-	position: absolute;
-	top: 3em;
+/*	position: absolute;
+	top: 1.5em;
 	left: 0;
-	right: 0;
+	right: 0;*/
   margin-left: auto;
   margin-right: auto;
 }
@@ -49,9 +49,11 @@ a.hover:visited {
 }
 
 .header-img {
-	display:block; 
+/*	display:inline-block;*/
+	/*display:block; */
+/*
 	margin-left:auto; 
-	margin-right:auto; 
+	margin-right:auto; */
 	text-align:center;
   width: 200px;
   height: 60px;
@@ -60,14 +62,14 @@ a.hover:visited {
 .status-banner {
 	visibility: hidden;
 	position: absolute;
-	top: 12em;
+	top: 8em;
 	max-width: 1300px;
 	left: 0;
 	right: 0;
 	margin-left: auto;
 	margin-right: auto;
   -webkit-border-radius:7px 7px 7px 7px; 
-  background-color: transparent; 
+  /*background-color: transparent; */
   padding:0.5em; 
   text-align:center;
   color: #365766;
@@ -82,7 +84,7 @@ a.hover:visited {
 }
 
 .data-container {
-	margin-top: 15em;
+	margin-top: 7.5em;
 	margin-bottom: 5em;
 	margin-left: auto;
 	margin-right: auto;

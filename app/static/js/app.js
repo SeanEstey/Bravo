@@ -69,9 +69,9 @@ function bannerMsg(msg, type, duration=7500) {
 				return false;
 		
 		if(type == 'info')
-			$banner.css('background-color', 'CDE6CD'); 
+			$banner.css('background-color', '#CDE6CD'); 
 		else if(type == 'error')
-			$banner.css('background-color', 'FFCCCC'); 
+			$banner.css('background-color', '#FFCCCC'); 
 
 		$banner.css('visibility', 'visible');
 		$banner.css('opacity', 0);

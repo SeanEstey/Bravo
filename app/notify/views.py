@@ -78,13 +78,7 @@ def view_event(evnt_id):
     for trigger in trigger_list:
         trigger['type'] = utils.to_title_case(trigger['type']);
 
-    msg = ''
-    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
-        msg += 'Sandbox mode. Etapestry: <b>read-only</b>. '\
-               'Twilio: <b>simulation only</b>. Mailgun: <b>forwarding all</b>. '
-    user = db['users'].find_one({'user': current_user.username})
-    if user['admin']:
-        msg += 'You have admin priviledges.'
+    
 
     return render_template(
         'views/event.html',

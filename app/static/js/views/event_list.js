@@ -25,9 +25,6 @@ function addPageNavHandlers() {
       n = parseInt(n, 10);
     }
 
-    console.log(n);
-    console.log(num_page_records);
-
     $('#newer-page').click(function() {
       if(n > 1) {
         var prev_n = n - num_page_records;
@@ -92,8 +89,6 @@ function addDeleteBtnHandlers() {
 function addSocketIOHandlers() {
     var socketio_url = 'http://' + document.domain + ':' + location.port;
 
-    console.log('socket.io connecting to ' + socketio_url + '...');
-
     var socket = io.connect(socketio_url);
 
     socket.on('connect', function(){
@@ -156,7 +151,17 @@ function addSocketIOHandlers() {
 
 //------------------------------------------------------------------------------
 function showBannerMsg() {
-		$.ajax({
+    /*
+    msg = ''
+    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
+        msg += 'Sandbox mode. Etapestry: <b>read-only</b>. '\
+               'Twilio: <b>simulation only</b>. Mailgun: <b>forwarding all</b>. '
+    user = db['users'].find_one({'user': current_user.username})
+    if user['admin']:
+        msg += 'You have admin priviledges.'
+    */
+		
+    $.ajax({
 			type: 'POST',
 			context: this,
 			url: $URL_ROOT + 'notify/get_op_stats'

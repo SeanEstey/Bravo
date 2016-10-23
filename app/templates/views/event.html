@@ -6,16 +6,9 @@
 	<script type='text/javascript' 
 					src="{{url_for('static', filename='js/views/event.js')}}">
 	</script>
-  <script>
-    jQuery(function($){
-				init();
-    });
-		jQuery(document).ready(function() {
-				$('.data-container').css('visibility', 'visible');
-			});
-  </script>
+  <script> jQuery(function($){init();});</script>
   
-  <div class='data-container' style='visibility:hidden'>
+  <div class='data-container'>
     <div class='data-navbar-div'>
       <a class='hover' href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
       {{ event.name }}

@@ -1,35 +1,54 @@
 
 //------------------------------------------------------------------------------
 function init() {
-		setupTwilioClient();
-    addBravoTooltip();
+    loadTooltip();
     enableEditableFields();
 		enableColumnSorting();
 		formatColumns();
     buildAdminPanel();
-    addBtnHandlers();
+    addDeleteBtnHandlers();
     addSocketIOHandlers();
+		showBannerMsg();
+}
 
-    var $a_child = $('th:first-child a');
-    $a_child.html($a_child.html()+window.unicode['DOWN_ARROW']);
+//------------------------------------------------------------------------------
+function showBannerMsg() {
+		$.ajax({
+			type: 'POST',
+			context: this,
+			url: $URL_ROOT + 'notify/get_op_stats'
+		})
+		.done(function(response) {
+				console.log('got server op stats');
 
-    $('.delete-btn').button({
-        icons: {
-          primary: 'ui-icon-trash'
-        },
-        text: false
-    })
+				var msg = 'Hi ' + response['USER_NAME'] + ' ';
 
-    if($('.status-banner').text()) {
-        bannerMsg($('.status-banner').text(), 'info', 15000);
-    }
+				if(response['TEST_SERVER'])
+						msg += 'You are on Bravo Test server. ';
+				else
+						msg += 'You are on Bravo Live server. ';
+				if(response['SANDBOX_MODE'])
+						msg += 'Running in <b>sandbox mode</b> with ';
+				if(response['CELERY_BEAT'])
+						msg += '<b>scheduler enabled</b>. ';
+				else
+						msg += '<b>scheduler disabled</b>. ';
+
+				if(response['ADMIN'])
+						msg += 'You have admin priviledges. ';
+
+				if(response['DEVELOPER'])
+						msg += 'You have dev priviledges.';
+
+				bannerMsg(msg, 'info', 15000);
+		});
 }
 
 //------------------------------------------------------------------------------
 function addSocketIOHandlers() {
     var socketio_url = 'http://' + document.domain + ':' + location.port;
 
-    console.log('attempting socket.io connection to ' + socketio_url + '...');
+    console.log('socket.io connecting to ' + socketio_url + '...');
 
     var socket = io.connect(socketio_url);
 
@@ -39,13 +58,11 @@ function addSocketIOHandlers() {
     });
 
     socket.on('notific_status', function(data) {
-        console.log('received msg!');
-        console.log(JSON.stringify(data));
+        console.log('notific %s %s', data['notific_id'], data['status']);
 
-        // Find "status" column for notification
-        var notific_id = data['notific_id'];
-        //$('td
-        //receiveMsgUpdate(data);
+        $('td#'+data['notific_id']).text(data['status'].toTitleCase());
+
+        applyStatusColor($('td#'+data['notific_id']));
     });
 
     socket.on('update_event', function(data) {
@@ -74,8 +91,7 @@ function addSocketIOHandlers() {
 }
 
 //------------------------------------------------------------------------------
-function addBtnHandlers() {
-    //if($('#event-status').text().indexOf('Pending') > -1) {
+function addDeleteBtnHandlers() {
       var args =  window.location.pathname.split('/');
       var evnt_id = args.slice(-1)[0];
 
@@ -86,16 +102,18 @@ function addBtnHandlers() {
 
               $.ajax({
                 type: 'POST',
+                context: this,
 		            url: $URL_ROOT + 'notify/' + evnt_id + '/' + acct_id + '/remove'
-              }).done(function(msg) {
-                console.log('%s notifications removed', msg);
-
-                if(msg == 'OK'){ 
-                  $tr.remove();
-                  bannerMsg('Notification removed', 'info');
-                }
-                else
-                  bannerMsg(msg, 'error');
+              })
+              .done(function(response) {
+                  console.log(response);
+                  if(response['status'] == 'success'){ 
+                      $(this).parent().parent().remove();
+                      console.log('acct %s removed', $(this).attr('id'));
+                      bannerMsg('Notification removed', 'info');
+                  }
+                  else
+                    bannerMsg('Error removing notific', 'error');
               });
           });
       });
@@ -200,16 +218,6 @@ function buildAdminPanel() {
 			});
     });
 
-    /*
-		$('#duplicate-acct').click(function() {
-				$.ajax({
-					type: 'GET',
-					url: $URL_ROOT + 'notify/' + evnt_id + '/dup_acct'}
-				).done(function(response, textStatus) {
-					window.location.reload();}
-				);
-		});*/
-
     show_debug_info_btn = addAdminPanelBtn(
       'dev_pane',
       'debug_info_btn',
@@ -218,7 +226,6 @@ function buildAdminPanel() {
 
     show_debug_info_btn.click(function() {
         console.log('not implemented yet');
-        //window.location.assign($URL_ROOT + 'summarize/' + String(evnt_id));
     });
 }
 
@@ -425,78 +432,6 @@ function updateJobStatus() {
   }
 }
 
-
-
-//------------------------------------------------------------------------------
-function receiveMsgUpdate(data) {
-  // Clear the countdown timer if it is running
-  if(window.countdown_id)
-    clearInterval(window.countdown_id);
-
-  if(typeof data == 'string')
-    data = JSON.parse(data);
-
-  console.log('received update: ' + JSON.stringify(data));
-  var $row = $('#'+data['id']);
- 
-  // Update to CALL state 
-  if('voice_sms_status' in data) {
-    $lbl = $row.find('[name="voice_sms_status"]');
-    var caption = data['voice_sms_status'];
-    
-    if(data['voice_sms_status'] == 'completed') {
-      $lbl.css('color', window.colors['SUCCESS_STATUS']);
-
-      if(data['answered_by'] == 'human')
-        caption = 'Sent Live';
-      else if(data['answered_by'] == 'machine')
-        caption = 'Sent Voicemail';
-    }
-    else if(data['voice_sms_status'] == 'failed') {
-      $lbl.css('color', window.colors['FAILED_STATUS']);
-
-      if('error_msg' in data)
-        caption = 'Failed (' + data['error_msg'] + ')';
-      else
-        caption = 'Failed';
-    }
-    else if(data['voice_sms_status'] == 'busy' || data['voice_sms_status'] == 'no-answer')
-      caption += ' (' + data['attempts'] + 'x)';
-    else {
-      $lbl.css('color', window.colors['IN_PROGRESS_STATUS']);
-    }
-
-    $lbl.html(caption.toTitleCase()); 
-  }
-  // Update to EMAIL state
-  else if('email_status' in data) {
-    $lbl = $row.find('[name="email_status"]');
-    var caption = data['email_status'];
-    
-    if(data['email_status'] == 'delivered') {
-      $lbl.css('color', window.colors['SUCCESS_STATUS']);
-    }
-    else if(data['email_status'] == 'bounced' || data['email_status'] == 'dropped') {
-      $lbl.css('color', window.colors['FAILED_STATUS']);
-    }
-    else if(data['email_status'] == 'queued') {
-      $lbl.css('color', window.colors['IN_PROGRESS_STATUS']);
-    }
-    else if(data['email_status'] == 'no_email') {
-      $lbl.css('color', window.colors['DEFAULT_STATUS']);
-    }
-    
-    $lbl.text(caption.toTitleCase()); 
-  }
-
-  if('speak' in data) {
-    var title = 'Msg: ' + data['speak'];
-    $row.find('[name="voice_sms_status"]').attr('title', title);
-  }
-
-  updateJobStatus();
-}
-
 //------------------------------------------------------------------------------
 function updateCountdown() {
   /* Display timer counting down until event_datetime */
@@ -554,171 +489,51 @@ function enableColumnSorting() {
 	});
 }
 
+
 //------------------------------------------------------------------------------
-function formatColumns() {
-	$('[name="name"]').each(function() {
-	});
+function applyStatusColor($td) {
+  var status = $td.text().toLowerCase();
 
-	$('[name="phone"]').each(function() {
-		if($(this).text() != '---') {
-        // convert intl format to (###) ###-####
-				var to = $(this).text();
-				// Format: (780) 123-4567
-				to = '('+to.substring(2,5)+') '+to.substring(5,8)+'-'+to.substring(8,12);
+  if(status == 'pending')
+      $td.css('color', window.colors['DEFAULT']);
+  if(['completed', 'delivered'].indexOf(status) > -1)
+      $td.css('color', window.colors['SUCCESS']);
+  else if(['queued', 'busy', 'no-answer'].indexOf(status) > -1)
+      $td.css('color', window.colors['IN_PROGRESS']);
+  else if(['failed', 'cancelled'].indexOf(status) > -1)
+      $td.css('color', window.colors['FAILED']);
 
-				$(this).text(to);
-		}
-	});
-
-	// "Email" column
-	$('tbody [name="email"]').each(function() {
-	});
-
-	// "Call Status" column
-
-	$('tbody [name="voice_sms_status"]').each(function() {
-
-			var status = $(this).text();
-		
-			if(status.indexOf('completed') > -1) {
-					if(status.indexOf('human') > -1)
-							status = 'Sent Live';
-					else if(status.indexOf('machine') > -1)
-							status = 'Sent VM';
-
-					$(this).css('color', window.colors['SUCCESS_STATUS']);
-			}
-			else if(status.indexOf('failed') > -1) {
-					$(this).attr('title', '');
-
-					/*I
-					var values = status.split(' ');
-
-					status = values[1];
-
-					if(status == 'invalid_number_format')
-							status = 'invalid_number';
-					else if(status == 'unknown_error')
-							status = 'failed';
-					*/
-
-					$(this).css('color', window.colors['FAILED_STATUS']);
-			}
-			else if(status.indexOf('busy') > -1 || status.indexOf('no-answer') > -1) {
-					$(this).attr('title', '');
-
-					var values = status.split(' ');
-
-					status = values[0] + ' (' + values[1] + 'x)';
-
-					$(this).css('color', window.colors['INCOMPLETE_STATUS']);
-			}
-			else if(status.indexOf('pending') > -1) {
-					$(this).attr('title', '');
-					$(this).css('color', window.colors['DEFAULT_STATUS']);
-			}
-
-			$(this).text(status.toTitleCase());
-		});
-
-	// "Email Status" column
-
-	$('tbody [name="email_status"]').each(function() {
-		var status = $(this).text();
-		if(status.indexOf('delivered') > -1) {
-			$(this).attr('title', '');
-			$(this).css('color', window.colors['SUCCESS_STATUS']);
-		}
-		else if(status.indexOf('pending') > -1) {
-			$(this).attr('title', '');
-			$(this).css('color', window.colors['DEFAULT_STATUS']);
-		}
-		else if(status.indexOf('queued') > -1) {
-			$(this).attr('title', '');
-			$(this).css('color', window.colors['DEFAULT_STATUS']);
-		}
-		else if(status.indexOf('no_email') > -1) {
-			$(this).attr('title', '');
-			$(this).css('color', window.colors['DEFAULT_STATUS']);
-		}
-		else if(status.indexOf('bounced') > -1 || status.indexOf('dropped') > -1) {
-			$(this).css('color', window.colors['FAILED_STATUS']);
-		}
-		$(this).text(status.toTitleCase());
-	});
-
-	$('[name="event_date"]').each(function() {
-		var date = Date.parse($(this).html());
-		var string = date.toDateString();
-		$(this).html(string);
-	});
 }
 
-
-
 //------------------------------------------------------------------------------
-function receiveMsgUpdate(data) {
-  // Clear the countdown timer if it is running
+function formatColumns() {
+    var $a_child = $('th:first-child a');
+    $a_child.html($a_child.html()+window.unicode['DOWN_ARROW']);
 
-  if(typeof data == 'string')
-    data = JSON.parse(data);
+    $('.delete-btn').button({
+        icons: {
+          primary: 'ui-icon-trash'
+        },
+        text: false
+    })
 
-  console.log('received update: ' + JSON.stringify(data));
-  var $row = $('#'+data['id']);
- 
-  // Update to CALL state 
-  if('voice_sms_status' in data) {
-    $lbl = $row.find('[name="voice_sms_status"]');
-    var caption = data['voice_sms_status'];
-    
-    if(data['voice_sms_status'] == 'completed') {
-      $lbl.css('color', window.colors['SUCCESS_STATUS']);
+    $('[name="phone"]').each(function() {
+        if($(this).text() == '---')
+            return;
 
-      if(data['answered_by'] == 'human')
-        caption = 'Sent Live';
-      else if(data['answered_by'] == 'machine')
-        caption = 'Sent Voicemail';
-    }
-    else if(data['voice_sms_status'] == 'failed') {
-      $lbl.css('color', window.colors['FAILED_STATUS']);
+        // convert intl format to (###) ###-####
+        var to = $(this).text();
+        to = '('+to.substring(2,5)+') '+to.substring(5,8)+'-'+to.substring(8,12);
+        $(this).text(to);
+    });
 
-      if('error_msg' in data)
-        caption = 'Failed (' + data['error_msg'] + ')';
-      else
-        caption = 'Failed';
-    }
-    else if(data['voice_sms_status'] == 'busy' || data['voice_sms_status'] == 'no-answer')
-      caption += ' (' + data['attempts'] + 'x)';
-    else {
-      $lbl.css('color', window.colors['IN_PROGRESS_STATUS']);
-    }
+    $('td[name="voice_sms_status"]').each(function() {
+        $(this).text($(this).text().toTitleCase());
+        applyStatusColor($(this));
+    });
 
-    $lbl.html(caption.toTitleCase()); 
-  }
-  // Update to EMAIL state
-  else if('email_status' in data) {
-    $lbl = $row.find('[name="email_status"]');
-    var caption = data['email_status'];
-    
-    if(data['email_status'] == 'delivered') {
-      $lbl.css('color', window.colors['SUCCESS_STATUS']);
-    }
-    else if(data['email_status'] == 'bounced' || data['email_status'] == 'dropped') {
-      $lbl.css('color', window.colors['FAILED_STATUS']);
-    }
-    else if(data['email_status'] == 'queued') {
-      $lbl.css('color', window.colors['IN_PROGRESS_STATUS']);
-    }
-    else if(data['email_status'] == 'no_email') {
-      $lbl.css('color', window.colors['DEFAULT_STATUS']);
-    }
-    
-    $lbl.text(caption.toTitleCase()); 
-  }
-
-  if('speak' in data) {
-    var title = 'Msg: ' + data['speak'];
-    $row.find('[name="voice_sms_status"]').attr('title', title);
-  }
-
+    $('td[name="email_status"]').each(function() {
+        $(this).text($(this).text().toTitleCase());
+        applyStatusColor($(this));
+    });
 }

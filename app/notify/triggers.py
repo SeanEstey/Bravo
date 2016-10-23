@@ -104,7 +104,6 @@ def fire(evnt_id, trig_id):
                     'notific_id': str(notific['_id']),
                     'status': status})
 
-
     db['triggers'].update_one(
         {'_id':trig_id},
         {'$set': {

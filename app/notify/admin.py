@@ -33,3 +33,21 @@ def auth_request_type(_type):
     logger.error('client "%s" request denied', _type)
 
     return False
+
+#-------------------------------------------------------------------------------
+def get_op_stats():
+    user = db['users'].find_one({'user': current_user.username})
+
+    logger.info(user)
+
+    if not user:
+        return False
+
+    return {
+        'TEST_SERVER': bool(os.environ['BRAVO_TEST_SERVER']),
+        'SANDBOX_MODE': bool(os.environ['BRAVO_SANDBOX_MODE']),
+        'CELERY_BEAT': bool(os.environ['BRAVO_CELERY_BEAT']),
+        'ADMIN': user['admin'],
+        'DEVELOPER': user['developer'],
+        'USER_NAME': user['name']
+    }

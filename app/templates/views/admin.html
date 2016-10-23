@@ -4,10 +4,6 @@
     document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
 			$('body').css('display','block');
-			//displayServerStatus('/get/celery_status', '', $('#celery-status'));
-			//displayServerStatus('/get/version', '', $('#version'));
-			//displayServerStatus('/get/monthly_usage', '', $('#monthly-usage'));
-			//displayServerStatus('/get/annual_usage', '', $('#annual-usage'));
     });
   </script>
 
@@ -18,10 +14,6 @@
   <div>
     <table class='table'>
       <tr><td id='user'>Username: {{ current_user }} </td></tr>
-      <!--<tr><td id='version'>Version: </td></tr>
-      <tr><td id='celery-status'>Celery Status: </td></tr>
-      <tr><td id='monthly-usage'>Twilio Usage This Month: </td></tr>
-      <tr><td id='annual-usage'>Twilio Usage This Year: </td></tr>-->
     </table>
   </div>
 

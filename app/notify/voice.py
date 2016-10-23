@@ -58,7 +58,8 @@ def call(notific, twilio_conf, voice_conf):
     try:
         client = TwilioRestClient(twilio_conf['api']['sid'], twilio_conf['api']['auth_id'])
     except TwilioRestException as e:
-        logger.error('twilio REST error. %s', str(e), exc_info=True)
+        logger.error('twilio REST error. %s', str(e))
+        logger.debug('tb: ', exc_info=True)
         return 'failed'
 
     # Protect against sending real calls if in sandbox
@@ -66,6 +67,8 @@ def call(notific, twilio_conf, voice_conf):
         from_ = twilio_conf['voice']['valid_from_number']
     else:
         from_ = twilio_conf['voice']['number']
+
+    call = None
 
     try:
         call = client.calls.create(
@@ -78,24 +81,21 @@ def call(notific, twilio_conf, voice_conf):
             fallback_method = 'POST',
             status_callback = '%s/notify/voice/complete' % os.environ.get('BRAVO_HTTP_HOST'),
             status_events = ["completed"],
-            status_method = 'POST'
-        )
+            status_method = 'POST')
     except Exception as e:
-        logger.error('call to %s failed. %s', notific['to'], str(e), exc_info=True)
-        return 'failed'
-
-    logger.debug(utils.print_vars(call))
-
-    db['notifics'].update_one({
-        '_id': notific['_id']}, {
-        '$set': {
-            'tracking.status': call.status,
-            'tracking.sid': call.sid or None},
-        '$inc': {'tracking.attempts':1}})
-
-    logger.info('%s call to %s', call.status, notific['to'])
-
-    return call.status
+        logger.error('call to %s failed. %s', notific['to'], str(e))
+        logger.debug('tb: ', exc_info=True)
+    else:
+        logger.info('%s call to %s', call.status, notific['to'])
+        logger.debug(utils.print_vars(call))
+    finally:
+        db['notifics'].update_one({
+            '_id': notific['_id']}, {
+            '$set': {
+                'tracking.status': call.status if call else 'failed',
+                'tracking.sid': call.sid if call else None},
+            '$inc': {'tracking.attempts':1}})
+        return call.status if call else 'failed'
 
 #-------------------------------------------------------------------------------
 def get_speak(notific, template_path):

@@ -1,7 +1,7 @@
 
 //------------------------------------------------------------------------------
 function init() {
-  addBravoTooltip();
+  loadTooltip();
 
   $('#datepicker').datepicker();
 

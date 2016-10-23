@@ -20,6 +20,19 @@ from .. import db
 logger = logging.getLogger(__name__)
 
 
+
+#-------------------------------------------------------------------------------
+@notify.route('/get_op_stats', methods=['POST'])
+@login_required
+def get_op_stats():
+    stats = admin.get_op_stats()
+    if not stats:
+        return jsonify({'status':'failed'})
+
+    logger.info(jsonify(stats))
+
+    return jsonify(stats)
+
 #-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])
 @login_required
@@ -38,26 +51,10 @@ def view_event_list():
             # modifying 'triggers' structure for view rendering
             trigger['count'] = triggers.get_count(trigger['_id'])
 
-    msg = 'Hi %s. ' % user['name']
-    if os.environ['BRAVO_TEST_SERVER'] == 'True':
-        msg += 'You are on Bravo Test server. '
-    else:
-        msg += 'You are on Bravo Live server. '
-    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
-        msg += 'Running in <b>sandbox mode</b> with '
-    if os.environ['BRAVO_CELERY_BEAT'] == 'True':
-        msg += '<b>scheduler enabled</b>. '
-    else:
-        msg += '<b>scheduler disabled</b>. '
-
-    if user['admin']:
-        msg += 'You have admin priviledges.'
-
     return render_template(
       'views/event_list.html',
       title=None,
-      events=event_list,
-      banner_msg=msg
+      events=event_list
     )
 
 #-------------------------------------------------------------------------------
@@ -96,8 +93,7 @@ def view_event(evnt_id):
         evnt_id=evnt_id,
         event=event,
         triggers=trigger_list,
-        admin=admin,
-        banner_msg=msg
+        admin=admin
     )
 
 #-------------------------------------------------------------------------------
@@ -135,10 +131,10 @@ def _submit_event():
 @notify.route('/<evnt_id>/cancel')
 @login_required
 def cancel_event(evnt_id):
-    if events.remove(ObjectId(evnt_id)):
-        return 'OK'
-    else:
-        return 'Error removing notification'
+    if not events.remove(ObjectId(evnt_id)):
+        return jsonify({'status': 'failed'})
+
+    return jsonfiy({'status': 'success'})
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/reset')
@@ -162,9 +158,10 @@ def job_complete(evnt_id):
 @notify.route('/<evnt_id>/<acct_id>/remove', methods=['POST'])
 @login_required
 def rmv_notifics(evnt_id, acct_id):
-    n = events.rmv_notifics(ObjectId(evnt_id), ObjectId(acct_id))
-    return str(n)
+    if not events.rmv_notifics(ObjectId(evnt_id), ObjectId(acct_id)):
+        return jsonify({'status':'failed'})
 
+    return jsonify({'status':'success'})
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/dup_acct', methods=['GET'])

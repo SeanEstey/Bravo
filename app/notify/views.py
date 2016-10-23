@@ -20,6 +20,12 @@ from .. import db
 logger = logging.getLogger(__name__)
 
 
+#-------------------------------------------------------------------------------
+@notify.route('/<trig_id>/get_status', methods=['POST'])
+@login_required
+def get_trig_status(trig_id):
+    status = db.triggers.find_one({'_id':ObjectId(trig_id)})['status']
+    return jsonify({'status':status, 'trig_id':trig_id})
 
 #-------------------------------------------------------------------------------
 @notify.route('/get_op_stats', methods=['POST'])
@@ -77,8 +83,6 @@ def view_event(evnt_id):
 
     for trigger in trigger_list:
         trigger['type'] = utils.to_title_case(trigger['type']);
-
-    
 
     return render_template(
         'views/event.html',
@@ -186,7 +190,7 @@ def fire_trigger(trig_id):
         args=[str(trigger['evnt_id']), trig_id],
         queue=current_app.config['DB'])
 
-    return json.dumps({'status':'OK'})
+    return jsonify({'status':'OK'})
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/<acct_id>/no_pickup', methods=['GET'])

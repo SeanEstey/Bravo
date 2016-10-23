@@ -51,6 +51,7 @@ def get_count(trig_id):
 def fire(evnt_id, trig_id):
     '''Sends out all dependent sms/voice/email notifics messages
     '''
+    from .. import socketio
 
     event = db['notific_events'].find_one({
         '_id':evnt_id})
@@ -80,6 +81,19 @@ def fire(evnt_id, trig_id):
         logger.info('sandbox mode detected.')
         logger.info('simulating voice/sms msgs, re-routing emails')
 
+    db['triggers'].update_one(
+        {'_id':trig_id},
+        {'$set': {
+            'status': 'in-progress',
+            'errors': errors
+    }})
+
+    socketio.send_from_task(
+        'trigger_status',
+        data={
+            'trig_id': str(trig_id),
+            'status': 'in-progress'})
+
     for notific in ready_notifics:
         try:
             if notific['type'] == 'voice':
@@ -97,7 +111,6 @@ def fire(evnt_id, trig_id):
             if status == 'failed':
                 fails += 1
         finally:
-            from .. import socketio
             socketio.send_from_task(
                 'notific_status',
                 data={
@@ -110,6 +123,15 @@ def fire(evnt_id, trig_id):
             'status': 'fired',
             'errors': errors
     }})
+
+    socketio.send_from_task(
+        'trigger_status',
+        data={
+            'trig_id': str(trig_id),
+            'status': 'fired',
+            'sent': count-fails-len(errors),
+            'fails': fails,
+            'errors': len(errors)})
 
     logger.info('%s---------- queued: %s, failed: %s, errors: %s ----------%s',
         bcolors.OKGREEN, count-fails-len(errors), fails, len(errors), bcolors.ENDC)

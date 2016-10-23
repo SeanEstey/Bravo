@@ -90,14 +90,16 @@ function bannerMsg(msg, type, duration=7500) {
 }
 
 //------------------------------------------------------------------------------
-function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-info', data=false) {
+function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-primary', data=false) {
     var btn = $("<button id='"+btn_id+"' class='btn "+style+" admin'>"+caption+"</button>");
 
-    if(data) {
-      btn.data(data);
-    }
-
     $('#'+pane_id).append(btn);
+
+    if(data) {
+			for(var key in data)	{
+				$('#'+btn_id).data(key, data[key]);
+			}
+    }
 
     return btn;
 }

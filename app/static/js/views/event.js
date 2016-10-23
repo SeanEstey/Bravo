@@ -65,6 +65,19 @@ function addSocketIOHandlers() {
         applyStatusColor($('td#'+data['notific_id']));
     });
 
+		socket.on('trigger_status', function(data) {
+				console.log('trig_id %s %s', data['trig_id'], data['status']);
+				
+				if(data['status'] == 'in-progress')
+					$('#stop_btn').removeClass('disabled');
+				else if(data['status'] == 'fired') {
+						$('#stop_btn').addClass('disabled');
+						bannerMsg(data['sent'] + ' notifications sent. ' + 
+											data['fails'] + ' failed. ' + data['errors'] + ' errors.',
+											'info');
+				}
+		});
+
     socket.on('update_event', function(data) {
         if(typeof data == 'string')
             data = JSON.parse(data);
@@ -141,6 +154,7 @@ function addDeleteBtnHandlers() {
 
 //------------------------------------------------------------------------------
 function buildAdminPanel() {
+		/* Trigger buttons store trig_id in .data */
    
     // Add admin_mode pane buttons
 
@@ -153,7 +167,7 @@ function buildAdminPanel() {
 
         if(col_caption.search("Email") > -1) {
           var btn_caption = 'Send Emails Now';
-          var btn_id = 'fire-voice-sms-btn';
+          var btn_id = 'fire-email-btn';
         }
         else if(col_caption.search("Voice") > -1) {
           var btn_caption = 'Send Voice/SMS Now';
@@ -164,8 +178,8 @@ function buildAdminPanel() {
           'admin_pane',
           btn_id,
           btn_caption,
-          'btn-info', {
-            'trig_id':$(this).attr('id')
+          'btn-primary', {
+            'trigId':$(this).attr('id')
           }
         );
 
@@ -173,30 +187,47 @@ function buildAdminPanel() {
             $.ajax({
               context: this,
               type: 'POST',
-              url: $URL_ROOT + 'notify/' + $(this).data('trig_id') + '/fire'
+              url: $URL_ROOT + 'notify/' + $(this).data('trigId') + '/fire'
             })
-            .done(
-              function(response, textStatus, jqXHR) {
-                  response = JSON.parse(response);
-
+            .done(function(response) {
                   console.log('request status: %s', response['status']);
 
                   if(response['status'] == 'OK') {
                       bannerMsg('Request authorized. Sending notifications...',
                                 'info');
-
                       $(this).addClass('btn btn-primary disabled');
                   }
-              }
-            );
+            });
         });
+
+				// Get trigger status from server
+				$.ajax({
+					type: 'POST',
+					url: $URL_ROOT + 'notify/' + btn.data('trigId') + '/get_status'})
+				.done(function(response) {
+						$.each( $(':data(trigId)'), function() {
+								if($(this).data('trigId') == response['trig_id']) {
+									$(this).data('status', response['status']);
+
+									if(response['status'] != 'pending')
+										$(this).addClass('btn btn-primary disabled');
+								}
+						});
+				}); 
     });
+
+
+		var disabled = 'disabled';
+		$.each( $(':data(status)'), function() {
+				if($(this).data('status') == 'in-progress')
+					disabled = '';
+		});
 
     stop_btn = addAdminPanelBtn(
       'admin_pane',
       'stop_btn',
       'Stop All',
-      'btn-danger');
+      'btn-danger ' + disabled);
     
     // Add dev_mode admin pane buttons
 
@@ -222,7 +253,7 @@ function buildAdminPanel() {
       'dev_pane',
       'debug_info_btn',
       'Show Debug Info',
-      'btn-info');
+      'btn-primary');
 
     show_debug_info_btn.click(function() {
         console.log('not implemented yet');

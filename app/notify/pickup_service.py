@@ -229,7 +229,7 @@ def get_next_pickup(blocks, office_notes, block_dates):
     if office_notes:
         rmv = block_parser.block_to_rmv(office_notes)
 
-        if rmv:
+        if rmv and rmv in block_list:
             block_list.remove(rmv)
             logger.info("Removed temp block %s from %s", rmv, str(block_list))
 

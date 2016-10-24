@@ -9,6 +9,7 @@ from flask import current_app, render_template, request
 from pymongo.collection import ReturnDocument
 from .. import db
 from .. import utils, html
+from app import socketio_send
 logger = logging.getLogger(__name__)
 
 
@@ -95,6 +96,7 @@ def call(notific, twilio_conf, voice_conf):
                 'tracking.status': call.status if call else 'failed',
                 'tracking.sid': call.sid if call else None},
             '$inc': {'tracking.attempts':1}})
+
         return call.status if call else 'failed'
 
 #-------------------------------------------------------------------------------
@@ -146,8 +148,11 @@ def on_answer():
             'tracking.answered_by': request.form.get('AnsweredBy')}},
         return_document=ReturnDocument.AFTER)
 
-    # send_socket('update_msg',
-    # {'id': str(msg['_id']), 'call_status': msg['call]['status']})
+    socketio_send(
+        'notific_status',
+        data={
+            'notific_id': str(notific['_id']),
+            'status': request.form['CallStatus']})
 
     response = twiml.Response()
 
@@ -240,6 +245,13 @@ def on_complete():
             kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
             queue=current_app.config['DB']
         )
+
+    socketio_send(
+        'notific_status',
+        data={
+            'notific_id': str(notific['_id']),
+            'status': request.form['CallStatus'],
+            'description': request.form.get('description')})
 
     return 'OK'
 

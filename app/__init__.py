@@ -5,6 +5,7 @@ import pymongo
 import os
 import logging
 import socket
+import requests
 from flask import Flask
 from flask_login import LoginManager
 from werkzeug.contrib.fixers import ProxyFix
@@ -158,3 +159,12 @@ def config_test_server(source):
     # Set SmsUrl callback to point to correct server
     #https://www.twilio.com/docs/api/rest/incoming-phone-numbers#instance
     return True
+
+#-------------------------------------------------------------------------------
+def socketio_send(event, data):
+    '''Used by celery worker to send SocketIO messages'''
+    payload = {
+        'event': event,
+        'data':data
+    }
+    return requests.post('http://localhost/sendsocket', json=payload)

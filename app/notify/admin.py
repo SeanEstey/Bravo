@@ -38,8 +38,6 @@ def auth_request_type(_type):
 def get_op_stats():
     user = db['users'].find_one({'user': current_user.username})
 
-    logger.info(user)
-
     if not user:
         return False
 

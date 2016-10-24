@@ -10,6 +10,7 @@ from flask import current_app, render_template, request
 from datetime import datetime, date, time
 from .. import db
 from .. import utils, html
+from app import socketio_send
 logger = logging.getLogger(__name__)
 
 # TODO: remove all refs to 'status' outside 'tracking' dict. Redundant
@@ -81,46 +82,40 @@ def send(notific, twilio_conf):
             logger.error('Error rendering SMS body. %s', str(e))
             return 'failed'
 
+    msg = None
+    error = None
+
     # Prevent sending live msgs if in sandbox
     if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
         from_ = twilio_conf['sms']['valid_from_number']
     else:
         from_ = twilio_conf['sms']['number']
+        logger.info('queued sms to %s', notific['to'])
 
     try:
-        sms_ = client.messages.create(
+        msg = client.messages.create(
             body = html.clean_whitespace(body),
             to = notific['to'],
             from_ = from_,
             status_callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST'))
     except Exception as e:
+        error = str(e)
         logger.error('failed to send SMS. %s', str(e))
+    else:
+        logger.info('queued sms to %s', notific['to'])
+        logger.debug(utils.print_vars(msg))
+    finally:
         db['notifics'].update_one(
             {'_id': notific['_id']},
             {'$set': {
-                'tracking.status': 'failed',
-                'tracking.descripton': str(e),
+                'tracking.sid': msg.status if msg else None,
+                'tracking.body': msg.body if msg else None,
+                'tracking.error_code': msg.error_code if msg else None,
+                'tracking.status': msg.status if msg else 'failed',
+                'tracking.descripton': error or None,
             }})
-        return 'failed'
 
-    logger.debug(utils.print_vars(sms_))
-
-    if sms_.status != 'queued':
-        logger.info('sms to %s %s', notific['to'], sms_.status)
-        logger.error('sms notific failed to send. %s', str(notific['_id']))
-    else:
-        logger.info('queued sms to %s', notific['to'])
-
-    db['notifics'].update_one(
-        {'_id': notific['_id']},
-        {'$set': {
-            'tracking.sid': sms_.sid,
-            'tracking.status': sms_.status,
-            'tracking.error_code': sms_.error_code,
-            'tracking.body': sms_.body
-        }})
-
-    return sms_.status
+    return msg.status if msg else 'failed'
 
 #-------------------------------------------------------------------------------
 def is_reply():
@@ -184,4 +179,12 @@ def on_status():
             'tracking.sent_dt':
             utils.naive_to_local(datetime.combine(date.today(), time()))}
         })
+
+    socketio_send(
+        'notific_status',
+        data={
+            'notific_id': str(notific['_id']),
+            'status': request.form['SmsStatus'],
+            'description': request.form.get('description')})
+
     return 'OK'

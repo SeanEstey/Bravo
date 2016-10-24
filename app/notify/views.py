@@ -35,8 +35,6 @@ def get_op_stats():
     if not stats:
         return jsonify({'status':'failed'})
 
-    logger.info(jsonify(stats))
-
     return jsonify(stats)
 
 #-------------------------------------------------------------------------------

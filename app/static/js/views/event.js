@@ -8,11 +8,11 @@ function init() {
     buildAdminPanel();
     addDeleteBtnHandlers();
     addSocketIOHandlers();
-		showBannerMsg();
+		showInfoBannerMsg();
 }
 
 //------------------------------------------------------------------------------
-function showBannerMsg() {
+function showInfoBannerMsg() {
 		$.ajax({
 			type: 'POST',
 			context: this,
@@ -68,8 +68,15 @@ function addSocketIOHandlers() {
 		socket.on('trigger_status', function(data) {
 				console.log('trig_id %s %s', data['trig_id'], data['status']);
 				
-				if(data['status'] == 'in-progress')
-					$('#stop_btn').removeClass('disabled');
+				if(data['status'] == 'in-progress') {
+						var columns = $("#notific-table").find("tr:first th").length;
+
+						// Hide 'delete' notific column
+						$('#notific-table').find('td:nth-child('+String(columns)+')').hide();
+						$('#notific-table').find('th:nth-child('+String(columns)+')').hide();
+
+						$('#stop_btn').removeClass('disabled');
+				}
 				else if(data['status'] == 'fired') {
 						$('#stop_btn').addClass('disabled');
 						bannerMsg(data['sent'] + ' notifications sent. ' + 

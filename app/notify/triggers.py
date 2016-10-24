@@ -4,6 +4,7 @@ import logging
 import os
 from datetime import datetime,date,time
 
+from app import socketio_send
 from .. import utils
 from .. import db, bcolors
 from . import voice, email, sms
@@ -51,8 +52,6 @@ def get_count(trig_id):
 def fire(evnt_id, trig_id):
     '''Sends out all dependent sms/voice/email notifics messages
     '''
-    from .. import socketio
-
     event = db['notific_events'].find_one({
         '_id':evnt_id})
 
@@ -88,7 +87,7 @@ def fire(evnt_id, trig_id):
             'errors': errors
     }})
 
-    socketio.send_from_task(
+    socketio_send(
         'trigger_status',
         data={
             'trig_id': str(trig_id),
@@ -111,7 +110,7 @@ def fire(evnt_id, trig_id):
             if status == 'failed':
                 fails += 1
         finally:
-            socketio.send_from_task(
+            socketio_send(
                 'notific_status',
                 data={
                     'notific_id': str(notific['_id']),
@@ -124,7 +123,7 @@ def fire(evnt_id, trig_id):
             'errors': errors
     }})
 
-    socketio.send_from_task(
+    socketio_send(
         'trigger_status',
         data={
             'trig_id': str(trig_id),

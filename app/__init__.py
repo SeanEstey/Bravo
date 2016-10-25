@@ -161,10 +161,10 @@ def config_test_server(source):
     return True
 
 #-------------------------------------------------------------------------------
-def socketio_send(event, data):
+def task_emit(event, data):
     '''Used by celery worker to send SocketIO messages'''
     payload = {
         'event': event,
         'data':data
     }
-    return requests.post('http://localhost/sendsocket', json=payload)
+    return requests.post('http://localhost/task_emit', json=payload)

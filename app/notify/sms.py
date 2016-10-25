@@ -10,11 +10,8 @@ from flask import current_app, render_template, request
 from datetime import datetime, date, time
 from .. import db
 from .. import utils, html
-from app import socketio_send
 logger = logging.getLogger(__name__)
 
-# TODO: remove all refs to 'status' outside 'tracking' dict. Redundant
-# TODO: write render_template() code to get SMS body
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
@@ -108,7 +105,7 @@ def send(notific, twilio_conf):
         db['notifics'].update_one(
             {'_id': notific['_id']},
             {'$set': {
-                'tracking.sid': msg.status if msg else None,
+                'tracking.sid': msg.sid if msg else None,
                 'tracking.body': msg.body if msg else None,
                 'tracking.error_code': msg.error_code if msg else None,
                 'tracking.status': msg.status if msg else 'failed',
@@ -165,14 +162,18 @@ def on_reply():
 
     response = handler_func(notific)
 
+    return response
+
 #-------------------------------------------------------------------------------
 def on_status():
     '''Callback for sending notific SMS
     '''
 
+    logger.info('%s sms to %s', request.form['SmsStatus'], request.form['To'])
+
     logger.debug('sms.on_status: %s', request.form.to_dict())
 
-    db['notifics'].find_one_and_update({
+    notific = db['notifics'].find_one_and_update({
         'tracking.sid': request.form['SmsSid']}, {
         '$set':{
             'tracking.status': request.form['SmsStatus'],
@@ -180,11 +181,10 @@ def on_status():
             utils.naive_to_local(datetime.combine(date.today(), time()))}
         })
 
-    socketio_send(
-        'notific_status',
-        data={
-            'notific_id': str(notific['_id']),
-            'status': request.form['SmsStatus'],
-            'description': request.form.get('description')})
+    from .. socketio import socketio_app
+    socketio_app.emit('notific_status', {
+        'notific_id': str(notific['_id']),
+        'status': request.form['SmsStatus'],
+        'description': request.form.get('description')})
 
     return 'OK'

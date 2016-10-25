@@ -8,11 +8,11 @@ function init() {
     buildAdminPanel();
     addDeleteBtnHandlers();
     addSocketIOHandlers();
-		showInfoBannerMsg();
+		showOnLoadAlert();
 }
 
 //------------------------------------------------------------------------------
-function showInfoBannerMsg() {
+function showOnLoadAlert() {
 		$.ajax({
 			type: 'POST',
 			context: this,
@@ -20,27 +20,32 @@ function showInfoBannerMsg() {
 		})
 		.done(function(response) {
 				console.log('got server op stats');
+        console.log(response);
 
 				var msg = 'Hi ' + response['USER_NAME'] + ' ';
 
 				if(response['TEST_SERVER'])
-						msg += 'You are on Bravo Test server. ';
+						msg += 'You are on Bravo Test server. Mode: ';
 				else
-						msg += 'You are on Bravo Live server. ';
+						msg += 'You are on Bravo Live server. Mode: ';
+
 				if(response['SANDBOX_MODE'])
-						msg += 'Running in <b>sandbox mode</b> with ';
+						msg += '<b>sandbox-enabled</b>, ';
+        else
+            msg += '<b>sandbox-disabled</b>, ';
+
 				if(response['CELERY_BEAT'])
-						msg += '<b>scheduler enabled</b>. ';
+						msg += '<b>scheduler-enabled</b>, ';
 				else
-						msg += '<b>scheduler disabled</b>. ';
+						msg += '<b>scheduler-disabled</b>, ';
 
 				if(response['ADMIN'])
-						msg += 'You have admin priviledges. ';
+						msg += '<b>admin-enabled</b>';
 
 				if(response['DEVELOPER'])
-						msg += 'You have dev priviledges.';
+						msg += ', <b>dev-enabled</b>';
 
-				bannerMsg(msg, 'info', 15000);
+				alertMsg(msg, 'info', 15000);
 		});
 }
 
@@ -58,7 +63,7 @@ function addSocketIOHandlers() {
     });
 
     socket.on('notific_status', function(data) {
-        console.log('notific %s %s', data['notific_id'], data['status']);
+        console.log('notific %s [%s]', data['status'], data['notific_id']);
 
         $('td#'+data['notific_id']).text(data['status'].toTitleCase());
 
@@ -66,22 +71,25 @@ function addSocketIOHandlers() {
     });
 
 		socket.on('trigger_status', function(data) {
-				console.log('trig_id %s %s', data['trig_id'], data['status']);
+				console.log('trigger %s [%s]', data['status'], data['trig_id']);
 				
 				if(data['status'] == 'in-progress') {
+            alertMsg('Sending notifications...', 'info');
+
 						var columns = $("#notific-table").find("tr:first th").length;
 
 						// Hide 'delete' notific column
 						$('#notific-table').find('td:nth-child('+String(columns)+')').hide();
 						$('#notific-table').find('th:nth-child('+String(columns)+')').hide();
 
-						$('#stop_btn').removeClass('disabled');
+            $('#stop_btn').prop('disabled', false);
 				}
 				else if(data['status'] == 'fired') {
-						$('#stop_btn').addClass('disabled');
-						bannerMsg(data['sent'] + ' notifications sent. ' + 
+            $('#stop_btn').prop('disabled', true);
+
+						alertMsg(data['sent'] + ' notifications sent. ' + 
 											data['fails'] + ' failed. ' + data['errors'] + ' errors.',
-											'info');
+											'success');
 				}
 		});
 
@@ -130,10 +138,10 @@ function addDeleteBtnHandlers() {
                   if(response['status'] == 'success'){ 
                       $(this).parent().parent().remove();
                       console.log('acct %s removed', $(this).attr('id'));
-                      bannerMsg('Notification removed', 'info');
+                      alertMsg('Notification removed', 'success');
                   }
                   else
-                    bannerMsg('Error removing notific', 'error');
+                    alertMsg('Error removing notific', 'danger');
               });
           });
       });
@@ -161,7 +169,9 @@ function addDeleteBtnHandlers() {
 
 //------------------------------------------------------------------------------
 function buildAdminPanel() {
-		/* Trigger buttons store trig_id in .data */
+		/* Each Trigger <button> stores 'trigId' and 'status' key/value pairs in
+     * $(this).data() 
+     */
    
     // Add admin_mode pane buttons
 
@@ -199,11 +209,13 @@ function buildAdminPanel() {
             .done(function(response) {
                   console.log('request status: %s', response['status']);
 
-                  if(response['status'] == 'OK') {
-                      bannerMsg('Request authorized. Sending notifications...',
-                                'info');
-                      $(this).addClass('btn btn-primary disabled');
+                  if(response['status'] != 'OK') {
+                      alertMsg('Request to send notifications denied.',
+                      'danger');
+                      return;
                   }
+
+                  $(this).prop('disabled', true);
             });
         });
 
@@ -217,24 +229,51 @@ function buildAdminPanel() {
 									$(this).data('status', response['status']);
 
 									if(response['status'] != 'pending')
-										$(this).addClass('btn btn-primary disabled');
+                    $(this).prop('disabled', true);
 								}
 						});
 				}); 
     });
 
-
-		var disabled = 'disabled';
-		$.each( $(':data(status)'), function() {
-				if($(this).data('status') == 'in-progress')
-					disabled = '';
-		});
-
     stop_btn = addAdminPanelBtn(
       'admin_pane',
       'stop_btn',
       'Stop All',
-      'btn-danger ' + disabled);
+      'btn-danger ');
+
+    stop_btn.prop('disabled', true);
+
+		$.each( $(':data(status)'), function() {
+				if($(this).data('status') == 'in-progress')
+          $('#stop_btn').prop('disabled', false);
+		});
+
+    // Make server request to kill any active triggers
+    stop_btn.click(function() {
+        $.each(($(':data(trigId)')), function(){
+            if($(this).data('status') != 'in-progress'){
+                console.log('no active trigger to kill');
+                return;
+            }
+
+            console.log('requesting to kill trigger %s', $(this).data('trigId'));
+
+            $.ajax({
+                type: 'post',
+                url: $URL_ROOT + 'notify/kill_trigger',
+                data: {'trig_id': $(this).data('trigId')}})
+            .done(function(response) {
+                console.log('response: ' + JSON.stringify(response));
+                showBannerMsg(JSON.stringify(response));
+                
+                // TODO: have server send 'trigger_status' socket.io event on
+                // success, update button enabled/disabled states
+            });
+        });
+
+    });
+
+
     
     // Add dev_mode admin pane buttons
 
@@ -436,11 +475,11 @@ function enableEditableFields() {
         data: payload
 			}).done(function(msg) {
           if(msg != 'OK') {
-						bannerMsg(msg, 'error');
+						alertMsg(msg, 'danger');
             $cell.html(text);
           }
 					else {
-							bannerMsg('Edited field successfully', 'info');
+							alertMsg('Edited field successfully', 'success');
 					}
       });
 

@@ -9,11 +9,9 @@ from flask import current_app, render_template, request
 from pymongo.collection import ReturnDocument
 from .. import db
 from .. import utils, html
-from app import socketio_send
 logger = logging.getLogger(__name__)
 
 
-# TODO: remove all refs to 'status' outside 'tracking' dict. Redundant
 # TODO: finish writing RFU code on call.status == 'failed'
 
 #-------------------------------------------------------------------------------
@@ -148,11 +146,10 @@ def on_answer():
             'tracking.answered_by': request.form.get('AnsweredBy')}},
         return_document=ReturnDocument.AFTER)
 
-    socketio_send(
-        'notific_status',
-        data={
-            'notific_id': str(notific['_id']),
-            'status': request.form['CallStatus']})
+    from .. socketio import socketio_app
+    socketio_app.emit('notific_status', {
+        'notific_id': str(notific['_id']),
+        'status': request.form['CallStatus']})
 
     response = twiml.Response()
 
@@ -246,12 +243,11 @@ def on_complete():
             queue=current_app.config['DB']
         )
 
-    socketio_send(
-        'notific_status',
-        data={
-            'notific_id': str(notific['_id']),
-            'status': request.form['CallStatus'],
-            'description': request.form.get('description')})
+    from .. socketio import socketio_app
+    socketio_app.emit('notific_status', {
+        'notific_id': str(notific['_id']),
+        'status': request.form['CallStatus'],
+        'description': request.form.get('description')})
 
     return 'OK'
 

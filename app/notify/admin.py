@@ -42,9 +42,9 @@ def get_op_stats():
         return False
 
     return {
-        'TEST_SERVER': bool(os.environ['BRAVO_TEST_SERVER']),
-        'SANDBOX_MODE': bool(os.environ['BRAVO_SANDBOX_MODE']),
-        'CELERY_BEAT': bool(os.environ['BRAVO_CELERY_BEAT']),
+        'TEST_SERVER': True if os.environ['BRAVO_TEST_SERVER'] == 'True' else False,
+        'SANDBOX_MODE': True if os.environ['BRAVO_SANDBOX_MODE'] == 'True' else False,
+        'CELERY_BEAT': True if os.environ['BRAVO_CELERY_BEAT'] == 'True' else False,
         'ADMIN': user['admin'],
         'DEVELOPER': user['developer'],
         'USER_NAME': user['name']

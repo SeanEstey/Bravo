@@ -4,12 +4,14 @@ import logging
 import os
 import traceback as tb
 from celery import Celery
+from celery.task.control import revoke
 import logging
 from bson.objectid import ObjectId as oid
 
 from . import db
 from . import create_app, create_celery_app, \
         debug_handler, info_handler, error_handler, exception_handler
+from . import utils
 
 flask_app = create_app('app')
 celery = create_celery_app(flask_app)
@@ -25,6 +27,22 @@ logger.addHandler(exception_handler)
 logger.setLevel(logging.DEBUG)
 
 
+
+#-------------------------------------------------------------------------------
+def kill(task_id):
+    logger.info('attempting to kill task_id %s', task_id)
+
+    try:
+        response = celery.control.revoke(task_id, terminate=True)
+    except Exception as e:
+        logger.error('revoke task error: %s', str(e))
+        return False
+
+    logger.info('revoke response: %s', str(response))
+
+    return response
+
+#-------------------------------------------------------------------------------
 @celery.task
 def mod_environ(args):
     for key in args:
@@ -65,6 +83,8 @@ def monitor_triggers():
                 '$gt':datetime.utcnow()}})
 
         for trigger in pending:
+
+
             delta = trigger['fire_dt'] - datetime.utcnow().replace(tzinfo=pytz.utc)
 
             print '%s trigger pending in %s' %(
@@ -106,8 +126,15 @@ def add_signup(signup):
         logger.error('%s\n%s', str(e), tb.format_exc())
 
 #-------------------------------------------------------------------------------
-@celery.task
-def fire_trigger(evnt_id, trig_id):
+@celery.task(bind=True)
+def fire_trigger(self, evnt_id, trig_id):
+    logger.debug('trigger task_id: %s', self.request.id)
+
+    # Store celery task_id in case we need to kill it
+    db.triggers.update_one({
+        '_id':oid(trig_id)},
+        {'$set':{'task_id':self.request.id}})
+
     try:
         from app.notify import triggers
         return triggers.fire(oid(evnt_id), oid(trig_id))

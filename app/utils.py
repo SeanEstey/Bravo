@@ -94,6 +94,10 @@ def to_intl_format(to):
 
 #-------------------------------------------------------------------------------
 def print_vars(obj, depth=0, l="    "):
+    '''Print vars for any object.
+    @depth: level of recursion
+    @l: separator string
+    '''
 
     #fall back to repr
     if depth<0: return repr(obj)

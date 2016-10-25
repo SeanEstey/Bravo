@@ -4,7 +4,8 @@ import json
 import time
 import requests
 from datetime import datetime, date
-from flask import g, request, render_template, redirect, url_for, current_app
+from flask import g, request, render_template, redirect, url_for, current_app,\
+     jsonify
 from flask_login import login_required, current_user
 from flask_socketio import SocketIO, emit
 from bson.objectid import ObjectId
@@ -20,12 +21,12 @@ logger = logging.getLogger(__name__)
 
 
 
+
+
 #-------------------------------------------------------------------------------
-@main.route('/sendsocket', methods=['POST'])
+@main.route('/task_emit', methods=['POST'])
 def request_send_socket():
     args = request.get_json(force=True)
-
-    logger.info(args)
 
     from app.socketio import socketio_app
 

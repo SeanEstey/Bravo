@@ -62,31 +62,52 @@ function showDialog($element, msg, _title, _buttons) {
 }
 
 //------------------------------------------------------------------------------
-function bannerMsg(msg, type, duration=7500) {
-		var $banner = $('.status-banner');
+function alertMsg(msg, level, duration=7500) {
+    /*  Display color-coded message across banner below header.
+    * @level: 'success', 'info', 'warning', 'danger'
+    */
 
-		if(!$banner)
-				return false;
-		
-		if(type == 'info')
-			$banner.css('background-color', '#CDE6CD'); 
-		else if(type == 'error')
-			$banner.css('background-color', '#FFCCCC'); 
 
-		$banner.css('visibility', 'visible');
-		$banner.css('opacity', 0);
+		var $alert = $('.alert-banner');
 
-		$banner.html('<span>' + msg + '</span>');
-		$banner.clearQueue();
+    if($alert.css('visibility') == 'hidden') {
+        $alert.css('visibility', 'visible');
+        $alert.css('opacity', 0);
+    }
 
-		$banner.fadeTo('slow', 1);
+    if($alert.queue('fx').length > 0) {
+		    $alert.clearQueue();
+        clearTimeout($alert.stop().data('timer'));
+    }
 
-		if(type == 'info')
-				$banner.delay(duration);
-		else if(type == 'error')
-				$banner.delay(10000);
-	
-		$banner.fadeTo('slow', 0);
+    if(level == 'success')
+        $alert.css('background-color', '#DFF2BF');
+		else if(level == 'info')
+			  $alert.css('background-color', '#BDE5F8'); 
+    else if(level == 'warning')
+        $alert.css('background-color', '#FEEFB3');
+		else if(level  == 'danger')
+			  $alert.css('background-color', '#FFCCCC'); 
+
+		$alert.html('<span>' + msg + '</span>');
+
+		if(level == 'warning' || level == 'danger') {
+        duration = 10000;
+    }
+
+    $alert.fadeIn(function() {
+        $(this).fadeTo('slow', 1);
+        
+        var elem = $(this);
+        $(this).data(
+            'timer',
+            setTimeout(
+                function() {
+                    elem.fadeTo('slow', 0);
+                },
+                duration)
+        );
+    });
 }
 
 //------------------------------------------------------------------------------

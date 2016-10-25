@@ -21,6 +21,12 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
+@notify.route('/kill_trigger', methods=['POST'])
+@login_required
+def kill_trigger():
+    return jsonify(triggers.kill())
+
+#-------------------------------------------------------------------------------
 @notify.route('/<trig_id>/get_status', methods=['POST'])
 @login_required
 def get_trig_status(trig_id):

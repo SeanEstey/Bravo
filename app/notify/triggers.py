@@ -2,9 +2,11 @@
 
 import logging
 import os
+from flask import request
+from bson.objectid import ObjectId
 from datetime import datetime,date,time
 
-from app import socketio_send
+from app import task_emit
 from .. import utils
 from .. import db, bcolors
 from . import voice, email, sms
@@ -87,9 +89,9 @@ def fire(evnt_id, trig_id):
             'errors': errors
     }})
 
-    socketio_send(
-        'trigger_status',
-        data={
+    # Calling from celery task, do not have socketio app context.
+    # Make a request to server to emit msg
+    task_emit('trigger_status', data={
             'trig_id': str(trig_id),
             'status': 'in-progress'})
 
@@ -110,11 +112,9 @@ def fire(evnt_id, trig_id):
             if status == 'failed':
                 fails += 1
         finally:
-            socketio_send(
-                'notific_status',
-                data={
-                    'notific_id': str(notific['_id']),
-                    'status': status})
+            task_emit('notific_status', data={
+                'notific_id': str(notific['_id']),
+                'status': status})
 
     db['triggers'].update_one(
         {'_id':trig_id},
@@ -123,16 +123,30 @@ def fire(evnt_id, trig_id):
             'errors': errors
     }})
 
-    socketio_send(
-        'trigger_status',
-        data={
-            'trig_id': str(trig_id),
-            'status': 'fired',
-            'sent': count-fails-len(errors),
-            'fails': fails,
-            'errors': len(errors)})
+    task_emit('trigger_status', data={
+        'trig_id': str(trig_id),
+        'status': 'fired',
+        'sent': count-fails-len(errors),
+        'fails': fails,
+        'errors': len(errors)})
 
     logger.info('%s---------- queued: %s, failed: %s, errors: %s ----------%s',
         bcolors.OKGREEN, count-fails-len(errors), fails, len(errors), bcolors.ENDC)
 
     return True
+
+#-------------------------------------------------------------------------------
+def kill_task():
+    '''Kill the celery task spawned by firing of this trigger. Called from view
+    func so has request context.
+    @request: array of str trig_id's to kill
+    '''
+
+    trigger = db.triggers.find_one({'_id':ObjectId(request.form.get('trig_id'))})
+
+    if not trigger or not trigger.get('task_id'):
+        logger.error('No trigger or task_id found to kill')
+        return False
+
+    from .. import tasks
+    response = tasks.kill(trigger['task_id'])

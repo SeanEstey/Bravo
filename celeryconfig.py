@@ -25,15 +25,16 @@ CELERYBEAT_SCHEDULE = {
       'task': 'app.tasks.schedule_reminders',
       'schedule': crontab(hour=7, minute=00, day_of_week='*'),
       'options': { 'queue': config.DB }
-  },
+  }
+  #,
   #'build_routes': {
   #    'task': 'app.tasks.build_routes',
   #    'schedule': crontab(hour=6, minute=45, day_of_week='*'),
   #    'options': { 'queue': config.DB }
   #},
-  'monitor_triggers': {
-    'task': 'app.tasks.monitor_triggers',
-    'schedule': crontab(minute='*/5'),
-    'options': { 'queue': config.DB }
-  }
+  #'monitor_triggers': {
+  #  'task': 'app.tasks.monitor_triggers',
+  #  'schedule': crontab(minute='*/5'),
+  #  'options': { 'queue': config.DB }
+  #}
 }

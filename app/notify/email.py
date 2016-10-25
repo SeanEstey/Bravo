@@ -5,7 +5,6 @@ import os
 from flask import render_template, current_app, request
 from .. import db
 from .. import utils, mailgun
-from app import socketio_send
 logger = logging.getLogger(__name__)
 
 # TODO: remove db['emails'].update op. in app.notify.views.on_delivered just search mid in db['notifics']
@@ -86,7 +85,7 @@ def send(notific, mailgun_conf, key='default'):
             'tracking.mid': mid}
         })
 
-    return mid
+    return status
 
 #-------------------------------------------------------------------------------
 def on_delivered():
@@ -101,11 +100,10 @@ def on_delivered():
       }}
     )
 
-    socketio_send(
-        'notific_status',
-        data={
-            'notific_id': str(notific['_id']),
-            'status': request.form['event']})
+    from .. socketio import socketio_app
+    socketio_app.emit('notific_status', {
+        'notific_id': str(notific['_id']),
+        'status': request.form['event']})
 
 #-------------------------------------------------------------------------------
 def on_dropped():
@@ -121,8 +119,7 @@ def on_dropped():
       }}
     )
 
-    socketio_send(
-        'notific_status',
-        data={
-            'notific_id': str(notific['_id']),
-            'status': request.form['event']})
+    from .. socketio import socketio_app
+    socketio_app.emit('notific_status', {
+        'notific_id': str(notific['_id']),
+        'status': request.form['event']})

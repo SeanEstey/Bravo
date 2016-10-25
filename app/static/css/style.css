@@ -59,7 +59,7 @@ a.hover:visited {
   height: 60px;
 }
 
-.status-banner {
+.alert-banner {
 	visibility: hidden;
 	position: absolute;
 	top: 8em;
@@ -75,11 +75,11 @@ a.hover:visited {
   color: #365766;
 }
 
-.status-banner .green {
+.alert-banner .green {
   background-color: #CDE6CD; 
 }
 
-.status-banner .red {
+.alert-banner .red {
   background-color: red; 
 }
 

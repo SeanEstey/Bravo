@@ -247,6 +247,7 @@ def on_complete():
     socketio_app.emit('notific_status', {
         'notific_id': str(notific['_id']),
         'status': request.form['CallStatus'],
+        'answered_by': request.form.get('AnsweredBy'),
         'description': request.form.get('description')})
 
     return 'OK'

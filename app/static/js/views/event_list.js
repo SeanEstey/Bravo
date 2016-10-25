@@ -7,7 +7,7 @@ function init() {
     addDeleteBtnHandlers();
     addSocketIOHandlers();
     addPageNavHandlers();
-		showBannerMsg();
+		showWelcomeAlert();
 }
 
 //------------------------------------------------------------------------------
@@ -111,7 +111,7 @@ function addSocketIOHandlers() {
       var job_name = $job_row.find('[name="job-name"]').text(); 
       var msg = 'Job \''+job_name+'\' ' + data['status'];
 
-      bannerMsg(msg, 'error', 10000);
+      alertMsg(msg, 'error', 10000);
 
       $status_td = $job_row.find('[name="job-status"]');
 
@@ -150,7 +150,7 @@ function addSocketIOHandlers() {
 }
 
 //------------------------------------------------------------------------------
-function showBannerMsg() {
+function showWelcomeAlert() {
     /*
     msg = ''
     if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
@@ -188,7 +188,7 @@ function showBannerMsg() {
 				if(response['DEVELOPER'])
 						msg += 'You have dev priviledges.';
 
-				bannerMsg(msg, 'info', 15000);
+				alertMsg(msg, 'info', 15000);
 		});
 }
 
@@ -235,7 +235,7 @@ function buildAdminPanel() {
                   console.log('request status: %s', response['status']);
 
                   if(response['status'] == 'OK') {
-                      bannerMsg('Request authorized. Sending notifications...',
+                      alertMsg('Request authorized. Sending notifications...',
                                 'info');
 
                       $(this).addClass('btn btn-primary disabled');

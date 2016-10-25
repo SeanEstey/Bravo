@@ -2,6 +2,10 @@
 //------------------------------------------------------------------------------
 function init() {
     loadTooltip();
+
+		$('#580e87c206dc2a2c8631ac81').attr('title', 'FOOBAR');
+		
+
     enableEditableFields();
 		enableColumnSorting();
 		formatColumns();
@@ -19,9 +23,6 @@ function showOnLoadAlert() {
 			url: $URL_ROOT + 'notify/get_op_stats'
 		})
 		.done(function(response) {
-				console.log('got server op stats');
-        console.log(response);
-
 				var msg = 'Hi ' + response['USER_NAME'] + ' ';
 
 				if(response['TEST_SERVER'])
@@ -53,8 +54,6 @@ function showOnLoadAlert() {
 function addSocketIOHandlers() {
     var socketio_url = 'http://' + document.domain + ':' + location.port;
 
-    console.log('socket.io connecting to ' + socketio_url + '...');
-
     var socket = io.connect(socketio_url);
 
     socket.on('connect', function(){
@@ -65,7 +64,15 @@ function addSocketIOHandlers() {
     socket.on('notific_status', function(data) {
         console.log('notific %s [%s]', data['status'], data['notific_id']);
 
-        $('td#'+data['notific_id']).text(data['status'].toTitleCase());
+				$td = $('td#'+data['notific_id']);
+
+        $td.text(data['status'].toTitleCase());
+				
+				if('description' in data)
+						$td.attr('title', 'Desc: ' + data['description'] + '\n');
+
+				if('answered_by' in data)
+						$td.attr('title', $td.attr('title') + ' Answered By: ' + data['answered_by']);
 
         applyStatusColor($('td#'+data['notific_id']));
     });
@@ -124,6 +131,8 @@ function addDeleteBtnHandlers() {
       var evnt_id = args.slice(-1)[0];
 
       $('.delete-btn').each(function(){ 
+					$(this).attr('title', 'Remove this notification');
+
           $(this).click(function() {
               var acct_id = $(this).attr('id');
               var $tr = $(this).parent().parent();
@@ -466,8 +475,6 @@ function enableEditableFields() {
 
       if($input.val() == '---')
         return;
-
-      console.log(payload);
 
       $.ajax({
         type: 'POST',

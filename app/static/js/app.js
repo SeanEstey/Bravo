@@ -61,24 +61,27 @@ function showDialog($element, msg, _title, _buttons) {
 		$element.dialog(dialog_style);
 }
 
+var globalTimeoutId = false;
+
 //------------------------------------------------------------------------------
 function alertMsg(msg, level, duration=7500) {
     /*  Display color-coded message across banner below header.
     * @level: 'success', 'info', 'warning', 'danger'
     */
 
-
 		var $alert = $('.alert-banner');
 
-    if($alert.css('visibility') == 'hidden') {
-        $alert.css('visibility', 'visible');
-        $alert.css('opacity', 0);
-    }
+		// Existing alert. Clear its timer, fade it out
+		if(globalTimeoutId) {
+				clearTimeout(globalTimeoutId);
+				globalTimeoutId = false;
+				$alert.stop(true);
 
-    if($alert.queue('fx').length > 0) {
-		    $alert.clearQueue();
-        clearTimeout($alert.stop().data('timer'));
-    }
+				$alert.fadeTo('slow', 0, function() {
+					alertMsg(msg, level, duration);
+				});
+				return;
+		}
 
     if(level == 'success')
         $alert.css('background-color', '#DFF2BF');
@@ -89,25 +92,18 @@ function alertMsg(msg, level, duration=7500) {
 		else if(level  == 'danger')
 			  $alert.css('background-color', '#FFCCCC'); 
 
+		if(level == 'warning' || level == 'danger')
+        duration = 10000;
+
 		$alert.html('<span>' + msg + '</span>');
 
-		if(level == 'warning' || level == 'danger') {
-        duration = 10000;
-    }
-
-    $alert.fadeIn(function() {
-        $(this).fadeTo('slow', 1);
-        
-        var elem = $(this);
-        $(this).data(
-            'timer',
-            setTimeout(
-                function() {
-                    elem.fadeTo('slow', 0);
-                },
-                duration)
-        );
-    });
+		$alert.fadeTo('slow', 1, function() {
+				globalTimeoutId = setTimeout(function() {
+						$alert.fadeTo('slow', 0);
+						globalTimeoutId = false;
+				},
+				duration);
+		});	
 }
 
 //------------------------------------------------------------------------------

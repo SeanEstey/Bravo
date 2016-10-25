@@ -2,10 +2,6 @@
 //------------------------------------------------------------------------------
 function init() {
     loadTooltip();
-
-		$('#580e87c206dc2a2c8631ac81').attr('title', 'FOOBAR');
-		
-
     enableEditableFields();
 		enableColumnSorting();
 		formatColumns();

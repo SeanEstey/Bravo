@@ -57,7 +57,7 @@ textarea.special-msg {
 }
 
 .box {
-  background-color: #e8f5f9;
+  background-color: #f7f7f7;
   min-width: 300px;
   max-width: 1000px;
   padding-right: 2em;
@@ -65,8 +65,10 @@ textarea.special-msg {
   padding-bottom: 2em;
   padding-top: 2em;
   z-index: 20;
-  margin-top: 1em;
+  margin-top: 7.5em;
   margin-bottom: 2em;
+  margin-left: auto;
+  margin-right: auto;
   border: 1px solid #cccccc;
   -moz-border-radius: 7px;
   -webkit-border-radius: 7px;

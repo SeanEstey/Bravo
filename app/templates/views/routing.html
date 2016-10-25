@@ -1,5 +1,8 @@
   {% extends "views/base.html" %}
   {% block content %}  
+	<script type='text/javascript' 
+					src="{{url_for('static', filename='js/views/routing.js')}}">
+	</script>
   <script>
     function toggleWarnings(event) {
           event.stopPropagation();
@@ -16,18 +19,8 @@
     });
   </script>
   
-  <div style='margin:40px 10px 40px 10px; text-align:center'>
-    <h3 class='thin'>
-    <script>
-      var date = new Date();
-      document.write('<b>' + date.toString('dddd, MMMM d, yyyy') + '</b>');
-    </script>
-    </h3>
-  </div>
-  <div id='status-banner' class='status-banner-div'>{{banner_msg}}</div>
-  
   <div class='data-container'>
-    <div class='navbar-div'>
+    <div class='data-navbar-div'>
 			Routing
 		</div>
     <table class='table table-hover table-colored'>

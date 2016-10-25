@@ -27,7 +27,7 @@ def show_routing():
     return render_template(
       'views/routing.html',
       routes=upcoming,
-      depots=agency_conf['routing']['depots'],
+      depots=agency_conf['routing']['locations']['depots'],
       drivers=agency_conf['routing']['drivers']
     )
 

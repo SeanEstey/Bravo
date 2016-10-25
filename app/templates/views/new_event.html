@@ -2,7 +2,7 @@
   {% block content %} 
 	
 	<script type='text/javascript' 
-					src="{{url_for('static', filename='js/views/new_job.js')}}">
+					src="{{url_for('static', filename='js/views/new_event.js')}}">
 	</script>
   <script>
     document.write('<style type="text/css">body{display:none}</style>');
@@ -11,20 +11,7 @@
     });
   </script>
   
-  <div style='margin-top:3em; text-align:center'> 
-    <h3>Schedule a New Notification Event</h3>
-  </div>
-
-  <div id='my-alert' class="alert alert-danger alert-dismissible center" role="alert">
-    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-      <span aria-hidden="true">&times;</span>
-    </button>
-    <label id='alert-msg'>Alert! Warning! Alert!</label>
-  </div>
-
-  <div class='status-banner'>{{banner_msg}}</div>
-
-  <div class='box center' style='width:400px; background-color:#f7f7f7; padding:1.5em'>
+  <div class='box'>
     <form id='myform' enctype=multipart/form-data method=post>
       <fieldset class='form-fieldset'>
         <legend class='scheduler-border'>Settings</legend>

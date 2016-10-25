@@ -1,11 +1,11 @@
 
 //------------------------------------------------------------------------------
 function init() {
+  alertMsg('Schedule a new notification event', 'info', 7500);
+
   loadTooltip();
 
   $('#datepicker').datepicker();
-
-  $("input[type=file]").nicefileinput();
 
   onSelectTemplate();
 

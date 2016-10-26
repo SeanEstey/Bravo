@@ -4,7 +4,7 @@
   <script src="{{url_for('static', filename='js/views/event_list.js')}}"></script>
   <script> $(function() {init();}); </script>
 
-  <div class='data-container'>
+  <div class='container-fluid border'>
     <div class='data-navbar-div'>
       <a class='hover' href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
       <a style='font-weight:bold; text-decoration:none;' title='Schedule a new
@@ -14,11 +14,11 @@
       <thead>
         <tr>
           <th>Name</th>
-					<th>Date</th>
+					<th width='15%' >Date</th>
 					<th>Email Notifications</th>
-					<th>Count</th>
+					<th width='5%' >Count</th>
 					<th>Voice/SMS Notifications</th>
-					<th>Count</th>
+					<th width='5%' >Count</th>
           <th style='width:50px'></th>
         </tr>
       </thead>

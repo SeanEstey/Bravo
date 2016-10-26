@@ -1,17 +1,10 @@
 {% extends "views/base.html" %}
+
 {% block content %}  
-	<script type='text/javascript' src="{{url_for('static', filename='js/views/event_list.js')}}">
-	</script>
-  <script>
-    jQuery(function($){
-      init();
-    });
-		jQuery(document).ready(function() {
-				$('.data-container').css('visibility', 'visible');
-			});
-	</script>
-  
-  <div class='data-container' style='visibility:hidden'>
+  <script src="{{url_for('static', filename='js/views/event_list.js')}}"></script>
+  <script> $(function() {init();}); </script>
+
+  <div class='data-container'>
     <div class='data-navbar-div'>
       <a class='hover' href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
       <a style='font-weight:bold; text-decoration:none;' title='Schedule a new
@@ -57,11 +50,13 @@
           {% endfor %}
 					<td>
 						<button 
-							class='delete-btn' 
+              class='ui-button ui-widget ui-corner-all ui-button-icon-only
+              delete-btn'
 							type="button" 
 							id="{{ url_for('notify.cancel_event',evnt_id=event._id) }}" 
 							title='Delete this event'
 							name="delete-btn">
+              <span class="ui-button-icon-primary ui-icon ui-icon-trash"></span>
 						</button>
 					</td>
 				</tr>

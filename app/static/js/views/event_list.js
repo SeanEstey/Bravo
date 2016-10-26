@@ -1,13 +1,12 @@
 
-
-//------------------------------------------------------------------------------
 function init() {
-    loadTooltip();
-    buildAdminPanel();
-    addDeleteBtnHandlers();
-    addSocketIOHandlers();
-    addPageNavHandlers();
-		showWelcomeAlert();
+	loadTooltip();
+	buildAdminPanel();
+	addDeleteBtnHandlers();
+	addSocketIOHandlers();
+	addPageNavHandlers();
+	showWelcomeAlert();
+	console.log('all js loaded');
 }
 
 //------------------------------------------------------------------------------
@@ -46,14 +45,13 @@ function addPageNavHandlers() {
 
 //------------------------------------------------------------------------------
 function addDeleteBtnHandlers() {
+/*
     $('.delete-btn').button({
         icons: {
-          primary: 'ui-icon-trash'
+          primary: 'ui-icon ui-icon-trash'
         },
         text: false
-    })
-
-    $('.delete-btn').addClass('redButton');
+    })*/
 
     $('.delete-btn').each(function(){ 
       $(this).click(function(){
@@ -196,88 +194,29 @@ function showWelcomeAlert() {
 function buildAdminPanel() {
    
     // Add admin_mode pane buttons
+		$('#admin_pane').hide();
 
-    // Add btns to fire each event trigger. trig_ids are stored in data-container 
-    // "Status" columns i.e. "Voice SMS Status"
-    $('th[id] a:contains("Status")').parent().each(function() {
-        console.log('adding fire btn for trig_id ' + $(this).attr('id'));
+		addAdminPanelBtn(
+			'dev_pane',
+			'schedule-btn',
+			'Schedule Block'
+		).click(function() {
+			alertMsg('modal show', 'info');
+			//showDialog($('#mymodal'), 'TESTING', 'atitle');
+			$('#mymodal').modal();
+				// show modal dialog prompting for Block
+				$.ajax({
+					context: this,
+					type: 'POST',
+					url: $URL_ROOT + 'notify/' + $(this).data('trig_id') + '/fire'
+				})
+				.done(
+					function(response) {
+            // write a view func for pickup_service.create_reminder_event(agency_conf['name'], block, _date)
+					}
+				);
 
-        var col_caption = $(this).children().text();
+		});
 
-        if(col_caption.search("Email") > -1) {
-          var btn_caption = 'Send Emails Now';
-          var btn_id = 'fire-voice-sms-btn';
-        }
-        else if(col_caption.search("Voice") > -1) {
-          var btn_caption = 'Send Voice/SMS Now';
-          var btn_id = 'fire-voice-sms-btn';
-        }
 
-        btn = addAdminPanelBtn(
-          'admin_pane',
-          btn_id,
-          btn_caption,
-          'btn-info', {
-            'trig_id':$(this).attr('id')
-          }
-        );
-
-        btn.click(function() {
-            $.ajax({
-              context: this,
-              type: 'POST',
-              url: $URL_ROOT + 'notify/' + $(this).data('trig_id') + '/fire'
-            })
-            .done(
-              function(response, textStatus, jqXHR) {
-                  response = JSON.parse(response);
-
-                  console.log('request status: %s', response['status']);
-
-                  if(response['status'] == 'OK') {
-                      alertMsg('Request authorized. Sending notifications...',
-                                'info');
-
-                      $(this).addClass('btn btn-primary disabled');
-                  }
-              }
-            );
-        });
-    });
-
-    stop_btn = addAdminPanelBtn(
-      'admin_pane',
-      'stop_btn',
-      'Stop All',
-      'btn-danger');
-    
-    // Add dev_mode admin pane buttons
-
-    var args =  window.location.pathname.split('/');
-    var evnt_id = args.slice(-1)[0];
-
-    reset_btn = addAdminPanelBtn(
-      'dev_pane',
-      'reset_btn',
-      'Reset All');
-
-    reset_btn.click(function() {
-      $.ajax({
-				type: 'GET',
-				url: $URL_ROOT + 'notify/' + evnt_id + '/reset'
-			})
-			.done(function(response, textStatus, jqXHR) {
-				window.location.reload();
-			});
-    });
-
-    show_debug_info_btn = addAdminPanelBtn(
-      'dev_pane',
-      'debug_info_btn',
-      'Show Debug Info',
-      'btn-info');
-
-    show_debug_info_btn.click(function() {
-        console.log('not implemented yet');
-    });
 }

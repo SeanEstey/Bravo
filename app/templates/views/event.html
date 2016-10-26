@@ -2,6 +2,7 @@
   {% block content %} 
 	<script type="text/javascript"
 					src="//media.twiliocdn.com/sdk/js/client/v1.3/twilio.min.js">
+  <script> $(function() {init();}); </script>
 	</script>
 	<script type='text/javascript' 
 					src="{{url_for('static', filename='js/views/event.js')}}">
@@ -85,10 +86,11 @@
 				<!-- Delete Button -->
 				<td class='cancel-notific'>
 					<button 
-						class='ui button ui-button-icon-only delete-btn' 
+            class='ui-button ui-widget ui-corner-all ui-button-icon-only delete-btn'
 						type="button" 
 						id="{{row['_id']['$oid']}}" 
 						name="delete-btn">
+            <span class="ui-button-icon-primary ui-icon ui-icon-trash"></span>
 					</button>
 				</td>
         </tr>

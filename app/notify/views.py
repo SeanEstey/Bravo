@@ -64,7 +64,8 @@ def view_event_list():
     return render_template(
       'views/event_list.html',
       title=None,
-      events=event_list
+      events=event_list,
+      admin=user['admin']
     )
 
 #-------------------------------------------------------------------------------

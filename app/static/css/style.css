@@ -60,11 +60,37 @@ a.hover:visited {
   color: #365766;
 }
 
+.alert-banner.info {
+		background-color: #BDE5F8;
+		border: 1px solid #75c9f0;
+}
+
+.alert-banner.success {
+    background-color: #DFF2BF;
+		border: 1px solid #cae995;
+}
+
+.alert-banner.warning {
+    background-color: #FEEFB3;
+		border: 1px solid #fde481;
+}
+
+.alert-banner.danger {
+    background-color: #FFCCCC;
+		border: 1px solid #ff9999;
+}
+
+.container-fluid.top {
+	margin-left: 5em;
+	margin-right: 5em;
+	padding: 0;
+}
+
 .container-fluid.border {
 	position: absolute;
-	top: 15em;
-	left: 5em;
-	right: 5em;
+	top: 13em;
+	/*left: 5em;
+	right: 5em;*/
 	margin-bottom: 5em;
 	margin-left: 5em;
 	margin-right: 5em;
@@ -75,7 +101,6 @@ a.hover:visited {
 }
 
 .data-navbar-div {
-	/*max-width:1300px;*/
   -webkit-border-radius:7px 7px 0px 0px; 
   background-color: white; 
   border-bottom: solid 1px #bbbbbb; 

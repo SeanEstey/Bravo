@@ -58,21 +58,15 @@ function alertMsg(msg, level, duration=7500) {
 				return;
 		}
 
-    if(level == 'success')
-        $alert.css('background-color', '#DFF2BF');
-		else if(level == 'info')
-			  $alert.css('background-color', '#BDE5F8'); 
-    else if(level == 'warning')
-        $alert.css('background-color', '#FEEFB3');
-		else if(level  == 'danger')
-			  $alert.css('background-color', '#FFCCCC'); 
+		$alert.removeClass('success').removeClass('info').removeClass('warning').removeClass('danger');
+		$alert.addClass(level);
 
 		if(level == 'warning' || level == 'danger')
         duration = 10000;
 
 		$alert.html('<span>' + msg + '</span>');
 
-		$alert.fadeTo('slow', 1, function() {
+		$alert.fadeTo('slow', 0.75, function() {
 				globalTimeoutId = setTimeout(function() {
 						$alert.fadeTo('slow', 0);
 						globalTimeoutId = false;

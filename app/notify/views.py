@@ -14,9 +14,10 @@ import bson.json_util
 from flask_socketio import SocketIO, emit
 
 from . import notify
-from . import accounts, admin, events, triggers, email, voice, sms, recording
-from . import pickup_service
+from . import accounts, admin, events, triggers, email, voice, sms, \
+              recording, pickup_service
 from .. import utils, schedule
+from app.main import sms_assistant
 from .. import db
 logger = logging.getLogger(__name__)
 
@@ -296,14 +297,15 @@ def sms_status():
 #-------------------------------------------------------------------------------
 @notify.route('/sms/receive', methods=['POST'])
 def sms_received():
-    '''Shared endpoint for incoming SMS.
+    '''Shared endpoint for incoming SMS. Set by Twilio SMS application
     '''
+    if sms_assistant.is_unsub():
+        return 'OK'
 
     if sms.is_reply():
         return sms.on_reply()
     else:
-        #return sms_assistant.on_cmd()
-        return 'OK'
+        return jsonify({'response':sms_assistant.on_receive()})
 
 #-------------------------------------------------------------------------------
 @notify.route('/call/nis', methods=['POST'])

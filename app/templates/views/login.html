@@ -4,40 +4,30 @@
 					src="{{url_for('static', filename='js/views/login.js')}}">
 	</script>
 	<script>
-		document.write('<style type="text/css">body{display:none}</style>');
 		jQuery(function($){
 			init();
 		});
 	</script>
 
-	<div id='space' style='margin:5em'>
-	</div>
-	<div style='text-align:center'> 
-		<h3></h3>
-	</div>
-
-	<div id='my-alert' style='display:none; width:400px' class="alert alert-danger alert-dismissible center" role="alert">
-		<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-			<span aria-hidden="true">&times;</span>
-		</button>
-		<label id='alert-msg'>Alert! Warning! Alert!</label>
-	</div>
-
-	<div class='box center' style='font-size:16pt; width:400px; background-color:#f7f7f7; padding:1.5em'>
-		<form id='myform' method=post>
-			<div class='form-group' style='margin:1em 0em'>
-				<input class='form-control input-lg' style='' type='text' id='' placeholder='Username'  name='username' required>
+  <div style='width:450px; border:1px solid #bbbbbb; border-radius:7px;
+							-webkit-border-radius:7px 7px 7px 7px; padding:0; margin-top:10em;'
+				class='container'>
+		<div style='border-radius:7px; background-color:#f7f7f7; padding:3.0em'>
+			<form id='myform' method=post>
+				<div class='form-group' style='margin-bottom:2em'>
+					<input class='form-control input-lg' style='' type='text' id='' placeholder='Username'  name='username' required>
+				</div>
+				<div class='form-group' style='margin:3em 0em'>
+					<input class='form-control input-lg' style='' title='' placeholder='Password' type='password' name='password' required>
+				</div>
+				<button 
+					class='btn btn-primary' 
+					style='font-size:20px; width:100%; padding:0.5em;' 
+					type="button" id="submit_btn" name="submit-btn">Sign In
+				</button>
 			</div>
-			<div class='form-group' style='margin:1em 0em'>
-				<input class='form-control input-lg' style='' title='' placeholder='Password' type='password' name='password' required>
-			</div>
-			<button 
-				class='btn btn-primary' 
-				style='font-size:20px; width:100%; padding:0.5em;' 
-				type="button" id="submit_btn" name="submit-btn">Sign In
-			</button>
+			</form>
 		</div>
-		</form>
 	</div>
 
 	{% endblock %}

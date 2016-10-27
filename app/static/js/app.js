@@ -47,6 +47,7 @@ function alertMsg(msg, level, duration=7500) {
 
 		// Existing alert. Clear its timer, fade it out
 		if(globalTimeoutId) {
+				console.log('resetting alert timer');
 				clearTimeout(globalTimeoutId);
 				globalTimeoutId = false;
 				$alert.stop(true);
@@ -82,7 +83,7 @@ function alertMsg(msg, level, duration=7500) {
 
 //------------------------------------------------------------------------------
 function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-primary', data=false) {
-    var btn = $("<button id='"+btn_id+"' class='btn "+style+" admin'>"+caption+"</button>");
+    var btn = $("<button style='text-size:14pt;' id='"+btn_id+"' class='btn btn-block "+style+" admin'>"+caption+"</button>");
 
     $('#'+pane_id).append(btn);
 

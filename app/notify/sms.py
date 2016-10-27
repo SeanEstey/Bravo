@@ -116,6 +116,8 @@ def send(notific, twilio_conf):
 
 #-------------------------------------------------------------------------------
 def is_reply():
+    '''Defined as an incoming msg on same date as reminder was sent'''
+
     notific = db['notifics'].find_one({
           'to': request.form['From'],
           'type': 'sms',

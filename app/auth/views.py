@@ -2,7 +2,8 @@
 
 import logging
 import json
-from flask import g, request, render_template, redirect, Response, current_app, url_for
+from flask import g, request, render_template, redirect, Response, \
+current_app, url_for, jsonify
 from flask_login import current_user, login_user, logout_user, login_required
 
 from . import auth
@@ -66,9 +67,8 @@ def login():
 
     logger.info('User %s logged in', username)
 
-    return redirect(url_for('notify.view_event_list'))
-    #return Response(response=r, status=200, mimetype='application/json')
-
+    #return redirect(url_for('notify.view_event_list'))
+    return jsonify({'status':'success'})
 
 #-------------------------------------------------------------------------------
 @auth.route('/logout', methods=['GET'])

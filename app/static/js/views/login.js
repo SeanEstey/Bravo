@@ -1,7 +1,7 @@
 
 //------------------------------------------------------------------------------
 function init() {
-		$('#app_menu').hide();
+    $('.nav').hide();
 
 		$('#submit_btn').click(function(event) {
 			// This line needs to be here for Firefox browsers
@@ -11,21 +11,23 @@ function init() {
 				type: 'POST',
 				url: $URL_ROOT + '/login',
 				data: new FormData($('#myform')[0]),
-				contentType: false,
-				processData: false,
-				dataType: 'json',
-				success: loginSuccess,
-				fail: loginFailure
-			});
+        contentType: false,
+        processData: false,
+        dataType: 'json'
+      }).done(function(response) {
+          console.log('success!!');
+          loginSuccess(response);
+      })
 		});
 
-		$('body').css('display','block');
+	//	$('body').css('display','block');
 }
 
 //------------------------------------------------------------------------------
 function loginSuccess(response) {
-    location.href = $URL_ROOT + '/notify';
+    //location.href = $URL_ROOT + '/notify';
 
+    console.log('login success');
 		console.log(response);
 
 		if(typeof response == 'string')

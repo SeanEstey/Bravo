@@ -27,36 +27,30 @@ a.hover:visited {
   color: #365766;
 }
 
-.header {
-/*	position: absolute;
-	top: 1.5em;
-	left: 0;
-	right: 0;*/
-  margin-left: auto;
-  margin-right: auto;
+.main-menu-item {
+	margin-left:0.5em; 
+	margin-right:0.5em; 
+	text-align:center;
 }
 
-.header-a {
-	display:block; 
-	margin-left:auto; 
-	margin-right:auto;
+.header-div {
+	display:inline-block; 
+	position: absolute; 
+	left:0; 
+	right:0;
+	height: 1px;
+	background-color:transparent; 
 }
 
 .header-img {
-/*	display:inline-block;*/
-	/*display:block; */
-/*
-	margin-left:auto; 
-	margin-right:auto; */
-	text-align:center;
   width: 200px;
   height: 60px;
 }
 
 .alert-banner {
 	visibility: visible;
-	opacity: 1;
-	margin-top: 5em;
+	opacity: 0;
+	margin-top: 3em;
 	margin-bottom: 0;
 	margin-left: auto;
 	margin-right: auto;
@@ -64,14 +58,6 @@ a.hover:visited {
   padding:0.5em; 
   text-align:center;
   color: #365766;
-}
-
-.alert-banner .green {
-  background-color: #CDE6CD; 
-}
-
-.alert-banner .red {
-  background-color: red; 
 }
 
 .container-fluid.border {
@@ -130,6 +116,8 @@ a.hover:visited {
 }
 
 .admin-fieldset.child {
+	vertical-align:top;
+	height: 100%;
   border: 1px solid #b1b5bc;
   padding: 1.0em;
   width: auto;
@@ -147,8 +135,8 @@ legend.admin-border {
 }
 
 .btn.admin {
-  width: 150px;
-  font-size: 12px;
+  /*width: 150px;*/
+  font-size: 14px;
   margin-left: 0.25em;
   margin-right: 0.25em;
 }
@@ -282,5 +270,78 @@ legend.admin-border {
 }
 
 
-/****************** JQUERY UI overrides ****************/
+/*------------------------ BREAKPOINTS ----------------------*/
+/* Remove all extra margins/padding for Portrait display on
+	mobile devices. Not pretty, but somewhat helpful. */
 
+@media (max-width: 480px) {
+    .container {
+      padding:0;
+      margin:0;
+    }
+	
+		.container-fluid.border {
+			position: relative;
+			left: 0;
+			right: 0;
+			top: 0;
+			width: 100%;
+			padding:0;
+			margin: 0;
+		}
+
+		.header-div {
+			display:inline-block; 
+			position: relative; 
+			height: 60px;
+			left:0; 
+			right:0;
+		}
+
+		.alert-banner {
+			margin: 0.1em;
+		}
+
+    body {
+      padding:0;
+    }
+
+    .navbar-fixed-top, .navbar-fixed-bottom, .navbar-static-top {
+      margin-left: 0;
+      margin-right: 0;
+      margin-bottom:0;
+    }
+
+		.main-menu-item {
+			margin: 0.1em;
+		}
+
+		.admin-panel-div {
+			display: none;
+		}
+}
+
+
+@media (max-width: 1200px) {
+		.header-div {
+			display:inline-block; 
+			position: relative; 
+			height: 60px;
+			left:0; 
+			right:0;
+		}
+
+		.container-fluid.border {
+			position: relative;
+			left: 0;
+			right: 0;
+			top: 0;
+			width: 100%;
+			padding:0;
+			margin: 0;
+		}
+
+		.alert-banner {
+			margin: 1.0em 0em;
+		}
+}

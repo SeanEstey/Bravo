@@ -109,16 +109,15 @@ a.hover:visited {
 }
 
 .admin-panel-div {
-  background: rgba(255,255,255,0.85); 
-  text-align: center; 
-  display: inline-block; 
+	display: table;
   position: fixed; 
   bottom:-2.5em;
   right:0; 
-  left:0;
-  width: inherit;
-  margin-left: auto;
-  margin-right: auto;
+  right:50%;
+  background: rgba(255,255,255,0.85); 
+  text-align: center; 
+	width: 600px;
+	margin-right: -300px;
   padding: 0;
 }
 
@@ -135,9 +134,17 @@ a.hover:visited {
 	-moz-box-sizing: border-box;
 	-webkit-box-sizing: border-box;
 	box-sizing: border-box;
-  padding-left: 2.5em;
-  padding-right: 2.5em; 
+  padding-left: 1.0em;
+  padding-right: 1.0em; 
   padding-bottom: 2.5em;
+}
+
+.admin-status {
+	border-radius:7px; 
+	width: 375px;
+	padding: 0.25em;
+	margin: 0.5em auto;
+	background-color:#e4e4e4;
 }
 
 .admin-fieldset.child {

@@ -61,6 +61,7 @@ function addDeleteBtnHandlers() {
         console.log('prompt to delete job_id: ' + event_uuid);
 
         $('.modal-title').text('Confirm');
+				$('.modal-body').html('');
         $('.modal-body').text('Really delete this job?');
         $('#btn-secondary').text('No');
         $('#btn-primary').text('Yes');
@@ -201,21 +202,33 @@ function buildAdminPanel() {
 			'schedule-btn',
 			'Schedule Block'
 		).click(function() {
-			alertMsg('modal show', 'info');
-			//showDialog($('#mymodal'), 'TESTING', 'atitle');
-			$('#mymodal').modal();
-				// show modal dialog prompting for Block
-				$.ajax({
-					context: this,
-					type: 'POST',
-					url: $URL_ROOT + 'notify/' + $(this).data('trig_id') + '/fire'
-				})
-				.done(
-					function(response) {
-            // write a view func for pickup_service.create_reminder_event(agency_conf['name'], block, _date)
-					}
-				);
+        $('.modal-title').text('Schedule Block');
+				var form = "<form id='myform' method=post>" +
+					"<input width='100%' id='block' class='input' name='block' type='text'></input>" +
+					"</form>";
+				$('.modal-body').html(form);
+        $('#btn-secondary').text('Cancel');
+        $('#btn-primary').text('Schedule');
+				$('#mymodal').modal();
 
+        $('#btn-primary').click(function() {
+            $('#mymodal').modal('hide'); 
+
+						var block = $('#block').val();
+						$('.modal-body').html('');
+
+						$.ajax({
+							context: this,
+							type: 'POST',
+							url: $URL_ROOT + 'notify/'+block+'/schedule'
+						})
+						.done(
+							function(response) {
+                alertMsg('Response: ' + response['description'], 'success');
+								// write a view func for pickup_service.create_reminder_event(agency_conf['name'], block, _date)
+							}
+						);
+				});
 		});
 
 

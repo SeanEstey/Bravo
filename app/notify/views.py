@@ -15,7 +15,8 @@ from flask_socketio import SocketIO, emit
 
 from . import notify
 from . import accounts, admin, events, triggers, email, voice, sms, recording
-from .. import utils
+from . import pickup_service
+from .. import utils, schedule
 from .. import db
 logger = logging.getLogger(__name__)
 
@@ -137,7 +138,7 @@ def cancel_event(evnt_id):
     if not events.remove(ObjectId(evnt_id)):
         return jsonify({'status': 'failed'})
 
-    return jsonfiy({'status': 'success'})
+    return jsonify({'status': 'success'})
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/reset')
@@ -180,6 +181,32 @@ def dup_acct(evnt_id):
 @login_required
 def edit_msg(acct_id):
     return accounts.edit(ObjectId(acct_id), request.form.items())
+
+
+
+#-------------------------------------------------------------------------------
+@notify.route('/<block>/schedule', methods=['POST'])
+@login_required
+def schedule_block(block):
+    if not admin.auth_request_type('admin'):
+        return 'Denied'
+
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+    cal_id = db.agencies.find_one({'name':agency})['cal_ids']['res']
+    oauth = db.agencies.find_one({'name':agency})['google']['oauth']
+
+    _date = schedule.get_next_block_date(cal_id, block, oauth)
+
+    logger.info('loading reminders for %s on %s', block, _date)
+
+    pickup_service.create_reminder_event(agency, block, _date)
+
+    return jsonify({
+        'status':'OK',
+        'description': 'reminder event successfully scheduled for Block %s on %s' %
+        (block, _date)
+    })
+
 
 #-------------------------------------------------------------------------------
 @notify.route('/<trig_id>/fire', methods=['POST'])

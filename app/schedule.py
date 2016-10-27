@@ -19,6 +19,27 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
+def get_next_block_date(cal_id, block, oauth):
+    try:
+        service = gcal.gauth(oauth)
+        events = gcal.get_events(
+            service,
+            cal_id,
+            datetime.combine(date.today(), time()),
+            datetime.combine(date.today() + timedelta(weeks=10), time())
+        )
+    except Exception as e:
+        logger.error('Could not access Res calendar: %s', str(e))
+        return False
+
+    for item in events:
+        if get_block(item['summary']) == block:
+            parts = item['start']['date'].split('-')
+            return date(int(parts[0]), int(parts[1]), int(parts[2]))
+
+    return False
+
+#-------------------------------------------------------------------------------
 def get_blocks(cal_id, start_date, end_date, oauth):
     '''Return list of Block names between scheduled dates'''
 

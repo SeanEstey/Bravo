@@ -9,6 +9,7 @@ function init() {
     addDeleteBtnHandlers();
     addSocketIOHandlers();
 		showOnLoadAlert();
+	$('[data-toggle="tooltip"]').tooltip();
 }
 
 //------------------------------------------------------------------------------
@@ -127,7 +128,7 @@ function addDeleteBtnHandlers() {
       var evnt_id = args.slice(-1)[0];
 
       $('.delete-btn').each(function(){ 
-					$(this).attr('title', 'Remove this notification');
+					$(this).attr('data-original-title', 'Remove this notification');
 
           $(this).click(function() {
               var acct_id = $(this).attr('id');

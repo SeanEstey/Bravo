@@ -14,7 +14,10 @@ this.unicode = {
 
 //------------------------------------------------------------------------------
 function loadTooltip() {
-	/*
+
+$('[data-toggle="tooltip"]').tooltip();
+
+/*
 		$(document).tooltip({
 			position: {
 				my: 'center bottom-20',
@@ -31,36 +34,6 @@ function loadTooltip() {
 		});*/
 }
 
-//------------------------------------------------------------------------------
-function showDialog($element, msg, _title, _buttons) {
-		/* Error/confirmation dialog UI for all views */
-
-		if(typeof(_buttons) === 'undefined') {
-				_buttons = [{ 
-					text: "Sorry, I'll fix it", 
-					click: function() { $( this ).dialog( "close" ); }
-				}];
-		}
-
-		if(typeof(_title) === 'undefined') {
-			_title = 'What have you done??'
-		}
-
-		var dialog_style = { 
-			modal: true,
-			title: _title,
-			dialogClass: 'ui-dialog-osx',
-			width: 500,
-			height: 'auto',
-			buttons: _buttons,
-			show: { effect: 'fade', duration:150},
-			hide: { effect: 'fade', duration:150}
-		};
-		
-		// MUST have a <p> element for the msg
-		$element.find($('p')).html(msg);
-		$element.dialog(dialog_style);
-}
 
 var globalTimeoutId = false;
 

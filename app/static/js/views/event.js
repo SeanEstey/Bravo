@@ -10,20 +10,6 @@ function init() {
     addSocketIOHandlers();
 		showAdminServerStatus();
 
-		$('tr[id]').each(function() {
-				var $debug_btn = '<button name="debug-btn" class="btn btn-warning">Print Debug</button>';
-				$(this).append('<td>'+$debug_btn+'</td>');
-				$(this).find('button[name="debug-btn"]').click(function() {
-								alertMsg('Debug data printed to console. To view console in chrome, type <b>Ctrl+Shift+I</b>.', 'warning', 15000);
-								var str_data = $(this).parent().parent().attr('data-tracking');
-								var no_unicode = str_data.replace(/u\'/g, '\'');
-								var no_unicode = no_unicode.replace(/u\"/g, '\'');
-								var double_str = no_unicode.replace(/\'/g, '\"');
-								var no_none = double_str.replace(/None/g, '""');
-								console.log(JSON.stringify(JSON.parse(no_none), null, 4));
-						});
-		});
-
 		$('[data-toggle="tooltip"]').tooltip();
 }
 
@@ -284,11 +270,44 @@ function buildAdminPanel() {
     show_debug_info_btn = addAdminPanelBtn(
       'dev_pane',
       'debug_info_btn',
-      'Show Debug Info',
+      'Debug Mode',
       'btn-primary');
 
+		// Add debug buttons that print notific['tracking'] data to console
     show_debug_info_btn.click(function() {
-        console.log('not implemented yet');
+				$(this).prop('disabled', 'true');
+
+				$('#notific-table th:last').after('<th>DEBUG</th>');
+
+				$('tr[id]').each(function() {
+						var $debug_btn = 
+							'<button name="debug-btn" ' +
+											'class="btn btn-warning">Print Debug</button>';
+
+						$(this).append('<td>'+$debug_btn+'</td>');
+
+						$(this).find('button[name="debug-btn"]').click(function() {
+								alertMsg('Debug data printed to console. ' +
+												 'To view console in chrome, type <b>Ctrl+Shift+I</b>.', 
+												 'warning', 15000);
+
+								var data = $(this).parent().parent().attr('data-tracking');
+
+								// Try to convert unicode dict str to JSON object
+								data = data.replace(/u\'/g, '\'').replace(/\'/g, '\"').replace(/None|False/g, '\"\"');
+
+								try {
+										console.log(JSON.stringify(JSON.parse(data), null, 4));
+								}
+								catch(e) {
+										console.log('couldnt convert to JSON obj.');
+										console.log(data);
+								}
+						});
+				});
+
+				alertMsg('Debug mode enabled. ' +
+								 'Clicking <b>Print Debug</b> buttons prints notification info to console.', 'info');
     });
 }
 

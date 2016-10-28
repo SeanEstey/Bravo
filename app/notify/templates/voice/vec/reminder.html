@@ -1,10 +1,9 @@
-{% if 'digit' in notific['tracking'] and notific['tracking']['digit'] == '2' %}
+{% if not notific['tracking']['digit'] %}
 
-    Your pickup has been unscheduled. Your next pickup will be
-    {{ account['udf'].future_pickup_dt }}.
-    Thank you.
+		Hi, this is a reminder message from Vecova. 
+		To hear this message press 1.
 
-{% else %}
+{% elif notific['tracking']['digit'] == '1' %}
 
     Hi, this is a friendly reminder that your Vecova 
 
@@ -34,15 +33,16 @@
 
     {% endif %}
 
-    {% if notific['tracking']['answered_by'] == 'human' %}
-
-        To repeat this message, press 1.
-
-    {% endif %}
-
     {% if notific['tracking']['answered_by'] == 'human' and account['udf']['status'] == "Active" %}
 
         If you do not need a pickup, press 2.
 
     {% endif %}
+
+{% eiif notific['tracking']['digit'] == '2' %}
+
+    Your pickup has been unscheduled. Your next pickup will be
+    {{ account['udf'].future_pickup_dt }}.
+    Thank you.
+
 {% endif %}

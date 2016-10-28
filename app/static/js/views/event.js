@@ -8,43 +8,23 @@ function init() {
     buildAdminPanel();
     addDeleteBtnHandlers();
     addSocketIOHandlers();
-		showOnLoadAlert();
-	$('[data-toggle="tooltip"]').tooltip();
-}
+		showAdminServerStatus();
 
-//------------------------------------------------------------------------------
-function showOnLoadAlert() {
-		$.ajax({
-			type: 'POST',
-			context: this,
-			url: $URL_ROOT + 'notify/get_op_stats'
-		})
-		.done(function(response) {
-				var msg = 'Hi ' + response['USER_NAME'] + ' ';
-
-				if(response['TEST_SERVER'])
-						msg += 'You are on Bravo Test server. Mode: ';
-				else
-						msg += 'You are on Bravo Live server. Mode: ';
-
-				if(response['SANDBOX_MODE'])
-						msg += '<b>sandbox-enabled</b>, ';
-        else
-            msg += '<b>sandbox-disabled</b>, ';
-
-				if(response['CELERY_BEAT'])
-						msg += '<b>scheduler-enabled</b>, ';
-				else
-						msg += '<b>scheduler-disabled</b>, ';
-
-				if(response['ADMIN'])
-						msg += '<b>admin-enabled</b>';
-
-				if(response['DEVELOPER'])
-						msg += ', <b>dev-enabled</b>';
-
-				alertMsg(msg, 'info', 15000);
+		$('tr[id]').each(function() {
+				var $debug_btn = '<button name="debug-btn" class="btn btn-warning">Print Debug</button>';
+				$(this).append('<td>'+$debug_btn+'</td>');
+				$(this).find('button[name="debug-btn"]').click(function() {
+								alertMsg('Debug data printed to console. To view console in chrome, type <b>Ctrl+Shift+I</b>.', 'warning', 15000);
+								var str_data = $(this).parent().parent().attr('data-tracking');
+								var no_unicode = str_data.replace(/u\'/g, '\'');
+								var no_unicode = no_unicode.replace(/u\"/g, '\'');
+								var double_str = no_unicode.replace(/\'/g, '\"');
+								var no_none = double_str.replace(/None/g, '""');
+								console.log(JSON.stringify(JSON.parse(no_none), null, 4));
+						});
 		});
+
+		$('[data-toggle="tooltip"]').tooltip();
 }
 
 //------------------------------------------------------------------------------

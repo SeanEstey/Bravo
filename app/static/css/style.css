@@ -134,9 +134,22 @@ a.hover:visited {
 	-moz-box-sizing: border-box;
 	-webkit-box-sizing: border-box;
 	box-sizing: border-box;
-  padding-left: 1.0em;
-  padding-right: 1.0em; 
+  padding-left: 0;
+  padding-right: 0; 
   padding-bottom: 2.5em;
+}
+
+span.admin-outer {
+	border-bottom:1px solid black;
+}
+
+legend.admin-outer {
+	font-size: 1.0rem;
+	padding: 0.5em;
+  background-color: rgba(71, 59, 59, 0.075);
+	margin:auto;
+	border-bottom:1px solid black;
+  width:100%;
 }
 
 .admin-status {
@@ -144,13 +157,13 @@ a.hover:visited {
 	width: 375px;
 	padding: 0.25em;
 	margin: 0.5em auto;
-	background-color:#e4e4e4;
+	background-color:white;
 }
 
 .admin-fieldset.child {
 	vertical-align:top;
 	height: 100%;
-  border: 1px solid #b1b5bc;
+  border: 1px solid black;
   padding: 1.0em;
   width: auto;
 	margin-left: 0.5em;
@@ -242,6 +255,9 @@ legend.admin-border {
 
 
 /*------------------------ BOOTSTRAP3 OVERRIDES ----------------------*/
+
+.tooltip-wide .tooltip {min-width:500px;}
+
 
 .thin {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;

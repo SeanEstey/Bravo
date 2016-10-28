@@ -13,7 +13,7 @@
   
   <div class='container-fluid border'>
     <div class='data-navbar-div'>
-      <a data-toggle='tooltip' title='LETS DO IT!' class='hover' href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
+      <a class='hover' href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
       {{ event.name }}
     </div>
     <table id='notific-table' class='table table-hover table-colored'>
@@ -39,8 +39,10 @@
 
       <!-- Notifications Rows -->
       <tbody id='notific-rows'>
+
       {% for row in notific_list %}
-        <tr id="{{row['_id']['$oid']}}">
+        <tr id="{{row['_id']['$oid']}}"
+						data-tracking="{{row['results'][0]}}">
 				<td name='name'>{{row['results'][0]['account'][0]['name']}}</td>
 
 				<!-- phone -->

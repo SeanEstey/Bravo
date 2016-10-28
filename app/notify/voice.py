@@ -153,6 +153,10 @@ def on_answer():
 
     response = twiml.Response()
 
+    # TODO insert gather '1' key with 10 sec timeout to prove human
+    # answered call.
+    #<Gather timeout="10" action="/message.xml" method="GET"> </Gather>
+
     if notific['on_answer']['source'] == 'template':
         speak = get_speak(notific, notific['on_answer']['template'])
 

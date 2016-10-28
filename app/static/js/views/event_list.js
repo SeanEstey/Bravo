@@ -5,7 +5,7 @@ function init() {
 	addDeleteBtnHandlers();
 	addSocketIOHandlers();
 	addPageNavHandlers();
-	showWelcomeAlert();
+	showAdminServerStatus();
 	console.log('all js loaded');
 }
 
@@ -148,48 +148,6 @@ function addSocketIOHandlers() {
     });
 }
 
-//------------------------------------------------------------------------------
-function showWelcomeAlert() {
-    /*
-    msg = ''
-    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
-        msg += 'Sandbox mode. Etapestry: <b>read-only</b>. '\
-               'Twilio: <b>simulation only</b>. Mailgun: <b>forwarding all</b>. '
-    user = db['users'].find_one({'user': current_user.username})
-    if user['admin']:
-        msg += 'You have admin priviledges.'
-    */
-		
-    $.ajax({
-			type: 'POST',
-			context: this,
-			url: $URL_ROOT + 'notify/get_op_stats'
-		})
-		.done(function(response) {
-				console.log('got server op stats');
-
-				var msg = 'Hi ' + response['USER_NAME'] + ' ';
-
-				if(response['TEST_SERVER'])
-						msg += 'You are on Bravo Test server. ';
-				else
-						msg += 'You are on Bravo Live server. ';
-				if(response['SANDBOX_MODE'])
-						msg += 'Running in <b>sandbox mode</b> with ';
-				if(response['CELERY_BEAT'])
-						msg += '<b>scheduler enabled</b>. ';
-				else
-						msg += '<b>scheduler disabled</b>. ';
-
-				if(response['ADMIN'])
-						msg += 'You have admin priviledges. ';
-
-				if(response['DEVELOPER'])
-						msg += 'You have dev priviledges.';
-
-				alertMsg(msg, 'info', 15000);
-		});
-}
 
 //------------------------------------------------------------------------------
 function buildAdminPanel() {

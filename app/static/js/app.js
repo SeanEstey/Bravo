@@ -13,6 +13,38 @@ this.unicode = {
 };
 
 //------------------------------------------------------------------------------
+function showAdminServerStatus() {
+		$.ajax({
+			type: 'POST',
+			context: this,
+			url: $URL_ROOT + 'notify/get_op_stats'
+		})
+		.done(function(response) {
+				var admin_lbl = '';
+				var msg = 'Hi ' + response['USER_NAME'] + ' ';
+
+				if(response['TEST_SERVER'])
+						admin_lbl += 'Server: <b>Test</b>, ';
+				else
+						admin_lbl += 'Server: <b>Deploy</b>, ';
+
+				if(response['SANDBOX_MODE'])
+						admin_lbl += 'Mode: <b>Sandbox</b>, ';
+        else
+						admin_lbl += 'Mode: <b>Live</b>, ';
+
+				if(response['CELERY_BEAT'])
+						admin_lbl += 'Scheduler: <b color="green">Enabled</b>';
+				else
+						admin_lbl += 'Scheduler: <b color="green">Disabled</b>';
+
+				alertMsg(msg, 'info', 5000);
+
+				$('#admin-msg').html(admin_lbl);
+		});
+}
+
+//------------------------------------------------------------------------------
 function loadTooltip() {
 
 $('[data-toggle="tooltip"]').tooltip();

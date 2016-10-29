@@ -11,7 +11,7 @@ from apiclient.discovery import build
 import re
 from datetime import datetime, date, time, timedelta
 
-from .block_parser import get_block, block_to_rmv
+from .parser import get_block, block_to_rmv
 from . import gcal, gsheets, etap
 from . import db
 
@@ -20,17 +20,17 @@ logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def get_next_block_date(cal_id, block, oauth):
-    try:
-        service = gcal.gauth(oauth)
-        events = gcal.get_events(
-            service,
-            cal_id,
-            datetime.combine(date.today(), time()),
-            datetime.combine(date.today() + timedelta(weeks=10), time())
-        )
-    except Exception as e:
-        logger.error('Could not access Res calendar: %s', str(e))
+    service = gcal.gauth(oauth)
+
+    if not service:
         return False
+
+    events = gcal.get_events(
+        service,
+        cal_id,
+        datetime.combine(date.today(), time()),
+        datetime.combine(date.today() + timedelta(weeks=10), time())
+    )
 
     for item in events:
         if get_block(item['summary']) == block:

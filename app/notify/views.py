@@ -16,7 +16,7 @@ from flask_socketio import SocketIO, emit
 from . import notify
 from . import accounts, admin, events, triggers, email, voice, sms, \
               recording, pickup_service
-from .. import utils, schedule
+from .. import utils, schedule, parser
 from app.main import sms_assistant
 from .. import db
 logger = logging.getLogger(__name__)
@@ -193,7 +193,12 @@ def schedule_block(block):
         return 'Denied'
 
     agency = db['users'].find_one({'user': current_user.username})['agency']
-    cal_id = db.agencies.find_one({'name':agency})['cal_ids']['res']
+
+    if parser.is_res(block):
+        cal_id = db.agencies.find_one({'name':agency})['cal_ids']['res']
+    elif parser.is_bus(block):
+        cal_id = db.agencies.find_one({'name':agency})['cal_ids']['bus']
+
     oauth = db.agencies.find_one({'name':agency})['google']['oauth']
 
     _date = schedule.get_next_block_date(cal_id, block, oauth)
@@ -272,12 +277,16 @@ def record_complete_xml():
 #-------------------------------------------------------------------------------
 @notify.route('/voice/play/answer.xml',methods=['POST'])
 def get_call_answer_xml():
-    return Response(str(voice.on_answer()), mimetype='text/xml')
+    r = str(voice.on_answer())
+    logger.debug(r)
+    return Response(r, mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/play/interact.xml', methods=['POST'])
 def get_call_interact_xml():
-    return Response(str(voice.on_interact()), mimetype='text/xml')
+    r = str(voice.on_interact())
+    logger.debug(r)
+    return Response(r, mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/complete', methods=['POST'])

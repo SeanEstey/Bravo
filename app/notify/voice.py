@@ -98,7 +98,7 @@ def call(notific, twilio_conf, voice_conf):
         return call.status if call else 'failed'
 
 #-------------------------------------------------------------------------------
-def get_speak(notific, template_path):
+def get_speak(notific, template_path, timeout=False):
     '''Return rendered HMTL template as string
     Called inside Flask view so has context
     @notific: mongodb dict document
@@ -116,6 +116,7 @@ def get_speak(notific, template_path):
                 to_local_time=True,
                 to_strftime="%A, %B %d",
                 bson_to_json=True),
+            timeout=timeout
         )
     except Exception as e:
         logger.error('get_speak: %s ', str(e))
@@ -123,7 +124,7 @@ def get_speak(notific, template_path):
 
     speak = html.clean_whitespace(speak)
 
-    #logger.debug('speak template: %s', speak)
+    logger.debug('speak template: %s', speak)
 
     return speak
 
@@ -153,26 +154,44 @@ def on_answer():
 
     response = twiml.Response()
 
-    # TODO insert gather '1' key with 10 sec timeout to prove human
-    # answered call.
-    #<Gather timeout="10" action="/message.xml" method="GET"> </Gather>
-
     if notific['on_answer']['source'] == 'template':
-        speak = get_speak(notific, notific['on_answer']['template'])
+        if request.form['AnsweredBy'] == 'human':
+            response.say(
+                get_speak(notific, notific['on_answer']['template']),
+                voice='alice')
 
-        response.say(speak, voice='alice')
+            response.gather(
+                action='%s/notify/voice/play/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
+                method='POST',
+                numDigits=1,
+                timeout=10)
+
+            # Entering digit triggers action URL
+            # This response only executes if timeout, either if this is a
+            # machine misdetected as human, or if human fails to press key
+            response.say(
+                get_speak(notific, notific['on_answer']['template'], timeout=True),
+                voice='alice')
+
+            response.hangup()
+
+        elif request.form['AnsweredBy'] == 'machine':
+            response.say(
+                get_speak(notific, notific['on_answer']['template']),
+                voice='alice')
+            response.hangup()
 
         db['notifics'].update_one(
             {'tracking.sid': request.form['CallSid']},
-            {'$set': {'tracking.speak': speak}}
+            {'$set': {'tracking.speak': str(response)}}
         )
     elif notific['on_answer']['source'] == 'audio':
         response.play(notific['on_answer']['url'])
 
-    response.gather(
-        numDigits=1,
-        action='%s/notify/voice/play/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
-        method='POST')
+        response.gather(
+            numDigits=1,
+            action='%s/notify/voice/play/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
+            method='POST')
 
     return response
 

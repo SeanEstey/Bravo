@@ -145,6 +145,15 @@ function buildAdminPanel() {
      * $(this).data() 
      */
    
+			//	$('.admin-panel-div').accordion({header:'.admin-outer', collapsible:true});
+/*
+		$('.admin-outer').click(function() {
+				console.log('slide');
+				var height = $('.admin-panel-div').height();
+
+		});*/
+
+		
     // Add admin_mode pane buttons
 
     // Add btns to fire each event trigger. trig_ids are stored in data-container 

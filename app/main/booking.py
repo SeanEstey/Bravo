@@ -1,6 +1,6 @@
 
 
-from app import block_parser
+from app import parser
 from app.routing import routes
 from app import etap
 
@@ -188,7 +188,7 @@ def get_options_by_radius(lat, lng, map_data, cal_ids, rules, _events):
 
     if found:
         for i in range(len(booking)):
-            if is_res_block(bookings[i].block)):
+            if is_res(bookings[i].block)):
                 bookings[i]['max_size'] = rules['size']['res']['max']
             else:
                 bookings[i]['max_size'] = rules['size']['bus']['max']
@@ -226,7 +226,7 @@ def find_block_schedule(block_name, cal_ids, rules):
       'booking_size':Parser.getBookingSize(events[i].summary)
     }
 
-    if(is_res_block(block_name))
+    if(is_res(block_name))
       result['max_size'] = rules['size']['res']['max']
     else
       result['max_size'] = rules['size']['bus']['max']
@@ -279,7 +279,7 @@ def get_options_by_postal(postal, cal_ids, rules):
         'booking_size':Parser.getBookingSize(event.summary)
       }
 
-      if(is_res_block(block))
+      if(is_res(block))
         result['max_size'] = rules['size']['res']['max']
       else
         result['max_size'] = rules['size']['bus']['max']

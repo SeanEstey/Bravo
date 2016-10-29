@@ -12,7 +12,7 @@ from dateutil.parser import parse
 from bson.objectid import ObjectId as oid
 from bson import json_util
 
-from .. import utils, block_parser, gcal, etap
+from .. import utils, parser, gcal, etap
 from .. import db
 from . import events, email, sms, voice, triggers, accounts
 logger = logging.getLogger(__name__)
@@ -56,14 +56,15 @@ def create_reminder_event(agency, block, _date):
             trig_conf['email']['fire_min'])
     )
 
-    phone_trig_id = triggers.add(
-        evnt_id,
-        'voice_sms',
-        _date + timedelta(days=trig_conf['voice_sms']['fire_days_delta']),
-        time(
-            trig_conf['voice_sms']['fire_hour'],
-            trig_conf['voice_sms']['fire_min'])
-    )
+    if parser.is_res(block):
+        phone_trig_id = triggers.add(
+            evnt_id,
+            'voice_sms',
+            _date + timedelta(days=trig_conf['voice_sms']['fire_days_delta']),
+            time(
+                trig_conf['voice_sms']['fire_hour'],
+                trig_conf['voice_sms']['fire_min'])
+        )
 
     event_dt = utils.naive_to_local(datetime.combine(_date,time(8,0)))
 
@@ -99,35 +100,36 @@ def create_reminder_event(agency, block, _date):
 
         # A. Either Voice or SMS notification
 
-        if etap.get_phone('Mobile', acct_obj):
-            on_send = {
-                'source': 'template',
-                'template': 'sms/%s/reminder.html' % agency}
+        if parser.is_res(block):
+            if etap.get_phone('Mobile', acct_obj):
+                on_send = {
+                    'source': 'template',
+                    'template': 'sms/%s/reminder.html' % agency}
 
-            on_reply = {
-                'module': 'app.notify.pickup_service',
-                'func': 'on_sms_reply'}
+                on_reply = {
+                    'module': 'app.notify.pickup_service',
+                    'func': 'on_sms_reply'}
 
-            sms.add(
-                evnt_id, event_dt,
-                phone_trig_id,
-                acct_id, etap.get_phone('Mobile', acct_obj),
-                on_send, on_reply)
+                sms.add(
+                    evnt_id, event_dt,
+                    phone_trig_id,
+                    acct_id, etap.get_phone('Mobile', acct_obj),
+                    on_send, on_reply)
 
-        elif etap.get_phone('Voice', acct_obj):
-            on_answer = {
-                'source': 'template',
-                'template': 'voice/%s/reminder.html' % agency}
+            elif etap.get_phone('Voice', acct_obj):
+                on_answer = {
+                    'source': 'template',
+                    'template': 'voice/%s/reminder.html' % agency}
 
-            on_interact = {
-                'module': 'app.notify.pickup_service',
-                'func': 'on_call_interact'}
+                on_interact = {
+                    'module': 'app.notify.pickup_service',
+                    'func': 'on_call_interact'}
 
-            voice.add(
-                evnt_id, event_dt,
-                phone_trig_id,
-                acct_id, etap.get_phone('Voice', acct_obj),
-                on_answer, on_interact)
+                voice.add(
+                    evnt_id, event_dt,
+                    phone_trig_id,
+                    acct_id, etap.get_phone('Voice', acct_obj),
+                    on_answer, on_interact)
 
         # B. Email notification
 
@@ -227,7 +229,7 @@ def get_next_pickup(blocks, office_notes, block_dates):
     # TODO: Handle multiple RMV BLK strings in office_notes
 
     if office_notes:
-        rmv = block_parser.block_to_rmv(office_notes)
+        rmv = parser.block_to_rmv(office_notes)
 
         if rmv and rmv in block_list:
             block_list.remove(rmv)
@@ -322,18 +324,28 @@ def on_call_interact(notific):
 
     response = twiml.Response()
 
-    # Digit 1: Repeat message
+    # Digit 1: Play live message
     if request.form['Digits'] == '1':
-        speak= voice.get_speak(
-          notific,
-          notific['on_answer']['template'])
-
-        response.say(speak, voice='alice')
+        response.say(
+            voice.get_speak(
+              notific,
+              notific['on_answer']['template']),
+            voice='alice')
 
         response.gather(
-            numDigits=1,
             action= '%s/notify/voice/play/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
-            method='POST')
+            method='POST',
+            numDigits=1,
+            timeout=10)
+
+        response.say(
+            voice.get_speak(
+              notific,
+              notific['on_answer']['template'],
+              timeout=True),
+            voice='alice')
+
+        response.hangup()
 
         return response
 
@@ -348,11 +360,23 @@ def on_call_interact(notific):
         acct = db['accounts'].find_one({'_id':notific['acct_id']})
         dt = utils.tz_utc_to_local(acct['udf']['future_pickup_dt'])
 
-        speak = voice.get_speak(
-            notific,
-            notific['on_answer']['template'])
+        response.say(
+            voice.get_speak(
+                notific,
+                notific['on_answer']['template']),
+            voice='alice'
+        )
 
-        response.say(speak, voice='alice')
+        response.hangup()
+
+        return response
+    elif request.form['Digits'] == '3':
+        response.say(
+            voice.get_speak(
+              notific,
+              notific['on_answer']['template']),
+            voice='alice')
+
         response.hangup()
 
         return response

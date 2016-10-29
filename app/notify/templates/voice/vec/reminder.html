@@ -1,9 +1,11 @@
-{% if not notific['tracking']['digit'] %}
+{% if not notific['tracking']['answered_by'] == 'machine' and not notific['tracking']['digit'] and not timeout %}
 
-		Hi, this is a reminder message from Vecova. 
-		To hear this message press 1.
+		This is a message from Vecova. 
+		To listen press 1.
 
-{% elif notific['tracking']['digit'] == '1' %}
+{% endif %}
+
+{% if notific['tracking']['answered_by'] == 'machine' or notific['tracking']['digit'] == '1' or timeout %}
 
     Hi, this is a friendly reminder that your Vecova 
 
@@ -33,16 +35,31 @@
 
     {% endif %}
 
-    {% if notific['tracking']['answered_by'] == 'human' and account['udf']['status'] == "Active" %}
+    {% if notific['tracking']['answered_by'] == 'human' and account['udf']['status'] == "Active" and timeout == False %}
 
-        If you do not need a pickup, press 2.
+        If you do not need a pickup, press 2. To end this call press 3.
 
     {% endif %}
 
-{% eiif notific['tracking']['digit'] == '2' %}
+
+{% endif %}
+
+{% if notific['tracking']['digit'] == '2' %}
 
     Your pickup has been unscheduled. Your next pickup will be
     {{ account['udf'].future_pickup_dt }}.
     Thank you.
+
+{% endif %}
+
+{% if notific['tracking']['digit'] == '3' %}
+
+	Thank you. Goodbye.
+
+{% endif %}
+
+{% if notific['tracking']['digit'] == '1' and timeout %}
+
+	Thanks for your support. Goodbye.
 
 {% endif %}

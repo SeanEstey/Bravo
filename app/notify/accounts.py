@@ -7,9 +7,9 @@ from .. import utils
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def add(agency, event_id, name, phone=None, email=None, udf=None):
+def add(agency, evnt_id, name, phone=None, email=None, udf=None):
     return db['accounts'].insert_one({
-        'event_id': event_id,
+        'evnt_id': evnt_id,
         'agency': agency,
         'name': name,
         'phone': phone,

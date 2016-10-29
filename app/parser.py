@@ -20,12 +20,12 @@ def get_block(title):
         return False
 
 #-------------------------------------------------------------------------------
-def is_res_block(s):
-    return re.match('^' + res_block_regex + '$', s) is not None
+def is_res(block):
+    return re.match('^' + res_block_regex + '$', block) is not None
 
 #-------------------------------------------------------------------------------
-def is_bus_block(s):
-    return re.match('^' + bus_block_regex + '$', s) is not None
+def is_bus(block):
+    return re.match('^' + bus_block_regex + '$', block) is not None
 
 #-------------------------------------------------------------------------------
 def block_to_rmv(s):

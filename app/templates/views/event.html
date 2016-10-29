@@ -27,12 +27,21 @@
 					<th name='col6'><a class='hover' href='#'>Driver Notes</a></th>
 					<th name='col7'><a class='hover' href='#'>Office Notes</a></th>
 					<th width='7%' name='col8'><a class='hover' href='#'>Pickup Date</a></th>
-          {% for trigger in triggers %}
+
+					{% for trigger in triggers if trigger['type'] == 'Email' %}
             <th width='6%' id='{{trigger['_id']}}'><a 
               class='hover'
               href='#'>{{trigger['type']}} Status</a>
             </th>
-          {% endfor %}
+					{% endfor %}
+
+					{% for trigger in triggers if trigger['type'] == 'Voice Sms' %}
+            <th width='6%' id='{{trigger['_id']}}'><a 
+              class='hover'
+              href='#'>{{trigger['type']}} Status</a>
+            </th>
+					{% endfor %}
+
           <th class='cancel-call-col' style='width:50px'></th>
         </tr>
       </thead>
@@ -42,7 +51,7 @@
 
       {% for row in notific_list %}
         <tr id="{{row['_id']['$oid']}}"
-						data-tracking="{{row['results'][0]}}">
+						data-tracking="{{row['results']}}">
 				<td name='name'>{{row['results'][0]['account'][0]['name']}}</td>
 
 				<!-- phone -->

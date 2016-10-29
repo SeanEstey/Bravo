@@ -303,7 +303,7 @@ function buildAdminPanel() {
 								var data = $(this).parent().parent().attr('data-tracking');
 
 								// Try to convert unicode dict str to JSON object
-								data = data.replace(/u\'/g, '\'').replace(/\'/g, '\"').replace(/None|False/g, '\"\"');
+								data = data.replace(/u\'/g, '\'').replace(/\'/g, '\"').replace(/None|False|True/g, '\"\"');
 
 								try {
 										console.log(JSON.stringify(JSON.parse(data), null, 4));

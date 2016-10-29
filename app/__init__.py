@@ -110,7 +110,10 @@ def create_db():
 #-------------------------------------------------------------------------------
 def is_test_server():
     if os.environ.get('BRAVO_TEST_SERVER'):
-        return os.environ['BRAVO_TEST_SERVER']
+        if os.environ['BRAVO_TEST_SERVER'] == 'True':
+            return True
+        else:
+            return False
 
     # Don't know. Get IP and do reverse DNS lookup for domain
 
@@ -129,6 +132,7 @@ def is_test_server():
         return True
 
     if domain[0] == 'bravoweb.ca':
+        print 'deploy server detected'
         os.environ['BRAVO_TEST_SERVER'] = 'False'
         return False
 

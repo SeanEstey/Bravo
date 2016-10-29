@@ -93,6 +93,7 @@ def main(argv):
 
     sandbox = None
     celery_beat = None
+    debug = None
 
     for opt, arg in opts:
         if opt in('-c', '--celerybeat'):
@@ -102,11 +103,17 @@ def main(argv):
         elif opt in ('-s', '--sandbox'):
             sandbox = True
 
+
+    if not flask_app.config['DEBUG']:
+        flask_app.config['DEBUG'] = False
+
     if is_test_server():
         if sandbox == True:
             config_test_server('sandbox')
         else:
             config_test_server('test_server')
+    else:
+        os.environ['BRAVO_SANDBOX_MODE'] = 'False'
 
     start_worker(celery_beat)
 

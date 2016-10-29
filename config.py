@@ -1,4 +1,3 @@
-DEBUG = True
 TITLE = 'Bravo'
 LOG_PATH = '/var/www/bravo/logs/'
 LOG_LINES = 200

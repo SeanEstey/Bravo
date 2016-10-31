@@ -19,7 +19,7 @@ def resolve_depot(block, postal_codes, event_desc=False):
     Return 'Strathcona' as default if none found.
     '''
 
-    depots = list(db['agencies'].find_one({'name':'wsf'})['routing']['depots'])
+    depots = list(db['agencies'].find_one({'name':'wsf'})['routing']['locations']['depots'])
 
     for depot in depots:
         # The block defined under depot in list?

@@ -20,9 +20,6 @@ from .. import db
 logger = logging.getLogger(__name__)
 
 
-
-
-
 #-------------------------------------------------------------------------------
 @main.route('/task_emit', methods=['POST'])
 def request_send_socket():

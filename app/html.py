@@ -37,26 +37,32 @@ def to_table(dictObj, depth=None):
     h_open = '<h4>'
     h_close = '</h4>'
 
-    p='<table>'
+    #p='<div>'
+    p=''
 
     for k,v in dictObj.iteritems():
         if type(v) is float or type(v) is int or type(v) is str or type(v) is unicode:
-            p+= '<tr>'
-            p+= '<td nowrap>' + indent + utils.to_title_case(k) + ':    ' + str(v) + '</td>'
-            #p+= '<td>' + str(v) + '</td>'
-            p+= '</tr>'
+            p+= '<div name="'+k+'">'
+            p+= '<label style="display:inline-block; margin-right:0.25em; margin-left:'+str(depth)+'em">' + utils.to_title_case(k) + ':</label>'
+            p+= '<input style="display:inline-block;" value="'+str(v)+'"></input>'
+            p+= '</div>'
 
         elif isinstance(v, dict):
-            p+='<tr><td nowrap>' + h_open + indent + utils.to_title_case(k) + h_close + '</td></tr>'
-            p+='<tr><td>'+ to_table(v, depth+1) + '</td></tr>'
+            p+= '<div name="'+k+'">'
+            p+= '<label style="margin-left:'+str(depth)+'em">' + h_open + utils.to_title_case(k) + h_close + '</label>'
+            p+= to_table(v, depth+1)
+            p+= '</div>'
 
         elif isinstance(v, list):
-            p+='<tr><td nowrap>' + h_open + indent + utils.to_title_case(k) + h_close + '</td></tr>'
+            p+= '<div name="'+k+'">'
+            p+= '<label style="margin-left:'+str(depth)+'em">' + h_open + utils.to_title_case(k) + h_close + '</label>'
 
             for idx, item in enumerate(v):
-                p+='<tr><td>'+ to_table(item, depth+1) + '</td></tr>'
+                p+='<div>' + to_table(item, depth+1) + '</div>'
 
-    p+='</table>'
+            p+= '</div>'
+
+    #p+='</div>'
 
     return p
 

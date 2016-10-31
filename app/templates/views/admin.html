@@ -1,11 +1,17 @@
   {% extends "views/base.html" %}
   {% block content %}  
+	<script type='text/javascript' 
+					src="{{url_for('static', filename='js/views/admin.js')}}">
+	</script>
   <script>
     document.write('<style type="text/css">body{display:none}</style>');
     jQuery(function($){
 			$('body').css('display','block');
     });
   </script>
+  <script> 
+			jQuery(function($){init();});
+	</script>
 
   <div>
     <h3>User</h3>

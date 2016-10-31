@@ -126,6 +126,16 @@ def send(agency, to, template, subject, data):
         to, subject, body, agency_conf['mailgun'],
         v={'type':'receipt'})
 
+    db.emails.insert_one({
+        'agency': agency,
+        'mid': mid,
+        'type': 'receipt',
+        'on_status': {
+            'update': data['entry']['from']
+            }
+    })
+
+
 #-------------------------------------------------------------------------------
 def process(entries, etapestry_id):
     '''Celery process that sends email receipts to entries in Bravo
@@ -187,8 +197,8 @@ def process(entries, etapestry_id):
                 send(
                     agency,
                     accounts[i]['email'],
-                    schemas['cancelled']['file'],
-                    schemas['cancelled']['subject'],
+                    "receipts/"+agency+"/cancelled.html",
+                    "Your Account has been Cancelled",
                     data={
                         'account': accounts[i],
                         'entry': entries[i]
@@ -207,8 +217,8 @@ def process(entries, etapestry_id):
                     send(
                         agency,
                         accounts[i]['email'],
-                        schemas['dropoff_followup']['file'],
-                        schemas['dropoff_followup']['subject'],
+                        "receipts/"+agency+"/dropoff_followup.html",
+                        "Dropoff Complete",
                         data={
                             'account': accounts[i],
                             'entry': entries[i]
@@ -223,8 +233,8 @@ def process(entries, etapestry_id):
                     send(
                         agency,
                         accounts[i]['email'],
-                        schemas['zero_collection']['file'],
-                        schemas['zero_collection']['subject'],
+                        "receipts/"+agency+"/zero_collection.html",
+                        "See you next time",
                         data={
                             'account': accounts[i],
                             'entry': entries[i]
@@ -234,8 +244,8 @@ def process(entries, etapestry_id):
                     send(
                         agency,
                         accounts[i]['email'],
-                        schemas['no_collection']['file'],
-                        schemas['no_collection']['subject'],
+                        "receipts/"+agency+"/no_collection.html",
+                        "See you next time",
                         data={
                             'account': accounts[i],
                             'entry': entries[i]
@@ -258,7 +268,7 @@ def process(entries, etapestry_id):
 
             gift_histories = etap.call(
                 'get_gift_histories',
-                etapestry_id, 
+                etapestry_id,
                 data={
                     "account_refs": [i['account']['ref'] for i in gift_accounts],
                     "start_date": "01/01/" + str(year),
@@ -276,8 +286,8 @@ def process(entries, etapestry_id):
                 send(
                     agency,
                     gift_accounts[i]['account']['email'],
-                    schemas['collection']['file'],
-                    schemas['collection']['subject'],
+                    "receipts/"+agency+"/collection_receipt.html",
+                    "Thanks for your Donation",
                     data={
                         'account': gift_accounts[i]['account'],
                         'entry': gift_accounts[i]['entry'],

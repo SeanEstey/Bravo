@@ -14,7 +14,7 @@ import bson.json_util
 from flask_login import current_user
 from bson import ObjectId
 
-from .. import gcal, gdrive, gsheets, etap, schedule
+from .. import gcal, gdrive, gsheets, etap, schedule, wsf
 
 from app import db
 
@@ -87,8 +87,11 @@ def build_route(route_id, job_id=None):
     routing = agency_conf['routing']
     etap_conf = agency_conf['etapestry']
 
-    # FIXME. Vec only
-    depot = routing['depots'][0]
+    if route['agency'] == 'wsf':
+        depot = wsf.resolve_depot(route['block'], route['postal'])
+    else:
+        depot = routing['locations']['depots'][0]
+
     driver = routing['drivers'][0]
 
     # If job_id passed in as arg, skip Routific stage and build spreadsheet
@@ -97,7 +100,7 @@ def build_route(route_id, job_id=None):
             route['block'],
             driver['name'],
             route['date'].isoformat(),
-            routing['office_address'],
+            routing['locations']['office']['formatted_address'],
             depot['formatted_address'],
             etap_conf,
             routing['routific']['api_key'],
@@ -286,13 +289,13 @@ def get_orders(job_id, api_key):
     # TODO: Add travel time from depot to office
     orders.append({
         "location_id":"office",
-        "location_name": conf['routing']['office']['formatted_address'],
+        "location_name": conf['routing']['locations']['office']['formatted_address'],
         "arrival_time":"",
         "finish_time":"",
-        "gmaps_url": conf['routing']['office']['url'],
+        "gmaps_url": conf['routing']['locations']['office']['url'],
         "customNotes": {
             "id": "office",
-            "name": conf['routing']['office']['name']
+            "name": conf['routing']['locations']['office']['name']
         }
     })
 
@@ -529,6 +532,7 @@ def get_upcoming_routes(agency):
                     num_dropoffs += 1
 
             _route = {
+              'postal': event['location'],
               'agency': agency,
               'date': event_dt,
               'block': block,

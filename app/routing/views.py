@@ -4,7 +4,7 @@ import json
 import twilio.twiml
 import requests
 from datetime import datetime, date, time, timedelta
-from flask import request, jsonify, render_template, redirect
+from flask import request, jsonify, render_template, redirect, current_app,url_for
 from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 import logging
@@ -81,12 +81,13 @@ def get_routing_job_id():
 #-------------------------------------------------------------------------------
 @routing.route('/build/<route_id>', methods=['GET', 'POST'])
 def _build_route(route_id):
+    from .. import tasks
     r = tasks.build_route.apply_async(
       args=(route_id,),
       queue=current_app.config['DB']
     )
 
-    return redirect(url_for('show_routing'))
+    return redirect(url_for('routing.show_routing'))
 
 #-------------------------------------------------------------------------------
 @routing.route('/build_sheet/<route_id>/<job_id>', methods=['GET'])
@@ -94,4 +95,4 @@ def _build_sheet(job_id, route_id):
     '''non-celery synchronous func for testing
     '''
     routes.build_route(route_id, job_id=job_id)
-    return redirect(url_for('show_routing'))
+    return redirect(url_for('routing.show_routing'))

@@ -1,6 +1,16 @@
 
 function init() {
-  enableEditableFields()
+    $('nav-tabs a').click(function (e) {
+      e.preventDefault()
+        $(this).tab('show')
+    })
+
+    $('#notify').html($('div [name="notify"]').clone());
+    $('#scheduler').html($('div [name="scheduler"]').clone());
+    $('#routing').html($('div [name="routing"]').clone());
+    $('#etapestry').html($('div [name="etapestry"]').clone());
+
+    enableEditableFields()
 }
 
 //------------------------------------------------------------------------------

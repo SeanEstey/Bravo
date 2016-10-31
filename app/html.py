@@ -44,7 +44,7 @@ def to_table(dictObj, depth=None):
         if type(v) is float or type(v) is int or type(v) is str or type(v) is unicode:
             p+= '<div name="'+k+'">'
             p+= '<label style="display:inline-block; margin-right:0.25em; margin-left:'+str(depth)+'em">' + utils.to_title_case(k) + ':</label>'
-            p+= '<input style="display:inline-block;" value="'+str(v)+'"></input>'
+            p+= '<input class="input" style="display:inline-block;" value="'+str(v)+'"></input>'
             p+= '</div>'
 
         elif isinstance(v, dict):

@@ -13,21 +13,49 @@
 			jQuery(function($){init();});
 	</script>
 
-  <div>
-    <h3>User</h3>
-  </div>
+	<div class='container'>
+		<!--
+		<div>
+			<h3>User</h3>
+		</div>
 
-  <div>
-    <table class='table'>
-      <tr><td id='user'>Username: {{ current_user }} </td></tr>
-    </table>
-  </div>
+		<div>
+			<table class='table'>
+				<tr><td id='user'>Username: {{ current_user }} </td></tr>
+			</table>
+		</div>-->
 
-  <div>
-    <h3>Agency Settings</h3>
-  </div>
-  <div>
-    {{ agency_config|safe }}
-  </div>
+
+		<!-- Nav tabs -->
+		<ul style='margin-bottom:2em' class="nav nav-tabs" role="tablist">
+			
+			<li class="nav-item">
+				<a class="nav-link active" data-toggle="tab" href="#notify" role="tab">Notify</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" data-toggle="tab" href="#scheduler" role="tab">Scheduler</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" data-toggle="tab" href="#routing" role="tab">Routing</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" data-toggle="tab" href="#etapestry" role="tab">eTapestry</a>
+			</li>
+		</ul>
+
+		<!-- Tab panes -->
+		<div class="tab-content">
+			<div class="tab-pane active" id="notify" role="tabpanel"></div>
+			<div class="tab-pane" id="scheduler" role="tabpanel"></div>
+			<div class="tab-pane" id="routing" role="tabpanel"></div>
+			<div class="tab-pane" id="etapestry" role="tabpanel"></div>
+		</div>
+
+
+
+		<div hidden>
+			{{ agency_config|safe }}
+		</div>
+	</div>
 
   {% endblock %}

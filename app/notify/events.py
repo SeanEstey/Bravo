@@ -57,8 +57,8 @@ def get_list(agency, local_time=True, max=10):
     return sorted_events
 
 #-------------------------------------------------------------------------------
-def get_triggers(evnt_id, local_time=True):
-    trigger_list = list(db['triggers'].find({'evnt_id': evnt_id}))
+def get_triggers(evnt_id, local_time=True, sort_by='type'):
+    trigger_list = list(db['triggers'].find({'evnt_id':evnt_id}).sort(sort_by,1))
 
     if local_time == True:
         for trigger in trigger_list:

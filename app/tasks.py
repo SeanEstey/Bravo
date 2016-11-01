@@ -8,7 +8,7 @@ from celery.task.control import revoke
 import logging
 from bson.objectid import ObjectId as oid
 
-from . import db
+from . import db, bcolors
 from . import create_app, create_celery_app, \
         debug_handler, info_handler, error_handler, exception_handler
 from . import utils
@@ -213,14 +213,19 @@ def schedule_reminders():
 
 #-------------------------------------------------------------------------------
 @celery.task
-def update_sms_accounts():
+def update_sms_accounts(days_delta=None):
     '''Verify that all accounts in upcoming residential routes with mobile
     numbers are set up to interact with SMS system'''
 
-    from . import sms, schedule
+    import re
+    from . import schedule, etap
+    from twilio.rest.lookups import TwilioLookupsClient
 
     agency_name = 'vec'
-    days_from_now = 3
+    if days_delta == None:
+        days_delta = 3
+    else:
+        days_delta = int(days_delta)
 
     agency_settings = db['agencies'].find_one({'name':agency_name})
 
@@ -229,15 +234,17 @@ def update_sms_accounts():
         agency_settings['etapestry'],
         agency_settings['cal_ids']['res'],
         agency_settings['google']['oauth'],
-        days_from_now=days_from_now)
+        days_from_now=days_delta)
 
     if len(accounts) < 1:
         return False
 
     client = TwilioLookupsClient(
-      account = agency_settings['twilio']['keys']['main']['sid'],
-      token = agency_settings['twilio']['keys']['main']['auth_id']
+      account = agency_settings['twilio']['api']['sid'],
+      token = agency_settings['twilio']['api']['auth_id']
     )
+
+    n = 0
 
     for account in accounts:
         # A. Verify Mobile phone setup for SMS
@@ -249,7 +256,7 @@ def update_sms_accounts():
             sms_udf = etap.get_udf('SMS', account)
 
             if not sms_udf:
-                int_format = re.sub(r'[^0-9.]', '', mobile['number'])
+                int_format = re.sub(r'[^0-9.]', '', mobile)
 
                 if int_format[0:1] != "1":
                     int_format = "+1" + int_format
@@ -270,10 +277,10 @@ def update_sms_accounts():
         # B. Analyze Voice phone in case it's actually Mobile.
         voice = etap.get_phone('Voice', account)
 
-        if not voice:
+        if not voice or voice == '':
             continue
 
-        int_format = re.sub(r'[^0-9.]', '', voice['number'])
+        int_format = re.sub(r'[^0-9.]', '', voice)
 
         if int_format[0:1] != "1":
             int_format = "+1" + int_format
@@ -305,6 +312,11 @@ def update_sms_accounts():
             })
         except Exception as e:
             logger.error('Error modifying account %s: %s', str(account['id']), str(e))
+
+        n+=1
+
+    logger.info('%s ---------- updated %s accounts for mobile-ready ----------%s',
+                bcolors.OKGREEN, str(n), bcolors.ENDC)
 
     return True
 

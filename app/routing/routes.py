@@ -532,7 +532,7 @@ def get_upcoming_routes(agency):
                     num_dropoffs += 1
 
             _route = {
-              'postal': event['location'],
+              'postal': re.sub(r'\s', '', event['location']).split(','),
               'agency': agency,
               'date': event_dt,
               'block': block,

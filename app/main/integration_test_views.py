@@ -24,6 +24,16 @@ def test_non_participants():
     return 'OK'
 
 #-------------------------------------------------------------------------------
+@main.route('/test_analyze_mobile/<days>', methods=['GET'])
+@login_required
+def test_analyze_mobile(days):
+    from .. import tasks
+    tasks.update_sms_accounts.apply_async(
+        kwargs={'days_delta':days},
+        queue=current_app.config['DB'])
+    return 'OK'
+
+#-------------------------------------------------------------------------------
 @main.route('/test_reminder_r1z', methods=['GET'])
 @login_required
 def test_reminder_scheduler_r1z():

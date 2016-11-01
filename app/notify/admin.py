@@ -1,5 +1,6 @@
 
 import logging
+from bson import json_util
 import os
 from flask import request
 from flask_login import current_user
@@ -49,3 +50,19 @@ def get_op_stats():
         'DEVELOPER': user.get('developer'),
         'USER_NAME': user['name']
     }
+
+#-------------------------------------------------------------------------------
+def update_agency_conf():
+    user = db['users'].find_one({'user': current_user.username})
+
+    logger.info('updating %s with value %s', request.form['field'], request.form['value'])
+
+    try:
+        r = db.agencies.update_one(
+            {'name':user['agency']},
+            {'$set':{request.form['field']:request.form['value']}}
+        )
+    except Exception as e:
+        logger.error(str(e))
+
+    return True

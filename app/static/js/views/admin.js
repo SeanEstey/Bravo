@@ -5,81 +5,67 @@ function init() {
         $(this).tab('show')
     })
 
-    $('#notify').html($('div [name="notify"]').clone());
-    $('#scheduler').html($('div [name="scheduler"]').clone());
-    $('#routing').html($('div [name="routing"]').clone());
-    $('#etapestry').html($('div [name="etapestry"]').clone());
+    $('#notify').html($('div [name="notify"]:first').clone());
+    $('#scheduler').html($('div [name="scheduler"]:first').clone());
+    $('#routing').html($('div [name="routing"]:first').clone());
+    $('#etapestry').html($('div [name="etapestry"]:first').clone());
 
     enableEditableFields()
 }
 
 //------------------------------------------------------------------------------
 function enableEditableFields() {
+  $('input').each(function() {
+      $(this).keyup(function(event) {
+          if(event.keyCode == 13){
+              var fields = [];
 
-  $('label').each(function() {
-    
-  });
+              $(this).parents().each(function() {
+                  if($(this).attr('name')) {
+                      fields.push($(this).attr('name'));
+                  }
+              });
 
+              var full_field = '';
 
-  $("td [nowrap]").on('click',function() {      
-    $cell = $(this);
+              for(var i=fields.length-1; i>=0; i--) {
+                full_field += fields[i];
+                if(i > 0)
+                  full_field += '.';
+              }
 
-    // Editable fields are assigned 'name' attribute
-    var name = $cell.attr('name');
+              console.log(full_field);
+              console.log($(this).val());
+              
+              saveFieldEdit(full_field, $(this).val());
 
-    //if(!name)
-    //  return;
+              $(this).blur();
+          }
+      });
 
-    if($cell.find('input').length > 0)
-      return;
-
-    var $input = $cell.find('input');
-    $input.width(width);
-    $input.css('font-size', '16px');
-		$input.focus();
-
-		$input.keyup(function(event) {
-				if(event.keyCode == 13){
-						saveFieldEdit($cell, $input);
-				}
-		});
-  
-    // Save edit to DB when focus lost, remove <input> element 
-    $input.blur(function() {
-				saveFieldEdit($cell, $input);
-    });
-
+      $(this).blur(function() {
+          console.log('blured');
+          //saveFieldEdit($cell, $input);
+      });
   });
 }
 
 //------------------------------------------------------------------------------
-function saveFieldEdit($cell, $input) {
-		$cell.html($input.val());
-		var field_name = String($cell.attr('name'));
+function saveFieldEdit(field, value) {
 
-		console.log(field_name + ' edited');
-
-		var payload = {};
-		payload[field_name] = $input.val();
-
-		if($input.val() == '---')
-			return;
-
-    /*
 		$.ajax({
 			type: 'POST',
-			url: $URL_ROOT + 'notify/' + $cell.parent().attr('id') + '/edit',
-			data: payload
-		}).done(function(msg) {
-				if(msg != 'OK') {
-					alertMsg(msg, 'danger');
-					$cell.html(text);
+			url: $URL_ROOT + 'update_agency_conf',
+			data: {
+        'field':field,
+        'value':value
+      }
+		}).done(function(response) {
+				if(response['status'] != 'success') {
+					alertMsg(response['status'], 'danger');
 				}
 				else {
 						alertMsg('Edited field successfully', 'success');
 				}
 		});
-    */
-
-		$input.focus();
 }

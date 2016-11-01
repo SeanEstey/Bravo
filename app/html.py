@@ -58,7 +58,7 @@ def to_table(dictObj, depth=None):
             p+= '<label style="margin-left:'+str(depth)+'em">' + h_open + utils.to_title_case(k) + h_close + '</label>'
 
             for idx, item in enumerate(v):
-                p+='<div>' + to_table(item, depth+1) + '</div>'
+                p+= '<div name="'+str(idx)+'">' + to_table(item, depth+1) + '</div>'
 
             p+= '</div>'
 

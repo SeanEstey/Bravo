@@ -392,11 +392,11 @@ function setupTwilioClient() {
 }
 
 //------------------------------------------------------------------------------
-function sortCalls(table, column) {
+function sortCalls(table, $index) {
 	/* @arg column: column number
 	 */
 
-	console.log('Sorting notifications by column %s', column);
+	var column = $index + 1;
 
   var tbody = table.find('tbody');
 
@@ -417,6 +417,7 @@ function sortCalls(table, column) {
     html = html.replace(window.unicode['UP_ARROW'], '');
     html = html.replace(window.unicode['DOWN_ARROW'], '');
     html = html.replace(window.unicode['SPACE'], ' ');
+		html = html.replace(/&#[0-9][0-9];/g, '');
 
     $(this).text(html);
   });
@@ -430,14 +431,17 @@ function sortCalls(table, column) {
     $a.html($a.html() + window.unicode['UP_ARROW']);
 
   // Sort rows
-  tbody.find('tr').sort(function (a, b) {
+  $sorted_rows = tbody.find('tr').sort(function (a, b) {
     var nth_child = 'td:nth-child(' + column + ')';
 
     if (sort_by == 'ascending')
       return $(nth_child, a).text().localeCompare($(nth_child, b).text());
     else
       return $(nth_child, b).text().localeCompare($(nth_child, a).text());
-  }).appendTo(tbody);
+  });
+
+	tbody.empty();
+	$sorted_rows.appendTo(tbody);
 }
 
 //------------------------------------------------------------------------------
@@ -567,7 +571,7 @@ function updateCountdown() {
 //------------------------------------------------------------------------------
 function enableColumnSorting() {
 	// Enable sorting on column headers
-	$('th').each(function(){
+	$('th').each(function($index){
 			var $a = $('a', $(this));
 			var encoded_text = HTMLEncode($a.text());
 
@@ -578,8 +582,8 @@ function enableColumnSorting() {
 
 			$a.click(function() {
 					var id = $(this).parent().attr('id');
-					var column_number = id.split('col')[1];
-					sortCalls($('#show-calls-table'), column_number);
+					
+					sortCalls($('#notific-table'), $index);
 					var encoded_text = HTMLEncode($(this).text());
 
 					if(encoded_text.indexOf(window.unicode['DOWN_ARROW']) > -1)
@@ -595,15 +599,17 @@ function enableColumnSorting() {
 function applyStatusColor($td) {
   var status = $td.text().toLowerCase();
 
+	if(status == '<hr>' || !status || status == "")
+		$td.html('<hr>');
+
   if(status == 'pending')
       $td.css('color', window.colors['DEFAULT']);
-  if(['completed', 'delivered'].indexOf(status) > -1)
+  else if(['completed', 'delivered'].indexOf(status) > -1)
       $td.css('color', window.colors['SUCCESS']);
   else if(['queued', 'busy', 'no-answer'].indexOf(status) > -1)
       $td.css('color', window.colors['IN_PROGRESS']);
   else if(['failed', 'cancelled'].indexOf(status) > -1)
       $td.css('color', window.colors['FAILED']);
-
 }
 
 //------------------------------------------------------------------------------
@@ -618,9 +624,16 @@ function formatColumns() {
         text: false
     })
 
+		$('[name="email"]').each(function() {
+				if($(this).text() == '<hr>')
+					$(this).html("<hr>");
+		});
+
     $('[name="phone"]').each(function() {
-        if($(this).text() == '---')
+        if($(this).text() == '<hr>') {
+						$(this).html("<hr>");
             return;
+				}
 
         // convert intl format to (###) ###-####
         var to = $(this).text();

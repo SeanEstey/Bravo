@@ -48,6 +48,9 @@
               {% endif %}
 						<td>{{trigger.count}}</td>
           {% endfor %}
+					{% if event.triggers|length == 1 %}
+						<td><hr></td><td><hr></td>
+					{% endif %}
 					<td>
 						<button 
 							data-toggle='tooltip'	

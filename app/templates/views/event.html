@@ -19,24 +19,31 @@
     <table id='notific-table' class='table table-hover table-colored'>
       <thead>
         <tr>
-					<th width='10%' name='col1'><a class='hover' href='#'>Name</a></th>
-					<th width='8%' name='col2'><a class='hover' href='#'>Phone</a></th>
-					<th name='col3'><a class='hover' href='#'>Email</a></th>
-					<th width='5%' name='col4'><a class='hover' href='#'>Block</a></th>
-					<th width='5%' name='col5'><a class='hover' href='#'>Status</a></th>
-					<th name='col6'><a class='hover' href='#'>Driver Notes</a></th>
-					<th name='col7'><a class='hover' href='#'>Office Notes</a></th>
-					<th width='7%' name='col8'><a class='hover' href='#'>Pickup Date</a></th>
+					<th width='10%'><a class='hover' href='#'>Name</a></th>
+
+					{% for trigger in triggers if trigger['type'] == 'Voice Sms' %}
+						<th width='8%'><a class='hover' href='#'>Phone</a></th>
+					{% endfor %}
 
 					{% for trigger in triggers if trigger['type'] == 'Email' %}
-            <th width='6%' id='{{trigger['_id']}}'><a 
+						<th><a class='hover' href='#'>Email</a></th>
+					{% endfor %}
+
+					<th width='5%'><a class='hover' href='#'>Block</a></th>
+					<th width='5%'><a class='hover' href='#'>Status</a></th>
+					<th><a class='hover' href='#'>Driver Notes</a></th>
+					<th><a class='hover' href='#'>Office Notes</a></th>
+					<th width='7%'><a class='hover' href='#'>Pickup Date</a></th>
+
+					{% for trigger in triggers if trigger['type'] == 'Email' %}
+            <th width='7%' id='{{trigger['_id']}}'><a 
               class='hover'
               href='#'>{{trigger['type']}} Status</a>
             </th>
 					{% endfor %}
 
 					{% for trigger in triggers if trigger['type'] == 'Voice Sms' %}
-            <th width='6%' id='{{trigger['_id']}}'><a 
+            <th width='7%' id='{{trigger['_id']}}'><a 
               class='hover'
               href='#'>{{trigger['type']}} Status</a>
             </th>
@@ -55,22 +62,26 @@
 				<td name='name'>{{row['results'][0]['account'][0]['name']}}</td>
 
 				<!-- phone -->
-				{% set vars = {'phone':'---'} %}
-				{% for notific in row['results'] %}
-					{% if notific['type'] == 'voice' or notific['type'] == 'sms' %}
-						{% do vars.update({'phone': notific.to}) %}
-					{% endif %}
+				{% for trigger in triggers if trigger['type'] == 'Voice Sms' %}
+					{% set vars = {'phone':'<hr>'} %}
+					{% for notific in row['results'] %}
+						{% if notific['type'] == 'voice' or notific['type'] == 'sms' %}
+							{% do vars.update({'phone': notific.to}) %}
+						{% endif %}
+					{% endfor %}
+					<td name='phone'>{{ vars['phone'] }}</td>
 				{% endfor %}
-				<td name='phone'>{{ vars['phone'] }}</td>
           
 				<!-- email -->
-				{% set vars = {'email': '---'} %}
-				{% for notific in row['results'] %}
-					{% if notific['type'] == 'email' %}
-						{% do vars.update({'email': notific.to}) %}
-					{% endif %}
+				{% for trigger in triggers if trigger['type'] == 'Email' %}
+					{% set vars = {'email': '<hr>'} %}
+					{% for notific in row['results'] %}
+						{% if notific['type'] == 'email' %}
+							{% do vars.update({'email': notific.to}) %}
+						{% endif %}
+					{% endfor %}
+					<td name='email'>{{ vars['email'] }}</td>
 				{% endfor %}
-				<td name='email'>{{ vars['email'] }}</td>
 					
 				<td>{{row['results'][0]['account'][0]['udf']['block']}}</td>
 				<td>{{row['results'][0]['account'][0]['udf']['status']}}</td>
@@ -79,22 +90,26 @@
 				<td name='udf.pickup_dt'>{{row['results'][0]['account'][0]['udf']['pickup_dt']}}</td>
 
         <!-- email status -->
-        {% set status = {'email':'---', '_id':''} %}
-				{% for notific in row['results'] if notific['type'] == 'email' %}
-            {% do status.update({'email': notific['tracking']['status']}) %}
-            {% do status.update({'_id': notific['_id']['$oid']}) %}
+				{% for trigger in triggers if trigger['type'] == 'Email' %}
+					{% set status = {'email':'<hr>', '_id':''} %}
+					{% for notific in row['results'] if notific['type'] == 'email' %}
+							{% do status.update({'email': notific['tracking']['status']}) %}
+							{% do status.update({'_id': notific['_id']['$oid']}) %}
+					{% endfor %}
+					<td id="{{status['_id']}}" name='email_status'>{{ status['email'] }}</td>
 				{% endfor %}
-        <td id={{status['_id']}} name='email_status'>{{ status['email'] }}</td>
 
 				<!-- voice/sms status -->
-        {% do status.update({'phone':'---', '_id':''}) %}
-				{% for notific in row['results']%}
-					{% if notific['type'] == 'voice' or notific['type'] == 'sms' %}
-            {% do status.update({'phone': notific['tracking']['status']}) %}
-            {% do status.update({'_id': notific['_id']['$oid']}) %}
-					{% endif %}
+				{% for trigger in triggers if trigger['type'] == 'Voice Sms' %}
+					{% set status = {'phone':'<hr>', '_id':''} %}
+					{% for notific in row['results']%}
+						{% if notific['type'] == 'voice' or notific['type'] == 'sms' %}
+							{% do status.update({'phone': notific['tracking']['status']}) %}
+							{% do status.update({'_id': notific['_id']['$oid']}) %}
+						{% endif %}
+					{% endfor %}
+					<td id="{{status['_id']}}" name='voice_sms_status'>{{ status['phone'] }}</td>
 				{% endfor %}
-        <td id={{status['_id']}} name='voice_sms_status'>{{ status['phone'] }}</td>
 
 				<!-- Delete Button -->
 				<td class='cancel-notific'>

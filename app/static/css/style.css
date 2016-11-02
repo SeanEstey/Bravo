@@ -310,6 +310,12 @@ legend.admin-border {
   background-color: #e8f5f9;
 }
 
+.table.table-colored hr {
+	margin: 0;
+	text-align: left;
+	width: 25px;
+}
+
 
 
 .center {

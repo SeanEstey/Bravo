@@ -221,102 +221,104 @@ def update_sms_accounts(days_delta=None):
     from . import schedule, etap
     from twilio.rest.lookups import TwilioLookupsClient
 
-    agency_name = 'vec'
-    if days_delta == None:
-        days_delta = 3
-    else:
-        days_delta = int(days_delta)
+    agencies = db.agencies.find({})
 
-    agency_settings = db['agencies'].find_one({'name':agency_name})
+    for agency in agencies:
+        if days_delta == None:
+            days_delta = 3
+        else:
+            days_delta = int(days_delta)
 
-    # Get accounts scheduled on Residential routes 3 days from now
-    accounts = schedule.get_accounts(
-        agency_settings['etapestry'],
-        agency_settings['cal_ids']['res'],
-        agency_settings['google']['oauth'],
-        days_from_now=days_delta)
+        #agency_settings = db['agencies'].find_one({'name':agency_name})
 
-    if len(accounts) < 1:
-        return False
+        # Get accounts scheduled on Residential routes 3 days from now
+        accounts = schedule.get_accounts(
+            agency['etapestry'],
+            agency['cal_ids']['res'],
+            agency['google']['oauth'],
+            days_from_now=days_delta)
 
-    client = TwilioLookupsClient(
-      account = agency_settings['twilio']['api']['sid'],
-      token = agency_settings['twilio']['api']['auth_id']
-    )
+        if len(accounts) < 1:
+            return False
 
-    n = 0
+        client = TwilioLookupsClient(
+          account = agency['twilio']['api']['sid'],
+          token = agency['twilio']['api']['auth_id']
+        )
 
-    for account in accounts:
-        # A. Verify Mobile phone setup for SMS
-        mobile = etap.get_phone('Mobile', account)
+        n = 0
 
-        if mobile:
-            # Make sure SMS udf exists
+        for account in accounts:
+            # A. Verify Mobile phone setup for SMS
+            mobile = etap.get_phone('Mobile', account)
 
-            sms_udf = etap.get_udf('SMS', account)
+            if mobile:
+                # Make sure SMS udf exists
 
-            if not sms_udf:
-                int_format = re.sub(r'[^0-9.]', '', mobile)
+                sms_udf = etap.get_udf('SMS', account)
 
-                if int_format[0:1] != "1":
-                    int_format = "+1" + int_format
+                if not sms_udf:
+                    int_format = re.sub(r'[^0-9.]', '', mobile)
 
-                logger.info('Adding SMS field to Account %s', str(account['id']))
+                    if int_format[0:1] != "1":
+                        int_format = "+1" + int_format
 
-                try:
-                    etap.call('modify_account', agency_settings['etapestry'], {
-                      'id': account['id'],
-                      'udf': {'SMS': int_format},
-                      'persona': []
-                    })
-                except Exception as e:
-                    logger.error('Error modifying account %s: %s', str(account['id']), str(e))
-            # Move onto next account
-            continue
+                    logger.info('Adding SMS field to Account %s', str(account['id']))
 
-        # B. Analyze Voice phone in case it's actually Mobile.
-        voice = etap.get_phone('Voice', account)
+                    try:
+                        etap.call('modify_account', agency['etapestry'], {
+                          'id': account['id'],
+                          'udf': {'SMS': int_format},
+                          'persona': []
+                        })
+                    except Exception as e:
+                        logger.error('Error modifying account %s: %s', str(account['id']), str(e))
+                # Move onto next account
+                continue
 
-        if not voice or voice == '':
-            continue
+            # B. Analyze Voice phone in case it's actually Mobile.
+            voice = etap.get_phone('Voice', account)
 
-        int_format = re.sub(r'[^0-9.]', '', voice)
+            if not voice or voice == '':
+                continue
 
-        if int_format[0:1] != "1":
-            int_format = "+1" + int_format
+            int_format = re.sub(r'[^0-9.]', '', voice)
 
-        try:
-            info = client.phone_numbers.get(int_format, include_carrier_info=True)
-        except Exception as e:
-            logger.error('Carrier lookup error (Account %s): %s', str(account['id']), str(e))
-            continue
+            if int_format[0:1] != "1":
+                int_format = "+1" + int_format
 
-        if info.carrier['type'] != 'mobile':
-            continue
+            try:
+                info = client.phone_numbers.get(int_format, include_carrier_info=True)
+            except Exception as e:
+                logger.error('Carrier lookup error (Account %s): %s', str(account['id']), str(e))
+                continue
 
-        # Found a Mobile number labelled as Voice
-        # Update Persona and SMS udf
+            if info.carrier['type'] != 'mobile':
+                continue
 
-        logger.info('Acct #%s: Found mobile number. SMS ready.', str(account['id']))
+            # Found a Mobile number labelled as Voice
+            # Update Persona and SMS udf
 
-        try:
-            etap.call('modify_account', agency_settings['etapestry'], {
-              'id': account['id'],
-              'udf': {'SMS': info.phone_number},
-              'persona': {
-                'phones':[
-                  {'type':'Mobile', 'number': info.national_format},
-                  {'type':'Voice', 'number': info.national_format}
-                ]
-              }
-            })
-        except Exception as e:
-            logger.error('Error modifying account %s: %s', str(account['id']), str(e))
+            logger.info('Acct #%s: Found mobile number. SMS ready.', str(account['id']))
 
-        n+=1
+            try:
+                etap.call('modify_account', agency['etapestry'], {
+                  'id': account['id'],
+                  'udf': {'SMS': info.phone_number},
+                  'persona': {
+                    'phones':[
+                      {'type':'Mobile', 'number': info.national_format},
+                      {'type':'Voice', 'number': info.national_format}
+                    ]
+                  }
+                })
+            except Exception as e:
+                logger.error('Error modifying account %s: %s', str(account['id']), str(e))
 
-    logger.info('%s ---------- updated %s accounts for mobile-ready ----------%s',
-                bcolors.OKGREEN, str(n), bcolors.ENDC)
+            n+=1
+
+        logger.info('%s ---------- updated %s accounts for mobile-ready ----------%s',
+                    bcolors.OKGREEN, str(n), bcolors.ENDC)
 
     return True
 

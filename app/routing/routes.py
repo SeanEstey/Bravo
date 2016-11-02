@@ -27,9 +27,6 @@ class EtapBadDataError(Exception):
 
 
 #-------------------------------Stuff Todo---------------------------------------
-# TODO: Fix 'office' name on WSF Sheet
-# TODO: Add find_depot() code for WSF so routing can move away from Apps Script
-# TODO: Test permissions for WSF Sheets. Still errors?
 # TODO: Test GeocodeError and EtapBadDataError code paths
 
 
@@ -38,35 +35,39 @@ def build_scheduled_routes():
     '''Route orders for today's Blocks and build Sheets
     '''
 
-    agency = 'vec'
-    get_upcoming_routes(agency)
+    agencies = db.agencies.find({})
 
-    routes = db['routes'].find({
-      'agency': agency,
-      'date': datetime.combine(date.today(), time(0,0,0))
-    })
+    for agency in agencies:
+        #agency = 'vec'
 
-    logger.info(
-      '%s: -----Building %s routes for %s-----',
-      agency, routes.count(), date.today().strftime("%A %b %d"))
+        get_upcoming_routes(agency)
 
-    successes = 0
-    fails = 0
+        routes = db['routes'].find({
+          'agency': agency,
+          'date': datetime.combine(date.today(), time(0,0,0))
+        })
 
-    for route in routes:
-        r = build_route(str(route['_id']))
+        logger.info(
+          '%s: -----Building %s routes for %s-----',
+          agency, routes.count(), date.today().strftime("%A %b %d"))
 
-        if r != True:
-            fails += 1
-            logger.error('Error building route %s', route['block'])
-        else:
-            successes += 1
+        successes = 0
+        fails = 0
 
-        sleep(2)
+        for route in routes:
+            r = build_route(str(route['_id']))
 
-    logger.info(
-        '%s: -----%s Routes built. %s failures.-----',
-        agency, successes, fails)
+            if r != True:
+                fails += 1
+                logger.error('Error building route %s', route['block'])
+            else:
+                successes += 1
+
+            sleep(2)
+
+        logger.info(
+            '%s: -----%s Routes built. %s failures.-----',
+            agency, successes, fails)
 
 #-------------------------------------------------------------------------------
 def build_route(route_id, job_id=None):

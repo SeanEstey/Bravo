@@ -183,6 +183,12 @@ def on_status():
             utils.naive_to_local(datetime.combine(date.today(), time()))}
         })
 
+    # Could be a new sid from a reply to reminder text?
+    if not notific:
+        logger.error('no notific found for sid %s to %s from %s',
+                str(request.form['SmsSid']), request.form['To'], request.form['From'])
+        return False
+
     from .. socketio import socketio_app
     socketio_app.emit('notific_status', {
         'notific_id': str(notific['_id']),

@@ -1,7 +1,7 @@
 '''app.main.signups'''
 
 import logging
-from flask import request
+from flask import request, current_app
 from datetime import date
 
 from .. import gsheets
@@ -26,7 +26,7 @@ def on_email_delivered():
 
 #-------------------------------------------------------------------------------
 def on_email_dropped():
-    msg = 'signup welcome to %s dropped. %s. %s' %(
+    msg = 'signup welcome to %s dropped. %s.' %(
         request.form['recipient'], request.form['reason'])
 
     logger.info(msg)

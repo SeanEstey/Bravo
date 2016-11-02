@@ -3,17 +3,18 @@
 import json
 import time
 import requests
+import os
 from datetime import datetime, date
 from flask import g, request, render_template, redirect, url_for, current_app,\
-     jsonify
+     jsonify, Response
 from flask_login import login_required, current_user
 from flask_socketio import SocketIO, emit
 from bson.objectid import ObjectId
 import logging
 
 from . import main
-from . import log, receipts, sms_assistant
-from .. import utils, html, gsheets
+from . import log, receipts, sms_assistant, signups
+from .. import utils, html, gsheets, mailgun
 from app.notify import admin
 import app.notify.email
 from app.notify import email
@@ -117,7 +118,7 @@ def _send_email():
         if key not in args:
             e = '/email/send: missing one or more required fields'
             logger.error(e)
-            return flask.Response(response=e, status=500, mimetype='application/json')
+            return Response(response=e, status=500, mimetype='application/json')
 
     try:
         html = render_template(
@@ -128,7 +129,7 @@ def _send_email():
     except Exception as e:
         msg = '/email/send: invalid email template'
         logger.error('%s: %s', msg, str(e))
-        return flask.Response(response=e, status=500, mimetype='application/json')
+        return Response(response=e, status=500, mimetype='application/json')
 
     conf = db['agencies'].find_one({'name':args['agency']})['mailgun']
 
@@ -138,12 +139,18 @@ def _send_email():
             v={'type':args.get('type')}
         )
     except Exception as e:
-        gsheets.create_rfu(args['agency'], err)
-        return flask.Response(response=str(r), status=500, mimetype='application/json')
-
-        #   if r.status_code != 200:
-        #       err = 'Invalid email address "' + args['recipient'] + '": ' + json.loads(r.text)['message']
-        #    logger.error(err)
+        logger.error('could not email %s. %s', args['recipient'], str(e))
+        gsheets.create_rfu(args['agency'], str(e))
+        return Response(response=str(e), status=500, mimetype='application/json')
+    else:
+        db.emails.insert_one({
+            'agency': args['agency'],
+            'mid': mid,
+            'type': args.get('type'),
+            'on_status': {
+                'update': args['data'].get('from')
+                }
+        })
 
     logger.debug('Queued email to ' + args['recipient'])
 

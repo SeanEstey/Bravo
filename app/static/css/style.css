@@ -81,19 +81,21 @@ a.hover:visited {
 }
 
 .container-fluid.top {
-	margin-left: 5em;
-	margin-right: 5em;
+	max-width: 1600px;
+	margin-left: auto;
+	margin-right: auto;
 	padding: 0;
 }
 
 .container-fluid.border {
 	position: absolute;
 	top: 13em;
-	/*left: 5em;
-	right: 5em;*/
+	left: 1em;
+	right: 1em;
+	max-width: 1600px;
 	margin-bottom: 5em;
-	margin-left: 5em;
-	margin-right: 5em;
+	margin-left: auto;	
+	margin-right: auto;
   border:1px solid #bbbbbb; 
   border-radius:7px; 
   -webkit-border-radius:7px 7px 0px 0px;
@@ -330,12 +332,12 @@ legend.admin-border {
 	
 		.container-fluid.border {
 			position: relative;
-			left: 0;
-			right: 0;
+			left:0;
+			right:0;
 			top: 0;
-			width: 100%;
+			width:90%;
 			padding:0;
-			margin: 0;
+			margin: 0 auto;
 		}
 
 		.header-div {
@@ -381,12 +383,12 @@ legend.admin-border {
 
 		.container-fluid.border {
 			position: relative;
-			left: 0;
-			right: 0;
 			top: 0;
-			width: 100%;
+			left:0;
+			right:0;
+			width:90%;
 			padding:0;
-			margin: 0;
+			margin: 0 auto;
 		}
 
 		.alert-banner {

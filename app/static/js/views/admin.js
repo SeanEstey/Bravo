@@ -52,7 +52,6 @@ function enableEditableFields() {
 
 //------------------------------------------------------------------------------
 function saveFieldEdit(field, value) {
-
 		$.ajax({
 			type: 'POST',
 			url: $URL_ROOT + 'update_agency_conf',

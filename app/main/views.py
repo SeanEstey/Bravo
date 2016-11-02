@@ -14,6 +14,7 @@ import logging
 from . import main
 from . import log, receipts, sms_assistant
 from .. import utils, html, gsheets
+from app.notify import admin
 import app.notify.email
 from app.notify import email
 from .. import db
@@ -59,6 +60,13 @@ def view_admin():
         settings_html = ''
 
     return render_template('views/admin.html', agency_config=settings_html)
+
+#-------------------------------------------------------------------------------
+@main.route('/update_agency_conf', methods=['POST'])
+@login_required
+def update_agency_conf():
+    admin.update_agency_conf()
+    return jsonify({'status':'success'})
 
 #-------------------------------------------------------------------------------
 @main.route('/booking', methods=['GET'])

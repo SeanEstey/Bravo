@@ -28,23 +28,24 @@ def to_list_tags(dictObj):
 def to_table(dictObj, depth=None):
     indent = ''
 
-    if depth is not None:
-        for i in range(depth):
-            indent += '&nbsp;&nbsp;&nbsp;&nbsp;'
-    else:
+    if depth is None:
         depth = 0
 
     h_open = '<h4>'
     h_close = '</h4>'
 
-    #p='<div>'
     p=''
 
     for k,v in dictObj.iteritems():
         if type(v) is float or type(v) is int or type(v) is str or type(v) is unicode:
             p+= '<div name="'+k+'">'
             p+= '<label style="display:inline-block; margin-right:0.25em; margin-left:'+str(depth)+'em">' + utils.to_title_case(k) + ':</label>'
-            p+= '<input class="input" style="display:inline-block;" value="'+str(v)+'"></input>'
+            if type(v) == int:
+                _type= "number"
+            else:
+                _type = "text"
+
+            p+= '<input class="input" type="'+_type+'" style="display:inline-block;" value="'+str(v)+'"></input>'
             p+= '</div>'
 
         elif isinstance(v, dict):
@@ -61,8 +62,6 @@ def to_table(dictObj, depth=None):
                 p+= '<div name="'+str(idx)+'">' + to_table(item, depth+1) + '</div>'
 
             p+= '</div>'
-
-    #p+='</div>'
 
     return p
 

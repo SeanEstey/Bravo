@@ -57,6 +57,13 @@ def update_agency_conf():
 
     logger.info('updating %s with value %s', request.form['field'], request.form['value'])
 
+    '''old_value = db.agencies.find_one({'name':user['agency']})[request.form['field']]
+
+    if type(old_value) != type(request.form['value']):
+        logger.error('type mismatch')
+        return False
+    '''
+
     try:
         r = db.agencies.update_one(
             {'name':user['agency']},

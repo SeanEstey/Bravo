@@ -40,16 +40,16 @@ def build_scheduled_routes():
     for agency in agencies:
         #agency = 'vec'
 
-        get_upcoming_routes(agency)
+        get_upcoming_routes(agency['name'])
 
         routes = db['routes'].find({
-          'agency': agency,
+          'agency': agency['name'],
           'date': datetime.combine(date.today(), time(0,0,0))
         })
 
         logger.info(
           '%s: -----Building %s routes for %s-----',
-          agency, routes.count(), date.today().strftime("%A %b %d"))
+          agency['name'], routes.count(), date.today().strftime("%A %b %d"))
 
         successes = 0
         fails = 0
@@ -67,7 +67,7 @@ def build_scheduled_routes():
 
         logger.info(
             '%s: -----%s Routes built. %s failures.-----',
-            agency, successes, fails)
+            agency['name'], successes, fails)
 
 #-------------------------------------------------------------------------------
 def build_route(route_id, job_id=None):
@@ -88,11 +88,6 @@ def build_route(route_id, job_id=None):
     routing = agency_conf['routing']
     etap_conf = agency_conf['etapestry']
 
-    if route['agency'] == 'wsf':
-        depot = wsf.resolve_depot(route['block'], route['postal'])
-    else:
-        depot = routing['locations']['depots'][0]
-
     driver = routing['drivers'][0]
 
     # If job_id passed in as arg, skip Routific stage and build spreadsheet
@@ -102,7 +97,7 @@ def build_route(route_id, job_id=None):
             driver['name'],
             route['date'].isoformat(),
             routing['locations']['office']['formatted_address'],
-            depot['formatted_address'],
+            route['depot']['formatted_address'],
             etap_conf,
             routing['routific']['api_key'],
             min_per_stop = routing['min_per_stop'],
@@ -160,7 +155,7 @@ def build_order(account, warnings, api_key, shift_start, shift_end, min_per_stop
         formatted_address = account['address'] + ', ' + account['city'] + ', AB'
 
     try:
-        result = geocode(formatted_address, api_key, postal=account['postalCode'])[0]
+        result = geocode(formatted_address, api_key, postal=account['postalCode'])
     except requests.RequestException as e:
         logger.error(str(e))
         raise
@@ -169,6 +164,8 @@ def build_order(account, warnings, api_key, shift_start, shift_end, min_per_stop
         msg = "Unable to resolve address: %s, %s" % (account['address'],account['city'])
         logger.error(msg)
         raise GeocodeError(msg)
+
+    result = result[0]
 
     if 'warning' in result:
         warnings.append(result['warning'])
@@ -227,7 +224,7 @@ def get_orders(job_id, api_key):
     route_info = db['routes'].find_one({'job_id':job_id})
 
     output = task['output']
-    orders = task['output']['solution'][route_info['driver']]
+    orders = task['output']['solution']['Default']#[route_info['driver']]
 
     logger.info(
         '\nJob_id %s: %s\n'\
@@ -409,8 +406,6 @@ def submit_job(block, driver, date, start_address, end_address, etapestry_id,
 
     # Save route info with job_id to DB
 
-
-
     existing_job = db['routes'].find_one({
       'agency': etapestry_id['agency'],
       'block': block,
@@ -418,7 +413,7 @@ def submit_job(block, driver, date, start_address, end_address, etapestry_id,
     })
 
     db['routes'].update_one(
-        existing_job,
+        {'_id':existing_job['_id']},
         {'$set': {
             'agency': etapestry_id['agency'],
             'job_id': job_id,
@@ -473,8 +468,9 @@ def get_upcoming_routes(agency):
     # send today's Blocks routing status
     today_dt = datetime.combine(date.today(), time())
 
-    cal_ids = db['agencies'].find_one({'name':agency})['cal_ids']
-    oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
+    conf = db.agencies.find_one({'name':agency})['routing']
+    cal_ids = db.agencies.find_one({'name':agency})['cal_ids']
+    oauth = db.agencies.find_one({'name':agency})['google']['oauth']
 
     end_dt = today_dt + timedelta(days=5)
 
@@ -494,11 +490,11 @@ def get_upcoming_routes(agency):
         block = re.match(r'^((B|R)\d{1,2}[a-zA-Z]{1})', event['summary']).group(0)
 
         # 1. Do we already have this Block in Routes collection?
-        route = db['routes'].find_one({'date':event_dt, 'block': block, 'agency':agency})
+        route = db.routes.find_one({'date':event_dt, 'block': block, 'agency':agency})
 
         if route is None:
             # 1.a Let's grab info from eTapestry
-            etap_info = db['agencies'].find_one({'name':agency})['etapestry']
+            etap_info = db.agencies.find_one({'name':agency})['etapestry']
 
             try:
                 a = etap.call(
@@ -532,12 +528,20 @@ def get_upcoming_routes(agency):
                 if etap.get_udf('Status', account) == 'Dropoff':
                     num_dropoffs += 1
 
+            postal = re.sub(r'\s', '', event['location']).split(',')
+
+            if len(conf['locations']['depots']) > 1:
+                depot = wsf.resolve_depot(block, postal)
+            else:
+                depot = conf['locations']['depots'][0]
+
             _route = {
-              'postal': re.sub(r'\s', '', event['location']).split(','),
-              'agency': agency,
-              'date': event_dt,
               'block': block,
+              'date': event_dt,
+              'agency': agency,
               'status': 'pending',
+              'postal': re.sub(r'\s', '', event['location']).split(','),
+              'depot': depot,
               'orders': num_booked,
               'block_size': len(a['data']),
               'dropoffs': num_dropoffs

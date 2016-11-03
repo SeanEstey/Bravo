@@ -51,7 +51,11 @@
 					<td>
             <select name='depots' class='form-control'>
               {% for depot in depots %}
-              <option value='{{ depot.name }}'>{{ depot.name }}</option>
+                {% if depot.name == route.depot.name %}
+                  <option selected="selected">{{depot.name}}</option>
+                {% else %}
+                  <option>{{depot.name}}</option>
+                {% endif %}
               {% endfor %}
             </select>
           </td>

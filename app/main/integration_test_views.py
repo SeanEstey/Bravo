@@ -33,6 +33,17 @@ def test_analyze_mobile(days):
         queue=current_app.config['DB'])
     return 'OK'
 
+
+#-------------------------------------------------------------------------------
+@main.route('/test_build_scheduled_routes', methods=['GET'])
+@login_required
+def test_build_scheduled_routes():
+    from .. import tasks
+    tasks.build_routes.apply_async(
+        queue=current_app.config['DB'])
+    return 'OK'
+
+
 #-------------------------------------------------------------------------------
 @main.route('/test_reminder_r1z', methods=['GET'])
 @login_required

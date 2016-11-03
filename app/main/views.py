@@ -56,7 +56,7 @@ def view_admin():
 
     if user['admin'] == True:
         settings = db['agencies'].find_one({'name':agency}, {'_id':0, 'google.oauth':0})
-        settings_html = html.to_table(settings)
+        settings_html = html.to_div('', settings)
     else:
         settings_html = ''
 

@@ -25,7 +25,7 @@ def to_list_tags(dictObj):
 
 
 #-------------------------------------------------------------------------------
-def to_table(dictObj, depth=None):
+def to_div(k, v, depth=None):
     indent = ''
 
     if depth is None:
@@ -36,32 +36,32 @@ def to_table(dictObj, depth=None):
 
     p=''
 
-    for k,v in dictObj.iteritems():
-        if type(v) is float or type(v) is int or type(v) is str or type(v) is unicode:
-            p+= '<div name="'+k+'">'
-            p+= '<label style="display:inline-block; margin-right:0.25em; margin-left:'+str(depth)+'em">' + utils.to_title_case(k) + ':</label>'
-            if type(v) == int:
-                _type= "number"
-            else:
-                _type = "text"
+    if isinstance(v, dict):
+        p+= '<div name="'+str(k)+'">'
+        p+= '<label style="margin-left:'+str(depth)+'em">' + h_open + utils.to_title_case(str(k)) + h_close + '</label>'
 
-            p+= '<input class="input" type="'+_type+'" style="display:inline-block;" value="'+str(v)+'"></input>'
-            p+= '</div>'
+        for sub_k, sub_v in v.iteritems():
+            p+= to_div(sub_k, sub_v, depth+1)
 
-        elif isinstance(v, dict):
-            p+= '<div name="'+k+'">'
-            p+= '<label style="margin-left:'+str(depth)+'em">' + h_open + utils.to_title_case(k) + h_close + '</label>'
-            p+= to_table(v, depth+1)
-            p+= '</div>'
+        p+= '</div>'
+    elif isinstance(v, list):
+        p+= '<div name="'+k+'">'
+        #p+= '<label style="margin-left:'+str(depth)+'em">' + h_open + utils.to_title_case(k) + h_close + '</label>'
 
-        elif isinstance(v, list):
-            p+= '<div name="'+k+'">'
-            p+= '<label style="margin-left:'+str(depth)+'em">' + h_open + utils.to_title_case(k) + h_close + '</label>'
+        for idx, item in enumerate(v):
+            p+= '<div name="'+str(idx)+'">' + to_div(idx, item, depth+1) + '</div>'
 
-            for idx, item in enumerate(v):
-                p+= '<div name="'+str(idx)+'">' + to_table(item, depth+1) + '</div>'
+        p+= '</div>'
+    elif type(v) is float or type(v) is int or type(v) is str or type(v) is unicode:
+        p+= '<div name="'+str(k)+'">'
+        p+= '<label style="display:inline-block; margin-right:0.25em; margin-left:'+str(depth)+'em">' + utils.to_title_case(str(k)) + ':</label>'
+        if type(v) == int:
+            _type= "number"
+        else:
+            _type = "text"
 
-            p+= '</div>'
+        p+= '<input class="input" type="'+_type+'" style="display:inline-block;" value="'+str(v)+'"></input>'
+        p+= '</div>'
 
     return p
 

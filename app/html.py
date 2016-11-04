@@ -38,7 +38,9 @@ def to_div(k, v, depth=None):
 
     if isinstance(v, dict):
         p+= '<div name="'+str(k)+'">'
-        p+= '<label style="margin-left:'+str(depth)+'em">' + h_open + utils.to_title_case(str(k)) + h_close + '</label>'
+
+        if type(k) is str or type(k) is unicode:
+            p+= '<label style="margin-left:'+str(depth)+'em">' + h_open + utils.to_title_case(str(k)) + h_close + '</label>'
 
         for sub_k, sub_v in v.iteritems():
             p+= to_div(sub_k, sub_v, depth+1)
@@ -46,15 +48,20 @@ def to_div(k, v, depth=None):
         p+= '</div>'
     elif isinstance(v, list):
         p+= '<div name="'+k+'">'
-        #p+= '<label style="margin-left:'+str(depth)+'em">' + h_open + utils.to_title_case(k) + h_close + '</label>'
+
+        if type(k) is str or type(k) is unicode:
+            p+= '<label style="margin-left:'+str(depth)+'em">' + h_open + utils.to_title_case(k) + h_close + '</label>'
 
         for idx, item in enumerate(v):
-            p+= '<div name="'+str(idx)+'">' + to_div(idx, item, depth+1) + '</div>'
+            #p+= '<div name="'+str(idx)+'">' + to_div(idx, item, depth+1) + '</div>'
+            p+= to_div(idx, item, depth+1)
 
         p+= '</div>'
     elif type(v) is float or type(v) is int or type(v) is str or type(v) is unicode:
         p+= '<div name="'+str(k)+'">'
+
         p+= '<label style="display:inline-block; margin-right:0.25em; margin-left:'+str(depth)+'em">' + utils.to_title_case(str(k)) + ':</label>'
+
         if type(v) == int:
             _type= "number"
         else:

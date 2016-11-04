@@ -4,19 +4,7 @@
 					src="{{url_for('static', filename='js/views/routing.js')}}">
 	</script>
   <script>
-    function toggleWarnings(event) {
-          event.stopPropagation();
-          var $target = $(event.target);
-          if ( $target.closest("td").attr("colspan") > 1 ) {
-              $target.slideUp();
-          } else {
-              $target.closest("tr").next().find("p").slideToggle();
-          }                    
-      }
-    $(function() {
-        $("td[colspan=12]").find("p").hide();
-        $("td[name=warnings]").click(toggleWarnings);
-    });
+			jQuery(function($){init();});
   </script>
   
   <div class='container-fluid border'>

@@ -224,7 +224,7 @@ def get_orders(job_id, api_key):
     route_info = db['routes'].find_one({'job_id':job_id})
 
     output = task['output']
-    orders = task['output']['solution']['Default']#[route_info['driver']]
+    orders = task['output']['solution'].get(route_info.get('driver')) or task['output']['solution']['default']
 
     logger.info(
         '\nJob_id %s: %s\n'\

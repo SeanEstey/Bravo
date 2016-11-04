@@ -79,7 +79,6 @@ function alertMsg(msg, level, duration=7500) {
 
 		// Existing alert. Clear its timer, fade it out
 		if(globalTimeoutId) {
-				console.log('resetting alert timer');
 				clearTimeout(globalTimeoutId);
 				globalTimeoutId = false;
 				$alert.stop(true);

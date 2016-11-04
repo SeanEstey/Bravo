@@ -121,10 +121,12 @@ def build_route(route_id, job_id=None):
 
     oauth = db['agencies'].find_one({'name':route['agency']})['google']['oauth']
 
+    title = route['date'].strftime('%b %-d') + ': ' + route['block']
+
     ss_id = create_sheet(
         route['agency'],
         gdrive.gauth(oauth),
-        route['block'])
+        title)
 
     write_orders(
         gsheets.gauth(oauth),
@@ -299,6 +301,17 @@ def get_orders(job_id, api_key):
 
     return orders
 
+
+#-------------------------------------------------------------------------------
+def get_job(job_id):
+    try:
+        r = requests.get('https://api.routific.com/jobs/' + job_id)
+    except requests.RequestException as e:
+        logger.error('Error calling api.routific.com/jobs: %s', str(e))
+        raise
+
+    return r.text
+
 #-------------------------------------------------------------------------------
 def submit_job(block, driver, date, start_address, end_address, etapestry_id,
     routific_key, min_per_stop=3, shift_start="08:00", shift_end="19:00"):
@@ -364,6 +377,7 @@ def submit_job(block, driver, date, start_address, end_address, etapestry_id,
             errors.append(str(e))
             continue
         except GeocodeError as e:
+            logger.error('GeocodeError exception')
             errors.append(str(e))
             continue
         except requests.RequestException as e:
@@ -846,15 +860,19 @@ def write_orders(sheets_api, ss_id, orders):
     # Start from Row 2 Column A to Column J
     _range = "A2:J" + str(len(orders)+1)
 
-    gsheets.write_rows(sheets_api, ss_id, rows, _range)
 
-    gsheets.vert_align_cells(sheets_api, ss_id, 2, len(orders)+1, 1,1)
+    try:
+        gsheets.write_rows(sheets_api, ss_id, rows, _range)
 
-    gsheets.bold_cells(sheets_api, ss_id, cells_to_bold)
+        gsheets.vert_align_cells(sheets_api, ss_id, 2, len(orders)+1, 1,1)
 
-    values = gsheets.get_values(sheets_api, ss_id, "A1:$A")
+        gsheets.bold_cells(sheets_api, ss_id, cells_to_bold)
 
-    hide_start = 1 + len(rows) + 1;
-    hide_end = values.index(['***Route Info***'])
+        values = gsheets.get_values(sheets_api, ss_id, "A1:$A")
 
-    gsheets.hide_rows(sheets_api, ss_id, hide_start, hide_end)
+        hide_start = 1 + len(rows) + 1;
+        hide_end = values.index(['***Route Info***'])
+
+        gsheets.hide_rows(sheets_api, ss_id, hide_start, hide_end)
+    except Exception as e:
+        logger.error('sheets error: %s', str(e))

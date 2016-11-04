@@ -11,26 +11,26 @@
     <div class='data-navbar-div'>
 			Routing
 		</div>
-    <table class='table table-hover table-colored'>
+    <table id='routing-tbl' class='table table-hover table-colored'>
       <thead>
         <tr>
-					<th>Date</th>
-					<th>Block</th>
-          <th>Orders</th>
-          <th style='width:90px;'>Block Size</th>
-          <th>Dropoffs</th>
-					<th>Depot</td>
-          <th>Driver</th>
-					<th style='width:120px;'>Routing Status</th>
-          <th style='width:130px'>Route Length</th>
-          <th>Warnings</th>
-          <th>Command</th>
-          <th>Sheet</th>
+					<th width="8%">Date</th>
+					<th width="15%">Block</th>
+          <th width="5%">Orders</th>
+          <th width="5%">Size</th>
+          <th width="5%">New</th>
+					<th width="10%">Depot</td>
+          <th width="8%">Driver</th>
+					<th style='width:120px;'>Status</th>
+          <th style='width:130px'>Length</th>
+          <th width="6%">Warnings</th>
+          <th width="6%">Command</th>
+          <th width="5%">Sheet</th>
         </tr>
       </thead>
       <tbody>
       {% for route in routes %}
-        <tr>
+        <tr id="{{route.job_id}}">
           <td>{{ route.date.strftime("%A %b %d") }}</td>
           <td>{{ route.block }}</td>
           <td>{{ route.orders }}</td>
@@ -64,7 +64,7 @@
           </td>
           <td name='warnings'>
             <a class='hover'
-              onclick="toggleWarnings(event)">{{ route.geocode_warnings|length }}</a>
+              onclick="toggleGeocodeWarnings(event)">{{ route.geocode_warnings|length }}</a>
           </td>
           <td><a class='hover'
                  href="{{url_for('routing._build_route', route_id=route['_id'])

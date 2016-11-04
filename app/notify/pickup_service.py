@@ -390,6 +390,11 @@ def on_sms_reply(notific):
     account = db['accounts'].find_one({'_id':notific['acct_id']})
     conf = db['agencies'].find_one({'name': account['agency']})
 
+    if notific['tracking']['reply'] == 'NOPICKUP':
+        cancel_pickup(notific['evnt_id'], notific['acct_id'])
+
+    # Send SMS reply followup
+
     try:
         client = TwilioRestClient(
             conf['twilio']['api']['sid'],

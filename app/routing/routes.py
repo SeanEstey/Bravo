@@ -88,6 +88,7 @@ def build_route(route_id, job_id=None):
     routing = agency_conf['routing']
     etap_conf = agency_conf['etapestry']
 
+    # TODO:Fixme. use driver in route dict
     driver = routing['drivers'][0]
 
     # If job_id passed in as arg, skip Routific stage and build spreadsheet

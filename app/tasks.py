@@ -107,6 +107,115 @@ def cancel_pickup(evnt_id, acct_id):
     except Exception as e:
         logger.error('%s\n%s', str(e), tb.format_exc())
 
+
+#-------------------------------------------------------------------------------
+@celery.task
+def analyze_upcoming_routes(days):
+    import bson.json_util
+    from dateutil.parser import parse
+    from datetime import datetime, date, time, timedelta
+    import re
+    from app import task_emit
+    from . import gcal, etap, wsf
+
+    agency = 'vec'
+
+    conf = db.agencies.find_one({'name':agency})['routing']
+    cal_ids = db.agencies.find_one({'name':agency})['cal_ids']
+    oauth = db.agencies.find_one({'name':agency})['google']['oauth']
+
+    end_dt = today_dt + timedelta(days=days)
+
+    events = []
+
+    for _id in cal_ids:
+        events += gcal.get_events(gcal.gauth(oauth), cal_ids[_id], today_dt, end_dt)
+
+    events = sorted(events, key=lambda k: k['start']['date'])
+
+    for event in events:
+        # yyyy-mm-dd format
+        event_dt = parse(event['start']['date'])
+
+        block = re.match(r'^((B|R)\d{1,2}[a-zA-Z]{1})', event['summary']).group(0)
+
+        if db.routes.find_one({'date':event_dt, 'block': block, 'agency':agency}):
+            continue
+
+        # Build route metadata
+
+        # 1.a Let's grab info from eTapestry
+        etap_conf = db.agencies.find_one({'name':agency})['etapestry']
+
+        try:
+            a = etap.call(
+              'get_query_accounts',
+              etap_conf,
+              {'query':block, 'query_category':etap_conf['query_category']}
+            )
+        except Exception as e:
+            logger.error('Error retrieving accounts for query %s', block)
+
+        if 'count' not in a:
+            logger.error('No accounts found in query %s', block)
+            continue
+
+        num_dropoffs = 0
+        num_booked = 0
+
+        event_d = event_dt.date()
+
+        for account in a['data']:
+            npu = etap.get_udf('Next Pickup Date', account)
+
+            if npu == '':
+                continue
+
+            npu_d = etap.ddmmyyyy_to_date(npu)
+
+            if npu_d == event_d:
+                num_booked += 1
+
+            if etap.get_udf('Status', account) == 'Dropoff':
+                num_dropoffs += 1
+
+        postal = re.sub(r'\s', '', event['location']).split(',')
+
+        # TODO: move resolve_depot into depots.py module
+        if len(conf['locations']['depots']) > 1:
+            depot = wsf.resolve_depot(block, postal)
+        else:
+            depot = conf['locations']['depots'][0]
+
+        _route = {
+          'block': block,
+          'date': event_dt,
+          'agency': agency,
+          'status': 'pending',
+          'postal': re.sub(r'\s', '', event['location']).split(','),
+          'depot': depot,
+          'driver': conf['drivers'][0], # default driver
+          'orders': num_booked,
+          'block_size': len(a['data']),
+          'dropoffs': num_dropoffs
+        }
+
+        db['routes'].insert_one(_route)
+
+        #logger.info('Inserting route %s', bson.json_util.dumps(routes[-1]))
+
+        # Send it to the client
+        task_emit(
+            'route_metadata',
+            data=utils.formatter(
+                _route,
+                to_local_time=True,
+                to_strftime=True,
+                bson_to_json=True)
+        )
+
+    return True
+
 #-------------------------------------------------------------------------------
 @celery.task
 def build_route(route_id, job_id=None):

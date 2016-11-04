@@ -35,6 +35,16 @@ def test_analyze_mobile(days):
 
 
 #-------------------------------------------------------------------------------
+@main.route('/test_analyze_routes/<days>', methods=['GET'])
+@login_required
+def test_analyze_routes(days):
+    from .. import tasks
+    tasks.analyze_upcoming_routes.apply_async(
+        kwargs={'days':days},
+        queue=current_app.config['DB'])
+    return 'OK'
+
+#-------------------------------------------------------------------------------
 @main.route('/test_build_scheduled_routes', methods=['GET'])
 @login_required
 def test_build_scheduled_routes():

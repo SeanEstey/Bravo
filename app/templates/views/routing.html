@@ -3,9 +3,7 @@
 	<script type='text/javascript' 
 					src="{{url_for('static', filename='js/views/routing.js')}}">
 	</script>
-  <script>
-			jQuery(function($){init();});
-  </script>
+  <script> $(function() {init();}); </script>
   
   <div class='container-fluid border'>
     <div class='data-navbar-div'>
@@ -24,13 +22,37 @@
 					<th style='width:120px;'>Status</th>
           <th style='width:130px'>Length</th>
           <th width="6%">Warnings</th>
-          <th width="6%">Command</th>
+          <th width="10%">Command</th>
           <th width="5%">Sheet</th>
         </tr>
       </thead>
       <tbody>
+			<!-- Invisible template row for copying Depots and Drivers -->
+			<tr style='display:none'>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td name='depots'>
+					<select name='depots' class='form-control'>
+						{% for depot in depots %}
+							<option selected="selected">{{depot.name}}</option>
+							<option>{{depot.name}}</option>
+						{% endfor %}
+					</select>
+				</td>
+				<td name='drivers'>
+					<select name='drivers' class='form-control'>
+						{% for driver in drivers %}
+						<option value='{{ driver.name }}'>{{ driver.name }}</option>
+						{% endfor %}
+					</select>
+				</td>
+				<td></td><td></td><td></td><td></td><td></td>
+			</tr>
       {% for route in routes %}
-        <tr id="{{route.job_id}}">
+        <tr id="{{route._id|string}}">
           <td>{{ route.date.strftime("%A %b %d") }}</td>
           <td>{{ route.block }}</td>
           <td>{{ route.orders }}</td>
@@ -66,9 +88,12 @@
             <a class='hover'
               onclick="toggleGeocodeWarnings(event)">{{ route.geocode_warnings|length }}</a>
           </td>
-          <td><a class='hover'
-                 href="{{url_for('routing._build_route', route_id=route['_id'])
-                 }}">Route</a>
+          <td>
+						<button 
+							action="{{url_for('routing._build_route', route_id=route['_id'])}}" 
+							class='btn btn-outline-primary'
+							>Build Route
+						</button>
           </td>
           <td>
             {% if route.ss_id is defined %}
@@ -88,8 +113,12 @@
       {% endfor %}
       </tbody>
     </table>
-    </div>
-  </div>
+		<div style='display:none' class='loader-div'>
+			<button class="btn btn-info loader"><span class="fa fa-refresh loader-animate"></span>  Analyzing Routes...</button>
+		</div>
+	</div>
+
+
   {% endblock %}
 
 

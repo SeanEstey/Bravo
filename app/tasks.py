@@ -119,19 +119,24 @@ def analyze_upcoming_routes(days):
     from . import gcal, etap, wsf
 
     agency = 'vec'
-
     conf = db.agencies.find_one({'name':agency})['routing']
     cal_ids = db.agencies.find_one({'name':agency})['cal_ids']
     oauth = db.agencies.find_one({'name':agency})['google']['oauth']
 
-    end_dt = today_dt + timedelta(days=days)
-
+    today_dt = datetime.combine(date.today(), time())
+    end_dt = today_dt + timedelta(days=int(days))
     events = []
 
     for _id in cal_ids:
         events += gcal.get_events(gcal.gauth(oauth), cal_ids[_id], today_dt, end_dt)
 
     events = sorted(events, key=lambda k: k['start']['date'])
+
+    logger.info('%s events', len(events))
+
+    n=0
+
+    task_emit('analyze_routes', {'status':'in-progress'})
 
     for event in events:
         # yyyy-mm-dd format
@@ -201,18 +206,22 @@ def analyze_upcoming_routes(days):
         }
 
         db['routes'].insert_one(_route)
-
-        #logger.info('Inserting route %s', bson.json_util.dumps(routes[-1]))
+        logger.info(_route)
 
         # Send it to the client
         task_emit(
-            'route_metadata',
+            'add_route_metadata',
             data=utils.formatter(
                 _route,
-                to_local_time=True,
                 to_strftime=True,
                 bson_to_json=True)
         )
+
+        n+=1
+
+    task_emit('analyze_routes', {'status':'completed'})
+
+    logger.info('%s routes analyzed', n)
 
     return True
 

@@ -116,7 +116,8 @@ a.hover:visited {
   bottom:-2.5em;
   right:0; 
   right:50%;
-  background: rgba(255,255,255,0.85); 
+  background: rgba(255,255,255,1.0); 
+  /*background: rgba(255,255,255,0.85); */
   text-align: center; 
 	width: 600px;
 	margin-right: -300px;
@@ -183,10 +184,40 @@ legend.admin-border {
 
 .btn.admin {
   /*width: 150px;*/
-  font-size: 14px;
+ /* font-size: 14px;*/
   margin-left: 0.25em;
   margin-right: 0.25em;
 }
+
+/* Loading button with spinning refresh icon */
+
+.loader-div {
+	background-color:#f7f7f7;
+	text-align:center;
+	padding:1em;
+}
+
+.btn.loader {
+	opacity: 0;
+	pointer-events: none;
+	cursor: default;
+}
+
+.loader-animate {
+    -animation: loader_spin .7s infinite linear;
+    -webkit-animation: loader_spin2 .7s infinite linear;
+}
+
+@-webkit-keyframes loader_spin2 {
+    from { -webkit-transform: rotate(0deg);}
+    to { -webkit-transform: rotate(360deg);}
+}
+
+@keyframes loader_spin {
+    from { transform: scale(1) rotate(0deg);}
+    to { transform: scale(1) rotate(360deg);}
+}
+
 
 /*-------------------------- VIEW EVENT ---------------------------*/
 
@@ -269,6 +300,7 @@ legend.admin-border {
 }
 
 .table.table-colored {
+	position: relative;
   table-layout: fixed;
 	width: 100%;
 /*

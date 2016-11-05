@@ -473,114 +473,45 @@ def is_scheduled(account, route_date):
     return True
 
 #-------------------------------------------------------------------------------
-def get_upcoming_routes(agency):
-    '''Get list of scheduled routes for next X days.
-    Pullled from db['routes']. Document is inserted for a Block if
-    not already in collection.
-    Return: list of db['routes'] documents
+def get_metadata():
+    '''Get metadata for routes today and onward
+    Return: list of db.routes dicts
     '''
 
-    # send today's Blocks routing status
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+
     today_dt = datetime.combine(date.today(), time())
 
-    conf = db.agencies.find_one({'name':agency})['routing']
-    cal_ids = db.agencies.find_one({'name':agency})['cal_ids']
-    oauth = db.agencies.find_one({'name':agency})['google']['oauth']
+    routes = db.routes.find({
+        'agency': agency,
+        'date': {'$gte':today_dt}})
 
-    end_dt = today_dt + timedelta(days=5)
-
-    events = []
-
-    for _id in cal_ids:
-        events += gcal.get_events(gcal.gauth(oauth), cal_ids[_id], today_dt, end_dt)
-
-    events = sorted(events, key=lambda k: k['start']['date'])
-
-    routes = []
-
+    '''
     for event in events:
         # yyyy-mm-dd format
         event_dt = parse(event['start']['date'])
 
         block = re.match(r'^((B|R)\d{1,2}[a-zA-Z]{1})', event['summary']).group(0)
 
-        # 1. Do we already have this Block in Routes collection?
+        # Route medadata already exist?
         route = db.routes.find_one({'date':event_dt, 'block': block, 'agency':agency})
 
-        if route is None:
-            # 1.a Let's grab info from eTapestry
-            etap_info = db.agencies.find_one({'name':agency})['etapestry']
+        if not route:
+            continue
 
-            try:
-                a = etap.call(
-                  'get_query_accounts',
-                  etap_info,
-                  {'query':block, 'query_category':etap_info['query_category']}
-                )
-            except Exception as e:
-                logger.error('Error retrieving accounts for query %s', block)
+        # Update metadata
+        not_evnt = db['notific_events'].find_one({'name':block, 'agency':agency})
 
-            if 'count' not in a:
-                logger.error('No accounts found in query %s', block)
-                continue
+        if not_evnt is not None:
+            orders = db['accounts'].find({
+                'evnt_id':not_evnt['_id'],
+                'udf.opted_out':False}).count()
 
-            num_dropoffs = 0
-            num_booked = 0
-
-            event_d = event_dt.date()
-
-            for account in a['data']:
-                npu = etap.get_udf('Next Pickup Date', account)
-
-                if npu == '':
-                    continue
-
-                npu_d = etap.ddmmyyyy_to_date(npu)
-
-                if npu_d == event_d:
-                    num_booked += 1
-
-                if etap.get_udf('Status', account) == 'Dropoff':
-                    num_dropoffs += 1
-
-            postal = re.sub(r'\s', '', event['location']).split(',')
-
-            if len(conf['locations']['depots']) > 1:
-                depot = wsf.resolve_depot(block, postal)
-            else:
-                depot = conf['locations']['depots'][0]
-
-            _route = {
-              'block': block,
-              'date': event_dt,
-              'agency': agency,
-              'status': 'pending',
-              'postal': re.sub(r'\s', '', event['location']).split(','),
-              'depot': depot,
-              'orders': num_booked,
-              'block_size': len(a['data']),
-              'dropoffs': num_dropoffs
-            }
-
-            db['routes'].insert_one(_route)
-
-            routes.append(_route)
-
-            logger.info('Inserting route %s', bson.json_util.dumps(routes[-1]))
-
-        else:
-            # 2. Get updated order count from reminders job
-            job = db['jobs'].find_one({'name':block, 'agency':agency})
-
-            if job is not None:
-                num_reminders = db['reminders'].find({'job_id':job['_id']}).count()
-                orders = num_reminders - job['no_pickups']
-
-                db['routes'].update_one(
-                  {'date':event_dt, 'agency':agency},
-                  {'$set':{'orders':orders}})
-
-            routes.append(route)
+            route = db['routes'].update_one(
+              {'date':event_dt, 'agency':agency},
+              {'$set':{
+                'orders':orders}})
+    '''
 
     return routes
 

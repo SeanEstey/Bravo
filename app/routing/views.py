@@ -22,11 +22,10 @@ logger = logging.getLogger(__name__)
 def show_routing():
     agency = db['users'].find_one({'user': current_user.username})['agency']
     agency_conf = db['agencies'].find_one({'name':agency})
-    upcoming = routes.get_upcoming_routes(agency)
 
     return render_template(
       'views/routing.html',
-      routes=upcoming,
+      routes=routes.get_metadata(),
       depots=agency_conf['routing']['locations']['depots'],
       drivers=agency_conf['routing']['drivers'],
       admin=db.users.find_one({'user':current_user.username})['admin']

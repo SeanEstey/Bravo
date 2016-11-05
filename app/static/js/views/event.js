@@ -176,7 +176,7 @@ function buildAdminPanel() {
           'admin_pane',
           btn_id,
           btn_caption,
-          'btn-primary', {
+          'btn-outline-primary', {
             'trigId':$(this).attr('id')
           }
         );
@@ -220,7 +220,7 @@ function buildAdminPanel() {
       'admin_pane',
       'stop_btn',
       'Stop All',
-      'btn-danger ');
+      'btn-outline-danger ');
 
     stop_btn.prop('disabled', true);
 
@@ -264,7 +264,8 @@ function buildAdminPanel() {
     reset_btn = addAdminPanelBtn(
       'dev_pane',
       'reset_btn',
-      'Reset All');
+      'Reset All',
+      'btn-outline-primary');
 
     reset_btn.click(function() {
       $.ajax({
@@ -280,7 +281,7 @@ function buildAdminPanel() {
       'dev_pane',
       'debug_info_btn',
       'Debug Mode',
-      'btn-primary');
+      'btn-outline-primary');
 
 		// Add debug buttons that print notific['tracking'] data to console
     show_debug_info_btn.click(function() {

@@ -108,7 +108,9 @@ function alertMsg(msg, level, duration=7500) {
 
 //------------------------------------------------------------------------------
 function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-primary', data=false) {
-    var btn = $("<button style='text-size:14pt;' id='"+btn_id+"' class='btn btn-block "+style+" admin'>"+caption+"</button>");
+    var btn = $(
+      "<button style='opacity:1; text-size:14pt;' id='"+btn_id+"' " +
+      "class='btn btn-block "+style+" admin'>"+caption+"</button>");
 
     $('#'+pane_id).append(btn);
 

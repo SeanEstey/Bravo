@@ -158,7 +158,8 @@ function buildAdminPanel() {
 		addAdminPanelBtn(
 			'dev_pane',
 			'schedule-btn',
-			'Schedule Block'
+			'Schedule Block',
+      'btn-outline-primary'
 		).click(function() {
         $('.modal-title').text('Schedule Block');
 				var form = "<form id='myform' method=post>" +

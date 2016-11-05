@@ -442,6 +442,10 @@ function sortCalls(table, $index) {
 
 	tbody.empty();
 	$sorted_rows.appendTo(tbody);
+
+	loadTooltip();
+	enableEditableFields();
+	addDeleteBtnHandlers();
 }
 
 //------------------------------------------------------------------------------

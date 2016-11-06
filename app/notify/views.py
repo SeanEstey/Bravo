@@ -196,10 +196,18 @@ def schedule_block(block):
         cal_id = db.agencies.find_one({'name':agency})['cal_ids']['res']
     elif parser.is_bus(block):
         cal_id = db.agencies.find_one({'name':agency})['cal_ids']['bus']
+    else:
+        return jsonify({'status':'failed', 'description':'Invalid Block name'})
 
     oauth = db.agencies.find_one({'name':agency})['google']['oauth']
 
     _date = schedule.get_next_block_date(cal_id, block, oauth)
+
+    if not _date:
+        return jsonify({
+            'status':'failed',
+            'description':'Block not found in schedule'}
+        )
 
     logger.info('loading reminders for %s on %s', block, _date)
 

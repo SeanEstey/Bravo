@@ -134,6 +134,9 @@ function buildAdminPanel() {
         $('#btn-primary').text('Schedule');
 				$('#mymodal').modal();
 
+				// Clear any currently bound events
+				$('#btn-primary').off('click');
+
         $('#btn-primary').click(function() {
             $('#mymodal').modal('hide'); 
 
@@ -151,7 +154,12 @@ function buildAdminPanel() {
 						})
 						.done(function(response) {
 								if(response['status'] != 'OK') {
-										alertMsg('Response: ' + response['description'], 'success');
+										alertMsg('Response: ' + response['description'], 'danger');
+
+                    $('.btn.loader').fadeTo('slow', 0, function() {
+                        $('.loader-div').slideToggle();
+                    });
+
 										return;
 								}
 

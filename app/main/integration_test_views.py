@@ -10,7 +10,7 @@ import logging
 import bson.json_util
 
 from . import main
-from app.notify import pickup_service
+from app.notify import pus
 from .. import db
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ def test_reminder_scheduler_r1z():
     logger.info('%s: scheduling reminders for %s on %s',
         conf['name'], test_block, test_date.strftime('%b %-d'))
 
-    r = pickup_service.create_reminder_event(
+    r = pus.reminder_event(
         conf['name'],
         test_block,
         test_date)

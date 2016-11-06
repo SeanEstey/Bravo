@@ -99,9 +99,9 @@ def monitor_triggers():
 @celery.task
 def cancel_pickup(evnt_id, acct_id):
     try:
-        from app.notify import pickup_service
+        from app.notify import pus
 
-        return pickup_service.cancel_pickup(
+        return pus.cancel_pickup(
             oid(evnt_id),
             oid(acct_id))
     except Exception as e:
@@ -288,44 +288,48 @@ def rfu(agency, note,
 #-------------------------------------------------------------------------------
 @celery.task
 def schedule_reminders():
-    try:
-        from app.notify import pickup_service
-        from app import schedule
-        from datetime import datetime, date, time, timedelta
+    from app.notify import pus
+    from app import schedule
+    from datetime import datetime, date, time, timedelta
 
-        agency = 'vec'
+    agency = 'vec'
+    agency_conf = db['agencies'].find_one({'name':agency})
+    _date = date.today() + timedelta(
+        days=agency_conf['scheduler']['notify']['preschedule_by_days'])
 
+    blocks = []
 
-        preschedule_days = db['agencies'].find_one({
-            'name': agency}
-        )['scheduler']['notify']['preschedule_by_days']
+    for key in agency_conf['cal_ids']:
+        blocks += schedule.get_blocks(
+            agency_conf['cal_ids'][key],
+            datetime.combine(_date,time(8,0)),
+            datetime.combine(_date,time(9,0)),
+            agency_conf['google']['oauth']
+        )
 
-        _date = date.today() + timedelta(days=preschedule_days)
+    if len(blocks) == 0:
+        logger.info(
+            '[%s] no blocks scheduled on %s',
+            agency_conf['name'], _date.strftime('%b %-d'))
+        return True
 
-        blocks = []
+    logger.info(
+        '[%s] scheduling reminders for %s on %s',
+        agency_conf['name'], blocks, _date.strftime('%b %-d'))
 
-        agency_conf = db['agencies'].find_one({'name':agency})
+    n=0
+    for block in blocks:
+        try:
+            pus.reminder_event(agency_conf['name'], block, _date)
+        except EtapError as e:
+            continue
+        else:
+            n+=1
 
-        for key in agency_conf['cal_ids']:
-            blocks += schedule.get_blocks(
-                agency_conf['cal_ids'][key],
-                datetime.combine(_date,time(8,0)),
-                datetime.combine(_date,time(9,0)),
-                agency_conf['google']['oauth']
-            )
-
-        logger.info('%s: scheduling reminders for %s on %s',
-            agency_conf['name'], blocks, _date.strftime('%b %-d'))
-
-        for block in blocks:
-            res = pickup_service.create_reminder_event(agency_conf['name'], block, _date)
-
-            if res == False:
-                logger.info("No reminders created for %s", block)
-
-        logger.info('%s: Done scheduling reminders', agency_conf['name'])
-    except Exception as e:
-        logger.error('%s\n%s', str(e), tb.format_exc())
+    logger.info(
+        '[%s] scheduled %s/%s reminder events', 
+        agency_conf['name'], n, len(blocks)
+    )
 
     return True
 

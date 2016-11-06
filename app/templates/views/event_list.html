@@ -1,6 +1,7 @@
 {% extends "views/base.html" %}
 
 {% block content %}  
+  <script src="{{url_for('static', filename='js/strftime.js')}}"></script>
   <script src="{{url_for('static', filename='js/views/event_list.js')}}"></script>
   <script> $(function() {init();}); </script>
 
@@ -10,7 +11,7 @@
       <a style='font-weight:bold; text-decoration:none;' title='Schedule a new
         event' href="{{ url_for('notify.new_event') }}">+</a>
     </div>
-    <table class='table table-hover table-colored'>
+    <table id='events_tbl' class='table table-hover table-colored'>
       <thead>
         <tr>
           <th>Name</th>
@@ -27,7 +28,7 @@
       {% set show_event_url = url_for('notify.view_event', evnt_id=event._id)
       %}
 				<tr id='{{event._id}}'>
-					<td name='job-name'>
+					<td>
 						<a class='hover' href="{{ show_event_url }}">{{ event.name }}</a>
 					</td>
 					<td>
@@ -67,6 +68,11 @@
       {% endfor %}
       </tbody>
     </table>
+
+		<div class='loader-div'>
+			<button class="btn btn-info loader">
+				<span class="fa fa-refresh loader-animate"></span>  Creating Event...</button>
+		</div>
   </div>
 {% endblock %}
 

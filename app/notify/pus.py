@@ -1,4 +1,4 @@
-'''app.notify.pickup_service'''
+'''app.notify.pus'''
 
 import logging
 import os
@@ -18,9 +18,13 @@ from . import events, email, sms, voice, triggers, accounts
 logger = logging.getLogger(__name__)
 
 
+class EtapError(Exception):
+    pass
+
 #-------------------------------------------------------------------------------
-def create_reminder_event(agency, block, _date):
+def reminder_event(agency, block, _date):
     '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
+    Returns: evnt_id (ObjectID) on succcess, False otherwise
     '''
 
     agency_conf = db['agencies'].find_one({'name':agency})
@@ -35,11 +39,12 @@ def create_reminder_event(agency, block, _date):
             }
         )['data']
     except Exception as e:
-        logger.error('Failed retrieving accounts for %s: %s', block, str(e))
-        return False
-
-    if len(etap_accts) < 1:
-        return False
+        msg = 'Failed to retrieve query "%s". Details: %s' % (block, str(e))
+        logger.error(msg)
+        raise EtapError(msg)
+    else:
+        if len(etap_accts) < 1:
+            raise EtapError('eTap query for Block %s is empty' % block)
 
     # Create event + triggers
 
@@ -107,7 +112,7 @@ def create_reminder_event(agency, block, _date):
                     'template': 'sms/%s/reminder.html' % agency}
 
                 on_reply = {
-                    'module': 'app.notify.pickup_service',
+                    'module': 'app.notify.pus',
                     'func': 'on_sms_reply'}
 
                 sms.add(
@@ -122,7 +127,7 @@ def create_reminder_event(agency, block, _date):
                     'template': 'voice/%s/reminder.html' % agency}
 
                 on_interact = {
-                    'module': 'app.notify.pickup_service',
+                    'module': 'app.notify.pus',
                     'func': 'on_call_interact'}
 
                 voice.add(
@@ -146,7 +151,7 @@ def create_reminder_event(agency, block, _date):
 
     add_future_pickups(str(evnt_id))
 
-    return True
+    return evnt_id
 
 #-------------------------------------------------------------------------------
 def add_future_pickups(evnt_id):

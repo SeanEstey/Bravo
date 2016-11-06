@@ -22,21 +22,22 @@ def naive_utc_to_local(dt):
     '''dt contains UTC time but has no tz. add tz and convert'''
     return dt.replace(tzinfo=pytz.utc).astimezone(local_tz)
 
+#-------------------------------------------------------------------------------
 def tz_utc_to_local(dt):
     '''dt is tz-aware. convert time and tz'''
     return dt.astimezone(local_tz)
 
 #-------------------------------------------------------------------------------
-def all_utc_to_local_time(obj, to_strftime=None):
+def localize(obj, to_strftime=None):
     '''Recursively scan through MongoDB document and convert all
     UTC datetimes to local time'''
 
     if isinstance(obj, dict):
         for k, v in obj.iteritems():
-            obj[k] = all_utc_to_local_time(v, to_strftime=to_strftime)
+            obj[k] = localize(v, to_strftime=to_strftime)
     elif isinstance(obj, list):
         for idx, item in enumerate(obj):
-            obj[idx] = all_utc_to_local_time(item, to_strftime=to_strftime)
+            obj[idx] = localize(item, to_strftime=to_strftime)
     elif isinstance(obj, datetime):
         if obj.tzinfo is None:
             obj = obj.replace(tzinfo=pytz.utc)
@@ -49,7 +50,8 @@ def all_utc_to_local_time(obj, to_strftime=None):
     return obj
 
 #-------------------------------------------------------------------------------
-def formatter(doc, to_local_time=False, to_strftime=None, bson_to_json=False):
+def formatter(doc,
+              to_local_time=False, to_strftime=None, bson_to_json=False):
     '''
     @bson_to_json:
         convert ObjectIds->{'oid': 'string'}
@@ -58,7 +60,7 @@ def formatter(doc, to_local_time=False, to_strftime=None, bson_to_json=False):
     '''
 
     if to_local_time == True:
-        doc = all_utc_to_local_time(doc, to_strftime=to_strftime)
+        doc = localize(doc, to_strftime=to_strftime)
 
     if bson_to_json == True:
         doc = json.loads(json_util.dumps(doc))

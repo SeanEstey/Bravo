@@ -1,4 +1,5 @@
 
+//------------------------------------------------------------------------------
 function init() {
 	loadTooltip();
 	buildAdminPanel();
@@ -6,7 +7,6 @@ function init() {
 	addSocketIOHandlers();
 	addPageNavHandlers();
 	showAdminServerStatus();
-	console.log('all js loaded');
 }
 
 //------------------------------------------------------------------------------
@@ -45,43 +45,37 @@ function addPageNavHandlers() {
 
 //------------------------------------------------------------------------------
 function addDeleteBtnHandlers() {
-/*
-    $('.delete-btn').button({
-        icons: {
-          primary: 'ui-icon ui-icon-trash'
-        },
-        text: false
-    })*/
 
-    $('.delete-btn').each(function(){ 
-      $(this).click(function(){
-        var $tr = $(this).parent().parent();
-        var event_uuid = $tr.attr('id');
+    $('.delete-btn').click(function(){ 
+				var $tr = $(this).parent().parent();
+				var event_uuid = $tr.attr('id');
 
-        console.log('prompt to delete job_id: ' + event_uuid);
+				console.log('prompt to delete job_id: ' + event_uuid);
 
-        $('.modal-title').text('Confirm');
+				$('.modal-title').text('Confirm');
 				$('.modal-body').html('');
-        $('.modal-body').text('Really delete this job?');
-        $('#btn-secondary').text('No');
-        $('#btn-primary').text('Yes');
+				$('.modal-body').text('Really delete this job?');
+				$('#btn-secondary').text('No');
+				$('#btn-primary').text('Yes');
 
-        $('#btn-primary').click(function() {
-            var request =  $.ajax({
-                type: 'GET',
-                url: $URL_ROOT + 'notify/'+event_uuid+'/cancel'
-            });
+				// Clear any currently bound events
+				$('#btn-primary').off('click');
 
-            request.done(function(msg){
-                if(msg == 'OK')
-                  $tr.remove();
-            });
-            $('#mymodal').modal('hide'); 
-        });
+				$('#btn-primary').click(function() {
+						$.ajax({
+							type: 'GET',
+							url: $URL_ROOT + 'notify/'+event_uuid+'/cancel'
+						})
+						.done(function(response) {
+								if(response['status'] == 'success')
+										$tr.remove();
+						});
 
-        $('#mymodal').modal('show');
-      });
-    });
+						$('#mymodal').modal('hide'); 
+				});
+
+				$('#mymodal').modal('show');
+		});
 }
 
 //------------------------------------------------------------------------------
@@ -93,34 +87,6 @@ function addSocketIOHandlers() {
     socket.on('connect', function(){
         socket.emit('connected');
         console.log('socket.io connected!');
-    });
-
-    socket.on('update_job', function(data) {
-      // data format: {'id': id, 'status': status}
-      if(typeof data == 'string')
-          data = JSON.parse(data);
-
-      console.log('received update: ' + JSON.stringify(data));
-
-      $job_row = $('#'+data['id']);
-
-      if(!$job_row)
-          return console.log('Could not find row with id=' + data['id']);
-     
-      var job_name = $job_row.find('[name="job-name"]').text(); 
-      var msg = 'Job \''+job_name+'\' ' + data['status'];
-
-      alertMsg(msg, 'error', 10000);
-
-      $status_td = $job_row.find('[name="job-status"]');
-
-      if (data['status'] == "completed")
-          $status_td.css({'color':'green'}); // FIXME: Breaks Bootstrap style
-      else if(data['status'] == "in-progress")
-          $status_td.css({'color':'red'}); // FIXME: Breaks Bootstrap style
-        
-      $status_td.text(data['status'].toTitleCase());
-      //$('.delete-btn').hide();
     });
 
     socket.on('update_event', function(data) {
@@ -148,11 +114,8 @@ function addSocketIOHandlers() {
     });
 }
 
-
 //------------------------------------------------------------------------------
 function buildAdminPanel() {
-   
-    // Add admin_mode pane buttons
 		$('#admin_pane').hide();
 
 		addAdminPanelBtn(
@@ -160,7 +123,8 @@ function buildAdminPanel() {
 			'schedule-btn',
 			'Schedule Block',
       'btn-outline-primary'
-		).click(function() {
+		)
+		.click(function() {
         $('.modal-title').text('Schedule Block');
 				var form = "<form id='myform' method=post>" +
 					"<input width='100%' id='block' class='input' name='block' type='text'></input>" +
@@ -176,19 +140,96 @@ function buildAdminPanel() {
 						var block = $('#block').val();
 						$('.modal-body').html('');
 
+						$('.loader-div').slideToggle(function() {
+								$('.btn.loader').fadeTo('slow', 1);
+						});
+
 						$.ajax({
 							context: this,
 							type: 'POST',
 							url: $URL_ROOT + 'notify/'+block+'/schedule'
 						})
-						.done(
-							function(response) {
-                alertMsg('Response: ' + response['description'], 'success');
-								// write a view func for pickup_service.create_reminder_event(agency_conf['name'], block, _date)
-							}
-						);
+						.done(function(response) {
+								if(response['status'] != 'OK') {
+										alertMsg('Response: ' + response['description'], 'success');
+										return;
+								}
+
+								console.log(response);
+
+								addEvent(
+									response['event'],
+									response['view_url'],
+									response['cancel_url'],
+									response['description']);
+
+								$('.btn.loader').fadeTo('slow', 0, function() {
+										$('.loader-div').slideToggle();
+								});
+						});
 				});
 		});
+}
 
 
+//------------------------------------------------------------------------------
+function displayTrig(trig) {
+		if(trig == undefined)
+				return "<td><hr></td><td><hr></td>";
+
+		trig['fire_dt'] = new Date(trig['fire_dt']['$date']);
+
+		if(trig['status'] == 'fired') {
+				var lbl = 'Sent';
+				var color = 'green';	
+		}
+		else {
+				var lbl = 'Pending';
+				var color = 'blue';
+		}
+		
+		return "" +
+			"<td>" +
+				"<font color='"+ color +"'>"+ lbl + "</font> @ " +
+				trig['fire_dt'].strftime('%b %d, %I:%M %p') +
+			"</td>" + 
+			"<td>"+ trig['count'] +"</td>";
+}
+
+//------------------------------------------------------------------------------
+function addEvent(evnt, view_url, cancel_url, desc) {
+
+	evnt['event_dt'] = new Date(evnt['event_dt']['$date']);
+
+	var tr = 
+		"<tr id='" +evnt['_id']['$oid']+ "'>"+
+			"<td name='event_name'>"+
+				"<a class='hover' href='"+ view_url +"'>"+evnt['name']+"</a>"+ 
+			"</td>"+
+			"<td>"+ 
+				"<a class='hover' href='"+ view_url +"'>"+evnt['event_dt'].toDateString()+"</a>"+ 
+			"</td>"+
+			displayTrig(evnt['triggers'][0])+
+			displayTrig(evnt['triggers'][1])+
+			"<td>"+
+				"<button "+ 
+					 "data-toggle='tooltip' "+
+					 "class='ui-button ui-widget ui-corner-all ui-button-icon-only delete-btn' "+
+					 "type='button' "+
+					 "id='"+ cancel_url +"' "+ 
+					 "title='Delete this event' "+
+					 "name='delete-btn'>"+
+					 "<span class='ui-button-icon-primary ui-icon ui-icon-trash'></span>"+
+				"</button>"+
+			"</td>"+
+		"</tr>";
+
+	console.log(tr);
+
+	$('#events_tbl tbody').append(tr);
+	$('#events_tbl tbody tr:last').fadeIn('slow');
+
+	addDeleteBtnHandlers();
+
+	alertMsg(desc, 'success');
 }

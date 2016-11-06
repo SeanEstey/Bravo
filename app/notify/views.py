@@ -6,7 +6,7 @@ import os
 import requests
 from datetime import datetime, date, time, timedelta
 from flask import request, jsonify, render_template, \
-    redirect, Response, current_app
+    redirect, Response, current_app, url_for
 from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 import logging
@@ -15,7 +15,7 @@ from flask_socketio import SocketIO, emit
 
 from . import notify
 from . import accounts, admin, events, triggers, email, voice, sms, \
-              recording, pickup_service
+              recording, pus
 from .. import utils, schedule, parser
 from app.main import sms_assistant
 from .. import db
@@ -183,8 +183,6 @@ def dup_acct(evnt_id):
 def edit_msg(acct_id):
     return accounts.edit(ObjectId(acct_id), request.form.items())
 
-
-
 #-------------------------------------------------------------------------------
 @notify.route('/<block>/schedule', methods=['POST'])
 @login_required
@@ -205,12 +203,33 @@ def schedule_block(block):
 
     logger.info('loading reminders for %s on %s', block, _date)
 
-    pickup_service.create_reminder_event(agency, block, _date)
+    try:
+        evnt_id = pus.reminder_event(agency, block, _date)
+    except EtapError as e:
+        return jsonify({
+            'status':'failed',
+            'description': str(e)})
+
+    event = db.notific_events.find_one({'_id':evnt_id})
+
+    event['triggers'] = events.get_triggers(event['_id'])
+
+    for trigger in event['triggers']:
+        # modifying 'triggers' structure for view rendering
+        trigger['count'] = triggers.get_count(trigger['_id'])
 
     return jsonify({
         'status':'OK',
-        'description': 'reminder event successfully scheduled for Block %s on %s' %
-        (block, _date)
+        'event': utils.formatter(
+            event,
+            to_local_time=True,
+            bson_to_json=True
+        ),
+        'event_url': url_for('.view_event', evnt_id=str(event['_id'])),
+        'cancel_url': url_for('.cancel_event', evnt_id=str(event['_id'])),
+        'description':
+            'Reminders for event %s on %s successfully scheduled.' %
+            (block, _date.strftime('%b %-d'))
     })
 
 

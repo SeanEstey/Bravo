@@ -36,7 +36,7 @@ def get(evnt_id, local_time=True):
     event = db['notific_events'].find_one({'_id':evnt_id})
 
     if local_time == True:
-        return utils.all_utc_to_local_time(event)
+        return utils.localize(event)
 
     return event
 
@@ -52,7 +52,7 @@ def get_list(agency, local_time=True, max=10):
 
     if local_time == True:
         for event in sorted_events:
-            event = utils.all_utc_to_local_time(event)
+            event = utils.localize(event)
 
     return sorted_events
 
@@ -62,7 +62,7 @@ def get_triggers(evnt_id, local_time=True, sort_by='type'):
 
     if local_time == True:
         for trigger in trigger_list:
-            trigger = utils.all_utc_to_local_time(trigger)
+            trigger = utils.localize(trigger)
 
     return trigger_list
 
@@ -93,7 +93,7 @@ def get_notifics(evnt_id, local_time=True, sorted_by='account.event_dt'):
         notific_list = list(notific_results)
 
         for notific in notific_list:
-            notific = utils.all_utc_to_local_time(notific)
+            notific = utils.localize(notific)
 
         # Returning list
         return notific_list

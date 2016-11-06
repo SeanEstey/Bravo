@@ -42,7 +42,7 @@ def get(trig_id, local_time=False):
     trig = db['triggers'].find_one({'_id':trig_id})
 
     if local_time == True:
-        return utils.all_utc_to_local_time(trig)
+        return utils.localize(trig)
 
     return trig
 

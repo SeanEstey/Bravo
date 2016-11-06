@@ -106,6 +106,7 @@ function alertMsg(msg, level, duration=7500) {
 		});	
 }
 
+
 //------------------------------------------------------------------------------
 function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-primary', data=false) {
     var btn = $(

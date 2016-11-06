@@ -126,18 +126,34 @@ function buildAdminPanel() {
 		)
 		.click(function() {
         $('.modal-title').text('Schedule Block');
-				var form = "<form id='myform' method=post>" +
-					"<input width='100%' id='block' class='input' name='block' type='text'></input>" +
-					"</form>";
+
+				var form = "<input width='100%' id='block' class='input' name='block' type='text'/>";
+
 				$('.modal-body').html(form);
+
+				$("#block").keyup(function(event){
+						if(event.keyCode == 13){
+								console.log('enter key');
+								$("#btn-primary").click();
+						}
+				});
+
         $('#btn-secondary').text('Cancel');
         $('#btn-primary').text('Schedule');
+
+				$('#mymodal').on('shown.bs.modal', function () {
+					$('#block').focus()
+				})
+
 				$('#mymodal').modal();
 
 				// Clear any currently bound events
 				$('#btn-primary').off('click');
 
         $('#btn-primary').click(function() {
+						if(!$('#block').val())
+								return;
+
             $('#mymodal').modal('hide'); 
 
 						var block = $('#block').val();

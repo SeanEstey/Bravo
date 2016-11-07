@@ -484,7 +484,7 @@ def get_metadata():
 
     routes = db.routes.find({
         'agency': agency,
-        'date': {'$gte':today_dt}})
+        'date': {'$gte':today_dt}}).sort('date', 1)
 
     '''
     for event in events:

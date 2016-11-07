@@ -23,9 +23,20 @@ def show_routing():
     agency = db['users'].find_one({'user': current_user.username})['agency']
     agency_conf = db['agencies'].find_one({'name':agency})
 
+    _routes = utils.formatter(
+        list(routes.get_metadata()),
+        bson_to_json=True,
+        to_local_time=True,
+        to_strftime="%A %b %d"
+    )
+
+    for route in _routes:
+        if route.get('geocode_warnings'):
+            route['geocode_warnings'] = json.dumps(route.get('geocode_warnings'))
+
     return render_template(
       'views/routing.html',
-      routes=routes.get_metadata(),
+      routes=_routes,
       depots=agency_conf['routing']['locations']['depots'],
       drivers=agency_conf['routing']['drivers'],
       admin=db.users.find_one({'user':current_user.username})['admin']

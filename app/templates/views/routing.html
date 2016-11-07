@@ -21,7 +21,7 @@
           <th width="8%">Driver</th>
 					<th style='width:120px;'>Status</th>
           <th style='width:130px'>Length</th>
-          <th width="6%">Warnings</th>
+          <th width="10%">Warnings</th>
           <th width="10%">Command</th>
           <th width="5%">Sheet</th>
         </tr>
@@ -53,7 +53,7 @@
 			</tr>
       {% for route in routes %}
         <tr id="{{route._id|string}}">
-          <td>{{ route.date.strftime("%A %b %d") }}</td>
+          <td>{{ route.date }}</td>
           <td>{{ route.block }}</td>
           <td>{{ route.orders }}</td>
           <td>{{ route.block_size }}</td>
@@ -76,7 +76,7 @@
               {% endfor %}
             </select>
           </td>
-          <td>{{ route.status }}</td>
+          <td name="status">{{ route.status }}</td>
           <td>
             {% if route.duration is defined %}
               {{ (route.duration/60)|round(0,'floor')|int }} hrs {{ route.duration % 60 }} min
@@ -85,12 +85,18 @@
             {% endif %}
           </td>
           <td name='warnings'>
-            <a class='hover'
-              onclick="toggleGeocodeWarnings(event)">{{ route.geocode_warnings|length }}</a>
+						<button
+              name='warnings_btn'
+							class='btn btn-outline-primary'
+              data-warnings="{{route.geocode_warnings}}"
+							>Warnings
+						</button>
           </td>
           <td>
 						<button 
-							action="{{url_for('routing._build_route', route_id=route['_id'])}}" 
+              name='route_btn'
+							href="{{url_for('routing._build_route', route_id=route['_id']['$oid'], _external=True)}}" 
+              data-route="{{route}}"
 							class='btn btn-outline-primary'
 							>Build Route
 						</button>
@@ -102,21 +108,29 @@
             {% endif %}
           </td>
         </tr>
-        <tr><td style='padding:0;' colspan="12"><p style='padding:15px;'>
-          {% if route.geocode_warnings is defined %}
-            {% for warning in route.geocode_warnings %}
-              {{ warning }} 
-              <br><br>
-            {% endfor %}
-          {% endif %}
-        </p></td></tr>
+
       {% endfor %}
       </tbody>
     </table>
+    <div class='loader-div'>
+      <button class="btn btn-info loader">
+        <span class="fa fa-refresh loader-animate"></span>  Analyzing Routes...</button>
+    </div>
+  </div>
 
-		<div class='loader-div'>
-			<button class="btn btn-info loader">
-				<span class="fa fa-refresh loader-animate"></span>  Analyzing Routes...</button>
-		</div>
-	</div>
+  <!-- Geocode Warnings Dialog -->
+  <div style='margin-top:15em' id='warnings_modal' class='modal fade'>
+    <div class='modal-dialog modal-lg'>
+      <div class="modal-content">
+        <div class='modal-header'>
+          <button type='button' class='close' data-dismiss="modal" aria-hidden="true">×</button>
+          <h4 class="modal-title">Geocode Warnings/Errors</h4>
+        </div>
+        <div class='modal-body'>
+          <p></p>
+        </div>
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </div><!-- /.modal -->
+
   {% endblock %}

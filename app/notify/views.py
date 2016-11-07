@@ -233,7 +233,7 @@ def schedule_block(block):
             to_local_time=True,
             bson_to_json=True
         ),
-        'event_url': url_for('.view_event', evnt_id=str(event['_id'])),
+        'view_url': url_for('.view_event', evnt_id=str(event['_id'])),
         'cancel_url': url_for('.cancel_event', evnt_id=str(event['_id'])),
         'description':
             'Reminders for event %s on %s successfully scheduled.' %

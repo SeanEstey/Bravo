@@ -3,13 +3,77 @@
 function init() {
 		buildAdminPanel();
     addSocketIOHandlers();
-
-    $(function() {
-        $("td[colspan=12]").find("p").hide();
-        $("td[name=warnings]").click(toggleGeocodeWarnings);
-    });
+    addEventHandlers();
+    prettyFormatting();
 
 		alertMsg('Click on Warnings for each route to view any conflicts resolving addresses', 'info', 15000);
+}
+
+
+//------------------------------------------------------------------------------
+function prettyFormatting() {
+  $('td[name="status"]').each(function() {
+      console.log($(this).text());
+
+      if($(this).text() == 'pending') {
+          $(this).css('color', window.colors['IN_PROGRESS']);
+          $(this).text($(this).text().toTitleCase());
+      }
+      else if($(this).text() == 'finished') {
+          $(this).css('color', window.colors['SUCCESS']);
+          $(this).text($(this).text().toTitleCase());
+      }
+  });
+}
+
+//------------------------------------------------------------------------------
+function addEventHandlers() {
+    $('button[name="route_btn"]').on('click', function(event) {
+        $.ajax({
+          context: this,
+          type: 'GET',
+          url: $(this).attr('href')
+        })
+        .done(function(response) {
+            console.log(response);
+        });
+        console.log($(this).attr('href'));
+
+    });
+
+    $('button[name="warnings_btn"]').each(function() {
+        if(!$(this).attr('data-warnings')) {
+          
+            $(this).prop('disabled', true);
+            $(this).hide();
+            return;
+        }
+
+        var warnings = JSON.parse($(this).attr('data-warnings'));
+        $(this).text(String(warnings.length) + " Warnings");
+
+
+        $(this).click(function() {
+            $modal = $('#warnings_modal');
+            $modal.find('.modal-title').text('Warnings');
+            $modal.find('.modal-body').html('');
+
+            var warnings = JSON.parse($(this).attr('data-warnings'));
+
+            var html = "<ol>";
+
+            for(var i=0; i<warnings.length; i++) {
+                html += '<li>'+warnings[i]+'</li>';
+            }
+
+            html += "</ol>";
+
+            $modal.find('.modal-body').append(html);
+
+            $modal.modal('show');
+        });
+
+    });
 }
 
 //------------------------------------------------------------------------------
@@ -39,6 +103,10 @@ function addSocketIOHandlers() {
         console.log('received route metadata');
         addRouteRow(data);
     });
+
+    socket.on('route_status', function(data) {
+
+    });
 }
 
 //------------------------------------------------------------------------------
@@ -60,19 +128,6 @@ function addRouteRow(route) {
 
     $('#routing-tbl tbody').append($row);
     $('#routing-tbl tbody tr:last').fadeIn('slow');
-}
-
-//------------------------------------------------------------------------------
-function toggleGeocodeWarnings(event) {
-    event.stopPropagation();
-    var $target = $(event.target);
-
-    if ($target.closest("td").attr("colspan") > 1){
-        $target.slideUp();
-    } 
-    else {
-        $target.closest("tr").next().find("p").slideToggle();
-    }                    
 }
 
 //------------------------------------------------------------------------------

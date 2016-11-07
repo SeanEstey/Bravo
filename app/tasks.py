@@ -48,14 +48,7 @@ def mod_environ(args):
     for key in args:
         os.environ[key] = args[key]
 
-#-------------------------------------------------------------------------------
-@celery.task
-def build_routes():
-    try:
-        from app.routing import routes
-        return routes.build_scheduled_routes()
-    except Exception as e:
-        logger.error('%s\n%s', str(e), tb.format_exc())
+
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -230,7 +223,16 @@ def analyze_upcoming_routes(days):
 def build_route(route_id, job_id=None):
     try:
         from app.routing import routes
-        return routes.build_route(route_id, job_id=job_id)
+        return routes.build_route(str(route_id), job_id=job_id)
+    except Exception as e:
+        logger.error('%s\n%s', str(e), tb.format_exc())
+
+#-------------------------------------------------------------------------------
+@celery.task
+def build_routes():
+    try:
+        from app.routing import routes
+        return routes.build_scheduled_routes()
     except Exception as e:
         logger.error('%s\n%s', str(e), tb.format_exc())
 

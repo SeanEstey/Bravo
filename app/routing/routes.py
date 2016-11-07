@@ -139,7 +139,7 @@ def build_route(route_id, job_id=None):
     logger.info(
         '%s Sheet created. Orders written.', route['block'])
 
-    return True
+    return route
 
 #-------------------------------------------------------------------------------
 def build_order(account, warnings, api_key, shift_start, shift_end, min_per_stop):

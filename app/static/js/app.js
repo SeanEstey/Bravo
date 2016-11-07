@@ -38,7 +38,7 @@ function showAdminServerStatus() {
 				else
 						admin_lbl += 'Scheduler: <b color="green">Disabled</b>';
 
-				alertMsg(msg, 'info', 5000);
+				//alertMsg(msg, 'info', 5000);
 
 				$('#admin-msg').html(admin_lbl);
 		});

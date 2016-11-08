@@ -23,7 +23,7 @@
           <th width="5%">Length</th>
           <th width="5%">Command</th>
           <th width="5%">Sheet</th>
-          <th width="7%">Warnings</th>
+          <th width="7%">Geocoding</th>
 					<th style='display:none'></th>
         </tr>
       </thead>
@@ -99,7 +99,9 @@
 						</button>
           </td>
           <td>
+            <hr></hr>
 						<button 
+              style='display:none'
 							name='view_btn'
 							href="https://docs.google.com/spreadsheets/d/{{route.ss_id}}"
 							class='btn btn-outline-primary'
@@ -107,10 +109,12 @@
 						</button>
           </td>
           <td name='warnings'>
-						<button
+            <hr></hr>
+						<button 
+              style='display:none'
               name='warnings_btn'
 							class='btn btn-outline-primary'
-							>Warnings
+							>N/A
 						</button>
           </td>
         </tr>

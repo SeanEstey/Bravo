@@ -9,7 +9,6 @@ function init() {
 		//alertMsg('Click on Warnings for each route to view any conflicts resolving addresses', 'info', 15000);
 }
 
-
 //------------------------------------------------------------------------------
 function prettyFormatting() {
   $('td[name="status"]').each(function() {
@@ -61,6 +60,9 @@ function addEventHandlers() {
 						return;
 				}
 
+				$(this).show();
+				$(this).prev().hide();
+
 				$(this).click(function() {
 						window.open("https://docs.google.com/spreadsheets/d/"+metadata['ss_id']);
 				});
@@ -100,30 +102,46 @@ function addEventHandlers() {
 					return;
 				}
 
-        $(this).text(String(warnings.length) + " Warnings");
+				if(warnings.length > 0 || errors.length > 0) {
+						$(this).show();
+						$(this).prev().hide();
+
+						var n = warnings.length + errors.length;
+						if(n == 1)
+								$(this).text("1 issue");
+						else
+								$(this).text(String(n) + " issues");
+
+						$(this).switchClass('btn-outline-primary', 'btn-outline-danger');
+				}
+				else
+						$(this).text('0 Issues');
 
         $(this).click(function() {
             $modal = $('#warnings_modal');
-            $modal.find('.modal-title').text('Geocode Warnings/Errors');
+            $modal.find('.modal-title').text('Geocode Issues');
             $modal.find('.modal-body').html('');
 
-            var html = "<ol>";
+						var html = "<div class='alert alert-warning' role='alert'><strong>Warnings</strong>";
+            html +=      "<ol>";
 
             for(var i=0; i<warnings.length; i++) {
                 html += '<li>'+warnings[i]+'</li>';
             }
 
             html += "</ol>";
+						html += "</div>";
 
 						if(errors.length > 0) {
-								html += '<p><h5>Errors</h5></p>';
-								html += "<ol>";
+								html += "<div class='alert alert-danger' role='alert'><strong>Errors</strong>";
+								html +=   "<ol>";
 
 								for(var i=0; i<errors.length; i++) {
 										html += '<li>'+errors[i]+'</li>';
 								}
 
-								html += "</ol>";
+								html +=   "</ol>";
+								html += "</div>";
 						}
 
             $modal.find('.modal-body').append(html);

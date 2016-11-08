@@ -552,15 +552,15 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
     response = json.loads(response.text)
 
     if response['status'] == 'ZERO_RESULTS':
-        e = 'Error: No geocode result for ' + address
+        e = 'No geocode result for ' + address
         logger.error(e)
         return []
     elif response['status'] == 'INVALID_REQUEST':
-        e = 'Error: Invalid request for ' + address
+        e = 'Invalid request for ' + address
         logger.error(e)
         return []
     elif response['status'] != 'OK':
-        e = 'Error: Could not geocode ' + address
+        e = 'Could not geocode ' + address
         logger.error(e)
         return []
 
@@ -568,7 +568,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
 
     if len(response['results']) == 1:
         if 'partial_match' in response['results'][0]:
-            warning = 'Warning: partial match for "%s". Using "%s"' %\
+            warning = 'Partial match for "%s". Using "%s"' %\
                       (address, response['results'][0]['formatted_address'])
 
             response['results'][0]['warning'] = warning
@@ -580,7 +580,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
 
     if postal is None:
         # No way to identify best match. Return 1st result (best guess)
-        response['results'][0]['warning'] = 'Warning: multiple results for "%s". '\
+        response['results'][0]['warning'] = 'Multiple results for "%s". '\
           'No postal code. Using 1st result "%s"' % (
           address, response['results'][0]['formatted_address'])
 
@@ -595,7 +595,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
 
             if get_postal(result)[0:3] == postal[0:3]:
                 result['warning'] = \
-                  'Warning: multiple results for "%s". First half of Postal Code "%s" matched in ' \
+                  'Multiple results for "%s". First half of Postal Code "%s" matched in ' \
                   'result[%s]: "%s". Using as best match.' % (
                   address, get_postal(result), str(idx), result['formatted_address'])
 
@@ -606,7 +606,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
             # Last result and still no Postal match.
             if idx == len(response['results']) -1:
                 response['results'][0]['warning'] = \
-                  'Warning: multiple results for "%s". No postal code match. '\
+                  'Multiple results for "%s". No postal code match. '\
                   'Using "%s" as best guess.' % (
                   address, response['results'][0]['formatted_address'])
 

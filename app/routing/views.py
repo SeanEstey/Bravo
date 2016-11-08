@@ -50,6 +50,7 @@ def show_routing():
 
 #-------------------------------------------------------------------------------
 @routing.route('/get_route/<job_id>', methods=['GET'])
+@login_required
 def get_route(job_id):
     agency = db['routes'].find_one({'job_id':job_id})['agency']
     conf = db['agencies'].find_one({'name':agency})
@@ -71,6 +72,7 @@ def analyze_upcoming(days):
 
 #-------------------------------------------------------------------------------
 @routing.route('/start_job', methods=['POST'])
+@login_required
 def get_routing_job_id():
     logger.info('Routing Block %s...', request.form['block'])
 
@@ -99,6 +101,7 @@ def get_routing_job_id():
 
 #-------------------------------------------------------------------------------
 @routing.route('/build/<route_id>', methods=['GET', 'POST'])
+@login_required
 def _build_route(route_id):
     from .. import tasks
     r = tasks.build_route.apply_async(
@@ -110,8 +113,44 @@ def _build_route(route_id):
 
 #-------------------------------------------------------------------------------
 @routing.route('/build_sheet/<route_id>/<job_id>', methods=['GET'])
+@login_required
 def _build_sheet(job_id, route_id):
     '''non-celery synchronous func for testing
     '''
     routes.build_route(route_id, job_id=job_id)
     return redirect(url_for('routing.show_routing'))
+
+
+#-------------------------------------------------------------------------------
+@routing.route('/edit/<route_id>', methods=['POST'])
+@login_required
+def edit(route_id):
+    logger.info(request.form.to_dict())
+    logger.info(route_id)
+
+    user = db['users'].find_one({'user': current_user.username})
+    conf = db.agencies.find_one({'name':user['agency']})
+
+    value = None
+
+    if request.form['field'] == 'depot':
+        for depot in conf['routing']['locations']['depots']:
+            if depot['name'] == request.form['value']:
+                value = depot
+    elif request.form['field'] == 'driver':
+        for driver in conf['routing']['drivers']:
+            if driver['name'] == request.form['value']:
+                value = driver
+
+    if not value:
+        logger.error('couldnt find value in db for %s:%s',
+        request.form['field'], request.form['value'])
+        return jsonify({'status':'failed'})
+
+    db.routes.update_one(
+        {'_id':ObjectId(route_id)},
+        {'$set': {
+            request.form['field']: value
+    }})
+
+    return jsonify({'status':'success'})

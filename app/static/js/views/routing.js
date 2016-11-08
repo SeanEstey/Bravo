@@ -28,6 +28,31 @@ function prettyFormatting() {
 
 //------------------------------------------------------------------------------
 function addEventHandlers() {
+		$('select[name="depots"]').change(function() {
+				$.ajax({
+					type:'POST',
+					url: $URL_ROOT + 'routing/edit/' + $(this).parent().parent().attr('id'),
+					data: {'field':'depot', 'value':$(this).find('option:selected').text()}
+				})
+				.done(function(response) {
+						if(response['status'] == 'success')
+								alertMsg('Successfully edited depot', 'success');
+				});
+		
+		});
+
+		$('select[name="drivers"]').change(function() {
+				$.ajax({
+					type:'POST',
+					url: $URL_ROOT + 'routing/edit/' + $(this).parent().parent().attr('id'),
+					data: {'field':'driver', 'value':$(this).find('option:selected').text()}
+				})
+				.done(function(response) {
+						if(response['status'] == 'success')
+								alertMsg('Successfully edited driver', 'success');
+				});
+		});
+
     $('button[name="view_btn"]').each(function() {
 				var metadata = JSON.parse($(this).parent().parent().find('button[name="route_btn"]').attr('data-route'));
 				
@@ -72,7 +97,6 @@ function addEventHandlers() {
 				
 				if(warnings == undefined) {
 					$(this).prop('disabled', true);
-          //$(this).prop('disabled', true);
 					return;
 				}
 
@@ -209,18 +233,6 @@ function buildAdminPanel() {
 								$route_btn = $(this).parent().parent().find('button[name="route_btn"]');
 
 								console.log(JSON.parse($route_btn.attr('data-route')));
-								/*
-
-                $.ajax({
-                  context: this,
-                  type: 'GET',
-                  url: 'https://api.routific.com/jobs/' + $(this).attr('id')
-                })
-                .done(function(response) {
-                    //console.log(JSON.parse(response));
-                    console.log(response);
-                });
-								*/
 
 								alertMsg('Debug data printed to console. ' +
 												 'To view console in chrome, type <b>Ctrl+Shift+I</b>.', 

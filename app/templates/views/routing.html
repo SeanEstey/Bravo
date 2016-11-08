@@ -73,7 +73,11 @@
           <td>
             <select name='drivers' class='form-control'>
               {% for driver in drivers %}
-              <option value='{{ driver.name }}'>{{ driver.name }}</option>
+								{% if driver.name == route.driver.name %}
+									<option selected="selected" value='{{ driver.name }}'>{{ driver.name }}</option>
+								{% else %}
+									<option value='{{ driver.name }}'>{{ driver.name }}</option>
+								{% endif %}
               {% endfor %}
             </select>
           </td>

@@ -35,10 +35,6 @@ def build_scheduled_routes():
     agencies = db.agencies.find({})
 
     for agency in agencies:
-        #agency = 'vec'
-
-        get_metadata()
-
         routes = db['routes'].find({
           'agency': agency['name'],
           'date': datetime.combine(date.today(), time(0,0,0))
@@ -85,21 +81,18 @@ def build_route(route_id, job_id=None):
     routing = agency_conf['routing']
     etap_conf = agency_conf['etapestry']
 
-    # TODO:Fixme. use driver in route dict
-    driver = routing['drivers'][0]
-
     # If job_id passed in as arg, skip Routific stage and build spreadsheet
     if job_id is None:
         job_id = submit_job(
             route['block'],
-            driver['name'],
+            route['driver']['name'],
             route['date'].isoformat(),
             routing['locations']['office']['formatted_address'],
             route['depot']['formatted_address'],
             etap_conf,
             routing['routific']['api_key'],
             min_per_stop = routing['min_per_stop'],
-            shift_start = driver['shift_start']
+            shift_start = route['driver']['shift_start']
         )
 
     # Keep looping and sleeping until receive solution or hit
@@ -228,10 +221,10 @@ def get_orders(job_id, api_key):
 
     logger.debug(r.text)
 
-    route_info = db['routes'].find_one({'job_id':job_id})
+    route_info = db.routes.find_one({'job_id':job_id})
 
     output = task['output']
-    orders = task['output']['solution'].get(route_info.get('driver')) or task['output']['solution']['default']
+    orders = task['output']['solution'].get(route_info['driver']['name']) or task['output']['solution']['default']
 
     logger.info(
         '\nJob_id %s: %s\n'\
@@ -248,6 +241,7 @@ def get_orders(job_id, api_key):
           'orders': task['visits'],
           'total_travel_time': output['total_travel_time'],
           'num_unserved': output['num_unserved'],
+          'solution': task['output']['solution'],
           'duration': route_length.seconds/60
           }})
 
@@ -428,12 +422,9 @@ def submit_job(block, driver, date, start_address, end_address, etapestry_id,
          'block': block,
          'date': utils.naive_to_local(datetime.combine(route_date, time(0,0,0)))},
         {'$set': {
-            'agency': etapestry_id['agency'],
             'job_id': job_id,
-            'driver': driver,
             'traffic': payload['options']['traffic'],
             'status': 'processing',
-            'block': block,
             'block_size': len(accounts),
             'orders': len(payload['visits']),
             'no_pickups': num_skips,

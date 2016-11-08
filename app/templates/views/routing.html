@@ -12,19 +12,19 @@
     <table id='routing-tbl' class='table table-hover table-colored'>
       <thead>
         <tr>
-					<th width="8%">Date</th>
+					<th width="10%">Date</th>
 					<th width="5%">Block</th>
-          <th width="5%">Orders</th>
-          <th width="5%">Size</th>
-          <th width="5%">New</th>
+          <th width="4%">Orders</th>
+          <th width="4%">Size</th>
+          <th width="4%">New</th>
 					<th width="10%">Depot</td>
           <th width="8%">Driver</th>
-					<th>Status</th>
-          <th style='width:130px'>Length</th>
-          <th width="9%">Warnings</th>
-          <th width="10%">Command</th>
+					<th width="5%">Status</th>
+          <th width="5%">Length</th>
+          <th width="5%">Command</th>
           <th width="5%">Sheet</th>
-					<th></th>
+          <th width="7%">Warnings</th>
+					<th style='display:none'></th>
         </tr>
       </thead>
       <tbody>
@@ -53,7 +53,7 @@
 				<td></td><td></td><td></td><td></td><td></td>
 			</tr>
       {% for route in routes %}
-        <tr id="{{route._id|string}}">
+        <tr id="{{route['_id']['$oid']|string}}">
           <td>{{ route.date }}</td>
           <td>{{ route.block }}</td>
           <td>{{ route.orders }}</td>
@@ -85,28 +85,29 @@
               -- : --
             {% endif %}
           </td>
-          <td name='warnings'>
-						<button
-              name='warnings_btn'
-							class='btn btn-outline-primary'
-              data-warnings="{{route.geocode_warnings}}"
-							>Warnings
-						</button>
-          </td>
           <td>
 						<button 
               name='route_btn'
 							href="{{url_for('routing._build_route', route_id=route['_id']['$oid'], _external=True)}}" 
-              data-route="{{route}}"
+              data-route="{{route['json']}}"
 							class='btn btn-outline-primary'
-							>Build Route
+							>Route
 						</button>
           </td>
           <td>
-            {% if route.ss_id is defined %}
-              <a class='hover'
-                 href="https://docs.google.com/spreadsheets/d/{{route.ss_id}}">View</a>
-            {% endif %}
+						<button 
+							name='view_btn'
+							href="https://docs.google.com/spreadsheets/d/{{route.ss_id}}"
+							class='btn btn-outline-primary'
+							>View
+						</button>
+          </td>
+          <td name='warnings'>
+						<button
+              name='warnings_btn'
+							class='btn btn-outline-primary'
+							>Warnings
+						</button>
           </td>
         </tr>
 
@@ -115,7 +116,9 @@
     </table>
     <div class='loader-div'>
       <button class="btn btn-info loader">
-        <span class="fa fa-refresh loader-animate"></span>  Analyzing Routes...</button>
+        <span class="fa fa-refresh loader-animate"></span>
+				<label style='margin-bottom:0; margin-left:5px'>Analyzing Routes...</label>
+			</button>
     </div>
   </div>
 

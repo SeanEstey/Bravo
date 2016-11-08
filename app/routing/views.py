@@ -31,8 +31,14 @@ def show_routing():
     )
 
     for route in _routes:
-        if route.get('geocode_warnings'):
-            route['geocode_warnings'] = json.dumps(route.get('geocode_warnings'))
+        # for storing in route_btn.attr('data-route')
+        route['json'] = json.dumps(route)
+
+
+    from .. import tasks
+    tasks.analyze_upcoming_routes.apply_async(
+        kwargs={'agency_name':agency,'days':3},
+        queue=current_app.config['DB'])
 
     return render_template(
       'views/routing.html',
@@ -43,16 +49,6 @@ def show_routing():
     )
 
 #-------------------------------------------------------------------------------
-@routing.route('/get_scheduled_route', methods=['POST'])
-def get_today_route():
-    return True
-    '''return json.dumps(get_scheduled_route(
-      etapestry_id['agency'],
-      request.form['block'],
-      request.form['date']))
-    '''
-
-#-------------------------------------------------------------------------------
 @routing.route('/get_route/<job_id>', methods=['GET'])
 def get_route(job_id):
     agency = db['routes'].find_one({'job_id':job_id})['agency']
@@ -60,6 +56,18 @@ def get_route(job_id):
     api_key = conf['google']['geocode']['api_key']
 
     return json.dumps(routes.get_orders(job_id, api_key))
+
+#-------------------------------------------------------------------------------
+@routing.route('/analyze_upcoming/<days>', methods=['GET'])
+@login_required
+def analyze_upcoming(days):
+    user = db['users'].find_one({'user': current_user.username})
+
+    from .. import tasks
+    tasks.analyze_upcoming_routes.apply_async(
+        kwargs={'agency_name':user['agency'],'days':days},
+        queue=current_app.config['DB'])
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 @routing.route('/start_job', methods=['POST'])

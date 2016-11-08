@@ -6,7 +6,7 @@ function init() {
     addEventHandlers();
     prettyFormatting();
 
-		alertMsg('Click on Warnings for each route to view any conflicts resolving addresses', 'info', 15000);
+		//alertMsg('Click on Warnings for each route to view any conflicts resolving addresses', 'info', 15000);
 }
 
 
@@ -28,37 +28,60 @@ function prettyFormatting() {
 
 //------------------------------------------------------------------------------
 function addEventHandlers() {
-    $('button[name="route_btn"]').on('click', function(event) {
-        $.ajax({
-          context: this,
-          type: 'GET',
-          url: $(this).attr('href')
-        })
-        .done(function(response) {
-            console.log(response);
-        });
-        console.log($(this).attr('href'));
+    $('button[name="view_btn"]').each(function() {
+				var metadata = JSON.parse($(this).parent().parent().find('button[name="route_btn"]').attr('data-route'));
+				
+				if(!metadata['ss_id']) {
+						$(this).prop('disabled', true);
+						return;
+				}
 
-    });
+				$(this).click(function() {
+						window.open("https://docs.google.com/spreadsheets/d/"+metadata['ss_id']);
+				});
+		});
+
+    $('button[name="route_btn"]').each(function() {
+        var metadata = JSON.parse($(this).attr('data-route'));
+				
+				if(metadata['job_id']) {
+						$(this).text('Reroute');
+				}
+
+				$(this).click(function() {
+						$('.loader-div label').text('Building Route');
+						$('.loader-div').slideToggle(function() {
+								$('.btn.loader').fadeTo('slow', 1);
+						});
+
+						$.ajax({
+							context: this,
+							type: 'GET',
+							url: $(this).attr('href')
+						})
+						.done(function(response) {
+						});
+				});
+		});
 
     $('button[name="warnings_btn"]').each(function() {
-        if(!$(this).attr('data-warnings')) {
-          
-            $(this).prop('disabled', true);
-            $(this).hide();
-            return;
-        }
+				$route_btn = $(this).parent().parent().find('button[name="route_btn"]');
 
-        var warnings = JSON.parse($(this).attr('data-warnings'));
+        var warnings = JSON.parse($route_btn.attr('data-route'))['warnings'];
+        var errors = JSON.parse($route_btn.attr('data-route'))['errors'];
+				
+				if(warnings == undefined) {
+					$(this).prop('disabled', true);
+          //$(this).prop('disabled', true);
+					return;
+				}
+
         $(this).text(String(warnings.length) + " Warnings");
-
 
         $(this).click(function() {
             $modal = $('#warnings_modal');
-            $modal.find('.modal-title').text('Warnings');
+            $modal.find('.modal-title').text('Geocode Warnings/Errors');
             $modal.find('.modal-body').html('');
-
-            var warnings = JSON.parse($(this).attr('data-warnings'));
 
             var html = "<ol>";
 
@@ -68,11 +91,20 @@ function addEventHandlers() {
 
             html += "</ol>";
 
-            $modal.find('.modal-body').append(html);
+						if(errors.length > 0) {
+								html += '<p><h5>Errors</h5></p>';
+								html += "<ol>";
 
+								for(var i=0; i<errors.length; i++) {
+										html += '<li>'+errors[i]+'</li>';
+								}
+
+								html += "</ol>";
+						}
+
+            $modal.find('.modal-body').append(html);
             $modal.modal('show');
         });
-
     });
 }
 
@@ -91,13 +123,28 @@ function addSocketIOHandlers() {
         console.log('analyze_routes status: %s', data['status']);
 
         if(data['status'] == 'in-progress') {
+						$('.loader-div label').text('Analyzing Routes');
+						$('.loader-div').slideToggle();
+						$('.btn.loader').fadeTo('slow', 1);
         }
         else if(data['status'] == 'completed') {
             $('.btn.loader').fadeTo('slow', 0, function() {
-                $('.loader-div').slideToggle();
+                $('.loader-div').slideUp();//Toggle();
             });
         }
     });
+
+		socket.on('route_status', function(data) {
+				if(data['status'] == 'completed') {
+            $('.btn.loader').fadeTo('slow', 0, function() {
+                $('.loader-div').slideToggle();
+            });
+	
+						// TODO: update buttons
+						// data['ss_id']
+						// data['warnings']
+				}
+		});
 
     socket.on('add_route_metadata', function(data) {
         console.log('received route metadata');
@@ -122,9 +169,9 @@ function addRouteRow(route) {
         '<td>' + $('#routing-tbl tbody tr:first td[name="drivers"]').html() + '</td>' +
         '<td>' + route['status'] + '</td>' +
         '<td>' + (route['duration'] || '-- : --') + '</td>' +
-        '<td>' + route['geocode_warnings'] + '</td>' +
-        '<td><button id="" class="btn btn-outline-primary">Build Route</button></td>' +
-        '<td><button id="" class="btn btn-outline-primary">View</button></td>';
+        '<td><button name="route_btn" id="" class="btn btn-outline-primary">Route</button></td>' +
+        '<td><button id="" class="btn btn-outline-primary">View</button></td>' +
+        '<td>' + route['warnings'] + '</td>';
 
     $('#routing-tbl tbody').append($row);
     $('#routing-tbl tbody tr:last').fadeIn('slow');
@@ -145,7 +192,7 @@ function buildAdminPanel() {
     show_debug_info_btn.click(function() {
 				$(this).prop('disabled', 'true');
 
-				$('#routing-tbl th:last').after('<th width="10%">DEBUG</th>');
+				$('#routing-tbl th:last').after('<th width="5%">Debug</th>');
 
 				$('tr[id]').each(function() {
             if(! $(this).attr('id'))
@@ -154,11 +201,16 @@ function buildAdminPanel() {
 						var $debug_btn = 
 							'<button name="debug-btn" ' +
                       'id="' + $(this).attr('id') + '"' +
-											'class="btn btn-warning">Print Debug</button>';
+											'class="btn btn-outline-warning">Print</button>';
 
 						$(this).append('<td>'+$debug_btn+'</td>');
 
 						$(this).find('button[name="debug-btn"]').click(function() {
+								$route_btn = $(this).parent().parent().find('button[name="route_btn"]');
+
+								console.log(JSON.parse($route_btn.attr('data-route')));
+								/*
+
                 $.ajax({
                   context: this,
                   type: 'GET',
@@ -168,6 +220,7 @@ function buildAdminPanel() {
                     //console.log(JSON.parse(response));
                     console.log(response);
                 });
+								*/
 
 								alertMsg('Debug data printed to console. ' +
 												 'To view console in chrome, type <b>Ctrl+Shift+I</b>.', 
@@ -176,7 +229,7 @@ function buildAdminPanel() {
 				});
 
 				alertMsg('Debug mode enabled. ' +
-								 'Clicking <b>Print Debug</b> buttons prints notification info to console.', 'info');
+								 'Clicking <b>Print Metadata</b> buttons prints notification info to console.', 'info');
     });
 
     analyze_routes_btn = addAdminPanelBtn(
@@ -189,9 +242,10 @@ function buildAdminPanel() {
        $.ajax({
           context: this,
           type: 'GET',
-          url: $URL_ROOT + '/test_analyze_routes/3'
+          url: $URL_ROOT + '/routing/analyze_upcoming/3'
       })
       .done(function(response) {
+					$('.loader-div label').text('Analyzing Routes');
           $('.loader-div').slideToggle(function() {
               $('.btn.loader').fadeTo('slow', 1);
           });

@@ -17,6 +17,7 @@ from bson import ObjectId
 from .. import gcal, gdrive, gsheets, etap, schedule, wsf, utils
 
 from app import db
+from app import task_emit
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ def build_route(route_id, job_id=None):
     Returns: True on success, False on error
     '''
 
-    route = db['routes'].find_one({"_id":ObjectId(route_id)})
+    route = db.routes.find_one({"_id":ObjectId(route_id)})
 
     logger.info('%s: Building %s...', route['agency'], route['block'])
 
@@ -125,12 +126,19 @@ def build_route(route_id, job_id=None):
         gdrive.gauth(oauth),
         title)
 
+    route = db.routes.find_one_and_update(
+        {'_id':ObjectId(route_id)},
+        {'$set':{'ss_id':ss_id}})
+
     write_orders(
         gsheets.gauth(oauth),
         ss_id,
         orders)
 
-    db['routes'].update_one({'job_id':job_id},{'$set':{'ss_id':ss_id}})
+    task_emit('route_status', data={
+        'status':'completed',
+        'ss_id': ss_id,
+        'warnings': route['warnings']})
 
     logger.info(
         '%s Sheet created. Orders written.', route['block'])
@@ -429,11 +437,10 @@ def submit_job(block, driver, date, start_address, end_address, etapestry_id,
             'block_size': len(accounts),
             'orders': len(payload['visits']),
             'no_pickups': num_skips,
-            #'date': datetime.combine(route_date, time(0,0,0)),
             'start_address': start_address,
             'end_address': end_address,
-            'geocode_warnings': warnings,
-            'geocode_errors': errors
+            'warnings': warnings,
+            'errors': errors
         }})
 
     return job_id

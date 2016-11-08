@@ -133,7 +133,13 @@ def analyze_upcoming_routes(days):
 
     for event in events:
         # yyyy-mm-dd format
-        event_dt = utils.naive_to_local(parse(event['start']['date']))
+        event_dt = utils.naive_to_local(
+            datetime.combine(
+                parse(event['start']['date']),
+                time(0,0,0))
+        )
+
+        logger.info(str(event_dt))
 
         block = re.match(r'^((B|R)\d{1,2}[a-zA-Z]{1})', event['summary']).group(0)
 

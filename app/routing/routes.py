@@ -14,7 +14,7 @@ import bson.json_util
 from flask_login import current_user
 from bson import ObjectId
 
-from .. import gcal, gdrive, gsheets, etap, schedule, wsf
+from .. import gcal, gdrive, gsheets, etap, schedule, wsf, utils
 
 from app import db
 
@@ -24,10 +24,6 @@ class GeocodeError(Exception):
     pass
 class EtapBadDataError(Exception):
     pass
-
-
-#-------------------------------Stuff Todo---------------------------------------
-# TODO: Test GeocodeError and EtapBadDataError code paths
 
 
 #-------------------------------------------------------------------------------
@@ -419,16 +415,10 @@ def submit_job(block, driver, date, start_address, end_address, etapestry_id,
         job_id, len(payload['visits']), shift_start,
         shift_end, min_per_stop, payload['options']['traffic'])
 
-    # Save route info with job_id to DB
-
-    existing_job = db['routes'].find_one({
-      'agency': etapestry_id['agency'],
-      'block': block,
-      'date': datetime.combine(route_date, time(0,0,0))
-    })
-
-    db['routes'].update_one(
-        {'_id':existing_job['_id']},
+    db.routes.update_one(
+        {'agency': etapestry_id['agency'],
+         'block': block,
+         'date': utils.naive_to_local(datetime.combine(route_date, time(0,0,0)))},
         {'$set': {
             'agency': etapestry_id['agency'],
             'job_id': job_id,
@@ -439,7 +429,7 @@ def submit_job(block, driver, date, start_address, end_address, etapestry_id,
             'block_size': len(accounts),
             'orders': len(payload['visits']),
             'no_pickups': num_skips,
-            'date': datetime.combine(route_date, time(0,0,0)),
+            #'date': datetime.combine(route_date, time(0,0,0)),
             'start_address': start_address,
             'end_address': end_address,
             'geocode_warnings': warnings,

@@ -36,7 +36,7 @@ def build_scheduled_routes():
     for agency in agencies:
         #agency = 'vec'
 
-        get_upcoming_routes(agency['name'])
+        get_metadata()
 
         routes = db['routes'].find({
           'agency': agency['name'],

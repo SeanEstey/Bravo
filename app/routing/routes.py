@@ -148,7 +148,8 @@ def build_order(account, warnings, api_key, shift_start, shift_end, min_per_stop
       -GeocodeError on unable to resolve address'''
 
     if not account.get('address') or not account.get('city'):
-        msg = "Routing error: account %s missing address and/or city" % account['id']
+        msg = \
+          "Routing error: account <strong>%s</strong> missing address/city." % account['id']
         logger.error(msg)
         raise EtapBadDataError(msg)
     else:
@@ -161,7 +162,7 @@ def build_order(account, warnings, api_key, shift_start, shift_end, min_per_stop
         raise
 
     if len(result) == 0:
-        msg = "Unable to resolve address: %s, %s" % (account['address'],account['city'])
+        msg = "Unable to resolve address <strong>%s, %s</strong>." % (account['address'],account['city'])
         logger.error(msg)
         raise GeocodeError(msg)
 
@@ -568,8 +569,10 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
 
     if len(response['results']) == 1:
         if 'partial_match' in response['results'][0]:
-            warning = 'Partial match for "%s". Using "%s"' %\
-                      (address, response['results'][0]['formatted_address'])
+            warning = \
+              'Partial match for <strong>%s</strong>. <br>'\
+              'Using <strong>%s</strong>.' %(
+              address, response['results'][0]['formatted_address'])
 
             response['results'][0]['warning'] = warning
             logger.debug(warning)
@@ -580,8 +583,10 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
 
     if postal is None:
         # No way to identify best match. Return 1st result (best guess)
-        response['results'][0]['warning'] = 'Multiple results for "%s". '\
-          'No postal code. Using 1st result "%s"' % (
+        response['results'][0]['warning'] = \
+          'Multiple results for <strong>%s</strong>. <br>'\
+          'No postal code. <br>'\
+          'Using 1st result <strong>%s</strong>.' % (
           address, response['results'][0]['formatted_address'])
 
         logger.debug(response['results'][0]['warning'])
@@ -595,8 +600,10 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
 
             if get_postal(result)[0:3] == postal[0:3]:
                 result['warning'] = \
-                  'Multiple results for "%s". First half of Postal Code "%s" matched in ' \
-                  'result[%s]: "%s". Using as best match.' % (
+                  'Multiple results for <strong>%s</strong>.<br>'\
+                  'First half of Postal Code <strong>%s</strong> matched in '\
+                  'result[%s]: <strong>%s</strong>.<br>'\
+                  'Using as best match.' % (
                   address, get_postal(result), str(idx), result['formatted_address'])
 
                 logger.debug(result['warning'])
@@ -606,8 +613,9 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
             # Last result and still no Postal match.
             if idx == len(response['results']) -1:
                 response['results'][0]['warning'] = \
-                  'Multiple results for "%s". No postal code match. '\
-                  'Using "%s" as best guess.' % (
+                  'Multiple results for <strong>%s</strong>.<br>'\
+                  'No postal code match. <br>'\
+                  'Using <strong>%s</strong> as best guess.' % (
                   address, response['results'][0]['formatted_address'])
 
                 logger.error(response['results'][0]['warning'])

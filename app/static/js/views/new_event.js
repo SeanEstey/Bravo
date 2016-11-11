@@ -1,6 +1,6 @@
 
 //------------------------------------------------------------------------------
-function init() {
+function new_event_init() {
   alertMsg('Schedule a new notification event', 'info', 7500);
 
   loadTooltip();
@@ -9,7 +9,6 @@ function init() {
 
   onSelectTemplate();
 
-  updateFilePickerTooltip();
   $submit_btn = $('#submit_btn');
 
   $submit_btn.click(function(event){
@@ -223,28 +222,11 @@ function play() {
 }
 
 //------------------------------------------------------------------------------
-function updateFilePickerTooltip() {
-  var $select = $('#template-select');
-  var $template = $select.find($('option:selected'));
-
-  /*$.ajax({
-    type: 'GET',
-    url: $URL_ROOT + 'reminders/get_job_template/' + $template.attr('value')
-    done: function(msg) {
-      var title = 'Upload a .CSV file with columns ';
-
-      $('#call-list-div').attr('title', title + msg); 
-    }
-  });*/
-}
-
-//------------------------------------------------------------------------------
 function onSelectTemplate() {
   var $select = $('#template-select');
 
   $select.change(function(){
     var $template = $select.find($('option:selected'));
-    updateFilePickerTooltip();
 
     if($template.attr('id') == 'pickup_reminder') {
       $('#record-audio').hide();
@@ -268,24 +250,22 @@ function onSelectTemplate() {
 //------------------------------------------------------------------------------
 function validateNewJobForm() {
   var paramObj = {};
+
   $.each($('form').serializeArray(), function(_, kv) {
     paramObj[kv.name] = kv.value;
   }); 
 
+  console.log(paramObj);
+
   // Validate form data
   var missing = [];
-  var filename = $('#call-list-div').val();
   var expired_date = false;
   var invalid_date = false;
-  var wrong_filetype = false;
   var scheduled_date = null;
   
-  if(!filename)
-    missing.push('CSV File');
-  else if(filename.indexOf('.csv') <= 0)
-    wrong_filetype = true;
   if(!paramObj['time'])
     missing.push('Schedule Time');
+
   if(!paramObj['date'])
     missing.push('Schedule Date');
   else {
@@ -303,6 +283,7 @@ function validateNewJobForm() {
     else if(scheduled_date.getTime() < now.getTime())
       expired_date = true;
   }
+
   if(paramObj['template'] == 'announce_voice') {
     console.log('voice announcement');
     console.log('audio url='+paramObj['audio-url']);
@@ -310,7 +291,7 @@ function validateNewJobForm() {
     if(!$('#audio-source').attr('src'))
       missing.push('Voice Recording');
   }
-  else if(paramObj['template'] == 'announce_text') {
+  else if(paramObj['template'] == 'announcement') {
     if(!paramObj['message'])
       missing.push('Text Announcement');
   }
@@ -322,12 +303,9 @@ function validateNewJobForm() {
     msg += '<b>' + missing.join(', ') + '</b><br><br>';
   }
 
-  if(wrong_filetype)
-    msg += 'The file you selected is not a .CSV';
-
   $('#btn-default').addClass('btn-primary');
 
-  if(missing.length > 0 || wrong_filetype) {
+  if(missing.length > 0) {
     $('.modal-title').text('Missing Fields');
     $('.modal-body').html(msg);
     $('#btn-primary').text('Ok');
@@ -347,9 +325,11 @@ function validateNewJobForm() {
     $('.modal-body').html(msg);
     $('#btn-primary').text('Start Job');
     $('#btn-primary').text('No');
+
     $('#btn-primary').click(function() {
   //     $('form').submit();
     });
+
     $('#mymodal').modal('show');
   }
   else if(invalid_date) {
@@ -365,48 +345,14 @@ function validateNewJobForm() {
 
     $.ajax({
       type: 'POST',
-      url: $URL_ROOT + '/reminders/submit_job',
+      url: $URL_ROOT + 'notify/new',
       data: form_data,
       contentType: false,
       processData: false,
       dataType: 'json'
 		})
-		.done(submitSuccess)
-		.fail(submitFailure);
+		.done(function(response) {
+      console.log(response);
+    });
   }
-}
-
-//------------------------------------------------------------------------------
-function submitSuccess(response) {
-    console.log(response);
-		console.log('url_root: ' + $URL_ROOT);
-
-    if(typeof response == 'string')
-      response = JSON.parse(response);
-
-    if(response['status'] == 'success') {
-      var end = location.href.indexOf('new');
-
-      //location.href = location.href.substring(0,end) + '?msg='+response['msg'];
-      
-      location.href = $URL_ROOT;
-    }
-    else if(response['status'] == 'error') {
-      $('.modal-title').text(response['title']);
-      $('.modal-body').html(response['msg']);
-      $('#btn-primary').hide();
-      $('#mymodal').modal('show');
-    }
-}
-
-//------------------------------------------------------------------------------
-function submitFailure(xhr, textStatus, errorThrown) {
-    console.log(xhr);
-    console.log(textStatus);
-    console.log(errorThrown);
-
-    $('.modal-title').text('Error');
-    $('.modal-body').html(xhr.responseText);
-    $('.btn-primary').hide();
-    $('#mymodal').modal('show');
 }

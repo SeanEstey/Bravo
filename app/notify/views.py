@@ -102,24 +102,16 @@ def view_event(evnt_id):
     )
 
 #-------------------------------------------------------------------------------
-@notify.route('/new')
+@notify.route('/new', methods=['POST'])
 @login_required
 def new_event():
-    agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    conf= db['agencies'].find_one({'name':agency})
-    try:
-        foo = 1
-        #with open('app/templates/schemas/'+agency+'.json') as json_file:
-        #  templates = json.load(json_file)['reminders']
-    except Exception as e:
-        logger.error("Couldn't open json schemas file")
-        return "Error"
 
-    return render_template('views/new_event.html',
-        templates=None,
-        etap_query_folder=conf['etapestry']['schedule_events_folder'],
-        title=current_app.config['TITLE'])
+
+    import gg
+    gg.add_event()
+
+    return jsonify({'status':'success'})
 
 #-------------------------------------------------------------------------------
 @notify.route('/submit_event', methods=['POST'])

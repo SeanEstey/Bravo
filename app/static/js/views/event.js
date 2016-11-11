@@ -253,8 +253,6 @@ function buildAdminPanel() {
         });
 
     });
-
-
     
     // Add dev_mode admin pane buttons
 
@@ -578,6 +576,8 @@ function enableColumnSorting() {
 	// Enable sorting on column headers
 	$('th').each(function($index){
 			var $a = $('a', $(this));
+			$a.text($a.text().toTitleCase());
+
 			var encoded_text = HTMLEncode($a.text());
 
 			if(encoded_text.indexOf(window.unicode['DOWN_ARROW']) > -1)

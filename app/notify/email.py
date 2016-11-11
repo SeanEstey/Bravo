@@ -3,12 +3,12 @@
 import logging
 import os
 from flask import render_template, current_app, request
+from datetime import date
 from .. import db
 from .. import utils, mailgun
 logger = logging.getLogger(__name__)
 
 # TODO: remove db['emails'].update op. in app.notify.views.on_delivered just search mid in db['notifics']
-# TODO: remove 'status' outside of tracking. Redundant? Replace all refs with 'tracking.status'
 # TODO: include date in email subject
 
 #-------------------------------------------------------------------------------
@@ -123,3 +123,15 @@ def on_dropped():
     socketio_app.emit('notific_status', {
         'notific_id': str(notific['_id']),
         'status': request.form['event']})
+
+    msg = 'receipt to %s dropped. %s. %s' %(
+        request.form['recipient'], request.form['reason'])
+
+    from .. import tasks
+    tasks.rfu.apply_async(
+        args=[
+            db.notific_events.find_one({notific['evnt_id']})['agency'],
+            msg + request.form.get('description')],
+        kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
+        queue=current_app.config['DB']
+    )

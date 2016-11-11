@@ -1,47 +1,28 @@
-  {% extends "views/base.html" %}
-  {% block content %} 
 	
 	<script type='text/javascript' 
 					src="{{url_for('static', filename='js/views/new_event.js')}}">
 	</script>
-  <script>
-    document.write('<style type="text/css">body{display:none}</style>');
-    jQuery(function($){
-      init();
-    });
-  </script>
+  <script> $(function() {new_event_init();}); </script>
   
   <div class='box'>
     <form id='myform' enctype=multipart/form-data method=post>
       <fieldset class='form-fieldset'>
         <legend class='scheduler-border'>Settings</legend>
-
-          <!-- Job Info Section -->
-          <div class='form-label'>
-            Event Name
-          </div>
-          <input id='job_name' class='input' name='job_name' type='text' 
-                 placeholder='Optional'>
-          </input>
-
-          <div class='form-label'>
-            eTapestry Query
-          </div>
-          <input id='query_name' class='input' name='job_name' type='text' 
+          <div class='form-label'>Event Name</div>
+          <input id='event_name' class='input' name='event_name' type='text' placeholder='Optional'></input>
+          <div class='form-label'>eTapestry Query</div>
+          <input class='input' name='query_name' type='text' 
                  placeholder='Type query name in {{etap_query_folder}} folder'>
           </input>
-
-          <div class='form-label'>
-            Event Type
-          </div>
+          <div class='form-label'>Event Type</div>
           <select name='template_name' class='form-control' id='template-select'>
-           {# {% for template in templates %}
-						<option id='{{ template.type }}' value='{{ template.name }}'>{{ template.description }}</option>
-            {% endfor %}#}
+						<option id='green_goods' value='green_goods'>Green Goods Delivery</option>
+						<option id='announcement' value='announcement'>Recorded Voice Announcement</option>
+						<option id='bpu' value='bpu'>Bottle Pickup Reminder</option>
           </select>
           
           <!-- Special Message Div -->
-          <div id='record-audio' style='width:100%; display:none'>
+          <div id='record-audio' style='display:none'>
 						<div>
 							<label id='record-status'></label>
 						</div>
@@ -97,17 +78,5 @@
         <input class='input' title="When the job will begin (3pm, 10:30am)" 
                type='time' name="time" required>
       </fieldset>
-
-      <br>
-
-      <!-- Submit -->
-      <button 
-        class='btn btn-primary' 
-        style='font-size:20px; width:100%; padding:0.5em' 
-        type="button" id="submit_btn" name="submit-btn">Schedule
-      </button>
-
     </form>
   </div>
-
-  {% endblock %}

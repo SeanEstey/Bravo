@@ -1,12 +1,13 @@
 
 //------------------------------------------------------------------------------
-function init() {
+function event_list_init() {
 	loadTooltip();
 	buildAdminPanel();
 	addDeleteBtnHandlers();
 	addSocketIOHandlers();
 	addPageNavHandlers();
 	showAdminServerStatus();
+  $('#new_event').modal('show');
 }
 
 //------------------------------------------------------------------------------

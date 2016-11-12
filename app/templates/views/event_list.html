@@ -7,9 +7,12 @@
 
   <div class='container-fluid border'>
     <div class='data-navbar-div'>
-      <a class='hover' href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
-      <a style='font-weight:bold; text-decoration:none;' title='Schedule a new
-        event' href="{{ url_for('notify.new_event') }}">+</a>
+      <a class='hover' 
+         href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
+      <a id='new_event'
+         style='font-weight:bold; text-decoration:none;' 
+         title='Schedule a new event' 
+         href='#'>+</a>
     </div>
     <table id='events_tbl' class='table table-hover table-colored'>
       <thead>
@@ -76,7 +79,7 @@
   </div>
 
   <!-- New Event Dialog -->
-  <div id='new_event' class='modal fade'>
+  <div id='new_event_modal' class='modal fade'>
     <div class='modal-dialog modal-lg'>
       <div class="modal-content">
         <div class='modal-header'>

@@ -7,7 +7,11 @@ function event_list_init() {
 	addSocketIOHandlers();
 	addPageNavHandlers();
 	showAdminServerStatus();
-  $('#new_event').modal('show');
+
+
+  $('#new_event').click(function() {
+      $('#new_event_modal').modal('show');
+  });
 }
 
 //------------------------------------------------------------------------------

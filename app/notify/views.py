@@ -105,13 +105,12 @@ def view_event(evnt_id):
 @notify.route('/new', methods=['POST'])
 @login_required
 def new_event():
-
-
-
     import gg
-    gg.add_event()
+    r = gg.add_event()
+    if r == True:
+        return jsonify({'status':'success'})
 
-    return jsonify({'status':'success'})
+    return jsonify(f)
 
 #-------------------------------------------------------------------------------
 @notify.route('/submit_event', methods=['POST'])

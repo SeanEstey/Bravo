@@ -5,7 +5,8 @@ function new_event_init() {
 
   loadTooltip();
 
-  $('#datepicker').datepicker();
+  $('#delivery_date').datepicker();
+  $('#notific_date').datepicker();
 
   onSelectTemplate();
 
@@ -228,21 +229,20 @@ function onSelectTemplate() {
   $select.change(function(){
     var $template = $select.find($('option:selected'));
 
-    if($template.attr('id') == 'pickup_reminder') {
+    if($template.attr('id') == 'bpu') {
       $('#record-audio').hide();
       $('#record-text').hide();
+      $('[name="delivery_date"]').hide();
     }
-    else if($template.attr('id') == 'gg_delivery') {
+    else if($template.attr('id') == 'green_goods') {
       $('#record-audio').hide();
       $('#record-text').hide();
+      $('[name="delivery_date"]').show();
     }
-    else if($template.attr('id') == 'announce_voice') {
+    else if($template.attr('id') == 'announcement') {
       $('#record-audio').show();
       $('#record-text').hide();
-    }
-    else if($template.attr('id') == 'announce_text') {
-      $('#record-text').show();
-      $('#record-audio').hide();
+      $('[name="delivery_date"]').hide();
     }
   });
 }
@@ -263,17 +263,17 @@ function validateNewJobForm() {
   var invalid_date = false;
   var scheduled_date = null;
   
-  if(!paramObj['time'])
+  if(!paramObj['notific_time'])
     missing.push('Schedule Time');
 
-  if(!paramObj['date'])
+  if(!paramObj['notific_date'])
     missing.push('Schedule Date');
   else {
     var now = new Date();
-    var date_str = paramObj['date'];
+    var date_str = paramObj['notific_date'];
 
-    if(paramObj['time'])
-      date_str += ', ' + paramObj['time'];
+    if(paramObj['notific_time'])
+      date_str += ', ' + paramObj['notific_time'];
 
     // Datejs for parsing strings like '12pm'
     scheduled_date = Date.parse(date_str);
@@ -284,16 +284,12 @@ function validateNewJobForm() {
       expired_date = true;
   }
 
-  if(paramObj['template'] == 'announce_voice') {
+  if(paramObj['template'] == 'announcement') {
     console.log('voice announcement');
     console.log('audio url='+paramObj['audio-url']);
 
     if(!$('#audio-source').attr('src'))
       missing.push('Voice Recording');
-  }
-  else if(paramObj['template'] == 'announcement') {
-    if(!paramObj['message'])
-      missing.push('Text Announcement');
   }
 
   var msg = ''; 

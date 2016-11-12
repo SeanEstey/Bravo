@@ -72,6 +72,16 @@ def get_udf(field_name, etap_account):
     return ", ".join(field_values)
 
 #-------------------------------------------------------------------------------
+def get_je_udf(field_name, je):
+    field_values = []
+
+    for field in je['definedValues']:
+        if field['fieldName'] == field_name:
+          field_values.append(field['value'])
+
+    return ", ".join(field_values)
+
+#-------------------------------------------------------------------------------
 def get_phone(_type, account):
     '''@_type: ['Voice', 'Mobile']
     '''

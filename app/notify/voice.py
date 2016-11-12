@@ -2,7 +2,7 @@
 
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, date, time
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import current_app, render_template, request
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # TODO: finish writing RFU code on call.status == 'failed'
 
 #-------------------------------------------------------------------------------
-def add(evnt_id, event_dt, trig_id, acct_id, to, on_answer, on_interact):
+def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
     '''
     @on_answer: {
         'source': 'template/audio',
@@ -30,7 +30,7 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_answer, on_interact):
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
-        'event_dt': event_dt,
+        'event_dt': utils.naive_to_local(datetime.combine(event_date, time(8,0))),
         'on_answer': on_answer,
         'on_interact': on_interact,
         'to': utils.to_intl_format(to),

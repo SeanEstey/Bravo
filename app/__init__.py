@@ -156,8 +156,7 @@ def config_test_server(source):
         db.agencies.update_one(
             {'name': agency['name']},
             {'$set':{
-                'twilio': cred['twilio'][source],
-                'etapestry': cred['etapestry']['test_server']
+                'twilio': cred['twilio'][source]
             }})
 
     # Set SmsUrl callback to point to correct server

@@ -6,20 +6,47 @@
   
   <div class='box'>
     <form id='myform' enctype=multipart/form-data method=post>
-      <fieldset class='form-fieldset'>
-        <legend class='scheduler-border'>Settings</legend>
-          <div class='form-label'>Event Name</div>
-          <input id='event_name' class='input' name='event_name' type='text' placeholder='Optional'></input>
-          <div class='form-label'>eTapestry Query</div>
-          <input class='input' name='query_name' type='text' 
-                 placeholder='Type query name in {{etap_query_folder}} folder'>
-          </input>
+      <fieldset class='form-fieldset new_event'>
+        <legend class='new_event'>Settings</legend>
+
+          <!-- Form Fields -->
           <div class='form-label'>Event Type</div>
           <select name='template_name' class='form-control' id='template-select'>
 						<option id='green_goods' value='green_goods'>Green Goods Delivery</option>
 						<option id='announcement' value='announcement'>Recorded Voice Announcement</option>
 						<option id='bpu' value='bpu'>Bottle Pickup Reminder</option>
           </select>
+
+          <div class='form-label'>Event Name</div>
+          <input 
+            id='event_name' 
+            class='input' 
+            name='event_name' 
+            type='text' 
+            placeholder='Optional'>
+          </input>
+          
+          <div class='form-label'>eTapestry Query</div>
+          <input 
+            class='input' 
+            name='query_name' 
+            type='text' 
+            placeholder='Type query name in {{etap_query_folder}} folder'>
+          </input>
+
+          <div 
+            name='delivery_date'
+            class='form-label' 
+            >Delivery Date
+          </div>
+          <input 
+            class='input' 
+            id='delivery_date'
+            name='delivery_date'
+            type='text' 
+            id='gg_datepicker' 
+            placeholder='Browse Calendar...'  
+            required>
           
           <!-- Special Message Div -->
           <div id='record-audio' style='display:none'>
@@ -61,22 +88,27 @@
           <!-- End Special Message Div -->
       </fieldset>
 
-      <br>
-      
       <!--Schedule Section-->
-      <fieldset class='form-fieldset'>
-        <legend class='scheduler-border'>Schedule</legend>
+      <fieldset class='form-fieldset new_event'>
+        <legend class='new_event'>Schedule</legend>
         
-        <div class='form-label'>
-          Date
-        </div>
-        <input class='input' type='text' id='datepicker' 
-               placeholder='Browse Calendar...'  name='date' required>
-        <div class='form-label'>
-          Time
-        </div>
-        <input class='input' title="When the job will begin (3pm, 10:30am)" 
-               type='time' name="time" required>
+        <div class='form-label'>Date</div>
+        <input
+          id='notific_date'
+          name='notific_date'
+          type='text'
+          class='input' 
+          placeholder='Browse Calendar...'
+          required
+        >
+        <div class='form-label'>Time</div>
+        <input
+          name='notific_time'
+          type='time'
+          class='input' 
+          title="When the job will begin (3pm, 10:30am)" 
+          required
+        >
       </fieldset>
     </form>
   </div>

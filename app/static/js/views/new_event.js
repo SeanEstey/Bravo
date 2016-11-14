@@ -86,7 +86,7 @@ function new_event_init() {
     var phone = $('#phone-num').val();
     var request =  $.ajax({
       type: 'POST',
-      url: $URL_ROOT + 'reminders/voice/record/request',
+      url: $URL_ROOT + 'notify/record',
       data: {'To':phone}
     });
     

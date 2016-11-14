@@ -15,7 +15,7 @@ from flask_socketio import SocketIO, emit
 
 from . import notify
 from . import accounts, admin, events, triggers, email, voice, sms, \
-              recording, pus, gg
+              recording, pus, gg, voice_announce
 from .. import utils, schedule, parser
 from app.main import sms_assistant
 from .. import db
@@ -134,6 +134,8 @@ def new_event():
 
     if template == 'green_goods':
         evnt_id = gg.add_event()
+    elif template == 'recorded_announcement':
+        evnt_id = voice_announce.add_event()
     elif template == 'bpu':
         block = request.form['query_name']
 

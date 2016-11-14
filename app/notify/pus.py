@@ -48,7 +48,7 @@ def reminder_event(agency, block, _date):
 
     # Create event + triggers
 
-    evnt_id = events.add(agency, block, _date)
+    evnt_id = events.add(agency, block, _date, 'bpu')
 
     trig_conf = agency_conf['scheduler']['notify']['triggers']
 

@@ -15,7 +15,7 @@ from .. import db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def add(agency, name, event_date):
+def add(agency, name, event_date, _type):
     '''Creates a new job and adds to DB
     @conf: db.agencies->'reminders'
     Returns:
@@ -26,6 +26,7 @@ def add(agency, name, event_date):
         'name': name,
         'agency': agency,
         'event_dt': utils.naive_to_local(datetime.combine(event_date, time(8,0))),
+        'type': _type,
         'status': 'pending',
         'opt_outs': 0,
         'trig_ids': []

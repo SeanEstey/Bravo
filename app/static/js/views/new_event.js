@@ -5,7 +5,7 @@ function new_event_init() {
 
   loadTooltip();
 
-  $('#delivery_date').datepicker();
+  $('#event_date').datepicker();
   $('#notific_date').datepicker();
 
   onSelectTemplate();
@@ -234,21 +234,21 @@ function onSelectTemplate() {
 
     if($template.attr('id') == 'bpu') {
       $('[name="event_name"]').hide();
-      $('[name="delivery_date"]').hide();
+      $('[name="event_date"]').hide();
       $('#record-audio').hide();
       $('#record-text').hide();
       $('#schedule_fields').hide();
     }
     else if($template.attr('id') == 'green_goods') {
       $('[name="event_name"]').show();
-      $('[name="delivery_date"]').show();
+      $('[name="event_date"]').show();
       $('#record-audio').hide();
       $('#record-text').hide();
       $('#schedule_fields').show();
     }
-    else if($template.attr('id') == 'announcement') {
+    else if($template.attr('id') == 'recorded_announcement') {
       $('[name="event_name"]').show();
-      $('[name="delivery_date"]').hide();
+      $('[name="event_date"]').hide();
       $('#record-audio').show();
       $('#record-text').hide();
       $('#schedule_fields').show();
@@ -297,7 +297,7 @@ function validateNewJobForm() {
   
   if(paramObj['template'] == 'announcement') {
     console.log('voice announcement');
-    console.log('audio url='+paramObj['audio-url']);
+    console.log('audio url='+paramObj['audio_url']);
 
     if(!$('#audio-source').attr('src'))
       missing.push('Voice Recording');

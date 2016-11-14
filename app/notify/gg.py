@@ -49,7 +49,8 @@ def add_event():
     evnt_id = events.add(
         agency,
         request.form['event_name'] or request.form['query_name'],
-        parse(request.form['delivery_date'])
+        parse(request.form['event_date']),
+        'green_goods'
     )
 
     trig_id = triggers.add(
@@ -76,7 +77,7 @@ def add_event():
 
     # both je and accts lists should be same length, point to same account
 
-    delivery_date = parse(request.form['delivery_date']).date()
+    delivery_date = parse(request.form['event_date']).date()
 
     for i in range(len(je)):
         acct_id = accounts.add(

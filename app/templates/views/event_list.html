@@ -18,7 +18,8 @@
       <thead>
         <tr>
           <th>Name</th>
-					<th width='15%' >Date</th>
+					<th>Date</th>
+					<th>Type</th>
 					<th>Email Notifications</th>
 					<th width='5%' >Count</th>
 					<th>Voice/SMS Notifications</th>
@@ -40,6 +41,7 @@
                 event.event_dt.strftime("%A %b %d") }}</a>
 						{% endif %}
 					</td>
+          <td>{{ event.type }}</td>
 
           {% set vars = {'email_trig': False} %}
           {% for trigger in event.triggers if trigger.type == "email" %}

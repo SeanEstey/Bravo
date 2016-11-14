@@ -290,7 +290,7 @@ function buildAdminPanel() {
 				$('tr[id]').each(function() {
 						var $debug_btn = 
 							'<button name="debug-btn" ' +
-											'class="btn btn-warning">Print Debug</button>';
+											'class="btn btn-outline-warning">Print Debug</button>';
 
 						$(this).append('<td>'+$debug_btn+'</td>');
 

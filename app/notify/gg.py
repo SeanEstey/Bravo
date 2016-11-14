@@ -95,8 +95,48 @@ def add_event():
             etap.get_primary_phone(accts[i]),
             {'source': 'template',
              'template': 'voice/wsf/green_goods.html'},
-            {'module': 'app.notify.pus',
+            {'module': 'app.notify.gg',
              'func': 'on_call_interact'}
         )
 
-    return True
+    return evnt_id
+
+#-------------------------------------------------------------------------------
+def on_call_interact(notific):
+
+    response = twiml.Response()
+
+    # Digit 1: Play live message
+    if request.form['Digits'] == '1':
+        response.say(
+            voice.get_speak(
+              notific,
+              notific['on_answer']['template']),
+            voice='alice')
+
+        response.gather(
+            action= '%s/notify/voice/play/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
+            method='POST',
+            numDigits=1,
+            timeout=10)
+
+        response.say(
+            voice.get_speak(
+              notific,
+              notific['on_answer']['template'],
+              timeout=True),
+            voice='alice')
+
+        response.hangup()
+
+        return response
+    elif request.form['Digits'] == '2':
+        response.say(
+            voice.get_speak(
+              notific,
+              notific['on_answer']['template']),
+            voice='alice')
+
+        response.hangup()
+
+        return response

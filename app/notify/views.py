@@ -15,7 +15,7 @@ from flask_socketio import SocketIO, emit
 
 from . import notify
 from . import accounts, admin, events, triggers, email, voice, sms, \
-              recording, pus
+              recording, pus, gg
 from .. import utils, schedule, parser
 from app.main import sms_assistant
 from .. import db
@@ -105,23 +105,56 @@ def view_event(evnt_id):
 @notify.route('/new', methods=['POST'])
 @login_required
 def new_event():
-    import gg
-    r = gg.add_event()
-    if r == True:
-        return jsonify({'status':'success'})
+    logger.info(request.form.to_dict())
 
-    return jsonify(f)
+    agency = db['users'].find_one({'user': current_user.username})['agency']
 
-#-------------------------------------------------------------------------------
-@notify.route('/submit_event', methods=['POST'])
-@login_required
-def _submit_event():
-    try:
-        r = reminders.submit_event(request.form.to_dict(), request.files['call_list'])
-        return Response(response=json.dumps(r), status=200, mimetype='application/json')
-    except Exception as e:
-        logger.error('submit_event: %s', str(e))
-        return False
+    template = request.form['template_name']
+
+    if template == 'green_goods':
+        evnt_id = gg.add_event()
+    elif template == 'bpu':
+        block = request.form['query_name']
+
+        if parser.is_res(block):
+            cal_id = db.agencies.find_one({'name':agency})['cal_ids']['res']
+        elif parser.is_bus(block):
+            cal_id = db.agencies.find_one({'name':agency})['cal_ids']['bus']
+        else:
+            return jsonify({'status':'failed', 'description':'Invalid Block name'})
+
+        oauth = db.agencies.find_one({'name':agency})['google']['oauth']
+
+        _date = schedule.get_next_block_date(cal_id, block, oauth)
+
+        evnt_id = pus.reminder_event(
+            agency,
+            block,
+            _date
+        )
+
+    event = db.notific_events.find_one({'_id':evnt_id})
+
+    event['triggers'] = events.get_triggers(event['_id'])
+
+    for trigger in event['triggers']:
+        # modifying 'triggers' structure for view rendering
+        trigger['count'] = triggers.get_count(trigger['_id'])
+
+    return jsonify({
+        'status':'success',
+        'event': utils.formatter(
+            event,
+            to_local_time=True,
+            bson_to_json=True
+        ),
+        'view_url': url_for('.view_event', evnt_id=str(event['_id'])),
+        'cancel_url': url_for('.cancel_event', evnt_id=str(event['_id'])),
+        'description':
+            'Reminders for event %s successfully scheduled.' %
+            (request.form['query_name'])
+    })
+
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/cancel')

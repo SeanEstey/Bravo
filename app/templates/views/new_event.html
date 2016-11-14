@@ -5,8 +5,8 @@
   <script> $(function() {new_event_init();}); </script>
   
   <div class='box'>
-    <form id='myform' enctype=multipart/form-data method=post>
-      <fieldset class='form-fieldset new_event'>
+    <form id='myform' method=post>
+      <fieldset id='event_fields' class='form-fieldset new_event'>
         <legend class='new_event'>Settings</legend>
 
           <!-- Form Fields -->
@@ -17,7 +17,7 @@
 						<option id='bpu' value='bpu'>Bottle Pickup Reminder</option>
           </select>
 
-          <div class='form-label'>Event Name</div>
+          <div name='event_name' class='form-label'>Event Name</div>
           <input 
             id='event_name' 
             class='input' 
@@ -89,7 +89,7 @@
       </fieldset>
 
       <!--Schedule Section-->
-      <fieldset class='form-fieldset new_event'>
+      <fieldset id='schedule_fields' class='form-fieldset new_event'>
         <legend class='new_event'>Schedule</legend>
         
         <div class='form-label'>Date</div>

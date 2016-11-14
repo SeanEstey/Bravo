@@ -110,7 +110,11 @@ def get_speak(notific, template_path, timeout=False):
     try:
         speak = render_template(
             template_path,
-            notific = notific,
+            notific = utils.formatter(
+                notific,
+                to_local_time=True,
+                to_strftime="%A, %B %d"
+            ),
             account = utils.formatter(
                 account,
                 to_local_time=True,
@@ -183,7 +187,7 @@ def on_answer():
 
         db['notifics'].update_one(
             {'tracking.sid': request.form['CallSid']},
-            {'$set': {'tracking.speak': str(response)}}
+            {'$set': {'tracking.speak': str(response).replace('\"', '')}}
         )
     elif notific['on_answer']['source'] == 'audio':
         response.play(notific['on_answer']['url'])

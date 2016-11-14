@@ -46,6 +46,27 @@ def get_op_stats():
     return jsonify(stats)
 
 #-------------------------------------------------------------------------------
+@notify.route('/<evnt_id>/debug_info', methods=['POST'])
+@login_required
+def get_debug_info(evnt_id):
+    event = db.notific_events.find_one({'_id':ObjectId(evnt_id)})
+
+    event['triggers'] = events.get_triggers(event['_id'])
+
+    for trigger in event['triggers']:
+        # modifying 'triggers' structure for view rendering
+        trigger['count'] = triggers.get_count(trigger['_id'])
+
+    return jsonify(
+        utils.formatter(
+            event,
+            to_local_time=True,
+            to_strftime="%m/%-d/%Y @ %-I:%M%p",
+            bson_to_json=True
+        )
+    )
+
+#-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])
 @login_required
 def view_event_list():

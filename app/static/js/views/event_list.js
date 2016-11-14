@@ -123,81 +123,43 @@ function addSocketIOHandlers() {
 function buildAdminPanel() {
 		$('#admin_pane').hide();
 
-		addAdminPanelBtn(
-			'dev_pane',
-			'schedule-btn',
-			'Schedule Block',
-      'btn-outline-primary'
-		)
-		.click(function() {
-        $('.modal-title').text('Schedule Block');
+    show_debug_info_btn = addAdminPanelBtn(
+      'dev_pane',
+      'debug_info_btn',
+      'Debug Mode',
+      'btn-outline-primary');
 
-				var form = "<input width='100%' id='block' class='input' name='block' type='text'/>";
+		// Add debug buttons that print notific['tracking'] data to console
+    show_debug_info_btn.click(function() {
+				$(this).prop('disabled', 'true');
 
-				$('.modal-body').html(form);
+				$('#events_tbl th:last').after('<th>Debug</th>');
 
-				$("#block").keyup(function(event){
-						if(event.keyCode == 13){
-								console.log('enter key');
-								$("#btn-primary").click();
-						}
-				});
+				$('tr[id]').each(function() {
+						var $debug_btn = 
+							'<button name="debug-btn" ' +
+											'class="btn btn-outline-warning">Print</button>';
 
-        $('#btn-secondary').text('Cancel');
-        $('#btn-primary').text('Schedule');
+						$(this).append('<td>'+$debug_btn+'</td>');
 
-				$('#mymodal').on('shown.bs.modal', function () {
-					$('#block').focus()
-				})
+						$(this).find('button[name="debug-btn"]').click(function() {
+								alertMsg('Debug data printed to console. ' +
+												 'To view console in chrome, type <b>Ctrl+Shift+I</b>.', 
+												 'warning', 15000);
 
-				$('#mymodal').modal();
-
-				// Clear any currently bound events
-				$('#btn-primary').off('click');
-
-        $('#btn-primary').click(function() {
-						if(!$('#block').val())
-								return;
-
-            $('#mymodal').modal('hide'); 
-
-						var block = $('#block').val();
-						$('.modal-body').html('');
-
-						$('.loader-div').slideToggle(function() {
-								$('.btn.loader').fadeTo('slow', 1);
-						});
-
-						$.ajax({
-							context: this,
-							type: 'POST',
-							url: $URL_ROOT + 'notify/'+block+'/schedule'
-						})
-						.done(function(response) {
-								if(response['status'] != 'OK') {
-										alertMsg('Response: ' + response['description'], 'danger');
-
-                    $('.btn.loader').fadeTo('slow', 0, function() {
-                        $('.loader-div').slideToggle();
-                    });
-
-										return;
-								}
-
-								console.log(response);
-
-								addEvent(
-									response['event'],
-									response['view_url'],
-									response['cancel_url'],
-									response['description']);
-
-								$('.btn.loader').fadeTo('slow', 0, function() {
-										$('.loader-div').slideToggle();
+								$.ajax({
+									type: 'post',
+									url: $URL_ROOT + 'notify/' + $(this).parent().parent().attr('id') + '/debug_info'
+							  })
+								.done(function(response) {
+										console.log(response);
 								});
 						});
 				});
-		});
+
+				alertMsg('Debug mode enabled. ' +
+								 'Clicking <b>Print Debug</b> buttons prints notification info to console.', 'info');
+    });
 }
 
 

@@ -35,7 +35,9 @@ def on_dropped():
     '''Mailgun webhook called from view. Has request context'''
 
     msg = 'receipt to %s dropped. %s. %s' %(
-        request.form['recipient'], request.form['reason'])
+        request.form['recipient'],
+        request.form['reason'],
+        request.form.get('description'))
 
     logger.info(msg)
 
@@ -51,9 +53,7 @@ def on_dropped():
 
     from .. import tasks
     tasks.rfu.apply_async(
-        args=[
-            email['agency'],
-            msg + request.form.get('description')],
+        args=[email['agency'], msg],
         kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
         queue=current_app.config['DB']
     )

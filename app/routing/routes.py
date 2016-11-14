@@ -27,40 +27,7 @@ class EtapBadDataError(Exception):
     pass
 
 
-#-------------------------------------------------------------------------------
-def build_scheduled_routes():
-    '''Route orders for today's Blocks and build Sheets
-    '''
 
-    agencies = db.agencies.find({})
-
-    for agency in agencies:
-        routes = db['routes'].find({
-          'agency': agency['name'],
-          'date': datetime.combine(date.today(), time(0,0,0))
-        })
-
-        logger.info(
-          '%s: -----Building %s routes for %s-----',
-          agency['name'], routes.count(), date.today().strftime("%A %b %d"))
-
-        successes = 0
-        fails = 0
-
-        for route in routes:
-            r = build_route(str(route['_id']))
-
-            if r != True:
-                fails += 1
-                logger.error('Error building route %s', route['block'])
-            else:
-                successes += 1
-
-            sleep(2)
-
-        logger.info(
-            '%s: -----%s Routes built. %s failures.-----',
-            agency['name'], successes, fails)
 
 #-------------------------------------------------------------------------------
 def build_route(route_id, job_id=None):
@@ -69,7 +36,7 @@ def build_route(route_id, job_id=None):
     dependent API services (geocoder, sheets/drive api)
     @route_id: '_id' of record in 'routes' db collection (str)
     @job_id: routific job string. If passed, creates Sheet without re-routing
-    Returns: True on success, False on error
+    Returns: db.routes dict on success, False on error
     '''
 
     route = db.routes.find_one({"_id":ObjectId(route_id)})

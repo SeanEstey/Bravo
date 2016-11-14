@@ -131,7 +131,7 @@ def on_receive():
 
         return True
     else:
-        logger.error('invalid sms keyword', msg, from_)
+        logger.error('invalid sms keyword %s (%s)', msg, from_)
 
         send(agency['twilio'], from_,
             "Invalid keyword. Your request must include either \

@@ -98,6 +98,50 @@ def cancel_pickup(evnt_id, acct_id):
 
 #-------------------------------------------------------------------------------
 @celery.task
+def build_scheduled_routes():
+    '''Route orders for today's Blocks and build Sheets
+    '''
+
+    from app.routing import routes
+    from datetime import datetime, date, time
+
+    agencies = db.agencies.find({})
+
+    for agency in agencies:
+        analyze_upcoming_routes(agency['name'], 3)
+
+        _routes = db.routes.find({
+          'agency': agency['name'],
+          'date': utils.naive_to_local(
+            datetime.combine(
+                date.today(),
+                time(0,0,0)))
+        })
+
+        logger.info(
+          '%s: -----Building %s routes for %s-----',
+          agency['name'], _routes.count(), date.today().strftime("%A %b %d"))
+
+        successes = 0
+        fails = 0
+
+        for route in _routes:
+            r = routes.build_route(str(route['_id']))
+
+            if not r:
+                fails += 1
+                logger.error('Error building route %s', route['block'])
+            else:
+                successes += 1
+
+            sleep(2)
+
+        logger.info(
+            '%s: -----%s Routes built. %s failures.-----',
+            agency['name'], successes, fails)
+
+#-------------------------------------------------------------------------------
+@celery.task
 def analyze_upcoming_routes(agency_name, days):
     import bson.json_util
     from dateutil.parser import parse
@@ -219,15 +263,6 @@ def build_route(route_id, job_id=None):
     try:
         from app.routing import routes
         return routes.build_route(str(route_id), job_id=job_id)
-    except Exception as e:
-        logger.error('%s\n%s', str(e), tb.format_exc())
-
-#-------------------------------------------------------------------------------
-@celery.task
-def build_routes():
-    try:
-        from app.routing import routes
-        return routes.build_scheduled_routes()
     except Exception as e:
         logger.error('%s\n%s', str(e), tb.format_exc())
 

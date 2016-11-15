@@ -26,17 +26,11 @@
 						<th><a class='hover' href='#'>Email</a></th>
 					{% endfor %}
 
-					{% for field in notific_list[0]['results'][0]['account'][0]['udf'] %}
-						<th><a class='hover' href='#'>{{ field }}</a></th>
-					{% endfor %}
-
-					<!--
-					<th width='5%'><a class='hover' href='#'>Block</a></th>
-					<th width='5%'><a class='hover' href='#'>Status</a></th>
-					<th><a class='hover' href='#'>Driver Notes</a></th>
-					<th><a class='hover' href='#'>Office Notes</a></th>
-					<th width='7%'><a class='hover' href='#'>Pickup Date</a></th>
-					-->
+          {% if notific_list[0]['results'][0]['account'][0]['udf'] %}
+            {% for field in notific_list[0]['results'][0]['account'][0]['udf'] %}
+              <th><a class='hover' href='#'>{{ field }}</a></th>
+            {% endfor %}
+          {% endif %}
 
 					{% for trigger in triggers if trigger['type'] == 'Email' %}
             <th width='7%' id='{{trigger['_id']}}'><a 
@@ -86,17 +80,11 @@
 					<td name='email'>{{ vars['email'] }}</td>
 				{% endfor %}
 					
-				{% for k, v in row['results'][0]['account'][0]['udf'].iteritems() %}
-					<td>{{ v }}</td>
-				{% endfor %}
-
-				<!--
-				<td>{{row['results'][0]['account'][0]['udf']['block']}}</td>
-				<td>{{row['results'][0]['account'][0]['udf']['status']}}</td>
-				<td name='udf.driver_notes'>{{row['results'][0]['account'][0]['udf']['driver_notes']}}</td>
-				<td name='udf.office_notes'>{{row['results'][0]['account'][0]['udf']['office_notes']}}</td>
-				<td name='udf.pickup_dt'>{{row['results'][0]['account'][0]['udf']['pickup_dt']}}</td>
-				-->
+        {% if row['results'][0]['account'][0]['udf'] %}
+          {% for k, v in row['results'][0]['account'][0]['udf'].iteritems() %}
+            <td>{{ v }}</td>
+          {% endfor %}
+        {% endif %}
 
         <!-- email status -->
 				{% for trigger in triggers if trigger['type'] == 'Email' %}

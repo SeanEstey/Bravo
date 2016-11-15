@@ -3,6 +3,7 @@
 import twilio
 import logging
 from flask import request, current_app
+from flask_login import current_user
 import os
 from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
@@ -43,7 +44,7 @@ def add_event():
         agency,
         request.form['event_name'] or request.form['query_name'],
         parse(request.form['event_date']),
-        'green_goods'
+        'recorded_announcement'
     )
 
     trig_id = triggers.add(

@@ -1,228 +1,87 @@
 
 //------------------------------------------------------------------------------
 function new_event_init() {
-  alertMsg('Schedule a new notification event', 'info', 7500);
+    alertMsg('Schedule a new notification event', 'info', 7500);
 
-  loadTooltip();
+    newEventBtnHandlers();
+    newEventSocketIOHandlers();
+    loadTooltip();
 
-  $('#event_date').datepicker();
-  $('#notific_date').datepicker();
+    $('#event_date').datepicker();
+    $('#notific_date').datepicker();
 
-  onSelectTemplate();
+    onSelectTemplate();
 
-  $submit_btn = $('#submit_btn');
+    $('#radio').buttonset();
 
-  $submit_btn.click(function(event){
-      // This line needs to be here for Firefox browsers
-      event.preventDefault(event);
-
-      validateNewJobForm();
+    $('body').css('display','block');
+}
 
 
-  });
+//------------------------------------------------------------------------------
+function newEventBtnHandlers() {
 
-  $('#radio').buttonset();
-  
-  // Init socket.io
-  var socketio_url = 'http://' + document.domain + ':' + location.port;
-
-  var socket = io.connect(socketio_url);
-
-  socket.on('connected', function(){
-    console.log('socket.io connected!');
-  });
-
-  socket.on('record_audio', function(data) {
-    if(typeof data == 'string')
-      data = JSON.parse(data);
-
-    console.log('received record_audio socket: ' + JSON.stringify(data));
-
-    if('audio_url' in data) {
-      $('#record-status').text('Recording complete. You can listen to the audio below.');
-      $('#audio-source').attr('src', data['audio_url']);
-      $('#music').load();
-      $('#audioplayer').show();
-     // $('#audioplayer').fadeIn('slow');
-      console.log('showing audio player');
-      // Add url to form element for submission
-      $('#input-audio-url').val(data['audio_url']);
-      return;
-    }
-    if('msg' in data) {
-      $('#record-status').text(data['msg']);
-      return;
-    }
-  });
-  
-  $('#call-btn').click(function() {
-    // AUDIO PLAYER
-    var music = document.getElementById('music');
-    var duration;
-    var pButton = document.getElementById('pButton');
-    var playhead = document.getElementById('playhead');
-    var timeline = document.getElementById('timeline');
-    var timelineWidth = timeline.offsetWidth - playhead.offsetWidth;
-    
-    music.addEventListener("timeupdate", timeUpdate, false);
-    timeline.addEventListener("click", function (event) {
-      moveplayhead(event);
-      music.currentTime = duration * clickPercent(event);
-    }, false);
-
-    // Makes playhead draggable 
-    playhead.addEventListener('mousedown', mouseDown, false);
-    window.addEventListener('mouseup', mouseUp, false);
-    
-    // Gets audio file duration
-    music.addEventListener("canplaythrough", function () {
-      var music = document.getElementById('music');
-      duration = music.duration;
-      var rounded = Math.ceil(duration);
-      $('#duration').text(String(rounded)+' sec'); 
-    }, false);
-
-    event.preventDefault();
-    var phone = $('#phone-num').val();
-    var request =  $.ajax({
-      type: 'POST',
-      url: $URL_ROOT + 'notify/record',
-      data: {'To':phone}
+    $('#submit_btn').click(function(event){
+        event.preventDefault(event);
+        validateNewJobForm();
     });
-    
-    $('#record-status').text('Attempting Call...');
-    $('#record-status').clearQueue();
-    
-    request.done(function(msg) {
-      if(typeof msg == 'string') 
-        msg = JSON.parse(msg);
 
-      if(msg['call_status'] == 'failed') {
-        $('#record-status').text(msg['error_msg'].toTitleCase());
-      }
-      else if(msg['call_status'] == 'queued') {
-        $('#record-status').text('Calling...');
-      }
-      $('#record-status').clearQueue();
-      $('#record-status').fadeIn('slow');
-      $('#record-status').delay(10000);
+    $('#call_btn').click(function() {
+        event.preventDefault();
+
+        $.ajax({
+          type: 'POST',
+          url: $URL_ROOT + 'notify/record',
+          data: {'To':$('#phone-num').val()}
+        })
+        .done(function(response) {
+            if(response['call_status'] == 'failed') {
+              $('#record-status').text(response['error_msg'].toTitleCase());
+            }
+            else if(response['call_status'] == 'queued') {
+              $('#record-status').text('Calling...');
+            }
+            $('#record-status').clearQueue();
+            $('#record-status').fadeIn('slow');
+            $('#record-status').delay(10000);
+        });
+          
+        $('#record-status').text('Attempting Call...');
+        $('#record-status').clearQueue();
     });
-  });
-
-  $('body').css('display','block');
 }
 
 //------------------------------------------------------------------------------
-function clickPercent(e) {
-	/* Audio Player
-	 * returns click as decimal (.77) of the total timelineWidth
-	 */
+function newEventSocketIOHandlers() {
+    var socketio_url = 'http://' + document.domain + ':' + location.port;
+    var socket = io.connect(socketio_url);
 
-  var timeline = document.getElementById('timeline'); // timeline
-  var playhead = document.getElementById('playhead');
-  var timelineWidth = timeline.offsetWidth - playhead.offsetWidth;
-  return (e.pageX - timeline.offsetLeft) / timelineWidth;
-}
+    socket.on('connected', function(){
+        console.log('socket.io connected!');
+    });
 
-//------------------------------------------------------------------------------
-var onplayhead = false;
-// mouseDown EventListener
-function mouseDown() {
-	/* Audio Player
-	 * Boolean value so that mouse is moved on mouseUp only when the 
-	 * playhead is released 
-	 */
+    socket.on('record_audio', function(data) {
+        console.log('received record_audio socket: ' + JSON.stringify(data));
 
-  var music = document.getElementById('music');
-  onplayhead = true;
-  window.addEventListener('mousemove', moveplayhead, true);
-  music.removeEventListener('timeupdate', timeUpdate, false);
-}
+        $('#record-status').text('Recording complete. You can listen to the audio below.');
 
-//------------------------------------------------------------------------------
-function mouseUp(e) {
-	/* Audio Player
-	 * mouseUp EventListener. getting input from all mouse clicks
-	 */
+        $('#audio_url').val(data['audio_url']);
 
-  var music = document.getElementById('music');
+        $('#audio-source').attr('src', data['audio_url'] + '.mp3');
 
-  if (onplayhead == true) {
-    moveplayhead(e);
-    window.removeEventListener('mousemove', moveplayhead, true);
-    // change current time
-    music.currentTime = music.duration * clickPercent(e);
-    music.addEventListener('timeupdate', timeUpdate, false);
-  }
+        try {
+           $('#music')[0].load();
+        }
+        catch(err) {
+          console.log(err);
+        }
 
-  onplayhead = false;
-}
+        $('.audioplayer').show();
 
+        $('.audioplayer').fadeIn('slow');
 
-//------------------------------------------------------------------------------
-function moveplayhead(e) {
-	/* Audio Player
-	 * mousemove EventListener. Moves playhead as user drags
-	 */
-
-  var timeline = document.getElementById('timeline');
-  var playhead = document.getElementById('playhead');
-  var timelineWidth = timeline.offsetWidth - playhead.offsetWidth;
-  var newMargLeft = e.pageX - timeline.offsetLeft;
-
-  if (newMargLeft >= 0 && newMargLeft <= timelineWidth) {
-    playhead.style.marginLeft = newMargLeft + "px";
-  }
-
-  if (newMargLeft < 0) {
-    playhead.style.marginLeft = "0px";
-  }
-
-  if (newMargLeft > timelineWidth) {
-    playhead.style.marginLeft = timelineWidth + "px";
-  }
-}
-
-//------------------------------------------------------------------------------
-function timeUpdate() {
-	/* Audio Player 
-	 * Synchronizes playhead position with current point in audio 
-	 */
-
-  var music = document.getElementById('music');
-  var pButton = document.getElementById('pButton');
-  var timeline = document.getElementById('timeline');
-  var playhead = document.getElementById('playhead');
-  var timelineWidth = timeline.offsetWidth - playhead.offsetWidth;
-  var playPercent = timelineWidth * (music.currentTime / music.duration);
-  
-  playhead.style.marginLeft = playPercent + "px";
-  
-  if (music.currentTime == music.duration) {
-    pButton.className = "";
-    pButton.className = "play";
-  }
-}
-
-//------------------------------------------------------------------------------
-function play() {
-	/* Audio Player */
-
-  var music = document.getElementById('music');
-  var pButton = document.getElementById('pButton');
-  
-  if (music.paused) {
-    music.play();
-    // remove play, add pause
-    pButton.className = "";
-    pButton.className = "pause";
-  } 
-  else {
-    music.pause();
-    // remove pause, add play
-    pButton.className = "";
-    pButton.className = "play";
-  }
+        console.log('showing audio player');
+    });
 }
 
 //------------------------------------------------------------------------------

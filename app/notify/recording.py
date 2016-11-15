@@ -13,28 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-def get_twilio_token():
-    # get credentials for environment variables
-
-    import re
-    from twilio.util import TwilioCapability
-
-    # FIXME
-    twilio = db['agencies'].find_one({'name':'vec'})['twilio']['keys']['main']
-    alphanumeric_only = re.compile('[\W_]+')
-    # Generate a random user name
-    #identity = alphanumeric_only.sub('', "sean")
-
-    # Create a Capability Token
-    capability = TwilioCapability(twilio['sid'], twilio['auth_id'])
-    capability.allow_client_outgoing(twilio['app_sid'])
-    capability.allow_client_incoming("sean")
-    token = capability.generate()
-
-    # Return token info as JSON
-    return token
-
-#-------------------------------------------------------------------------------
 def dial():
     '''Request: POST from Bravo javascript client with 'To' arg
     Response: JSON dict {'status':'string'}
@@ -136,6 +114,7 @@ def on_interact():
         }})
 
         from app.socketio import socketio_app
+
         socketio_app.emit('record_audio', {'audio_url': request.form['RecordingUrl']})
 
         voice = twiml.Response()

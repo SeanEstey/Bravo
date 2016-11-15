@@ -56,12 +56,11 @@
             placeholder='Browse Calendar...'  
             required>
           
-          <!-- Special Message Div -->
           <div id='record-audio' style='display:none'>
 						<div>
 							<label id='record-status'></label>
 						</div>
-            <button id='call-btn' class='btn btn-info' style='float:right;'>
+            <button id='call_btn' class='btn btn-info' style='float:right;'>
               Call Me
             </button>
             <span style='overflow:hidden; display:block'>
@@ -69,31 +68,15 @@
                 id='phone-num' class='input' name='phone-num' style='width:98%;' 
                 type='text' placeholder='Phone Number'></input>
             </span>
-            <audio id="music">
-              <source id='audio-source' name='audio-announce' type='audio/mpeg'>
-            </audio>
-            <div id="audioplayer"  style='display:block'>
-              <button id="pButton" class='play' onclick='play()'></button>
-              <div id="timeline">    
-                <div id="playhead"></div>
-              </div>
-              <div id='duration'></div>
-            </div>
-            <div style='display:none'>
-              <input id='input-audio-url' name='audio_url'></input>
+
+            <div class='audioplayer'>
+              <input id='audio_url' name='audio_url' class='input' type='text' hidden></input>
+              <audio style='vertical-align:middle; background-color:white;' id="music" controls>
+                <source id='audio-source'
+                src="https://api.twilio.com/2010-04-01/Accounts/ACcc7d275199429677243e3b9ee7936488/Recordings/REc7644219bd9ead3aad1697caa03979d6.mp3" name='audio-announce' type='audio/mpeg'>
+              </audio>
             </div>
           </div>
-          <div id='record-text' style='display:none'>
-            <textarea 
-              class='form-control' 
-              style='margin:1em 0 0.5em 0;' 
-              name='message' 
-              rows='7' 
-              placeholder='Type your announcement' 
-              required>
-            </textarea>
-          </div>
-          <!-- End Special Message Div -->
       </fieldset>
 
       <!--Schedule Section-->

@@ -269,7 +269,7 @@ def cancel_pickup(evnt_id, acct_id):
 
     # Cancel any pending parent notifications
 
-    db['notifics'].update({
+    db.notifics.update({
           'acct_id': acct_id,
           'evnt_id': evnt_id,
           'tracking.status': 'pending'
@@ -277,14 +277,14 @@ def cancel_pickup(evnt_id, acct_id):
         {'$set':{'tracking.status':'cancelled'}},
         multi=True)
 
-    acct = db['accounts'].find_one_and_update({
+    acct = db.accounts.find_one_and_update({
         '_id':acct_id},{
         '$set': {
-          'udf.opted_out': True
+          'opted_out': True
       }})
 
-    conf = db['agencies'].find_one(
-        {'name': db['notific_events'].find_one(
+    conf = db.agencies.find_one(
+        {'name': db.notific_events.find_one(
             {'_id':evnt_id})['agency']})
 
     try:
@@ -390,7 +390,7 @@ def on_call_interact(notific):
 #-------------------------------------------------------------------------------
 def on_sms_reply(notific):
 
-    logger.info('sms reply handler')
+    logger.info('bpu reply handler')
     from .. import html
 
     account = db['accounts'].find_one({'_id':notific['acct_id']})

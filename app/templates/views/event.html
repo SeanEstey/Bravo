@@ -46,6 +46,10 @@
             </th>
 					{% endfor %}
 
+          {% for trigger in triggers if trigger['type'] == 'Voice Sms' %}
+            <th>SMS Reply</th>
+          {% endfor %}
+
           <th class='cancel-call-col' style='width:50px'></th>
         </tr>
       </thead>
@@ -79,7 +83,8 @@
 					{% endfor %}
 					<td name='email'>{{ vars['email'] }}</td>
 				{% endfor %}
-					
+				
+        <!-- UDF's -->
         {% if row['results'][0]['account'][0]['udf'] %}
           {% for k, v in row['results'][0]['account'][0]['udf'].iteritems() %}
             <td>{{ v }}</td>
@@ -107,6 +112,13 @@
 					{% endfor %}
 					<td id="{{status['_id']}}" name='voice_sms_status'>{{ status['phone'] }}</td>
 				{% endfor %}
+
+        <!-- SMS reply -->
+        {% set status = {'content':'<hr>'} %}
+        {% for notific in row['results'] if notific['type'] == 'sms'%}
+            {% do status.update({'content': notific['tracking']['reply']}) %}
+        {% endfor %}
+        <td name='sms_reply'>{{ status['content'] }}</td>
 
 				<!-- Delete Button -->
 				<td class='cancel-notific'>

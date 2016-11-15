@@ -104,6 +104,7 @@ def build_scheduled_routes():
 
     from app.routing import routes
     from datetime import datetime, date, time
+    from time import sleep
 
     agencies = db.agencies.find({})
 

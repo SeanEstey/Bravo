@@ -49,7 +49,7 @@ def test_analyze_routes(days):
 @login_required
 def test_build_scheduled_routes():
     from .. import tasks
-    tasks.build_routes.apply_async(
+    tasks.build_scheduled_routes.apply_async(
         queue=current_app.config['DB'])
     return 'OK'
 

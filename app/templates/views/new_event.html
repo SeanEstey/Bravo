@@ -57,9 +57,7 @@
             required>
           
           <div id='record-audio' style='display:none'>
-						<div>
-							<label id='record-status'></label>
-						</div>
+						<div class='form-label' id='record-status'>Phone for Recording</div>
             <button id='call_btn' class='btn btn-info' style='float:right;'>
               Call Me
             </button>
@@ -70,10 +68,9 @@
             </span>
 
             <div class='audioplayer'>
-              <input id='audio_url' name='audio_url' class='input' type='text' hidden></input>
+              <input id='audio_url' style='display:none;' name='audio_url' class='input' type='text' hidden></input>
               <audio style='vertical-align:middle; background-color:white;' id="music" controls>
-                <source id='audio-source'
-                src="https://api.twilio.com/2010-04-01/Accounts/ACcc7d275199429677243e3b9ee7936488/Recordings/REc7644219bd9ead3aad1697caa03979d6.mp3" name='audio-announce' type='audio/mpeg'>
+                <source id='audio-source' type='audio/mpeg'>
               </audio>
             </div>
           </div>

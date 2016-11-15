@@ -83,7 +83,8 @@ def on_answer():
         method= 'POST',
         action= '%s/notify/record/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
         playBeep= True,
-        finishOnKey='#'
+        finishOnKey='#',
+        timeout=120
     )
 
     return voice

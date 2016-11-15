@@ -67,7 +67,7 @@ function newEventSocketIOHandlers() {
 
         $('#audio_url').val(data['audio_url']);
 
-        $('#audio-source').attr('src', data['audio_url'] + '.mp3');
+        $('#audio-source').attr('src', data['audio_url']);
 
         try {
            $('#music')[0].load();

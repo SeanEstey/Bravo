@@ -42,28 +42,18 @@ legend.new_event {
 
 fieldset.new_event {
   margin: 1em;
-  padding: 1em;
+  padding: 1em 2em;
   border: 1px solid #cccccc;
   -moz-border-radius: 7px;
   -webkit-border-radius: 7px;
   text-align: left;
 }
 
-textarea.special-msg {
-  width: 100%;
-  max-width: 300px;
-  height: 50px;
-}
 
 .box {
-  background-color: #f7f7f7;
-  padding: 2em;
+  padding: 0 2em;
   z-index: 20;
-  /*margin: auto 5em;*/
-  border: 1px solid #cccccc;
-  -moz-border-radius: 7px;
-  -webkit-border-radius: 7px;
-  border-radius: 7px;
+  margin: auto 7.5em;
 }
 
 .input{
@@ -78,8 +68,8 @@ textarea.special-msg {
 }
 
 .audioplayer{
-  width:50%; 
-  margin:0.5em auto; 
+  width:315px;
+  margin: 2em auto; 
   padding: 0.25em; 
   display:block;
   text-align:center; 

@@ -655,4 +655,8 @@ function formatColumns() {
         $(this).text($(this).text().toTitleCase());
         applyStatusColor($(this));
     });
+
+    $('td[name="sms_reply"]').each(function() {
+        applyStatusColor($(this));
+    });
 }

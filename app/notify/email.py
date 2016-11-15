@@ -3,16 +3,16 @@
 import logging
 import os
 from flask import render_template, current_app, request
+from datetime import datetime, date, time
 from .. import db
 from .. import utils, mailgun
 logger = logging.getLogger(__name__)
 
 # TODO: remove db['emails'].update op. in app.notify.views.on_delivered just search mid in db['notifics']
-# TODO: remove 'status' outside of tracking. Redundant? Replace all refs with 'tracking.status'
 # TODO: include date in email subject
 
 #-------------------------------------------------------------------------------
-def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply=None):
+def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
     '''
     @on_send: {
         'template': 'path/to/template/file',
@@ -23,7 +23,7 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply=None):
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
-        'event_dt': event_dt,
+        'event_dt': utils.naive_to_local(datetime.combine(event_date, time(8,0))),
         'on_send': on_send,
         'to': to,
         'type': 'email',
@@ -123,3 +123,15 @@ def on_dropped():
     socketio_app.emit('notific_status', {
         'notific_id': str(notific['_id']),
         'status': request.form['event']})
+
+    msg = 'receipt to %s dropped. %s. %s' %(
+        request.form['recipient'], request.form['reason'])
+
+    from .. import tasks
+    tasks.rfu.apply_async(
+        args=[
+            db.notific_events.find_one({notific['evnt_id']})['agency'],
+            msg + request.form.get('description')],
+        kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
+        queue=current_app.config['DB']
+    )

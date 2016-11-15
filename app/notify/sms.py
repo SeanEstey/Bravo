@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
+def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
     '''
     @on_send: {
         'template': 'path/to/template/file'
@@ -33,7 +33,7 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_send, on_reply):
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
-        'event_dt': event_dt,
+        'event_dt': utils.naive_to_local(datetime.combine(event_date, time(8,0))),
         'on_send': on_send,
         'on_reply': on_reply,
         'to': utils.to_intl_format(to),

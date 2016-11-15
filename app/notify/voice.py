@@ -2,7 +2,7 @@
 
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, date, time
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import current_app, render_template, request
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # TODO: finish writing RFU code on call.status == 'failed'
 
 #-------------------------------------------------------------------------------
-def add(evnt_id, event_dt, trig_id, acct_id, to, on_answer, on_interact):
+def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
     '''
     @on_answer: {
         'source': 'template/audio',
@@ -30,7 +30,7 @@ def add(evnt_id, event_dt, trig_id, acct_id, to, on_answer, on_interact):
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
-        'event_dt': event_dt,
+        'event_dt': utils.naive_to_local(datetime.combine(event_date, time(8,0))),
         'on_answer': on_answer,
         'on_interact': on_interact,
         'to': utils.to_intl_format(to),
@@ -110,7 +110,11 @@ def get_speak(notific, template_path, timeout=False):
     try:
         speak = render_template(
             template_path,
-            notific = notific,
+            notific = utils.formatter(
+                notific,
+                to_local_time=True,
+                to_strftime="%A, %B %d"
+            ),
             account = utils.formatter(
                 account,
                 to_local_time=True,
@@ -183,7 +187,7 @@ def on_answer():
 
         db['notifics'].update_one(
             {'tracking.sid': request.form['CallSid']},
-            {'$set': {'tracking.speak': str(response)}}
+            {'$set': {'tracking.speak': str(response).replace('\"', '')}}
         )
     elif notific['on_answer']['source'] == 'audio':
         response.play(notific['on_answer']['url'])

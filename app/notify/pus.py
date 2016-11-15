@@ -48,7 +48,7 @@ def reminder_event(agency, block, _date):
 
     # Create event + triggers
 
-    evnt_id = events.add(agency, block, _date)
+    evnt_id = events.add(agency, block, _date, 'bpu')
 
     trig_conf = agency_conf['scheduler']['notify']['triggers']
 
@@ -70,8 +70,6 @@ def reminder_event(agency, block, _date):
                 trig_conf['voice_sms']['fire_hour'],
                 trig_conf['voice_sms']['fire_min'])
         )
-
-    event_dt = utils.naive_to_local(datetime.combine(_date,time(8,0)))
 
     # Create notifications
 
@@ -116,7 +114,8 @@ def reminder_event(agency, block, _date):
                     'func': 'on_sms_reply'}
 
                 sms.add(
-                    evnt_id, event_dt,
+                    evnt_id,
+                    _date,
                     phone_trig_id,
                     acct_id, etap.get_phone('Mobile', acct_obj),
                     on_send, on_reply)
@@ -131,7 +130,8 @@ def reminder_event(agency, block, _date):
                     'func': 'on_call_interact'}
 
                 voice.add(
-                    evnt_id, event_dt,
+                    evnt_id,
+                    _date,
                     phone_trig_id,
                     acct_id, etap.get_phone('Voice', acct_obj),
                     on_answer, on_interact)
@@ -144,7 +144,8 @@ def reminder_event(agency, block, _date):
                 'subject': 'Your upcoming Vecova Bottle Service pickup'}
 
             email.add(
-                evnt_id, event_dt,
+                evnt_id,
+                _date,
                 email_trig_id,
                 acct_id, acct_obj.get('email'),
                 on_send)

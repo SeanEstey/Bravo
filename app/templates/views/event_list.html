@@ -3,19 +3,23 @@
 {% block content %}  
   <script src="{{url_for('static', filename='js/strftime.js')}}"></script>
   <script src="{{url_for('static', filename='js/views/event_list.js')}}"></script>
-  <script> $(function() {init();}); </script>
+  <script> $(function() {event_list_init();}); </script>
 
-  <div class='container-fluid border'>
+  <div style='margin-bottom:10em' class='container-fluid border'>
     <div class='data-navbar-div'>
-      <a class='hover' href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
-      <a style='font-weight:bold; text-decoration:none;' title='Schedule a new
-        event' href="{{ url_for('notify.new_event') }}">+</a>
+      <a class='hover' 
+         href="{{ url_for('notify.view_event_list') }}">Notification Events</a> / 
+      <a id='new_event'
+         style='font-weight:bold; text-decoration:none;' 
+         title='Schedule a new event' 
+         href='#'>+</a>
     </div>
     <table id='events_tbl' class='table table-hover table-colored'>
       <thead>
         <tr>
           <th>Name</th>
-					<th width='15%' >Date</th>
+					<th>Date</th>
+					<th>Type</th>
 					<th>Email Notifications</th>
 					<th width='5%' >Count</th>
 					<th>Voice/SMS Notifications</th>
@@ -37,21 +41,48 @@
                 event.event_dt.strftime("%A %b %d") }}</a>
 						{% endif %}
 					</td>
-          {% for trigger in event.triggers %}
+          <td>{{ event.type }}</td>
+
+          {% set vars = {'email_trig': False} %}
+          {% for trigger in event.triggers if trigger.type == "email" %}
               {% if trigger.status == "fired" %}
                 <td><font color='green'>Sent</font> @ {{
-									trigger.fire_dt.strftime("%b %d, %I:%M %p")
-								}}</td>
-              {% elif event.status == "pending" %}
+                  trigger.fire_dt.strftime("%b %d, %I:%M %p")
+                }}</td>
+              {% elif trigger.status == "pending" %}
                 <td><font color='blue'>Pending</font> @ {{
-									trigger.fire_dt.strftime("%b %d, %I:%M %p")
-								}}</td>
+                  trigger.fire_dt.strftime("%b %d, %I:%M %p")
+                }}</td>
               {% endif %}
-						<td>{{trigger.count}}</td>
+              <td>{{ trigger['count'] }}</td>
+
+              {% do vars.update({'email_trig':True}) %}
           {% endfor %}
-					{% if event.triggers|length == 1 %}
-						<td><hr></td><td><hr></td>
-					{% endif %}
+
+          {% if not vars.email_trig %}
+            <td><hr></td><td><hr></td>
+          {% endif %}
+
+          {% set vars = {'voice_sms_trig': False} %}
+          {% for trigger in event.triggers if trigger.type == "voice_sms" %}
+              {% if trigger.status == "fired" %}
+                <td><font color='green'>Sent</font> @ {{
+                  trigger.fire_dt.strftime("%b %d, %I:%M %p")
+                }}</td>
+              {% elif trigger.status == "pending" %}
+                <td><font color='blue'>Pending</font> @ {{
+                  trigger.fire_dt.strftime("%b %d, %I:%M %p")
+                }}</td>
+              {% endif %}
+              <td>{{ trigger['count'] }}</td>
+
+              {% do vars.update({'voice_sms_trig':True}) %}
+          {% endfor %}
+
+          {% if not vars.voice_sms_trig %}
+            <td><hr></td><td><hr></td>
+          {% endif %}
+
 					<td>
 						<button 
 							data-toggle='tooltip'	
@@ -73,6 +104,26 @@
 			<button class="btn btn-info loader">
 				<span class="fa fa-refresh loader-animate"></span>  Creating Event...</button>
 		</div>
+  </div>
+
+  <!-- New Event Dialog -->
+  <div id='new_event_modal' class='modal fade'>
+    <div class='modal-dialog modal-lg'>
+      <div class="modal-content">
+        <div class='modal-header'>
+          <button type='button' class='close' data-dismiss="modal" aria-hidden="true">×</button>
+          <h4 class="modal-title">Schedule a New Event</h4>
+        </div>
+        <div class='modal-body'>
+          {% include 'views/new_event.html' %} 
+        </div>
+        <div class='modal-footer'>
+          <button id='btn-default' type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button id='submit_btn' type="button" class="btn
+          btn-primary">Schedule</button>
+        </div>
+      </div>
+    </div>
   </div>
 {% endblock %}
 

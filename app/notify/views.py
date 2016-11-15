@@ -15,7 +15,7 @@ from flask_socketio import SocketIO, emit
 
 from . import notify
 from . import accounts, admin, events, triggers, email, voice, sms, \
-              recording, pus
+              recording, pus, gg, voice_announce
 from .. import utils, schedule, parser
 from app.main import sms_assistant
 from .. import db
@@ -44,6 +44,27 @@ def get_op_stats():
         return jsonify({'status':'failed'})
 
     return jsonify(stats)
+
+#-------------------------------------------------------------------------------
+@notify.route('/<evnt_id>/debug_info', methods=['POST'])
+@login_required
+def get_debug_info(evnt_id):
+    event = db.notific_events.find_one({'_id':ObjectId(evnt_id)})
+
+    event['triggers'] = events.get_triggers(event['_id'])
+
+    for trigger in event['triggers']:
+        # modifying 'triggers' structure for view rendering
+        trigger['count'] = triggers.get_count(trigger['_id'])
+
+    return jsonify(
+        utils.formatter(
+            event,
+            to_local_time=True,
+            to_strftime="%m/%-d/%Y @ %-I:%M%p",
+            bson_to_json=True
+        )
+    )
 
 #-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])
@@ -102,35 +123,61 @@ def view_event(evnt_id):
     )
 
 #-------------------------------------------------------------------------------
-@notify.route('/new')
+@notify.route('/new', methods=['POST'])
 @login_required
 def new_event():
+    logger.info(request.form.to_dict())
+
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
-    conf= db['agencies'].find_one({'name':agency})
-    try:
-        foo = 1
-        #with open('app/templates/schemas/'+agency+'.json') as json_file:
-        #  templates = json.load(json_file)['reminders']
-    except Exception as e:
-        logger.error("Couldn't open json schemas file")
-        return "Error"
+    template = request.form['template_name']
 
-    return render_template('views/new_event.html',
-        templates=None,
-        etap_query_folder=conf['etapestry']['schedule_events_folder'],
-        title=current_app.config['TITLE'])
+    if template == 'green_goods':
+        evnt_id = gg.add_event()
+    elif template == 'recorded_announcement':
+        evnt_id = voice_announce.add_event()
+    elif template == 'bpu':
+        block = request.form['query_name']
 
-#-------------------------------------------------------------------------------
-@notify.route('/submit_event', methods=['POST'])
-@login_required
-def _submit_event():
-    try:
-        r = reminders.submit_event(request.form.to_dict(), request.files['call_list'])
-        return Response(response=json.dumps(r), status=200, mimetype='application/json')
-    except Exception as e:
-        logger.error('submit_event: %s', str(e))
-        return False
+        if parser.is_res(block):
+            cal_id = db.agencies.find_one({'name':agency})['cal_ids']['res']
+        elif parser.is_bus(block):
+            cal_id = db.agencies.find_one({'name':agency})['cal_ids']['bus']
+        else:
+            return jsonify({'status':'failed', 'description':'Invalid Block name'})
+
+        oauth = db.agencies.find_one({'name':agency})['google']['oauth']
+
+        _date = schedule.get_next_block_date(cal_id, block, oauth)
+
+        evnt_id = pus.reminder_event(
+            agency,
+            block,
+            _date
+        )
+
+    event = db.notific_events.find_one({'_id':evnt_id})
+
+    event['triggers'] = events.get_triggers(event['_id'])
+
+    for trigger in event['triggers']:
+        # modifying 'triggers' structure for view rendering
+        trigger['count'] = triggers.get_count(trigger['_id'])
+
+    return jsonify({
+        'status':'success',
+        'event': utils.formatter(
+            event,
+            to_local_time=True,
+            bson_to_json=True
+        ),
+        'view_url': url_for('.view_event', evnt_id=str(event['_id'])),
+        'cancel_url': url_for('.cancel_event', evnt_id=str(event['_id'])),
+        'description':
+            'Reminders for event %s successfully scheduled.' %
+            (request.form['query_name'])
+    })
+
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/cancel')
@@ -184,64 +231,6 @@ def edit_msg(acct_id):
     return accounts.edit(ObjectId(acct_id), request.form.items())
 
 #-------------------------------------------------------------------------------
-@notify.route('/<block>/schedule', methods=['POST'])
-@login_required
-def schedule_block(block):
-    if not admin.auth_request_type('admin'):
-        return 'Denied'
-
-    agency = db['users'].find_one({'user': current_user.username})['agency']
-
-    if parser.is_res(block):
-        cal_id = db.agencies.find_one({'name':agency})['cal_ids']['res']
-    elif parser.is_bus(block):
-        cal_id = db.agencies.find_one({'name':agency})['cal_ids']['bus']
-    else:
-        return jsonify({'status':'failed', 'description':'Invalid Block name'})
-
-    oauth = db.agencies.find_one({'name':agency})['google']['oauth']
-
-    _date = schedule.get_next_block_date(cal_id, block, oauth)
-
-    if not _date:
-        return jsonify({
-            'status':'failed',
-            'description':'Block not found in schedule'}
-        )
-
-    logger.info('loading reminders for %s on %s', block, _date)
-
-    try:
-        evnt_id = pus.reminder_event(agency, block, _date)
-    except EtapError as e:
-        return jsonify({
-            'status':'failed',
-            'description': str(e)})
-
-    event = db.notific_events.find_one({'_id':evnt_id})
-
-    event['triggers'] = events.get_triggers(event['_id'])
-
-    for trigger in event['triggers']:
-        # modifying 'triggers' structure for view rendering
-        trigger['count'] = triggers.get_count(trigger['_id'])
-
-    return jsonify({
-        'status':'OK',
-        'event': utils.formatter(
-            event,
-            to_local_time=True,
-            bson_to_json=True
-        ),
-        'view_url': url_for('.view_event', evnt_id=str(event['_id'])),
-        'cancel_url': url_for('.cancel_event', evnt_id=str(event['_id'])),
-        'description':
-            'Reminders for event %s on %s successfully scheduled.' %
-            (block, _date.strftime('%b %-d'))
-    })
-
-
-#-------------------------------------------------------------------------------
 @notify.route('/<trig_id>/fire', methods=['POST'])
 @login_required
 def fire_trigger(trig_id):
@@ -284,21 +273,22 @@ def get_twilio_token():
     return jsonify(identity="sean", token=token)
 
 #-------------------------------------------------------------------------------
-@notify.route('/voice/record/request', methods=['POST'])
+@notify.route('/record', methods=['POST'])
+@login_required
 def record_msg():
-    call = recording.dial(request.values.to_dict())
+    call = recording.dial()
     return Response(response=json.dumps({'status':call.status}), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
-@notify.route('/voice/record/answer.xml',methods=['POST'])
+@notify.route('/record/answer.xml',methods=['POST'])
 def record_xml():
-    twiml = recording.on_answer(request.values.to_dict())
+    twiml = recording.on_answer()
     return Response(response=str(twiml), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
-@notify.route('/voice/record/complete.xml', methods=['POST'])
+@notify.route('/record/interact.xml', methods=['POST'])
 def record_complete_xml():
-    twiml = recording.on_complete(request.values.to_dict())
+    twiml = recording.on_interact()
     return Response(response=str(twiml), mimetype='text/xml')
 
 #-------------------------------------------------------------------------------

@@ -253,8 +253,6 @@ function buildAdminPanel() {
         });
 
     });
-
-
     
     // Add dev_mode admin pane buttons
 
@@ -292,7 +290,7 @@ function buildAdminPanel() {
 				$('tr[id]').each(function() {
 						var $debug_btn = 
 							'<button name="debug-btn" ' +
-											'class="btn btn-warning">Print Debug</button>';
+											'class="btn btn-outline-warning">Print Debug</button>';
 
 						$(this).append('<td>'+$debug_btn+'</td>');
 
@@ -578,6 +576,8 @@ function enableColumnSorting() {
 	// Enable sorting on column headers
 	$('th').each(function($index){
 			var $a = $('a', $(this));
+			$a.text($a.text().toTitleCase());
+
 			var encoded_text = HTMLEncode($a.text());
 
 			if(encoded_text.indexOf(window.unicode['DOWN_ARROW']) > -1)

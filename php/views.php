@@ -32,7 +32,7 @@
 			$data = json_decode($_POST['data'], true);
 			$etapestry = json_decode($_POST['etapestry'], true);
 
-			if(isset($_POST['sandbox_mode']))
+			if($isset($_POST['sandbox_mode']))
 					$sandbox_mode = $_POST['sandbox_mode'];
   }
 
@@ -180,6 +180,18 @@
 				else
 					echo json_encode($account);
 				break;
+		//-----------------------------------------------------------------------
+    case 'get_accounts_by_ref':
+        $accts = [];
+
+        for($i=0; $i< count($data['refs']); $i++) {
+						$accts[] = utf8_converter(
+                $nsc->call('getAccount', array($data['refs'][$i]))
+            );
+        }
+        echo json_encode($accts);
+        break;
+
 		//-----------------------------------------------------------------------
     case 'get_accounts':
 				$accounts = [];

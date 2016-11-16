@@ -48,7 +48,6 @@ def dial():
         logger.error('call to %s failed. %s', request.form['To'], str(e))
         return {'status':'failed', 'description': 'Invalid phone number'}
     else:
-        logger.info('%s call to %s', call.status, request.form['To'])
         logger.debug(utils.print_vars(call))
 
         db.audio.insert_one({
@@ -62,8 +61,6 @@ def dial():
         })
 
 
-    logger.info('Dial status: %s', call.status)
-
     return {'status':call.status}
 
 #-------------------------------------------------------------------------------
@@ -71,8 +68,6 @@ def on_answer():
     '''Request: Twilio POST
     Response: twilio.twiml.Response with voice content
     '''
-
-    logger.info('Sending record twimlo response to client')
 
     # Record voice message
     voice = twiml.Response()
@@ -98,12 +93,14 @@ def on_interact():
     Response: twilio.twiml.Response with voice content
     '''
 
-    logger.debug('on_interact args: %s', request.form.to_dict())
+    logger.debug('on_interact: %s', request.form.to_dict())
 
     if request.form.get('Digits') == '#':
         record = db.audio.find_one({'sid': request.form['CallSid']})
 
-        logger.info('Recording completed. Sending audio_url to client')
+        logger.info(
+            'recording successful. duration: %ss',
+            request.form['RecordingDuration'])
 
         # Reminder job has not been created yet so save in 'audio' for now
 
@@ -130,6 +127,8 @@ def on_interact():
 
 #-------------------------------------------------------------------------------
 def on_complete():
+    logger.debug('on_complete: %s', request.form.to_dict())
+
     r = db.audio.find_one({'sid': request.form['CallSid']})
 
     if r['status'] != 'recorded':
@@ -141,4 +140,3 @@ def on_complete():
         })
 
     return True
-

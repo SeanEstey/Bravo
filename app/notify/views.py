@@ -126,7 +126,7 @@ def view_event(evnt_id):
 @notify.route('/new', methods=['POST'])
 @login_required
 def new_event():
-    logger.info(request.form.to_dict())
+    logger.debug(request.form.to_dict())
 
     agency = db['users'].find_one({'user': current_user.username})['agency']
 

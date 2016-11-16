@@ -11,7 +11,7 @@ from pymongo.collection import ReturnDocument
 
 from app import db
 from . import events, accounts, triggers, voice
-from .. import utils, etap
+from .. import utils, etap, bcolors
 logger = logging.getLogger(__name__)
 
 class EtapError(Exception):
@@ -22,7 +22,7 @@ def add_event():
     agency = db.users.find_one({'user': current_user.username})['agency']
     conf= db.agencies.find_one({'name':agency})
 
-    logger.info(request.form.to_dict())
+    logger.debug(request.form.to_dict())
 
     try:
         response = etap.call(
@@ -38,7 +38,7 @@ def add_event():
         logger.error(msg)
         raise EtapError(msg)
     else:
-        logger.info('returned %s accounts', response['count'])
+        logger.debug('returned %s accounts', response['count'])
 
     evnt_id = events.add(
         agency,
@@ -77,6 +77,10 @@ def add_event():
             {'module': 'app.notify.voice_announce',
              'func': 'on_interact'}
         )
+
+    logger.info(
+        '%s voice_announce event successfully created %s',
+        bcolors.OKGREEN, bcolors.ENDC)
 
     return evnt_id
 

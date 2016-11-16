@@ -101,7 +101,6 @@ function alertMsg(msg, level, duration=7500, id=null) {
 		$alert.html('<span>' + msg + '</span>');
 
 		$alert.fadeTo('slow', 0.75, function() {
-        console.log('duration: ' + duration);
 				globalTimeoutId = setTimeout(function() {
 						$alert.fadeTo('slow', 0);
 						globalTimeoutId = false;

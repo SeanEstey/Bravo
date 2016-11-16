@@ -280,7 +280,7 @@ def record_interact_xml():
 #-------------------------------------------------------------------------------
 @notify.route('/record/complete',methods=['POST'])
 def record_complete():
-    return recording.on_complete()
+    return jsonify(recording.on_complete())
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/play/answer.xml',methods=['POST'])

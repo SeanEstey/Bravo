@@ -70,12 +70,15 @@ $('[data-toggle="tooltip"]').tooltip();
 var globalTimeoutId = false;
 
 //------------------------------------------------------------------------------
-function alertMsg(msg, level, duration=7500) {
+function alertMsg(msg, level, duration=7500, id=null) {
     /*  Display color-coded message across banner below header.
     * @level: 'success', 'info', 'warning', 'danger'
     */
 
-		var $alert = $('.alert-banner');
+    if(!id)
+		    var $alert = $('.alert-banner');
+    else
+        var $alert = $('#'+id);
 
 		// Existing alert. Clear its timer, fade it out
 		if(globalTimeoutId) {
@@ -84,7 +87,7 @@ function alertMsg(msg, level, duration=7500) {
 				$alert.stop(true);
 
 				$alert.fadeTo('slow', 0, function() {
-					alertMsg(msg, level, duration);
+					alertMsg(msg, level, duration, id);
 				});
 				return;
 		}
@@ -92,12 +95,13 @@ function alertMsg(msg, level, duration=7500) {
 		$alert.removeClass('success').removeClass('info').removeClass('warning').removeClass('danger');
 		$alert.addClass(level);
 
-		if(level == 'warning' || level == 'danger')
-        duration = 10000;
+		//if(duration==7500 && (level == 'warning' || level == 'danger'))
+    //    duration = 10000;
 
 		$alert.html('<span>' + msg + '</span>');
 
 		$alert.fadeTo('slow', 0.75, function() {
+        console.log('duration: ' + duration);
 				globalTimeoutId = setTimeout(function() {
 						$alert.fadeTo('slow', 0);
 						globalTimeoutId = false;

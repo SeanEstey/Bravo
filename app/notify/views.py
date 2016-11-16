@@ -260,24 +260,10 @@ def no_pickup(evnt_id, acct_id):
     return 'Thank You'
 
 #-------------------------------------------------------------------------------
-@notify.route('/play/sample', methods=['POST'])
-def play_sample_rem():
-    twiml = twilio.twiml.Response()
-    twiml.say("test")
-    return Response(response=str(twiml), mimetype='text/xml')
-
-#-------------------------------------------------------------------------------
-@notify.route('/get/token', methods=['GET'])
-def get_twilio_token():
-    token = recording.get_twilio_token()
-    return jsonify(identity="sean", token=token)
-
-#-------------------------------------------------------------------------------
 @notify.route('/record', methods=['POST'])
 @login_required
 def record_msg():
-    call = recording.dial()
-    return Response(response=json.dumps({'status':call.status}), mimetype='text/xml')
+    return jsonify(recording.dial())
 
 #-------------------------------------------------------------------------------
 @notify.route('/record/answer.xml',methods=['POST'])
@@ -287,9 +273,14 @@ def record_xml():
 
 #-------------------------------------------------------------------------------
 @notify.route('/record/interact.xml', methods=['POST'])
-def record_complete_xml():
+def record_interact_xml():
     twiml = recording.on_interact()
     return Response(response=str(twiml), mimetype='text/xml')
+
+#-------------------------------------------------------------------------------
+@notify.route('/record/complete',methods=['POST'])
+def record_complete():
+    return recording.on_complete()
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/play/answer.xml',methods=['POST'])

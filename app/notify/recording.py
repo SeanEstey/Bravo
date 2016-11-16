@@ -41,12 +41,12 @@ def dial():
             if_machine = 'Continue',
             fallback_url = '%s/notify/voice/fallback' % os.environ.get('BRAVO_HTTP_HOST'),
             fallback_method = 'POST',
-            status_callback = '%s/notify/record/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
+            status_callback = '%s/notify/record/complete' % os.environ.get('BRAVO_HTTP_HOST'),
             status_events = ["completed"],
             status_method = 'POST')
     except Exception as e:
         logger.error('call to %s failed. %s', request.form['To'], str(e))
-        logger.debug('tb: ', exc_info=True)
+        return {'status':'failed', 'description': 'Invalid phone number'}
     else:
         logger.info('%s call to %s', call.status, request.form['To'])
         logger.debug(utils.print_vars(call))
@@ -64,7 +64,7 @@ def dial():
 
     logger.info('Dial status: %s', call.status)
 
-    return call
+    return {'status':call.status}
 
 #-------------------------------------------------------------------------------
 def on_answer():
@@ -87,9 +87,10 @@ def on_answer():
         timeout=120
     )
 
-    return voice
+    from app.socketio import socketio_app
+    socketio_app.emit('record_audio', {'status': 'answered'})
 
-    #send_socket('record_audio', {'msg': 'Listen to the call for instructions'})
+    return voice
 
 #-------------------------------------------------------------------------------
 def on_interact():
@@ -111,15 +112,33 @@ def on_interact():
           {'$set': {
               'audio_url': request.form['RecordingUrl'],
               'audio_duration': request.form['RecordingDuration'],
-              'status': 'completed'
+              'status': 'recorded'
         }})
 
         from app.socketio import socketio_app
-
-        socketio_app.emit('record_audio', {'audio_url': request.form['RecordingUrl']})
+        socketio_app.emit(
+            'record_audio', {
+                'status': 'recorded',
+                'audio_url': request.form['RecordingUrl']
+        })
 
         voice = twiml.Response()
         voice.say('Message recorded. Goodbye.', voice='alice')
         voice.hangup()
 
         return voice
+
+#-------------------------------------------------------------------------------
+def on_complete():
+    r = db.audio.find_one({'sid': request.form['CallSid']})
+
+    if r['status'] != 'recorded':
+        from app.socketio import socketio_app
+        socketio_app.emit(
+            'record_audio', {
+                'status': 'failed',
+                'description': 'There was a problem recording your voice audio'
+        })
+
+    return True
+

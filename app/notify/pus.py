@@ -74,9 +74,6 @@ def reminder_event(agency, block, _date):
     # Create notifications
 
     for acct_obj in etap_accts:
-
-        logger.debug(json.dumps(acct_obj))
-
         npu = etap.get_udf('Next Pickup Date', acct_obj).split('/')
 
         if len(npu) < 3:

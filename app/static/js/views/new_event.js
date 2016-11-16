@@ -1,7 +1,10 @@
 
 //------------------------------------------------------------------------------
 function new_event_init() {
-    alertMsg('Schedule a new notification event', 'info', 7500);
+    alertMsg(
+      'Schedule a new notification event', 
+      'info', 7500, 'new_event_alert'
+    );
 
     newEventBtnHandlers();
     newEventSocketIOHandlers();
@@ -20,7 +23,6 @@ function new_event_init() {
 
 //------------------------------------------------------------------------------
 function newEventBtnHandlers() {
-
     $('#submit_btn').click(function(event){
         event.preventDefault(event);
         validateNewJobForm();
@@ -28,6 +30,7 @@ function newEventBtnHandlers() {
 
     $('#call_btn').click(function() {
         event.preventDefault();
+        alertMsg('Attempting call...', 'info', 7500, 'new_event_alert');
 
         $.ajax({
           type: 'POST',
@@ -35,19 +38,11 @@ function newEventBtnHandlers() {
           data: {'To':$('#phone-num').val()}
         })
         .done(function(response) {
-            if(response['call_status'] == 'failed') {
-              $('#record-status').text(response['error_msg'].toTitleCase());
-            }
-            else if(response['call_status'] == 'queued') {
-              $('#record-status').text('Calling...');
-            }
-            $('#record-status').clearQueue();
-            $('#record-status').fadeIn('slow');
-            $('#record-status').delay(10000);
+            if(response['status'] == 'queued')
+                alertMsg('Dialing...', 'info', 7500, 'new_event_alert');
+            else if(response['status'] == 'failed')
+                alertMsg(response['description'], 'danger', 30000, 'new_event_alert');
         });
-          
-        $('#record-status').text('Attempting Call...');
-        $('#record-status').clearQueue();
     });
 }
 
@@ -61,26 +56,36 @@ function newEventSocketIOHandlers() {
     });
 
     socket.on('record_audio', function(data) {
-        console.log('received record_audio socket: ' + JSON.stringify(data));
+        console.log('record_audio: ' + JSON.stringify(data));
 
-        $('#record-status').text('Recording complete. You can listen to the audio below.');
-
-        $('#audio_url').val(data['audio_url']);
-
-        $('#audio-source').attr('src', data['audio_url']);
-
-        try {
-           $('#music')[0].load();
+        if(data['status'] == 'answered') {
+            alertMsg(
+              'Call answered. Listen to the instructions to record your announcement',
+              'info', 7500, 'new_event_alert'
+            );
         }
-        catch(err) {
-          console.log(err);
+        else if(data['status'] == 'recorded') {
+            alertMsg(
+              'Recording complete. You can listen to the audio below',
+              'success', 15000, 'new_event_alert'
+            );
+
+            $('#audio_url').val(data['audio_url']);
+            $('#audio_source').attr('src', data['audio_url']);
+
+            try {
+               $('#music')[0].load();
+            }
+            catch(err) {
+              console.log(err);
+            }
+
+            $('.audioplayer').show();
+            $('.audioplayer').fadeIn('slow');
         }
-
-        $('.audioplayer').show();
-
-        $('.audioplayer').fadeIn('slow');
-
-        console.log('showing audio player');
+        else if(data['status'] == 'failed') {
+            alertMsg(data['description'], 'danger', 30000, 'new_event_alert');
+        }
     });
 }
 
@@ -117,100 +122,92 @@ function onSelectTemplate() {
 
 //------------------------------------------------------------------------------
 function validateNewJobForm() {
-  var paramObj = {};
+    var form = {};
 
-  $.each($('form').serializeArray(), function(_, kv) {
-    paramObj[kv.name] = kv.value;
-  }); 
+    $.each($('form').serializeArray(), function(_, kv) {
+      form[kv.name] = kv.value;
+    }); 
 
-  console.log(paramObj);
+    console.log(form);
 
-  // Validate form data
-  var missing = [];
-  var expired_date = false;
-  var invalid_date = false;
-  var scheduled_date = null;
+    var missing = [];
+    var expired_date = false;
 
-  if(paramObj['template_name'] != 'bpu') {
-      if(!paramObj['notific_time'])
-        missing.push('Schedule Time');
+    switch(form['template_name']) {
+        case 'bpu':
+            var required = ['query_name', 'query_category'];
 
-      if(!paramObj['notific_date'])
-        missing.push('Schedule Date');
-      else {
-        var now = new Date();
-        var date_str = paramObj['notific_date'];
+            for(var idx in required) {
+                if(!form[required[idx]])
+                    missing.push(required[idx]);
+            }
+            break;
+        case 'green_goods':
+            var required = ['query_name', 'query_category', 'notific_time',
+            'notific_date', 'event_date'];
 
-        if(paramObj['notific_time'])
-          date_str += ', ' + paramObj['notific_time'];
+            for(var idx in required) {
+                if(!form[required[idx]])
+                    missing.push(required[idx]);
+            }
+            break;
+        case 'recorded_announcement':
+            var required = ['query_name', 'query_category', 'notific_time',
+            'notific_date', 'audio_url'];
+            
+            for(var idx in required) {
+                if(!form[required[idx]])
+                    missing.push(required[idx]);
+            }
+            break;
+        default:
+            break;
+    }
 
-        // Datejs for parsing strings like '12pm'
-        scheduled_date = Date.parse(date_str);
+    if(missing.length > 0) {
+        msg = 'You forgot to enter: ';
+        msg += '<strong>' + missing.join(', ') + '</strong>';
+        alertMsg(msg, 'danger', 30000, 'new_event_alert');
+        return;
+    }
 
-        if(!scheduled_date)
-          invalid_date = true;
-        else if(scheduled_date.getTime() < now.getTime())
-          expired_date = true;
-      }
-  }
-  
-  if(paramObj['template'] == 'announcement') {
-    console.log('voice announcement');
-    console.log('audio url='+paramObj['audio_url']);
+    if(form['template_name'] != 'bpu') {
+        var schedule_date = Date.parse(
+          form['notific_date'] + ', ' + form['notific_time']
+        );
 
-    if(!$('#audio-source').attr('src'))
-      missing.push('Voice Recording');
-  }
+        if(!schedule_date) {
+            alertMsg('Invalid scheduled date/time', 'danger', 30000, 'new_event_alert');
+            return;
+        }
+        else if(schedule_date.getTime() < new Date().getTime()) {
+            alertMsg('Invalid scheduled date/time', 'danger', 30000, 'new_event_alert');
+            expired_date = true;
+        }
+    }
 
-  var msg = ''; 
+    var msg = ''; 
 
-  if(missing.length > 0) {
-    msg = 'You forgot to enter: ';
-    msg += '<b>' + missing.join(', ') + '</b><br><br>';
-  }
+    if(expired_date) {
+        /*
+        msg = 'The scheduled date is before the present:<br><br>' + 
+        '<b>' + scheduled_date.toString('dddd, MMMM d, yyyy @ hh:mm tt') + 
+        '</b><br><br>' +
+        'Do you want to start this job now?';
 
-  // $('#btn-default').addClass('btn-primary');
+        $('.modal-title').text('Confirm');
+        $('.modal-body').html(msg);
+        $('#btn-primary').text('Start Job');
+        $('#btn-primary').text('No');
 
-  if(missing.length > 0) {
-      /*
-      $('.modal-title').text('Missing Fields');
-      $('.modal-body').html(msg);
-      $('#btn-primary').text('Ok');
-      $('#btn-primary').click(function() {
-        $('#mymodal').modal('hide');
-      });
-      $('#btn-primary').hide();
-      $('#mymodal').modal('show');
-      */
-  }
-  else if(expired_date) {
-      /*
-      msg = 'The scheduled date is before the present:<br><br>' + 
-      '<b>' + scheduled_date.toString('dddd, MMMM d, yyyy @ hh:mm tt') + 
-      '</b><br><br>' +
-      'Do you want to start this job now?';
+        $('#btn-primary').click(function() {
+      //     $('form').submit();
+        });
 
-      $('.modal-title').text('Confirm');
-      $('.modal-body').html(msg);
-      $('#btn-primary').text('Start Job');
-      $('#btn-primary').text('No');
+        $('#mymodal').modal('show');
+        */
+    }
 
-      $('#btn-primary').click(function() {
-    //     $('form').submit();
-      });
-
-      $('#mymodal').modal('show');
-      */
-  }
-  else if(invalid_date) {
-      /*
-      $('.modal-title').text('Invalid Date/Time');
-      $('.modal-body').text('Could not understand the date and time provided. Please correct.');
-      $('#btn-primary').hide();
-      $('#mymodal').modal('show');
-      */
-  }
-  else {
       // event.preventDefault();
 
       var form_data = new FormData($('#myform')[0]);
@@ -231,7 +228,10 @@ function validateNewJobForm() {
       })
       .done(function(response) {
           if(response['status'] != 'success') {
-              alertMsg('Response: ' + response['description'], 'danger');
+              alertMsg(
+                'Response: ' + response['description'], 
+                'danger', 30000, 'new_event_alert'
+              );
 
               $('.btn.loader').fadeTo('slow', 0, function() {
                   $('.loader-div').slideToggle();
@@ -252,6 +252,4 @@ function validateNewJobForm() {
               $('.loader-div').slideToggle();
           });
       });
-
-  }
 }

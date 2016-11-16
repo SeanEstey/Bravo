@@ -4,6 +4,8 @@
 	</script>
   <script> $(function() {new_event_init();}); </script>
   
+  <div id='new_event_alert' class='alert-banner' style='margin-top:0'></div>
+
   <div class='box'>
     <form id='myform' method=post>
       <fieldset id='event_fields' class='form-fieldset new_event'>
@@ -38,8 +40,7 @@
           <input 
             class='input' 
             name='query_name' 
-            type='text' 
-            placeholder='Name of query'>
+            type='text'>
           </input>
 
           <div 
@@ -57,7 +58,7 @@
             required>
           
           <div id='record-audio' style='display:none'>
-						<div class='form-label' id='record-status'>Phone for Recording</div>
+						<div class='form-label'>Phone for Recording Announcement</div>
             <button id='call_btn' class='btn btn-info' style='float:right;'>
               Call Me
             </button>
@@ -70,8 +71,11 @@
             <div class='audioplayer'>
               <input id='audio_url' style='display:none;' name='audio_url' class='input' type='text' hidden></input>
               <audio style='vertical-align:middle; background-color:white;' id="music" controls>
-                <source id='audio-source' type='audio/mpeg'>
+                <source id='audio_source' type='audio/mpeg'>
               </audio>
+            </div>
+            <div style='text-align:center'>
+              <label class='record_status'></label>
             </div>
           </div>
       </fieldset>

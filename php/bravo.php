@@ -364,7 +364,7 @@ function add_accounts($db, $nsc, $submissions) {
 
     // Modify existing eTap account
     if(!empty($submission['existing_account'])) {
-      $status = modify_account($nsc, 
+      $status = modify_account($db, $nsc, 
         $submission['existing_account'], 
         $submission['udf'], 
         $submission['persona']

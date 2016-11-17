@@ -26,7 +26,7 @@ CELERYBEAT_SCHEDULE = {
       'schedule': crontab(hour=7, minute=00, day_of_week='*'),
       'options': { 'queue': config.DB }
   },
-  'analyze_routes': {
+  'build_routes': {
       'task': 'app.tasks.build_scheduled_routes',
       'schedule': crontab(hour=6, minute=30, day_of_week='*'),
       'options': { 'queue': config.DB }

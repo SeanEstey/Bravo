@@ -1,12 +1,14 @@
 '''app.sms'''
 
 import logging
-import twilio.twiml
-import datetime
+import twilio
+from twilio import twiml
+from datetime import datetime, date, time, timedelta
 import re
 import os
+import json
 from twilio.rest.lookups import TwilioLookupsClient
-from flask import current_app, request
+from flask import current_app, request, make_response
 
 from app import gsheets
 from app import etap
@@ -18,6 +20,9 @@ from app import db
 
 logger = logging.getLogger(__name__)
 
+
+class EtapError(Exception):
+    pass
 
 #-------------------------------------------------------------------------------
 def is_unsub():
@@ -39,49 +44,62 @@ def on_receive():
     Keywords: SCHEDULE, PICKUP
     '''
 
-    to = request.form['To']
-    from_ = request.form['From']
+    logger.info(request.cookies)
+
+    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+
+    resp = make_response()
+    twml = twiml.Response()
+
+    if not request.cookies.get('etap_id'):
+        account = identify_user(resp)
+
+        if not account:
+            twml.message(
+                "I'm sorry, I can't find an account linked to your phone number. "\
+                "Contact recycle@vecova.ca"
+            )
+            resp.data = str(twml)
+            return resp
+    else:
+        account = etap.call(
+          'get_account',
+          agency['etapestry'],
+          {'account_number':request.cookies['etap_id']},
+          silence_exceptions=True)
+
     msg = request.form['Body']
-    sms_sid = request.form['SmsStatus']
+    from_ = request.form['From']
 
-    logger.info('received sms "%s" (from: %s)', msg, from_)
+    if 'SCHEDULE' in msg.upper():
+        date = etap.get_udf('Next Pickup Date', account)
 
-    agency = db['agencies'].find_one({'twilio.sms.number' : to})
+        if not date:
+            logger.error('missing Next Pickup Date for account %s (SMS: %s)', str(account['id'], from_))
 
-    # Part of message thread?
-    doc = db['sms'].find_one({'awaiting_reply': True, 'From': from_})
+            twml.message("You are not currently scheduled for pickup. Please contact us recycle@vecova.ca")
+        else:
+            twml.message('Your next pickup is ' + date)
+    elif 'PICKUP' in msg.upper():
+        pickup_request(resp, twml)
+    else:
+        name = request.cookies.get('name')
 
-    if doc:
-        # Msg reply should contain address
-        logger.info('pickup request address: \"%s\" (SMS: %s)', msg, from_)
+        if not name:
+            if account['nameFormat'] == 1: # individual
+                name = account['firstName']
+            else:
+                name = account['name']
 
-        block = geo.find_block(msg)
+        twml.message("Hi %s. Please reply with keyword SCHEDULE if you'd like to know "\
+            "your next pickup date." % name)
 
-        if not block:
-            logger.error('could not geocode address')
+    resp.data = str(twml)
 
-            send(agency['twilio'], from_, 'We could not locate your address')
+    return resp
 
-            return False
-
-        logger.info('address belongs to Block %s', block)
-
-        db['sms'].update_one(doc, {'$set': {'awaiting_reply': False}})
-
-        gsheets.create_rfu(
-          agency['name'],
-          'Pickup request received (SMS: ' + from_ + ')',
-          name_address = msg,
-          date = datetime.datetime.now().strftime('%-m/%-d/%Y')
-        )
-
-        send(agency['twilio'], from_,
-          "Thank you. We'll get back to you shortly with a pickup date")
-
-        return True
-
-    # Check if initiating keyword request
-
+#-------------------------------------------------------------------------------
+def pickup_request(resp, twml):
     if msg.upper().find('PICKUP') >= 0:
         logger.info('new pickup request (SMS: %s)', from_)
 
@@ -94,77 +112,77 @@ def on_receive():
             reply with your address and postal code")
 
         return True
-    elif msg.upper().find('SCHEDULE') >= 0:
-        try:
-            # Look up number in eTap to see if existing account
-            account = etap.call(
-              'find_account_by_phone',
-              agency['etapestry'],
-              {"phone": from_}
-            )
-        except Exception as e:
-            logger.error("error calling eTap API: %s", str(e))
 
-        if not account:
-            logger.info('no matching etapestry account found (SMS: %s)', from_)
-            send(agency['twilio'], from_,
-                "Your phone number is not associated with an active account. \
-                To update your account, contact us at recycle@vecova.ca")
+    # Msg reply should contain address
+    logger.info('pickup request address: \"%s\" (SMS: %s)', msg, from_)
 
-            return False
+    block = geo.find_block(msg)
 
-        logger.debug(account)
+    if not block:
+        logger.error('could not geocode address')
 
-        logger.info('account %s requested schedule (SMS: %s)', str(account['id']), from_)
-
-        date = etap.get_udf('Next Pickup Date', account)
-
-        if not date:
-            logger.error('missing Next Pickup Date for account %s (SMS: %s)', str(account['id'], from_))
-
-            send(agency['twilio'], from_,
-                "You are not currently scheduled for pickup. Please contact us recycle@vecova.ca")
-
-            return False
-
-        send(agency['twilio'], from_, "Your next pickup is " + date)
-
-        return True
-    else:
-        logger.error('invalid sms keyword %s (%s)', msg, from_)
-
-        send(agency['twilio'], from_,
-            "Invalid keyword. Your request must include either \
-            SCHEDULE or PICKUP")
+        send(agency['twilio'], from_, 'We could not locate your address')
 
         return False
 
-#-------------------------------------------------------------------------------
-def send(conf, to, msg):
-    '''Send an SMS message to recipient
-    @agency: mongo document wtih twilio auth info and sms number
-    Output: Twilio response
-    '''
+    logger.info('address belongs to Block %s', block)
 
-    if to[0:2] != "+1":
-        to = "+1" + to
+    db['sms'].update_one(doc, {'$set': {'awaiting_reply': False}})
+
+    gsheets.create_rfu(
+      agency['name'],
+      'Pickup request received (SMS: ' + from_ + ')',
+      name_address = msg,
+      date = datetime.datetime.now().strftime('%-m/%-d/%Y')
+    )
+
+    send(agency['twilio'], from_,
+      "Thank you. We'll get back to you shortly with a pickup date")
+
+    return True
+
+#-------------------------------------------------------------------------------
+def identify_user(resp):
+    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
     try:
-        client = twilio.rest.TwilioRestClient(
-          conf['api']['sid'],
-          conf['api']['auth_id']
+        # Look up number in eTap to see if existing account
+        account = etap.call(
+          'find_account_by_phone',
+          agency['etapestry'],
+          {"phone": request.form['From']}
         )
+    except Exception as e:
+        logger.error("error calling eTap API: %s", str(e))
+        raise EtapError('error calling eTap API')
 
-        response = client.messages.create(
-          body = msg,
-          to = to,
-          from_ = conf['sms']['number']
-          #status_callback = '%s/sms/pickup/status' % os.environ.get('BRAVO_HTTP_HOST')
-        )
-    except twilio.TwilioRestException as e:
-        logger.error('sms exception %s', str(e), exc_info=True)
+    if not account:
+        logger.info('no matching etapestry account found (SMS: %s)',
+        request.form['From'])
 
-    return response
+        return False
+
+    logger.debug(account)
+
+    if account['nameFormat'] == 1: # individual
+        name = account['firstName']
+    else:
+        name = account['name']
+
+    expires=datetime.utcnow() + timedelta(hours=4)
+
+    resp.set_cookie(
+        'etap_id',
+        value=str(account['id']),
+        expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
+
+    resp.set_cookie(
+        'name',
+        value=name,
+        expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
+
+    return account
+
 
 #-------------------------------------------------------------------------------
 def on_status(args):

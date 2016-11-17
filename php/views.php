@@ -6,6 +6,7 @@
   ini_set('log_errors', 1);
   ini_set('error_log', $ERROR_LOG);
   
+	require('vendor/autoload.php');
 	require('misc.php');
   require('bravo.php');
 
@@ -32,7 +33,7 @@
 			$data = json_decode($_POST['data'], true);
 			$etapestry = json_decode($_POST['etapestry'], true);
 
-			if($isset($_POST['sandbox_mode']))
+			if(isset($_POST['sandbox_mode']))
 					$sandbox_mode = $_POST['sandbox_mode'];
   }
 

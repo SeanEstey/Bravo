@@ -280,7 +280,7 @@ def record_interact_xml():
 #-------------------------------------------------------------------------------
 @notify.route('/record/complete',methods=['POST'])
 def record_complete():
-    return recording.on_complete()
+    return jsonify(recording.on_complete())
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/play/answer.xml',methods=['POST'])
@@ -322,7 +322,7 @@ def sms_received():
     if sms.is_reply():
         return sms.on_reply()
     else:
-        return jsonify({'response':sms_assistant.on_receive()})
+        return sms_assistant.on_receive()
 
 #-------------------------------------------------------------------------------
 @notify.route('/call/nis', methods=['POST'])

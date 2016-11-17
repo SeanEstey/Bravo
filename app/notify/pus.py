@@ -393,7 +393,8 @@ def on_sms_reply(notific):
     account = db['accounts'].find_one({'_id':notific['acct_id']})
     conf = db['agencies'].find_one({'name': account['agency']})
 
-    if notific['tracking']['reply'] == 'NOPICKUP':
+    if 'NOPICKUP' in notific['tracking']['reply'] or \
+       'NO PICKUP' in notific['tracking']['reply']:
         cancel_pickup(notific['evnt_id'], notific['acct_id'])
 
     # Send SMS reply followup

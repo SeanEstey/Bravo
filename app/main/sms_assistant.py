@@ -82,6 +82,7 @@ def on_receive():
 
     # Check if initiating keyword request
 
+    '''
     if msg.upper().find('PICKUP') >= 0:
         logger.info('new pickup request (SMS: %s)', from_)
 
@@ -94,27 +95,32 @@ def on_receive():
             reply with your address and postal code")
 
         return True
-    elif msg.upper().find('SCHEDULE') >= 0:
-        try:
-            # Look up number in eTap to see if existing account
-            account = etap.call(
-              'find_account_by_phone',
-              agency['etapestry'],
-              {"phone": from_}
-            )
-        except Exception as e:
-            logger.error("error calling eTap API: %s", str(e))
+    '''
 
-        if not account:
-            logger.info('no matching etapestry account found (SMS: %s)', from_)
-            send(agency['twilio'], from_,
-                "Your phone number is not associated with an active account. \
-                To update your account, contact us at recycle@vecova.ca")
+    try:
+        # Look up number in eTap to see if existing account
+        account = etap.call(
+          'find_account_by_phone',
+          agency['etapestry'],
+          {"phone": from_}
+        )
+    except Exception as e:
+        logger.error("error calling eTap API: %s", str(e))
 
-            return False
+    if not account:
+        logger.info('no matching etapestry account found (SMS: %s)', from_)
+        send(agency['twilio'], from_,
+            "Your phone number is not associated with an active account. \
+            To update your account, contact us at recycle@vecova.ca")
 
-        logger.debug(account)
+        return False
 
+    if account['nameFormat'] == 1: # individual
+        name = account['firstName']
+    else:
+        name = account['name']
+
+    if msg.upper().find('SCHEDULE') >= 0:
         logger.info('account %s requested schedule (SMS: %s)', str(account['id']), from_)
 
         date = etap.get_udf('Next Pickup Date', account)
@@ -134,8 +140,8 @@ def on_receive():
         logger.error('invalid sms keyword %s (%s)', msg, from_)
 
         send(agency['twilio'], from_,
-            "Invalid keyword. Your request must include either \
-            SCHEDULE or PICKUP")
+            "Hi %s. Please reply with keyword SCHEDULE if you'd like to know
+            your next pickup date." % name)
 
         return False
 

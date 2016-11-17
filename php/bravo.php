@@ -364,7 +364,7 @@ function add_accounts($db, $nsc, $submissions) {
 
     // Modify existing eTap account
     if(!empty($submission['existing_account'])) {
-      $status = modify_account($db, $nsc, 
+      $status = modify_account($nsc, 
         $submission['existing_account'], 
         $submission['udf'], 
         $submission['persona']
@@ -604,34 +604,24 @@ function apply_udf($nsc, $account, $udf) {
 
 //-----------------------------------------------------------------------
 function check_duplicates($nsc, $persona_fields) {
-  global $agency;
-
-  $search = array(
-    'accountRoleTypes' => 1,
-    'allowEmailOnlyMatch' => false,
-  );
-
-  $response = $nsc->call("getDuplicateAccounts", array($persona_fields));
+  $accounts = $nsc->call("getDuplicateAccounts", array($persona_fields));
   
   if(checkForError($nsc)) {
     return $nsc->faultcode . ': ' . $nsc->faultstring;
   }
 
-  if(!empty($response)) {
-    $duplicates = '';
+	if(empty($accounts))
+		return false;
 
-    for($i=0; $i<sizeof($response); $i++) {
-      $account = $response[0]['id'];
-      
-      if($i == 0)
-        $duplicates = (string)$account;
-      else
-        $duplicates .= ',' . (string)$account;
+    $ids = [];
+
+		for($i=0; $i<sizeof($accounts); $i++) {
+			$ids[] = $accounts[0]['id'];
     }
 
-    info_log($duplicates);
-    return $duplicates;
-  }
+    //info_log($ids);
+
+    return $ids;
 }
 
 //-----------------------------------------------------------------------

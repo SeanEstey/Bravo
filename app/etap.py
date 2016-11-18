@@ -152,4 +152,3 @@ def dt_to_ddmmyyyy(dt):
 def ddmmyyyy_to_mmddyyyy(ddmmyyyy):
     p = ddmmyyyy.split('/')
     return '%s/%s/%s' % (p[1],p[0],p[2])
-  

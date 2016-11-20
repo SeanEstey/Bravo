@@ -117,26 +117,6 @@ function addDeleteBtnHandlers() {
               });
           });
       });
-
-    /*
-    else if($('#event-status').text() == 'In Progress') {
-        $('.cancel-call-col').each(function() {
-          $(this).hide();
-        });
-    }
-    else if($('#event-status').text() == 'Completed') {
-        $('#event-header').removeClass('label-primary');
-        $('#event-header').addClass('label-success');
-        $('#event-status').text('Completed');
-        $('#event-summary').text('');
-        $('.delete-btn').hide();
-        $('.cancel-call-col').each(function() {
-            $(this).hide();
-        });
-
-        console.log('event complete!');
-    }
-    */
 }
 
 //------------------------------------------------------------------------------
@@ -144,17 +124,6 @@ function buildAdminPanel() {
 		/* Each Trigger <button> stores 'trigId' and 'status' key/value pairs in
      * $(this).data() 
      */
-   
-			//	$('.admin-panel-div').accordion({header:'.admin-outer', collapsible:true});
-/*
-		$('.admin-outer').click(function() {
-				console.log('slide');
-				var height = $('.admin-panel-div').height();
-
-		});*/
-
-		
-    // Add admin_mode pane buttons
 
     // Add btns to fire each event trigger. trig_ids are stored in data-container 
     // "Status" columns i.e. "Voice SMS Status"
@@ -320,77 +289,6 @@ function buildAdminPanel() {
 }
 
 //------------------------------------------------------------------------------
-function setupTwilioClient() {
-		// Set up with TOKEN, a string generated server-side
-
-    $('#play-sample-btn').click(function() {
-			$.ajax({
-				type: 'GET',
-				url: $URL_ROOT + 'notify/get/token'
-			}).done(function(token) {
-				console.log('token received: ' + token['token']);
-
-				Twilio.Device.setup(token['token']);
-
-				var connection = Twilio.Device.connect();
-			//	{
-				 // agent: "Smith",
-				//	phone_number: "4158675309"
-			//	});
-
-			});
-    });
-
-		Twilio.Device.ready(function() {
-				// Could be called multiple times if network drops and comes back.
-				// When the TOKEN allows incoming connections, this is called when
-				// the incoming channel is open.
-				console.log('Twilio device ready');
-		});
-
-		Twilio.Device.offline(function() {
-				// Called on network connection lost.
-		});
-
-		Twilio.Device.incoming(function(conn) {
-				console.log(conn.parameters.From); // who is calling
-				conn.status // => "pending"
-				conn.accept();
-				conn.status // => "connecting"
-		});
-
-		Twilio.Device.cancel(function(conn) {
-				console.log(conn.parameters.From); // who canceled the call
-				conn.status // => "closed"
-		});
-
-		Twilio.Device.connect(function (conn) {
-				// Called for all new connections
-				console.log(conn.status);
-		});
-
-		Twilio.Device.disconnect(function (conn) {
-				// Called for all disconnections
-				console.log(conn.status);
-		});
-
-		Twilio.Device.error(function (e) {
-				console.log(e.message + " for " + e.connection);
-		});
-
-		Twilio.Device.incoming(function(connection) {
-			connection.accept();
-			console.log('connection established');
-			// do awesome ui stuff here
-			// $('#call-status').text("you're on a call!");
-		});
-
-		$("#hangup").click(function() {
-				Twilio.Device.disconnectAll();
-		});
-}
-
-//------------------------------------------------------------------------------
 function sortCalls(table, $index) {
 	/* @arg column: column number
 	 */
@@ -449,50 +347,50 @@ function sortCalls(table, $index) {
 
 //------------------------------------------------------------------------------
 function enableEditableFields() {
-  $("td").on('click',function() {      
-    $cell = $(this);
+  $("td[name]").on('click',function() {      
 
-    // Editable fields are assigned 'name' attribute
-    var name = $cell.attr('name');
-
-    if(!name)
-      return;
+    var name = $(this).attr('name');
 
 		if(name.indexOf('udf') == -1)
 			return;
 
-    if($cell.find('input').length > 0)
+    if($(this).find('input').length > 0)
       return;
 
     // Insert <input> element into <td> to enable edits
-    var row_id = $cell.parent().attr('id');
-    var text = $cell.text();
-    var width = $cell.width()*.90;
-    $cell.html("<input type='text' value='" + text + "'>");
+    var row_id = $(this).parent().attr('id');
+    var text = $(this).text();
+    var width = $(this).width()*.90;
+    $(this).html("<input type='text' value='" + text + "'>");
 
-    var $input = $cell.find('input');
+    var $input = $(this).find('input');
     $input.width(width);
     $input.css('font-size', '16px');
 		$input.focus();
 
 		$input.keyup(function(event) {
 				if(event.keyCode == 13){
-						saveFieldEdit($cell, $input);
+						saveFieldEdit($input);
 				}
 		});
   
+		$td = $(this);
     // Save edit to DB when focus lost, remove <input> element 
     $input.blur(function() {
-				saveFieldEdit($cell, $input);
+				$td.html($input.val());
+				//saveFieldEdit($input);
     });
 
   });
 }
 
 //------------------------------------------------------------------------------
-function saveFieldEdit($cell, $input) {
-		$cell.html($input.val());
-		var field_name = String($cell.attr('name'));
+function saveFieldEdit($input) {
+
+		$td = $input.parent();
+		$td.html($input.val());
+
+		var field_name = String($td.attr('name'));
 
 		console.log(field_name + ' edited');
 
@@ -504,12 +402,12 @@ function saveFieldEdit($cell, $input) {
 
 		$.ajax({
 			type: 'POST',
-			url: $URL_ROOT + 'notify/' + $cell.parent().attr('id') + '/edit',
+			url: $URL_ROOT + 'notify/' + $td.parent().attr('id') + '/edit',
 			data: payload
 		}).done(function(msg) {
 				if(msg != 'OK') {
 					alertMsg(msg, 'danger');
-					$cell.html(text);
+					$td.html(text);
 				}
 				else {
 						alertMsg('Edited field successfully', 'success');

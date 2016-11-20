@@ -87,7 +87,7 @@
         <!-- UDF's -->
         {% if row['results'][0]['account'][0]['udf'] %}
           {% for k, v in row['results'][0]['account'][0]['udf'].iteritems() %}
-            <td>{{ v }}</td>
+            <td name="udf.{{k}}">{{ v }}</td>
           {% endfor %}
         {% endif %}
 

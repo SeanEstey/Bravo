@@ -37,7 +37,7 @@ def show_routing():
 
     from .. import tasks
     tasks.analyze_upcoming_routes.apply_async(
-        kwargs={'agency_name':agency,'days':3},
+        kwargs={'agency':agency,'days':5},
         queue=current_app.config['DB'])
 
     return render_template(

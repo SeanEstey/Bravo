@@ -79,7 +79,8 @@ def build_route(route_id, job_id=None):
 
     oauth = db['agencies'].find_one({'name':route['agency']})['google']['oauth']
 
-    title = route['date'].strftime('%b %-d') + ': ' + route['block']
+    title = '%s: %s (%s)' %(
+        route['date'].strftime('%b %-d'), route['block'], route['driver']['name'])
 
     ss_id = create_sheet(
         route['agency'],

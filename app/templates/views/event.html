@@ -118,7 +118,7 @@
         {% for notific in row['results'] if notific['type'] == 'sms'%}
             {% do status.update({'content': notific['tracking']['reply']}) %}
         {% endfor %}
-        <td data-toggle='tooltip' data-oritinal-title="{{status['content']}}" name='sms_reply'>{{ status['content'] }}</td>
+        <td data-toggle='tooltip' title="{{status['content']}}" name='sms_reply'>{{ status['content'] }}</td>
 
 				<!-- Delete Button -->
 				<td class='cancel-notific'>

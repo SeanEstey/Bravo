@@ -31,6 +31,8 @@ def analyze_upcoming(agency_name, days):
     n=0
 
     task_emit('analyze_routes', {'status':'in-progress'})
+    #from ../socketio import socketio_app
+    #socketio_app.emit('analyze_routes', {'status':'in-progress'})
 
     for event in events:
         block = parser.get_block(event['summary'])

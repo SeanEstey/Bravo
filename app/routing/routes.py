@@ -26,9 +26,6 @@ class GeocodeError(Exception):
 class EtapBadDataError(Exception):
     pass
 
-
-
-
 #-------------------------------------------------------------------------------
 def build_route(route_id, job_id=None):
     '''Celery task that routes a Block via Routific and writes orders to a Sheet
@@ -82,23 +79,26 @@ def build_route(route_id, job_id=None):
     title = '%s: %s (%s)' %(
         route['date'].strftime('%b %-d'), route['block'], route['driver']['name'])
 
-    ss_id = create_sheet(
+    ss = create_sheet(
         route['agency'],
         gdrive.gauth(oauth),
         title)
 
     route = db.routes.find_one_and_update(
         {'_id':ObjectId(route_id)},
-        {'$set':{'ss_id':ss_id}})
+        {'$set':{
+            'ss_id':ss['id'],
+            'ss': ss}
+    })
 
     write_orders(
         gsheets.gauth(oauth),
-        ss_id,
+        ss['id'],
         orders)
 
     task_emit('route_status', data={
         'status':'completed',
-        'ss_id': ss_id,
+        'ss_id': ss['id'],
         'warnings': route['warnings']})
 
     logger.info(
@@ -516,7 +516,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
         logger.error(str(e))
         raise
 
-    logger.debug(response.text)
+    #logger.debug(response.text)
 
     response = json.loads(response.text)
 
@@ -608,7 +608,7 @@ def create_sheet(agency, drive_api, title):
     IMPORTANT: Make sure route template file has edit permissions for agency
     service account.
     Uses batch request for creating permissions
-    Returns: ID of new Sheet file
+    Returns: new Sheet file
     '''
 
     conf = db['agencies'].find_one({'name':agency})['routing']['gdrive']
@@ -617,7 +617,8 @@ def create_sheet(agency, drive_api, title):
     file_copy = drive_api.files().copy(
       fileId = conf['template_sheet_id'],
       body = {
-        'name': title
+        'name': title,
+        'parents': [conf['routed_folder_id']]
       }
     ).execute()
 
@@ -629,31 +630,18 @@ def create_sheet(agency, drive_api, title):
 
     logger.debug('Permissions added')
 
-    try:
-        # Retrieve the existing parents to remove
-        file = drive_api.files().get(
-          fileId=file_copy['id'],
-          fields='parents').execute()
-    except Exception as e:
-        logger.error('Error listing files: %s', str(e))
-        return False
+    _file = drive_api.files().get(
+        fileId=file_copy['id'],
+        fields='*'
+        #fields='parents'
+    ).execute()
 
-    previous_parents = ",".join(file.get('parents'))
+    logger.info(_file)
 
-    try:
-        # Move the file to the new folder
-        file = drive_api.files().update(
-          fileId=file_copy['id'],
-          addParents = conf['routed_folder_id'],
-          removeParents=previous_parents,
-          fields='id, parents').execute()
-    except Exception as e:
-        logger.error('Error moving to folder: %s', str(e))
-        return False
 
     logger.debug('sheet_id %s created', file_copy['id'])
 
-    return file_copy['id']
+    return _file
 
 #-------------------------------------------------------------------------------
 def write_orders(sheets_api, ss_id, orders):
@@ -686,7 +674,7 @@ def write_orders(sheets_api, ss_id, orders):
     for idx in range(len(orders)):
         order = orders[idx]
 
-        addy = order['location_name'].split(', ');
+        addy = order['location_name'].split(', ')
 
         # Remove Postal Code from Google Maps URL label
         if re.match(r'^T\d[A-Z]$', addy[-1]) or re.match(r'^T\d[A-Z]\s\d[A-Z]\d$', addy[-1]):

@@ -1,17 +1,11 @@
 '''notify.views'''
 
-import json
 import twilio.twiml
-import os
-import requests
-from datetime import datetime, date, time, timedelta
 from flask import request, jsonify, render_template, \
     redirect, Response, current_app, url_for
 from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 import logging
-import bson.json_util
-from flask_socketio import SocketIO, emit
 
 from . import notify
 from . import accounts, admin, events, triggers, email, voice, sms, \

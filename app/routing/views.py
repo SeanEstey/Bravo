@@ -45,7 +45,8 @@ def show_routing():
       routes=_routes,
       depots=agency_conf['routing']['locations']['depots'],
       drivers=agency_conf['routing']['drivers'],
-      admin=db.users.find_one({'user':current_user.username})['admin']
+      admin=db.users.find_one({'user':current_user.username})['admin'],
+      agency=agency
     )
 
 #-------------------------------------------------------------------------------

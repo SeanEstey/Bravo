@@ -202,8 +202,6 @@ def rfu(agency, note,
         a_id=None, npu=None, block=None, _date=None, name_addy=None):
     from app import gsheets
 
-    logger.info('rfu task')
-
     return gsheets.create_rfu(
         agency,
         note,

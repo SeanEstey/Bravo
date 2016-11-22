@@ -11,7 +11,7 @@ from . import notify
 from . import accounts, admin, events, triggers, email, voice, sms, \
               recording, pus, gg, voice_announce
 from .. import utils, schedule, parser
-from app.main import sms_assistant
+from app.main import alice
 from .. import db
 logger = logging.getLogger(__name__)
 
@@ -310,13 +310,13 @@ def sms_status():
 def sms_received():
     '''Shared endpoint for incoming SMS. Set by Twilio SMS application
     '''
-    if sms_assistant.is_unsub():
+    if alice.is_unsub():
         return 'OK'
 
     if sms.is_reply():
         return sms.on_reply()
     else:
-        return sms_assistant.on_receive()
+        return alice.on_receive()
 
 #-------------------------------------------------------------------------------
 @notify.route('/call/nis', methods=['POST'])

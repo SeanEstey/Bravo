@@ -13,7 +13,7 @@ from bson.objectid import ObjectId
 import logging
 
 from . import main
-from . import log, receipts, sms_assistant, signups
+from . import log, receipts, signups
 from .. import utils, html, gsheets, mailgun
 from app.notify import admin
 import app.notify.email

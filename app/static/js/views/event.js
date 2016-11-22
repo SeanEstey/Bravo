@@ -19,9 +19,9 @@ function addSocketIOHandlers() {
 
     var socket = io.connect(socketio_url);
 
-    socket.on('connect', function(){
-        socket.emit('connected');
-        console.log('socket.io connected!');
+    socket.on('connected', function(data){
+        $AGENCY = data['agency'];
+        console.log('socket.io connected! agency: ' + data['agency']);
     });
 
     socket.on('notific_status', function(data) {
@@ -64,10 +64,7 @@ function addSocketIOHandlers() {
 		});
 
     socket.on('update_event', function(data) {
-        if(typeof data == 'string')
-            data = JSON.parse(data);
-
-        console.log('received update: ' + JSON.stringify(data));
+        console.log('received update: ' + data);
 
         if(data['status'] == 'in-progress') {
             console.log('in progress!');

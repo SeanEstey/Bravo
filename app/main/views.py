@@ -25,6 +25,11 @@ logger = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 @main.route('/task_emit', methods=['POST'])
 def request_send_socket():
+    '''Not context aware. Sent from celery task. Will broadcast to ALL
+    connected clients. Client needs to ensure it is the correct target
+    agency.
+    '''
+
     args = request.get_json(force=True)
 
     from app.socketio import socketio_app

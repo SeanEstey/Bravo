@@ -156,9 +156,9 @@ function addSocketIOHandlers() {
 
     var socket = io.connect(socketio_url);
 
-    socket.on('connect', function(){
-        socket.emit('connected');
-        console.log('socket.io connected!');
+    socket.on('connected', function(data){
+        $AGENCY = data['agency'];
+        console.log('socket.io connected! agency: ' + data['agency']);
     });
 
     socket.on('analyze_routes', function(data) {
@@ -189,12 +189,11 @@ function addSocketIOHandlers() {
 		});
 
     socket.on('add_route_metadata', function(data) {
+        if(data['agency'] != $AGENCY)
+          return;
+
         console.log('received route metadata');
         addRouteRow(data);
-    });
-
-    socket.on('route_status', function(data) {
-
     });
 }
 

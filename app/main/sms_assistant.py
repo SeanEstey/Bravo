@@ -61,11 +61,32 @@ def on_receive():
     account = get_identity(resp)
 
     if not account:
-        return send_reply(
-            "I'm sorry, I can't find an account linked to your phone number. "\
-            "Contact recycle@vecova.ca",
-            resp
-        )
+        if request.cookies.get('status') == 'prompt_address':
+            from .. import tasks
+            tasks.rfu.apply_async(args=[
+                agency['name'],
+                'Account at address ' +msg+ ' requests '\
+                'to add mobile number ' + from_],
+                queue=current_app.config['DB'])
+
+            resp.set_cookie(
+                'status',
+                value='address_received',
+                expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
+
+            return send_reply('Thank you. We\'ll update your account.', resp)
+
+        else:
+            resp.set_cookie(
+                'status',
+                value='prompt_address',
+                expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
+
+            return send_reply(
+                "I'm sorry, I can't find an account linked to your phone number. "\
+                "If you have an active account, reply with your full address.",
+                resp
+            )
 
     if new_conversation():
         greeting = get_greeting(account)
@@ -75,7 +96,7 @@ def on_receive():
         if not etap.get_udf('Next Pickup Date', account):
             logger.error(
                 'missing Next Pickup Date for account %s (SMS: %s)',
-                str(account['id'], from_))
+                account['id'], from_)
 
             return send_reply(
                 "You are not currently scheduled for pickup. "\
@@ -230,6 +251,9 @@ def get_identity(resp):
 
     if account['nameFormat'] == 1: # individual
         name = account['firstName']
+
+        if not name:
+            name = account['name']
     else:
         name = account['name']
 

@@ -80,8 +80,6 @@ function find_account_by_phone($nsc, $phone) {
 
   $account = $nsc->call('getAccountByUniqueDefinedValue', array($dv));
 
-  info_log(json_encode($account));
-
   if(!$account) {
     info_log('No matching account found for phone number ' . $phone);
     return false;

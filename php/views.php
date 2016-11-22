@@ -208,13 +208,8 @@
 		//-----------------------------------------------------------------------
     case 'find_account_by_phone':
 				$account = find_account_by_phone($nsc, $data['phone']);
+        echo json_encode(utf8_converter($account));
 
-				if($account) {
-					$account = utf8_converter($account);
-					echo json_encode($account);
-				}
-				else
-					echo json_encode("No account found");
 				break;
 		//-----------------------------------------------------------------------
     case 'modify_account':

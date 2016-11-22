@@ -1,4 +1,4 @@
-'''app.sms'''
+'''app.sms_assistant'''
 
 import logging
 import twilio
@@ -48,48 +48,28 @@ def on_receive():
     agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
     msg = request.form['Body']
     from_ = request.form['From']
-    resp = make_response()
+    response = make_response()
     account = None
     greeting = ''
 
-    expires=datetime.utcnow() + timedelta(hours=4)
-    resp.set_cookie(
-        'messagecount',
-        value=str(int(request.cookies.get('messagecount', 0))+1),
-        expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
+    set_cookie(response, 'messagecount', int(request.cookies.get('messagecount', 0))+1)
 
-    account = get_identity(resp)
+    account = get_identity(response)
 
     if not account:
-        if request.cookies.get('status') == 'prompt_address':
-            from .. import tasks
-            tasks.rfu.apply_async(args=[
-                agency['name'],
-                'Account at address ' +msg+ ' requests '\
-                'to add mobile number ' + from_],
-                queue=current_app.config['DB'])
+        return handle_stranger(response)
 
-            resp.set_cookie(
-                'status',
-                value='address_received',
-                expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
-
-            return send_reply('Thank you. We\'ll update your account.', resp)
-
-        else:
-            resp.set_cookie(
-                'status',
-                value='prompt_address',
-                expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
+    # Are we waiting for response from known user?
+    if request.cookies.get('status') == 'add_to_schedule_confirm':
+        if 'YES' in msg.upper():
+            set_cookie(response, 'status', 'completed')
 
             return send_reply(
-                "I'm sorry, I can't find an account linked to your phone number. "\
-                "If you have an active account, reply with your full address.",
-                resp
-            )
-
-    if new_conversation():
-        greeting = get_greeting(account)
+                'Thank you. I\ll forward your request to customer service.', response)
+        else:
+            return send_reply(
+                get_help_reply(response, account=account),
+                response)
 
     # Keyword handler
     if 'SCHEDULE' in msg.upper():
@@ -99,24 +79,67 @@ def on_receive():
                 account['id'], from_)
 
             return send_reply(
-                "You are not currently scheduled for pickup. "\
-                "Please contact us recycle@vecova.ca",
-                resp
-            )
+                "You are not currently scheduled for pickups. Would you like to be?",
+                response)
+
+            set_cookie(response, 'status', 'add_to_schedule_confirm')
 
         npu_dt = etap.ddmmyyyy_to_dt(etap.get_udf('Next Pickup Date', account))
         npu_str = npu_dt.strftime('%A, %B %-d')
 
         return send_reply(
-            greeting + 'Your next pickup is scheduled on ' + npu_str,
-            resp
+            'Your next pickup is scheduled on ' + npu_str + '.',
+            response
         )
     # No keyword.
     else:
         return send_reply(
-            greeting + get_help_reply(resp, account=account),
-            resp
+            get_help_reply(response, account=account),
+            response
         )
+
+#-------------------------------------------------------------------------------
+def handle_stranger(response):
+    if request.cookies.get('status') == 'prompt_address':
+        from .. import tasks
+        tasks.rfu.apply_async(args=[
+            agency['name'],
+            'Account at address ' + request.form['Body']+ ' requests '\
+            'to add mobile number ' + from_],
+            queue=current_app.config['DB'])
+
+        set_cookie(response, 'status', 'address_received')
+
+        return send_reply('Thank you. We\'ll update your account.', response)
+
+    else:
+        set_cookie(response, 'status', 'prompt_address')
+
+        return send_reply(
+            "I'm sorry, I don't recognize this phone number. Do you have an "\
+            "account? If you let me know your address I can register this "\
+            "number for you.",
+            response
+        )
+
+#-------------------------------------------------------------------------------
+def get_name(account):
+    name = None
+
+    if account['nameFormat'] == 1: # individual
+        name = account['firstName']
+    else:
+        name = account['name']
+
+    return name
+
+#-------------------------------------------------------------------------------
+def set_cookie(response, k, v):
+    expires=datetime.utcnow() + timedelta(hours=4)
+    response.set_cookie(
+        k,
+        value=str(v),
+        expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
 
 #-------------------------------------------------------------------------------
 def new_conversation():
@@ -129,22 +152,10 @@ def new_conversation():
 def get_greeting(account=None):
     '''A simple hello at the beginning of a conversation'''
 
-    greeting = 'Good ' + get_tod()
-
-    if account:
-        if account['nameFormat'] == 1: # individual
-            name = account['firstName']
-        else:
-            name = account['name']
-
-        greeting += ', ' + name + '. '
-    else:
-        greeting += '. '
-
-    return greeting
+    return 'Good ' + get_tod() + ' '
 
 #-------------------------------------------------------------------------------
-def get_help_reply(resp, account=None):
+def get_help_reply(response, account=None):
     reply = ''
 
     messagecount = int(request.cookies.get('messagecount', 0))
@@ -152,17 +163,39 @@ def get_help_reply(resp, account=None):
     if messagecount == 0:
         reply += 'How can I help you today? '
 
-    reply += 'If you reply with the word "schedule" I can tell you your '\
-             'next pickup date'
+    reply += 'If you reply with the word "schedule" I can give you your '\
+             'next pickup date.'
 
     return reply
 
 #-------------------------------------------------------------------------------
-def send_reply(msg, resp):
+def send_reply(msg, response):
+    ASSISTANT_NAME = 'Alice'
+
+    account = get_identity(response)
+
+    reply = ASSISTANT_NAME + ': '
+
+    if new_conversation():
+        reply += get_greeting(account)
+
+        if account:
+            reply += ', ' + get_name(account) + '. '
+        else:
+            reply += '. '
+    else:
+        if account:
+            reply += get_name(account) + ', '
+            msg = msg[0].lower() + msg[1:]
+
     twml = twiml.Response()
-    twml.message(msg)
-    resp.data = str(twml)
-    return resp
+
+    reply += msg
+
+    twml.message(reply)
+
+    response.data = str(twml)
+    return response
 
 #-------------------------------------------------------------------------------
 def get_tod():
@@ -176,7 +209,53 @@ def get_tod():
         return 'evening'
 
 #-------------------------------------------------------------------------------
-def pickup_request(resp, twml):
+def get_identity(response):
+    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+
+    if request.cookies.get('etap_id'):
+        return etap.call(
+          'get_account',
+          agency['etapestry'],
+          {'account_number':request.cookies['etap_id']},
+          silence_exceptions=True
+        )
+
+    # New conversation. Try to identify phone number
+    try:
+        account = etap.call(
+          'find_account_by_phone',
+          agency['etapestry'],
+          {"phone": request.form['From']}
+        )
+    except Exception as e:
+        logger.error("error calling eTap API: %s", str(e))
+        raise EtapError('error calling eTap API')
+
+    if not account:
+        logger.info('no matching etapestry account found (SMS: %s)',
+        request.form['From'])
+
+        return False
+
+    logger.debug(account)
+
+    if account['nameFormat'] == 1: # individual
+        name = account['firstName']
+
+        if not name:
+            name = account['name']
+    else:
+        name = account['name']
+
+    expires=datetime.utcnow() + timedelta(hours=4)
+
+    set_cookie(response, 'etap_id', account['id'])
+    set_cookie(response, 'name', name)
+
+    return account
+
+#-------------------------------------------------------------------------------
+def pickup_request(response, twml):
     if msg.upper().find('PICKUP') >= 0:
         logger.info('new pickup request (SMS: %s)', from_)
 
@@ -217,79 +296,3 @@ def pickup_request(resp, twml):
       "Thank you. We'll get back to you shortly with a pickup date")
 
     return True
-
-#-------------------------------------------------------------------------------
-def get_identity(resp):
-    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
-
-    if request.cookies.get('etap_id'):
-        return etap.call(
-          'get_account',
-          agency['etapestry'],
-          {'account_number':request.cookies['etap_id']},
-          silence_exceptions=True
-        )
-
-    # New conversation. Try to identify phone number
-    try:
-        account = etap.call(
-          'find_account_by_phone',
-          agency['etapestry'],
-          {"phone": request.form['From']}
-        )
-    except Exception as e:
-        logger.error("error calling eTap API: %s", str(e))
-        raise EtapError('error calling eTap API')
-
-    if not account:
-        logger.info('no matching etapestry account found (SMS: %s)',
-        request.form['From'])
-
-        return False
-
-    logger.debug(account)
-
-    if account['nameFormat'] == 1: # individual
-        name = account['firstName']
-
-        if not name:
-            name = account['name']
-    else:
-        name = account['name']
-
-    expires=datetime.utcnow() + timedelta(hours=4)
-
-    resp.set_cookie(
-        'etap_id',
-        value=str(account['id']),
-        expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
-
-    resp.set_cookie(
-        'name',
-        value=name,
-        expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
-
-    return account
-
-
-#-------------------------------------------------------------------------------
-def on_status(args):
-    return True
-    #    logger.error('Error, SMS status %s', request.form['SmsStatus'])
-
-    # TODO: Move this code into app.sms
-
-    #doc = db['sms'].find_one_and_update(
-    #  {'SmsSid': request.form['SmsSid']},
-    #  {'$set': { 'SmsStatus': request.form['SmsStatus']}}
-    #)
-
-    #if not doc:
-    #    db['sms'].insert_one(request.form.to_dict())
-
-    #if request.form['SmsStatus'] == 'received':
-    #    sms.do_request(
-    #      request.form['To'],
-    #      request.form['From'],
-    #      request.form['Body'],
-    #      request.form['SmsSid'])

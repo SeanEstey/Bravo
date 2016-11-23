@@ -1,20 +1,16 @@
+'''app.routing.routes'''
+
 import json
 import logging
 from dateutil.parser import parse
-from oauth2client.client import SignedJwtAssertionCredentials
-import httplib2
-from apiclient.discovery import build
-from apiclient.http import BatchHttpRequest
-from datetime import datetime, time, date, timedelta
+from datetime import datetime, time, date
 from time import sleep
 import requests
-from pymongo import ReturnDocument
-import re
-import bson.json_util
 from flask_login import current_user
 from bson import ObjectId
 
-from .. import gcal, gdrive, gsheets, etap, schedule, wsf, utils
+from .. import gdrive, gsheets, etap, schedule, wsf, utils
+from . import geo, routific, sheet
 
 from app import db
 from app import task_emit
@@ -27,7 +23,7 @@ class EtapBadDataError(Exception):
     pass
 
 #-------------------------------------------------------------------------------
-def build_route(route_id, job_id=None):
+def build(route_id, job_id=None):
     '''Celery task that routes a Block via Routific and writes orders to a Sheet
     Can take up to a few min to run depending on size of route, speed of
     dependent API services (geocoder, sheets/drive api)
@@ -37,31 +33,16 @@ def build_route(route_id, job_id=None):
     '''
 
     route = db.routes.find_one({"_id":ObjectId(route_id)})
+    conf = db['agencies'].find_one({'name':route['agency']})
 
     logger.info('%s: Building %s...', route['agency'], route['block'])
 
-    agency_conf = db['agencies'].find_one({'name':route['agency']})
-
-    routing = agency_conf['routing']
-    etap_conf = agency_conf['etapestry']
-
-    # If job_id passed in as arg, skip Routific stage and build spreadsheet
     if job_id is None:
-        job_id = submit_job(
-            route['block'],
-            route['driver']['name'],
-            route['date'].isoformat(),
-            routing['locations']['office']['formatted_address'],
-            route['depot']['formatted_address'],
-            etap_conf,
-            routing['routific']['api_key'],
-            min_per_stop = routing['min_per_stop'],
-            shift_start = route['driver']['shift_start']
-        )
+        job_id = submit_job(ObjectId(route_id))
 
     # Keep looping and sleeping until receive solution or hit
     # CELERYD_TASK_TIME_LIMIT (3000 s)
-    orders = get_orders(job_id, agency_conf['google']['geocode']['api_key'])
+    orders = get_orders(job_id, conf['google']['geocode']['api_key'])
 
     if orders == False:
         logger.error('Error retrieving routific solution')
@@ -70,33 +51,28 @@ def build_route(route_id, job_id=None):
     while orders == "processing":
         logger.debug('No solution yet. Sleeping 5s...')
         sleep(5)
-        orders = get_orders(job_id, agency_conf['google']['geocode']['api_key'])
-
-    # Build the Google Sheet and copy orders
-
-    oauth = db['agencies'].find_one({'name':route['agency']})['google']['oauth']
+        orders = get_orders(job_id, conf['google']['geocode']['api_key'])
 
     title = '%s: %s (%s)' %(
         route['date'].strftime('%b %-d'), route['block'], route['driver']['name'])
 
-    ss = create_sheet(
-        route['agency'],
-        gdrive.gauth(oauth),
+    ss = sheet.build(
+        conf['name'],
+        gdrive.gauth(conf['google']['oauth']),
         title)
 
     route = db.routes.find_one_and_update(
         {'_id':ObjectId(route_id)},
-        {'$set':{
-            'ss_id':ss['id'],
-            'ss': ss}
-    })
+        {'$set':{ 'ss': ss}}
+    )
 
-    write_orders(
-        gsheets.gauth(oauth),
+    sheet.write_orders(
+        gsheets.gauth(conf['google']['oauth']),
         ss['id'],
         orders)
 
     task_emit('route_status', data={
+        'agency': conf['name'],
         'status':'completed',
         'ss_id': ss['id'],
         'warnings': route['warnings']})
@@ -107,7 +83,107 @@ def build_route(route_id, job_id=None):
     return route
 
 #-------------------------------------------------------------------------------
-def build_order(account, warnings, api_key, shift_start, shift_end, min_per_stop):
+def submit_job(route_id):
+    '''Submit orders to Routific via asynchronous long-running process endpoint
+    API reference: https://docs.routific.com/docs/api-reference
+    @date: string format 'Sat Sep 10 2016'
+    Returns:
+      -String job_id on success
+      -False on error'''
+
+    MIN_PER_STOP = 3
+    route = db.routes.find_one({"_id":ObjectId(route_id)})
+    conf = db['agencies'].find_one({'name':route['agency']})
+    geo_api_key = conf['google']['geocode']['api_key']
+
+    logger.info('%s: Building %s...', route['agency'], route['block'])
+
+    accounts = get_accounts(route['block'], conf['etapestry'])['data']
+
+    num_skips = 0
+
+    warnings = []
+    errors = []
+    orders = []
+
+    # Build the orders for Routific
+    for account in accounts:
+        if is_scheduled(account, route['date'].date()) == False:
+            num_skips += 1
+            continue
+
+        try:
+            order = routific.order(
+                account,
+                warnings,
+                routing['routific']['api_key'],
+                route['driver']['shift_start'],
+                '19:00',
+                MIN_PER_STOP
+            )
+        except EtapBadDataError as e:
+            errors.append(str(e))
+            continue
+        except GeocodeError as e:
+            logger.error('GeocodeError exception')
+            errors.append(str(e))
+            continue
+        except requests.RequestException as e:
+            errors.append(str(e))
+            continue
+
+        if order == False:
+            num_skips += 1
+        else:
+            orders.append(order)
+
+    logger.debug('Omitting %s no pickups', str(num_skips))
+
+    start_address = conf['routing']['locations']['office']['formatted_address']
+    end_address = route['depot']['formatted_address']
+
+    job_id = routific.submit_vrp_task(
+        orders,
+        route['driver']['name'],
+        start_address,
+        geo.geocode(
+            start_address,
+            geo_api_key)[0]['geometry']['location'],
+        end_address,
+        geo.geocode(
+            end_address,
+            geo_api_key)[0]['geometry']['location'],
+        route['driver']['shift_start'],
+        route['driver']['shift_end'],
+        conf['routing']['routific']['api_key']
+    )
+
+    logger.info(
+        '\nSubmitted routific task\n'\
+        'Job_id: %s\nOrders: %s\n'\
+        'Min/stop: %s',
+        job_id, len(orders), MIN_PER_STOP)
+
+    db.routes.update_one(
+        {'agency': conf['name'],
+         'block': route['block'],
+         'date': utils.naive_to_local(datetime.combine(route['date'].date(), time(0,0,0)))},
+        {'$set': {
+            'job_id': job_id,
+            'status': 'processing',
+            'block_size': len(accounts),
+            'orders': len(orders),
+            'no_pickups': num_skips,
+            'start_address': start_address,
+            'end_address': end_address,
+            'warnings': warnings,
+            'errors': errors
+        }})
+
+    return job_id
+
+#-------------------------------------------------------------------------------
+def order(account, warnings, api_key, shift_start, shift_end, min_per_stop):
     '''Returns:
       -Dict order on success
     Exceptions:
@@ -124,44 +200,22 @@ def build_order(account, warnings, api_key, shift_start, shift_end, min_per_stop
         formatted_address = account['address'] + ', ' + account['city'] + ', AB'
 
     try:
-        result = geocode(formatted_address, api_key, postal=account['postalCode'])
+        geo = geo.geocode(formatted_address, api_key, postal=account['postalCode'])
     except requests.RequestException as e:
         logger.error(str(e))
         raise
 
-    if len(result) == 0:
+    if len(geo) == 0:
         msg = "Unable to resolve address <strong>%s, %s</strong>." % (account['address'],account['city'])
         logger.error(msg)
         raise GeocodeError(msg)
 
-    result = result[0]
+    geo = geo[0]
 
-    if 'warning' in result:
-        warnings.append(result['warning'])
+    if 'warning' in geo:
+        warnings.append(geo['warning'])
 
-    return {
-      "location": {
-        "name": formatted_address,
-        "lat": result['geometry']['location']['lat'],
-        "lng": result['geometry']['location']['lng']
-      },
-      "start": shift_start,
-      "end": shift_end,
-      "duration": min_per_stop,
-      "customNotes": {
-        "id": account['id'],
-        "name": account['name'],
-        "phone": etap.get_primary_phone(account),
-        "email": 'Yes' if account.get('email') else 'No',
-        "contact": etap.get_udf('Contact', account),
-        "block": etap.get_udf('Block', account),
-        "status": etap.get_udf('Status', account),
-        "neighborhood": etap.get_udf('Neighborhood', account),
-        "driver notes": etap.get_udf('Driver Notes', account),
-        "office notes": etap.get_udf('Office Notes', account),
-        "next pickup": etap.get_udf('Next Pickup Date', account)
-      }
-    }
+    return routific.order(account, formatted_address, geo, shift_start, shift_end, min_per_stop)
 
 #-------------------------------------------------------------------------------
 def get_orders(job_id, api_key):
@@ -228,13 +282,13 @@ def get_orders(job_id, api_key):
         elif order['location_id'] == 'depot':
             # TODO: Add proper depot name, phone number, hours, and unload duration
 
-            location = geocode(route_info['end_address'], api_key)[0]['geometry']['location']
+            location = geo.geocode(route_info['end_address'], api_key)[0]['geometry']['location']
 
             order['customNotes'] = {
                 'id': 'depot',
                 'name': 'Depot'
             }
-            order['gmaps_url'] = get_gmaps_url(
+            order['gmaps_url'] = geo.get_gmaps_url(
                 order['location_name'],
                 location['lat'],
                 location['lng']
@@ -245,7 +299,7 @@ def get_orders(job_id, api_key):
 
             order['customNotes'] = task['input']['visits'][order['location_id']]['customNotes']
 
-            order['gmaps_url'] = get_gmaps_url(
+            order['gmaps_url'] = geo.get_gmaps_url(
                 _input['location']['name'],
                 _input['location']['lat'],
                 _input['location']['lng']
@@ -280,130 +334,7 @@ def get_job(job_id):
 
     return r.text
 
-#-------------------------------------------------------------------------------
-def submit_job(block, driver, date, start_address, end_address, etapestry_id,
-    routific_key, min_per_stop=3, shift_start="08:00", shift_end="19:00"):
-    '''Submit orders to Routific via asynchronous long-running process endpoint
-    API reference: https://docs.routific.com/docs/api-reference
-    @date: string format 'Sat Sep 10 2016'
-    Returns:
-      -String job_id on success
-      -False on error'''
 
-    accounts = get_accounts(block, etapestry_id)['data']
-
-    api_key = db['agencies'].find_one({'name':etapestry_id['agency']})['google']['geocode']['api_key']
-
-    start = geocode(start_address, api_key)[0]['geometry']['location']
-    end = geocode(end_address, api_key)[0]['geometry']['location']
-
-    payload = {
-      "visits": {},
-      "fleet": {
-        driver: {
-          "start_location": {
-            "id": "office",
-            "lat": start['lat'],
-            "lng": start['lng'],
-            "name": start_address,
-           },
-          "end_location": {
-            "id": "depot",
-            "lat": end['lat'],
-            "lng": end['lng'],
-            "name": end_address,
-          },
-          "shift_start": shift_start,
-          "shift_end": shift_end
-        }
-      },
-      "options": {
-        # TODO: experiment with this
-        # 'traffic': ['faster' (default), 'fast', 'normal', 'slow', 'very slow']
-        "traffic": "slow",
-        "shortest_distance": True
-      }
-    }
-
-    route_date = parse(date).date()
-    num_skips = 0
-
-    warnings = []
-    errors = []
-
-    # Build the orders for Routific
-    for account in accounts:
-        if is_scheduled(account, route_date) == False:
-            num_skips += 1
-            continue
-
-        try:
-            order = build_order(
-                account, warnings, api_key, shift_start, shift_end, min_per_stop
-            )
-        except EtapBadDataError as e:
-            errors.append(str(e))
-            continue
-        except GeocodeError as e:
-            logger.error('GeocodeError exception')
-            errors.append(str(e))
-            continue
-        except requests.RequestException as e:
-            errors.append(str(e))
-            continue
-
-        if order == False:
-            num_skips += 1
-        else:
-            payload['visits'][account['id']] = order
-
-    logger.debug('Omitting %s no pickups', str(num_skips))
-
-    try:
-        r = requests.post(
-            'https://api.routific.com/v1/vrp-long',
-            headers = {
-              'content-type': 'application/json',
-              'Authorization': routific_key
-            },
-            data=json.dumps(payload)
-        )
-    except Exception as e:
-        logger.error('Routific exception %s', str(e))
-        return False
-
-    if r.status_code != 202:
-        logger.error('Error retrieving Routific job_id. %s %s',
-            r.headers, r.text)
-        return False
-
-    job_id = json.loads(r.text)['job_id']
-
-    logger.info(
-        '\nSubmitted routific task\n'\
-        'Job_id: %s\nOrders: %s\nStart: %s\nEnd: %s\n'\
-        'Min/stop: %s\nTraffic: %s',
-        job_id, len(payload['visits']), shift_start,
-        shift_end, min_per_stop, payload['options']['traffic'])
-
-    db.routes.update_one(
-        {'agency': etapestry_id['agency'],
-         'block': block,
-         'date': utils.naive_to_local(datetime.combine(route_date, time(0,0,0)))},
-        {'$set': {
-            'job_id': job_id,
-            'traffic': payload['options']['traffic'],
-            'status': 'processing',
-            'block_size': len(accounts),
-            'orders': len(payload['visits']),
-            'no_pickups': num_skips,
-            'start_address': start_address,
-            'end_address': end_address,
-            'warnings': warnings,
-            'errors': errors
-        }})
-
-    return job_id
 
 #-------------------------------------------------------------------------------
 def is_scheduled(account, route_date):
@@ -443,152 +374,9 @@ def get_metadata():
         'agency': agency,
         'date': {'$gte':today_dt}}).sort('date', 1)
 
-    '''
-    for event in events:
-        # yyyy-mm-dd format
-        event_dt = parse(event['start']['date'])
-
-        block = re.match(r'^((B|R)\d{1,2}[a-zA-Z]{1})', event['summary']).group(0)
-
-        # Route medadata already exist?
-        route = db.routes.find_one({'date':event_dt, 'block': block, 'agency':agency})
-
-        if not route:
-            continue
-
-        # Update metadata
-        not_evnt = db['notific_events'].find_one({'name':block, 'agency':agency})
-
-        if not_evnt is not None:
-            orders = db['accounts'].find({
-                'evnt_id':not_evnt['_id'],
-                'udf.opted_out':False}).count()
-
-            route = db['routes'].update_one(
-              {'date':event_dt, 'agency':agency},
-              {'$set':{
-                'orders':orders}})
-    '''
-
     return routes
 
-#-------------------------------------------------------------------------------
-def get_gmaps_url(address, lat, lng):
-    base_url = 'https://www.google.ca/maps/place/'
 
-    # TODO: use proper urlencode() function here
-    full_url = base_url + address.replace(' ', '+')
-
-    full_url +=  '/@' + str(lat) + ',' + str(lng)
-    full_url += ',17z'
-
-    return full_url
-
-#-------------------------------------------------------------------------------
-def get_postal(geo_result):
-    for component in geo_result['address_components']:
-        if 'postal_code' in component['types']:
-            return component['short_name']
-
-    return False
-
-#-------------------------------------------------------------------------------
-def geocode(address, api_key, postal=None, raise_exceptions=False):
-    '''Finds best result from Google geocoder given address
-    API Reference: https://developers.google.com/maps/documentation/geocoding
-    @address: string with address + city + province. Should NOT include postal code.
-    @postal: optional arg. Used to identify correct location when multiple
-    results found
-    Returns:
-      -Success: single element list containing result (dict)
-      -Empty list [] no result
-    Exceptions:
-      -Raises requests.RequestException on connection error'''
-
-    try:
-        response = requests.get(
-          'https://maps.googleapis.com/maps/api/geocode/json',
-          params = {
-            'address': address,
-            'key': api_key
-          })
-    except requests.RequestException as e:
-        logger.error(str(e))
-        raise
-
-    #logger.debug(response.text)
-
-    response = json.loads(response.text)
-
-    if response['status'] == 'ZERO_RESULTS':
-        e = 'No geocode result for ' + address
-        logger.error(e)
-        return []
-    elif response['status'] == 'INVALID_REQUEST':
-        e = 'Invalid request for ' + address
-        logger.error(e)
-        return []
-    elif response['status'] != 'OK':
-        e = 'Could not geocode ' + address
-        logger.error(e)
-        return []
-
-    # Single result
-
-    if len(response['results']) == 1:
-        if 'partial_match' in response['results'][0]:
-            warning = \
-              'Partial match for <strong>%s</strong>. <br>'\
-              'Using <strong>%s</strong>.' %(
-              address, response['results'][0]['formatted_address'])
-
-            response['results'][0]['warning'] = warning
-            logger.debug(warning)
-
-        return response['results']
-
-    # Multiple results
-
-    if postal is None:
-        # No way to identify best match. Return 1st result (best guess)
-        response['results'][0]['warning'] = \
-          'Multiple results for <strong>%s</strong>. <br>'\
-          'No postal code. <br>'\
-          'Using 1st result <strong>%s</strong>.' % (
-          address, response['results'][0]['formatted_address'])
-
-        logger.debug(response['results'][0]['warning'])
-
-        return [response['results'][0]]
-    else:
-        # Let's use the Postal Code to find the best match
-        for idx, result in enumerate(response['results']):
-            if not get_postal(result):
-                continue
-
-            if get_postal(result)[0:3] == postal[0:3]:
-                result['warning'] = \
-                  'Multiple results for <strong>%s</strong>.<br>'\
-                  'First half of Postal Code <strong>%s</strong> matched in '\
-                  'result[%s]: <strong>%s</strong>.<br>'\
-                  'Using as best match.' % (
-                  address, get_postal(result), str(idx), result['formatted_address'])
-
-                logger.debug(result['warning'])
-
-                return [result]
-
-            # Last result and still no Postal match.
-            if idx == len(response['results']) -1:
-                response['results'][0]['warning'] = \
-                  'Multiple results for <strong>%s</strong>.<br>'\
-                  'No postal code match. <br>'\
-                  'Using <strong>%s</strong> as best guess.' % (
-                  address, response['results'][0]['formatted_address'])
-
-                logger.error(response['results'][0]['warning'])
-
-    return [response['results'][0]]
 
 #-------------------------------------------------------------------------------
 def get_accounts(block, etapestry_id):
@@ -599,164 +387,3 @@ def get_accounts(block, etapestry_id):
     })
 
     return accounts
-
-#-------------------------------------------------------------------------------
-def create_sheet(agency, drive_api, title):
-    '''Makes copy of Route Template, add edit/owner permissions
-    IMPORTANT: Make sure 'Routed' folder has edit permissions for agency
-    service account.
-    IMPORTANT: Make sure route template file has edit permissions for agency
-    service account.
-    Uses batch request for creating permissions
-    Returns: new Sheet file
-    '''
-
-    conf = db['agencies'].find_one({'name':agency})['routing']['gdrive']
-
-    # Copy Route Template
-    file_copy = drive_api.files().copy(
-      fileId = conf['template_sheet_id'],
-      body = {
-        'name': title,
-        'parents': [conf['routed_folder_id']]
-      }
-    ).execute()
-
-    # Prevent 500 errors
-    sleep(2)
-
-    # Transfer ownership permission, add writer permissions
-    gdrive.add_permissions(drive_api, file_copy['id'], conf['permissions'])
-
-    logger.debug('Permissions added')
-
-    _file = drive_api.files().get(
-        fileId=file_copy['id'],
-        fields='*'
-        #fields='parents'
-    ).execute()
-
-    logger.info(_file)
-
-
-    logger.debug('sheet_id %s created', file_copy['id'])
-
-    return _file
-
-#-------------------------------------------------------------------------------
-def write_orders(sheets_api, ss_id, orders):
-    '''Write formatted orders to route sheet.
-    order: {
-        "location_id": etapestry account or ['depot', 'office'],
-        "location_name":"21 Arbour Crest Close NW, Calgary, AB",
-        "arrival_time":"09:11",
-        "finish_time":"09:15",
-        "gmaps_url": url,
-        "customNotes": {
-            "id": etapestry id for order or ['depot', 'office'],
-            "name": account name,
-            "contact": contat person (businesses),
-            "block": blocks,
-            "status": etapestry status,
-            "neighborhood": (optional),
-            "driver notes": (optional),
-            "office notes": (optional),
-            "next pickup": date string
-        }
-    }'''
-
-    rows = []
-    cells_to_bold = []
-
-    # Chop off office start_address
-    orders = orders[1:]
-
-    for idx in range(len(orders)):
-        order = orders[idx]
-
-        addy = order['location_name'].split(', ')
-
-        # Remove Postal Code from Google Maps URL label
-        if re.match(r'^T\d[A-Z]$', addy[-1]) or re.match(r'^T\d[A-Z]\s\d[A-Z]\d$', addy[-1]):
-           addy.pop()
-
-        formula = '=HYPERLINK("' + order['gmaps_url'] + '","' + ", ".join(addy) + '")'
-
-        '''Info Column format (column D):
-
-        Notes: Fri Apr 22 2016: Pickup Needed
-        Name: Cindy Borsje
-
-        Neighborhood: Lee Ridge
-        Block: R10Q,R8R
-        Contact (business only): James Schmidt
-        Phone: 780-123-4567
-        Email: Yes/No'''
-
-        order_info = ''
-
-        if order['location_id'] == 'depot':
-            order_info += 'Name: Depot\n'
-            order_info += '\nArrive: ' + order['arrival_time']
-        elif order['location_id'] == 'office':
-            order_info += 'Name: ' + order['customNotes']['name']+ '\n'
-            order_info += '\nArrive: ' + order['arrival_time']
-        # Regular order
-        else:
-            if order['customNotes'].get('driver notes'):
-                # Row = (order idx + 1) + 1 (header)
-                cells_to_bold.append([idx+1+1, 4])
-
-                order_info += 'NOTE: ' + order['customNotes']['driver notes'] +'\n\n'
-
-                if order['customNotes']['driver notes'].find('***') > -1:
-                    order_info = order_info.replace("***", "")
-
-            order_info += 'Name: ' + order['customNotes']['name'] + '\n'
-
-            if order['customNotes'].get('neighborhood'):
-              order_info += 'Neighborhood: ' + order['customNotes']['neighborhood'] + '\n'
-
-            order_info += 'Block: ' + order['customNotes']['block']
-
-            if order['customNotes'].get('contact'):
-              order_info += '\nContact: ' + order['customNotes']['contact']
-            if order['customNotes'].get('phone'):
-              order_info += '\nPhone: ' + order['customNotes']['phone']
-            if order['customNotes'].get('email'):
-              order_info += '\nEmail: ' + order['customNotes']['email']
-
-            order_info += '\nArrive: ' + order['arrival_time']
-
-        rows.append([
-          formula,
-          '',
-          '',
-          order_info,
-          order['customNotes'].get('id') or '',
-          order['customNotes'].get('driver notes') or '',
-          order['customNotes'].get('block') or '',
-          order['customNotes'].get('neighborhood') or '',
-          order['customNotes'].get('status') or '',
-          order['customNotes'].get('office notes') or ''
-        ])
-
-    # Start from Row 2 Column A to Column J
-    _range = "A2:J" + str(len(orders)+1)
-
-
-    try:
-        gsheets.write_rows(sheets_api, ss_id, rows, _range)
-
-        gsheets.vert_align_cells(sheets_api, ss_id, 2, len(orders)+1, 1,1)
-
-        gsheets.bold_cells(sheets_api, ss_id, cells_to_bold)
-
-        values = gsheets.get_values(sheets_api, ss_id, "A1:$A")
-
-        hide_start = 1 + len(rows) + 1;
-        hide_end = values.index(['***Route Info***'])
-
-        gsheets.hide_rows(sheets_api, ss_id, hide_start, hide_end)
-    except Exception as e:
-        logger.error('sheets error: %s', str(e))

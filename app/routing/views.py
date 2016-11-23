@@ -72,35 +72,6 @@ def analyze_upcoming(days):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@routing.route('/start_job', methods=['POST'])
-@login_required
-def get_routing_job_id():
-    logger.info('Routing Block %s...', request.form['block'])
-
-    etap_conf = json.loads(request.form['etapestry_id'])
-
-    agency_config = db['agencies'].find_one({
-      'name':etap_conf['agency']
-    })
-
-    try:
-        job_id = routes.submit_job(
-          request.form['block'],
-          request.form['driver'],
-          request.form['date'],
-          request.form['start_address'],
-          request.form['end_address'],
-          etap_conf,
-          agency_config['routing']['routific']['api_key'],
-          min_per_stop=request.form['min_per_stop'],
-          shift_start=request.form['shift_start'])
-    except Exception as e:
-        logger.error(str(e))
-        return False
-
-    return job_id
-
-#-------------------------------------------------------------------------------
 @routing.route('/build/<route_id>', methods=['GET', 'POST'])
 @login_required
 def _build_route(route_id):
@@ -118,9 +89,8 @@ def _build_route(route_id):
 def _build_sheet(job_id, route_id):
     '''non-celery synchronous func for testing
     '''
-    routes.build_route(route_id, job_id=job_id)
+    routes.build(route_id, job_id=job_id)
     return redirect(url_for('routing.show_routing'))
-
 
 #-------------------------------------------------------------------------------
 @routing.route('/edit/<route_id>', methods=['POST'])

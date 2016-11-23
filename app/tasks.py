@@ -128,7 +128,7 @@ def build_scheduled_routes():
         fails = 0
 
         for route in _routes:
-            r = routes.build_route(str(route['_id']))
+            r = routes.build(str(route['_id']))
 
             if not r:
                 fails += 1
@@ -157,7 +157,7 @@ def analyze_upcoming_routes(agency, days):
 def build_route(route_id, job_id=None):
     try:
         from app.routing import routes
-        return routes.build_route(str(route_id), job_id=job_id)
+        return routes.build(str(route_id), job_id=job_id)
     except Exception as e:
         logger.error('%s\n%s', str(e), tb.format_exc())
 

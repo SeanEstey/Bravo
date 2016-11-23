@@ -261,8 +261,12 @@
 				);
 
 				if(checkForError($nsc)) {
-					echo json_encode($nsc->faultcode . ': ' . $nsc->faultstring);
 					http_response_code(500);
+          echo json_encode([
+            'error'=>$nsc->faultcode,
+            'msg'=>$nsc->faultstring
+          ]);
+
 					break;
 				}
 

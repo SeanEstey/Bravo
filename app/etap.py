@@ -12,6 +12,8 @@ from app import db
 import config
 logger = logging.getLogger(__name__)
 
+class EtapError(Exception):
+    pass
 
 #-------------------------------------------------------------------------------
 def call(func_name, keys, data, silence_exceptions=False):
@@ -49,9 +51,13 @@ def call(func_name, keys, data, silence_exceptions=False):
         else:
             raise
 
+    if response.status_code != 200:
+        raise EtapError(json.loads(response.text))
+
     try:
         data = json.loads(response.text)
     except Exception as e:
+        logger.error(str(e))
         return False
 
     return data

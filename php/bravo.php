@@ -26,7 +26,6 @@ function checkForError($nsc) {
     }
     else {
       error_log($agency . ": fault code " . $nsc->faultcode . ", msg: " . $nsc->faultstring);
-      http_response_code(400);  
       return true;
     }
   }

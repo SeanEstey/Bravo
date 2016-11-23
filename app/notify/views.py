@@ -126,29 +126,36 @@ def new_event():
 
     template = request.form['template_name']
 
-    if template == 'green_goods':
-        evnt_id = gg.add_event()
-    elif template == 'recorded_announcement':
-        evnt_id = voice_announce.add_event()
-    elif template == 'bpu':
-        block = request.form['query_name']
+    try:
+        if template == 'green_goods':
+            evnt_id = gg.add_event()
+        elif template == 'recorded_announcement':
+            evnt_id = voice_announce.add_event()
+        elif template == 'bpu':
+            block = request.form['query_name']
 
-        if parser.is_res(block):
-            cal_id = db.agencies.find_one({'name':agency})['cal_ids']['res']
-        elif parser.is_bus(block):
-            cal_id = db.agencies.find_one({'name':agency})['cal_ids']['bus']
-        else:
-            return jsonify({'status':'failed', 'description':'Invalid Block name'})
+            if parser.is_res(block):
+                cal_id = db.agencies.find_one({'name':agency})['cal_ids']['res']
+            elif parser.is_bus(block):
+                cal_id = db.agencies.find_one({'name':agency})['cal_ids']['bus']
+            else:
+                return jsonify({'status':'failed', 'description':'Invalid Block name'})
 
-        oauth = db.agencies.find_one({'name':agency})['google']['oauth']
+            oauth = db.agencies.find_one({'name':agency})['google']['oauth']
 
-        _date = schedule.get_next_block_date(cal_id, block, oauth)
+            _date = schedule.get_next_block_date(cal_id, block, oauth)
 
-        evnt_id = pus.reminder_event(
-            agency,
-            block,
-            _date
-        )
+            evnt_id = pus.reminder_event(
+                agency,
+                block,
+                _date
+            )
+    except Exception as e:
+        logger.error(str(e))
+        return jsonify({
+            'status':'failed',
+            'description': str(e)
+        })
 
     event = db.notific_events.find_one({'_id':evnt_id})
 

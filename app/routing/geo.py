@@ -2,6 +2,7 @@
 
 import json
 import logging
+import requests
 
 from app import db
 

@@ -5,7 +5,7 @@ from time import sleep
 import re
 
 from app import db
-from .. import gsheets
+from .. import gsheets, gdrive
 
 logger = logging.getLogger(__name__)
 

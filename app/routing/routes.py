@@ -42,7 +42,7 @@ def build(route_id, job_id=None):
 
     # Keep looping and sleeping until receive solution or hit
     # CELERYD_TASK_TIME_LIMIT (3000 s)
-    orders = get_orders(job_id, conf['google']['geocode']['api_key'])
+    orders = get_solution_orders(job_id, conf['google']['geocode']['api_key'])
 
     if orders == False:
         logger.error('Error retrieving routific solution')
@@ -51,7 +51,7 @@ def build(route_id, job_id=None):
     while orders == "processing":
         logger.debug('No solution yet. Sleeping 5s...')
         sleep(5)
-        orders = get_orders(job_id, conf['google']['geocode']['api_key'])
+        orders = get_solution_orders(job_id, conf['google']['geocode']['api_key'])
 
     title = '%s: %s (%s)' %(
         route['date'].strftime('%b %-d'), route['block'], route['driver']['name'])
@@ -92,16 +92,22 @@ def submit_job(route_id):
       -False on error'''
 
     MIN_PER_STOP = 3
+    SHIFT_END = '19:00'
+
     route = db.routes.find_one({"_id":ObjectId(route_id)})
     conf = db['agencies'].find_one({'name':route['agency']})
-    geo_api_key = conf['google']['geocode']['api_key']
 
     logger.info('%s: Building %s...', route['agency'], route['block'])
 
-    accounts = get_accounts(route['block'], conf['etapestry'])['data']
+    accounts = etap.call(
+        'get_query_accounts',
+        conf['etapestry'], {
+            "query": route['block'],
+            "query_category": conf['etapestry']['query_category']
+        }
+    )['data']
 
     num_skips = 0
-
     warnings = []
     errors = []
     orders = []
@@ -113,10 +119,10 @@ def submit_job(route_id):
             continue
 
         try:
-            order = routific.order(
+            _order = order(
                 account,
                 warnings,
-                routing['routific']['api_key'],
+                conf['google']['geocode']['api_key'],
                 route['driver']['shift_start'],
                 '19:00',
                 MIN_PER_STOP
@@ -135,7 +141,7 @@ def submit_job(route_id):
         if order == False:
             num_skips += 1
         else:
-            orders.append(order)
+            orders.append(_order)
 
     logger.debug('Omitting %s no pickups', str(num_skips))
 
@@ -145,16 +151,14 @@ def submit_job(route_id):
     job_id = routific.submit_vrp_task(
         orders,
         route['driver']['name'],
-        start_address,
         geo.geocode(
             start_address,
-            geo_api_key)[0]['geometry']['location'],
-        end_address,
+            conf['google']['geocode']['api_key'])[0],
         geo.geocode(
             end_address,
-            geo_api_key)[0]['geometry']['location'],
+            conf['google']['geocode']['api_key'])[0],
         route['driver']['shift_start'],
-        route['driver']['shift_end'],
+        SHIFT_END,
         conf['routing']['routific']['api_key']
     )
 
@@ -194,31 +198,46 @@ def order(account, warnings, api_key, shift_start, shift_end, min_per_stop):
     if not account.get('address') or not account.get('city'):
         msg = \
           "Routing error: account <strong>%s</strong> missing address/city." % account['id']
+
         logger.error(msg)
         raise EtapBadDataError(msg)
     else:
         formatted_address = account['address'] + ', ' + account['city'] + ', AB'
 
     try:
-        geo = geo.geocode(formatted_address, api_key, postal=account['postalCode'])
+        geo_result = geo.geocode(
+            formatted_address,
+            api_key,
+            postal=account['postalCode']
+        )
     except requests.RequestException as e:
         logger.error(str(e))
         raise
 
-    if len(geo) == 0:
-        msg = "Unable to resolve address <strong>%s, %s</strong>." % (account['address'],account['city'])
+    if len(geo_result) == 0:
+        msg = \
+            "Unable to resolve address <strong>%s, %s</strong>." %(
+            account['address'],account['city'])
+
         logger.error(msg)
         raise GeocodeError(msg)
 
-    geo = geo[0]
+    geo_result = geo_result[0]
 
-    if 'warning' in geo:
-        warnings.append(geo['warning'])
+    if 'warning' in geo_result:
+        warnings.append(geo_result['warning'])
 
-    return routific.order(account, formatted_address, geo, shift_start, shift_end, min_per_stop)
+    return routific.order(
+        account,
+        formatted_address,
+        geo_result,
+        shift_start,
+        shift_end,
+        min_per_stop
+    )
 
 #-------------------------------------------------------------------------------
-def get_orders(job_id, api_key):
+def get_solution_orders(job_id, api_key):
     '''Check Routific for status of asynchronous long-running task
     Job statuses: ['pending', 'processing', 'finished']
     Solution statuses: ['success', ??]
@@ -255,7 +274,6 @@ def get_orders(job_id, api_key):
         job_id, output['status'], len(orders), output['num_unserved'],
         output['total_travel_time'])
 
-    # TODO: Include trip time back to office for WSF
     route_length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
 
     db['routes'].update_one({'job_id':job_id},
@@ -323,19 +341,6 @@ def get_orders(job_id, api_key):
 
     return orders
 
-
-#-------------------------------------------------------------------------------
-def get_job(job_id):
-    try:
-        r = requests.get('https://api.routific.com/jobs/' + job_id)
-    except requests.RequestException as e:
-        logger.error('Error calling api.routific.com/jobs: %s', str(e))
-        raise
-
-    return r.text
-
-
-
 #-------------------------------------------------------------------------------
 def is_scheduled(account, route_date):
     # Ignore accounts with Next Pickup > today
@@ -375,15 +380,3 @@ def get_metadata():
         'date': {'$gte':today_dt}}).sort('date', 1)
 
     return routes
-
-
-
-#-------------------------------------------------------------------------------
-def get_accounts(block, etapestry_id):
-    # Get data from route via eTap API
-    accounts = etap.call('get_query_accounts', etapestry_id, {
-      "query": block,
-      "query_category": etapestry_id['query_category']
-    })
-
-    return accounts

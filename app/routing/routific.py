@@ -10,8 +10,7 @@ from app import db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def submit_vrp_task(orders, driver, start_address, start_geo, end_address, end_geo,
-                    shift_start, shift_end, api_key):
+def submit_vrp_task(orders, driver, start_geo, end_geo, shift_start, shift_end, api_key):
 
     payload = {
       "visits": {},
@@ -19,15 +18,15 @@ def submit_vrp_task(orders, driver, start_address, start_geo, end_address, end_g
         driver: {
           "start_location": {
             "id": "office",
-            "lat": start['lat'],
-            "lng": start['lng'],
-            "name": start_address,
+            "lat": start_geo['geometry']['location']['lat'],
+            "lng": start_geo['geometry']['location']['lng'],
+            "name": start_geo['formatted_address']
            },
           "end_location": {
             "id": "depot",
-            "lat": end['lat'],
-            "lng": end['lng'],
-            "name": end_address,
+            "lat": end_geo['geometry']['location']['lat'],
+            "lng": end_geo['geometry']['location']['lng'],
+            "name": end_geo['formatted_address']
           },
           "shift_start": shift_start,
           "shift_end": shift_end
@@ -64,12 +63,12 @@ def submit_vrp_task(orders, driver, start_address, start_geo, end_address, end_g
     return json.loads(r.text)['job_id']
 
 #-------------------------------------------------------------------------------
-def order(account, formatted_address, geo, shift_start, shift_end, min_per_stop):
+def order(account, formatted_address, geo_result, shift_start, shift_end, min_per_stop):
     return {
       "location": {
         "name": formatted_address,
-        "lat": geo['geometry']['location']['lat'],
-        "lng": geo['geometry']['location']['lng']
+        "lat": geo_result['geometry']['location']['lat'],
+        "lng": geo_result['geometry']['location']['lng']
       },
       "start": shift_start,
       "end": shift_end,

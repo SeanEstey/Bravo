@@ -27,7 +27,7 @@ def gauth(oauth):
         logger.error('Error authorizing gcal: %s', str(e))
         return False
 
-    logger.debug('Caelndar service authorized')
+    logger.debug('calendar service authorized')
 
     return service
 

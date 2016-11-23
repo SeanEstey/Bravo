@@ -14,25 +14,25 @@ logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def analyze_upcoming(agency_name, days):
-    agency = db.agencies.find_one({'name':agency_name})
-    conf = db.agencies.find_one({'name':agency['name']})['routing']
-    cal_ids = db.agencies.find_one({'name':agency['name']})['cal_ids']
-    oauth = db.agencies.find_one({'name':agency['name']})['google']['oauth']
+    conf = db.agencies.find_one({'name':agency_name})
 
     today_dt = datetime.combine(date.today(), time())
     end_dt = today_dt + timedelta(days=int(days))
     events = []
 
+    service = gcal.gauth(conf['google']['oauth'])
+
     for _id in cal_ids:
-        events += gcal.get_events(gcal.gauth(oauth), cal_ids[_id], today_dt, end_dt)
+        events += gcal.get_events(
+            service,
+            conf['cal_ids'][_id],
+            today_dt,
+            end_dt
+        )
 
     events = sorted(events, key=lambda k: k['start'].get('date'))
 
-    n=0
-
-    task_emit('analyze_routes', {'status':'in-progress'})
-    #from ../socketio import socketio_app
-    #socketio_app.emit('analyze_routes', {'status':'in-progress'})
+    task_emit('analyze_routes', {'agency':agency_name, 'status':'in-progress'})
 
     for event in events:
         block = parser.get_block(event['summary'])
@@ -47,19 +47,21 @@ def analyze_upcoming(agency_name, days):
                 time(0,0,0))
         )
 
-        if db.routes.find_one({'date':event_dt, 'block': block, 'agency':agency['name']}):
+        if db.routes.find_one({
+            'date':event_dt,
+            'block': block,
+            'agency':agency_name}
+        ):
             continue
 
         # Build route metadata
 
         # 1.a Let's grab info from eTapestry
-        etap_conf = db.agencies.find_one({'name':agency['name']})['etapestry']
-
         try:
             a = etap.call(
               'get_query_accounts',
-              etap_conf,
-              {'query':block, 'query_category':etap_conf['query_category']}
+              conf['etapestry'],
+              {'query':block, 'query_category': conf['etapestry']['query_category']}
             )
         except Exception as e:
             logger.error('Error retrieving accounts for query %s', block)
@@ -90,25 +92,25 @@ def analyze_upcoming(agency_name, days):
         postal = re.sub(r'\s', '', event['location']).split(',')
 
         # TODO: move resolve_depot into depots.py module
-        if len(conf['locations']['depots']) > 1:
+        if len(conf['routing']['locations']['depots']) > 1:
             depot = wsf.resolve_depot(block, postal)
         else:
-            depot = conf['locations']['depots'][0]
+            depot = conf['routing']['locations']['depots'][0]
 
         _route = {
           'block': block,
           'date': event_dt,
-          'agency': agency['name'],
+          'agency': agency_name,
           'status': 'pending',
           'postal': re.sub(r'\s', '', event['location']).split(','),
           'depot': depot,
-          'driver': conf['drivers'][0], # default driver
+          'driver': conf['routing']['drivers'][0], # default driver
           'orders': num_booked,
           'block_size': len(a['data']),
           'dropoffs': num_dropoffs
         }
 
-        db['routes'].insert_one(_route)
+        db.routes.insert_one(_route)
 
         logger.info(
             'metadata added for %s on %s',
@@ -116,12 +118,11 @@ def analyze_upcoming(agency_name, days):
 
         # Send it to the client
         task_emit('add_route_metadata', data=utils.formatter(
+            'agency': agency_name,
             _route,
             to_strftime=True,
             bson_to_json=True))
 
-        n+=1
-
-    task_emit('analyze_routes', {'status':'completed'})
+    task_emit('analyze_routes', {'agency':agency_name, 'status':'completed'})
 
     return True

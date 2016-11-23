@@ -22,7 +22,7 @@ def analyze_upcoming(agency_name, days):
 
     service = gcal.gauth(conf['google']['oauth'])
 
-    for _id in cal_ids:
+    for _id in conf['cal_ids']:
         events += gcal.get_events(
             service,
             conf['cal_ids'][_id],
@@ -118,7 +118,6 @@ def analyze_upcoming(agency_name, days):
 
         # Send it to the client
         task_emit('add_route_metadata', data=utils.formatter(
-            'agency': agency_name,
             _route,
             to_strftime=True,
             bson_to_json=True))

@@ -95,7 +95,7 @@ def submit_job(route_id):
     SHIFT_END = '19:00'
 
     route = db.routes.find_one({"_id":ObjectId(route_id)})
-    conf = db['agencies'].find_one({'name':route['agency']})
+    conf = db.agencies.find_one({'name':route['agency']})
 
     logger.info('%s: Building %s...', route['agency'], route['block'])
 
@@ -261,7 +261,7 @@ def get_solution_orders(job_id, api_key):
     if task['status'] != 'finished':
         return task['status']
 
-    logger.debug(r.text)
+    logger.debug(utils.print_vars(task, depth=5))
 
     route_info = db.routes.find_one({'job_id':job_id})
 

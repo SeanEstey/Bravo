@@ -5,7 +5,7 @@ from time import sleep
 import re
 
 from app import db
-from .. import gsheets, gdrive
+from .. import gsheets, gdrive, utils
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def build(agency, drive_api, title):
         fields='*'
     ).execute()
 
-    logger.info(_file)
+    logger.debug(utils.print_vars(_file, depth=5))
 
     logger.debug('sheet_id %s created', file_copy['id'])
 

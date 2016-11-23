@@ -228,10 +228,11 @@ function validateNewJobForm() {
       })
       .done(function(response) {
           if(response['status'] != 'success') {
+              console.log(response);
+
               alertMsg(
                 'Response: ' + response['description'], 
-                'danger', 30000, 'new_event_alert'
-              );
+                'danger', 30000)
 
               $('.btn.loader').fadeTo('slow', 0, function() {
                   $('.loader-div').slideToggle();

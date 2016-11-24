@@ -14,6 +14,13 @@ from app.notify import pus
 from .. import db
 logger = logging.getLogger(__name__)
 
+#-------------------------------------------------------------------------------
+@main.route('/test_master_sms_enable', methods=['GET'])
+@login_required
+def test_master_sms_enable():
+    from .. import tasks
+    tasks.enable_all_accounts_sms.apply_async(queue=current_app.config['DB'])
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 @main.route('/test_non_participant', methods=['GET'])

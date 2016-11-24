@@ -1,13 +1,8 @@
 '''app.schedule'''
 
-import json
 import logging
-import requests
 import datetime
 from dateutil.parser import parse
-from oauth2client.client import SignedJwtAssertionCredentials
-import httplib2
-from apiclient.discovery import build
 import re
 from datetime import datetime, date, time, timedelta
 

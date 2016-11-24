@@ -254,7 +254,7 @@ def schedule_reminders():
             n+=1
 
     logger.info(
-        '[%s] scheduled %s/%s reminder events', 
+        '[%s] scheduled %s/%s reminder events',
         agency_conf['name'], n, len(blocks)
     )
 
@@ -267,8 +267,8 @@ def update_sms_accounts(days_delta=None):
     numbers are set up to interact with SMS system'''
 
     import re
-    from . import schedule, etap
-    from twilio.rest.lookups import TwilioLookupsClient
+    from . import schedule
+    from app.main import sms
 
     agencies = db.agencies.find({})
 
@@ -277,8 +277,6 @@ def update_sms_accounts(days_delta=None):
             days_delta = 3
         else:
             days_delta = int(days_delta)
-
-        #agency_settings = db['agencies'].find_one({'name':agency_name})
 
         # Get accounts scheduled on Residential routes 3 days from now
         accounts = schedule.get_accounts(
@@ -290,86 +288,39 @@ def update_sms_accounts(days_delta=None):
         if len(accounts) < 1:
             return False
 
-        client = TwilioLookupsClient(
-          account = agency['twilio']['api']['sid'],
-          token = agency['twilio']['api']['auth_id']
-        )
-
-        n = 0
-
-        for account in accounts:
-            # A. Verify Mobile phone setup for SMS
-            mobile = etap.get_phone('Mobile', account)
-
-            if mobile:
-                # Make sure SMS udf exists
-
-                sms_udf = etap.get_udf('SMS', account)
-
-                if not sms_udf:
-                    int_format = re.sub(r'[^0-9.]', '', mobile)
-
-                    if int_format[0:1] != "1":
-                        int_format = "+1" + int_format
-
-                    logger.info('Adding SMS field to Account %s', str(account['id']))
-
-                    try:
-                        etap.call('modify_account', agency['etapestry'], {
-                          'id': account['id'],
-                          'udf': {'SMS': int_format},
-                          'persona': []
-                        })
-                    except Exception as e:
-                        logger.error('Error modifying account %s: %s', str(account['id']), str(e))
-                # Move onto next account
-                continue
-
-            # B. Analyze Voice phone in case it's actually Mobile.
-            voice = etap.get_phone('Voice', account)
-
-            if not voice or voice == '':
-                continue
-
-            int_format = re.sub(r'[^0-9.]', '', voice)
-
-            if int_format[0:1] != "1":
-                int_format = "+1" + int_format
-
-            try:
-                info = client.phone_numbers.get(int_format, include_carrier_info=True)
-            except Exception as e:
-                logger.error('Carrier lookup error (Account %s): %s', str(account['id']), str(e))
-                continue
-
-            if info.carrier['type'] != 'mobile':
-                continue
-
-            # Found a Mobile number labelled as Voice
-            # Update Persona and SMS udf
-
-            logger.info('Acct #%s: Found mobile number. SMS ready.', str(account['id']))
-
-            try:
-                etap.call('modify_account', agency['etapestry'], {
-                  'id': account['id'],
-                  'udf': {'SMS': info.phone_number},
-                  'persona': {
-                    'phones':[
-                      {'type':'Mobile', 'number': info.national_format},
-                      {'type':'Voice', 'number': info.national_format}
-                    ]
-                  }
-                })
-            except Exception as e:
-                logger.error('Error modifying account %s: %s', str(account['id']), str(e))
-
-            n+=1
+        n = sms.enable(agency['name'], accounts)
 
         logger.info('%s ---------- updated %s accounts for mobile-ready ----------%s',
                     bcolors.OKGREEN, str(n), bcolors.ENDC)
 
     return True
+
+#-------------------------------------------------------------------------------
+@celery.task
+def enable_all_accounts_sms():
+    import etap
+
+    agencies = db.agencies.find({})
+
+    for agency in agencies:
+        try:
+            accounts = etap.call(
+                'get_query_accounts',
+                agency['etapestry'], {
+                    'query_category': agency['config']['bpu']['accounts']['etapestry']['category'],
+                    'query': agency['config']['bpu']['accounts']['etapestry']['query']
+                }
+            )
+        except Exception as e:
+            logger.error('Error retrieving master account list. %s', str(e))
+            return False
+
+        subset = accounts[0:10]
+
+        n = sms.enable(agency['name'], subset)
+
+        logger.info('enabled %s accounts for SMS', n)
+
 
 #-------------------------------------------------------------------------------
 @celery.task

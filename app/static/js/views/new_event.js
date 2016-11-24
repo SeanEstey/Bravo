@@ -210,6 +210,7 @@ function validateNewJobForm() {
 				$('#mymodal .btn-secondary').click(function() {
 						$('#new_event_modal').modal('show');
 						$('#mymodal').modal('hide');
+						$(this).click(function() {});
 				});
 
 				$('#new_event_modal').modal('hide');

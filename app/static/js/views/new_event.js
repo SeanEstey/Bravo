@@ -189,68 +189,78 @@ function validateNewJobForm() {
     var msg = ''; 
 
     if(expired_date) {
-        /*
+				console.log('showing expired date warning modal');
+
         msg = 'The scheduled date is before the present:<br><br>' + 
-        '<b>' + scheduled_date.toString('dddd, MMMM d, yyyy @ hh:mm tt') + 
+        '<b>' + schedule_date.toString('dddd, MMMM d, yyyy @ hh:mm tt') + 
         '</b><br><br>' +
         'Do you want to start this job now?';
 
-        $('.modal-title').text('Confirm');
-        $('.modal-body').html(msg);
-        $('#btn-primary').text('Start Job');
-        $('#btn-primary').text('No');
+        $('#mymodal .modal-title').text('Confirm');
+        $('#mymodal .modal-body').html(msg);
+        $('#mymodal .btn-primary').text('Start Job');
+        $('#mymodal .btn-secondary').text('Cancel');
 
-        $('#btn-primary').click(function() {
-      //     $('form').submit();
+        $('#mymodal .btn-primary').click(function() {
+						$('#mymodal').modal('hide');
+						$('#new_event_modal').modal('hide');
+						submit(new FormData($('#myform')[0]));
         });
 
+				$('#mymodal .btn-secondary').click(function() {
+						$('#new_event_modal').modal('show');
+						$('#mymodal').modal('hide');
+				});
+
+				$('#new_event_modal').modal('hide');
         $('#mymodal').modal('show');
-        */
     }
+		else {
+				$('#new_event_modal').modal('hide');
 
-      // event.preventDefault();
+				$('.loader-div').slideToggle(function() {
+						$('.btn.loader').fadeTo('slow', 1);
+				});
 
-      var form_data = new FormData($('#myform')[0]);
+				submit(new FormData($('#myform')[0]));
+		}
+}
 
-      $('#new_event_modal').modal('hide');
+//------------------------------------------------------------------------------
+function submit(form_data) {
+		$.ajax({
+			type: 'POST',
+			url: $URL_ROOT + 'notify/new',
+			data: form_data,
+			contentType: false,
+			processData: false,
+			dataType: 'json'
+		})
+		.done(function(response) {
+				if(response['status'] != 'success') {
+						console.log(response);
 
-      $('.loader-div').slideToggle(function() {
-          $('.btn.loader').fadeTo('slow', 1);
-      });
+						alertMsg(
+							'Response: ' + response['description'], 
+							'danger', 30000)
 
-      $.ajax({
-        type: 'POST',
-        url: $URL_ROOT + 'notify/new',
-        data: form_data,
-        contentType: false,
-        processData: false,
-        dataType: 'json'
-      })
-      .done(function(response) {
-          if(response['status'] != 'success') {
-              console.log(response);
+						$('.btn.loader').fadeTo('slow', 0, function() {
+								$('.loader-div').slideToggle();
+						});
 
-              alertMsg(
-                'Response: ' + response['description'], 
-                'danger', 30000)
+						return;
+				}
 
-              $('.btn.loader').fadeTo('slow', 0, function() {
-                  $('.loader-div').slideToggle();
-              });
+				console.log(response);
 
-              return;
-          }
+				addEvent(
+					response['event'],
+					response['view_url'],
+					response['cancel_url'],
+					response['description']);
 
-          console.log(response);
-
-          addEvent(
-            response['event'],
-            response['view_url'],
-            response['cancel_url'],
-            response['description']);
-
-          $('.btn.loader').fadeTo('slow', 0, function() {
-              $('.loader-div').slideToggle();
-          });
-      });
+				$('.btn.loader').fadeTo('slow', 0, function() {
+						$('.loader-div').slideToggle();
+				});
+		});
 }

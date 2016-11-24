@@ -12,7 +12,6 @@ from flask import current_app, request, make_response
 
 from app import gsheets
 from app import etap
-from app.routing import routes
 from app import geo
 from app import schedule
 

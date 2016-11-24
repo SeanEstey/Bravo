@@ -102,7 +102,7 @@ def build_scheduled_routes():
     '''Route orders for today's Blocks and build Sheets
     '''
 
-    from app.routing import routes
+    from app.routing import main
     from app.routing.schedule import analyze_upcoming
     from datetime import datetime, date, time
     from time import sleep
@@ -128,7 +128,7 @@ def build_scheduled_routes():
         fails = 0
 
         for route in _routes:
-            r = routes.build(str(route['_id']))
+            r = main.build(str(route['_id']))
 
             if not r:
                 fails += 1
@@ -156,8 +156,8 @@ def analyze_upcoming_routes(agency, days):
 @celery.task
 def build_route(route_id, job_id=None):
     try:
-        from app.routing import routes
-        return routes.build(str(route_id), job_id=job_id)
+        from app.routing import main
+        return main.build(str(route_id), job_id=job_id)
     except Exception as e:
         logger.error('%s\n%s', str(e), tb.format_exc())
 
@@ -403,9 +403,25 @@ def find_non_participants():
                 if len(npu.split('/')) == 3:
                     npu = etap.ddmmyyyy_to_mmddyyyy(npu)
 
+                etap.call(
+                    'modify_account',
+                    agency['etapestry'], {
+                        'id': np['id'],
+                        'udf': {
+                            'Office Notes': etap.get_udf('Office Notes', np) +\
+                            '\n' + date.today().strftime('%b %-d %Y') + \
+                            ': flagged as non-participant ' +\
+                            ' (no collection in ' +\
+                            str(agency['config']['non_participant_days']) + ' days)'
+
+                        },
+                        'persona':{}
+                    }
+                )
+
                 gsheets.create_rfu(
                   agency['name'],
-                  'Non-participant',
+                  'Non-participant. No collection in %s days.' % agency['config']['non_participant_days'],
                   a_id = np['id'],
                   npu = npu,
                   block = etap.get_udf('Block', np),

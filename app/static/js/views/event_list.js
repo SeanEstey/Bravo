@@ -57,16 +57,16 @@ function addDeleteBtnHandlers() {
 
 				console.log('prompt to delete job_id: ' + event_uuid);
 
-				$('.modal-title').text('Confirm');
-				$('.modal-body').html('');
-				$('.modal-body').text('Really delete this job?');
-				$('#btn-secondary').text('No');
-				$('#btn-primary').text('Yes');
+				$('#mymodal .modal-title').text('Confirm');
+				$('#mymodal .modal-body').html('');
+				$('#mymodal .modal-body').text('Really delete this job?');
+				$('#mymodal .btn-secondary').text('No');
+				$('#mymodal .btn-primary').text('Yes');
 
 				// Clear any currently bound events
-				$('#btn-primary').off('click');
+				$('#mymodal .btn-primary').off('click');
 
-				$('#btn-primary').click(function() {
+				$('#mymodal .btn-primary').click(function() {
 						$.ajax({
 							type: 'GET',
 							url: $URL_ROOT + 'notify/'+event_uuid+'/cancel'

@@ -260,24 +260,4 @@ function buildAdminPanel() {
 				alertMsg('Debug mode enabled. ' +
 								 'Clicking <b>Print Metadata</b> buttons prints notification info to console.', 'info');
     });
-
-    analyze_routes_btn = addAdminPanelBtn(
-      'dev_pane',
-      'analyze_routes_btn',
-      'Analyze Routes',
-      'btn-outline-primary');
-
-    analyze_routes_btn.click(function() {
-       $.ajax({
-          context: this,
-          type: 'GET',
-          url: $URL_ROOT + '/routing/analyze_upcoming/3'
-      })
-      .done(function(response) {
-					$('.loader-div label').text('Analyzing Routes');
-          $('.loader-div').slideToggle(function() {
-              $('.btn.loader').fadeTo('slow', 1);
-          });
-      });
-    });
 }

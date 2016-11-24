@@ -3,13 +3,13 @@ import matplotlib.path as mplPath
 import numpy as np
 
 from app import db
-from app.routing import routes
+from app.routing import geo
 
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def find_block(address):
-    r = routes.geocode(address)
+    r = geo.geocode(address)
 
     coords = [
       r['geometry']['location']['lat'],

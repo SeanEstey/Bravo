@@ -10,7 +10,7 @@ from bson.objectid import ObjectId
 import logging
 
 from . import routing
-from . import routes
+from . import main
 from .. import utils
 from .. import db
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ def show_routing():
     agency_conf = db['agencies'].find_one({'name':agency})
 
     _routes = utils.formatter(
-        list(routes.get_metadata()),
+        list(main.get_metadata()),
         bson_to_json=True,
         to_local_time=True,
         to_strftime="%A %b %d"
@@ -57,7 +57,7 @@ def get_route(job_id):
     conf = db['agencies'].find_one({'name':agency})
     api_key = conf['google']['geocode']['api_key']
 
-    return json.dumps(routes.get_orders(job_id, api_key))
+    return json.dumps(main.get_solution_orders(job_id, api_key))
 
 #-------------------------------------------------------------------------------
 @routing.route('/analyze_upcoming/<days>', methods=['GET'])
@@ -89,7 +89,7 @@ def _build_route(route_id):
 def _build_sheet(job_id, route_id):
     '''non-celery synchronous func for testing
     '''
-    routes.build(route_id, job_id=job_id)
+    main.build(route_id, job_id=job_id)
     return redirect(url_for('routing.show_routing'))
 
 #-------------------------------------------------------------------------------

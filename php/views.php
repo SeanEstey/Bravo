@@ -6,7 +6,7 @@
   ini_set('log_errors', 1);
   ini_set('error_log', $ERROR_LOG);
   
-	require('vendor/autoload.php');
+	//require('vendor/autoload.php');
 	require('misc.php');
   require('bravo.php');
 
@@ -236,7 +236,8 @@
 				}
 				
 				info_log(count($accounts) . ' gift histories retrieved.');
-				echo json_encode($accounts);
+
+				echo json_encode(utf8_converter($accounts));
 				break;
 		//-----------------------------------------------------------------------
     case 'get_upload_status':

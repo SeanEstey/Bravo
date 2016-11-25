@@ -220,7 +220,7 @@ legend.admin-border {
 }
 
 
-/*-------------------------- VIEW EVENT ---------------------------*/
+/*-------------------------- Event View ---------------------------*/
 
 .opt {font-size: 16px;}
 
@@ -287,6 +287,22 @@ legend.admin-border {
   top: auto;
 }
 
+/*-------------------------- Booker View ---------------------------*/
+
+.input.booker {
+  border-radius: 10px;
+  -webkit-border-radius: 10px;
+  height: 60px;
+  font-size: 18pt;
+  max-width: 800px;
+}
+
+.input.booker:focus {
+  border-color: #365766;
+  outline: none;
+  border-radius: 10px;
+  -webkit-border-radius: 10px;
+}
 
 /*------------------------ BOOTSTRAP3 OVERRIDES ----------------------*/
 

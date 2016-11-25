@@ -1,7 +1,11 @@
 	{% extends "views/base.html" %}
 	{% block content %} 
+	<script type='text/javascript' 
+					src="{{url_for('static', filename='js/views/booker.js')}}">
+	</script>
+  <script> $(function() {init();}); </script>
 
-  <div class='row' style='padding:80px 0px 30px 0px; text-align:center'>
+  <div class='container-fluid' style='width:75%; padding:80px 0px 30px 0px; text-align:center'>
 
 		 <!-- Form -->
      <form style='width:100%; margin:0 auto;' onsubmit='return false;' id='main_form' name='main_form'>  
@@ -10,7 +14,7 @@
        <div id='search_row'>
 					<input 
 						id='search_box'
-						class='input'
+						class='input booker'
 						name='search_box'
 						type='text'
 						onkeydown="searchKeyPress(event)"
@@ -18,6 +22,8 @@
 						autocomplete='off'
 						placeholder='Enter Account Number, Address, or Postal Code' 
 					autofocus> 
+        </div>
+        <div style='margin-top:1em'>
 					<button 
 						class='btn btn-primary' 
 						style='font-size:20px;' 
@@ -60,9 +66,9 @@
      </form>
 		</div><!--End Row-->
 
-  <div class='data-container'>
-    <div class='navbar-div'>
-      <a class='hover' href="{{ url_for('show_booking') }}">Booking</a>
+  <div class='container-fluid'>
+    <div class='data-navbar-div'>
+      <a class='hover' href="#">Booking</a>
     </div>
     <table id='results-table' class='table table-hover table-colored'>
       <thead>

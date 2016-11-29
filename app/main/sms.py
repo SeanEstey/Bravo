@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def enable(agency, accounts):
-'''Enable eTap accounts to use Alice'''
+    '''Enable eTap accounts to use Alice'''
 
     conf = db.agencies.find_one({'name':agency})
 
@@ -20,7 +20,8 @@ def enable(agency, accounts):
       token = conf['twilio']['api']['auth_id']
     )
 
-    n=0
+    n_sms=0
+    n_mobile=0
 
     for account in accounts:
         # A. Verify Mobile phone setup for SMS
@@ -40,13 +41,15 @@ def enable(agency, accounts):
                 logger.info('Adding SMS field to Account %s', str(account['id']))
 
                 try:
-                    etap.call('modify_account', agency['etapestry'], {
+                    etap.call('modify_account', conf['etapestry'], {
                       'id': account['id'],
                       'udf': {'SMS': int_format},
-                      'persona': []
+                      'persona': {}
                     })
                 except Exception as e:
                     logger.error('Error modifying account %s: %s', str(account['id']), str(e))
+
+                n_sms+=1
             # Move onto next account
             continue
 
@@ -76,7 +79,7 @@ def enable(agency, accounts):
         logger.info('Acct #%s: Found mobile number. SMS ready.', str(account['id']))
 
         try:
-            etap.call('modify_account', agency['etapestry'], {
+            etap.call('modify_account', conf['etapestry'], {
               'id': account['id'],
               'udf': {'SMS': info.phone_number},
               'persona': {
@@ -89,4 +92,6 @@ def enable(agency, accounts):
         except Exception as e:
             logger.error('Error modifying account %s: %s', str(account['id']), str(e))
 
-        n+=1
+        n_mobile+=1
+
+    return {'n_mobile':n_mobile, 'n_sms':n_sms}

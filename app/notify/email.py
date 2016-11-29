@@ -124,13 +124,13 @@ def on_dropped():
         'notific_id': str(notific['_id']),
         'status': request.form['event']})
 
-    msg = 'receipt to %s dropped. %s. %s' %(
+    msg = 'receipt to %s dropped. %s.' %(
         request.form['recipient'], request.form['reason'])
 
     from .. import tasks
     tasks.rfu.apply_async(
         args=[
-            db.notific_events.find_one({notific['evnt_id']})['agency'],
+            db.notific_events.find_one({'_id':notific['evnt_id']})['agency'],
             msg + request.form.get('description')],
         kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
         queue=current_app.config['DB']

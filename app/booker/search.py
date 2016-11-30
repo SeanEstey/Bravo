@@ -1,11 +1,10 @@
 '''app.booker.search'''
 
 from datetime import datetime, date, timedelta
-from flask_login import current_user
+#from flask_login import current_user
 import logging
 
-from .. import etap, parser
-
+from .. import etap, parser, gcal
 from .. import db
 logger = logging.getLogger(__name__)
 
@@ -13,15 +12,18 @@ logger = logging.getLogger(__name__)
 def search(term, config, agency):
     '''Search query invoked from Booker client
     @term: either Account Number, Postal Code, Address, or Block
+
     Returns: JSON object: {'search_type': str, 'status': str, 'message': str, 'booking_results': array }
     '''
 
-    user = db.users.find_one({'user': current_user.username})
-    conf = db.agencies.find_one({user['agency']})
+    TEST_USERNAME = 'sestey@vecova.ca'
+
+    user = db.users.find_one({'user': TEST_USERNAME})  #current_user.username})
+    conf = db.agencies.find_one({'name':user['agency']})
     map_coords = db.maps.find_one({}) # FIXME
 
     events = []
-    end_date = date.today() + timedelta(days=30)
+    end_date = datetime.today() + timedelta(days=30)
 
     service = gcal.gauth(conf['google']['oauth'])
 
@@ -29,7 +31,7 @@ def search(term, config, agency):
         events +=  gcal.get_events(
             service,
             conf['cal_ids'][cal_id],
-            date.today(),
+            datetime.today(),
             end_date
         )
 
@@ -76,7 +78,8 @@ def search(term, config, agency):
                 term.substring(0,3) + '</b> within next <b>ten weeks</b>'
 
         }
-    elif parser.is_address(term):
+    # must be address?
+    else:
         return {
             'search_type': 'address',
             'results': search_by_address(
@@ -146,6 +149,8 @@ def get_account_info(acct_id):
 def search_by_radius(coords, events, map_data, conf):
     '''Find a list of Blocks within the smallest radius of given coordinates.
     Constraints: must be within provided radius, schedule date, and block size.
+
+    @coords: {'lat':float, 'lng':float}
     @rules: specifies schedule, radius and block size constraints
     Returns: list of Block objects on success, [] on failure
     '''

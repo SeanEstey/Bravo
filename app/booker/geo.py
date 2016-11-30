@@ -1,21 +1,24 @@
 import logging
 import matplotlib.path as mplPath
 import numpy as np
+import math
+import requests
+import json
 
 from app import db
-from app.routing import geo
+from .. import parser
 
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def find_block(address):
-    r = geo.geocode(address)
+def find_block(address, api_key):
+    r = geocode(address, api_key)
 
-    coords = [
-      r['geometry']['location']['lat'],
-      r['geometry']['location']['lng']]
+    if not r or len(r) == 0:
+        logger.error('couldnt geocode %s', address)
+        return False
 
-    map_name = find_map(coords)
+    map_name = find_map(r[0]['geometry']['location'])
 
     if map_name:
         return map_name[0:map_name.find(' [')]
@@ -23,8 +26,12 @@ def find_block(address):
     return False
 
 #-------------------------------------------------------------------------------
-def find_map(point):
-    maps = db['maps'].find_one({})['features']
+def find_map(pt):
+    '''@pt: {'lng':float, 'lat':float}'''
+
+    logger.info('find_map in pt %s', pt)
+
+    maps = db.maps.find_one({})['features']
 
     for map_ in maps:
         coords = map_['geometry']['coordinates'][0]
@@ -35,101 +42,106 @@ def find_map(point):
 
         bbPath = mplPath.Path(np.array(twod))
 
-        if bbPath.contains_point(point):
+        if bbPath.contains_point((pt['lat'], pt['lng'])):
             print map_['properties']['name']
             return map_['properties']['name']
 
-    print 'Map not found'
+    logger.debug('map not found for pt %s', pt)
+
     return False
 
 
 #-------------------------------------------------------------------------------
-def find_blocks_within(lat, lng, map_data, radius, end_date, cal_id, _events):
+def get_nearby_blocks(pt, radius, maps, events):
     '''Return list of scheduled Blocks within given radius of lat/lng, up
     to end_date, sorted by date. Block Object defined in Config.
-    @radius: distance in kilometres
-    @map_data: JSON object with lat/lng coords
-    @events: optional list of calendar events
+
+    @pt: {'lng':float, 'lat':float}
+    @radius: km
+    @maps: geo_json object with lat/lng coords
+    @events: gcal event
+
     Returns empty array if none found .
     Returns Error exception on error (invalid KML data).
     '''
-    '''
-    events = _events || Schedule.getEventsBetween(cal_id, new Date(), end_date)
 
-    eligible_blocks = []
+    results = []
 
-    for i in range(len(map_data.features)):
-        try:
-            map_name = map_data.features[i].properties.name
+    for i in range(len(maps['features'])):
+        map_title = maps['features'][i]['properties']['name']
+        map_block = parser.get_block(map_title)
+        block = None
 
-            block = Schedule.findBlock(Parser.getBlockFromTitle(map_name), events)
+        # Find the first event matching map block
+        for event in events:
+            if parser.get_block(event['summary']) == map_block:
+                block = {
+                    'name': parser.get_block(event['summary']),
+                    'event':event
+                }
 
-            if block == False:
-                continue;
+                break
 
-            center = Geo.centerPoint(map_data.features[i].geometry.coordinates[0])
+        if not block:
+            continue
 
-            # Take the first lat/lon vertex in the rectangle and calculate distance
-            dist = Geo.distance(lat, lng, center[1], center[0])
+        # Take the first lat/lon vertex in the rectangle and calculate distance
+        dist = distance(
+            pt,
+            center_pt(maps['features'][i]['geometry']['coordinates'][0]))
 
-            if dist > radius:
-                continue;
+        if dist < radius:
+            block['distance'] = str(round(dist,2)) + 'km'
+            results.append(block)
 
-            if block['date'] <= end_date:
-                block['distance'] = dist.toPrecision(2).toString() + 'km'
-                eligible_blocks.push(block)
-        except Exception as e:
-            logger.info(e.name + ': ' + e.message)
-            return e
+    results = sorted(
+        results,
+        key=lambda k: k['event']['start'].get('dateTime',k['event']['start'].get('date'))
+    )
 
-    if len(eligible_blocks) > 0:
-        eligible_blocks.sort(function(a, b) {
-          if(a.date < b.date)
-            return -1
-          else if(a.date > b.date)
-            return 1
-          else
-            return 0
-        });
+    logger.info('Found %s results within radius', str(len(results)))
 
-        logger.info('Found %s results within radius', str(len(eligible_blocks)))
+    for block in results:
+        logger.info(
+            '%s: %s (%s away)',
+            block['event']['start'].get('dateTime', block['event']['start'].get('date')),
+            block['name'],
+            block['distance'])
 
-    return eligible_blocks
-    '''
+    return results
 
 #-------------------------------------------------------------------------------
-def center_point(arr):
+def center_pt(arr):
     '''Returns [x,y] coordinates of center of polygon passed in
+    @arr: geo_json list of [lng,lat] representing polygon
     '''
 
-    #var minX, maxX, minY, maxY;
-    '''
+    minX = None
+    minY = None
+    maxX = None
+    maxY = None
+
     for i in range(len(arr)):
-        minX = (arr[i][0] < minX || minX == null) ? arr[i][0] : minX
-        maxX = (arr[i][0] > maxX || maxX == null) ? arr[i][0] : maxX
-        minY = (arr[i][1] < minY || minY == null) ? arr[i][1] : minY
-        maxY = (arr[i][1] > maxY || maxY == null) ? arr[i][1] : maxY
-    }
+        minX = arr[i][0] if (arr[i][0] < minX or not minX) else minX
+        maxX = arr[i][0] if (arr[i][0] > maxX or not maxX) else maxX
+        minY = arr[i][1] if (arr[i][1] < minY or not minY) else minY
+        maxY = arr[i][1] if (arr[i][1] > maxY or not maxY) else maxY
 
-    return [(minX + maxX) /2, (minY + maxY) /2]
-    '''
-
+    return {'lng':(minX + maxX) /2, 'lat':(minY + maxY) /2}
 
 #-------------------------------------------------------------------------------
-def distance(lat1, lon1, lat2, lon2):
+def distance(pt1, pt2):
     '''Calculates KM distance between 2 lat/lon coordinates
     '''
 
-    '''
     p = 0.017453292519943295    # Math.PI / 180
-    c = Math.cos
-    a = 0.5 - c((lat2 - lat1) * p)/2 +
-          c(lat1 * p) * c(lat2 * p) *
-          (1 - c((lon2 - lon1) * p))/2
+    c = math.cos
+    a = 0.5 - c((pt2['lat'] - pt1['lat']) * p)/2 + \
+          c(pt1['lat'] * p) * c(pt2['lat'] * p) * \
+          (1 - c((pt2['lng'] - pt1['lng']) * p))/2
 
     # 2 * R; R = 6371 km
-    return 12742 * Math.asin(Math.sqrt(a))
-    '''
+    return 12742 * math.asin(math.sqrt(a))
 
 #-------------------------------------------------------------------------------
 def geocode(address, api_key, postal=None, raise_exceptions=False):

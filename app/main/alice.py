@@ -15,7 +15,7 @@ from app import etap
 from app import geo
 from app import schedule
 
-from app import db
+from app import db, bcolors
 
 logger = logging.getLogger(__name__)
 
@@ -186,11 +186,16 @@ def get_help_reply(response, account=None):
 
 #-------------------------------------------------------------------------------
 def send_reply(msg, response):
-    ASSISTANT_NAME = 'Alice'
+
+    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+
+    if agency['name'] == 'vec':
+        ASSISTANT_NAME = 'Alice'
+        reply = ASSISTANT_NAME + ': '
+    else:
+        reply = ''
 
     account = get_identity(response)
-
-    reply = ASSISTANT_NAME + ': '
 
     if new_conversation():
         reply += get_greeting(account)
@@ -209,6 +214,8 @@ def send_reply(msg, response):
     reply += msg
 
     twml.message(reply)
+
+    logger.info('Sending reply: %s"%s"%s', bcolors.BOLD, reply, bcolors.ENDC)
 
     response.data = str(twml)
     return response
@@ -267,6 +274,7 @@ def get_identity(response):
 
     set_cookie(response, 'etap_id', account['id'])
     set_cookie(response, 'name', name)
+    set_cookie(response, 'agency', agency['name'])
 
     return account
 

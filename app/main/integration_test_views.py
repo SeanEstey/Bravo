@@ -19,7 +19,13 @@ logger = logging.getLogger(__name__)
 @login_required
 def test_master_sms_enable():
     from .. import tasks
-    tasks.enable_all_accounts_sms.apply_async(queue=current_app.config['DB'])
+
+    for d in range(1,75):
+        tasks.update_sms_accounts.apply_async(
+                kwargs={'days_delta':d, 'agency_name':'vec'},
+                queue=current_app.config['DB']
+                )
+
     return 'OK'
 
 #-------------------------------------------------------------------------------

@@ -262,7 +262,7 @@ def schedule_reminders():
 
 #-------------------------------------------------------------------------------
 @celery.task
-def update_sms_accounts(days_delta=None):
+def update_sms_accounts(agency_name=None, days_delta=None):
     '''Verify that all accounts in upcoming residential routes with mobile
     numbers are set up to interact with SMS system'''
 
@@ -270,28 +270,47 @@ def update_sms_accounts(days_delta=None):
     from . import schedule
     from app.main import sms
 
-    agencies = db.agencies.find({})
+    if days_delta == None:
+        days_delta = 3
+    else:
+        days_delta = int(days_delta)
 
-    for agency in agencies:
-        if days_delta == None:
-            days_delta = 3
-        else:
-            days_delta = int(days_delta)
+    if agency_name:
+        conf = db.agencies.find_one({'name':agency_name})
 
-        # Get accounts scheduled on Residential routes 3 days from now
         accounts = schedule.get_accounts(
-            agency['etapestry'],
-            agency['cal_ids']['res'],
-            agency['google']['oauth'],
+            conf['etapestry'],
+            conf['cal_ids']['res'],
+            conf['google']['oauth'],
             days_from_now=days_delta)
 
         if len(accounts) < 1:
             return False
 
-        n = sms.enable(agency['name'], accounts)
+        r = sms.enable(agency_name, accounts)
 
-        logger.info('%s ---------- updated %s accounts for mobile-ready ----------%s',
-                    bcolors.OKGREEN, str(n), bcolors.ENDC)
+        logger.info('%s --- updated %s accounts for SMS. discovered %s mobile numbers ---%s',
+                    bcolors.OKGREEN, r['n_sms'], r['n_mobile'], bcolors.ENDC)
+    else:
+        agencies = db.agencies.find({})
+
+        for agency in agencies:
+
+
+            # Get accounts scheduled on Residential routes 3 days from now
+            accounts = schedule.get_accounts(
+                agency['etapestry'],
+                agency['cal_ids']['res'],
+                agency['google']['oauth'],
+                days_from_now=days_delta)
+
+            if len(accounts) < 1:
+                return False
+
+            r = sms.enable(agency['name'], accounts)
+
+            logger.info('%s --- updated %s accounts for SMS. discovered %s mobile numbers ---%s',
+                        bcolors.OKGREEN, r['n_sms'], r['n_mobile'], bcolors.ENDC)
 
     return True
 

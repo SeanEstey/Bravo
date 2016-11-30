@@ -15,7 +15,7 @@ from app import etap
 from app import geo
 from app import schedule
 
-from app import db
+from app import db, bcolors
 
 logger = logging.getLogger(__name__)
 
@@ -214,6 +214,8 @@ def send_reply(msg, response):
     reply += msg
 
     twml.message(reply)
+
+    logger.info('Sending reply: %s"%s"%s', bcolors.BOLD, reply, bcolors.ENDC)
 
     response.data = str(twml)
     return response

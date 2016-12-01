@@ -14,6 +14,14 @@ from app.notify import pus
 from .. import db
 logger = logging.getLogger(__name__)
 
+
+@main.route('/test_update_maps', methods=['GET'])
+@login_required
+def test_update_maps():
+    from .. import tasks
+    tasks.update_map_data.apply_async(queue=current_app.config['DB'])
+    return 'Updating...'
+
 #-------------------------------------------------------------------------------
 @main.route('/test_master_sms_enable', methods=['GET'])
 @login_required

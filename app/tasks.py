@@ -400,3 +400,49 @@ def find_non_participants():
         except Exception as e:
             logger.error('%s\n%s', str(e), tb.format_exc())
 
+
+#-------------------------------------------------------------------------------
+@celery.task
+def update_map_data():
+    import os
+    import time
+
+    agency_name = 'vec'
+
+    conf = db.maps.find_one({'agency':agency_name})
+
+    logger.debug('downloading kml file...')
+
+    # download KML file
+    os.system(
+        'wget \
+        "https://www.google.com/maps/d/kml?mid=%s&lid=%s&forcekml=1" \
+        -O /tmp/maps.xml' %(conf['mid'], conf['lid']))
+
+    time.sleep(2)
+
+    logger.debug('converting to geo_json...')
+
+    # convert to geo_json
+    os.system('togeojson /tmp/maps.xml > /tmp/maps.json')
+
+    time.sleep(2)
+
+    import json
+
+    logger.debug('loading geo_json...')
+
+    with open(os.path.join('/tmp', 'maps.json')) as data_file:
+        data = json.load(data_file)
+
+    logger.debug('updating db record...')
+
+    db.maps.find_one_and_update(
+        {'agency':agency_name},
+        {'$set': {'features': data['features']}}
+    )
+
+    logger.debug('done')
+
+    return True
+

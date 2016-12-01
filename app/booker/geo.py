@@ -61,14 +61,16 @@ def get_nearby_blocks(pt, radius, maps, events):
     @maps: geo_json object with lat/lng coords
     @events: gcal event
 
+    Returns:
+        list of {'event': gcal_obj, 'distance': float, 'name': str}
     Returns empty array if none found .
     Returns Error exception on error (invalid KML data).
     '''
 
     results = []
 
-    for i in range(len(maps['features'])):
-        map_title = maps['features'][i]['properties']['name']
+    for i in range(len(maps)):
+        map_title = maps[i]['properties']['name']
         map_block = parser.get_block(map_title)
         block = None
 
@@ -88,7 +90,7 @@ def get_nearby_blocks(pt, radius, maps, events):
         # Take the first lat/lon vertex in the rectangle and calculate distance
         dist = distance(
             pt,
-            center_pt(maps['features'][i]['geometry']['coordinates'][0]))
+            center_pt(maps[i]['geometry']['coordinates'][0]))
 
         if dist < radius:
             block['distance'] = str(round(dist,2)) + 'km'

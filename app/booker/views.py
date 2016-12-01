@@ -22,3 +22,18 @@ logger = logging.getLogger(__name__)
 def show_home():
     agency = db['users'].find_one({'user': current_user.username})['agency']
     return render_template('views/booker.html', agency=agency)
+
+#-------------------------------------------------------------------------------
+@booker.route('/search', methods=['POST'])
+@login_required
+def submit_search():
+    logger.info(request.form.to_dict())
+
+    user = db.users.find_one({'user': current_user.username})
+
+    results = search.search(
+        db.agencies.find_one({'name':user['agency']})['name'],
+        request.form['query']
+    )
+
+    return jsonify(results)

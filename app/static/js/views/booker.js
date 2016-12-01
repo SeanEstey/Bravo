@@ -1,10 +1,9 @@
 
-	function init() {
-	}
+function init() {
+}
 
-  
-  //---------------------------------------------------------------------
-  function validate(field_id) {
+//---------------------------------------------------------------------
+function validate(field_id) {
     var element = document.getElementById(field_id);  
     
     // Some browsers (Safari) do not evaluate <input pattern> property. 
@@ -21,10 +20,10 @@
     }
  
     return true;
-  }
+}
 
-  //---------------------------------------------------------------------
-  function search(my_form) {  
+//---------------------------------------------------------------------
+function search(my_form) {  
     var search_value = my_form.elements['search_box'].value;
     
     my_form.elements['search_box'].value = '';
@@ -33,20 +32,64 @@
       return false;
     }
 
-    document.getElementById('results').innerHTML = '';
+    //document.getElementById('results').innerHTML = '';
     
     document.getElementById('status_lbl').innerHTML = 'Searching...';
 
     console.log('Starting search for: ' + search_value);
-    
-    google.script.run
-      .withSuccessHandler(onSearchSuccess)
-      .withFailureHandler(onSearchFailure)
-      .search(search_value);
-  }
+
+		$.ajax({
+			type: 'POST',
+			url: $URL_ROOT + 'booker/search',
+			data: {'query':search_value},
+			dataType: 'json'
+		})
+		.done(function(response) {
+				if(response['status'] != 'success') {
+						console.log(response);
+
+						alertMsg(
+							'Response: ' + response['description'], 
+							'danger', 30000)
+
+						$('.btn.loader').fadeTo('slow', 0, function() {
+								$('.loader-div').slideToggle();
+						});
+
+						return;
+				}
+
+        displaySearchResults(response['results']);
+    })
+}
+
+//---------------------------------------------------------------------
+function displaySearchResults(results) {
+    for(var i=0; i<results.length; i++) {
+        var result = results[i];
+        var $row = 
+          '<tr>' + 
+            '<td>' + result['event']['start']['date'] + '</td>' +
+            '<td>' + result['name'] + '</td>' +
+            '<td>' + 'neighborhood' + '</td>' +
+            '<td>' + result['event']['location'] + '</td>' +
+            '<td>' + result['event']['summary'] + '</td>' +
+            '<td>' + '100' + '</td>' +
+            '<td>' + result['distance'] + '</td>' +
+            '<td> ' +
+              '<button ' +
+                'name="book_btn"'+
+                'class="btn btn-outline-primary"' +
+                '>Book' +
+              '</button>' +
+            '</td>' +
+          '</tr>';
+        $('#results tbody').append($row);
+    }
+}
   
-  //---------------------------------------------------------------------
-  function onSearchSuccess(response) { 
+//---------------------------------------------------------------------
+function onSearchSuccess(response) { 
     response = JSON.parse(response);
     
     if(response['status'] == 'failed') {
@@ -108,16 +151,16 @@
       
       return true;
     }
-  }
+}
   
-  //---------------------------------------------------------------------
-  function onSearchFailure(result) {
+//---------------------------------------------------------------------
+function onSearchFailure(result) {
     console.log('failure! result: ' + result);
     document.getElementById('status_lbl').innerHTML = result;
-  }
+}
   
-  //---------------------------------------------------------------------
-  function makeBooking(btn) {
+//---------------------------------------------------------------------
+function makeBooking(btn) {
     var tr = btn.parentNode.parentNode;
     var date_str = tr.children[0].innerHTML;
     var block = tr.children[1].innerHTML;
@@ -136,21 +179,21 @@
     }
     else
       document.getElementById('status_lbl').innerHTML = 'Booking account <b>'+ document.getElementById('account_id').value + '</b> onto Block <b>' + block + '</b>. Enter any special driver instructions';
-  }
+}
   
-  //---------------------------------------------------------------------
-  function onBookingSuccess(response) {
+//---------------------------------------------------------------------
+function onBookingSuccess(response) {
     document.getElementById('status_lbl').innerHTML = response;
-  }
+}
   
-  //---------------------------------------------------------------------
-  function onBookingFailure(response) {
+//---------------------------------------------------------------------
+function onBookingFailure(response) {
     var results_div = document.getElementById('results');
     results_div.innerHTML = response;
-  }
+}
   
-  //---------------------------------------------------------------------
-  function searchKeyPress(e) {
+//---------------------------------------------------------------------
+function searchKeyPress(e) {
     // look for window.event in case event isn't passed in
     e = e || window.event;
     if (e.keyCode == 13) {
@@ -158,10 +201,10 @@
       return false;
     }
     return true;
-  }
+}
   
-  //---------------------------------------------------------------------
-  function form_submit(my_form) {  
+//---------------------------------------------------------------------
+function form_submit(my_form) {  
     for(var i=0; i<my_form.elements.length; i++) {
       if(my_form.elements[i].required && !my_form.elements[i].value) {
         console.log('Missing form value for field ' + my_form.elements[i].name);
@@ -201,13 +244,12 @@
       .withSuccessHandler(onBookingSuccess)
       .withFailureHandler(onBookingFailure)
       .makeBooking(account_id, udf, booking_type);  
-      
-   }
+}
    
-   
-  //---------------------------------------------------------------------
-  // Used to convert to eTapestry date format
-  function date_to_ddmmyyyy(date) {
+//---------------------------------------------------------------------
+function date_to_ddmmyyyy(date) {
+    // Used to convert to eTapestry date format
+
     if(!date)
       return;
   
@@ -220,5 +262,4 @@
       month = '0' + String(month);
   
     return day + '/' + month + '/' + String(date.getFullYear());
-  }
-  
+}

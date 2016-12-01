@@ -1,26 +1,24 @@
 '''app.booker.search'''
 
 from datetime import datetime, date, timedelta
-#from flask_login import current_user
 import logging
 
 from .. import etap, parser, gcal
 from .. import db
+from . import geo
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def search(term, config, agency):
+def search(agency, query):
     '''Search query invoked from Booker client
-    @term: either Account Number, Postal Code, Address, or Block
+    @query: either Account Number, Postal Code, Address, or Block
 
-    Returns: JSON object: {'search_type': str, 'status': str, 'message': str, 'booking_results': array }
+    Returns: JSON object: {'search_type': str, 'status': str, 'description': str, 'results': array }
     '''
 
-    TEST_USERNAME = 'sestey@vecova.ca'
+    conf = db.agencies.find_one({'name':agency})
 
-    user = db.users.find_one({'user': TEST_USERNAME})  #current_user.username})
-    conf = db.agencies.find_one({'name':user['agency']})
-    map_coords = db.maps.find_one({}) # FIXME
+    maps = db.maps.find_one({'agency':conf['name']})['features']
 
     events = []
     end_date = datetime.today() + timedelta(days=30)
@@ -35,66 +33,92 @@ def search(term, config, agency):
             end_date
         )
 
-    if parser.is_account_id(term):
-        account_info = get_account_info(term)
+    if parser.is_account_id(query):
+        try:
+            account = etap.call(
+              'get_account',
+              conf['etapestry'],
+              data={'account_number': query}
+            )
+        except Exception as e:
+            logger.error('no account id %s', query)
+            return False
+
+        geo_results = geo.geocode(
+            account['address'] + ', ' + account['city'] + ', AB',
+            conf['google']['geocode']['api_key']
+        )
+
+        results = geo.get_nearby_blocks(
+            coords,
+            radius,
+            maps,
+            events
+        )
 
         return {
             'search_type': 'account',
-            'account': account_info,
-            'results': search_by_address(
-                account_info['address'],
-                events,
-                map_coords,
-                conf['booker'],
-                conf['google']['geocode']['api_key'],
-                account = account_info
-            )
+            'account': account,
+            'results': results
         }
-    elif parser.is_block(term):
+    elif parser.is_block(query):
         return {
             'search_type': 'block',
             'results': search_by_block(
-                term,
+                query,
                 events,
                 conf['booker']
             ),
             'description': \
-                'Booking suggestions for Block <b>' + term + '</b> '\
+                'Booking suggestions for Block <b>' + query + '</b> '\
                 'within next <b>sixteen weeks</b>'
         }
 
-    elif parser.is_postal_code(term):
+    elif parser.is_postal_code(query):
         return {
             'search_type': 'postal',
             'results': search_by_postal(
-                term,
+                query,
                 events,
-                map_coords,
+                maps,
                 conf['booker'],
                 conf['google']['geocode']['api_key']
             ),
             'description': \
                 'Booking suggestions for Postal Code <b>' +\
-                term.substring(0,3) + '</b> within next <b>ten weeks</b>'
+                query.substring(0,3) + '</b> within next <b>ten weeks</b>'
 
         }
     # must be address?
     else:
-        return {
-            'search_type': 'address',
-            'results': search_by_address(
-                term,
-                events,
-                map_coords,
-                conf['booker'],
-                conf['google']['geocode']['api_key']
-            ),
-            'description': \
-                'Booking suggestions for Postal Code <b>' +\
-                term.substring(0,3) + '</b> within next <b>ten weeks</b>'
-        }
+        geo_results = geo.geocode(
+            query,
+            conf['google']['geocode']['api_key']
+        )
 
-    return False
+        if len(geo_results) == 0:
+            return {
+                'status': 'failed',
+                'description': \
+                    'Could not find local address. '\
+                    'Make sure to include quadrant (i.e. NW) and Postal Code.'
+            }
+
+        results = geo.get_nearby_blocks(
+            geo_results[0]['geometry']['location'],
+            4.0,
+            maps,
+            events
+        )
+
+        return {
+            'status': 'success',
+            'search_type': 'address',
+            'results': results,
+            'description': \
+                'Booking suggestions for Address <b>' +\
+                query + '</b> within next <b>ten weeks</b>'
+        }
 
 #-------------------------------------------------------------------------------
 def make(account_num, udf, type, config):
@@ -115,38 +139,7 @@ def make(account_num, udf, type, config):
     return True
 
 #-------------------------------------------------------------------------------
-def get_account_info(acct_id):
-    account_id = term
-
-    if account_id[0] == '/':
-        account_id = account_id[1:]
-
-    logger.info('search by account #')
-
-    try:
-        account = etap.call(
-          'get_account',
-          etapestry_id,
-          {'account_number': account_id}
-        )
-    except Exception as e:
-        logger.error('Error retrieving accounts for query %s', block)
-        response['status'] = 'failed'
-        response['message'] = 'Account <b>' + term + '</b> not found in eTapestry'
-        return False
-
-    response['account_id'] = account['id']
-    response['account_name'] = account['name']
-
-    return {
-        'id': account['id'],
-        'name': account['name']
-    }
-
-    return True
-
-#-------------------------------------------------------------------------------
-def search_by_radius(coords, events, map_data, conf):
+def search_by_radius(coords, radius, maps, events):
     '''Find a list of Blocks within the smallest radius of given coordinates.
     Constraints: must be within provided radius, schedule date, and block size.
 
@@ -155,22 +148,14 @@ def search_by_radius(coords, events, map_data, conf):
     Returns: list of Block objects on success, [] on failure
     '''
 
-    '''
-    today = date.today()
-    two_weeks = new Date(today.getTime() + (1000 * 3600 * 24 * rules['max_schedule_days_wait']))
-    radius = 4.0
-
     found = false
-
-    bookings = []
-
 
     # Start with small radius, continually expand radius until match found
     while found == False:
         if radius > rules['max_block_radius']:
             break
 
-        bookings = Geo.findBlocksWithin(lat, lng, map_data, radius, two_weeks, cal_ids['res'], _events)
+        results = geo.get_nearby_blocks(coords, radius, maps, events)
 
         if len(bookings) > 0:
             found = true
@@ -179,17 +164,15 @@ def search_by_radius(coords, events, map_data, conf):
 
           radius += 1.0
 
-    if found:
-        for i in range(len(booking)):
-            if is_res(bookings[i].block)):
-                bookings[i]['max_size'] = rules['size']['res']['max']
-            else:
-                bookings[i]['max_size'] = rules['size']['bus']['max']
+    #if found:
+    #    for i in range(len(booking)):
+    #        if is_res(bookings[i].block)):
+    #            bookings[i]['max_size'] = rules['size']['res']['max']
+    #        else:
+    #            bookings[i]['max_size'] = rules['size']['bus']['max']
 
     # May be empty array
     return bookings
-    '''
-    return True
 
 
 #-------------------------------------------------------------------------------
@@ -241,36 +224,7 @@ def search_by_block(block, events, conf):
     return results
 
 #-------------------------------------------------------------------------------
-def search_by_address(address, events, map_coords, conf, api_key, account=None):
-    '''Find results nearby'''
-
-    from app.routing import geo
-
-    geo_results = geo.geocode(address, api_key)
-
-    if len(geo_results) == 0:
-        return {
-            'status': 'failed',
-            'description': \
-                'Could not find local address. '\
-                'Make sure to include quadrant (i.e. NW) and Postal Code.'
-        }
-
-    response['results'] = search_by_radius(
-        geo_results[0].geometry.location,
-        events,
-        map_coords,
-        conf
-    )
-
-    response['message'] = \
-        'Booking suggestions for account <b>' + account['name'] \
-        + '</b> in <b>10km</b> within next <b>14 days</b>'
-
-    return True
-
-#-------------------------------------------------------------------------------
-def search_by_postal(postal, events, map_coords, conf, api_key, account=None):
+def search_by_postal(postal, events, maps, conf, api_key, account=None):
     '''Finds all Blocks within given postal code, sorted, sorted by date.
     Returns: list of Block objects on success, [] on failure.
     '''

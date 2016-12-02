@@ -23,20 +23,6 @@ def test_update_maps():
     return 'Updating...'
 
 #-------------------------------------------------------------------------------
-@main.route('/test_master_sms_enable', methods=['GET'])
-@login_required
-def test_master_sms_enable():
-    from .. import tasks
-
-    for d in range(1,75):
-        tasks.update_sms_accounts.apply_async(
-                kwargs={'days_delta':d, 'agency_name':'vec'},
-                queue=current_app.config['DB']
-                )
-
-    return 'OK'
-
-#-------------------------------------------------------------------------------
 @main.route('/test_non_participant', methods=['GET'])
 @login_required
 def test_non_participants():

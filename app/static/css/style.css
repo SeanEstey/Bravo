@@ -290,15 +290,18 @@ legend.admin-border {
 /*-------------------------- Booker View ---------------------------*/
 
 .input.booker {
+  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue",
+  Helvetica, Arial, "Lucida Grande", sans-serif;
   border-radius: 10px;
   -webkit-border-radius: 10px;
-  height: 60px;
-  font-size: 18pt;
+  height: 43px;
+  font-size: 14pt;
   max-width: 800px;
 }
 
 .input.booker:focus {
   border-color: #365766;
+  /*color: #367998;*/
   outline: none;
   border-radius: 10px;
   -webkit-border-radius: 10px;

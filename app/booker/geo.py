@@ -94,6 +94,9 @@ def get_nearby_blocks(pt, radius, maps, events):
 
         if dist < radius:
             block['distance'] = str(round(dist,2)) + 'km'
+            block['booked'] = event['summary'][
+                event['summary'].find('(')+1:
+                event['summary'].find('/')]
             results.append(block)
 
     results = sorted(

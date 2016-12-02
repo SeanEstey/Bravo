@@ -50,20 +50,24 @@ def search(agency, query):
         )
 
         results = geo.get_nearby_blocks(
-            coords,
-            radius,
+            geo_results[0]['geometry']['location'],
+            4.0,
             maps,
             events
         )
 
         return {
-            'search_type': 'account',
+            'status': 'success',
+            'query_type': 'account',
             'account': account,
-            'results': results
+            'results': results,
+            'description': \
+                'Booking suggestions for <b>' + account['name'] + '</b> '\
+                'within next <b>ten weeks</b>'
         }
     elif parser.is_block(query):
         return {
-            'search_type': 'block',
+            'query_type': 'block',
             'results': search_by_block(
                 query,
                 events,
@@ -76,7 +80,7 @@ def search(agency, query):
 
     elif parser.is_postal_code(query):
         return {
-            'search_type': 'postal',
+            'query_type': 'postal',
             'results': search_by_postal(
                 query,
                 events,
@@ -113,7 +117,7 @@ def search(agency, query):
 
         return {
             'status': 'success',
-            'search_type': 'address',
+            'query_type': 'address',
             'results': results,
             'description': \
                 'Booking suggestions for Address <b>' +\

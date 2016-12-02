@@ -1,5 +1,9 @@
 
-function init() {
+function booker_init() {
+    alertMsg(
+      'Enter an account ID, address, or postal code below',
+      'info', 30000
+    );
 }
 
 //---------------------------------------------------------------------
@@ -32,11 +36,12 @@ function search(my_form) {
       return false;
     }
 
-    //document.getElementById('results').innerHTML = '';
-    
-    document.getElementById('status_lbl').innerHTML = 'Searching...';
-
     console.log('Starting search for: ' + search_value);
+
+    $('#results').show();
+    $('.loader-div').slideToggle(function() {
+        $('.btn.loader').fadeTo('fast', 1);
+    });
 
 		$.ajax({
 			type: 'POST',
@@ -45,38 +50,47 @@ function search(my_form) {
 			dataType: 'json'
 		})
 		.done(function(response) {
-				if(response['status'] != 'success') {
-						console.log(response);
+        console.log(response);
 
+				if(response['status'] != 'success') {
 						alertMsg(
 							'Response: ' + response['description'], 
-							'danger', 30000)
+							'danger', 30000
+            );
 
-						$('.btn.loader').fadeTo('slow', 0, function() {
+						$('.btn.loader').fadeTo('fast', 0, function() {
 								$('.loader-div').slideToggle();
 						});
 
 						return;
 				}
 
-        displaySearchResults(response['results']);
+        displaySearchResults(response);
     })
 }
 
 //---------------------------------------------------------------------
-function displaySearchResults(results) {
-    for(var i=0; i<results.length; i++) {
-        var result = results[i];
+function displaySearchResults(response) {
+    $('.btn.loader').fadeTo('slow', 0, function() {
+        $('.loader-div').slideUp();
+    });
+
+    alertMsg(response['description'], 'success', -1);
+
+    for(var i=0; i<response['results'].length; i++) {
+        var result = response['results'][i];
         var $row = 
-          '<tr>' + 
+          '<tr style="background-color:white">' + 
             '<td>' + result['event']['start']['date'] + '</td>' +
             '<td>' + result['name'] + '</td>' +
-            '<td>' + 'neighborhood' + '</td>' +
+            '<td>' + result['event']['summary'].slice(
+              result['event']['summary'].indexOf('[')+1,
+              result['event']['summary'].indexOf(']')) + '</td>' +
             '<td>' + result['event']['location'] + '</td>' +
-            '<td>' + result['event']['summary'] + '</td>' +
+            '<td>' + result['booked'] + '</td>' +
             '<td>' + '100' + '</td>' +
             '<td>' + result['distance'] + '</td>' +
-            '<td> ' +
+            '<td style="width:6%; text-align:right"> ' +
               '<button ' +
                 'name="book_btn"'+
                 'class="btn btn-outline-primary"' +
@@ -86,6 +100,15 @@ function displaySearchResults(results) {
           '</tr>';
         $('#results tbody').append($row);
     }
+
+    $('button[name="book_btn"]').click(function() {
+      $modal = $('#mymodal');
+      $modal.find('.modal-title').text('Make Booking');
+      $('#mymodal .btn-primary').text('Book');
+      $('#mymodal .modal-body').html($('#booking_options').html());
+      $modal.find('.modal-body').find('#booking_options').show();
+      $modal.modal('show');
+    });
 }
   
 //---------------------------------------------------------------------
@@ -234,7 +257,7 @@ function form_submit(my_form) {
     var account_id = my_form.elements['account_id'].value;
     
      // Hide everything
-    document.getElementById('booking_options').style.display = 'none';
+    //document.getElementById('booking_options').style.display = 'none';
     document.getElementById('results').style.display = 'none';
     document.getElementById('status_lbl').innerHTML = 'Attempting to make booking...';
     

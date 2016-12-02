@@ -3,87 +3,83 @@
 	<script type='text/javascript' 
 					src="{{url_for('static', filename='js/views/booker.js')}}">
 	</script>
-  <script> $(function() {init();}); </script>
+  <script> $(function() {booker_init();}); </script>
 
-  <div class='container-fluid' style='width:75%; padding:80px 0px 30px 0px; text-align:center'>
-
-		 <!-- Form -->
-     <form style='width:100%; margin:0 auto;' onsubmit='return false;' id='main_form' name='main_form'>  
-
-			 <!-- Search -->
-       <div id='search_row'>
-					<input 
-						id='search_box'
-						class='input booker'
-						name='search_box'
-						type='text'
-						onkeydown="searchKeyPress(event)"
-						onBlur='validate(this.id)'
-						autocomplete='off'
-						placeholder='Enter Account Number, Address, or Postal Code' 
-					autofocus> 
+  <div class='container-fluid' style='width:75%; text-align:center'>
+    <!-- Search -->
+    <div style='margin: 4em 0'>
+      <form style='width:100%; margin:0 auto;' onsubmit='return false;' id='main_form' name='main_form'>  
+        <div id='search_row'>
+          <input 
+            id='search_box'
+            class='input booker'
+            name='search_box'
+            type='text'
+            onkeydown="searchKeyPress(event)"
+            onBlur='validate(this.id)'
+            autocomplete='off'
+            autofocus> 
+          <button 
+            class='btn btn-primary' 
+            style='font-size:20px;' 
+            type="button"
+            id="find_btn"
+            onclick="search(this.form)"
+            name="find_btn">Search
+          </button>
         </div>
-        <div style='margin-top:1em'>
-					<button 
-						class='btn btn-primary' 
-						style='font-size:20px;' 
-						type="button"
-						id="find_btn"
-						onclick="search(this.form)"
-						name="find_btn">Search
-					</button>
-				</div>
-
-       <!-- Status Label -->
-       <div style='font-size:16pt; color:black; font-weight:normal; margin-top: 2em; text-align:center;'>
-         <div style='display:inline-block;' id='status_lbl'></div>
-       </div>
-
-       <!-- Booking Options -->
-       <div id='booking_options' style='text-align:center; max-width:600px; margin:4em auto;' hidden>
-         <div class='row'>
-           <div id='account_id_div' class='four columns' hidden>
-             <input type='text' id='account_id' name='account_id' placeholder='Enter Account #' required>
-           </div>
-           <div class='four columns' hidden>
-             <input type='text' id='booking_block' name='booking_block' placeholder='Block' readonly required>
-           </div>
-           <div class='four columns' hidden>
-             <input type='text' id='booking_date' name='booking_date' placeholder='Date' readonly required>
-           </div>
-         </div>
-         <div class='row'>
-           <div class='six columns'>
-             <input type="radio" name="booking_type" value="pickup" checked='checked'>Empties Pickup
-           </div>
-           <div class='six columns'>
-             <input type="radio" name="booking_type" value="delivery">Green Goods Delivery
-           </div>
-         </div>
-         <input class='u-full-width' type='text' id='driver_notes' name='driver_notes' placeholder='Driver Instructions'>
-         <input style='margin-top:2em' class="button-primary" type="button" value="Make Booking" onclick='form_submit(this.form)'>
-       </div>
-     </form>
-		</div><!--End Row-->
-
-  <div class='container-fluid'>
-    <div class='data-navbar-div'>
-      <a class='hover' href="#">Booking</a>
+      </form>
     </div>
-    <table id='results' class='table table-hover table-colored'>
+
+  <!-- Results -->
+  <div style='max-width:1600px' class='container-fluid'>
+    <table id='results' class='table table-hover table-colored' style='display:none'>
       <thead>
-        <th>Date</th>
-        <th>Route</th>
-        <th>Area</th>
-        <th>Postal</th>
-        <th>Booked</th>
-        <th>Max</th>
-        <th>Distance</th>
-        <th>?</th>
+        <th style='background-color:#f7f7f7'>Date</th>
+        <th style='background-color:#f7f7f7'>Route</th>
+        <th style='background-color:#f7f7f7'>Area</th>
+        <th style='background-color:#f7f7f7'>Postal</th>
+        <th style='background-color:#f7f7f7'>Booked</th>
+        <th style='background-color:#f7f7f7'>Max</th>
+        <th style='background-color:#f7f7f7'>Distance</th>
+        <th style='background-color:#f7f7f7'></th>
       </thead>
       <tbody>
       </tbody>
 		</table>
+    <div class='loader-div'>
+      <button class="btn btn-info loader">
+        <span class="fa fa-refresh loader-animate"></span>
+				<label style='margin-bottom:0; margin-left:5px'>Searching...</label>
+			</button>
+    </div>
 	</div>
+
+  <!-- Booking Options -->
+  <div id='booking_options' style='display:none; text-align:center; max-width:600px; margin:4em auto;'>
+    <form id='options_form'>
+      <div>
+        <div id='account_id_div' hidden>
+          <input type='text' id='account_id' name='account_id' placeholder='Enter Account #' required>
+        </div>
+        <div class='four columns' hidden>
+          <input type='text' id='booking_block' name='booking_block' placeholder='Block' readonly required>
+        </div>
+        <div class='four columns' hidden>
+          <input type='text' id='booking_date' name='booking_date' placeholder='Date' readonly required>
+        </div>
+      </div>
+      <div>
+        <div class='six columns'>
+          <input type="radio" name="booking_type" value="pickup" checked='checked'>Empties Pickup
+        </div>
+        <div class='six columns'>
+          <!--<input type="radio" name="booking_type" value="delivery">Green
+          Goods Delivery-->
+        </div>
+      </div>
+      <input class='input' type='text' id='driver_notes' name='driver_notes' placeholder='Driver Instructions'>
+    </form>
+  </div>
 
   {% endblock %}

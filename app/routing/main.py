@@ -97,8 +97,6 @@ def submit_job(route_id):
     route = db.routes.find_one({"_id":ObjectId(route_id)})
     conf = db.agencies.find_one({'name':route['agency']})
 
-    logger.info('%s: Building %s...', route['agency'], route['block'])
-
     accounts = etap.call(
         'get_query_accounts',
         conf['etapestry'], {

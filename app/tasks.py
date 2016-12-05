@@ -395,7 +395,9 @@ def find_non_participants():
                   a_id = np['id'],
                   npu = npu,
                   block = etap.get_udf('Block', np),
-                  _date = date.today().strftime('%-m/%-d/%Y')
+                  _date = date.today().strftime('%-m/%-d/%Y'),
+                  driver_notes = etap.get_udf('Driver Notes', np),
+                  office_notes = etap.get_udf('Office Notes', np)
                 )
         except Exception as e:
             logger.error('%s\n%s', str(e), tb.format_exc())

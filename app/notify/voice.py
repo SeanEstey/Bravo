@@ -258,10 +258,11 @@ def on_complete():
             '_id':notific['acct_id']})
 
         # TODO: is there an error 'description' arg passed on fails?
+        evnt = db.notific_events.find_one({'_id':notific['evnt_id']})
         from .. import tasks
         tasks.rfu.apply_async(
             args=[
-                email['agency'],
+                evnt['agency'],
                 'Account %s error %s calling %s. %s' %(
                     account['id'], notific['to'], request.form.get('description')
                 )

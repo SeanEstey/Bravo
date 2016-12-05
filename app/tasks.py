@@ -405,6 +405,12 @@ def find_non_participants():
 
 #-------------------------------------------------------------------------------
 @celery.task
+def get_all_mobile_accounts(agency):
+    return True
+
+
+#-------------------------------------------------------------------------------
+@celery.task
 def update_map_data(agency):
     import os
     import time

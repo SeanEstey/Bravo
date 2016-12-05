@@ -7,6 +7,24 @@ function booker_init() {
     );
     
     buildAdminPanel();
+    addSocketIOHandlers();
+}
+
+//------------------------------------------------------------------------------
+function addSocketIOHandlers() {
+    var socketio_url = 'http://' + document.domain + ':' + location.port;
+
+    var socket = io.connect(socketio_url);
+
+    socket.on('connected', function(data){
+        $AGENCY = data['agency'];
+        console.log('socket.io connected! agency: ' + data['agency']);
+    });
+
+    socket.on('update_maps', function(data) {
+        console.log(data['description']);
+        alertMsg(data['description'], 'success');
+    });
 }
 
 //---------------------------------------------------------------------
@@ -245,6 +263,4 @@ function buildAdminPanel() {
             alertMsg('Map data printed to console.', 'success')
         });
     });
-
-
 }

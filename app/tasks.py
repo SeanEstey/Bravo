@@ -295,8 +295,6 @@ def update_sms_accounts(agency_name=None, days_delta=None):
         agencies = db.agencies.find({})
 
         for agency in agencies:
-
-
             # Get accounts scheduled on Residential routes 3 days from now
             accounts = schedule.get_accounts(
                 agency['etapestry'],
@@ -414,8 +412,11 @@ def get_all_mobile_accounts(agency):
 def update_map_data(agency):
     import os
     import time
+    from datetime import datetime
 
     conf = db.maps.find_one({'agency':agency})
+    status = None
+    desc = None
 
     logger.debug('downloading kml file...')
 
@@ -438,16 +439,37 @@ def update_map_data(agency):
 
     logger.debug('loading geo_json...')
 
-    with open(os.path.join('/tmp', 'maps.json')) as data_file:
-        data = json.load(data_file)
+    try:
+        with open(os.path.join('/tmp', 'maps.json')) as data_file:
+            data = json.load(data_file)
+    except Exception as e:
+        desc = \
+            'problem opening maps.json. may be issue either '\
+            'downloading .xml file or conversion to .json. '
+        logger.error(desc + str(e))
+        status = 'failed'
+    else:
+        status = 'success'
 
-    logger.debug('updating db record...')
+        maps = db.maps.find_one_and_update(
+            {'agency':agency},
+            {'$set': {
+                'update_dt': datetime.utcnow(),
+                'features': data['features']
+            }}
+        )
 
-    db.maps.find_one_and_update(
-        {'agency':agency},
-        {'$set': {'features': data['features']}}
-    )
+        desc = 'Updated %s maps successfully.' % len(data['features'])
 
-    logger.debug('done')
+        logger.info('%s: %s', agency, desc)
+
+    from app import task_emit
+    task_emit(
+        'update_maps',
+        data={
+            'status': status,
+            'description': desc,
+            'n_updated': len(maps['features'])
+        })
 
     return True

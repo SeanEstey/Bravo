@@ -37,3 +37,10 @@ def submit_search():
     )
 
     return jsonify(results)
+
+#-------------------------------------------------------------------------------
+@booker.route('/book', methods=['POST'])
+@login_required
+def book():
+    logger.info('booking form submitted')
+    return True

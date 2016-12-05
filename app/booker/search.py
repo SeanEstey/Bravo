@@ -125,22 +125,36 @@ def search(agency, query):
         }
 
 #-------------------------------------------------------------------------------
-def make(account_num, udf, type, config):
+def book(agency, aid, block, dt, driver_notes, office_notes):
     '''Makes the booking in eTapestry by posting to Bravo.
     This function is invoked from the booker client.
-    @type: 'delivery, pickup'
+    @aid: eTap account id
     '''
 
-    '''
-    logger.info('Making ' + type + ' booking for account ' + account_num + ', udf: ' + udf)
+    logger.info('Booking account %s for %s', aid, dt.strftime('%b %-d'))
 
-    response = Server.call('make_booking', {'account_num':account_num, 'udf':udf, 'type':type}, config['etapestry'])
+    conf = db.agencies.find_one({'name':agency})
 
-    logger.info(response.getContentText())
+    try:
+        response = etap.call(
+          'make_booking',
+          conf['etapestry'],
+          data={
+            'account_number': aid,
+            'type': 'pickup',
+            'udf': {
+                'Driver Notes': driver_notes,
+                'Office Notes': office_notes,
+                'Block': block,
+                'Next Pickup Date': etap.dt_to_ddmmyyyy(dt)
+            }
+          }
+        )
+    except Exception as e:
+        logger.error('failed to book: %s', str(e))
+        return False
 
-    return response.getContentText()
-    '''
-    return True
+    return response
 
 #-------------------------------------------------------------------------------
 def search_by_radius(coords, radius, maps, events):

@@ -27,10 +27,10 @@ function validate(field_id) {
 }
 
 //---------------------------------------------------------------------
-function search(my_form) {  
-    var search_value = my_form.elements['search_box'].value;
+function search(form) {  
+    var search_value = form.elements['search_box'].value;
     
-    my_form.elements['search_box'].value = '';
+    form.elements['search_box'].value = '';
     
     if(!search_value) {
       return false;
@@ -39,8 +39,8 @@ function search(my_form) {
     console.log('Starting search for: ' + search_value);
 
     $('#results').show();
-    $('.loader-div').slideToggle(function() {
-        $('.btn.loader').fadeTo('fast', 1);
+    $('#search-loader').slideToggle(function() {
+        $('#search-loader .btn.loader').fadeTo('fast', 1);
     });
 
 		$.ajax({
@@ -58,8 +58,8 @@ function search(my_form) {
 							'danger', 30000
             );
 
-						$('.btn.loader').fadeTo('fast', 0, function() {
-								$('.loader-div').slideToggle();
+						$('#search-loader .btn.loader').fadeTo('fast', 0, function() {
+								$('#search-loader').slideToggle();
 						});
 
 						return;
@@ -71,8 +71,8 @@ function search(my_form) {
 
 //---------------------------------------------------------------------
 function displaySearchResults(response) {
-    $('.btn.loader').fadeTo('slow', 0, function() {
-        $('.loader-div').slideUp();
+    $('#search-loader .btn.loader').fadeTo('slow', 0, function() {
+        $('#search-loader').slideUp();
     });
 
     alertMsg(response['description'], 'success', -1);
@@ -81,17 +81,18 @@ function displaySearchResults(response) {
         var result = response['results'][i];
         var $row = 
           '<tr style="background-color:white">' + 
-            '<td>' + result['event']['start']['date'] + '</td>' +
-            '<td>' + result['name'] + '</td>' +
+            '<td name="date">' + result['event']['start']['date'] + '</td>' +
+            '<td name="block">' + result['name'] + '</td>' +
             '<td>' + result['event']['summary'].slice(
               result['event']['summary'].indexOf('[')+1,
               result['event']['summary'].indexOf(']')) + '</td>' +
-            '<td>' + result['event']['location'] + '</td>' +
+            '<td name="postal">' + result['event']['location'] + '</td>' +
             '<td>' + result['booked'] + '</td>' +
             '<td>' + '100' + '</td>' +
             '<td>' + result['distance'] + '</td>' +
             '<td style="width:6%; text-align:right"> ' +
               '<button ' +
+                //'data-aid="'+response['account']['id'] + '"' +
                 'name="book_btn"'+
                 'class="btn btn-outline-primary"' +
                 '>Book' +
@@ -99,121 +100,75 @@ function displaySearchResults(response) {
             '</td>' +
           '</tr>';
         $('#results tbody').append($row);
+
+        // save account info in button data
+        if(response.hasOwnProperty('account')) {
+            $('#results tr:last button').data('aid', response['account']['id']);
+            $('#results tr:last button').data('name', response['account']['name']);
+        }
     }
 
     $('button[name="book_btn"]').click(function() {
-      $modal = $('#mymodal');
-      $modal.find('.modal-title').text('Make Booking');
-      $('#mymodal .btn-primary').text('Book');
-      $('#mymodal .modal-body').html($('#booking_options').html());
-      $modal.find('.modal-body').find('#booking_options').show();
-      $modal.modal('show');
+        console.log($(this).data('aid'));
+        $tr = $(this).parent().parent();
+
+        showBookingModal(
+          $tr.find('[name="block"]').text(),
+          $tr.find('[name="date"]').text(),
+          $tr.find('button').data('aid'),
+          $tr.find('button').data('name')
+        )
     });
 }
-  
+
 //---------------------------------------------------------------------
-function onSearchSuccess(response) { 
-    response = JSON.parse(response);
+function showBookingModal(block, date, aid, name) {
+    $modal = $('#mymodal');
+    $modal.find('.modal-title').text('Confirm Booking');
+
+    $('#mymodal .modal-body').html($('#booking_options').html());
+    $modal.find('.modal-body').find('#booking_options').show();
+
+    $modal.find('label[name="name"]').html('Account Name: <b>' + name + '</b>');
+    $modal.find('label[name="block"]').html('Block: <b>' + block + '</b>');
+    var date = new Date(date);
+    $modal.find('label[name="date"]').html('Date: <b>' + date.strftime('%B %d %Y') + '</b>');
     
-    if(response['status'] == 'failed') {
-      document.getElementById('status_lbl').style.display = 'block';
-      document.getElementById('status_lbl').innerHTML = response['message'];
-      return false;
-    }
-    
-    if(response['booking_results']) {   
-      var results = response['booking_results'];
-      
-      console.log(results.length + ' search results returned');
-       
-      if(response['account_name']) {
-        document.getElementById('account_id').value = response['account_id'];
-        document.getElementById('status_lbl').innerHTML = response['message'];
-      }
-      else {
-        document.getElementById('status_lbl').innerHTML = response['message'];
-      }
-      
-      document.getElementById('search_box').value = '';
-      
-      var html = 
-        "<table style='margin:15px auto;'>" +
-        "<tr><th style='text-align:center;'>Date</th><th>Route</th><th style='text-align:center;'>Area</th><th style='text-align:center;'>Postal Codes</th><th>Booked</th><th>Max</th><th>Distance</th></tr>";
-        
-      if(results.length == 0) {
-        
-      }
-   
-      for(var i=0; i<results.length; i++) {
-        var date = new Date(results[i]['date']);
-        
-        var block = results[i]['event_name'].substring(0, results[i]['event_name'].indexOf(' '));
-        var area = results[i]['event_name'].slice(results[i]['event_name'].indexOf('[')+1, results[i]['event_name'].indexOf(']'));
-        
-        if(!results[i]['distance'])
-          results[i]['distance'] = 'n/a';
-      
-        html +=
-          "<tr style='padding:5px 10px;'>" +
-          "<td style='text-align:left; width:20%; padding:0 25px'>" + date.toDateString() + "</td>" +
-          "<td style='padding:0 25px; text-align:right'>" + block + "</td>" +
-          "<td style='padding:0 25px; text-align:right'>" + area + "</td>" +
-          "<td style='width:50px; padding:0 25px; text-align:right'>" + results[i]['location'] + "</td>" +
-          "<td style='padding:0 25px'>" + results[i]['booking_size'] + "</td>" +
-          "<td style='padding:0 25px'>" + results[i]['max_size'] + "</td>" +
-          "<td style='padding:0 25px'>" + results[i]['distance'] + "</td>";
-          
-        if(results[i]['booking_size'] >= results[i]['max_size'])
-          html += "<td><input style='color:red;' type='button' name='' class='button' value='Full' onclick='makeBooking(this)'/></td></tr>";
-        else
-          html += "<td><input style='color:green;' type='button' name='' class='button' value='Book' onclick='makeBooking(this)'/></td></tr>";
-      }
-      
-      html += "</table>";
-      document.getElementById('results').insertAdjacentHTML('beforeend', html);
-      
-      return true;
-    }
+    $('#mymodal .btn-primary').text('Book');
+    $('#mymodal .btn-primary').click(function() {
+        requestBooking(aid, block, date);
+    });
+  
+    $modal.modal('show');
 }
   
 //---------------------------------------------------------------------
-function onSearchFailure(result) {
-    console.log('failure! result: ' + result);
-    document.getElementById('status_lbl').innerHTML = result;
+function requestBooking(aid, block, date, notes) {
+    console.log('request booking');
+
+    $('#mymodal').find('#booker-loader').show();
+    $('#mymodal').find('.btn.loader').fadeTo('fast', 1);
+
+    /*
+
+		$.ajax({
+			type: 'POST',
+			url: $URL_ROOT + 'booker/book',
+			data: {
+        'block': block,
+        'date': date,
+        'id': aid,
+        'driver_notes': notes
+      },
+			dataType: 'json'
+		})
+		.done(function(response) {
+        $('#booker-loader').fadeOut('fast');
+        console.log(response);
+    });
+    */
 }
   
-//---------------------------------------------------------------------
-function makeBooking(btn) {
-    var tr = btn.parentNode.parentNode;
-    var date_str = tr.children[0].innerHTML;
-    var block = tr.children[1].innerHTML;
-    
-    document.getElementById('results').style.display = 'none';
-    document.getElementById('booking_options').style.display = 'block';
-    document.getElementById('search_row').style.display = 'none';
-    
-    document.getElementById('booking_block').value = block;
-    document.getElementById('booking_date').value = date_str;
-    
-    // Do we have an account yet? If not, ask user to enter
-    if(!document.getElementById('account_id').value) {
-      document.getElementById('status_lbl').innerHTML = 'Booking onto Block <b>' + block + '</b>. Enter Account Number and any special driver instructions';
-      document.getElementById('account_id_div').style.display = 'block';
-    }
-    else
-      document.getElementById('status_lbl').innerHTML = 'Booking account <b>'+ document.getElementById('account_id').value + '</b> onto Block <b>' + block + '</b>. Enter any special driver instructions';
-}
-  
-//---------------------------------------------------------------------
-function onBookingSuccess(response) {
-    document.getElementById('status_lbl').innerHTML = response;
-}
-  
-//---------------------------------------------------------------------
-function onBookingFailure(response) {
-    var results_div = document.getElementById('results');
-    results_div.innerHTML = response;
-}
   
 //---------------------------------------------------------------------
 function searchKeyPress(e) {
@@ -226,49 +181,6 @@ function searchKeyPress(e) {
     return true;
 }
   
-//---------------------------------------------------------------------
-function form_submit(my_form) {  
-    for(var i=0; i<my_form.elements.length; i++) {
-      if(my_form.elements[i].required && !my_form.elements[i].value) {
-        console.log('Missing form value for field ' + my_form.elements[i].name);
-        return false;
-      }
-    }
-    
-    var book_date = my_form.elements['booking_date'].value;
-    var extra_driver_notes = my_form.elements['driver_notes'].value;
- 
-    var udf = {
-      'Block': my_form.elements['booking_block'].value,
-      'Office Notes': '***RMV '+ my_form.elements['booking_block'].value + '***'
-    };
-    
-    var booking_type = my_form.elements['booking_type'].value;
-    
-    if(booking_type == 'pickup') {
-      udf['Next Pickup Date'] = date_to_ddmmyyyy(new Date(book_date));
-      udf['Driver Notes'] = '***'+ book_date +': Pickup Needed. ' + extra_driver_notes + '***';
-    }
-    else if(booking_type == 'delivery') {
-      udf['Next Delivery Date'] = date_to_ddmmyyyy(new Date(book_date));
-      udf['Driver Notes'] = '***'+ book_date +': Delivery. ' + extra_driver_notes + '***';
-    }
-    
-    var account_id = my_form.elements['account_id'].value;
-    
-     // Hide everything
-    //document.getElementById('booking_options').style.display = 'none';
-    document.getElementById('results').style.display = 'none';
-    document.getElementById('status_lbl').innerHTML = 'Attempting to make booking...';
-    
-    console.log('attempting ' + booking_type + ' for account ' + account_id + ', udf: ' + JSON.stringify(udf));
-    
-    google.script.run
-      .withSuccessHandler(onBookingSuccess)
-      .withFailureHandler(onBookingFailure)
-      .makeBooking(account_id, udf, booking_type);  
-}
-   
 //---------------------------------------------------------------------
 function date_to_ddmmyyyy(date) {
     // Used to convert to eTapestry date format

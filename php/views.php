@@ -5,10 +5,14 @@
 
   ini_set('log_errors', 1);
   ini_set('error_log', $ERROR_LOG);
-  
+
 	//require('vendor/autoload.php');
 	require('misc.php');
   require('bravo.php');
+
+	info_log('script executed');
+
+
 
 	$sandbox_mode = false;
 

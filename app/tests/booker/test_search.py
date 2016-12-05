@@ -1,14 +1,16 @@
-'''tests.test_views'''
+'''app.tests.booker.test_search'''
 
 import json
 import pymongo
 import unittest
 from flask import Flask, Blueprint, request, url_for
+from datetime import datetime, date, time, timedelta
 
 from app import create_app
+from app.booker import geo, search
+from app import gcal
 
-
-class NotifyTests(unittest.TestCase):
+class BookerSearchTests(unittest.TestCase):
     def setUp(self):
         self.app = create_app('app')
         self.app.testing = True
@@ -18,14 +20,14 @@ class NotifyTests(unittest.TestCase):
         self._ctx = self.app.test_request_context()
         self._ctx.push()
 
-        #celery_app.conf.CELERY_ALWAYS_EAGER = True
-
         self.db = pymongo.MongoClient('localhost', 27017, tz_aware=True)['bravo']
 
         self.client.post(url_for('auth.login'), data=dict(
           username='sestey@vecova.ca',
           password='vec'
         ), follow_redirects=True)
+
+        self.conf = self.db.agencies.find_one({'name':'vec'})
 
     def tearDown(self):
         response = self.client.get(url_for('auth.logout'),
@@ -36,19 +38,11 @@ class NotifyTests(unittest.TestCase):
     def update_db(self, collection, a_id, a_set):
         self.db[collection].update_one({'_id':a_id},{'$set':a_set})
 
-
     # -------------------- TESTS -----------------------
 
-    def test_main(self):
-        response = self.client.get(url_for('notify.view_event_list'),
-        follow_redirects=True)
-        print 'test_main: %s' % str(response)
-
-    def test_admin(self):
-        response = self.client.get(url_for('main.view_admin'),
-        follow_redirects=True)
-        print 'test_admin: %s' % str(response)
-
+    def test_search(self):
+        r = search.search('6348 33 Ave NW, Calgary, AB', None, None)
+        print r
 
 if __name__ == '__main__':
     unittest.main()

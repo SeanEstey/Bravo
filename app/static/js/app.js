@@ -101,11 +101,13 @@ function alertMsg(msg, level, duration=7500, id=null) {
 		$alert.html('<span>' + msg + '</span>');
 
 		$alert.fadeTo('slow', 0.75, function() {
-				globalTimeoutId = setTimeout(function() {
-						$alert.fadeTo('slow', 0);
-						globalTimeoutId = false;
-				},
-				duration);
+        if(duration > 0)  {
+            globalTimeoutId = setTimeout(function() {
+                $alert.fadeTo('slow', 0);
+                globalTimeoutId = false;
+            },
+            duration);
+        }
 		});	
 }
 

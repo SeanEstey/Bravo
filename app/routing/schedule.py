@@ -65,8 +65,7 @@ def analyze_upcoming(agency_name, days):
             )
         except Exception as e:
             logger.error('Error retrieving accounts for query %s', block)
-
-        if 'count' not in a:
+            #if 'count' not in a:
             logger.error('No accounts found in query %s', block)
             continue
 

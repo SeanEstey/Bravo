@@ -88,11 +88,13 @@ def create_app(pkg_name):
     from app.main import main as main_mod
     from app.notify import notify as notify_mod
     from app.routing import routing as routing_mod
+    from app.booker import booker as booker_mod
 
     app.register_blueprint(auth_mod)
     app.register_blueprint(main_mod)
     app.register_blueprint(notify_mod)
     app.register_blueprint(routing_mod)
+    app.register_blueprint(booker_mod)
 
     return app
 

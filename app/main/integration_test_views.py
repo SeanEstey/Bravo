@@ -14,19 +14,13 @@ from app.notify import pus
 from .. import db
 logger = logging.getLogger(__name__)
 
-#-------------------------------------------------------------------------------
-@main.route('/test_master_sms_enable', methods=['GET'])
+
+@main.route('/test_update_maps', methods=['GET'])
 @login_required
-def test_master_sms_enable():
+def test_update_maps():
     from .. import tasks
-
-    for d in range(1,75):
-        tasks.update_sms_accounts.apply_async(
-                kwargs={'days_delta':d, 'agency_name':'vec'},
-                queue=current_app.config['DB']
-                )
-
-    return 'OK'
+    tasks.update_map_data.apply_async(queue=current_app.config['DB'])
+    return 'Updating...'
 
 #-------------------------------------------------------------------------------
 @main.route('/test_non_participant', methods=['GET'])

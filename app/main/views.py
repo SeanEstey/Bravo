@@ -75,13 +75,6 @@ def update_agency_conf():
     return jsonify({'status':'success'})
 
 #-------------------------------------------------------------------------------
-@main.route('/booking', methods=['GET'])
-@login_required
-def show_booking():
-    agency = db['users'].find_one({'user': current_user.username})['agency']
-    return render_template('views/booking.html', agency=agency)
-
-#-------------------------------------------------------------------------------
 @main.route('/receipts/process', methods=['POST'])
 def process_receipts():
     '''Data sent from Routes worksheet in Gift Importer (Google Sheet)

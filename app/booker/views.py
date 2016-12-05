@@ -21,7 +21,11 @@ logger = logging.getLogger(__name__)
 @login_required
 def show_home():
     agency = db['users'].find_one({'user': current_user.username})['agency']
-    return render_template('views/booker.html', agency=agency)
+
+    return render_template(
+        'views/booker.html',
+        admin=True,
+        agency=agency)
 
 #-------------------------------------------------------------------------------
 @booker.route('/search', methods=['POST'])
@@ -44,3 +48,30 @@ def submit_search():
 def book():
     logger.info('booking form submitted')
     return True
+
+#-------------------------------------------------------------------------------
+@booker.route('/get_maps', methods=['POST'])
+@login_required
+def get_maps():
+    user = db.users.find_one({'user': current_user.username})
+    maps = db.maps.find_one({'agency':user['agency']})
+
+    return jsonify(
+        utils.formatter(
+            maps,
+            bson_to_json=True
+        )
+    )
+
+#-------------------------------------------------------------------------------
+@booker.route('/update_maps', methods=['POST'])
+@login_required
+def update_maps():
+    user = db.users.find_one({'user': current_user.username})
+
+    from .. import tasks
+    tasks.update_map_data.apply_async(
+        kwargs={'agency': user['agency'] },
+        queue=current_app.config['DB']
+    )
+    return jsonify('OK')

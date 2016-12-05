@@ -7,18 +7,10 @@ cd Bravo
 ```
 
 ###### Setup NodeJS & togeojson
-```
-$apt-get install nodejs
-```
 
-If already installed as “node”, make symbolic link:
+If nodejs already installed as “node”, make symbolic link:
 ```
 $ln -s /usr/bin/nodejs /usr/bin/node
-```
-
-Install NPM
-```
-$apt-get install npm
 ```
 
 Install togeojson

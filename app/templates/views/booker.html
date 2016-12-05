@@ -4,7 +4,9 @@
 	<script type='text/javascript' 
 					src="{{url_for('static', filename='js/views/booker.js')}}">
 	</script>
-  <script> $(function() {booker_init();}); </script>
+  <script> $(function() {
+      booker_init();
+    }); </script>
 
   <div class='container-fluid' style='width:75%; text-align:center'>
     <!-- Search -->
@@ -31,6 +33,7 @@
         </div>
       </form>
     </div>
+  </div>
 
   <!-- Results -->
   <div style='max-width:1600px' class='container-fluid'>
@@ -84,7 +87,6 @@
         </button>
       </div>
     </form>
-
   </div>
 
   {% endblock %}

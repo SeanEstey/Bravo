@@ -1,9 +1,12 @@
 
+//---------------------------------------------------------------------
 function booker_init() {
     alertMsg(
       'Enter an account ID, address, or postal code below',
       'info', 30000
     );
+    
+    buildAdminPanel();
 }
 
 //---------------------------------------------------------------------
@@ -92,7 +95,6 @@ function displaySearchResults(response) {
             '<td>' + result['distance'] + '</td>' +
             '<td style="width:6%; text-align:right"> ' +
               '<button ' +
-                //'data-aid="'+response['account']['id'] + '"' +
                 'name="book_btn"'+
                 'class="btn btn-outline-primary"' +
                 '>Book' +
@@ -197,4 +199,52 @@ function date_to_ddmmyyyy(date) {
       month = '0' + String(month);
   
     return day + '/' + month + '/' + String(date.getFullYear());
+}
+
+//------------------------------------------------------------------------------
+function buildAdminPanel() {
+    // dev_mode pane buttons
+    $('#admin_pane').hide();
+    $('#dev_pane').show();
+
+    update_maps_btn = addAdminPanelBtn(
+      'dev_pane',
+      'update_maps_btn',
+      'Update Maps',
+      'btn-outline-primary');
+
+    update_maps_btn.click(function() {
+        $.ajax({
+          type: 'POST',
+          url: $URL_ROOT + 'booker/update_maps',
+          data: {},
+          dataType: 'json'
+        })
+        .done(function(response) {
+            console.log(response);
+            alertMsg('Updating maps...', 'info');
+        });
+    });
+
+    print_maps_btn = addAdminPanelBtn(
+      'dev_pane',
+      'print_maps_btn',
+      'Print Maps',
+      'btn-outline-primary');
+
+		// Prints Routific job_id to console
+    print_maps_btn.click(function() {
+        $.ajax({
+          type: 'POST',
+          url: $URL_ROOT + 'booker/get_maps',
+          data: {},
+          dataType: 'json'
+        })
+        .done(function(response) {
+            console.log(response);
+            alertMsg('Map data printed to console.', 'success')
+        });
+    });
+
+
 }

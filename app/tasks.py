@@ -405,13 +405,11 @@ def find_non_participants():
 
 #-------------------------------------------------------------------------------
 @celery.task
-def update_map_data():
+def update_map_data(agency):
     import os
     import time
 
-    agency_name = 'vec'
-
-    conf = db.maps.find_one({'agency':agency_name})
+    conf = db.maps.find_one({'agency':agency})
 
     logger.debug('downloading kml file...')
 
@@ -440,11 +438,10 @@ def update_map_data():
     logger.debug('updating db record...')
 
     db.maps.find_one_and_update(
-        {'agency':agency_name},
+        {'agency':agency},
         {'$set': {'features': data['features']}}
     )
 
     logger.debug('done')
 
     return True
-

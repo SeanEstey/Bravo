@@ -6,6 +6,18 @@ git clone https://github.com/SeanEstey/Bravo
 cd Bravo
 ```
 
+###### Setup NodeJS & togeojson
+
+If nodejs already installed as “node”, make symbolic link:
+```
+$ln -s /usr/bin/nodejs /usr/bin/node
+```
+
+Install togeojson
+```
+npm install -g togeojson
+```
+
 ###### Run setup
 
 `python setup.py`

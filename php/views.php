@@ -5,14 +5,10 @@
 
   ini_set('log_errors', 1);
   ini_set('error_log', $ERROR_LOG);
-
+  
 	//require('vendor/autoload.php');
 	require('misc.php');
   require('bravo.php');
-
-	info_log('script executed');
-
-
 
 	$sandbox_mode = false;
 
@@ -70,8 +66,8 @@
 				$agency . " " .
 				"eTapestry login error for user '" . $etapestry['user'] . 
 				"'. Message: '" . $nsc->faultstring . "'");
-			echo json_encode($nsc->faultcode . ': ' . $nsc->faultstring);
 			http_response_code(500);
+			echo json_encode($nsc->faultcode . ': ' . $nsc->faultstring);
 			exit;
   }
 

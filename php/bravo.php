@@ -630,6 +630,11 @@ function make_booking($nsc, $account_num, $udf, $type) {
   if(!$account)
     return false;
 
+  // convert stdclass to array
+  if(is_object($udf)) {
+      $udf = get_object_vars($udf);
+  }
+
   $has_status = false;
   $status = '';
 
@@ -665,7 +670,9 @@ function make_booking($nsc, $account_num, $udf, $type) {
   }
 
   http_response_code(200);  
+
   info_log('Booked Account #' . $account_num . ' on Block ' . $udf['Block']);
+
   return 'Booked successfully!';
 }
 

@@ -2,8 +2,9 @@
 //---------------------------------------------------------------------
 function booker_init() {
     alertMsg(
-      'Enter an account ID, address, or postal code below',
-      'info', 30000
+      'Enter an <b>account ID</b>, <b>address</b>, or <b>postal code</b> below',
+      'info', 
+      -1
     );
     
     buildAdminPanel();
@@ -28,26 +29,6 @@ function addSocketIOHandlers() {
 }
 
 //---------------------------------------------------------------------
-function validate(field_id) {
-    var element = document.getElementById(field_id);  
-    
-    // Some browsers (Safari) do not evaluate <input pattern> property. 
-    // Manually test regular expression
-    if(element.pattern) {
-      var pattern = new RegExp(element.pattern);
-      
-      if(!pattern.test(element.value)) {
-        element.style.border = '1px solid red';
-        element.value = '';
-        element.placeholder = 'Invalid value';
-        return false;
-      }
-    }
- 
-    return true;
-}
-
-//---------------------------------------------------------------------
 function search(form) {  
     var search_value = form.elements['search_box'].value;
     
@@ -59,7 +40,12 @@ function search(form) {
 
     console.log('Starting search for: ' + search_value);
 
+    fadeAlert();
+    clearSearchResults(false);
+
     $('#results').show();
+    $('#results tr:first').hide();
+
     $('#search-loader').slideToggle(function() {
         $('#search-loader .btn.loader').fadeTo('fast', 1);
     });
@@ -96,21 +82,23 @@ function displaySearchResults(response) {
         $('#search-loader').slideUp();
     });
 
+    $('#results tr:first').show();
+
     alertMsg(response['description'], 'success', -1);
 
     for(var i=0; i<response['results'].length; i++) {
         var result = response['results'][i];
         var $row = 
           '<tr style="background-color:white">' + 
-            '<td name="date">' + result['event']['start']['date'] + '</td>' +
+            '<td name="date">' + 
+              new Date(result['event']['start']['date']).strftime('%B %d %Y') + 
+            '</td>' +
             '<td name="block">' + result['name'] + '</td>' +
-            '<td>' + result['event']['summary'].slice(
-              result['event']['summary'].indexOf('[')+1,
-              result['event']['summary'].indexOf(']')) + '</td>' +
-            '<td name="postal">' + result['event']['location'] + '</td>' +
             '<td>' + result['booked'] + '</td>' +
             '<td>' + '100' + '</td>' +
             '<td>' + result['distance'] + '</td>' +
+            '<td name="postal">' + result['event']['location'] + '</td>' +
+            '<td>' + result['area'] + '</td>' +
             '<td style="width:6%; text-align:right"> ' +
               '<button ' +
                 'name="book_btn"'+
@@ -142,34 +130,46 @@ function displaySearchResults(response) {
 }
 
 //---------------------------------------------------------------------
+function clearSearchResults(hide) {
+    $('#results tbody').html('');
+
+    if(hide == true)
+        $('#results').hide();
+}
+
+//---------------------------------------------------------------------
 function showBookingModal(block, date, aid, name) {
-    $modal = $('#mymodal');
-    $modal.find('.modal-title').text('Confirm Booking');
+    showModal(
+      'mymodal',
+      'Confirm Booking',
+      $('#booking_options').html(),
+      'Book',
+      'Close'
+    );
 
-    $('#mymodal .modal-body').html($('#booking_options').html());
-    $modal.find('.modal-body').find('#booking_options').show();
+    $('#mymodal label[name="name"]').html('Account Name: <b>' + name + '</b>');
+    $('#mymodal label[name="block"]').html('Block: <b>' + block + '</b>');
+    $('#mymodal label[name="date"]').html(
+        'Date: <b>' + new Date(date).strftime('%B %d %Y') + '</b>'
+    );
+    $('#mymodal textarea').val(
+        new Date(date).strftime('%b %d') + ': Pickup requested.'
+    );
 
-    $modal.find('label[name="name"]').html('Account Name: <b>' + name + '</b>');
-    $modal.find('label[name="block"]').html('Block: <b>' + block + '</b>');
-    var date = new Date(date);
-    $modal.find('label[name="date"]').html('Date: <b>' + date.strftime('%B %d %Y') + '</b>');
-    
-    $('#mymodal .btn-primary').text('Book');
     $('#mymodal .btn-primary').click(function() {
-        requestBooking(aid, block, date);
+        requestBooking(
+            aid,
+            block, 
+            new Date(date).strftime('%d/%m/%Y'),
+            $('#mymodal').find('#driver_notes').val()
+        );
     });
-  
-    $modal.modal('show');
 }
   
 //---------------------------------------------------------------------
 function requestBooking(aid, block, date, notes) {
-    console.log('request booking');
-
     $('#mymodal').find('#booker-loader').show();
     $('#mymodal').find('.btn.loader').fadeTo('fast', 1);
-
-    /*
 
 		$.ajax({
 			type: 'POST',
@@ -177,18 +177,35 @@ function requestBooking(aid, block, date, notes) {
 			data: {
         'block': block,
         'date': date,
-        'id': aid,
+        'aid': aid,
         'driver_notes': notes
       },
 			dataType: 'json'
 		})
 		.done(function(response) {
-        $('#booker-loader').fadeOut('fast');
         console.log(response);
+
+        $('#booker-loader').fadeOut('fast');
+
+        $('#mymodal').modal('hide');
+
+        if(response['status'] == 'success') {
+            alertMsg(response['description'], 'success');
+            clearSearchResults(true);
+        }
+        else {
+            alertMsg(response['description'], 'danger');
+        }
+
+        setTimeout(function(){
+            alertMsg(
+              'Enter an <b>account ID</b>, <b>address</b>, or <b>postal code</b> below',
+              'info', 
+              -1
+            );
+        }, 10000);
     });
-    */
 }
-  
   
 //---------------------------------------------------------------------
 function searchKeyPress(e) {
@@ -201,24 +218,6 @@ function searchKeyPress(e) {
     return true;
 }
   
-//---------------------------------------------------------------------
-function date_to_ddmmyyyy(date) {
-    // Used to convert to eTapestry date format
-
-    if(!date)
-      return;
-  
-    var day = date.getDate();
-    if(day < 10)
-      day = '0' + String(day);
-  
-    var month = date.getMonth() + 1;
-    if(month < 10)
-      month = '0' + String(month);
-  
-    return day + '/' + month + '/' + String(date.getFullYear());
-}
-
 //------------------------------------------------------------------------------
 function buildAdminPanel() {
     // dev_mode pane buttons

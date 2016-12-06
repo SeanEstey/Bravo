@@ -46,8 +46,19 @@ def submit_search():
 @booker.route('/book', methods=['POST'])
 @login_required
 def book():
-    logger.info('booking form submitted')
-    return True
+    logger.debug(request.form.to_dict())
+
+    user = db.users.find_one({'user': current_user.username})
+
+    response = search.book(
+        user['agency'],
+        request.form['aid'],
+        request.form['block'],
+        request.form['date'],
+        request.form['driver_notes']
+    )
+
+    return jsonify(response)
 
 #-------------------------------------------------------------------------------
 @booker.route('/get_maps', methods=['POST'])

@@ -3,7 +3,7 @@ import re
 block_regex = r'(B|R)\d{1,2}[a-zA-Z]{1}'
 bus_block_regex = r'B\d{1,2}[A-E]{1}'
 res_block_regex = r'R\d{1,2}[a-zA-Z]{1}'
-postal_code_regex = r'T\d[A-Z]\s?\d[A-Z]\d'
+postal_code_regex = r'T\d[A-Z]\s?(\d[A-Z]\d)?'
 account_id_regex = r'[\/]?\d{1,6}'
 
 #-------------------------------------------------------------------------------
@@ -45,5 +45,23 @@ def is_block_list(s):
 def is_postal_code(s):
     return re.match(r'^' + postal_code_regex + r'$', s) is not None
 
+#-------------------------------------------------------------------------------
 def is_account_id(s):
     return re.match(r'^' + account_id_regex + r'$', s) is not None
+
+#-------------------------------------------------------------------------------
+def get_num_booked(event_summary):
+    booked_re = r'\(\d{1,3}\/'
+    if re.search(booked_re, event_summary):
+        return re.search(booked_re, event_summary).group(0)[1:-1]
+    else:
+        return False
+
+#-------------------------------------------------------------------------------
+def get_area(event_summary):
+    area_re = r'\[(.*)\]'
+
+    if re.search(area_re, event_summary):
+        return re.search(area_re, event_summary).group(0)[1:-1]
+    else:
+        return False

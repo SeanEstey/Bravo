@@ -19,7 +19,6 @@
             name='search_box'
             type='text'
             onkeydown="searchKeyPress(event)"
-            onBlur='validate(this.id)'
             autocomplete='off'
             autofocus> 
           <button 
@@ -36,30 +35,31 @@
   </div>
 
   <!-- Results -->
-  <div style='max-width:1600px' class='container-fluid'>
-    <table id='results' class='table table-hover table-colored' style='display:none'>
+  <div style='max-width:1600px; margin-bottom:12em' class='container-fluid'>
+    <table id='results' class='table table-hover table-colored'
+    style='background-color:white; display:none'>
       <thead>
         <th style='background-color:#f7f7f7'>Date</th>
         <th style='background-color:#f7f7f7'>Route</th>
-        <th style='background-color:#f7f7f7'>Area</th>
-        <th style='background-color:#f7f7f7'>Postal</th>
         <th style='background-color:#f7f7f7'>Booked</th>
         <th style='background-color:#f7f7f7'>Max</th>
         <th style='background-color:#f7f7f7'>Distance</th>
-        <th style='background-color:#f7f7f7'></th>
+        <th style='width:20%; background-color:#f7f7f7'>Postal</th>
+        <th style='width:20%; background-color:#f7f7f7'>Area</th>
+        <th style='width:10%; background-color:#f7f7f7'></th>
       </thead>
       <tbody>
       </tbody>
 		</table>
-    <div id='search-loader' class='loader-div'>
+    <div style='background-color:white' id='search-loader' class='loader-div'>
       <button class="btn btn-info loader">
         <span class="fa fa-refresh loader-animate"></span>
-				<label style='margin-bottom:0; margin-left:5px'>Searching...</label>
+				<label style='margin-bottom:0; margin-left:5px'>Searching</label>
 			</button>
     </div>
 	</div>
 
-  <!-- Booking Options -->
+  <!-- Booking Confirmation -->
   <div id='booking_options' style='display:none'> 
     <form style='text-align:left' id='booking_form'>
       <div>
@@ -83,7 +83,7 @@
       <div id='booker-loader' style='background-color:white; text-align:center'>
         <button class="btn btn-info loader">
           <span class="fa fa-refresh loader-animate"></span>
-          <label style='margin-bottom:0; margin-left:5px'>Booking...</label>
+          <label style='margin-bottom:0; margin-left:5px'>Booking</label>
         </button>
       </div>
     </form>

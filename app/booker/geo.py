@@ -62,7 +62,8 @@ def get_nearby_blocks(pt, radius, maps, events):
     @events: gcal event
 
     Returns:
-        list of {'event': gcal_obj, 'distance': float, 'name': str}
+        list of {'event': gcal_obj, 'distance': float, 'name': str,
+        'booked':int}
     Returns empty array if none found .
     Returns Error exception on error (invalid KML data).
     '''
@@ -94,9 +95,9 @@ def get_nearby_blocks(pt, radius, maps, events):
 
         if dist < radius:
             block['distance'] = str(round(dist,2)) + 'km'
-            block['booked'] = event['summary'][
-                event['summary'].find('(')+1:
-                event['summary'].find('/')]
+            block['area'] = parser.get_area(event['summary']) or '---'
+            block['booked'] = parser.get_num_booked(event['summary']) or '---'
+
             results.append(block)
 
     results = sorted(

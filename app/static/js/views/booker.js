@@ -60,10 +60,7 @@ function search(form) {
         console.log(response);
 
 				if(response['status'] != 'success') {
-						alertMsg(
-							'Response: ' + response['description'], 
-							'danger', 30000
-            );
+						alertMsg(response['description'], 'danger', -1);
 
 						$('#search-loader .btn.loader').fadeTo('fast', 0, function() {
 								$('#search-loader').slideToggle();
@@ -74,6 +71,17 @@ function search(form) {
 
         displaySearchResults(response);
     })
+}
+
+//---------------------------------------------------------------------
+function searchKeyPress(e) {
+    // look for window.event in case event isn't passed in
+    e = e || window.event;
+    if (e.keyCode == 13) {
+      document.getElementById('find_btn').click();
+      return false;
+    }
+    return true;
 }
 
 //---------------------------------------------------------------------
@@ -155,8 +163,12 @@ function showEnterIDModal(block, date) {
 			'Close'
 		);
 
-		$('#mymodal').find('#acct_info').hide();
-		$('#mymodal').find('#enter_aid').show();
+    $('#mymodal').find('#acct_info').hide();
+    $('#mymodal').find('#enter_aid').show();
+
+    $('#mymodal').on('shown.bs.modal', function () {
+        $('#mymodal').find('#aid').focus();
+    })
 
     $('#mymodal .btn-primary').click(function() {
 				console.log('querying aid: ' + $('#mymodal input[id="aid"]').val());
@@ -279,16 +291,7 @@ function requestBooking(aid, block, date, notes, name, email, confirmation) {
     });
 }
   
-//---------------------------------------------------------------------
-function searchKeyPress(e) {
-    // look for window.event in case event isn't passed in
-    e = e || window.event;
-    if (e.keyCode == 13) {
-      document.getElementById('find_btn').click();
-      return false;
-    }
-    return true;
-}
+
   
 //------------------------------------------------------------------------------
 function buildAdminPanel() {

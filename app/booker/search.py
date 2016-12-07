@@ -2,6 +2,7 @@
 
 from datetime import datetime, date, timedelta
 import logging
+import re
 
 from .. import etap, parser, gcal
 from .. import db
@@ -36,16 +37,32 @@ def search(agency, query):
             end_date
         )
 
+    events =sorted(
+        events,
+        key=lambda k: k['start'].get('dateTime',k['start'].get('date'))
+    )
+
     if parser.is_account_id(query):
         try:
             account = etap.call(
               'get_account',
               conf['etapestry'],
-              data={'account_number': query}
+              data={'account_number': re.search(r'\d{1,6}',query).group(0)}
             )
         except Exception as e:
             logger.error('no account id %s', query)
-            return False
+            return {
+                'status': 'failed',
+                'description': 'No account found matching ID <b>%s</b>.'% query
+            }
+
+        if not account.get('address') or not account.get('city'):
+            return {
+                'status': 'failed',
+                'description': \
+                    'Account <b>%s</b> is missing address or city. '\
+                    'Check the account in etapestry.'% account['name']
+            }
 
         geo_results = geo.geocode(
             account['address'] + ', ' + account['city'] + ', AB',
@@ -59,33 +76,43 @@ def search(agency, query):
             events
         )
 
+        if len(results) == 0:
+            return {
+                'status': 'failed',
+                'description': \
+                    'No results found for <b>%s</b> within next <b>ten weeks</b>'%(
+                    account['name'])
+            }
+
         return {
             'status': 'success',
             'query_type': 'account',
             'account': account,
             'results': results,
             'description': \
-                'Booking suggestions for <b>' + account['name'] + '</b> '\
-                'within next <b>ten weeks</b>'
+                'Found <b>%s</b> results for <b>%s</b> within next <b>ten weeks.</b>'%(
+                len(results), account['name'])
         }
     elif parser.is_block(query):
+        results = search_by_block(query,events)
         return {
             'status': 'success',
             'query_type': 'block',
-            'results': search_by_block(query, events),
+            'results': results,
             'description': \
-                'Booking suggestions for Block <b>' + query + '</b> '\
-                'within next <b>sixteen weeks</b>'
+                'Found <b>%s</b> results for <b>%s</b> within next <b>ten weeks</b>.'%(
+                len(results), query)
         }
 
     elif parser.is_postal_code(query):
+        results = search_by_postal(query, events)
         return {
             'status': 'success',
             'query_type': 'postal',
-            'results': search_by_postal(query, events),
+            'results': results,
             'description': \
-                'Booking suggestions for Postal Code <b>' +\
-                query[0:3] + '</b> within next <b>ten weeks</b>'
+                'Found <b>%s</b> results for Postal Code <b>%s</b> within next <b>ten weeks.</b>'%(
+                len(results), query[0:3])
         }
     # must be address?
     else:
@@ -98,8 +125,9 @@ def search(agency, query):
             return {
                 'status': 'failed',
                 'description': \
-                    'Could not find local address. '\
-                    'Make sure to include quadrant (i.e. NW) and Postal Code.'
+                    'No results found for address <b>%s</b>. '\
+                    'Make sure to include quadrant (i.e. NW) and City.'%(
+                    query)
             }
 
         results = geo.get_nearby_blocks(
@@ -114,8 +142,8 @@ def search(agency, query):
             'query_type': 'address',
             'results': results,
             'description': \
-                'Booking suggestions for Address <b>' +\
-                query + '</b> within next <b>ten weeks</b>'
+                'Found <b>%s</b> results for address <b>%s</b> within next <b>ten weeks</b>.'%(
+                len(results), query)
         }
 
 #-------------------------------------------------------------------------------
@@ -132,7 +160,7 @@ def get_account(agency, aid):
         logger.error('no account id %s', aid)
         return {
             'status': 'failed',
-            'description': 'no account id match'
+            'description': 'No account found matching ID <b>%s</b>.'% aid
         }
 
     return {
@@ -209,7 +237,7 @@ def search_by_block(block, events):
         })
 
 
-    sorted(
+    results = sorted(
         results,
         key=lambda k: k['event']['start'].get('dateTime',k['event']['start'].get('date'))
     )
@@ -251,8 +279,9 @@ def search_by_postal(postal, events):
                 'booked': parser.get_num_booked(event['summary']) or '---'
               })
 
-    #results.sort(function(a, b) {
-    #return a.date.getTime() - b.date.getTime()
-    #})
+    results = sorted(
+        results,
+        key=lambda k: k['event']['start'].get('dateTime',k['event']['start'].get('date'))
+    )
 
     return results

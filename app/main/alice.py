@@ -144,6 +144,10 @@ def get_name(account):
 
     if account['nameFormat'] == 1: # individual
         name = account['firstName']
+
+        # for some reason firstName is sometimes empty even if populated in etap
+        if not name:
+            name = account['name']
     else:
         name = account['name']
 
@@ -262,13 +266,7 @@ def get_identity(response):
 
     logger.debug(account)
 
-    if account['nameFormat'] == 1: # individual
-        name = account['firstName']
-
-        if not name:
-            name = account['name']
-    else:
-        name = account['name']
+    name = get_name(account)
 
     expires=datetime.utcnow() + timedelta(hours=4)
 

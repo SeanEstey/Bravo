@@ -108,7 +108,7 @@ def get_nearby_blocks(pt, radius, maps, events):
     logger.info('Found %s results within radius', str(len(results)))
 
     for block in results:
-        logger.info(
+        logger.debug(
             '%s: %s (%s away)',
             block['event']['start'].get('dateTime', block['event']['start'].get('date')),
             block['name'],

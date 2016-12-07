@@ -1,0 +1,20 @@
+  {% extends "email/vec/base.html" %}
+  {% block content %}
+    <tr>
+      <td>
+        <p>
+          Hi {{ name }},
+        </p>
+				<p>
+					This is a confirmation that you've been booked for a pickup on 
+					<b>{{ date_str }}</b>.
+				</p>
+				<p>
+					Your bags can be placed at your front entrance, visible from 
+					the street, by 8am. 
+					Please keep each bag under 30lbs.  
+					Extra glass can be left in cases to the side.
+				</p>
+      </td>
+    </tr>
+  {% endblock %}

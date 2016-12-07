@@ -87,7 +87,18 @@ function addDeleteBtnHandlers() {
 function addSocketIOHandlers() {
     var socketio_url = 'http://' + document.domain + ':' + location.port;
 
-    var socket = io.connect(socketio_url);
+		try {
+				var socket = io.connect(socketio_url);
+		}
+		catch(e) {
+				console.log(e);
+				setTimeout(function(){
+						console.log('retrying socketio connection...');
+						addSocketIOHandlers();
+				}, 
+				5000);
+				return false;
+		}
 
     socket.on('connect', function(){
         socket.emit('connected');

@@ -61,26 +61,33 @@
 
   <!-- Booking Confirmation -->
   <div id='booking_options' style='display:none'> 
-    <form style='text-align:left' id='booking_form'>
-      <div>
-        <label name='name'></label>
+    <form class='form-check' style='text-align:left' id='booking_form'>
+      <div id='enter_aid' style='display:none'>
+        <label for='aid'>Account number</label>
+        <input id='aid' name='aid' class='input' type='text'>
       </div>
-      <div>
-        <label name='block'></label>
+      <div id='acct_info' style='margin:0; padding:0'>
+        <div><label name='name'></label></div>
+        <div><label name='email'></label></div>
+        <div><label name='block'></label></div>
+        <div><label name='date'></label></div>
+        <hr></hr>
+        <div class='form-group'>
+          <label for='driver_notes'>Enter any driver instructions:</label>
+          <textarea class='form-control'
+                    id='driver_notes' 
+                    name='driver_notes' 
+                    rows='5'
+          ></textarea>
+        </div>
+        <div style='text-align:right'>
+          <label class="form-check-label">
+              <input class="form-check-input" type="checkbox" name="exampleRadios" id="send_email_cb" value="option1" checked>
+                Send email confirmation</label>
+        </div>
       </div>
-      <div>
-        <label name='date'></label>
-      </div>
-      <hr></hr>
-      <div class='form-group'>
-        <label for='driver_notes'>Enter any driver instructions:</label>
-        <textarea class='form-control'
-                  id='driver_notes' 
-                  name='driver_notes' 
-                  rows='5'
-        ></textarea>
-      </div>
-      <div id='booker-loader' style='background-color:white; text-align:center'>
+
+      <div id='booker-loader' style='margin:0; background-color:white; text-align:center' class='loader-div'>
         <button class="btn btn-info loader">
           <span class="fa fa-refresh loader-animate"></span>
           <label style='margin-bottom:0; margin-left:5px'>Booking</label>

@@ -10,7 +10,7 @@ from bson.objectid import ObjectId
 import logging
 
 from . import booker
-from . import search
+from . import search, book
 from .. import utils
 from .. import db
 logger = logging.getLogger(__name__)
@@ -42,20 +42,37 @@ def submit_search():
 
     return jsonify(results)
 
+
+#-------------------------------------------------------------------------------
+@booker.route('/get_acct', methods=['POST'])
+@login_required
+def get_acct():
+    user = db.users.find_one({'user': current_user.username})
+
+    response = search.get_account(
+        user['agency'],
+        request.form['aid']
+    )
+
+    return jsonify(response)
+
 #-------------------------------------------------------------------------------
 @booker.route('/book', methods=['POST'])
 @login_required
-def book():
+def do_booking():
     logger.debug(request.form.to_dict())
 
     user = db.users.find_one({'user': current_user.username})
 
-    response = search.book(
+    response = book.make(
         user['agency'],
         request.form['aid'],
         request.form['block'],
         request.form['date'],
-        request.form['driver_notes']
+        request.form['driver_notes'],
+        request.form['name'],
+        request.form['email'],
+        request.form['confirmation'] == 'true'
     )
 
     return jsonify(response)

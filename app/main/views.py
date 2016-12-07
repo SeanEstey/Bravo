@@ -17,6 +17,7 @@ from . import log, receipts, signups
 from .. import utils, html, gsheets, mailgun
 from app.notify import admin
 import app.notify.email
+import app.booker.book
 from app.notify import email
 from .. import db
 logger = logging.getLogger(__name__)
@@ -229,6 +230,8 @@ def on_email_delivered():
         signups.on_email_delivered()
     elif v.get('type') == 'notific':
         app.notify.email.on_delivered()
+    elif v.get('type') == 'confirmation':
+        app.booker.book.on_delivered()
 
     return 'OK'
 

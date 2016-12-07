@@ -113,19 +113,26 @@ function displaySearchResults(response) {
         if(response.hasOwnProperty('account')) {
             $('#results tr:last button').data('aid', response['account']['id']);
             $('#results tr:last button').data('name', response['account']['name']);
+            $('#results tr:last button').data('email', response['account']['email']);
         }
     }
 
     $('button[name="book_btn"]').click(function() {
-        console.log($(this).data('aid'));
-        $tr = $(this).parent().parent();
+				$tr = $(this).parent().parent();
 
-        showBookingModal(
-          $tr.find('[name="block"]').text(),
-          $tr.find('[name="date"]').text(),
-          $tr.find('button').data('aid'),
-          $tr.find('button').data('name')
-        )
+				if(!$(this).data('aid')) {
+						showEnterIDModal(
+								$tr.find('[name="block"]').text(),
+								$tr.find('[name="date"]').text());
+				}
+				else {
+						showConfirmModal(
+							$tr.find('[name="block"]').text(),
+							$tr.find('[name="date"]').text(),
+							$tr.find('button').data('aid'),
+							$tr.find('button').data('name'),
+							$tr.find('button').data('email'));
+				}
     });
 }
 
@@ -137,17 +144,75 @@ function clearSearchResults(hide) {
         $('#results').hide();
 }
 
+
 //---------------------------------------------------------------------
-function showBookingModal(block, date, aid, name) {
-    showModal(
-      'mymodal',
-      'Confirm Booking',
-      $('#booking_options').html(),
-      'Book',
-      'Close'
-    );
+function showEnterIDModal(block, date) {
+		showModal(
+			'mymodal',
+			'Confirm Booking',
+			$('#booking_options').html(),
+			'Next',
+			'Close'
+		);
+
+		$('#mymodal').find('#acct_info').hide();
+		$('#mymodal').find('#enter_aid').show();
+
+    $('#mymodal .btn-primary').click(function() {
+				console.log('querying aid: ' + $('#mymodal input[id="aid"]').val());
+
+				$.ajax({
+					type: 'POST',
+					url: $URL_ROOT + 'booker/get_acct',
+					data: {
+						'aid': $('#mymodal input[id="aid"]').val(),
+					},
+					dataType: 'json'
+				})
+				.done(function(response) {
+						console.log(response);
+
+						if(response['status'] != "success") {
+								$('#mymodal').modal('hide');
+								alertMsg(response['description'], 'danger');
+								return false;
+						}
+
+						$('#mymodal').find('#acct_info').show();
+						$('#mymodal').find('#enter_aid').hide();
+						
+						var acct = response['account'];
+
+						showConfirmModal(
+								block,
+								date,
+								acct['id'],
+								acct['name'],
+								acct['email']
+						);
+				});
+    });
+}
+
+//---------------------------------------------------------------------
+function showConfirmModal(block, date, aid, name, email) {
+		showModal(
+			'mymodal',
+			'Confirm Booking',
+			$('#booking_options').html(),
+			'Book',
+			'Close'
+		);
+
+		if(!email) {
+				email = 'None';
+				$('#mymodal').find('input[id="send_email_cb"]').prop('disabled',true);
+				$('#mymodal').find('input[id="send_email_cb"]').attr('checked',false);
+				$('#mymodal').find('.form-check-label').css('color', '#ced3db');
+		}
 
     $('#mymodal label[name="name"]').html('Account Name: <b>' + name + '</b>');
+    $('#mymodal label[name="email"]').html('Email: <b>' + email + '</b>');
     $('#mymodal label[name="block"]').html('Block: <b>' + block + '</b>');
     $('#mymodal label[name="date"]').html(
         'Date: <b>' + new Date(date).strftime('%B %d %Y') + '</b>'
@@ -161,15 +226,19 @@ function showBookingModal(block, date, aid, name) {
             aid,
             block, 
             new Date(date).strftime('%d/%m/%Y'),
-            $('#mymodal').find('#driver_notes').val()
+            $('#mymodal').find('#driver_notes').val(),
+						name,
+						email,
+						$('#mymodal').find('input[id="send_email_cb"]').prop('checked')
         );
     });
 }
   
 //---------------------------------------------------------------------
-function requestBooking(aid, block, date, notes) {
-    $('#mymodal').find('#booker-loader').show();
-    $('#mymodal').find('.btn.loader').fadeTo('fast', 1);
+function requestBooking(aid, block, date, notes, name, email, confirmation) {
+    $('#mymodal').find('#booker-loader').slideToggle(function() {
+        $('#mymodal').find('#booker-loader .btn.loader').fadeTo('fast', 1);
+    });
 
 		$.ajax({
 			type: 'POST',
@@ -178,7 +247,10 @@ function requestBooking(aid, block, date, notes) {
         'block': block,
         'date': date,
         'aid': aid,
-        'driver_notes': notes
+        'driver_notes': notes,
+				'name': name,
+				'email': email,
+				'confirmation': confirmation
       },
 			dataType: 'json'
 		})

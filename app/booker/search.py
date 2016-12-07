@@ -119,46 +119,25 @@ def search(agency, query):
         }
 
 #-------------------------------------------------------------------------------
-def book(agency, aid, block, date_str, driver_notes):
-    '''Makes the booking in eTapestry by posting to Bravo.
-    This function is invoked from the booker client.
-    @aid: eTap account id
-    '''
-
-    logger.info('Booking account %s for %s', aid, date_str)
-
+def get_account(agency, aid):
     conf = db.agencies.find_one({'name':agency})
 
     try:
-        response = etap.call(
-          'make_booking',
+        account = etap.call(
+          'get_account',
           conf['etapestry'],
-          data={
-            'account_num': int(aid),
-            'type': 'pickup',
-            'udf': {
-                'Driver Notes': '***' + driver_notes + '***',
-                'Office Notes': '***RMV ' + block + '***',
-                'Block': block,
-                'Next Pickup Date': date_str
-            }
-          }
+          data={'account_number': int(aid)}
         )
-    except EtapError as e:
-        return {
-            'status': 'failed',
-            'description': 'etapestry error: %s' % str(e)
-        }
     except Exception as e:
-        logger.error('failed to book: %s', str(e))
+        logger.error('no account id %s', aid)
         return {
             'status': 'failed',
-            'description': str(e)
+            'description': 'no account id match'
         }
 
     return {
         'status': 'success',
-        'description': response
+        'account': account
     }
 
 #-------------------------------------------------------------------------------

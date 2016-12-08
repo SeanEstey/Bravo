@@ -109,12 +109,20 @@ function displaySearchResults(response) {
     $('.alert-banner').data('radius', response['radius']);
     $('.alert-banner').data('weeks', response['weeks']);
 
+
     for(var i=0; i<response['results'].length; i++) {
         var result = response['results'][i];
+        
+        // HACK: convert local date to UTC
+        var local_date = new Date(
+          new Date(result['event']['start']['date']).getTime() +
+          7*60*60*1000
+        );
+
         var $row = 
           '<tr style="background-color:white">' + 
             '<td name="date">' + 
-              new Date(result['event']['start']['date']).strftime('%B %d %Y') + 
+              local_date.strftime('%B %d %Y') + 
             '</td>' +
             '<td name="block">' + result['name'] + '</td>' +
             '<td>' + result['booked'] + '</td>' +

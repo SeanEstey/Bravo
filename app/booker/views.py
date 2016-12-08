@@ -46,6 +46,42 @@ def submit_search():
 
 
 #-------------------------------------------------------------------------------
+@booker.route('/find_nearby_blocks', methods=['POST'])
+def find_nearby_blocks():
+
+    conf = db.agencies.find_one({'name':request.form['agency']})
+    maps = db.maps.find_one({'agency':conf['name']})['features']
+
+    SEARCH_WEEKS = 12
+    SEARCH_DAYS = SEARCH_WEEKS * 7
+    SEARCH_RADIUS = float(request.form['radius'])
+
+    events = []
+    end_date = datetime.today() + timedelta(days=SEARCH_DAYS)
+
+    service = gcal.gauth(conf['google']['oauth'])
+
+    for cal_id in conf['cal_ids']:
+        events +=  gcal.get_events(
+            service,
+            conf['cal_ids'][cal_id],
+            datetime.today(),
+            end_date
+        )
+
+    events =sorted(
+        events,
+        key=lambda k: k['start'].get('dateTime',k['start'].get('date'))
+    )
+
+    pt = {'lng': request.form['lng'], 'lat': request.form['lat']}
+
+    results = geo.get_nearby_blocks(pt, SEARCH_RADIUS, maps, events)
+
+    return jsonify(results)
+
+
+#-------------------------------------------------------------------------------
 @booker.route('/get_acct', methods=['POST'])
 @login_required
 def get_acct():

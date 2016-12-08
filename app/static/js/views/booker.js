@@ -29,16 +29,22 @@ function addSocketIOHandlers() {
 }
 
 //---------------------------------------------------------------------
-function search(form) {  
-    var search_value = form.elements['search_box'].value;
+function validateSearch(form) {
+    var query = form.elements['search_box'].value;
     
     form.elements['search_box'].value = '';
     
-    if(!search_value) {
+    if(!query) {
       return false;
     }
 
-    console.log('Starting search for: ' + search_value);
+    search(query);
+}
+
+//---------------------------------------------------------------------
+function search(query, radius, weeks) {  
+    console.log(
+      'submitting search: "' + query + '", radius: '+ radius +', weeks: '+ weeks);
 
     fadeAlert();
     clearSearchResults(false);
@@ -53,7 +59,11 @@ function search(form) {
 		$.ajax({
 			type: 'POST',
 			url: $URL_ROOT + 'booker/search',
-			data: {'query':search_value},
+			data: {
+        'query':query,
+        'radius': radius,
+        'weeks': weeks
+      },
 			dataType: 'json'
 		})
 		.done(function(response) {
@@ -94,6 +104,11 @@ function displaySearchResults(response) {
 
     alertMsg(response['description'], 'success', -1);
 
+    // save prev query in banner in case user wants to expand search
+    $('.alert-banner').data('query', response['query']);
+    $('.alert-banner').data('radius', response['radius']);
+    $('.alert-banner').data('weeks', response['weeks']);
+
     for(var i=0; i<response['results'].length; i++) {
         var result = response['results'][i];
         var $row = 
@@ -125,6 +140,10 @@ function displaySearchResults(response) {
         }
     }
 
+    $('#a_radius').click(function() {
+        showExpandRadiusModal();
+    });
+
     $('button[name="book_btn"]').click(function() {
 				$tr = $(this).parent().parent();
 
@@ -152,6 +171,27 @@ function clearSearchResults(hide) {
         $('#results').hide();
 }
 
+//---------------------------------------------------------------------
+function showExpandRadiusModal() {
+    var radius = Number($('.alert-banner').data('radius'));
+
+		showModal(
+			'mymodal',
+			'Confirm',
+			'Do you want to expand the search radius from ' + radius.toPrecision(2) + 'km?',
+			'Yes',
+			'No'
+		);
+
+    $('#mymodal .btn-primary').click(function() {
+        $('#mymodal').modal('hide');
+        search(
+          $('.alert-banner').data('query'),
+          radius + 2.0
+        );
+
+    });
+}
 
 //---------------------------------------------------------------------
 function showEnterIDModal(block, date) {
@@ -290,8 +330,6 @@ function requestBooking(aid, block, date, notes, name, email, confirmation) {
         }, 10000);
     });
 }
-  
-
   
 //------------------------------------------------------------------------------
 function buildAdminPanel() {

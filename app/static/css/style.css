@@ -307,10 +307,33 @@ legend.admin-border {
   -webkit-border-radius: 10px;
 }
 
-/*------------------------ BOOTSTRAP3 OVERRIDES ----------------------*/
+/*------------------------ BOOTSTRAP OVERRIDES ----------------------*/
 
 .tooltip-wide .tooltip {min-width:500px;}
 
+.vertical-alignment-helper {
+    display:table;
+    height: 100%;
+    width: 100%;
+    pointer-events:none; /* This makes sure that we can still click outside of the modal to close it */
+}
+
+.vertical-align-center {
+    /* To center vertically */
+    display: table-cell;
+    vertical-align: middle;
+    pointer-events:none;
+}
+
+.modal-content {
+    /* Bootstrap sets the size of the modal in the modal-dialog class, we need to inherit it */
+    width:inherit;
+    max-width:600px;
+    height:inherit;
+    /* To center horizontally */
+    margin: 0 auto;
+    pointer-events: all;
+} 
 
 .thin {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;

@@ -13,7 +13,7 @@ class EtapError(Exception):
     pass
 
 #-------------------------------------------------------------------------------
-def search(agency, query):
+def search(agency, query, radius=None, weeks=None):
     '''Search query invoked from Booker client
     @query: either Account Number, Postal Code, Address, or Block
 
@@ -24,8 +24,12 @@ def search(agency, query):
 
     maps = db.maps.find_one({'agency':conf['name']})['features']
 
+    SEARCH_WEEKS = weeks or 12
+    SEARCH_DAYS = SEARCH_WEEKS * 7
+    SEARCH_RADIUS = float(radius or 4.0)
+
     events = []
-    end_date = datetime.today() + timedelta(days=100)
+    end_date = datetime.today() + timedelta(days=SEARCH_DAYS)
 
     service = gcal.gauth(conf['google']['oauth'])
 
@@ -71,7 +75,7 @@ def search(agency, query):
 
         results = geo.get_nearby_blocks(
             geo_results[0]['geometry']['location'],
-            4.0,
+            SEARCH_RADIUS,
             maps,
             events
         )
@@ -80,39 +84,48 @@ def search(agency, query):
             return {
                 'status': 'failed',
                 'description': \
-                    'No results found for <b>%s</b> within next <b>ten weeks</b>'%(
-                    account['name'])
+                    'No results found for <b>%s</b> in next <b>%s weeks</b>'%(
+                    account['name'], SEARCH_WEEKS)
             }
 
         return {
             'status': 'success',
+            'query': query,
             'query_type': 'account',
+            'radius': SEARCH_RADIUS,
+            'weeks': SEARCH_WEEKS,
             'account': account,
             'results': results,
             'description': \
-                'Found <b>%s</b> results for <b>%s</b> within next <b>ten weeks.</b>'%(
-                len(results), account['name'])
+                'Found <b>%s</b> options for account <b>%s</b> within '\
+                '<b><a id="a_radius" href="#">%skm</a> radius</b> '\
+                'in next <b>%s weeks.</b>'%(
+                len(results), account['name'], SEARCH_RADIUS, SEARCH_WEEKS)
         }
     elif parser.is_block(query):
         results = search_by_block(query,events)
         return {
             'status': 'success',
+            'query': query,
             'query_type': 'block',
+            'weeks': SEARCH_WEEKS,
             'results': results,
             'description': \
-                'Found <b>%s</b> results for <b>%s</b> within next <b>ten weeks</b>.'%(
-                len(results), query)
+                'Found <b>%s</b> results for <b>%s</b> in next <b>%s weeks</b>.'%(
+                len(results), query, SEARCH_WEEKS)
         }
 
     elif parser.is_postal_code(query):
         results = search_by_postal(query, events)
         return {
             'status': 'success',
+            'query': query,
             'query_type': 'postal',
+            'weeks': SEARCH_WEEKS,
             'results': results,
             'description': \
-                'Found <b>%s</b> results for Postal Code <b>%s</b> within next <b>ten weeks.</b>'%(
-                len(results), query[0:3])
+                'Found <b>%s</b> results for Postal Code <b>%s</b> in next <b>%s weeks.</b>'%(
+                len(results), query[0:3], SEARCH_WEEKS)
         }
     # must be address?
     else:
@@ -132,18 +145,23 @@ def search(agency, query):
 
         results = geo.get_nearby_blocks(
             geo_results[0]['geometry']['location'],
-            4.0,
+            SEARCH_RADIUS,
             maps,
             events
         )
 
         return {
             'status': 'success',
+            'query': query,
+            'radius': SEARCH_RADIUS,
+            'weeks': SEARCH_WEEKS,
             'query_type': 'address',
             'results': results,
             'description': \
-                'Found <b>%s</b> results for address <b>%s</b> within next <b>ten weeks</b>.'%(
-                len(results), query)
+                'Found <b>%s</b> options for address <b>%s</b> within '\
+                '<b><a id="a_radius" href="#">%skm</a> radius</b> '\
+                'in next <b>%s weeks.</b>'%(
+                len(results), query, SEARCH_RADIUS, SEARCH_WEEKS)
         }
 
 #-------------------------------------------------------------------------------

@@ -37,7 +37,9 @@ def submit_search():
 
     results = search.search(
         db.agencies.find_one({'name':user['agency']})['name'],
-        request.form['query']
+        request.form['query'],
+        request.form.get('radius'),
+        request.form.get('weeks')
     )
 
     return jsonify(results)

@@ -11,14 +11,14 @@ from .. import parser
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def find_block(address, api_key):
+def find_block(agency, address, api_key):
     r = geocode(address, api_key)
 
     if not r or len(r) == 0:
         logger.error('couldnt geocode %s', address)
         return False
 
-    map_name = find_map(r[0]['geometry']['location'])
+    map_name = find_map(agency, r[0]['geometry']['location'])
 
     if map_name:
         return map_name[0:map_name.find(' [')]
@@ -26,12 +26,12 @@ def find_block(address, api_key):
     return False
 
 #-------------------------------------------------------------------------------
-def find_map(pt):
+def find_map(agency, pt):
     '''@pt: {'lng':float, 'lat':float}'''
 
     logger.info('find_map in pt %s', pt)
 
-    maps = db.maps.find_one({})['features']
+    maps = db.maps.find_one({'agency':agency})['features']
 
     for map_ in maps:
         coords = map_['geometry']['coordinates'][0]
@@ -86,6 +86,10 @@ def get_nearby_blocks(pt, radius, maps, events):
                 break
 
         if not block:
+            continue
+
+        if maps[i]['geometry']['type'] != 'Polygon':
+            logger.error('map index %s is not a polygon', i)
             continue
 
         # Take the first lat/lon vertex in the rectangle and calculate distance

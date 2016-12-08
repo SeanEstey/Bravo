@@ -266,13 +266,17 @@ def cancel_pickup(evnt_id, acct_id):
 
     # Cancel any pending parent notifications
 
-    db.notifics.update({
+    result = db.notifics.update_many({
           'acct_id': acct_id,
           'evnt_id': evnt_id,
           'tracking.status': 'pending'
         },
-        {'$set':{'tracking.status':'cancelled'}},
-        multi=True)
+        {'$set':{'tracking.status':'cancelled'}})
+
+    if result.matched_count < 1:
+        logger.error('acct id %s or evnt id %s not found',
+            str(acct_id), str(evnt_id))
+        return False
 
     acct = db.accounts.find_one_and_update({
         '_id':acct_id},{

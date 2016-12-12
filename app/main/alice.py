@@ -60,9 +60,12 @@ def on_receive():
     Keywords: SCHEDULE, PICKUP
     '''
 
-    logger.info(request.cookies)
-    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+    logger.debug(request.cookies)
     msg = request.form['Body']
+    logger.info('To Alice: %s"%s"%s', bcolors.BOLD, msg, bcolors.ENDC)
+
+    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+
     from_ = request.form['From']
     response = make_response()
     account = None
@@ -219,7 +222,7 @@ def send_reply(msg, response):
 
     twml.message(reply)
 
-    logger.info('Sending reply: %s"%s"%s', bcolors.BOLD, reply, bcolors.ENDC)
+    logger.info('%s"%s"%s', bcolors.BOLD, reply, bcolors.ENDC)
 
     response.data = str(twml)
     return response
@@ -261,6 +264,13 @@ def get_identity(response):
     if not account:
         logger.info('no matching etapestry account found (SMS: %s)',
         request.form['From'])
+
+        from .. import tasks
+        tasks.rfu.apply_async(args=[
+            agency['name'],
+            'Received text mobile number %s not matching eTapestry account' %
+            request.form['Body']],
+            queue=current_app.config['DB'])
 
         return False
 

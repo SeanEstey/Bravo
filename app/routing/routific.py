@@ -72,7 +72,7 @@ def order(account, formatted_address, geo_result, shift_start, shift_end, min_pe
       },
       "start": shift_start,
       "end": shift_end,
-      "duration": min_per_stop,
+      "duration": int(min_per_stop),
       "customNotes": {
         "id": account['id'],
         "name": account['name'],

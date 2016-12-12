@@ -26,6 +26,9 @@ logger.addHandler(debug_handler)
 logger.addHandler(exception_handler)
 logger.setLevel(logging.DEBUG)
 
+class EtapError(Exception):
+    pass
+
 #-------------------------------------------------------------------------------
 def kill(task_id):
     logger.info('attempting to kill task_id %s', task_id)
@@ -219,44 +222,45 @@ def schedule_reminders():
     from app import schedule
     from datetime import datetime, date, time, timedelta
 
-    agency = 'vec'
-    agency_conf = db['agencies'].find_one({'name':agency})
-    _date = date.today() + timedelta(
-        days=agency_conf['scheduler']['notify']['preschedule_by_days'])
+    agencies = db.agencies.find({})
 
-    blocks = []
+    for agency in agencies:
+        _date = date.today() + timedelta(
+            days=agency['scheduler']['notify']['preschedule_by_days'])
 
-    for key in agency_conf['cal_ids']:
-        blocks += schedule.get_blocks(
-            agency_conf['cal_ids'][key],
-            datetime.combine(_date,time(8,0)),
-            datetime.combine(_date,time(9,0)),
-            agency_conf['google']['oauth']
-        )
+        blocks = []
 
-    if len(blocks) == 0:
+        for key in agency['cal_ids']:
+            blocks += schedule.get_blocks(
+                agency['cal_ids'][key],
+                datetime.combine(_date,time(8,0)),
+                datetime.combine(_date,time(9,0)),
+                agency['google']['oauth']
+            )
+
+        if len(blocks) == 0:
+            logger.info(
+                '[%s] no blocks scheduled on %s',
+                agency['name'], _date.strftime('%b %-d'))
+            return True
+
         logger.info(
-            '[%s] no blocks scheduled on %s',
-            agency_conf['name'], _date.strftime('%b %-d'))
-        return True
+            '[%s] scheduling reminders for %s on %s',
+            agency['name'], blocks, _date.strftime('%b %-d'))
 
-    logger.info(
-        '[%s] scheduling reminders for %s on %s',
-        agency_conf['name'], blocks, _date.strftime('%b %-d'))
+        n=0
+        for block in blocks:
+            try:
+                pus.reminder_event(agency['name'], block, _date)
+            except EtapError as e:
+                continue
+            else:
+                n+=1
 
-    n=0
-    for block in blocks:
-        try:
-            pus.reminder_event(agency_conf['name'], block, _date)
-        except EtapError as e:
-            continue
-        else:
-            n+=1
-
-    logger.info(
-        '[%s] scheduled %s/%s reminder events',
-        agency_conf['name'], n, len(blocks)
-    )
+        logger.info(
+            '[%s] scheduled %s/%s reminder events',
+            agency['name'], n, len(blocks)
+        )
 
     return True
 

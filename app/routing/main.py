@@ -123,7 +123,7 @@ def submit_job(route_id):
                 conf['google']['geocode']['api_key'],
                 route['driver']['shift_start'],
                 '19:00',
-                MIN_PER_STOP
+                etap.get_udf('Service Time', account) or MIN_PER_STOP
             )
         except EtapBadDataError as e:
             errors.append(str(e))

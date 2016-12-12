@@ -273,11 +273,6 @@ def cancel_pickup(evnt_id, acct_id):
         },
         {'$set':{'tracking.status':'cancelled'}})
 
-    if result.matched_count < 1:
-        logger.error('acct id %s or evnt id %s not found',
-            str(acct_id), str(evnt_id))
-        return False
-
     acct = db.accounts.find_one_and_update({
         '_id':acct_id},{
         '$set': {
@@ -310,7 +305,6 @@ def cancel_pickup(evnt_id, acct_id):
     # Must create one for render_template() and set SERVER_NAME for
     # url_for() to generate absolute URLs
     with current_app.test_request_context():
-        #current_app.config['SERVER_NAME'] = os.environ.get('BRAVO_HTTP_HOST')
         try:
             body = render_template(
                 'email/%s/no_pickup.html' % conf['name'],
@@ -320,9 +314,7 @@ def cancel_pickup(evnt_id, acct_id):
             )
         except Exception as e:
             logger.error('Error rendering no_pickup email. %s', str(e))
-            #current_app.config['SERVER_NAME'] = None
             return False
-        #current_app.config['SERVER_NAME'] = None
 
     return True
 

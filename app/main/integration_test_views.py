@@ -16,6 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
+@main.route('/test_schedule_reminders', methods=['GET'])
+@login_required
+def test_schedule_reminders():
+    from .. import tasks
+    tasks.schedule_reminders.apply_async(queue=current_app.config['DB'])
+    return 'OK'
+
+#-------------------------------------------------------------------------------
 @main.route('/test_non_participant', methods=['GET'])
 @login_required
 def test_non_participants():

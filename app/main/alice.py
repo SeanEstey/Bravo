@@ -10,12 +10,10 @@ import json
 from twilio.rest.lookups import TwilioLookupsClient
 from flask import current_app, request, make_response
 
-from app import gsheets
-from app import etap
-from app import geo
-from app import schedule
+from .. import etap, utils, gsheets, schedule
 
 from app import db, bcolors
+from app.booker import geo, search, book
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +84,8 @@ def on_receive():
             return send_reply(
                 get_help_reply(response, account=account),
                 response)
+    elif request.cookies.get('status') == 'get_address':
+        return pickup_request(msg, response)
 
     # Keyword handler
     if 'SCHEDULE' in msg.upper():
@@ -105,6 +105,15 @@ def on_receive():
 
         return send_reply(
             'Your next pickup is scheduled on ' + npu_str + '.',
+            response
+        )
+    elif 'PICKUP' in msg.upper():
+        logger.info('new pickup request (SMS: %s)', from_)
+
+        set_cookie(response, 'status', 'get_address')
+
+        return send_reply(
+            'Ok, I can book a pickup for you. What\'s your address?',
             response
         )
     # No keyword.
@@ -255,8 +264,11 @@ def get_identity(response):
         raise EtapError('error calling eTap API')
 
     if not account:
-        logger.info('no matching etapestry account found (SMS: %s)',
-        request.form['From'])
+        logger.info(
+            'no matching etapestry account found (SMS: %s)',
+            request.form['From'])
+
+
 
         return False
 
@@ -279,44 +291,121 @@ def get_identity(response):
     return account
 
 #-------------------------------------------------------------------------------
-def pickup_request(response, twml):
-    if msg.upper().find('PICKUP') >= 0:
-        logger.info('new pickup request (SMS: %s)', from_)
+def pickup_request(msg, response):
 
-        db['sms'].update_one(
-          {'SmsSid':sms_sid},
-          {'$set': { 'awaiting_reply': True, 'request': 'pickup'}})
-
-        send(agency['twilio'], from_,
-            "We've received your request. Please \
-            reply with your address and postal code")
-
-        return True
+    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
     # Msg reply should contain address
-    logger.info('pickup request address: \"%s\" (SMS: %s)', msg, from_)
+    logger.info('pickup request address: \"%s\" (SMS: %s)', msg, request.form['From'])
 
-    block = geo.find_block(msg)
+    block = geo.find_block(agency['name'], msg, agency['google']['geocode']['api_key'])
 
     if not block:
-        logger.error('could not geocode address')
+        logger.error('could not find map for address %s', msg)
 
-        send(agency['twilio'], from_, 'We could not locate your address')
+        send_reply('We could not locate your address', response)
 
         return False
 
     logger.info('address belongs to Block %s', block)
 
-    db['sms'].update_one(doc, {'$set': {'awaiting_reply': False}})
+    set_cookie(response, 'status', None)
 
-    gsheets.create_rfu(
-      agency['name'],
-      'Pickup request received (SMS: ' + from_ + ')',
-      name_address = msg,
-      date = datetime.datetime.now().strftime('%-m/%-d/%Y')
+
+
+    r = search.search(agency['name'], block, radius=None, weeks=None)
+
+    logger.info(r['results'][0])
+
+    add_acct(
+        msg,
+        request.form['From'],
+        r['results'][0]['name'],
+        r['results'][0]['event']['start']['date']
     )
 
-    send(agency['twilio'], from_,
-      "Thank you. We'll get back to you shortly with a pickup date")
+    #book.make(agency['name'], aid, block, date_str, driver_notes, name, email, confirmation):
 
-    return True
+    #gsheets.create_rfu(
+    #  agency['name'],
+    #  'Pickup request received (SMS: ' + from_ + ')',
+    #  name_address = msg,
+    #  date = datetime.datetime.now().strftime('%-m/%-d/%Y')
+    #)
+
+    return send_reply(
+        "Thank you. We'll get back to you shortly with a pickup date",
+        response
+    )
+
+#-------------------------------------------------------------------------------
+def add_acct(address, phone, block, pu_date_str):
+    conf = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+
+    geo_result = geo.geocode(
+        address,
+        conf['google']['geocode']['api_key']
+    )[0]
+
+    #logger.info(utils.print_vars(geo_result, depth=2))
+
+    addy = {
+        'postal': None,
+        'city': None,
+        'route': None,
+        'street': None
+    }
+
+    for component in geo_result['address_components']:
+        if 'postal_code' in component['types']:
+            addy['postal'] = component['short_name']
+        elif 'street_number' in component['types']:
+            addy['street'] = component['short_name']
+        elif 'locality' in component['types']:
+            addy['city'] = component['short_name']
+        elif 'route' in component['types']:
+            addy['route'] = component['short_name']
+
+    parts = pu_date_str.split('-')
+    ddmmyyyy_pu = '%s/%s/%s' %(parts[2], parts[1], parts[0])
+
+    acct = {
+        'udf': {
+            'Status': 'One-time',
+            'Signup Date': datetime.today().strftime('%d/%m/%Y'),
+            'Next Pickup Date': ddmmyyyy_pu.encode('ascii', 'ignore'),
+            'Block': block.encode('ascii', 'ignore'),
+            #'Driver Notes': signup[this.headers.indexOf('Driver Notes')],
+            #'Office Notes': signup[this.headers.indexOf('Office Notes')],
+            'Tax Receipt': 'Yes',
+            #'SMS' "+1" + phone.replace(/\-|\(|\)|\s/g, "")
+         },
+         'persona': {
+            'personaType': 'Personal',
+            'address': (addy['street'] + ' ' + addy['route']).encode('ascii','ignore'),
+            'city': addy['city'].encode('ascii', 'ignore'),
+            'state': 'AB',
+            'country': 'CA',
+            'postalCode': addy['postal'].encode('ascii', 'ignore'),
+            'phones': [
+                {'type': 'Mobile', 'number': phone}
+            ],
+			'nameFormat': 1,
+			'name': 'Unknown Unknown',
+			'sortName': 'Unknown, Unknown',
+			'firstName': 'Unknown',
+			'lastName': 'Unknown'
+        }
+    }
+
+    logger.info(utils.print_vars(acct, depth=2))
+
+    try:
+        account = etap.call(
+          'add_accounts',
+          conf['etapestry'],
+          [acct]
+        )
+    except Exception as e:
+        logger.error("error calling eTap API: %s", str(e))
+        raise EtapError('error calling eTap API')

@@ -29,6 +29,7 @@ def search(agency, query, radius=None, weeks=None):
     SEARCH_RADIUS = float(radius or 4.0)
 
     events = []
+    start_date = datetime.today() + timedelta(days=1)
     end_date = datetime.today() + timedelta(days=SEARCH_DAYS)
 
     service = gcal.gauth(conf['google']['oauth'])
@@ -37,7 +38,7 @@ def search(agency, query, radius=None, weeks=None):
         events +=  gcal.get_events(
             service,
             conf['cal_ids'][cal_id],
-            datetime.today(),
+            start_date,
             end_date
         )
 
@@ -79,14 +80,6 @@ def search(agency, query, radius=None, weeks=None):
             maps,
             events
         )
-
-        if len(results) == 0:
-            return {
-                'status': 'failed',
-                'description': \
-                    'No results found for <b>%s</b> in next <b>%s weeks</b>'%(
-                    account['name'], SEARCH_WEEKS)
-            }
 
         return {
             'status': 'success',

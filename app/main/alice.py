@@ -21,37 +21,25 @@ class EtapError(Exception):
     pass
 
 REQ_KEYWORDS = ['NOPICKUP', 'NO PICKUP', 'PICKUP', 'SCHEDULE']
-
+GEN_KEYWORDS = ['THANKS', 'THANK YOU', 'THX']
 
 #-------------------------------------------------------------------------------
 def on_receive():
     '''Received an incoming SMS message.
-    Either initiating a keyword request or replying to conversation.
-    Keywords: SCHEDULE, PICKUP
     '''
 
-    logger.debug(request.cookies)
     msg = request.form['Body']
     from_ = request.form['From']
 
+    logger.debug(request.cookies)
     logger.info('To Alice: %s"%s"%s (%s)',
                 bcolors.BOLD, msg, bcolors.ENDC, from_)
 
     agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
-    convo = db.alice.find_one({'from':from_,'date':date.today().isoformat()})
-
-    if not convo:
-        db.alice.insert_one({
-            'from':from_, 'date':date.today().isoformat(), 'messages':[msg]})
-    else:
-        db.alice.update_one(
-            {'from':from_, 'date': date.today().isoformat()},
-            {'$push': {'messages':msg}})
+    log_conversation(agency['name'], from_, msg)
 
     response = make_response()
-    account = None
-    greeting = ''
 
     set_cookie(response, 'messagecount', int(request.cookies.get('messagecount', 0))+1)
 
@@ -63,7 +51,9 @@ def on_receive():
     if request.cookies.get('status') in ['add_to_schedule_confirm', 'get_address']:
         return process_answer(msg, from_, account, response)
 
-    if msg.upper() in REQ_KEYWORDS:
+    if msg.upper() in GEN_KEYWORDS:
+        return send_reply("You're welcome!", response)
+    elif msg.upper() in REQ_KEYWORDS:
         return process_keyword(msg, from_, account, response)
 
     # Can't understand msg
@@ -71,6 +61,22 @@ def on_receive():
         get_help_reply(response, account=account),
         response
     )
+
+#-------------------------------------------------------------------------------
+def log_conversation(agency, from_, msg):
+    date_str = date.today().isoformat()
+
+    if not db.alice.find_one({'from':from_,'date':date_str}):
+        db.alice.insert_one({
+            'agency': agency,
+            'from':from_,
+            'date':date.today().isoformat(),
+            'messages':['"'+msg+'"']
+        })
+    else:
+        db.alice.update_one(
+            {'from':from_, 'date': date_str},
+            {'$push': {'messages':'"'+msg+'"'}})
 
 #-------------------------------------------------------------------------------
 def process_answer(msg, from_, account, response):

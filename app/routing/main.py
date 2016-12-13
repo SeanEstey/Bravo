@@ -259,7 +259,7 @@ def get_solution_orders(job_id, api_key):
     if task['status'] != 'finished':
         return task['status']
 
-    logger.debug(utils.print_vars(task, depth=5))
+    #logger.debug(utils.print_vars(task, depth=5))
 
     route_info = db.routes.find_one({'job_id':job_id})
 
@@ -280,7 +280,10 @@ def get_solution_orders(job_id, api_key):
           'orders': task['visits'],
           'total_travel_time': output['total_travel_time'],
           'num_unserved': output['num_unserved'],
-          'solution': task['output']['solution'],
+          'routific': {
+              'input': task['input']['visits'],
+              'solution': task['output']['solution']
+           },
           'duration': route_length.seconds/60
           }})
 

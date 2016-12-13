@@ -17,39 +17,11 @@ from app.booker import geo, search, book
 
 logger = logging.getLogger(__name__)
 
-
 class EtapError(Exception):
     pass
 
-#-------------------------------------------------------------------------------
-def is_unsub():
-    '''User has unsubscribed all messages from SMS number'''
+REQ_KEYWORDS = ['NOPICKUP', 'NO PICKUP', 'PICKUP', 'SCHEDULE']
 
-    unsub_keywords = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT']
-
-    if request.form['Body'].upper() in unsub_keywords:
-        logger.info('%s has unsubscribed from this sms number (%s)',
-                    request.form['From'], request.form['To'])
-
-        account = get_identity(make_response())
-        agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
-
-        from .. import tasks
-        tasks.rfu.apply_async(
-            args=[
-                agency['name'],
-                'Contributor has replied "%s" and opted out of SMS '\
-                'notifications.' % request.form['Body']
-            ],
-            kwargs={
-                'a_id':account['id'],
-                '_date': date.today().strftime('%-m/%-d/%Y')
-            },
-            queue=current_app.config['DB']
-        )
-        return True
-
-    return False
 
 #-------------------------------------------------------------------------------
 def on_receive():
@@ -60,11 +32,23 @@ def on_receive():
 
     logger.debug(request.cookies)
     msg = request.form['Body']
-    logger.info('To Alice: %s"%s"%s', bcolors.BOLD, msg, bcolors.ENDC)
+    from_ = request.form['From']
+
+    logger.info('To Alice: %s"%s"%s (%s)',
+                bcolors.BOLD, msg, bcolors.ENDC, from_)
 
     agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
-    from_ = request.form['From']
+    convo = db.alice.find_one({'from':from_,'date':date.today().isoformat()})
+
+    if not convo:
+        db.alice.insert_one({
+            'from':from_, 'date':date.today().isoformat(), 'messages':[msg]})
+    else:
+        db.alice.update_one(
+            {'from':from_, 'date': date.today().isoformat()},
+            {'$push': {'messages':msg}})
+
     response = make_response()
     account = None
     greeting = ''
@@ -76,6 +60,20 @@ def on_receive():
     if not account:
         return handle_stranger(response)
 
+    if request.cookies.get('status') in ['add_to_schedule_confirm', 'get_address']:
+        return process_answer(msg, from_, account, response)
+
+    if msg.upper() in REQ_KEYWORDS:
+        return process_keyword(msg, from_, account, response)
+
+    # Can't understand msg
+    return send_reply(
+        get_help_reply(response, account=account),
+        response
+    )
+
+#-------------------------------------------------------------------------------
+def process_answer(msg, from_, account, response):
     # Are we waiting for response from known user?
     if request.cookies.get('status') == 'add_to_schedule_confirm':
         if 'YES' in msg.upper():
@@ -86,12 +84,20 @@ def on_receive():
         else:
             return send_reply(
                 get_help_reply(response, account=account),
-                response)
+                response
+            )
     elif request.cookies.get('status') == 'get_address':
         return pickup_request(msg, response)
 
+#-------------------------------------------------------------------------------
+def process_keyword(msg, from_, account, response):
     # Keyword handler
-    if 'SCHEDULE' in msg.upper():
+    if msg.upper() in ['NOPICKUP', 'NO PICKUP']:
+        return send_reply(
+            "I'm sorry, our driver has already been dispatched for the pickup.",
+            response
+        )
+    elif 'SCHEDULE' in msg.upper():
         if not etap.get_udf('Next Pickup Date', account):
             logger.error(
                 'missing Next Pickup Date for account %s (SMS: %s)',
@@ -117,12 +123,6 @@ def on_receive():
 
         return send_reply(
             'Ok, I can book a pickup for you. What\'s your address?',
-            response
-        )
-    # No keyword.
-    else:
-        return send_reply(
-            get_help_reply(response, account=account),
             response
         )
 
@@ -234,6 +234,11 @@ def send_reply(msg, response):
     logger.info('%s"%s"%s', bcolors.BOLD, reply, bcolors.ENDC)
 
     response.data = str(twml)
+
+    db.alice.update_one(
+        {'from':request.form['From'], 'date': date.today().isoformat()},
+        {'$push': {'messages':reply}})
+
     return response
 
 #-------------------------------------------------------------------------------
@@ -274,8 +279,6 @@ def get_identity(response):
         logger.info(
             'no matching etapestry account found (SMS: %s)',
             request.form['From'])
-
-
 
         from .. import tasks
         tasks.rfu.apply_async(args=[
@@ -318,8 +321,6 @@ def pickup_request(msg, response):
     logger.info('address belongs to Block %s', block)
 
     set_cookie(response, 'status', None)
-
-
 
     r = search.search(agency['name'], block, radius=None, weeks=None)
 
@@ -417,3 +418,33 @@ def add_acct(address, phone, block, pu_date_str):
     except Exception as e:
         logger.error("error calling eTap API: %s", str(e))
         raise EtapError('error calling eTap API')
+
+#-------------------------------------------------------------------------------
+def is_unsub():
+    '''User has unsubscribed all messages from SMS number'''
+
+    unsub_keywords = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT']
+
+    if request.form['Body'].upper() in unsub_keywords:
+        logger.info('%s has unsubscribed from this sms number (%s)',
+                    request.form['From'], request.form['To'])
+
+        account = get_identity(make_response())
+        agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+
+        from .. import tasks
+        tasks.rfu.apply_async(
+            args=[
+                agency['name'],
+                'Contributor has replied "%s" and opted out of SMS '\
+                'notifications.' % request.form['Body']
+            ],
+            kwargs={
+                'a_id':account['id'],
+                '_date': date.today().strftime('%-m/%-d/%Y')
+            },
+            queue=current_app.config['DB']
+        )
+        return True
+
+    return False

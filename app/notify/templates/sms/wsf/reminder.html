@@ -7,7 +7,7 @@
 
 		Hi {{ account['name'].split(' ')[0] }}, 
 		
-		this is a friendly reminder that your empties to win 
+		your Empties to Winn 
 
     {% if account['udf']['status'] == "Dropoff" %}
 
@@ -27,7 +27,7 @@
 
     {% elif account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
 
-        Please have your empties out by 8am. Glass can be separated into cases.
+        Please have your empties out by 8am.
 
     {% elif account['udf']['status'] == "Cancelling" %}
 
@@ -36,5 +36,7 @@
     {% endif %}
 
 		If you do not need a pickup, reply with keyword 'NOPICKUP'.
+
+		Questions? Call 1-888-YOU-WINN
 
 {% endif %}

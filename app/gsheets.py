@@ -65,6 +65,29 @@ def write_rows(service, ss_id, rows, a1_range):
 
 
 #-------------------------------------------------------------------------------
+def update_cell(service, ss_id, a1_range, value):
+    '''Write data to sheet
+    @a1_range: cell range i.e. "Routes!D65"
+    Returns: UpdateValuesResponse
+    https://developers.google.com/sheets/reference/rest/v4/UpdateValuesResponse
+    '''
+
+    try:
+        service.spreadsheets().values().update(
+          spreadsheetId = ss_id,
+          valueInputOption = "USER_ENTERED",
+          range = a1_range,
+          body = {
+            "majorDimension": "ROWS",
+            "values": [[value]]
+          }
+        ).execute()
+    except Exception as e:
+        logger.error('Error writing to sheet: %s', str(e))
+        return False
+
+
+#-------------------------------------------------------------------------------
 def get_values(service, ss_id, a1_range):
     try:
         values = service.spreadsheets().values().get(
@@ -183,7 +206,24 @@ def bold_cells(service, ss_id, cells):
         logger.error('Error bolding cells: %s', str(e))
         return False
 
+#-------------------------------------------------------------------------------
+def col_idx_to_a1(idx):
+    alphabet = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
+    if idx < len(alphabet):
+        return alphabet[idx]
+
+    # TODO: expand this if necessary for wide sheets w/ columns like AA, AB, etc
+    '''
+    parts = str(round(float(idx/len(alphabet)),1)).split('.')
+
+    if int(parts[0]) < len(alphabet):
+        return alphabet[int(parts[1])]
+
+    col_size = int(parts[0])
+    for i in range(int(parts[0])):
+        a1 += alphabet[i]
+    '''
 
 # ----- GSPREAD (OLD) --------------------------------------------------------
 

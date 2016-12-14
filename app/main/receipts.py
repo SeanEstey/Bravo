@@ -24,11 +24,32 @@ def on_delivered():
         {'mid': request.form['Message-Id']},
         {'$set': {'status': request.form['event']}})
 
+    # old gspread
     gsheets.update_entry(
       email['agency'],
       request.form['event'],
       email['on_status']['update']
     )
+
+    # TESTME: gsheets google api
+    '''conf = db.agencies.find_one({'name':email['agency']})
+    service = gsheets.gauth(conf['google']['oauth'])
+
+    headers = gsheets.get_values(service, conf['google']['ss_id'], 'Routes!1:1')
+
+    if 'Email Status' not in headers:
+        logger.error('Missing "Email Status" header')
+        raise
+
+    col_a1 = gsheets.col_idx_to_a1(headers.index('Email Status'))
+
+    gsheets.update_cell(
+        service,
+        conf['google']['ss_id'],
+        'Routes!' + col_a1 + str(row),
+        request.form['event']
+    )
+    '''
 
 #-------------------------------------------------------------------------------
 def on_dropped():

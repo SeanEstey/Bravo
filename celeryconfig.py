@@ -35,5 +35,10 @@ CELERYBEAT_SCHEDULE = {
     'task': 'app.tasks.monitor_triggers',
     'schedule': crontab(minute='*/5'),
     'options': { 'queue': config.DB }
+  },
+  'update_maps': {
+    'task': 'app.tasks.update_maps',
+    'schedule': crontab(hour=7, minute=10, day_of_week='*'),
+    'options': { 'queue': config.DB}
   }
 }

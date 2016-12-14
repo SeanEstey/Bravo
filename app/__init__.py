@@ -41,6 +41,8 @@ client = pymongo.MongoClient(
 
 db = client[config.DB]
 
+logger = logging.getLogger(__name__)
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -89,12 +91,14 @@ def create_app(pkg_name):
     from app.notify import notify as notify_mod
     from app.routing import routing as routing_mod
     from app.booker import booker as booker_mod
+    from app.api import api as api_mod
 
     app.register_blueprint(auth_mod)
     app.register_blueprint(main_mod)
     app.register_blueprint(notify_mod)
     app.register_blueprint(routing_mod)
     app.register_blueprint(booker_mod)
+    app.register_blueprint(api_mod)
 
     return app
 
@@ -168,6 +172,9 @@ def config_test_server(source):
 #-------------------------------------------------------------------------------
 def task_emit(event, data):
     '''Used by celery worker to send SocketIO messages'''
+
+    logger.debug('task_emit %s', event)
+
     payload = {
         'event': event,
         'data':data

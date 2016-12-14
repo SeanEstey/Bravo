@@ -1,9 +1,12 @@
 import logging
 import matplotlib.path as mplPath
+import os
+import time
 import numpy as np
 import math
 import requests
 import json
+from datetime import datetime
 
 from app import db
 from .. import parser
@@ -24,6 +27,10 @@ def find_block(agency, address, api_key):
         return map_name[0:map_name.find(' [')]
 
     return False
+
+#-------------------------------------------------------------------------------
+def get_maps(agency):
+    return db.maps.find_one({'agency':agency})['features']
 
 #-------------------------------------------------------------------------------
 def find_map(agency, pt):
@@ -258,3 +265,67 @@ def get_postal(geo_result):
             return component['short_name']
 
     return False
+
+#-------------------------------------------------------------------------------
+def update_maps(agency, emit_status=False):
+    conf = db.maps.find_one({'agency':agency})
+    status = None
+    desc = None
+
+    logger.debug('downloading kml file...')
+
+    # download KML file
+    os.system(
+        'wget \
+        "https://www.google.com/maps/d/kml?mid=%s&lid=%s&forcekml=1" \
+        -O /tmp/maps.xml' %(conf['mid'], conf['lid']))
+
+    time.sleep(2)
+
+    logger.debug('converting to geo_json...')
+
+    # convert to geo_json
+    os.system('togeojson /tmp/maps.xml > /tmp/maps.json')
+
+    time.sleep(2)
+
+    import json
+
+    logger.debug('loading geo_json...')
+
+    try:
+        with open(os.path.join('/tmp', 'maps.json')) as data_file:
+            data = json.load(data_file)
+    except Exception as e:
+        desc = \
+            'problem opening maps.json. may be issue either '\
+            'downloading .xml file or conversion to .json. '
+        logger.error(desc + str(e))
+        status = 'failed'
+    else:
+        status = 'success'
+
+        maps = db.maps.find_one_and_update(
+            {'agency':agency},
+            {'$set': {
+                'update_dt': datetime.utcnow(),
+                'features': data['features']
+            }}
+        )
+
+        desc = 'Updated %s maps successfully.' % len(data['features'])
+
+        logger.info('%s: %s', agency, desc)
+
+    # Will block
+    if emit_status:
+        from app import task_emit
+        task_emit(
+            'update_maps',
+            data={
+                'status': status,
+                'description': desc,
+                'n_updated': len(maps['features'])
+            })
+
+    return True

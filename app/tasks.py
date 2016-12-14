@@ -219,7 +219,7 @@ def rfu(agency, note,
 @celery.task
 def schedule_reminders():
     from app.notify import pus
-    from app import schedule
+    from app import cal
     from datetime import datetime, date, time, timedelta
 
     agencies = db.agencies.find({})
@@ -230,8 +230,8 @@ def schedule_reminders():
 
         blocks = []
 
-        for key in agency['cal_ids']:
-            blocks += schedule.get_blocks(
+        for key in agency['scheduler']['notify']['cal_ids']:
+            blocks += cal.get_blocks(
                 agency['cal_ids'][key],
                 datetime.combine(_date,time(8,0)),
                 datetime.combine(_date,time(9,0)),
@@ -271,7 +271,7 @@ def update_sms_accounts(agency_name=None, days_delta=None):
     numbers are set up to interact with SMS system'''
 
     import re
-    from . import schedule
+    from . import cal
     from app.main import sms
 
     if days_delta == None:
@@ -282,7 +282,7 @@ def update_sms_accounts(agency_name=None, days_delta=None):
     if agency_name:
         conf = db.agencies.find_one({'name':agency_name})
 
-        accounts = schedule.get_accounts(
+        accounts = cal.get_accounts(
             conf['etapestry'],
             conf['cal_ids']['res'],
             conf['google']['oauth'],
@@ -300,7 +300,7 @@ def update_sms_accounts(agency_name=None, days_delta=None):
 
         for agency in agencies:
             # Get accounts scheduled on Residential routes 3 days from now
-            accounts = schedule.get_accounts(
+            accounts = cal.get_accounts(
                 agency['etapestry'],
                 agency['cal_ids']['res'],
                 agency['google']['oauth'],
@@ -347,7 +347,7 @@ def enable_all_accounts_sms():
 @celery.task
 def find_non_participants():
     '''Create RFU's for all non-participants on scheduled dates'''
-    from app import schedule
+    from app import cal
     from app.main import non_participants
     from . import etap, gsheets
     from datetime import date
@@ -358,7 +358,7 @@ def find_non_participants():
         try:
             logger.info('%s: Analyzing non-participants in 5 days...', agency['name'])
 
-            accounts = schedule.get_accounts(
+            accounts = cal.get_accounts(
                 agency['etapestry'],
                 agency['cal_ids']['res'],
                 agency['google']['oauth'],
@@ -404,76 +404,13 @@ def find_non_participants():
         except Exception as e:
             logger.error('%s\n%s', str(e), tb.format_exc())
 
-
 #-------------------------------------------------------------------------------
 @celery.task
-def get_all_mobile_accounts(agency):
-    return True
+def update_maps(agency=None, emit_status=False):
+    from app.booker import geo
 
-
-#-------------------------------------------------------------------------------
-@celery.task
-def update_map_data(agency):
-    import os
-    import time
-    from datetime import datetime
-
-    conf = db.maps.find_one({'agency':agency})
-    status = None
-    desc = None
-
-    logger.debug('downloading kml file...')
-
-    # download KML file
-    os.system(
-        'wget \
-        "https://www.google.com/maps/d/kml?mid=%s&lid=%s&forcekml=1" \
-        -O /tmp/maps.xml' %(conf['mid'], conf['lid']))
-
-    time.sleep(2)
-
-    logger.debug('converting to geo_json...')
-
-    # convert to geo_json
-    os.system('togeojson /tmp/maps.xml > /tmp/maps.json')
-
-    time.sleep(2)
-
-    import json
-
-    logger.debug('loading geo_json...')
-
-    try:
-        with open(os.path.join('/tmp', 'maps.json')) as data_file:
-            data = json.load(data_file)
-    except Exception as e:
-        desc = \
-            'problem opening maps.json. may be issue either '\
-            'downloading .xml file or conversion to .json. '
-        logger.error(desc + str(e))
-        status = 'failed'
+    if agency:
+        geo.update_maps(agency, emit_status)
     else:
-        status = 'success'
-
-        maps = db.maps.find_one_and_update(
-            {'agency':agency},
-            {'$set': {
-                'update_dt': datetime.utcnow(),
-                'features': data['features']
-            }}
-        )
-
-        desc = 'Updated %s maps successfully.' % len(data['features'])
-
-        logger.info('%s: %s', agency, desc)
-
-    from app import task_emit
-    task_emit(
-        'update_maps',
-        data={
-            'status': status,
-            'description': desc,
-            'n_updated': len(maps['features'])
-        })
-
-    return True
+        for agency in db.agencies.find({}):
+            geo.update_maps(agency['name'], emit_status)

@@ -10,7 +10,7 @@ import json
 from twilio.rest.lookups import TwilioLookupsClient
 from flask import current_app, request, make_response
 
-from .. import etap, utils, gsheets, schedule
+from .. import etap, utils, gsheets
 
 from app import db, bcolors
 from app.booker import geo, search, book

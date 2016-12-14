@@ -10,7 +10,7 @@ import logging
 from . import notify
 from . import accounts, admin, events, triggers, email, voice, sms, \
               recording, pus, gg, voice_announce
-from .. import utils, schedule, parser
+from .. import utils, cal, parser
 from app.main import alice
 from .. import db
 logger = logging.getLogger(__name__)
@@ -143,7 +143,7 @@ def new_event():
 
             oauth = db.agencies.find_one({'name':agency})['google']['oauth']
 
-            _date = schedule.get_next_block_date(cal_id, block, oauth)
+            _date = cal.get_next_block_date(cal_id, block, oauth)
 
             evnt_id = pus.reminder_event(
                 agency,

@@ -9,12 +9,11 @@ from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 import logging
 
-from . import booker
+from . import booker, geo
 from . import search, book
 from .. import utils
 from .. import db
 logger = logging.getLogger(__name__)
-
 
 #-------------------------------------------------------------------------------
 @booker.route('/', methods=['GET'])
@@ -136,8 +135,11 @@ def update_maps():
     user = db.users.find_one({'user': current_user.username})
 
     from .. import tasks
-    tasks.update_map_data.apply_async(
-        kwargs={'agency': user['agency'] },
-        queue=current_app.config['DB']
-    )
+    tasks.update_maps.apply_async(
+        kwargs={
+            'agency': user['agency'],
+            'emit_status': True
+        },
+        queue=current_app.config['DB'])
+
     return jsonify('OK')

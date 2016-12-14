@@ -1,4 +1,4 @@
-'''app.schedule'''
+'''app.cal'''
 
 import logging
 import datetime

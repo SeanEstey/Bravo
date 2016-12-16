@@ -1,4 +1,4 @@
-'''app.alice'''
+'''app.main.alice'''
 
 import logging
 import twilio

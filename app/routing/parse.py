@@ -1,7 +1,48 @@
 '''app.routing.parse'''
 
+import logging
+from app import gsheets
+from app import db
+import time
+logger = logging.getLogger(__name__)
+
+#-------------------------------------------------------------------------------
+def to_dict(agency, ss_id):
+    conf = db.agencies.find_one({'name':agency})
+    service = gsheets.gauth(conf['google']['oauth'])
+
+    # get col A-B
+    values = gsheets.get_values(service, ss_id, 'A:B')
+
+    try:
+        info_idx = values.index(['***Route Info***'])
+        inven_idx = values.index(['***Inventory***'])
+    except ValueError as e:
+        logger.info('missing "Route Info" or "Inventory" in ss_id %s', ss_id)
+        return False
+
+    sub = values[info_idx+1:inven_idx]
+
+    route_info = {}
+
+    for elmt in sub:
+        if len(elmt) == 1:
+            route_info[elmt[0]] = ''
+        else:
+            route_info[elmt[0]] = elmt[1]
+
+    time.sleep(1)
+    prop = gsheets.get_prop(service, ss_id)
+
+    route_info['title'] = prop['title']
+
+    logger.debug(route_info)
+
+    return route_info
+
 #-------------------------------------------------------------------------------
 def Route(id):
+    '''
 	this.id = id
 	this.ss = SpreadsheetApp.openById(id)
 	this.sheet = this.ss.getSheets()[0]
@@ -52,16 +93,18 @@ def Route(id):
 		"Nov",
 		"Dec"
 	]
+    '''
+    return True
 
 #-------------------------------------------------------------------------------
 def getValue(order_idx, column_name):
-	return this.orders[order_idx][this.headers.indexOf(column_name)] || False
+    return True
+	#return this.orders[order_idx][this.headers.indexOf(column_name)] || False
 
 #-------------------------------------------------------------------------------
 def orderToDict(idx):
-	'''Converts row array from route into key/value dictionary. Used
-	by RouteProcessor
-	'''
+    '''Converts row array from route into key/value dictionary. Used
+    by RouteProcessor
 
 	if idx >= this.orders.length:
 	    return False
@@ -91,61 +134,65 @@ def orderToDict(idx):
 		'Status': this.getValue(idx,'Status'),
 		'Office Notes': (this.getValue(idx,'Office Notes') || '')
 	}
+    '''
+    return True
 
 #-------------------------------------------------------------------------------
 def getInfo():
-	'''Gather Stats and Inven fields from bottom section of Route, build
-	dictionary
-	Returns: Dict object on success, False on error
-	'''
+    '''Gather Stats and Inven fields from bottom section of Route, build
+    dictionary
+    Returns: Dict object on success, False on error
+    '''
 
-	a = this.sheet.getRange(
-		this.orders.length+3,
-		1,
-		this.sheet.getMaxRows()-this.orders.length+1,
-		1
-	).getValues()
+    a = this.sheet.getRange(
+        this.orders.length+3,
+        1,
+        this.sheet.getMaxRows()-this.orders.length+1,
+        1
+    ).getValues()
 
-	# Make into 1D array of field names: ["Total", "Participants", ...]
-	a = a.join('//').split('//')
+    # Make into 1D array of field names: ["Total", "Participants", ...]
+    a = a.join('//').split('//')
 
-  	start = a.indexOf('***Route Info***')
+    start = a.indexOf('***Route Info***')
 
-	if start < 0:
-		logger.info('cant find ***Route Info***')
-		logger.info(a)
-		return False
-	else:
-		start++
+    if start < 0:
+        logger.info('cant find ***Route Info***')
+        logger.info(a)
+        return False
+    else:
+        start+=1
 
-	a.splice(0, start)
+    a.splice(0, start)
 
-	  inven_idx = a.indexOf('***Inventory***')
+    inven_idx = a.indexOf('***Inventory***')
 
-	if inven_idx < 0:
-		return False
+    if inven_idx < 0:
+        return False
 
 	# Now left with Stats and Inventory field names
 
 	stats_fields = a.splice(0, inven_idx)
 
-	  stats = {}
+    stats = {}
 
-	  b = this.sheet.getRange(
-		this.orders.length+3,
-		2,
-		this.sheet.getMaxRows()-this.orders.length+1,
-		1).getValues()
+    b = this.sheet.getRange(
+    this.orders.length+3,
+    2,
+    this.sheet.getMaxRows()-this.orders.length+1,
+    1).getValues()
 
-	b.splice(0, start)
+    b.splice(0, start)
 
-	for i=0 i<stats_fields.length; i++:
-		  key = stats_fields[i]
-		stats[key] = b[i][0]
+    '''
+    for i=0 i<stats_fields.length; i++:
+        key = stats_fields[i]
+        stats[key] = b[i][0]
+    '''
 
-	logger.info(stats)
+    logger.info(stats)
 
-	return stats
+    return stats
 
 #-------------------------------------------------------------------------------
 def getInventoryChanges():

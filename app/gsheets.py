@@ -43,6 +43,18 @@ def gauth(oauth):
     return service
 
 #-------------------------------------------------------------------------------
+def get_prop(service, ss_id):
+    try:
+        prop = service.spreadsheets().get(
+            spreadsheetId = ss_id
+        ).execute()
+    except Exception as e:
+        logger.error('couldnt get ss prop: %s', str(e))
+        return False
+
+    return prop['properties']
+
+#-------------------------------------------------------------------------------
 def write_rows(service, ss_id, rows, a1_range):
     '''Write data to sheet
     Returns: UpdateValuesResponse
@@ -62,7 +74,6 @@ def write_rows(service, ss_id, rows, a1_range):
     except Exception as e:
         logger.error('Error writing to sheet: %s', str(e))
         return False
-
 
 #-------------------------------------------------------------------------------
 def update_cell(service, ss_id, a1_range, value):
@@ -86,7 +97,6 @@ def update_cell(service, ss_id, a1_range, value):
         logger.error('Error writing to sheet: %s', str(e))
         return False
 
-
 #-------------------------------------------------------------------------------
 def get_values(service, ss_id, a1_range):
     try:
@@ -99,7 +109,6 @@ def get_values(service, ss_id, a1_range):
         return False
 
     return values['values']
-
 
 #-------------------------------------------------------------------------------
 def hide_rows(service, ss_id, start, end):
@@ -129,7 +138,6 @@ def hide_rows(service, ss_id, start, end):
     except Exception as e:
         logger.error('Error hiding rows: %s', str(e))
         return False
-
 
 #-------------------------------------------------------------------------------
 def vert_align_cells(service, ss_id, start_row, end_row, start_col, end_col):
@@ -162,7 +170,6 @@ def vert_align_cells(service, ss_id, start_row, end_row, start_col, end_col):
     except Exception as e:
         logger.error('Error formatting cells: %s', str(e))
         return False
-
 
 #-------------------------------------------------------------------------------
 def bold_cells(service, ss_id, cells):

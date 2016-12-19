@@ -12,8 +12,14 @@ import bson.json_util
 from . import main
 from app.notify import pus
 from .. import db
+
 logger = logging.getLogger(__name__)
 
+#-------------------------------------------------------------------------------
+@main.route('/test_test', methods=['POST'])
+def test_test():
+    logger.info('test')
+    return jsonify({'key':'test'})
 
 #-------------------------------------------------------------------------------
 @main.route('/test_schedule_reminders', methods=['GET'])

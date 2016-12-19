@@ -23,6 +23,22 @@ def get_maps():
         mimetype='application/json'
     )
 
+#-------------------------------------------------------------------------------
+@api.route('/booker/search', methods=['POST'])
+def search_by_address():
+    from app.booker import search
+
+    return Response(
+        json.dumps(search.search(
+            request.form['agency'],
+            request.form['query'],
+            radius=float(request.form.get('radius')),
+            weeks=int(request.form.get('weeks'))
+        )),
+        status=200,
+        mimetype='application/json'
+    )
+
 
 #-------------------------------------------------------------------------------
 '''

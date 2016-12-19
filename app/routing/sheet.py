@@ -44,7 +44,7 @@ def build(agency, drive_api, title):
         fields='*'
     ).execute()
 
-    logger.debug(utils.print_vars(_file, depth=5))
+    #logger.debug(utils.print_vars(_file, depth=5))
 
     logger.debug('sheet_id %s created', file_copy['id'])
 

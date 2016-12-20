@@ -1,24 +1,19 @@
 '''app.main.stats'''
 
 import logging
-import twilio
 from datetime import datetime, date, time, timedelta
-import re
 import json
-from flask import current_app, request, make_response
 
-from .. import etap, utils, gsheets
-
-from app import db, bcolors, parser
+from .. import etap, utils, gsheets, parser
+from app import db, bcolors
 
 logger = logging.getLogger(__name__)
 
 class EtapError(Exception):
     pass
 
-
 #-------------------------------------------------------------------------------
-def update_stats(agency, ss_id):
+def update(agency, ss_id):
     '''Stats headers:
     [Block, Date, Size, New, No, Zero, Gifts, Part, Last Part, Part Diff,
      Sales Invoice, < 1L, > 1L, Receipt, Last Receipt, Receipt Diff, Estimate,
@@ -42,24 +37,41 @@ def update_stats(agency, ss_id):
     rows = gsheets.get_values(
         service,
         conf['google']['stats_ss_id'],
-        worksheet+'!A:X')
+        worksheet+'!A:X'
+    )
 
     row_num = find_block_row(rows, block)
 
+    month = prop['title'][0:3]
+
     # Try next month (carry-over)
     if not row_num:
+        months = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ]
+
         if month == 'Dec':
             month = 'Jan'
         else:
-            month = route.months[route.months.index(month)+1]
+            month = months[months.index(month)+1]
 
-        sheet = ss.getSheetByName(month + ' ' + route_type)
+        worksheet = month + ' ' + route_type
 
-        row_index = findStatsEntryRow(sheet, route.title_block)
+        rows = gsheets.get_values(
+            service,
+            conf['google']['stats_ss_id'],
+            worksheet+'!A:X'
+        )
 
-        if not row_index:
-            logger.info('Stats entry not found for block ' + route.title_block)
+        row_num = find_block_row(rows, block)
+
+        if not row_num:
+            logger.error('Stats entry not found for block ' + block)
             return False
+
+    logger.info(worksheet)
+    logger.info(row_num)
 
     return True
 

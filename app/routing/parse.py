@@ -1,6 +1,7 @@
 '''app.routing.parse'''
 
 import logging
+import re
 from app import gsheets
 from app import db
 import time
@@ -31,7 +32,6 @@ def to_dict(agency, ss_id):
         else:
             route_info[elmt[0]] = elmt[1]
 
-    time.sleep(1)
     prop = gsheets.get_prop(service, ss_id)
 
     route_info['title'] = prop['title']
@@ -39,6 +39,27 @@ def to_dict(agency, ss_id):
     logger.debug(route_info)
 
     return route_info
+
+#-------------------------------------------------------------------------------
+def row_to_dict(agency, ss_id, headers, row):
+    '''Converts row array from route into key/value dictionary. Used
+    by RouteProcessor
+    headers: [Address, $, Notes, Order Info, ID, Driver Notes, Block, Neighborhood,
+    Status, Office Notes]
+    '''
+
+    order = {}
+
+    for i in range(len(headers)):
+        order[headers[i]] = row[i]
+
+    # convert unicode str "$1.50" to float 1.50
+    if order['$'] and len(order['$']) > 0:
+        order['$'] = float(order['$'][1:])
+
+    logger.debug(order)
+
+    return order
 
 #-------------------------------------------------------------------------------
 def Route(id):
@@ -100,42 +121,6 @@ def Route(id):
 def getValue(order_idx, column_name):
     return True
 	#return this.orders[order_idx][this.headers.indexOf(column_name)] || False
-
-#-------------------------------------------------------------------------------
-def orderToDict(idx):
-    '''Converts row array from route into key/value dictionary. Used
-    by RouteProcessor
-
-	if idx >= this.orders.length:
-	    return False
-
-	order_info = this.getValue(idx,'Order Info')
-	act_name_regex = /Name\:\s(([a-zA-Z]*?\s)*){1,5}/g
-	account_name = ''
-
-	# Parse Account Name from "Order Info" string
-	if act_name_regex.test(order_info):
-	    account_name = order_info.match(act_name_regex)[0] + '\n'
-
-	gift = False
-
-    if isNumber(this.orders[idx][this.headers.indexOf('$')]):
-	    gift = Number(this.orders[idx][this.headers.indexOf('$')])
-
-	return {
-		'Address': this.getValue(idx, 'Address'),
-		'Account Number': this.getValue(idx,'ID'),
-		'Name & Address': account_name + this.getValue(idx,'Address'),
-		'Gift Estimate': gift,
-		'Driver Input': (this.getValue(idx,'Notes') || ''),
-		'Driver Notes': (this.getValue(idx,'Driver Notes') || ''),
-		'Block': this.getValue(idx,'Block').replace(/, /g, ','),
-		'Neighborhood': (this.getValue(idx,'Neighborhood') || '').replace(/, /g, ','),
-		'Status': this.getValue(idx,'Status'),
-		'Office Notes': (this.getValue(idx,'Office Notes') || '')
-	}
-    '''
-    return True
 
 #-------------------------------------------------------------------------------
 def getInfo():

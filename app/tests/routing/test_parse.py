@@ -7,6 +7,7 @@ from flask import Flask, Blueprint, request, url_for
 from datetime import datetime, date, time, timedelta
 
 from app import create_app
+from app import gsheets
 from app.routing import parse
 
 class RoutingParseTests(unittest.TestCase):
@@ -43,6 +44,13 @@ class RoutingParseTests(unittest.TestCase):
         ss_id = '1iRwY6tzKEM-M28yaKr5dvFgi5j2cjTr5su5YWJa28X4'
         parse.to_dict('vec', ss_id)
 
+    def test_order_to_dict(self):
+        ss_id = '1iRwY6tzKEM-M28yaKr5dvFgi5j2cjTr5su5YWJa28X4'
+        conf = self.db.agencies.find_one({'name':'vec'})
+        service = gsheets.gauth(conf['google']['oauth'])
+        rows = gsheets.get_values(service, ss_id, 'A:J')
+        order = parse.row_to_dict('vec', ss_id, rows[0], rows[2])
+        print order
 
 if __name__ == '__main__':
     unittest.main()

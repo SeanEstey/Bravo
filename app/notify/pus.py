@@ -135,10 +135,12 @@ def reminder_event(agency, block, _date):
 
         # B. Email notification
 
+        subject = 'Your upcoming pickup'
+
         if acct_obj.get('email'):
             on_send = {
                 'template': 'email/%s/reminder.html' % agency,
-                'subject': 'Your upcoming Vecova Bottle Service pickup'}
+                'subject': subject}
 
             email.add(
                 evnt_id,

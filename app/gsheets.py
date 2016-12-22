@@ -100,7 +100,7 @@ def update_cell(service, ss_id, a1_range, value):
 #-------------------------------------------------------------------------------
 def get_values(service, ss_id, a1_range):
     try:
-        values = service.spreadsheets().values().get(
+        result = service.spreadsheets().values().get(
           spreadsheetId = ss_id,
           range=a1_range
         ).execute()
@@ -108,7 +108,7 @@ def get_values(service, ss_id, a1_range):
         logger.error('Error getting values from sheet: %s', str(e))
         return False
 
-    return values['values']
+    return result.get('values', [])
 
 #-------------------------------------------------------------------------------
 def hide_rows(service, ss_id, start, end):

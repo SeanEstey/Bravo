@@ -5,6 +5,7 @@ from datetime import datetime, date, time, timedelta
 import json
 
 from .. import etap, utils, gsheets, parser
+from app.routing import parse
 from app import db, bcolors
 
 logger = logging.getLogger(__name__)
@@ -38,9 +39,11 @@ def update(agency, ss_id):
         service,
         conf['google']['stats_ss_id'],
         worksheet+'!A:X'
-    )
+        )
 
-    row_num = find_block_row(rows, block)
+    stats_headers = rows[0:1][0]
+
+    row_num = find_block_row(stats_headers, rows, block)
 
     month = prop['title'][0:3]
 
@@ -64,7 +67,7 @@ def update(agency, ss_id):
             worksheet+'!A:X'
         )
 
-        row_num = find_block_row(rows, block)
+        row_num = find_block_row(stats_headers, rows, block)
 
         if not row_num:
             logger.error('Stats entry not found for block ' + block)
@@ -73,18 +76,77 @@ def update(agency, ss_id):
     logger.info(worksheet)
     logger.info(row_num)
 
+    dropoff_gifts = 0
+    dropoffs = 0
+    core_gifts = 0
+    zeros = 0
+
+    route_rows = gsheets.get_values(
+        service,
+        ss_id,
+        'A:J'
+    )
+
+    last_order_idx = route_rows.index([]) - 2
+
+    route_headers = route_rows[0:1][0]
+    orders = route_rows[1: last_order_idx]
+
+    logger.info('orders: ' + str(len(orders)))
+
+    for order in orders:
+        order_info = parse.row_to_dict(route_headers, order)
+
+        if order_info['Status'] == 'Dropoff':
+            dropoffs += 1
+
+            if order_info['$'] > 0:
+                dropoff_gifts += 1
+        else:
+            if order_info['$'] == 0:
+                zeros+=1
+            elif order_info['$'] > 0:
+                core_gifts+=1
+
+    logger.info('dropoffs: ' + str(dropoffs))
+    logger.info('gifts: ' + str(core_gifts))
+    logger.info('zeros: '  + str(zeros))
+
+    row = [None] * len(stats_headers)
+
+    row[stats_headers.index('Size')] = len(orders)
+    row[stats_headers.index('New')] = dropoffs
+    row[stats_headers.index('Zero')] = prop['Zeros']
+    # TODO: include opt-outs
+    row[stats_headers.index('Gifts')] = prop['Participants']
+    row[stats_headers.index('Part')] = (float(core_gifts) / float((len(orders) - dropoffs)))
+    row[stats_headers.index('Estimate')] = prop['Total']
+    row[stats_headers.index('Driver')] = prop['driver']
+    row[stats_headers.index('Projected')] = prop['Notes']
+
+    gsheets.write_rows(
+        service,
+        conf['google']['stats_ss_id'],
+        [row],
+        worksheet+'!'+str(row_num)+':'+str(row_num)
+    )
+
     return True
 
 #-------------------------------------------------------------------------------
-def find_block_row(rows, block):
+def find_block_row(headers, rows, block):
     for idx in range(len(rows)):
-        if rows[idx].index('Block') == block:
-            return idx+1
+        try:
+            if rows[idx][headers.index('Block')] == block:
+                return idx+1
+        except ValueError as e:
+            continue
 
     return False
 
 #-------------------------------------------------------------------------------
 def updateStats(ss_id, archive_ss_id, route):
+    '''
     ss = SpreadsheetApp.openById(ss_id)
 
     month = route.title.substring(0,3)
@@ -220,6 +282,7 @@ def updateStats(ss_id, archive_ss_id, route):
         sheet.getRange(row_index+1, headers.index('Part Diff')+1, 1, 3).setFontColor('#6aa84f')
 
     '''
+    '''
     catch(e):
      msg =
       route.title_block + ' update stats failed.\\n' +
@@ -236,6 +299,7 @@ def updateStats(ss_id, archive_ss_id, route):
 
 #-------------------------------------------------------------------------------
 def updateInventory(ss_id, route):
+    '''
     ss = SpreadsheetApp.openById(ss_id)
     sheet = ss.getSheetByName(route.months[route.date.getMonth()])
 
@@ -307,6 +371,7 @@ def updateInventory(ss_id, route):
     sheet.getRange(dest_row,1,1,row.length).setValues([row])
 
     '''
+    '''
     catch(e):
      msg =
       route.title_block + ' update inventory failed.\\n' +
@@ -330,6 +395,7 @@ def calculateEstimateError():
     receipt_values = sheet.getRange(3, receipt_col, rows.getNumRows(), 1).getValues()
     diff = 0
 
+    '''
     for i=0 i<receipt_values.length i+=1:
         if Number(receipt_values[i]) > 0 && Number(estimate_values[i]) > 0:
             diff += Number(estimate_values[i]) - Number(receipt_values[i])
@@ -337,10 +403,12 @@ def calculateEstimateError():
     estimateError = diff / Number(sheet.getRange(2, receipt_col).getValue())
     estimateDiffCol = sheet.getRange("A1:Y1").getValues()[0].index('Estimate Diff') + 1
     sheet.getRange(2, estimateDiffCol).setValue(estimateError)
+    '''
     logger.info('Updated estimate error')
 
 #-------------------------------------------------------------------------------
 def projectMonthlyRevenue():
+    '''
     sheet = SpreadsheetApp.getActiveSheet()
     rows = sheet.getDataRange()
     estimate_col = sheet.getRange("A1:Y1").getValues()[0].index('Estimate') + 1
@@ -373,9 +441,11 @@ def projectMonthlyRevenue():
     projectedRevCol = sheet.getRange("A1:Y1").getValues()[0].index('Projected') + 1
     sheet.getRange(2, projectedRevCol).setValue(Number(projectedRevenue.toFixed(0)))
     logger.info('Updated projected revenue: ' + Number(projectedRevenue.toFixed(0)))
+    '''
 
 #-------------------------------------------------------------------------------
 def clearResidentialRun():
+    '''
     sheet = SpreadsheetApp.getActiveSheet()
     rows = sheet.getDataRange()
     numRows = rows.getNumRows()
@@ -397,3 +467,4 @@ def clearResidentialRun():
     sheet.getRange(3,headers.index('MPU')+1, numRows-2, 1).clear()
     sheet.getRange(3,headers.index('Projected Revenue:')+1, numRows-2, 1).clear()
     sheet.getRange(3, headers.length, numRows-2, 1).clear()   # Header is generated automatically for mileage, so find last column
+    '''

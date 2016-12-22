@@ -35,13 +35,14 @@ def to_dict(agency, ss_id):
     prop = gsheets.get_prop(service, ss_id)
 
     route_info['title'] = prop['title']
+    route_info['driver'] = prop['title'][prop['title'].index('(')+1 : prop['title'].index(')')]
 
     logger.debug(route_info)
 
     return route_info
 
 #-------------------------------------------------------------------------------
-def row_to_dict(agency, ss_id, headers, row):
+def row_to_dict(headers, row):
     '''Converts row array from route into key/value dictionary. Used
     by RouteProcessor
     headers: [Address, $, Notes, Order Info, ID, Driver Notes, Block, Neighborhood,
@@ -50,8 +51,12 @@ def row_to_dict(agency, ss_id, headers, row):
 
     order = {}
 
+    # fix non-existent empty cell issue
+    #if len(row) < len(headers):
+
     for i in range(len(headers)):
-        order[headers[i]] = row[i]
+        if i < len(row):
+            order[headers[i]] = row[i]
 
     # convert unicode str "$1.50" to float 1.50
     if order['$'] and len(order['$']) > 0:

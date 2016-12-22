@@ -42,7 +42,7 @@ def get(evnt_id, local_time=True):
     return event
 
 #-------------------------------------------------------------------------------
-def get_list(agency, local_time=True, max=10):
+def get_list(agency, local_time=True, max=20):
     '''Return list of all events for agency
     '''
 

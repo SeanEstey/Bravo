@@ -13,6 +13,13 @@ from .. import db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
+@api.route('/salesforce', methods=['GET'])
+def test_salesforce():
+    from app.api import salesforce
+    salesforce.login()
+    return 'OK'
+
+#-------------------------------------------------------------------------------
 @api.route('/get_maps', methods=['POST'])
 def get_maps():
     from app.booker import geo

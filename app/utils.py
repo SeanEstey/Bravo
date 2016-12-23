@@ -140,3 +140,16 @@ def print_vars(obj, depth=0, l="    "):
             "," for k, v in objdict.iteritems()
         ) + "\n" + l + "}"
 
+#-------------------------------------------------------------------------------
+def start_timer():
+    return datetime.now()
+
+#-------------------------------------------------------------------------------
+def end_timer(start_dt, display=False, lbl=None):
+    b = datetime.now()
+    c = b - start_dt
+
+    if display:
+        logger.debug('%s: %s.%ss', lbl, c.seconds, c.microseconds/1000)
+
+    return c

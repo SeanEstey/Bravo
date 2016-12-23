@@ -18,12 +18,14 @@
             Your upcoming Empties to Winn pickup is 
             <b>{{ account['udf']['pickup_dt'] }}</b>.
           </p>
-          <p>
-            Your bags can be placed at your front entrance, visible from 
-            the street, by 8am. 
-            Please keep each bag under 30lbs.  
-            Extra glass can be left in cases to the side.
-          </p>
+					{% if account['nameFormat'] != 3 %}
+						<p>
+							Your bags can be placed at your front entrance, visible from 
+							the street, by 8am. 
+							Please keep each bag under 30lbs.  
+							Extra glass can be left in cases to the side.
+						</p>
+					{% endif %}
         {% elif account['udf']['status'] == "Dropoff"%}
           <p>
             This is a reminder that a driver will be by on 

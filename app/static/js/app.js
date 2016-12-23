@@ -156,3 +156,9 @@ function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-primary', data=fa
 
     return btn;
 }
+
+
+//------------------------------------------------------------------------------
+function closeAdminPanel() {
+	$('.admin-panel-div').hide();
+}

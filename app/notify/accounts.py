@@ -7,14 +7,15 @@ from .. import utils
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def add(agency, evnt_id, name, phone=None, email=None, udf=None):
+def add(agency, evnt_id, name, phone=None, email=None, udf=None, nameFormat=None):
     return db['accounts'].insert_one({
         'evnt_id': evnt_id,
         'agency': agency,
         'name': name,
         'phone': phone,
         'email': email,
-        'udf': udf
+        'udf': udf,
+        'nameFormat': nameFormat
     }).inserted_id
 
 #-------------------------------------------------------------------------------

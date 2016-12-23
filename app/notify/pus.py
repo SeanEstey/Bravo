@@ -95,7 +95,8 @@ def reminder_event(agency, block, _date):
                 'pickup_dt': etap.ddmmyyyy_to_local_dt(
                     etap.get_udf('Next Pickup Date', acct_obj)
                 )
-            }
+            },
+            nameFormat = acct_obj['nameFormat']
         )
 
         # A. Either Voice or SMS notification

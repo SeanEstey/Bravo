@@ -1,7 +1,9 @@
 '''app.tests.api.test_sf'''
 
 import json
+import requests
 import pymongo
+import logging
 import unittest
 from flask import Flask, Blueprint, request, url_for
 from datetime import datetime, date, time, timedelta
@@ -9,6 +11,8 @@ from datetime import datetime, date, time, timedelta
 from app import utils
 from app import create_app
 from app.api import salesforce
+
+logger = logging.getLogger(__name__)
 
 class SalesforceTests(unittest.TestCase):
     def setUp(self):
@@ -48,24 +52,22 @@ class SalesforceTests(unittest.TestCase):
         sf = salesforce.login()
         self.assertTrue(sf.session is not None)
 
-    def test_add_contact(self):
+    def test_add_block(self):
+        cm_id = '00v41000002sG1hAAE'
+        #a = utils.start_timer()
+        r = salesforce.add_block(self.sf, self.sf.CampaignMember.get(cm_id), 'B6A')
+        self.assertTrue(r == 204)
+
+    def test_rmv_block(self):
+        cm_id = '00v41000002sG1hAAE'
+        r = salesforce.rmv_block(self.sf, self.sf.CampaignMember.get(cm_id), 'B6A')
+        self.assertTrue(r == 204)
+
+    def test_get_records_by_block(self):
         a = utils.start_timer()
-        r = salesforce.add_contact(self.sf, {'LastName':'Smith','Email':'example@example.com'})
-        utils.end_timer(a, display=True, lbl='add_contact')
-        self.assertTrue(r['success'] == True)
-
-    def test_get_contact(self):
-        contact = salesforce.get_contact(self.sf, u'0034100000GAf2lAAD')
-
-    def test_print_contact(self):
-        #contact = salesforce.print_contact(self.sf, u'0034100000GAf2lAAD')
-        return True
-
-    def test_find_in_query(self):
-        a = utils.start_timer()
-        _id = u'0034100000GAf2lAAD'
-        results = self.sf.query("SELECT Id, Email FROM Contact") # WHERE LastName = 'Jones'")
-        utils.end_timer(a, display=True, lbl='query_time')
+        r = salesforce.get_records(self.sf, block='R1A')
+        utils.end_timer(a, display=True, lbl='get_records_by_block')
+        self.assertTrue(len(r) > 0)
 
 if __name__ == '__main__':
     unittest.main()

@@ -14,9 +14,6 @@ from app import utils
 from .. import db
 logger = logging.getLogger(__name__)
 
-#-------------------------------------------------------------------------------
-def get_help(sf):
-    logger.info(help(sf))
 
 #-------------------------------------------------------------------------------
 def login():
@@ -25,23 +22,53 @@ def login():
     sf = Salesforce(
         username=conf['salesforce']['username'],
         password=conf['salesforce']['password'],
-        security_token=conf['salesforce']['security_token'])
-        #sandbox=True)
+        security_token=conf['salesforce']['security_token'],
+        version='38.0')
+        #True) # for sandbox
 
-    #logger.debug(utils.print_vars(sf, depth=0, l="    "))
+    logger.debug(
+        ' user "%s" logged in. sf_version="%s"',
+        conf['salesforce']['username'], sf.sf_version)
 
     return sf
 
 #-------------------------------------------------------------------------------
-def add_contact(sf, obj):
-    r = sf.Contact.create(obj)
-    sf.Contact.update(r['id'],{'LastName': 'Jones', 'FirstName': 'John'})
-    return r
+def add_account(sf, contact, block, status, neighborhood, next_pickup):
+    try:
+        c_resp = sf.Contact.create(contact)
+    except Exception as e:
+        logger.error(str(e))
+        return False
+
+    try:
+        q_resp = sf.query(
+            "SELECT Id FROM Campaign WHERE Name = 'Bottle Service'")
+    except Exception as e:
+        logger.error(str(e))
+
+    try:
+        cm_resp = sf.CampaignMember.create({
+            'CampaignId': q_resp['records'][0]['Id'],
+            'ContactId': c_resp['id'],
+            'Block__c': block,
+            'Status': status,
+            'Neighborhood__c': neighborhood,
+            'Next_Pickup__c': next_pickup
+        })
+    except Exception as e:
+        logger.error(str(e))
+        return False
+
+    return c_resp['id']
+
+#-------------------------------------------------------------------------------
+def add_gift(sf, c_id, amount, date, note):
+    return True
 
 #-------------------------------------------------------------------------------
 def get_records(sf, block=None):
     '''Returns list of CampaignMembers dicts matching given Block. Related
-    Contacts included under 'Contact' key.
+    Contacts included under 'Contact' key (queried via 'Contact' relationship)
     '''
 
     c_fields = []

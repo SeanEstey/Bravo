@@ -48,6 +48,7 @@ class SalesforceTests(unittest.TestCase):
 
     # -------------------- TESTS -----------------------
 
+    '''
     def test_login(self):
         sf = salesforce.login()
         self.assertTrue(sf.session is not None)
@@ -68,6 +69,52 @@ class SalesforceTests(unittest.TestCase):
         r = salesforce.get_records(self.sf, block='R1A')
         utils.end_timer(a, display=True, lbl='get_records_by_block')
         self.assertTrue(len(r) > 0)
+    '''
+
+    def test_add_acct(self):
+        contact = {
+            'FirstName': 'Gerald',
+            'LastName': 'Lewis',
+            'MailingStreet': '6348 33 Ave NW',
+            'MailingPostalCode': 'T3B 1K7',
+            'MailingCity': 'Calgary',
+            'MailingState': 'AB',
+            'MailingCountry': 'Canada',
+            'Email': 'estese@gmail.com',
+            'MobilePhone': '403-289-6575'
+        }
+
+        c_id = salesforce.add_account(
+            self.sf,
+            contact,
+            'R5A',
+            'Dropoff',
+            'Arbour Lake',
+            '2016-06-21'
+        )
+
+        self.assertTrue(c_id is not False)
+
+        print c_id
+
+        import base64
+
+        note = self.sf.ContentNote.create({
+            'Content': base64.b64encode('Test test test'),
+            'Title': 'No Pickup',
+            'OwnerId': c_id
+        })
+
+        print note
+
+        link = self.sf.ContentDocumentLink.create({
+            'ContentDocumentId': note['id'],
+            'LinkedEntityId': c_id,
+            'ShareType': 'V'
+
+        })
+
+        print link
 
 if __name__ == '__main__':
     unittest.main()

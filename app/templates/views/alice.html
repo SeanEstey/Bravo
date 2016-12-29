@@ -1,0 +1,58 @@
+	{% extends "views/base.html" %}
+	{% block content %}  
+	<script type='text/javascript' 
+					src='https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js'></script>
+	<script type='text/javascript' 
+					src="{{url_for('static', filename='js/views/alice.js')}}">
+	</script>
+  <script> $(function() { alice_init(); 
+		});
+	</script>
+
+	<div class='container'>
+		<textarea id="RawJson" hidden></textarea> 
+		<div id="ControlsRow" hidden> 
+			<input type="Button" value="Format" onClick="Process()"/> 
+			<span id="TabSizeHolder"> 
+				tab size: 
+				<select id="TabSize" onChange="TabSizeChanged()"> 
+					<option value="1">1</option> 
+					<option value="2">2</option> 
+					<option value="3" selected="true">3</option> 
+					<option value="4">4</option> 
+					<option value="5">5</option> 
+					<option value="6">6</option> 
+				</select> 
+			</span> 
+			<label for="QuoteKeys"> 
+				<input type="checkbox" id="QuoteKeys" onClick="QuoteKeysClicked()" checked="false" /> 
+				Keys in Quotes
+			</label>&nbsp; 
+			<a href="javascript:void(0);" onClick="SelectAllClicked()">select all</a> 
+			&nbsp;
+			<span id="CollapsibleViewHolder" > 
+					<label for="CollapsibleView"> 
+						<input type="checkbox" id="CollapsibleView" onClick="CollapsibleViewClicked()" checked="true" /> 
+						Collapsible View
+					</label> 
+			</span> 
+			<span id="CollapsibleViewDetail"> 
+				<a href="javascript:void(0);" onClick="ExpandAllClicked()">expand all</a> 
+				<a href="javascript:void(0);" onClick="CollapseAllClicked()">collapse all</a> 
+				<a href="javascript:void(0);" onClick="CollapseLevel(3)">level 2+</a> 
+				<a href="javascript:void(0);" onClick="CollapseLevel(4)">level 3+</a> 
+				<a href="javascript:void(0);" onClick="CollapseLevel(5)">level 4+</a> 
+				<a href="javascript:void(0);" onClick="CollapseLevel(6)">level 5+</a> 
+				<a href="javascript:void(0);" onClick="CollapseLevel(7)">level 6+</a> 
+				<a href="javascript:void(0);" onClick="CollapseLevel(8)">level 7+</a> 
+				<a href="javascript:void(0);" onClick="CollapseLevel(9)">level 8+</a> 
+			</span> 
+		</div> 
+		<div id="Canvas" class="Canvas"></div> 
+		 
+		<form id="InvisibleLink" action="http://www.bodurov.com/JsonFormatter/view.aspx" target="_blank"> 
+			<input type="hidden" id="InvisibleLinkUrl" name="json" value="" /> 
+		</form> 
+	</div>
+
+{% endblock %}

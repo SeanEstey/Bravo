@@ -1,6 +1,6 @@
 '''app.api.salesforce'''
 
-import requests
+import base64
 import types
 import re
 from bson import json_util
@@ -16,18 +16,21 @@ logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-def login():
+def login(sandbox=False):
+    '''Make sure to keep simple_salesforce pkg and 'version' arg up to date
+    '''
+
     conf = db.agencies.find_one({'name':'vec'})
 
     sf = Salesforce(
         username=conf['salesforce']['username'],
         password=conf['salesforce']['password'],
         security_token=conf['salesforce']['security_token'],
-        version='38.0')
-        #True) # for sandbox
+        version='38.0',
+        sandbox=sandbox)
 
     logger.debug(
-        ' user "%s" logged in. sf_version="%s"',
+        'login successful. user="%s" api="v%s"',
         conf['salesforce']['username'], sf.sf_version)
 
     return sf
@@ -59,16 +62,62 @@ def add_account(sf, contact, block, status, neighborhood, next_pickup):
         logger.error(str(e))
         return False
 
+    if cm_resp['success'] == True:
+        logger.debug(
+            'account created successfully. name="%s %s" id="%s"',
+            contact['FirstName'], contact['LastName'], c_resp['id'])
+
     return c_resp['id']
 
 #-------------------------------------------------------------------------------
-def add_gift(sf, c_id, amount, date, note):
+def add_gift(sf, a_id, campaign_id, amount, date, note):
+    '''date: gift date (yyyy-mm-dd)'''
+
+    try:
+        r = sf.Opportunity.create({
+            'AccountId': a_id,
+            'CampaignId': campaign_id,
+            'Name': 'Bottle Donation',
+            'Amount': amount,
+            'StageName': 'In-Kind Received',
+            'CloseDate': date,
+            'Description': note
+        })
+    except Exception as e:
+        logger.error('error creating gift for %s: "%s"', c_id, str(e))
+        return False
+
+    #logger.debug(r)
+
     return True
 
 #-------------------------------------------------------------------------------
-def get_records(sf, block=None):
-    '''Returns list of CampaignMembers dicts matching given Block. Related
-    Contacts included under 'Contact' key (queried via 'Contact' relationship)
+def add_note(sf, c_id, title, note):
+    '''Add note related to Contact record'''
+
+    try:
+        note = sf.ContentNote.create({
+            'Content': base64.b64encode(note),
+            'Title': title,
+            'OwnerId': c_id
+        })
+
+        link = sf.ContentDocumentLink.create({
+            'ContentDocumentId': note['id'],
+            'LinkedEntityId': c_id,
+            'ShareType': 'V'
+
+        })
+    except Exception as e:
+        logger.error('error creating note for c_id %s: "%s"', c_id, str(e))
+        return False
+
+    return True
+
+#-------------------------------------------------------------------------------
+def match_records(sf, block=None, address=None, name=None):
+    '''Returns list of CampaignMember obj including 'Contact' relationship
+    fields, matching given criteria.
     '''
 
     c_fields = []
@@ -96,6 +145,14 @@ def get_records(sf, block=None):
     logger.debug('found %s records for %s', response['totalSize'], block)
 
     return response['records']
+
+#-------------------------------------------------------------------------------
+def search_records(sf, term):
+    '''More general search than match_records using SOSL'''
+
+    #FIND {Joe Smith} IN Name Fields RETURNING lead(name, phone)
+
+    return True
 
 #-------------------------------------------------------------------------------
 def add_block(sf, cm_obj, block):

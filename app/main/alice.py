@@ -289,8 +289,8 @@ def get_identity(response):
         from .. import tasks
         tasks.rfu.apply_async(args=[
             agency['name'],
-            'Received text mobile number %s not matching eTapestry account' %
-            request.form['Body']],
+            'Received text from unknown number %s. Msg: "%s"'%(request.form['From'],request.form['Body'])
+            ],
             queue=current_app.config['DB'])
 
         return False

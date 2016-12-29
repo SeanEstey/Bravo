@@ -69,6 +69,22 @@ def view_admin():
     return render_template('views/admin.html', agency_config=settings_html)
 
 #-------------------------------------------------------------------------------
+@main.route('/alice')
+@login_required
+def view_alice_chatlog():
+    return render_template('views/alice.html')
+
+#-------------------------------------------------------------------------------
+@main.route('/alice_chatlogs', methods=['POST'])
+def get_alice_chatlogs():
+    agency = db['users'].find_one({'user': current_user.username})['agency']
+    chats = list(db.alice.find({'agency':agency}))
+
+    # to_strftime="%m/%-d/%Y @ %-I:%M%p",
+    chatlogs = utils.formatter(chats, to_local_time=True, to_strftime='%Y-%m-%-%-d', bson_to_json=True)
+    return jsonify(chatlogs)
+
+#-------------------------------------------------------------------------------
 @main.route('/update_agency_conf', methods=['POST'])
 @login_required
 def update_agency_conf():

@@ -3,16 +3,18 @@
 
 //------------------------------------------------------------------------------
 function alice_init() {
-      $.ajax({
-        type: 'post',
-        url: $URL_ROOT + 'alice_chatlogs'
-      })
-      .done(function(response) {
-          for(var i=0; i<response.length; i++) {
-              delete response[i]['_id'];
-          }
-          display(response);
-      });
+    //QuoteKeysClicked();
+
+    $.ajax({
+      type: 'post',
+      url: $URL_ROOT + 'alice_chatlogs'
+    })
+    .done(function(response) {
+        for(var i=0; i<response.length; i++) {
+            delete response[i]['_id'];
+        }
+        display(response);
+    });
 }
 
 //------------------------------------------------------------------------------
@@ -21,13 +23,12 @@ function display(json) {
     $('#RawJson').val(json); _.defer(Process);
 };
 
-
 // we need tabs as spaces and not CSS magin-left 
 // in order to ratain format when coping and pasing the code
 window.SINGLE_TAB = "  ";
 window.ImgCollapsed = "http://www.bodurov.com/JsonFormatter/images/Collapsed.gif";
 window.ImgExpanded = "http://www.bodurov.com/JsonFormatter/images/Expanded.gif";
-window.QuoteKeys = true;
+window.QuoteKeys = false;
 function $id(id){ return document.getElementById(id); }
 function IsArray(obj) {
   return obj && 
@@ -42,16 +43,19 @@ function Process(){
   window.IsCollapsible = $id("CollapsibleView").checked;
   var json = $id("RawJson").value;
   var html = "";
+
   try{
     if(json == "") json = "\"\"";
     var obj = eval("["+json+"]");
     html = ProcessObject(obj[0], 0, false, false, false);
     $id("Canvas").innerHTML = "<PRE class='CodeContainer'>"+html+"</PRE>";
-  }catch(e){
+  }
+  catch(e){
     alert("JSON is not well formated:\n"+e.message);
     $id("Canvas").innerHTML = "";
   }
 }
+
 window._dateObj = new Date();
 window._regexpObj = new RegExp();
 

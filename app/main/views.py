@@ -13,7 +13,7 @@ from bson.objectid import ObjectId
 import logging
 
 from . import main
-from . import log, receipts, signups
+from . import alice, log, receipts, signups
 from .. import utils, html, gsheets, mailgun
 from app.notify import admin
 import app.notify.email
@@ -77,12 +77,17 @@ def view_alice_chatlog():
 #-------------------------------------------------------------------------------
 @main.route('/alice_chatlogs', methods=['POST'])
 def get_alice_chatlogs():
-    agency = db['users'].find_one({'user': current_user.username})['agency']
-    chats = list(db.alice.find({'agency':agency}))
+    agency = db.users.find_one({'user': current_user.username})['agency']
 
-    # to_strftime="%m/%-d/%Y @ %-I:%M%p",
-    chatlogs = utils.formatter(chats, to_local_time=True, to_strftime='%Y-%m-%-%-d', bson_to_json=True)
-    return jsonify(chatlogs)
+    chatlogs = alice.get_chatlogs(agency)
+
+    return jsonify(
+        utils.formatter(
+            chatlogs,
+            to_local_time=True,
+            bson_to_json=True
+        )
+    )
 
 #-------------------------------------------------------------------------------
 @main.route('/update_agency_conf', methods=['POST'])

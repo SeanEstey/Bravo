@@ -20,8 +20,27 @@ logger = logging.getLogger(__name__)
 class EtapError(Exception):
     pass
 
-REQ_KEYWORDS = ['NOPICKUP', 'NO PICKUP', 'PICKUP', 'SCHEDULE']
+REQ_KEYWORDS = ['NOPICKUP', 'NO PICKUP', 'PICKUP', 'SCHEDULE', 'SUPPORT']
 GEN_KEYWORDS = ['THANKS', 'THANK YOU', 'THX']
+
+#-------------------------------------------------------------------------------
+def rfu_task(agency, note,
+             a_id=None, npu=None, block=None, _date=None, name_addy=None):
+
+    from .. import tasks
+    tasks.rfu.apply_async(
+        args=[
+            agency,
+            note
+        ],
+        kwargs={
+            'a_id': a_id,
+            'npu': npu,
+            'block': block,
+            '_date': _date,
+            'name_addy': name_addy
+        },
+        queue=current_app.config['DB'])
 
 #-------------------------------------------------------------------------------
 def on_receive():
@@ -48,8 +67,25 @@ def on_receive():
     if not account:
         return handle_stranger(response)
 
+    # Awaiting conversation reply?
     if request.cookies.get('status') in ['add_to_schedule_confirm', 'get_address']:
         return process_answer(msg, from_, account, response)
+    elif request.cookies.get('status') == 'get_help_request':
+        rfu_task(
+            agency['name'],
+            'SMS help request: "%s"' % msg,
+            a_id = account['id'],
+            _date = date.today().strftime('%-m/%-d/%Y'),
+            name_addy = account['name']
+        )
+
+        set_cookie(response, 'status', '')
+
+        return send_reply(
+            "Thank you. I'll have someone contact you as soon as possible. "\
+            "Enjoy your %s." % get_tod(),
+            response
+        )
 
     if msg.upper() in GEN_KEYWORDS:
         return send_reply("You're welcome!", response)
@@ -71,12 +107,13 @@ def log_conversation(agency, from_, msg):
             'agency': agency,
             'from':from_,
             'date':date.today().isoformat(),
-            'messages':['"'+msg+'"']
-        })
+            'last_msg_dt': utils.naive_to_local(datetime.now()),
+            'messages':[msg]})
     else:
         db.alice.update_one(
             {'from':from_, 'date': date_str},
-            {'$push': {'messages':'"'+msg+'"'}})
+            {'$set': {'last_msg_dt': utils.naive_to_local(datetime.now())},
+             '$push': {'messages': msg}})
 
 #-------------------------------------------------------------------------------
 def process_answer(msg, from_, account, response):
@@ -122,6 +159,13 @@ def process_keyword(msg, from_, account, response):
             'Your next pickup is scheduled on ' + npu_str + '.',
             response
         )
+    elif 'SUPPORT' in msg.upper():
+        set_cookie(response, 'status', 'get_help_request')
+
+        return send_reply(
+            "Tell me what you need help with and I'll forward your request "\
+            "to the right person.",
+            response)
     elif 'PICKUP' in msg.upper():
         logger.info('new pickup request (SMS: %s)', from_)
 
@@ -201,8 +245,8 @@ def get_help_reply(response, account=None):
     if messagecount == 0:
         reply += 'How can I help you today? '
 
-    reply += 'If you reply with the word "schedule" I can give you your '\
-             'next pickup date.'
+    reply += 'You can reply with keyword SCHEDULE for your next pickup date, '\
+             'or SUPPORT for help.'
 
     return reply
 
@@ -454,3 +498,23 @@ def is_unsub():
         return True
 
     return False
+
+#-------------------------------------------------------------------------------
+def get_chatlogs(agency, start_dt=None):
+    if not start_dt:
+        start_dt = datetime.utcnow() - timedelta(days=14)
+
+    # double-check start_dt arg is UTC
+
+    chats = db.alice.find(
+        {'agency':agency, 'last_msg_dt': {'$gt': start_dt}},
+        {'agency':0, '_id':0, 'date':0}
+    ).sort('last_msg_dt',-1)
+
+    chats = list(chats)
+    for chat in chats:
+        chat['Date'] = chat.pop('last_msg_dt').strftime('%b %-d @ %-I:%M%p')
+        chat['From'] = chat.pop('from')
+        chat['Messages'] = chat.pop('messages')
+
+    return chats

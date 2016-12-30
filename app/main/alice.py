@@ -513,7 +513,9 @@ def get_chatlogs(agency, start_dt=None):
 
     chats = list(chats)
     for chat in chats:
-        chat['Date'] = chat.pop('last_msg_dt').strftime('%b %-d @ %-I:%M%p')
+        chat['Date'] =  utils.tz_utc_to_local(
+            chat.pop('last_msg_dt')
+        ).strftime('%b %-d @ %-I:%M%p')
         chat['From'] = chat.pop('from')
         chat['Messages'] = chat.pop('messages')
 

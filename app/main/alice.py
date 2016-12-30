@@ -1,6 +1,7 @@
 '''app.main.alice'''
 
 import logging
+import string
 import twilio
 from twilio import twiml
 from datetime import datetime, date, time, timedelta
@@ -47,7 +48,8 @@ def on_receive():
     '''Received an incoming SMS message.
     '''
 
-    msg = request.form['Body']
+    # must convert from unicode, or weird issues occur
+    msg = str(request.form['Body']).strip()
     from_ = request.form['From']
 
     logger.debug(request.cookies)
@@ -86,10 +88,16 @@ def on_receive():
             response
         )
 
-    if msg.upper() in GEN_KEYWORDS:
-        return send_reply("You're welcome!", response)
-    elif msg.upper() in REQ_KEYWORDS:
-        return process_keyword(msg, from_, account, response)
+    cleaned_msg = msg.upper().translate(None, string.punctuation)
+    parts = cleaned_msg.split(' ')
+
+    for part in parts:
+        if part in REQ_KEYWORDS:
+            return process_keyword(msg, from_, account, response)
+
+    for part in parts:
+        if part in GEN_KEYWORDS:
+            return send_reply("You're welcome!", response)
 
     # Can't understand msg
     return send_reply(

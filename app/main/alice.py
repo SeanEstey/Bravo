@@ -25,7 +25,7 @@ GEN_KEYWORDS = ['THANKS', 'THANK YOU', 'THX']
 
 #-------------------------------------------------------------------------------
 def rfu_task(agency, note,
-             a_id=None, npu=None, block=None, _date=None, name_addy=None):
+             a_id=None, npu=None, block=None, name_addy=None):
 
     from .. import tasks
     tasks.rfu.apply_async(
@@ -37,7 +37,7 @@ def rfu_task(agency, note,
             'a_id': a_id,
             'npu': npu,
             'block': block,
-            '_date': _date,
+            '_date': date.today().strftime('%-m/%-d/%Y'),
             'name_addy': name_addy
         },
         queue=current_app.config['DB'])
@@ -75,7 +75,6 @@ def on_receive():
             agency['name'],
             'SMS help request: "%s"' % msg,
             a_id = account['id'],
-            _date = date.today().strftime('%-m/%-d/%Y'),
             name_addy = account['name']
         )
 
@@ -179,12 +178,11 @@ def process_keyword(msg, from_, account, response):
 #-------------------------------------------------------------------------------
 def handle_stranger(response):
     if request.cookies.get('status') == 'prompt_address':
-        from .. import tasks
-        tasks.rfu.apply_async(args=[
-            agency['name'],
-            'Account at address ' + request.form['Body']+ ' requests '\
-            'to add mobile number ' + from_],
-            queue=current_app.config['DB'])
+        rfu_task(
+            'vec',
+            'Donor at address provided requested '\
+            'to register mobile number with their account: %s' % request.form['From'],
+            name_addy=request.form['Body'])
 
         set_cookie(response, 'status', 'address_received')
 
@@ -330,12 +328,11 @@ def get_identity(response):
             'no matching etapestry account found (SMS: %s)',
             request.form['From'])
 
-        from .. import tasks
-        tasks.rfu.apply_async(args=[
-            agency['name'],
-            'Received text from unknown number %s. Msg: "%s"'%(request.form['From'],request.form['Body'])
-            ],
-            queue=current_app.config['DB'])
+        #rfu_task(
+        #    agency['name'],
+        #    'No eTapestry account linked to this mobile number. '\
+        #    '\nMessage: "%s"' % request.form['Body'],
+        #    name_addy='Mobile: %s' % request.form['From'])
 
         return False
 
@@ -482,19 +479,12 @@ def is_unsub():
         account = get_identity(make_response())
         agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
-        from .. import tasks
-        tasks.rfu.apply_async(
-            args=[
-                agency['name'],
-                'Contributor has replied "%s" and opted out of SMS '\
-                'notifications.' % request.form['Body']
-            ],
-            kwargs={
-                'a_id':account['id'],
-                '_date': date.today().strftime('%-m/%-d/%Y')
-            },
-            queue=current_app.config['DB']
-        )
+        rfu_task(
+            agency['name'],
+            'Contributor has replied "%s" and opted out of SMS '\
+            'notifications.' % request.form['Body'],
+            a_id = account['id'])
+
         return True
 
     return False

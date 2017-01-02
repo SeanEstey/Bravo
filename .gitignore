@@ -7,3 +7,4 @@ oauth_credentials.json
 client_secret.json
 celerybeat-schedule
 auth_keys.py
+mongodb_auth.py

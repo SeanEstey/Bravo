@@ -11,6 +11,7 @@ from flask_login import LoginManager
 from werkzeug.contrib.fixers import ProxyFix
 
 import config
+import mongodb_auth
 
 log_formatter = logging.Formatter('[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M')
 
@@ -39,6 +40,7 @@ client = pymongo.MongoClient(
     tz_aware=True,
     connect=False)
 
+client.admin.authenticate(mongodb_auth.user, mongodb_auth.password, mechanism='SCRAM-SHA-1')
 db = client[config.DB]
 
 logger = logging.getLogger(__name__)

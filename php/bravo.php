@@ -70,8 +70,6 @@ function find_account_by_phone($nsc, $phone) {
 	 * Returns: eTap Account object on success, false on no result.
 	 */
 
-  info_log('finding account for ' . $phone);
-
   $dv = [
     'fieldName'=>'SMS',
     'value'=> $phone
@@ -84,7 +82,7 @@ function find_account_by_phone($nsc, $phone) {
     return false;
   }
   else
-    info_log('Found account Id ' . $account['id'] . ' matching ' . $phone);
+    debug_log('Found account Id ' . $account['id'] . ' matching ' . $phone);
 
   return $account;
 }
@@ -156,7 +154,7 @@ function get_scheduled_block_size($nsc, $query_category, $query, $date) {
   else
     $ratio .= '?';
   
-  info_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
+  debug_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
 
   http_response_code(200);
 

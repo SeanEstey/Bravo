@@ -1,6 +1,6 @@
 import re
 
-block_regex = r'(B|R)\d{1,2}[a-zA-Z]{1}'
+block_regex = r'(B|R)\d{1,2}\w'
 bus_block_regex = r'B\d{1,2}[A-E]{1}'
 res_block_regex = r'R\d{1,2}[a-zA-Z]{1}'
 postal_code_regex = r'T\d[A-Z]\s?(\d[A-Z]\d)?'
@@ -29,7 +29,7 @@ def is_bus(block):
 
 #-------------------------------------------------------------------------------
 def block_to_rmv(s):
-    r = re.search(r'\*{3}RMV\s' + block_regex + r'\*{3}', s)
+    r = re.search(r'\*{3}RMV\s' + block_regex + r'(.+)?\*{3}', s)
 
     if r:
         return re.search(block_regex, r.group(0)).group(0)

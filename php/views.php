@@ -6,7 +6,8 @@
   ini_set('log_errors', 1);
   ini_set('error_log', $ERROR_LOG);
   
-	//require('vendor/autoload.php');
+  require('mongodb_auth.php');
+	require('vendor/autoload.php');
 	require('misc.php');
   require('bravo.php');
 
@@ -39,8 +40,9 @@
 
 	$agency = $etapestry['agency'];
 
-	try {
-			$m = new MongoDB\Driver\Manager('mongodb://localhost:27017');
+  try {
+      $cred = $mongodb_user . ':' . $mongodb_password; 
+			$m = new MongoDB\Driver\Manager('mongodb://'. $cred . '@localhost:27017');
 	}
 	catch (Exception $e) {
 			error_log(
@@ -66,8 +68,8 @@
 				$agency . " " .
 				"eTapestry login error for user '" . $etapestry['user'] . 
 				"'. Message: '" . $nsc->faultstring . "'");
-			http_response_code(500);
 			echo json_encode($nsc->faultcode . ': ' . $nsc->faultstring);
+			http_response_code(500);
 			exit;
   }
 
@@ -236,8 +238,7 @@
 				}
 				
 				info_log(count($accounts) . ' gift histories retrieved.');
-
-				echo json_encode(utf8_converter($accounts));
+				echo json_encode($accounts);
 				break;
 		//-----------------------------------------------------------------------
     case 'get_upload_status':

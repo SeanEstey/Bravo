@@ -8,6 +8,9 @@ from dateutil.parser import parse
 
 from .. import etap, utils, gsheets, mailgun
 from .. import db
+from app.routing.main import order
+from app.routing.sheet import append_order
+from app.routing.geo import get_gmaps_url
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +34,7 @@ def make(agency, data):
     # yyyy-mm-dd format
     event_dt = utils.naive_to_local(
         datetime.combine(
-            parse(data['date']),
+            etap.ddmmyyyy_to_dt(data['date']),
             time(0,0,0))
     )
 
@@ -90,19 +93,47 @@ def update_dms(agency, data):
 def append_route(agency, route, data):
     '''Block is already routed. Append order to end of Sheet'''
 
-    logger.info('%s already routed for %s. appending to ss_id %s',
-                data['block'], data['date'], route['ss']['id'])
+    logger.info('%s already routed for %s. Appending to Sheet.',
+                data['block'], data['date'])
+    logger.debug('appending to ss_id "%s"', route['ss']['id'])
+
+    conf = db.agencies.find_one({'name':agency})
+
+    acct = etap.call(
+        'get_account',
+        conf['etapestry'],
+        {'account_number': data['aid']}
+    )
 
     service = gsheets.gauth(
         db.agencies.find_one({'name':agency})['google']['oauth']
     )
 
-    routing.sheets.append_order(service, route['ss']['id'], order)
+    _order = order(
+        acct,
+        [],
+        conf['google']['geocode']['api_key'],
+        route['driver']['shift_start'],
+        '19:00',
+        etap.get_udf('Service Time', acct) or 3
+    )
+
+    _order['gmaps_url'] = get_gmaps_url(
+        _order['location']['name'],
+        _order['location']['lat'],
+        _order['location']['lng']
+    )
+
+    append_order(
+        service,
+        route['ss']['id'],
+        _order
+    )
 
     return True
 
 #-------------------------------------------------------------------------------
-def send_confirm(agency, data):  #to, aid, name, date_str):
+def send_confirm(agency, data):
     try:
         body = render_template(
             'email/%s/confirmation.html' % agency,

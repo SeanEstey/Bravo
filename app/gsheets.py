@@ -111,6 +111,29 @@ def get_values(service, ss_id, a1_range):
     return result.get('values', [])
 
 #-------------------------------------------------------------------------------
+def insert_rows_above(service, ss_id, row, num):
+    try:
+        service.spreadsheets().batchUpdate(
+            spreadsheetId = ss_id,
+            body = {
+                "requests": {
+                    "insertDimension": {
+                        "range": {
+                            "sheetId": 0,
+                            "dimension": "ROWS",
+                            "startIndex": row-1,
+                            "endIndex": row-1+num
+                        },
+                        "inheritFromBefore": False
+                    }
+                }
+            }
+        ).execute()
+    except Exception as e:
+        logger.error('Error inserting rows: ' + str(e))
+        return False
+
+#-------------------------------------------------------------------------------
 def hide_rows(service, ss_id, start, end):
     '''
     @start: inclusive row

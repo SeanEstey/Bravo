@@ -50,6 +50,8 @@ def build(agency, drive_api, title):
 
     return _file
 
+
+
 #-------------------------------------------------------------------------------
 def write_orders(sheets_api, ss_id, orders):
     '''Write formatted orders to route sheet.'''
@@ -148,14 +150,79 @@ def write_orders(sheets_api, ss_id, orders):
         logger.error('sheets error: %s', str(e))
 
 #-------------------------------------------------------------------------------
+def write_order(sheets_api, ss_id, order, row):
+    '''Write single order to empty row on Sheet
+    TODO: doesn't add Bold formatting yet.'''
+
+    order_info = ''
+
+    if order['customNotes'].get('driver notes'):
+        # Row = (order idx + 1) + 1 (header)
+        #cells_to_bold.append([idx+1+1, 4])
+
+        order_info += 'NOTE: ' + order['customNotes']['driver notes'] +'\n\n'
+
+        if order['customNotes']['driver notes'].find('***') > -1:
+            order_info = order_info.replace("***", "")
+
+    order_info += 'Name: ' + order['customNotes']['name'] + '\n'
+
+    if order['customNotes'].get('neighborhood'):
+      order_info += 'Neighborhood: ' + order['customNotes']['neighborhood'] + '\n'
+
+    order_info += 'Block: ' + order['customNotes']['block']
+
+    if order['customNotes'].get('contact'):
+      order_info += '\nContact: ' + order['customNotes']['contact']
+    if order['customNotes'].get('phone'):
+      order_info += '\nPhone: ' + order['customNotes']['phone']
+    if order['customNotes'].get('email'):
+      order_info += '\nEmail: ' + order['customNotes']['email']
+
+    #order_info += '\nArrive: ' + order['arrival_time']
+
+    logger.debug(order_info)
+
+    gsheets.write_rows(
+        sheets_api,
+        ss_id,
+        [[
+            '=HYPERLINK("' + order['gmaps_url'] + '","' + order['location']['name'] + '")',
+            '',
+            '',
+            order_info,
+            order['customNotes']['id'],
+            order['customNotes']['driver notes'],
+            order['customNotes']['block'],
+            order['customNotes']['neighborhood'],
+            order['customNotes']['status'],
+            order['customNotes']['office notes']
+        ]],
+        str(row)+":"+str(row)
+    )
+
+    return True
+
+#-------------------------------------------------------------------------------
 def append_order(sheets_api, ss_id, order):
-    # find first empty row
+    '''@order: dict returned from routific.order():
+    '''
 
-    values = gsheets.get_values(sheets_api, ss_id, "A1:$A")
+    values = gsheets.get_values(sheets_api, ss_id, "E1:$E")
 
-    hide_start = 1 + len(rows) + 1;
-    hide_end = values.index(['***Route Info***'])
+    insert_idx = None
 
-    #gsheets.write_rows(sheets_api, ss_id, rows, _range)
+    for i in range(len(values)):
+        if values[i][0] == 'depot':
+            insert_idx = i
+
+    logger.info('insert row at idx %s', insert_idx)
+
+    gsheets.insert_rows_above(sheets_api, ss_id, insert_idx+1, 1)
+
+    #from time import sleep
+    #sleep(2)
+
+    write_order(sheets_api, ss_id, order, insert_idx+1)
 
     return True

@@ -22,8 +22,13 @@ def login(sandbox=False):
 
     conf = db.agencies.find_one({'name':'vec'})
 
+    username=conf['salesforce']['username']
+
+    if sandbox:
+        username += '.vecova'
+
     sf = Salesforce(
-        username=conf['salesforce']['username'],
+        username=username,
         password=conf['salesforce']['password'],
         security_token=conf['salesforce']['security_token'],
         version='38.0',
@@ -84,7 +89,7 @@ def add_gift(sf, a_id, campaign_id, amount, date, note):
             'Description': note
         })
     except Exception as e:
-        logger.error('error creating gift for %s: "%s"', c_id, str(e))
+        logger.error('error creating gift for %s: "%s"', a_id, str(e))
         return False
 
     #logger.debug(r)

@@ -29,7 +29,7 @@ def search(agency, query, radius=None, weeks=None):
     SEARCH_RADIUS = float(radius or 4.0)
 
     events = []
-    start_date = datetime.today() + timedelta(days=1)
+    start_date = datetime.today()# + timedelta(days=1)
     end_date = datetime.today() + timedelta(days=SEARCH_DAYS)
 
     service = gcal.gauth(conf['google']['oauth'])
@@ -74,12 +74,27 @@ def search(agency, query, radius=None, weeks=None):
             conf['google']['geocode']['api_key']
         )
 
-        results = geo.get_nearby_blocks(
-            geo_results[0]['geometry']['location'],
-            SEARCH_RADIUS,
-            maps,
-            events
-        )
+        # Individual account (Residential donor)
+        if account['nameFormat'] <= 2:
+            results = geo.get_nearby_blocks(
+                geo_results[0]['geometry']['location'],
+                SEARCH_RADIUS,
+                maps,
+                events
+            )
+            desc = \
+                'Found <b>%s</b> options for account <b>%s</b> within '\
+                '<b><a id="a_radius" href="#">%skm</a> radius</b> '\
+                'in next <b>%s weeks.</b>'%(
+                len(results), account['name'], SEARCH_RADIUS, SEARCH_WEEKS)
+        # Business account
+        elif account['nameFormat'] == 3:
+            postal = account['postalCode'][0:3]
+            results = search_by_postal(postal, events)
+            desc = \
+                'Found <b>%s</b> options for account <b>%s</b> '\
+                'within postal code <b>%s</b> in next <b>%s weeks.</b>'%(
+                len(results), account['name'], postal, SEARCH_WEEKS)
 
         return {
             'status': 'success',
@@ -89,11 +104,7 @@ def search(agency, query, radius=None, weeks=None):
             'weeks': SEARCH_WEEKS,
             'account': account,
             'results': results,
-            'description': \
-                'Found <b>%s</b> options for account <b>%s</b> within '\
-                '<b><a id="a_radius" href="#">%skm</a> radius</b> '\
-                'in next <b>%s weeks.</b>'%(
-                len(results), account['name'], SEARCH_RADIUS, SEARCH_WEEKS)
+            'description': desc
         }
     elif parser.is_block(query):
         results = search_by_block(query,events)

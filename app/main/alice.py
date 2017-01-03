@@ -50,21 +50,34 @@ def on_receive():
 
     # must convert from unicode, or weird issues occur
     msg = str(request.form['Body']).strip()
+
     from_ = request.form['From']
 
-    logger.debug(request.cookies)
+    logger.debug(request.form.to_dict())
+
     logger.info('To Alice: %s"%s"%s (%s)',
                 bcolors.BOLD, msg, bcolors.ENDC, from_)
 
     agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
-    log_conversation(agency['name'], from_, msg)
-
     response = make_response()
 
     set_cookie(response, 'messagecount', int(request.cookies.get('messagecount', 0))+1)
 
-    account = get_identity(response)
+    try:
+        account = get_identity(response)
+    except Exception as e:
+        rfu_task(
+            agency['name'],
+            'SMS eTap error: "%s"' % str(e),
+            name_addy = from_
+        )
+
+        return send_reply(\
+            "I'm sorry, there seems to be a problem looking up '\
+            'your account. We'll look into the matter for you.", response)
+    else:
+        log_conversation(agency['name'], from_, msg, account=account)
 
     if not account:
         return handle_stranger(response)
@@ -101,17 +114,19 @@ def on_receive():
 
     # Can't understand msg
     return send_reply(
-        get_help_reply(response, account=account),
+        get_default_reply(response, account=account),
         response
     )
 
 #-------------------------------------------------------------------------------
-def log_conversation(agency, from_, msg):
+def log_conversation(agency, from_, msg, account=None):
     date_str = date.today().isoformat()
 
     if not db.alice.find_one({'from':from_,'date':date_str}):
         db.alice.insert_one({
             'agency': agency,
+            'account': account,
+            'twilio': [request.form.to_dict()],
             'from':from_,
             'date':date.today().isoformat(),
             'last_msg_dt': utils.naive_to_local(datetime.now()),
@@ -120,7 +135,7 @@ def log_conversation(agency, from_, msg):
         db.alice.update_one(
             {'from':from_, 'date': date_str},
             {'$set': {'last_msg_dt': utils.naive_to_local(datetime.now())},
-             '$push': {'messages': msg}})
+             '$push': {'messages': msg, 'twilio': request.form.to_dict()}})
 
 #-------------------------------------------------------------------------------
 def process_answer(msg, from_, account, response):
@@ -133,7 +148,7 @@ def process_answer(msg, from_, account, response):
                 'Thank you. I\ll forward your request to customer service.', response)
         else:
             return send_reply(
-                get_help_reply(response, account=account),
+                get_default_reply(response, account=account),
                 response
             )
     elif request.cookies.get('status') == 'get_address':
@@ -243,15 +258,15 @@ def get_greeting(account=None):
     return 'Good ' + get_tod() + ' '
 
 #-------------------------------------------------------------------------------
-def get_help_reply(response, account=None):
+def get_default_reply(response, account=None):
     reply = ''
 
     messagecount = int(request.cookies.get('messagecount', 0))
 
     if messagecount == 0:
-        reply += 'How can I help you today? '
+        reply += 'How can I help you? '
 
-    reply += 'You can reply with keyword SCHEDULE for your next pickup date, '\
+    reply += 'Ask me about your SCHEDULE for your next pickup date, '\
              'or SUPPORT for help.'
 
     return reply
@@ -344,7 +359,7 @@ def get_identity(response):
 
         return False
 
-    logger.debug(account)
+    #logger.debug(account)
 
     name = get_name(account)
 
@@ -506,7 +521,7 @@ def get_chatlogs(agency, start_dt=None):
 
     chats = db.alice.find(
         {'agency':agency, 'last_msg_dt': {'$gt': start_dt}},
-        {'agency':0, '_id':0, 'date':0}
+        {'agency':0, '_id':0, 'date':0, 'account':0, 'twilio':0}
     ).sort('last_msg_dt',-1)
 
     chats = list(chats)

@@ -133,7 +133,6 @@ def write_orders(sheets_api, ss_id, orders):
     # Start from Row 2 Column A to Column J
     _range = "A2:J" + str(len(orders)+1)
 
-
     try:
         gsheets.write_rows(sheets_api, ss_id, rows, _range)
         gsheets.vert_align_cells(sheets_api, ss_id, 2, len(orders)+1, 1,1)
@@ -147,3 +146,16 @@ def write_orders(sheets_api, ss_id, orders):
         gsheets.hide_rows(sheets_api, ss_id, hide_start, hide_end)
     except Exception as e:
         logger.error('sheets error: %s', str(e))
+
+#-------------------------------------------------------------------------------
+def append_order(sheets_api, ss_id, order):
+    # find first empty row
+
+    values = gsheets.get_values(sheets_api, ss_id, "A1:$A")
+
+    hide_start = 1 + len(rows) + 1;
+    hide_end = values.index(['***Route Info***'])
+
+    #gsheets.write_rows(sheets_api, ss_id, rows, _range)
+
+    return True

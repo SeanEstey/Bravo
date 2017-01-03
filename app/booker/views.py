@@ -101,18 +101,18 @@ def do_booking():
 
     user = db.users.find_one({'user': current_user.username})
 
-    response = book.make(
-        user['agency'],
-        request.form['aid'],
-        request.form['block'],
-        request.form['date'],
-        request.form['driver_notes'],
-        request.form['name'],
-        request.form['email'],
-        request.form['confirmation'] == 'true'
-    )
+    data = {
+        'aid': request.form['aid'],
+        'block': request.form['block'],
+        'date': request.form['date'],
+        'driver_notes': request.form['driver_notes'],
+        'name': request.form['name'],
+        'email': request.form['email'],
+        'send_confirm': request.form['confirmation'] == 'true',
+        'user_fname': user['name']
+    }
 
-    return jsonify(response)
+    return jsonify(book.make(user['agency'], data))
 
 #-------------------------------------------------------------------------------
 @booker.route('/get_maps', methods=['POST'])

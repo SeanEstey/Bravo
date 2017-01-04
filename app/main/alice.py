@@ -20,41 +20,75 @@ logger = logging.getLogger(__name__)
 class EtapError(Exception):
     pass
 
-REQ_KEYWORDS = ['NOPICKUP', 'NO PICKUP', 'PICKUP', 'SCHEDULE', 'SUPPORT', 'INSTRUCTION']
-GEN_KEYWORDS = ['THANKS', 'THANK YOU', 'THX']
+# Global s
 
-# Fixed Replies
+KEYWORDS = ['NOPICKUP', 'NO PICKUP', 'PICKUP', 'SCHEDULE', 'SUPPORT', 'INSTRUCTION']
+CONVERSATION_ENDERS = ['THANKS', 'THANK YOU', 'THX']
 
-REPL_INTRO = \
-    "How can I help you?"
-REPL_DEFAULT = \
-    "Ask me about your SCHEDULE for your next pickup date, or request live SUPPORT."
-REPL_ETAP_ERR = \
-    "I'm sorry, there seems to be a problem looking up "\
-    "your account. We'll look into the matter for you."
-REPL_DRIVER_DISPATCHED = \
-    "I'm sorry, our driver has already been dispatched for the pickup."
-SUPPORT_KW_REPL = \
-    "Tell me what you need help with and I'll forward your request to the right person."
-INSTRUCTION_RECEIVED = \
-    "Thank you. I'll pass along your note to our driver. "
-SUPPORT_RECEIVED = \
-    "Thank you. I'll have someone contact you as soon as possible. "\
-STRANGER = \
-    "I'm sorry, I don't recognize this phone number. Do you have an "\
-    "account? If you let me know your address I can register this "\
-    "number for you."
+say = {
+    "general": {
+        "intro": \
+            "How can I help you?"
+    },
+    "user": {
+        "options": \
+            "You can guide me with keywords. "\
+            "Ask me about your pickup SCHEDULE, or request live SUPPORT.",
+    },
+    "unregistered": {
+        "options": \
+            "I don't recognize this number. "\
+            "Do you have an account? I can UPDATE it for you. "\
+            "If you're new, you can REGISTER for a pickup. "
+    },
+    "k": {
+        "SKIP": {
+            "expired": \
+                "I'm sorry, our driver has already been dispatched for the pickup."
+        },
+        "SUPPORT": {
+            "prompt": \
+                "Tell me what you need help with and I'll forward your request to the right person.",
+            "received": \
+                "Thank you. I'll have someone contact you as soon as possible. "\
+        },
+        "INSTRUCTION": {
+            "prompt": \
+                "Tell me what you'd like instructions to pass along to our driver",
+            "received": \
+                "Thank you. I'll pass along your note to our driver. "
+        },
+        "UPDATE": {
+            "prompt": \
+                "I can identify your acount for you, I just need you to tell "\
+                "me your current address",
+            "received":
+                "Thank you. I'll have someone update your account for you "\
+                "right away."
+        },
+        "REQUEST": {
+            "prompt": \
+                "I can schedule you for pickup. What's your full address?"
+            "received": \
+                "Thanks. We'll be in touch shortly with a pickup date"
+        }
+    },
+    "error": {
+        "acct_lookup": \
+            "I'm sorry, there seems to be a problem looking up "\
+            "your account. We'll look into the matter for you.",
+        "comprehension": \
+            "Sorry, I don't understand your request. You'll have to guide "\
+            "our conversation using keywords."
+    },
+}
 
 
 #-------------------------------------------------------------------------------
 def on_receive():
-     '''Received an incoming SMS message.
-    Cookies used that persist beyond each request: 'etap_id', 'status', 'messagecount'
-    Per request flask.g variables: 'acct_name' '''
-
-    msg = str(request.form['Body']).strip() # Unicode causes parsing issues
-    from_ = request.form['From']
-    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+    '''Received an incoming SMS message.
+    Cookies saved throughout conversations: 'messagecount', 'awaiting'
+    '''
 
     log_msg()
     msg_count = increment_msg_count()
@@ -65,44 +99,38 @@ def on_receive():
     except Exception as e:
         return send_reply(REPL_ETAP_ERR, response)
     else:
-        save_msg(agency['name'], from_, msg, account=account)
+        save_msg()
 
-        if not account:
-            return handle_stranger(response)
+    msg = get_msg()
 
-    if msg_count == 1:
-        return new_conversation_reply(response, account)
-
-    # In a conversation. either AWAITING_KEYWORD or AWAITING_REPLY
-    # AWAITING_KEYWORD: expecting 1 or more possible keywords
-    # AWAITING_REPLY: awaiting reply to previous keyword
+    if new_conversation():
+        return handle_new_conversation(response, msg)
 
     if awaiting_reply():
-        return handle_reply(response, msg, account)
+        return handle_reply(response, msg)
     elif awaiting_keyword():
-        if has_keyword(msg):
-            return handle_keyword(response, msg, account)
+        k = get_keyword(msg)
+        if k:
+            return handle_keyword(response, k)
 
     # Not expecting a reply
     if conversation_ended(msg):
         return send_reply("You're welcome!", response)
 
-    # TODO: Some other unprompted keyword?
-    # Can't understand request. Send default reply.
-    # TODO: If 3rd time sending default reply, offer assistance
-
-    return send_reply(
-        get_default_reply(response, account=account),
-        response
-    )
+    return default_reply(response)
 
 #-------------------------------------------------------------------------------
-def new_conversation_reply(response, account):
-    # Look for any keywords
-    if find_keyword(msg, REQ_KEYWORDS):
-        return handle_keyword(response, msg, account)
+def handle_new_conversation(response):
+    account = getattr(g, 'account', None)
+    msg = str(request.form['Body']).strip()
+
+    k = find_keyword(msg, KEYWORDS)
+
+    if k:
+        return handle_keyword(response, k)
     else:
-        # prompt default msg
+        # Might be a conversation starter, or an unprompted reply
+        # Send default reply
         return send_reply(
             get_default_reply(response, account=account),
             response
@@ -110,7 +138,8 @@ def new_conversation_reply(response, account):
 
 #-------------------------------------------------------------------------------
 def find_keyword(msg, key_list):
-    '''@msg: should be casted to string and stripped()'''
+    '''@msg: should be casted to string and stripped()
+    '''
 
     cleaned_msg = msg.upper().translate(None, string.punctuation)
     parts = cleaned_msg.split(' ')
@@ -123,14 +152,10 @@ def find_keyword(msg, key_list):
     return False
 
 #-------------------------------------------------------------------------------
-def conversation_ended(msg):
-    # TODO: can't be first message in conversation
-    # TODO: check messagecount > 2
-
-    return find_keyword(msg, GEN_KEYWORDS)
-
-#-------------------------------------------------------------------------------
 def get_identity(response):
+    '''Per request global flask vars: g.acct_name, g.account, g.agency_conf
+    '''
+
     agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
     if request.cookies.get('etap_id'):
@@ -175,7 +200,10 @@ def get_identity(response):
 
     expires=datetime.utcnow() + timedelta(hours=4)
 
+    g.account = account
     g.acct_name = get_name(account)
+    g.agency_conf = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+
     logger.debug('set g.acct_name: %s', getattr(g, 'acct_name', None))
 
     set_cookie(response, 'etap_id', account['id'])
@@ -183,63 +211,76 @@ def get_identity(response):
     return account
 
 #-------------------------------------------------------------------------------
-def awaiting_answer():
-    return get_cookie('AWAITING_ANSWER')
-
-#-------------------------------------------------------------------------------
-def is_command():
+def get_msg():
     msg = str(request.form['Body']).strip()
-    cleaned_msg = msg.upper().translate(None, string.punctuation)
-    parts = cleaned_msg.split(' ')
-
-    # Keyword command issued?
-    for part in parts:
-        if part in REQ_KEYWORDS:
-            return part
-
-    return False
+    return msg.upper().translate(None, string.punctuation)
 
 #-------------------------------------------------------------------------------
-def handle_command(msg, from_, account, response):
-    # Keyword handler
-    if msg.upper() in ['NOPICKUP', 'NO PICKUP']:
-        return send_reply(REPL_DRIVER_DISPATCHED, response)
-    elif 'SCHEDULE' in msg.upper():
-        if not etap.get_udf('Next Pickup Date', account):
-            logger.error(
-                'missing Next Pickup Date for account %s (SMS: %s)',
-                account['id'], from_)
+def awaiting_keyword():
+    if get_cookie('awaiting') == 'KEYWORD':
+        return True
+    else:
+        return False
+
+#-------------------------------------------------------------------------------
+def handle_keyword(response, k):
+    account = getattr(g, 'account', None)
+
+    # Handle user keyword
+    if account:
+        if k in ['NOPICKUP', 'NO PICKUP']:
+            return send_reply(REPL_DRIVER_DISPATCHED, response)
+        elif k == 'SCHEDULE':
+            if not etap.get_udf('Next Pickup Date', account):
+                logger.error(
+                    'missing Next Pickup Date for account %s (SMS: %s)',
+                    account['id'], from_)
+
+                return send_reply(
+                    "You are not currently scheduled for pickups. Would you like to be?",
+                    response)
+
+                set_cookie(response, 'status', 'add_to_schedule_confirm')
+
+            npu_dt = etap.ddmmyyyy_to_dt(etap.get_udf('Next Pickup Date', account))
+            npu_str = npu_dt.strftime('%A, %B %-d')
 
             return send_reply(
-                "You are not currently scheduled for pickups. Would you like to be?",
-                response)
+                'Your next pickup is scheduled on ' + npu_str + '.',
+                response
+            )
+        elif k == 'SUPPORT':
+            set_cookie(response, 'status', 'get_help_request')
 
-            set_cookie(response, 'status', 'add_to_schedule_confirm')
+            return send_reply(REPL_SUPPORT_REQ, response)
+        elif k == 'PICKUP':
+            logger.info('new pickup request (SMS: %s)', from_)
 
-        npu_dt = etap.ddmmyyyy_to_dt(etap.get_udf('Next Pickup Date', account))
-        npu_str = npu_dt.strftime('%A, %B %-d')
+            set_cookie(response, 'status', 'get_address')
 
-        return send_reply(
-            'Your next pickup is scheduled on ' + npu_str + '.',
-            response
-        )
-    elif 'SUPPORT' in msg.upper():
-        set_cookie(response, 'status', 'get_help_request')
-
-        return send_reply(REPL_SUPPORT_REQ, response)
-    elif 'PICKUP' in msg.upper():
-        logger.info('new pickup request (SMS: %s)', from_)
-
-        set_cookie(response, 'status', 'get_address')
-
-        return send_reply(
-            'Ok, I can book a pickup for you. What\'s your address?',
-            response
-        )
+            return send_reply(
+                'Ok, I can book a pickup for you. What\'s your address?',
+                response
+            )
+    # Handle unregistered keyword
+    else:
+        if k == 'PICKUP':
+            # prompt for address
+            return send_reply('',response)
 
 #-------------------------------------------------------------------------------
-def handle_answer(response, account):
+def awaiting_reply():
+    if get_cookie('awaiting') == 'REPLY':
+        return True
+    else:
+        return False
+
+#-------------------------------------------------------------------------------
+def handle_reply(response):
     '''User was asked a question. Process their answer'''
+
+    account = getattr(g, 'account', None)
+    msg = str(request.form['Body']).strip()
 
     awaiting = get_cookie('AWAITING_ANSWER')
     set_cookie(response, 'AWAITING_ANSWER', False)
@@ -272,33 +313,7 @@ def handle_answer(response, account):
         return pickup_request(msg, response)
 
 #-------------------------------------------------------------------------------
-def log_msg():
-    logger.debug(request.form.to_dict())
-
-    logger.info('To Alice: %s"%s"%s (%s)',
-                bcolors.BOLD, msg, bcolors.ENDC, request.form['From'])
-
-#-------------------------------------------------------------------------------
-def save_msg(agency, from_, msg, account=None):
-    date_str = date.today().isoformat()
-
-    if not db.alice.find_one({'from':from_,'date':date_str}):
-        db.alice.insert_one({
-            'agency': agency,
-            'account': account,
-            'twilio': [request.form.to_dict()],
-            'from':from_,
-            'date':date.today().isoformat(),
-            'last_msg_dt': utils.naive_to_local(datetime.now()),
-            'messages':[msg]})
-    else:
-        db.alice.update_one(
-            {'from':from_, 'date': date_str},
-            {'$set': {'last_msg_dt': utils.naive_to_local(datetime.now())},
-             '$push': {'messages': msg, 'twilio': request.form.to_dict()}})
-
-#-------------------------------------------------------------------------------
-def handle_stranger(response):
+def handle_unregistered(response):
     if request.cookies.get('status') == 'prompt_address':
         rfu_task(
             'vec',
@@ -331,46 +346,56 @@ def get_name(account):
     return name
 
 #-------------------------------------------------------------------------------
-def get_cookie(key):
-    return request.cookies.get(key)
-
-#-------------------------------------------------------------------------------
-def set_cookie(response, k, v):
-    expires=datetime.utcnow() + timedelta(hours=4)
-    response.set_cookie(
-        k,
-        value=str(v),
-        expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
-
-#-------------------------------------------------------------------------------
 def new_conversation():
-    if int(request.cookies.get('messagecount', 0)) == 0:
+    if get_cookie('messagecount') == 1:
         return True
     else:
         return False
 
 #-------------------------------------------------------------------------------
-def get_greeting():
-    '''A simple hello at the beginning of a conversation'''
+def conversation_ended(msg):
+    '''TODO: can't be first message in conversation
+    TODO: check messagecount > 2
+    '''
 
-    return 'Good ' + get_tod() + ' '
+    return find_keyword(msg, CONVERSATION_ENDERS)
 
 #-------------------------------------------------------------------------------
-def get_default_reply(response, account=None):
-    reply = ''
+def tod_greeting():
+    '''A simple hello at the beginning of a conversation'''
 
-    messagecount = int(request.cookies.get('messagecount', 0))
+    hour = datetime.now().time().hour
 
-    if messagecount == 0:
+    tod = ''
+
+    if hour < 12:
+        tod = 'morning'
+    elif hour >= 12 and hour < 18:
+        tod = 'afternoon'
+    elif hour >= 18:
+        tod = 'evening'
+
+    return 'Good ' + tod + ' '
+
+#-------------------------------------------------------------------------------
+def default_reply(response):
+    # TODO: Some other unprompted keyword?
+    # Can't understand request. Send default reply.
+    # TODO: If 3rd time sending default reply, offer assistance
+
+    account = getattr(g, 'account', None)
+
+    msg_count = get_cookie('messagecount')
+
+    if msg_count == 1:
         reply += REPL_INTRO
 
     reply += REPL_DEFAULT
 
-    return reply
+    return send_reply(reply, response)
 
 #-------------------------------------------------------------------------------
 def send_reply(msg, response):
-
     agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
     if agency['name'] == 'vec':
@@ -411,19 +436,7 @@ def send_reply(msg, response):
     return response
 
 #-------------------------------------------------------------------------------
-def get_tod():
-    hour = datetime.now().time().hour
-
-    if hour < 12:
-        return 'morning'
-    elif hour >= 12 and hour < 18:
-        return 'afternoon'
-    elif hour >= 18:
-        return 'evening'
-
-#-------------------------------------------------------------------------------
 def pickup_request(msg, response):
-
     agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
     # Msg reply should contain address
@@ -617,3 +630,45 @@ def rfu_task(agency, note,
             'name_addy': name_addy
         },
         queue=current_app.config['DB'])
+
+#-------------------------------------------------------------------------------
+def log_msg():
+    logger.debug(request.form.to_dict())
+
+    logger.info('To Alice: %s"%s"%s (%s)',
+                bcolors.BOLD, msg, bcolors.ENDC, request.form['From'])
+
+#-------------------------------------------------------------------------------
+def save_msg(agency):
+    msg = get_msg()
+    account = getattr(g, 'account', None)
+
+    date_str = date.today().isoformat()
+
+    if not db.alice.find_one({'from':from_,'date':date_str}):
+        db.alice.insert_one({
+            'agency': agency,
+            'account': account,
+            'twilio': [request.form.to_dict()],
+            'from':from_,
+            'date':date.today().isoformat(),
+            'last_msg_dt': utils.naive_to_local(datetime.now()),
+            'messages':[msg]})
+    else:
+        db.alice.update_one(
+            {'from':from_, 'date': date_str},
+            {'$set': {'last_msg_dt': utils.naive_to_local(datetime.now())},
+             '$push': {'messages': msg, 'twilio': request.form.to_dict()}})
+
+#-------------------------------------------------------------------------------
+def get_cookie(key):
+    return request.cookies.get(key)
+
+#-------------------------------------------------------------------------------
+def set_cookie(response, k, v):
+    expires=datetime.utcnow() + timedelta(hours=4)
+    response.set_cookie(
+        k,
+        value=str(v),
+        expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
+

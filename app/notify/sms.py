@@ -116,13 +116,13 @@ def send(notific, twilio_conf):
 
 #-------------------------------------------------------------------------------
 def is_reply():
-    '''Defined as an incoming msg on same date as reminder was sent'''
+    '''Defined as an incoming msg prior to the notific event datetime'''
 
     notific = db['notifics'].find_one({
-          'to': request.form['From'],
-          'type': 'sms',
-          'tracking.sent_dt': utils.naive_to_local(
-            datetime.combine(date.today(),time()))})
+        'to': request.form['From'],
+        'type': 'sms',
+        'event_dt': {'$gte': datetime.utcnow()}
+    })
 
     if notific:
         return True

@@ -1,7 +1,15 @@
-{% if 'reply' in notific['tracking'] and notific['tracking']['reply'] == 'NOPICKUP' %}
+{% if 'reply' in notific['tracking'] %}
+
+	{% if notific['tracking']['reply'] == 'NOPICKUP' %}
 
 		Thank you. You have been removed from the route. Your next scheduled pickup will be 
 		{{ account['udf']['future_pickup_dt'] }}.
+
+	{% else %}
+
+		If you do not need a pickup, reply with keyword NOPICKUP.
+
+	{% endif %}
 
 {% else %}
 

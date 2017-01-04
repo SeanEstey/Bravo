@@ -27,6 +27,7 @@ def tz_utc_to_local(dt):
     '''dt is tz-aware. convert time and tz'''
     return dt.astimezone(local_tz)
 
+
 #-------------------------------------------------------------------------------
 def localize(obj, to_strftime=None):
     '''Recursively scan through MongoDB document and convert all

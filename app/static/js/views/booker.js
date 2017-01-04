@@ -155,20 +155,6 @@ function displaySearchResults(response) {
     $('button[name="book_btn"]').click(function() {
 				$tr = $(this).parent().parent();
 
-        // TODO: check to see if Block has been routed
-        // show warning that account will be appended to route
-        var date = new Date($tr.find('[name="date"]').text());
-        var today = new Date();
-
-        if(date.getMonth() == today.getMonth() &&  date.getDate() == today.getDate()) {
-            console.log('booking onto today route');
-            showAppendRouteModal(
-								$tr.find('[name="block"]').text(),
-								$tr.find('[name="date"]').text()
-            );
-            return;
-        }
-
 				if(!$(this).data('aid')) {
 						showEnterIDModal(
 								$tr.find('[name="block"]').text(),
@@ -212,43 +198,6 @@ function showExpandRadiusModal() {
           radius + 2.0
         );
 
-    });
-}
-
-//---------------------------------------------------------------------
-function showAppendRouteModal(block, date) {
-		showModal(
-			'mymodal',
-			'Warning',
-			$('#booking_options').html(),
-			'Next',
-			'Close'
-		);
-
-    $('#append_route label').html(
-      block + ' has already been routed. ' +
-      'By booking this account, the route will also be updated.');
-
-    $('#mymodal').find('#append_route').show();
-    $('#mymodal').find('#acct_info').hide();
-    $('#mymodal').find('#enter_aid').hide();
-
-    $('#mymodal .btn-primary').click(function() {
-        if(!$('button[name="book_btn"]').data('aid')){ 
-						console.log($tr.find('[name="block"]').text());
-						showEnterIDModal(
-								$tr.find('[name="block"]').text(),
-								$tr.find('[name="date"]').text());
-				}
-				else {
-						console.log($tr.find('[name="block"]').text());
-						showConfirmModal(
-							$tr.find('[name="block"]').text(),
-							$tr.find('[name="date"]').text(),
-							$tr.find('button').data('aid'),
-							$tr.find('button').data('name'),
-							$tr.find('button').data('email'));
-				}
     });
 }
 
@@ -314,6 +263,17 @@ function showConfirmModal(block, date, aid, name, email) {
 			'Book',
 			'Close'
 		);
+
+    var date_obj = new Date(date);
+    var today = new Date();
+
+    if(date_obj.getMonth() == today.getMonth() &&  date_obj.getDate() == today.getDate()) {
+        $('#mymodal #routed_warning').html(
+            "<strong>Warning: </strong>" +
+            block + ' has already been routed.<br> ' +
+            'By booking this account, the route will also be updated.');
+        $('#mymodal #routed_warning').show();
+    }
 
 		if(!email) {
 				email = 'None';

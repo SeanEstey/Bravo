@@ -9,7 +9,7 @@ import re
 import os
 import json
 from twilio.rest.lookups import TwilioLookupsClient
-from flask import current_app, request, make_response
+from flask import current_app, request, make_response, g
 
 from .. import etap, utils, gsheets
 
@@ -46,6 +46,8 @@ def rfu_task(agency, note,
 #-------------------------------------------------------------------------------
 def on_receive():
     '''Received an incoming SMS message.
+    Cookies used that persist beyond each request: 'etap_id', 'status', 'messagecount'
+    Per request flask.g variables: 'acct_name'
     '''
 
     # must convert from unicode, or weird issues occur
@@ -119,6 +121,53 @@ def on_receive():
     )
 
 #-------------------------------------------------------------------------------
+def get_identity(response):
+    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+
+    if request.cookies.get('etap_id'):
+        account = etap.call(
+          'get_account',
+          agency['etapestry'],
+          {'account_number':request.cookies['etap_id']},
+          silence_exceptions=True
+        )
+        g.acct_name = get_name(account)
+        return account
+
+    # New conversation. Try to identify phone number
+    try:
+        account = etap.call(
+          'find_account_by_phone',
+          agency['etapestry'],
+          {"phone": request.form['From']}
+        )
+    except Exception as e:
+        logger.error("eTapestry API: %s", str(e))
+        raise EtapError('eTapestry API: %s' % str(e))
+
+    if not account:
+        logger.info(
+            'no matching etapestry account found (SMS: %s)',
+            request.form['From'])
+
+        #rfu_task(
+        #    agency['name'],
+        #    'No eTapestry account linked to this mobile number. '\
+        #    '\nMessage: "%s"' % request.form['Body'],
+        #    name_addy='Mobile: %s' % request.form['From'])
+
+        return False
+
+    expires=datetime.utcnow() + timedelta(hours=4)
+
+    g.acct_name = get_name(account)
+    logger.debug('set g.acct_name: %s', getattr(g, 'acct_name', None))
+
+    set_cookie(response, 'etap_id', account['id'])
+
+    return account
+
+#-------------------------------------------------------------------------------
 def log_conversation(agency, from_, msg, account=None):
     date_str = date.today().isoformat()
 
@@ -158,6 +207,8 @@ def process_answer(msg, from_, account, response):
 def process_keyword(msg, from_, account, response):
     # Keyword handler
     if msg.upper() in ['NOPICKUP', 'NO PICKUP']:
+        #if sms.is_reply():
+        #    sms.on_reply()
         return send_reply(
             "I'm sorry, our driver has already been dispatched for the pickup.",
             response
@@ -252,7 +303,7 @@ def new_conversation():
         return False
 
 #-------------------------------------------------------------------------------
-def get_greeting(account=None):
+def get_greeting():
     '''A simple hello at the beginning of a conversation'''
 
     return 'Good ' + get_tod() + ' '
@@ -267,7 +318,7 @@ def get_default_reply(response, account=None):
         reply += 'How can I help you? '
 
     reply += 'Ask me about your SCHEDULE for your next pickup date, '\
-             'or SUPPORT for help.'
+             'or request live SUPPORT.'
 
     return reply
 
@@ -282,18 +333,19 @@ def send_reply(msg, response):
     else:
         reply = ''
 
-    account = get_identity(response)
+    name = getattr(g, 'acct_name', None)
+    logger.debug('acct name: %s', name)
 
     if new_conversation():
-        reply += get_greeting(account)
+        reply += get_greeting()
 
-        if account:
-            reply += ', ' + get_name(account) + '. '
+        if name:
+            reply += ', ' + name + '. '
         else:
             reply += '. '
     else:
-        if account:
-            reply += get_name(account) + ', '
+        if name:
+            reply += name + ', '
             msg = msg[0].lower() + msg[1:]
 
     twml = twiml.Response()
@@ -323,53 +375,7 @@ def get_tod():
     elif hour >= 18:
         return 'evening'
 
-#-------------------------------------------------------------------------------
-def get_identity(response):
-    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
-    if request.cookies.get('etap_id'):
-        return etap.call(
-          'get_account',
-          agency['etapestry'],
-          {'account_number':request.cookies['etap_id']},
-          silence_exceptions=True
-        )
-
-    # New conversation. Try to identify phone number
-    try:
-        account = etap.call(
-          'find_account_by_phone',
-          agency['etapestry'],
-          {"phone": request.form['From']}
-        )
-    except Exception as e:
-        logger.error("error calling eTap API: %s", str(e))
-        raise EtapError('error calling eTap API')
-
-    if not account:
-        logger.info(
-            'no matching etapestry account found (SMS: %s)',
-            request.form['From'])
-
-        #rfu_task(
-        #    agency['name'],
-        #    'No eTapestry account linked to this mobile number. '\
-        #    '\nMessage: "%s"' % request.form['Body'],
-        #    name_addy='Mobile: %s' % request.form['From'])
-
-        return False
-
-    #logger.debug(account)
-
-    name = get_name(account)
-
-    expires=datetime.utcnow() + timedelta(hours=4)
-
-    set_cookie(response, 'etap_id', account['id'])
-    set_cookie(response, 'name', name)
-    set_cookie(response, 'agency', agency['name'])
-
-    return account
 
 #-------------------------------------------------------------------------------
 def pickup_request(msg, response):
@@ -533,3 +539,12 @@ def get_chatlogs(agency, start_dt=None):
         chat['Messages'] = chat.pop('messages')
 
     return chats
+
+#-------------------------------------------------------------------------------
+def clear_cookies(response):
+    response.set_cookie('name', expires=0)
+    response.set_cookie('status', expires=0)
+    response.set_cookie('etap_id', expires=0)
+    response.set_cookie('agency', expires=0)
+    response.set_cookie('messagecount', expires=0)
+    return response

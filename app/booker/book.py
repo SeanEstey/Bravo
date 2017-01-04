@@ -44,7 +44,7 @@ def make(agency, data):
         'agency': agency}
     )
 
-    if 'ss' in route:
+    if route and route.get('ss'):
         append_route(agency, route, data)
 
     if data['send_confirm']:

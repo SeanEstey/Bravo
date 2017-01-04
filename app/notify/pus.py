@@ -425,6 +425,8 @@ def on_sms_reply(notific):
         logger.error(e_msg, exc_info=True)
         return e_msg
 
+    # this is unecessary to set the status_callback since we've already
+    # established the number is valid or we wouldn't be replying to anything
     try:
         client.messages.create(
             body = html.clean_whitespace(body),

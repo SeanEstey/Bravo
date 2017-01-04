@@ -7,6 +7,7 @@
   ini_set('error_log', $ERROR_LOG);
   
   require('mongodb_auth.php');
+	// Comment below line for Test server
 	require('vendor/autoload.php');
 	require('misc.php');
   require('bravo.php');
@@ -210,7 +211,13 @@
 		//-----------------------------------------------------------------------
     case 'find_account_by_phone':
 				$account = find_account_by_phone($nsc, $data['phone']);
-        echo json_encode(utf8_converter($account));
+        
+        if($nsc->fault || $nsc->getError()) {
+            http_response_code(400);
+            echo json_encode("multiple accounts found for " . $data['phone']);
+        }
+        else
+            echo json_encode(utf8_converter($account));
 
 				break;
 		//-----------------------------------------------------------------------

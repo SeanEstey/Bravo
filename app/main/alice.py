@@ -221,14 +221,16 @@ def on_receive():
     if new_convers():
         return handle_new_convers(response, msg)
 
-    if awaiting_reply():
-        return handle_reply(response, msg)
-    elif awaiting_keywords():
-        k = find_keyword(msg, get_cookie('listen_keywords'))
+    if listening_for_keywords():
+        k = find_keyword(msg, get_cookie('listen_kws'))
 
         if k:
-            #set_cookie(response, 'listen_keywords', None)
             return handle_keyword(response, k)
+        else:
+            # TODO: is it another unexpected keyword?
+            return False
+    elif listening_for_reply():
+        return handle_reply(response)
 
     return guess_intent(response)
 
@@ -353,10 +355,8 @@ def get_msg():
     return msg.upper().translate(None, string.punctuation)
 
 #-------------------------------------------------------------------------------
-def awaiting_keywords():
-    listen = get_cookie('listen_keywords')
-
-    if type(listen) == list and len(listen) > 0:
+def listening_for_keywords():
+    if get_cookie('listen_for') and get_cookie('listen_for') == 'keyword':
         return True
     else:
         return False
@@ -368,8 +368,6 @@ def handle_keyword(response, k):
     '''
 
     account = getattr(g, 'account', None)
-
-    k = get_cookie('listening_for')['k']
 
     cmd = commands[k]['on_keyword']
 
@@ -391,8 +389,8 @@ def handle_keyword(response, k):
 
     # Outcome A (reply with no keywords, clear listeners)
     if not commands[k].get('on_reply'):
-        set_cookie(response, 'listen_cmds', None)
-        set_cookie(response, 'listen_type', None)
+        set_cookie(response, 'listen_kws', None)
+        set_cookie(response, 'listen_for', None)
 
         return send_reply(response, reply)
 
@@ -405,76 +403,45 @@ def handle_keyword(response, k):
 
     # Outcome B (reply w/ keywords, listen for them)
     if len(kw) > 0:
-        set_cookie(response, 'last_cmd', k)
-        set_cookie(response, 'listen_type', 'keyword')
-        set_cookie(response, 'listen_cmds', kw)
+        set_cookie(response, 'last_kw', k)
+        set_cookie(response, 'listen_for', 'keyword')
+        set_cookie(response, 'listen_kws', kw)
     # Outcome C (reply w/o keywords, listen for whole response)
     else:
-        set_cookie(response, 'last_cmd', k)
-        set_cookie(response, 'listen_type', 'reply')
-        set_cookie(response, 'listen_cmds', None)
+        set_cookie(response, 'last_kw', k)
+        set_cookie(response, 'listen_for', 'reply')
+        set_cookie(response, 'listen_kws', None)
 
     return send_reply(response, reply)
 
 #-------------------------------------------------------------------------------
-def awaiting_reply():
-    if get_cookie('listening_for')['kw']
+def listening_for_reply():
+    if get_cookie('listen_for') and get_cookie('listen_for') == 'reply':
         return True
     else:
         return False
 
 #-------------------------------------------------------------------------------
 def handle_reply(response):
-    '''User was asked a question. Process their answer'''
+    '''Received expected reply. Call event handler for listener key'''
 
-    # Call handler function
-    #kw = get_cookie('listening_for')['kw']
-    func = KEYWORDS[k]['func_handler']
-    handler_func = getattr(alice, func)
+    k = get_cookie('last_kw')
+
+    handler_func = getattr(
+        commands[k]['on_reply']['handler']['module'],
+        commands[k]['on_reply']['handler']['func'])
 
     try:
         reply = handler_func()
     except Exception as e:
-        logger.error('%s failed: %s', KEYWORDS[k]['func_handler'], str(e))
+        logger.error('%s failed: %s', k str(e))
         return False
-    else:
-        return send_reply(response, reply)
 
-    '''
+    # clear listeners
+    set_cookie(response, 'listen_kws', None)
+    set_cookie(response, 'listen_for', None)
 
-    account = getattr(g, 'account', None)
-    msg = str(request.form['Body']).strip()
-
-    awaiting = get_cookie('AWAITING_ANSWER')
-    set_cookie(response, 'AWAITING_ANSWER', False)
-
-    if awaiting == 'INSTRUCTION':
-        # TODO: update eTap acct Driver Notes
-
-        return send_reply(REPL_INSTRUCTION_RECEIVED, response)
-    elif awaiting == 'SUPPORT':
-        rfu_task(
-            agency['name'],
-            'SMS help request: "%s"' % msg,
-            a_id = account['id'],
-            name_addy = account['name']
-        )
-
-        return send_reply(
-            SUPPORT_RECEIVED + 'Enjoy your %s' % get_tod(),
-            response)
-    if awaiting == 'BOOKME':
-        if 'YES' in msg.upper():
-            return send_reply(
-                "Thank you. I'll forward your request.", response)
-        else:
-            return send_reply(
-                get_default_reply(response, account=account),
-                response
-            )
-    elif awaiting == 'ADDRESS':
-        return pickup_request(msg, response)
-    '''
+    return send_reply(response, reply)
 
 #-------------------------------------------------------------------------------
 def handle_unregistered(response):

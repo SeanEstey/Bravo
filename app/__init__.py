@@ -94,6 +94,7 @@ def create_app(pkg_name):
     from app.routing import routing as routing_mod
     from app.booker import booker as booker_mod
     from app.api import api as api_mod
+    from app.alice import alice as alice_mod
 
     app.register_blueprint(auth_mod)
     app.register_blueprint(main_mod)
@@ -101,6 +102,7 @@ def create_app(pkg_name):
     app.register_blueprint(routing_mod)
     app.register_blueprint(booker_mod)
     app.register_blueprint(api_mod)
+    app.register_blueprint(alice_mod)
 
     return app
 

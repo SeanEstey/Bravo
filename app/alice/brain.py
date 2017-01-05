@@ -1,4 +1,4 @@
-'''app.main.alice'''
+'''app.alice.brain'''
 
 import logging
 import string
@@ -20,184 +20,6 @@ logger = logging.getLogger(__name__)
 class EtapError(Exception):
     pass
 
-# Globals
-
-commands = {
-    'schedule': {
-        'on_keyword': {
-            'handler': {
-                'module': 'app.main.alice',
-                'func': 'reply_schedule'
-            }
-        }
-        'on_reply': {}
-    },
-    'support': {
-        'on_keyword': {
-            'dialog': \
-                "Tell me what you need help with and I'll forward your "\
-                "request to the right person."
-        },
-        'on_reply': {
-            'handler': {
-                'module': 'app.main.alice',
-                'func': 'do_support'
-            }
-        }
-    },
-    'instructions': {
-        'on_keyword': {
-            'dialog': \
-                "Tell me what you'd like instructions to pass along to our driver"
-        },
-        'on_reply': {
-            'handler': {
-                'module': 'alice',
-                'func': 'add_driver_note',
-            }
-        }
-    },
-    'skip': {
-        'on_keyword': {
-            'handler': {
-                'module': 'alice',
-                'func': 'skip_pickup'
-            }
-        },
-        'on_reply': {}
-    },
-    'update': {
-        'on_keyword': {
-            'dialog': \
-                "I can identify your acount for you, I just need you to tell "\
-                "me your current address"
-        },
-        'on_reply': {
-            'handler': {
-                'module': 'alice',
-                'func': 'update_mobile'
-            }
-        }
-    },
-    'register': {
-        'on_keyword': {
-            'dialog': \
-                "I can schedule you for pickup. What's your full address?"
-        },
-        'on_reply': {
-            'handler': {
-                'module': 'alice',
-                'func': 'pickup_request'
-            }
-        }
-    }
-}
-
-conversation_endings = [
-    'THANKS',
-    'THANK YOU',
-    'THX',
-    'SOUNDS GOOD',
-    'OK'
-]
-
-dialog = {
-    "general": {
-        "intro": \
-            "How can I help you?",
-        "thanks_reply": \
-            "You're welcome!"
-    },
-    "user": {
-        "options": \
-            "You can guide me with keywords. "\
-            "Ask me about your pickup SCHEDULE, or request live SUPPORT.",
-    },
-    "unregistered": {
-        "options": \
-            "I don't recognize this number. "\
-            "Do you have an account? I can UPDATE it for you. "\
-            "If you're new, you can REGISTER for a pickup. "
-    },
-    "error": {
-        "parse_question": \
-            "I don't quite understand your question. ",
-        "acct_lookup": \
-            "I'm sorry, there seems to be a problem looking up "\
-            "your account. We'll look into the matter for you.",
-        "comprehension": \
-            "Sorry, I don't understand your request. You'll have to guide "\
-            "our conversation using keywords.",
-        "unknown": \
-            "There a problem handling your request."
-    }
-}
-
-#-------------------------------------------------------------------------------
-def do_support():
-    account = getattr(g, 'account', None)
-
-    rfu_task(
-        agency['name'],
-        'SMS help request: "%s"' % str(request.form['Body']),
-        a_id = account['id'],
-        name_addy = account['name']
-    )
-
-    return "Thank you. I'll have someone contact you as soon as possible. "
-
-#-------------------------------------------------------------------------------
-def reply_schedule():
-    next_pu = etap.get_udf('Next Pickup Date', account)
-
-    if not next_pu:
-        return dialog['error']['acct_lookup']
-    else:
-        return 'Your next pickup is scheduled on ' +
-                etap.ddmmyyyy_to_dt(next_pu).strftime('%A, %B %-d') + '.'
-
-#-------------------------------------------------------------------------------
-def add_driver_note():
-    account = getattr(g, 'account', None)
-    conf = getattr(g, 'agency_conf', None)
-
-    etap.call(
-        'modify_account',
-        conf['etapestry'],
-        data={
-            'id': account['id'],
-            'udf': {
-                'Driver Notes': 'INSTRUCTION'
-            },
-            'persona': []
-        })
-
-    return "Thank you. I'll pass along your note to our driver. "
-
-#-------------------------------------------------------------------------------
-def skip_pickup():
-    from app.notify import pus
-    response = '' #pus.cancel_pickup()
-
-    if response:
-        return "I've taken you off the schedule. Thank you."
-    else:
-        return "I'm sorry, our driver has already been dispatched for the pickup."
-
-#-------------------------------------------------------------------------------
-def update_mobile():
-    conf = getattr(g, 'agency_conf', None)
-
-    rfu_task(
-        conf['agency'],
-        'SMS update account for following address '\
-        'with mobile number:' + str(request.form['Body']),
-        name_addy = request.form['From']
-    )
-
-    return \
-        "Thank you. I'll have someone update your account for you "\
-        "right away. "
 
 #-------------------------------------------------------------------------------
 def on_receive():
@@ -221,7 +43,7 @@ def on_receive():
     if new_convers():
         return handle_new_convers(response, msg)
 
-    if listening_for_keywords():
+    if listening_for('keyword'):
         k = find_keyword(msg, get_cookie('listen_kws'))
 
         if k:
@@ -229,7 +51,7 @@ def on_receive():
         else:
             # TODO: is it another unexpected keyword?
             return False
-    elif listening_for_reply():
+    elif listening_for('reply'):
         return handle_reply(response)
 
     return guess_intent(response)
@@ -355,13 +177,6 @@ def get_msg():
     return msg.upper().translate(None, string.punctuation)
 
 #-------------------------------------------------------------------------------
-def listening_for_keywords():
-    if get_cookie('listen_for') and get_cookie('listen_for') == 'keyword':
-        return True
-    else:
-        return False
-
-#-------------------------------------------------------------------------------
 def handle_keyword(response, k):
     '''Received msg with a keyword command. Send appropriate reply and
     set any necessary listeners.
@@ -415,15 +230,9 @@ def handle_keyword(response, k):
     return send_reply(response, reply)
 
 #-------------------------------------------------------------------------------
-def listening_for_reply():
-    if get_cookie('listen_for') and get_cookie('listen_for') == 'reply':
-        return True
-    else:
-        return False
-
-#-------------------------------------------------------------------------------
 def handle_reply(response):
-    '''Received expected reply. Call event handler for listener key'''
+    '''Received expected reply. Call event handler for listener key
+    '''
 
     k = get_cookie('last_kw')
 
@@ -442,6 +251,17 @@ def handle_reply(response):
     set_cookie(response, 'listen_for', None)
 
     return send_reply(response, reply)
+
+#-------------------------------------------------------------------------------
+def listening_for(_type):
+    '''@_type: ['keyword', 'reply', None]
+    '''
+
+    if get_cookie('listen_for'):
+        if get_cookie('listen_for') == _type:
+            return True
+
+    return False
 
 #-------------------------------------------------------------------------------
 def handle_unregistered(response):
@@ -561,146 +381,6 @@ def send_reply(response, dialog):
         {'$push': {'messages': context_dialog}})
 
     return response
-
-#-------------------------------------------------------------------------------
-def pickup_request(msg, response):
-    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
-
-    # Msg reply should contain address
-    logger.info('pickup request address: \"%s\" (SMS: %s)', msg, request.form['From'])
-
-    block = geo.find_block(agency['name'], msg, agency['google']['geocode']['api_key'])
-
-    if not block:
-        logger.error('could not find map for address %s', msg)
-
-        send_reply('We could not locate your address', response)
-
-        return False
-
-    logger.info('address belongs to Block %s', block)
-
-    set_cookie(response, 'status', None)
-
-    r = search.search(agency['name'], block, radius=None, weeks=None)
-
-    logger.info(r['results'][0])
-
-    add_acct(
-        msg,
-        request.form['From'],
-        r['results'][0]['name'],
-        r['results'][0]['event']['start']['date']
-    )
-
-    #book.make(agency['name'], aid, block, date_str, driver_notes, name, email, confirmation):
-
-    #gsheets.create_rfu(
-    #  agency['name'],
-    #  'Pickup request received (SMS: ' + from_ + ')',
-    #  name_address = msg,
-    #  date = datetime.datetime.now().strftime('%-m/%-d/%Y')
-    #)
-
-    return send_reply(
-        "Thank you. We'll get back to you shortly with a pickup date",
-        response
-    )
-
-#-------------------------------------------------------------------------------
-def add_acct(address, phone, block, pu_date_str):
-    conf = db.agencies.find_one({'twilio.sms.number':request.form['To']})
-
-    geo_result = geo.geocode(
-        address,
-        conf['google']['geocode']['api_key']
-    )[0]
-
-    #logger.info(utils.print_vars(geo_result, depth=2))
-
-    addy = {
-        'postal': None,
-        'city': None,
-        'route': None,
-        'street': None
-    }
-
-    for component in geo_result['address_components']:
-        if 'postal_code' in component['types']:
-            addy['postal'] = component['short_name']
-        elif 'street_number' in component['types']:
-            addy['street'] = component['short_name']
-        elif 'locality' in component['types']:
-            addy['city'] = component['short_name']
-        elif 'route' in component['types']:
-            addy['route'] = component['short_name']
-
-    parts = pu_date_str.split('-')
-    ddmmyyyy_pu = '%s/%s/%s' %(parts[2], parts[1], parts[0])
-
-    acct = {
-        'udf': {
-            'Status': 'One-time',
-            'Signup Date': datetime.today().strftime('%d/%m/%Y'),
-            'Next Pickup Date': ddmmyyyy_pu.encode('ascii', 'ignore'),
-            'Block': block.encode('ascii', 'ignore'),
-            #'Driver Notes': signup[this.headers.indexOf('Driver Notes')],
-            #'Office Notes': signup[this.headers.indexOf('Office Notes')],
-            'Tax Receipt': 'Yes',
-            #'SMS' "+1" + phone.replace(/\-|\(|\)|\s/g, "")
-         },
-         'persona': {
-            'personaType': 'Personal',
-            'address': (addy['street'] + ' ' + addy['route']).encode('ascii','ignore'),
-            'city': addy['city'].encode('ascii', 'ignore'),
-            'state': 'AB',
-            'country': 'CA',
-            'postalCode': addy['postal'].encode('ascii', 'ignore'),
-            'phones': [
-                {'type': 'Mobile', 'number': phone}
-            ],
-			'nameFormat': 1,
-			'name': 'Unknown Unknown',
-			'sortName': 'Unknown, Unknown',
-			'firstName': 'Unknown',
-			'lastName': 'Unknown'
-        }
-    }
-
-    logger.info(utils.print_vars(acct, depth=2))
-
-    try:
-        account = etap.call(
-          'add_accounts',
-          conf['etapestry'],
-          [acct]
-        )
-    except Exception as e:
-        logger.error("error calling eTap API: %s", str(e))
-        raise EtapError('error calling eTap API')
-
-#-------------------------------------------------------------------------------
-def is_unsub():
-    '''User has unsubscribed all messages from SMS number'''
-
-    unsub_keywords = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT']
-
-    if request.form['Body'].upper() in unsub_keywords:
-        logger.info('%s has unsubscribed from this sms number (%s)',
-                    request.form['From'], request.form['To'])
-
-        account = get_identity(make_response())
-        agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
-
-        rfu_task(
-            agency['name'],
-            'Contributor has replied "%s" and opted out of SMS '\
-            'notifications.' % request.form['Body'],
-            a_id = account['id'])
-
-        return True
-
-    return False
 
 #-------------------------------------------------------------------------------
 def get_chatlogs(agency, start_dt=None):

@@ -20,18 +20,80 @@ logger = logging.getLogger(__name__)
 class EtapError(Exception):
     pass
 
-# Global s
+# Globals
 
-KEYWORDS = [
-    'INSTRUCTION',
-    'REGISTER',
-    'SCHEDULE',
-    'SKIP',
-    'SUPPORT',
-    'UPDATE'
-]
+commands = {
+    'schedule': {
+        'on_keyword': {
+            'handler': {
+                'module': 'app.main.alice',
+                'func': 'reply_schedule'
+            }
+        }
+        'on_reply': {}
+    },
+    'support': {
+        'on_keyword': {
+            'dialog': \
+                "Tell me what you need help with and I'll forward your "\
+                "request to the right person."
+        },
+        'on_reply': {
+            'handler': {
+                'module': 'app.main.alice',
+                'func': 'do_support'
+            }
+        }
+    },
+    'instructions': {
+        'on_keyword': {
+            'dialog': \
+                "Tell me what you'd like instructions to pass along to our driver"
+        },
+        'on_reply': {
+            'handler': {
+                'module': 'alice',
+                'func': 'add_driver_note',
+            }
+        }
+    },
+    'skip': {
+        'on_keyword': {
+            'handler': {
+                'module': 'alice',
+                'func': 'skip_pickup'
+            }
+        },
+        'on_reply': {}
+    },
+    'update': {
+        'on_keyword': {
+            'dialog': \
+                "I can identify your acount for you, I just need you to tell "\
+                "me your current address"
+        },
+        'on_reply': {
+            'handler': {
+                'module': 'alice',
+                'func': 'update_mobile'
+            }
+        }
+    },
+    'register': {
+        'on_keyword': {
+            'dialog': \
+                "I can schedule you for pickup. What's your full address?"
+        },
+        'on_reply': {
+            'handler': {
+                'module': 'alice',
+                'func': 'pickup_request'
+            }
+        }
+    }
+}
 
-CONVERSATION_ENDINGS = [
+conversation_endings = [
     'THANKS',
     'THANK YOU',
     'THX',
@@ -57,39 +119,6 @@ dialog = {
             "Do you have an account? I can UPDATE it for you. "\
             "If you're new, you can REGISTER for a pickup. "
     },
-    "k": {
-        "SKIP": {
-            "expired": \
-                "I'm sorry, our driver has already been dispatched for the pickup."
-        },
-        "SUPPORT": {
-            "prompt": \
-                "Tell me what you need help with and I'll forward your "\
-                "request to the right person.",
-            "received": \
-                "Thank you. I'll have someone contact you as soon as possible. "\
-        },
-        "INSTRUCTION": {
-            "prompt": \
-                "Tell me what you'd like instructions to pass along to our driver",
-            "received": \
-                "Thank you. I'll pass along your note to our driver. "
-        },
-        "UPDATE": {
-            "prompt": \
-                "I can identify your acount for you, I just need you to tell "\
-                "me your current address",
-            "received":
-                "Thank you. I'll have someone update your account for you "\
-                "right away."
-        },
-        "REGISTER": {
-            "prompt": \
-                "I can schedule you for pickup. What's your full address?"
-            "received": \
-                "Thanks. We'll be in touch shortly with a pickup date"
-        }
-    },
     "error": {
         "parse_question": \
             "I don't quite understand your question. ",
@@ -98,9 +127,77 @@ dialog = {
             "your account. We'll look into the matter for you.",
         "comprehension": \
             "Sorry, I don't understand your request. You'll have to guide "\
-            "our conversation using keywords."
+            "our conversation using keywords.",
+        "unknown": \
+            "There a problem handling your request."
     }
 }
+
+#-------------------------------------------------------------------------------
+def do_support():
+    account = getattr(g, 'account', None)
+
+    rfu_task(
+        agency['name'],
+        'SMS help request: "%s"' % str(request.form['Body']),
+        a_id = account['id'],
+        name_addy = account['name']
+    )
+
+    return "Thank you. I'll have someone contact you as soon as possible. "
+
+#-------------------------------------------------------------------------------
+def reply_schedule():
+    next_pu = etap.get_udf('Next Pickup Date', account)
+
+    if not next_pu:
+        return dialog['error']['acct_lookup']
+    else:
+        return 'Your next pickup is scheduled on ' +
+                etap.ddmmyyyy_to_dt(next_pu).strftime('%A, %B %-d') + '.'
+
+#-------------------------------------------------------------------------------
+def add_driver_note():
+    account = getattr(g, 'account', None)
+    conf = getattr(g, 'agency_conf', None)
+
+    etap.call(
+        'modify_account',
+        conf['etapestry'],
+        data={
+            'id': account['id'],
+            'udf': {
+                'Driver Notes': 'INSTRUCTION'
+            },
+            'persona': []
+        })
+
+    return "Thank you. I'll pass along your note to our driver. "
+
+#-------------------------------------------------------------------------------
+def skip_pickup():
+    from app.notify import pus
+    response = '' #pus.cancel_pickup()
+
+    if response:
+        return "I've taken you off the schedule. Thank you."
+    else:
+        return "I'm sorry, our driver has already been dispatched for the pickup."
+
+#-------------------------------------------------------------------------------
+def update_mobile():
+    conf = getattr(g, 'agency_conf', None)
+
+    rfu_task(
+        conf['agency'],
+        'SMS update account for following address '\
+        'with mobile number:' + str(request.form['Body']),
+        name_addy = request.form['From']
+    )
+
+    return \
+        "Thank you. I'll have someone update your account for you "\
+        "right away. "
 
 #-------------------------------------------------------------------------------
 def on_receive():
@@ -266,54 +363,62 @@ def awaiting_keywords():
 
 #-------------------------------------------------------------------------------
 def handle_keyword(response, k):
+    '''Received msg with a keyword command. Send appropriate reply and
+    set any necessary listeners.
+    '''
+
     account = getattr(g, 'account', None)
 
-    # Known user
-    if account:
-        if k == 'SKIP':
-            # TODO: invoke pus.cancel_pickup()
+    k = get_cookie('listening_for')['k']
 
-            return send_reply(response,'')
-        elif k == 'SCHEDULE':
-            next_pu = etap.get_udf('Next Pickup Date', account)
+    cmd = commands[k]['on_keyword']
 
-            if not next_pu:
-                return send_reply(
-                    response,
-                    dialog['error']['acct_lookup'])
-            else:
-                return send_reply(
-                    response,
-                    'Your next pickup is scheduled on ' +
-                    etap.ddmmyyyy_to_dt(next_pu).strftime('%A, %B %-d') + '.')
-        elif k == 'SUPPORT':
-            return send_reply(
-                response,
-                dialog['k']['SUPPORT']['prompt'],
-                listen_for = {'type':'reply', 'k':'SUPPORT'})
-        elif k == 'INSTRUCTION':
-            return send_reply(
-                response,
-                dialog['k']['INSTRUCTION']['prompt'],
-                listen_for = {'type':'reply', 'k':'INSTRUCTION'})
-    # Unregistered user
+    reply = ''
+
+    # Either call event handler or return dialog for keyword
+    if cmd.keys()[0] == 'handler':
+        handler_func = getattr(
+            cmd['handler']['module'],
+            cmd['handler']['func'])
+
+        try:
+            reply = handler_func()
+        except Exception as e:
+            logger.error('%s failed: %s', cmd['handler']['func'], str(e))
+            return False
+    elif cmd.keys()[0] == 'dialog':
+        reply = cmd['dialog']
+
+    # Outcome A (reply with no keywords, clear listeners)
+    if not commands[k].get('on_reply'):
+        set_cookie(response, 'listen_cmds', None)
+        set_cookie(response, 'listen_type', None)
+
+        return send_reply(response, reply)
+
+    kw = []
+    words = reply.split(' ')
+
+    for word in words:
+        if word in commands.keys():
+            kw.append(word)
+
+    # Outcome B (reply w/ keywords, listen for them)
+    if len(kw) > 0:
+        set_cookie(response, 'last_cmd', k)
+        set_cookie(response, 'listen_type', 'keyword')
+        set_cookie(response, 'listen_cmds', kw)
+    # Outcome C (reply w/o keywords, listen for whole response)
     else:
-        if k == 'REGISTER':
-            # TODO: prompt for address
+        set_cookie(response, 'last_cmd', k)
+        set_cookie(response, 'listen_type', 'reply')
+        set_cookie(response, 'listen_cmds', None)
 
-            return send_reply(
-                response, '',
-                listen_for = {'type':'reply', 'k':'REGISTER'})
-        elif k == 'UPDATE':
-            # TODO: prompt for address
-
-            return send_reply(
-                response, '',
-                listen_for = {'type':'reply', 'k', 'UPDATE'})
+    return send_reply(response, reply)
 
 #-------------------------------------------------------------------------------
 def awaiting_reply():
-    if get_cookie('listen_reply'):
+    if get_cookie('listening_for')['kw']
         return True
     else:
         return False
@@ -321,6 +426,21 @@ def awaiting_reply():
 #-------------------------------------------------------------------------------
 def handle_reply(response):
     '''User was asked a question. Process their answer'''
+
+    # Call handler function
+    #kw = get_cookie('listening_for')['kw']
+    func = KEYWORDS[k]['func_handler']
+    handler_func = getattr(alice, func)
+
+    try:
+        reply = handler_func()
+    except Exception as e:
+        logger.error('%s failed: %s', KEYWORDS[k]['func_handler'], str(e))
+        return False
+    else:
+        return send_reply(response, reply)
+
+    '''
 
     account = getattr(g, 'account', None)
     msg = str(request.form['Body']).strip()
@@ -354,6 +474,7 @@ def handle_reply(response):
             )
     elif awaiting == 'ADDRESS':
         return pickup_request(msg, response)
+    '''
 
 #-------------------------------------------------------------------------------
 def handle_unregistered(response):
@@ -430,23 +551,9 @@ def default_reply(response):
     return send_reply(reply, response)
 
 #-------------------------------------------------------------------------------
-def send_reply(response, dialog, listen_for=None):
+def send_reply(response, dialog):
     '''Add name contexts to beginning of dialog, create TWIML message
     '''
-
-    if listen_for:
-        set_cookie(response, 'listening_for', listen_for)
-    else:
-        # Parse reply-able keywords, save as cookies
-        kw = []
-        words = dialog.split(' ')
-        for word in words:
-            if word in KEYWORDS:
-                kw.append(word)
-
-        # listening_for may be empty list if we are ending conversation
-        # and not expecting any reply/keyword
-        set_cookie(response, 'listening_for', kw)
 
     agency = db.agencies.find_one({
         'twilio.sms.number':request.form['To']})

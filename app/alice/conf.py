@@ -1,13 +1,13 @@
 '''app.alice.conf'''
 
-commands = {
+actions = {
     'schedule': {
         'on_keyword': {
             'handler': {
                 'module': 'app.main.alice',
                 'func': 'reply_schedule'
             }
-        }
+        },
         'on_reply': {}
     },
     'support': {

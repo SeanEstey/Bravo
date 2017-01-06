@@ -7,7 +7,7 @@ function alice_init() {
 
     $.ajax({
       type: 'post',
-      url: $URL_ROOT + 'alice_chatlogs'
+      url: $URL_ROOT + 'alice/chatlogs'
     })
     .done(function(response) {
         for(var i=0; i<response.length; i++) {

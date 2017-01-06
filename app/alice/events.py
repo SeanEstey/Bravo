@@ -1,5 +1,12 @@
 '''app.alice.events'''
 
+import logging
+from app import etap, utils, db, bcolors
+from flask import current_app, request, make_response, g
+from datetime import datetime, date, time, timedelta
+from app.booker import geo, search, book
+logger = logging.getLogger(__name__)
+
 #-------------------------------------------------------------------------------
 def do_support():
     account = getattr(g, 'account', None)

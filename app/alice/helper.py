@@ -4,7 +4,8 @@ import logging
 from flask import request, current_app, g, request, session
 from bson.objectid import ObjectId
 from datetime import datetime, date, timedelta
-from .. import etap, utils, db, bcolors#, store
+from .. import etap, utils, db, bcolors
+from . import conf
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -14,7 +15,7 @@ def check_identity():
 
     session.permanent = True
 
-    if session.get('account') or session.get('session_id'):
+    if session.get('account') or session.get('unreg_id'):
         return True
 
     # Test for unknown registered user
@@ -42,6 +43,7 @@ def check_identity():
             # Known registered user now
 
             session['conf'] = agency
+            session['valid_kws'] = conf.user_keywords
 
             logger.debug(
                 'retrieved acct id=%s and agency_conf, saved in session',
@@ -53,6 +55,7 @@ def check_identity():
 
     session['unreg_id'] = str(ObjectId())
     session['conf'] = agency
+    session['valid_kws'] = conf.anon_keywords
 
     logger.debug(
         'unknown unregistered user. assigning unreg_id="%s"',

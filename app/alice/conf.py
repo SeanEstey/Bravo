@@ -1,70 +1,83 @@
 '''app.alice.conf'''
 
-actions = {
+# For identified users
+user_keywords = {
     'schedule': {
-        'on_keyword': {
+        'on_receive': {
+            'action': 'event',
             'handler': {
-                'module': 'app.main.alice',
+                'module': 'app.alice.events',
                 'func': 'reply_schedule'
             }
-        },
-        'on_reply': {}
+        }
     },
     'support': {
-        'on_keyword': {
+        'on_receive': {
+            'action': 'reply',
             'dialog': \
                 "Tell me what you need help with and I'll forward your "\
                 "request to the right person."
         },
-        'on_reply': {
+        'on_complete': {
+            'action': 'event',
             'handler': {
-                'module': 'app.main.alice',
+                'module': 'app.alice.events',
                 'func': 'do_support'
             }
         }
     },
     'instructions': {
-        'on_keyword': {
+         'on_receive': {
+            'action': 'reply',
             'dialog': \
                 "Tell me what you'd like instructions to pass along to our driver"
         },
-        'on_reply': {
+        'on_complete': {
+            'action':'event',
             'handler': {
-                'module': 'alice',
+                'module': 'app.alice.events',
                 'func': 'add_driver_note',
             }
         }
     },
     'skip': {
-        'on_keyword': {
+        'on_receive': {
+            'action': 'event',
             'handler': {
-                'module': 'alice',
+                'module': 'app.alice.events',
                 'func': 'skip_pickup'
             }
-        },
-        'on_reply': {}
-    },
+        }
+    }
+}
+
+# For unidentified users
+anon_keywords = {
     'update': {
-        'on_keyword': {
+        'on_receive': {
+            'action': 'reply',
             'dialog': \
                 "I can identify your acount for you, I just need you to tell "\
                 "me your current address"
         },
-        'on_reply': {
+        'on_complete': {
+            'action': 'event',
             'handler': {
-                'module': 'alice',
+                'module': 'app.alice.events',
                 'func': 'update_mobile'
             }
         }
     },
     'register': {
-        'on_keyword': {
+        'on_receive': {
+            'action': 'reply',
             'dialog': \
                 "I can schedule you for pickup. What's your full address?"
         },
-        'on_reply': {
+        'on_complete': {
+            'action': 'event',
             'handler': {
-                'module': 'alice',
+                'module': 'app.alice.events',
                 'func': 'pickup_request'
             }
         }
@@ -80,25 +93,25 @@ conversation_endings = [
 ]
 
 dialog = {
+    "user": {
+        "options": \
+            "You can guide me with keywords. "\
+            "Ask me about your pickup SCHEDULE, or request live SUPPORT.",
+    },
+    "anon": {
+        "options": \
+            "I don't recognize this number. "\
+            "Do you have an account? I can UPDATE it for you. "\
+            "If you're new, you can REGISTER for a pickup. "
+    },
     "general": {
         "intro": \
             "How can I help you?",
         "thanks_reply": \
             "You're welcome!"
     },
-    "user": {
-        "options": \
-            "You can guide me with keywords. "\
-            "Ask me about your pickup SCHEDULE, or request live SUPPORT.",
-    },
-    "unregistered": {
-        "options": \
-            "I don't recognize this number. "\
-            "Do you have an account? I can UPDATE it for you. "\
-            "If you're new, you can REGISTER for a pickup. "
-    },
     "error": {
-        "parse_question": \
+        "parse": \
             "I don't quite understand your question. ",
         "acct_lookup": \
             "I'm sorry, there seems to be a problem looking up "\

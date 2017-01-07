@@ -6,7 +6,7 @@ from twilio import twiml
 from datetime import datetime, date, time, timedelta
 from flask import current_app, request, make_response, g, session
 from .. import etap, utils, db, bcolors
-from .conf import actions, dialog
+from .conf import anon_keywords, user_keywords, dialog
 from .helper import \
     check_identity, log_msg, save_msg, get_cookie, set_cookie, inc_msg_count
 logger = logging.getLogger(__name__)
@@ -15,65 +15,46 @@ class EtapError(Exception):
     pass
 
 #-------------------------------------------------------------------------------
-def on_receive():
+def receive_msg():
     '''Received an incoming SMS message.
     User info including eTap account held in server-side session for 60 min
     '''
 
     log_msg()
     msg_count = inc_msg_count()
-    response = make_response()
+    r = make_response()
 
     try:
         check_identity()
     except Exception as e:
         logger.error(str(e))
-        return send_reply(response, dialog['error']['acct_lookup'])
+        return send_reply(r, dialog['error']['acct_lookup'])
 
     save_msg()
 
     message = get_msg()
 
-    if new_convers():
-        return handle_new_convers(response, message)
+    kws = find_kw_matches(message, session.get('valid_kws'))
 
-    if listening_for('keyword'):
-        matches = find_matches(message, get_cookie('listen_kws'))
-
-        if matches:
-            if len(matches) == 1:
-                return handle_keyword(response, maches[0])
-            elif len(matches) > 1:
-                # Fixme. Oh-oh...
-                return False
-        else:
-            # Fixme. is it another unexpected keyword?
-            return False
-    elif listening_for('reply'):
-        return handle_reply(response)
-
-    return guess_intent(response)
-
-#-------------------------------------------------------------------------------
-def handle_new_conversation(response):
-    account = getattr(g, 'account', None)
-    msg = str(request.form['Body']).strip()
-
-    k = parse_keyword(msg, KEYWORDS)
-
-    if k:
-        return handle_keyword(response, k)
+    if kws:
+        return handle_keyword(r, kws[0])
+    elif expecting_answer():
+        return handle_answer(r)
     else:
-        # Might be a conversation starter, or an unprompted reply
-        # Send default reply
-        return send_reply(
-            get_default_reply(response, account=account),
-            response
-        )
+        return handle_unknown(r)
 
 #-------------------------------------------------------------------------------
-def find_matches(message, listen_list):
-    '''@msg: should be casted to string and stripped()
+def expecting_answer():
+    '''Is the message a specific reply to a keyword['on_receive'] dialog?'''
+
+    if session.get('on_complete'):
+        return True
+    else:
+        return False
+
+#-------------------------------------------------------------------------------
+def find_kw_matches(message, kws):
+    '''@message: either incoming or outgoing text
     '''
 
     # Remove punctuation, make upper case, split into individual words
@@ -85,13 +66,10 @@ def find_matches(message, listen_list):
     matches = []
 
     for word in words:
-        if word in listen_list:
+        if word in kws:
             matches.append(word)
 
-    if len(matches) > 0:
-        return matches
-    else:
-        return False
+    return matches
 
 #-------------------------------------------------------------------------------
 def get_msg():
@@ -100,101 +78,60 @@ def get_msg():
     return str(request.form['Body']).strip()
 
 #-------------------------------------------------------------------------------
-def handle_keyword(response, k):
+def handle_keyword(response, kw):
     '''Received msg with a keyword command. Send appropriate reply and
     set any necessary listeners.
     '''
 
-    account = getattr(g, 'account', None)
+    on_receive = session['valid_kws'][kw]['on_receive']
+    on_complete = session['valid_kws'][kw].get('on_complete')
 
-    cmd = actions[k]['on_keyword']
-
-    reply = ''
-
-    # Either call event handler or return dialog for keyword
-    if cmd.keys()[0] == 'handler':
-        handler_func = getattr(
-            cmd['handler']['module'],
-            cmd['handler']['func'])
+    if on_receive['action'] == 'reply':
+        return send_reply(r, on_receive['dialog'], on_complete=on_complete)
+    elif on_receive['action'] == 'event':
+        function = getattr(
+            on_receive['handler']['module'],
+            on_receive['handler']['func'])
 
         try:
-            reply = handler_func()
+            reply = function()
         except Exception as e:
-            logger.error('%s failed: %s', cmd['handler']['func'], str(e))
-            return False
-    elif cmd.keys()[0] == 'dialog':
-        reply = cmd['dialog']
+            logger.error('%s failed: %s', on_receive['handler']['func'], str(e))
 
-    # Outcome A (reply with no keywords, clear listeners)
-    if not actions[k].get('on_reply'):
-        set_cookie(response, 'listen_kws', None)
-        set_cookie(response, 'listen_for', None)
-
-        return send_reply(response, reply)
-
-    kws = find_matches(reply, actions.keys())
-
-    # Outcome B (reply w/o keywords, listen for whole response)
-    if not kws:
-        set_cookie(response, 'last_kw', kws)
-        set_cookie(response, 'listen_for', 'reply')
-        set_cookie(response, 'listen_kws', None)
-        return send_reply(response, reply)
-
-    # Outcome C (reply w/ keywords, listen for them)
-    set_cookie(response, 'last_kw', k)
-    set_cookie(response, 'listen_for', 'keyword')
-    set_cookie(response, 'listen_kws', kw)
-    return send_reply(response, reply)
+            return send_reply(r, dialog['error']['unknown'], on_complete=on_complete)
 
 #-------------------------------------------------------------------------------
-def handle_reply(response):
+def handle_answer(response):
     '''Received expected reply. Call event handler for listener key
     '''
 
-    kw = get_cookie('last_kw')
+    on_complete = session.get('on_complete')
 
-    handler_func = getattr(
-        actions[kw]['on_reply']['handler']['module'],
-        actions[kw]['on_reply']['handler']['func'])
+    if on_complete['action'] == 'dialog':
+        return send_reply(r, on_complete['dialog'])
+    elif on_complete['action'] == 'event':
+        module = on_complete['handler']['module']
+        func = on_complete['handler']['func']
 
-    try:
-        reply = handler_func()
-    except Exception as e:
-        logger.error('%s failed: %s', kw, str(e))
-        return False
+        try:
+            return send_reply(r, getattr(module, func)())
+        except Exception as e:
+            logger.error('event %s.%s failed: %s', module, func, str(e))
 
-    # clear listeners
-    set_cookie(response, 'listen_kws', None)
-    set_cookie(response, 'listen_for', None)
-
-    return send_reply(response, reply)
+            return send_reply(r, dialog['error']['unknown'])
 
 #-------------------------------------------------------------------------------
-def listening_for(_type):
-    '''@_type: ['keyword', 'reply', None]
+def handle_unknown(response):
+    '''Unable to understand message. Send default reply.
     '''
 
-    if get_cookie('listen_for'):
-        if get_cookie('listen_for') == _type:
-            return True
+    if guess_intent():
+        return send_reply(r, guess_intent())
 
-    return False
-
-#-------------------------------------------------------------------------------
-def first_reply():
-    logger.debug('sess msg_count format=%s', type(session.get('messagecount')))
-
-    if session.get('messagecount') == 1:
-        return True
+    if session.get('account'):
+        return send_reply(r, dialog['user']['options'])
     else:
-        return False
-
-    # TODO: are cookies returned as str by default?
-    #if get_cookie('messagecount') == 1:
-    #    return True
-    #else:
-    #    return False
+        return send_reply(r, dialog['anon']['options'])
 
 #-------------------------------------------------------------------------------
 def tod_greeting():
@@ -214,26 +151,16 @@ def tod_greeting():
     return 'Good ' + tod + ' '
 
 #-------------------------------------------------------------------------------
-def default_reply(response):
-    # TODO: Some other unprompted keyword?
-    # Can't understand request. Send default reply.
-    # TODO: If 3rd time sending default reply, offer assistance
-
-    account = getattr(g, 'account', None)
-
-    msg_count = get_cookie('messagecount')
-
-    if msg_count == 1:
-        reply += REPL_INTRO
-
-    reply += REPL_DEFAULT
-
-    return send_reply(reply, response)
-
-#-------------------------------------------------------------------------------
-def send_reply(response, message):
+def send_reply(r, _dialog, on_complete=None):
     '''Add name contexts to beginning of dialog, create TWIML message
+    Save this reply so we can know if the next user msg is responding to
+    any keywords contained in it
     '''
+
+    if on_complete:
+        session['on_complete'] = on_complete
+    else:
+        session['on_complete'] = None
 
     conf = session.get('conf')
 
@@ -255,47 +182,40 @@ def send_reply(response, message):
     else:
         if name:
             context += name + ', '
-            message = message[0].lower() + message[1:]
+            _dialog = _dialog[0].lower() + _dialog[1:]
 
     twml = twiml.Response()
 
-    context_message = context + message
+    twml.message(context + _dialog)
 
-    twml.message(context_message)
+    logger.info('%s"%s"%s', bcolors.BOLD, context + _dialog, bcolors.ENDC)
 
-    logger.info('%s"%s"%s', bcolors.BOLD, context_dialog, bcolors.ENDC)
-
-    response.data = str(twml)
+    r.data = str(twml)
 
     db.alice.update_one(
         {'from': request.form['From'],
         'date': date.today().isoformat()},
         {'$push': {
-            'messages': context_message}})
+            'messages': context + _dialog}})
 
-    return response
+    return r
 
 #-------------------------------------------------------------------------------
-def guess_intent(response):
+def guess_intent():
     '''Msg sent mid-conversation not understood as keyword or keyword reply.
     Use context clues to guess user intent.
     '''
 
-    # Keep punctuation to get context
-    msg = str(request.form['Body']).strip()
-
     # User asking a question?
-    if '?' in msg:
-        # TODO: flag msg as important
 
-        return send_reply(
-            response,
-            dialog['error']['parse_question'] + dialog['user']['options'])
+    if '?' in get_msg():
+        return dialog['error']['parse_question'] + dialog['user']['options']
 
-    msg = get_msg()
+    # User ending conversation? ("thanks")
 
-    # User ending conversation ("thanks")?
-    if parse_keyword(msg, CONVERSATION_ENDINGS):
-        return send_reply(response, dialog['general']['thanks_reply'])
+    matches = find_kw_matches(get_msg(), conversation_endings):
 
-    return default_reply(response)
+    if matches:
+        return dialog['general']['thanks_reply']
+
+    return False

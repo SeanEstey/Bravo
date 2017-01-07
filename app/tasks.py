@@ -16,7 +16,6 @@ from . import utils
 flask_app = create_app('app')
 celery = create_celery_app(flask_app)
 
-
 from celery.utils.log import get_task_logger
 
 logger = get_task_logger(__name__)

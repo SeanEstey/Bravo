@@ -1,4 +1,4 @@
-'''app'''
+'''app.__init__'''
 
 from celery import Celery
 import pymongo
@@ -6,8 +6,12 @@ import os
 import logging
 import socket
 import requests
+from datetime import timedelta
 from flask import Flask
 from flask_login import LoginManager
+from flask_kvsession import KVSessionExtension
+from simplekv.db.mongo import MongoStore
+from simplekv import KeyValueStore
 from werkzeug.contrib.fixers import ProxyFix
 
 import config
@@ -40,8 +44,16 @@ client = pymongo.MongoClient(
     tz_aware=True,
     connect=False)
 
-client.admin.authenticate(mongodb_auth.user, mongodb_auth.password, mechanism='SCRAM-SHA-1')
+client.admin.authenticate(
+	mongodb_auth.user,
+	mongodb_auth.password,
+	mechanism='SCRAM-SHA-1')
+
 db = client[config.DB]
+
+store = MongoStore(
+	db,
+    config.ALICE_SESSION_COLLECTION)
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +69,7 @@ class bcolors:
 
 #-------------------------------------------------------------------------------
 def create_celery_app(app=None):
-    app = app or create_app('app')
+    app = app or create_app('app', store)
     celery = Celery(__name__, broker='amqp://')
     celery.config_from_object('celeryconfig')
     celery.conf.update(app.config)
@@ -87,6 +99,11 @@ def create_app(pkg_name):
     app.logger.setLevel(logging.DEBUG)
 
     login_manager.init_app(app)
+
+    KVSessionExtension(store, app)
+
+    app.permanent_session_lifetime = timedelta(
+        minutes=app.config['ALICE_SESSION_LENGTH'])
 
     from app.auth import auth as auth_mod
     from app.main import main as main_mod

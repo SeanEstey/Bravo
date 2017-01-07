@@ -4,11 +4,11 @@ import logging
 import string
 from twilio import twiml
 from datetime import datetime, date, time, timedelta
-from flask import current_app, request, make_response, g
+from flask import current_app, request, make_response, g, session
 from .. import etap, utils, db, bcolors
 from .conf import actions, dialog
 from .helper import \
-    get_identity, log_msg, save_msg, get_cookie, set_cookie, inc_msg_count
+    check_identity, log_msg, save_msg, get_cookie, set_cookie, inc_msg_count
 logger = logging.getLogger(__name__)
 
 class EtapError(Exception):
@@ -17,7 +17,7 @@ class EtapError(Exception):
 #-------------------------------------------------------------------------------
 def on_receive():
     '''Received an incoming SMS message.
-    Cookies saved across requests: 'messagecount', 'awaiting'
+    User info including eTap account held in server-side session for 60 min
     '''
 
     log_msg()
@@ -25,19 +25,20 @@ def on_receive():
     response = make_response()
 
     try:
-        account = get_identity(response)
+        check_identity()
     except Exception as e:
+        logger.error(str(e))
         return send_reply(response, dialog['error']['acct_lookup'])
-    else:
-        save_msg()
 
-    msg = get_msg()
+    save_msg()
+
+    message = get_msg()
 
     if new_convers():
-        return handle_new_convers(response, msg)
+        return handle_new_convers(response, message)
 
     if listening_for('keyword'):
-        matches = find_matches(msg, get_cookie('listen_kws'))
+        matches = find_matches(message, get_cookie('listen_kws'))
 
         if matches:
             if len(matches) == 1:
@@ -94,6 +95,8 @@ def find_matches(message, listen_list):
 
 #-------------------------------------------------------------------------------
 def get_msg():
+    '''Convert from unicode to prevent weird parsing issues'''
+
     return str(request.form['Body']).strip()
 
 #-------------------------------------------------------------------------------
@@ -179,11 +182,19 @@ def listening_for(_type):
     return False
 
 #-------------------------------------------------------------------------------
-def new_conversation():
-    if get_cookie('messagecount') == 1:
+def first_reply():
+    logger.debug('sess msg_count format=%s', type(session.get('messagecount')))
+
+    if session.get('messagecount') == 1:
         return True
     else:
         return False
+
+    # TODO: are cookies returned as str by default?
+    #if get_cookie('messagecount') == 1:
+    #    return True
+    #else:
+    #    return False
 
 #-------------------------------------------------------------------------------
 def tod_greeting():
@@ -224,20 +235,18 @@ def send_reply(response, message):
     '''Add name contexts to beginning of dialog, create TWIML message
     '''
 
-    agency = db.agencies.find_one({
-        'twilio.sms.number':request.form['To']})
+    conf = session.get('conf')
 
-    if agency['name'] == 'vec':
+    if conf['name'] == 'vec':
         ASSISTANT_NAME = 'Alice'
         context = ASSISTANT_NAME + ': '
     else:
         context = ''
 
-    name = getattr(g, 'acct_name', None)
-    logger.debug('acct name: %s', name)
+    name = get_name()
 
-    if new_conversation():
-        context += get_greeting()
+    if first_reply():
+        context += tod_greeting()
 
         if name:
             context += ', ' + name + '. '
@@ -259,8 +268,10 @@ def send_reply(response, message):
     response.data = str(twml)
 
     db.alice.update_one(
-        {'from':request.form['From'], 'date': date.today().isoformat()},
-        {'$push': {'messages': context_message}})
+        {'from': request.form['From'],
+        'date': date.today().isoformat()},
+        {'$push': {
+            'messages': context_message}})
 
     return response
 

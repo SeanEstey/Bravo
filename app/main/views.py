@@ -1,5 +1,6 @@
 '''app.main.views'''
 
+import logging
 import json
 import time
 import requests
@@ -10,18 +11,12 @@ from flask import g, request, render_template, redirect, url_for, current_app,\
 from flask_login import login_required, current_user
 from flask_socketio import SocketIO, emit
 from bson.objectid import ObjectId
-import logging
 
-from . import main
-from . import log, receipts, signups
-from .. import utils, html, gsheets, mailgun
-from app.notify import admin
-import app.notify.email
-import app.booker.book
-from app.notify import email
-from .. import db
+from .. import utils, html, gsheets, mailgun, db
+from . import main, log, receipts, signups
+from app.notify import admin, email
+from app.booker import book
 logger = logging.getLogger(__name__)
-
 
 #-------------------------------------------------------------------------------
 @main.route('/task_emit', methods=['POST'])
@@ -229,9 +224,9 @@ def on_email_delivered():
     elif v.get('type') == 'signup':
         signups.on_email_delivered()
     elif v.get('type') == 'notific':
-        app.notify.email.on_delivered()
+        email.on_delivered()
     elif v.get('type') == 'confirmation':
-        app.booker.book.on_delivered()
+        book.on_delivered()
 
     return 'OK'
 
@@ -252,7 +247,7 @@ def on_email_dropped():
     elif v.get('type') == 'signup':
         signups.on_email_dropped()
     elif v.get('type') == 'notific':
-        app.notify.email.on_dropped()
+        email.on_dropped()
 
     return 'OK'
 

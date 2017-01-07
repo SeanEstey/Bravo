@@ -1,84 +1,95 @@
 '''app.alice.helper'''
 
 import logging
-from flask import request, current_app, g
+from flask import request, current_app, g, request, session
+from bson.objectid import ObjectId
 from datetime import datetime, date, timedelta
-from .. import etap, utils, db, bcolors
+from .. import etap, utils, db, bcolors#, store
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def get_identity(response):
-    '''Per request global flask vars: g.acct_name, g.account, g.agency_conf
+def check_identity():
+    '''Unregistered users assigned session['unreg_id']
     '''
 
-    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+    session.permanent = True
 
-    if request.cookies.get('etap_id'):
-        account = etap.call(
-          'get_account',
-          agency['etapestry'],
-          {'account_number': request.cookies['etap_id']},
-          silence_exceptions=True
-        )
-        g.acct_name = get_name(account)
-        return account
+    if session.get('account') or session.get('session_id'):
+        return True
 
-    # New conversation. Try to identify phone number
+    # Test for unknown registered user
+
+    agency = db.agencies.find_one({
+        'twilio.sms.number': request.form['To']})
+
     try:
-        account = etap.call(
-          'find_account_by_phone',
-          agency['etapestry'],
-          {"phone": request.form['From']}
-        )
+        # Very slow (~750ms-2200ms)
+        session['account'] = etap.call(
+            'find_account_by_phone',
+            agency['etapestry'],
+            {'phone': request.form['From']})
     except Exception as e:
         rfu_task(
             agency['name'],
             'SMS eTap error: "%s"' % str(e),
-            name_addy = request.form['From']
-        )
+            name_addy = request.form['From'])
 
         logger.error("eTapestry API: %s", str(e))
+
         raise EtapError('eTapestry API: %s' % str(e))
+    else:
+        if session.get('account'):
+            # Known registered user now
 
-    if not account:
-        logger.info(
-            'no matching etapestry account found (SMS: %s)',
-            request.form['From'])
+            session['conf'] = agency
 
-        #rfu_task(
-        #    agency['name'],
-        #    'No eTapestry account linked to this mobile number. '\
-        #    '\nMessage: "%s"' % request.form['Body'],
-        #    name_addy='Mobile: %s' % request.form['From'])
+            logger.debug(
+                'retrieved acct id=%s and agency_conf, saved in session',
+                session.get('account')['id'])
 
-        return False
+            return True
 
-    expires=datetime.utcnow() + timedelta(hours=4)
+    # Must be unknown unregistered user
 
-    g.account = account
-    g.acct_name = get_name(account)
-    g.agency_conf = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+    session['unreg_id'] = str(ObjectId())
+    session['conf'] = agency
 
-    logger.debug('set g.acct_name: %s', getattr(g, 'acct_name', None))
+    logger.debug(
+        'unknown unregistered user. assigning unreg_id="%s"',
+        session.get('unreg_id'))
 
-    set_cookie(response, 'etap_id', account['id'])
+    rfu_task(
+        agency['name'],
+        'No eTapestry account linked to this mobile number. '\
+        '\nMessage: "%s"' % request.form['Body'],
+        name_addy='Mobile: %s' % request.form['From'])
 
-    return account
+    # Known unregistered user now
+
+    return True
 
 #-------------------------------------------------------------------------------
-def get_name(account):
-    name = None
+def get_name():
+    '''Returns account 'name' or 'firstName' for registered users,
+    None for unregistered users'''
 
-    if account['nameFormat'] == 1: # individual
-        name = account['firstName']
+    if not session.get('account'):
+        return False
 
-        # for some reason firstName is sometimes empty even if populated in etap
-        if not name:
-            name = account['name']
+    account = session.get('account')
+
+    nf = account['nameFormat']
+
+    # Formats: None (0), Family (2), Business (2)
+    if nf == 0 or nf == 2 or nf == 3:
+        return account['name']
+
+    # Format: Individual (1)
+
+    if account['firstName']:
+        return account['firstName']
     else:
-        name = account['name']
-
-    return name
+        return account['name']
 
 #-------------------------------------------------------------------------------
 def rfu_task(agency, note,
@@ -107,26 +118,29 @@ def log_msg():
                 bcolors.BOLD, request.form['Body'], bcolors.ENDC, request.form['From'])
 
 #-------------------------------------------------------------------------------
-def save_msg(agency):
-    msg = get_msg()
-    account = getattr(g, 'account', None)
+def save_msg():
+    conf = session.get('conf')
 
     date_str = date.today().isoformat()
 
-    if not db.alice.find_one({'from':from_,'date':date_str}):
+    if not db.alice.find_one({'from': request.form['From'],'date':date_str}):
         db.alice.insert_one({
-            'agency': agency,
-            'account': account,
+            'agency': conf['name'],
+            'account': session.get('account', False),
             'twilio': [request.form.to_dict()],
-            'from':from_,
+            'from': request.form['From'],
             'date':date.today().isoformat(),
             'last_msg_dt': utils.naive_to_local(datetime.now()),
-            'messages':[msg]})
+            'messages':[request.form['Body']]})
     else:
         db.alice.update_one(
-            {'from':from_, 'date': date_str},
-            {'$set': {'last_msg_dt': utils.naive_to_local(datetime.now())},
-             '$push': {'messages': msg, 'twilio': request.form.to_dict()}})
+            {'from': request.form['From'], 'date': date_str},
+            {'$set': {
+                'last_msg_dt': utils.naive_to_local(datetime.now())},
+             '$push': {
+                'messages': request.form['Body'],
+                'twilio': request.form.to_dict()}
+            })
 
 #-------------------------------------------------------------------------------
 def get_cookie(key):
@@ -163,7 +177,40 @@ def get_chatlogs(agency, start_dt=None):
     return chats
 
 #-------------------------------------------------------------------------------
-def inc_msg_count(response):
-    count = int(get_cookie('messagecount') or 0) + 1
-    set_cookie(response, 'messagecount', count)
-    return count
+def inc_msg_count():
+
+    count = session.get('messagecount', 0) + 1
+    session['messagecount'] = count
+
+    #count = int(get_cookie('messagecount') or 0) + 1
+    #set_cookie(response, 'messagecount', count)
+    #return count
+
+#-------------------------------------------------------------------------------
+def check_store_for_account():
+    # Old way of obtaining identity
+    '''
+    account = db.alice.find_one({
+        'from': request.form['From'],
+        'date': date.today().isoformat()
+    }).get('account')
+
+    '''
+
+
+    # store _id is user's phone in +14031234567 format
+    if not request.form['From'] in store.keys():
+        logger.debug('no store created for account. creating now')
+
+        account = etap.call(
+          'find_account_by_phone',
+          agency['etapestry'],
+          {'phone': request.form['From']}
+        )
+
+        store.put(request.form['From'], account)
+    else:
+        account = store.get(request.form['From'])
+
+        logger.debug('account id %s retrieved from saved store.', account['id'])
+    return True

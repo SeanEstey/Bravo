@@ -1,70 +1,26 @@
-'''notify.views'''
+'''app.notify.views'''
 
-import twilio.twiml
-from flask import request, jsonify, render_template, \
-    redirect, Response, current_app, url_for
-from flask_login import login_required, current_user
-from bson.objectid import ObjectId
 import logging
-
+import twilio.twiml
+from bson.objectid import ObjectId
+from flask_login import login_required, current_user
+from flask import \
+    request, jsonify, render_template, redirect, Response, current_app,\
+    session, url_for
+from .. import utils, cal, parser, db
 from . import notify
-from . import accounts, admin, events, triggers, email, voice, sms, \
-              recording, pus, gg, voice_announce
-from .. import utils, cal, parser
+from . import \
+    accounts, admin, events, triggers, email, voice, sms, recording, pus, gg,\
+    voice_announce
 import app.alice.brain
-#from app.main import alice
-from .. import db
 logger = logging.getLogger(__name__)
 
-
-#-------------------------------------------------------------------------------
-@notify.route('/kill_trigger', methods=['POST'])
-@login_required
-def kill_trigger():
-    return jsonify(triggers.kill())
-
-#-------------------------------------------------------------------------------
-@notify.route('/<trig_id>/get_status', methods=['POST'])
-@login_required
-def get_trig_status(trig_id):
-    status = db.triggers.find_one({'_id':ObjectId(trig_id)})['status']
-    return jsonify({'status':status, 'trig_id':trig_id})
-
-#-------------------------------------------------------------------------------
-@notify.route('/get_op_stats', methods=['POST'])
-@login_required
-def get_op_stats():
-    stats = admin.get_op_stats()
-    if not stats:
-        return jsonify({'status':'failed'})
-
-    return jsonify(stats)
-
-#-------------------------------------------------------------------------------
-@notify.route('/<evnt_id>/debug_info', methods=['POST'])
-@login_required
-def get_debug_info(evnt_id):
-    event = db.notific_events.find_one({'_id':ObjectId(evnt_id)})
-
-    event['triggers'] = events.get_triggers(event['_id'])
-
-    for trigger in event['triggers']:
-        # modifying 'triggers' structure for view rendering
-        trigger['count'] = triggers.get_count(trigger['_id'])
-
-    return jsonify(
-        utils.formatter(
-            event,
-            to_local_time=True,
-            to_strftime="%m/%-d/%Y @ %-I:%M%p",
-            bson_to_json=True
-        )
-    )
 
 #-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])
 @login_required
 def view_event_list():
+
 
     user = db['users'].find_one({'user': current_user.username})
     agency = user['agency']
@@ -321,10 +277,13 @@ def sms_received():
     #if alice.is_unsub():
     #    return 'OK'
 
-    if sms.is_reply():
-        return sms.on_reply()
-    else:
-        return app.alice.brain.on_receive()
+    #if sms.is_reply():
+    #    return sms.on_reply()
+    #else:
+    a = utils.start_timer()
+    r = app.alice.brain.on_receive()
+    utils.end_timer(a, display=True, lbl='alice request')
+    return r
 
 #-------------------------------------------------------------------------------
 @notify.route('/call/nis', methods=['POST'])
@@ -346,3 +305,47 @@ def nis():
     except Exception, e:
         logger.info('%s /call/nis' % request.values.items(), exc_info=True)
     return str(e)
+
+#-------------------------------------------------------------------------------
+@notify.route('/kill_trigger', methods=['POST'])
+@login_required
+def kill_trigger():
+    return jsonify(triggers.kill())
+
+#-------------------------------------------------------------------------------
+@notify.route('/<trig_id>/get_status', methods=['POST'])
+@login_required
+def get_trig_status(trig_id):
+    status = db.triggers.find_one({'_id':ObjectId(trig_id)})['status']
+    return jsonify({'status':status, 'trig_id':trig_id})
+
+#-------------------------------------------------------------------------------
+@notify.route('/get_op_stats', methods=['POST'])
+@login_required
+def get_op_stats():
+    stats = admin.get_op_stats()
+    if not stats:
+        return jsonify({'status':'failed'})
+
+    return jsonify(stats)
+
+#-------------------------------------------------------------------------------
+@notify.route('/<evnt_id>/debug_info', methods=['POST'])
+@login_required
+def get_debug_info(evnt_id):
+    event = db.notific_events.find_one({'_id':ObjectId(evnt_id)})
+
+    event['triggers'] = events.get_triggers(event['_id'])
+
+    for trigger in event['triggers']:
+        # modifying 'triggers' structure for view rendering
+        trigger['count'] = triggers.get_count(trigger['_id'])
+
+    return jsonify(
+        utils.formatter(
+            event,
+            to_local_time=True,
+            to_strftime="%m/%-d/%Y @ %-I:%M%p",
+            bson_to_json=True
+        )
+    )

@@ -1,8 +1,7 @@
-'''app.alice.conf'''
+'''app.alice.keywords'''
 
-# For identified users
-user_keywords = {
-    'schedule': {
+user = {
+    'SCHEDULE': {
         'on_receive': {
             'action': 'event',
             'handler': {
@@ -11,7 +10,7 @@ user_keywords = {
             }
         }
     },
-    'support': {
+    'SUPPORT': {
         'on_receive': {
             'action': 'reply',
             'dialog': \
@@ -22,11 +21,11 @@ user_keywords = {
             'action': 'event',
             'handler': {
                 'module': 'app.alice.events',
-                'func': 'do_support'
+                'func': 'request_support'
             }
         }
     },
-    'instructions': {
+    'INSTRUCTIONS': {
          'on_receive': {
             'action': 'reply',
             'dialog': \
@@ -36,11 +35,11 @@ user_keywords = {
             'action':'event',
             'handler': {
                 'module': 'app.alice.events',
-                'func': 'add_driver_note',
+                'func': 'add_instruction',
             }
         }
     },
-    'skip': {
+    'SKIP': {
         'on_receive': {
             'action': 'event',
             'handler': {
@@ -51,9 +50,8 @@ user_keywords = {
     }
 }
 
-# For unidentified users
-anon_keywords = {
-    'update': {
+anon = {
+    'UPDATE': {
         'on_receive': {
             'action': 'reply',
             'dialog': \
@@ -68,7 +66,7 @@ anon_keywords = {
             }
         }
     },
-    'register': {
+    'REGISTER': {
         'on_receive': {
             'action': 'reply',
             'dialog': \
@@ -78,49 +76,8 @@ anon_keywords = {
             'action': 'event',
             'handler': {
                 'module': 'app.alice.events',
-                'func': 'pickup_request'
+                'func': 'request_pickup'
             }
         }
     }
 }
-
-conversation_endings = [
-    'THANKS',
-    'THANK YOU',
-    'THX',
-    'SOUNDS GOOD',
-    'OK'
-]
-
-dialog = {
-    "user": {
-        "options": \
-            "You can guide me with keywords. "\
-            "Ask me about your pickup SCHEDULE, or request live SUPPORT.",
-    },
-    "anon": {
-        "options": \
-            "I don't recognize this number. "\
-            "Do you have an account? I can UPDATE it for you. "\
-            "If you're new, you can REGISTER for a pickup. "
-    },
-    "general": {
-        "intro": \
-            "How can I help you?",
-        "thanks_reply": \
-            "You're welcome!"
-    },
-    "error": {
-        "parse": \
-            "I don't quite understand your question. ",
-        "acct_lookup": \
-            "I'm sorry, there seems to be a problem looking up "\
-            "your account. We'll look into the matter for you.",
-        "comprehension": \
-            "Sorry, I don't understand your request. You'll have to guide "\
-            "our conversation using keywords.",
-        "unknown": \
-            "There a problem handling your request."
-    }
-}
-

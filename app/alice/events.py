@@ -2,51 +2,55 @@
 
 import logging
 from app import etap, utils, db, bcolors
-from flask import current_app, request, make_response, g
+from flask import request, session
 from datetime import datetime, date, time, timedelta
 from app.booker import geo, search, book
+from .dialog import dialog
+from .helper import rfu_task
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def do_support():
-    account = getattr(g, 'account', None)
+def request_support():
+
+    account = session.get('account')
 
     rfu_task(
-        agency['name'],
+        session.get('conf')['name'],
         'SMS help request: "%s"' % str(request.form['Body']),
         a_id = account['id'],
         name_addy = account['name']
     )
 
-    return "Thank you. I'll have someone contact you as soon as possible. "
+    return "Thank you. I'll have someone contact you soon."
 
 #-------------------------------------------------------------------------------
 def reply_schedule():
-    next_pu = etap.get_udf('Next Pickup Date', account)
+    next_pu = etap.get_udf('Next Pickup Date', session.get('account'))
 
     if not next_pu:
-        return dialog['error']['acct_lookup']
+        return dialog['error']['internal']['lookup']
     else:
-        return 'Your next pickup is scheduled on ' +
-                etap.ddmmyyyy_to_dt(next_pu).strftime('%A, %B %-d') + '.'
+        return \
+            'Your next pickup is scheduled on ' +\
+            etap.ddmmyyyy_to_dt(next_pu).strftime('%A, %B %-d') + '.'
 
 #-------------------------------------------------------------------------------
-def add_driver_note():
-    account = getattr(g, 'account', None)
-    conf = getattr(g, 'agency_conf', None)
+def add_instruction():
+
+    # TODO: need to add get existing driver notes and append new?
 
     etap.call(
         'modify_account',
-        conf['etapestry'],
+        session.get('conf')['etapestry'],
         data={
-            'id': account['id'],
+            'id': session.get('account')['id'],
             'udf': {
-                'Driver Notes': 'INSTRUCTION'
+                'Driver Notes': request.form['Body']
             },
             'persona': []
         })
 
-    return "Thank you. I'll pass along your note to our driver. "
+    return "Thank you. I'll pass along the note to our driver."
 
 #-------------------------------------------------------------------------------
 def skip_pickup():
@@ -77,9 +81,9 @@ def update_mobile():
 def is_unsub():
     '''User has unsubscribed all messages from SMS number'''
 
-    unsub_keywords = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT']
+    from phrases import unsubscribe
 
-    if request.form['Body'].upper() in unsub_keywords:
+    if request.form['Body'].upper() in unsubscribe:
         logger.info('%s has unsubscribed from this sms number (%s)',
                     request.form['From'], request.form['To'])
 
@@ -97,7 +101,7 @@ def is_unsub():
     return False
 
 #-------------------------------------------------------------------------------
-def pickup_request(msg, response):
+def request_pickup(msg, response):
     agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
     # Msg reply should contain address

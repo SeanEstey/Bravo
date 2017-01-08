@@ -5,7 +5,7 @@ from flask import request, current_app, g, request, session
 from bson.objectid import ObjectId
 from datetime import datetime, date, timedelta
 from .. import etap, utils, db, bcolors
-from . import conf
+from . import keywords
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ def check_identity():
             # Known registered user now
 
             session['conf'] = agency
-            session['valid_kws'] = conf.user_keywords
+            session['valid_kws'] = keywords.user.keys()
 
             logger.debug(
                 'retrieved acct id=%s and agency_conf, saved in session',
@@ -55,7 +55,7 @@ def check_identity():
 
     session['unreg_id'] = str(ObjectId())
     session['conf'] = agency
-    session['valid_kws'] = conf.anon_keywords
+    session['valid_kws'] = keywords.anon.keys()
 
     logger.debug(
         'unknown unregistered user. assigning unreg_id="%s"',
@@ -70,29 +70,6 @@ def check_identity():
     # Known unregistered user now
 
     return True
-
-#-------------------------------------------------------------------------------
-def get_name():
-    '''Returns account 'name' or 'firstName' for registered users,
-    None for unregistered users'''
-
-    if not session.get('account'):
-        return False
-
-    account = session.get('account')
-
-    nf = account['nameFormat']
-
-    # Formats: None (0), Family (2), Business (2)
-    if nf == 0 or nf == 2 or nf == 3:
-        return account['name']
-
-    # Format: Individual (1)
-
-    if account['firstName']:
-        return account['firstName']
-    else:
-        return account['name']
 
 #-------------------------------------------------------------------------------
 def rfu_task(agency, note,
@@ -115,10 +92,9 @@ def rfu_task(agency, note,
 
 #-------------------------------------------------------------------------------
 def log_msg():
-    logger.debug(request.form.to_dict())
-
-    logger.info('To Alice: %s"%s"%s (%s)',
-                bcolors.BOLD, request.form['Body'], bcolors.ENDC, request.form['From'])
+    logger.info('To Alice: %s"%s"%s (%s, count=%s)',
+                bcolors.BOLD, request.form['Body'], bcolors.ENDC,
+                request.form['From'], get_msg_count())
 
 #-------------------------------------------------------------------------------
 def save_msg():
@@ -159,6 +135,7 @@ def set_cookie(response, k, v):
 
 #-------------------------------------------------------------------------------
 def get_chatlogs(agency, start_dt=None):
+
     if not start_dt:
         start_dt = datetime.utcnow() - timedelta(days=14)
 
@@ -180,40 +157,17 @@ def get_chatlogs(agency, start_dt=None):
     return chats
 
 #-------------------------------------------------------------------------------
-def inc_msg_count():
-
-    count = session.get('messagecount', 0) + 1
-    session['messagecount'] = count
-
-    #count = int(get_cookie('messagecount') or 0) + 1
-    #set_cookie(response, 'messagecount', count)
-    #return count
+def get_msg_count():
+    return session.get('messagecount')
 
 #-------------------------------------------------------------------------------
-def check_store_for_account():
-    # Old way of obtaining identity
+def inc_msg_count():
+    '''Track number of received messages in conversation'''
+
+    session['messagecount'] = session.get('messagecount', 0) + 1
+
+#-------------------------------------------------------------------------------
+def wipe_sessions():
+    '''TODO: destroy all sessions
     '''
-    account = db.alice.find_one({
-        'from': request.form['From'],
-        'date': date.today().isoformat()
-    }).get('account')
-
-    '''
-
-
-    # store _id is user's phone in +14031234567 format
-    if not request.form['From'] in store.keys():
-        logger.debug('no store created for account. creating now')
-
-        account = etap.call(
-          'find_account_by_phone',
-          agency['etapestry'],
-          {'phone': request.form['From']}
-        )
-
-        store.put(request.form['From'], account)
-    else:
-        account = store.get(request.form['From'])
-
-        logger.debug('account id %s retrieved from saved store.', account['id'])
     return True

@@ -1,4 +1,8 @@
-'''app.alice.brain'''
+'''app.alice.brain
+Uses KVSession in place of flask session to store data server-side in MongoDB
+Session expiry set in app.config.py, currently set to 60 min
+Conversations permanently saved to MongoDB in bravo.alice
+'''
 
 import logging
 import string
@@ -6,56 +10,46 @@ from twilio import twiml
 from datetime import datetime, date, time, timedelta
 from flask import current_app, request, make_response, g, session
 from .. import etap, utils, db, bcolors
-from .conf import anon_keywords, user_keywords, dialog
+from . import keywords
+from .dialog import *
+from .phrases import *
+from .replies import *
 from .helper import \
-    check_identity, log_msg, save_msg, get_cookie, set_cookie, inc_msg_count
+    check_identity, get_msg_count, inc_msg_count, log_msg, save_msg
 logger = logging.getLogger(__name__)
-
-class EtapError(Exception):
-    pass
 
 #-------------------------------------------------------------------------------
 def receive_msg():
-    '''Received an incoming SMS message.
-    User info including eTap account held in server-side session for 60 min
+    '''Try to parse message.
+    Return Twiml response
     '''
 
+    inc_msg_count()
     log_msg()
-    msg_count = inc_msg_count()
-    r = make_response()
 
     try:
         check_identity()
     except Exception as e:
         logger.error(str(e))
-        return send_reply(r, dialog['error']['acct_lookup'])
+        return make_reply(dialog['error']['internal']['lookup'])
 
     save_msg()
 
-    message = get_msg()
-
-    kws = find_kw_matches(message, session.get('valid_kws'))
+    kws = find_kw_matches(get_msg(), session.get('valid_kws'))
 
     if kws:
-        return handle_keyword(r, kws[0])
+        return handle_keyword(kws[0])
     elif expecting_answer():
-        return handle_answer(r)
+        return handle_answer()
     else:
-        return handle_unknown(r)
-
-#-------------------------------------------------------------------------------
-def expecting_answer():
-    '''Is the message a specific reply to a keyword['on_receive'] dialog?'''
-
-    if session.get('on_complete'):
-        return True
-    else:
-        return False
+        return handle_unknown()
 
 #-------------------------------------------------------------------------------
 def find_kw_matches(message, kws):
     '''@message: either incoming or outgoing text
     '''
+
+    logger.debug('searching matches in %s', kws)
 
     # Remove punctuation, make upper case, split into individual words
     words = message.upper().translate(
@@ -72,66 +66,159 @@ def find_kw_matches(message, kws):
     return matches
 
 #-------------------------------------------------------------------------------
-def get_msg():
-    '''Convert from unicode to prevent weird parsing issues'''
+def find_phrase_match(phrases):
+    '''@phrases: list of >= 1 word strings
+    '''
 
-    return str(request.form['Body']).strip()
+    message = get_msg().upper()
+
+    return message in phrases
 
 #-------------------------------------------------------------------------------
-def handle_keyword(response, kw):
+def handle_keyword(kw, handler=None):
     '''Received msg with a keyword command. Send appropriate reply and
     set any necessary listeners.
     '''
 
-    on_receive = session['valid_kws'][kw]['on_receive']
-    on_complete = session['valid_kws'][kw].get('on_complete')
+    if handler:
+        _handler = handler
+    elif session.get('account'):
+        _handler = keywords.user[kw]
+    else:
+        _handler = keywords.anon[kw]
+
+    on_receive = _handler.get('on_receive')
+    on_complete = _handler.get('on_complete')
 
     if on_receive['action'] == 'reply':
-        return send_reply(r, on_receive['dialog'], on_complete=on_complete)
+        return make_reply(on_receive['dialog'], on_complete=on_complete)
     elif on_receive['action'] == 'event':
-        function = getattr(
+        logger.debug(
+            'calling event handler %s.%s',
             on_receive['handler']['module'],
             on_receive['handler']['func'])
 
         try:
-            reply = function()
+            module = __import__(on_receive['handler']['module'], fromlist='.')
+            func = getattr(module, on_receive['handler']['func'])
+            reply = func()
         except Exception as e:
             logger.error('%s failed: %s', on_receive['handler']['func'], str(e))
 
-            return send_reply(r, dialog['error']['unknown'], on_complete=on_complete)
+            return make_reply(dialog['error']['unknown'], on_complete=on_complete)
+
+        return make_reply(reply, on_complete=on_complete)
 
 #-------------------------------------------------------------------------------
-def handle_answer(response):
+def handle_answer():
     '''Received expected reply. Call event handler for listener key
     '''
 
-    on_complete = session.get('on_complete')
+    do = session.get('on_complete')
 
-    if on_complete['action'] == 'dialog':
-        return send_reply(r, on_complete['dialog'])
-    elif on_complete['action'] == 'event':
-        module = on_complete['handler']['module']
-        func = on_complete['handler']['func']
+    if do['action'] == 'dialog':
+        reply = do['dialog']
+    elif do['action'] == 'event':
+        logger.debug(
+            'calling event handler %s.%s',
+            do['handler']['module'],
+            do['handler']['func'])
 
         try:
-            return send_reply(r, getattr(module, func)())
+            mod = __import__(do['handler']['module'], fromlist='.')
+            func = getattr(mod, do['handler']['func'])
+            reply = func()
         except Exception as e:
-            logger.error('event %s.%s failed: %s', module, func, str(e))
+            logger.error(\
+                'event %s.%s failed: %s',
+                do['handler']['module'],
+                do['handler']['func'],
+                str(e))
 
-            return send_reply(r, dialog['error']['unknown'])
+            return make_reply(dialog['error']['internal']['default'])
+
+    return make_reply(reply)
 
 #-------------------------------------------------------------------------------
-def handle_unknown(response):
-    '''Unable to understand message. Send default reply.
+def handle_unknown():
+    '''
     '''
 
+    # Try to identify non-command keys/phrases
+
     if guess_intent():
-        return send_reply(r, guess_intent())
+        return make_reply(guess_intent())
+
+    # Cannot parse message. Send default response
 
     if session.get('account'):
-        return send_reply(r, dialog['user']['options'])
+        return make_reply(dialog['user']['options'])
     else:
-        return send_reply(r, dialog['anon']['options'])
+        return make_reply(dialog['anon']['options'])
+
+#-------------------------------------------------------------------------------
+def guess_intent():
+    '''Use some context clues to guess user intent.'''
+
+    # Lookup known phrases (ie 'thank you')
+
+    if find_phrase_match(ending_chat):
+        return dialog['general']['welcome_reply']
+
+    # Lookup general keyword replies
+
+    kw = find_kw_matches(get_msg(), replies.keys())
+
+    if kw:
+        return replies[kw[0]]
+
+    # No keywords or phrases indentified. Is user asking a question?
+
+    if '?' in get_msg():
+        return '%s %s' %(
+            dialog['error']['parse']['question'],
+            dialog['user']['options'])
+
+    return False
+
+#-------------------------------------------------------------------------------
+def make_reply(_dialog, on_complete=None):
+    '''Add name contexts to beginning of dialog, create TWIML message
+    Save this reply so we can know if the next user msg is responding to
+    any keywords contained in it
+    '''
+
+    session['on_complete'] = on_complete
+    context = ''
+    name = get_name()
+    greet = tod_greeting()
+
+    # todo: store assistant name in DB
+    if session.get('conf')['name'] == 'vec':
+        context += 'Alice: '
+
+    if get_msg_count() == 1:
+        context += '%s, %s. ' % (greet, name) if name else '%s. ' % (greet)
+    else:
+        if name:
+            context += name + ', '
+            _dialog = _dialog[0].lower() + _dialog[1:]
+
+    twml = twiml.Response()
+    twml.message(context + _dialog)
+
+    logger.info('%s"%s"%s', bcolors.BOLD, context + _dialog, bcolors.ENDC)
+
+    response = make_response()
+    response.data = str(twml)
+
+    db.alice.update_one(
+        {'from': request.form['From'],
+        'date': date.today().isoformat()},
+        {'$push': {
+            'messages': context + _dialog}})
+
+    return response
 
 #-------------------------------------------------------------------------------
 def tod_greeting():
@@ -151,71 +238,34 @@ def tod_greeting():
     return 'Good ' + tod + ' '
 
 #-------------------------------------------------------------------------------
-def send_reply(r, _dialog, on_complete=None):
-    '''Add name contexts to beginning of dialog, create TWIML message
-    Save this reply so we can know if the next user msg is responding to
-    any keywords contained in it
-    '''
+def get_name():
+    '''Returns account 'name' or 'firstName' for registered users,
+    None for unregistered users'''
 
-    if on_complete:
-        session['on_complete'] = on_complete
+    if not session.get('account'):
+        return False
+
+    account = session.get('account')
+
+    nf = account['nameFormat']
+
+    # Formats: None (0), Family (2), Business (2)
+    if nf == 0 or nf == 2 or nf == 3:
+        return account['name']
+
+    # Format: Individual (1)
+
+    if account['firstName']:
+        return account['firstName']
     else:
-        session['on_complete'] = None
-
-    conf = session.get('conf')
-
-    if conf['name'] == 'vec':
-        ASSISTANT_NAME = 'Alice'
-        context = ASSISTANT_NAME + ': '
-    else:
-        context = ''
-
-    name = get_name()
-
-    if first_reply():
-        context += tod_greeting()
-
-        if name:
-            context += ', ' + name + '. '
-        else:
-            context += '. '
-    else:
-        if name:
-            context += name + ', '
-            _dialog = _dialog[0].lower() + _dialog[1:]
-
-    twml = twiml.Response()
-
-    twml.message(context + _dialog)
-
-    logger.info('%s"%s"%s', bcolors.BOLD, context + _dialog, bcolors.ENDC)
-
-    r.data = str(twml)
-
-    db.alice.update_one(
-        {'from': request.form['From'],
-        'date': date.today().isoformat()},
-        {'$push': {
-            'messages': context + _dialog}})
-
-    return r
+        return account['name']
 
 #-------------------------------------------------------------------------------
-def guess_intent():
-    '''Msg sent mid-conversation not understood as keyword or keyword reply.
-    Use context clues to guess user intent.
-    '''
+def expecting_answer():
+    return session.get('on_complete')
 
-    # User asking a question?
+#-------------------------------------------------------------------------------
+def get_msg():
+    '''Convert from unicode to prevent weird parsing issues'''
 
-    if '?' in get_msg():
-        return dialog['error']['parse_question'] + dialog['user']['options']
-
-    # User ending conversation? ("thanks")
-
-    matches = find_kw_matches(get_msg(), conversation_endings):
-
-    if matches:
-        return dialog['general']['thanks_reply']
-
-    return False
+    return str(request.form['Body']).strip()

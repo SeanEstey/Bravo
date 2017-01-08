@@ -277,13 +277,13 @@ def sms_received():
     #if alice.is_unsub():
     #    return 'OK'
 
-    #if sms.is_reply():
-    #    return sms.on_reply()
-    #else:
-    a = utils.start_timer()
-    r = app.alice.brain.on_receive()
-    utils.end_timer(a, display=True, lbl='alice request')
-    return r
+    if sms.is_reply():
+        return sms.on_reply()
+    else:
+        a = utils.start_timer()
+        response = app.alice.brain.receive_msg()
+        utils.end_timer(a, display=True, lbl='alice request')
+        return response
 
 #-------------------------------------------------------------------------------
 @notify.route('/call/nis', methods=['POST'])

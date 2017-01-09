@@ -1,9 +1,11 @@
+from datetime import timedelta
+
 TITLE = 'Bravo'
 LOG_PATH = '/var/www/bravo/logs/'
 LOG_LINES = 200
 DB = 'bravo'
 ALICE_SESSION_COLLECTION = 'sessions'
-ALICE_SESSION_LENGTH = 60
+PERMANENT_SESSION_IFETIME = timedelta(minutes=60)
 MONGO_URL = 'localhost'
 MONGO_PORT = 27017
 LOCAL_PORT = 8000

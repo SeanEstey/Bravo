@@ -5,15 +5,13 @@ import bson.json_util
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 import re
-
-from app import db
-from app import task_emit
-from .. import gcal, etap, wsf, utils, parser
+from .. import task_emit, get_db, gcal, etap, wsf, utils, parser
 
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def analyze_upcoming(agency_name, days):
+    db = get_db()
     conf = db.agencies.find_one({'name':agency_name})
 
     today_dt = datetime.combine(date.today(), time())
@@ -108,6 +106,7 @@ def analyze_upcoming(agency_name, days):
           'block_size': len(a['data']),
           'dropoffs': num_dropoffs
         }
+
 
         db.routes.insert_one(_route)
 

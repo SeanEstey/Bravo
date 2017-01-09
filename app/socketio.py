@@ -1,11 +1,12 @@
 '''app.socketio'''
 
+import logging
 from flask import request, jsonify
 from flask_socketio import SocketIO, send, emit
 from flask_login import current_user
 import requests
 from tasks import flask_app
-
+logger = logging.getLogger(__name__)
 socketio_app = SocketIO(flask_app)
 
 #-------------------------------------------------------------------------------
@@ -17,6 +18,8 @@ def send_from_task(event, data):
     }
     return requests.post('http://localhost/sendsocket', json=payload)
 
+
+'''
 #-------------------------------------------------------------------------------
 @socketio_app.on('disconnect')
 def disconnected():
@@ -26,4 +29,6 @@ def disconnected():
 #-------------------------------------------------------------------------------
 @socketio_app.on('connect')
 def connected():
+    logger.debug('socket session id %s', request.cookies.get('session'))
     return 'connected'
+'''

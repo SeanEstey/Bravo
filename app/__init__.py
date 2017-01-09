@@ -60,12 +60,23 @@ def get_db():
         return mongodb.create_client(connect=True, auth=True)[config.DB]
 
 #-------------------------------------------------------------------------------
+def create_kv_session(app):
+    store = MongoStore(
+        db_client[config.DB],
+        config.ALICE_SESSION_COLLECTION)
+    return KVSessionExtension(store, app)
+
+#-------------------------------------------------------------------------------
 def create_app(pkg_name, db_client):
     app = Flask(pkg_name)
     app.config.from_object(config)
 
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.jinja_env.add_extension("jinja2.ext.do")
+    app.permanent_session_lifetime = app.config['PERMANENT_SESSION_LIFETIME']
+
+    #timedelta(
+    #    minutes=app.config['PERMANENT_SESSION_LIFETIME'])
 
     app.logger.addHandler(error_handler)
     app.logger.addHandler(info_handler)
@@ -75,17 +86,6 @@ def create_app(pkg_name, db_client):
     login_manager.init_app(app)
 
     mongodb.authenticate(db_client)
-
-    db = db_client[config.DB]
-
-    store = MongoStore(
-        db,
-        config.ALICE_SESSION_COLLECTION)
-
-    KVSessionExtension(store, app)
-
-    app.permanent_session_lifetime = timedelta(
-        minutes=app.config['ALICE_SESSION_LENGTH'])
 
     from app.auth import auth as auth_mod
     from app.main import main as main_mod

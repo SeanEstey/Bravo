@@ -7,6 +7,7 @@ from datetime import datetime, date, time, timedelta
 from app.booker import geo, search, book
 from .dialog import dialog
 from .helper import rfu_task
+from app.notify.pus import cancel_pickup
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -54,13 +55,22 @@ def add_instruction():
 
 #-------------------------------------------------------------------------------
 def skip_pickup():
-    from app.notify import pus
-    response = '' #pus.cancel_pickup()
 
-    if response:
-        return "I've taken you off the schedule. Thank you."
-    else:
-        return "I'm sorry, our driver has already been dispatched for the pickup."
+    notifications = db.notifics.find(
+        {'to': request.form['From'],
+         'tracking.status': 'delivered'}
+    ).sort('tracking.sent_dt', -1).limit(1)
+
+    notific = notifications.next()
+
+    logger.debug(utils.formatter(notific, bson_to_json=True))
+
+    # cancel_pickup(notific['evnt_id'], notific['acct_id'])
+
+    #if response:
+    return "I've taken you off the schedule. Thank you."
+    #else:
+    #    return "I'm sorry, our driver has already been dispatched for the pickup."
 
 #-------------------------------------------------------------------------------
 def update_mobile():

@@ -6,10 +6,11 @@ Conversations permanently saved to MongoDB in bravo.alice
 
 import logging
 import string
-from twilio import twiml
+from twilio.rest import TwilioRestClient
+from twilio import TwilioRestException, twiml
 from datetime import datetime, date, time, timedelta
 from flask import current_app, request, make_response, g, session
-from .. import etap, utils, db, bcolors
+from .. import etap, utils, get_db, bcolors
 from . import keywords
 from .dialog import *
 from .phrases import *
@@ -189,13 +190,9 @@ def make_reply(_dialog, on_complete=None):
     '''
 
     session['on_complete'] = on_complete
-    context = ''
     name = get_name()
     greet = tod_greeting()
-
-    # todo: store assistant name in DB
-    if session.get('conf')['name'] == 'vec':
-        context += 'Alice: '
+    context = '%s: '% session.get('self_name') if session.get('self_name') else ''
 
     if get_msg_count() == 1:
         context += '%s, %s. ' % (greet, name) if name else '%s. ' % (greet)
@@ -212,6 +209,8 @@ def make_reply(_dialog, on_complete=None):
     response = make_response()
     response.data = str(twml)
 
+    db = get_db()
+
     db.alice.update_one(
         {'from': request.form['From'],
         'date': date.today().isoformat()},
@@ -219,6 +218,43 @@ def make_reply(_dialog, on_complete=None):
             'messages': context + _dialog}})
 
     return response
+
+#-------------------------------------------------------------------------------
+def compose_msg(body, to, agency, conf, callback=None):
+    '''Compose SMS message to recipient
+    Can be called from outside blueprint. No access to flask session
+    '''
+
+    self_name = get_self_name(agency)
+
+    if self_name:
+        body = '%s: %s' % (self_name, body)
+
+    try:
+        client = TwilioRestClient(
+            conf['api']['sid'],
+            conf['api']['auth_id'])
+    except Exception as e:
+        logger.error(e)
+        logger.debug(e, exc_info=True)
+        raise
+
+    try:
+        msg = client.messages.create(
+            body = body,
+            to = to,
+            from_ = conf['sms']['number'],
+            status_callback = callback)
+    except Exception as e:
+        logger.error(e)
+        logger.debug(e, exc_info=True)
+        raise
+    else:
+        logger.info('returning msg')
+        return msg
+
+    logger.info('returning msg status')
+    return msg.status
 
 #-------------------------------------------------------------------------------
 def tod_greeting():
@@ -259,6 +295,11 @@ def get_name():
         return account['firstName']
     else:
         return account['name']
+
+#-------------------------------------------------------------------------------
+def get_self_name(agency):
+    db = get_db()
+    return db.agencies.find_one({'name':agency})['alice']['name']
 
 #-------------------------------------------------------------------------------
 def expecting_answer():

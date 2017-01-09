@@ -5,15 +5,14 @@ import os
 import traceback as tb
 from celery import Celery
 from celery.task.control import revoke
+from flask import g
 import logging
+import mongodb
 from bson.objectid import ObjectId as oid
-
-from . import db, bcolors
-from . import create_app, create_celery_app, \
+from . import bcolors, utils, db_client, create_app, create_celery_app, \
         debug_handler, info_handler, error_handler, exception_handler
-from . import utils
 
-flask_app = create_app('app')
+flask_app = create_app('app', db_client)
 celery = create_celery_app(flask_app)
 
 from celery.utils.log import get_task_logger
@@ -27,6 +26,12 @@ logger.setLevel(logging.DEBUG)
 
 class EtapError(Exception):
     pass
+
+#-------------------------------------------------------------------------------
+@flask_app.before_request
+def do_db():
+    db = db_client[flask_app.config['DB']]
+    g.db = db
 
 #-------------------------------------------------------------------------------
 def kill(task_id):
@@ -175,12 +180,17 @@ def add_signup(signup):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def fire_trigger(self, evnt_id, trig_id):
+    _client = mongodb.create_client(connect=False, auth=True)
+    db = _client[flask_app.config['DB']]
+
     logger.debug('trigger task_id: %s', self.request.id)
 
     # Store celery task_id in case we need to kill it
     db.triggers.update_one({
         '_id':oid(trig_id)},
         {'$set':{'task_id':self.request.id}})
+
+    logger.debug('mongo warning yet?')
 
     try:
         from app.notify import triggers

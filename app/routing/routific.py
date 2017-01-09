@@ -3,10 +3,7 @@
 import json
 import logging
 import requests
-
 from .. import etap
-from app import db
-
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

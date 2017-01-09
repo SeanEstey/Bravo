@@ -3,10 +3,7 @@
 import logging
 from time import sleep
 import re
-
-from app import db
-from .. import gsheets, gdrive, utils
-
+from .. import get_db, gsheets, gdrive, utils
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -20,6 +17,7 @@ def build(agency, drive_api, title):
     Returns: new Sheet file
     '''
 
+    db = get_db()
     conf = db.agencies.find_one({'name':agency})['routing']['gdrive']
 
     # Copy Route Template

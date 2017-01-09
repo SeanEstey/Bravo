@@ -7,7 +7,7 @@ import logging
 import socket
 import requests
 from datetime import timedelta
-from flask import Flask
+from flask import Flask, current_app, g, has_app_context, has_request_context
 from flask_login import LoginManager
 from flask_kvsession import KVSessionExtension
 from simplekv.db.mongo import MongoStore
@@ -15,7 +15,7 @@ from simplekv import KeyValueStore
 from werkzeug.contrib.fixers import ProxyFix
 
 import config
-import mongodb_auth
+import mongodb
 
 log_formatter = logging.Formatter('[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M')
 
@@ -38,22 +38,7 @@ exception_handler.setFormatter(log_formatter)
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 
-client = pymongo.MongoClient(
-    host=config.MONGO_URL,
-    port=config.MONGO_PORT,
-    tz_aware=True,
-    connect=False)
-
-client.admin.authenticate(
-	mongodb_auth.user,
-	mongodb_auth.password,
-	mechanism='SCRAM-SHA-1')
-
-db = client[config.DB]
-
-store = MongoStore(
-	db,
-    config.ALICE_SESSION_COLLECTION)
+db_client = mongodb.create_client()
 
 logger = logging.getLogger(__name__)
 
@@ -68,25 +53,14 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 #-------------------------------------------------------------------------------
-def create_celery_app(app=None):
-    app = app or create_app('app', store)
-    celery = Celery(__name__, broker='amqp://')
-    celery.config_from_object('celeryconfig')
-    celery.conf.update(app.config)
-    TaskBase = celery.Task
-
-    class ContextTask(TaskBase):
-        abstract = True
-
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return TaskBase.__call__(self, *args, **kwargs)
-
-    celery.Task = ContextTask
-    return celery
+def get_db():
+    if current_app and has_request_context():
+        return getattr(g, 'db')
+    else:
+        return mongodb.create_client(connect=True, auth=True)[config.DB]
 
 #-------------------------------------------------------------------------------
-def create_app(pkg_name):
+def create_app(pkg_name, db_client):
     app = Flask(pkg_name)
     app.config.from_object(config)
 
@@ -99,6 +73,14 @@ def create_app(pkg_name):
     app.logger.setLevel(logging.DEBUG)
 
     login_manager.init_app(app)
+
+    mongodb.authenticate(db_client)
+
+    db = db_client[config.DB]
+
+    store = MongoStore(
+        db,
+        config.ALICE_SESSION_COLLECTION)
 
     KVSessionExtension(store, app)
 
@@ -124,15 +106,26 @@ def create_app(pkg_name):
     return app
 
 #-------------------------------------------------------------------------------
-def create_db():
-    client = pymongo.MongoClient(
-        host=app.config['MONGO_URL'],
-        port=app.config['MONGO_PORT'],
-        tz_aware=True,
-        connect=False)
+def create_celery_app(app):
+    #app = app or create_app('app')
 
-    return client[app.config['DB']]
+    celery = Celery(__name__, broker='amqp://')
+    celery.config_from_object('celeryconfig')
+    celery.conf.update(app.config)
+    TaskBase = celery.Task
 
+    #mongodb.auth(db_client)
+
+    class ContextTask(TaskBase):
+        abstract = True
+
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return TaskBase.__call__(self, *args, **kwargs)
+
+    celery.Task = ContextTask
+
+    return celery
 
 #-------------------------------------------------------------------------------
 def is_test_server():
@@ -170,21 +163,25 @@ def is_test_server():
 #-------------------------------------------------------------------------------
 def config_test_server(source):
     # Swap out any sandbox credentials that may be present
-    test_db = client['test']
+
+    db = get_db()
+    #test_db = client['test']
     agencies = db.agencies.find()
-    cred = test_db.credentials.find_one()
+    #cred = test_db.credentials.find_one()
 
     if source == 'sandbox':
         os.environ['BRAVO_SANDBOX_MODE'] = 'True'
     else:
         os.environ['BRAVO_SANDBOX_MODE'] = 'False'
 
+    '''
     for agency in agencies:
         db.agencies.update_one(
             {'name': agency['name']},
             {'$set':{
                 'twilio': cred['twilio'][source]
             }})
+    '''
 
     # Set SmsUrl callback to point to correct server
     #https://www.twilio.com/docs/api/rest/incoming-phone-numbers#instance

@@ -2,12 +2,13 @@
 
 import logging
 from dateutil.parser import parse
-from .. import db
+from .. import get_db
 from .. import utils
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add(agency, evnt_id, name, phone=None, email=None, udf=None, nameFormat=None):
+    db = get_db()
     return db['accounts'].insert_one({
         'evnt_id': evnt_id,
         'agency': agency,
@@ -22,7 +23,7 @@ def add(agency, evnt_id, name, phone=None, email=None, udf=None, nameFormat=None
 def edit(acct_id, fields):
     '''User editing a notification value from GUI
     '''
-
+    db = get_db()
     for fieldname, value in fields:
         if fieldname == 'udf.pickup_dt':
           try:

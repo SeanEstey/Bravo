@@ -4,13 +4,14 @@ import logging
 from flask import request, current_app
 from datetime import date
 
-from .. import gsheets
-from .. import db
+from .. import get_db, gsheets
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def on_email_delivered():
     '''Mailgun webhook called from view. Has request context'''
+
+    db = get_db()
 
     logger.info('signup welcome delivered to %s', request.form['recipient'])
 
@@ -26,6 +27,8 @@ def on_email_delivered():
 
 #-------------------------------------------------------------------------------
 def on_email_dropped():
+    db = get_db()
+
     msg = 'signup welcome to %s dropped. %s.' %(
         request.form['recipient'], request.form['reason'])
 

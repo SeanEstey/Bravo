@@ -11,9 +11,7 @@ from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from bson.objectid import ObjectId as oid
 from bson import json_util
-
-from .. import utils, parser, gcal, etap
-from .. import db
+from .. import get_db, utils, parser, gcal, etap
 from . import events, email, sms, voice, triggers, accounts
 logger = logging.getLogger(__name__)
 
@@ -26,6 +24,8 @@ def reminder_event(agency, block, _date):
     '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
     Returns: evnt_id (ObjectID) on succcess, False otherwise
     '''
+
+    db = get_db()
 
     agency_conf = db['agencies'].find_one({'name':agency})
 
@@ -165,6 +165,8 @@ def add_future_pickups(evnt_id):
 
     logger.info('Getting next pickups for notification event ID \'%s\'', str(evnt_id))
 
+    db = get_db()
+
     event = db['notific_events'].find_one({'_id':evnt_id})
     agency_conf = db['agencies'].find_one({'name':event['agency']})
 
@@ -267,6 +269,8 @@ def cancel_pickup(evnt_id, acct_id):
 
     logger.info('Cancelling pickup for \'%s\'', acct_id)
 
+    db = get_db()
+
     # Cancel any pending parent notifications
 
     result = db.notifics.update_many({
@@ -325,6 +329,7 @@ def cancel_pickup(evnt_id, acct_id):
 def on_call_interact(notific):
 
     response = twiml.Response()
+    db = get_db()
 
     # Digit 1: Play live message
     if request.form['Digits'] == '1':
@@ -388,6 +393,7 @@ def on_sms_reply(notific):
 
     logger.info('bpu reply handler')
     from .. import html
+    db = get_db()
 
     account = db['accounts'].find_one({'_id':notific['acct_id']})
     conf = db['agencies'].find_one({'name': account['agency']})

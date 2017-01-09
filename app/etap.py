@@ -8,7 +8,6 @@ from flask import current_app
 from datetime import datetime, date
 
 import utils
-from app import db
 import config
 logger = logging.getLogger(__name__)
 

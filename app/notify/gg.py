@@ -11,9 +11,7 @@ from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from bson.objectid import ObjectId as oid
 from bson import json_util
-
-from .. import utils, parser, gcal, etap
-from .. import db
+from .. import get_db, utils, parser, gcal, etap
 from . import events, email, sms, voice, triggers, accounts
 logger = logging.getLogger(__name__)
 
@@ -23,6 +21,7 @@ class EtapError(Exception):
 
 #-------------------------------------------------------------------------------
 def add_event():
+    db = get_db()
     agency = db.users.find_one({'user': current_user.username})['agency']
     conf= db.agencies.find_one({'name':agency})
 

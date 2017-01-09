@@ -7,10 +7,8 @@ from bson.objectid import ObjectId
 from datetime import datetime,date,time
 
 from app import task_emit
-from .. import utils
-from .. import db, bcolors
+from .. import get_db, utils, bcolors
 from . import voice, email, sms
-
 logger = logging.getLogger(__name__)
 
 
@@ -23,6 +21,8 @@ def add(evnt_id, _type, _date, _time):
     Returns:
         -id (ObjectId)
     '''
+
+    db = get_db()
 
     trig_id = db['triggers'].insert_one({
         'evnt_id': evnt_id,
@@ -39,6 +39,7 @@ def add(evnt_id, _type, _date, _time):
 
 #-------------------------------------------------------------------------------
 def get(trig_id, local_time=False):
+    db = get_db()
     trig = db['triggers'].find_one({'_id':trig_id})
 
     if local_time == True:
@@ -48,12 +49,16 @@ def get(trig_id, local_time=False):
 
 #-------------------------------------------------------------------------------
 def get_count(trig_id):
+    db = get_db()
     return db['notifics'].find({'trig_id':trig_id}).count()
 
 #-------------------------------------------------------------------------------
 def fire(evnt_id, trig_id):
     '''Sends out all dependent sms/voice/email notifics messages
     '''
+
+    db = get_db()
+
     event = db['notific_events'].find_one({
         '_id':evnt_id})
 

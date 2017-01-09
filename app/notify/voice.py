@@ -7,12 +7,9 @@ from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import current_app, render_template, request
 from pymongo.collection import ReturnDocument
-from .. import db
-from .. import utils, html
+from .. import get_db, utils, html
 logger = logging.getLogger(__name__)
 
-
-# TODO: finish writing RFU code on call.status == 'failed'
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
@@ -26,6 +23,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
         'func':'handler_func'}
     '''
 
+    db = get_db()
     return db['notifics'].insert_one({
         'evnt_id': evnt_id,
         'trig_id': trig_id,
@@ -68,6 +66,7 @@ def call(notific, twilio_conf, voice_conf):
         from_ = twilio_conf['voice']['number']
 
     call = None
+    db = get_db()
 
     try:
         call = client.calls.create(
@@ -105,6 +104,7 @@ def get_speak(notific, template_path, timeout=False):
     @template_key: name of content dict containing file path
     '''
 
+    get_db()
     account = db['accounts'].find_one({'_id':notific['acct_id']})
 
     try:
@@ -144,6 +144,7 @@ def on_answer():
     logger.info('%s %s (%s)',
         request.form['To'], request.form['CallStatus'], request.form.get('AnsweredBy'))
 
+    db = get_db()
     notific = db['notifics'].find_one_and_update({
         'tracking.sid': request.form['CallSid']}, {
         '$set': {
@@ -209,6 +210,7 @@ def on_interact():
 
     logger.debug('on_interact: %s', request.form.to_dict())
 
+    db = get_db()
     notific = db['notifics'].find_one_and_update({
           'tracking.sid': request.form['CallSid'],
         }, {
@@ -240,6 +242,8 @@ def on_complete():
             request.form['CallStatus'],
             request.form.get('AnsweredBy'),
             request.form.get('CallDuration'))
+
+    db = get_db()
 
     notific = db['notifics'].find_one_and_update({
         'tracking.sid': request.form['CallSid']}, {

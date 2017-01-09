@@ -5,13 +5,10 @@ import os
 from flask import render_template, request
 from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
-
-from .. import etap, utils, gsheets, mailgun
-from .. import db
+from .. import get_db, etap, utils, gsheets, mailgun
 from app.routing.main import order
 from app.routing.sheet import append_order
 from app.routing.geo import get_gmaps_url
-
 logger = logging.getLogger(__name__)
 
 class EtapError(Exception):
@@ -38,6 +35,8 @@ def make(agency, data):
             time(0,0,0))
     )
 
+    db = get_db()
+
     route = db.routes.find_one({
         'date': event_dt,
         'block': data['block'],
@@ -58,6 +57,7 @@ def make(agency, data):
 #-------------------------------------------------------------------------------
 def update_dms(agency, data):
 
+    db = get_db()
     conf = db.agencies.find_one({'name':agency})
 
     try:
@@ -97,6 +97,7 @@ def append_route(agency, route, data):
                 data['block'], data['date'])
     logger.debug('appending to ss_id "%s"', route['ss']['id'])
 
+    db = get_db()
     conf = db.agencies.find_one({'name':agency})
 
     acct = etap.call(
@@ -146,6 +147,7 @@ def send_confirm(agency, data):
         logger.error('Email not sent because render_template error. %s ', str(e))
         pass
 
+    db = get_db()
     conf = db.agencies.find_one({'name':agency})
 
     mid = mailgun.send(

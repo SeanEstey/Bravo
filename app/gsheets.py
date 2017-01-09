@@ -14,7 +14,7 @@ import httplib2
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
 
-from . import db
+#from . import db
 logger = logging.getLogger(__name__)
 
 

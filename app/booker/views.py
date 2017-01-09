@@ -8,17 +8,15 @@ from flask import request, jsonify, render_template, redirect, current_app,url_f
 from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 import logging
-
-from . import booker, geo
-from . import search, book
-from .. import utils
-from .. import db
+from . import booker, geo, search, book
+from .. import get_db, utils
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @booker.route('/', methods=['GET'])
 @login_required
 def show_home():
+    db = get_db()
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
     return render_template(
@@ -32,6 +30,7 @@ def show_home():
 def submit_search():
     logger.info(request.form.to_dict())
 
+    db = get_db()
     user = db.users.find_one({'user': current_user.username})
 
     results = search.search(
@@ -48,6 +47,7 @@ def submit_search():
 @booker.route('/find_nearby_blocks', methods=['POST'])
 def find_nearby_blocks():
 
+    db = get_db()
     conf = db.agencies.find_one({'name':request.form['agency']})
     maps = db.maps.find_one({'agency':conf['name']})['features']
 
@@ -84,6 +84,7 @@ def find_nearby_blocks():
 @booker.route('/get_acct', methods=['POST'])
 @login_required
 def get_acct():
+    db = get_db()
     user = db.users.find_one({'user': current_user.username})
 
     response = search.get_account(
@@ -99,6 +100,7 @@ def get_acct():
 def do_booking():
     logger.debug(request.form.to_dict())
 
+    db = get_db()
     user = db.users.find_one({'user': current_user.username})
 
     data = {
@@ -118,6 +120,7 @@ def do_booking():
 @booker.route('/get_maps', methods=['POST'])
 @login_required
 def get_maps():
+    db = get_db()
     user = db.users.find_one({'user': current_user.username})
     maps = db.maps.find_one({'agency':user['agency']})
 
@@ -132,6 +135,7 @@ def get_maps():
 @booker.route('/update_maps', methods=['POST'])
 @login_required
 def update_maps():
+    db = get_db()
     user = db.users.find_one({'user': current_user.username})
 
     from .. import tasks

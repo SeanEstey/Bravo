@@ -5,11 +5,12 @@ import json
 from flask import g, request, render_template, redirect, Response, \
 current_app, url_for, jsonify
 from flask_login import current_user, login_user, logout_user, login_required
+from app import get_db
 
 from . import auth
 
 from .user import User
-from app import db, login_manager
+from app import login_manager
 logger = logging.getLogger(__name__)
 
 
@@ -22,6 +23,8 @@ def before_request():
 @login_manager.user_loader
 def load_user(user_id):
 
+    db = get_db()
+
     user = db['users'].find_one({'user':user_id})
     if user:
         return User(user_id, user['password'])
@@ -32,6 +35,8 @@ def load_user(user_id):
 #-------------------------------------------------------------------------------
 @auth.route('/login', methods=['GET','POST'])
 def login():
+
+    db = get_db()
 
     if request.method == 'GET':
         return render_template('views/login.html')

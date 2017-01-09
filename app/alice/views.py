@@ -3,7 +3,7 @@
 import logging
 from flask import request, jsonify, render_template, session
 from flask_login import login_required, current_user
-from .. import utils, db#, store
+from .. import get_db, utils
 from . import alice, helper
 from bson.objectid import ObjectId
 logger = logging.getLogger(__name__)
@@ -18,6 +18,8 @@ def show_chatlogs():
 @alice.route('/chatlogs', methods=['POST'])
 @login_required
 def get_chatlogs():
+    db = get_db()
+
     agency = db.users.find_one({'user': current_user.username})['agency']
 
     chatlogs = helper.get_chatlogs(agency)

@@ -5,7 +5,7 @@ import os
 from flask import request
 from flask_login import current_user
 
-from .. import db
+from .. import get_db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -19,7 +19,7 @@ def auth_request_type(_type):
         return True
 
     # Request is from client
-
+    db = get_db()
     user = db['users'].find_one({'user': current_user.username})
 
     if _type == 'admin':
@@ -37,6 +37,7 @@ def auth_request_type(_type):
 
 #-------------------------------------------------------------------------------
 def get_op_stats():
+    db = get_db()
     user = db['users'].find_one({'user': current_user.username})
 
     if not user:
@@ -53,6 +54,7 @@ def get_op_stats():
 
 #-------------------------------------------------------------------------------
 def update_agency_conf():
+    db = get_db()
     user = db['users'].find_one({'user': current_user.username})
 
     logger.info('updating %s with value %s', request.form['field'], request.form['value'])

@@ -1,3 +1,5 @@
+'''app.notify.recording'''
+
 from twilio import twiml
 import os
 import logging
@@ -6,9 +8,7 @@ from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import request, current_app
 from flask_login import current_user
-
-from app import db
-from .. import utils
+from .. import get_db, utils
 logger = logging.getLogger(__name__)
 
 
@@ -17,6 +17,9 @@ def dial():
     '''Request: POST from Bravo javascript client with 'To' arg
     Response: JSON dict {'status':'string'}
     '''
+
+    db = get_db()
+
     agency = db['users'].find_one({'user': current_user.username})['agency']
 
     logger.info('Record audio request from ' + request.form['To'])
@@ -95,6 +98,8 @@ def on_interact():
 
     logger.debug('on_interact: %s', request.form.to_dict())
 
+    db = get_db()
+
     if request.form.get('Digits') == '#':
         record = db.audio.find_one({'sid': request.form['CallSid']})
 
@@ -128,6 +133,8 @@ def on_interact():
 #-------------------------------------------------------------------------------
 def on_complete():
     logger.debug('on_complete: %s', request.form.to_dict())
+
+    db = get_db()
 
     r = db.audio.find_one({'sid': request.form['CallSid']})
 

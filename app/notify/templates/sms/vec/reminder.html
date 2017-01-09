@@ -1,13 +1,13 @@
 {% if 'reply' in notific['tracking'] %}
 
-	{% if notific['tracking']['reply'] == 'NOPICKUP' %}
+	{% if notific['tracking']['reply'] == 'SKIP' %}
 
 		Thank you. You have been removed from the route. Your next scheduled pickup will be 
 		{{ account['udf']['future_pickup_dt'] }}.
 
 	{% else %}
 
-		If you do not need a pickup, reply with keyword NOPICKUP.
+		Let me know if you want to SKIP this pickup or have any INSTRUCTIONS for our driver.
 
 	{% endif %}
 
@@ -43,6 +43,6 @@
 
     {% endif %}
 
-		If you do not need a pickup, reply with keyword NOPICKUP.
+		Let me know if you want to SKIP this pickup or have any INSTRUCTIONS for our driver.
 
 {% endif %}

@@ -1,3 +1,5 @@
+'''app.booker.geo'''
+
 import logging
 import matplotlib.path as mplPath
 import os
@@ -7,9 +9,7 @@ import math
 import requests
 import json
 from datetime import datetime
-
-from app import db
-from .. import parser
+from .. import get_db, parser
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,7 @@ def find_block(agency, address, api_key):
 
 #-------------------------------------------------------------------------------
 def get_maps(agency):
+    db = get_db()
     return db.maps.find_one({'agency':agency})['features']
 
 #-------------------------------------------------------------------------------
@@ -37,6 +38,8 @@ def find_map(agency, pt):
     '''@pt: {'lng':float, 'lat':float}'''
 
     logger.info('find_map in pt %s', pt)
+
+    db = get_db()
 
     maps = db.maps.find_one({'agency':agency})['features']
 
@@ -268,6 +271,8 @@ def get_postal(geo_result):
 
 #-------------------------------------------------------------------------------
 def update_maps(agency, emit_status=False):
+    db = get_db()
+
     conf = db.maps.find_one({'agency':agency})
     status = None
     desc = None

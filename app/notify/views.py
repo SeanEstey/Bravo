@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 from flask import \
     request, jsonify, render_template, redirect, Response, current_app,\
     session, url_for
-from .. import utils, cal, parser, db
+from .. import utils, cal, parser, get_db
 from . import notify
 from . import \
     accounts, admin, events, triggers, email, voice, sms, recording, pus, gg,\
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 @login_required
 def view_event_list():
 
-
+    db = get_db()
     user = db['users'].find_one({'user': current_user.username})
     agency = user['agency']
 
@@ -48,6 +48,7 @@ def view_event_list():
 def view_event(evnt_id):
     '''GUI event view'''
 
+    db = get_db()
     admin = db['users'].find_one({'user': current_user.username})['admin']
     event = events.get(ObjectId(evnt_id))
     notific_list = list(events.get_notifics(ObjectId(evnt_id)))
@@ -77,6 +78,7 @@ def view_event(evnt_id):
 @notify.route('/new', methods=['POST'])
 @login_required
 def new_event():
+    db = get_db()
     logger.debug(request.form.to_dict())
 
     agency = db['users'].find_one({'user': current_user.username})['agency']
@@ -195,6 +197,7 @@ def fire_trigger(trig_id):
     if not admin.auth_request_type('admin'):
         return 'Denied'
 
+    db = get_db()
     trigger = db['triggers'].find_one({'_id':ObjectId(trig_id)})
 
     from .. import tasks
@@ -277,13 +280,13 @@ def sms_received():
     #if alice.is_unsub():
     #    return 'OK'
 
-    if sms.is_reply():
-        return sms.on_reply()
-    else:
-        a = utils.start_timer()
-        response = app.alice.brain.receive_msg()
-        utils.end_timer(a, display=True, lbl='alice request')
-        return response
+    #if sms.is_reply():
+    #    return sms.on_reply()
+    #else:
+    a = utils.start_timer()
+    response = app.alice.brain.receive_msg()
+    utils.end_timer(a, display=True, lbl='alice request')
+    return response
 
 #-------------------------------------------------------------------------------
 @notify.route('/call/nis', methods=['POST'])
@@ -316,6 +319,7 @@ def kill_trigger():
 @notify.route('/<trig_id>/get_status', methods=['POST'])
 @login_required
 def get_trig_status(trig_id):
+    db = get_db()
     status = db.triggers.find_one({'_id':ObjectId(trig_id)})['status']
     return jsonify({'status':status, 'trig_id':trig_id})
 
@@ -333,6 +337,7 @@ def get_op_stats():
 @notify.route('/<evnt_id>/debug_info', methods=['POST'])
 @login_required
 def get_debug_info(evnt_id):
+    db = get_db()
     event = db.notific_events.find_one({'_id':ObjectId(evnt_id)})
 
     event['triggers'] = events.get_triggers(event['_id'])

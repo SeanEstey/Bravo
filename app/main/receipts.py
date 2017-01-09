@@ -10,13 +10,14 @@ from datetime import datetime, date
 from dateutil.parser import parse
 from flask import render_template, request
 
-from .. import html, mailgun, etap, gsheets
-from .. import db
+from .. import get_db, html, mailgun, etap, gsheets
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def on_delivered():
     '''Mailgun webhook called from view. Has request context'''
+
+    db = get_db()
 
     logger.info('receipt delivered to %s', request.form['recipient'])
 
@@ -49,6 +50,8 @@ def on_delivered():
 #-------------------------------------------------------------------------------
 def on_dropped():
     '''Mailgun webhook called from view. Has request context'''
+
+    db = get_db()
 
     msg = 'receipt to %s dropped. %s. %s' %(
         request.form['recipient'],
@@ -117,6 +120,8 @@ def send(agency, to, template, subject, data):
     Adds an eTapestry journal note with the content.
     '''
 
+    db = get_db()
+
     logger.debug('%s %s', str(data['account']['id']), template)
 
     agency_conf = db['agencies'].find_one({'name':agency})
@@ -163,6 +168,8 @@ def process(entries, etapestry_id):
     @etapestry_id: agency name and login info
     TODO: replace etapestry_id with agency name. Lookup etap_id from DB
     '''
+
+    db = get_db()
 
     try:
         # Get all eTapestry account data.

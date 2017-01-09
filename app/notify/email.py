@@ -4,8 +4,7 @@ import logging
 import os
 from flask import render_template, current_app, request
 from datetime import datetime, date, time
-from .. import db
-from .. import utils, mailgun
+from .. import get_db, utils, mailgun
 logger = logging.getLogger(__name__)
 
 # TODO: remove db['emails'].update op. in app.notify.views.on_delivered just search mid in db['notifics']
@@ -18,6 +17,8 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
         'template': 'path/to/template/file',
         'subject': 'msg'}
     '''
+
+    db = get_db()
 
     return db['notifics'].insert_one({
         'evnt_id': evnt_id,
@@ -38,6 +39,8 @@ def send(notific, mailgun_conf, key='default'):
     '''Private method called by send()
     @key = dict key in email schemas for which template to use
     '''
+
+    db = get_db()
 
     # If this is run from a Celery task, it is working outside a request
     # context. Create one so that render_template behaves as if it were in
@@ -93,6 +96,8 @@ def on_delivered():
 
     logger.info('notific to %s delivered', request.form['recipient'])
 
+    db = get_db()
+
     notific = db['notifics'].find_one_and_update(
       {'tracking.mid': request.form['Message-Id']},
       {'$set':{
@@ -111,6 +116,8 @@ def on_dropped():
 
     logger.info('notification to %s dropped. %s',
         request.form['recipient'], request.form.get('reason'))
+
+    db = get_db()
 
     notific = db['notifics'].find_one_and_update(
       {'tracking.mid': request.form['Message-Id']},

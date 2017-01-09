@@ -1,5 +1,6 @@
 '''routing.views'''
 
+import logging
 import json
 import twilio.twiml
 import requests
@@ -7,12 +8,8 @@ from datetime import datetime, date, time, timedelta
 from flask import request, jsonify, render_template, redirect, current_app,url_for
 from flask_login import login_required, current_user
 from bson.objectid import ObjectId
-import logging
-
-from . import routing
-from . import main
-from .. import utils
-from .. import db
+from . import routing, main
+from .. import get_db, utils
 logger = logging.getLogger(__name__)
 
 
@@ -20,6 +17,7 @@ logger = logging.getLogger(__name__)
 @routing.route('', methods=['GET'])
 @login_required
 def show_routing():
+    db = get_db()
     agency = db['users'].find_one({'user': current_user.username})['agency']
     agency_conf = db['agencies'].find_one({'name':agency})
 
@@ -53,6 +51,7 @@ def show_routing():
 @routing.route('/get_route/<job_id>', methods=['GET'])
 @login_required
 def get_route(job_id):
+    db = get_db()
     agency = db['routes'].find_one({'job_id':job_id})['agency']
     conf = db['agencies'].find_one({'name':agency})
     api_key = conf['google']['geocode']['api_key']
@@ -63,6 +62,7 @@ def get_route(job_id):
 @routing.route('/analyze_upcoming/<days>', methods=['GET'])
 @login_required
 def analyze_upcoming(days):
+    db = get_db()
     user = db['users'].find_one({'user': current_user.username})
 
     from .. import tasks
@@ -99,6 +99,7 @@ def edit(route_id):
     logger.info(request.form.to_dict())
     logger.info(route_id)
 
+    db = get_db()
     user = db['users'].find_one({'user': current_user.username})
     conf = db.agencies.find_one({'name':user['agency']})
 

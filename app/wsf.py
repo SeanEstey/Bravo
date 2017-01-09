@@ -1,13 +1,10 @@
 '''app.wsf'''
 
+import logging
 import json
 from datetime import datetime
 from flask import current_app
-import logging
-
-from . import gsheets
-from . import db
-
+from . import get_db, gsheets
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -18,6 +15,8 @@ def resolve_depot(block, postal_codes, event_desc=False):
     Last, see if 'routing.depots' postal_codes match ones given.
     Return 'Strathcona' as default if none found.
     '''
+
+    db = get_db()
 
     depots = list(db['agencies'].find_one({'name':'wsf'})['routing']['locations']['depots'])
 
@@ -60,6 +59,8 @@ def add_signup(signup):
       signup.get('first_name'),
       signup.get('last_name')
     )
+
+    db = get_db()
 
     try:
       oauth = db['agencies'].find_one({'name':'wsf'})['google']['oauth']

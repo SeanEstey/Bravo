@@ -6,10 +6,10 @@ import os
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from pymongo.collection import ReturnDocument
-from flask import current_app, render_template, request
+from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
-from .. import db
-from .. import utils, html
+from .. import get_db, utils, html
+from app.alice.brain import compose_msg
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +27,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
         'func':'handler_func'}
     '''
 
-
+    db = get_db()
 
     return db['notifics'].insert_one({
         'evnt_id': evnt_id,
@@ -48,16 +48,11 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
 def send(notific, twilio_conf):
     '''Send an SMS message to recipient
     @agency: mongo document wtih twilio auth info and sms number
+
     Output: Twilio response
     '''
 
-    try:
-        client = TwilioRestClient(
-            twilio_conf['api']['sid'],
-            twilio_conf['api']['auth_id'])
-    except twilio.TwilioRestException as e:
-        logger.error('SMS not sent. Error getting Twilio REST client. %s', str(e), exc_info=True)
-        return 'failed'
+    db = get_db()
 
     acct = db['accounts'].find_one(
         {'_id': notific['acct_id']})
@@ -89,19 +84,21 @@ def send(notific, twilio_conf):
         from_ = twilio_conf['sms']['number']
         logger.info('queued sms to %s', notific['to'])
 
+    body = html.clean_whitespace(body)
+    callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST')
+    logger.info(body)
+
     try:
-        msg = client.messages.create(
-            body = html.clean_whitespace(body),
-            to = notific['to'],
-            from_ = from_,
-            status_callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST'))
+        msg = compose_msg(
+            body, notific['to'], acct['agency'], twilio_conf,
+            callback=callback)
     except Exception as e:
-        error = str(e)
-        logger.error('failed to send SMS. %s', str(e))
+        logger.error('compose_msg exc')
     else:
         logger.info('queued sms to %s', notific['to'])
-        logger.debug(utils.print_vars(msg))
     finally:
+        logger.info('updating db')
+        '''
         db['notifics'].update_one(
             {'_id': notific['_id']},
             {'$set': {
@@ -111,12 +108,15 @@ def send(notific, twilio_conf):
                 'tracking.status': msg.status if msg else 'failed',
                 'tracking.descripton': error or None,
             }})
+        '''
 
     return msg.status if msg else 'failed'
 
 #-------------------------------------------------------------------------------
 def is_reply():
     '''Defined as an incoming msg prior to the notific event datetime'''
+
+    db = get_db()
 
     notific = db['notifics'].find_one({
         'to': request.form['From'],
@@ -141,6 +141,8 @@ def on_reply():
 
     logger.info('received reply \'%s\' from %s',
         request.form['Body'], request.form['From'])
+
+    db = get_db()
 
     # It's a notific reply if from same number as a notific
     # was sent on same date
@@ -175,6 +177,8 @@ def on_status():
 
     logger.debug('sms.on_status: %s', request.form.to_dict())
 
+    db = get_db()
+
     notific = db['notifics'].find_one_and_update({
         'tracking.sid': request.form['SmsSid']}, {
         '$set':{
@@ -187,6 +191,7 @@ def on_status():
     if not notific:
         logger.debug('no notific for sid %s. must be reply.', str(request.form['SmsSid']))
         return 'OK'
+        logger.info('rest call')
 
     from .. socketio import socketio_app
     socketio_app.emit('notific_status', {

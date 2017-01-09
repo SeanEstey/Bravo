@@ -8,10 +8,8 @@ import os
 from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
-
-from app import db
 from . import events, accounts, triggers, voice
-from .. import utils, etap, bcolors
+from .. import get_db, utils, etap, bcolors
 logger = logging.getLogger(__name__)
 
 class EtapError(Exception):
@@ -19,6 +17,7 @@ class EtapError(Exception):
 
 #-------------------------------------------------------------------------------
 def add_event():
+    db = get_db()
     agency = db.users.find_one({'user': current_user.username})['agency']
     conf= db.agencies.find_one({'name':agency})
 
@@ -86,6 +85,8 @@ def add_event():
 
 #-------------------------------------------------------------------------------
 def on_interact():
+    db = get_db()
+
     if request.form.get('Digits') == '1':
         notific = db['notifics'].find_one_and_update({
               'tracking.sid': request.form['CallSid'],

@@ -8,7 +8,6 @@ from datetime import datetime, date, time, timedelta
 
 from .parser import get_block, block_to_rmv
 from . import gcal, gsheets, etap
-from . import db
 
 logger = logging.getLogger(__name__)
 

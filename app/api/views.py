@@ -6,10 +6,7 @@ from datetime import datetime, date, time, timedelta
 from flask import request, jsonify, current_app, url_for, Response
 from bson.objectid import ObjectId
 import logging
-
 from . import api
-from .. import utils
-from .. import db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

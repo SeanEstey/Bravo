@@ -8,11 +8,8 @@ from flask import request, jsonify, render_template, \
 from flask_login import login_required, current_user
 import logging
 import bson.json_util
-
 from . import main
 from app.notify import pus
-from .. import db
-
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

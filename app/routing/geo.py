@@ -3,9 +3,6 @@
 import json
 import logging
 import requests
-
-from app import db
-
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

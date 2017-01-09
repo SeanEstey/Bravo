@@ -7,7 +7,6 @@ from apiclient.discovery import build
 import requests
 import json
 
-from . import db
 logger = logging.getLogger(__name__)
 
 

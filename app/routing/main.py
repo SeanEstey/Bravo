@@ -8,13 +8,8 @@ from time import sleep
 import requests
 from flask_login import current_user
 from bson import ObjectId
-
-from .. import gdrive, gsheets, etap, cal, wsf, utils
+from .. import get_db, task_emit, gdrive, gsheets, etap, cal, wsf, utils
 from . import geo, routific, sheet
-
-from app import db
-from app import task_emit
-
 logger = logging.getLogger(__name__)
 
 class GeocodeError(Exception):
@@ -32,6 +27,7 @@ def build(route_id, job_id=None):
     Returns: db.routes dict on success, False on error
     '''
 
+    db = get_db()
     route = db.routes.find_one({"_id":ObjectId(route_id)})
     conf = db['agencies'].find_one({'name':route['agency']})
 
@@ -94,6 +90,7 @@ def submit_job(route_id):
     MIN_PER_STOP = 3
     SHIFT_END = '19:00'
 
+    db = get_db()
     route = db.routes.find_one({"_id":ObjectId(route_id)})
     conf = db.agencies.find_one({'name':route['agency']})
 
@@ -261,6 +258,8 @@ def get_solution_orders(job_id, api_key):
 
     #logger.debug(utils.print_vars(task, depth=5))
 
+    db = get_db()
+
     route_info = db.routes.find_one({'job_id':job_id})
 
     output = task['output']
@@ -371,6 +370,8 @@ def get_metadata():
     '''Get metadata for routes today and onward
     Return: list of db.routes dicts
     '''
+
+    db = get_db()
 
     agency = db['users'].find_one({'user': current_user.username})['agency']
 

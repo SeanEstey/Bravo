@@ -13,7 +13,7 @@ import celery
 from flask_socketio import SocketIO
 
 import config
-from app import create_app, config_test_server, is_test_server
+from app import config_test_server, is_test_server
 from app.tasks import flask_app
 from app.socketio import socketio_app
 import app

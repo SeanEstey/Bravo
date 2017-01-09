@@ -9,8 +9,6 @@ from apiclient.http import BatchHttpRequest
 import re
 import requests
 import json
-
-from app import db
 logger = logging.getLogger(__name__)
 
 

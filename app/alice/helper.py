@@ -4,7 +4,7 @@ import logging
 from flask import request, current_app, g, request, session
 from bson.objectid import ObjectId
 from datetime import datetime, date, timedelta
-from .. import etap, utils, db, bcolors
+from .. import etap, utils, get_db, bcolors
 from . import keywords
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,8 @@ def check_identity():
         return True
 
     # Test for unknown registered user
+
+    db = get_db()
 
     agency = db.agencies.find_one({
         'twilio.sms.number': request.form['To']})
@@ -42,6 +44,7 @@ def check_identity():
         if session.get('account'):
             # Known registered user now
 
+            session['self_name'] = agency['alice']['name']
             session['conf'] = agency
             session['valid_kws'] = keywords.user.keys()
 
@@ -53,6 +56,7 @@ def check_identity():
 
     # Must be unknown unregistered user
 
+    session['self_name'] = agency['alice']['name']
     session['unreg_id'] = str(ObjectId())
     session['conf'] = agency
     session['valid_kws'] = keywords.anon.keys()
@@ -102,6 +106,8 @@ def save_msg():
 
     date_str = date.today().isoformat()
 
+    db = get_db()
+
     if not db.alice.find_one({'from': request.form['From'],'date':date_str}):
         db.alice.insert_one({
             'agency': conf['name'],
@@ -140,6 +146,8 @@ def get_chatlogs(agency, start_dt=None):
         start_dt = datetime.utcnow() - timedelta(days=14)
 
     # double-check start_dt arg is UTC
+
+    db = get_db()
 
     chats = db.alice.find(
         {'agency':agency, 'last_msg_dt': {'$gt': start_dt}},

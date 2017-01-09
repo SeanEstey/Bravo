@@ -12,7 +12,7 @@ from flask_login import login_required, current_user
 from flask_socketio import SocketIO, emit
 from bson.objectid import ObjectId
 
-from .. import utils, html, gsheets, mailgun, db
+from .. import get_db, utils, html, gsheets, mailgun
 from . import main, log, receipts, signups
 from app.notify import admin, email
 from app.booker import book
@@ -52,6 +52,7 @@ def view_log():
 @main.route('/admin')
 @login_required
 def view_admin():
+    db = get_db()
     user = db['users'].find_one({'user': current_user.username})
     agency = db['users'].find_one({'user': current_user.username})['agency']
 

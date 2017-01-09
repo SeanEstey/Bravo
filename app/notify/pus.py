@@ -307,6 +307,7 @@ def cancel_pickup(evnt_id, acct_id):
     if not acct.get('email'):
         return True
 
+    '''
     # Send confirmation email
     # Running via celery worker outside request context
     # Must create one for render_template() and set SERVER_NAME for
@@ -322,6 +323,7 @@ def cancel_pickup(evnt_id, acct_id):
         except Exception as e:
             logger.error('Error rendering no_pickup email. %s', str(e))
             return False
+    '''
 
     return True
 

@@ -5,9 +5,8 @@ import os
 import traceback as tb
 from celery import Celery
 from celery.task.control import revoke
-from flask import g, session, request
+from flask import current_app, g, session, request
 import logging
-import mongodb
 from bson.objectid import ObjectId as oid
 from . import get_db, bcolors, utils, db_client, create_app, create_celery_app, \
         debug_handler, info_handler, error_handler, exception_handler,\
@@ -17,7 +16,6 @@ flask_app = create_app('app', db_client)
 celery = create_celery_app(flask_app)
 
 kv_ext = create_kv_session(flask_app)
-
 
 from celery.utils.log import get_task_logger
 
@@ -34,40 +32,20 @@ class EtapError(Exception):
 #-------------------------------------------------------------------------------
 @flask_app.before_request
 def do_setup():
-    session.permanent = False
-
     db = db_client[flask_app.config['DB']]
     g.db = db
-    '''
-    total = db.sessions.find().count()
-    doc = db.sessions.find().limit(1).sort('$natural', -1).next()
-    logger.debug('newest sid: %s (total=%s)', str(doc['_id']), total)
-    '''
 
 #-------------------------------------------------------------------------------
 @flask_app.after_request
 def do_teardown(response):
-
-    # TODO: write celery task that uses text_request_context() to
-    # cleanup_sessions. put on celerybeat schedule of 1x/day
-    #kv_ext.cleanup_sessions()
-
     db = get_db()
     total = db.sessions.find().count()
     logger.debug('db.session count=%s', total)
-    '''
-    if response._status_code == 404:
-        db = get_db()
-        doc = db.sessions.find().limit(1).sort('$natural', -1)
 
-        if doc:
-            doc = doc.next()
-            total = db.sessions.find().count()
-            r = db.sessions.delete_one({'_id':doc['_id']})
-            logger.debug(
-                '404: rmv sid  %s. n=%s (total=%s)',
-                str(doc['_id']), r.deleted_count, total)
-    '''
+    if total > 100:
+        logger.info('cleaning expired sessions')
+        r = kv_ext.cleanup_sessions()
+
     return response
 
 #-------------------------------------------------------------------------------
@@ -83,6 +61,18 @@ def kill(task_id):
     logger.info('revoke response: %s', str(response))
 
     return response
+
+#-------------------------------------------------------------------------------
+@celery.task
+def clean_expired_sessions():
+    try:
+        with current_app.test_request_context():
+            logger.info('cleaning expired sessions')
+            logger.debug(utils.print_vars(kv_ext))
+            kv_ext.cleanup_sessions()
+    except Exception as e:
+        logger.debug(str(e))
+
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -217,10 +207,10 @@ def add_signup(signup):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def fire_trigger(self, evnt_id, trig_id):
-    _client = mongodb.create_client(connect=False, auth=True)
-    db = _client[flask_app.config['DB']]
 
     logger.debug('trigger task_id: %s', self.request.id)
+
+    db = get_db()
 
     # Store celery task_id in case we need to kill it
     db.triggers.update_one({

@@ -49,7 +49,7 @@ def send(notific, twilio_conf):
     '''Send an SMS message to recipient
     @agency: mongo document wtih twilio auth info and sms number
 
-    Output: Twilio response
+    Returns: twilio compose msg status
     '''
 
     db = get_db()
@@ -86,7 +86,6 @@ def send(notific, twilio_conf):
 
     body = html.clean_whitespace(body)
     callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST')
-    logger.info(body)
 
     try:
         msg = compose_msg(
@@ -97,8 +96,6 @@ def send(notific, twilio_conf):
     else:
         logger.info('queued sms to %s', notific['to'])
     finally:
-        logger.info('updating db')
-        '''
         db['notifics'].update_one(
             {'_id': notific['_id']},
             {'$set': {
@@ -108,7 +105,6 @@ def send(notific, twilio_conf):
                 'tracking.status': msg.status if msg else 'failed',
                 'tracking.descripton': error or None,
             }})
-        '''
 
     return msg.status if msg else 'failed'
 
@@ -124,10 +120,7 @@ def is_reply():
         'event_dt': {'$gte': datetime.utcnow()}
     })
 
-    if notific:
-        return True
-    else:
-        return False
+    return notific is not None
 
 #-------------------------------------------------------------------------------
 def on_reply():
@@ -150,23 +143,25 @@ def on_reply():
     notific = db['notifics'].find_one_and_update({
           'to': request.form['From'],
           'type': 'sms',
-          'tracking.sent_dt': utils.naive_to_local(datetime.combine(date.today(),time()))
+          'event_dt': {'$gte': datetime.utcnow()}
         }, {
           '$set': {
-            'tracking.reply': request.form['Body'].upper()
+            'tracking.reply': request.form['Body']
         }},
         return_document=ReturnDocument.AFTER)
+
+    # ***Alice now handles all replies***
 
     # Import assigned handler module and invoke function
     # to get voice response
 
-    module = __import__(notific['on_reply']['module'], fromlist='.' )
+    #module = __import__(notific['on_reply']['module'], fromlist='.' )
 
-    handler_func = getattr(module, notific['on_reply']['func'])
+    #handler_func = getattr(module, notific['on_reply']['func'])
 
-    response = handler_func(notific)
+    #response = handler_func(notific)
 
-    return response
+    #return response
 
 #-------------------------------------------------------------------------------
 def on_status():

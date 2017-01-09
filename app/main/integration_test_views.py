@@ -13,6 +13,14 @@ from app.notify import pus
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
+@main.route('/test_clean_sessions', methods=['GET'])
+@login_required
+def test_clean_sessions():
+    from .. import tasks
+    tasks.clean_expired_sessions.apply_async(queue=current_app.config['DB'])
+    return 'OK'
+
+#-------------------------------------------------------------------------------
 @main.route('/test_test', methods=['POST'])
 def test_test():
     logger.info('test')

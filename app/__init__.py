@@ -63,7 +63,8 @@ def get_db():
 def create_kv_session(app):
     store = MongoStore(
         db_client[config.DB],
-        config.ALICE_SESSION_COLLECTION)
+        config.SESSION_COLLECTION)
+
     return KVSessionExtension(store, app)
 
 #-------------------------------------------------------------------------------
@@ -74,9 +75,6 @@ def create_app(pkg_name, db_client):
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.jinja_env.add_extension("jinja2.ext.do")
     app.permanent_session_lifetime = app.config['PERMANENT_SESSION_LIFETIME']
-
-    #timedelta(
-    #    minutes=app.config['PERMANENT_SESSION_LIFETIME'])
 
     app.logger.addHandler(error_handler)
     app.logger.addHandler(info_handler)
@@ -107,14 +105,10 @@ def create_app(pkg_name, db_client):
 
 #-------------------------------------------------------------------------------
 def create_celery_app(app):
-    #app = app or create_app('app')
-
     celery = Celery(__name__, broker='amqp://')
     celery.config_from_object('celeryconfig')
     celery.conf.update(app.config)
     TaskBase = celery.Task
-
-    #mongodb.auth(db_client)
 
     class ContextTask(TaskBase):
         abstract = True

@@ -105,8 +105,9 @@ def handle_keyword(kw, handler=None):
             reply = func()
         except Exception as e:
             logger.error('%s failed: %s', on_receive['handler']['func'], str(e))
+            logger.debug(str(e), exc_info=True)
 
-            return make_reply(dialog['error']['unknown'], on_complete=on_complete)
+            return make_reply(dialog['error']['internal']['default'], on_complete=on_complete)
 
         return make_reply(reply, on_complete=on_complete)
 

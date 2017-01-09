@@ -1,7 +1,7 @@
 '''app.alice.events'''
 
 import logging
-from app import etap, utils, db, bcolors
+from app import get_db, etap, utils, bcolors
 from flask import request, session
 from datetime import datetime, date, time, timedelta
 from app.booker import geo, search, book
@@ -55,6 +55,7 @@ def add_instruction():
 
 #-------------------------------------------------------------------------------
 def skip_pickup():
+    db = get_db()
 
     notifications = db.notifics.find(
         {'to': request.form['From'],
@@ -65,12 +66,19 @@ def skip_pickup():
 
     logger.debug(utils.formatter(notific, bson_to_json=True))
 
-    # cancel_pickup(notific['evnt_id'], notific['acct_id'])
+    result = cancel_pickup(notific['evnt_id'], notific['acct_id'])
 
-    #if response:
-    return "I've taken you off the schedule. Thank you."
-    #else:
-    #    return "I'm sorry, our driver has already been dispatched for the pickup."
+    if not result:
+        return dialog['error']['internal']['default']
+
+    acct_doc = db.accounts.find_one({'_id':notific['acct_id']})
+
+    future_pu_dt = utils.naive_utc_to_local(acct_doc['udf']['future_pickup_dt'])
+
+    return \
+        "Thank you. You have been removed from the route. "\
+        "Your next scheduled pickup will be %s." % \
+        future_pu_dt.strftime('%B %-d, %Y')
 
 #-------------------------------------------------------------------------------
 def update_mobile():
@@ -93,6 +101,8 @@ def is_unsub():
 
     from phrases import unsubscribe
 
+    db = get_db()
+
     if request.form['Body'].upper() in unsubscribe:
         logger.info('%s has unsubscribed from this sms number (%s)',
                     request.form['From'], request.form['To'])
@@ -112,6 +122,8 @@ def is_unsub():
 
 #-------------------------------------------------------------------------------
 def request_pickup(msg, response):
+    db = get_db()
+
     agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
     # Msg reply should contain address
@@ -157,6 +169,8 @@ def request_pickup(msg, response):
 
 #-------------------------------------------------------------------------------
 def add_acct(address, phone, block, pu_date_str):
+    db = get_db()
+
     conf = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
     geo_result = geo.geocode(

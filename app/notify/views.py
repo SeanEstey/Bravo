@@ -280,9 +280,11 @@ def sms_received():
     #if alice.is_unsub():
     #    return 'OK'
 
-    #if sms.is_reply():
-    #    return sms.on_reply()
-    #else:
+    # If reply to notific, update any db documents
+    if sms.is_reply():
+        sms.on_reply()
+
+    # Have Alice handle response
     a = utils.start_timer()
     response = app.alice.brain.receive_msg()
     utils.end_timer(a, display=True, lbl='alice request')

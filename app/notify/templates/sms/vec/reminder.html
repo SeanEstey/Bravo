@@ -1,21 +1,7 @@
-{% if 'reply' in notific['tracking'] %}
-
-	{% if notific['tracking']['reply'] == 'SKIP' %}
-
-		Thank you. You have been removed from the route. Your next scheduled pickup will be 
-		{{ account['udf']['future_pickup_dt'] }}.
-
-	{% else %}
-
-		Let me know if you want to SKIP this pickup or have any INSTRUCTIONS for our driver.
-
-	{% endif %}
-
-{% else %}
 
 		Hi {{ account['name'].split(' ')[0] }}, 
 		
-		this is a friendly reminder that your Vecova 
+		this is a reminder that your Vecova 
 
     {% if account['udf']['status'] == "Dropoff" %}
 
@@ -43,6 +29,10 @@
 
     {% endif %}
 
-		Let me know if you want to SKIP this pickup or have any INSTRUCTIONS for our driver.
+		Let me know if you have INSTRUCTIONS for our driver.
 
-{% endif %}
+    {% if account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
+
+			Or if you want to SKIP this pickup.
+
+		{% endif %}

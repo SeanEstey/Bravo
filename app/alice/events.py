@@ -2,17 +2,18 @@
 
 import logging
 from app import get_db, etap, utils, bcolors
+from app.etap import EtapError
 from flask import request, session
 from datetime import datetime, date, time, timedelta
 from app.booker import geo, search, book
 from .dialog import dialog
 from .helper import rfu_task
 from app.notify.pus import cancel_pickup
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
+
 
 #-------------------------------------------------------------------------------
 def request_support():
-
     account = session.get('account')
 
     rfu_task(
@@ -22,7 +23,7 @@ def request_support():
         name_addy = account['name']
     )
 
-    return "Thank you. I'll have someone contact you soon."
+    return dialog['support']['thanks']
 
 #-------------------------------------------------------------------------------
 def reply_schedule():
@@ -31,13 +32,11 @@ def reply_schedule():
     if not next_pu:
         return dialog['error']['internal']['lookup']
     else:
-        return \
-            'Your next pickup is scheduled on ' +\
-            etap.ddmmyyyy_to_dt(next_pu).strftime('%A, %B %-d') + '.'
+        return dialog['schedule']['next'] %(
+            etap.ddmmyyyy_to_dt(next_pu).strftime('%A, %B %-d'))
 
 #-------------------------------------------------------------------------------
 def add_instruction():
-
     driver_notes = etap.get_udf('Driver Notes', session.get('account'))
 
     etap.call(
@@ -46,34 +45,49 @@ def add_instruction():
         data={
             'id': session.get('account')['id'],
             'udf': {
-                'Driver Notes': '***%s***\n%s' % (str(request.form['Body']), driver_notes)
+                'Driver Notes':\
+                    '***%s***\n%s' %(
+                    str(request.form['Body']), driver_notes)
             },
             'persona': []
         })
 
-    return "Thank you. I'll pass along the note to our driver."
+    return dialog['instruct']['thanks']
 
 #-------------------------------------------------------------------------------
 def skip_pickup():
     db = get_db()
 
-    notifications = db.notifics.find(
+    notifics = db.notifics.find(
         {'to': request.form['From'],
+         'type': 'sms',
          'tracking.status': 'delivered'}
     ).sort('tracking.sent_dt', -1).limit(1)
 
     # Verify 'SKIP' is response to recent notification
 
-    if notifications.count() == 0:
-        logger.error('no matching notification to skip')
-        return "I can't find a pickup date to remove you from."
+    acct = session.get('account')
 
-    notific = notifications.next()
+    if notifics.count() == 0:
+        log.error('notific not found (from=%s)', request.form['From'])
+
+        msg = dialog['err']['skip']['no_evnt']
+
+        npu = etap.get_udf('Next Pickup Date', acct)
+
+        if not npu:
+            log.error('field udf->npu empty (etap_id=%s)', acct['id'])
+            return msg
+
+        return msg + dialog['schedule']['next'] %(
+            etap.ddmmyyyy_to_local_dt(npu).strftime('%B %-d, %Y'))
+
+    notific = notifics.next()
 
     # If first reply, insert original notific msg content in DB before this reply
 
     if get_msg_count() == 1:
-        logger.debug('updating alice.doc_id=%s', str(session.get('doc_id')))
+        log.debug('updating alice.doc_id=%s', str(session.get('doc_id')))
         db.alice.update_one(
             {'_id': session.get('doc_id')},
             {'$push': { 'messages': { '$each': [notific['tracking']['body']], '$position': 0}}})
@@ -81,12 +95,10 @@ def skip_pickup():
     # Is it too late to skip this pickup?
 
     if datetime.utcnow() > notific['event_dt'].replace(tzinfo=None):
-        logger.error('cannot skip pickup for route already dispatched')
-        return \
-            "I'm sorry, I can't remove you from this route "\
-            " as it has already been dispatched to our driver."
+        log.error('route already built (etap_id=%s)', acct['id'])
+        return dialog['skip']['too_late']
 
-    logger.debug(utils.formatter(notific, bson_to_json=True))
+    log.debug(utils.formatter(notific, bson_to_json=True))
 
     result = cancel_pickup(notific['evnt_id'], notific['acct_id'])
 
@@ -98,9 +110,8 @@ def skip_pickup():
     future_pu_dt = utils.naive_utc_to_local(acct_doc['udf']['future_pickup_dt'])
 
     return \
-        "Thank you. You have been removed from the route. "\
-        "Your next scheduled pickup will be %s." % \
-        future_pu_dt.strftime('%B %-d, %Y')
+        dialog['skip']['success'] + \
+        dialog['schedule']['next'] % future_pu_dt.strftime('%B %-d, %Y')
 
 #-------------------------------------------------------------------------------
 def update_mobile():
@@ -126,7 +137,7 @@ def is_unsub():
     db = get_db()
 
     if request.form['Body'].upper() in unsubscribe:
-        logger.info('%s has unsubscribed from this sms number (%s)',
+        log.info('%s has unsubscribed from this sms number (%s)',
                     request.form['From'], request.form['To'])
 
         account = get_identity(make_response())
@@ -149,24 +160,24 @@ def request_pickup(msg, response):
     agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
 
     # Msg reply should contain address
-    logger.info('pickup request address: \"%s\" (SMS: %s)', msg, request.form['From'])
+    log.info('pickup request address: \"%s\" (SMS: %s)', msg, request.form['From'])
 
     block = geo.find_block(agency['name'], msg, agency['google']['geocode']['api_key'])
 
     if not block:
-        logger.error('could not find map for address %s', msg)
+        log.error('could not find map for address %s', msg)
 
         send_reply('We could not locate your address', response)
 
         return False
 
-    logger.info('address belongs to Block %s', block)
+    log.info('address belongs to Block %s', block)
 
     set_cookie(response, 'status', None)
 
     r = search.search(agency['name'], block, radius=None, weeks=None)
 
-    logger.info(r['results'][0])
+    log.info(r['results'][0])
 
     add_acct(
         msg,
@@ -200,7 +211,7 @@ def add_acct(address, phone, block, pu_date_str):
         conf['google']['geocode']['api_key']
     )[0]
 
-    #logger.info(utils.print_vars(geo_result, depth=2))
+    #log.info(utils.print_vars(geo_result, depth=2))
 
     addy = {
         'postal': None,
@@ -251,7 +262,7 @@ def add_acct(address, phone, block, pu_date_str):
         }
     }
 
-    logger.info(utils.print_vars(acct, depth=2))
+    log.info(utils.print_vars(acct, depth=2))
 
     try:
         account = etap.call(
@@ -260,5 +271,5 @@ def add_acct(address, phone, block, pu_date_str):
           [acct]
         )
     except Exception as e:
-        logger.error("error calling eTap API: %s", str(e))
+        log.error("error calling eTap API: %s", str(e))
         raise EtapError('error calling eTap API')

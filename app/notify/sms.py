@@ -9,7 +9,7 @@ from pymongo.collection import ReturnDocument
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
 from .. import get_db, utils, html
-from app.alice.brain import compose_msg
+import app.alice.outgoing
 logger = logging.getLogger(__name__)
 
 
@@ -88,7 +88,7 @@ def send(notific, twilio_conf):
     callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST')
 
     try:
-        msg = compose_msg(
+        msg = app.alice.outgoing.compose(
             body, notific['to'], acct['agency'], twilio_conf,
             callback=callback)
     except Exception as e:

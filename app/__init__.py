@@ -40,7 +40,7 @@ login_manager.login_view = 'auth.login'
 
 db_client = mongodb.create_client()
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 class bcolors:
     HEADER = '\033[95m'
@@ -185,7 +185,7 @@ def config_test_server(source):
 def task_emit(event, data):
     '''Used by celery worker to send SocketIO messages'''
 
-    logger.debug('task_emit %s', event)
+    log.debug('task_emit %s', event)
 
     payload = {
         'event': event,

@@ -24,7 +24,8 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
     '''
 
     db = get_db()
-    return db['notifics'].insert_one({
+
+    return db.notifics.insert_one({
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
@@ -66,7 +67,7 @@ def call(notific, twilio_conf, voice_conf):
         from_ = twilio_conf['voice']['number']
 
     call = None
-    db = get_db()
+
 
     try:
         call = client.calls.create(
@@ -87,7 +88,8 @@ def call(notific, twilio_conf, voice_conf):
         logger.info('%s call to %s', call.status, notific['to'])
         logger.debug(utils.print_vars(call))
     finally:
-        db['notifics'].update_one({
+        db = get_db()
+        db.notifics.update_one({
             '_id': notific['_id']}, {
             '$set': {
                 'tracking.status': call.status if call else 'failed',
@@ -105,7 +107,7 @@ def get_speak(notific, template_path, timeout=False):
     '''
 
     get_db()
-    account = db['accounts'].find_one({'_id':notific['acct_id']})
+    account = db.accounts.find_one({'_id':notific['acct_id']})
 
     try:
         speak = render_template(
@@ -145,7 +147,7 @@ def on_answer():
         request.form['To'], request.form['CallStatus'], request.form.get('AnsweredBy'))
 
     db = get_db()
-    notific = db['notifics'].find_one_and_update({
+    notific = db.notifics.find_one_and_update({
         'tracking.sid': request.form['CallSid']}, {
         '$set': {
             'tracking.status': request.form['CallStatus'],
@@ -211,7 +213,7 @@ def on_interact():
     logger.debug('on_interact: %s', request.form.to_dict())
 
     db = get_db()
-    notific = db['notifics'].find_one_and_update({
+    notific = db.notifics.find_one_and_update({
           'tracking.sid': request.form['CallSid'],
         }, {
           '$set': {
@@ -245,7 +247,7 @@ def on_complete():
 
     db = get_db()
 
-    notific = db['notifics'].find_one_and_update({
+    notific = db.notifics.find_one_and_update({
         'tracking.sid': request.form['CallSid']}, {
         '$set': {
             'tracking.status': request.form['CallStatus'],

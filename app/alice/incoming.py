@@ -1,4 +1,4 @@
-'''app.alice.brain
+'''app.alice.incoming
 
 Uses KVSession in place of flask session to store data server-side in MongoDB
 Session expiry set in app.config.py, currently set to 60 min
@@ -7,21 +7,22 @@ Conversations permanently saved to MongoDB in bravo.alice
 
 import logging
 import string
-from twilio.rest import TwilioRestClient
-from twilio import TwilioRestException, twiml
+from twilio import twiml
 from datetime import datetime, date, time, timedelta
 from flask import current_app, request, make_response, g, session
 from .. import etap, utils, get_db, bcolors
+from app.etap import EtapError
 from . import keywords
 from .dialog import *
 from .phrases import *
 from .replies import *
 from .helper import \
-    check_identity, get_msg_count, inc_msg_count, log_msg, save_msg
-logger = logging.getLogger(__name__)
+    has_session, create_session, get_msg_count, inc_msg_count, log_msg, save_msg
+log = logging.getLogger(__name__)
+
 
 #-------------------------------------------------------------------------------
-def receive_msg():
+def receive():
     '''Try to parse message.
     Return Twiml response
     '''
@@ -29,11 +30,14 @@ def receive_msg():
     inc_msg_count()
     log_msg()
 
-    try:
-        check_identity()
-    except Exception as e:
-        logger.error(str(e))
-        return make_reply(dialog['error']['internal']['lookup'])
+    if not has_session():
+        try:
+            create_session()
+        except EtapError as e:
+            return make_reply(str(e))
+        except Exception as e:
+            log.error(str(e))
+            return make_reply(dialog['error']['unknown'])
 
     save_msg()
 
@@ -51,7 +55,7 @@ def find_kw_matches(message, kws):
     '''@message: either incoming or outgoing text
     '''
 
-    logger.debug('searching matches in %s', kws)
+    log.debug('searching matches in %s', kws)
 
     # Remove punctuation, make upper case, split into individual words
     words = message.upper().translate(
@@ -95,20 +99,21 @@ def handle_keyword(kw, handler=None):
     if on_receive['action'] == 'reply':
         return make_reply(on_receive['dialog'], on_complete=on_complete)
     elif on_receive['action'] == 'event':
-        logger.debug(
+        log.debug(
             'calling event handler %s.%s',
             on_receive['handler']['module'],
             on_receive['handler']['func'])
+
 
         try:
             module = __import__(on_receive['handler']['module'], fromlist='.')
             func = getattr(module, on_receive['handler']['func'])
             reply = func()
         except Exception as e:
-            logger.error('%s failed: %s', on_receive['handler']['func'], str(e))
-            logger.debug(str(e), exc_info=True)
+            log.error('%s failed: %s', on_receive['handler']['func'], str(e))
+            log.debug(str(e), exc_info=True)
 
-            return make_reply(dialog['error']['internal']['default'], on_complete=on_complete)
+            return make_reply(dialog['error']['unknown'], on_complete=on_complete)
 
         return make_reply(reply, on_complete=on_complete)
 
@@ -122,7 +127,7 @@ def handle_answer():
     if do['action'] == 'dialog':
         reply = do['dialog']
     elif do['action'] == 'event':
-        logger.debug(
+        log.debug(
             'calling event handler %s.%s',
             do['handler']['module'],
             do['handler']['func'])
@@ -132,13 +137,13 @@ def handle_answer():
             func = getattr(mod, do['handler']['func'])
             reply = func()
         except Exception as e:
-            logger.error(\
+            log.error(\
                 'event %s.%s failed: %s',
                 do['handler']['module'],
                 do['handler']['func'],
                 str(e))
 
-            return make_reply(dialog['error']['internal']['default'])
+            return make_reply(dialog['error']['unknown'])
 
     return make_reply(reply)
 
@@ -206,7 +211,7 @@ def make_reply(_dialog, on_complete=None):
     twml = twiml.Response()
     twml.message(context + _dialog)
 
-    logger.info('%s"%s"%s', bcolors.BOLD, context + _dialog, bcolors.ENDC)
+    log.info('%s"%s"%s', bcolors.BOLD, context + _dialog, bcolors.ENDC)
 
     response = make_response()
     response.data = str(twml)
@@ -220,43 +225,6 @@ def make_reply(_dialog, on_complete=None):
             'messages': context + _dialog}})
 
     return response
-
-#-------------------------------------------------------------------------------
-def compose_msg(body, to, agency, conf, callback=None):
-    '''Compose SMS message to recipient
-    Can be called from outside blueprint. No access to flask session
-    '''
-
-    self_name = get_self_name(agency)
-
-    if self_name:
-        body = '%s: %s' % (self_name, body)
-
-    try:
-        client = TwilioRestClient(
-            conf['api']['sid'],
-            conf['api']['auth_id'])
-    except Exception as e:
-        logger.error(e)
-        logger.debug(e, exc_info=True)
-        raise
-
-    try:
-        msg = client.messages.create(
-            body = body,
-            to = to,
-            from_ = conf['sms']['number'],
-            status_callback = callback)
-    except Exception as e:
-        logger.error(e)
-        logger.debug(e, exc_info=True)
-        raise
-    else:
-        logger.info('returning msg')
-        return msg
-
-    logger.info('returning msg status')
-    return msg.status
 
 #-------------------------------------------------------------------------------
 def tod_greeting():
@@ -297,11 +265,6 @@ def get_name():
         return account['firstName']
     else:
         return account['name']
-
-#-------------------------------------------------------------------------------
-def get_self_name(agency):
-    db = get_db()
-    return db.agencies.find_one({'name':agency})['alice']['name']
 
 #-------------------------------------------------------------------------------
 def expecting_answer():

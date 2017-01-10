@@ -5,73 +5,71 @@ from flask import request, current_app, g, request, session
 from bson.objectid import ObjectId
 from datetime import datetime, date, timedelta
 from .. import etap, utils, get_db, bcolors
+from app.etap import EtapError
 from . import keywords
-logger = logging.getLogger(__name__)
+from .dialog import *
+log = logging.getLogger(__name__)
+
 
 #-------------------------------------------------------------------------------
-def check_identity():
-    '''Unregistered users assigned session['unreg_id']
+def has_session():
+    '''
+    '''
+
+    if session.get('account') or session.get('anon_id'):
+        return True
+
+#-------------------------------------------------------------------------------
+def create_session():
+    '''
     '''
 
     session.permanent = True
-
-    if session.get('account') or session.get('unreg_id'):
-        return True
-
-    # Test for unknown registered user
-
     db = get_db()
-
-    agency = db.agencies.find_one({
-        'twilio.sms.number': request.form['To']})
+    agency = db.agencies.find_one({'twilio.sms.number': request.form['To']})
 
     try:
         # Very slow (~750ms-2200ms)
-        session['account'] = etap.call(
+        acct = etap.call(
             'find_account_by_phone',
             agency['etapestry'],
             {'phone': request.form['From']})
     except Exception as e:
+        rfu_task(agency['name'], 'SMS eTap error "%s"' % str(e),
+                 name_addy=request.form['From'])
+        log.error('etap api (e=%s)', str(e))
+        raise EtapError(dialog['error']['etap']['lookup'])
+
+    # Unregistered user
+
+    if not acct:
+        session['self_name'] = agency['alice']['name']
+        session['anon_id'] = anon_id = str(ObjectId())
+        session['conf'] = agency
+        session['valid_kws'] = keywords.anon.keys()
+
+        log.debug('uregistered user session (anon_id=%s)', anon_id)
+
         rfu_task(
             agency['name'],
-            'SMS eTap error: "%s"' % str(e),
-            name_addy = request.form['From'])
+            'No eTapestry account linked to this mobile number. '\
+            '\nMessage: "%s"' % request.form['Body'],
+            name_addy='Mobile: %s' % request.form['From'])
 
-        logger.error("eTapestry API: %s", str(e))
+        return True
 
-        raise EtapError('eTapestry API: %s' % str(e))
-    else:
-        if session.get('account'):
-            # Known registered user now
+    # Registered user. Save session.
 
-            session['self_name'] = agency['alice']['name']
-            session['conf'] = agency
-            session['valid_kws'] = keywords.user.keys()
-
-            logger.debug(
-                'retrieved acct id=%s and agency_conf, saved in session',
-                session.get('account')['id'])
-
-            return True
-
-    # Must be unknown unregistered user
-
+    session['account'] = acct
     session['self_name'] = agency['alice']['name']
-    session['unreg_id'] = str(ObjectId())
     session['conf'] = agency
-    session['valid_kws'] = keywords.anon.keys()
+    session['valid_kws'] = keywords.user.keys()
 
-    logger.debug(
-        'unknown unregistered user. assigning unreg_id="%s"',
-        session.get('unreg_id'))
+    log.debug('registered user session (etap_id=%s)', acct['id'])
 
-    rfu_task(
-        agency['name'],
-        'No eTapestry account linked to this mobile number. '\
-        '\nMessage: "%s"' % request.form['Body'],
-        name_addy='Mobile: %s' % request.form['From'])
-
-    # Known unregistered user now
+    if not etap.is_active(acct):
+        log.error("acct inactive (etap_id=%s)", acct['id'])
+        raise EtapError(dialog['error']['etap']['inactive'])
 
     return True
 
@@ -96,7 +94,7 @@ def rfu_task(agency, note,
 
 #-------------------------------------------------------------------------------
 def log_msg():
-    logger.info('To Alice: %s"%s"%s (%s, count=%s)',
+    log.info('To Alice: %s"%s"%s (%s, count=%s)',
                 bcolors.BOLD, request.form['Body'], bcolors.ENDC,
                 request.form['From'], get_msg_count())
 

@@ -77,6 +77,15 @@ def get_udf(field_name, etap_account):
     return ", ".join(field_values)
 
 #-------------------------------------------------------------------------------
+def is_active(account):
+    status = get_udf('Status', account)
+
+    if status in ['Active', 'Call-in', 'One-time', 'Cancelling', 'Dropoff']:
+        return True
+    else:
+        return False
+
+#-------------------------------------------------------------------------------
 def get_je_udf(field_name, je):
     field_values = []
 

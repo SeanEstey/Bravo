@@ -12,7 +12,7 @@ from . import notify
 from . import \
     accounts, admin, events, triggers, email, voice, sms, recording, pus, gg,\
     voice_announce
-import app.alice.brain
+import app.alice.incoming
 logger = logging.getLogger(__name__)
 
 
@@ -285,7 +285,7 @@ def sms_received():
 
     # Have Alice handle response
     a = utils.start_timer()
-    response = app.alice.brain.receive_msg()
+    response = app.alice.incoming.receive()
     utils.end_timer(a, display=True, lbl='alice request')
     return response
 

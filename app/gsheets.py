@@ -7,14 +7,11 @@ from datetime import datetime
 from dateutil.parser import parse
 import logging
 from flask import current_app
-
-# Google
 from oauth2client.client import SignedJwtAssertionCredentials
 import httplib2
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
-
-#from . import db
+from . import get_db
 logger = logging.getLogger(__name__)
 
 
@@ -283,6 +280,8 @@ def update_entry(agency, status, destination):
     destination: dict containing 'sheet', 'worksheet', 'row', 'upload_status'
     '''
 
+    db = get_db()
+
     try:
         oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
         gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
@@ -350,6 +349,8 @@ def update_entry(agency, status, destination):
 def create_rfu(agency, note,
                a_id=None, npu=None, block=None, _date=None, name_addy=None,
                driver_notes=None, office_notes=None):
+
+    db = get_db()
 
     try:
         oauth = db['agencies'].find_one({'name':agency})['google']['oauth']

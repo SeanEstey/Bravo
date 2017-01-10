@@ -58,6 +58,7 @@ def make(agency, data):
 def update_dms(agency, data):
 
     db = get_db()
+
     conf = db.agencies.find_one({'name':agency})
 
     try:

@@ -162,10 +162,12 @@ def email_unsubscribe(agency):
 
         if agency == 'wsf':
             to = 'emptiestowinn@wsaf.ca'
+            domain = 'wsaf.ca'
         elif agency == 'vec':
             to = 'recycle@vecova.ca'
+            domain = 'recycle.vecova.ca'
 
-        mailgun = db['agencies'].find_one({})['mailgun']
+        mailgun = db.agencies.find_one({'mailgun.domain':domain})
 
         try:
             r = requests.post(

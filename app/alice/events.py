@@ -38,7 +38,7 @@ def reply_schedule():
 #-------------------------------------------------------------------------------
 def add_instruction():
 
-    # TODO: need to add get existing driver notes and append new?
+    driver_notes = etap.get_udf('Driver Notes', session.get('account'))
 
     etap.call(
         'modify_account',
@@ -46,7 +46,7 @@ def add_instruction():
         data={
             'id': session.get('account')['id'],
             'udf': {
-                'Driver Notes': request.form['Body']
+                'Driver Notes': '***%s***\n%s' % (str(request.form['Body']), driver_notes)
             },
             'persona': []
         })
@@ -62,7 +62,29 @@ def skip_pickup():
          'tracking.status': 'delivered'}
     ).sort('tracking.sent_dt', -1).limit(1)
 
+    # Verify 'SKIP' is response to recent notification
+
+    if notifications.count() == 0:
+        logger.error('no matching notification to skip')
+        return "I can't find a pickup date to remove you from."
+
     notific = notifications.next()
+
+    # If first reply, insert original notific msg content in DB before this reply
+
+    if get_msg_count() == 1:
+        logger.debug('updating alice.doc_id=%s', str(session.get('doc_id')))
+        db.alice.update_one(
+            {'_id': session.get('doc_id')},
+            {'$push': { 'messages': { '$each': [notific['tracking']['body']], '$position': 0}}})
+
+    # Is it too late to skip this pickup?
+
+    if datetime.utcnow() > notific['event_dt'].replace(tzinfo=None):
+        logger.error('cannot skip pickup for route already dispatched')
+        return \
+            "I'm sorry, I can't remove you from this route "\
+            " as it has already been dispatched to our driver."
 
     logger.debug(utils.formatter(notific, bson_to_json=True))
 

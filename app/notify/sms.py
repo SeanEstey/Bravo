@@ -109,20 +109,6 @@ def send(notific, twilio_conf):
     return msg.status if msg else 'failed'
 
 #-------------------------------------------------------------------------------
-def is_reply():
-    '''Defined as an incoming msg prior to the notific event datetime'''
-
-    db = get_db()
-
-    notific = db['notifics'].find_one({
-        'to': request.form['From'],
-        'type': 'sms',
-        'event_dt': {'$gte': datetime.utcnow()}
-    })
-
-    return notific is not None
-
-#-------------------------------------------------------------------------------
 def on_reply():
     '''Received reply from user. Invoke handler function.
     Working under request context
@@ -130,15 +116,7 @@ def on_reply():
         'OK' on success or error string on fail
     '''
 
-    logger.debug('sms.on_reply: %s', request.form.to_dict())
-
-    logger.info('received reply \'%s\' from %s',
-        request.form['Body'], request.form['From'])
-
     db = get_db()
-
-    # It's a notific reply if from same number as a notific
-    # was sent on same date
 
     notific = db['notifics'].find_one_and_update({
           'to': request.form['From'],
@@ -150,18 +128,11 @@ def on_reply():
         }},
         return_document=ReturnDocument.AFTER)
 
-    # ***Alice now handles all replies***
+    if notific:
+        logger.debug('sms.on_reply: %s', request.form.to_dict())
 
-    # Import assigned handler module and invoke function
-    # to get voice response
-
-    #module = __import__(notific['on_reply']['module'], fromlist='.' )
-
-    #handler_func = getattr(module, notific['on_reply']['func'])
-
-    #response = handler_func(notific)
-
-    #return response
+        logger.info('received reply \'%s\' from %s',
+            request.form['Body'], request.form['From'])
 
 #-------------------------------------------------------------------------------
 def on_status():

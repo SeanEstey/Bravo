@@ -109,7 +109,7 @@ def save_msg():
     db = get_db()
 
     if not db.alice.find_one({'from': request.form['From'],'date':date_str}):
-        db.alice.insert_one({
+        r = db.alice.insert_one({
             'agency': conf['name'],
             'account': session.get('account', False),
             'twilio': [request.form.to_dict()],
@@ -117,6 +117,8 @@ def save_msg():
             'date':date.today().isoformat(),
             'last_msg_dt': utils.naive_to_local(datetime.now()),
             'messages':[request.form['Body']]})
+
+        session['doc_id'] = r.inserted_id
     else:
         db.alice.update_one(
             {'from': request.form['From'], 'date': date_str},

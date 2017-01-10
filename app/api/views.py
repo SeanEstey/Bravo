@@ -28,7 +28,30 @@ def get_maps():
     )
 
 #-------------------------------------------------------------------------------
-@api.route('/booker/search', methods=['POST'])
+@api.route('/phone_lookup', methods=['POST'])
+def lookup_phone():
+    agency = request.form['agency']
+    # Lookup twilio id, auth_code
+    url = 'https://lookups.twilio.com/v1/PhoneNumbers/'
+    '''
+    headers = {
+        "Authorization" : "Basic " + Utilities.base64Encode(this.twilio_auth_key)
+    }
+
+    try:
+        response = UrlFetchApp.fetch(
+            url+phone+'?Type=carrier', {
+                'method':'GET',
+                'muteHttpExceptions': True,
+                'headers':headers
+            }
+        )
+      }
+    '''
+    return Response('', status=200, mimetype='application/json')
+
+#-------------------------------------------------------------------------------
+@api.route('/booker_search', methods=['POST'])
 def search_by_address():
     from app.booker import search
 

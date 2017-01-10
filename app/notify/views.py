@@ -281,8 +281,7 @@ def sms_received():
     #    return 'OK'
 
     # If reply to notific, update any db documents
-    if sms.is_reply():
-        sms.on_reply()
+    sms.on_reply()
 
     # Have Alice handle response
     a = utils.start_timer()

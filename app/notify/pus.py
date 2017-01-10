@@ -200,8 +200,6 @@ def add_future_pickups(evnt_id):
 
     notific_list = db['notifics'].find({'evnt_id':evnt_id})
 
-    logger.debug('block_dats: %s', json_util.dumps(block_dates, sort_keys=True,indent=4))
-
     # Update future pickups for every notification under this event
     npu = ''
     for notific in notific_list:
@@ -253,8 +251,6 @@ def get_next_pickup(blocks, office_notes, block_dates):
         return False
 
     dates.sort()
-
-    logger.debug("npu for %s: %s", blocks, dates[0].strftime('%-m/%-d/%Y'))
 
     return dates[0]
 

@@ -121,7 +121,8 @@ def is_reply():
     notific = db['notifics'].find_one({
         'to': request.form['From'],
         'type': 'sms',
-        'event_dt': {'$gte': datetime.utcnow()}
+        'event_dt': {'$gte': datetime.utcnow()},
+        'tracking.sent_dt': { '$exists': True }
     })
 
     if notific:

@@ -5,17 +5,18 @@ import os
 import traceback as tb
 from celery import Celery
 from celery.task.control import revoke
+import cPickle as pickle
 from flask import current_app, g, session, request
 import logging
 from bson.objectid import ObjectId as oid
 from . import get_db, bcolors, utils, db_client, create_app, create_celery_app, \
         debug_handler, info_handler, error_handler, exception_handler,\
-        create_kv_session
+        kv_ext, kv_store
 
 flask_app = create_app('app', db_client)
 celery = create_celery_app(flask_app)
 
-kv_ext = create_kv_session(flask_app)
+kv_ext.init_app(flask_app)
 
 from celery.utils.log import get_task_logger
 
@@ -26,25 +27,36 @@ logger.addHandler(debug_handler)
 logger.addHandler(exception_handler)
 logger.setLevel(logging.DEBUG)
 
+log = logging.getLogger(__name__)
+
 class EtapError(Exception):
     pass
 
 #-------------------------------------------------------------------------------
 @flask_app.before_request
 def do_setup():
+    session.permanent = True
     db = db_client[flask_app.config['DB']]
     g.db = db
 
 #-------------------------------------------------------------------------------
 @flask_app.after_request
 def do_teardown(response):
-    db = get_db()
+    '''db = get_db()
     total = db.sessions.find().count()
     logger.debug('db.session count=%s', total)
 
+    try:
+        r = kv_ext.cleanup_sessions()
+    except Exception as e:
+        logger.debug(str(e))
+    else:
+        logger.debug(r)
+
     if total > 100:
         logger.info('cleaning expired sessions')
-        r = kv_ext.cleanup_sessions()
+        #r = kv_ext.cleanup_sessions()
+    '''
 
     return response
 

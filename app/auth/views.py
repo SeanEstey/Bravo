@@ -5,14 +5,10 @@ import json
 from flask import g, request, render_template, redirect, Response, \
 current_app, url_for, jsonify
 from flask_login import current_user, login_user, logout_user, login_required
-from app import get_db
-
+from .. import login_manager, get_db, kv_store
 from . import auth
-
 from .user import User
-from app import login_manager
-logger = logging.getLogger(__name__)
-
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @auth.before_request
@@ -51,7 +47,7 @@ def login():
     user_match = db['users'].find_one({'user': username})
 
     if not user_match:
-        logger.info("Username '%s' doesnt exist", username)
+        log.info("Username '%s' doesnt exist", username)
 
         return json.dumps({
           'status':'error',
@@ -59,7 +55,7 @@ def login():
           'msg':'Username does not exist'})
 
     if user_match['password'] != password:
-        logger.info("User '%s' password is incorrect", username)
+        log.info("User '%s' password is incorrect", username)
 
         return json.dumps({
             'status':'error',
@@ -70,7 +66,7 @@ def login():
 
     login_user(user)
 
-    logger.info('User %s logged in', username)
+    log.info('User %s logged in', username)
 
     #return redirect(url_for('notify.view_event_list'))
     return jsonify({'status':'success'})
@@ -79,8 +75,8 @@ def login():
 @auth.route('/logout', methods=['GET'])
 @login_required
 def logout():
-    logger.info('logging out')
-    logger.info('User %s logged out', current_user.username)
+    log.info('logging out')
+    log.info('User %s logged out', current_user.username)
     logout_user()
 
     return redirect(url_for('main.landing_page'))

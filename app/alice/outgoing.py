@@ -4,7 +4,7 @@ import logging
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException
 from .. import get_db
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def compose(body, to, agency, conf, callback=None):
@@ -22,8 +22,8 @@ def compose(body, to, agency, conf, callback=None):
             conf['api']['sid'],
             conf['api']['auth_id'])
     except Exception as e:
-        logger.error(e)
-        logger.debug(e, exc_info=True)
+        log.error(e)
+        log.debug(e, exc_info=True)
         raise
 
     try:
@@ -33,14 +33,14 @@ def compose(body, to, agency, conf, callback=None):
             from_ = conf['sms']['number'],
             status_callback = callback)
     except Exception as e:
-        logger.error(e)
-        logger.debug(e, exc_info=True)
+        log.error(e)
+        log.debug(e, exc_info=True)
         raise
     else:
-        logger.info('returning msg')
+        log.info('returning msg')
         return msg
 
-    logger.info('returning msg status')
+    log.info('returning msg status')
     return msg.status
 
 #-------------------------------------------------------------------------------

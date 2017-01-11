@@ -40,6 +40,12 @@ login_manager.login_view = 'auth.login'
 
 db_client = mongodb.create_client()
 
+kv_store = MongoStore(
+    db_client[config.DB],
+    config.SESSION_COLLECTION)
+
+kv_ext = KVSessionExtension(kv_store)
+
 log = logging.getLogger(__name__)
 
 class bcolors:
@@ -58,14 +64,6 @@ def get_db():
         return getattr(g, 'db')
     else:
         return mongodb.create_client(connect=True, auth=True)[config.DB]
-
-#-------------------------------------------------------------------------------
-def create_kv_session(app):
-    store = MongoStore(
-        db_client[config.DB],
-        config.SESSION_COLLECTION)
-
-    return KVSessionExtension(store, app)
 
 #-------------------------------------------------------------------------------
 def create_app(pkg_name, db_client):

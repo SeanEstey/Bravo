@@ -27,8 +27,12 @@ dialog = {
             "Thank you. I'll have someone contact you soon."
     },
     'instruct': {
+        'prompt': \
+            "Tell me what you'd like instructions to pass along to our driver",
         'thanks':\
-            "Thank you. I'll pass along the note to our driver."
+            "Thank you. I'll pass along the note to our driver.",
+        'no_evnt':\
+            "I can't find an upcoming event to add your note onto. "
     },
     'skip': {
         'success': \
@@ -48,13 +52,6 @@ dialog = {
             'comprehend': \
                 "Sorry, I don't understand. You can help guide me "\
                 "with keywords."
-        },
-        'internal': {
-            'default':\
-                "There a problem handling your request.",
-            'lookup':\
-                "I'm sorry, there seems to be a problem looking up "\
-                "your account. We'll look into the matter for you."
         },
         'etap': {
             'lookup': \

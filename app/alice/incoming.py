@@ -10,14 +10,15 @@ import string
 from twilio import twiml
 from datetime import datetime, date, time, timedelta
 from flask import current_app, request, make_response, g, session
-from .. import etap, utils, get_db, bcolors
+from .. import etap, utils, bcolors
 from app.etap import EtapError
 from . import keywords
 from .dialog import *
 from .phrases import *
 from .replies import *
 from .helper import \
-    has_session, create_session, get_msg_count, inc_msg_count, log_msg, save_msg
+    has_session, create_session, update_session, get_msg_count, inc_msg_count,\
+    get_msg, log_msg
 log = logging.getLogger(__name__)
 
 
@@ -36,10 +37,11 @@ def receive():
         except EtapError as e:
             return make_reply(str(e))
         except Exception as e:
+            log.debug(str(e), exc_info=True)
             log.error(str(e))
             return make_reply(dialog['error']['unknown'])
 
-    save_msg()
+    update_session()
 
     kws = find_kw_matches(get_msg(), session.get('valid_kws'))
 
@@ -208,6 +210,8 @@ def make_reply(_dialog, on_complete=None):
             context += name + ', '
             _dialog = _dialog[0].lower() + _dialog[1:]
 
+    session['messages'].append(context + _dialog)
+
     twml = twiml.Response()
     twml.message(context + _dialog)
 
@@ -215,14 +219,6 @@ def make_reply(_dialog, on_complete=None):
 
     response = make_response()
     response.data = str(twml)
-
-    db = get_db()
-
-    db.alice.update_one(
-        {'from': request.form['From'],
-        'date': date.today().isoformat()},
-        {'$push': {
-            'messages': context + _dialog}})
 
     return response
 
@@ -269,9 +265,3 @@ def get_name():
 #-------------------------------------------------------------------------------
 def expecting_answer():
     return session.get('on_complete')
-
-#-------------------------------------------------------------------------------
-def get_msg():
-    '''Convert from unicode to prevent weird parsing issues'''
-
-    return str(request.form['Body']).strip()

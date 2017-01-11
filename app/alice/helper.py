@@ -3,94 +3,89 @@
 import logging
 from flask import request, current_app, g, request, session
 from bson.objectid import ObjectId
+import cPickle as pickle
 from datetime import datetime, date, timedelta
-from .. import etap, utils, get_db, bcolors
+from .. import kv_store, etap, utils, get_db, bcolors
 from app.etap import EtapError
 from . import keywords
 from .dialog import *
 log = logging.getLogger(__name__)
 
-
 #-------------------------------------------------------------------------------
 def has_session():
-    '''
-    '''
-
-    if session.get('account') or session.get('anon_id'):
+    if session.get('alice'): 
         return True
 
 #-------------------------------------------------------------------------------
 def create_session():
-    '''
-    '''
+    ''''''
 
-    session.permanent = True
     db = get_db()
-    agency = db.agencies.find_one({'twilio.sms.number': request.form['To']})
+    from_ = request.form['From']
+    conf = db.agencies.find_one({'twilio.sms.number': request.form['To']})
+
+    # Init session data
+
+    session['alice'] = True
+    session['expiry_dt'] = \
+        datetime.now() + current_app.config['PERMANENT_SESSION_LIFETIME']
+    session['messages'] = []
+    session['agency'] = conf['name']
+    session['self_name'] = conf['alice']['name']
+    session['from'] = from_
+    session['date'] = date.today().isoformat()
 
     try:
         # Very slow (~750ms-2200ms)
         acct = etap.call(
             'find_account_by_phone',
-            agency['etapestry'],
-            {'phone': request.form['From']})
+            conf['etapestry'],
+            {'phone': from_})
     except Exception as e:
-        rfu_task(agency['name'], 'SMS eTap error "%s"' % str(e),
+        rfu_task(conf['name'], 'SMS eTap error "%s"' % str(e),
                  name_addy=request.form['From'])
         log.error('etap api (e=%s)', str(e))
         raise EtapError(dialog['error']['etap']['lookup'])
 
-    # Unregistered user
-
     if not acct:
-        session['self_name'] = agency['alice']['name']
+        # Unregistered user
         session['anon_id'] = anon_id = str(ObjectId())
-        session['conf'] = agency
         session['valid_kws'] = keywords.anon.keys()
 
-        log.debug('uregistered user session (anon_id=%s)', anon_id)
-
         rfu_task(
-            agency['name'],
-            'No eTapestry account linked to this mobile number. '\
-            '\nMessage: "%s"' % request.form['Body'],
-            name_addy='Mobile: %s' % request.form['From'])
+            conf['name'],
+            'No eTap acctlinked to this mobile number.\n'\
+            'Message: "%s"' % get_msg(),
+            name_addy='Mobile: %s' % from_)
 
-        return True
+        log.debug('uregistered user session (anon_id=%s)', anon_id)
+    else:
+        # Registered user
+        session['account'] = acct
+        session['valid_kws'] = keywords.user.keys()
 
-    # Registered user. Save session.
+        notific = related_notific()
 
-    session['account'] = acct
-    session['self_name'] = agency['alice']['name']
-    session['conf'] = agency
-    session['valid_kws'] = keywords.user.keys()
+        if notific:
+            log.debug('matching notific_id=%s', notific['_id'])
+            session['notific_id'] = notific['_id']
+            session['messages'] = [notific['tracking']['body']]
 
-    log.debug('registered user session (etap_id=%s)', acct['id'])
+        log.debug('registered user session (etap_id=%s)', acct['id'])
 
-    if not etap.is_active(acct):
-        log.error("acct inactive (etap_id=%s)", acct['id'])
-        raise EtapError(dialog['error']['etap']['inactive'])
-
-    return True
+        if not etap.is_active(acct):
+            log.error("acct inactive (etap_id=%s)", acct['id'])
+            raise EtapError(dialog['error']['etap']['inactive'])
 
 #-------------------------------------------------------------------------------
-def rfu_task(agency, note,
-             a_id=None, npu=None, block=None, name_addy=None):
+def update_session():
+    session['messages'].append(get_msg())
+    session['last_msg_dt'] = utils.naive_to_local(datetime.now())
 
-    from .. import tasks
-    tasks.rfu.apply_async(
-        args=[
-            agency,
-            note
-        ],
-        kwargs={
-            'a_id': a_id,
-            'npu': npu,
-            'block': block,
-            '_date': date.today().strftime('%-m/%-d/%Y'),
-            'name_addy': name_addy
-        },
-        queue=current_app.config['DB'])
+#-------------------------------------------------------------------------------
+def get_msg():
+    '''Convert from unicode to prevent weird parsing issues'''
+    return str(request.form['Body']).strip()
 
 #-------------------------------------------------------------------------------
 def log_msg():
@@ -99,45 +94,48 @@ def log_msg():
                 request.form['From'], get_msg_count())
 
 #-------------------------------------------------------------------------------
-def save_msg():
-    conf = session.get('conf')
+def is_notific_reply():
+    if get_msg_count() > 1:
+        conv_id = session.get('conv_id')
+        conv = db.alice.find_one({'_id':conv_id})
 
-    date_str = date.today().isoformat()
+        return conv.get('notific_id')
+    else:
+        notific = get_recent_notific()
 
+        if not notific or event_begun(notific):
+            return False
+
+        return notific
+
+#-------------------------------------------------------------------------------
+def related_notific(log_error=False):
+    '''Find the most recent db.notifics document for this reply'''
+
+    from_ = request.form['From']
     db = get_db()
 
-    if not db.alice.find_one({'from': request.form['From'],'date':date_str}):
-        r = db.alice.insert_one({
-            'agency': conf['name'],
-            'account': session.get('account', False),
-            'twilio': [request.form.to_dict()],
-            'from': request.form['From'],
-            'date':date.today().isoformat(),
-            'last_msg_dt': utils.naive_to_local(datetime.now()),
-            'messages':[request.form['Body']]})
+    n = db.notifics.find({
+        'to': from_,
+        'type': 'sms',
+        'tracking.status': 'delivered',
+        'event_dt': {  '$gte': datetime.utcnow()}}
+    ).sort('tracking.sent_dt', -1).limit(1)
 
-        session['doc_id'] = r.inserted_id
+    if n.count() > 0:
+        return n.next()
     else:
-        db.alice.update_one(
-            {'from': request.form['From'], 'date': date_str},
-            {'$set': {
-                'last_msg_dt': utils.naive_to_local(datetime.now())},
-             '$push': {
-                'messages': request.form['Body'],
-                'twilio': request.form.to_dict()}
-            })
+        if log_error:
+            log.error('notific not found (from=%s)', from_)
+        return {}
 
 #-------------------------------------------------------------------------------
-def get_cookie(key):
-    return request.cookies.get(key)
-
-#-------------------------------------------------------------------------------
-def set_cookie(response, k, v):
-    expires=datetime.utcnow() + timedelta(hours=4)
-    response.set_cookie(
-        k,
-        value=str(v),
-        expires=expires.strftime('%a,%d %b %Y %H:%M:%S GMT'))
+def event_begun(notific):
+    if datetime.utcnow() >= notific['event_dt'].replace(tzinfo=None):
+        log.error('route already built (etap_id=%s)', session.get('account')['id'])
+        return True
+    else:
+        return False
 
 #-------------------------------------------------------------------------------
 def get_chatlogs(agency, start_dt=None):
@@ -179,3 +177,51 @@ def wipe_sessions():
     '''TODO: destroy all sessions
     '''
     return True
+
+#-------------------------------------------------------------------------------
+def save_conversations():
+    db = get_db()
+
+    for key in kv_store.keys():
+        sess_doc = pickle.loads(kv_store.get(key))
+
+        if not sess_doc.get('alice'):
+            continue
+
+        expires = sess_doc['expiry_dt'] - datetime.now()
+        log.debug('expires in t=%s', expires)
+
+        r = db.alice.update_one(
+            {'sess_id':key},
+            {'$set': {
+                'messages': sess_doc['messages'],
+                'last_msg_dt': sess_doc['last_msg_dt']}})
+
+        if r.matched_count == 1:
+            log.debug(
+                'updated session, n_matched=%s, n_mod=%s',
+                r.matched_count, r.modified_count)
+        elif r.matched_count == 0:
+            new_doc = sess_doc.copy()
+            new_doc['sess_id'] = key
+            r = db.alice.insert_one(new_doc)
+            log.debug('saved new session, id=%s', r.inserted_id)
+
+#-------------------------------------------------------------------------------
+def rfu_task(agency, note,
+             a_id=None, npu=None, block=None, name_addy=None):
+
+    from .. import tasks
+    tasks.rfu.apply_async(
+        args=[
+            agency,
+            note
+        ],
+        kwargs={
+            'a_id': a_id,
+            'npu': npu,
+            'block': block,
+            '_date': date.today().strftime('%-m/%-d/%Y'),
+            'name_addy': name_addy
+        },
+        queue=current_app.config['DB'])

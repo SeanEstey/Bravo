@@ -1,12 +1,19 @@
 '''app.alice.views'''
 
 import logging
-from flask import request, jsonify, render_template, session
+from flask import request, jsonify, render_template
 from flask_login import login_required, current_user
 from .. import get_db, utils
 from . import alice, helper
 from bson.objectid import ObjectId
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
+
+#-------------------------------------------------------------------------------
+@alice.before_request
+@login_required
+def save_conversations():
+    if request.method == 'GET':
+        helper.save_conversations()
 
 #-------------------------------------------------------------------------------
 @alice.route('/', methods=['GET'])
@@ -22,7 +29,10 @@ def get_chatlogs():
 
     agency = db.users.find_one({'user': current_user.username})['agency']
 
-    chatlogs = helper.get_chatlogs(agency)
+    try:
+        chatlogs = helper.get_chatlogs(agency)
+    except Exception as e:
+        log.debug(str(e))
 
     return jsonify(
         utils.formatter(

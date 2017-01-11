@@ -36,6 +36,18 @@ def reply_schedule():
             etap.ddmmyyyy_to_dt(next_pu).strftime('%A, %B %-d'))
 
 #-------------------------------------------------------------------------------
+def prompt_instructions():
+    notific = get_latest_notific(request.form['From'])
+
+    if not notific:
+        return dialog['skip']['no_evnt']
+
+    if event_begun(notific):
+        return dialog['skip']['too_late']
+
+    return dialog['instruct']['prompt']
+
+#-------------------------------------------------------------------------------
 def add_instruction():
     driver_notes = etap.get_udf('Driver Notes', session.get('account'))
 
@@ -54,25 +66,16 @@ def add_instruction():
 
     return dialog['instruct']['thanks']
 
+
+
 #-------------------------------------------------------------------------------
 def skip_pickup():
     db = get_db()
-
-    notifics = db.notifics.find(
-        {'to': request.form['From'],
-         'type': 'sms',
-         'tracking.status': 'delivered'}
-    ).sort('tracking.sent_dt', -1).limit(1)
-
-    # Verify 'SKIP' is response to recent notification
-
+    notific = get_latest_notific()
     acct = session.get('account')
 
-    if notifics.count() == 0:
-        log.error('notific not found (from=%s)', request.form['From'])
-
-        msg = dialog['err']['skip']['no_evnt']
-
+    if not notific:
+        msg = dialog['skip']['no_evnt']
         npu = etap.get_udf('Next Pickup Date', acct)
 
         if not npu:
@@ -82,28 +85,15 @@ def skip_pickup():
         return msg + dialog['schedule']['next'] %(
             etap.ddmmyyyy_to_local_dt(npu).strftime('%B %-d, %Y'))
 
-    notific = notifics.next()
-
-    # If first reply, insert original notific msg content in DB before this reply
-
-    if get_msg_count() == 1:
-        log.debug('updating alice.doc_id=%s', str(session.get('doc_id')))
-        db.alice.update_one(
-            {'_id': session.get('doc_id')},
-            {'$push': { 'messages': { '$each': [notific['tracking']['body']], '$position': 0}}})
-
-    # Is it too late to skip this pickup?
-
-    if datetime.utcnow() > notific['event_dt'].replace(tzinfo=None):
-        log.error('route already built (etap_id=%s)', acct['id'])
+    if event_begun(notific):
         return dialog['skip']['too_late']
 
-    log.debug(utils.formatter(notific, bson_to_json=True))
+    #log.debug(utils.formatter(notific, bson_to_json=True))
 
     result = cancel_pickup(notific['evnt_id'], notific['acct_id'])
 
     if not result:
-        return dialog['error']['internal']['default']
+        return dialog['error']['unknown']
 
     acct_doc = db.accounts.find_one({'_id':notific['acct_id']})
 

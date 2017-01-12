@@ -4,7 +4,9 @@ import logging
 from flask_login import login_required, current_user
 from flask import g, request, jsonify, render_template
 from .. import get_db, utils
-from . import alice, helper, incoming
+from . import alice, incoming
+from .session import save_session
+from .util import get_chatlogs
 from bson.objectid import ObjectId
 log = logging.getLogger(__name__)
 
@@ -28,10 +30,10 @@ def show_chatlogs():
 @alice.route('/chatlogs', methods=['POST'])
 @login_required
 def get_chatlogs():
-    helper.save_conversations()
+    save_session()
 
     try:
-        chatlogs = helper.get_chatlogs(g.agency)
+        chatlogs = get_chatlogs(g.agency)
     except Exception as e:
         log.debug(str(e))
 

@@ -5,8 +5,7 @@ Session expiry set in app.config.py, currently set to 60 min
 Conversations permanently saved to MongoDB in bravo.alice
 '''
 
-import logging
-import string
+import logging, string
 from twilio import twiml
 from datetime import datetime, date, time, timedelta
 from flask import current_app, request, make_response, g, session
@@ -16,9 +15,8 @@ from . import keywords
 from .dialog import *
 from .phrases import *
 from .replies import *
-from .helper import \
-    has_session, create_session, update_session, get_msg_count, inc_msg_count,\
-    get_msg, log_msg
+from .session import *
+from .util import rfu_task
 log = logging.getLogger(__name__)
 
 
@@ -36,12 +34,13 @@ def receive():
             create_session()
         except EtapError as e:
             return make_reply(str(e))
+        # Delete this catch-all exc when stable
         except Exception as e:
             log.debug(str(e), exc_info=True)
             log.error(str(e))
             return make_reply(dialog['error']['unknown'])
-
-    update_session()
+    else:
+        update_session()
 
     kws = find_kw_matches(get_msg(), session.get('valid_kws'))
 
@@ -265,3 +264,24 @@ def get_name():
 #-------------------------------------------------------------------------------
 def expecting_answer():
     return session.get('on_complete')
+
+#-------------------------------------------------------------------------------
+def get_msg():
+    '''Convert from unicode to prevent weird parsing issues'''
+    return str(request.form['Body']).strip()
+
+#-------------------------------------------------------------------------------
+def log_msg():
+    log.info('To Alice: %s"%s"%s (%s, count=%s)',
+                bcolors.BOLD, request.form['Body'], bcolors.ENDC,
+                request.form['From'], get_msg_count())
+
+#-------------------------------------------------------------------------------
+def get_msg_count():
+    return session.get('messagecount')
+
+#-------------------------------------------------------------------------------
+def inc_msg_count():
+    '''Track number of received messages in conversation'''
+
+    session['messagecount'] = session.get('messagecount', 0) + 1

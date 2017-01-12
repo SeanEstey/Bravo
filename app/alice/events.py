@@ -2,12 +2,13 @@
 
 import logging
 from app import get_db, etap, utils, bcolors
+from app.utils import naive_utc_to_local as to_local
 from app.etap import EtapError
-from flask import request, session
+from flask import g, request, session
 from datetime import datetime, date, time, timedelta
 from app.booker import geo, search, book
 from .dialog import dialog
-from .helper import rfu_task
+from .util import rfu_task, related_notific, event_begun
 from app.notify.pus import cancel_pickup
 log = logging.getLogger(__name__)
 
@@ -37,12 +38,10 @@ def reply_schedule():
 
 #-------------------------------------------------------------------------------
 def prompt_instructions():
-    notific = get_latest_notific(request.form['From'])
-
-    if not notific:
+    if not session.get('notific_id'):
         return dialog['skip']['no_evnt']
 
-    if event_begun(notific):
+    if not session.get('valid_notific_reply'):
         return dialog['skip']['too_late']
 
     return dialog['instruct']['prompt']
@@ -66,15 +65,11 @@ def add_instruction():
 
     return dialog['instruct']['thanks']
 
-
-
 #-------------------------------------------------------------------------------
 def skip_pickup():
-    db = get_db()
-    notific = get_latest_notific()
     acct = session.get('account')
 
-    if not notific:
+    if not session.get('notific_id'):
         msg = dialog['skip']['no_evnt']
         npu = etap.get_udf('Next Pickup Date', acct)
 
@@ -85,7 +80,7 @@ def skip_pickup():
         return msg + dialog['schedule']['next'] %(
             etap.ddmmyyyy_to_local_dt(npu).strftime('%B %-d, %Y'))
 
-    if event_begun(notific):
+    if session.get('valid_notific_reply') == False:
         return dialog['skip']['too_late']
 
     #log.debug(utils.formatter(notific, bson_to_json=True))
@@ -95,13 +90,13 @@ def skip_pickup():
     if not result:
         return dialog['error']['unknown']
 
-    acct_doc = db.accounts.find_one({'_id':notific['acct_id']})
-
-    future_pu_dt = utils.naive_utc_to_local(acct_doc['udf']['future_pickup_dt'])
+    dt = g.db.accounts.find_one(
+        {'_id':session.get('notific_id')}
+    )['udf']['future_pickup_dt']
 
     return \
         dialog['skip']['success'] + \
-        dialog['schedule']['next'] % future_pu_dt.strftime('%B %-d, %Y')
+        dialog['schedule']['next'] % (to_local(dt).strftime('%B %-d, %Y'))
 
 #-------------------------------------------------------------------------------
 def update_mobile():
@@ -124,14 +119,17 @@ def is_unsub():
 
     from phrases import unsubscribe
 
-    db = get_db()
-
     if request.form['Body'].upper() in unsubscribe:
-        log.info('%s has unsubscribed from this sms number (%s)',
-                    request.form['From'], request.form['To'])
+        log.info(
+            '%s has unsubscribed from this sms number (%s)',
+            request.form['From'], request.form['To'])
 
-        account = get_identity(make_response())
-        agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+        # FIXME
+
+        #account = get_identity(make_response())
+
+        #agency = g.db.agencies.find_one({
+        #    'twilio.sms.number':request.form['To']})
 
         rfu_task(
             agency['name'],

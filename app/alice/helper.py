@@ -13,20 +13,17 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def has_session():
-    if session.get('alice'): 
+    if session.get('alice'):
         return True
 
 #-------------------------------------------------------------------------------
 def create_session():
-    ''''''
-
-    db = get_db()
     from_ = request.form['From']
-    conf = db.agencies.find_one({'twilio.sms.number': request.form['To']})
+    conf = session.get('conf')
 
     # Init session data
 
-    session['alice'] = True
+    session['alice_msg'] = True
     session['expiry_dt'] = \
         datetime.now() + current_app.config['PERMANENT_SESSION_LIFETIME']
     session['messages'] = []
@@ -94,28 +91,12 @@ def log_msg():
                 request.form['From'], get_msg_count())
 
 #-------------------------------------------------------------------------------
-def is_notific_reply():
-    if get_msg_count() > 1:
-        conv_id = session.get('conv_id')
-        conv = db.alice.find_one({'_id':conv_id})
-
-        return conv.get('notific_id')
-    else:
-        notific = get_recent_notific()
-
-        if not notific or event_begun(notific):
-            return False
-
-        return notific
-
-#-------------------------------------------------------------------------------
 def related_notific(log_error=False):
     '''Find the most recent db.notifics document for this reply'''
 
     from_ = request.form['From']
-    db = get_db()
 
-    n = db.notifics.find({
+    n = g.db.notifics.find({
         'to': from_,
         'type': 'sms',
         'tracking.status': 'delivered',
@@ -143,11 +124,7 @@ def get_chatlogs(agency, start_dt=None):
     if not start_dt:
         start_dt = datetime.utcnow() - timedelta(days=14)
 
-    # double-check start_dt arg is UTC
-
-    db = get_db()
-
-    chats = db.alice.find(
+    chats = g.db.alice.find(
         {'agency':agency, 'last_msg_dt': {'$gt': start_dt}},
         {'agency':0, '_id':0, 'date':0, 'account':0, 'twilio':0}
     ).sort('last_msg_dt',-1)
@@ -180,8 +157,6 @@ def wipe_sessions():
 
 #-------------------------------------------------------------------------------
 def save_conversations():
-    db = get_db()
-
     for key in kv_store.keys():
         sess_doc = pickle.loads(kv_store.get(key))
 
@@ -191,7 +166,7 @@ def save_conversations():
         expires = sess_doc['expiry_dt'] - datetime.now()
         log.debug('expires in t=%s', expires)
 
-        r = db.alice.update_one(
+        r = g.db.alice.update_one(
             {'sess_id':key},
             {'$set': {
                 'messages': sess_doc['messages'],
@@ -199,13 +174,12 @@ def save_conversations():
 
         if r.matched_count == 1:
             log.debug(
-                'updated session, n_matched=%s, n_mod=%s',
-                r.matched_count, r.modified_count)
+                'updated stored session, n=%s', r.modified_count)
         elif r.matched_count == 0:
             new_doc = sess_doc.copy()
             new_doc['sess_id'] = key
-            r = db.alice.insert_one(new_doc)
-            log.debug('saved new session, id=%s', r.inserted_id)
+            r = g.db.alice.insert_one(new_doc)
+            log.debug('stored session, id=%s', r.inserted_id)
 
 #-------------------------------------------------------------------------------
 def rfu_task(agency, note,

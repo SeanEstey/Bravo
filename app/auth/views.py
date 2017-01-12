@@ -18,15 +18,17 @@ def before_request():
 #-------------------------------------------------------------------------------
 @login_manager.user_loader
 def load_user(user_id):
-
     db = get_db()
 
     user = db['users'].find_one({'user':user_id})
     if user:
-        return User(user_id, user['password'])
+        return User(
+            user_id,
+            user['password'],
+            agency=user['agency'],
+            admin=user.get('admin'))
     else:
         return None
-
 
 #-------------------------------------------------------------------------------
 @auth.route('/login', methods=['GET','POST'])
@@ -62,7 +64,10 @@ def login():
             'title': 'login info',
             'msg':'Incorrect password'})
 
-    user = User(username, password)
+    user = User(
+        username,
+        password,
+        user_match['agency'])
 
     login_user(user)
 

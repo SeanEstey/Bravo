@@ -5,27 +5,27 @@ import twilio.twiml
 from bson.objectid import ObjectId
 from flask_login import login_required, current_user
 from flask import \
-    request, jsonify, render_template, redirect, Response, current_app,\
+    g, request, jsonify, render_template, redirect, Response, current_app,\
     session, url_for
 from .. import utils, cal, parser, get_db
-from . import notify
-from . import \
-    accounts, admin, events, triggers, email, voice, sms, recording, pus, gg,\
-    voice_announce
-import app.alice.incoming
-logger = logging.getLogger(__name__)
+from . import notify, accounts, admin, events, triggers, email, voice, sms,\
+    recording, pus, gg, voice_announce
+log = logging.getLogger(__name__)
 
+#-------------------------------------------------------------------------------
+@notify.before_request
+def get_globals():
+    if current_user.is_authenticated:
+        g.db = get_db()
+        g.user = current_user
+        g.agency = current_user.get_agency()
+        g.conf = g.db.agencies.find_one({'name':g.agency})
 
 #-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])
 @login_required
 def view_event_list():
-
-    db = get_db()
-    user = db['users'].find_one({'user': current_user.username})
-    agency = user['agency']
-
-    event_list = events.get_list(agency)
+    event_list = events.get_list(g.agency)
 
     for event in event_list:
         # modifying 'notification_event' structure for view rendering
@@ -39,7 +39,7 @@ def view_event_list():
       'views/event_list.html',
       title=None,
       events=event_list,
-      admin=user['admin']
+      admin=g.user.is_admin()
     )
 
 #-------------------------------------------------------------------------------
@@ -48,8 +48,6 @@ def view_event_list():
 def view_event(evnt_id):
     '''GUI event view'''
 
-    db = get_db()
-    admin = db['users'].find_one({'user': current_user.username})['admin']
     event = events.get(ObjectId(evnt_id))
     notific_list = list(events.get_notifics(ObjectId(evnt_id)))
     trigger_list = events.get_triggers(ObjectId(evnt_id))
@@ -71,17 +69,14 @@ def view_event(evnt_id):
         evnt_id=evnt_id,
         event=event,
         triggers=trigger_list,
-        admin=admin
+        admin=g.user.is_admin()
     )
 
 #-------------------------------------------------------------------------------
 @notify.route('/new', methods=['POST'])
 @login_required
 def new_event():
-    db = get_db()
-    logger.debug(request.form.to_dict())
-
-    agency = db['users'].find_one({'user': current_user.username})['agency']
+    log.debug(request.form.to_dict())
 
     template = request.form['template_name']
 
@@ -94,15 +89,14 @@ def new_event():
             block = request.form['query_name']
 
             if parser.is_res(block):
-                cal_id = db.agencies.find_one({'name':agency})['cal_ids']['res']
+                cal_id = g.conf['cal_ids']['res']
             elif parser.is_bus(block):
-                cal_id = db.agencies.find_one({'name':agency})['cal_ids']['bus']
+                cal_id = g.conf['cal_ids']['bus']
             else:
                 return jsonify({'status':'failed', 'description':'Invalid Block name'})
 
-            oauth = db.agencies.find_one({'name':agency})['google']['oauth']
-
-            _date = cal.get_next_block_date(cal_id, block, oauth)
+            _date = cal.get_next_block_date(
+                cal_id, block, g.conf['google']['oauth'])
 
             evnt_id = pus.reminder_event(
                 agency,
@@ -110,13 +104,13 @@ def new_event():
                 _date
             )
     except Exception as e:
-        logger.error(str(e))
+        log.error(str(e))
         return jsonify({
             'status':'failed',
             'description': str(e)
         })
 
-    event = db.notific_events.find_one({'_id':evnt_id})
+    event = g.db.notific_events.find_one({'_id':evnt_id})
 
     event['triggers'] = events.get_triggers(event['_id'])
 
@@ -137,7 +131,6 @@ def new_event():
             'Reminders for event %s successfully scheduled.' %
             (request.form['query_name'])
     })
-
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/cancel')
@@ -161,7 +154,7 @@ def reset_event(evnt_id):
 def job_complete(evnt_id):
     '''Email job summary, update job status'''
 
-    logger.info('Job [ID %s] complete!', evnt_id)
+    log.info('Job [ID %s] complete!', evnt_id)
 
     # TODO: Send socket to web app to display completed status
     return 'OK'
@@ -197,8 +190,7 @@ def fire_trigger(trig_id):
     if not admin.auth_request_type('admin'):
         return 'Denied'
 
-    db = get_db()
-    trigger = db['triggers'].find_one({'_id':ObjectId(trig_id)})
+    trigger = g.db.triggers.find_one({'_id':ObjectId(trig_id)})
 
     from .. import tasks
     tasks.fire_trigger.apply_async(
@@ -247,14 +239,14 @@ def record_complete():
 @notify.route('/voice/play/answer.xml',methods=['POST'])
 def get_call_answer_xml():
     r = str(voice.on_answer())
-    logger.debug(r)
+    log.debug(r)
     return Response(r, mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
 @notify.route('/voice/play/interact.xml', methods=['POST'])
 def get_call_interact_xml():
     r = str(voice.on_interact())
-    logger.debug(r)
+    log.debug(r)
     return Response(r, mimetype='text/xml')
 
 #-------------------------------------------------------------------------------
@@ -283,16 +275,10 @@ def sms_received():
     # If reply to notific, update any db documents
     sms.on_reply()
 
-    # Have Alice handle response
-    a = utils.start_timer()
-    response = app.alice.incoming.receive()
-    utils.end_timer(a, display=True, lbl='alice request')
-    return response
-
 #-------------------------------------------------------------------------------
 @notify.route('/call/nis', methods=['POST'])
 def nis():
-    logger.info('NIS!')
+    log.info('NIS!')
 
     record = request.get_json()
 
@@ -307,7 +293,7 @@ def nis():
         #      block=record['custom']['block']
         #    )
     except Exception, e:
-        logger.info('%s /call/nis' % request.values.items(), exc_info=True)
+        log.info('%s /call/nis' % request.values.items(), exc_info=True)
     return str(e)
 
 #-------------------------------------------------------------------------------

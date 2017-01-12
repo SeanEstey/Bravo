@@ -13,9 +13,18 @@ from flask_kvsession import KVSessionExtension
 from simplekv.db.mongo import MongoStore
 from simplekv import KeyValueStore
 from werkzeug.contrib.fixers import ProxyFix
-
 import config
 import mongodb
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 log_formatter = logging.Formatter('[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M')
 
@@ -47,16 +56,6 @@ kv_store = MongoStore(
 kv_ext = KVSessionExtension(kv_store)
 
 log = logging.getLogger(__name__)
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 #-------------------------------------------------------------------------------
 def get_db():

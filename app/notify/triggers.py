@@ -9,7 +9,7 @@ from datetime import datetime,date,time
 from app import task_emit
 from .. import get_db, utils, bcolors
 from . import voice, email, sms
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
@@ -57,35 +57,29 @@ def fire(evnt_id, trig_id):
     '''Sends out all dependent sms/voice/email notifics messages
     '''
 
-    db = get_db()
-
-    event = db['notific_events'].find_one({
-        '_id':evnt_id})
-
-    agency_conf = db['agencies'].find_one({
-        'name':event['agency']})
-
-    twilio_conf = agency_conf['twilio']
-    notify_conf = agency_conf['notify']
-    mailgun_conf = agency_conf['mailgun']
-
-    ready_notifics = db['notifics'].find({
-        'trig_id':trig_id,
-        'tracking.status':'pending'})
-
-    trigger = db['triggers'].find_one({'_id':trig_id})
-
     errors = []
     status = ''
     fails = 0
+    db = get_db()
+    event = db.notific_events.find_one({
+        '_id':evnt_id})
+    agency_conf = db.agencies.find_one({
+        'name':event['agency']})
+    twilio_conf = agency_conf['twilio']
+    notify_conf = agency_conf['notify']
+    mailgun_conf = agency_conf['mailgun']
+    ready_notifics = db['notifics'].find({
+        'trig_id':trig_id,
+        'tracking.status':'pending'})
+    trigger = db['triggers'].find_one({'_id':trig_id})
     count = ready_notifics.count()
 
-    logger.info('%s---------- firing %s trigger for "%s" event ----------%s',
+    log.info('%s---------- firing %s trigger for "%s" event ----------%s',
     bcolors.OKGREEN, trigger['type'], event['name'], bcolors.ENDC)
 
     if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
-        logger.info('sandbox mode detected.')
-        logger.info('simulating voice/sms msgs, re-routing emails')
+        log.info('sandbox mode detected.')
+        log.info('simulating voice/sms msgs, re-routing emails')
 
     db['triggers'].update_one(
         {'_id':trig_id},
@@ -111,7 +105,7 @@ def fire(evnt_id, trig_id):
         except Exception as e:
             status = 'error'
             errors.append(str(e))
-            logger.error('unexpected exception. notific _id \'%s\'. %s',
+            log.error('unexpected exception. notific _id \'%s\'. %s',
                 str(notific['_id']), str(e), exc_info=True)
         else:
             if status == 'failed':
@@ -135,7 +129,7 @@ def fire(evnt_id, trig_id):
         'fails': fails,
         'errors': len(errors)})
 
-    logger.info('%s---------- queued: %s, failed: %s, errors: %s ----------%s',
+    log.info('%s---------- queued: %s, failed: %s, errors: %s ----------%s',
         bcolors.OKGREEN, count-fails-len(errors), fails, len(errors), bcolors.ENDC)
 
     return True
@@ -150,7 +144,7 @@ def kill_task():
     trigger = db.triggers.find_one({'_id':ObjectId(request.form.get('trig_id'))})
 
     if not trigger or not trigger.get('task_id'):
-        logger.error('No trigger or task_id found to kill')
+        log.error('No trigger or task_id found to kill')
         return False
 
     from .. import tasks

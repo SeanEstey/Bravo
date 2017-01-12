@@ -9,9 +9,8 @@ from bson.objectid import ObjectId
 from flask_login import current_user
 import csv
 import os
-
 from .. import get_db, utils
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add(agency, name, event_date, _type):
@@ -152,14 +151,14 @@ def reset(evnt_id):
         multi=True
     )
 
-    logger.info('%s notifics reset', n['nModified'])
+    log.info('%s notifics reset', n['nModified'])
 
 #-------------------------------------------------------------------------------
 def rmv_notifics(evnt_id, acct_id):
     db = get_db()
     n_notifics = db['notifics'].remove({'acct_id':acct_id})['n']
     n_accounts = db['accounts'].remove({'_id':acct_id})['n']
-    logger.info('Removed %s notifics, %s account for evnt_id %s', n_notifics,
+    log.info('Removed %s notifics, %s account for evnt_id %s', n_notifics,
     n_accounts, evnt_id)
     return True
 
@@ -178,7 +177,7 @@ def dup_random_acct(evnt_id):
     acct['_id'] = ObjectId()
     db.accounts.insert(acct)
 
-    #logger.info('old acct_id %s, new acct_id %s', str(old_id), str(new_acct['_id']))
+    #log.info('old acct_id %s, new acct_id %s', str(old_id), str(new_acct['_id']))
 
     for notific in notifics:
         notific['_id'] = ObjectId()
@@ -203,7 +202,7 @@ def remove(evnt_id):
 
     n_events = db['notific_events'].remove({'_id': evnt_id}).get('n')
 
-    logger.info('Removed %s event, %s notifics, and %s triggers',
+    log.info('Removed %s event, %s notifics, and %s triggers',
         n_events, n_notifics, n_triggers)
 
     return True

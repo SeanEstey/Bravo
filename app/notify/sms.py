@@ -12,7 +12,6 @@ from .. import get_db, utils, html
 import app.alice.outgoing
 logger = logging.getLogger(__name__)
 
-
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
     '''
@@ -140,12 +139,9 @@ def on_status():
     '''
 
     logger.info('%s sms to %s', request.form['SmsStatus'], request.form['To'])
-
     logger.debug('sms.on_status: %s', request.form.to_dict())
 
-    db = get_db()
-
-    notific = db['notifics'].find_one_and_update({
+    notific = g.db.notifics.find_one_and_update({
         'tracking.sid': request.form['SmsSid']}, {
         '$set':{
             'tracking.status': request.form['SmsStatus'],

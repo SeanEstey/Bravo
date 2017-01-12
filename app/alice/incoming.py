@@ -16,7 +16,6 @@ from .dialog import *
 from .phrases import *
 from .replies import *
 from .session import *
-from .util import rfu_task
 log = logging.getLogger(__name__)
 
 
@@ -34,11 +33,6 @@ def receive():
             create_session()
         except EtapError as e:
             return make_reply(str(e))
-        # Delete this catch-all exc when stable
-        except Exception as e:
-            log.debug(str(e), exc_info=True)
-            log.error(str(e))
-            return make_reply(dialog['error']['unknown'])
     else:
         update_session()
 

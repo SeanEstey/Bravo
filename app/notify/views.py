@@ -265,17 +265,6 @@ def sms_status():
     return sms.on_status()
 
 #-------------------------------------------------------------------------------
-@notify.route('/sms/receive', methods=['POST'])
-def sms_received():
-    '''Shared endpoint for incoming SMS. Set by Twilio SMS application
-    '''
-    #if alice.is_unsub():
-    #    return 'OK'
-
-    # If reply to notific, update any db documents
-    sms.on_reply()
-
-#-------------------------------------------------------------------------------
 @notify.route('/call/nis', methods=['POST'])
 def nis():
     log.info('NIS!')

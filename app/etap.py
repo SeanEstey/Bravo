@@ -48,7 +48,7 @@ def call(func_name, keys, data, silence_exceptions=False):
         if silence_exceptions == True:
             return False
         else:
-            raise
+            raise EtapError(str(e))
 
     if response.status_code != 200:
         raise EtapError(json.loads(response.text))

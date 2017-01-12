@@ -6,10 +6,10 @@ from bson.objectid import ObjectId
 import cPickle as pickle
 from datetime import datetime, date, timedelta
 from .. import kv_store, etap, utils, get_db, bcolors
-from app.etap import EtapError
 from . import keywords
-from .util import related_notific, rfu_task
+from .util import related_notific, make_rfu, lookup_acct
 from .dialog import *
+from app.etap import EtapError
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -20,7 +20,7 @@ def has_session():
 #-------------------------------------------------------------------------------
 def create_session():
     from_ = request.form['From']
-    conf = g.db.agencies.find_one({'twilio.sms.number':request.form['To']})
+    msg = request.form['Body']
     life_duration = current_app.config['PERMANENT_SESSION_LIFETIME']
 
     # Init session data
@@ -29,35 +29,26 @@ def create_session():
     session['from'] = from_
     session['date'] = date.today().isoformat()
     session['messages'] = []
-    session['agency'] = conf['name']
-    session['conf'] = conf
+    session['conf'] = conf = g.db.agencies.find_one({'name':session.get('agency')})
     session['self_name'] = conf['alice']['name']
+    session['last_msg_dt'] = utils.naive_to_local(datetime.now())
     session['expiry_dt'] = datetime.now() + life_duration
 
     try:
-        # Very slow (~750ms-2200ms)
-        acct = etap.call(
-            'find_account_by_phone',
-            conf['etapestry'],
-            {'phone': from_})
-    except Exception as e:
-        rfu_task(conf['name'], 'SMS eTap error "%s"' % str(e),
-                 name_addy=request.form['From'])
-        log.error('etap api (e=%s)', str(e))
-        raise EtapError(dialog['error']['etap']['lookup'])
+        acct = lookup_acct(from_)
+    except EtapError as e:
+        pass
 
     if not acct:
         # Unregistered user
         session['anon_id'] = anon_id = str(ObjectId())
         session['valid_kws'] = keywords.anon.keys()
 
-        rfu_task(
-            conf['name'],
-            'No eTap acctlinked to this mobile number.\n'\
-            'Message: "%s"' % get_msg(),
+        make_rfu(
+            'No eTap acct linked to this mobile number.\nMessage: "%s"' % msg,
             name_addy='Mobile: %s' % from_)
 
-        log.debug('uregistered user session (anon_id=%s)', anon_id)
+        log.debug('Uregistered user session (anon_id=%s)', anon_id)
     else:
         # Registered user
         session['account'] = acct
@@ -65,21 +56,24 @@ def create_session():
 
         notific = related_notific()
 
+        # Is there a notification user might be replying to?
         if notific:
-            log.debug('matching notific_id=%s', notific['_id'])
             session['notific_id'] = notific['_id']
             session['messages'] = [notific['tracking']['body']]
             session['valid_notific_reply'] = not event_begun(notific)
 
-        log.debug('registered user session (etap_id=%s)', acct['id'])
+            log.debug('Reply linked to notific_id=%s. valid=%s',
+                notific['_id'], session.get('valid_notific_reply'))
+
+        log.debug('Registered user session (etap_id=%s)', acct['id'])
 
         if not etap.is_active(acct):
-            log.error("acct inactive (etap_id=%s)", acct['id'])
+            log.error("Acct inactive (etap_id=%s)", acct['id'])
             raise EtapError(dialog['error']['etap']['inactive'])
 
 #-------------------------------------------------------------------------------
 def update_session():
-    session['messages'].append(get_msg())
+    session['messages'].append(request.form['Body'])
     session['last_msg_dt'] = utils.naive_to_local(datetime.now())
 
 #-------------------------------------------------------------------------------

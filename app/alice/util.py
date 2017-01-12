@@ -1,5 +1,33 @@
 '''app.alice.util'''
 
+import logging
+from datetime import date, datetime, timedelta
+from flask import g, request, session
+from .. import etap
+from app.etap import EtapError
+from .dialog import *
+log = logging.getLogger(__name__)
+
+#-------------------------------------------------------------------------------
+def lookup_acct(mobile):
+    try:
+        # Very slow (~750ms-2200ms)
+        acct = etap.call(
+            'find_account_by_phone',
+            session.get('conf')['etapestry'],
+            {'phone': mobile}
+        )
+    except Exception as e:
+        log.error('etap api (e=%s)', str(e))
+
+        make_rfu(
+            'SMS eTap error "%s"' % str(e),
+            name_addy= session.get('from'))
+
+        raise EtapError(dialog['error']['etap']['lookup'])
+
+    return acct
+
 #-------------------------------------------------------------------------------
 def get_chatlogs(agency, start_dt=None):
 
@@ -49,15 +77,11 @@ def event_begun(notific):
         return False
 
 #-------------------------------------------------------------------------------
-def rfu_task(agency, note,
-             a_id=None, npu=None, block=None, name_addy=None):
+def make_rfu(note, a_id=None, npu=None, block=None, name_addy=None):
 
     from .. import tasks
     tasks.rfu.apply_async(
-        args=[
-            agency,
-            note
-        ],
+        args=[session.get('agency'), note],
         kwargs={
             'a_id': a_id,
             'npu': npu,
@@ -65,4 +89,4 @@ def rfu_task(agency, note,
             '_date': date.today().strftime('%-m/%-d/%Y'),
             'name_addy': name_addy
         },
-        queue=current_app.config['DB'])
+        queue=g.db.db_name)

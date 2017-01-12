@@ -2,11 +2,13 @@
 
 import logging
 from flask_login import login_required, current_user
-from flask import g, request, jsonify, render_template
+from flask import g, request, jsonify, render_template, session
 from .. import get_db, utils
 from . import alice, incoming
 from .session import save_session
+from .incoming import make_reply
 from .util import get_chatlogs
+from .dialog import dialog
 from bson.objectid import ObjectId
 log = logging.getLogger(__name__)
 
@@ -44,10 +46,19 @@ def get_chatlogs():
             bson_to_json=True))
 
 #-------------------------------------------------------------------------------
-@alice.route('/receive', methods=['POST'])
-def sms_received():
+@alice.route('/<agency>/receive', methods=['POST'])
+def sms_received(agency):
+    session['agency'] = agency
+
     a = utils.start_timer()
-    response = incoming.receive()
+
+    try:
+        response = incoming.receive()
+    except Exception as e:
+        log.debug(str(e), exc_info=True)
+        log.error(str(e))
+        return make_reply(dialog['error']['unknown'])
+
     utils.end_timer(a, display=True, lbl='alice request')
 
     return response

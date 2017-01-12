@@ -107,16 +107,13 @@ def reminder_event(agency, block, _date):
                     'source': 'template',
                     'template': 'sms/%s/reminder.html' % agency}
 
-                on_reply = {
-                    'module': 'app.notify.pus',
-                    'func': 'on_sms_reply'}
-
                 sms.add(
                     evnt_id,
                     _date,
                     phone_trig_id,
                     acct_id, etap.get_phone('Mobile', acct_obj),
-                    on_send, on_reply)
+                    on_send,
+                    None)
 
             elif etap.get_phone('Voice', acct_obj):
                 on_answer = {

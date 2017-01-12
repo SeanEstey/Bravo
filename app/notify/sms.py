@@ -108,32 +108,6 @@ def send(notific, twilio_conf):
     return msg.status if msg else 'failed'
 
 #-------------------------------------------------------------------------------
-def on_reply():
-    '''Received reply from user. Invoke handler function.
-    Working under request context
-    Returns:
-        'OK' on success or error string on fail
-    '''
-
-    db = get_db()
-
-    notific = db['notifics'].find_one_and_update({
-          'to': request.form['From'],
-          'type': 'sms',
-          'event_dt': {'$gte': datetime.utcnow()}
-        }, {
-          '$set': {
-            'tracking.reply': request.form['Body']
-        }},
-        return_document=ReturnDocument.AFTER)
-
-    if notific:
-        logger.debug('sms.on_reply: %s', request.form.to_dict())
-
-        logger.info('received reply \'%s\' from %s',
-            request.form['Body'], request.form['From'])
-
-#-------------------------------------------------------------------------------
 def on_status():
     '''Callback for sending notific SMS
     '''

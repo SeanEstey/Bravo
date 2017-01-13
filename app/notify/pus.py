@@ -13,7 +13,7 @@ from bson.objectid import ObjectId as oid
 from bson import json_util
 from .. import get_db, utils, parser, gcal, etap
 from . import events, email, sms, voice, triggers, accounts
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class EtapError(Exception):
@@ -40,7 +40,7 @@ def reminder_event(agency, block, _date):
         )['data']
     except Exception as e:
         msg = 'Failed to retrieve query "%s". Details: %s' % (block, str(e))
-        logger.error(msg)
+        log.error(msg)
         raise EtapError(msg)
     else:
         if len(etap_accts) < 1:
@@ -77,7 +77,7 @@ def reminder_event(agency, block, _date):
         npu = etap.get_udf('Next Pickup Date', acct_obj).split('/')
 
         if len(npu) < 3:
-            logger.error('Account %s missing npu. Skipping.', acct_obj['id'])
+            log.error('Account %s missing npu. Skipping.', acct_obj['id'])
             continue
 
         acct_id = accounts.add(
@@ -160,7 +160,7 @@ def add_future_pickups(evnt_id):
 
     evnt_id = oid(evnt_id)
 
-    logger.info('Getting next pickups for notification event ID \'%s\'', str(evnt_id))
+    log.info('Getting next pickups for notification event ID \'%s\'', str(evnt_id))
 
     db = get_db()
 
@@ -182,10 +182,10 @@ def add_future_pickups(evnt_id):
                 end
             )
     except Exception as e:
-        logger.error('%s', str(e))
+        log.error('%s', str(e))
         return str(e)
 
-    logger.debug('%i calendar events pulled', len(cal_events))
+    log.debug('%i calendar events pulled', len(cal_events))
 
     block_dates = {}
 
@@ -216,7 +216,7 @@ def add_future_pickups(evnt_id):
                     '$set':{'udf.future_pickup_dt':npu}
                 })
         except Exception as e:
-            logger.error('Assigning future_dt %s to acct_id %s: %s',
+            log.error('Assigning future_dt %s to acct_id %s: %s',
             str(npu), str(acct['_id']), str(e))
 
 #-------------------------------------------------------------------------------
@@ -236,7 +236,7 @@ def get_next_pickup(blocks, office_notes, block_dates):
 
         if rmv and rmv in block_list:
             block_list.remove(rmv)
-            logger.info("Removed temp block %s from %s", rmv, str(block_list))
+            #log.debug("Removed temp block %s from %s", rmv, str(block_list))
 
     # Find all matching dates and sort chronologically to find solution
     dates = []
@@ -246,7 +246,7 @@ def get_next_pickup(blocks, office_notes, block_dates):
             dates.append(block_dates[block])
 
     if len(dates) < 1:
-        logger.error("Coudn't find npu for %s. office_notes: %s", blocks,office_notes)
+        log.error("Coudn't find npu for %s. office_notes: %s", blocks,office_notes)
         return False
 
     dates.sort()
@@ -260,7 +260,7 @@ def cancel_pickup(evnt_id, acct_id):
     @acct_id: db['accounts']['_id']
     '''
 
-    logger.info('Cancelling pickup for \'%s\'', acct_id)
+    log.info('Cancelling pickup for \'%s\'', acct_id)
 
     db = get_db()
 
@@ -295,7 +295,7 @@ def cancel_pickup(evnt_id, acct_id):
                 ).strftime('%d/%m/%Y')
             })
     except Exception as e:
-        logger.error("Error writing to eTap: %s", str(e))
+        log.error("Error writing to eTap: %s", str(e))
 
     if not acct.get('email'):
         return True
@@ -314,7 +314,7 @@ def cancel_pickup(evnt_id, acct_id):
                 http_host= os.environ.get('BRAVO_HTTP_HOST')
             )
         except Exception as e:
-            logger.error('Error rendering no_pickup email. %s', str(e))
+            log.error('Error rendering no_pickup email. %s', str(e))
             return False
     '''
 

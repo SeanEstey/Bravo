@@ -149,7 +149,9 @@ def on_reply():
     notific = db['notifics'].find_one_and_update({
           'to': request.form['From'],
           'type': 'sms',
-          'tracking.sent_dt': utils.naive_to_local(datetime.combine(date.today(),time()))
+          'event_dt': {'$gte': datetime.utcnow()},
+          'tracking.sent_dt': { '$exists': True }
+          #'tracking.sent_dt': utils.naive_to_local(datetime.combine(date.today(),time()))
         }, {
           '$set': {
             'tracking.reply': request.form['Body'].upper()

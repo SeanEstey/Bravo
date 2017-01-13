@@ -28,7 +28,6 @@ def load_user(user_id):
     else:
         return None
 
-
 #-------------------------------------------------------------------------------
 @auth.route('/login', methods=['GET','POST'])
 def login():
@@ -43,32 +42,32 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-    user_match = db['users'].find_one({'user': username})
+        user_match = db['users'].find_one({'user': username})
 
-    if not user_match:
-        logger.info("Username '%s' doesnt exist", username)
+        if not user_match:
+            logger.info("Username '%s' doesnt exist", username)
 
-        return json.dumps({
-          'status':'error',
-          'title': 'login info',
-          'msg':'Username does not exist'})
+            return json.dumps({
+              'status':'error',
+              'title': 'login info',
+              'msg':'Username does not exist'})
 
-    if user_match['password'] != password:
-        logger.info("User '%s' password is incorrect", username)
+        if user_match['password'] != password:
+            logger.info("User '%s' password is incorrect", username)
 
-        return json.dumps({
-            'status':'error',
-            'title': 'login info',
-            'msg':'Incorrect password'})
+            return json.dumps({
+                'status':'error',
+                'title': 'login info',
+                'msg':'Incorrect password'})
 
-    user = User(username, password)
+        user = User(username, password)
 
-    login_user(user)
+        login_user(user)
 
-    logger.info('User %s logged in', username)
+        logger.info('User %s logged in', username)
 
-    #return redirect(url_for('notify.view_event_list'))
-    return jsonify({'status':'success'})
+        #return redirect(url_for('notify.view_event_list'))
+        return jsonify({'status':'success'})
 
 #-------------------------------------------------------------------------------
 @auth.route('/logout', methods=['GET'])

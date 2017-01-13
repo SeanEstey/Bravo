@@ -12,6 +12,7 @@ from . import notify, accounts, admin, events, triggers, email, voice, sms,\
     recording, pus, gg, voice_announce
 log = logging.getLogger(__name__)
 
+
 #-------------------------------------------------------------------------------
 @notify.before_request
 def get_globals():
@@ -20,6 +21,32 @@ def get_globals():
         g.user = current_user
         g.agency = current_user.get_agency()
         g.conf = g.db.agencies.find_one({'name':g.agency})
+
+#-------------------------------------------------------------------------------
+@notify.route('/kill_trigger', methods=['POST'])
+@login_required
+def kill_trigger():
+    return jsonify(triggers.kill())
+
+#-------------------------------------------------------------------------------
+@notify.route('/<trig_id>/get_status', methods=['POST'])
+@login_required
+def get_trig_status(trig_id):
+    if not trig_id:
+        return 'invalid trig_id'
+
+    status = db.triggers.find_one({'_id':ObjectId(trig_id)})['status']
+    return jsonify({'status':status, 'trig_id':trig_id})
+
+#-------------------------------------------------------------------------------
+@notify.route('/get_op_stats', methods=['POST'])
+@login_required
+def get_op_stats():
+    stats = admin.get_op_stats()
+    if not stats:
+        return jsonify({'status':'failed'})
+
+    return jsonify(stats)
 
 #-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])
@@ -202,7 +229,12 @@ def fire_trigger(trig_id):
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/<acct_id>/no_pickup', methods=['GET'])
 def no_pickup(evnt_id, acct_id):
-    '''Script run via reminder email'''
+
+    if not pus.is_valid(evnt_id, acct_id):
+        logger.error(
+            'notific event or acct not found (evnt_id=%s, acct_id=%s)',
+            evnt_id, acct_id)
+        return 'Sorry there was an error fulfilling your request'
 
     from .. import tasks
 

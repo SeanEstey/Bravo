@@ -46,7 +46,7 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-    user_match = db['users'].find_one({'user': username})
+        user_match = db['users'].find_one({'user': username})
 
     if not user_match:
         log.info("Username '%s' doesnt exist", username)
@@ -73,7 +73,6 @@ def login():
 
     log.info('User %s logged in', username)
 
-    #return redirect(url_for('notify.view_event_list'))
     return jsonify({'status':'success'})
 
 #-------------------------------------------------------------------------------

@@ -107,6 +107,7 @@ def send(notific, twilio_conf):
 
     return msg.status if msg else 'failed'
 
+
 #-------------------------------------------------------------------------------
 def on_status():
     '''Callback for sending notific SMS

@@ -160,22 +160,15 @@ def email_unsubscribe(agency):
               unsubscribe from emails. Please contact to see if they want \
               to cancel the entire service.'
 
-        if agency == 'wsf':
-            to = 'emptiestowinn@wsaf.ca'
-            domain = 'wsaf.ca'
-        elif agency == 'vec':
-            to = 'recycle@vecova.ca'
-            domain = 'recycle.vecova.ca'
-
-        mailgun = db.agencies.find_one({'mailgun.domain':domain})
+        conf = db.agencies.find_one({'name':agency})['mailgun']
 
         try:
             r = requests.post(
               'https://api.mailgun.net/v3/' + 'bravoweb.ca' + '/messages',
-              auth=('api', mailgun['api_key']),
+              auth=('api', conf['api_key']),
               data={
-                'from': mailgun['from'],
-                'to': to,
+                'from': conf['from'],
+                'to': conf['from'],
                 'subject': 'Unsubscribe Request',
                 'html': msg
             })

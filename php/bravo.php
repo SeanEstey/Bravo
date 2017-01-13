@@ -21,11 +21,11 @@ function checkForError($nsc) {
 
   if($nsc->fault || $nsc->getError()) {
     if(!$nsc->fault) {
-      error_log($agency . ": Error: " . $nsc->getError());
+      //error_log($agency . ": Error: " . $nsc->getError());
       return true;
     }
     else {
-      error_log($agency . ": fault code " . $nsc->faultcode . ", msg: " . $nsc->faultstring);
+      //error_log($agency . ": fault code " . $nsc->faultcode . ", msg: " . $nsc->faultstring);
       return true;
     }
   }
@@ -161,7 +161,7 @@ function get_scheduled_block_size($nsc, $query_category, $query, $date) {
   else
     $ratio .= '?';
   
-  info_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
+  //debug_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
 
   http_response_code(200);
 

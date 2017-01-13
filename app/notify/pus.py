@@ -9,7 +9,7 @@ from flask import current_app, render_template, request
 from flask_login import current_user
 from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
-from bson.objectid import ObjectId as oid
+from bson.objectid import ObjectId
 from bson import json_util
 from .. import get_db, utils, parser, gcal, etap
 from . import events, email, sms, voice, triggers, accounts
@@ -158,7 +158,7 @@ def add_future_pickups(evnt_id):
     @evnt_id: str of ObjectID
     '''
 
-    evnt_id = oid(evnt_id)
+    evnt_id = ObjectId(evnt_id)
 
     log.info('Getting next pickups for notification event ID \'%s\'', str(evnt_id))
 
@@ -236,7 +236,6 @@ def get_next_pickup(blocks, office_notes, block_dates):
 
         if rmv and rmv in block_list:
             block_list.remove(rmv)
-            #log.debug("Removed temp block %s from %s", rmv, str(block_list))
 
     # Find all matching dates and sort chronologically to find solution
     dates = []
@@ -254,10 +253,27 @@ def get_next_pickup(blocks, office_notes, block_dates):
     return dates[0]
 
 #-------------------------------------------------------------------------------
+def is_valid(evnt_id, acct_id):
+    '''@evnt_id, acct_id: bson.objectid strings'''
+
+    if not ObjectId.is_valid(evnt_id) or not ObjectId.is_valid(acct_id):
+        return False
+
+    evnt = db.notific_events.find_one({'_id':ObjectId(evnt_id)})
+    acct = db.accounts.find_one({'_id':ObjectId(acct_id)})
+
+    if not evnt or not acct:
+        return False
+
+    return True
+
+#-------------------------------------------------------------------------------
 def cancel_pickup(evnt_id, acct_id):
-    '''Called via either SMS, voice, or email reminder. eTap API is slow so runs as Celery
-    background task.
-    @acct_id: db['accounts']['_id']
+    '''Runs as a celery task (tasks.cancel_pickup) to update an accounts eTap
+    fields to skip a pickup. The request originates from a SMS/Voice/Email
+    notification. Run is_valid() before calling this function.
+
+    @acct_id: _id from db.accounts, not eTap account id
     '''
 
     log.info('Cancelling pickup for \'%s\'', acct_id)
@@ -279,9 +295,15 @@ def cancel_pickup(evnt_id, acct_id):
           'opted_out': True
       }})
 
-    conf = db.agencies.find_one(
-        {'name': db.notific_events.find_one(
-            {'_id':evnt_id})['agency']})
+    evnt = db.notific_events.find_one({'_id':evnt_id})
+
+    if not evnt or not acct:
+        logger.error(
+            'event or acct not found (evnt_id=%s, a_id=%s)',
+            str(evnt_id), str(acct_id))
+        return False
+
+    conf = db.agencies.find_one({'name': evnt['agency']})
 
     try:
         etap.call(

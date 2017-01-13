@@ -48,17 +48,22 @@ def prompt_instructions():
 
 #-------------------------------------------------------------------------------
 def add_instruction():
-    driver_notes = etap.get_udf('Driver Notes', session.get('account'))
+    # We've already verified user reply is valid for a notific event
+    set_notific_reply()
+
+    instruction = request.form['Body']
+    acct = session.get('account')
+    driver_notes = etap.get_udf('Driver Notes', acct)
 
     etap.call(
         'modify_account',
         session.get('conf')['etapestry'],
         data={
-            'id': session.get('account')['id'],
+            'id': acct['id'],
             'udf': {
                 'Driver Notes':\
                     '***%s***\n%s' %(
-                    str(request.form['Body']), driver_notes)
+                    str(instruction), driver_notes)
             },
             'persona': []
         })

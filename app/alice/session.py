@@ -2,10 +2,11 @@
 
 import logging
 from flask import request, current_app, g, request, session
+from flask_kvsession import SessionID
 from bson.objectid import ObjectId
 import cPickle as pickle
 from datetime import datetime, date, timedelta
-from .. import kv_store, etap, utils, get_db, bcolors
+from .. import kv_store, kv_ext, etap, utils, get_db, bcolors
 from . import keywords
 from .util import related_notific, make_rfu, lookup_acct
 from .dialog import *
@@ -25,6 +26,7 @@ def create_session():
 
     # Init session data
 
+    session.permanent = True
     session['type'] = 'alice_chat'
     session['from'] = from_
     session['date'] = date.today().isoformat()
@@ -82,14 +84,20 @@ def save_session():
     for views
     '''
 
+    n_stored = 0
+    n_updated = 0
+
+    log.debug('total sessions, n=%s', len(kv_store.keys()))
+
     for key in kv_store.keys():
         sess_doc = pickle.loads(kv_store.get(key))
 
         if not sess_doc.get('type') == 'alice_chat':
+            del_session(sess_doc, key, if_expired=True)
             continue
 
         expires = sess_doc['expiry_dt'] - datetime.now()
-        log.debug('expires in t=%s', expires)
+        log.debug('sess_d=%s, expires in t=%s', key, expires)
 
         r = g.db.alice.update_one(
             {'sess_id':key},
@@ -100,18 +108,43 @@ def save_session():
         if r.matched_count == 1:
             log.debug(
                 'updated stored session, n=%s', r.modified_count)
+            n_updated +=1
         elif r.matched_count == 0:
-            new_doc = sess_doc.copy()
-            new_doc['sess_id'] = key
-            r = g.db.alice.insert_one(new_doc)
+            doc = sess_doc.copy()
+            doc['sess_id'] = key
+            for k in ['_fresh', '_permanent', 'conf', 'self_name', 'expiry_dt', 'valid_kws', 'type', 'on_complete']:
+                doc.pop(k, None)
+            r = g.db.alice.insert_one(doc)
             log.debug('stored session, id=%s', r.inserted_id)
+            n_stored +=1
+
+        del_session(sess_doc, key, if_expired=True)
+
+    log.debug('session stored=%s, updated=%s', n_stored, n_updated)
+
+
+#-------------------------------------------------------------------------------
+def del_session(doc, key, if_expired=True):
+    m = kv_ext.key_regex.match(key)
+
+    if m:
+        sid = SessionID.unserialize(key)
+        now = datetime.utcnow()
+
+        lifetime = current_app.config['PERMANENT_SESSION_LIFETIME']
+
+        if if_expired:
+            if sid.has_expired(lifetime, now):
+                log.debug('sess key=%s expired. deleting', key)
+                kv_store.delete(key)
+            else:
+                log.debug('sess key=%s not yet expired', key)
+        else:
+            kv_store.delete(key)
+            log.debug('deleted sess key=%s', key)
 
 #-------------------------------------------------------------------------------
 def wipe_sessions():
     '''TODO: destroy all sessions
     '''
     return True
-
-
-
-

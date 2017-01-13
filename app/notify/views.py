@@ -23,32 +23,6 @@ def get_globals():
         g.conf = g.db.agencies.find_one({'name':g.agency})
 
 #-------------------------------------------------------------------------------
-@notify.route('/kill_trigger', methods=['POST'])
-@login_required
-def kill_trigger():
-    return jsonify(triggers.kill())
-
-#-------------------------------------------------------------------------------
-@notify.route('/<trig_id>/get_status', methods=['POST'])
-@login_required
-def get_trig_status(trig_id):
-    if not trig_id:
-        return 'invalid trig_id'
-
-    status = db.triggers.find_one({'_id':ObjectId(trig_id)})['status']
-    return jsonify({'status':status, 'trig_id':trig_id})
-
-#-------------------------------------------------------------------------------
-@notify.route('/get_op_stats', methods=['POST'])
-@login_required
-def get_op_stats():
-    stats = admin.get_op_stats()
-    if not stats:
-        return jsonify({'status':'failed'})
-
-    return jsonify(stats)
-
-#-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])
 @login_required
 def view_event_list():

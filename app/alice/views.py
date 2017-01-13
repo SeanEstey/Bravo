@@ -20,7 +20,6 @@ def alice_globals():
     if current_user.is_authenticated:
         g.user = current_user
         g.agency = current_user.get_agency()
-        log.debug('user agency=%s', g.agency)
 
 #-------------------------------------------------------------------------------
 @alice.route('/', methods=['GET'])
@@ -31,11 +30,11 @@ def show_chatlogs():
 #-------------------------------------------------------------------------------
 @alice.route('/chatlogs', methods=['POST'])
 @login_required
-def get_chatlogs():
+def _get_chatlogs():
     save_session()
 
     try:
-        chatlogs = get_chatlogs(g.agency)
+        chatlogs = get_chatlogs()
     except Exception as e:
         log.debug(str(e))
 

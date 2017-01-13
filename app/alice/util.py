@@ -6,6 +6,7 @@ from flask import g, request, session
 from .. import etap
 from app.etap import EtapError
 from .dialog import *
+from app.utils import tz_utc_to_local
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -29,19 +30,21 @@ def lookup_acct(mobile):
     return acct
 
 #-------------------------------------------------------------------------------
-def get_chatlogs(agency, start_dt=None):
+def get_chatlogs(start_dt=None):
 
     if not start_dt:
         start_dt = datetime.utcnow() - timedelta(days=14)
 
     chats = g.db.alice.find(
-        {'agency':agency, 'last_msg_dt': {'$gt': start_dt}},
+        {'agency':g.agency, 'last_msg_dt': {'$gt': start_dt}},
         {'agency':0, '_id':0, 'date':0, 'account':0, 'twilio':0}
     ).sort('last_msg_dt',-1)
 
+    log.debug('chatlogs retrieved, n=%s', chats.count())
+
     chats = list(chats)
     for chat in chats:
-        chat['Date'] =  utils.tz_utc_to_local(
+        chat['Date'] =  tz_utc_to_local(
             chat.pop('last_msg_dt')
         ).strftime('%b %-d @ %-I:%M%p')
         chat['From'] = chat.pop('from')
@@ -68,6 +71,15 @@ def related_notific(log_error=False):
         if log_error:
             log.error('notific not found (from=%s)', from_)
         return {}
+
+#-------------------------------------------------------------------------------
+def set_notific_reply():
+    r = g.db.notifics.update_one(
+        {'_id': session.get('notific_id')},
+        {'$set': {
+            'tracking.reply': request.form['Body']}})
+
+    log.debug('set_notific_reply updated n=%s records', r.modified_count)
 
 #-------------------------------------------------------------------------------
 def event_begun(notific):

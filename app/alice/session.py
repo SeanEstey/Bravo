@@ -8,7 +8,7 @@ import cPickle as pickle
 from datetime import datetime, date, timedelta
 from .. import kv_store, kv_ext, etap, utils, get_db, bcolors
 from . import keywords
-from .util import related_notific, make_rfu, lookup_acct
+from .util import related_notific, make_rfu, lookup_acct, event_begun
 from .dialog import *
 from app.etap import EtapError
 log = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def create_session():
     session['type'] = 'alice_chat'
     session['from'] = from_
     session['date'] = date.today().isoformat()
-    session['messages'] = []
+    session['messages'] = [msg]
     session['conf'] = conf = g.db.agencies.find_one({'name':session.get('agency')})
     session['self_name'] = conf['alice']['name']
     session['last_msg_dt'] = utils.naive_to_local(datetime.now())
@@ -56,12 +56,12 @@ def create_session():
         session['account'] = acct
         session['valid_kws'] = keywords.user.keys()
 
-        notific = related_notific()
+        notific = related_notific(log_error=True)
 
         # Is there a notification user might be replying to?
         if notific:
             session['notific_id'] = notific['_id']
-            session['messages'] = [notific['tracking']['body']]
+            session['messages'].insert(0, notific['tracking']['body'])
             session['valid_notific_reply'] = not event_begun(notific)
 
             log.debug('Reply linked to notific_id=%s. valid=%s',
@@ -84,20 +84,23 @@ def save_session():
     for views
     '''
 
+    del_keys = [
+        '_fresh', '_permanent', 'conf', 'self_name', 'expiry_dt',
+        'valid_kws', 'type', 'on_complete']
     n_stored = 0
     n_updated = 0
+    n_alice = 0
 
-    log.debug('total sessions, n=%s', len(kv_store.keys()))
+    log.debug('saving sessions. total=%s', len(kv_store.keys()))
 
     for key in kv_store.keys():
         sess_doc = pickle.loads(kv_store.get(key))
 
         if not sess_doc.get('type') == 'alice_chat':
-            del_session(sess_doc, key, if_expired=True)
+            del_expired_session(sess_doc, key)
             continue
 
-        expires = sess_doc['expiry_dt'] - datetime.now()
-        log.debug('sess_d=%s, expires in t=%s', key, expires)
+        n_alice += 1
 
         r = g.db.alice.update_one(
             {'sess_id':key},
@@ -106,25 +109,23 @@ def save_session():
                 'last_msg_dt': sess_doc['last_msg_dt']}})
 
         if r.matched_count == 1:
-            log.debug(
-                'updated stored session, n=%s', r.modified_count)
             n_updated +=1
         elif r.matched_count == 0:
             doc = sess_doc.copy()
             doc['sess_id'] = key
-            for k in ['_fresh', '_permanent', 'conf', 'self_name', 'expiry_dt', 'valid_kws', 'type', 'on_complete']:
+            for k in del_keys:
                 doc.pop(k, None)
             r = g.db.alice.insert_one(doc)
-            log.debug('stored session, id=%s', r.inserted_id)
             n_stored +=1
 
-        del_session(sess_doc, key, if_expired=True)
+        del_expired_session(sess_doc, key)
 
-    log.debug('session stored=%s, updated=%s', n_stored, n_updated)
-
+    log.debug(
+        'sessions saved (count=%s, stored=%s, updated=%s)',
+        n_alice, n_stored, n_updated)
 
 #-------------------------------------------------------------------------------
-def del_session(doc, key, if_expired=True):
+def del_expired_session(doc, key, force=False):
     m = kv_ext.key_regex.match(key)
 
     if m:
@@ -133,15 +134,15 @@ def del_session(doc, key, if_expired=True):
 
         lifetime = current_app.config['PERMANENT_SESSION_LIFETIME']
 
-        if if_expired:
-            if sid.has_expired(lifetime, now):
-                log.debug('sess key=%s expired. deleting', key)
-                kv_store.delete(key)
-            else:
-                log.debug('sess key=%s not yet expired', key)
-        else:
+        if force:
             kv_store.delete(key)
-            log.debug('deleted sess key=%s', key)
+            log.debug('sess forced delete (key=%s)', key)
+        elif sid.has_expired(lifetime, now):
+                log.debug('sess expired. deleted (key=%s)', key)
+                kv_store.delete(key)
+        else:
+            log.debug('sess not yet expired (key=%s)', key)
+
 
 #-------------------------------------------------------------------------------
 def wipe_sessions():

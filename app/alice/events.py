@@ -8,20 +8,19 @@ from flask import g, request, session
 from datetime import datetime, date, time, timedelta
 from app.booker import geo, search, book
 from .dialog import dialog
-from .util import rfu_task, related_notific, event_begun
+from .util import make_rfu, related_notific, event_begun, set_notific_reply
 from app.notify.pus import cancel_pickup
 log = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
 def request_support():
-    account = session.get('account')
+    acct = session.get('account')
 
-    rfu_task(
-        session.get('conf')['name'],
+    make_rfu(
         'SMS help request: "%s"' % str(request.form['Body']),
-        a_id = account['id'],
-        name_addy = account['name']
+        a_id = acct['id'],
+        name_addy = acct['name']
     )
 
     return dialog['support']['thanks']
@@ -41,13 +40,15 @@ def prompt_instructions():
     if not session.get('notific_id'):
         return dialog['skip']['no_evnt']
 
-    if not session.get('valid_notific_reply'):
+    log.debug('valid_notific_reply=%s', session.get('valid_notific_reply'))
+
+    if session.get('valid_notific_reply') == False:
         return dialog['skip']['too_late']
 
     return dialog['instruct']['prompt']
 
 #-------------------------------------------------------------------------------
-def add_instruction():
+def add_instructions():
     # We've already verified user reply is valid for a notific event
     set_notific_reply()
 
@@ -105,10 +106,7 @@ def skip_pickup():
 
 #-------------------------------------------------------------------------------
 def update_mobile():
-    conf = getattr(g, 'agency_conf', None)
-
-    rfu_task(
-        conf['agency'],
+    make_rfu(
         'SMS update account for following address '\
         'with mobile number:' + str(request.form['Body']),
         name_addy = request.form['From']
@@ -136,8 +134,7 @@ def is_unsub():
         #agency = g.db.agencies.find_one({
         #    'twilio.sms.number':request.form['To']})
 
-        rfu_task(
-            agency['name'],
+        make_rfu(
             'Contributor has replied "%s" and opted out of SMS '\
             'notifications.' % request.form['Body'],
             a_id = account['id'])
@@ -148,14 +145,13 @@ def is_unsub():
 
 #-------------------------------------------------------------------------------
 def request_pickup(msg, response):
-    db = get_db()
-
-    agency = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+    agency = session.get('agency')
+    conf = sessin.get('conf')
 
     # Msg reply should contain address
     log.info('pickup request address: \"%s\" (SMS: %s)', msg, request.form['From'])
 
-    block = geo.find_block(agency['name'], msg, agency['google']['geocode']['api_key'])
+    block = geo.find_block(agency, msg, conf['google']['geocode']['api_key'])
 
     if not block:
         log.error('could not find map for address %s', msg)
@@ -195,9 +191,7 @@ def request_pickup(msg, response):
 
 #-------------------------------------------------------------------------------
 def add_acct(address, phone, block, pu_date_str):
-    db = get_db()
-
-    conf = db.agencies.find_one({'twilio.sms.number':request.form['To']})
+    conf = session.get('conf')
 
     geo_result = geo.geocode(
         address,

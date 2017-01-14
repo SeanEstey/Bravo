@@ -27,15 +27,17 @@ user = {
     },
     'INSTRUCTIONS': {
          'on_receive': {
-            'action': 'reply',
-            'dialog': \
-                "Tell me what you'd like instructions to pass along to our driver"
+            'action': 'event',
+            'handler': {
+                'module': 'app.alice.events',
+                'func': 'prompt_instructions'
+            }
         },
         'on_complete': {
             'action':'event',
             'handler': {
                 'module': 'app.alice.events',
-                'func': 'add_instruction',
+                'func': 'add_instructions',
             }
         }
     },
@@ -55,7 +57,7 @@ anon = {
         'on_receive': {
             'action': 'reply',
             'dialog': \
-                "I can identify your acount for you, I just need you to tell "\
+                "I can identify your account for you, I just need you to tell "\
                 "me your current address"
         },
         'on_complete': {

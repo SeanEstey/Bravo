@@ -6,7 +6,7 @@ from flask import g, request, session
 from .. import etap
 from app.etap import EtapError
 from .dialog import *
-from app.utils import tz_utc_to_local
+from app.utils import tz_utc_to_local, print_vars
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -90,7 +90,6 @@ def event_begun(notific):
 
 #-------------------------------------------------------------------------------
 def make_rfu(note, a_id=None, npu=None, block=None, name_addy=None):
-
     from .. import tasks
     tasks.rfu.apply_async(
         args=[session.get('agency'), note],
@@ -101,4 +100,4 @@ def make_rfu(note, a_id=None, npu=None, block=None, name_addy=None):
             '_date': date.today().strftime('%-m/%-d/%Y'),
             'name_addy': name_addy
         },
-        queue=g.db.db_name)
+        queue=g.db.name)

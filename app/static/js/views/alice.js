@@ -1,4 +1,4 @@
-/* Based on code at http://jsfiddle.net/28CFm/5/ */
+//app.static.js.views.alice
 
 
 //------------------------------------------------------------------------------
@@ -15,7 +15,109 @@ function alice_init() {
         }
         display(response);
     });
+
+    buildAdminPanel();
 }
+
+//------------------------------------------------------------------------------
+function buildAdminPanel() {
+    $('#admin_pane').show();
+    $('#dev_pane').show();
+
+    addAdminPanelBtn(
+      'dev_pane',
+      'dump_sessions_btn',
+      'Dump Sessions',
+      'btn-outline-primary'
+		).click(function() {
+        $.ajax({
+          type: 'POST',
+          url: $URL_ROOT + 'alice/dump_sessions',
+          data: {},
+          dataType: 'json'
+        })
+        .done(function(response) {
+            console.log(response.status_code);
+						console.log(response);
+
+            var summary = _.clone(response);
+            delete summary['dumps'];
+						
+            alertMsg(JSON.stringify(summary), 'warning', duration=0);
+        });
+    });
+
+    addAdminPanelBtn(
+      'dev_pane',
+      'wipe_sessions_btn',
+      'Wipe Sessions',
+      'btn-outline-primary'
+		).click(function() {
+        $.ajax({
+          type: 'POST',
+          url: $URL_ROOT + 'alice/wipe_sessions',
+          data: {},
+          dataType: 'json'
+        })
+        .done(function(response) {
+            console.log(response);
+            alertMsg(response, 'info');
+        });
+    });
+
+    addAdminPanelBtn(
+      'admin_pane',
+      'send_welcome_btn',
+      'Send Welcome',
+      'btn-outline-primary'
+		).click(function() {
+        showSendWelcomeModal();
+    });
+}
+
+//---------------------------------------------------------------------
+function showSendWelcomeModal() {
+    showModal(
+        'mymodal',
+        'Send Welcome SMS',
+        $('#send_welc').html(),
+        'Send',
+        'Cancel');
+
+    $('#mymodal').find('#send_welc').show();
+
+    $('#mymodal').on('shown.bs.modal', function () {
+        $('#mymodal').find('#aid').focus();
+    })
+
+    $('#mymodal .btn-primary').click(function() {
+        var etap_id = $('#mymodal input[id="aid"]').val();
+
+        alertMsg('Sending SMS...', 'info');
+
+        $.ajax({
+          type: 'POST',
+          url: $URL_ROOT + 'alice/send_welcome',
+          data: JSON.stringify({
+            "etap_id": etap_id
+          }),
+          contentType: 'application/json'
+				})
+        .done(function(response) {
+            console.log(response);
+
+            if(response=='queued') {
+                alertMsg('Welcome SMS sent!', 'success');
+            }
+        });
+
+        $('#mymodal').modal('hide');
+    });
+}
+
+
+/******************************************************************************/
+/* JSON visualizer Based on code at http://jsfiddle.net/28CFm/5/ */
 
 //------------------------------------------------------------------------------
 function display(json) {

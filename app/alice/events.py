@@ -89,6 +89,8 @@ def skip_pickup():
     if session.get('valid_notific_reply') == False:
         return dialog['skip']['too_late']
 
+    notific = g.db.notifics.find_one({'_id':session.get('notific_id')})
+
     #log.debug(utils.formatter(notific, bson_to_json=True))
 
     result = cancel_pickup(notific['evnt_id'], notific['acct_id'])
@@ -97,7 +99,7 @@ def skip_pickup():
         return dialog['error']['unknown']
 
     dt = g.db.accounts.find_one(
-        {'_id':session.get('notific_id')}
+        {'_id':notific['acct_id']}
     )['udf']['future_pickup_dt']
 
     return \

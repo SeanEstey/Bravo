@@ -22,8 +22,8 @@ def create_client(connect=False, auth=False):
     return client
 
 #-------------------------------------------------------------------------------
-def authenticate(client):
+def authenticate(client, user=None, pw=None):
     client.admin.authenticate(
-        mongodb_auth.user,
-        mongodb_auth.password,
+        user or mongodb_auth.user,
+        pw or mongodb_auth.password,
         mechanism='SCRAM-SHA-1')

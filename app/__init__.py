@@ -8,7 +8,7 @@ import socket
 import requests
 from datetime import timedelta
 from flask import Flask, current_app, g, has_app_context, has_request_context
-from flask_login import LoginManager
+from flask_login import current_user, LoginManager
 from flask_kvsession import KVSessionExtension
 from simplekv.db.mongo import MongoStore
 from simplekv import KeyValueStore
@@ -59,10 +59,46 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def get_db():
+    #log.debug('get_db. has_request_context=%s', has_request_context())
+
     if current_app and has_request_context():
         return getattr(g, 'db')
     else:
         return mongodb.create_client(connect=True, auth=True)[config.DB]
+
+#-------------------------------------------------------------------------------
+def get_keys(k=None, agency=None):
+    conf = ''
+    _agency = ''
+
+    if current_user.is_authenticated:
+        #if not getattr(g, 'conf'):
+        #    if not getattr(g, 'db'):
+        #        g.db = get_db()
+        _agency = current_user.get_agency()
+        conf = g.db.agencies.find_one({'name':_agency})
+        #else:
+        #    conf = g.conf
+    else:
+        if has_request_context():
+            if session.get('conf'):
+                conf = session.get('conf')
+            elif session.get('agency'):
+                conf = g.db.agencies.find_one({'name':session.get('agency')})
+        else:
+            if agency:
+                db = get_db()
+                conf = db.agencies.find_one({'name':agency})
+            else:
+                raise Exception('no req_context, no auth_user, no agency')
+
+    if not conf:
+        raise Exception('couldnt get conf')
+
+    if k:
+        return conf[k]
+    else:
+        return conf
 
 #-------------------------------------------------------------------------------
 def create_app(pkg_name, db_client):
@@ -189,3 +225,5 @@ def task_emit(event, data):
         'data':data
     }
     return requests.post('http://localhost/task_emit', json=payload)
+
+

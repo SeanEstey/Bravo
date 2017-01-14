@@ -67,7 +67,9 @@ anon = {
                 'func': 'update_mobile'
             }
         }
-    },
+    }
+}
+'''
     'REGISTER': {
         'on_receive': {
             'action': 'reply',
@@ -83,3 +85,4 @@ anon = {
         }
     }
 }
+'''

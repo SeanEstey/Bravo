@@ -35,6 +35,7 @@ class EtapError(Exception):
 #-------------------------------------------------------------------------------
 @flask_app.before_request
 def do_setup():
+    #log.debug('flask_app.before_request')
     session.permanent = True
     db = db_client[flask_app.config['DB']]
     g.db = db

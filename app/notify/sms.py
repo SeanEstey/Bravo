@@ -89,7 +89,7 @@ def send(notific, twilio_conf):
     try:
         msg = app.alice.outgoing.compose(
             body, notific['to'], acct['agency'], twilio_conf,
-            callback=callback)
+            status_callback=callback)
     except Exception as e:
         logger.error('compose_msg exc')
     else:

@@ -5,12 +5,19 @@ dialog = {
         'options': \
             "You can guide me with keywords. "\
             "Ask me about your pickup SCHEDULE, or request live SUPPORT.",
+        'welcome':\
+            "I'll be your digital assistant for the pickup service. Text me "\
+            "anytime if you need your schedule. Save me to your contact list "\
+            "if you'd like. ",
+        'joke_welcome':\
+            "You're looking especially sexy today. You make my circuits "\
+            "overheat..."
     },
     'anon': {
         'options': \
             "I don't recognize this number. "\
-            "Do you have an account? I can UPDATE it for you. "\
-            "If you're new, you can REGISTER for a pickup. "
+            "Do you have an account? I can UPDATE it for you. "#\
+            #"If you're new, you can REGISTER for a pickup. "
     },
     'general': {
         'intro': \

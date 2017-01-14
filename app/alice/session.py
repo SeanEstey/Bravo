@@ -7,6 +7,7 @@ from bson.objectid import ObjectId
 import cPickle as pickle
 from datetime import datetime, date, timedelta
 from .. import kv_store, kv_ext, etap, utils, get_db, bcolors
+from app.utils import print_vars
 from . import keywords
 from .util import related_notific, make_rfu, lookup_acct, event_begun
 from .dialog import *
@@ -20,7 +21,7 @@ def has_session():
 
 #-------------------------------------------------------------------------------
 def create_session():
-    from_ = request.form['From']
+    from_ = str(request.form['From'])
     msg = request.form['Body']
     life_duration = current_app.config['PERMANENT_SESSION_LIFETIME']
 
@@ -79,53 +80,109 @@ def update_session():
     session['last_msg_dt'] = utils.naive_to_local(datetime.now())
 
 #-------------------------------------------------------------------------------
-def save_session():
-    '''Save session chat from temporary store to db.alice collection
-    for views
+def store_sessions():
+    '''Store session chat to permanent db.chatlogs
     '''
 
-    del_keys = [
-        '_fresh', '_permanent', 'conf', 'self_name', 'expiry_dt',
-        'valid_kws', 'type', 'on_complete']
     n_stored = 0
     n_updated = 0
     n_alice = 0
+    store_keys = ['account', 'from', 'agency', 'messages', 'last_msg_dt']
 
-    log.debug('saving sessions. total=%s', len(kv_store.keys()))
+    #log.debug('saving sessions. total=%s', len(kv_store.keys()))
 
     for key in kv_store.keys():
-        sess_doc = pickle.loads(kv_store.get(key))
+        sess = pickle.loads(kv_store.get(key))
 
-        if not sess_doc.get('type') == 'alice_chat':
-            del_expired_session(sess_doc, key)
+        if not sess.get('type') == 'alice_chat':
             continue
 
         n_alice += 1
 
-        r = g.db.alice.update_one(
+        r = g.db.chatlogs.update_one(
             {'sess_id':key},
             {'$set': {
-                'messages': sess_doc['messages'],
-                'last_msg_dt': sess_doc['last_msg_dt']}})
+                'messages': sess['messages'],
+                'last_msg_dt': sess['last_msg_dt']}})
 
         if r.matched_count == 1:
             n_updated +=1
         elif r.matched_count == 0:
-            doc = sess_doc.copy()
-            doc['sess_id'] = key
-            for k in del_keys:
-                doc.pop(k, None)
-            r = g.db.alice.insert_one(doc)
+            r = g.db.chatlogs.insert_one({
+                'sess_id': key,
+                'account': sess.get('account',{}).copy(),
+                'messages': sess.get('messages')[:],
+                'from': sess.get('from'),
+                'agency': sess.get('agency'),
+                'last_msg_dt': sess.get('last_msg_dt')})
+
             n_stored +=1
 
-        del_expired_session(sess_doc, key)
-
     log.debug(
-        'sessions saved (count=%s, stored=%s, updated=%s)',
+        'chat sessions stored (total=%s, stored=%s, updated=%s)',
         n_alice, n_stored, n_updated)
 
 #-------------------------------------------------------------------------------
-def del_expired_session(doc, key, force=False):
+def dump_session(key=None, to_dict=False):
+    '''dumps the current chat session. If key specified, dumps session
+    from kv_store
+    @key: kv_store key
+    '''
+
+    omit = [
+        'account', 'conf', '_flashes', '_id', '_fresh', '_permanent', 'on_complete']
+
+    if not key:
+        # Get current session
+        sess = session.copy()
+    else:
+        sess = pickle.loads(kv_store.get(key)).copy()
+
+    for k in omit:
+        sess.pop(k, None)
+
+    if to_dict:
+        return sess
+    else:
+        return 'session dump (id=%s):\n%s' % (key, print_vars(sess))
+
+#-------------------------------------------------------------------------------
+def dump_sessions():
+    '''
+    '''
+
+    lifetime = current_app.config['PERMANENT_SESSION_LIFETIME']
+    n_sess = len(kv_store.keys())
+    n_chats = 0
+    n_chats_expired = 0
+    n_chats_active = 0
+    now = datetime.utcnow()
+    dumps = []
+
+    for key in kv_store.keys():
+        sess = pickle.loads(kv_store.get(key))
+
+        if sess.get('type') == 'alice_chat':
+            n_chats += 1
+            sid = SessionID.unserialize(key)
+
+            if sid.has_expired(lifetime, now):
+                n_chats_expired += 1
+            else:
+                n_chats_active += 1
+
+            dumps.append(dump_session(key, to_dict=True))
+
+    return {
+        'sessions': n_sess,
+        'chats': n_chats,
+        'active_chats': n_chats_active,
+        'expired_chats': n_chats_expired,
+        'dumps': dumps
+    }
+
+#-------------------------------------------------------------------------------
+def del_expired_session(key, force=False):
     m = kv_ext.key_regex.match(key)
 
     if m:
@@ -143,9 +200,20 @@ def del_expired_session(doc, key, force=False):
         else:
             log.debug('sess not yet expired (key=%s)', key)
 
-
 #-------------------------------------------------------------------------------
 def wipe_sessions():
-    '''TODO: destroy all sessions
+    '''Destroy all sessions
     '''
-    return True
+
+    n_start = len(kv_store.keys())
+
+    for key in kv_store.keys():
+        del_expired_session(key, force=True)
+
+    n_end = len(kv_store.keys())
+
+    log.debug('wiped sessions, start=%s, end=%s', n_start, n_end)
+
+    return n_start
+
+

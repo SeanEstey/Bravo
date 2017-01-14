@@ -77,7 +77,7 @@ def view_event(evnt_id):
 @notify.route('/new', methods=['POST'])
 @login_required
 def new_event():
-    log.debug(request.form.to_dict())
+    log.debug(request.form)
 
     template = request.form['template_name']
 

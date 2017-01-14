@@ -35,7 +35,7 @@ def get_chatlogs(start_dt=None):
     if not start_dt:
         start_dt = datetime.utcnow() - timedelta(days=14)
 
-    chats = g.db.alice.find(
+    chats = g.db.chatlogs.find(
         {'agency':g.agency, 'last_msg_dt': {'$gt': start_dt}},
         {'agency':0, '_id':0, 'date':0, 'account':0, 'twilio':0}
     ).sort('last_msg_dt',-1)

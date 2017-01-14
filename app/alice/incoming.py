@@ -50,7 +50,7 @@ def find_kw_matches(message, kws):
     '''@message: either incoming or outgoing text
     '''
 
-    log.debug('searching matches in %s', kws)
+    #log.debug('searching matches in %s', kws)
 
     # Remove punctuation, make upper case, split into individual words
     words = message.upper().translate(
@@ -94,11 +94,10 @@ def handle_keyword(kw, handler=None):
     if on_receive['action'] == 'reply':
         return make_reply(on_receive['dialog'], on_complete=on_complete)
     elif on_receive['action'] == 'event':
-        log.debug(
-            'calling event handler %s.%s',
-            on_receive['handler']['module'],
-            on_receive['handler']['func'])
-
+        #log.debug(
+        #    'calling event handler %s.%s',
+        #    on_receive['handler']['module'],
+        #    on_receive['handler']['func'])
 
         try:
             module = __import__(on_receive['handler']['module'], fromlist='.')

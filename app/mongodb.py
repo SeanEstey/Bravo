@@ -4,8 +4,6 @@ import logging
 import pymongo
 import mongodb_auth
 import config
-#from . import utils, db
-from flask import current_app, g
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

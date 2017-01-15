@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 @alice.before_request
 def alice_globals():
+    log.debug('alice.before_request has db')
     g.db = get_db()
 
     if current_user.is_authenticated:

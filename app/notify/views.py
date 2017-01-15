@@ -17,10 +17,10 @@ log = logging.getLogger(__name__)
 @notify.before_request
 def get_globals():
     if current_user.is_authenticated:
-        g.db = get_db()
+        #g.db = get_db()
         g.user = current_user
         g.agency = current_user.get_agency()
-        g.conf = g.db.agencies.find_one({'name':g.agency})
+        #g.conf = g.db.agencies.find_one({'name':g.agency})
 
 #-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])

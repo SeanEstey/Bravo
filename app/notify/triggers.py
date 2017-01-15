@@ -2,16 +2,19 @@
 
 import logging
 import os
-from flask import request
+from flask import g, request
 from bson.objectid import ObjectId
 from datetime import datetime,date,time
-
 from app import task_emit
 from .. import get_db, utils
 from app.utils import bcolors
 from . import voice, email, sms
 log = logging.getLogger(__name__)
 
+def context_test():
+    #log.debug('Trigger: g.db=%s', type(g.db))
+    from run import sio_app
+    sio_app.emit('emit!', 'emit!')
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, _type, _date, _time):

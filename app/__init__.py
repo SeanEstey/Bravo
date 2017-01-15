@@ -1,6 +1,6 @@
 '''app.__init__'''
 
-from celery import Celery
+from celery import Celery, Task
 import pymongo
 import os
 import logging
@@ -24,6 +24,7 @@ login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 
 db_client = mongodb.create_client()
+mongodb.authenticate(db_client)
 
 kv_store = MongoStore(
     db_client[config.DB],
@@ -34,12 +35,15 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def get_db():
-    #log.debug('get_db. has_request_context=%s', has_request_context())
-
     if current_app and has_request_context():
-        return getattr(g, 'db')
-    else:
-        return mongodb.create_client(connect=True, auth=True)[config.DB]
+        try:
+            db = getattr(g, 'db')
+        except Exception as e:
+            return mongodb.create_client(connect=False, auth=True)[config.DB]
+        else:
+            return db
+
+    return mongodb.create_client(connect=False, auth=True)[config.DB]
 
 #-------------------------------------------------------------------------------
 def get_keys(k=None, agency=None):
@@ -76,7 +80,7 @@ def get_keys(k=None, agency=None):
         return conf
 
 #-------------------------------------------------------------------------------
-def create_app(pkg_name, db_client):
+def create_app(pkg_name):
     app = Flask(pkg_name)
     app.config.from_object(config)
 
@@ -91,7 +95,7 @@ def create_app(pkg_name, db_client):
 
     login_manager.init_app(app)
 
-    mongodb.authenticate(db_client)
+    kv_ext.init_app(app)
 
     from app.auth import auth as auth_mod
     from app.main import main as main_mod
@@ -116,35 +120,16 @@ def celery_app(app):
     celery = Celery(__name__, broker='amqp://')
     celery.config_from_object('celeryconfig')
     celery.conf.update(app.config)
+    celery.app = app
 
-    TaskBase = celery.Task
-
-    class ContextTask(TaskBase):
-        abstract = True
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return TaskBase.__call__(self, *args, **kwargs)
-
-
-    '''
     __all__ = ['RequestContextTask']
 
-    class RequestContextTask(celery.Task):
-        """Base class for tasks that originate from Flask request handlers
-        and carry over most of the request context data.
-        This has an advantage of being able to access all the usual information
-        that the HTTP request has and use them within the task. Pontential
-        use cases include e.g. formatting URLs for external use in emails sent
-        by tasks.
-        """
+    class RequestContextTask(Task):
         abstract = True
-
-        #: Name of the additional parameter passed to tasks
-        #: that contains information about the original Flask request context.
         CONTEXT_ARG_NAME = '_flask_request_context'
 
         def __call__(self, *args, **kwargs):
-            """Execute task code with given arguments."""
+            #with app.app_context():
             call = lambda: super(RequestContextTask, self).__call__(*args, **kwargs)
 
             context = kwargs.pop(self.CONTEXT_ARG_NAME, None)
@@ -166,13 +151,13 @@ def celery_app(app):
             return super(RequestContextTask, self).apply_async(args, kwargs, **rest)
 
         def apply(self, args=None, kwargs=None, **rest):
-            if rest.pop('with_request_context', True):
-                self._include_request_context(kwargs)
+            #if rest.pop('with_request_context', True):
+            #    self._include_request_context(kwargs)
             return super(RequestContextTask, self).apply(args, kwargs, **rest)
 
         def retry(self, args=None, kwargs=None, **rest):
-            if rest.pop('with_request_context', True):
-                self._include_request_context(kwargs)
+            #if rest.pop('with_request_context', True):
+            #    self._include_request_context(kwargs)
             return super(RequestContextTask, self).retry(args, kwargs, **rest)
 
         def _include_request_context(self, kwargs):
@@ -182,6 +167,9 @@ def celery_app(app):
             if not has_request_context():
                 return
 
+            #log.debug('has_req_context')
+            #log.debug(kwargs)
+
             # keys correspond to arguments of :meth:`Flask.test_request_context`
             context = {
                 'path': request.path,
@@ -189,17 +177,15 @@ def celery_app(app):
                 'method': request.method,
                 'headers': dict(request.headers),
             }
+
+            #log.debug(context)
+
             if '?' in request.url:
                 context['query_string'] = request.url[(request.url.find('?') + 1):]
 
-            if kwargs == None:
-                kwargs = {}
-
             kwargs[self.CONTEXT_ARG_NAME] = context
-    '''
 
-    celery.Task = ContextTask
-
+    celery.Task = RequestContextTask
     return celery
 
 #-------------------------------------------------------------------------------

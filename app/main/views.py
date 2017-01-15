@@ -18,9 +18,7 @@ log = logging.getLogger(__name__)
 
 @main.before_request
 def _do_setup():
-    db = db_client[current_app.config['DB']]
-    g.db = db
-    log.debug('set main g.db')
+    pass
 
 #-------------------------------------------------------------------------------
 @main.route('/task_emit', methods=['POST'])

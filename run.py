@@ -9,20 +9,17 @@ from flask import current_app, g, session
 import celery
 from flask_socketio import SocketIO
 from setup import startup_msg
-from app import kv_ext, create_app, db_client, config_test_server, is_test_server
+from app import create_app, get_db, config_test_server, is_test_server
 from app.utils import bcolors
 
-app = create_app('app', db_client)
-kv_ext.init_app(app)
+app = create_app('app')
 sio_app = SocketIO(app)
 
 #-------------------------------------------------------------------------------
 @app.before_request
 def do_setup():
     session.permanent = True
-    db = db_client[app.config['DB']]
-    g.db = db
-    app.logger.debug('g.db set')
+    g.db = get_db()
 
 #-------------------------------------------------------------------------------
 @app.after_request

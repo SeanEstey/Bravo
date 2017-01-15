@@ -4,47 +4,54 @@ import logging
 import os
 import traceback as tb
 from celery.task.control import revoke
+from celery.signals import task_prerun
 from celery.utils.log import get_task_logger
 from bson.objectid import ObjectId as oid
-from flask import current_app, g, has_app_context, has_request_context
+from flask import current_app, g, request, has_app_context, has_request_context
 from etap import EtapError
 from run import app
-from utils import bcolors
-from . import get_db, utils, celery_app, deb_hand, inf_hand, err_hand, exc_hand
+from utils import bcolors, print_vars
+from . import mongodb, get_db, utils, celery_app, deb_hand, inf_hand, err_hand, exc_hand
 
-logger = get_task_logger(__name__)
-logger.addHandler(err_hand)
-logger.addHandler(inf_hand)
-logger.addHandler(deb_hand)
-logger.addHandler(exc_hand)
-logger.setLevel(logging.DEBUG)
-log = logging.getLogger(__name__)
+log = get_task_logger(__name__)
+log.addHandler(err_hand)
+log.addHandler(inf_hand)
+log.addHandler(deb_hand)
+log.addHandler(exc_hand)
+log.setLevel(logging.DEBUG)
 celery = celery_app(app)
 
-
-
-#-------------------------------------------------------------------------------
-def kill(task_id):
-    logger.info('attempting to kill task_id %s', task_id)
-
-    try:
-        response = celery.control.revoke(task_id, terminate=True)
-    except Exception as e:
-        logger.error('revoke task error: %s', str(e))
-        return False
-
-    logger.info('revoke response: %s', str(response))
-
-    return response
+@task_prerun.connect
+def celery_prerun(*args, **kwargs):
+    '''Called by worker before task is executed
+    No app/request context by default unless parent caller has one
+    '''
+    pass
 
 #-------------------------------------------------------------------------------
-@celery.task
-def test_test(args):
-    log.debug(
-        'request_task | has_app_context=%s | has_request_context=%s',
-        has_app_context(), has_request_context())
+def worker_init(self):
+    if has_app_context():
+        g.db = get_db()
 
-    log.debug('req_task g.db=%s', g.db)
+        log.debug(
+            'Worker.init | app_ctx=%s | req_ctx=%s | g.db=%s',
+            has_app_context(), has_request_context(), g.db is not None)
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def test(self, *args, **kwargs):
+    worker_init(self)
+
+    if has_app_context():
+        from app.notify import triggers
+        #triggers.context_test()
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def mod_environ(self, *args, **kwargs):
+    for idx, arg in enumerate(args):
+        for k in arg:
+            os.environ[k] = arg[k]
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -52,22 +59,11 @@ def clean_expired_sessions():
     from app import kv_ext
     try:
         with current_app.test_request_context():
-            logger.info('cleaning expired sessions')
-            logger.debug(utils.print_vars(kv_ext))
+            log.info('cleaning expired sessions')
+            log.debug(utils.print_vars(kv_ext))
             kv_ext.cleanup_sessions()
     except Exception as e:
-        logger.debug(str(e))
-
-
-#-------------------------------------------------------------------------------
-@celery.task
-def mod_environ(args):
-    log.debug(
-        'mod_environ task | has_app_context=%s | has_request_context=%s',
-        has_app_context(), has_request_context())
-
-    for key in args:
-        os.environ[key] = args[key]
+        log.debug(str(e))
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -85,7 +81,7 @@ def monitor_triggers():
         for trigger in ready:
             event = events.get(trigger['evnt_id'])
 
-            logger.debug('trigger %s scheduled. firing.', str(trigger['_id']))
+            log.debug('trigger %s scheduled. firing.', str(trigger['_id']))
 
             triggers.fire(trigger['evnt_id'], trigger['_id'])
 
@@ -102,7 +98,7 @@ def monitor_triggers():
             print '%s trigger pending in %s' %(
                 trigger['type'], str(delta)[:-7])
     except Exception as e:
-        logger.error('%s\n%s', str(e), tb.format_exc())
+        log.error('%s\n%s', str(e), tb.format_exc())
         return False
 
     return True
@@ -117,7 +113,7 @@ def cancel_pickup(evnt_id, acct_id):
             oid(evnt_id),
             oid(acct_id))
     except Exception as e:
-        logger.error('%s\n%s', str(e), tb.format_exc())
+        log.error('%s\n%s', str(e), tb.format_exc())
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -143,7 +139,7 @@ def build_scheduled_routes():
                 time(0,0,0)))
         })
 
-        logger.info(
+        log.info(
           '%s: -----Building %s routes for %s-----',
           agency['name'], _routes.count(), date.today().strftime("%A %b %d"))
 
@@ -155,16 +151,15 @@ def build_scheduled_routes():
 
             if not r:
                 fails += 1
-                logger.error('Error building route %s', route['block'])
+                log.error('Error building route %s', route['block'])
             else:
                 successes += 1
 
             sleep(2)
 
-        logger.info(
+        log.info(
             '%s: -----%s Routes built. %s failures.-----',
             agency['name'], successes, fails)
-
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -182,7 +177,7 @@ def build_route(route_id, job_id=None):
         from app.routing import main
         return main.build(str(route_id), job_id=job_id)
     except Exception as e:
-        logger.error('%s\n%s', str(e), tb.format_exc())
+        log.error('%s\n%s', str(e), tb.format_exc())
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -191,13 +186,13 @@ def add_signup(signup):
         from app import wsf
         return wsf.add_signup(signup)
     except Exception as e:
-        logger.error('%s\n%s', str(e), tb.format_exc())
+        log.error('%s\n%s', str(e), tb.format_exc())
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def fire_trigger(self, evnt_id, trig_id):
 
-    logger.debug('trigger task_id: %s', self.request.id)
+    log.debug('trigger task_id: %s', self.request.id)
 
     db = get_db()
 
@@ -206,13 +201,13 @@ def fire_trigger(self, evnt_id, trig_id):
         '_id':oid(trig_id)},
         {'$set':{'task_id':self.request.id}})
 
-    logger.debug('mongo warning yet?')
+    log.debug('mongo warning yet?')
 
     try:
         from app.notify import triggers
         return triggers.fire(oid(evnt_id), oid(trig_id))
     except Exception as e:
-        logger.error('%s\n%s', str(e), tb.format_exc())
+        log.error('%s\n%s', str(e), tb.format_exc())
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -221,7 +216,7 @@ def send_receipts(entries, etapestry_id):
         from app.main import receipts
         return receipts.process(entries, etapestry_id)
     except Exception as e:
-        logger.error('%s\n%s', str(e), tb.format_exc())
+        log.error('%s\n%s', str(e), tb.format_exc())
 
 
 #-------------------------------------------------------------------------------
@@ -264,12 +259,12 @@ def schedule_reminders():
             )
 
         if len(blocks) == 0:
-            logger.info(
+            log.info(
                 '[%s] no blocks scheduled on %s',
                 agency['name'], _date.strftime('%b %-d'))
             return True
 
-        logger.info(
+        log.info(
             '[%s] scheduling reminders for %s on %s',
             agency['name'], blocks, _date.strftime('%b %-d'))
 
@@ -282,7 +277,7 @@ def schedule_reminders():
             else:
                 n+=1
 
-        logger.info(
+        log.info(
             '[%s] scheduled %s/%s reminder events',
             agency['name'], n, len(blocks)
         )
@@ -318,7 +313,7 @@ def update_sms_accounts(agency_name=None, days_delta=None):
 
         r = sms.enable(agency_name, accounts)
 
-        logger.info('%s --- updated %s accounts for SMS. discovered %s mobile numbers ---%s',
+        log.info('%s --- updated %s accounts for SMS. discovered %s mobile numbers ---%s',
                     bcolors.OKGREEN, r['n_sms'], r['n_mobile'], bcolors.ENDC)
     else:
         agencies = db.agencies.find({})
@@ -336,7 +331,7 @@ def update_sms_accounts(agency_name=None, days_delta=None):
 
             r = sms.enable(agency['name'], accounts)
 
-            logger.info('%s --- updated %s accounts for SMS. discovered %s mobile numbers ---%s',
+            log.info('%s --- updated %s accounts for SMS. discovered %s mobile numbers ---%s',
                         bcolors.OKGREEN, r['n_sms'], r['n_mobile'], bcolors.ENDC)
 
     return True
@@ -358,14 +353,14 @@ def enable_all_accounts_sms():
                 }
             )
         except Exception as e:
-            logger.error('Error retrieving master account list. %s', str(e))
+            log.error('Error retrieving master account list. %s', str(e))
             return False
 
         subset = accounts[0:10]
 
         n = sms.enable(agency['name'], subset)
 
-        logger.info('enabled %s accounts for SMS', n)
+        log.info('enabled %s accounts for SMS', n)
 
 
 #-------------------------------------------------------------------------------
@@ -381,7 +376,7 @@ def find_non_participants():
 
     for agency in agencies:
         try:
-            logger.info('%s: Analyzing non-participants in 5 days...', agency['name'])
+            log.info('%s: Analyzing non-participants in 5 days...', agency['name'])
 
             accounts = cal.get_accounts(
                 agency['etapestry'],
@@ -427,7 +422,7 @@ def find_non_participants():
                   office_notes = etap.get_udf('Office Notes', np)
                 )
         except Exception as e:
-            logger.error('%s\n%s', str(e), tb.format_exc())
+            log.error('%s\n%s', str(e), tb.format_exc())
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -439,3 +434,17 @@ def update_maps(agency=None, emit_status=False):
     else:
         for agency in db.agencies.find({}):
             geo.update_maps(agency['name'], emit_status)
+
+#-------------------------------------------------------------------------------
+def kill(task_id):
+    log.info('attempting to kill task_id %s', task_id)
+
+    try:
+        response = celery.control.revoke(task_id, terminate=True)
+    except Exception as e:
+        log.error('revoke task error: %s', str(e))
+        return False
+
+    log.info('revoke response: %s', str(response))
+
+    return response

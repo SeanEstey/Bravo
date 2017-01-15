@@ -7,14 +7,14 @@ from bson.objectid import ObjectId
 from datetime import datetime,date,time
 from app import task_emit
 from .. import get_db, utils
-from app.utils import bcolors
+from app.utils import bcolors, print_vars
 from . import voice, email, sms
 log = logging.getLogger(__name__)
 
 def context_test():
-    #log.debug('Trigger: g.db=%s', type(g.db))
-    from run import sio_app
-    sio_app.emit('emit!', 'emit!')
+    log.debug(
+        'alice name=%s',
+        g.db.agencies.find_one({'name':'vec'})['alice']['name'])
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, _type, _date, _time):

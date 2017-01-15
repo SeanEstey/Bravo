@@ -3,12 +3,13 @@
 import logging
 import re
 from app import gsheets
-from app import db
+from app import get_db
 import time
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def to_dict(agency, ss_id):
+    db = get_db()
     conf = db.agencies.find_one({'name':agency})
     service = gsheets.gauth(conf['google']['oauth'])
 

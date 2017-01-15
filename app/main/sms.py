@@ -4,7 +4,7 @@ import logging
 import re
 from twilio.rest.lookups import TwilioLookupsClient
 
-from .. import db
+from .. import get_db
 from .. import etap
 
 logger = logging.getLogger(__name__)
@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 def enable(agency, accounts):
     '''Enable eTap accounts to use Alice'''
 
+    db = get_db()
     conf = db.agencies.find_one({'name':agency})
 
     client = TwilioLookupsClient(

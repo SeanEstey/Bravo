@@ -9,7 +9,7 @@ from datetime import datetime, date
 from flask import g, request, render_template, redirect, url_for, current_app,\
      jsonify, Response
 from flask_login import login_required, current_user
-from .. import db_client, get_db, utils, html, gsheets, mailgun
+from .. import get_db, utils, html, gsheets, mailgun
 from . import main, log, receipts, signups
 from app.notify import admin, email
 from app.booker import book

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse
 
 from .. import etap, gsheets
-from .. import db
+from .. import get_db
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -16,6 +16,7 @@ def find(agency, accounts):
     Output: list of np's, empty list if none found
     '''
 
+    db = get_db()
     # Build list of accounts to query gift_histories for
     viable_accounts = []
 

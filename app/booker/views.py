@@ -4,7 +4,7 @@ import json
 import twilio.twiml
 import requests
 from datetime import datetime, date, time, timedelta
-from flask import request, jsonify, render_template, redirect, current_app,url_for
+from flask import g, request, jsonify, render_template, redirect, current_app,url_for
 from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 import logging
@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 @booker.route('/', methods=['GET'])
 @login_required
 def show_home():
-    db = get_db()
-    agency = db['users'].find_one({'user': current_user.username})['agency']
+    #db = get_db()
+    agency = g.db.users.find_one({'user': current_user.username})['agency']
 
     return render_template(
         'views/booker.html',

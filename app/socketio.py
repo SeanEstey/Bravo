@@ -5,7 +5,6 @@ from flask import request, jsonify
 from flask_socketio import SocketIO, send, emit
 from flask_login import current_user
 import requests
-from tasks import flask_app
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

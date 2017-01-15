@@ -21,8 +21,8 @@ def test_clean_sessions():
 def test_test():
     #log.info('starting celery task from request')
 
-    from app.tasks import test
-    test.apply_async(
+    from app.tasks import test_trig
+    test_trig.apply_async(
         args=[{'NAME': 'SEAN_ESTEY'}],
         kwargs={'a':'b'},
         queue='bravo'

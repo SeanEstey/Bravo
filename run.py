@@ -5,11 +5,12 @@ import time
 import sys
 import logging
 import getopt
+import flask
 from flask import current_app, g, session
 import celery
 from flask_socketio import SocketIO
 from setup import startup_msg
-from app import create_app, get_db, config_test_server, is_test_server
+from app import db_client, create_app, get_db, kv_ext, config_test_server, is_test_server
 from app.utils import bcolors
 
 app = create_app('app')
@@ -19,12 +20,28 @@ sio_app = SocketIO(app)
 @app.before_request
 def do_setup():
     session.permanent = True
-    g.db = get_db()
+    # Every other function in this app can call get_db()
+    # for a connection. 
+    g.db = db_client['bravo']
 
 #-------------------------------------------------------------------------------
 @app.after_request
 def do_teardown(response):
     return response
+
+#-------------------------------------------------------------------------------
+def clean_expired_sessions():
+    '''
+    from app import kv_ext
+    try:
+        with current_app.test_request_context():
+            log.info('cleaning expired sessions')
+            log.debug(utils.print_vars(kv_ext))
+            kv_ext.cleanup_sessions()
+    except Exception as e:
+        log.debug(str(e))
+    '''
+    pass
 
 #-------------------------------------------------------------------------------
 def start_worker(celery_beat):

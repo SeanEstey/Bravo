@@ -11,7 +11,7 @@ from datetime import datetime
 from simple_salesforce import Salesforce
 
 from app import utils
-from .. import db
+from .. import get_db
 logger = logging.getLogger(__name__)
 
 

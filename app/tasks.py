@@ -7,11 +7,10 @@ from celery.task.control import revoke
 from celery.signals import task_prerun
 from celery.utils.log import get_task_logger
 from bson.objectid import ObjectId as oid
-from flask import current_app, g, request, has_app_context, has_request_context
+from flask import current_app, g, request, has_app_context,has_request_context
 from etap import EtapError
-from run import app
 from utils import bcolors, print_vars
-from . import mongodb, get_db, utils, celery_app, deb_hand, inf_hand, err_hand, exc_hand
+from . import mongodb, get_db, utils, create_app, celery_app, deb_hand, inf_hand, err_hand, exc_hand
 
 log = get_task_logger(__name__)
 log.addHandler(err_hand)
@@ -19,7 +18,11 @@ log.addHandler(inf_hand)
 log.addHandler(deb_hand)
 log.addHandler(exc_hand)
 log.setLevel(logging.DEBUG)
-celery = celery_app(app)
+
+celery = celery_app(
+    create_app('app', kv_sess=False))
+
+c_db_client = mongodb.create_client(connect=False, auth=False)
 
 @task_prerun.connect
 def celery_prerun(*args, **kwargs):
@@ -30,40 +33,36 @@ def celery_prerun(*args, **kwargs):
 
 #-------------------------------------------------------------------------------
 def worker_init(self):
-    if has_app_context():
-        g.db = get_db()
+    log.debug(
+        'Worker | app_ctx=%s | req_ctx=%s',
+        has_app_context(), has_request_context())
 
-        log.debug(
-            'Worker.init | app_ctx=%s | req_ctx=%s | g.db=%s',
-            has_app_context(), has_request_context(), g.db is not None)
+    if has_app_context():
+        mongodb.authenticate(c_db_client)
+        g.db = c_db_client['bravo']
+    else:
+        log.debug('no app context')
+        return False
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def test(self, *args, **kwargs):
+def test_trig(self, *args, **kwargs):
     worker_init(self)
 
-    if has_app_context():
-        from app.notify import triggers
-        #triggers.context_test()
+    from app.notify import triggers
+    triggers.context_test()
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def mod_environ(self, *args, **kwargs):
+    worker_init(self)
+
+    a = g.db.agencies.find_one({'name':'vec'})
+    log.debug(a['alice']['name'])
+
     for idx, arg in enumerate(args):
         for k in arg:
             os.environ[k] = arg[k]
-
-#-------------------------------------------------------------------------------
-@celery.task
-def clean_expired_sessions():
-    from app import kv_ext
-    try:
-        with current_app.test_request_context():
-            log.info('cleaning expired sessions')
-            log.debug(utils.print_vars(kv_ext))
-            kv_ext.cleanup_sessions()
-    except Exception as e:
-        log.debug(str(e))
 
 #-------------------------------------------------------------------------------
 @celery.task

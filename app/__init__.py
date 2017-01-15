@@ -35,15 +35,10 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def get_db():
-    if current_app and has_request_context():
-        try:
-            db = getattr(g, 'db')
-        except Exception as e:
-            return mongodb.create_client(connect=False, auth=True)[config.DB]
-        else:
-            return db
-
-    return mongodb.create_client(connect=False, auth=True)[config.DB]
+    if has_app_context():
+        return g.db
+    else:
+        return db_client[config.DB]
 
 #-------------------------------------------------------------------------------
 def get_keys(k=None, agency=None):
@@ -80,7 +75,9 @@ def get_keys(k=None, agency=None):
         return conf
 
 #-------------------------------------------------------------------------------
-def create_app(pkg_name):
+def create_app(pkg_name, kv_sess=True):
+    log.debug('creating app')
+
     app = Flask(pkg_name)
     app.config.from_object(config)
 
@@ -95,7 +92,8 @@ def create_app(pkg_name):
 
     login_manager.init_app(app)
 
-    kv_ext.init_app(app)
+    if kv_sess:
+        kv_ext.init_app(app)
 
     from app.auth import auth as auth_mod
     from app.main import main as main_mod
@@ -129,12 +127,16 @@ def celery_app(app):
         CONTEXT_ARG_NAME = '_flask_request_context'
 
         def __call__(self, *args, **kwargs):
-            #with app.app_context():
             call = lambda: super(RequestContextTask, self).__call__(*args, **kwargs)
 
             context = kwargs.pop(self.CONTEXT_ARG_NAME, None)
-            if context is None or has_request_context():
+
+            if has_request_context():
                 return call()
+            else:
+                if context is None:
+                    with celery.app.app_context():
+                        return call()
 
             with app.test_request_context(**context):
                 result = call()
@@ -167,9 +169,6 @@ def celery_app(app):
             if not has_request_context():
                 return
 
-            #log.debug('has_req_context')
-            #log.debug(kwargs)
-
             # keys correspond to arguments of :meth:`Flask.test_request_context`
             context = {
                 'path': request.path,
@@ -177,8 +176,6 @@ def celery_app(app):
                 'method': request.method,
                 'headers': dict(request.headers),
             }
-
-            #log.debug(context)
 
             if '?' in request.url:
                 context['query_string'] = request.url[(request.url.find('?') + 1):]

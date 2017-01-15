@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 @auth.before_request
 def before_request():
     #log.debug('auth.before_request')
-    g.db = get_db()
+    #g.db = get_db()
     g.user = current_user
 
 #-------------------------------------------------------------------------------

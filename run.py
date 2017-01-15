@@ -1,88 +1,56 @@
 '''run'''
 
 import os
-import socket
 import time
-import pprint
-import json
 import sys
+import logging
 import getopt
-import eventlet
-import flask
+from flask import current_app, g, session
 import celery
 from flask_socketio import SocketIO
+from setup import startup_msg
+from app import kv_ext, create_app, db_client, config_test_server, is_test_server
+from app.utils import bcolors
 
-import config
-from app import config_test_server, is_test_server
-from app.tasks import flask_app
-from app.socketio import socketio_app
-import app
-
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
+app = create_app('app', db_client)
+kv_ext.init_app(app)
+sio_app = SocketIO(app)
 
 #-------------------------------------------------------------------------------
-def startup_msg():
-    print bcolors.OKGREEN + '\n--------------------------------------'
-    print bcolors.BOLD + 'Bravo' + bcolors.ENDC + bcolors.OKGREEN
-    if os.environ['BRAVO_TEST_SERVER'] == 'True':
-        print 'HOSTNAME: Test Server'
-    else:
-        print 'HOSTNAME: Deploy Server'
-    print "HTTP_HOST: %s:%s" %(
-        os.environ['BRAVO_HTTP_HOST'],
-        flask_app.config['PUB_PORT'])
-    if flask_app.config['DEBUG'] == True:
-        print 'DEBUG MODE: ENABLED'
-    else:
-        print 'DEBUG MODE: DISABLED'
-    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
-        print 'SANDBOX MODE: ENABLED (blocking all outgoing Voice/Sms/Email messages) '
-    else:
-        print 'SANDBOX MODE: DISABLED'
-    if os.environ['BRAVO_CELERY_BEAT'] == 'True':
-        print 'CELERY_BEAT: ENABLED'
-    elif os.environ['BRAVO_CELERY_BEAT'] == 'False':
-        print 'CELERY_BEAT: DISABLED (no automatic task scheduling)'
-    if socketio_app.server.async_mode == 'eventlet':
-        print 'SERVER_SOFTWARE: Eventlet (%s)' % eventlet.__version__
-    else:
-        print 'SERVER_SOFTWARE: %s' % socketio_app.server.async_mode
-    print 'CELERY: ' + celery.__version__
-    print 'FLASK: ' + flask.__version__
-    print '--------------------------------------\n' + bcolors.ENDC
+@app.before_request
+def do_setup():
+    session.permanent = True
+    db = db_client[app.config['DB']]
+    g.db = db
+    app.logger.debug('g.db set')
 
+#-------------------------------------------------------------------------------
+@app.after_request
+def do_teardown(response):
+    return response
 
 #-------------------------------------------------------------------------------
 def start_worker(celery_beat):
+    db_name = app.config['DB']
+
     # Kill any existing workers
     os.system('kill %1')
-    os.system("ps aux | grep 'queues " + config.DB + \
+    os.system("ps aux | grep 'queues " + db_name + \
               "' | awk '{print $2}' | xargs kill -9")
 
     if celery_beat:
         # Start worker with embedded beat (will fail if > 1 worker)
         os.environ['BRAVO_CELERY_BEAT'] = 'True'
         os.system('celery worker -A app.tasks.celery -B -n ' + \
-                  config.DB + ' --queues ' + config.DB + ' &')
+                  db_name + ' --queues ' + db_name + ' &')
     else:
         # Start worker without beat
         os.environ['BRAVO_CELERY_BEAT'] = 'False'
         os.system('celery worker -A app.tasks.celery -n ' + \
-                  config.DB + ' --queues ' + config.DB + ' &')
+                  db_name + ' --queues ' + db_name + ' &')
 
     # Pause to give workers time to initialize before starting server
     time.sleep(2)
-
 
 #-------------------------------------------------------------------------------
 def main(argv):
@@ -99,13 +67,12 @@ def main(argv):
         if opt in('-c', '--celerybeat'):
             celery_beat = True
         elif opt in ('-d', '--debug'):
-            flask_app.config['DEBUG'] = True
+            app.config['DEBUG'] = True
         elif opt in ('-s', '--sandbox'):
             sandbox = True
 
-
-    if not flask_app.config['DEBUG']:
-        flask_app.config['DEBUG'] = False
+    if not app.config['DEBUG']:
+        app.config['DEBUG'] = False
 
     if is_test_server():
         if sandbox == True:
@@ -117,17 +84,18 @@ def main(argv):
 
     start_worker(celery_beat)
 
-    app.tasks.mod_environ.apply_async(
+    from app.tasks import mod_environ
+    mod_environ.apply_async(
         args=[{'BRAVO_SANDBOX_MODE':os.environ['BRAVO_SANDBOX_MODE'],
         'BRAVO_HTTP_HOST': os.environ['BRAVO_HTTP_HOST']}],
-        queue=flask_app.config['DB']
+        queue=app.config['DB']
     )
 
-    startup_msg()
+    startup_msg(sio_app, app)
 
-    socketio_app.run(
-        flask_app,
-        port=flask_app.config['LOCAL_PORT']
+    sio_app.run(
+        app,
+        port=app.config['LOCAL_PORT']
         #use_reloader=True
     )
 

@@ -3,12 +3,13 @@ import json
 import twilio.twiml
 import requests
 from datetime import datetime, date, time, timedelta
-from flask import request, jsonify, render_template, \
+from flask import g, request, jsonify, render_template, \
     redirect, Response, current_app, url_for
 from flask_login import login_required, current_user
 import logging
 import bson.json_util
 from . import main
+from .. import get_db
 from app.notify import pus
 logger = logging.getLogger(__name__)
 
@@ -21,10 +22,15 @@ def test_clean_sessions():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/test_test', methods=['POST'])
+@main.route('/test_task', methods=['GET'])
 def test_test():
-    logger.info('test')
-    return jsonify({'key':'test'})
+    logger.info('starting celery task')
+    from .. import tasks
+    tasks.test_test.apply_async(
+        args=[3],
+        queue=current_app.config['DB']
+    )
+    return 'OK'
 
 #-------------------------------------------------------------------------------
 @main.route('/test_schedule_reminders', methods=['GET'])

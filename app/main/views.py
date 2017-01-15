@@ -9,14 +9,18 @@ from datetime import datetime, date
 from flask import g, request, render_template, redirect, url_for, current_app,\
      jsonify, Response
 from flask_login import login_required, current_user
-from flask_socketio import SocketIO, emit
-from bson.objectid import ObjectId
-
-from .. import get_db, utils, html, gsheets, mailgun
+from .. import db_client, get_db, utils, html, gsheets, mailgun
 from . import main, log, receipts, signups
 from app.notify import admin, email
 from app.booker import book
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
+
+
+@main.before_request
+def _do_setup():
+    db = db_client[current_app.config['DB']]
+    g.db = db
+    log.debug('set main g.db')
 
 #-------------------------------------------------------------------------------
 @main.route('/task_emit', methods=['POST'])
@@ -28,9 +32,9 @@ def request_send_socket():
 
     args = request.get_json(force=True)
 
-    from app.socketio import socketio_app
+    from run import sio_app
 
-    socketio_app.emit(
+    sio_app.emit(
         args['event'],
         args['data'])
     return 'OK'
@@ -79,7 +83,7 @@ def process_receipts():
     @arg 'etapestry': JSON dict of etapestry info for PHP script
     '''
 
-    logger.info('Process receipts request received')
+    log.info('Process receipts request received')
 
     entries = json.loads(request.form['data'])
     etapestry = json.loads(request.form['etapestry'])
@@ -91,7 +95,7 @@ def process_receipts():
       queue=current_app.config['DB']
     )
 
-    #logger.info('Celery process_receipts task: %s', r.__dict__)
+    #log.info('Celery process_receipts task: %s', r.__dict__)
 
     return 'OK'
 
@@ -107,12 +111,12 @@ def _send_email():
     '''
     args = request.get_json(force=True)
 
-    logger.debug('/email/send: "%s"', args)
+    log.debug('/email/send: "%s"', args)
 
     for key in ['template', 'subject', 'recipient']:
         if key not in args:
             e = '/email/send: missing one or more required fields'
-            logger.error(e)
+            log.error(e)
             return Response(response=e, status=500, mimetype='application/json')
 
     try:
@@ -123,7 +127,7 @@ def _send_email():
         )
     except Exception as e:
         msg = '/email/send: invalid email template'
-        logger.error('%s: %s', msg, str(e))
+        log.error('%s: %s', msg, str(e))
         return Response(response=e, status=500, mimetype='application/json')
 
     conf = db['agencies'].find_one({'name':args['agency']})['mailgun']
@@ -134,7 +138,7 @@ def _send_email():
             v={'type':args.get('type')}
         )
     except Exception as e:
-        logger.error('could not email %s. %s', args['recipient'], str(e))
+        log.error('could not email %s. %s', args['recipient'], str(e))
         gsheets.create_rfu(args['agency'], str(e))
         return Response(response=str(e), status=500, mimetype='application/json')
     else:
@@ -147,7 +151,7 @@ def _send_email():
                 }
         })
 
-    logger.debug('Queued email to ' + args['recipient'])
+    log.debug('Queued email to ' + args['recipient'])
 
     return mid
 
@@ -173,7 +177,7 @@ def email_unsubscribe(agency):
                 'html': msg
             })
         except requests.exceptions.RequestException as e:
-            logger.error(str(e))
+            log.error(str(e))
             return flask.Response(response=e, status=500, mimetype='application/json')
 
         return 'We have received your request to unsubscribe ' \
@@ -198,7 +202,7 @@ def email_spam_complaint():
             agency,
             "%s sent spam complaint" % request.form['recipient'])
     except Exception as e:
-        logger.error('create spam rfu: %s', str(e))
+        log.error('create spam rfu: %s', str(e))
         return str(e)
 
     return 'OK'
@@ -208,7 +212,7 @@ def email_spam_complaint():
 def on_email_delivered():
     '''Mailgun webhook. Route to appropriate handler'''
 
-    logger.debug(json.dumps(request.values.to_dict(), indent=4))
+    log.debug(json.dumps(request.values.to_dict(), indent=4))
 
     if not request.form.get('my-custom-data'):
         return 'Unknown type'
@@ -231,7 +235,7 @@ def on_email_delivered():
 def on_email_dropped():
     '''Mailgun webhook. Route to appropriate handler'''
 
-    logger.debug(json.dumps(request.values.to_dict(), indent=4))
+    log.debug(json.dumps(request.values.to_dict(), indent=4))
 
     if not request.form.get('my-custom-data'):
         return 'Unknown type'
@@ -262,8 +266,8 @@ def rec_signup():
         )
     except Exception as e:
         time.sleep(1)
-        logger.info('/receive_signup: %s', str(e), exc_info=True)
-        logger.info('Retrying...')
+        log.info('/receive_signup: %s', str(e), exc_info=True)
+        log.info('Retrying...')
         tasks.add_signup.apply_async(
           args=(request.form.to_dict(),),
           queue=current_app.config['DB']

@@ -7,7 +7,6 @@ from flask_login import current_user
 import requests
 from tasks import flask_app
 logger = logging.getLogger(__name__)
-socketio_app = SocketIO(flask_app)
 
 #-------------------------------------------------------------------------------
 def send_from_task(event, data):

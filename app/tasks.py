@@ -3,63 +3,25 @@
 import logging
 import os
 import traceback as tb
-from celery import Celery
 from celery.task.control import revoke
-import cPickle as pickle
-from flask import current_app, g, session, request
-import logging
-from bson.objectid import ObjectId as oid
-from . import get_db, bcolors, utils, db_client, create_app, create_celery_app, \
-        debug_handler, info_handler, error_handler, exception_handler,\
-        kv_ext, kv_store
-
-flask_app = create_app('app', db_client)
-celery = create_celery_app(flask_app)
-
-kv_ext.init_app(flask_app)
-
 from celery.utils.log import get_task_logger
+from bson.objectid import ObjectId as oid
+from flask import current_app, g, has_app_context, has_request_context
+from etap import EtapError
+from run import app
+from utils import bcolors
+from . import get_db, utils, celery_app, deb_hand, inf_hand, err_hand, exc_hand
 
 logger = get_task_logger(__name__)
-logger.addHandler(error_handler)
-logger.addHandler(info_handler)
-logger.addHandler(debug_handler)
-logger.addHandler(exception_handler)
+logger.addHandler(err_hand)
+logger.addHandler(inf_hand)
+logger.addHandler(deb_hand)
+logger.addHandler(exc_hand)
 logger.setLevel(logging.DEBUG)
-
 log = logging.getLogger(__name__)
+celery = celery_app(app)
 
-class EtapError(Exception):
-    pass
 
-#-------------------------------------------------------------------------------
-@flask_app.before_request
-def do_setup():
-    #log.debug('flask_app.before_request')
-    session.permanent = True
-    db = db_client[flask_app.config['DB']]
-    g.db = db
-
-#-------------------------------------------------------------------------------
-@flask_app.after_request
-def do_teardown(response):
-    '''db = get_db()
-    total = db.sessions.find().count()
-    logger.debug('db.session count=%s', total)
-
-    try:
-        r = kv_ext.cleanup_sessions()
-    except Exception as e:
-        logger.debug(str(e))
-    else:
-        logger.debug(r)
-
-    if total > 100:
-        logger.info('cleaning expired sessions')
-        #r = kv_ext.cleanup_sessions()
-    '''
-
-    return response
 
 #-------------------------------------------------------------------------------
 def kill(task_id):
@@ -77,7 +39,17 @@ def kill(task_id):
 
 #-------------------------------------------------------------------------------
 @celery.task
+def test_test(args):
+    log.debug(
+        'request_task | has_app_context=%s | has_request_context=%s',
+        has_app_context(), has_request_context())
+
+    log.debug('req_task g.db=%s', g.db)
+
+#-------------------------------------------------------------------------------
+@celery.task
 def clean_expired_sessions():
+    from app import kv_ext
     try:
         with current_app.test_request_context():
             logger.info('cleaning expired sessions')
@@ -90,6 +62,10 @@ def clean_expired_sessions():
 #-------------------------------------------------------------------------------
 @celery.task
 def mod_environ(args):
+    log.debug(
+        'mod_environ task | has_app_context=%s | has_request_context=%s',
+        has_app_context(), has_request_context())
+
     for key in args:
         os.environ[key] = args[key]
 

@@ -4,7 +4,8 @@ import logging
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException
 from flask import g, request
-from .. import etap, bcolors
+from .. import etap
+from app.utils import bcolors
 from .. import get_db, get_keys
 from .dialog import dialog
 log = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ def send_welcome(etap_id):
         else:
             name = acct['name']
 
-    msg = 'Hi %s, %s' % (name, dialog['user']['joke_welcome'])
+    msg = 'Hi %s, %s' % (name, dialog['user']['welcome'])
 
     r = compose(
         msg,

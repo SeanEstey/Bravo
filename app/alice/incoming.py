@@ -9,7 +9,8 @@ import logging, string
 from twilio import twiml
 from datetime import datetime, date, time, timedelta
 from flask import current_app, request, make_response, g, session
-from .. import etap, utils, bcolors
+from .. import etap, utils
+from app.utils import bcolors
 from app.etap import EtapError
 from . import keywords
 from .dialog import *

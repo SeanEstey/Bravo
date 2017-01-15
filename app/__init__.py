@@ -7,42 +7,18 @@ import logging
 import socket
 import requests
 from datetime import timedelta
-from flask import Flask, current_app, g, has_app_context, has_request_context
-from flask_login import current_user, LoginManager
+from flask import Flask, current_app, g, request, make_response, has_app_context, has_request_context
+from flask_login import LoginManager
 from flask_kvsession import KVSessionExtension
 from simplekv.db.mongo import MongoStore
-from simplekv import KeyValueStore
 from werkzeug.contrib.fixers import ProxyFix
-import config
-import mongodb
+import config, mongodb
+from utils import log_handler
 
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-log_formatter = logging.Formatter('[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M')
-
-debug_handler = logging.FileHandler(config.LOG_PATH + 'debug.log')
-debug_handler.setLevel(logging.DEBUG)
-debug_handler.setFormatter(log_formatter)
-
-info_handler = logging.FileHandler(config.LOG_PATH + 'info.log')
-info_handler.setLevel(logging.INFO)
-info_handler.setFormatter(log_formatter)
-
-error_handler = logging.FileHandler(config.LOG_PATH + 'error.log')
-error_handler.setLevel(logging.ERROR)
-error_handler.setFormatter(log_formatter)
-
-exception_handler = logging.FileHandler(config.LOG_PATH + 'error.log')
-exception_handler.setLevel(logging.CRITICAL)
-exception_handler.setFormatter(log_formatter)
+deb_hand = log_handler(logging.DEBUG, 'debug.log')
+inf_hand = log_handler(logging.INFO, 'info.log')
+err_hand = log_handler(logging.ERROR, 'error.log')
+exc_hand = log_handler(logging.CRITICAL, 'debug.log')
 
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
@@ -52,7 +28,6 @@ db_client = mongodb.create_client()
 kv_store = MongoStore(
     db_client[config.DB],
     config.SESSION_COLLECTION)
-
 kv_ext = KVSessionExtension(kv_store)
 
 log = logging.getLogger(__name__)
@@ -109,9 +84,9 @@ def create_app(pkg_name, db_client):
     app.jinja_env.add_extension("jinja2.ext.do")
     app.permanent_session_lifetime = app.config['PERMANENT_SESSION_LIFETIME']
 
-    app.logger.addHandler(error_handler)
-    app.logger.addHandler(info_handler)
-    app.logger.addHandler(debug_handler)
+    app.logger.addHandler(err_hand)
+    app.logger.addHandler(inf_hand)
+    app.logger.addHandler(deb_hand)
     app.logger.setLevel(logging.DEBUG)
 
     login_manager.init_app(app)
@@ -137,18 +112,91 @@ def create_app(pkg_name, db_client):
     return app
 
 #-------------------------------------------------------------------------------
-def create_celery_app(app):
+def celery_app(app):
     celery = Celery(__name__, broker='amqp://')
     celery.config_from_object('celeryconfig')
     celery.conf.update(app.config)
+
     TaskBase = celery.Task
 
     class ContextTask(TaskBase):
         abstract = True
-
         def __call__(self, *args, **kwargs):
             with app.app_context():
                 return TaskBase.__call__(self, *args, **kwargs)
+
+
+    '''
+    __all__ = ['RequestContextTask']
+
+    class RequestContextTask(celery.Task):
+        """Base class for tasks that originate from Flask request handlers
+        and carry over most of the request context data.
+        This has an advantage of being able to access all the usual information
+        that the HTTP request has and use them within the task. Pontential
+        use cases include e.g. formatting URLs for external use in emails sent
+        by tasks.
+        """
+        abstract = True
+
+        #: Name of the additional parameter passed to tasks
+        #: that contains information about the original Flask request context.
+        CONTEXT_ARG_NAME = '_flask_request_context'
+
+        def __call__(self, *args, **kwargs):
+            """Execute task code with given arguments."""
+            call = lambda: super(RequestContextTask, self).__call__(*args, **kwargs)
+
+            context = kwargs.pop(self.CONTEXT_ARG_NAME, None)
+            if context is None or has_request_context():
+                return call()
+
+            with app.test_request_context(**context):
+                result = call()
+
+                # process a fake "Response" so that
+                # ``@after_request`` hooks are executed
+                app.process_response(make_response(result or ''))
+
+            return result
+
+        def apply_async(self, args=None, kwargs=None, **rest):
+            if rest.pop('with_request_context', True):
+                self._include_request_context(kwargs)
+            return super(RequestContextTask, self).apply_async(args, kwargs, **rest)
+
+        def apply(self, args=None, kwargs=None, **rest):
+            if rest.pop('with_request_context', True):
+                self._include_request_context(kwargs)
+            return super(RequestContextTask, self).apply(args, kwargs, **rest)
+
+        def retry(self, args=None, kwargs=None, **rest):
+            if rest.pop('with_request_context', True):
+                self._include_request_context(kwargs)
+            return super(RequestContextTask, self).retry(args, kwargs, **rest)
+
+        def _include_request_context(self, kwargs):
+            """Includes all the information about current Flask request context
+            as an additional argument to the task.
+            """
+            if not has_request_context():
+                return
+
+            # keys correspond to arguments of :meth:`Flask.test_request_context`
+            context = {
+                'path': request.path,
+                'base_url': request.url_root,
+                'method': request.method,
+                'headers': dict(request.headers),
+            }
+            if '?' in request.url:
+                context['query_string'] = request.url[(request.url.find('?') + 1):]
+
+            if kwargs == None:
+                kwargs = {}
+
+            kwargs[self.CONTEXT_ARG_NAME] = context
+    '''
 
     celery.Task = ContextTask
 

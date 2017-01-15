@@ -1,8 +1,8 @@
 '''app.alice.events'''
 
 import logging
-from app import get_db, etap, utils, bcolors
-from app.utils import naive_utc_to_local as to_local
+from app import get_db, etap, utils
+from app.utils import bcolors, naive_utc_to_local as to_local
 from app.etap import EtapError
 from flask import g, request, session
 from datetime import datetime, date, time, timedelta

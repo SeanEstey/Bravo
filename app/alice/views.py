@@ -20,7 +20,6 @@ def alice_globals():
     g.db = get_db()
 
     if current_user.is_authenticated:
-        log.debug('user authd')
         g.user = current_user
         g.agency = current_user.get_agency()
 

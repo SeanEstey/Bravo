@@ -7,7 +7,8 @@ from bson.objectid import ObjectId
 from datetime import datetime,date,time
 
 from app import task_emit
-from .. import get_db, utils, bcolors
+from .. import get_db, utils
+from app.utils import bcolors
 from . import voice, email, sms
 log = logging.getLogger(__name__)
 

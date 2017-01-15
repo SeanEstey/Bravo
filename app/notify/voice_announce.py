@@ -9,7 +9,8 @@ from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
 from . import events, accounts, triggers, voice
-from .. import get_db, utils, etap, bcolors
+from .. import get_db, utils, etap
+from app.utils import bcolors
 logger = logging.getLogger(__name__)
 
 class EtapError(Exception):

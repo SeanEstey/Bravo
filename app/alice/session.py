@@ -6,8 +6,8 @@ from flask_kvsession import SessionID
 from bson.objectid import ObjectId
 import cPickle as pickle
 from datetime import datetime, date, timedelta
-from .. import kv_store, kv_ext, etap, utils, get_db, bcolors
-from app.utils import print_vars
+from .. import kv_store, kv_ext, etap, utils, get_db
+from app.utils import print_vars, bcolors
 from . import keywords
 from .util import related_notific, make_rfu, lookup_acct, event_begun
 from .dialog import *

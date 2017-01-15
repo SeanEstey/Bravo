@@ -8,10 +8,21 @@ import json
 import logging
 import pytz
 from datetime import datetime
+from config import LOG_PATH
 
 logger = logging.getLogger(__name__)
 
 local_tz = pytz.timezone("Canada/Mountain")
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 #-------------------------------------------------------------------------------
 def print_vars(obj, depth=0, l="    "):
@@ -58,6 +69,14 @@ def print_vars(obj, depth=0, l="    "):
             print_vars(v, depth=depth-1, l=l+"  ") + \
             "," for k, v in objdict.iteritems()
         ) + "\n" + l + "}"
+
+#-------------------------------------------------------------------------------
+def log_handler(level, filename):
+    handler = logging.FileHandler(LOG_PATH + filename)
+    handler.setLevel(level)
+    handler.setFormatter(logging.Formatter(\
+        '[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M'))
+    return handler
 
 #-------------------------------------------------------------------------------
 def naive_to_local(dt):

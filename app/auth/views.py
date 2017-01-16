@@ -3,11 +3,11 @@
 import logging
 import json
 from flask import g, request, render_template, redirect, Response, \
-current_app, url_for, jsonify
+current_app, url_for, jsonify, has_app_context
 from flask_login import current_user, login_user, logout_user, login_required
 from .. import login_manager, get_db
 from . import auth
-from .user import User
+from .user import User, Anonymous
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -20,16 +20,7 @@ def before_request():
 #-------------------------------------------------------------------------------
 @login_manager.user_loader
 def load_user(user_id):
-    user = g.db.users.find_one({'user':user_id})
-
-    if user:
-        return User(
-            user_id,
-            user['password'],
-            agency=user['agency'],
-            admin=user.get('admin'))
-    else:
-        return None
+    return User(user_id)
 
 #-------------------------------------------------------------------------------
 @auth.route('/login', methods=['GET','POST'])
@@ -42,35 +33,35 @@ def login():
         if not request.form.get('username'):
             return Response('No username', status=500)
 
-        username = request.form['username']
-        password = request.form['password']
+        user_id = request.form['username']
+        pw = request.form['password']
 
-        user_match = g.db.users.find_one({'user': username})
+        db_user = g.db.users.find_one({'user': user_id})
 
-    if not user_match:
-        log.info("Username '%s' doesnt exist", username)
+    if not db_user:
+        log.info("DB user doesn't exist | user_id=%s", user_id)
 
         return json.dumps({
           'status':'error',
           'title': 'login info',
           'msg':'Username does not exist'})
 
-    if user_match['password'] != password:
-        log.info("User '%s' password is incorrect", username)
+    if db_user['password'] != pw:
+        log.info("User '%s' password is incorrect", user_id)
 
         return json.dumps({
             'status':'error',
             'title': 'login info',
             'msg':'Incorrect password'})
 
-    user = User(
-        username,
-        password,
-        user_match['agency'])
+    login_user(User(
+        user_id,
+        name=db_user['name'],
+        _id=db_user['_id'],
+        agency=db_user['agency'],
+        admin=db_user['admin']))
 
-    login_user(user)
-
-    log.info('User %s logged in', username)
+    log.info('User %s logged in', user_id)
 
     return jsonify({'status':'success'})
 
@@ -78,7 +69,7 @@ def login():
 @auth.route('/logout', methods=['GET'])
 @login_required
 def logout():
-    log.info('User %s logged out', current_user.username)
+    log.info('User %s logged out', current_user.user_id)
     logout_user()
 
     return redirect(url_for('main.landing_page'))

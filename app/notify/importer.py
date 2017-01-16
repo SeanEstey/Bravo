@@ -81,7 +81,7 @@ def submit_from(form, file):
           'msg':'could not upload file'
         }
 
-    agency = db['users'].find_one({'user': current_user.username})['agency']
+    agency = db['users'].find_one({'user': current_user.user_id})['agency']
 
     # B. Get schema definitions from json file
     try:

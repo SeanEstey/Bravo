@@ -12,7 +12,7 @@ function init() {
 //------------------------------------------------------------------------------
 function prettyFormatting() {
   $('td[name="status"]').each(function() {
-      console.log($(this).text());
+      //console.log($(this).text());
 
       if($(this).text() == 'pending') {
           $(this).css('color', window.colors['IN_PROGRESS']);
@@ -156,13 +156,18 @@ function addSocketIOHandlers() {
 
     var socket = io.connect(socketio_url);
 
-    socket.on('connected', function(data){
-        $AGENCY = data['agency'];
-        console.log('socket.io connected! agency: ' + data['agency']);
+    socket.on('connect', function(){
+        console.log('socket.io connected!');
+        //socket.emit('event', {'data':'connected'});
+        //console.log(data);
+        //$AGENCY = data['agency'];
+        //console.log('socket.io connected! agency: ' + data['agency']);
     });
 
     socket.on('analyze_routes', function(data) {
-        console.log('analyze_routes status: %s', data['status']);
+        console.log('analyze_routes, status=' + data['status']);
+        //console.log(data);
+        //console.log('analyze_routes status: %s', data['status']);
 
         if(data['status'] == 'in-progress') {
 						$('.loader-div label').text('Analyzing Routes');

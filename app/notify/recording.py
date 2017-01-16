@@ -20,7 +20,7 @@ def dial():
 
     db = get_db()
 
-    agency = db['users'].find_one({'user': current_user.username})['agency']
+    agency = db['users'].find_one({'user': current_user.user_id})['agency']
 
     logger.info('Record audio request from ' + request.form['To'])
 

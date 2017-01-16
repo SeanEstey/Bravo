@@ -1,12 +1,17 @@
 '''auth/user.py'''
+from flask_login import AnonymousUserMixin
 
-# Flask user for sessions
+#-------------------------------------------------------------------------------
 class User():
-    username = ''
-    password = ''
+    _id = ''
+    user_id = ''
     agency = ''
     admin = ''
-    _id = ''
+    email = ''
+    name = ''
+
+    def get_name(self):
+        return self.name
 
     def get_agency(self):
         return self.agency
@@ -25,16 +30,22 @@ class User():
 
     def get_id(self):
         try:
-            return unicode(self.username)  # python 2
+            return unicode(self.user_id)  # python 2
         except NameError:
-            return str(self.username)  # python 3
+            return str(self.user_id)  # python 3
 
     def __repr__(self):
-        return '<User %r>' % (self.username)
+        return '<user_id %r>' % (self.user_id)
 
-    def __init__(self, user, pw, agency=None, admin=False):
-        self.username = user
-        self.password = pw
+    def __init__(self, user_id, name=None, _id=None, agency=None, admin=False):
+        self._id = _id
+        self.user_id = user_id
+        self.email = user_id
+        self.name = name
         self.agency = agency
         self.admin = admin
-        #self._id = id
+
+#-------------------------------------------------------------------------------
+class Anonymous(AnonymousUserMixin):
+    def __init__(self):
+        self.user_id = 'Guest'

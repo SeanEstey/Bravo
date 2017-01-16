@@ -46,7 +46,7 @@ def get_list(agency, local_time=True, max=20):
     '''
 
     db = get_db()
-    agency = db['users'].find_one({'user': current_user.username})['agency']
+    agency = db['users'].find_one({'user': current_user.user_id})['agency']
 
     sorted_events = list(db['notific_events'].find(
         {'agency':agency}).sort('event_dt',-1).limit(max))

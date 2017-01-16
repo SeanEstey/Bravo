@@ -2,6 +2,7 @@
 
 from celery import Celery, Task
 import pymongo
+import eventlet
 import os
 import logging
 import socket
@@ -9,11 +10,15 @@ import requests
 from datetime import timedelta
 from flask import Flask, current_app, g, request, make_response, has_app_context, has_request_context
 from flask_login import LoginManager
+
 from flask_kvsession import KVSessionExtension
+from flask_socketio import SocketIO
 from simplekv.db.mongo import MongoStore
 from werkzeug.contrib.fixers import ProxyFix
 import config, mongodb
-from utils import log_handler
+from utils import log_handler, print_vars
+
+eventlet.monkey_patch()
 
 deb_hand = log_handler(logging.DEBUG, 'debug.log')
 inf_hand = log_handler(logging.INFO, 'info.log')
@@ -21,7 +26,7 @@ err_hand = log_handler(logging.ERROR, 'error.log')
 exc_hand = log_handler(logging.CRITICAL, 'debug.log')
 
 login_manager = LoginManager()
-login_manager.login_view = 'auth.login'
+
 
 db_client = mongodb.create_client()
 mongodb.authenticate(db_client)
@@ -32,6 +37,8 @@ kv_store = MongoStore(
 kv_ext = KVSessionExtension(kv_store)
 
 log = logging.getLogger(__name__)
+
+sio_app = SocketIO()
 
 #-------------------------------------------------------------------------------
 def get_db():
@@ -76,10 +83,11 @@ def get_keys(k=None, agency=None):
 
 #-------------------------------------------------------------------------------
 def create_app(pkg_name, kv_sess=True):
-    log.debug('creating app')
+    #log.debug('creating app')
 
     app = Flask(pkg_name)
     app.config.from_object(config)
+    app.clients = {}
 
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.jinja_env.add_extension("jinja2.ext.do")
@@ -90,6 +98,9 @@ def create_app(pkg_name, kv_sess=True):
     app.logger.addHandler(deb_hand)
     app.logger.setLevel(logging.DEBUG)
 
+    from .auth.user import Anonymous
+    login_manager.login_view = 'auth.login'
+    login_manager.anonymous_user = Anonymous
     login_manager.init_app(app)
 
     if kv_sess:
@@ -123,43 +134,50 @@ def celery_app(app):
     __all__ = ['RequestContextTask']
 
     class RequestContextTask(Task):
-        abstract = True
+        #abstract = True
         CONTEXT_ARG_NAME = '_flask_request_context'
 
         def __call__(self, *args, **kwargs):
-            call = lambda: super(RequestContextTask, self).__call__(*args, **kwargs)
+			call = lambda: super(RequestContextTask, self).__call__(*args, **kwargs)
 
-            context = kwargs.pop(self.CONTEXT_ARG_NAME, None)
+			context = kwargs.pop(self.CONTEXT_ARG_NAME, None)
 
-            if has_request_context():
-                return call()
-            else:
-                if context is None:
-                    with celery.app.app_context():
-                        return call()
+			if not has_app_context():
+				with celery.app.app_context():
+					if context is None or has_request_context():
+						return call()
 
-            with app.test_request_context(**context):
-                result = call()
+					with app.test_request_context(**context):
+						result = call()
 
-                # process a fake "Response" so that
-                # ``@after_request`` hooks are executed
-                app.process_response(make_response(result or ''))
+						# process a fake "Response" so that
+						# ``@after_request`` hooks are executed
+						app.process_response(make_response(result or ''))
 
-            return result
+					return result
 
-        def apply_async(self, args=None, kwargs=None, **rest):
-            if rest.pop('with_request_context', True):
-                self._include_request_context(kwargs)
-            return super(RequestContextTask, self).apply_async(args, kwargs, **rest)
+        def apply_async(self, args=None, kwargs=None, task_id=None, producer=None, link=None, link_error=None, shadow=None, **options):
+            #def apply_async(self, args=None, kwargs=None, **rest):
 
-        def apply(self, args=None, kwargs=None, **rest):
+            #log.debug(
+            #    'apply_async | name=%s, args=%s, kwargs=%s, link=%s, options=%s',
+            #    self.name, args, kwargs, link, options)
+            #log.debug('celery.tasks=%s',celery.tasks)
+
             #if rest.pop('with_request_context', True):
             #    self._include_request_context(kwargs)
+            return super(RequestContextTask, self).apply_async(args, kwargs, task_id, producer, link, link_error, shadow, **options)
+
+        def apply(self, args=None, kwargs=None, **rest):
+            log.debug('apply()')
+            if rest.pop('with_request_context', True):
+                self._include_request_context(kwargs)
             return super(RequestContextTask, self).apply(args, kwargs, **rest)
 
         def retry(self, args=None, kwargs=None, **rest):
-            #if rest.pop('with_request_context', True):
-            #    self._include_request_context(kwargs)
+            log.debug('retry()')
+            if rest.pop('with_request_context', True):
+                self._include_request_context(kwargs)
             return super(RequestContextTask, self).retry(args, kwargs, **rest)
 
         def _include_request_context(self, kwargs):
@@ -249,12 +267,12 @@ def config_test_server(source):
 def task_emit(event, data):
     '''Used by celery worker to send SocketIO messages'''
 
-    log.debug('task_emit %s', event)
+    #log.debug('task_emit %s', event)
 
-    payload = {
-        'event': event,
-        'data':data
-    }
-    return requests.post('http://localhost/task_emit', json=payload)
+    r = requests.post(
+        'http://localhost/task_emit',
+        json= {
+            'event': event,
+            'data':data})
 
-
+    #log.debug(r)

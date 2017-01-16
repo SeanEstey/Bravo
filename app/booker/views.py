@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 @login_required
 def show_home():
     #db = get_db()
-    agency = g.db.users.find_one({'user': current_user.username})['agency']
+    agency = g.db.users.find_one({'user': current_user.user_id})['agency']
 
     return render_template(
         'views/booker.html',
@@ -31,7 +31,7 @@ def submit_search():
     logger.info(request.form.to_dict())
 
     db = get_db()
-    user = db.users.find_one({'user': current_user.username})
+    user = db.users.find_one({'user': current_user.user_id})
 
     results = search.search(
         db.agencies.find_one({'name':user['agency']})['name'],
@@ -85,7 +85,7 @@ def find_nearby_blocks():
 @login_required
 def get_acct():
     db = get_db()
-    user = db.users.find_one({'user': current_user.username})
+    user = db.users.find_one({'user': current_user.user_id})
 
     response = search.get_account(
         user['agency'],
@@ -101,7 +101,7 @@ def do_booking():
     logger.debug(request.form.to_dict())
 
     db = get_db()
-    user = db.users.find_one({'user': current_user.username})
+    user = db.users.find_one({'user': current_user.user_id})
 
     data = {
         'aid': request.form['aid'],
@@ -121,7 +121,7 @@ def do_booking():
 @login_required
 def get_maps():
     db = get_db()
-    user = db.users.find_one({'user': current_user.username})
+    user = db.users.find_one({'user': current_user.user_id})
     maps = db.maps.find_one({'agency':user['agency']})
 
     return jsonify(
@@ -136,7 +136,7 @@ def get_maps():
 @login_required
 def update_maps():
     db = get_db()
-    user = db.users.find_one({'user': current_user.username})
+    user = db.users.find_one({'user': current_user.user_id})
 
     from .. import tasks
     tasks.update_maps.apply_async(

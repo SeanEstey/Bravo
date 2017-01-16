@@ -2,16 +2,22 @@
 
 import logging
 import bson.json_util
+from flask import g
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 import re
 from .. import task_emit, get_db, gcal, etap, wsf, utils, parser
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def analyze_upcoming(agency_name, days):
-    db = get_db()
+    '''Celery task
+    Scans schedule for blocks, adds metadata to db, sends socketio signal
+    to client
+    '''
+
+    db = g.db
     conf = db.agencies.find_one({'name':agency_name})
 
     today_dt = datetime.combine(date.today(), time())
@@ -30,7 +36,7 @@ def analyze_upcoming(agency_name, days):
 
     events = sorted(events, key=lambda k: k['start'].get('date'))
 
-    task_emit('analyze_routes', {'agency':agency_name, 'status':'in-progress'})
+    #task_emit('analyze_routes', {'agency':agency_name, 'status':'in-progress'})
 
     for event in events:
         block = parser.get_block(event['summary'])
@@ -62,9 +68,9 @@ def analyze_upcoming(agency_name, days):
               {'query':block, 'query_category': conf['etapestry']['query_category']}
             )
         except Exception as e:
-            logger.error('Error retrieving accounts for query %s', block)
+            log.error('Error retrieving accounts for query %s', block)
             #if 'count' not in a:
-            logger.error('No accounts found in query %s', block)
+            log.error('No accounts found in query %s', block)
             continue
 
         num_dropoffs = 0
@@ -107,10 +113,9 @@ def analyze_upcoming(agency_name, days):
           'dropoffs': num_dropoffs
         }
 
-
         db.routes.insert_one(_route)
 
-        logger.info(
+        log.info(
             'metadata added for %s on %s',
             _route['block'], _route['date'].strftime('%b %-d'))
 
@@ -120,6 +125,6 @@ def analyze_upcoming(agency_name, days):
             to_strftime=True,
             bson_to_json=True))
 
-    task_emit('analyze_routes', {'agency':agency_name, 'status':'completed'})
+    #task_emit('analyze_routes', {'agency':agency_name, 'status':'completed'})
 
     return True

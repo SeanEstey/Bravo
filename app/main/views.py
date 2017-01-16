@@ -16,9 +16,11 @@ from app.booker import book
 log = logging.getLogger(__name__)
 
 
-@main.before_request
-def _do_setup():
-    pass
+@main.route('/event/', methods=['GET','POST'])
+def event():
+    log.debug('event callback!')
+    return 'event callback!'
+
 
 #-------------------------------------------------------------------------------
 @main.route('/task_emit', methods=['POST'])
@@ -28,13 +30,21 @@ def request_send_socket():
     agency.
     '''
 
-    args = request.get_json(force=True)
+    from app.utils import print_vars
 
-    from run import sio_app
+    try:
+        args = request.get_json(force=True)
+        #log.debug('emitting event=%s', args['event'])
+        #r = sio_app.emit(
+        #    args['event'],
+        #    args['data'])
+    except Exception as e:
+        log.error(str(e))
+        log.debug(str(e), exc_info=True)
+        return Response(response=str(e), status_code=500)
 
-    sio_app.emit(
-        args['event'],
-        args['data'])
+    #log.debug(r)
+
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -55,8 +65,8 @@ def view_log():
 @login_required
 def view_admin():
     db = get_db()
-    user = db['users'].find_one({'user': current_user.username})
-    agency = db['users'].find_one({'user': current_user.username})['agency']
+    user = db['users'].find_one({'user': current_user.user_id})
+    agency = db['users'].find_one({'user': current_user.user_id})['agency']
 
     if user['admin'] == True:
         settings = db['agencies'].find_one({'name':agency}, {'_id':0, 'google.oauth':0})

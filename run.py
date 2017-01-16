@@ -8,20 +8,22 @@ import getopt
 import flask
 from flask import current_app, g, session
 import celery
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, emit
 from setup import startup_msg
-from app import db_client, create_app, get_db, kv_ext, config_test_server, is_test_server
+from app import sio_app, db_client, create_app, get_db, kv_ext, config_test_server, is_test_server
 from app.utils import bcolors
+from app import sio
 
 app = create_app('app')
-sio_app = SocketIO(app)
+
 
 #-------------------------------------------------------------------------------
 @app.before_request
 def do_setup():
     session.permanent = True
     # Every other function in this app can call get_db()
-    # for a connection. 
+    # for a connection.
+    #app.logger.debug('app.before_req | setting g.db')
     g.db = db_client['bravo']
 
 #-------------------------------------------------------------------------------
@@ -104,6 +106,8 @@ def main(argv):
         'BRAVO_HTTP_HOST': os.environ['BRAVO_HTTP_HOST']}],
         queue=app.config['DB']
     )
+
+    sio_app.init_app(app, async_mode='eventlet', message_queue='amqp://')
 
     startup_msg(sio_app, app)
 

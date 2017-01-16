@@ -9,8 +9,9 @@ from flask import request, jsonify, render_template, redirect, current_app,url_f
 from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 from . import routing, main
-from .. import get_db, utils
-logger = logging.getLogger(__name__)
+from .. import sio, task_emit, get_db, utils
+log = logging.getLogger(__name__)
+
 
 
 #-------------------------------------------------------------------------------
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 @login_required
 def show_routing():
     db = get_db()
-    agency = db['users'].find_one({'user': current_user.username})['agency']
+    agency = db['users'].find_one({'user': current_user.user_id})['agency']
     agency_conf = db['agencies'].find_one({'name':agency})
 
     _routes = utils.formatter(
@@ -32,9 +33,8 @@ def show_routing():
         # for storing in route_btn.attr('data-route')
         route['json'] = json.dumps(route)
 
-
-    from .. import tasks
-    tasks.analyze_upcoming_routes.apply_async(
+    import app.tasks
+    app.tasks.analyze_upcoming_routes.apply_async(
         kwargs={'agency':agency,'days':5},
         queue=current_app.config['DB'])
 
@@ -43,7 +43,7 @@ def show_routing():
       routes=_routes,
       depots=agency_conf['routing']['locations']['depots'],
       drivers=agency_conf['routing']['drivers'],
-      admin=db.users.find_one({'user':current_user.username})['admin'],
+      admin=db.users.find_one({'user':current_user.user_id})['admin'],
       agency=agency
     )
 
@@ -63,7 +63,7 @@ def get_route(job_id):
 @login_required
 def analyze_upcoming(days):
     db = get_db()
-    user = db['users'].find_one({'user': current_user.username})
+    user = db['users'].find_one({'user': current_user.user_id})
 
     from .. import tasks
     tasks.analyze_upcoming_routes.apply_async(
@@ -96,11 +96,11 @@ def _build_sheet(job_id, route_id):
 @routing.route('/edit/<route_id>', methods=['POST'])
 @login_required
 def edit(route_id):
-    logger.info(request.form.to_dict())
-    logger.info(route_id)
+    log.info(request.form.to_dict())
+    log.info(route_id)
 
     db = get_db()
-    user = db['users'].find_one({'user': current_user.username})
+    user = db['users'].find_one({'user': current_user.user_id})
     conf = db.agencies.find_one({'name':user['agency']})
 
     value = None
@@ -115,7 +115,7 @@ def edit(route_id):
                 value = driver
 
     if not value:
-        logger.error('couldnt find value in db for %s:%s',
+        log.error('couldnt find value in db for %s:%s',
         request.form['field'], request.form['value'])
         return jsonify({'status':'failed'})
 

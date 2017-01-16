@@ -20,7 +20,7 @@ def auth_request_type(_type):
 
     # Request is from client
     db = get_db()
-    user = db['users'].find_one({'user': current_user.username})
+    user = db['users'].find_one({'user': current_user.user_id})
 
     if _type == 'admin':
         if user['admin']:
@@ -38,7 +38,7 @@ def auth_request_type(_type):
 #-------------------------------------------------------------------------------
 def get_op_stats():
     db = get_db()
-    user = db['users'].find_one({'user': current_user.username})
+    user = db['users'].find_one({'user': current_user.user_id})
 
     if not user:
         return False
@@ -55,7 +55,7 @@ def get_op_stats():
 #-------------------------------------------------------------------------------
 def update_agency_conf():
     db = get_db()
-    user = db['users'].find_one({'user': current_user.username})
+    user = db['users'].find_one({'user': current_user.user_id})
 
     logger.info('updating %s with value %s', request.form['field'], request.form['value'])
 

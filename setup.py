@@ -2,6 +2,7 @@ import os
 import eventlet
 import celery
 import flask
+import flask_socketio
 from app.utils import bcolors
 
 #-------------------------------------------------------------------------------
@@ -27,6 +28,9 @@ def startup_msg(sio_app, app):
         print 'CELERY_BEAT: ENABLED'
     elif os.environ['BRAVO_CELERY_BEAT'] == 'False':
         print 'CELERY_BEAT: DISABLED (no automatic task scheduling)'
+
+    print 'FLASK_SOCKETIO: ' + flask_socketio.__version__
+
     if sio_app.server.async_mode == 'eventlet':
         print 'SERVER_SOFTWARE: Eventlet (%s)' % eventlet.__version__
     else:

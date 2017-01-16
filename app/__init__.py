@@ -30,6 +30,7 @@ login_manager = LoginManager()
 
 db_client = mongodb.create_client()
 mongodb.authenticate(db_client)
+task_db_client = mongodb.create_client()
 
 kv_store = MongoStore(
     db_client[config.DB],
@@ -134,56 +135,68 @@ def celery_app(app):
     __all__ = ['RequestContextTask']
 
     class RequestContextTask(Task):
-        #abstract = True
         CONTEXT_ARG_NAME = '_flask_request_context'
 
         def __call__(self, *args, **kwargs):
-			call = lambda: super(RequestContextTask, self).__call__(*args, **kwargs)
+            '''Called by worker'''
 
-			context = kwargs.pop(self.CONTEXT_ARG_NAME, None)
+            call = lambda: super(RequestContextTask, self).__call__(*args, **kwargs)
+            context = kwargs.pop(self.CONTEXT_ARG_NAME, None)
 
-			if not has_app_context():
-				with celery.app.app_context():
-					if context is None or has_request_context():
-						return call()
+            if context is None or has_request_context():
+                if not has_app_context():
+                    with app.app_context():
+                        g.db = task_db_client['bravo']
+                        mongodb.authenticate(task_db_client)
+                        print '__call__ app_ctx=%s, req_ctx=%s, db=%s'%(has_app_context(), has_request_context(), g.db!=None)
 
-					with app.test_request_context(**context):
-						result = call()
+                        return call()
+                else:
+                    g.db = task_db_client['bravo']
+                    mongodb.authenticate(task_db_client)
+                    print '__call__ app_ctx=%s, req_ctx=%s, db=%s'%(has_app_context(), has_request_context(), g.db!=None)
 
-						# process a fake "Response" so that
-						# ``@after_request`` hooks are executed
-						app.process_response(make_response(result or ''))
+                    return call()
 
-					return result
+            with app.test_request_context(**context):
+                g.db = task_db_client['bravo']
+                mongodb.authenticate(task_db_client)
+                print '__call__ app_ctx=%s, req_ctx=%s, db=%s'%(has_app_context(), has_request_context(), g.db!=None)
+
+                result = call()
+                # process a fake "Response" so that
+                # ``@after_request`` hooks are executed
+                app.process_response(make_response(result or ''))
+
+            return result
 
         def apply_async(self, args=None, kwargs=None, task_id=None, producer=None, link=None, link_error=None, shadow=None, **options):
-            #def apply_async(self, args=None, kwargs=None, **rest):
+            '''Called by Flask app'''
+            print 'apply_async'
 
-            #log.debug(
-            #    'apply_async | name=%s, args=%s, kwargs=%s, link=%s, options=%s',
-            #    self.name, args, kwargs, link, options)
-            #log.debug('celery.tasks=%s',celery.tasks)
-
-            #if rest.pop('with_request_context', True):
-            #    self._include_request_context(kwargs)
+            #log.debug('apply_async | name=%s, args=%s, kwargs=%s, producer=%s, link=%s, shadow=%s, options=%s',
+            #    self.name, args, kwargs, producer, link, shadow, options)
+            if options.pop('with_request_context', True):
+                self._include_request_context(kwargs)
             return super(RequestContextTask, self).apply_async(args, kwargs, task_id, producer, link, link_error, shadow, **options)
 
-        def apply(self, args=None, kwargs=None, **rest):
-            log.debug('apply()')
-            if rest.pop('with_request_context', True):
+        def apply(self, args=None, kwargs=None, **options):
+            '''Called by Flask app'''
+            if options.pop('with_request_context', True):
                 self._include_request_context(kwargs)
-            return super(RequestContextTask, self).apply(args, kwargs, **rest)
+            return super(RequestContextTask, self).apply(args, kwargs, **options)
 
-        def retry(self, args=None, kwargs=None, **rest):
-            log.debug('retry()')
-            if rest.pop('with_request_context', True):
+        def retry(self, args=None, kwargs=None, **options):
+            '''Called by Flask app'''
+            if options.pop('with_request_context', True):
                 self._include_request_context(kwargs)
-            return super(RequestContextTask, self).retry(args, kwargs, **rest)
+            return super(RequestContextTask, self).retry(args, kwargs, **options)
 
         def _include_request_context(self, kwargs):
             """Includes all the information about current Flask request context
             as an additional argument to the task.
             """
+
             if not has_request_context():
                 return
 

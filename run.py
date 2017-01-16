@@ -11,7 +11,7 @@ import celery
 from flask_socketio import SocketIO, emit
 from setup import startup_msg
 from app import sio_app, db_client, create_app, get_db, kv_ext, config_test_server, is_test_server
-from app.utils import bcolors
+from app.utils import bcolors, print_vars
 from app import sio
 
 app = create_app('app')
@@ -20,11 +20,13 @@ app = create_app('app')
 #-------------------------------------------------------------------------------
 @app.before_request
 def do_setup():
+
     session.permanent = True
     # Every other function in this app can call get_db()
     # for a connection.
     #app.logger.debug('app.before_req | setting g.db')
     g.db = db_client['bravo']
+    print 'app.before_request db=%s' % g.db
 
 #-------------------------------------------------------------------------------
 @app.after_request

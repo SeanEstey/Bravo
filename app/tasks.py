@@ -4,13 +4,13 @@ import os
 from time import sleep
 import traceback as tb
 from celery.task.control import revoke
-from celery.signals import task_success
+from celery.signals import task_prerun, task_postrun
 from celery.utils.log import get_task_logger
 from bson.objectid import ObjectId as oid
 from flask_socketio import SocketIO
 from etap import EtapError
 from utils import bcolors, print_vars
-from flask import current_app, g, request, has_app_context,has_request_context
+from flask import g, has_app_context,has_request_context
 from . import mongodb, get_db, utils, create_app, celery_app, deb_hand,\
 inf_hand, err_hand, exc_hand
 
@@ -21,32 +21,39 @@ log.addHandler(deb_hand)
 log.addHandler(exc_hand)
 log.setLevel(logging.DEBUG)
 celery = celery_app(create_app('app', kv_sess=False))
-c_db_client = mongodb.create_client(connect=False, auth=False)
-c_sio_app = SocketIO(message_queue='amqp://')
+#celery_db_client = mongodb.create_client(connect=False, auth=False)
+celery_sio = SocketIO(message_queue='amqp://')
+
+'''Task Signals'''
 
 #-------------------------------------------------------------------------------
-@task_success.connect
-def task_complete(result, **kwargs):
-    log.debug('success: %s', kwargs['sender'].name.split('.')[-1])
+@task_prerun.connect
+def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwargs):
+    '''Dispatched before a task is executed by Task obj.
+    Sender == Task.
+    @args, @kwargs: the tasks positional and keyword arguments
+    '''
+    print 'task prerun=%s' % (sender.name.split('.')[-1])
 
 #-------------------------------------------------------------------------------
-def task_init():
-    #log.debug(
-    #    'Worker | app_ctx=%s | req_ctx=%s',
-    #    has_app_context(), has_request_context())
-
-    if has_app_context():
-        mongodb.authenticate(c_db_client)
-        g.db = c_db_client['bravo']
-    else:
-        log.debug('no app context')
-        return False
+@task_postrun.connect
+def task_postrun(signal=None, sender=None, task_id=None, task=None, retval=None, state=None, *args, **kwargs):
+    '''Dispatched after a task has been executed by Task obj.
+    @Sender: the task object executed.
+    @task_id: Id of the task to be executed. (meaning the next one in the queue???)
+    @task: The task being executed.
+    @args: The tasks positional arguments.
+    @kwargs: The tasks keyword arguments.
+    @retval: The return value of the task.
+    @state: Name of the resulting state.
+    '''
+    print \
+        'task postrun=%s, state=%s, retval=%s' %(
+        sender.name.split('.')[-1], state, retval)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def mod_environ(self, *args, **kwargs):
-    task_init()
-
     for idx, arg in enumerate(args):
         for k in arg:
             os.environ[k] = arg[k]
@@ -54,10 +61,7 @@ def mod_environ(self, *args, **kwargs):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def analyze_upcoming_routes(self, *args, **kwargs):
-    task_init()
     sleep(3)
-    c_sio_app.emit('analyze_routes', {'status':'in-progress'})
-
     from app.routing.schedule import analyze_upcoming
     try:
         analyze_upcoming('vec', 5)
@@ -65,13 +69,12 @@ def analyze_upcoming_routes(self, *args, **kwargs):
         log.error(str(e))
         log.debug(str(e), exc_info=True)
 
-    c_sio_app.emit('analyze_routes', {'status':'completed'})
-    return True
-
 #-------------------------------------------------------------------------------
 @celery.task
 def monitor_triggers():
-    task_init()
+    set_db()
+    db = g.db
+
     try:
         from app.notify import triggers, events
         from datetime import datetime, timedelta
@@ -110,7 +113,7 @@ def monitor_triggers():
 #-------------------------------------------------------------------------------
 @celery.task
 def cancel_pickup(evnt_id, acct_id):
-    task_init()
+    #task_init()
     try:
         from app.notify import pus
 
@@ -126,7 +129,7 @@ def build_scheduled_routes():
     '''Route orders for today's Blocks and build Sheets
     '''
 
-    task_init()
+    #task_init()
     from app.routing import main
     from app.routing.schedule import analyze_upcoming
     from datetime import datetime, date, time
@@ -172,7 +175,7 @@ def build_scheduled_routes():
 #-------------------------------------------------------------------------------
 @celery.task
 def build_route(route_id, job_id=None):
-    task_init()
+    #task_init()
     try:
         from app.routing import main
         return main.build(str(route_id), job_id=job_id)
@@ -182,7 +185,7 @@ def build_route(route_id, job_id=None):
 #-------------------------------------------------------------------------------
 @celery.task
 def add_signup(signup):
-    task_init()
+    #task_init()
     try:
         from app import wsf
         return wsf.add_signup(signup)
@@ -192,7 +195,7 @@ def add_signup(signup):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def fire_trigger(self, evnt_id, trig_id):
-    task_init()
+    #task_init()
 
     log.debug('trigger task_id: %s', self.request.id)
 
@@ -212,7 +215,7 @@ def fire_trigger(self, evnt_id, trig_id):
 #-------------------------------------------------------------------------------
 @celery.task
 def send_receipts(entries, etapestry_id):
-    task_init()
+    #task_init()
     try:
         from app.main import receipts
         return receipts.process(entries, etapestry_id)
@@ -224,7 +227,7 @@ def send_receipts(entries, etapestry_id):
 @celery.task
 def rfu(agency, note,
         a_id=None, npu=None, block=None, _date=None, name_addy=None):
-    task_init()
+    #task_init()
     from app import gsheets
 
     return gsheets.create_rfu(
@@ -240,7 +243,7 @@ def rfu(agency, note,
 #-------------------------------------------------------------------------------
 @celery.task
 def schedule_reminders():
-    task_init()
+    #task_init()
     from app.notify import pus
     from app import cal
     from datetime import datetime, date, time, timedelta
@@ -293,7 +296,7 @@ def update_sms_accounts(agency_name=None, days_delta=None):
     '''Verify that all accounts in upcoming residential routes with mobile
     numbers are set up to interact with SMS system'''
 
-    task_init()
+    #task_init()
     import re
     from . import cal
     from app.main import sms
@@ -343,7 +346,7 @@ def update_sms_accounts(agency_name=None, days_delta=None):
 #-------------------------------------------------------------------------------
 @celery.task
 def enable_all_accounts_sms():
-    task_init()
+    #task_init()
     import etap
 
     agencies = db.agencies.find({})
@@ -372,7 +375,7 @@ def enable_all_accounts_sms():
 @celery.task
 def find_non_participants():
     '''Create RFU's for all non-participants on scheduled dates'''
-    task_init()
+    #task_init()
     from app import cal
     from app.main import non_participants
     from . import etap, gsheets
@@ -433,7 +436,7 @@ def find_non_participants():
 #-------------------------------------------------------------------------------
 @celery.task
 def update_maps(agency=None, emit_status=False):
-    task_init()
+    #task_init()
     from app.booker import geo
 
     if agency:
@@ -459,7 +462,7 @@ def kill(task_id):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def test_trig(self, *args, **kwargs):
-    task_init()
+    #task_init()
 
     from app.notify import triggers
     triggers.context_test()

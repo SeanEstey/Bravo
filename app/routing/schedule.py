@@ -7,7 +7,7 @@ from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 import re
 from .. import task_emit, get_db, gcal, etap, wsf, utils, parser
-
+from app.tasks import celery_sio
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -36,7 +36,7 @@ def analyze_upcoming(agency_name, days):
 
     events = sorted(events, key=lambda k: k['start'].get('date'))
 
-    #task_emit('analyze_routes', {'agency':agency_name, 'status':'in-progress'})
+    celery_sio.emit('analyze_routes', {'status':'in-progress'})
 
     for event in events:
         block = parser.get_block(event['summary'])
@@ -120,11 +120,11 @@ def analyze_upcoming(agency_name, days):
             _route['block'], _route['date'].strftime('%b %-d'))
 
         # Send it to the client
-        task_emit('add_route_metadata', data=utils.formatter(
+        celery_sio.emit('add_route_metadata', data=utils.formatter(
             _route,
             to_strftime=True,
             bson_to_json=True))
 
-    #task_emit('analyze_routes', {'agency':agency_name, 'status':'completed'})
+    celery_sio.emit('analyze_routes', {'agency':agency_name, 'status':'completed'})
 
     return True

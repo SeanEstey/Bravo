@@ -10,6 +10,7 @@ from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 from . import routing, main
 from .. import sio, task_emit, get_db, utils
+import app.tasks
 log = logging.getLogger(__name__)
 
 
@@ -33,7 +34,7 @@ def show_routing():
         # for storing in route_btn.attr('data-route')
         route['json'] = json.dumps(route)
 
-    import app.tasks
+
     app.tasks.analyze_upcoming_routes.apply_async(
         kwargs={'agency':agency,'days':5},
         queue=current_app.config['DB'])

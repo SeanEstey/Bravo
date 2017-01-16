@@ -17,6 +17,9 @@ def analyze_upcoming(agency_name, days):
     to client
     '''
 
+    print 'emit analyze'
+    celery_sio.emit('analyze_routes', {'status':'in-progress'})
+
     db = g.db
     conf = db.agencies.find_one({'name':agency_name})
 
@@ -35,8 +38,6 @@ def analyze_upcoming(agency_name, days):
         )
 
     events = sorted(events, key=lambda k: k['start'].get('date'))
-
-    celery_sio.emit('analyze_routes', {'status':'in-progress'})
 
     for event in events:
         block = parser.get_block(event['summary'])

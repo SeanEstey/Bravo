@@ -14,7 +14,6 @@ import app.tasks
 log = logging.getLogger(__name__)
 
 
-
 #-------------------------------------------------------------------------------
 @routing.route('', methods=['GET'])
 @login_required
@@ -34,10 +33,7 @@ def show_routing():
         # for storing in route_btn.attr('data-route')
         route['json'] = json.dumps(route)
 
-
-    app.tasks.analyze_upcoming_routes.apply_async(
-        kwargs={'agency':agency,'days':5},
-        queue=current_app.config['DB'])
+    app.tasks.analyze_upcoming_routes.async(kwargs={'agency':agency, 'days':5})
 
     return render_template(
       'views/routing.html',
@@ -66,10 +62,7 @@ def analyze_upcoming(days):
     db = get_db()
     user = db['users'].find_one({'user': current_user.user_id})
 
-    from .. import tasks
-    tasks.analyze_upcoming_routes.apply_async(
-        kwargs={'agency_name':user['agency'],'days':days},
-        queue=current_app.config['DB'])
+    tasks.analyze_upcoming_routes.async(kwargs={'agency_name':user['agency'],'days':days}),
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -77,10 +70,7 @@ def analyze_upcoming(days):
 @login_required
 def _build_route(route_id):
     from .. import tasks
-    r = tasks.build_route.apply_async(
-      args=(route_id,),
-      queue=current_app.config['DB']
-    )
+    r = tasks.build_route.async(args=(route_id,))
 
     return redirect(url_for('routing.show_routing'))
 

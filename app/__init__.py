@@ -170,27 +170,37 @@ def celery_app(app):
 
             return result
 
-        def apply_async(self, args=None, kwargs=None, task_id=None, producer=None, link=None, link_error=None, shadow=None, **options):
-            '''Called by Flask app'''
-            print 'apply_async'
-
+        """def apply_async(self, args=None, kwargs=None, task_id=None, producer=None, link=None, link_error=None, shadow=None, **options):
+            '''Called by Flask app
+            '''
             #log.debug('apply_async | name=%s, args=%s, kwargs=%s, producer=%s, link=%s, shadow=%s, options=%s',
             #    self.name, args, kwargs, producer, link, shadow, options)
             if options.pop('with_request_context', True):
                 self._include_request_context(kwargs)
-            return super(RequestContextTask, self).apply_async(args, kwargs, task_id, producer, link, link_error, shadow, **options)
 
+            return super(RequestContextTask, self).apply_async(args, kwargs, task_id, producer, link, link_error, shadow, **options)
+        """
         def apply(self, args=None, kwargs=None, **options):
-            '''Called by Flask app'''
+            '''Called by Flask app
+            '''
             if options.pop('with_request_context', True):
                 self._include_request_context(kwargs)
             return super(RequestContextTask, self).apply(args, kwargs, **options)
 
         def retry(self, args=None, kwargs=None, **options):
-            '''Called by Flask app'''
+            '''Called by Flask app
+            '''
             if options.pop('with_request_context', True):
                 self._include_request_context(kwargs)
             return super(RequestContextTask, self).retry(args, kwargs, **options)
+
+        def async(self, args=None, kwargs=None, task_id=None, producer=None, link=None, link_error=None, shadow=None, **options):
+            '''Called by Flask app
+            '''
+            if options.pop('with_request_context', True):
+                self._include_request_context(kwargs)
+            options['queue'] = 'bravo'
+            return super(RequestContextTask, self).apply_async(args, kwargs, task_id, producer, link, link_error, shadow, **options)
 
         def _include_request_context(self, kwargs):
             """Includes all the information about current Flask request context

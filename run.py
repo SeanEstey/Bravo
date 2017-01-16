@@ -102,14 +102,12 @@ def main(argv):
 
     start_worker(celery_beat)
 
-    from app.tasks import mod_environ
-    mod_environ.apply_async(
-        args=[{'BRAVO_SANDBOX_MODE':os.environ['BRAVO_SANDBOX_MODE'],
-        'BRAVO_HTTP_HOST': os.environ['BRAVO_HTTP_HOST']}],
-        queue=app.config['DB']
-    )
-
     sio_app.init_app(app, async_mode='eventlet', message_queue='amqp://')
+
+    from app.tasks import mod_environ
+    mod_environ.async(
+        args=[{'BRAVO_SANDBOX_MODE':os.environ['BRAVO_SANDBOX_MODE'],
+        'BRAVO_HTTP_HOST': os.environ['BRAVO_HTTP_HOST']}])
 
     startup_msg(sio_app, app)
 

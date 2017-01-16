@@ -58,11 +58,13 @@ def mod_environ(self, *args, **kwargs):
         for k in arg:
             os.environ[k] = arg[k]
 
+from app.routing.schedule import analyze_upcoming
+
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def analyze_upcoming_routes(self, *args, **kwargs):
-    sleep(3)
-    from app.routing.schedule import analyze_upcoming
+    #sleep(3)
+    #from app.routing.schedule import analyze_upcoming
     try:
         analyze_upcoming('vec', 5)
     except Exception as e:

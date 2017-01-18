@@ -8,7 +8,7 @@ from time import sleep
 import requests
 from flask_login import current_user
 from bson import ObjectId
-from .. import get_db, task_emit, gdrive, gsheets, etap, cal, wsf, utils
+from .. import get_db, gdrive, gsheets, etap, cal, wsf, utils
 from . import geo, routific, sheet
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,8 @@ def build(route_id, job_id=None):
         ss['id'],
         orders)
 
-    task_emit('route_status', data={
+    from app.tasks import celery_sio
+    celery_sio.emit('route_status', {
         'agency': conf['name'],
         'status':'completed',
         'ss_id': ss['id'],

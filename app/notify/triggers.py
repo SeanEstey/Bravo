@@ -5,10 +5,10 @@ import os
 from flask import g, request
 from bson.objectid import ObjectId
 from datetime import datetime,date,time
-from app import task_emit
 from .. import get_db, utils
 from app.utils import bcolors, print_vars
 from . import voice, email, sms
+
 log = logging.getLogger(__name__)
 
 def context_test():
@@ -94,9 +94,11 @@ def fire(evnt_id, trig_id):
 
     # Calling from celery task, do not have socketio app context.
     # Make a request to server to emit msg
-    task_emit('trigger_status', data={
-            'trig_id': str(trig_id),
-            'status': 'in-progress'})
+
+    from app.tasks import celery_sio
+    celery_sio.emit('trigger_status', {
+        'trig_id': str(trig_id),
+        'status': 'in-progress'})
 
     for notific in ready_notifics:
         try:

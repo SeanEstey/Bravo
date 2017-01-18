@@ -5,7 +5,7 @@ import json
 from flask import g, request, render_template, redirect, Response, \
 current_app, url_for, jsonify, has_app_context
 from flask_login import current_user, login_user, logout_user, login_required
-from .. import login_manager, get_db
+from .. import db_client, login_manager, get_db
 from . import auth
 from .user import User, Anonymous
 log = logging.getLogger(__name__)
@@ -13,19 +13,25 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 @auth.before_request
 def before_request():
-    #log.debug('auth.before_request')
-    #g.db = get_db()
     g.user = current_user
 
 #-------------------------------------------------------------------------------
 @login_manager.user_loader
 def load_user(user_id):
-    return User(user_id)
+    db = db_client['bravo']
+    db_user = db.users.find_one({'user': user_id})
+    #print 'db_user user_id=%s, agency=%s' %(user_id, db_user['agency'])
+
+    return User(
+        user_id,
+        name=db_user['name'],
+        _id=db_user['_id'],
+        agency=db_user['agency'],
+        admin=db_user['admin'])
 
 #-------------------------------------------------------------------------------
 @auth.route('/login', methods=['GET','POST'])
 def login():
-
     if request.method == 'GET':
         return render_template('views/login.html')
     elif request.method == 'POST':
@@ -36,7 +42,8 @@ def login():
         user_id = request.form['username']
         pw = request.form['password']
 
-        db_user = g.db.users.find_one({'user': user_id})
+        db = get_db()
+        db_user = db.users.find_one({'user': user_id})
 
     if not db_user:
         log.info("DB user doesn't exist | user_id=%s", user_id)

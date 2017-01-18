@@ -35,7 +35,7 @@ class User():
             return str(self.user_id)  # python 3
 
     def __repr__(self):
-        return '<user_id %r>' % (self.user_id)
+        return '<user_id %r>' % self.user_id
 
     def __init__(self, user_id, name=None, _id=None, agency=None, admin=False):
         self._id = _id
@@ -49,3 +49,4 @@ class User():
 class Anonymous(AnonymousUserMixin):
     def __init__(self):
         self.user_id = 'Guest'
+        self._id = None

@@ -88,7 +88,7 @@ function addSocketIOHandlers() {
     var socketio_url = 'http://' + document.domain + ':' + location.port;
 
 		try {
-				var socket = io.connect(socketio_url);
+				socket = io.connect(socketio_url);
 		}
 		catch(e) {
 				console.log(e);
@@ -101,8 +101,12 @@ function addSocketIOHandlers() {
 		}
 
     socket.on('connect', function(){
-        socket.emit('connected');
         console.log('socket.io connected!');
+        socket.emit('join', {});
+    });
+
+    socket.on('room_msg', function(data) {
+        console.log('room msg: ' + JSON.stringify(data));
     });
 
     socket.on('update_event', function(data) {

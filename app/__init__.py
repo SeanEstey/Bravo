@@ -7,10 +7,10 @@ import os
 import logging
 import socket
 import requests
+from bson.objectid import ObjectId
 from datetime import timedelta
 from flask import Flask, current_app, g, request, make_response, has_app_context, has_request_context
-from flask_login import LoginManager
-
+from flask_login import LoginManager, login_user, current_user
 from flask_kvsession import KVSessionExtension
 from flask_socketio import SocketIO
 from simplekv.db.mongo import MongoStore
@@ -26,7 +26,6 @@ err_hand = log_handler(logging.ERROR, 'error.log')
 exc_hand = log_handler(logging.CRITICAL, 'debug.log')
 
 login_manager = LoginManager()
-
 
 db_client = mongodb.create_client()
 mongodb.authenticate(db_client)
@@ -49,38 +48,13 @@ def get_db():
         return db_client[config.DB]
 
 #-------------------------------------------------------------------------------
-def get_keys(k=None, agency=None):
-    conf = ''
-    _agency = ''
-
-    if current_user.is_authenticated:
-        #if not getattr(g, 'conf'):
-        #    if not getattr(g, 'db'):
-        #        g.db = get_db()
-        _agency = current_user.get_agency()
-        conf = g.db.agencies.find_one({'name':_agency})
-        #else:
-        #    conf = g.conf
-    else:
-        if has_request_context():
-            if session.get('conf'):
-                conf = session.get('conf')
-            elif session.get('agency'):
-                conf = g.db.agencies.find_one({'name':session.get('agency')})
+def get_keys(k):
+    if g.user.is_authenticated:
+        conf = g.db.agencies.find_one({'name':g.user.agency})
+        if conf and k in conf:
+            return conf[k]
         else:
-            if agency:
-                db = get_db()
-                conf = db.agencies.find_one({'name':agency})
-            else:
-                raise Exception('no req_context, no auth_user, no agency')
-
-    if not conf:
-        raise Exception('couldnt get conf')
-
-    if k:
-        return conf[k]
-    else:
-        return conf
+            return None
 
 #-------------------------------------------------------------------------------
 def create_app(pkg_name, kv_sess=True):
@@ -127,6 +101,8 @@ def create_app(pkg_name, kv_sess=True):
 
 #-------------------------------------------------------------------------------
 def celery_app(app):
+    from auth import user
+
     celery = Celery(__name__, broker='amqp://')
     celery.config_from_object('celeryconfig')
     celery.conf.update(app.config)
@@ -136,77 +112,61 @@ def celery_app(app):
 
     class RequestContextTask(Task):
         CONTEXT_ARG_NAME = '_flask_request_context'
+        USER_ID_OID_ARG_NAME = '_user_id_oid'
 
         def __call__(self, *args, **kwargs):
             '''Called by worker'''
 
+            print '__call__'
+            req_ctx = has_request_context()
+            app_ctx = has_app_context()
             call = lambda: super(RequestContextTask, self).__call__(*args, **kwargs)
             context = kwargs.pop(self.CONTEXT_ARG_NAME, None)
 
-            if context is None or has_request_context():
-                if not has_app_context():
+            if context is None or req_ctx:
+                if not app_ctx:
                     with app.app_context():
-                        g.db = task_db_client['bravo']
-                        mongodb.authenticate(task_db_client)
-                        print '__call__ app_ctx=%s, req_ctx=%s, db=%s'%(has_app_context(), has_request_context(), g.db!=None)
-
+                        self._push_globals(kwargs)
                         return call()
                 else:
-                    g.db = task_db_client['bravo']
-                    mongodb.authenticate(task_db_client)
-                    print '__call__ app_ctx=%s, req_ctx=%s, db=%s'%(has_app_context(), has_request_context(), g.db!=None)
-
+                    self._push_globals(kwargs)
                     return call()
 
             with app.test_request_context(**context):
-                g.db = task_db_client['bravo']
-                mongodb.authenticate(task_db_client)
-                print '__call__ app_ctx=%s, req_ctx=%s, db=%s'%(has_app_context(), has_request_context(), g.db!=None)
-
+                self._push_globals(kwargs)
                 result = call()
-                # process a fake "Response" so that
-                # ``@after_request`` hooks are executed
                 app.process_response(make_response(result or ''))
 
             return result
 
-        """def apply_async(self, args=None, kwargs=None, task_id=None, producer=None, link=None, link_error=None, shadow=None, **options):
-            '''Called by Flask app
-            '''
-            #log.debug('apply_async | name=%s, args=%s, kwargs=%s, producer=%s, link=%s, shadow=%s, options=%s',
-            #    self.name, args, kwargs, producer, link, shadow, options)
-            if options.pop('with_request_context', True):
-                self._include_request_context(kwargs)
-
-            return super(RequestContextTask, self).apply_async(args, kwargs, task_id, producer, link, link_error, shadow, **options)
-        """
         def apply(self, args=None, kwargs=None, **options):
-            '''Called by Flask app
-            '''
+            '''Called by Flask app'''
             if options.pop('with_request_context', True):
                 self._include_request_context(kwargs)
             return super(RequestContextTask, self).apply(args, kwargs, **options)
 
         def retry(self, args=None, kwargs=None, **options):
-            '''Called by Flask app
-            '''
+            '''Called by Flask app'''
             if options.pop('with_request_context', True):
                 self._include_request_context(kwargs)
             return super(RequestContextTask, self).retry(args, kwargs, **options)
 
-        def async(self, args=None, kwargs=None, task_id=None, producer=None, link=None, link_error=None, shadow=None, **options):
-            '''Called by Flask app
-            '''
+        def async(self, args=None, kwargs=None, task_id=None, producer=None,
+            link=None, link_error=None, shadow=None, **options):
+            '''Called by Flask app'''
+
             if options.pop('with_request_context', True):
                 self._include_request_context(kwargs)
+            if has_app_context():
+                kwargs[self.USER_ID_OID_ARG_NAME] = str(g.user._id)
             options['queue'] = 'bravo'
-            return super(RequestContextTask, self).apply_async(args, kwargs, task_id, producer, link, link_error, shadow, **options)
+            return super(RequestContextTask, self).apply_async(args, kwargs, task_id, producer,
+                link, link_error, shadow, **options)
 
         def _include_request_context(self, kwargs):
             """Includes all the information about current Flask request context
             as an additional argument to the task.
             """
-
             if not has_request_context():
                 return
 
@@ -223,8 +183,41 @@ def celery_app(app):
 
             kwargs[self.CONTEXT_ARG_NAME] = context
 
+        def _push_globals(self, kwargs):
+            '''Called by worker'''
+            g.db = task_db_client['bravo']
+            mongodb.authenticate(task_db_client)
+
+            user_id_oid = kwargs.pop(self.USER_ID_OID_ARG_NAME, None)
+
+            if user_id_oid:
+                db_user = g.db.users.find_one({'_id':ObjectId(user_id_oid)})
+                login_user(user.User(
+                    db_user['user'],
+                    name=db_user['name'],
+                    _id=db_user['_id'],
+                    agency=db_user['agency'],
+                    admin=db_user['admin']))
+                g.user = current_user
+
+                print 'loaded user=%s into g.user' % g.user
+
     celery.Task = RequestContextTask
     return celery
+
+#-------------------------------------------------------------------------------
+def clean_expired_sessions():
+    '''
+    from app import kv_ext
+    try:
+        with current_app.test_request_context():
+            log.info('cleaning expired sessions')
+            log.debug(utils.print_vars(kv_ext))
+            kv_ext.cleanup_sessions()
+    except Exception as e:
+        log.debug(str(e))
+    '''
+    pass
 
 #-------------------------------------------------------------------------------
 def is_test_server():
@@ -285,17 +278,3 @@ def config_test_server(source):
     # Set SmsUrl callback to point to correct server
     #https://www.twilio.com/docs/api/rest/incoming-phone-numbers#instance
     return True
-
-#-------------------------------------------------------------------------------
-def task_emit(event, data):
-    '''Used by celery worker to send SocketIO messages'''
-
-    #log.debug('task_emit %s', event)
-
-    r = requests.post(
-        'http://localhost/task_emit',
-        json= {
-            'event': event,
-            'data':data})
-
-    #log.debug(r)

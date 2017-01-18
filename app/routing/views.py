@@ -5,11 +5,11 @@ import json
 import twilio.twiml
 import requests
 from datetime import datetime, date, time, timedelta
-from flask import request, jsonify, render_template, redirect, current_app,url_for
+from flask import g, request, jsonify, render_template, redirect, current_app,url_for
 from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 from . import routing, main
-from .. import sio, task_emit, get_db, utils
+from .. import sio, get_db, utils
 import app.tasks
 log = logging.getLogger(__name__)
 
@@ -18,10 +18,6 @@ log = logging.getLogger(__name__)
 @routing.route('', methods=['GET'])
 @login_required
 def show_routing():
-    db = get_db()
-    agency = db['users'].find_one({'user': current_user.user_id})['agency']
-    agency_conf = db['agencies'].find_one({'name':agency})
-
     _routes = utils.formatter(
         list(main.get_metadata()),
         bson_to_json=True,
@@ -33,27 +29,27 @@ def show_routing():
         # for storing in route_btn.attr('data-route')
         route['json'] = json.dumps(route)
 
-    app.tasks.analyze_upcoming_routes.async(kwargs={'agency':agency, 'days':5})
+    app.tasks.analyze_upcoming_routes.async(kwargs={'days':5})
 
+    conf = g.db.agencies.find_one({'name':g.user.agency})
     return render_template(
       'views/routing.html',
       routes=_routes,
-      depots=agency_conf['routing']['locations']['depots'],
-      drivers=agency_conf['routing']['drivers'],
-      admin=db.users.find_one({'user':current_user.user_id})['admin'],
-      agency=agency
+      depots=conf['routing']['locations']['depots'],
+      drivers=conf['routing']['drivers'],
+      admin=g.user.admin,
+      agency=g.user.agency
     )
 
 #-------------------------------------------------------------------------------
 @routing.route('/get_route/<job_id>', methods=['GET'])
 @login_required
 def get_route(job_id):
-    db = get_db()
-    agency = db['routes'].find_one({'job_id':job_id})['agency']
-    conf = db['agencies'].find_one({'name':agency})
-    api_key = conf['google']['geocode']['api_key']
+    conf = g.db.agencies.find_one({'name':g.user.agency})
 
-    return json.dumps(main.get_solution_orders(job_id, api_key))
+    return json.dumps(main.get_solution_orders(
+        job_id,
+        conf['google']['geocode']['api_key']))
 
 #-------------------------------------------------------------------------------
 @routing.route('/analyze_upcoming/<days>', methods=['GET'])

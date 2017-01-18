@@ -158,10 +158,11 @@ function addSocketIOHandlers() {
 
     socket.on('connect', function(){
         console.log('socket.io connected!');
-        //socket.emit('event', {'data':'connected'});
-        //console.log(data);
-        //$AGENCY = data['agency'];
-        //console.log('socket.io connected! agency: ' + data['agency']);
+        socket.emit('join', {});
+    });
+
+    socket.on('room_msg', function(data) {
+        console.log('room msg: ' + JSON.stringify(data));
     });
 
     socket.on('analyze_routes', function(data) {

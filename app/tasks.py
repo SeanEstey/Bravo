@@ -10,7 +10,7 @@ from bson.objectid import ObjectId as oid
 from flask_socketio import SocketIO
 from etap import EtapError
 from utils import bcolors, print_vars
-from flask import g, has_app_context,has_request_context
+from flask import g, has_app_context, has_request_context, request
 from . import mongodb, get_db, utils, create_app, celery_app, deb_hand,\
 inf_hand, err_hand, exc_hand
 
@@ -65,8 +65,9 @@ from app.routing.schedule import analyze_upcoming
 def analyze_upcoming_routes(self, *args, **kwargs):
     #sleep(3)
     #from app.routing.schedule import analyze_upcoming
+    #log.debug('g.user=%s', g.user)
     try:
-        analyze_upcoming('vec', 5)
+        analyze_upcoming(kwargs['days'])
     except Exception as e:
         log.error(str(e))
         log.debug(str(e), exc_info=True)
@@ -74,15 +75,12 @@ def analyze_upcoming_routes(self, *args, **kwargs):
 #-------------------------------------------------------------------------------
 @celery.task
 def monitor_triggers():
-    set_db()
-    db = g.db
-
     try:
         from app.notify import triggers, events
         from datetime import datetime, timedelta
         import pytz
 
-        ready = db['triggers'].find({
+        ready = g.db.triggers.find({
             'status':'pending',
             'fire_dt':{
                 '$lt':datetime.utcnow()}})
@@ -94,7 +92,7 @@ def monitor_triggers():
 
             triggers.fire(trigger['evnt_id'], trigger['_id'])
 
-        pending = db['triggers'].find({
+        pending = g.db.triggers.find({
             'status':'pending',
             'fire_dt': {
                 '$gt':datetime.utcnow()}})

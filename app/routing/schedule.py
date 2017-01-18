@@ -3,36 +3,36 @@
 import logging
 import bson.json_util
 from flask import g
+from flask_login import current_user
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 import re
-from .. import task_emit, get_db, gcal, etap, wsf, utils, parser
+from .. import get_keys, gcal, etap, wsf, utils, parser
 from app.tasks import celery_sio
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def analyze_upcoming(agency_name, days):
+def analyze_upcoming(days):
     '''Celery task
     Scans schedule for blocks, adds metadata to db, sends socketio signal
     to client
     '''
 
-    print 'emit analyze'
-    celery_sio.emit('analyze_routes', {'status':'in-progress'})
-
-    db = g.db
-    conf = db.agencies.find_one({'name':agency_name})
+    celery_sio.emit(
+        'room_msg',
+        {'msg': 'analyze_routes', 'status':'in-progress'},
+        room=g.user.agency)
 
     today_dt = datetime.combine(date.today(), time())
     end_dt = today_dt + timedelta(days=int(days))
     events = []
+    service = gcal.gauth(get_keys('google')['oauth'])
+    cal_ids = get_keys('cal_ids')
 
-    service = gcal.gauth(conf['google']['oauth'])
-
-    for _id in conf['cal_ids']:
+    for _id in cal_ids:
         events += gcal.get_events(
             service,
-            conf['cal_ids'][_id],
+            cal_ids[_id],
             today_dt,
             end_dt
         )
@@ -52,10 +52,10 @@ def analyze_upcoming(agency_name, days):
                 time(0,0,0))
         )
 
-        if db.routes.find_one({
+        if g.db.routes.find_one({
             'date':event_dt,
             'block': block,
-            'agency':agency_name}
+            'agency':g.user.agency}
         ):
             continue
 
@@ -65,8 +65,9 @@ def analyze_upcoming(agency_name, days):
         try:
             a = etap.call(
               'get_query_accounts',
-              conf['etapestry'],
-              {'query':block, 'query_category': conf['etapestry']['query_category']}
+              get_keys('etapestry'), {
+                'query':block,
+                'query_category': get_keys('etapestry')['query_category']}
             )
         except Exception as e:
             log.error('Error retrieving accounts for query %s', block)
@@ -96,36 +97,42 @@ def analyze_upcoming(agency_name, days):
         postal = re.sub(r'\s', '', event['location']).split(',')
 
         # TODO: move resolve_depot into depots.py module
-        if len(conf['routing']['locations']['depots']) > 1:
+        if len(get_keys('routing')['locations']['depots']) > 1:
             depot = wsf.resolve_depot(block, postal)
         else:
-            depot = conf['routing']['locations']['depots'][0]
+            depot = get_keys('routing')['locations']['depots'][0]
 
         _route = {
           'block': block,
           'date': event_dt,
-          'agency': agency_name,
+          'agency': g.user.agency,
           'status': 'pending',
           'postal': re.sub(r'\s', '', event['location']).split(','),
           'depot': depot,
-          'driver': conf['routing']['drivers'][0], # default driver
+          'driver': ge_keys('routing')['drivers'][0], # default driver
           'orders': num_booked,
           'block_size': len(a['data']),
           'dropoffs': num_dropoffs
         }
 
-        db.routes.insert_one(_route)
+        g.db.routes.insert_one(_route)
 
         log.info(
             'metadata added for %s on %s',
             _route['block'], _route['date'].strftime('%b %-d'))
 
         # Send it to the client
-        celery_sio.emit('add_route_metadata', data=utils.formatter(
-            _route,
-            to_strftime=True,
-            bson_to_json=True))
+        celery_sio.emit(
+            'room_msg', {
+                'msg':'add_route_metadata',
+                'data': utils.formatter(
+                    _route,
+                    to_strftime=True,
+                    bson_to_json=True)},
+            room=g.user.agency)
 
-    celery_sio.emit('analyze_routes', {'agency':agency_name, 'status':'completed'})
+    celery_sio.emit('room_msg',
+        {'msg':'analyze_routes', 'status':'completed'},
+        room=g.user.agency)
 
     return True

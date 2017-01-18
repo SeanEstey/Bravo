@@ -29,7 +29,7 @@ def show_routing():
         # for storing in route_btn.attr('data-route')
         route['json'] = json.dumps(route)
 
-    app.tasks.analyze_upcoming_routes.async(kwargs={'days':5})
+    app.tasks.analyze_routes.async(kwargs={'days':5})
 
     conf = g.db.agencies.find_one({'name':g.user.agency})
     return render_template(
@@ -55,19 +55,14 @@ def get_route(job_id):
 @routing.route('/analyze_upcoming/<days>', methods=['GET'])
 @login_required
 def analyze_upcoming(days):
-    db = get_db()
-    user = db['users'].find_one({'user': current_user.user_id})
-
-    tasks.analyze_upcoming_routes.async(kwargs={'agency_name':user['agency'],'days':days}),
+    tasks.analyze_routes.async(kwargs={'days':days}),
     return 'OK'
 
 #-------------------------------------------------------------------------------
 @routing.route('/build/<route_id>', methods=['GET', 'POST'])
 @login_required
 def _build_route(route_id):
-    from .. import tasks
-    r = tasks.build_route.async(args=(route_id,))
-
+    tasks.build_route.async(args=(route_id,))
     return redirect(url_for('routing.show_routing'))
 
 #-------------------------------------------------------------------------------
@@ -86,18 +81,14 @@ def edit(route_id):
     log.info(request.form.to_dict())
     log.info(route_id)
 
-    db = get_db()
-    user = db['users'].find_one({'user': current_user.user_id})
-    conf = db.agencies.find_one({'name':user['agency']})
-
     value = None
 
     if request.form['field'] == 'depot':
-        for depot in conf['routing']['locations']['depots']:
+        for depot in get_keys('routing')['locations']['depots']:
             if depot['name'] == request.form['value']:
                 value = depot
     elif request.form['field'] == 'driver':
-        for driver in conf['routing']['drivers']:
+        for driver in get_keys('routing')['drivers']:
             if driver['name'] == request.form['value']:
                 value = driver
 
@@ -106,7 +97,7 @@ def edit(route_id):
         request.form['field'], request.form['value'])
         return jsonify({'status':'failed'})
 
-    db.routes.update_one(
+    g.db.routes.update_one(
         {'_id':ObjectId(route_id)},
         {'$set': {
             request.form['field']: value

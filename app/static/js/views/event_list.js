@@ -85,28 +85,14 @@ function addDeleteBtnHandlers() {
 
 //------------------------------------------------------------------------------
 function addSocketIOHandlers() {
-    var socketio_url = 'http://' + document.domain + ':' + location.port;
-
-		try {
-				socket = io.connect(socketio_url);
-		}
-		catch(e) {
-				console.log(e);
-				setTimeout(function(){
-						console.log('retrying socketio connection...');
-						addSocketIOHandlers();
-				}, 
-				5000);
-				return false;
-		}
+    socket = io.connect('http://' + document.domain + ':' + location.port);
 
     socket.on('connect', function(){
         console.log('socket.io connected!');
-        socket.emit('join', {});
-    });
 
-    socket.on('room_msg', function(data) {
-        console.log('room msg: ' + JSON.stringify(data));
+        socket.on('joined', function(response) {
+            console.log(response);
+        });
     });
 
     socket.on('update_event', function(data) {

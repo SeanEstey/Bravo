@@ -6,9 +6,7 @@ import httplib2
 from apiclient.discovery import build
 import requests
 import json
-
 logger = logging.getLogger(__name__)
-
 
 #-------------------------------------------------------------------------------
 def gauth(oauth):
@@ -26,7 +24,7 @@ def gauth(oauth):
         logger.error('Error authorizing gcal: %s', str(e))
         return False
 
-    logger.debug('calendar service authorized')
+    #logger.debug('calendar service authorized')
 
     return service
 

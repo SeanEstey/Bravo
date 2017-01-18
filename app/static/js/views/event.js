@@ -15,24 +15,14 @@ function init() {
 
 //------------------------------------------------------------------------------
 function addSocketIOHandlers() {
-    var socketio_url = 'http://' + document.domain + ':' + location.port;
+    socket = io.connect('http://' + document.domain + ':' + location.port);
 
-		try {
-				var socket = io.connect(socketio_url);
-		}
-		catch(e) {
-				console.log(e);
-				setTimeout(function(){
-						console.log('retrying socketio connection...');
-						addSocketIOHandlers();
-				}, 
-				5000);
-				return false;
-		}
+    socket.on('connect', function(){
+        console.log('socket.io connected!');
 
-    socket.on('connected', function(data){
-        $AGENCY = data['agency'];
-        console.log('socket.io connected! agency: ' + data['agency']);
+        socket.on('joined', function(response) {
+            console.log(response);
+        });
     });
 
     socket.on('notific_status', function(data) {

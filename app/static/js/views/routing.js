@@ -152,17 +152,14 @@ function addEventHandlers() {
 
 //------------------------------------------------------------------------------
 function addSocketIOHandlers() {
-    var socketio_url = 'http://' + document.domain + ':' + location.port;
-
-    var socket = io.connect(socketio_url);
+    socket = io.connect('http://' + document.domain + ':' + location.port);
 
     socket.on('connect', function(){
         console.log('socket.io connected!');
-        socket.emit('join', {});
-    });
 
-    socket.on('room_msg', function(data) {
-        console.log('room msg: ' + JSON.stringify(data));
+        socket.on('joined', function(response) {
+            console.log(response);
+        });
     });
 
     socket.on('analyze_routes', function(data) {

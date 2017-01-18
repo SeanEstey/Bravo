@@ -21,9 +21,8 @@ def do_setup():
     session.permanent = True
     g.db = db_client['bravo']
     g.user = current_user
-
-    #app.logger.debug('app.before_req | setting g.db')
-    print 'app.before_request g.db=True'
+    #app.logger.debug('app before_request set g.user=%s', g.user)
+    #print 'app.before_request g.db=True'
 
 #-------------------------------------------------------------------------------
 @app.after_request

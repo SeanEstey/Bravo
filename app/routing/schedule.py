@@ -109,7 +109,7 @@ def analyze_upcoming(days):
           'status': 'pending',
           'postal': re.sub(r'\s', '', event['location']).split(','),
           'depot': depot,
-          'driver': ge_keys('routing')['drivers'][0], # default driver
+          'driver': get_keys('routing')['drivers'][0], # default driver
           'orders': num_booked,
           'block_size': len(a['data']),
           'dropoffs': num_dropoffs

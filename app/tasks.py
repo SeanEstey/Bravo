@@ -1,4 +1,5 @@
 '''app.tasks'''
+
 import logging
 import os
 from time import sleep
@@ -21,10 +22,7 @@ log.addHandler(deb_hand)
 log.addHandler(exc_hand)
 log.setLevel(logging.DEBUG)
 celery = celery_app(create_app('app', kv_sess=False))
-#celery_db_client = mongodb.create_client(connect=False, auth=False)
 celery_sio = SocketIO(message_queue='amqp://')
-
-'''Task Signals'''
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect
@@ -33,11 +31,13 @@ def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwar
     Sender == Task.
     @args, @kwargs: the tasks positional and keyword arguments
     '''
-    print 'task prerun=%s' % (sender.name.split('.')[-1])
+    #print 'task prerun=%s' % (sender.name.split('.')[-1])
+    pass
 
 #-------------------------------------------------------------------------------
 @task_postrun.connect
-def task_postrun(signal=None, sender=None, task_id=None, task=None, retval=None, state=None, *args, **kwargs):
+def task_postrun(signal=None, sender=None, task_id=None, task=None, retval=None,\
+state=None, *args, **kwargs):
     '''Dispatched after a task has been executed by Task obj.
     @Sender: the task object executed.
     @task_id: Id of the task to be executed. (meaning the next one in the queue???)
@@ -47,9 +47,16 @@ def task_postrun(signal=None, sender=None, task_id=None, task=None, retval=None,
     @retval: The return value of the task.
     @state: Name of the resulting state.
     '''
-    print \
-        'task postrun=%s, state=%s, retval=%s' %(
-        sender.name.split('.')[-1], state, retval)
+
+    name = sender.name.split('.')[-1]
+
+    if state != 'SUCCESS':
+        log.error('task=%s error. state=%s, retval=%s', name, state, retval)
+        log.debug('task=%s failure.', name, exc_info=True)
+    else:
+        print \
+            'postrun: task=%s, state=%s, retval=%s' %(
+            name, state, retval)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -58,14 +65,12 @@ def mod_environ(self, *args, **kwargs):
         for k in arg:
             os.environ[k] = arg[k]
 
-from app.routing.schedule import analyze_upcoming
-
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def analyze_upcoming_routes(self, *args, **kwargs):
+def analyze_routes(self, *args, **kwargs):
+    from app.routing.schedule import analyze_upcoming
     #sleep(3)
-    #from app.routing.schedule import analyze_upcoming
-    #log.debug('g.user=%s', g.user)
+
     try:
         analyze_upcoming(kwargs['days'])
     except Exception as e:
@@ -170,12 +175,9 @@ def build_scheduled_routes():
             '%s: -----%s Routes built. %s failures.-----',
             agency['name'], successes, fails)
 
-
-
 #-------------------------------------------------------------------------------
 @celery.task
 def build_route(route_id, job_id=None):
-    #task_init()
     try:
         from app.routing import main
         return main.build(str(route_id), job_id=job_id)
@@ -185,7 +187,6 @@ def build_route(route_id, job_id=None):
 #-------------------------------------------------------------------------------
 @celery.task
 def add_signup(signup):
-    #task_init()
     try:
         from app import wsf
         return wsf.add_signup(signup)
@@ -195,14 +196,10 @@ def add_signup(signup):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def fire_trigger(self, evnt_id, trig_id):
-    #task_init()
-
     log.debug('trigger task_id: %s', self.request.id)
 
-    db = get_db()
-
     # Store celery task_id in case we need to kill it
-    db.triggers.update_one({
+    g.db.triggers.update_one({
         '_id':oid(trig_id)},
         {'$set':{'task_id':self.request.id}})
 

@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 from flask import \
     g, request, jsonify, render_template, redirect, Response, current_app,\
     session, url_for
-from .. import utils, cal, parser, get_db
+from .. import get_keys, utils, cal, parser, get_db
 from . import notify, accounts, admin, events, triggers, email, voice, sms,\
     recording, pus, gg, voice_announce
 log = logging.getLogger(__name__)
@@ -16,17 +16,13 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 @notify.before_request
 def get_globals():
-    if current_user.is_authenticated:
-        #g.db = get_db()
-        g.user = current_user
-        g.agency = current_user.get_agency()
-        #g.conf = g.db.agencies.find_one({'name':g.agency})
+    pass
 
 #-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])
 @login_required
 def view_event_list():
-    event_list = events.get_list(g.agency)
+    event_list = events.get_list(g.user.agency)
 
     for event in event_list:
         # modifying 'notification_event' structure for view rendering
@@ -90,17 +86,17 @@ def new_event():
             block = request.form['query_name']
 
             if parser.is_res(block):
-                cal_id = g.conf['cal_ids']['res']
+                cal_id = get_keys('cal_ids')['res']
             elif parser.is_bus(block):
-                cal_id = g.conf['cal_ids']['bus']
+                cal_id = get_keys('cal_ids')['bus']
             else:
                 return jsonify({'status':'failed', 'description':'Invalid Block name'})
 
             _date = cal.get_next_block_date(
-                cal_id, block, g.conf['google']['oauth'])
+                cal_id, block, get_keys('google')['oauth'])
 
             evnt_id = pus.reminder_event(
-                agency,
+                g.user.agency,
                 block,
                 _date
             )

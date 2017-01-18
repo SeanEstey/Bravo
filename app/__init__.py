@@ -96,9 +96,10 @@ def create_app(pkg_name, kv_sess=True):
 #-------------------------------------------------------------------------------
 def celery_app(app):
     from uber_task import UberTask
+    import celeryconfig
 
     celery = Celery(__name__, broker='amqp://')
-    celery.config_from_object('celeryconfig')
+    celery.config_from_object(celeryconfig)
     celery.conf.update(app.config)
     celery.app = UberTask.flsk_app = app
     UberTask.db_client = mongodb.create_client()

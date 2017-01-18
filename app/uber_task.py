@@ -26,7 +26,8 @@ class UberTask(Task):
         '''Called by worker
         '''
 
-        #print '__call__'
+        print '__call__: %s' % self.name.split('.')[-1]
+
         req_ctx = has_request_context()
         app_ctx = has_app_context()
         call = lambda: super(UberTask, self).__call__(*args, **kwargs)
@@ -53,6 +54,7 @@ class UberTask(Task):
         '''Called by Flask app
         '''
 
+        print 'apply'
         if options.pop('with_request_context', True) or has_app_context():
             self._push_contexts(kwargs)
 

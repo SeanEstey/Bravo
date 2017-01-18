@@ -164,8 +164,6 @@ function addSocketIOHandlers() {
 
     socket.on('analyze_routes', function(data) {
         console.log('analyze_routes, status=' + data['status']);
-        //console.log(data);
-        //console.log('analyze_routes status: %s', data['status']);
 
         if(data['status'] == 'in-progress') {
 						$('.loader-div label').text('Analyzing Routes');

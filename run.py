@@ -38,16 +38,18 @@ def start_worker(celery_beat):
     os.system("ps aux | grep 'queues " + db_name + \
               "' | awk '{print $2}' | xargs kill -9")
 
+    cmd = 'celery worker -A app.tasks.celery '
+
     if celery_beat:
-        # Start worker with embedded beat (will fail if > 1 worker)
         os.environ['BRAVO_CELERY_BEAT'] = 'True'
-        os.system('celery worker -A app.tasks.celery -B -n ' + \
-                  db_name + ' --queues ' + db_name + ' &')
+        # worker w/ embedded beat (fails if > 1 worker)
+        cmd += '-B '
     else:
-        # Start worker without beat
         os.environ['BRAVO_CELERY_BEAT'] = 'False'
-        os.system('celery worker -A app.tasks.celery -n ' + \
-                  db_name + ' --queues ' + db_name + ' &')
+
+    cmd += '-n %s --queues %s &' % (db_name, db_name)
+
+    os.system(cmd)
 
     # Pause to give workers time to initialize before starting server
     time.sleep(2)

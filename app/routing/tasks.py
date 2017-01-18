@@ -1,6 +1,7 @@
 '''app.routing.tasks'''
 
 import logging
+from time import sleep
 import bson.json_util
 from flask import g
 from flask_login import current_user
@@ -21,10 +22,11 @@ def analyze_routes(self, *args, **kwargs):
 
     days = kwargs['days']
 
+    print 'sleeping 3s...'
+    sleep(3)
+
     celery_sio.emit(
-        'room_msg',
-        {'msg': 'analyze_routes', 'status':'in-progress'},
-        room=g.user.agency)
+        'analyze_routes', {'status':'in-progress'}, room=g.user.agency)
 
     today_dt = datetime.combine(date.today(), time())
     end_dt = today_dt + timedelta(days=int(days))
@@ -126,17 +128,14 @@ def analyze_routes(self, *args, **kwargs):
 
         # Send it to the client
         celery_sio.emit(
-            'room_msg', {
-                'msg':'add_route_metadata',
-                'data': utils.formatter(
-                    _route,
-                    to_strftime=True,
-                    bson_to_json=True)},
+            'add_route_metadata',
+            {'data': utils.formatter(
+                _route,
+                to_strftime=True,
+                bson_to_json=True)},
             room=g.user.agency)
 
-    celery_sio.emit('room_msg',
-        {'msg':'analyze_routes', 'status':'completed'},
-        room=g.user.agency)
+    celery_sio.emit('analyze_routes', {'status':'completed'}, room=g.user.agency)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

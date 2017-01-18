@@ -3,8 +3,6 @@ venv*
 *.swp
 *.swo
 *~
-oauth_credentials.json
-client_secret.json
 celerybeat-schedule
-auth_keys.py
+celerybeat.pid
 mongodb_auth.py

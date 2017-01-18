@@ -16,37 +16,6 @@ from app.booker import book
 log = logging.getLogger(__name__)
 
 
-@main.route('/event/', methods=['GET','POST'])
-def event():
-    log.debug('event callback!')
-    return 'event callback!'
-
-
-#-------------------------------------------------------------------------------
-@main.route('/task_emit', methods=['POST'])
-def request_send_socket():
-    '''Not context aware. Sent from celery task. Will broadcast to ALL
-    connected clients. Client needs to ensure it is the correct target
-    agency.
-    '''
-
-    from app.utils import print_vars
-
-    try:
-        args = request.get_json(force=True)
-        #log.debug('emitting event=%s', args['event'])
-        #r = sio_app.emit(
-        #    args['event'],
-        #    args['data'])
-    except Exception as e:
-        log.error(str(e))
-        log.debug(str(e), exc_info=True)
-        return Response(response=str(e), status_code=500)
-
-    #log.debug(r)
-
-    return 'OK'
-
 #-------------------------------------------------------------------------------
 @main.route('/')
 def landing_page():
@@ -64,12 +33,10 @@ def view_log():
 @main.route('/admin')
 @login_required
 def view_admin():
-    db = get_db()
-    user = db['users'].find_one({'user': current_user.user_id})
-    agency = db['users'].find_one({'user': current_user.user_id})['agency']
-
-    if user['admin'] == True:
-        settings = db['agencies'].find_one({'name':agency}, {'_id':0, 'google.oauth':0})
+    if g.user.admin == True:
+        settings = get_keys()
+        settings.pop('_id')
+        settings.pop('google.oauth')
         settings_html = html.to_div('', settings)
     else:
         settings_html = ''
@@ -96,14 +63,7 @@ def process_receipts():
     entries = json.loads(request.form['data'])
     etapestry = json.loads(request.form['etapestry'])
 
-    from .. import tasks
-    # Start celery workers to run slow eTapestry API calls
-    r = tasks.send_receipts.apply_async(
-      args=[entries, etapestry],
-      queue=current_app.config['DB']
-    )
-
-    #log.info('Celery process_receipts task: %s', r.__dict__)
+    app.tasks.send_receipts.async(args=[entries, etapestry])
 
     return 'OK'
 
@@ -138,11 +98,9 @@ def _send_email():
         log.error('%s: %s', msg, str(e))
         return Response(response=e, status=500, mimetype='application/json')
 
-    conf = db['agencies'].find_one({'name':args['agency']})['mailgun']
-
     try:
         mid = mailgun.send(
-            args['recipient'], args['subject'], html, conf,
+            args['recipient'], args['subject'], html, get_keys('mailgun'),
             v={'type':args.get('type')}
         )
     except Exception as e:

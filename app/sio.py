@@ -25,7 +25,7 @@ def sio_connect():
 
         if room not in rooms():
             join_room(room)
-            log.debug('%s connected. room=%s', user_id)
+            log.debug('%s connected. room=%s', user_id, room)
             emit('joined', 'connected to room=%s' % room, room=room)
     else:
         print '<%s> connected' % current_user.user_id

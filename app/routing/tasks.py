@@ -1,4 +1,4 @@
-'''app.routing.schedule'''
+'''app.routing.tasks'''
 
 import logging
 import bson.json_util
@@ -8,15 +8,18 @@ from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 import re
 from .. import get_keys, gcal, etap, wsf, utils, parser
-from app.tasks import celery_sio
+from app.tasks import celery_sio, celery
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def analyze_upcoming(days):
+@celery.task(bind=True)
+def analyze_routes(self, *args, **kwargs):
     '''Celery task
     Scans schedule for blocks, adds metadata to db, sends socketio signal
     to client
     '''
+
+    days = kwargs['days']
 
     celery_sio.emit(
         'room_msg',
@@ -135,4 +138,60 @@ def analyze_upcoming(days):
         {'msg':'analyze_routes', 'status':'completed'},
         room=g.user.agency)
 
-    return True
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def build_routes(self, *args, **kwargs):
+    '''Route orders for today's Blocks and build Sheets
+    '''
+
+    from app.routing import main
+    from app.routing.schedule import analyze_upcoming
+    from datetime import datetime, date, time
+    from time import sleep
+
+    agencies = g.db.agencies.find({})
+
+    for agency in agencies:
+        analyze_upcoming(agency['name'], 3)
+
+        _routes = db.routes.find({
+          'agency': agency['name'],
+          'date': utils.naive_to_local(
+            datetime.combine(
+                date.today(),
+                time(0,0,0)))
+        })
+
+        log.info(
+          '%s: -----Building %s routes for %s-----',
+          agency['name'], _routes.count(), date.today().strftime("%A %b %d"))
+
+        successes = 0
+        fails = 0
+
+        for route in _routes:
+            r = main.build(str(route['_id']))
+
+            if not r:
+                fails += 1
+                log.error('Error building route %s', route['block'])
+            else:
+                successes += 1
+
+            sleep(2)
+
+        log.info(
+            '%s: -----%s Routes built. %s failures.-----',
+            agency['name'], successes, fails)
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def build_route(self, *args, **kwargs):
+    route_id = args[0]
+    job_id=kwargs.get('job_id')
+
+    try:
+        from app.routing import main
+        return main.build(str(route_id), job_id=job_id)
+    except Exception as e:
+        log.error('%s\n%s', str(e), tb.format_exc())

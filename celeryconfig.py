@@ -11,12 +11,10 @@ worker_concurrency = 1
 beat_schedule = {
 	'monitor_triggers': {
 		'task': 'app.notify.tasks.monitor_triggers',
-		'schedule': crontab(minute='*/1'),
-		'options': { 'queue': 'bravo' }
+		'schedule': crontab(minute='*/1')
 	 },
 	'build_routes': {
 		  'task': 'app.routing.tasks.build_routes',
-		  'schedule': crontab(hour=6, minute=30, day_of_week='*'),
-		  'options': { 'queue': 'bravo' }
+		  'schedule': crontab(hour=6, minute=30, day_of_week='*')
 	 }
 }

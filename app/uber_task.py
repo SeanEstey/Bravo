@@ -73,13 +73,11 @@ class UberTask(Task):
     #---------------------------------------------------------------------------
     def async(self, args=None, kwargs=None, task_id=None, producer=None,
         link=None, link_error=None, shadow=None, **options):
-        '''Called by Flask app. Wrapper for apply_async which adds 'queue' kwarg
+        '''Called by Flask app. Wrapper for apply_async
         '''
 
         if options.pop('with_request_context', True) or has_app_context():
             self._push_contexts(kwargs)
-
-        options['queue'] = self.flsk_app.config['DB']
 
         return super(UberTask, self).apply_async(args, kwargs, task_id, producer,
             link, link_error, shadow, **options)

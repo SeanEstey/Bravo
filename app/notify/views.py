@@ -10,6 +10,7 @@ from flask import \
 from .. import get_keys, utils, cal, parser, get_db
 from . import notify, accounts, admin, events, triggers, email, voice, sms,\
     recording, pus, gg, voice_announce
+import app.tasks
 log = logging.getLogger(__name__)
 
 
@@ -189,10 +190,7 @@ def fire_trigger(trig_id):
 
     trigger = g.db.triggers.find_one({'_id':ObjectId(trig_id)})
 
-    from .. import tasks
-    tasks.fire_trigger.apply_async(
-        args=[str(trigger['evnt_id']), trig_id],
-        queue=current_app.config['DB'])
+    app.tasks.fire_trigger.async(args=[str(trigger['evnt_id']), trig_id],kwargs={})
 
     return jsonify({'status':'OK'})
 

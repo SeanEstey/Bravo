@@ -8,19 +8,18 @@ from flask_login import current_user
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 import re
-from .. import get_keys, gcal, etap, wsf, utils, parser
+from .. import get_keys, gcal, etap, utils, parser
+from app.routing import depots
 from app.tasks import celery_sio, celery
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def analyze_routes(self, *args, **kwargs):
+def analyze_routes(self, days=None, **kwargs):
     '''Celery task
     Scans schedule for blocks, adds metadata to db, sends socketio signal
     to client
     '''
-
-    days = kwargs['days']
 
     print 'sleeping 3s...'
     sleep(3)
@@ -101,9 +100,8 @@ def analyze_routes(self, *args, **kwargs):
 
         postal = re.sub(r'\s', '', event['location']).split(',')
 
-        # TODO: move resolve_depot into depots.py module
         if len(get_keys('routing')['locations']['depots']) > 1:
-            depot = wsf.resolve_depot(block, postal)
+            depot = depots.resolve(block, postal)
         else:
             depot = get_keys('routing')['locations']['depots'][0]
 

@@ -33,6 +33,7 @@ kv_store = MongoStore(
     config.SESSION_COLLECTION)
 kv_ext = KVSessionExtension(kv_store)
 sio_app = SocketIO()
+celery_sio = SocketIO(message_queue='amqp://')
 
 #-------------------------------------------------------------------------------
 def get_db():
@@ -42,18 +43,23 @@ def get_db():
         return db_client[config.DB]
 
 #-------------------------------------------------------------------------------
-def get_keys(k):
+def get_keys(k, agnc=None):
     if g.user.is_authenticated:
-        conf = g.db.agencies.find_one({'name':g.user.agency})
-        if conf and k in conf:
-            return conf[k]
-        else:
-            return None
+        name = g.user.agency
+    elif agnc:
+        name = agnc
+    else:
+        raise Exception('no key or agency available')
+
+    conf = g.db.agencies.find_one({'name':name})
+
+    if conf and k in conf:
+        return conf[k]
+    else:
+        return None
 
 #-------------------------------------------------------------------------------
 def create_app(pkg_name, kv_sess=True):
-    #log.debug('creating app')
-
     app = Flask(pkg_name)
     app.config.from_object(config)
     app.clients = {}
@@ -97,14 +103,13 @@ def create_app(pkg_name, kv_sess=True):
 def celery_app(app):
     from uber_task import UberTask
     import celeryconfig
-    print celeryconfig
 
     celery = Celery(__name__, broker='amqp://')
     celery.config_from_object(celeryconfig)
-    #celery.conf.update(app.config)
     celery.app = UberTask.flsk_app = app
     UberTask.db_client = mongodb.create_client()
     celery.Task = UberTask
+
     return celery
 
 #-------------------------------------------------------------------------------

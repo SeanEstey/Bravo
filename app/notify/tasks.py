@@ -3,13 +3,18 @@
 import logging
 from datetime import datetime, timedelta
 import pytz
+from bson import ObjectId
 from flask import g
+from app.utils import bcolors
 from app.tasks import celery_sio, celery
+from . import triggers
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def monitor_triggers(self, *args, **kwargs):
+def monitor_triggers(self, **kwargs):
+    output = []
+
     try:
         from app.notify import triggers, events
 
@@ -33,30 +38,23 @@ def monitor_triggers(self, *args, **kwargs):
         for trigger in pending:
             delta = trigger['fire_dt'] - datetime.utcnow().replace(tzinfo=pytz.utc)
 
-            print '%s trigger pending in %s' %(
-                trigger['type'], str(delta)[:-7])
+            output.append(
+                '%s trigger pending in %s' %(trigger['type'], str(delta)[:-7]))
     except Exception as e:
         log.error('%s\n%s', str(e), tb.format_exc())
+
+    print '%s%s%s' %(bcolors.ENDC,output,bcolors.ENDC)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def fire_trigger(self, *args, **kwargs):
-
-    evnt_id = args[0] # FIXME
-    trig_id = args[1] # FIXME
-
+def fire_trigger(self, evnt_id, trig_id, **kwargs):
     log.debug('trigger task_id: %s', self.request.id)
 
-    # Store celery task_id in case we need to kill it
     g.db.triggers.update_one({
-        '_id':oid(trig_id)},
+        '_id':ObjectId(trig_id)},
         {'$set':{'task_id':self.request.id}})
 
-    try:
-        from app.notify import triggers
-        return triggers.fire(oid(evnt_id), oid(trig_id))
-    except Exception as e:
-        log.error('%s\n%s', str(e), tb.format_exc())
+    triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

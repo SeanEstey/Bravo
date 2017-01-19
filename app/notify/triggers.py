@@ -5,16 +5,10 @@ import os
 from flask import g, request
 from bson.objectid import ObjectId
 from datetime import datetime,date,time
-from .. import get_db, utils
-from app.utils import bcolors, print_vars
+from .. import celery_sio, get_keys, utils
+from app.utils import bcolors
 from . import voice, email, sms
-
 log = logging.getLogger(__name__)
-
-def context_test():
-    log.debug(
-        'alice name=%s',
-        g.db.agencies.find_one({'name':'vec'})['alice']['name'])
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, _type, _date, _time):
@@ -53,8 +47,7 @@ def get(trig_id, local_time=False):
 
 #-------------------------------------------------------------------------------
 def get_count(trig_id):
-    db = get_db()
-    return db['notifics'].find({'trig_id':trig_id}).count()
+    return g.db.notifics.find({'trig_id':trig_id}).count()
 
 #-------------------------------------------------------------------------------
 def fire(evnt_id, trig_id):
@@ -64,19 +57,12 @@ def fire(evnt_id, trig_id):
     errors = []
     status = ''
     fails = 0
-    db = get_db()
-    event = db.notific_events.find_one({
-        '_id':evnt_id})
-    agency_conf = db.agencies.find_one({
-        'name':event['agency']})
-    twilio_conf = agency_conf['twilio']
-    notify_conf = agency_conf['notify']
-    mailgun_conf = agency_conf['mailgun']
-    ready_notifics = db['notifics'].find({
-        'trig_id':trig_id,
-        'tracking.status':'pending'})
-    trigger = db['triggers'].find_one({'_id':trig_id})
-    count = ready_notifics.count()
+    event = g.db.notific_events.find_one({'_id':evnt_id})
+    agnc = event['agency']
+    ready = g.db.notifics.find(
+        {'trig_id':trig_id, 'tracking.status':'pending'})
+    count = ready.count()
+    trigger = g.db.triggers.find_one({'_id':trig_id})
 
     log.info('%s---------- firing %s trigger for "%s" event ----------%s',
     bcolors.OKGREEN, trigger['type'], event['name'], bcolors.ENDC)
@@ -85,50 +71,41 @@ def fire(evnt_id, trig_id):
         log.info('sandbox mode detected.')
         log.info('simulating voice/sms msgs, re-routing emails')
 
-    db['triggers'].update_one(
+    g.db.triggers.update_one(
         {'_id':trig_id},
         {'$set': {
             'status': 'in-progress',
             'errors': errors
     }})
 
-    # Calling from celery task, do not have socketio app context.
-    # Make a request to server to emit msg
+    celery_sio.emit('trigger_status',{
+        'trig_id': str(trig_id), 'status': 'in-progress'})
 
-    from app.tasks import celery_sio
-    celery_sio.emit('trigger_status', {
-        'trig_id': str(trig_id),
-        'status': 'in-progress'})
-
-    for notific in ready_notifics:
+    for n in ready:
         try:
-            if notific['type'] == 'voice':
-                status = voice.call(notific, twilio_conf, notify_conf['voice'])
-            elif notific['type'] == 'sms':
-                status = sms.send(notific, twilio_conf)
-            elif notific['type'] == 'email':
-                status = email.send(notific, mailgun_conf)
+            if n['type'] == 'voice':
+                status = voice.call(n,
+                    get_keys('twilio', agnc=agnc),
+                    get_keys('notifiy', agnc=agnc)['voice'])
+            elif n['type'] == 'sms':
+                status = sms.send(n, get_keys('twilio', agnc=agnc))
+            elif n['type'] == 'email':
+                status = email.send(n, get_keys('mailgun', agnc=agnc))
         except Exception as e:
             status = 'error'
             errors.append(str(e))
-            log.error('unexpected exception. notific _id \'%s\'. %s',
-                str(notific['_id']), str(e), exc_info=True)
+            log.error('error sending %s. _id=%s, msg=%s', n['type'],str(n['_id']), str(e))
         else:
             if status == 'failed':
                 fails += 1
         finally:
-            task_emit('notific_status', data={
-                'notific_id': str(notific['_id']),
-                'status': status})
+            celery_sio.emit('notific_status', {
+                'notific_id':str(n['_id']), 'status':status})
 
-    db['triggers'].update_one(
-        {'_id':trig_id},
-        {'$set': {
-            'status': 'fired',
-            'errors': errors
-    }})
+    g.db.triggers.update_one({'_id':trig_id}, {
+        '$set': {'status': 'fired', 'errors': errors}})
 
-    task_emit('trigger_status', data={
+    celery_sio.emit('trigger_status', {
         'trig_id': str(trig_id),
         'status': 'fired',
         'sent': count-fails-len(errors),
@@ -136,7 +113,7 @@ def fire(evnt_id, trig_id):
         'errors': len(errors)})
 
     log.info('%s---------- queued: %s, failed: %s, errors: %s ----------%s',
-        bcolors.OKGREEN, count-fails-len(errors), fails, len(errors), bcolors.ENDC)
+        bcolors.OKGREEN, count-fails-len(errors), fails, len(errors),bcolors.ENDC)
 
     return True
 

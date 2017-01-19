@@ -8,7 +8,7 @@ from time import sleep
 import requests
 from flask_login import current_user
 from bson import ObjectId
-from .. import get_db, gdrive, gsheets, etap, cal, wsf, utils
+from .. import get_db, gdrive, gsheets, etap, cal, utils
 from . import geo, routific, sheet
 logger = logging.getLogger(__name__)
 

@@ -13,8 +13,8 @@ from .. import get_db, utils, html, gsheets, mailgun
 from . import main, log, receipts, signups
 from app.notify import admin, email
 from app.booker import book
+import app.tasks
 log = logging.getLogger(__name__)
-
 
 #-------------------------------------------------------------------------------
 @main.route('/')
@@ -224,22 +224,13 @@ def rec_signup():
     Adds signup data to Bravo Sheets->Signups gsheet row
     '''
 
-    from .. import tasks
     try:
-        tasks.add_signup.apply_async(
-          args=(request.form.to_dict(),), # Must include comma
-          queue=current_app.config['DB']
-        )
+        app.tasks.add_signup.async(args=(request.form.to_dict()))
     except Exception as e:
         time.sleep(1)
         log.info('/receive_signup: %s', str(e), exc_info=True)
         log.info('Retrying...')
-        tasks.add_signup.apply_async(
-          args=(request.form.to_dict(),),
-          queue=current_app.config['DB']
-        )
+        app.tasks.add_signup.async(args=(request.form.to_dict()))
         return str(e)
 
     return 'OK'
-
-

@@ -12,8 +12,9 @@ from flask_socketio import SocketIO
 from etap import EtapError
 from utils import bcolors, print_vars
 from flask import g, has_app_context, has_request_context, request
-from . import mongodb, get_db, utils, create_app, celery_app, deb_hand,\
+from . import celery_sio, mongodb, get_db, utils, create_app, celery_app, deb_hand,\
 inf_hand, err_hand, exc_hand
+from uber_task import UberTask
 
 log = get_task_logger(__name__)
 log.addHandler(err_hand)
@@ -22,10 +23,10 @@ log.addHandler(deb_hand)
 log.addHandler(exc_hand)
 log.setLevel(logging.DEBUG)
 celery = celery_app(create_app('app', kv_sess=False))
-celery_sio = SocketIO(message_queue='amqp://')
 
 # Import tasks defined in blueprints
-from app.main.tasks import add_signup, non_participants, rfu, send_receipts, update_accts_sms
+from app.main.tasks import add_gsheets_signup, non_participants, rfu,\
+send_receipts, update_accts_sms
 from app.booker.tasks import update_maps
 from app.routing.tasks import analyze_routes, build_route, build_routes
 from app.notify.tasks import monitor_triggers, fire_trigger, schedule_reminders, skip_pickup
@@ -37,7 +38,13 @@ def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwar
     Sender == Task.
     @args, @kwargs: the tasks positional and keyword arguments
     '''
-    #print 'task prerun=%s' % (sender.name.split('.')[-1])
+
+    kwargs['kwargs'][UberTask.ENVIRON_KW] = {}
+
+    for var in celery.app.config['ENV_VARS']:
+        kwargs['kwargs'][UberTask.ENVIRON_KW][var] = os.environ.get(var, '')
+
+    #print 'prerun=%s, kwargs=%s' % (sender.name.split('.')[-1], kwargs)
     pass
 
 #-------------------------------------------------------------------------------
@@ -60,16 +67,7 @@ state=None, *args, **kwargs):
         log.error('task=%s error. state=%s, retval=%s', name, state, retval)
         log.debug('task=%s failure.', name, exc_info=True)
     else:
-        print \
-            'postrun: task=%s, state=%s, retval=%s' %(
-            name, state, retval)
-
-#-------------------------------------------------------------------------------
-@celery.task(bind=True)
-def mod_environ(self, *args, **kwargs):
-    for idx, arg in enumerate(args):
-        for k in arg:
-            os.environ[k] = arg[k]
+        print 'postrun=%s, state=%s' % (name, state)
 
 #-------------------------------------------------------------------------------
 def kill(task_id):

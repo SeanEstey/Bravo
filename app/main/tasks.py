@@ -152,10 +152,11 @@ def update_accts_sms(self, *args, **kwargs):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def add_signup(self, *args, **kwargs):
+def add_gsheets_signup(self, *args, **kwargs):
+    from app.main import signups
     signup = args[0] # FIXME
+
     try:
-        from app import wsf
-        return wsf.add_signup(signup)
+        return signups.add(signup)
     except Exception as e:
         log.error('%s\n%s', str(e), tb.format_exc())

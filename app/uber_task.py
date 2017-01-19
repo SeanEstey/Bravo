@@ -1,5 +1,6 @@
 '''app.uber_task'''
 
+import os
 import mongodb
 from celery import Task
 from flask import current_app, g, has_app_context, has_request_context,\
@@ -16,8 +17,9 @@ class UberTask(Task):
     g.db: new DB client + connection
     '''
 
-    REQ_ARG_NAME = '_flask_request_context'
-    USERID_ARG_NAME = '_user_id_oid'
+    REQ_KW = '_flask_request_context'
+    USERID_KW = '_user_id_oid'
+    ENVIRON_KW = '_environ_var'
     flsk_app = None
     db_client = None
 
@@ -26,12 +28,12 @@ class UberTask(Task):
         '''Called by worker
         '''
 
-        print '__call__: %s' % self.name.split('.')[-1]
+        #print '__call__: %s' % self.name.split('.')[-1]
 
         req_ctx = has_request_context()
         app_ctx = has_app_context()
         call = lambda: super(UberTask, self).__call__(*args, **kwargs)
-        context = kwargs.pop(self.REQ_ARG_NAME, None)
+        context = kwargs.pop(self.REQ_KW, None)
 
         if context is None or req_ctx:
             if not app_ctx:
@@ -54,7 +56,6 @@ class UberTask(Task):
         '''Called by Flask app
         '''
 
-        print 'apply'
         if options.pop('with_request_context', True) or has_app_context():
             self._push_contexts(kwargs)
 
@@ -89,7 +90,7 @@ class UberTask(Task):
         '''
 
         if has_app_context():
-            kwargs[self.USERID_ARG_NAME] = str(g.user._id)
+            kwargs[self.USERID_KW] = str(g.user._id)
 
         if not has_request_context():
             return
@@ -105,17 +106,23 @@ class UberTask(Task):
         if '?' in request.url:
             context['query_string'] = request.url[(request.url.find('?') + 1):]
 
-        kwargs[self.REQ_ARG_NAME] = context
+        kwargs[self.REQ_KW] = context
 
     #---------------------------------------------------------------------------
     def _load_context_vars(self, kwargs):
         '''Called by worker. Setup g.user and g.db
         '''
 
+        env_vars = kwargs.pop(self.ENVIRON_KW, None)
+
+        if env_vars:
+            for k in env_vars:
+                os.environ[k] = env_vars[k]
+
         g.db = self.db_client[self.flsk_app.config['DB']]
         mongodb.authenticate(self.db_client)
 
-        user_oid = kwargs.pop(self.USERID_ARG_NAME, None)
+        user_oid = kwargs.pop(self.USERID_KW, None)
 
         if user_oid:
             db_user = g.db.users.find_one({'_id':ObjectId(user_oid)})
@@ -127,6 +134,6 @@ class UberTask(Task):
                 admin=db_user['admin']))
             g.user = current_user
 
-            print \
-                '__call__: task=%s, g.user=%s, g.db=%s' %(
-                self.name.split('.')[-1], g.user, type(g.db))
+        print \
+            'call=%s, user=%s, g.db=%s, kwargs=%s' %(
+            self.name.split('.')[-1], current_user, type(g.db), kwargs)

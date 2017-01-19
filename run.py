@@ -38,11 +38,17 @@ def start_worker(celery_beat):
     os.system('kill %1')
     os.system("ps aux | grep '/usr/local/bin/celery beat' | awk '{print $2}' | xargs kill -9")
     os.system("ps aux | grep '/usr/local/bin/celery worker' | awk '{print $2}' | xargs kill -9")
+
+    #import pwd
+    # Start worker as www-data
+    #uid = pwd.getpwnam('www-data')[2]
+    #os.setuid(uid)
+
     os.system('celery worker -A app.tasks.celery -n %s &' % db_name)
 
     # Pause to give workers time to initialize before starting server
 
-    time.sleep(2)
+    #time.sleep(2)
 
     # Start beat if option given
 
@@ -86,17 +92,12 @@ def main(argv):
 
     sio_app.init_app(app, async_mode='eventlet', message_queue='amqp://')
 
-    from app.tasks import mod_environ
-    mod_environ.async(
-        args=[{'BRAVO_SANDBOX_MODE':os.environ['BRAVO_SANDBOX_MODE'],
-        'BRAVO_HTTP_HOST': os.environ['BRAVO_HTTP_HOST']}])
-
     startup_msg(sio_app, app)
 
     sio_app.run(
         app,
-        port=app.config['LOCAL_PORT']
-        #use_reloader=True
+        port=app.config['LOCAL_PORT'],
+        use_reloader=True
     )
 
 #-------------------------------------------------------------------------------

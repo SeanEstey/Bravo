@@ -14,3 +14,8 @@ PUB_PORT = 80
 #ETAP_API_URL = 'http://www.bravoweb.ca/php/views.php'
 SECRET_KEY = 'secret'
 GSHEET_NAME = 'Bravo Sheets'
+ENV_VARS = [
+    'BRAVO_SANDBOX_MODE',
+    'BRAVO_CELERY_BEAT',
+    'BRAVO_HTTP_HOST',
+    'BRAVO_TEST_SERVER']

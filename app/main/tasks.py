@@ -2,7 +2,7 @@
 
 import logging
 from flask import g
-from app.tasks import celery_sio, celery
+from .. import celery, celery_sio
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -82,11 +82,8 @@ def send_receipts(self, *args, **kwargs):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def rfu(self, *args, **kwargs):
+def rfu(self, agency, note, **kwargs):
     from app import gsheets
-
-    agency = args[0] # FIXME
-    note = args[1] # FIXME
 
     return gsheets.create_rfu(
         agency,

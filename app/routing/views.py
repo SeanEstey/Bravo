@@ -10,7 +10,7 @@ from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 from . import routing, main
 from .. import sio, get_db, utils
-import app.tasks
+from .tasks import analyze_routes, build_route
 log = logging.getLogger(__name__)
 
 
@@ -29,7 +29,7 @@ def show_routing():
         # for storing in route_btn.attr('data-route')
         route['json'] = json.dumps(route)
 
-    app.tasks.analyze_routes.async(kwargs={'days':5})
+    analyze_routes.async(kwargs={'days':5})
 
     conf = g.db.agencies.find_one({'name':g.user.agency})
     return render_template(
@@ -55,14 +55,14 @@ def get_route(job_id):
 @routing.route('/analyze_upcoming/<days>', methods=['GET'])
 @login_required
 def analyze_upcoming(days):
-    tasks.analyze_routes.async(kwargs={'days':days}),
+    analyze_routes.async(kwargs={'days':days})
     return 'OK'
 
 #-------------------------------------------------------------------------------
 @routing.route('/build/<route_id>', methods=['GET', 'POST'])
 @login_required
 def _build_route(route_id):
-    tasks.build_route.async(args=(route_id,))
+    build_route.async(args=(route_id,))
     return redirect(url_for('routing.show_routing'))
 
 #-------------------------------------------------------------------------------

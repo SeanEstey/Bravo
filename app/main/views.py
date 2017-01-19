@@ -11,9 +11,9 @@ from flask import g, request, render_template, redirect, url_for, current_app,\
 from flask_login import login_required, current_user
 from .. import get_db, utils, html, gsheets, mailgun
 from . import main, log, receipts, signups
+from .tasks import send_receipts, add_gsheets_signup
 from app.notify import admin, email
 from app.booker import book
-import app.tasks
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -63,7 +63,7 @@ def process_receipts():
     entries = json.loads(request.form['data'])
     etapestry = json.loads(request.form['etapestry'])
 
-    app.tasks.send_receipts.async(args=[entries, etapestry])
+    send_receipts.async(args=[entries, etapestry])
 
     return 'OK'
 
@@ -225,12 +225,12 @@ def rec_signup():
     '''
 
     try:
-        app.tasks.add_signup.async(args=(request.form.to_dict()))
+        add_gsheets_signup.async(args=(request.form.to_dict()))
     except Exception as e:
         time.sleep(1)
         log.info('/receive_signup: %s', str(e), exc_info=True)
         log.info('Retrying...')
-        app.tasks.add_signup.async(args=(request.form.to_dict()))
+        add_gsheets_signup.async(args=(request.form.to_dict()))
         return str(e)
 
     return 'OK'

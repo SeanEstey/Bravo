@@ -33,6 +33,7 @@ kv_store = MongoStore(
     config.SESSION_COLLECTION)
 kv_ext = KVSessionExtension(kv_store)
 sio_app = SocketIO()
+celery = Celery()
 celery_sio = SocketIO(message_queue='amqp://')
 
 #-------------------------------------------------------------------------------
@@ -104,13 +105,13 @@ def celery_app(app):
     from uber_task import UberTask
     import celeryconfig
 
-    celery = Celery(__name__, broker='amqp://')
+    #celery = Celery(__name__, broker='amqp://')
     celery.config_from_object(celeryconfig)
     celery.app = UberTask.flsk_app = app
     UberTask.db_client = mongodb.create_client()
     celery.Task = UberTask
 
-    return celery
+    #return celery
 
 #-------------------------------------------------------------------------------
 def clean_expired_sessions():

@@ -12,7 +12,7 @@ from flask_socketio import SocketIO
 from etap import EtapError
 from utils import bcolors, print_vars
 from flask import g, has_app_context, has_request_context, request
-from . import celery_sio, mongodb, get_db, utils, create_app, celery_app, deb_hand,\
+from . import celery, celery_sio, mongodb, get_db, utils, create_app, celery_app, deb_hand,\
 inf_hand, err_hand, exc_hand
 from uber_task import UberTask
 
@@ -22,7 +22,7 @@ log.addHandler(inf_hand)
 log.addHandler(deb_hand)
 log.addHandler(exc_hand)
 log.setLevel(logging.DEBUG)
-celery = celery_app(create_app('app', kv_sess=False))
+celery_app(create_app('app', kv_sess=False))
 
 # Import tasks defined in blueprints
 from app.main.tasks import add_gsheets_signup, non_participants, rfu,\

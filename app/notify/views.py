@@ -7,10 +7,10 @@ from flask_login import login_required, current_user
 from flask import \
     g, request, jsonify, render_template, redirect, Response, current_app,\
     session, url_for
-from .. import get_keys, utils, cal, parser, get_db
+from .. import celery, get_keys, utils, cal, parser, get_db
 from . import notify, accounts, admin, events, triggers, email, voice, sms,\
     recording, pus, gg, voice_announce
-import app.tasks
+from .tasks import fire_trigger, skip_pickup
 log = logging.getLogger(__name__)
 
 
@@ -184,13 +184,13 @@ def edit_msg(acct_id):
 #-------------------------------------------------------------------------------
 @notify.route('/<trig_id>/fire', methods=['POST'])
 @login_required
-def fire_trigger(trig_id):
+def _fire_trigger(trig_id):
     if not admin.auth_request_type('admin'):
         return 'Denied'
 
     trigger = g.db.triggers.find_one({'_id':ObjectId(trig_id)})
 
-    app.tasks.fire_trigger.async(args=[str(trigger['evnt_id']), trig_id],kwargs={})
+    fire_trigger.async(args=[str(trigger['evnt_id']), trig_id],kwargs={})
 
     return jsonify({'status':'OK'})
 
@@ -204,11 +204,7 @@ def no_pickup(evnt_id, acct_id):
             evnt_id, acct_id)
         return 'Sorry there was an error fulfilling your request'
 
-    from .. import tasks
-
-    tasks.cancel_pickup.apply_async(
-        args=[evnt_id, acct_id],
-        queue=current_app.config['DB'])
+    skip_pickup.async(args=[evnt_id, acct_id],kwargs={})
 
     return 'Thank You'
 

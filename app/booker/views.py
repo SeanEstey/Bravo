@@ -9,20 +9,18 @@ from flask_login import login_required, current_user
 from bson.objectid import ObjectId
 import logging
 from . import booker, geo, search, book
-from .. import get_db, utils
+from .. import utils
+from .tasks import update_maps
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @booker.route('/', methods=['GET'])
 @login_required
 def show_home():
-    #db = get_db()
-    agency = g.db.users.find_one({'user': current_user.user_id})['agency']
-
     return render_template(
         'views/booker.html',
-        admin=True,
-        agency=agency)
+        admin=g.user.admin,
+        agency=g.user.agency)
 
 #-------------------------------------------------------------------------------
 @booker.route('/search', methods=['POST'])
@@ -30,11 +28,8 @@ def show_home():
 def submit_search():
     logger.info(request.form.to_dict())
 
-    db = get_db()
-    user = db.users.find_one({'user': current_user.user_id})
-
     results = search.search(
-        db.agencies.find_one({'name':user['agency']})['name'],
+        g.user.agency,
         request.form['query'],
         request.form.get('radius'),
         request.form.get('weeks')
@@ -42,14 +37,10 @@ def submit_search():
 
     return jsonify(results)
 
-
 #-------------------------------------------------------------------------------
 @booker.route('/find_nearby_blocks', methods=['POST'])
 def find_nearby_blocks():
-
-    db = get_db()
-    conf = db.agencies.find_one({'name':request.form['agency']})
-    maps = db.maps.find_one({'agency':conf['name']})['features']
+    maps = g.db.maps.find_one({'agency':g.user.agency})['features']
 
     SEARCH_WEEKS = 12
     SEARCH_DAYS = SEARCH_WEEKS * 7
@@ -58,12 +49,13 @@ def find_nearby_blocks():
     events = []
     end_date = datetime.today() + timedelta(days=SEARCH_DAYS)
 
-    service = gcal.gauth(conf['google']['oauth'])
+    service = gcal.gauth(get_keys('google')['oauth'])
+    cal_ids = get_keys('cal_ids')
 
-    for cal_id in conf['cal_ids']:
+    for _id in cal_ids:
         events +=  gcal.get_events(
             service,
-            conf['cal_ids'][cal_id],
+            cal_ids[_id],
             datetime.today(),
             end_date
         )
@@ -79,16 +71,12 @@ def find_nearby_blocks():
 
     return jsonify(results)
 
-
 #-------------------------------------------------------------------------------
 @booker.route('/get_acct', methods=['POST'])
 @login_required
 def get_acct():
-    db = get_db()
-    user = db.users.find_one({'user': current_user.user_id})
-
     response = search.get_account(
-        user['agency'],
+        g.user.agency,
         request.form['aid']
     )
 
@@ -100,8 +88,7 @@ def get_acct():
 def do_booking():
     logger.debug(request.form.to_dict())
 
-    db = get_db()
-    user = db.users.find_one({'user': current_user.user_id})
+    user = g.db.users.find_one({'user': current_user.user_id})
 
     data = {
         'aid': request.form['aid'],
@@ -120,30 +107,14 @@ def do_booking():
 @booker.route('/get_maps', methods=['POST'])
 @login_required
 def get_maps():
-    db = get_db()
-    user = db.users.find_one({'user': current_user.user_id})
-    maps = db.maps.find_one({'agency':user['agency']})
-
-    return jsonify(
-        utils.formatter(
-            maps,
-            bson_to_json=True
-        )
-    )
+    return jsonify(utils.formatter(
+        g.db.maps.find_one({'agency':g.user.agency}),
+        bson_to_json=True))
 
 #-------------------------------------------------------------------------------
 @booker.route('/update_maps', methods=['POST'])
 @login_required
 def update_maps():
-    db = get_db()
-    user = db.users.find_one({'user': current_user.user_id})
-
-    from .. import tasks
-    tasks.update_maps.apply_async(
-        kwargs={
-            'agency': user['agency'],
-            'emit_status': True
-        },
-        queue=current_app.config['DB'])
+    update_maps.async(kwargs={'agency': g.user.agency, 'emit_status': True})
 
     return jsonify('OK')

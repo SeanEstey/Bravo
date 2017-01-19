@@ -6,7 +6,7 @@ import pytz
 from bson import ObjectId
 from flask import g
 from app.utils import bcolors
-from app.tasks import celery_sio, celery
+from .. import celery_sio, celery
 from . import triggers
 log = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ def schedule_reminders(self, *args, **kwargs):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def skip_pickup(self, *args, **kwargs):
+def skip_pickup(self, evnt_id, acct_id, **kwargs):
     '''Runs as a celery task (tasks.cancel_pickup) to update an accounts eTap
     fields to skip a pickup. The request originates from a SMS/Voice/Email
     notification. Run is_valid() before calling this function.
@@ -113,12 +113,7 @@ def skip_pickup(self, *args, **kwargs):
     @acct_id: _id from db.accounts, not eTap account id
     '''
 
-    evnt_id = args[0] # FIXME
-    acct_id = args[1] # FIXME
-
     log.info('Cancelling pickup for \'%s\'', acct_id)
-
-    db = get_db()
 
     # Cancel any pending parent notifications
 

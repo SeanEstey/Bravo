@@ -8,9 +8,9 @@ from flask_login import current_user
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 import re
-from .. import get_keys, gcal, etap, utils, parser
+from .. import celery, celery_sio, get_keys, gcal, etap, utils, parser
 from app.routing import depots
-from app.tasks import celery_sio, celery
+#from app.tasks import celery_sio, celery
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

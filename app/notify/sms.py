@@ -45,33 +45,27 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
 
 #-------------------------------------------------------------------------------
 def send(notific, twilio_conf):
-    '''Send an SMS message to recipient
+    '''Called from celery task. Send an SMS message to recipient
     @agency: mongo document wtih twilio auth info and sms number
-
     Returns: twilio compose msg status
     '''
 
-    db = get_db()
-
-    acct = db['accounts'].find_one(
+    acct = g.db.accounts.find_one(
         {'_id': notific['acct_id']})
 
-    # Running via celery worker outside request context
-    # Must create one for render_template()
-    with current_app.test_request_context():
-        try:
-            body = render_template(
-                'sms/%s/reminder.html' % acct['agency'],
-                account = utils.formatter(
-                    acct,
-                    to_local_time=True,
-                    to_strftime="%A, %B %d",
-                    bson_to_json=True),
-                notific = notific
-            )
-        except Exception as e:
-            logger.error('Error rendering SMS body. %s', str(e))
-            return 'failed'
+    try:
+        body = render_template(
+            'sms/%s/reminder.html' % acct['agency'],
+            account = utils.formatter(
+                acct,
+                to_local_time=True,
+                to_strftime="%A, %B %d",
+                bson_to_json=True),
+            notific = notific
+        )
+    except Exception as e:
+        logger.error('Error rendering SMS body. %s', str(e))
+        return 'failed'
 
     msg = None
     error = None
@@ -95,7 +89,7 @@ def send(notific, twilio_conf):
     else:
         logger.info('queued sms to %s', notific['to'])
     finally:
-        db['notifics'].update_one(
+        g.db.notifics.update_one(
             {'_id': notific['_id']},
             {'$set': {
                 'tracking.sid': msg.sid if msg else None,

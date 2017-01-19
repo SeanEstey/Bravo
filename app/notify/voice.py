@@ -5,9 +5,10 @@ import os
 from datetime import datetime, date, time
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
-from flask import current_app, render_template, request
+from flask import g, current_app, render_template, request
 from pymongo.collection import ReturnDocument
-from .. import get_db, utils, html
+from .. import sio_app, utils, html
+from ..main.tasks import rfu
 logger = logging.getLogger(__name__)
 
 
@@ -23,9 +24,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
         'func':'handler_func'}
     '''
 
-    db = get_db()
-
-    return db.notifics.insert_one({
+    return g.db.notifics.insert_one({
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
@@ -43,7 +42,6 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
             'ended_dt': None
         }
     }).inserted_id
-
 
 #-------------------------------------------------------------------------------
 def call(notific, twilio_conf, voice_conf):
@@ -88,8 +86,7 @@ def call(notific, twilio_conf, voice_conf):
         logger.info('%s call to %s', call.status, notific['to'])
         logger.debug(utils.print_vars(call))
     finally:
-        db = get_db()
-        db.notifics.update_one({
+        g.db.notifics.update_one({
             '_id': notific['_id']}, {
             '$set': {
                 'tracking.status': call.status if call else 'failed',
@@ -106,8 +103,7 @@ def get_speak(notific, template_path, timeout=False):
     @template_key: name of content dict containing file path
     '''
 
-    get_db()
-    account = db.accounts.find_one({'_id':notific['acct_id']})
+    account = g.db.accounts.find_one({'_id':notific['acct_id']})
 
     try:
         speak = render_template(
@@ -146,16 +142,14 @@ def on_answer():
     logger.info('%s %s (%s)',
         request.form['To'], request.form['CallStatus'], request.form.get('AnsweredBy'))
 
-    db = get_db()
-    notific = db.notifics.find_one_and_update({
+    notific = g.db.notifics.find_one_and_update({
         'tracking.sid': request.form['CallSid']}, {
         '$set': {
             'tracking.status': request.form['CallStatus'],
             'tracking.answered_by': request.form.get('AnsweredBy')}},
         return_document=ReturnDocument.AFTER)
 
-    from .. socketio import socketio_app
-    socketio_app.emit('notific_status', {
+    sio_app.emit('notific_status', {
         'notific_id': str(notific['_id']),
         'status': request.form['CallStatus']})
 
@@ -188,7 +182,7 @@ def on_answer():
                 voice='alice')
             response.hangup()
 
-        db['notifics'].update_one(
+        g.db.notifics.update_one(
             {'tracking.sid': request.form['CallSid']},
             {'$set': {'tracking.speak': str(response).replace('\"', '')}}
         )
@@ -212,8 +206,7 @@ def on_interact():
 
     logger.debug('on_interact: %s', request.form.to_dict())
 
-    db = get_db()
-    notific = db.notifics.find_one_and_update({
+    notific = g.db.notifics.find_one_and_update({
           'tracking.sid': request.form['CallSid'],
         }, {
           '$set': {
@@ -245,9 +238,7 @@ def on_complete():
             request.form.get('AnsweredBy'),
             request.form.get('CallDuration'))
 
-    db = get_db()
-
-    notific = db.notifics.find_one_and_update({
+    notific = g.db.notifics.find_one_and_update({
         'tracking.sid': request.form['CallSid']}, {
         '$set': {
             'tracking.status': request.form['CallStatus'],
@@ -260,12 +251,12 @@ def on_complete():
         logger.error('%s %s (%s)',
             request.form['To'], request.form['CallStatus'], request.form.get('SipResponseCode'))
 
-        account = db['accounts'].find_one({
+        account = g.db.accounts.find_one({
             '_id':notific['acct_id']})
 
-        evnt = db.notific_events.find_one({'_id':notific['evnt_id']})
-        from .. import tasks
-        tasks.rfu.apply_async(
+        evnt = g.db.notific_events.find_one({'_id':notific['evnt_id']})
+
+        rfu.async(
             args=[
                 evnt['agency'],
                 'Error calling %s. %s' %(
@@ -274,12 +265,9 @@ def on_complete():
             kwargs={
                 'a_id': account['udf'].get('etap_id'),
                 'name_addy': account['name'],
-                '_date': date.today().strftime('%-m/%-d/%Y')},
-            queue=current_app.config['DB']
-        )
+                '_date': date.today().strftime('%-m/%-d/%Y')})
 
-    from .. socketio import socketio_app
-    socketio_app.emit('notific_status', {
+    sio_app.emit('notific_status', {
         'notific_id': str(notific['_id']),
         'status': request.form['CallStatus'],
         'answered_by': request.form.get('AnsweredBy'),

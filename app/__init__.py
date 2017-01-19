@@ -9,14 +9,15 @@ import socket
 import requests
 from bson.objectid import ObjectId
 from datetime import timedelta
-from flask import Flask, current_app, g, has_app_context
-from flask_login import LoginManager
+from flask import Flask, current_app, g, has_app_context, has_request_context
+from flask_login import LoginManager, current_user
 from flask_kvsession import KVSessionExtension
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, rooms
 from simplekv.db.mongo import MongoStore
 from werkzeug.contrib.fixers import ProxyFix
 import config, mongodb
 from utils import log_handler, print_vars
+from app.sio import smart_emit
 
 eventlet.monkey_patch()
 
@@ -32,9 +33,10 @@ kv_store = MongoStore(
     db_client[config.DB],
     config.SESSION_COLLECTION)
 kv_ext = KVSessionExtension(kv_store)
-sio_app = SocketIO()
-celery = Celery()
-celery_sio = SocketIO(message_queue='amqp://')
+
+from uber_task import UberTask
+celery = Celery(__name__, broker='amqp://')
+celery.Task = UberTask
 
 #-------------------------------------------------------------------------------
 def get_db():
@@ -101,17 +103,15 @@ def create_app(pkg_name, kv_sess=True):
     return app
 
 #-------------------------------------------------------------------------------
-def celery_app(app):
-    from uber_task import UberTask
+def init_celery(celery, app):
     import celeryconfig
-
-    #celery = Celery(__name__, broker='amqp://')
+    celery = Celery(__name__, broker='amqp://')
     celery.config_from_object(celeryconfig)
     celery.app = UberTask.flsk_app = app
     UberTask.db_client = mongodb.create_client()
     celery.Task = UberTask
 
-    #return celery
+    return celery
 
 #-------------------------------------------------------------------------------
 def clean_expired_sessions():

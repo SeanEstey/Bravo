@@ -6,7 +6,7 @@ import flask_socketio
 from app.utils import bcolors
 
 #-------------------------------------------------------------------------------
-def startup_msg(sio_app, app):
+def startup_msg(sio_server, app):
     print bcolors.OKGREEN + '\n--------------------------------------'
     print bcolors.BOLD + 'Bravo' + bcolors.ENDC + bcolors.OKGREEN
     if os.environ['BRAVO_TEST_SERVER'] == 'True':
@@ -31,10 +31,10 @@ def startup_msg(sio_app, app):
 
     print 'FLASK_SOCKETIO: ' + flask_socketio.__version__
 
-    if sio_app.server.async_mode == 'eventlet':
+    if sio_server.server.async_mode == 'eventlet':
         print 'SERVER_SOFTWARE: Eventlet (%s)' % eventlet.__version__
     else:
-        print 'SERVER_SOFTWARE: %s' % sio_app.server.async_mode
+        print 'SERVER_SOFTWARE: %s' % sio_server.server.async_mode
     print 'CELERY: ' + celery.__version__
     print 'FLASK: ' + flask.__version__
     print '--------------------------------------\n' + bcolors.ENDC

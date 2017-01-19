@@ -63,7 +63,7 @@ def process_receipts():
     entries = json.loads(request.form['data'])
     etapestry = json.loads(request.form['etapestry'])
 
-    send_receipts.async(args=[entries, etapestry])
+    send_receipts.delay(args=[entries, etapestry])
 
     return 'OK'
 
@@ -225,12 +225,12 @@ def rec_signup():
     '''
 
     try:
-        add_gsheets_signup.async(args=(request.form.to_dict()))
+        add_gsheets_signup.delay(args=(request.form.to_dict()))
     except Exception as e:
         time.sleep(1)
         log.info('/receive_signup: %s', str(e), exc_info=True)
         log.info('Retrying...')
-        add_gsheets_signup.async(args=(request.form.to_dict()))
+        add_gsheets_signup.delay(args=(request.form.to_dict()))
         return str(e)
 
     return 'OK'

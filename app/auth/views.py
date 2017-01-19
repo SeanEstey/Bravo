@@ -5,7 +5,7 @@ import json
 from flask import g, request, render_template, redirect, Response, \
 current_app, url_for, jsonify, has_app_context
 from flask_login import current_user, login_user, logout_user, login_required
-from .. import db_client, login_manager, get_db
+from .. import db_client, login_manager
 from . import auth
 from .user import User, Anonymous
 log = logging.getLogger(__name__)
@@ -42,8 +42,7 @@ def login():
         user_id = request.form['username']
         pw = request.form['password']
 
-        db = get_db()
-        db_user = db.users.find_one({'user': user_id})
+        db_user = g.db.users.find_one({'user': user_id})
 
     if not db_user:
         log.info("DB user doesn't exist | user_id=%s", user_id)

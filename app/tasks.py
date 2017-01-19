@@ -2,18 +2,13 @@
 
 import logging
 import os
-from time import sleep
-import traceback as tb
 from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun
 from celery.utils.log import get_task_logger
-from bson.objectid import ObjectId as oid
-from flask_socketio import SocketIO
-from etap import EtapError
-from utils import bcolors, print_vars
-from flask import g, has_app_context, has_request_context, request
-from . import celery, celery_sio, mongodb, get_db, utils, create_app, celery_app, deb_hand,\
+from utils import print_vars, inspector
+from app import create_app, init_celery, mongodb, utils, deb_hand,\
 inf_hand, err_hand, exc_hand
+from app import celery as _celery
 from uber_task import UberTask
 
 log = get_task_logger(__name__)
@@ -22,14 +17,12 @@ log.addHandler(inf_hand)
 log.addHandler(deb_hand)
 log.addHandler(exc_hand)
 log.setLevel(logging.DEBUG)
-celery_app(create_app('app', kv_sess=False))
 
-# Import tasks defined in blueprints
-from app.main.tasks import add_gsheets_signup, non_participants, rfu,\
-send_receipts, update_accts_sms
-from app.booker.tasks import update_maps
-from app.routing.tasks import analyze_routes, build_route, build_routes
-from app.notify.tasks import monitor_triggers, fire_trigger, schedule_reminders, skip_pickup
+app = create_app(__name__, kv_sess=False)
+celery = init_celery(_celery, app)
+
+
+print 'celery (initialized)=%s' % inspector(celery, public=True, private=True)
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect
@@ -39,12 +32,12 @@ def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwar
     @args, @kwargs: the tasks positional and keyword arguments
     '''
 
+    print 'prerun=%s, request=%s' % (sender.name.split('.')[-1], '...') #task.request)
+
     kwargs['kwargs'][UberTask.ENVIRON_KW] = {}
 
     for var in celery.app.config['ENV_VARS']:
         kwargs['kwargs'][UberTask.ENVIRON_KW][var] = os.environ.get(var, '')
-
-    #print 'prerun=%s, kwargs=%s' % (sender.name.split('.')[-1], kwargs)
     pass
 
 #-------------------------------------------------------------------------------

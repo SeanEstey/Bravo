@@ -95,6 +95,10 @@ function addSocketIOHandlers() {
         });
     });
 
+    socket.on('test', function(data){
+        console.log('test! data='+data);
+    });
+
     socket.on('update_event', function(data) {
         if(typeof data == 'string')
             data = JSON.parse(data);

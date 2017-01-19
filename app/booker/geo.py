@@ -9,7 +9,7 @@ import math
 import requests
 import json
 from datetime import datetime
-from .. import get_db, parser
+from .. import smart_emit, get_db, parser
 
 logger = logging.getLogger(__name__)
 
@@ -324,13 +324,9 @@ def update_maps(agency, emit_status=False):
 
     # Will block
     if emit_status:
-        from app import task_emit
-        task_emit(
-            'update_maps',
-            data={
-                'status': status,
-                'description': desc,
-                'n_updated': len(maps['features'])
-            })
+        smart_emit('update_maps',{
+            'status': status,
+            'description': desc,
+            'n_updated': len(maps['features'])})
 
     return True

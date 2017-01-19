@@ -107,10 +107,9 @@ def on_email_dropped():
     )
 
     from .. import tasks
-    tasks.rfu.apply_async(
+    tasks.rfu.delay(
         args=[
             email['agency'],
             msg + request.form.get('description')],
-        kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
-        queue=current_app.config['DB']
+        kwargs={'_date': date.today().strftime('%-m/%-d/%Y')}
     )

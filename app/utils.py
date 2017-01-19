@@ -24,8 +24,52 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+import types
+import inspect
+from pprint import pformat
+
 #-------------------------------------------------------------------------------
-def print_vars(obj, depth=0, l="    "):
+def inspector(obj, public=True, private=False):
+    is_obj = (hasattr(obj, '__class__') and obj.__class__.__name__ or type(obj).__name__)
+
+    if is_obj == False:
+        return 'not an object. cant print'
+
+    output = ''
+
+    if public:
+        name = obj.__class__.__name__
+        if name == 'Flask':
+            output += 'Public: %\n' % print_vars(obj, ignore=['url_map', 'view_functions'])
+        elif name == 'Celery':
+            output += 'Public: %s\n' % print_vars(obj, ignore=['_conf', '_tasks'])
+        else:
+            output += 'Public: %s\n' % print_vars(obj)
+
+    if private:
+        output += 'Private: %s' % pformat(vars(obj),indent=4)
+
+    return output
+
+'''
+#-------------------------------------------------------------------------------
+def inspector(obj, mylocals=False):
+    if isinstance(obj, types.ModuleType):
+        return 'name=%s. %s' % (obj__name__, print_vars(obj))
+    if mylocals:
+        _globals = globals().copy()
+        _globals.pop('__builtins__')
+        return print_vars(_globals,depth=1)
+
+        for name, val in globals().items():
+            print 'name=%s, val=%s' %(name, val)
+            #if isinstance(val, types.ModuleType):
+            #    #yield val.__name__
+            #    print val.__name__
+'''
+
+#-------------------------------------------------------------------------------
+def print_vars(obj, depth=0, ignore=None, l="    "):
     '''Print vars for any object.
     @depth: level of recursion
     @l: separator string
@@ -50,7 +94,7 @@ def print_vars(obj, depth=0, l="    "):
 
         #try to iterate as if obj were a list
         try:
-            return "[\n" + "\n".join(l + print_vars(k, depth=depth-1, l=l+"  ") + "," for k in obj) + "\n" + l + "]"
+            return "[\n" + "\n".join(l + print_vars(k, depth=depth-1, ignore=ignore, l=l+"  ") + "," for k in obj) + "\n" + l + "]"
         except TypeError, e:
             #else, expand/recurse object attribs
 
@@ -63,10 +107,15 @@ def print_vars(obj, depth=0, l="    "):
                     except Exception, e:
                         objdict[a] = str(e)
 
+    if ignore:
+        for ign in ignore:
+            if ign in objdict.keys():
+                objdict.pop(ign)
+
     return name + "{\n" + "\n"\
         .join(
             l + repr(k) + ": " + \
-            print_vars(v, depth=depth-1, l=l+"  ") + \
+            print_vars(v, depth=depth-1, ignore=ignore, l=l+"  ") + \
             "," for k, v in objdict.iteritems()
         ) + "\n" + l + "}"
 

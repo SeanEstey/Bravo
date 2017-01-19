@@ -29,7 +29,7 @@ def show_routing():
         # for storing in route_btn.attr('data-route')
         route['json'] = json.dumps(route)
 
-    analyze_routes.async(kwargs={'days':5})
+    analyze_routes.delay(kwargs={'days':5})
 
     conf = g.db.agencies.find_one({'name':g.user.agency})
     return render_template(
@@ -55,14 +55,14 @@ def get_route(job_id):
 @routing.route('/analyze_upcoming/<days>', methods=['GET'])
 @login_required
 def analyze_upcoming(days):
-    analyze_routes.async(kwargs={'days':days})
+    analyze_routes.delay(kwargs={'days':days})
     return 'OK'
 
 #-------------------------------------------------------------------------------
 @routing.route('/build/<route_id>', methods=['GET', 'POST'])
 @login_required
 def _build_route(route_id):
-    build_route.async(args=(route_id,))
+    build_route.delay(args=(route_id,))
     return redirect(url_for('routing.show_routing'))
 
 #-------------------------------------------------------------------------------

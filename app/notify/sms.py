@@ -8,7 +8,7 @@ from twilio import TwilioRestException, twiml
 from pymongo.collection import ReturnDocument
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
-from .. import get_db, utils, html
+from .. import smart_emit, get_db, utils, html
 import app.alice.outgoing
 logger = logging.getLogger(__name__)
 
@@ -124,8 +124,7 @@ def on_status():
         return 'OK'
         logger.info('rest call')
 
-    from .. socketio import socketio_app
-    socketio_app.emit('notific_status', {
+    smart_emit('notific_status', {
         'notific_id': str(notific['_id']),
         'status': request.form['SmsStatus'],
         'description': request.form.get('description')})

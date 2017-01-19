@@ -9,11 +9,13 @@ import flask
 from flask import g, session
 from flask_login import current_user
 from setup import startup_msg
-from app import sio_app, db_client, create_app, get_db, config_test_server, is_test_server
-from app.utils import bcolors, print_vars
-from app import sio
+from app import db_client, create_app, config_test_server, is_test_server
+from app.utils import bcolors, print_vars, inspector
+from app.sio import sio_server
 
 app = create_app('app')
+
+
 
 #-------------------------------------------------------------------------------
 @app.before_request
@@ -88,16 +90,18 @@ def main(argv):
     else:
         os.environ['BRAVO_SANDBOX_MODE'] = 'False'
 
+    sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
+
+    print 'sio_server (initialized)=%s' % inspector(sio_server)
+
     start_worker(celery_beat)
 
-    sio_app.init_app(app, async_mode='eventlet', message_queue='amqp://')
+    startup_msg(sio_server, app)
 
-    startup_msg(sio_app, app)
-
-    sio_app.run(
+    sio_server.run(
         app,
         port=app.config['LOCAL_PORT'],
-        use_reloader=True
+        use_reloader=False
     )
 
 #-------------------------------------------------------------------------------

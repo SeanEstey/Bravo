@@ -13,6 +13,7 @@ from bson.objectid import ObjectId
 from bson import json_util
 from .. import get_db, utils, parser, gcal, etap
 from . import events, email, sms, voice, triggers, accounts
+from .tasks import skip_pickup
 log = logging.getLogger(__name__)
 
 
@@ -302,11 +303,8 @@ def on_call_interact(notific):
 
     # Digit 2: Cancel pickup
     elif request.form['Digits'] == '2':
-        from .. import tasks
-        tasks.cancel_pickup.apply_async(
-            (str(notific['evnt_id']), str(notific['acct_id'])),
-            queue=current_app.config['DB']
-        )
+        skip_pickup.delay(
+            (str(notific['evnt_id']), str(notific['acct_id'])))
 
         acct = db['accounts'].find_one({'_id':notific['acct_id']})
         dt = utils.tz_utc_to_local(acct['udf']['future_pickup_dt'])

@@ -6,7 +6,7 @@ import pytz
 from bson import ObjectId
 from flask import g
 from app.utils import bcolors
-from .. import celery_sio, celery
+from app import smart_emit, celery
 from . import triggers
 log = logging.getLogger(__name__)
 
@@ -14,6 +14,8 @@ log = logging.getLogger(__name__)
 @celery.task(bind=True)
 def monitor_triggers(self, **kwargs):
     output = []
+
+    smart_emit('test', 'monitor triggers update')
 
     try:
         from app.notify import triggers, events

@@ -186,7 +186,7 @@ def submit_from(form, file):
 
         # Special case
         #if form['template_name'] == 'etw':
-        get_next_pickups.apply_async((str(job['_id']), ), queue=app.config['DB'])
+        get_next_pickups.delay((str(job['_id']), ))
 
         banner_msg = 'Job \'' + job_name + '\' successfully created! '\
                 + str(len(reminders)) + ' messages imported.'

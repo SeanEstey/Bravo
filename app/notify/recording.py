@@ -8,7 +8,7 @@ from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import request, current_app
 from flask_login import current_user
-from .. import get_db, utils
+from .. import smart_emit, get_db, utils
 logger = logging.getLogger(__name__)
 
 
@@ -85,8 +85,7 @@ def on_answer():
         timeout=120
     )
 
-    from app.socketio import socketio_app
-    socketio_app.emit('record_audio', {'status': 'answered'})
+    smart_emit('record_audio', {'status':'answered'})
 
     return voice
 
@@ -117,12 +116,9 @@ def on_interact():
               'status': 'recorded'
         }})
 
-        from app.socketio import socketio_app
-        socketio_app.emit(
-            'record_audio', {
-                'status': 'recorded',
-                'audio_url': request.form['RecordingUrl']
-        })
+        smart_emit('record_audio', {
+            'status': 'recorded',
+            'audio_url': request.form['RecordingUrl']})
 
         voice = twiml.Response()
         voice.say('Message recorded. Goodbye.', voice='alice')
@@ -139,11 +135,8 @@ def on_complete():
     r = db.audio.find_one({'sid': request.form['CallSid']})
 
     if r['status'] != 'recorded':
-        from app.socketio import socketio_app
-        socketio_app.emit(
-            'record_audio', {
-                'status': 'failed',
-                'description': 'There was a problem recording your voice audio'
-        })
+        smart_emit('record_audio', {
+            'status': 'failed',
+            'description': 'There was a problem recording your voice audio'})
 
     return True

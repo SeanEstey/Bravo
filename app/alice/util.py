@@ -91,7 +91,7 @@ def event_begun(notific):
 #-------------------------------------------------------------------------------
 def make_rfu(note, a_id=None, npu=None, block=None, name_addy=None):
     from .. import tasks
-    tasks.rfu.apply_async(
+    tasks.rfu.delay(
         args=[session.get('agency'), note],
         kwargs={
             'a_id': a_id,

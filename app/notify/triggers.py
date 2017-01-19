@@ -5,7 +5,7 @@ import os
 from flask import g, request
 from bson.objectid import ObjectId
 from datetime import datetime,date,time
-from .. import celery_sio, get_keys, utils
+from .. import smart_emit, get_keys, utils
 from app.utils import bcolors
 from . import voice, email, sms
 log = logging.getLogger(__name__)
@@ -78,7 +78,7 @@ def fire(evnt_id, trig_id):
             'errors': errors
     }})
 
-    celery_sio.emit('trigger_status',{
+    smart_emit('trigger_status',{
         'trig_id': str(trig_id), 'status': 'in-progress'})
 
     for n in ready:
@@ -99,13 +99,13 @@ def fire(evnt_id, trig_id):
             if status == 'failed':
                 fails += 1
         finally:
-            celery_sio.emit('notific_status', {
+            smart_emit('notific_status', {
                 'notific_id':str(n['_id']), 'status':status})
 
     g.db.triggers.update_one({'_id':trig_id}, {
         '$set': {'status': 'fired', 'errors': errors}})
 
-    celery_sio.emit('trigger_status', {
+    smart_emit('trigger_status', {
         'trig_id': str(trig_id),
         'status': 'fired',
         'sent': count-fails-len(errors),

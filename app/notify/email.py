@@ -4,7 +4,8 @@ import logging
 import os
 from flask import render_template, current_app, request
 from datetime import datetime, date, time
-from .. import get_db, utils, mailgun
+from .. import smart_emit, get_db, utils, mailgun
+from app.main.tasks import rfu
 logger = logging.getLogger(__name__)
 
 # TODO: remove db['emails'].update op. in app.notify.views.on_delivered just search mid in db['notifics']
@@ -105,8 +106,7 @@ def on_delivered():
       }}
     )
 
-    from .. socketio import socketio_app
-    socketio_app.emit('notific_status', {
+    smart_emit('notific_status', {
         'notific_id': str(notific['_id']),
         'status': request.form['event']})
 
@@ -126,19 +126,16 @@ def on_dropped():
       }}
     )
 
-    from .. socketio import socketio_app
-    socketio_app.emit('notific_status', {
+    smart_emit('notific_status', {
         'notific_id': str(notific['_id']),
         'status': request.form['event']})
 
     msg = 'receipt to %s dropped. %s.' %(
         request.form['recipient'], request.form['reason'])
 
-    from .. import tasks
-    tasks.rfu.apply_async(
+    rfu.delay(
         args=[
             db.notific_events.find_one({'_id':notific['evnt_id']})['agency'],
             msg + request.form.get('description')],
-        kwargs={'_date': date.today().strftime('%-m/%-d/%Y')},
-        queue=current_app.config['DB']
-    )
+        kwargs={
+            '_date': date.today().strftime('%-m/%-d/%Y')})

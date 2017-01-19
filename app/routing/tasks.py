@@ -8,9 +8,8 @@ from flask_login import current_user
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 import re
-from .. import celery, celery_sio, get_keys, gcal, etap, utils, parser
+from .. import smart_emit, celery, get_keys, gcal, etap, utils, parser
 from app.routing import depots
-#from app.tasks import celery_sio, celery
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -21,14 +20,18 @@ def analyze_routes(self, days=None, **kwargs):
     to client
     '''
 
+    DEFAULT_DAYS = 5
+
     print 'sleeping 3s...'
     sleep(3)
 
-    celery_sio.emit(
-        'analyze_routes', {'status':'in-progress'}, room=g.user.agency)
+    if not days:
+        days = 5
+
+    smart_emit('analyze_routes', {'status':'in-progress'})
 
     today_dt = datetime.combine(date.today(), time())
-    end_dt = today_dt + timedelta(days=int(days))
+    end_dt = today_dt + timedelta(days=int(days or DEFALUT_DAYS))
     events = []
     service = gcal.gauth(get_keys('google')['oauth'])
     cal_ids = get_keys('cal_ids')
@@ -125,7 +128,7 @@ def analyze_routes(self, days=None, **kwargs):
             _route['block'], _route['date'].strftime('%b %-d'))
 
         # Send it to the client
-        celery_sio.emit(
+        smart_emit(
             'add_route_metadata',
             {'data': utils.formatter(
                 _route,
@@ -133,7 +136,7 @@ def analyze_routes(self, days=None, **kwargs):
                 bson_to_json=True)},
             room=g.user.agency)
 
-    celery_sio.emit('analyze_routes', {'status':'completed'}, room=g.user.agency)
+    smart_emit('analyze_routes', {'status':'completed'}, room=g.user.agency)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

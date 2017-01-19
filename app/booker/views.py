@@ -115,6 +115,6 @@ def get_maps():
 @booker.route('/update_maps', methods=['POST'])
 @login_required
 def update_maps():
-    update_maps.async(kwargs={'agency': g.user.agency, 'emit_status': True})
+    update_maps.delay(kwargs={'agency': g.user.agency, 'emit_status': True})
 
     return jsonify('OK')

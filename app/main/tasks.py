@@ -2,7 +2,7 @@
 
 import logging
 from flask import g
-from .. import celery, celery_sio
+from app import celery
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 from flask import \
     g, request, jsonify, render_template, redirect, Response, current_app,\
     session, url_for
-from .. import celery, get_keys, utils, cal, parser, get_db
+from .. import smart_emit, get_keys, utils, cal, parser, get_db
 from . import notify, accounts, admin, events, triggers, email, voice, sms,\
     recording, pus, gg, voice_announce
 from .tasks import fire_trigger, skip_pickup
@@ -24,6 +24,8 @@ def get_globals():
 @login_required
 def view_event_list():
     event_list = events.get_list(g.user.agency)
+
+    smart_emit('test', 'notify/views smart_emit')
 
     for event in event_list:
         # modifying 'notification_event' structure for view rendering
@@ -190,7 +192,7 @@ def _fire_trigger(trig_id):
 
     trigger = g.db.triggers.find_one({'_id':ObjectId(trig_id)})
 
-    fire_trigger.async(args=[str(trigger['evnt_id']), trig_id],kwargs={})
+    fire_trigger.delay(args=[str(trigger['evnt_id']), trig_id],kwargs={})
 
     return jsonify({'status':'OK'})
 
@@ -204,7 +206,7 @@ def no_pickup(evnt_id, acct_id):
             evnt_id, acct_id)
         return 'Sorry there was an error fulfilling your request'
 
-    skip_pickup.async(args=[evnt_id, acct_id],kwargs={})
+    skip_pickup.delay(args=[evnt_id, acct_id],kwargs={})
 
     return 'Thank You'
 
@@ -271,7 +273,7 @@ def nis():
 
     try:
         from .. import tasks
-        #tasks.rfu.apply_async(
+        #tasks.rfu.apply_delay(
         #    args=[
         #      record['custom']['to'] + ' not in service',
         #      a_id=record['account_id'],

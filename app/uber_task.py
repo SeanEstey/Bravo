@@ -72,7 +72,7 @@ class UberTask(Task):
         return super(UberTask, self).retry(args, kwargs, **options)
 
     #---------------------------------------------------------------------------
-    def async(self, args=None, kwargs=None, task_id=None, producer=None,
+    def apply_async(self, args=None, kwargs=None, task_id=None, producer=None,
         link=None, link_error=None, shadow=None, **options):
         '''Called by Flask app. Wrapper for apply_async
         '''
@@ -134,6 +134,6 @@ class UberTask(Task):
                 admin=db_user['admin']))
             g.user = current_user
 
-        print \
-            'call=%s, user=%s, g.db=%s, kwargs=%s' %(
-            self.name.split('.')[-1], current_user, type(g.db), kwargs)
+        #print \
+        #    'call=%s, user=%s, g.db=%s, kwargs=%s' %(
+        #    self.name.split('.')[-1], current_user, type(g.db), kwargs)

@@ -7,8 +7,8 @@ from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import g, current_app, render_template, request
 from pymongo.collection import ReturnDocument
-from .. import sio_app, utils, html
-from ..main.tasks import rfu
+from .. import smart_emit, utils, html
+
 logger = logging.getLogger(__name__)
 
 
@@ -149,7 +149,7 @@ def on_answer():
             'tracking.answered_by': request.form.get('AnsweredBy')}},
         return_document=ReturnDocument.AFTER)
 
-    sio_app.emit('notific_status', {
+    smart_emit('notific_status', {
         'notific_id': str(notific['_id']),
         'status': request.form['CallStatus']})
 
@@ -256,7 +256,8 @@ def on_complete():
 
         evnt = g.db.notific_events.find_one({'_id':notific['evnt_id']})
 
-        rfu.async(
+        from app.main.tasks import rfu
+        rfu.delay(
             args=[
                 evnt['agency'],
                 'Error calling %s. %s' %(
@@ -267,7 +268,7 @@ def on_complete():
                 'name_addy': account['name'],
                 '_date': date.today().strftime('%-m/%-d/%Y')})
 
-    sio_app.emit('notific_status', {
+    smart_emit('notific_status', {
         'notific_id': str(notific['_id']),
         'status': request.form['CallStatus'],
         'answered_by': request.form.get('AnsweredBy'),

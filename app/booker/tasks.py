@@ -1,6 +1,6 @@
 
 import logging
-from .. import celery_sio, celery
+from .. import celery
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

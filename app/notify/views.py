@@ -1,23 +1,15 @@
 '''app.notify.views'''
-
 import logging
 import twilio.twiml
 from bson.objectid import ObjectId
 from flask_login import login_required, current_user
-from flask import \
-    g, request, jsonify, render_template, redirect, Response, current_app,\
-    session, url_for
-from .. import smart_emit, get_keys, utils, cal, parser, get_db
+from flask import g, request, jsonify, render_template, Response,\
+current_app, session, url_for
+from app import smart_emit, get_keys, utils, cal, parser
 from . import notify, accounts, admin, events, triggers, email, voice, sms,\
     recording, pus, gg, voice_announce
 from .tasks import fire_trigger, skip_pickup
 log = logging.getLogger(__name__)
-
-
-#-------------------------------------------------------------------------------
-@notify.before_request
-def get_globals():
-    pass
 
 #-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])
@@ -149,17 +141,6 @@ def reset_event(evnt_id):
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@notify.route('/<evnt_id>/complete')
-@login_required
-def job_complete(evnt_id):
-    '''Email job summary, update job status'''
-
-    log.info('Job [ID %s] complete!', evnt_id)
-
-    # TODO: Send socket to web app to display completed status
-    return 'OK'
-
-#-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/<acct_id>/remove', methods=['POST'])
 @login_required
 def rmv_notifics(evnt_id, acct_id):
@@ -266,21 +247,15 @@ def sms_status():
 @notify.route('/call/nis', methods=['POST'])
 def nis():
     log.info('NIS!')
-
     record = request.get_json()
 
-    #agency = db['agencies'].
-
-    try:
-        from .. import tasks
-        #tasks.rfu.apply_delay(
-        #    args=[
-        #      record['custom']['to'] + ' not in service',
-        #      a_id=record['account_id'],
-        #      block=record['custom']['block']
-        #    )
-    except Exception, e:
-        log.info('%s /call/nis' % request.values.items(), exc_info=True)
+    rfu.delay(
+        args=[
+            g.user.agency,
+            record['custom']['to'] + ' not in service'],
+        kwargs={
+            'a_id': record['account_id'],
+            'block': record['custom']['block']})
     return str(e)
 
 #-------------------------------------------------------------------------------
@@ -293,8 +268,7 @@ def kill_trigger():
 @notify.route('/<trig_id>/get_status', methods=['POST'])
 @login_required
 def get_trig_status(trig_id):
-    db = get_db()
-    status = db.triggers.find_one({'_id':ObjectId(trig_id)})['status']
+    status = g.db.triggers.find_one({'_id':ObjectId(trig_id)})['status']
     return jsonify({'status':status, 'trig_id':trig_id})
 
 #-------------------------------------------------------------------------------
@@ -304,16 +278,13 @@ def get_op_stats():
     stats = admin.get_op_stats()
     if not stats:
         return jsonify({'status':'failed'})
-
     return jsonify(stats)
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/debug_info', methods=['POST'])
 @login_required
 def get_debug_info(evnt_id):
-    db = get_db()
-    event = db.notific_events.find_one({'_id':ObjectId(evnt_id)})
-
+    event = g.db.notific_events.find_one({'_id':ObjectId(evnt_id)})
     event['triggers'] = events.get_triggers(event['_id'])
 
     for trigger in event['triggers']:

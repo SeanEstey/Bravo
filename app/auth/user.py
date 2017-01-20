@@ -1,8 +1,14 @@
 '''auth/user.py'''
-from flask_login import AnonymousUserMixin
+import logging
+from flask_login import AnonymousUserMixin, UserMixin, login_user
+from app import db_client
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 class User():
+    def __repr__(self):
+        return '<user_id %r>' % self.user_id
+
     _id = ''
     user_id = ''
     agency = ''
@@ -12,9 +18,6 @@ class User():
 
     def get_name(self):
         return self.name
-
-    def get_agency(self):
-        return self.agency
 
     def is_admin(self):
         return self.admin
@@ -34,8 +37,37 @@ class User():
         except NameError:
             return str(self.user_id)  # python 3
 
-    def __repr__(self):
-        return '<user_id %r>' % self.user_id
+    @classmethod
+    def authenticate(cls, user_id, pw):
+        if not user_id or not pw:
+            return Response('No username', status=500)
+
+        db = db_client['bravo']
+        usr = db.users.find_one({
+            'user': user_id,
+            'password': pw})
+
+        # TODO: what about > 1 docs found?
+
+        if not usr:
+            log.error('invalid credentials, user_id=%s', user_id)
+
+            return {
+              'status':'error',
+              'title': 'login info',
+              'msg':'Invalid login credentials'}
+
+        login_user(
+            User(
+                user_id,
+                name = usr['name'],
+                _id = usr['_id'],
+                agency = usr['agency'],
+                admin = usr['admin']))
+
+        log.info('User %s logged in', user_id)
+
+        return {'status':'success'}
 
     def __init__(self, user_id, name=None, _id=None, agency=None, admin=False):
         self._id = _id
@@ -50,3 +82,12 @@ class Anonymous(AnonymousUserMixin):
     def __init__(self):
         self.user_id = 'Guest'
         self._id = None
+
+#-------------------------------------------------------------------------------
+class API(UserMixin):
+    def get_id(self):
+        try:
+            return unicode(self.user_id)  # python 2
+        except NameError:
+            return str(self.user_id)  # python 3
+

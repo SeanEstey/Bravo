@@ -1,8 +1,6 @@
 '''app.notify.tasks'''
-
-import logging
+import logging, pytz
 from datetime import datetime, timedelta
-import pytz
 from bson import ObjectId
 from flask import g
 from app.utils import bcolors

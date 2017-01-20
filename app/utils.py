@@ -53,19 +53,17 @@ def inspector(obj, public=True, private=False):
 
 '''
 #-------------------------------------------------------------------------------
-def inspector(obj, mylocals=False):
-    if isinstance(obj, types.ModuleType):
-        return 'name=%s. %s' % (obj__name__, print_vars(obj))
+def module_inspector(mylocals=False):
     if mylocals:
         _globals = globals().copy()
         _globals.pop('__builtins__')
         return print_vars(_globals,depth=1)
 
-        for name, val in globals().items():
-            print 'name=%s, val=%s' %(name, val)
-            #if isinstance(val, types.ModuleType):
-            #    #yield val.__name__
-            #    print val.__name__
+    for name, val in globals().items():
+        print 'name=%s, val=%s' %(name, val)
+        #if isinstance(val, types.ModuleType):
+        #    #yield val.__name__
+        #    print val.__name__
 '''
 
 #-------------------------------------------------------------------------------

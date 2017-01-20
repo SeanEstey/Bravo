@@ -10,6 +10,11 @@ from . import api
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
+@api.before_request
+def authenticate():
+    pass
+
+#-------------------------------------------------------------------------------
 @api.route('/salesforce', methods=['GET'])
 def test_salesforce():
     from app.api import salesforce

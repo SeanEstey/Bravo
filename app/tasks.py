@@ -1,5 +1,4 @@
 '''app.tasks'''
-
 import logging
 import os
 from celery.task.control import revoke
@@ -20,8 +19,6 @@ log.setLevel(logging.DEBUG)
 
 app = create_app(__name__, kv_sess=False)
 celery = init_celery(_celery, app)
-
-
 print 'celery (initialized)=%s' % inspector(celery, public=True, private=True)
 
 #-------------------------------------------------------------------------------

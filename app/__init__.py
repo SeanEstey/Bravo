@@ -77,7 +77,7 @@ def create_app(pkg_name, kv_sess=True):
     app.logger.setLevel(logging.DEBUG)
 
     from .auth.user import Anonymous
-    login_manager.login_view = 'auth.login'
+    login_manager.login_view = 'auth.show_login'
     login_manager.anonymous_user = Anonymous
     login_manager.init_app(app)
 

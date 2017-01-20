@@ -1,4 +1,4 @@
-
+'''app.sio'''
 import logging
 from .utils import print_vars, inspector
 from datetime import datetime
@@ -13,10 +13,6 @@ sio_server = SocketIO()
 # Client that uses message_queue to send emit signals to
 # server. Can be used by celery tasks.
 sio_client = SocketIO(message_queue='amqp://')
-
-
-print 'sio_client=%s' % inspector(sio_client)
-print 'sio_server=%s' % inspector(sio_server)
 
 #-------------------------------------------------------------------------------
 def smart_emit(event, data, room=None):

@@ -1,16 +1,13 @@
-'''app.routing.routes'''
-
-import json
-import logging
+'''app.routing.main'''
+import time, json, logging
+import requests
 from dateutil.parser import parse
 from datetime import datetime, time, date
-from time import sleep
-import requests
-from flask_login import current_user
+from flask import g
 from bson import ObjectId
-from .. import smart_emit, get_db, gdrive, gsheets, etap, cal, utils
+from .. import smart_emit, get_keys, gdrive, gsheets, etap, cal, utils
 from . import geo, routific, sheet
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 class GeocodeError(Exception):
     pass
@@ -27,53 +24,53 @@ def build(route_id, job_id=None):
     Returns: db.routes dict on success, False on error
     '''
 
-    db = get_db()
-    route = db.routes.find_one({"_id":ObjectId(route_id)})
-    conf = db['agencies'].find_one({'name':route['agency']})
+    route = g.db.routes.find_one({"_id":ObjectId(route_id)})
+    agcy = route['agency']
 
-    logger.info('%s: Building %s...', route['agency'], route['block'])
+    print '%s: Building %s...' % (agcy, route['block'])
+    log.info('%s: Building %s...', agcy, route['block'])
 
     if job_id is None:
         job_id = submit_job(ObjectId(route_id))
 
-    # Keep looping and sleeping until receive solution or hit
-    # CELERYD_TASK_TIME_LIMIT (3000 s)
-    orders = get_solution_orders(job_id, conf['google']['geocode']['api_key'])
+    # Keep looping and sleeping until receive solution or hit tsak_time_limit
+    orders = get_solution_orders(
+        job_id,
+        get_keys('google',agcy=agcy)['geocode']['api_key'])
 
     if orders == False:
-        logger.error('Error retrieving routific solution')
+        log.error('Error retrieving routific solution')
         return False
 
     while orders == "processing":
-        logger.debug('No solution yet. Sleeping 5s...')
-        sleep(5)
-        orders = get_solution_orders(job_id, conf['google']['geocode']['api_key'])
+        log.debug('No solution yet. Sleeping 5s...')
+        time.sleep(5)
+        orders = get_solution_orders(
+            job_id,
+            get_keys('google',agcy=agcy)['geocode']['api_key'])
 
     title = '%s: %s (%s)' %(
         route['date'].strftime('%b %-d'), route['block'], route['driver']['name'])
 
     ss = sheet.build(
-        conf['name'],
-        gdrive.gauth(conf['google']['oauth']),
+        agcy,
+        gdrive.gauth(get_keys('google',agcy=agcy)['oauth']),
         title)
 
-    route = db.routes.find_one_and_update(
+    route = g.db.routes.find_one_and_update(
         {'_id':ObjectId(route_id)},
         {'$set':{ 'ss': ss}}
     )
 
     sheet.write_orders(
-        gsheets.gauth(conf['google']['oauth']),
+        gsheets.gauth(get_keys('google',agcy=agcy)['oauth']),
         ss['id'],
         orders)
 
-    smart_emit('route_status', {
-        'agency': conf['name'],
-        'status':'completed',
-        'ss_id': ss['id'],
-        'warnings': route['warnings']})
+    smart_emit('route_status',{
+        'status':'completed', 'ss_id':ss['id'], 'warnings':route['warnings']})
 
-    logger.info(
+    log.info(
         '%s Sheet created. Orders written.', route['block'])
 
     return route
@@ -90,15 +87,15 @@ def submit_job(route_id):
     MIN_PER_STOP = 3
     SHIFT_END = '19:00'
 
-    db = get_db()
-    route = db.routes.find_one({"_id":ObjectId(route_id)})
-    conf = db.agencies.find_one({'name':route['agency']})
+    route = g.db.routes.find_one({"_id":ObjectId(route_id)})
+    agcy = route['agency']
+    #conf = .g.db.agencies.find_one({'name':route['agency']})
 
     accounts = etap.call(
         'get_query_accounts',
-        conf['etapestry'], {
+        get_keys('etapestry',agcy=agcy), {
             "query": route['block'],
-            "query_category": conf['etapestry']['query_category']
+            "query_category": get_keys('etapestry',agcy=agcy)['query_category']
         }
     )['data']
 
@@ -117,7 +114,7 @@ def submit_job(route_id):
             _order = order(
                 account,
                 warnings,
-                conf['google']['geocode']['api_key'],
+                get_keys('google',agcy=agcy)['geocode']['api_key'],
                 route['driver']['shift_start'],
                 '19:00',
                 etap.get_udf('Service Time', account) or MIN_PER_STOP
@@ -126,7 +123,7 @@ def submit_job(route_id):
             errors.append(str(e))
             continue
         except GeocodeError as e:
-            logger.error('GeocodeError exception')
+            log.error('GeocodeError exception')
             errors.append(str(e))
             continue
         except requests.RequestException as e:
@@ -138,46 +135,47 @@ def submit_job(route_id):
         else:
             orders.append(_order)
 
-    logger.debug('Omitting %s no pickups', str(num_skips))
+    log.debug('Omitting %s no pickups', str(num_skips))
 
-    start_address = conf['routing']['locations']['office']['formatted_address']
-    end_address = route['depot']['formatted_address']
+    office = get_keys('routing',agcy=agcy)['locations']['office']
+    office_coords = geo.geocode(
+        office['formatted_address'],
+        get_keys('google',agcy=agcy)['geocode']['api_key'])[0]
+    depot = route['depot']
+    depot_coords = geo.geocode(
+        depot['formatted_address'],
+        get_keys('google',agcy=agcy)['geocode']['api_key'])[0]
 
     job_id = routific.submit_vrp_task(
         orders,
         route['driver']['name'],
-        geo.geocode(
-            start_address,
-            conf['google']['geocode']['api_key'])[0],
-        geo.geocode(
-            end_address,
-            conf['google']['geocode']['api_key'])[0],
+        office_coords,
+        depot_coords,
         route['driver']['shift_start'],
         SHIFT_END,
-        conf['routing']['routific']['api_key']
-    )
+        get_keys('routing',agcy=agcy)['routific']['api_key'])
 
-    logger.info(
+    log.info(
         '\nSubmitted routific task\n'\
         'Job_id: %s\nOrders: %s\n'\
         'Min/stop: %s',
         job_id, len(orders), MIN_PER_STOP)
 
-    db.routes.update_one(
-        {'agency': conf['name'],
+    g.db.routes.update_one(
+        {'agency': agcy,
          'block': route['block'],
-         'date': utils.naive_to_local(datetime.combine(route['date'].date(), time(0,0,0)))},
+         'date': utils.naive_to_local(
+            datetime.combine(route['date'].date(), time(0,0,0)))},
         {'$set': {
             'job_id': job_id,
             'status': 'processing',
             'block_size': len(accounts),
             'orders': len(orders),
             'no_pickups': num_skips,
-            'start_address': start_address,
-            'end_address': end_address,
+            'start_address': office['formatted_address'],
+            'end_address': depot['formatted_address'],
             'warnings': warnings,
-            'errors': errors
-        }})
+            'errors': errors}})
 
     return job_id
 
@@ -194,7 +192,7 @@ def order(account, warnings, api_key, shift_start, shift_end, min_per_stop):
         msg = \
           "Routing error: account <strong>%s</strong> missing address/city." % account['id']
 
-        logger.error(msg)
+        log.error(msg)
         raise EtapBadDataError(msg)
     else:
         formatted_address = account['address'] + ', ' + account['city'] + ', AB'
@@ -206,7 +204,7 @@ def order(account, warnings, api_key, shift_start, shift_end, min_per_stop):
             postal=account['postalCode']
         )
     except requests.RequestException as e:
-        logger.error(str(e))
+        log.error(str(e))
         raise
 
     if len(geo_result) == 0:
@@ -214,7 +212,7 @@ def order(account, warnings, api_key, shift_start, shift_end, min_per_stop):
             "Unable to resolve address <strong>%s, %s</strong>." %(
             account['address'],account['city'])
 
-        logger.error(msg)
+        log.error(msg)
         raise GeocodeError(msg)
 
     geo_result = geo_result[0]
@@ -248,7 +246,7 @@ def get_solution_orders(job_id, api_key):
     try:
         r = requests.get('https://api.routific.com/jobs/' + job_id)
     except requests.RequestException as e:
-        logger.error('Error calling api.routific.com/jobs: %s', str(e))
+        log.error('Error calling api.routific.com/jobs: %s', str(e))
         raise
 
     task = json.loads(r.text)
@@ -256,16 +254,16 @@ def get_solution_orders(job_id, api_key):
     if task['status'] != 'finished':
         return task['status']
 
-    #logger.debug(utils.print_vars(task, depth=5))
+    #log.debug(utils.print_vars(task, depth=5))
 
-    db = get_db()
-
-    route_info = db.routes.find_one({'job_id':job_id})
+    route_info = g.db.routes.find_one({'job_id':job_id})
+    agcy = route_info['agency']
 
     output = task['output']
-    orders = task['output']['solution'].get(route_info['driver']['name']) or task['output']['solution']['default']
+    orders = task['output']['solution'].get(route_info['driver']['name']) or\
+        task['output']['solution']['default']
 
-    logger.info(
+    log.info(
         '\nJob_id %s: %s\n'\
         'Sorted orders: %s\nUnserved orders: %s\nTravel time: %s',
         job_id, output['status'], len(orders), output['num_unserved'],
@@ -273,7 +271,7 @@ def get_solution_orders(job_id, api_key):
 
     route_length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
 
-    db['routes'].update_one({'job_id':job_id},
+    g.db.routes.update_one({'job_id':job_id},
       {'$set': {
           'status':'finished',
           'orders': task['visits'],
@@ -287,7 +285,7 @@ def get_solution_orders(job_id, api_key):
           }})
 
     if not route_info:
-        logger.error("No mongo record for job_id '%s'", job_id)
+        log.error("No mongo record for job_id '%s'", job_id)
         return False
 
     # Routific doesn't include custom fields in the solution object.
@@ -300,7 +298,9 @@ def get_solution_orders(job_id, api_key):
         elif order['location_id'] == 'depot':
             # TODO: Add proper depot name, phone number, hours, and unload duration
 
-            location = geo.geocode(route_info['end_address'], api_key)[0]['geometry']['location']
+            location = geo.geocode(
+                route_info['end_address'], api_key
+            )[0]['geometry']['location']
 
             order['customNotes'] = {
                 'id': 'depot',
@@ -314,8 +314,7 @@ def get_solution_orders(job_id, api_key):
         # Regular order
         else:
             _input = task['input']['visits'][order['location_id']]
-
-            order['customNotes'] = task['input']['visits'][order['location_id']]['customNotes']
+            order['customNotes'] = _input['customNotes']
 
             order['gmaps_url'] = geo.get_gmaps_url(
                 _input['location']['name'],
@@ -323,19 +322,19 @@ def get_solution_orders(job_id, api_key):
                 _input['location']['lng']
             )
 
-    conf = db['agencies'].find_one({'name':route_info['agency']})
+    office = get_keys('routing',agcy=agcy)['locations']['office']
 
     # Add office stop
     # TODO: Add travel time from depot to office
     orders.append({
         "location_id":"office",
-        "location_name": conf['routing']['locations']['office']['formatted_address'],
+        "location_name": office['formatted_address'],
         "arrival_time":"",
         "finish_time":"",
-        "gmaps_url": conf['routing']['locations']['office']['url'],
+        "gmaps_url": office['url'],
         "customNotes": {
             "id": "office",
-            "name": conf['routing']['locations']['office']['name']
+            "name": office['name']
         }
     })
 
@@ -368,17 +367,8 @@ def is_scheduled(account, route_date):
 #-------------------------------------------------------------------------------
 def get_metadata():
     '''Get metadata for routes today and onward
-    Return: list of db.routes dicts
     '''
-
-    db = get_db()
-
-    agency = db['users'].find_one({'user': current_user.user_id})['agency']
-
-    today_dt = datetime.combine(date.today(), time())
-
-    routes = db.routes.find({
-        'agency': agency,
-        'date': {'$gte':today_dt}}).sort('date', 1)
-
-    return routes
+    return g.db.routes.find({
+        'agency': g.user.agency,
+        'date': {'$gte':datetime.combine(date.today(),time())}
+    }).sort('date', 1)

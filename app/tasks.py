@@ -1,8 +1,7 @@
 '''app.tasks'''
-import logging
-import os
+import logging, os
 from celery.task.control import revoke
-from celery.signals import task_prerun, task_postrun
+from celery.signals import task_prerun, task_postrun, task_failure
 from celery.utils.log import get_task_logger
 from utils import print_vars, inspector
 from app import create_app, init_celery, mongodb, utils, deb_hand,\
@@ -10,16 +9,11 @@ inf_hand, err_hand, exc_hand
 from app import celery as _celery
 from uber_task import UberTask
 
-log = get_task_logger(__name__)
-log.addHandler(err_hand)
-log.addHandler(inf_hand)
-log.addHandler(deb_hand)
-log.addHandler(exc_hand)
-log.setLevel(logging.DEBUG)
-
+log = logging.getLogger(__name__)
 app = create_app(__name__, kv_sess=False)
 celery = init_celery(_celery, app)
-print 'celery (initialized)=%s' % inspector(celery, public=True, private=True)
+
+#print 'celery (initialized)=%s' % inspector(celery, public=True, private=True)
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect
@@ -58,6 +52,11 @@ state=None, *args, **kwargs):
         log.debug('task=%s failure.', name, exc_info=True)
     else:
         print 'postrun=%s, state=%s' % (name, state)
+
+#-------------------------------------------------------------------------------
+@task_failure.connect
+def task_failure(signal=None, sender=None, task_id=None, exception=None, traceback=None, *args, **kwargs):
+    pass
 
 #-------------------------------------------------------------------------------
 def kill(task_id):

@@ -46,11 +46,11 @@ def get_db():
         return db_client[config.DB]
 
 #-------------------------------------------------------------------------------
-def get_keys(k, agnc=None):
+def get_keys(k, agcy=None):
     if g.user.is_authenticated:
         name = g.user.agency
-    elif agnc:
-        name = agnc
+    elif agcy:
+        name = agcy
     else:
         raise Exception('no key or agency available')
 
@@ -62,10 +62,11 @@ def get_keys(k, agnc=None):
         return None
 
 #-------------------------------------------------------------------------------
-def create_app(pkg_name, kv_sess=True):
+def create_app(pkg_name, kv_sess=True, testing=False):
     app = Flask(pkg_name)
     app.config.from_object(config)
     app.clients = {}
+    app.testing = testing
 
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.jinja_env.add_extension("jinja2.ext.do")
@@ -105,11 +106,20 @@ def create_app(pkg_name, kv_sess=True):
 #-------------------------------------------------------------------------------
 def init_celery(celery, app):
     import celeryconfig
+    from celery.utils.log import get_task_logger
+
     celery = Celery(__name__, broker='amqp://')
     celery.config_from_object(celeryconfig)
     celery.app = UberTask.flsk_app = app
     UberTask.db_client = mongodb.create_client()
     celery.Task = UberTask
+
+    logger = get_task_logger(__name__)
+    logger.addHandler(err_hand)
+    logger.addHandler(inf_hand)
+    logger.addHandler(deb_hand)
+    logger.addHandler(exc_hand)
+    logger.setLevel(logging.DEBUG)
 
     return celery
 

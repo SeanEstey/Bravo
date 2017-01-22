@@ -1,16 +1,12 @@
 '''app.main.views'''
-
-import logging
-import json
-import time
+import logging, json, os, time
 import requests
-import os
 from datetime import datetime, date
 from flask import g, request, render_template, redirect, url_for, current_app,\
      jsonify, Response
 from flask_login import login_required, current_user
 from .. import get_db, utils, html, gsheets, mailgun
-from . import main, log, receipts, signups
+from . import main, receipts, signups
 from .tasks import send_receipts, add_gsheets_signup
 from app.notify import admin, email
 from app.booker import book

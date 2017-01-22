@@ -1,29 +1,27 @@
 '''app.routing.routific'''
-
 import json
 import logging
 import requests
 from .. import etap
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def submit_vrp_task(orders, driver, start_geo, end_geo, shift_start, shift_end, api_key):
-
+def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key):
     payload = {
       "visits": {},
       "fleet": {
         driver: {
           "start_location": {
             "id": "office",
-            "lat": start_geo['geometry']['location']['lat'],
-            "lng": start_geo['geometry']['location']['lng'],
-            "name": start_geo['formatted_address']
+            "lat": start['geometry']['location']['lat'],
+            "lng": start['geometry']['location']['lng'],
+            "name": start['formatted_address']
            },
           "end_location": {
             "id": "depot",
-            "lat": end_geo['geometry']['location']['lat'],
-            "lng": end_geo['geometry']['location']['lng'],
-            "name": end_geo['formatted_address']
+            "lat": end['geometry']['location']['lat'],
+            "lng": end['geometry']['location']['lng'],
+            "name": end['formatted_address']
           },
           "shift_start": shift_start,
           "shift_end": shift_end
@@ -49,23 +47,23 @@ def submit_vrp_task(orders, driver, start_geo, end_geo, shift_start, shift_end, 
             data=json.dumps(payload)
         )
     except Exception as e:
-        logger.error('Routific exception %s', str(e))
+        log.error('Routific exception=%s', str(e))
+        log.debug(str(e), exc_info=True)
         return False
 
     if r.status_code != 202:
-        logger.error('Error retrieving Routific job_id. %s %s',
-            r.headers, r.text)
+        log.error('Failed to retrieve Routific job_id. Msg="%s"',r.text['error'])
         return False
 
     return json.loads(r.text)['job_id']
 
 #-------------------------------------------------------------------------------
-def order(account, formatted_address, geo_result, shift_start, shift_end, min_per_stop):
+def order(account, formatted_address, geo, shift_start, shift_end, min_per_stop):
     return {
       "location": {
         "name": formatted_address,
-        "lat": geo_result['geometry']['location']['lat'],
-        "lng": geo_result['geometry']['location']['lng']
+        "lat": geo['geometry']['location']['lat'],
+        "lng": geo['geometry']['location']['lng']
       },
       "start": shift_start,
       "end": shift_end,

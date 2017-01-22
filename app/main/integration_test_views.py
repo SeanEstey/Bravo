@@ -1,11 +1,9 @@
-
-import json
-import logging
-from datetime import datetime, date, time, timedelta
-from flask import g, request, jsonify, render_template, \
-    redirect, Response, current_app, url_for
-from flask_login import login_required, current_user
+import json, logging
+from flask import g, jsonify
+from flask_login import login_required
+from ..utils import print_vars
 from . import main
+from app.routing.tasks import *
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -17,38 +15,41 @@ def test_clean_sessions():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/test_task', methods=['GET'])
-def test_test():
-    #log.info('starting celery task from request')
-
-    from app.tasks import test_trig
-    test_trig.delay(
-        args=[{'NAME': 'SEAN_ESTEY'}],
-        kwargs={'a':'b'},
-        queue='bravo'
-    )
-    return 'OK'
+@main.route('/_analyze_routes', methods=['GET'])
+@login_required
+def _analyze_routes():
+    rv = analyze_routes.apply(kwargs={'days':2})
+    #log.debug(print_vars(rv))
+    return jsonify({'state':rv.state, 'result':rv.result})
 
 #-------------------------------------------------------------------------------
-@main.route('/test_schedule_reminders', methods=['GET'])
+@main.route('/_build_routes', methods=['GET'])
 @login_required
-def test_schedule_reminders():
+def _build_routes():
+    rv = build_routes.apply(kwargs={})
+    #log.debug(print_vars(rv))
+    return jsonify({'state':rv.state, 'result':rv.result})
+
+#-------------------------------------------------------------------------------
+@main.route('/_schedule_reminders', methods=['GET'])
+@login_required
+def _schedule_reminders():
     from .. import tasks
     tasks.schedule_reminders.delay(queue=current_app.config['DB'])
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/test_non_participant', methods=['GET'])
+@main.route('/_non_participants', methods=['GET'])
 @login_required
-def test_non_participants():
+def _non_participants():
     from .. import tasks
     tasks.find_non_participants.delay(queue=current_app.config['DB'])
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/test_analyze_mobile/<days>', methods=['GET'])
+@main.route('/_analyze_mobile/<days>', methods=['GET'])
 @login_required
-def test_analyze_mobile(days):
+def _analyze_mobile(days):
     from .. import tasks
     tasks.update_sms_accounts.delay(
         kwargs={'days_delta':days},

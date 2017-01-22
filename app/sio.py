@@ -64,7 +64,7 @@ def sio_disconnect():
 
     if current_user.is_authenticated:
         user_id = current_user.user_id
-        room = current_user.get_agency()
+        room = current_user.agency
         leave_room(room)
         print '%s leaving room=%s'%(user_id,room)
         print '<%s> disconnected' % (current_user.user_id)

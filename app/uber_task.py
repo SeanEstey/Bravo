@@ -1,5 +1,4 @@
 '''app.uber_task'''
-
 import os
 import mongodb
 from celery import Task
@@ -72,16 +71,15 @@ class UberTask(Task):
         return super(UberTask, self).retry(args, kwargs, **options)
 
     #---------------------------------------------------------------------------
-    def apply_async(self, args=None, kwargs=None, task_id=None, producer=None,
-        link=None, link_error=None, shadow=None, **options):
+    def apply_async(self, args=None, kwargs=None, **rest):
         '''Called by Flask app. Wrapper for apply_async
         '''
 
-        if options.pop('with_request_context', True) or has_app_context():
+        print 'async args=%s, kwargs=%s' % (args,kwargs)
+        if rest.pop('with_request_context', True) or has_app_context():
             self._push_contexts(kwargs)
 
-        return super(UberTask, self).apply_async(args, kwargs, task_id, producer,
-            link, link_error, shadow, **options)
+        return super(UberTask, self).apply_async(args, kwargs, **rest)
 
     #---------------------------------------------------------------------------
     def _push_contexts(self, kwargs):
@@ -90,6 +88,7 @@ class UberTask(Task):
         '''
 
         if has_app_context():
+            #print 'g.user=%s, _id=%s' % (g.user, str(g.user._id))
             kwargs[self.USERID_KW] = str(g.user._id)
 
         if not has_request_context():
@@ -123,9 +122,10 @@ class UberTask(Task):
         mongodb.authenticate(self.db_client)
 
         user_oid = kwargs.pop(self.USERID_KW, None)
+        #print 'user_oid=%s, type=%s' % (user_oid,type(user_oid))
 
         if user_oid:
-            db_user = g.db.users.find_one({'_id':ObjectId(user_oid)})
+            db_user = g.db.users.find_one({'_id':ObjectId(str(user_oid))})
             login_user(user.User(
                 db_user['user'],
                 name=db_user['name'],

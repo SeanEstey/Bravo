@@ -1,5 +1,4 @@
 '''app.routing.depots'''
-
 import logging
 from .. import get_keys
 log = logging.getLogger(__name__)
@@ -13,7 +12,9 @@ def resolve(block, postal_codes, event_desc=False):
     Return 'Strathcona' as default if none found.
     '''
 
-    depots = list(get_keys('routing')['locations']['depots'])
+    agcy = 'wsf'
+
+    depots = list(get_keys('routing',agcy=agcy)['locations']['depots'])
 
     for depot in depots:
         # The block defined under depot in list?

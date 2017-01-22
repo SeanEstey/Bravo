@@ -43,7 +43,7 @@ class AliceViewsTests(unittest.TestCase):
     def setUp(self):
         if is_test_server():
             config_test_server('test_server')
-        self.app = create_app('app', db_client)
+        self.app = create_app('app')
         self.app.testing = True
 
         self.app_context = self.app.app_context()

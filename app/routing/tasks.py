@@ -1,37 +1,28 @@
 '''app.routing.tasks'''
-
-import logging
+import logging, re
 from time import sleep
 import bson.json_util
 from flask import g
-from flask_login import current_user
+from celery.utils.log import get_task_logger
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
-import re
 from .. import smart_emit, celery, get_keys, gcal, etap, utils, parser
-from app.routing import depots
+from .main import build
+from . import depots
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def analyze_routes(self, days=None, **kwargs):
+def analyze_routes(self, days=None, **rest):
     '''Celery task
     Scans schedule for blocks, adds metadata to db, sends socketio signal
     to client
     '''
-
-    DEFAULT_DAYS = 5
-
-    print 'sleeping 3s...'
-    sleep(3)
-
-    if not days:
-        days = 5
-
+    #sleep(3)
     smart_emit('analyze_routes', {'status':'in-progress'})
 
     today_dt = datetime.combine(date.today(), time())
-    end_dt = today_dt + timedelta(days=int(days or DEFALUT_DAYS))
+    end_dt = today_dt + timedelta(days=int(days or 5))
     events = []
     service = gcal.gauth(get_keys('google')['oauth'])
     cal_ids = get_keys('cal_ids')
@@ -56,8 +47,7 @@ def analyze_routes(self, days=None, **kwargs):
         event_dt = utils.naive_to_local(
             datetime.combine(
                 parse(event['start']['date']),
-                time(0,0,0))
-        )
+                time(0,0,0)))
 
         if g.db.routes.find_one({
             'date':event_dt,
@@ -84,7 +74,6 @@ def analyze_routes(self, days=None, **kwargs):
 
         num_dropoffs = 0
         num_booked = 0
-
         event_d = event_dt.date()
 
         for account in a['data']:
@@ -140,21 +129,16 @@ def analyze_routes(self, days=None, **kwargs):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def build_routes(self, *args, **kwargs):
+def build_routes(self, **rest):
     '''Route orders for today's Blocks and build Sheets
     '''
-
-    from app.routing import main
-    from app.routing.schedule import analyze_upcoming
-    from datetime import datetime, date, time
-    from time import sleep
 
     agencies = g.db.agencies.find({})
 
     for agency in agencies:
-        analyze_upcoming(agency['name'], 3)
+        analyze_routes.apply(kwargs={'days':3})
 
-        _routes = db.routes.find({
+        _routes = g.db.routes.find({
           'agency': agency['name'],
           'date': utils.naive_to_local(
             datetime.combine(
@@ -170,7 +154,7 @@ def build_routes(self, *args, **kwargs):
         fails = 0
 
         for route in _routes:
-            r = main.build(str(route['_id']))
+            r = build(str(route['_id']))
 
             if not r:
                 fails += 1
@@ -186,12 +170,12 @@ def build_routes(self, *args, **kwargs):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def build_route(self, *args, **kwargs):
-    route_id = args[0]
-    job_id=kwargs.get('job_id')
-
-    try:
-        from app.routing import main
-        return main.build(str(route_id), job_id=job_id)
-    except Exception as e:
-        log.error('%s\n%s', str(e), tb.format_exc())
+def build_route(self, route_id, job_id=None, **rest):
+    log.debug('debug only')
+    log.info('info logger')
+    log.error('err logger')
+    
+    #try:
+    return build(str(route_id), job_id=job_id)
+    #except Exception as e:
+    #    log.error('%s', str(e), exc_info=True)

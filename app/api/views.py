@@ -4,6 +4,7 @@ import json
 import requests
 from datetime import datetime, date, time, timedelta
 from flask import request, jsonify, current_app, url_for, Response
+from flask_login import current_user
 from bson.objectid import ObjectId
 import logging
 from . import api
@@ -12,7 +13,14 @@ logger = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 @api.before_request
 def authenticate():
+    print 'api.before_request'
+    print 'current_user=%s' % current_user
     pass
+
+@api.route('/test', methods=['GET'])
+def test_cred():
+    print 'api.test'
+    return 'SUCCESS'
 
 #-------------------------------------------------------------------------------
 @api.route('/salesforce', methods=['GET'])

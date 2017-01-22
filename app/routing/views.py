@@ -1,18 +1,12 @@
-'''routing.views'''
-
-import logging
-import json
-import twilio.twiml
-import requests
-from datetime import datetime, date, time, timedelta
-from flask import g, request, jsonify, render_template, redirect, current_app,url_for
-from flask_login import login_required, current_user
+'''app.routing.views'''
+import logging, json
 from bson.objectid import ObjectId
+from flask import g, request, jsonify, render_template, redirect, url_for
+from flask_login import login_required
+from .. import get_keys, get_db, utils
 from . import routing, main
-from .. import sio, get_db, utils
 from .tasks import analyze_routes, build_route
 log = logging.getLogger(__name__)
-
 
 #-------------------------------------------------------------------------------
 @routing.route('', methods=['GET'])
@@ -42,36 +36,11 @@ def show_routing():
     )
 
 #-------------------------------------------------------------------------------
-@routing.route('/get_route/<job_id>', methods=['GET'])
-@login_required
-def get_route(job_id):
-    conf = g.db.agencies.find_one({'name':g.user.agency})
-
-    return json.dumps(main.get_solution_orders(
-        job_id,
-        conf['google']['geocode']['api_key']))
-
-#-------------------------------------------------------------------------------
-@routing.route('/analyze_upcoming/<days>', methods=['GET'])
-@login_required
-def analyze_upcoming(days):
-    analyze_routes.delay(kwargs={'days':days})
-    return 'OK'
-
-#-------------------------------------------------------------------------------
-@routing.route('/build/<route_id>', methods=['GET', 'POST'])
+@routing.route('/build/<route_id>', methods=['GET'])
 @login_required
 def _build_route(route_id):
-    build_route.delay(args=(route_id,))
-    return redirect(url_for('routing.show_routing'))
-
-#-------------------------------------------------------------------------------
-@routing.route('/build_sheet/<route_id>/<job_id>', methods=['GET'])
-@login_required
-def _build_sheet(job_id, route_id):
-    '''non-celery synchronous func for testing
-    '''
-    main.build(route_id, job_id=job_id)
+    log.info('/build/route_id=%s', route_id)
+    build_route.delay(route_id, job_id=None)
     return redirect(url_for('routing.show_routing'))
 
 #-------------------------------------------------------------------------------

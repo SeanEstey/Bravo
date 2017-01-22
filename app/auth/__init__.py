@@ -9,6 +9,6 @@ from flask_login import current_user
 
 @auth.before_request
 def before_request():
-    print 'before auth request'
-    print 'current_user=%s' % current_user
+    #print 'before auth request'
+    #print 'current_user=%s' % current_user
     g.user = current_user

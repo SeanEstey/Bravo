@@ -1,11 +1,5 @@
 '''run'''
-
-import os
-import time
-import sys
-import logging
-import getopt
-import flask
+import logging, os, time, sys, getopt
 from flask import g, session
 from flask_login import current_user
 from setup import startup_msg
@@ -14,8 +8,6 @@ from app.utils import bcolors, print_vars, inspector
 from app.sio import sio_server
 
 app = create_app('app')
-
-
 
 #-------------------------------------------------------------------------------
 @app.before_request
@@ -92,7 +84,7 @@ def main(argv):
 
     sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
 
-    print 'sio_server (initialized)=%s' % inspector(sio_server)
+    #print 'sio_server (initialized)=%s' % inspector(sio_server)
 
     start_worker(celery_beat)
 
@@ -101,7 +93,7 @@ def main(argv):
     sio_server.run(
         app,
         port=app.config['LOCAL_PORT'],
-        use_reloader=False
+        use_reloader=True
     )
 
 #-------------------------------------------------------------------------------

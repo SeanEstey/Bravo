@@ -14,6 +14,7 @@ def show_login():
 #-------------------------------------------------------------------------------
 @auth.route('/login', methods=['POST'])
 def authenticate():
+    #print 'auth.authenticate'
     result = User.authenticate(
         request.form.get('username'),
         request.form.get('password'))

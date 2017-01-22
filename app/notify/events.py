@@ -1,15 +1,10 @@
 '''app.notify.events'''
-
 import logging
-from datetime import datetime,date,time,timedelta
+from datetime import datetime,date,time
 from dateutil.parser import parse
-from werkzeug import secure_filename
-import codecs
 from bson.objectid import ObjectId
-from flask_login import current_user
-import csv
-import os
-from .. import get_db, utils
+from flask import g
+from .. import get_keys, utils
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -19,8 +14,8 @@ def add(agency, name, event_date, _type):
     Returns:
       -id (ObjectId)
     '''
-    db = get_db()
-    return db['notific_events'].insert_one({
+
+    return g.db['notific_events'].insert_one({
         'name': name,
         'agency': agency,
         'event_dt': utils.naive_to_local(datetime.combine(event_date, time(8,0))),
@@ -32,8 +27,7 @@ def add(agency, name, event_date, _type):
 
 #-------------------------------------------------------------------------------
 def get(evnt_id, local_time=True):
-    db = get_db()
-    event = db['notific_events'].find_one({'_id':evnt_id})
+    event = g.db['notific_events'].find_one({'_id':evnt_id})
 
     if local_time == True:
         return utils.localize(event)
@@ -45,10 +39,7 @@ def get_list(agency, local_time=True, max=20):
     '''Return list of all events for agency
     '''
 
-    db = get_db()
-    agency = db['users'].find_one({'user': current_user.user_id})['agency']
-
-    sorted_events = list(db['notific_events'].find(
+    sorted_events = list(g.db['notific_events'].find(
         {'agency':agency}).sort('event_dt',-1).limit(max))
 
     if local_time == True:
@@ -59,8 +50,7 @@ def get_list(agency, local_time=True, max=20):
 
 #-------------------------------------------------------------------------------
 def get_triggers(evnt_id, local_time=True, sort_by='type'):
-    db = get_db()
-    trigger_list = list(db['triggers'].find({'evnt_id':evnt_id}).sort(sort_by,1))
+    trigger_list = list(g.db['triggers'].find({'evnt_id':evnt_id}).sort(sort_by,1))
 
     if local_time == True:
         for trigger in trigger_list:
@@ -70,8 +60,7 @@ def get_triggers(evnt_id, local_time=True, sort_by='type'):
 
 #-------------------------------------------------------------------------------
 def get_notifics(evnt_id, local_time=True, sorted_by='account.event_dt'):
-    db = get_db()
-    notific_results = db['notifics'].aggregate([
+    notific_results = g.db['notifics'].aggregate([
         {'$match': {
             'evnt_id': evnt_id
             }
@@ -111,14 +100,12 @@ def reset(evnt_id):
 
     evnt_id = ObjectId(evnt_id)
 
-    db = get_db()
-
-    db['notific_events'].update_one(
+    g.db['notific_events'].update_one(
         {'_id':evnt_id},
         {'$set':{'status':'pending'}}
     )
 
-    n = db['notifics'].update(
+    n = g.db['notifics'].update(
         {'evnt_id': evnt_id}, {
             '$set': {
                 'tracking.status': 'pending',
@@ -145,7 +132,7 @@ def reset(evnt_id):
         multi=True
     )
 
-    db['triggers'].update(
+    g.db['triggers'].update(
         {'evnt_id': evnt_id},
         {'$set': {'status':'pending'}},
         multi=True
@@ -155,34 +142,32 @@ def reset(evnt_id):
 
 #-------------------------------------------------------------------------------
 def rmv_notifics(evnt_id, acct_id):
-    db = get_db()
-    n_notifics = db['notifics'].remove({'acct_id':acct_id})['n']
-    n_accounts = db['accounts'].remove({'_id':acct_id})['n']
+    n_notifics = g.db['notifics'].remove({'acct_id':acct_id})['n']
+    n_accounts = g.db['accounts'].remove({'_id':acct_id})['n']
     log.info('Removed %s notifics, %s account for evnt_id %s', n_notifics,
     n_accounts, evnt_id)
     return True
 
 #-------------------------------------------------------------------------------
 def dup_random_acct(evnt_id):
-    db = get_db()
     import random
     random.seed()
-    size = db.accounts.find({'evnt_id':evnt_id}).count()
+    size = g.db.accounts.find({'evnt_id':evnt_id}).count()
     rand_num = random.randrange(size)
 
-    acct = db.accounts.find({'evnt_id':ObjectId(evnt_id)}).limit(-1).skip(rand_num).next()
-    notifics = db.notifics.find({'acct_id': acct['_id']})
+    acct = g.db.accounts.find({'evnt_id':ObjectId(evnt_id)}).limit(-1).skip(rand_num).next()
+    notifics = g.db.notifics.find({'acct_id': acct['_id']})
 
     old_id = acct['_id']
     acct['_id'] = ObjectId()
-    db.accounts.insert(acct)
+    g.db.accounts.insert(acct)
 
     #log.info('old acct_id %s, new acct_id %s', str(old_id), str(new_acct['_id']))
 
     for notific in notifics:
         notific['_id'] = ObjectId()
         notific['acct_id'] = acct['_id']
-        db.notifics.insert_one(notific)
+        g.db.notifics.insert_one(notific)
 
     return True
 
@@ -191,16 +176,15 @@ def remove(evnt_id):
     # remove all triggers, notifics, and event
     evnt_id = ObjectId(evnt_id)
 
-    db = get_db()
-    notifics = db['notifics'].find({'evnt_id':evnt_id})
+    notifics = g.db['notifics'].find({'evnt_id':evnt_id})
     for notific in notifics:
-        db['accounts'].remove({'_id':notific['acct_id']})
+        g.db['accounts'].remove({'_id':notific['acct_id']})
 
-    n_notifics = db['notifics'].remove({'evnt_id':evnt_id}).get('n')
+    n_notifics = g.db['notifics'].remove({'evnt_id':evnt_id}).get('n')
 
-    n_triggers = db['triggers'].remove({'evnt_id': evnt_id}).get('n')
+    n_triggers = g.db['triggers'].remove({'evnt_id': evnt_id}).get('n')
 
-    n_events = db['notific_events'].remove({'_id': evnt_id}).get('n')
+    n_events = g.db['notific_events'].remove({'_id': evnt_id}).get('n')
 
     log.info('Removed %s event, %s notifics, and %s triggers',
         n_events, n_notifics, n_triggers)

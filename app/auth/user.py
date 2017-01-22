@@ -12,7 +12,8 @@ class User():
     _id = ''
     user_id = ''
     agency = ''
-    admin = ''
+    admin = False
+    developer = False
     email = ''
     name = ''
 

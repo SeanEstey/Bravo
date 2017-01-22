@@ -1,12 +1,14 @@
 '''app.uber_task'''
-import os
+import os, logging
 import mongodb
 from celery import Task
-from flask import current_app, g, has_app_context, has_request_context,\
-make_response, request
+from flask import g, has_app_context, has_request_context,\
+make_response, request, current_app
 from flask_login import login_user, current_user
 from bson.objectid import ObjectId
 from auth import user
+from .utils import print_vars
+log = logging.getLogger(__name__)
 
 __all__ = ['UberTask']
 
@@ -75,7 +77,7 @@ class UberTask(Task):
         '''Called by Flask app. Wrapper for apply_async
         '''
 
-        print 'async args=%s, kwargs=%s' % (args,kwargs)
+        #log.debug('async args=%s, kwargs=%s', args, kwargs)
         if rest.pop('with_request_context', True) or has_app_context():
             self._push_contexts(kwargs)
 
@@ -86,6 +88,14 @@ class UberTask(Task):
         '''If request context, saves data to kwargs for setup on __call__
         If app context, push current_user._id to kwargs also
         '''
+
+        # Save environ vars
+
+        kwargs[self.ENVIRON_KW] = {}
+
+        for var in current_app.config['ENV_VARS']:
+            #print 'saving os.environ[%s]=%s'%(var, os.environ.get(var,''))
+            kwargs[self.ENVIRON_KW][var] = os.environ.get(var, '')
 
         if has_app_context():
             #print 'g.user=%s, _id=%s' % (g.user, str(g.user._id))

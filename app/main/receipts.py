@@ -1,48 +1,37 @@
 '''app.main.receipts'''
-
-import json
-import logging
-import os
-import gspread
-import requests
-from flask import current_app, request
-from datetime import datetime, date
+import json, logging, os, requests
+from datetime import date
 from dateutil.parser import parse
-from flask import render_template, request
-
-from .. import get_db, html, mailgun, etap, gsheets
-logger = logging.getLogger(__name__)
+from flask import current_app, render_template, request
+from .. import get_keys, html, mailgun, etap, gsheets
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def on_delivered():
     '''Mailgun webhook called from view. Has request context'''
 
-    db = get_db()
+    log.info('receipt delivered to %s', request.form['recipient'])
 
-    logger.info('receipt delivered to %s', request.form['recipient'])
-
-    email = db['emails'].find_one_and_update(
+    email = g.db.emails.find_one_and_update(
         {'mid': request.form['Message-Id']},
         {'$set': {'status': request.form['event']}})
-
-    conf = db.agencies.find_one({'name':email['agency']})
-    service = gsheets.gauth(conf['google']['oauth'])
-
+    agcy = email['agency']
+    service = gsheets.gauth(get_keys('google',agcy=agcy)['oauth'])
     headers = gsheets.get_values(
         service,
-        conf['google']['ss_id'],
+        get_keys('google',agcy=agcy)['ss_id'],
         'Routes!1:1'
     )[0]
 
     if 'Email Status' not in headers:
-        logger.error('Missing "Email Status" header')
+        log.error('Missing "Email Status" header')
         return False
 
     col_a1 = gsheets.col_idx_to_a1(headers.index('Email Status'))
 
     gsheets.update_cell(
         service,
-        conf['google']['ss_id'],
+        get_keys('google',agcy=agcy)['ss_id'],
         'Routes!' + col_a1 + str(email['on_status']['update']['row']),
         request.form['event']
     )
@@ -51,16 +40,14 @@ def on_delivered():
 def on_dropped():
     '''Mailgun webhook called from view. Has request context'''
 
-    db = get_db()
-
     msg = 'receipt to %s dropped. %s. %s' %(
         request.form['recipient'],
         request.form['reason'],
         request.form.get('description'))
 
-    logger.info(msg)
+    log.info(msg)
 
-    email = db['emails'].find_one_and_update(
+    email = g.db['emails'].find_one_and_update(
         {'mid': request.form['Message-Id']},
         {'$set': {'status': request.form['event']}})
 
@@ -93,22 +80,23 @@ def render_body(template_file, data):
             npu = parse(data['entry']['next_pickup'])
             data['entry']['next_pickup'] = npu.strftime('%B %-d, %Y')
 
-    with current_app.test_request_context():
-        current_app.config['SERVER_NAME'] = os.environ.get('BRAVO_HTTP_HOST')
-        try:
-            body = render_template(
-                template_file,
-                to = data['account']['email'],
-                account = data['account'],
-                entry = data['entry'],
-                history = data.get('history'), # optional
-                http_host= os.environ.get('BRAVO_HTTP_HOST')
-            )
-        except Exception as e:
-            logger.error('render receipt template: %s', str(e))
-            current_app.config['SERVER_NAME'] = None
-            return False
-        current_app.config['SERVER_NAME'] = None
+    # TODO: make sure calling API task sets request context in celery worker
+    #with current_app.test_request_context():
+    #current_app.config['SERVER_NAME'] = os.environ.get('BRAVO_HTTP_HOST')
+    try:
+        body = render_template(
+            template_file,
+            to = data['account']['email'],
+            account = data['account'],
+            entry = data['entry'],
+            history = data.get('history'), # optional
+            http_host= os.environ.get('BRAVO_HTTP_HOST')
+        )
+    except Exception as e:
+        log.error('render receipt template: %s', str(e))
+        #current_app.config['SERVER_NAME'] = None
+        return False
+    #current_app.config['SERVER_NAME'] = None
 
     return body
 
@@ -119,11 +107,7 @@ def send(agency, to, template, subject, data):
     Adds an eTapestry journal note with the content.
     '''
 
-    db = get_db()
-
-    logger.debug('%s %s', str(data['account']['id']), template)
-
-    agency_conf = db['agencies'].find_one({'name':agency})
+    log.debug('%s %s', str(data['account']['id']), template)
 
     body = render_body(template, data=data)
 
@@ -133,7 +117,7 @@ def send(agency, to, template, subject, data):
     # Add Journal note
     etap.call(
         'add_note',
-        agency_conf['etapestry'],
+        get_keys('etapestry',agcy=agency)['etapestry'],
         data={
             'id': data['account']['id'],
             'Note': 'Receipt:\n' + html.clean_whitespace(body),
@@ -143,10 +127,10 @@ def send(agency, to, template, subject, data):
     )
 
     mid = mailgun.send(
-        to, subject, body, agency_conf['mailgun'],
+        to, subject, body, get_keys('mailgun',agcy=agency),
         v={'type':'receipt'})
 
-    db.emails.insert_one({
+    g.db.emails.insert_one({
         'agency': agency,
         'mid': mid,
         'type': 'receipt',
@@ -168,8 +152,6 @@ def process(entries, etapestry_id):
     TODO: replace etapestry_id with agency name. Lookup etap_id from DB
     '''
 
-    db = get_db()
-
     try:
         # Get all eTapestry account data.
         # List is indexed the same as @entries arg list
@@ -177,11 +159,12 @@ def process(entries, etapestry_id):
           "account_numbers": [i['account_number'] for i in entries]
         })
     except Exception as e:
-        logger.error('Error retrieving accounts from etap: %s', str(e))
+        log.error('Error retrieving accounts from etap: %s', str(e))
         return False
 
-    oauth = db['agencies'].find_one({'name':etapestry_id['agency']})['google']['oauth']
-    gc = gsheets.auth(oauth, ['https://spreadsheets.google.com/feeds'])
+    gc = gsheets.auth(
+        get_keys('google',agcy=etapestry_id['agency'])['oauth'],
+        ['https://spreadsheets.google.com/feeds'])
     wks = gc.open(current_app.config['GSHEET_NAME']).worksheet('Routes')
     headers = wks.row_values(1)
 
@@ -280,7 +263,7 @@ def process(entries, etapestry_id):
                 gift_accounts.append({'entry': entries[i], 'account': accounts[i]})
 
         except Exception as e:
-            logger.error('Receipt error. Row %s: %s',str(entries[i]['from']['row']), str(e))
+            log.error('Receipt error. Row %s: %s',str(entries[i]['from']['row']), str(e))
 
         # All receipts sent except Gifts. Query Journal Histories
 
@@ -296,14 +279,14 @@ def process(entries, etapestry_id):
                     "start_date": "01/01/" + str(year),
                     "end_date": "31/12/" + str(year)
                 })
-            logger.info('%s gift histories retrieved', str(len(gift_histories)))
+            log.info('%s gift histories retrieved', str(len(gift_histories)))
 
         except Exception as e:
-            logger.error('Error retrieving gift histories: %s', str(e))
+            log.error('Error retrieving gift histories: %s', str(e))
 
         for i in range(0, len(gift_accounts)):
             try:
-                logger.debug('gift_history: %s', str(gift_histories[i]))
+                log.debug('gift_history: %s', str(gift_histories[i]))
 
                 send(
                     agency,
@@ -317,11 +300,11 @@ def process(entries, etapestry_id):
                     })
 
             except Exception as e:
-                logger.error('Error processing gift receipt on row #%s: %s',
+                log.error('Error processing gift receipt on row #%s: %s',
                             str(gift_accounts[i]['entry']['from']['row']), str(e)
                 )
 
-    logger.info('Receipts: \n' +
+    log.info('Receipts: \n' +
       str(num_zeros) + ' zero collections sent\n' +
       str(len(gift_accounts)) + ' gift receipts sent\n' +
       str(num_drop_followups) + ' dropoff followups sent\n' +

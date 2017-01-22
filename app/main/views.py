@@ -1,11 +1,8 @@
 '''app.main.views'''
-import logging, json, os, time
-import requests
-from datetime import datetime, date
-from flask import g, request, render_template, redirect, url_for, current_app,\
-     jsonify, Response
-from flask_login import login_required, current_user
-from .. import get_db, utils, html, gsheets, mailgun
+import logging, json, os, time, requests
+from flask import g, request, render_template, redirect, url_for, jsonify, Response
+from flask_login import login_required
+from .. import utils, html, gsheets, mailgun
 from . import main, receipts, signups
 from .tasks import send_receipts, add_gsheets_signup
 from app.notify import admin, email
@@ -16,14 +13,6 @@ log = logging.getLogger(__name__)
 @main.route('/')
 def landing_page():
     return redirect(url_for('notify.view_event_list'))
-
-#-------------------------------------------------------------------------------
-@main.route('/log')
-@login_required
-def view_log():
-    lines = log.get_tail(current_app.config['LOG_PATH'] + 'info.log', current_app.config['LOG_LINES'])
-
-    return render_template('views/log.html', lines=lines)
 
 #-------------------------------------------------------------------------------
 @main.route('/admin')
@@ -104,7 +93,7 @@ def _send_email():
         gsheets.create_rfu(args['agency'], str(e))
         return Response(response=str(e), status=500, mimetype='application/json')
     else:
-        db.emails.insert_one({
+        g.db.emails.insert_one({
             'agency': args['agency'],
             'mid': mid,
             'type': args.get('type'),
@@ -126,7 +115,7 @@ def email_unsubscribe(agency):
               unsubscribe from emails. Please contact to see if they want \
               to cancel the entire service.'
 
-        conf = db.agencies.find_one({'name':agency})['mailgun']
+        conf = g.db.agencies.find_one({'name':agency})['mailgun']
 
         try:
             r = requests.post(

@@ -11,7 +11,6 @@ from oauth2client.client import SignedJwtAssertionCredentials
 import httplib2
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
-from . import get_db
 logger = logging.getLogger(__name__)
 
 
@@ -280,10 +279,8 @@ def update_entry(agency, status, destination):
     destination: dict containing 'sheet', 'worksheet', 'row', 'upload_status'
     '''
 
-    db = get_db()
-
     try:
-        oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
+        oauth = g.db.agencies.find_one({'name':agency})['google']['oauth']
         gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
         sheet = gc.open(current_app.config['GSHEET_NAME'])
         wks = sheet.worksheet(destination['worksheet'])
@@ -350,10 +347,8 @@ def create_rfu(agency, note,
                a_id=None, npu=None, block=None, _date=None, name_addy=None,
                driver_notes=None, office_notes=None):
 
-    db = get_db()
-
     try:
-        oauth = db['agencies'].find_one({'name':agency})['google']['oauth']
+        oauth = g.db.agencies.find_one({'name':agency})['google']['oauth']
         gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
         sheet = gc.open(current_app.config['GSHEET_NAME'])
         wks = sheet.worksheet('RFU')

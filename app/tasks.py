@@ -23,12 +23,7 @@ def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwar
     @args, @kwargs: the tasks positional and keyword arguments
     '''
 
-    print 'prerun=%s, request=%s' % (sender.name.split('.')[-1], '...') #task.request)
-
-    kwargs['kwargs'][UberTask.ENVIRON_KW] = {}
-
-    for var in celery.app.config['ENV_VARS']:
-        kwargs['kwargs'][UberTask.ENVIRON_KW][var] = os.environ.get(var, '')
+    log.debug('prerun=%s, request=%s', sender.name.split('.')[-1], '...')
     pass
 
 #-------------------------------------------------------------------------------
@@ -50,12 +45,14 @@ state=None, *args, **kwargs):
     if state != 'SUCCESS':
         log.error('task=%s error. state=%s, retval=%s', name, state, retval)
         log.debug('task=%s failure.', name, exc_info=True)
+        print 'FAILED'
     else:
         print 'postrun=%s, state=%s' % (name, state)
 
 #-------------------------------------------------------------------------------
 @task_failure.connect
 def task_failure(signal=None, sender=None, task_id=None, exception=None, traceback=None, *args, **kwargs):
+    print 'TASK FAILED!'
     pass
 
 #-------------------------------------------------------------------------------

@@ -1,16 +1,10 @@
 '''app.notify.sms'''
-
-import logging
-import json
-import os
-from twilio.rest import TwilioRestClient
-from twilio import TwilioRestException, twiml
-from pymongo.collection import ReturnDocument
+import logging, json, os
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
-from .. import smart_emit, get_db, utils, html
+from .. import smart_emit, get_keys, utils, html
 import app.alice.outgoing
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
@@ -26,9 +20,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
         'func':'handler_func'}
     '''
 
-    db = get_db()
-
-    return db['notifics'].insert_one({
+    return g.db['notifics'].insert_one({
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
@@ -64,7 +56,7 @@ def send(notific, twilio_conf):
             notific = notific
         )
     except Exception as e:
-        logger.error('Error rendering SMS body. %s', str(e))
+        log.error('Error rendering SMS body. %s', str(e))
         return 'failed'
 
     msg = None
@@ -75,7 +67,7 @@ def send(notific, twilio_conf):
         from_ = twilio_conf['sms']['valid_from_number']
     else:
         from_ = twilio_conf['sms']['number']
-        logger.info('queued sms to %s', notific['to'])
+        log.info('queued sms to %s', notific['to'])
 
     body = html.clean_whitespace(body)
     callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST')
@@ -85,9 +77,9 @@ def send(notific, twilio_conf):
             body, notific['to'], acct['agency'], twilio_conf,
             status_callback=callback)
     except Exception as e:
-        logger.error('compose_msg exc')
+        log.error('compose_msg exc')
     else:
-        logger.info('queued sms to %s', notific['to'])
+        log.info('queued sms to %s', notific['to'])
     finally:
         g.db.notifics.update_one(
             {'_id': notific['_id']},
@@ -107,8 +99,8 @@ def on_status():
     '''Callback for sending notific SMS
     '''
 
-    logger.info('%s sms to %s', request.form['SmsStatus'], request.form['To'])
-    logger.debug('sms.on_status: %s', request.form.to_dict())
+    log.info('%s sms to %s', request.form['SmsStatus'], request.form['To'])
+    log.debug('sms.on_status: %s', request.form.to_dict())
 
     notific = g.db.notifics.find_one_and_update({
         'tracking.sid': request.form['SmsSid']}, {
@@ -120,9 +112,9 @@ def on_status():
 
     # Could be a new sid from a reply to reminder text?
     if not notific:
-        logger.debug('no notific for sid %s. must be reply.', str(request.form['SmsSid']))
+        log.debug('no notific for sid %s. must be reply.', str(request.form['SmsSid']))
         return 'OK'
-        logger.info('rest call')
+        log.info('rest call')
 
     smart_emit('notific_status', {
         'notific_id': str(notific['_id']),

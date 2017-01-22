@@ -26,8 +26,13 @@ def _analyze_routes():
 @main.route('/_build_routes', methods=['GET'])
 @login_required
 def _build_routes():
-    rv = build_routes.apply(kwargs={})
-    #log.debug(print_vars(rv))
+    try:
+        rv = build_routes.apply(kwargs={})
+    except Exception as e:
+        log.debug(str(e), exc_info=True)
+
+    log.debug(print_vars(rv))
+
     return jsonify({'state':rv.state, 'result':rv.result})
 
 #-------------------------------------------------------------------------------

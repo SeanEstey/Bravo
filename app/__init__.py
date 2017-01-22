@@ -1,18 +1,12 @@
 '''app.__init__'''
-
-from celery import Celery, Task
 import pymongo
 import eventlet
-import os
-import logging
-import socket
-import requests
-from bson.objectid import ObjectId
-from datetime import timedelta
-from flask import Flask, current_app, g, has_app_context, has_request_context
-from flask_login import LoginManager, current_user
+import os, logging, socket, requests
+from flask import Flask, g, has_app_context
+from flask_login import LoginManager
 from flask_kvsession import KVSessionExtension
 from flask_socketio import SocketIO, rooms
+from celery import Celery, Task
 from simplekv.db.mongo import MongoStore
 from werkzeug.contrib.fixers import ProxyFix
 import config, mongodb
@@ -38,13 +32,14 @@ from uber_task import UberTask
 celery = Celery(__name__, broker='amqp://')
 celery.Task = UberTask
 
+'''
 #-------------------------------------------------------------------------------
 def get_db():
     if has_app_context():
         return g.db
     else:
         return db_client[config.DB]
-
+'''
 #-------------------------------------------------------------------------------
 def get_keys(k, agcy=None):
     if g.user.is_authenticated:
@@ -154,6 +149,8 @@ def is_test_server():
 
     os.environ['BRAVO_HTTP_HOST'] = 'http://' + ip
 
+    log.debug('http_host=%s', os.environ['BRAVO_HTTP_HOST'])
+
     try:
         domain = socket.gethostbyaddr(ip)
     except Exception as e:
@@ -174,9 +171,9 @@ def is_test_server():
 def config_test_server(source):
     # Swap out any sandbox credentials that may be present
 
-    db = get_db()
+    #db = get_db()
     #test_db = client['test']
-    agencies = db.agencies.find()
+    #agencies = db.agencies.find()
     #cred = test_db.credentials.find_one()
 
     if source == 'sandbox':

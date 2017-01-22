@@ -1,11 +1,13 @@
 '''app.routing.main'''
 import time, json, logging
+from time import sleep
 import requests
 from dateutil.parser import parse
 from datetime import datetime, time, date
 from flask import g
 from bson import ObjectId
 from .. import smart_emit, get_keys, gdrive, gsheets, etap, cal, utils
+from app.utils import print_vars
 from . import geo, routific, sheet
 log = logging.getLogger(__name__)
 
@@ -44,7 +46,7 @@ def build(route_id, job_id=None):
 
     while orders == "processing":
         log.debug('No solution yet. Sleeping 5s...')
-        time.sleep(5)
+        sleep(5)
         orders = get_solution_orders(
             job_id,
             get_keys('google',agcy=agcy)['geocode']['api_key'])

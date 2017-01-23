@@ -1,15 +1,12 @@
 '''app.notify.recording'''
-
 from twilio import twiml
-import os
-import logging
-from datetime import datetime,date,time,timedelta
+import os, logging
+from datetime import datetime
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
-from flask import request, current_app
-from flask_login import current_user
-from .. import smart_emit, get_db, utils
-logger = logging.getLogger(__name__)
+from flask import g, request
+from .. import smart_emit, utils
+log = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
@@ -18,19 +15,17 @@ def dial():
     Response: JSON dict {'status':'string'}
     '''
 
-    db = get_db()
+    agency = g.db['users'].find_one({'user': g.user.user_id})['agency']
 
-    agency = db['users'].find_one({'user': current_user.user_id})['agency']
+    log.info('Record audio request from ' + request.form['To'])
 
-    logger.info('Record audio request from ' + request.form['To'])
-
-    twilio = db['agencies'].find_one({'name':agency})['twilio']
+    twilio = g.db['agencies'].find_one({'name':agency})['twilio']
 
     try:
         client = TwilioRestClient(twilio['api']['sid'], twilio['api']['auth_id'])
     except TwilioRestException as e:
-        logger.error('twilio REST error. %s', str(e))
-        logger.debug('tb: ', exc_info=True)
+        log.error('twilio REST error. %s', str(e))
+        log.debug('tb: ', exc_info=True)
         return 'failed'
 
     call = None
@@ -48,12 +43,12 @@ def dial():
             status_events = ["completed"],
             status_method = 'POST')
     except Exception as e:
-        logger.error('call to %s failed. %s', request.form['To'], str(e))
+        log.error('call to %s failed. %s', request.form['To'], str(e))
         return {'status':'failed', 'description': 'Invalid phone number'}
     else:
-        logger.debug(utils.print_vars(call))
+        log.debug(utils.print_vars(call))
 
-        db.audio.insert_one({
+        g.db.audio.insert_one({
             'date': datetime.utcnow(),
             'sid': call.sid,
             'agency': agency,
@@ -95,20 +90,18 @@ def on_interact():
     Response: twilio.twiml.Response with voice content
     '''
 
-    logger.debug('on_interact: %s', request.form.to_dict())
-
-    db = get_db()
+    log.debug('on_interact: %s', request.form.to_dict())
 
     if request.form.get('Digits') == '#':
-        record = db.audio.find_one({'sid': request.form['CallSid']})
+        record = g.db.audio.find_one({'sid': request.form['CallSid']})
 
-        logger.info(
+        log.info(
             'recording successful. duration: %ss',
             request.form['RecordingDuration'])
 
         # Reminder job has not been created yet so save in 'audio' for now
 
-        db.audio.update_one(
+        g.db.audio.update_one(
           {'sid': request.form['CallSid']},
           {'$set': {
               'audio_url': request.form['RecordingUrl'],
@@ -128,11 +121,9 @@ def on_interact():
 
 #-------------------------------------------------------------------------------
 def on_complete():
-    logger.debug('on_complete: %s', request.form.to_dict())
+    log.debug('on_complete: %s', request.form.to_dict())
 
-    db = get_db()
-
-    r = db.audio.find_one({'sid': request.form['CallSid']})
+    r = g.db.audio.find_one({'sid': request.form['CallSid']})
 
     if r['status'] != 'recorded':
         smart_emit('record_audio', {

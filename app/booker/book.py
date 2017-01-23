@@ -1,19 +1,15 @@
 '''app.booker.book'''
-
-import logging
-import os
+import logging, os
 from flask import render_template, request
-from datetime import datetime, date, time, timedelta
-from dateutil.parser import parse
-from .. import get_db, etap, utils, gsheets, mailgun
+from datetime import datetime, time
+from .. import etap, utils, gsheets, mailgun
 from app.routing.main import order
 from app.routing.sheet import append_order
 from app.routing.geo import get_gmaps_url
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 class EtapError(Exception):
     pass
-
 
 #-------------------------------------------------------------------------------
 def make(agency, data):
@@ -22,7 +18,7 @@ def make(agency, data):
     @account: dict with account date. 'date' is dd/mm/yyyy str
     '''
 
-    logger.info('Booking account %s for %s', data['aid'], data['date'])
+    log.info('Booking account %s for %s', data['aid'], data['date'])
 
     response = update_dms(agency, data)
 
@@ -35,9 +31,7 @@ def make(agency, data):
             time(0,0,0))
     )
 
-    db = get_db()
-
-    route = db.routes.find_one({
+    route = g.db.routes.find_one({
         'date': event_dt,
         'block': data['block'],
         'agency': agency}
@@ -57,9 +51,7 @@ def make(agency, data):
 #-------------------------------------------------------------------------------
 def update_dms(agency, data):
 
-    db = get_db()
-
-    conf = db.agencies.find_one({'name':agency})
+    conf = g.db.agencies.find_one({'name':agency})
 
     try:
         response = etap.call(
@@ -82,7 +74,7 @@ def update_dms(agency, data):
             'description': 'etapestry error: %s' % str(e)
         }
     except Exception as e:
-        logger.error('failed to book: %s', str(e))
+        log.error('failed to book: %s', str(e))
         return {
             'status': 'failed',
             'description': str(e)
@@ -94,12 +86,11 @@ def update_dms(agency, data):
 def append_route(agency, route, data):
     '''Block is already routed. Append order to end of Sheet'''
 
-    logger.info('%s already routed for %s. Appending to Sheet.',
+    log.info('%s already routed for %s. Appending to Sheet.',
                 data['block'], data['date'])
-    logger.debug('appending to ss_id "%s"', route['ss']['id'])
+    log.debug('appending to ss_id "%s"', route['ss']['id'])
 
-    db = get_db()
-    conf = db.agencies.find_one({'name':agency})
+    conf = g.db.agencies.find_one({'name':agency})
 
     acct = etap.call(
         'get_account',
@@ -108,7 +99,7 @@ def append_route(agency, route, data):
     )
 
     service = gsheets.gauth(
-        db.agencies.find_one({'name':agency})['google']['oauth']
+        g.db.agencies.find_one({'name':agency})['google']['oauth']
     )
 
     _order = order(
@@ -145,11 +136,10 @@ def send_confirm(agency, data):
             date_str = etap.ddmmyyyy_to_dt(data['date']).strftime('%B %-d %Y')
         )
     except Exception as e:
-        logger.error('Email not sent because render_template error. %s ', str(e))
+        log.error('Email not sent because render_template error. %s ', str(e))
         pass
 
-    db = get_db()
-    conf = db.agencies.find_one({'name':agency})
+    conf = g.db.agencies.find_one({'name':agency})
 
     mid = mailgun.send(
         data['email'],
@@ -159,12 +149,12 @@ def send_confirm(agency, data):
         v={'type':'confirmation'})
 
     if mid == False:
-        logger.error('failed to queue email to %s', data['email'])
+        log.error('failed to queue email to %s', data['email'])
     else:
-        logger.info('queued confirmation email to %s', data['email'])
+        log.info('queued confirmation email to %s', data['email'])
 
 #-------------------------------------------------------------------------------
 def on_delivered():
     '''Mailgun webhook called from view. Has request context'''
 
-    logger.info('confirmation delivered to %s', request.form['recipient'])
+    log.info('confirmation delivered to %s', request.form['recipient'])

@@ -1,12 +1,11 @@
 '''app.alice.outgoing'''
-
 import logging
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException
 from flask import g, request
 from .. import etap
 from app.utils import bcolors
-from .. import get_db, get_keys
+from .. import get_keys
 from .dialog import dialog
 log = logging.getLogger(__name__)
 
@@ -96,5 +95,4 @@ def compose(body, to, from_, self_name, t_keys, status_callback=None):
 
 #-------------------------------------------------------------------------------
 def get_self_name(agency):
-    db = get_db()
-    return db.agencies.find_one({'name':agency})['alice']['name']
+    return g.db.agencies.find_one({'name':agency})['alice']['name']

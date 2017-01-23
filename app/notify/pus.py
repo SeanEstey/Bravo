@@ -1,21 +1,14 @@
 '''app.notify.pus'''
-
-import logging
-import os
-import json
-from twilio.rest import TwilioRestClient
-from twilio import TwilioRestException, twiml
-from flask import current_app, render_template, request
-from flask_login import current_user
-from datetime import datetime, date, time, timedelta
+import logging, json, os
+from twilio import twiml
+from flask import g, request
+from datetime import time, timedelta
 from dateutil.parser import parse
 from bson.objectid import ObjectId
-from bson import json_util
-from .. import get_db, utils, parser, gcal, etap
+from .. import utils, parser, gcal, etap
 from . import events, email, sms, voice, triggers, accounts
 from .tasks import skip_pickup
 log = logging.getLogger(__name__)
-
 
 class EtapError(Exception):
     pass
@@ -26,9 +19,7 @@ def reminder_event(agency, block, _date):
     Returns: evnt_id (ObjectID) on succcess, False otherwise
     '''
 
-    db = get_db()
-
-    agency_conf = db['agencies'].find_one({'name':agency})
+    agency_conf = g.db['agencies'].find_one({'name':agency})
 
     try:
         etap_accts = etap.call(
@@ -163,10 +154,8 @@ def add_future_pickups(evnt_id):
 
     log.info('Getting next pickups for notification event ID \'%s\'', str(evnt_id))
 
-    db = get_db()
-
-    event = db['notific_events'].find_one({'_id':evnt_id})
-    agency_conf = db['agencies'].find_one({'name':event['agency']})
+    event = g.db['notific_events'].find_one({'_id':evnt_id})
+    agency_conf = g.db['agencies'].find_one({'name':event['agency']})
 
     start = event['event_dt'] + timedelta(days=1)
     end = start + timedelta(days=110)
@@ -198,13 +187,13 @@ def add_future_pickups(evnt_id):
             dt = parse(cal_event['start']['date'] + " T08:00:00")
             block_dates[block] = utils.naive_to_local(dt)
 
-    notific_list = db['notifics'].find({'evnt_id':evnt_id})
+    notific_list = g.db['notifics'].find({'evnt_id':evnt_id})
 
     # Update future pickups for every notification under this event
     npu = ''
     for notific in notific_list:
         try:
-            acct = db['accounts'].find_one({'_id':notific['acct_id']})
+            acct = g.db['accounts'].find_one({'_id':notific['acct_id']})
 
             npu = get_next_pickup(
               acct['udf']['block'],
@@ -213,7 +202,7 @@ def add_future_pickups(evnt_id):
             )
 
             if npu:
-                db['accounts'].update_one({'_id':notific['acct_id']}, {
+                g.db['accounts'].update_one({'_id':notific['acct_id']}, {
                     '$set':{'udf.future_pickup_dt':npu}
                 })
         except Exception as e:
@@ -260,8 +249,8 @@ def is_valid(evnt_id, acct_id):
     if not ObjectId.is_valid(evnt_id) or not ObjectId.is_valid(acct_id):
         return False
 
-    evnt = db.notific_events.find_one({'_id':ObjectId(evnt_id)})
-    acct = db.accounts.find_one({'_id':ObjectId(acct_id)})
+    evnt = g.db.notific_events.find_one({'_id':ObjectId(evnt_id)})
+    acct = g.db.accounts.find_one({'_id':ObjectId(acct_id)})
 
     if not evnt or not acct:
         return False
@@ -274,7 +263,6 @@ def is_valid(evnt_id, acct_id):
 def on_call_interact(notific):
 
     response = twiml.Response()
-    db = get_db()
 
     # Digit 1: Play live message
     if request.form['Digits'] == '1':
@@ -306,7 +294,7 @@ def on_call_interact(notific):
         skip_pickup.delay(
             (str(notific['evnt_id']), str(notific['acct_id'])))
 
-        acct = db['accounts'].find_one({'_id':notific['acct_id']})
+        acct = g.db['accounts'].find_one({'_id':notific['acct_id']})
         dt = utils.tz_utc_to_local(acct['udf']['future_pickup_dt'])
 
         response.say(

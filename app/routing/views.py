@@ -3,7 +3,7 @@ import logging, json
 from bson.objectid import ObjectId
 from flask import g, request, jsonify, render_template, redirect, url_for
 from flask_login import login_required
-from .. import get_keys, get_db, utils
+from .. import get_keys, utils
 from . import routing, main
 from .tasks import analyze_routes, build_route
 log = logging.getLogger(__name__)

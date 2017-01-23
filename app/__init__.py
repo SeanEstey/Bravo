@@ -20,7 +20,9 @@ inf_hand = log_handler(logging.INFO, 'info.log')
 err_hand = log_handler(logging.ERROR, 'error.log')
 exc_hand = log_handler(logging.CRITICAL, 'debug.log')
 log = logging.getLogger(__name__)
+
 login_manager = LoginManager()
+
 db_client = mongodb.create_client()
 mongodb.authenticate(db_client)
 kv_store = MongoStore(
@@ -32,16 +34,8 @@ from uber_task import UberTask
 celery = Celery(__name__, broker='amqp://')
 celery.Task = UberTask
 
-'''
 #-------------------------------------------------------------------------------
-def get_db():
-    if has_app_context():
-        return g.db
-    else:
-        return db_client[config.DB]
-'''
-#-------------------------------------------------------------------------------
-def get_keys(k, agcy=None):
+def get_keys(k=None, agcy=None):
     if g.user.is_authenticated:
         name = g.user.agency
     elif agcy:
@@ -51,10 +45,15 @@ def get_keys(k, agcy=None):
 
     conf = g.db.agencies.find_one({'name':name})
 
-    if conf and k in conf:
-        return conf[k]
+    if conf:
+        if not k:
+            return conf
+        elif k in conf:
+            return conf[k]
+        else:
+            raise Exception('key=%s not found'%k)
     else:
-        return None
+        raise Exception('no agency doc found ')
 
 #-------------------------------------------------------------------------------
 def create_app(pkg_name, kv_sess=True, testing=False):

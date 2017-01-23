@@ -1,24 +1,17 @@
 '''app.booker.geo'''
-
-import logging
+import json, logging, math, os, requests, time
 import matplotlib.path as mplPath
-import os
-import time
 import numpy as np
-import math
-import requests
-import json
 from datetime import datetime
-from .. import smart_emit, get_db, parser
-
-logger = logging.getLogger(__name__)
+from .. import smart_emit, get_keys, parser
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def find_block(agency, address, api_key):
     r = geocode(address, api_key)
 
     if not r or len(r) == 0:
-        logger.error('couldnt geocode %s', address)
+        log.error('couldnt geocode %s', address)
         return False
 
     map_name = find_map(agency, r[0]['geometry']['location'])
@@ -30,18 +23,15 @@ def find_block(agency, address, api_key):
 
 #-------------------------------------------------------------------------------
 def get_maps(agency):
-    db = get_db()
-    return db.maps.find_one({'agency':agency})['features']
+    return g.db.maps.find_one({'agency':agency})['features']
 
 #-------------------------------------------------------------------------------
 def find_map(agency, pt):
     '''@pt: {'lng':float, 'lat':float}'''
 
-    logger.info('find_map in pt %s', pt)
+    log.info('find_map in pt %s', pt)
 
-    db = get_db()
-
-    maps = db.maps.find_one({'agency':agency})['features']
+    maps = g.db.maps.find_one({'agency':agency})['features']
 
     for map_ in maps:
         coords = map_['geometry']['coordinates'][0]
@@ -56,7 +46,7 @@ def find_map(agency, pt):
             print map_['properties']['name']
             return map_['properties']['name']
 
-    logger.debug('map not found for pt %s', pt)
+    log.debug('map not found for pt %s', pt)
 
     return False
 
@@ -99,7 +89,7 @@ def get_nearby_blocks(pt, radius, maps, events):
             continue
 
         if maps[i]['geometry']['type'] != 'Polygon':
-            logger.error('map index %s is not a polygon', i)
+            log.error('map index %s is not a polygon', i)
             continue
 
         # Take the first lat/lon vertex in the rectangle and calculate distance
@@ -119,10 +109,10 @@ def get_nearby_blocks(pt, radius, maps, events):
         key=lambda k: k['event']['start'].get('dateTime',k['event']['start'].get('date'))
     )
 
-    logger.info('Found %s results within radius', str(len(results)))
+    log.info('Found %s results within radius', str(len(results)))
 
     for block in results:
-        logger.debug(
+        log.debug(
             '%s: %s (%s away)',
             block['event']['start'].get('dateTime', block['event']['start'].get('date')),
             block['name'],
@@ -184,24 +174,24 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
             'key': api_key
           })
     except requests.RequestException as e:
-        logger.error(str(e))
+        log.error(str(e))
         raise
 
-    #logger.debug(response.text)
+    #log.debug(response.text)
 
     response = json.loads(response.text)
 
     if response['status'] == 'ZERO_RESULTS':
         e = 'No geocode result for ' + address
-        logger.error(e)
+        log.error(e)
         return []
     elif response['status'] == 'INVALID_REQUEST':
         e = 'Invalid request for ' + address
-        logger.error(e)
+        log.error(e)
         return []
     elif response['status'] != 'OK':
         e = 'Could not geocode ' + address
-        logger.error(e)
+        log.error(e)
         return []
 
     # Single result
@@ -214,7 +204,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
               address, response['results'][0]['formatted_address'])
 
             response['results'][0]['warning'] = warning
-            logger.debug(warning)
+            log.debug(warning)
 
         return response['results']
 
@@ -228,7 +218,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
           'Using 1st result <strong>%s</strong>.' % (
           address, response['results'][0]['formatted_address'])
 
-        logger.debug(response['results'][0]['warning'])
+        log.debug(response['results'][0]['warning'])
 
         return [response['results'][0]]
     else:
@@ -245,7 +235,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
                   'Using as best match.' % (
                   address, get_postal(result), str(idx), result['formatted_address'])
 
-                logger.debug(result['warning'])
+                log.debug(result['warning'])
 
                 return [result]
 
@@ -257,7 +247,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
                   'Using <strong>%s</strong> as best guess.' % (
                   address, response['results'][0]['formatted_address'])
 
-                logger.error(response['results'][0]['warning'])
+                log.error(response['results'][0]['warning'])
 
     return [response['results'][0]]
 
@@ -271,13 +261,11 @@ def get_postal(geo_result):
 
 #-------------------------------------------------------------------------------
 def update_maps(agency, emit_status=False):
-    db = get_db()
-
-    conf = db.maps.find_one({'agency':agency})
+    conf = g.db.maps.find_one({'agency':agency})
     status = None
     desc = None
 
-    logger.debug('downloading kml file...')
+    log.debug('downloading kml file...')
 
     # download KML file
     os.system(
@@ -287,7 +275,7 @@ def update_maps(agency, emit_status=False):
 
     time.sleep(2)
 
-    logger.debug('converting to geo_json...')
+    log.debug('converting to geo_json...')
 
     # convert to geo_json
     os.system('togeojson /tmp/maps.xml > /tmp/maps.json')
@@ -296,7 +284,7 @@ def update_maps(agency, emit_status=False):
 
     import json
 
-    logger.debug('loading geo_json...')
+    log.debug('loading geo_json...')
 
     try:
         with open(os.path.join('/tmp', 'maps.json')) as data_file:
@@ -305,12 +293,12 @@ def update_maps(agency, emit_status=False):
         desc = \
             'problem opening maps.json. may be issue either '\
             'downloading .xml file or conversion to .json. '
-        logger.error(desc + str(e))
+        log.error(desc + str(e))
         status = 'failed'
     else:
         status = 'success'
 
-        maps = db.maps.find_one_and_update(
+        maps = g.db.maps.find_one_and_update(
             {'agency':agency},
             {'$set': {
                 'update_dt': datetime.utcnow(),
@@ -320,7 +308,7 @@ def update_maps(agency, emit_status=False):
 
         desc = 'Updated %s maps successfully.' % len(data['features'])
 
-        logger.info('%s: %s', agency, desc)
+        log.info('%s: %s', agency, desc)
 
     # Will block
     if emit_status:

@@ -2,7 +2,7 @@
 import logging, json, os, time, requests
 from flask import g, request, render_template, redirect, url_for, jsonify, Response
 from flask_login import login_required
-from .. import utils, html, gsheets, mailgun
+from .. import get_keys, utils, html, gsheets, mailgun
 from . import main, receipts, signups
 from .tasks import send_receipts, add_gsheets_signup
 from app.notify import admin, email
@@ -21,7 +21,7 @@ def view_admin():
     if g.user.admin == True:
         settings = get_keys()
         settings.pop('_id')
-        settings.pop('google.oauth')
+        settings['google'].pop('oauth')
         settings_html = html.to_div('', settings)
     else:
         settings_html = ''
@@ -34,23 +34,6 @@ def view_admin():
 def update_agency_conf():
     admin.update_agency_conf()
     return jsonify({'status':'success'})
-
-#-------------------------------------------------------------------------------
-@main.route('/receipts/process', methods=['POST'])
-def process_receipts():
-    '''Data sent from Routes worksheet in Gift Importer (Google Sheet)
-    @arg 'data': JSON array of dict objects with UDF and gift data
-    @arg 'etapestry': JSON dict of etapestry info for PHP script
-    '''
-
-    log.info('Process receipts request received')
-
-    entries = json.loads(request.form['data'])
-    etapestry = json.loads(request.form['etapestry'])
-
-    send_receipts.delay(args=[entries, etapestry])
-
-    return 'OK'
 
 #-------------------------------------------------------------------------------
 @main.route('/email/send', methods=['POST'])

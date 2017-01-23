@@ -1,36 +1,23 @@
 '''app.notify.gg'''
-
-import logging
-import os
-import json
-from twilio.rest import TwilioRestClient
-from twilio import TwilioRestException, twiml
-from flask import current_app, render_template, request
-from flask_login import current_user
-from datetime import datetime, date, time, timedelta
+import logging, os
+from twilio import twiml
+from flask import g, request
 from dateutil.parser import parse
-from bson.objectid import ObjectId as oid
-from bson import json_util
-from .. import get_db, utils, parser, gcal, etap
+from .. import get_keys, etap
 from . import events, email, sms, voice, triggers, accounts
-logger = logging.getLogger(__name__)
-
+log = logging.getLogger(__name__)
 
 class EtapError(Exception):
     pass
 
 #-------------------------------------------------------------------------------
 def add_event():
-    db = get_db()
-    agency = db.users.find_one({'user': current_user.user_id})['agency']
-    conf= db.agencies.find_one({'name':agency})
-
-    logger.info(request.form.to_dict())
+    log.info(request.form.to_dict())
 
     try:
         response = etap.call(
             'get_query_accounts',
-            conf['etapestry'],
+            get_keys('etapestry'),
             data={
                 'query': request.form['query_name'],
                 'query_category':'GG: Invoices'
@@ -38,15 +25,15 @@ def add_event():
         )
     except Exception as e:
         msg = 'Failed to retrieve query "%s". Details: %s' % (request.form['query_name'], str(e))
-        logger.error(msg)
+        log.error(msg)
         raise EtapError(msg)
     else:
-        logger.info('returned %s journal entries', response['count'])
+        log.info('returned %s journal entries', response['count'])
 
     je = response['data']
 
     evnt_id = events.add(
-        agency,
+        g.user.agency,
         request.form['event_name'] or request.form['query_name'],
         parse(request.form['event_date']),
         'green_goods'
@@ -71,7 +58,7 @@ def add_event():
         )
     except Exception as e:
         msg = 'Failed to retrieve accts. %s' % str(e)
-        logger.error(msg)
+        log.error(msg)
         raise EtapError(msg)
 
     # both je and accts lists should be same length, point to same account
@@ -80,7 +67,7 @@ def add_event():
 
     for i in range(len(je)):
         acct_id = accounts.add(
-            agency,
+            g.user.agency,
             evnt_id,
             je[i]['accountName'],
             phone = etap.get_primary_phone(accts[i]),

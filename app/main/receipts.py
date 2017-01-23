@@ -64,7 +64,7 @@ def on_dropped():
     )
 
 #-------------------------------------------------------------------------------
-def render_body(template_file, data):
+def render_body(path, data):
     '''Convert all dates in data to long format strings, render into html'''
 
     # Bravo php returned gift histories as ISOFormat
@@ -80,12 +80,9 @@ def render_body(template_file, data):
             npu = parse(data['entry']['next_pickup'])
             data['entry']['next_pickup'] = npu.strftime('%B %-d, %Y')
 
-    # TODO: make sure calling API task sets request context in celery worker
-    #with current_app.test_request_context():
-    #current_app.config['SERVER_NAME'] = os.environ.get('BRAVO_HTTP_HOST')
     try:
         body = render_template(
-            template_file,
+            path,
             to = data['account']['email'],
             account = data['account'],
             entry = data['entry'],
@@ -94,14 +91,12 @@ def render_body(template_file, data):
         )
     except Exception as e:
         log.error('render receipt template: %s', str(e))
-        #current_app.config['SERVER_NAME'] = None
         return False
-    #current_app.config['SERVER_NAME'] = None
 
     return body
 
 #-------------------------------------------------------------------------------
-def send(agency, to, template, subject, data):
+def send(to, template, subject, data):
     '''Sends a receipt/no collection/dropoff followup/etc for a route entry.
     Should be running in process() celery task
     Adds an eTapestry journal note with the content.
@@ -117,7 +112,7 @@ def send(agency, to, template, subject, data):
     # Add Journal note
     etap.call(
         'add_note',
-        get_keys('etapestry',agcy=agency)['etapestry'],
+        get_keys('etapestry'),
         data={
             'id': data['account']['id'],
             'Note': 'Receipt:\n' + html.clean_whitespace(body),
@@ -126,12 +121,10 @@ def send(agency, to, template, subject, data):
         silence_exceptions=False
     )
 
-    mid = mailgun.send(
-        to, subject, body, get_keys('mailgun',agcy=agency),
-        v={'type':'receipt'})
+    mid = mailgun.send(to, subject, body, get_keys('mailgun'), v={'type':'receipt'})
 
     g.db.emails.insert_one({
-        'agency': agency,
+        'agency': g.user.agency,
         'mid': mid,
         'type': 'receipt',
         'on_status': {
@@ -141,8 +134,10 @@ def send(agency, to, template, subject, data):
 
 
 #-------------------------------------------------------------------------------
-def process(entries, etapestry_id):
-    '''Celery process that sends email receipts to entries in Bravo
+def process(entries):
+    '''Celery Sub-task of API call 'send_receipts'
+    Data sent from Routes worksheet in Gift Importer (Google Sheet)
+    Celery process that sends email receipts to entries in Bravo
     Sheets->Routes worksheet. Lots of account data retrieved from eTap
     (accounts + journal data) so can take awhile to run 4 templates:
     gift_collection, zero_collection, dropoff_followup, cancelled entries:
@@ -155,15 +150,16 @@ def process(entries, etapestry_id):
     try:
         # Get all eTapestry account data.
         # List is indexed the same as @entries arg list
-        accounts = etap.call('get_accounts', etapestry_id, {
-          "account_numbers": [i['account_number'] for i in entries]
-        })
+        accounts = etap.call(
+            'get_accounts',
+            get_keys('etapestry'),
+            {"account_numbers": [i['account_number'] for i in entries]})
     except Exception as e:
         log.error('Error retrieving accounts from etap: %s', str(e))
         return False
 
     gc = gsheets.auth(
-        get_keys('google',agcy=etapestry_id['agency'])['oauth'],
+        get_keys('google')['oauth'],
         ['https://spreadsheets.google.com/feeds'])
     wks = gc.open(current_app.config['GSHEET_NAME']).worksheet('Routes')
     headers = wks.row_values(1)
@@ -174,10 +170,8 @@ def process(entries, etapestry_id):
     num_no_emails = 0
     gift_accounts = []
 
-    with open('app/templates/schemas/'+etapestry_id['agency']+'.json') as json_file:
+    with open('app/templates/schemas/%s.json' % g.user.agency) as json_file:
       schemas = json.load(json_file)['receipts']
-
-    agency = etapestry_id['agency']
 
     for i in range(0, len(accounts)):
         try:
@@ -200,9 +194,8 @@ def process(entries, etapestry_id):
             # Send Cancelled Receipt
             if etap.get_udf('Status', accounts[i]) == 'Cancelled':
                 send(
-                    agency,
                     accounts[i]['email'],
-                    "receipts/"+agency+"/cancelled.html",
+                    "receipts/%s/cancelled.html" % g.user.agency,
                     "Your Account has been Cancelled",
                     data={
                         'account': accounts[i],
@@ -220,9 +213,8 @@ def process(entries, etapestry_id):
             if drop_date:
                 if etap.ddmmyyyy_to_date(drop_date) == parse(entries[i]['date']).date():
                     send(
-                        agency,
                         accounts[i]['email'],
-                        "receipts/"+agency+"/dropoff_followup.html",
+                        "receipts/%s/dropoff_followup.html" % g.user.agency,
                         "Dropoff Complete",
                         data={
                             'account': accounts[i],
@@ -236,9 +228,8 @@ def process(entries, etapestry_id):
             if entries[i]['amount'] == 0:
                 if accounts[i]['nameFormat'] == 3: # Business
                     send(
-                        agency,
                         accounts[i]['email'],
-                        "receipts/"+agency+"/zero_collection.html",
+                        "receipts/%s/zero_collection.html" % g.user.agency,
                         "See you next time",
                         data={
                             'account': accounts[i],
@@ -247,9 +238,8 @@ def process(entries, etapestry_id):
 
                 else: # Residential
                     send(
-                        agency,
                         accounts[i]['email'],
-                        "receipts/"+agency+"/no_collection.html",
+                        "receipts/%s/no_collection.html" % g.user.agency,
                         "See you next time",
                         data={
                             'account': accounts[i],
@@ -273,7 +263,7 @@ def process(entries, etapestry_id):
 
             gift_histories = etap.call(
                 'get_gift_histories',
-                etapestry_id,
+                get_keys('etapestry'),
                 data={
                     "account_refs": [i['account']['ref'] for i in gift_accounts],
                     "start_date": "01/01/" + str(year),
@@ -289,9 +279,8 @@ def process(entries, etapestry_id):
                 log.debug('gift_history: %s', str(gift_histories[i]))
 
                 send(
-                    agency,
                     gift_accounts[i]['account']['email'],
-                    "receipts/"+agency+"/collection_receipt.html",
+                    "receipts/%s/collection_receipt.html" % g.user.agency,
                     "Thanks for your Donation",
                     data={
                         'account': gift_accounts[i]['account'],

@@ -1,5 +1,4 @@
 '''app.main.tasks'''
-
 import logging
 from flask import g
 from app import celery
@@ -70,13 +69,10 @@ def non_participants(self, *args, **kwargs):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def send_receipts(self, *args, **kwargs):
-    entries = args[0] # FIXME
-    etapestry_id = args[1] # FIXME
-
+def send_receipts(self, entries, **rest):
     try:
         from app.main import receipts
-        return receipts.process(entries, etapestry_id)
+        return receipts.process(entries)
     except Exception as e:
         log.error('%s\n%s', str(e), tb.format_exc())
 

@@ -1,28 +1,21 @@
 '''app.alice.views'''
-
 import logging
 from flask_login import login_required, current_user
 from flask import g, request, jsonify, render_template, session, Response
-from .. import get_db, utils
-from app.utils import print_vars
+from ..utils import formatter, print_vars, start_timer, end_timer
 from . import alice, incoming
 from .session import store_sessions, dump_session, dump_sessions, wipe_sessions
 from .incoming import make_reply
 from .util import get_chatlogs
 from .dialog import dialog
 from .outgoing import send_welcome
-from bson.objectid import ObjectId
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @alice.before_request
 def alice_globals():
-    log.debug('alice.before_request has db')
-    g.db = get_db()
-
     if current_user.is_authenticated:
-        g.user = current_user
-        g.agency = current_user.get_agency()
+        g.agency = current_user.agency
 
 #-------------------------------------------------------------------------------
 @alice.route('/', methods=['GET'])
@@ -42,7 +35,7 @@ def _get_chatlogs():
         log.debug(str(e))
 
     return jsonify(
-        utils.formatter(
+        formatter(
             chatlogs,
             to_local_time=True,
             bson_to_json=True))
@@ -52,7 +45,7 @@ def _get_chatlogs():
 def sms_received(agency):
     session['agency'] = agency
     #log.debug(print_vars(request))
-    a = utils.start_timer()
+    a = start_timer()
 
     try:
         response = incoming.receive()
@@ -62,7 +55,7 @@ def sms_received(agency):
         log.error(str(e))
         return make_reply(dialog['error']['unknown'])
 
-    utils.end_timer(a, display=True, lbl='alice request')
+    end_timer(a, display=True, lbl='alice request')
 
     return response
 

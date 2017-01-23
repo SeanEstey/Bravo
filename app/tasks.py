@@ -1,13 +1,10 @@
 '''app.tasks'''
-import logging, os
+import logging
 from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure
-from celery.utils.log import get_task_logger
-from utils import print_vars, inspector
-from app import create_app, init_celery, mongodb, utils, deb_hand,\
-inf_hand, err_hand, exc_hand
+from app import create_app, init_celery
 from app import celery as _celery
-from uber_task import UberTask
+from utils import inspector
 
 log = logging.getLogger(__name__)
 app = create_app(__name__, kv_sess=False)
@@ -60,7 +57,7 @@ def kill(task_id):
     log.info('attempting to kill task_id %s', task_id)
 
     try:
-        response = celery.control.revoke(task_id, terminate=True)
+        response = revoke(task_id, terminate=True)
     except Exception as e:
         log.error('revoke task error: %s', str(e))
         return False

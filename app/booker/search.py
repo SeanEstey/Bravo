@@ -1,9 +1,7 @@
 '''app.booker.search'''
-
-from datetime import datetime, date, timedelta
-import logging
-import re
-from .. import get_db, etap, parser, gcal
+from datetime import datetime, timedelta
+import logging, re
+from .. import etap, parser, gcal
 from . import geo
 logger = logging.getLogger(__name__)
 
@@ -18,9 +16,8 @@ def search(agency, query, radius=None, weeks=None):
     Returns: JSON object: {'search_type': str, 'status': str, 'description': str, 'results': array }
     '''
 
-    db = get_db()
-    conf = db.agencies.find_one({'name':agency})
-    maps = db.maps.find_one({'agency':conf['name']})['features']
+    conf = g.db.agencies.find_one({'name':agency})
+    maps = g.db.maps.find_one({'agency':conf['name']})['features']
 
     SEARCH_WEEKS = weeks or 12
     SEARCH_DAYS = SEARCH_WEEKS * 7
@@ -168,8 +165,7 @@ def search(agency, query, radius=None, weeks=None):
 
 #-------------------------------------------------------------------------------
 def get_account(agency, aid):
-    db = get_db()
-    conf = db.agencies.find_one({'name':agency})
+    conf = g.db.agencies.find_one({'name':agency})
 
     try:
         account = etap.call(

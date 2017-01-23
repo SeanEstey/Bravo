@@ -8,6 +8,7 @@ from flask_login import current_user
 from bson.objectid import ObjectId
 import logging
 from . import api
+from app.main.tasks import send_receipts
 logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -20,6 +21,12 @@ def authenticate():
 @api.route('/test', methods=['GET'])
 def test_cred():
     print 'api.test'
+    return 'SUCCESS'
+
+#-------------------------------------------------------------------------------
+@api.route('/send_receipts', methods=['POST'])
+def api_receipts():
+    send_receipts.delay(request.form['data'])
     return 'SUCCESS'
 
 #-------------------------------------------------------------------------------

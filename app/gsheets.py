@@ -107,6 +107,11 @@ def get_values(service, ss_id, a1_range):
     return result.get('values', [])
 
 #-------------------------------------------------------------------------------
+def get_row(service, ss_id, row):
+    a1 = '%s:%s' % (str(row),str(row))
+    return get_values(service, ss_id, a1)[0]
+
+#-------------------------------------------------------------------------------
 def insert_rows_above(service, ss_id, row, num):
     try:
         service.spreadsheets().batchUpdate(
@@ -250,6 +255,10 @@ def col_idx_to_a1(idx):
     for i in range(int(parts[0])):
         a1 += alphabet[i]
     '''
+
+def a1(row, col):
+    letter = col_idx_to_a1(col-1)
+    return '%s%s' % (letter,(row))
 
 # ----- GSPREAD (OLD) --------------------------------------------------------
 

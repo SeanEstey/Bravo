@@ -4,6 +4,7 @@ from datetime import date
 from dateutil.parser import parse
 from flask import current_app, render_template, request
 from .. import get_keys, html, mailgun, etap, gsheets
+from app.gsheets import update_cell, a1
 from app.etap import get_udf
 from app.etap import ddmmyyyy_to_date as to_date
 log = logging.getLogger(__name__)
@@ -98,7 +99,7 @@ def render_body(path, data):
     return body
 
 #-------------------------------------------------------------------------------
-def send(to, template, subject, data):
+def deliver(to, template, subject, data):
     '''Sends a receipt/no collection/dropoff followup/etc for a route entry.
     Should be running in process() celery task
     Adds an eTapestry journal note with the content.
@@ -133,27 +134,31 @@ def send(to, template, subject, data):
             'update': data['entry']['from']}})
 
 #-------------------------------------------------------------------------------
-def do_receipt(acct, entry, ss, headers, track, gift_history=None):
+def do_receipt(acct, entry, gift_history=None):
+    '''Refer to flask globals set in parent task: g.service, g.ss_id,
+    g.headers, g.track
+    '''
+
     entry_date = parse(entry['date']).date()
-    status = get_udf('Status', acct)
+    acct_status = get_udf('Status', acct)
     drop_date = to_date(get_udf('Dropoff Date', acct))
     nf = account['nameFormat']
 
-    if status == 'Cancelled':
+    if acct_status == 'Cancelled':
         path = "receipts/%s/cancelled.html" % g.user.agency
         subject = "Your Account has been Cancelled"
     elif drop_date == entry_date:
         path = "receipts/%s/dropoff_followup.html" % g.user.agency
         subject = "Dropoff Complete"
-        track['drop_followups'] +=1
+        g.track['drop_followups'] +=1
     elif entry['amount'] == 0 and nf == 3:
         path = "receipts/%s/zero_collection.html" % g.user.agency
         subject = "See you next time"
-        track['num_zeros'] +=1
+        g.track['num_zeros'] +=1
     elif entry['amount'] == 0 and nf < 3:
         path = "receipts/%s/no_collection.html" % g.user.agency
         subject = "See you next time"
-        track['num_zeros'] +=1
+        g.track['num_zeros'] +=1
     elif entry['amount'] > 0:
         if gift_history:
             path = "receipts/%s/collection_receipt.html" % g.user.agency
@@ -163,26 +168,31 @@ def do_receipt(acct, entry, ss, headers, track, gift_history=None):
 
     if acct['email']:
         try:
-            send(acct['email'], path, subject, data={
+            deliver(acct['email'], path, subject, data={
                 'account':acct,'entry':entry,'history':gift_history})
         except Exception as e:
             log.error('Receipt error. Row %s: %s',str(entry['from']['row']), str(e))
 
-        receipt_status = 'queued'
+        status = 'queued'
     else:
-        track['no_email'] +=1
-        receipt_status = 'no email'
+        g.track['no_email'] +=1
+        status = 'no email'
+
+    row = entry['from']['row']
+    col = headers.index('Email Status')+1
 
     try:
-        ss.update_cell(
-          entry['from']['row'],
-          headers.index('Email Status')+1,
-          receipt_status)
+        update_cell(g.service, g.ss_id, a1(row,col), status)
     except Exception as e:
         log.error('update_cell error')
 
 #-------------------------------------------------------------------------------
-def get_je_histories(acct_refs, year):
+def get_gifts_ytd(acct_refs, year):
+    '''Get non-zero gift entries for accts in given calendar year.
+    Helper function for send_receipts task.
+    @acct_refs: list of eTap acct DB refs
+    '''
+
     try:
         je_list = etap.call(
             'get_gift_histories',
@@ -192,8 +202,9 @@ def get_je_histories(acct_refs, year):
                 "start_date": "01/01/" + str(year),
                 "end_date": "31/12/" + str(year)
             })
-        log.info('%s gift histories retrieved', str(len(je_list)))
     except Exception as e:
         log.error('Error retrieving gift histories: %s', str(e))
-
-    return je_list
+        raise
+    else:
+        log.info('%s gift histories retrieved', str(len(je_list)))
+        return je_list

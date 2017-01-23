@@ -32,6 +32,16 @@ def call_accts_receipts():
 def call_accts_create():
     return task_call(WRITE_ME, get_var('data'))
 
+@api.route('/agency/update', methods=['POST'])
+@login_required
+def call_agcy_update():
+    return func_call(WRITE_ME, get_var('data'))
+
+@api.route('/alice/welcome', methods=['POST'])
+@login_required
+def call_alice_welcome():
+    return func_call(WRITE_ME, get_var('acct_id'))
+
 @api.route('/booker/create', methods=['POST'])
 @login_required
 def call_booker_create():
@@ -51,6 +61,41 @@ def call_maps_get():
 @login_required
 def call_maps_update():
     return task_call(update_maps, agcy=g.user.agency)
+
+@api.route('/notify/events/create', methods=['POST'])
+@login_required
+def call_create_event():
+    return task_call(WRITE_ME)
+
+@api.route('/notify/events/cancel', methods=['POST'])
+@login_required
+def call_cancel_event():
+    return task_call(WRITE_ME)
+
+@api.route('/notify/events/reset', methods=['POST'])
+@login_required
+def call_reset_event():
+    return task_call(WRITE_ME)
+
+@api.route('/notify/acct/edit', methods=['POST'])
+@login_required
+def call_notify_acct_edit():
+    return func_call(WRITE_ME)
+
+@api.route('/notify/triggers/fire', methods=['POST'])
+@login_required
+def call_trigger_fire():
+    return task_call(WRITE_ME)
+
+@api.route('/notify/triggers/kill', methods=['POST'])
+@login_required
+def call_trigger_kill():
+    return task_call(WRITE_ME)
+
+@api.route('/notify/acct/skip', methods=['POST'])
+@login_required
+def call_skip_pickup():
+    return task_call(WRITE_ME)
 
 @api.route('/signups/lookup', methods=['POST'])
 @login_required

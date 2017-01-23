@@ -219,6 +219,6 @@ def end_timer(start_dt, display=False, lbl=None):
     c = b - start_dt
 
     if display:
-        logger.debug('%s: %s.%ss', lbl, c.seconds, c.microseconds/1000)
+        logger.debug('%s (%s.%ss)', lbl, c.seconds, c.microseconds/1000)
 
     return c

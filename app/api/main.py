@@ -3,6 +3,7 @@ import logging
 from json import dumps
 from flask import Response, request, jsonify
 import celery.result
+from app.utils import start_timer, end_timer
 log = logging.getLogger(__name__)
 
 def WRITE_ME(msg=None):
@@ -10,11 +11,13 @@ def WRITE_ME(msg=None):
 
 #-------------------------------------------------------------------------------
 def func_call(function, *args, **kwargs):
+    s = start_timer()
+
     try:
         rv = function(*args, **kwargs)
     except Exception as e:
         return build_resp(exc=str(e))
-    return build_resp(rv=rv)
+    return build_resp(rv=rv, name=function.__name__, dt=s)
 
 #-------------------------------------------------------------------------------
 def task_call(function, *args, **kwargs):
@@ -22,7 +25,7 @@ def task_call(function, *args, **kwargs):
     return build_resp(rv=rv)
 
 #-------------------------------------------------------------------------------
-def build_resp(rv=None, exc=False):
+def build_resp(rv=None, exc=False, name=None, dt=None):
     if exc:
         log.error('api call fail. desc=%s', exc)
         log.debug('',exc_info=True)
@@ -33,7 +36,7 @@ def build_resp(rv=None, exc=False):
 
     if rv and isinstance(rv, celery.result.AsyncResult):
         if rv.state == 'SUCCESS':
-            log.info('api call success')
+            end_timer(dt, display=True, lbl='API call success, func="%s"' % name)
 
             return Response(
                 response=dumps({'status':'success','data':None}),
@@ -46,7 +49,7 @@ def build_resp(rv=None, exc=False):
                 response=dumps({'status':'failure', 'desc':dumps(rv.result), 'data':None}),
                 status=200, mimetype='application/json')
 
-    log.info('api call success')
+    end_timer(dt, display=True, lbl='API call success, func="%s"' % name)
 
     return Response(
         response=dumps({'status':'success', 'data':rv}),

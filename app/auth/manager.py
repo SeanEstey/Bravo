@@ -1,6 +1,7 @@
 '''app.auth.manager'''
 import logging
 import base64
+from bson.objectid import ObjectId
 from flask import g
 from .. import db_client, login_manager
 from .user import User
@@ -40,6 +41,9 @@ def load_api_user(request):
         except TypeError:
             pass
         #print 'decoded api_key=%s' % api_key
+
+        if not ObjectId.is_valid(api_key):
+            return None
 
         db = db_client['bravo']
         user = db.users.find_one({'api_key':str(api_key)})

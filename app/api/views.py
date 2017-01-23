@@ -1,90 +1,83 @@
-'''api.views'''
-
-import json
-import requests
-from datetime import datetime, date, time, timedelta
-from flask import request, jsonify, current_app, url_for, Response
-from flask_login import current_user
-from bson.objectid import ObjectId
-import logging
+'''app.api.views'''
 from . import api
+from flask_login import login_required
+from .main import get_var, build_resp, func_call, task_call, WRITE_ME
+
+from app.main import accounts
 from app.main.tasks import send_receipts
-logger = logging.getLogger(__name__)
+from app.routing.tasks import build_route
+from app.routing.main import edit_field
+from app.booker.geo import get_maps
+from app.booker.tasks import update_maps
+from app.main.signups import lookup_carrier
+from app.booker.search import search
 
-#-------------------------------------------------------------------------------
-@api.before_request
-def authenticate():
-    print 'api.before_request'
-    print 'current_user=%s' % current_user
-    pass
+@api.route('/accounts/get', methods=['POST'])
+@login_required
+def call_accts_get():
+    return func_call(accounts.get, get_var('acct_id')) # TODO: update booker to call this from API
 
-@api.route('/test', methods=['GET'])
-def test_cred():
-    print 'api.test'
-    return 'SUCCESS'
+@api.route('/accounts/gifts', methods=['POST'])
+@login_required
+def call_accts_gifts():
+    return task_call(WRITE_ME)
 
-#-------------------------------------------------------------------------------
-@api.route('/send_receipts', methods=['POST'])
-def api_receipts():
-    send_receipts.delay(request.form['data'])
-    return 'SUCCESS'
+@api.route('/accounts/receipts', methods=['POST'])
+@login_required
+def call_accts_receipts():
+    return task_call(send_receipts, get_var('data'))
 
-#-------------------------------------------------------------------------------
-@api.route('/salesforce', methods=['GET'])
-def test_salesforce():
-    from app.api import salesforce
-    salesforce.login()
-    return 'OK'
+@api.route('/accounts/create', methods=['POST'])
+@login_required
+def call_accts_create():
+    return task_call(WRITE_ME, get_var('data'))
 
-#-------------------------------------------------------------------------------
-@api.route('/get_maps', methods=['POST'])
-def get_maps():
-    from app.booker import geo
+@api.route('/booker/create', methods=['POST'])
+@login_required
+def call_booker_create():
+    return func_call(WRITE_ME)
 
-    return Response(
-        json.dumps(geo.get_maps(request.form['agency'])),
-        status=200,
-        mimetype='application/json'
-    )
+@api.route('/booker/search', methods=['POST'])
+@login_required
+def call_booker_search():
+    return func_call(search, get_var('agency'), get_var('query'), radius=get_var('radius'), weeks=get_var('weeks'))
 
-#-------------------------------------------------------------------------------
-@api.route('/phone_lookup', methods=['POST'])
-def lookup_phone():
-    agency = request.form['agency']
-    # Lookup twilio id, auth_code
-    url = 'https://lookups.twilio.com/v1/PhoneNumbers/'
-    '''
-    headers = {
-        "Authorization" : "Basic " + Utilities.base64Encode(this.twilio_auth_key)
-    }
+@api.route('/booker/maps/get', methods=['POST'])
+@login_required
+def call_maps_get():
+    return func_call(get_maps)
 
-    try:
-        response = UrlFetchApp.fetch(
-            url+phone+'?Type=carrier', {
-                'method':'GET',
-                'muteHttpExceptions': True,
-                'headers':headers
-            }
-        )
-      }
-    '''
-    return Response('', status=200, mimetype='application/json')
+@api.route('/booker/maps/update', methods=['POST'])
+@login_required
+def call_maps_update():
+    return task_call(update_maps, agcy=g.user.agency)
 
-#-------------------------------------------------------------------------------
-@api.route('/booker_search', methods=['POST'])
-def search_by_address():
-    from app.booker import search
+@api.route('/signups/lookup', methods=['POST'])
+@login_required
+def call_phone_lookup():
+    return func_call(lookup_carrier, get_var('phone'))
 
-    return Response(
-        json.dumps(search.search(
-            request.form['agency'],
-            request.form['query'],
-            radius=float(request.form.get('radius')),
-            weeks=int(request.form.get('weeks'))
-        )),
-        status=200,
-        mimetype='application/json'
-    )
+@api.route('/routing/build', methods=['POST'])
+@login_required
+def call_route_build():
+    return task_call(build_route, get_var('route_id'), job_id=get_var('job_id'))
+
+@api.route('/routing/edit', methods=['POST'])
+@login_required
+def call_route_edit():
+    return func_call(edit_field, get_var('route_id'), get_var('field'), get_var('value'))
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #-------------------------------------------------------------------------------

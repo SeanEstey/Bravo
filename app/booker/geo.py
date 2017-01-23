@@ -3,7 +3,9 @@ import json, logging, math, os, requests, time
 import matplotlib.path as mplPath
 import numpy as np
 from datetime import datetime
+from flask import g
 from .. import smart_emit, get_keys, parser
+from app.utils import formatter
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -22,8 +24,9 @@ def find_block(agency, address, api_key):
     return False
 
 #-------------------------------------------------------------------------------
-def get_maps(agency):
-    return g.db.maps.find_one({'agency':agency})['features']
+def get_maps():
+    maps = g.db.maps.find_one({'agency':g.user.agency})['features']
+    return formatter(maps, bson_to_json=True)
 
 #-------------------------------------------------------------------------------
 def find_map(agency, pt):
@@ -258,63 +261,3 @@ def get_postal(geo_result):
             return component['short_name']
 
     return False
-
-#-------------------------------------------------------------------------------
-def update_maps(agency, emit_status=False):
-    conf = g.db.maps.find_one({'agency':agency})
-    status = None
-    desc = None
-
-    log.debug('downloading kml file...')
-
-    # download KML file
-    os.system(
-        'wget \
-        "https://www.google.com/maps/d/kml?mid=%s&lid=%s&forcekml=1" \
-        -O /tmp/maps.xml' %(conf['mid'], conf['lid']))
-
-    time.sleep(2)
-
-    log.debug('converting to geo_json...')
-
-    # convert to geo_json
-    os.system('togeojson /tmp/maps.xml > /tmp/maps.json')
-
-    time.sleep(2)
-
-    import json
-
-    log.debug('loading geo_json...')
-
-    try:
-        with open(os.path.join('/tmp', 'maps.json')) as data_file:
-            data = json.load(data_file)
-    except Exception as e:
-        desc = \
-            'problem opening maps.json. may be issue either '\
-            'downloading .xml file or conversion to .json. '
-        log.error(desc + str(e))
-        status = 'failed'
-    else:
-        status = 'success'
-
-        maps = g.db.maps.find_one_and_update(
-            {'agency':agency},
-            {'$set': {
-                'update_dt': datetime.utcnow(),
-                'features': data['features']
-            }}
-        )
-
-        desc = 'Updated %s maps successfully.' % len(data['features'])
-
-        log.info('%s: %s', agency, desc)
-
-    # Will block
-    if emit_status:
-        smart_emit('update_maps',{
-            'status': status,
-            'description': desc,
-            'n_updated': len(maps['features'])})
-
-    return True

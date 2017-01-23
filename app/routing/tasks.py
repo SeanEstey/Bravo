@@ -129,7 +129,7 @@ def analyze_routes(self, days=None, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def build_routes(self, **rest):
+def build_scheduled_routes(self, **rest):
     '''Route orders for today's Blocks and build Sheets
     '''
 
@@ -171,10 +171,6 @@ def build_routes(self, **rest):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def build_route(self, route_id, job_id=None, **rest):
-    log.debug('debug only')
-    log.info('info logger')
-    log.error('err logger')
-    
     #try:
     return build(str(route_id), job_id=job_id)
     #except Exception as e:

@@ -113,3 +113,22 @@ def on_email_dropped():
             msg + request.form.get('description')],
         kwargs={'_date': date.today().strftime('%-m/%-d/%Y')}
     )
+
+#-------------------------------------------------------------------------------
+def lookup_carrier(phone):
+    url = 'https://lookups.twilio.com/v1/PhoneNumbers/'
+    '''
+    headers = {
+        "Authorization" : "Basic " + Utilities.base64Encode(this.twilio_auth_key)
+    }
+
+    try:
+        response = UrlFetchApp.fetch(
+            url+phone+'?Type=carrier', {
+                'method':'GET',
+                'muteHttpExceptions': True,
+                'headers':headers
+            }
+        )
+      }
+    '''

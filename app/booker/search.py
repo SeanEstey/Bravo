@@ -16,6 +16,8 @@ def search(agency, query, radius=None, weeks=None):
     Returns: JSON object: {'search_type': str, 'status': str, 'description': str, 'results': array }
     '''
 
+    # TODO: test radius and weeks, convert radius to float, convert weeks to int
+
     conf = g.db.agencies.find_one({'name':agency})
     maps = g.db.maps.find_one({'agency':conf['name']})['features']
 
@@ -162,28 +164,6 @@ def search(agency, query, radius=None, weeks=None):
                 'in next <b>%s weeks.</b>'%(
                 len(results), query, SEARCH_RADIUS, SEARCH_WEEKS)
         }
-
-#-------------------------------------------------------------------------------
-def get_account(agency, aid):
-    conf = g.db.agencies.find_one({'name':agency})
-
-    try:
-        account = etap.call(
-          'get_account',
-          conf['etapestry'],
-          data={'account_number': int(aid)}
-        )
-    except Exception as e:
-        logger.error('no account id %s', aid)
-        return {
-            'status': 'failed',
-            'description': 'No account found matching ID <b>%s</b>.'% aid
-        }
-
-    return {
-        'status': 'success',
-        'account': account
-    }
 
 #-------------------------------------------------------------------------------
 def search_by_radius(coords, radius, maps, events):

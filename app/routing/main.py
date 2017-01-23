@@ -4,10 +4,10 @@ from time import sleep
 import requests
 from dateutil.parser import parse
 from datetime import datetime, time, date
-from flask import g
+from flask import g, request
 from bson import ObjectId
 from .. import smart_emit, get_keys, gdrive, gsheets, etap, cal, utils
-from app.utils import print_vars
+from app.utils import print_vars, formatter
 from . import geo, routific, sheet
 log = logging.getLogger(__name__)
 
@@ -370,7 +370,44 @@ def is_scheduled(account, route_date):
 def get_metadata():
     '''Get metadata for routes today and onward
     '''
-    return g.db.routes.find({
+    route_docs = g.db.routes.find({
         'agency': g.user.agency,
         'date': {'$gte':datetime.combine(date.today(),time())}
     }).sort('date', 1)
+
+    route_docs = formatter(
+        list(route_docs),
+        bson_to_json=True,
+        to_local_time=True,
+        to_strftime="%A %b %d")
+
+    for route in route_docs:
+        # for storing in route_btn.attr('data-route')
+        route['json'] = json.dumps(route)
+
+    return route_docs
+
+#-------------------------------------------------------------------------------
+def edit_field(route_id, field, value):
+    log.debug('edit_route id=%s, field=%s, value=%s',route_id,field,value)
+
+    value_type = None
+
+    if field == 'depot':
+        for depot in get_keys('routing')['locations']['depots']:
+            if depot['name'] == value:
+                value_type = depot
+    elif field == 'driver':
+        for driver in get_keys('routing')['drivers']:
+            if driver['name'] == value:
+                value_type = driver
+
+    if not value_type:
+        log.error('couldnt find value in db for %s:%s', field, value)
+        return 'failed'
+
+    g.db.routes.update_one(
+        {'_id':ObjectId(route_id)},
+        {'$set': {field:value}})
+
+    return 'success'

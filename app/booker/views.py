@@ -1,17 +1,14 @@
 '''booker.views'''
-
-import json
+import json, logging, requests
 import twilio.twiml
-import requests
 from datetime import datetime, date, time, timedelta
 from flask import g, request, jsonify, render_template, redirect, current_app,url_for
 from flask_login import login_required, current_user
 from bson.objectid import ObjectId
-import logging
 from . import booker, geo, search, book
 from .. import utils
 from .tasks import update_maps
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @booker.route('/', methods=['GET'])
@@ -26,14 +23,13 @@ def show_home():
 @booker.route('/search', methods=['POST'])
 @login_required
 def submit_search():
-    logger.info(request.form.to_dict())
+    log.info(request.form.to_dict())
 
     results = search.search(
         g.user.agency,
         request.form['query'],
         request.form.get('radius'),
-        request.form.get('weeks')
-    )
+        request.form.get('weeks'))
 
     return jsonify(results)
 
@@ -57,13 +53,11 @@ def find_nearby_blocks():
             service,
             cal_ids[_id],
             datetime.today(),
-            end_date
-        )
+            end_date)
 
     events =sorted(
         events,
-        key=lambda k: k['start'].get('dateTime',k['start'].get('date'))
-    )
+        key=lambda k: k['start'].get('dateTime',k['start'].get('date')))
 
     pt = {'lng': request.form['lng'], 'lat': request.form['lat']}
 
@@ -72,21 +66,10 @@ def find_nearby_blocks():
     return jsonify(results)
 
 #-------------------------------------------------------------------------------
-@booker.route('/get_acct', methods=['POST'])
-@login_required
-def get_acct():
-    response = search.get_account(
-        g.user.agency,
-        request.form['aid']
-    )
-
-    return jsonify(response)
-
-#-------------------------------------------------------------------------------
 @booker.route('/book', methods=['POST'])
 @login_required
 def do_booking():
-    logger.debug(request.form.to_dict())
+    log.debug(request.form.to_dict())
 
     user = g.db.users.find_one({'user': current_user.user_id})
 
@@ -98,23 +81,6 @@ def do_booking():
         'name': request.form['name'],
         'email': request.form['email'],
         'send_confirm': request.form['confirmation'] == 'true',
-        'user_fname': user['name']
-    }
+        'user_fname': user['name']}
 
     return jsonify(book.make(user['agency'], data))
-
-#-------------------------------------------------------------------------------
-@booker.route('/get_maps', methods=['POST'])
-@login_required
-def get_maps():
-    return jsonify(utils.formatter(
-        g.db.maps.find_one({'agency':g.user.agency}),
-        bson_to_json=True))
-
-#-------------------------------------------------------------------------------
-@booker.route('/update_maps', methods=['POST'])
-@login_required
-def update_maps():
-    update_maps.delay(kwargs={'agency': g.user.agency, 'emit_status': True})
-
-    return jsonify('OK')

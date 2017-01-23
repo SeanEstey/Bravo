@@ -4,6 +4,8 @@ from datetime import date
 from dateutil.parser import parse
 from flask import current_app, render_template, request
 from .. import get_keys, html, mailgun, etap, gsheets
+from app.etap import get_udf
+from app.etap import ddmmyyyy_to_date as to_date
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -128,174 +130,70 @@ def send(to, template, subject, data):
         'mid': mid,
         'type': 'receipt',
         'on_status': {
-            'update': data['entry']['from']
-            }
-    })
-
+            'update': data['entry']['from']}})
 
 #-------------------------------------------------------------------------------
-def process(entries):
-    '''Celery Sub-task of API call 'send_receipts'
-    Data sent from Routes worksheet in Gift Importer (Google Sheet)
-    Celery process that sends email receipts to entries in Bravo
-    Sheets->Routes worksheet. Lots of account data retrieved from eTap
-    (accounts + journal data) so can take awhile to run 4 templates:
-    gift_collection, zero_collection, dropoff_followup, cancelled entries:
-    list of row entries to receive emailed receipts
-    @entries: array of gift entries
-    @etapestry_id: agency name and login info
-    TODO: replace etapestry_id with agency name. Lookup etap_id from DB
-    '''
+def do_receipt(acct, entry, ss, headers, track, gift_history=None):
+    entry_date = parse(entry['date']).date()
+    status = get_udf('Status', acct)
+    drop_date = to_date(get_udf('Dropoff Date', acct))
+    nf = account['nameFormat']
+
+    if status == 'Cancelled':
+        path = "receipts/%s/cancelled.html" % g.user.agency
+        subject = "Your Account has been Cancelled"
+    elif drop_date == entry_date:
+        path = "receipts/%s/dropoff_followup.html" % g.user.agency
+        subject = "Dropoff Complete"
+        track['drop_followups'] +=1
+    elif entry['amount'] == 0 and nf == 3:
+        path = "receipts/%s/zero_collection.html" % g.user.agency
+        subject = "See you next time"
+        track['num_zeros'] +=1
+    elif entry['amount'] == 0 and nf < 3:
+        path = "receipts/%s/no_collection.html" % g.user.agency
+        subject = "See you next time"
+        track['num_zeros'] +=1
+    elif entry['amount'] > 0:
+        if gift_history:
+            path = "receipts/%s/collection_receipt.html" % g.user.agency
+            subject = "Thanks for your Donation"
+        else:
+            return 'wait'
+
+    if acct['email']:
+        try:
+            send(acct['email'], path, subject, data={
+                'account':acct,'entry':entry,'history':gift_history})
+        except Exception as e:
+            log.error('Receipt error. Row %s: %s',str(entry['from']['row']), str(e))
+
+        receipt_status = 'queued'
+    else:
+        track['no_email'] +=1
+        receipt_status = 'no email'
 
     try:
-        # Get all eTapestry account data.
-        # List is indexed the same as @entries arg list
-        accounts = etap.call(
-            'get_accounts',
-            get_keys('etapestry'),
-            {"account_numbers": [i['account_number'] for i in entries]})
+        ss.update_cell(
+          entry['from']['row'],
+          headers.index('Email Status')+1,
+          receipt_status)
     except Exception as e:
-        log.error('Error retrieving accounts from etap: %s', str(e))
-        return False
+        log.error('update_cell error')
 
-    gc = gsheets.auth(
-        get_keys('google')['oauth'],
-        ['https://spreadsheets.google.com/feeds'])
-    wks = gc.open(current_app.config['GSHEET_NAME']).worksheet('Routes')
-    headers = wks.row_values(1)
+#-------------------------------------------------------------------------------
+def get_je_histories(acct_refs, year):
+    try:
+        je_list = etap.call(
+            'get_gift_histories',
+            get_keys('etapestry'),
+            data={
+                "account_refs": acct_refs,
+                "start_date": "01/01/" + str(year),
+                "end_date": "31/12/" + str(year)
+            })
+        log.info('%s gift histories retrieved', str(len(je_list)))
+    except Exception as e:
+        log.error('Error retrieving gift histories: %s', str(e))
 
-    num_zeros = 0
-    num_drop_followups = 0
-    num_cancels = 0
-    num_no_emails = 0
-    gift_accounts = []
-
-    with open('app/templates/schemas/%s.json' % g.user.agency) as json_file:
-      schemas = json.load(json_file)['receipts']
-
-    for i in range(0, len(accounts)):
-        try:
-            if not accounts[i]['email']:
-                wks.update_cell(
-                  entries[i]['from']['row'],
-                  headers.index('Email Status')+1,
-                  'no email'
-                )
-                num_no_emails += 1
-
-                continue
-            else:
-                wks.update_cell(
-                  entries[i]['from']['row'],
-                  headers.index('Email Status')+1,
-                  'queued'
-                )
-
-            # Send Cancelled Receipt
-            if etap.get_udf('Status', accounts[i]) == 'Cancelled':
-                send(
-                    accounts[i]['email'],
-                    "receipts/%s/cancelled.html" % g.user.agency,
-                    "Your Account has been Cancelled",
-                    data={
-                        'account': accounts[i],
-                        'entry': entries[i]
-                    })
-
-                num_cancels += 1
-                continue
-
-            # If UDF['SMS'] is defined, include it
-
-            # Dropoff Followup Receipt
-            drop_date = etap.get_udf('Dropoff Date', accounts[i])
-
-            if drop_date:
-                if etap.ddmmyyyy_to_date(drop_date) == parse(entries[i]['date']).date():
-                    send(
-                        accounts[i]['email'],
-                        "receipts/%s/dropoff_followup.html" % g.user.agency,
-                        "Dropoff Complete",
-                        data={
-                            'account': accounts[i],
-                            'entry': entries[i]
-                        })
-
-                    num_drop_followups += 1
-                    continue
-
-            # Zero Collection Receipt
-            if entries[i]['amount'] == 0:
-                if accounts[i]['nameFormat'] == 3: # Business
-                    send(
-                        accounts[i]['email'],
-                        "receipts/%s/zero_collection.html" % g.user.agency,
-                        "See you next time",
-                        data={
-                            'account': accounts[i],
-                            'entry': entries[i]
-                        })
-
-                else: # Residential
-                    send(
-                        accounts[i]['email'],
-                        "receipts/%s/no_collection.html" % g.user.agency,
-                        "See you next time",
-                        data={
-                            'account': accounts[i],
-                            'entry': entries[i]
-                        })
-
-                num_zeros +=1
-
-            # Gift Receipt
-            elif entries[i]['amount'] > 0:
-                gift_accounts.append({'entry': entries[i], 'account': accounts[i]})
-
-        except Exception as e:
-            log.error('Receipt error. Row %s: %s',str(entries[i]['from']['row']), str(e))
-
-        # All receipts sent except Gifts. Query Journal Histories
-
-    if len(gift_accounts) > 0:
-        try:
-            year = parse(gift_accounts[0]['entry']['date']).year
-
-            gift_histories = etap.call(
-                'get_gift_histories',
-                get_keys('etapestry'),
-                data={
-                    "account_refs": [i['account']['ref'] for i in gift_accounts],
-                    "start_date": "01/01/" + str(year),
-                    "end_date": "31/12/" + str(year)
-                })
-            log.info('%s gift histories retrieved', str(len(gift_histories)))
-
-        except Exception as e:
-            log.error('Error retrieving gift histories: %s', str(e))
-
-        for i in range(0, len(gift_accounts)):
-            try:
-                log.debug('gift_history: %s', str(gift_histories[i]))
-
-                send(
-                    gift_accounts[i]['account']['email'],
-                    "receipts/%s/collection_receipt.html" % g.user.agency,
-                    "Thanks for your Donation",
-                    data={
-                        'account': gift_accounts[i]['account'],
-                        'entry': gift_accounts[i]['entry'],
-                        'history': gift_histories[i]
-                    })
-
-            except Exception as e:
-                log.error('Error processing gift receipt on row #%s: %s',
-                            str(gift_accounts[i]['entry']['from']['row']), str(e)
-                )
-
-    log.info('Receipts: \n' +
-      str(num_zeros) + ' zero collections sent\n' +
-      str(len(gift_accounts)) + ' gift receipts sent\n' +
-      str(num_drop_followups) + ' dropoff followups sent\n' +
-      str(num_cancels) + ' cancellations sent\n' +
-      str(num_no_emails) + ' no emails')
+    return je_list

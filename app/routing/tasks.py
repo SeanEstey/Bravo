@@ -6,7 +6,7 @@ from flask import g
 from celery.utils.log import get_task_logger
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
-from .. import smart_emit, celery, get_keys, gcal, etap, utils, parser
+from .. import smart_emit, celery, get_keys, gcal, gdrive, etap, utils, parser
 from .main import build
 from . import depots
 log = logging.getLogger(__name__)
@@ -171,7 +171,61 @@ def build_scheduled_routes(self, **rest):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def build_route(self, route_id, job_id=None, **rest):
-    #try:
-    return build(str(route_id), job_id=job_id)
-    #except Exception as e:
-    #    log.error('%s', str(e), exc_info=True)
+    '''Celery task that routes a Block via Routific and writes orders to a Sheet
+    Can take up to a few min to run depending on size of route, speed of
+    dependent API services (geocoder, sheets/drive api)
+    @route_id: '_id' of record in 'routes' db collection (str)
+    @job_id: routific job string. If passed, creates Sheet without re-routing
+    Returns: db.routes dict on success, False on error
+    '''
+
+    route = g.db.routes.find_one({"_id":ObjectId(route_id)})
+    agcy = route['agency']
+
+    print '%s: Building %s...' % (agcy, route['block'])
+    log.info('%s: Building %s...', agcy, route['block'])
+
+    if job_id is None:
+        job_id = submit_job(ObjectId(route_id))
+
+    # Keep looping and sleeping until receive solution or hit tsak_time_limit
+    orders = get_solution_orders(
+        job_id,
+        get_keys('google',agcy=agcy)['geocode']['api_key'])
+
+    if orders == False:
+        log.error('Error retrieving routific solution')
+        return False
+
+    while orders == "processing":
+        log.debug('No solution yet. Sleeping 5s...')
+        sleep(5)
+        orders = get_solution_orders(
+            job_id,
+            get_keys('google',agcy=agcy)['geocode']['api_key'])
+
+    title = '%s: %s (%s)' %(
+        route['date'].strftime('%b %-d'), route['block'], route['driver']['name'])
+
+    ss = sheet.build(
+        agcy,
+        gdrive.gauth(get_keys('google',agcy=agcy)['oauth']),
+        title)
+
+    route = g.db.routes.find_one_and_update(
+        {'_id':ObjectId(route_id)},
+        {'$set':{ 'ss': ss}}
+    )
+
+    sheet.write_orders(
+        gsheets.gauth(get_keys('google',agcy=agcy)['oauth']),
+        ss['id'],
+        orders)
+
+    smart_emit('route_status',{
+        'status':'completed', 'ss_id':ss['id'], 'warnings':route['warnings']})
+
+    log.info(
+        '%s Sheet created. Orders written.', route['block'])
+
+    #return route

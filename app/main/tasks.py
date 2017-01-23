@@ -153,3 +153,77 @@ def add_gsheets_signup(self, *args, **kwargs):
         return signups.add(signup)
     except Exception as e:
         log.error('%s\n%s', str(e), tb.format_exc())
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def send_receipts(self, entries, **rest):
+    '''Celery Sub-task of API call 'send_receipts'
+    Data sent from Routes worksheet in Gift Importer (Google Sheet)
+    Celery process that sends email receipts to entries in Bravo
+    Sheets->Routes worksheet. Lots of account data retrieved from eTap
+    (accounts + journal data) so can take awhile to run 4 templates:
+    gift_collection, zero_collection, dropoff_followup, cancelled entries:
+    list of row entries to receive emailed receipts
+    @entries: array of gift entries
+    @etapestry_id: agency name and login info
+    '''
+
+    try:
+        # Get all eTapestry account data.
+        # List is indexed the same as @entries arg list
+        accts = etap.call(
+            'get_accounts',
+            get_keys('etapestry'),
+            {"account_numbers": [i['account_number'] for i in entries]})
+    except Exception as e:
+        log.error('Error retrieving accounts from etap: %s', str(e))
+        return False
+
+    gift_accts = []
+    track = {
+        'zeros': 0,
+        'drop_followups': 0,
+        'cancels': 0,
+        'no_email': 0,
+        'gifts': 0
+    }
+
+    gc = gsheets.auth(
+        get_keys('google')['oauth'],
+        ['https://spreadsheets.google.com/feeds'])
+    wks = gc.open(current_app.config['GSHEET_NAME']).worksheet('Routes')
+    headers = wks.row_values(1)
+
+    with open('app/templates/schemas/%s.json' % g.user.agency) as json_file:
+      schemas = json.load(json_file)['receipts']
+
+    for i in range(0, len(accts)):
+        r = do_receipt(
+            accts[i],
+            entries[i],
+            wks, headers, track)
+
+        if r == 'wait':
+            gift_accts.append({
+                'entry': entries[i], 'account': accts[i]})
+
+    # All receipts sent except Gifts. Query Journal Histories
+
+    if len(gift_accts) > 0:
+        year = parse(gift_accts[0]['entry']['date']).year
+        acct_refs = [i['account']['ref'] for i in gift_accts]
+        gift_histories = get_je_histories(acct_refs, year)
+
+        for i in range(0, len(gift_accts)):
+            r = do_receipt(
+                gift_accts[i]['account'],
+                entries[i],
+                wks, headers, track,
+                gift_history=gift_histories[i])
+
+    log.info('Receipts: \n' +
+      str(num_zeros) + ' zero collections sent\n' +
+      str(len(gift_accts)) + ' gift receipts sent\n' +
+      str(num_drop_followups) + ' dropoff followups sent\n' +
+      str(num_cancels) + ' cancellations sent\n' +
+      str(num_no_emails) + ' no emails')

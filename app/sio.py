@@ -20,8 +20,10 @@ def smart_emit(event, data, room=None):
     Can be called from celery task if part of a request (will be cancelled
     otherwise).
     '''
+    log.debug('smart_emit data=%s', data)
+
     if room:
-        print 'smart_emit: sending to requested room=%s' % room
+        print 'smart_emit: sending to requested room=%s, event=%s' %(room,event)
         sio_client.emit(event, data, room=room)
     else:
         if current_user and current_user.is_authenticated:

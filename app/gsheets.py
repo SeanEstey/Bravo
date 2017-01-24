@@ -65,6 +65,13 @@ def write_rows(service, ss_id, rows, a1_range):
         return False
 
 #-------------------------------------------------------------------------------
+def append_row(service, ss_id, wks, row):
+    prop = get_prop(service, ss_id)
+    max_rows = prop['gridProperties']['rowCount']
+    row_range = '%s!%s:%s' % (wks, max_rows+1,max_rows+1)
+    write_rows(service, ss_id, [row], row_range)
+
+#-------------------------------------------------------------------------------
 def update_cell(service, ss_id, a1_range, value):
     '''Write data to sheet
     @a1_range: cell range i.e. "Routes!D65"

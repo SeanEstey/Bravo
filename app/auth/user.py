@@ -40,24 +40,24 @@ class User():
 
     @classmethod
     def authenticate(cls, user_id, pw):
+        log.debug('User.authenticate() user_id=%s, pw=%s', user_id, pw)
+
         if not user_id or not pw:
-            return Response('No username', status=500)
+            return None
+            #return Response('No username', status=500)
 
         db = db_client['bravo']
-        usr = db.users.find_one({
+        db_user = db.users.find_one({
             'user': user_id,
             'password': pw})
 
-        # TODO: what about > 1 docs found?
-
-        if not usr:
+        if not db_user:
             log.error('invalid credentials, user_id=%s', user_id)
+            return None
+        else:
+            return db_user
 
-            return {
-              'status':'error',
-              'title': 'login info',
-              'msg':'Invalid login credentials'}
-
+        '''
         login_user(
             User(
                 user_id,
@@ -65,10 +65,9 @@ class User():
                 _id = usr['_id'],
                 agency = usr['agency'],
                 admin = usr['admin']))
-
-        log.info('User %s logged in', user_id)
-
-        return {'status':'success'}
+        log.debug('logged in %s', user_id)
+        #return {'status':'success', 'user_id':user_id}
+        '''
 
     def __init__(self, user_id, name=None, _id=None, agency=None, admin=False):
         self._id = _id
@@ -81,6 +80,7 @@ class User():
 #-------------------------------------------------------------------------------
 class Anonymous(AnonymousUserMixin):
     def __init__(self):
+        log.debug('loading guest')
         self.user_id = 'Guest'
         self._id = None
 

@@ -1,25 +1,27 @@
 '''app.routing.tasks'''
 import logging, re
 from time import sleep
+from bson import ObjectId
 import bson.json_util
 from flask import g
-from celery.utils.log import get_task_logger
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
-from .. import smart_emit, celery, get_keys, gcal, gdrive, etap, utils, parser
+from .. import smart_emit, celery, get_keys, gcal, gdrive, gsheets, etap, utils, parser
 from ..utils import local_today_dt, d_to_local_dt, formatter
 from ..etap import EtapError, get_query, get_udf
-from . import depots
+from . import depots, sheet
+from .main import submit_job, get_solution_orders
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def analyze_routes(self, days=5, **rest):
+def analyze_routes(self, agcy=None, days=5, **rest):
     '''Celery task
     Scans schedule for blocks, adds metadata to db, sends socketio signal
     to client
     '''
 
+    log.debug('analyze_routes, days=%s, g.user=%s', days, g.user)
     #sleep(3)
     smart_emit('analyze_routes', {'status':'in-progress'})
 
@@ -146,6 +148,8 @@ def build_route(self, route_id, job_id=None, **rest):
     @job_id: routific job string. If passed, creates Sheet without re-routing
     Returns: db.routes dict on success, False on error
     '''
+
+    log.debug('route_id=%s, job_id=%s, rest=%s', route_id, job_id, rest)
 
     route = g.db.routes.find_one({"_id":ObjectId(route_id)})
     agcy = route['agency']

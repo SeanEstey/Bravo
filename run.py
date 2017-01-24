@@ -4,6 +4,7 @@ from flask import g, session
 from flask_login import current_user
 from setup import startup_msg
 from app import db_client, create_app, config_test_server, is_test_server
+from app.auth import load_user
 from app.utils import bcolors, print_vars, inspector
 from app.sio import sio_server
 
@@ -14,7 +15,10 @@ app = create_app('app')
 def do_setup():
     session.permanent = True
     g.db = db_client['bravo']
-    g.user = current_user
+
+    if session['user_id']:
+        app.logger.debug('app.before_request() g.user loaded')
+        g.user = load_user(session['user_id'])
     #app.logger.debug('app before_request set g.user=%s', g.user)
     #print 'app.before_request g.db=True'
 

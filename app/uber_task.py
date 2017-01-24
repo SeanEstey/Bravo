@@ -29,7 +29,7 @@ class UberTask(Task):
         '''Called by worker
         '''
 
-        #print '__call__: %s' % self.name.split('.')[-1]
+        print '__call__: %s' % self.name.split('.')[-1]
 
         req_ctx = has_request_context()
         app_ctx = has_app_context()
@@ -57,6 +57,7 @@ class UberTask(Task):
         '''Called by Flask app
         '''
 
+        log.debug('apply args=%s, kwargs=%s, options=%s', args, kwargs, options)
         if options.pop('with_request_context', True) or has_app_context():
             self._push_contexts(kwargs)
 
@@ -91,6 +92,10 @@ class UberTask(Task):
 
         # Save environ vars
 
+        log.debug('push_contexts')
+        g.user = current_user
+        log.debug('g.user.user_id=%s', g.user.user_id)
+
         kwargs[self.ENVIRON_KW] = {}
 
         for var in current_app.config['ENV_VARS']:
@@ -98,8 +103,13 @@ class UberTask(Task):
             kwargs[self.ENVIRON_KW][var] = os.environ.get(var, '')
 
         if has_app_context():
-            #print 'g.user=%s, _id=%s' % (g.user, str(g.user._id))
+
+            #from app.auth.manager import load_user
+            #log.debug('setting g.user')
+            #g.user = current_user
+            #log.debug('g.user=%s', g.user)
             kwargs[self.USERID_KW] = str(g.user._id)
+            print 'g.user=%s, _id=%s, kwargs=%s' % (g.user, str(g.user._id),kwargs)
 
         if not has_request_context():
             return
@@ -132,7 +142,7 @@ class UberTask(Task):
         mongodb.authenticate(self.db_client)
 
         user_oid = kwargs.pop(self.USERID_KW, None)
-        #print 'user_oid=%s, type=%s' % (user_oid,type(user_oid))
+        print 'user_oid=%s, type=%s' % (user_oid,type(user_oid))
 
         if user_oid:
             db_user = g.db.users.find_one({'_id':ObjectId(str(user_oid))})
@@ -144,6 +154,6 @@ class UberTask(Task):
                 admin=db_user['admin']))
             g.user = current_user
 
-        #print \
-        #    'call=%s, user=%s, g.db=%s, kwargs=%s' %(
-        #    self.name.split('.')[-1], current_user, type(g.db), kwargs)
+        print \
+            'call=%s, user=%s, g.db=%s, kwargs=%s' %(
+            self.name.split('.')[-1], current_user, type(g.db), kwargs)

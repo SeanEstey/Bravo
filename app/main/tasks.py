@@ -3,7 +3,7 @@ import logging
 from datetime import date, timedelta
 from flask import g
 from app import cal, celery, gsheets, get_keys
-from app.gsheets import gauth, get_row
+from app.gsheets import gauth, append_row, get_row
 from app.etap import get_udf, mod_acct
 from app.main.accounts import is_inactive_donor
 from app.main.receipts import generate
@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def non_participants(self, **rest):
+def non_participants(self, **kwargs):
     '''Create RFU's for all non-participants on scheduled dates
     '''
 
@@ -19,6 +19,7 @@ def non_participants(self, **rest):
 
     for agency in agencies:
         agcy = agency['name']
+        max_inactive_days = agency['config']['non_participant_days']
         log.info('%s: Analyzing non-participants in 5 days...', agcy)
 
         accts = cal.get_accounts(
@@ -29,8 +30,6 @@ def non_participants(self, **rest):
 
         if len(accts) < 1:
             continue
-
-        max_inactive_days = agency[''] # TODO: finish me
 
         for acct in accts:
             if not is_inactive_donor(acct):
@@ -125,7 +124,8 @@ def rfu(self, agcy, note, **kwargs):
 
     service = gauth(get_keys('google',agcy=agcy)['oauth'])
     ss_id = get_keys('google',agcy=agcy)['ss_id']
-    headers = get_row(service, ss_id, 'RFU', 1)
+    wks = 'RFU'
+    headers = get_row(service, ss_id, wks, 1)
     rfu = [''] * len(headers)
     rfu[headers.index('Request Note')] = note
     options = ['a_id','npu','block','_date','name_addy','driver_notes','office_notes']
@@ -134,12 +134,8 @@ def rfu(self, agcy, note, **kwargs):
         if opt in kwargs:
             rfu[headers.index(option)] = kwargs[option]
 
+    append_row(service, ss_id, wks, rfu)
     log.debug('Creating RFU=%s', rfu)
-
-    # TODO: get max rows, append below
-    a1 = ''
-
-    gsheets.write_rows(service, ss_id, [rfu], a1)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

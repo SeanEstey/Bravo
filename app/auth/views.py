@@ -1,7 +1,7 @@
 '''app.auth.views'''
 import json, logging
-from flask import g, request, render_template, redirect, url_for, jsonify
-from flask_login import current_user, logout_user, login_required
+from flask import g, request, render_template, redirect, url_for, jsonify, session
+from flask_login import current_user, logout_user, login_required, login_user
 from . import auth
 from .user import User
 log = logging.getLogger(__name__)
@@ -14,18 +14,32 @@ def show_login():
 #-------------------------------------------------------------------------------
 @auth.route('/login', methods=['POST'])
 def authenticate():
-    #print 'auth.authenticate'
-    result = User.authenticate(
+    db_user = User.authenticate(
         request.form.get('username'),
         request.form.get('password'))
 
-    return jsonify(result)
+    if db_user:
+        log.debug('logging in')
+        login_user(
+            User(
+                db_user['user'],
+                name = db_user['name'],
+                _id = db_user['_id'],
+                agency = db_user['agency'],
+                admin = db_user['admin']))
+        log.debug('logged in. current_user=%s', current_user)
+
+    session['user_id'] = current_user.user_id
+
+    log.debug('session.user_id=%s', session['user_id'])
+
+    return jsonify('success')
 
 #-------------------------------------------------------------------------------
-@auth.route('/logout', methods=['GET'])
+@auth.route('/logout', methods=['POST'])
 @login_required
 def logout():
-    log.info('User %s logged out', current_user.user_id)
-    logout_user()
-
-    return redirect(url_for('main.landing_page'))
+    rv = logout_user()
+    #log.debug('User %s logged out. rv=%s', current_user.user_id, rv)
+    return 'OK'
+    #return redirect(url_for('main.landing_page'))

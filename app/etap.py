@@ -61,6 +61,28 @@ def call(func_name, keys, data, silence_exceptions=False):
 
     return data
 
+
+#-------------------------------------------------------------------------------
+def get_query(block, keys, category=None):
+    _category = category if category else keys['query_category']
+
+    try:
+        rv = call('get_query_accounts', keys, {
+            'query':block, 'query_category':_category})
+    except EtapError as e:
+        raise
+    else:
+        return rv['data']
+
+#-------------------------------------------------------------------------------
+def mod_acct(acct_id, keys, udf=None, persona=[]):
+    try:
+        call('modify_account', keys, {
+            'id':acct_id, 'udf':udf, 'persona': persona})
+    except EtapError as e:
+        logger.error('Error modifying account %s: %s', account['id'], str(e))
+        raise
+
 #-------------------------------------------------------------------------------
 def get_udf(field_name, etap_account):
     '''Extract User Defined Fields from eTap Account object. Allows

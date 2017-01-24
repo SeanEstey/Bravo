@@ -7,7 +7,7 @@ from bson import json_util
 import json
 import logging
 import pytz
-from datetime import datetime
+from datetime import datetime, time, date
 from config import LOG_PATH
 
 logger = logging.getLogger(__name__)
@@ -125,6 +125,16 @@ def log_handler(level, filename):
         '[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M'))
     return handler
 
+def d_to_local_dt(d):
+    return naive_to_local(datetime.combine(d, time(0,0,0)))
+
+#-------------------------------------------------------------------------------
+def local_today_dt():
+    return naive_to_local(
+        datetime.combine(
+            date.today(),
+            time(0,0,0)))
+
 #-------------------------------------------------------------------------------
 def naive_to_local(dt):
     return local_tz.localize(dt, is_dst=True)
@@ -138,7 +148,6 @@ def naive_utc_to_local(dt):
 def tz_utc_to_local(dt):
     '''dt is tz-aware. convert time and tz'''
     return dt.astimezone(local_tz)
-
 
 #-------------------------------------------------------------------------------
 def localize(obj, to_strftime=None):

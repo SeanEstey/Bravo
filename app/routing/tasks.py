@@ -7,22 +7,22 @@ from celery.utils.log import get_task_logger
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 from .. import smart_emit, celery, get_keys, gcal, gdrive, etap, utils, parser
-from .main import build
+from ..utils import local_today_dt, d_to_local_dt, formatter
+from ..etap import EtapError, get_query, get_udf
 from . import depots
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def analyze_routes(self, days=None, **rest):
+def analyze_routes(self, days=5, **rest):
     '''Celery task
     Scans schedule for blocks, adds metadata to db, sends socketio signal
     to client
     '''
+
     #sleep(3)
     smart_emit('analyze_routes', {'status':'in-progress'})
 
-    today_dt = datetime.combine(date.today(), time())
-    end_dt = today_dt + timedelta(days=int(days or 5))
     events = []
     service = gcal.gauth(get_keys('google')['oauth'])
     cal_ids = get_keys('cal_ids')
@@ -31,23 +31,18 @@ def analyze_routes(self, days=None, **rest):
         events += gcal.get_events(
             service,
             cal_ids[_id],
-            today_dt,
-            end_dt
-        )
+            local_today_dt(),
+            local_today_dt() + timedelta(days=days))
 
     events = sorted(events, key=lambda k: k['start'].get('date'))
 
     for event in events:
         block = parser.get_block(event['summary'])
+        event_d = parse(event['start']['date']) # yyyy-mm-dd
+        event_dt = d_to_local_dt(event_d)
 
         if not block:
             continue
-
-        # yyyy-mm-dd format
-        event_dt = utils.naive_to_local(
-            datetime.combine(
-                parse(event['start']['date']),
-                time(0,0,0)))
 
         if g.db.routes.find_one({
             'date':event_dt,
@@ -58,26 +53,16 @@ def analyze_routes(self, days=None, **rest):
 
         # Build route metadata
 
-        # 1.a Let's grab info from eTapestry
         try:
-            a = etap.call(
-              'get_query_accounts',
-              get_keys('etapestry'), {
-                'query':block,
-                'query_category': get_keys('etapestry')['query_category']}
-            )
-        except Exception as e:
-            log.error('Error retrieving accounts for query %s', block)
-            #if 'count' not in a:
-            log.error('No accounts found in query %s', block)
+            accts = etap.get_query(block, get_keys('etapestry'))
+        except EtapError as e:
+            log.error('Error retrieving query=%s', block)
             continue
 
-        num_dropoffs = 0
-        num_booked = 0
-        event_d = event_dt.date()
+        n_drops = n_booked = 0
 
-        for account in a['data']:
-            npu = etap.get_udf('Next Pickup Date', account)
+        for acct in accts:
+            npu = get_udf('Next Pickup Date', acct)
 
             if npu == '':
                 continue
@@ -85,10 +70,10 @@ def analyze_routes(self, days=None, **rest):
             npu_d = etap.ddmmyyyy_to_date(npu)
 
             if npu_d == event_d:
-                num_booked += 1
+                n_booked += 1
 
-            if etap.get_udf('Status', account) == 'Dropoff':
-                num_dropoffs += 1
+            if get_udf('Status', acct) == 'Dropoff':
+                n_drops += 1
 
         postal = re.sub(r'\s', '', event['location']).split(',')
 
@@ -97,7 +82,7 @@ def analyze_routes(self, days=None, **rest):
         else:
             depot = get_keys('routing')['locations']['depots'][0]
 
-        _route = {
+        meta = {
           'block': block,
           'date': event_dt,
           'agency': g.user.agency,
@@ -105,24 +90,17 @@ def analyze_routes(self, days=None, **rest):
           'postal': re.sub(r'\s', '', event['location']).split(','),
           'depot': depot,
           'driver': get_keys('routing')['drivers'][0], # default driver
-          'orders': num_booked,
-          'block_size': len(a['data']),
-          'dropoffs': num_dropoffs
+          'orders': n_booked,
+          'block_size': len(accts),
+          'dropoffs': n_drops
         }
 
-        g.db.routes.insert_one(_route)
+        g.db.routes.insert_one(meta)
 
-        log.info(
-            'metadata added for %s on %s',
-            _route['block'], _route['date'].strftime('%b %-d'))
+        log.info('found block=%s on date=%s', block, event_dt.strftime('%b %-d'))
 
-        # Send it to the client
-        smart_emit(
-            'add_route_metadata',
-            {'data': utils.formatter(
-                _route,
-                to_strftime=True,
-                bson_to_json=True)},
+        smart_emit('add_route_metadata', {
+            'data': formatter(meta, to_strftime=True, bson_to_json=True)},
             room=g.user.agency)
 
     smart_emit('analyze_routes', {'status':'completed'}, room=g.user.agency)
@@ -136,37 +114,27 @@ def build_scheduled_routes(self, **rest):
     agencies = g.db.agencies.find({})
 
     for agency in agencies:
-        analyze_routes.apply(kwargs={'days':3})
+        agcy = agency['name']
+        n_success = n_fails = 0
+        routes = g.db.routes.find({'agency':agcy, 'date':local_today_dt()})
 
-        _routes = g.db.routes.find({
-          'agency': agency['name'],
-          'date': utils.naive_to_local(
-            datetime.combine(
-                date.today(),
-                time(0,0,0)))
-        })
+        analyze_routes.apply(days=3)
 
-        log.info(
-          '%s: -----Building %s routes for %s-----',
-          agency['name'], _routes.count(), date.today().strftime("%A %b %d"))
+        log.info('%s: Building %s routes for %s',
+            agcy, routes.count(), date.today().strftime("%A %b %d"))
 
-        successes = 0
-        fails = 0
+        for route in routes:
+            rv = build(str(route['_id']))
 
-        for route in _routes:
-            r = build(str(route['_id']))
-
-            if not r:
+            if not rv:
                 fails += 1
                 log.error('Error building route %s', route['block'])
             else:
-                successes += 1
+                n_success += 1
 
             sleep(2)
 
-        log.info(
-            '%s: -----%s Routes built. %s failures.-----',
-            agency['name'], successes, fails)
+        log.info('%s: %s Routes built. %s failures.', agcy, n_success, n_fails)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -182,13 +150,12 @@ def build_route(self, route_id, job_id=None, **rest):
     route = g.db.routes.find_one({"_id":ObjectId(route_id)})
     agcy = route['agency']
 
-    print '%s: Building %s...' % (agcy, route['block'])
     log.info('%s: Building %s...', agcy, route['block'])
 
     if job_id is None:
         job_id = submit_job(ObjectId(route_id))
 
-    # Keep looping and sleeping until receive solution or hit tsak_time_limit
+    # Keep looping and sleeping until receive solution or hit task_time_limit
     orders = get_solution_orders(
         job_id,
         get_keys('google',agcy=agcy)['geocode']['api_key'])

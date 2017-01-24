@@ -2,15 +2,15 @@
 from . import api
 from flask_login import login_required
 from .main import get_var, build_resp, func_call, task_call, WRITE_ME
-
-from app.main import accounts
-from app.main.tasks import send_receipts
-from app.routing.tasks import build_route
-from app.routing.main import edit_field
 from app.booker.geo import get_maps
-from app.booker.tasks import update_maps
-from app.main.signups import lookup_carrier
 from app.booker.search import search
+from app.booker.tasks import update_maps
+from app.main import accounts
+from app.main.signups import lookup_carrier
+from app.main.tasks import send_receipts
+from app.routing.main import edit_field
+from app.routing.tasks import build_route
+
 
 @api.route('/accounts/get', methods=['POST'])
 @login_required
@@ -50,7 +50,8 @@ def call_booker_create():
 @api.route('/booker/search', methods=['POST'])
 @login_required
 def call_booker_search():
-    return func_call(search, get_var('agency'), get_var('query'), radius=get_var('radius'), weeks=get_var('weeks'))
+    return func_call(search, get_var('agency'), get_var('query'),
+        radius=get_var('radius'), weeks=get_var('weeks'))
 
 @api.route('/booker/maps/get', methods=['POST'])
 @login_required

@@ -93,9 +93,10 @@
             {% endif %}
           </td>
           <td>
+							<!--href="" url_for('routing._build_route', route_id=route['_id']['$oid'], _external=True)-->
 						<button 
               name='route_btn'
-							href="{{url_for('routing._build_route', route_id=route['_id']['$oid'], _external=True)}}" 
+              href=""
               data-route="{{route['json']}}"
 							class='btn btn-outline-primary'
 							>Route

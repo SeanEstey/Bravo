@@ -1,18 +1,11 @@
 '''app.gsheets'''
-
-import json
-import gspread
-import requests
+import httplib2, json, logging, requests
 from datetime import datetime
 from dateutil.parser import parse
-import logging
-from flask import current_app
 from oauth2client.client import SignedJwtAssertionCredentials
-import httplib2
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
-logger = logging.getLogger(__name__)
-
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def gauth(oauth):
@@ -31,10 +24,10 @@ def gauth(oauth):
         http = credentials.authorize(http)
         service = build(name, version, http=http)
     except Exception as e:
-        logger.error('Error authorizing %s: %s', name, str(e))
+        log.error('Error authorizing %s: %s', name, str(e))
         return False
 
-    logger.debug('Sheets service authorized')
+    log.debug('Sheets service authorized')
 
     return service
 
@@ -45,7 +38,7 @@ def get_prop(service, ss_id):
             spreadsheetId = ss_id
         ).execute()
     except Exception as e:
-        logger.error('couldnt get ss prop: %s', str(e))
+        log.error('couldnt get ss prop: %s', str(e))
         return False
 
     return prop['properties']
@@ -68,7 +61,7 @@ def write_rows(service, ss_id, rows, a1_range):
           }
         ).execute()
     except Exception as e:
-        logger.error('Error writing to sheet: %s', str(e))
+        log.error('Error writing to sheet: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------
@@ -90,7 +83,7 @@ def update_cell(service, ss_id, a1_range, value):
           }
         ).execute()
     except Exception as e:
-        logger.error('Error writing to sheet: %s', str(e))
+        log.error('Error writing to sheet: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------
@@ -101,14 +94,14 @@ def get_values(service, ss_id, a1_range):
           range=a1_range
         ).execute()
     except Exception as e:
-        logger.error('Error getting values from sheet: %s', str(e))
+        log.error('Error getting values from sheet: %s', str(e))
         return False
 
     return result.get('values', [])
 
 #-------------------------------------------------------------------------------
-def get_row(service, ss_id, row):
-    a1 = '%s:%s' % (str(row),str(row))
+def get_row(service, ss_id, wks, row):
+    a1 = '%s!%s:%s' % (wks, str(row),str(row))
     return get_values(service, ss_id, a1)[0]
 
 #-------------------------------------------------------------------------------
@@ -131,7 +124,7 @@ def insert_rows_above(service, ss_id, row, num):
             }
         ).execute()
     except Exception as e:
-        logger.error('Error inserting rows: ' + str(e))
+        log.error('Error inserting rows: ' + str(e))
         return False
 
 #-------------------------------------------------------------------------------
@@ -160,7 +153,7 @@ def hide_rows(service, ss_id, start, end):
             }
         ).execute()
     except Exception as e:
-        logger.error('Error hiding rows: %s', str(e))
+        log.error('Error hiding rows: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------
@@ -192,7 +185,7 @@ def vert_align_cells(service, ss_id, start_row, end_row, start_col, end_col):
                 }]
             }).execute()
     except Exception as e:
-        logger.error('Error formatting cells: %s', str(e))
+        log.error('Error formatting cells: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------
@@ -225,7 +218,7 @@ def bold_cells(service, ss_id, cells):
           }
         })
 
-    logger.debug(json.dumps(cells))
+    log.debug(json.dumps(cells))
 
     try:
         service.spreadsheets().batchUpdate(
@@ -234,7 +227,7 @@ def bold_cells(service, ss_id, cells):
                 "requests": _requests
             }).execute()
     except Exception as e:
-        logger.error('Error bolding cells: %s', str(e))
+        log.error('Error bolding cells: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------
@@ -256,148 +249,7 @@ def col_idx_to_a1(idx):
         a1 += alphabet[i]
     '''
 
+#-------------------------------------------------------------------------------
 def a1(row, col):
     letter = col_idx_to_a1(col-1)
     return '%s%s' % (letter,(row))
-
-# ----- GSPREAD (OLD) --------------------------------------------------------
-
-
-#-------------------------------------------------------------------------------
-def auth(oauth, scope):
-    '''python gspread
-    @scope: array of Google service URL's to authorize
-    '''
-
-    try:
-      credentials = SignedJwtAssertionCredentials(
-        oauth['client_email'],
-        oauth['private_key'],
-        scope
-      )
-
-      return gspread.authorize(credentials)
-
-    except Exception as e:
-        logger.info('gsheets.auth():', exc_info=True)
-        return False
-
-#-------------------------------------------------------------------------------
-def update_entry(agency, status, destination):
-    '''Updates the 'Email Status' column in a worksheet
-    destination: dict containing 'sheet', 'worksheet', 'row', 'upload_status'
-    '''
-
-    try:
-        oauth = g.db.agencies.find_one({'name':agency})['google']['oauth']
-        gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
-        sheet = gc.open(current_app.config['GSHEET_NAME'])
-        wks = sheet.worksheet(destination['worksheet'])
-    except Exception as e:
-        logger.error(
-          'Error opening worksheet %s: %s' ,
-          destination['worksheet'], str(e)
-        )
-        return False
-
-    headers = wks.row_values(1)
-
-    # Make sure the row entry still exists in the worksheet
-    # and hasn't been replaced by other data or deleted
-    cell = wks.cell(destination['row'], headers.index('Upload Status')+1)
-
-    if not cell:
-        logger.error('update_entry cell not found')
-        return False
-
-    if str(cell.value) == destination['upload_status']:
-        try:
-            wks.update_cell(
-              destination['row'],
-              headers.index('Email Status')+1,
-              status
-            )
-        except Exception as e:
-            logger.error(
-              'Error writing to worksheet %s: %s',
-              destination['worksheet'], str(e)
-            )
-            return False
-
-    return True
-
-    # Create RFU if event is dropped/bounced and is from a collection receipt
-    '''
-    if destination['worksheet'] == 'Routes':
-        if destination['status'] == 'dropped' or destination['status'] == 'bounced':
-            wks = sheet.worksheet('RFU')
-            headers = wks.row_values(1)
-
-            rfu = [''] * len(headers)
-            rfu[headers.index('Request Note')] = \
-                'Email ' + db_record['recipient'] + ' dropped.'
-
-            if 'account_number' in db_record:
-              rfu[headers.index('Account Number')] = db_record['account_number']
-
-            logger.info(
-              'Creating RFU for bounced/dropped email %s', json.dumps(rfu)
-            )
-
-            try:
-                wks.current_append_row(rfu)
-            except Exception as e:
-                logger.error('Error writing to RFU worksheet: %s', str(e))
-                return False
-    '''
-
-#-------------------------------------------------------------------------------
-def create_rfu(agency, note,
-               a_id=None, npu=None, block=None, _date=None, name_addy=None,
-               driver_notes=None, office_notes=None):
-
-    try:
-        oauth = g.db.agencies.find_one({'name':agency})['google']['oauth']
-        gc = auth(oauth, ['https://spreadsheets.google.com/feeds'])
-        sheet = gc.open(current_app.config['GSHEET_NAME'])
-        wks = sheet.worksheet('RFU')
-    except Exception as e:
-        logger.error('Could not open RFU worksheet: %s', str(e))
-        return False
-
-    headers = wks.row_values(1)
-
-    rfu = [''] * len(headers)
-
-    rfu[headers.index('Request Note')] = note
-
-    if a_id != None:
-        rfu[headers.index('Account Number')] = a_id
-
-    if npu != None:
-        rfu[headers.index('Next Pickup Date')] = npu
-
-    if block != None:
-        rfu[headers.index('Block')] = block
-
-    if _date != None:
-        rfu[headers.index('Date')] = _date
-
-    if name_addy != None:
-        rfu[headers.index('Name & Address')] = name_addy
-
-    if driver_notes is not None:
-        rfu[headers.index('Driver Notes')] = driver_notes
-
-    if office_notes is not None:
-        rfu[headers.index('Office Notes')] = office_notes
-
-    logger.debug('Creating RFU: ' + json.dumps([item for item in rfu if item]))
-
-    try:
-        wks.append_row(rfu)
-    except Exception as e:
-        logger.error('Could not write to RFU sheet: %s', str(e))
-        return False
-
-    return True

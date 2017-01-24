@@ -88,7 +88,7 @@ def send_receipts(self, entries, **rest):
     }
     g.ss_id = get_keys('google')['ss_id']
     g.service = gauth(get_keys('google')['oauth'])
-    g.headers = get_row(g.service, g.ss_id, 1)
+    g.headers = get_row(g.service, g.ss_id, 'Routes', 1)
 
     for i in range(0, len(accts)):
         r = generate(accts[i], entries[i])
@@ -118,6 +118,28 @@ def send_receipts(self, entries, **rest):
             gift_history=gift_histories[i])
 
     log.info('Gift receipts sent=%s', len(gift_accts))
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def rfu(self, agcy, note, **kwargs):
+
+    service = gauth(get_keys('google',agcy=agcy)['oauth'])
+    ss_id = get_keys('google',agcy=agcy)['ss_id']
+    headers = get_row(service, ss_id, 'RFU', 1)
+    rfu = [''] * len(headers)
+    rfu[headers.index('Request Note')] = note
+    options = ['a_id','npu','block','_date','name_addy','driver_notes','office_notes']
+
+    for opt in options:
+        if opt in kwargs:
+            rfu[headers.index(option)] = kwargs[option]
+
+    log.debug('Creating RFU=%s', rfu)
+
+    # TODO: get max rows, append below
+    a1 = ''
+
+    gsheets.write_rows(service, ss_id, [rfu], a1)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -172,19 +194,7 @@ def update_accts_sms(self, *args, **kwargs):
             log.info('%s --- updated %s accounts for SMS. discovered %s mobile numbers ---%s',
                         bcolors.OKGREEN, r['n_sms'], r['n_mobile'], bcolors.ENDC)
 
-#-------------------------------------------------------------------------------
-@celery.task(bind=True)
-def rfu(self, agency, note, **kwargs):
-    from app import gsheets
 
-    return gsheets.create_rfu(
-        agency,
-        note,
-        a_id=kwargs['a_id'],
-        npu=kwargs['npu'],
-        block=kwargs['block'],
-        _date=kwargs['_date'],
-        name_addy=kwargs['name_addy'])
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

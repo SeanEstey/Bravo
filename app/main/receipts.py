@@ -134,7 +134,7 @@ def deliver(to, template, subject, data):
             'update': data['entry']['from']}})
 
 #-------------------------------------------------------------------------------
-def do_receipt(acct, entry, gift_history=None):
+def generate(acct, entry, gift_history=None):
     '''Refer to flask globals set in parent task: g.service, g.ss_id,
     g.headers, g.track
     '''

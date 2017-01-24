@@ -1,8 +1,10 @@
 '''app.main.accounts'''
 import logging
+from datetime import date, timedelta
+from dateutil.parser import parse
 from flask import g
 from .. import get_keys, etap
-from ..etap import get_udf, ddmmyyyy_to_date as to_date
+from ..etap import EtapError, mod_acct, get_udf, ddmmyyyy_to_date as to_date
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -37,7 +39,7 @@ def is_inactive_donor(agcy, acct, days=270):
 
     log.info('Cutoff date=%s', cutoff_date.strftime('%b %d %Y'))
 
-    # Retrieve non-zero gifts from cutoff date
+    # Retrieve journal entries from cutoff, see if donations made in period
 
     try:
         je = etap.call(

@@ -63,7 +63,7 @@ def add_event():
             agency,
             evnt_id,
             accts[i]['name'],
-            phone = etap.get_primary_phone(accts[i])
+            phone = etap.get_prim_phone(accts[i])
         )
 
         sms.add(
@@ -71,7 +71,7 @@ def add_event():
             event_date,
             trig_id,
             acct_id,
-            etap.get_primary_phone(accts[i]),
+            etap.get_prim_phone(accts[i]),
             {'source': 'template',
              'template': 'sms/%s/announce.html' % agency}
              'url': request.form['audio_url']},

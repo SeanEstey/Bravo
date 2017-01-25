@@ -1,7 +1,7 @@
 '''app.notify.voice_announce'''
 import twilio
 import logging, os
-from flask import request, current_app
+from flask import g, request, current_app
 from flask_login import current_user
 from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
@@ -56,14 +56,14 @@ def add_event():
             g.user.agency,
             evnt_id,
             accts[i]['name'],
-            phone = etap.get_primary_phone(accts[i]))
+            phone = etap.get_prim_phone(accts[i]))
 
         voice.add(
             evnt_id,
             event_date,
             trig_id,
             acct_id,
-            etap.get_primary_phone(accts[i]),
+            etap.get_prim_phone(accts[i]),
             {'source': 'audio',
              'url': request.form['audio_url']},
             {'module': 'app.notify.voice_announce',

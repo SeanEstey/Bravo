@@ -16,7 +16,7 @@ def do_setup():
     session.permanent = True
     g.db = db_client['bravo']
 
-    if session['user_id']:
+    if session.get('user_id'):
         app.logger.debug('app.before_request() g.user loaded')
         g.user = load_user(session['user_id'])
     #app.logger.debug('app before_request set g.user=%s', g.user)

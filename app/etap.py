@@ -143,7 +143,7 @@ def has_mobile(account):
     return False
 
 #-------------------------------------------------------------------------------
-def get_primary_phone(account):
+def get_prim_phone(account):
     if 'phones' not in account or account['phones'] == None:
         return False
 

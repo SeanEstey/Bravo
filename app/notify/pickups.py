@@ -5,112 +5,89 @@ from flask import g, request
 from datetime import time, timedelta
 from dateutil.parser import parse
 from bson.objectid import ObjectId
-from .. import utils, parser, gcal, etap
+from .. import get_keys, utils, parser, gcal
+from app.etap import EtapError, get_query, get_udf, get_phone, get_prim_phone,\
+ddmmyyyy_to_local_dt as to_dt
 from . import events, email, sms, voice, triggers, accounts
-from .tasks import skip_pickup
 log = logging.getLogger(__name__)
 
-class EtapError(Exception):
-    pass
-
 #-------------------------------------------------------------------------------
-def reminder_event(agency, block, _date):
+def create_reminder(agcy, block, _date):
     '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
     Returns: evnt_id (ObjectID) on succcess, False otherwise
     '''
 
-    agency_conf = g.db['agencies'].find_one({'name':agency})
-
     try:
-        etap_accts = etap.call(
-            'get_query_accounts',
-            agency_conf['etapestry'],
-            data={
-                'query':block,
-                'query_category':agency_conf['etapestry']['query_category']
-            }
-        )['data']
-    except Exception as e:
-        msg = 'Failed to retrieve query "%s". Details: %s' % (block, str(e))
-        log.error(msg)
-        raise EtapError(msg)
+        accts = get_query(block, get_keys('etapestry',agcy=agcy))
+    except EtapError as e:
+        raise
     else:
-        if len(etap_accts) < 1:
+        if len(accts) < 1:
             raise EtapError('eTap query for Block %s is empty' % block)
 
     # Create event + triggers
 
-    evnt_id = events.add(agency, block, _date, 'bpu')
-
-    trig_conf = agency_conf['scheduler']['notify']['triggers']
-
+    evnt_id = events.add(agcy, block, _date, 'bpu')
+    conf = get_keys('scheduler',agcy=agcy)['notify']['triggers']
     email_trig_id = triggers.add(
         evnt_id,
         'email',
-        _date + timedelta(days=trig_conf['email']['fire_days_delta']),
-        time(
-            trig_conf['email']['fire_hour'],
-            trig_conf['email']['fire_min'])
-    )
+        _date + timedelta(days=conf['email']['fire_days_delta']),
+        time(conf['email']['fire_hour'], conf['email']['fire_min']))
 
     if parser.is_res(block):
         phone_trig_id = triggers.add(
             evnt_id,
             'voice_sms',
-            _date + timedelta(days=trig_conf['voice_sms']['fire_days_delta']),
+            _date + timedelta(days=conf['voice_sms']['fire_days_delta']),
             time(
-                trig_conf['voice_sms']['fire_hour'],
-                trig_conf['voice_sms']['fire_min'])
-        )
+                conf['voice_sms']['fire_hour'],
+                conf['voice_sms']['fire_min']))
 
     # Create notifications
 
-    for acct_obj in etap_accts:
-        npu = etap.get_udf('Next Pickup Date', acct_obj).split('/')
+    for acct in accts:
+        npu = get_udf('Next Pickup Date', acct).split('/')
 
         if len(npu) < 3:
-            log.error('Account %s missing npu. Skipping.', acct_obj['id'])
+            log.error('Account %s missing npu. Skipping.', acct['id'])
             continue
 
         acct_id = accounts.add(
-            agency,
+            agcy,
             evnt_id,
-            acct_obj['name'],
-            phone = etap.get_primary_phone(acct_obj),
-            email = acct_obj.get('email'),
+            acct['name'],
+            phone = get_prim_phone(acct),
+            email = acct.get('email'),
             udf = {
-                'etap_id': acct_obj['id'],
-                'status': etap.get_udf('Status', acct_obj),
-                'block': etap.get_udf('Block', acct_obj),
-                'driver_notes': etap.get_udf('Driver Notes', acct_obj),
-                'office_notes': etap.get_udf('Office Notes', acct_obj),
-                'pickup_dt': etap.ddmmyyyy_to_local_dt(
-                    etap.get_udf('Next Pickup Date', acct_obj)
-                )
-            },
-            nameFormat = acct_obj['nameFormat']
-        )
+                'etap_id': acct['id'],
+                'status': get_udf('Status', acct),
+                'block': get_udf('Block', acct),
+                'driver_notes': get_udf('Driver Notes', acct),
+                'office_notes': get_udf('Office Notes', acct),
+                'pickup_dt': to_dt(get_udf('Next Pickup Date', acct))},
+            nameFormat = acct['nameFormat'])
 
         # A. Either Voice or SMS notification
 
         if parser.is_res(block):
-            if etap.get_phone('Mobile', acct_obj):
+            if get_phone('Mobile', acct):
                 on_send = {
                     'source': 'template',
-                    'template': 'sms/%s/reminder.html' % agency}
+                    'template': 'sms/%s/reminder.html' % agcy}
 
                 sms.add(
                     evnt_id,
                     _date,
                     phone_trig_id,
-                    acct_id, etap.get_phone('Mobile', acct_obj),
+                    acct_id, get_phone('Mobile', acct),
                     on_send,
                     None)
 
-            elif etap.get_phone('Voice', acct_obj):
+            elif get_phone('Voice', acct):
                 on_answer = {
                     'source': 'template',
-                    'template': 'voice/%s/reminder.html' % agency}
+                    'template': 'voice/%s/reminder.html' % agcy}
 
                 on_interact = {
                     'module': 'app.notify.pus',
@@ -120,64 +97,63 @@ def reminder_event(agency, block, _date):
                     evnt_id,
                     _date,
                     phone_trig_id,
-                    acct_id, etap.get_phone('Voice', acct_obj),
+                    acct_id, get_phone('Voice', acct),
                     on_answer, on_interact)
 
         # B. Email notification
 
         subject = 'Your upcoming pickup'
 
-        if acct_obj.get('email'):
+        if acct.get('email'):
             on_send = {
-                'template': 'email/%s/reminder.html' % agency,
+                'template': 'email/%s/reminder.html' % agcy,
                 'subject': subject}
 
             email.add(
                 evnt_id,
                 _date,
                 email_trig_id,
-                acct_id, acct_obj.get('email'),
+                acct_id, acct.get('email'),
                 on_send)
 
-    add_future_pickups(str(evnt_id))
+    find_all_scheduled_dates(str(evnt_id))
 
     return evnt_id
 
 #-------------------------------------------------------------------------------
-def add_future_pickups(evnt_id):
+def find_all_scheduled_dates(evnt_id):
     '''Update all reminders for given job with their future pickup dates to
     relay to opt-outs
     @evnt_id: str of ObjectID
     '''
 
-    evnt_id = ObjectId(evnt_id)
-
     log.info('Getting next pickups for notification event ID \'%s\'', str(evnt_id))
 
+    cal_events = []
+    block_dates = {}
+    evnt_id = ObjectId(evnt_id)
     event = g.db['notific_events'].find_one({'_id':evnt_id})
-    agency_conf = g.db['agencies'].find_one({'name':event['agency']})
 
     start = event['event_dt'] + timedelta(days=1)
     end = start + timedelta(days=110)
-    cal_events = []
+    oauth = get_keys('google',agcy=event['agency'])['oauth']
+    cal_ids = get_keys('cal_ids',agcy=event['agency'])
 
     try:
-        service = gcal.gauth(agency_conf['google']['oauth'])
+        service = gcal.gauth(oauth)
 
-        for key in agency_conf['cal_ids']:
+        for key in cal_ids:
             cal_events += gcal.get_events(
                 service,
-                agency_conf['cal_ids'][key],
+                cal_ids[key],
                 start,
-                end
-            )
+                end)
     except Exception as e:
         log.error('%s', str(e))
-        return str(e)
+        log.debug('', exc_info=True)
+        raise
 
     log.debug('%i calendar events pulled', len(cal_events))
-
-    block_dates = {}
 
     # Search calendar events to find pickup date
     for cal_event in cal_events:
@@ -195,22 +171,21 @@ def add_future_pickups(evnt_id):
         try:
             acct = g.db['accounts'].find_one({'_id':notific['acct_id']})
 
-            npu = get_next_pickup(
+            npu = next_scheduled_date(
               acct['udf']['block'],
               acct['udf']['office_notes'] or '',
-              block_dates
-            )
+              block_dates)
 
             if npu:
-                g.db['accounts'].update_one({'_id':notific['acct_id']}, {
-                    '$set':{'udf.future_pickup_dt':npu}
-                })
+                g.db['accounts'].update_one(
+                    {'_id':notific['acct_id']},
+                    {'$set':{'udf.future_pickup_dt':npu}})
         except Exception as e:
             log.error('Assigning future_dt %s to acct_id %s: %s',
             str(npu), str(acct['_id']), str(e))
 
 #-------------------------------------------------------------------------------
-def get_next_pickup(blocks, office_notes, block_dates):
+def next_scheduled_date(blocks, office_notes, block_dates):
     '''Given list of blocks, find next scheduled date
     @blocks: string of comma-separated block names
     '''
@@ -257,8 +232,6 @@ def is_valid(evnt_id, acct_id):
 
     return True
 
-
-
 #-------------------------------------------------------------------------------
 def on_call_interact(notific):
 
@@ -291,6 +264,8 @@ def on_call_interact(notific):
 
     # Digit 2: Cancel pickup
     elif request.form['Digits'] == '2':
+        from app.notify.tasks import skip_pickup
+
         skip_pickup.delay(
             (str(notific['evnt_id']), str(notific['acct_id'])))
 

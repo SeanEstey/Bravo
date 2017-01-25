@@ -15,7 +15,7 @@ def get(acct_id):
         data={'account_number': int(acct_id)})
 
 #-------------------------------------------------------------------------------
-def is_inactive_donor(agcy, acct, days=270):
+def is_inactive(agcy, acct, days=270):
 
     drop_date = get_udf('Dropoff Date', acct)
 

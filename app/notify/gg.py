@@ -70,7 +70,7 @@ def add_event():
             g.user.agency,
             evnt_id,
             je[i]['accountName'],
-            phone = etap.get_primary_phone(accts[i]),
+            phone = etap.get_prim_phone(accts[i]),
             udf = {'amount': je[i]['amount']}
         )
 
@@ -79,7 +79,7 @@ def add_event():
             delivery_date,
             trig_id,
             acct_id,
-            etap.get_primary_phone(accts[i]),
+            etap.get_prim_phone(accts[i]),
             {'source': 'template',
              'template': 'voice/wsf/green_goods.html'},
             {'module': 'app.notify.gg',

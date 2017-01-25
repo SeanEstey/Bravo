@@ -5,7 +5,7 @@ from flask import g
 from app import cal, celery, gsheets, get_keys
 from app.gsheets import gauth, append_row, get_row
 from app.etap import get_udf, mod_acct, ddmmyyyy_to_mmddyyyy as swap_dd_mm
-from app.main.accounts import is_inactive_donor
+import app.main.donors
 from app.main.receipts import generate
 log = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, max_inactive_days=None, **r
             continue
 
         for acct in accts:
-            if not is_inactive_donor(agcy, acct, days=max_inactive_days):
+            if not donors.is_inactive(agcy, acct, days=max_inactive_days):
                 continue
 
             npu = get_udf('Next Pickup Date', acct)

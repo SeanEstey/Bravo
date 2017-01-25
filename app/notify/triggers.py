@@ -20,16 +20,14 @@ def add(evnt_id, _type, _date, _time):
         -id (ObjectId)
     '''
 
-    db = get_db()
-
-    trig_id = db['triggers'].insert_one({
+    trig_id = g.db.triggers.insert_one({
         'evnt_id': evnt_id,
         'status': 'pending',
         'type': _type,
         'fire_dt': utils.naive_to_local(datetime.combine(_date, _time))
     }).inserted_id
 
-    db['notific_events'].update_one(
+    g.db.notific_events.update_one(
         {'_id':evnt_id},
         {'$push':{'trig_ids': trig_id}})
 
@@ -37,8 +35,7 @@ def add(evnt_id, _type, _date, _time):
 
 #-------------------------------------------------------------------------------
 def get(trig_id, local_time=False):
-    db = get_db()
-    trig = db['triggers'].find_one({'_id':trig_id})
+    trig = g.db.triggers.find_one({'_id':trig_id})
 
     if local_time == True:
         return utils.localize(trig)

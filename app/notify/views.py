@@ -2,13 +2,13 @@
 import logging
 import twilio.twiml
 from bson.objectid import ObjectId
-from flask_login import login_required, current_user
-from flask import g, request, jsonify, render_template, Response,\
-current_app, session, url_for
+from flask_login import login_required
+from flask import g, request, jsonify, render_template, Response, url_for
 from app import smart_emit, get_keys, utils, cal, parser
-from . import notify, accounts, admin, events, triggers, email, voice, sms,\
-    recording, pus, gg, voice_announce
 from .tasks import fire_trigger, skip_pickup
+from . import notify, accounts, admin, events, triggers, email, voice, sms,\
+    recording, pickups, gg, voice_announce
+
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -39,6 +39,7 @@ def view_event_list():
 @login_required
 def view_event(evnt_id):
     '''GUI event view'''
+    from flask import current_app
 
     event = events.get(ObjectId(evnt_id))
     notific_list = list(events.get_notifics(ObjectId(evnt_id)))
@@ -90,13 +91,14 @@ def new_event():
             _date = cal.get_next_block_date(
                 cal_id, block, get_keys('google')['oauth'])
 
-            evnt_id = pus.reminder_event(
+            evnt_id = pickups.create_reminder(
                 g.user.agency,
                 block,
                 _date
             )
     except Exception as e:
         log.error(str(e))
+        log.debug('', exc_info=True)
         return jsonify({
             'status':'failed',
             'description': str(e)
@@ -181,7 +183,7 @@ def _fire_trigger(trig_id):
 @notify.route('/<evnt_id>/<acct_id>/no_pickup', methods=['GET'])
 def no_pickup(evnt_id, acct_id):
 
-    if not pus.is_valid(evnt_id, acct_id):
+    if not pickups.is_valid(evnt_id, acct_id):
         logger.error(
             'notific event or acct not found (evnt_id=%s, acct_id=%s)',
             evnt_id, acct_id)

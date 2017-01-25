@@ -71,7 +71,7 @@ def order(account, formatted_address, geo, shift_start, shift_end, min_per_stop)
       "customNotes": {
         "id": account['id'],
         "name": account['name'],
-        "phone": etap.get_primary_phone(account),
+        "phone": etap.get_prim_phone(account),
         "email": 'Yes' if account.get('email') else 'No',
         "contact": etap.get_udf('Contact', account),
         "block": etap.get_udf('Block', account),

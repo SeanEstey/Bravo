@@ -9,7 +9,7 @@ from datetime import datetime, date, time, timedelta
 from app.booker import geo, search, book
 from .dialog import dialog
 from .util import make_rfu, related_notific, event_begun, set_notific_reply
-from app.notify.pus import cancel_pickup
+import app.notify.pickups
 log = logging.getLogger(__name__)
 
 
@@ -93,7 +93,7 @@ def skip_pickup():
 
     #log.debug(utils.formatter(notific, bson_to_json=True))
 
-    result = cancel_pickup(notific['evnt_id'], notific['acct_id'])
+    result = pickups.cancel(notific['evnt_id'], notific['acct_id'])
 
     if not result:
         return dialog['error']['unknown']

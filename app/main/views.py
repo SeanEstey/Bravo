@@ -5,7 +5,7 @@ from flask_login import login_required
 from .. import get_keys, utils, html, gsheets, mailgun
 from . import main, receipts, signups
 from .tasks import send_receipts, add_gsheets_signup
-from app.notify import admin, email
+from app.notify import admin
 from app.booker import book
 log = logging.getLogger(__name__)
 
@@ -158,6 +158,7 @@ def on_email_delivered():
     elif v.get('type') == 'signup':
         signups.on_email_delivered()
     elif v.get('type') == 'notific':
+        from app.notify import email
         email.on_delivered()
     elif v.get('type') == 'confirmation':
         book.on_delivered()

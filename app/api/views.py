@@ -5,7 +5,7 @@ from .main import get_var, build_resp, func_call, task_call, WRITE_ME
 from app.booker.geo import get_maps
 from app.booker.search import search
 from app.booker.tasks import update_maps
-from app.main import accounts
+from app.main import donors
 from app.main.signups import lookup_carrier
 from app.main.tasks import send_receipts
 from app.routing.main import edit_field
@@ -15,7 +15,7 @@ from app.routing.tasks import build_route
 @api.route('/accounts/get', methods=['POST'])
 @login_required
 def call_accts_get():
-    return func_call(accounts.get, get_var('acct_id')) # TODO: update booker to call this from API
+    return func_call(donors.get, get_var('acct_id')) # TODO: update booker to call this from API
 
 @api.route('/accounts/gifts', methods=['POST'])
 @login_required

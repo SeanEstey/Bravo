@@ -1,11 +1,11 @@
 '''app.notify.tasks'''
 import logging, pytz
-from datetime import datetime, timedelta
+from datetime import datetime, date, time, timedelta
 from bson import ObjectId
 from flask import g
 from app.utils import bcolors
-from app import smart_emit, celery
-from . import triggers
+from app import cal, celery, smart_emit
+from . import pickups, triggers
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -58,50 +58,50 @@ def fire_trigger(self, evnt_id, trig_id, **kwargs):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def schedule_reminders(self, *args, **kwargs):
-    from app.notify import pus
-    from app import cal
-    from datetime import datetime, date, time, timedelta
+def schedule_reminders(self, agcy=None, for_date=None, **rest):
 
-    agencies = db.agencies.find({})
+    if agcy and for_date:
+        agencies = [g.db.agencies.find_one({'name':agcy})]
+    else:
+        agencies = g.db.agencies.find({})
 
     for agency in agencies:
-        _date = date.today() + timedelta(
-            days=agency['scheduler']['notify']['preschedule_by_days'])
+        agcy = agency['name']
+
+        if not for_date:
+            days_ahead = agency['scheduler']['notify']['preschedule_by_days']
+            for_date = date.today() + timedelta(days=days_ahead)
 
         blocks = []
 
         for key in agency['scheduler']['notify']['cal_ids']:
             blocks += cal.get_blocks(
                 agency['cal_ids'][key],
-                datetime.combine(_date,time(8,0)),
-                datetime.combine(_date,time(9,0)),
-                agency['google']['oauth']
-            )
+                datetime.combine(for_date,time(8,0)),
+                datetime.combine(for_date,time(9,0)),
+                agency['google']['oauth'])
 
         if len(blocks) == 0:
-            log.info(
-                '[%s] no blocks scheduled on %s',
-                agency['name'], _date.strftime('%b %-d'))
+            log.info('[%s] no blocks scheduled on %s',
+                agcy, for_date.strftime('%b %-d'))
             return
 
-        log.info(
-            '[%s] scheduling reminders for %s on %s',
-            agency['name'], blocks, _date.strftime('%b %-d'))
+        log.info('[%s] scheduling reminders for %s on %s',
+            agcy, blocks, for_date.strftime('%b %-d'))
 
         n=0
         for block in blocks:
             try:
-                pus.reminder_event(agency['name'], block, _date)
+                pickups.create_reminder(agcy, block, for_date)
             except EtapError as e:
+                log.error('Error creating reminder, agcy=%s, block=%s, msg="%s"',
+                    agcy, block, str(e))
+                log.debug('', exc_info=True)
                 continue
             else:
                 n+=1
 
-        log.info(
-            '[%s] scheduled %s/%s reminder events',
-            agency['name'], n, len(blocks)
-        )
+        log.info('[%s] scheduled %s/%s reminder events', agcy, n, len(blocks))
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -117,20 +117,20 @@ def skip_pickup(self, evnt_id, acct_id, **kwargs):
 
     # Cancel any pending parent notifications
 
-    result = db.notifics.update_many({
+    result = g.db.notifics.update_many({
           'acct_id': acct_id,
           'evnt_id': evnt_id,
           'tracking.status': 'pending'
         },
         {'$set':{'tracking.status':'cancelled'}})
 
-    acct = db.accounts.find_one_and_update({
+    acct = g.db.accounts.find_one_and_update({
         '_id':acct_id},{
         '$set': {
           'opted_out': True
       }})
 
-    evnt = db.notific_events.find_one({'_id':evnt_id})
+    evnt = g.db.notific_events.find_one({'_id':evnt_id})
 
     if not evnt or not acct:
         logger.error(
@@ -138,7 +138,7 @@ def skip_pickup(self, evnt_id, acct_id, **kwargs):
             str(evnt_id), str(acct_id))
         return False
 
-    conf = db.agencies.find_one({'name': evnt['agency']})
+    conf = g.db.agencies.find_one({'name': evnt['agency']})
 
     try:
         etap.call(

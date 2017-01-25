@@ -1,5 +1,6 @@
 '''app.notify.accounts'''
 import logging
+from flask import g
 from dateutil.parser import parse
 from .. import get_keys, utils
 log = logging.getLogger(__name__)

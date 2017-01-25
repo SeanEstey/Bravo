@@ -4,13 +4,13 @@ from flask_login import login_required
 from .. import get_keys
 from . import routing
 from .main import get_metadata
-from .tasks import analyze_routes
+from .tasks import discover_routes
 
 #-------------------------------------------------------------------------------
 @routing.route('', methods=['GET'])
 @login_required
 def show_routing():
-    analyze_routes.delay(days=5)
+    discover_routes.delay(days=5)
 
     return render_template(
       'views/routing.html',

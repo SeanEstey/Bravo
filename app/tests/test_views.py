@@ -15,10 +15,10 @@ def test_clean_sessions():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/_analyze_routes', methods=['GET'])
+@main.route('/_discover_routes', methods=['GET'])
 @login_required
-def _analyze_routes():
-    rv = analyze_routes.apply(kwargs={'days':2})
+def _discover_routes():
+    rv = discover_routes.apply(kwargs={'days':2})
     #log.debug(print_vars(rv))
     return jsonify({'state':rv.state, 'result':rv.result})
 

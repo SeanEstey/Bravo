@@ -4,58 +4,66 @@ from datetime import date, timedelta
 from flask import g
 from app import cal, celery, gsheets, get_keys
 from app.gsheets import gauth, append_row, get_row
-from app.etap import get_udf, mod_acct
+from app.etap import get_udf, mod_acct, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 from app.main.accounts import is_inactive_donor
 from app.main.receipts import generate
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def non_participants(self, **kwargs):
+def find_inactive_donors(self, agcy=None, in_days=5, max_inactive_days=None, **rest):
     '''Create RFU's for all non-participants on scheduled dates
     '''
 
-    agencies = g.db.agencies.find({})
+    if agcy:
+        agencies = [g.db.agencies.find_one({'name':agcy})]
+    else:
+        agencies = g.db.agencies.find({})
 
     for agency in agencies:
         agcy = agency['name']
-        max_inactive_days = agency['config']['non_participant_days']
+        if not max_inactive_days:
+            max_inactive_days = agency['config']['non_participant_days']
         log.info('%s: Analyzing non-participants in 5 days...', agcy)
 
         accts = cal.get_accounts(
             agency['etapestry'],
             agency['cal_ids']['res'],
             agency['google']['oauth'],
-            days_from_now=5)
+            days_from_now=in_days)
 
         if len(accts) < 1:
             continue
 
         for acct in accts:
-            if not is_inactive_donor(acct):
+            if not is_inactive_donor(agcy, acct, days=max_inactive_days):
                 continue
 
             npu = get_udf('Next Pickup Date', acct)
 
             if len(npu.split('/')) == 3:
-                npu = etap.ddmmyyyy_to_mmddyyyy(npu)
+                npu = swap_dd_mm(npu)
 
             mod_acct(
                 acct['id'],
                 get_keys('etapestry',agcy=agcy),
                 udf={
-                    'Office Notes': '%s\n%s: non-participant (inactive for %s days)' %(
-                    get_udf('Office Notes',acct), date.today().strftime('%b%-d %Y'))})
+                    'Office Notes':\
+                    '%s\n%s: non-participant (inactive for %s days)'%(
+                    get_udf('Office Notes', acct),
+                    date.today().strftime('%b%-d %Y'),
+                    max_inactive_days)})
 
-            rfu(
+            create_rfu(
                 agcy,
                 'Non-participant. No collection in %s days.' % max_inactive_days,
-                a_id = acct['id'],
-                npu = npu,
-                block = get_udf('Block', acct),
-                _date = date.today().strftime('%-m/%-d/%Y'),
-                driver_notes = get_udf('Driver Notes', acct),
-                office_notes = get_udf('Office Notes', acct))
+                options={
+                    'Account Number': acct['id'],
+                    'Next Pickup Date': npu,
+                    'Block': get_udf('Block', acct),
+                    'Date': date.today().strftime('%-m/%-d/%Y'),
+                    'Driver Notes': get_udf('Driver Notes', acct),
+                    'Office Notes': get_udf('Office Notes', acct)})
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -120,7 +128,7 @@ def send_receipts(self, entries, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def rfu(self, agcy, note, **kwargs):
+def create_rfu(self, agcy, note, options=None, **rest):
 
     service = gauth(get_keys('google',agcy=agcy)['oauth'])
     ss_id = get_keys('google',agcy=agcy)['ss_id']
@@ -128,18 +136,20 @@ def rfu(self, agcy, note, **kwargs):
     headers = get_row(service, ss_id, wks, 1)
     rfu = [''] * len(headers)
     rfu[headers.index('Request Note')] = note
-    options = ['a_id','npu','block','_date','name_addy','driver_notes','office_notes']
 
-    for opt in options:
-        if opt in kwargs:
-            rfu[headers.index(option)] = kwargs[option]
+    log.debug(headers)
+    log.debug(options)
+
+    for field in headers:
+        if field in options:
+            rfu[headers.index(field)] = options[field]
 
     append_row(service, ss_id, wks, rfu)
     log.debug('Creating RFU=%s', rfu)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def update_accts_sms(self, *args, **kwargs):
+def update_accts_sms(self, agcy=None, in_days=None, **rest):
     '''Verify that all accounts in upcoming residential routes with mobile
     numbers are set up to interact with SMS system'''
 
@@ -194,7 +204,7 @@ def update_accts_sms(self, *args, **kwargs):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def add_gsheets_signup(self, *args, **kwargs):
+def add_gsheets_signup(self, data, **rest):
     from app.main import signups
     signup = args[0] # FIXME
 

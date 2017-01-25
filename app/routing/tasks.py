@@ -6,7 +6,7 @@ import bson.json_util
 from flask import g
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
-from .. import smart_emit, celery, get_keys, gcal, gdrive, gsheets, etap, utils, parser
+from .. import smart_emit, celery, get_keys, gcal, gdrive, gsheets, etap, parser
 from ..utils import local_today_dt, d_to_local_dt, formatter
 from ..etap import EtapError, get_query, get_udf
 from . import depots, sheet
@@ -15,16 +15,17 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def analyze_routes(self, agcy=None, days=5, **rest):
+def discover_routes(self, agcy=None, within_days=5, **rest):
     '''Celery task
     Scans schedule for blocks, adds metadata to db, sends socketio signal
     to client
     '''
 
-    log.debug('analyze_routes, days=%s, g.user=%s', days, g.user)
     #sleep(3)
-    smart_emit('analyze_routes', {'status':'in-progress'})
+    log.debug('discover_routes, days=%s, g.user=%s', within_days, g.user)
+    smart_emit('discover_routes', {'status':'in-progress'})
 
+    n_found = 0
     events = []
     service = gcal.gauth(get_keys('google')['oauth'])
     cal_ids = get_keys('cal_ids')
@@ -34,7 +35,7 @@ def analyze_routes(self, agcy=None, days=5, **rest):
             service,
             cal_ids[_id],
             local_today_dt(),
-            local_today_dt() + timedelta(days=days))
+            local_today_dt() + timedelta(days=within_days))
 
     events = sorted(events, key=lambda k: k['start'].get('date'))
 
@@ -99,41 +100,50 @@ def analyze_routes(self, agcy=None, days=5, **rest):
 
         g.db.routes.insert_one(meta)
 
-        log.info('found block=%s on date=%s', block, event_dt.strftime('%b %-d'))
+        log.debug('discovered %s on %s', block, event_dt.strftime('%b %-d'))
 
         smart_emit('add_route_metadata', {
             'data': formatter(meta, to_strftime=True, bson_to_json=True)},
             room=g.user.agency)
 
-    smart_emit('analyze_routes', {'status':'completed'}, room=g.user.agency)
+        n_found +=1
+
+    smart_emit('discover_routes', {'status':'completed'}, room=g.user.agency)
+
+    log.debug('discovered %s routes', n_found)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def build_scheduled_routes(self, **rest):
+def build_scheduled_routes(self, agcy=None, **rest):
     '''Route orders for today's Blocks and build Sheets
     '''
 
-    agencies = g.db.agencies.find({})
+    if agcy:
+        agencies = [g.db.agencies.find_one({'name':agcy})]
+    else:
+        agencies = g.db.agencies.find({})
 
     for agency in agencies:
         agcy = agency['name']
         n_success = n_fails = 0
         routes = g.db.routes.find({'agency':agcy, 'date':local_today_dt()})
 
-        analyze_routes.apply(days=3)
+        discover_routes()
 
         log.info('%s: Building %s routes for %s',
             agcy, routes.count(), date.today().strftime("%A %b %d"))
 
+        n_fails = n_success = 0
+
         for route in routes:
-            rv = build(str(route['_id']))
+            try:
+                build_route(str(route['_id']))
+            except Exception as e:
+                log.error('Error building %s, msg=%s', route['block'], str(e))
+                n_fails+=1
+                continue
 
-            if not rv:
-                fails += 1
-                log.error('Error building route %s', route['block'])
-            else:
-                n_success += 1
-
+            n_success += 1
             sleep(2)
 
         log.info('%s: %s Routes built. %s failures.', agcy, n_success, n_fails)

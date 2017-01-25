@@ -3,7 +3,7 @@ import logging, os
 from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
 from .. import smart_emit, get_keys, utils, mailgun
-from app.main.tasks import rfu
+from app.main.tasks import create_rfu
 log = logging.getLogger(__name__)
 
 # TODO: remove db['emails'].update op. in app.notify.views.on_delivered just search mid in db['notifics']

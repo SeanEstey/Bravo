@@ -47,6 +47,8 @@ def build(agcy, drive_api, title):
 def write_orders(sheets_api, ss_id, orders):
     '''Write formatted orders to route sheet.'''
 
+    log.debug('writing %s orders', len(orders))
+
     rows = []
     cells_to_bold = []
     orders = orders[1:] # Chop off office start_address

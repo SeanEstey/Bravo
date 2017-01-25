@@ -32,7 +32,7 @@ def gauth(oauth):
     return service
 
 #-------------------------------------------------------------------------------
-def get_prop(service, ss_id):
+def get_prop(service, ss_id, sheet_name=None):
     try:
         prop = service.spreadsheets().get(
             spreadsheetId = ss_id
@@ -41,7 +41,36 @@ def get_prop(service, ss_id):
         log.error('couldnt get ss prop: %s', str(e))
         return False
 
-    return prop['properties']
+    if not sheet_name:
+        return prop['properties']
+
+    #from pprint import pprint
+    #pprint(prop, indent=4)
+
+    for sheet in prop['sheets']:
+        if sheet['properties']['title'] == sheet_name:
+            return sheet['properties']
+
+#-------------------------------------------------------------------------------
+def append_row(service, ss_id, sheet_name, values):
+
+    prop = get_prop(service, ss_id, sheet_name=sheet_name)
+    max_rows = prop['gridProperties']['rowCount']
+    a1_range = '%s!%s:%s' % (sheet_name, max_rows+1,max_rows+1)
+
+    try:
+        service.spreadsheets().values().append(
+            spreadsheetId = ss_id,
+            valueInputOption = "USER_ENTERED",
+            range = a1_range,
+            body = {
+                "values": [values],
+                "majorDimension": "ROWS"
+                }).execute()
+    except Exception as e:
+        log.error('Error writing to sheet: %s', str(e))
+        return False
+
 
 #-------------------------------------------------------------------------------
 def write_rows(service, ss_id, rows, a1_range):
@@ -63,13 +92,6 @@ def write_rows(service, ss_id, rows, a1_range):
     except Exception as e:
         log.error('Error writing to sheet: %s', str(e))
         return False
-
-#-------------------------------------------------------------------------------
-def append_row(service, ss_id, wks, row):
-    prop = get_prop(service, ss_id)
-    max_rows = prop['gridProperties']['rowCount']
-    row_range = '%s!%s:%s' % (wks, max_rows+1,max_rows+1)
-    write_rows(service, ss_id, [row], row_range)
 
 #-------------------------------------------------------------------------------
 def update_cell(service, ss_id, a1_range, value):

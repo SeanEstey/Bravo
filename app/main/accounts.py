@@ -32,7 +32,7 @@ def is_inactive_donor(agcy, acct, days=270):
 
     delta = date.today() - to_date(drop_date)
 
-    if delta < days:
+    if delta.days < days:
         return False
 
     cutoff_date = date.today() - timedelta(days=days)
@@ -46,13 +46,16 @@ def is_inactive_donor(agcy, acct, days=270):
             'get_gift_histories',
             get_keys('etapestry',agcy=agcy), {
                 "account_refs": [acct['ref']],
-                "start_date": cutoff.date.strftime('%d/%b/%Y'),
-                "end_date": date.today().strftime('%d/%b/%Y')})
+                "start_date": cutoff_date.strftime('%d/%b/%Y'),
+                "end_date": date.today().strftime('%d/%b/%Y')})[0]
     except EtapError as e:
         log.error('get_gift_histories fail. desc=%s', str(e))
         raise
 
+    log.debug(je)
+
     if len(je) > 0:
+        log.debug('acct_id=%s is active', acct['id'])
         return False
     else:
         log.info('acct_id=%s is inactive', acct['id'])

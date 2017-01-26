@@ -42,9 +42,8 @@ state=None, *args, **kwargs):
     if state != 'SUCCESS':
         log.error('task=%s error. state=%s, retval=%s', name, state, retval)
         log.debug('task=%s failure.', name, exc_info=True)
-        print 'FAILED'
     else:
-        print 'postrun=%s, state=%s' % (name, state)
+        log.debug('postrun=%s, state=%s, retval="%s"', name, state, retval)
 
 #-------------------------------------------------------------------------------
 @task_failure.connect

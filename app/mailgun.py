@@ -1,12 +1,9 @@
 '''app.mailgun'''
-
 import requests
 import json
 import os
 import logging
-
-logger = logging.getLogger(__name__)
-
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def send(to, subject, body, conf, v=None):
@@ -19,7 +16,7 @@ def send(to, subject, body, conf, v=None):
     # Mailgun has no test API keys for use in test environment
     # If test mode enabled, re-route all emails to test address
     if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
-        logger.debug('sandbox mode enabled. rerouting email')
+        log.debug('sandbox mode enabled. rerouting email')
         to = conf['sandbox_to']
 
     try:
@@ -34,10 +31,11 @@ def send(to, subject, body, conf, v=None):
             'v:my-custom-data': json.dumps(v)
         })
     except requests.RequestException as e:
-        logger.error('mailgun: %s ', str(e))
+        log.error('mailgun: %s ', str(e))
+        log.debug('', exc_info=True)
         pass
 
-    logger.debug(response.text)
+    #log.debug(response.text)
 
     return json.loads(response.text)['id']
 

@@ -17,7 +17,7 @@ def do_setup():
     g.db = db_client['bravo']
 
     if session.get('user_id'):
-        app.logger.debug('app.before_request() g.user loaded')
+        #app.logger.debug('app.before_request() g.user loaded')
         g.user = load_user(session['user_id'])
     #app.logger.debug('app before_request set g.user=%s', g.user)
     #print 'app.before_request g.db=True'

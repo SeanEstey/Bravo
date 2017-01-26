@@ -91,10 +91,10 @@ def compose(agcy, body, to, callback=None):
         log.debug(e, exc_info=True)
         raise
     else:
-        log.info('returning msg')
+        #log.info('returning msg')
         return msg
 
-    log.info('returning msg status')
+    #log.info('returning msg status')
     return msg.status
 
 #-------------------------------------------------------------------------------

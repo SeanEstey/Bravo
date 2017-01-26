@@ -65,6 +65,8 @@ def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
                     'Driver Notes': get_udf('Driver Notes', acct),
                     'Office Notes': get_udf('Office Notes', acct)})
 
+    return 'success'
+
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def send_receipts(self, entries, **rest):
@@ -83,7 +85,7 @@ def send_receipts(self, entries, **rest):
             {"account_numbers": [i['account_number'] for i in entries]})
     except Exception as e:
         log.error('Error retrieving accounts from etap: %s', str(e))
-        return False
+        raise
 
     gift_accts = []
     g.track = {
@@ -112,7 +114,7 @@ def send_receipts(self, entries, **rest):
     # All receipts sent except Gifts. Query Journal Histories
 
     if len(gift_accts) == 0:
-        return
+        return 'success'
 
     year = parse(gift_accts[0]['entry']['date']).year
     acct_refs = [i['account']['ref'] for i in gift_accts]
@@ -126,12 +128,11 @@ def send_receipts(self, entries, **rest):
 
     log.info('Gift receipts sent=%s', len(gift_accts))
 
+    return 'success'
+
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def create_rfu(self, agcy, note, options=None, **rest):
-
-    log.debug('agcy=%s, note=%s, options=%s, rest=%s', agcy,note,options,rest)
-    #return
 
     service = gauth(get_keys('google',agcy=agcy)['oauth'])
     ss_id = get_keys('google',agcy=agcy)['ss_id']
@@ -149,6 +150,8 @@ def create_rfu(self, agcy, note, options=None, **rest):
 
     append_row(service, ss_id, wks, rfu)
     log.debug('Creating RFU=%s', rfu)
+
+    return 'success'
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -178,7 +181,7 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
             days_from_now=days_delta)
 
         if len(accounts) < 1:
-            return False
+            return 'no accounts to update'
 
         r = sms.enable(agency_name, accounts)
 
@@ -196,14 +199,14 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
                 days_from_now=days_delta)
 
             if len(accounts) < 1:
-                return False
+                return 'failed'
 
             r = sms.enable(agency['name'], accounts)
 
             log.info('%s --- updated %s accounts for SMS. discovered %s mobile numbers ---%s',
                         bcolors.OKGREEN, r['n_sms'], r['n_mobile'], bcolors.ENDC)
 
-
+    return 'success'
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -212,6 +215,10 @@ def add_gsheets_signup(self, data, **rest):
     signup = args[0] # FIXME
 
     try:
-        return signups.add(signup)
+        signups.add(signup)
     except Exception as e:
-        log.error('%s\n%s', str(e), tb.format_exc())
+        log.error('error adding signup. desc="%s"', str(e))
+        log.debug('', exc_info=True)
+        raise
+
+    return 'success'

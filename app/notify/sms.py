@@ -99,7 +99,7 @@ def on_status():
     '''
 
     log.info('%s sms to %s', request.form['SmsStatus'], request.form['To'])
-    log.debug('sms.on_status: %s', request.form.to_dict())
+    #log.debug('sms.on_status: %s', request.form.to_dict())
 
     notific = g.db.notifics.find_one_and_update({
         'tracking.sid': request.form['SmsSid']}, {

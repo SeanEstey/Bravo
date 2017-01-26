@@ -1,7 +1,8 @@
 '''app.booker.search'''
 from datetime import datetime, timedelta
 import logging, re
-from .. import etap, parser, gcal
+from flask import g
+from .. import get_keys, etap, parser, gcal
 from . import geo
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def search(agency, query, radius=None, weeks=None):
 
     if parser.is_account_id(query):
         try:
-            account = etap.call(
+            acct = etap.call(
               'get_account',
               conf['etapestry'],
               data={'account_number': re.search(r'\d{1,6}',query).group(0)}
@@ -58,21 +59,21 @@ def search(agency, query, radius=None, weeks=None):
                 'description': 'No account found matching ID <b>%s</b>.'% query
             }
 
-        if not account.get('address') or not account.get('city'):
+        if not acct.get('address') or not acct.get('city'):
             return {
                 'status': 'failed',
                 'description': \
                     'Account <b>%s</b> is missing address or city. '\
-                    'Check the account in etapestry.'% account['name']
+                    'Check the account in etapestry.'% acct['name']
             }
 
         geo_results = geo.geocode(
-            account['address'] + ', ' + account['city'] + ', AB',
+            acct['address'] + ', ' + acct['city'] + ', AB',
             conf['google']['geocode']['api_key']
         )
 
         # Individual account (Residential donor)
-        if account['nameFormat'] <= 2:
+        if acct['nameFormat'] <= 2:
             results = geo.get_nearby_blocks(
                 geo_results[0]['geometry']['location'],
                 SEARCH_RADIUS,
@@ -83,15 +84,15 @@ def search(agency, query, radius=None, weeks=None):
                 'Found <b>%s</b> options for account <b>%s</b> within '\
                 '<b><a id="a_radius" href="#">%skm</a> radius</b> '\
                 'in next <b>%s weeks.</b>'%(
-                len(results), account['name'], SEARCH_RADIUS, SEARCH_WEEKS)
+                len(results), acct['name'], SEARCH_RADIUS, SEARCH_WEEKS)
         # Business account
-        elif account['nameFormat'] == 3:
-            postal = account['postalCode'][0:3]
+        elif acct['nameFormat'] == 3:
+            postal = acct['postalCode'][0:3]
             results = search_by_postal(postal, events)
             desc = \
                 'Found <b>%s</b> options for account <b>%s</b> '\
                 'within postal code <b>%s</b> in next <b>%s weeks.</b>'%(
-                len(results), account['name'], postal, SEARCH_WEEKS)
+                len(results), acct['name'], postal, SEARCH_WEEKS)
 
         return {
             'status': 'success',
@@ -99,7 +100,7 @@ def search(agency, query, radius=None, weeks=None):
             'query_type': 'account',
             'radius': SEARCH_RADIUS,
             'weeks': SEARCH_WEEKS,
-            'account': account,
+            'account': acct,
             'results': results,
             'description': desc
         }

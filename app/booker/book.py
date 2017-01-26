@@ -1,6 +1,6 @@
 '''app.booker.book'''
 import logging, os
-from flask import render_template, request
+from flask import g, render_template, request
 from datetime import datetime, time
 from .. import etap, utils, gsheets, mailgun
 from app.routing.main import order

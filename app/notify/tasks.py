@@ -43,6 +43,8 @@ def monitor_triggers(self, **kwargs):
 
     print '%s%s%s' %(bcolors.ENDC,output,bcolors.ENDC)
 
+    return 'success'
+
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def fire_trigger(self, _id, **rest):
@@ -113,7 +115,7 @@ def fire_trigger(self, _id, **rest):
     log.info('%s---------- queued: %s, failed: %s, errors: %s ----------%s',
         bcolors.OKGREEN, count-fails-len(errors), fails, len(errors),bcolors.ENDC)
 
-    return True
+    return 'success'
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -143,7 +145,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
         if len(blocks) == 0:
             log.info('[%s] no blocks scheduled on %s',
                 agcy, for_date.strftime('%b %-d'))
-            return
+            return 'no blocks scheduled'
 
         log.info('[%s] scheduling reminders for %s on %s',
             agcy, blocks, for_date.strftime('%b %-d'))
@@ -161,6 +163,8 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 n+=1
 
         log.info('[%s] scheduled %s/%s reminder events', agcy, n, len(blocks))
+
+    return 'success'
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -192,10 +196,10 @@ def skip_pickup(self, evnt_id, acct_id, **kwargs):
     evnt = g.db.notific_events.find_one({'_id':evnt_id})
 
     if not evnt or not acct:
-        logger.error(
+        log.error(
             'event or acct not found (evnt_id=%s, a_id=%s)',
             str(evnt_id), str(acct_id))
-        return False
+        raise
 
     conf = g.db.agencies.find_one({'name': evnt['agency']})
 
@@ -214,7 +218,9 @@ def skip_pickup(self, evnt_id, acct_id, **kwargs):
         log.error("Error writing to eTap: %s", str(e))
 
     if not acct.get('email'):
-        return True
+        return 'success'
+
+    return 'success'
 
     '''
     # Send confirmation email

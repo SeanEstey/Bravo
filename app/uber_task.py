@@ -92,9 +92,9 @@ class UberTask(Task):
 
         # Save environ vars
 
-        log.debug('push_contexts')
+        #log.debug('push_contexts')
         g.user = current_user
-        log.debug('g.user.user_id=%s', g.user.user_id)
+        #log.debug('g.user.user_id=%s', g.user.user_id)
 
         kwargs[self.ENVIRON_KW] = {}
 

@@ -112,6 +112,8 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
 
     log.debug('discovered %s routes', n_found)
 
+    return 'success'
+
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def build_scheduled_routes(self, agcy=None, **rest):
@@ -148,6 +150,8 @@ def build_scheduled_routes(self, agcy=None, **rest):
 
         log.info('%s: %s Routes built. %s failures.', agcy, n_success, n_fails)
 
+    return 'success'
+
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def build_route(self, route_id, job_id=None, **rest):
@@ -176,7 +180,7 @@ def build_route(self, route_id, job_id=None, **rest):
 
     if orders == False:
         log.error('Error retrieving routific solution')
-        return False
+        return 'failed'
 
     while orders == "processing":
         log.debug('No solution yet. Sleeping 5s...')
@@ -209,4 +213,4 @@ def build_route(self, route_id, job_id=None, **rest):
     log.info(
         '%s Sheet created. Orders written.', route['block'])
 
-    #return route
+    return 'success'

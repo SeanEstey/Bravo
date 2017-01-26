@@ -175,7 +175,7 @@ def _fire_trigger(trig_id):
 
     trigger = g.db.triggers.find_one({'_id':ObjectId(trig_id)})
 
-    fire_trigger.delay(args=[str(trigger['evnt_id']), trig_id],kwargs={})
+    fire_trigger.delay(_id=str(trigger['_id']))
 
     return jsonify({'status':'OK'})
 

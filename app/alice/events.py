@@ -8,7 +8,8 @@ from flask import g, request, session
 from datetime import datetime, date, time, timedelta
 from app.booker import geo, search, book
 from .dialog import dialog
-from .util import make_rfu, related_notific, event_begun, set_notific_reply
+from .util import related_notific, event_begun, set_notific_reply
+from app.main.tasks import create_rfu
 import app.notify.pickups
 log = logging.getLogger(__name__)
 
@@ -17,11 +18,12 @@ log = logging.getLogger(__name__)
 def request_support():
     acct = session.get('account')
 
-    make_rfu(
+    create_rfu.delay(
+        g.user.agency,
         'SMS help request: "%s"' % str(request.form['Body']),
-        a_id = acct['id'],
-        name_addy = acct['name']
-    )
+        options={
+            'Account Number': acct['id'],
+            'Name & Address': acct['name']})
 
     return dialog['support']['thanks']
 
@@ -109,10 +111,11 @@ def skip_pickup():
 #-------------------------------------------------------------------------------
 def update_mobile():
     make_rfu(
+        g.user.agency,
         'SMS update account for following address '\
         'with mobile number:' + str(request.form['Body']),
-        name_addy = request.form['From']
-    )
+        options = {
+            'Name & Address': request.form['From']})
 
     return \
         "Thank you. I'll have someone update your account for you "\
@@ -136,10 +139,12 @@ def is_unsub():
         #agency = g.db.agencies.find_one({
         #    'twilio.sms.number':request.form['To']})
 
-        make_rfu(
+        create_rfu(
+            g.user.agency,
             'Contributor has replied "%s" and opted out of SMS '\
             'notifications.' % request.form['Body'],
-            a_id = account['id'])
+            options = {
+                'Account Number': account['id']})
 
         return True
 

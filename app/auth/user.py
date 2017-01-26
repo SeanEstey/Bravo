@@ -80,7 +80,7 @@ class User():
 #-------------------------------------------------------------------------------
 class Anonymous(AnonymousUserMixin):
     def __init__(self):
-        log.debug('loading guest')
+        #log.debug('loading guest')
         self.user_id = 'Guest'
         self._id = None
 

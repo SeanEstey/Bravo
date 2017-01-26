@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 @login_manager.user_loader
 def load_user(user_id):
-    log.debug('load_user() user_id=%s', user_id)
+    #log.debug('load_user() user_id=%s', user_id)
 
     db = db_client['bravo']
     db_user = db.users.find_one({'user': user_id})
@@ -28,7 +28,7 @@ def load_user(user_id):
         agency=db_user['agency'],
         admin=db_user['admin'])
 
-    log.debug('user_loader returning user_id=%s', user.user_id)
+    #log.debug('user_loader returning user_id=%s', user.user_id)
 
     return user
 '''

@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 from flask import g, request, session
 from .. import etap
 from app.etap import EtapError
+from app.main.tasks import create_rfu
 from .dialog import *
 from app.utils import tz_utc_to_local, print_vars
 log = logging.getLogger(__name__)
@@ -21,9 +22,11 @@ def lookup_acct(mobile):
     except Exception as e:
         log.error('etap api (e=%s)', str(e))
 
-        make_rfu(
+        create_rfu(
+            g.user.agency,
             'SMS eTap error "%s"' % str(e),
-            name_addy= session.get('from'))
+            options= {
+                'Name & Address': session.get('from')})
 
         raise EtapError(dialog['error']['etap']['lookup'])
 
@@ -87,17 +90,3 @@ def event_begun(notific):
         return True
     else:
         return False
-
-#-------------------------------------------------------------------------------
-def make_rfu(note, a_id=None, npu=None, block=None, name_addy=None):
-    from .. import tasks
-    tasks.rfu.delay(
-        args=[session.get('agency'), note],
-        kwargs={
-            'a_id': a_id,
-            'npu': npu,
-            'block': block,
-            '_date': date.today().strftime('%-m/%-d/%Y'),
-            'name_addy': name_addy
-        },
-        queue=g.db.name)

@@ -59,18 +59,22 @@ def send_welcome(etap_id):
     return r.status
 
 #-------------------------------------------------------------------------------
-def compose(body, to, from_, self_name, t_keys, status_callback=None):
+def compose(agcy, body, to, callback=None):
     '''Compose SMS message to recipient
     Can be called from outside blueprint. No access to flask session
     '''
 
-    if self_name:
-        body = '%s: %s' % (self_name, body)
+    alice = get_keys('alice',agcy=agcy)
+
+    if alice.get('name'):
+        body = '%s: %s' % (alice.get('name'), body)
+
+    conf = get_keys('twilio',agcy=agcy)
 
     try:
         client = TwilioRestClient(
-            t_keys['api']['sid'],
-            t_keys['api']['auth_id'])
+            conf['api']['sid'],
+            conf['api']['auth_id'])
     except Exception as e:
         log.error(e)
         log.debug(e, exc_info=True)
@@ -80,8 +84,8 @@ def compose(body, to, from_, self_name, t_keys, status_callback=None):
         msg = client.messages.create(
             body = body,
             to = to,
-            from_ = from_, #t_conf['sms']['number'],
-            status_callback = status_callback)
+            from_ = conf['sms']['number'],
+            status_callback = callback)
     except Exception as e:
         log.error(e)
         log.debug(e, exc_info=True)

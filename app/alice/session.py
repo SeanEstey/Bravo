@@ -8,7 +8,8 @@ from datetime import datetime, date, timedelta
 from .. import kv_store, kv_ext, etap, utils
 from app.utils import print_vars, bcolors
 from . import keywords
-from .util import related_notific, make_rfu, lookup_acct, event_begun
+from .util import related_notific, lookup_acct, event_begun
+from app.main.tasks import create_rfu
 from .dialog import *
 from app.etap import EtapError
 log = logging.getLogger(__name__)
@@ -46,9 +47,11 @@ def create_session():
         session['anon_id'] = anon_id = str(ObjectId())
         session['valid_kws'] = keywords.anon.keys()
 
-        make_rfu(
+        create_rfu(
+            g.user.agency,
             'No eTap acct linked to this mobile number.\nMessage: "%s"' % msg,
-            name_addy='Mobile: %s' % from_)
+            options = {
+                'Name & Address': 'Mobile: %s' % from_})
 
         log.debug('Uregistered user session (anon_id=%s)', anon_id)
     else:

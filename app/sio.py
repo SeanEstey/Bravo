@@ -20,7 +20,7 @@ def smart_emit(event, data, room=None):
     Can be called from celery task if part of a request (will be cancelled
     otherwise).
     '''
-    log.debug('smart_emit data=%s', data)
+    #log.debug('smart_emit data=%s', data)
 
     if room:
         print 'smart_emit: sending to requested room=%s, event=%s' %(room,event)

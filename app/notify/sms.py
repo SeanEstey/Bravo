@@ -3,7 +3,7 @@ import logging, json, os
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
 from .. import smart_emit, get_keys, utils, html
-import app.alice.outgoing
+from app.alice.outgoing import compose
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -73,11 +73,10 @@ def send(notific, twilio_conf):
     callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST')
 
     try:
-        msg = app.alice.outgoing.compose(
-            body, notific['to'], acct['agency'], twilio_conf,
-            status_callback=callback)
+        msg = compose(acct['agency'], body, notific['to'], callback=callback)
     except Exception as e:
-        log.error('compose_msg exc')
+        log.error('error sending SMS, desc="%s"', str(e))
+        log.debug('', exc_info=True)
     else:
         log.info('queued sms to %s', notific['to'])
     finally:

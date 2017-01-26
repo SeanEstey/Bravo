@@ -182,13 +182,6 @@ def request_pickup(msg, response):
 
     #book.make(agency['name'], aid, block, date_str, driver_notes, name, email, confirmation):
 
-    #gsheets.create_rfu(
-    #  agency['name'],
-    #  'Pickup request received (SMS: ' + from_ + ')',
-    #  name_address = msg,
-    #  date = datetime.datetime.now().strftime('%-m/%-d/%Y')
-    #)
-
     return send_reply(
         "Thank you. We'll get back to you shortly with a pickup date",
         response

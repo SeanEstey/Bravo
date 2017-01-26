@@ -19,7 +19,6 @@ def authenticate():
         request.form.get('password'))
 
     if db_user:
-        log.debug('logging in')
         login_user(
             User(
                 db_user['user'],
@@ -29,8 +28,6 @@ def authenticate():
                 admin = db_user['admin']))
         log.debug('logged in. current_user=%s', current_user)
 
-    #session['user_id'] = current_user.user_id
-    #log.debug('session.user_id=%s', session['user_id'])
     return redirect(url_for('notify.view_event_list'))
 
 #-------------------------------------------------------------------------------

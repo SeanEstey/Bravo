@@ -2,7 +2,7 @@
 import logging
 from datetime import date, timedelta
 from flask import g
-from app import cal, celery, gsheets, get_keys
+from app import cal, celery, get_keys
 from app.gsheets import gauth, append_row, get_row
 from app.etap import get_udf, mod_acct, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 import app.main.donors

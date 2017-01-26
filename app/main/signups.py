@@ -2,7 +2,8 @@
 import json, logging
 from datetime import date, datetime
 from flask import g, request, current_app
-from .. import gsheets, get_keys
+from .. import get_keys
+from app.gsheets import gauth, get_row, append_row, update_cell, to_range
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -15,7 +16,7 @@ def add_gsheets(signup):
       signup.get('last_name'))
 
     try:
-        service = gsheets.gauth(get_keys('google',agcy='wsf'))
+        service = gauth(get_keys('google',agcy='wsf'))
     except Exception as e:
         log.error('couldnt authenticate sheets. desc=%s', str(e))
         raise Exception('auth error. desc=%s' % str(e))
@@ -52,7 +53,7 @@ def add_gsheets(signup):
         form_data['Referrer'] = signup['referrer']
 
     ss_id = get_keys('google',agcy='wsf')['ss_id']
-    headers = gsheets.get_row(service, ss_id, 'Signups', 1)
+    headers = get_row(service, ss_id, 'Signups', 1)
     row = []
 
     for field in headers:
@@ -62,7 +63,7 @@ def add_gsheets(signup):
         row.append('')
 
     try:
-        gsheets.append_row(service, ss_id, 'Signups', row)
+        append_row(service, ss_id, 'Signups', row)
     except Exception, e:
         log.error('couldnt add signup="%s". desc="%s"', json.dumps(signup), str(e))
         log.debug('', exc_info=True)
@@ -80,15 +81,17 @@ def on_email_delivered():
         {'mid': request.form['Message-Id']},
         {'$set': {'status': request.form['event']}})
 
+    agcy = email['agency']
+    row = email['on_status']['update']['row']
+    ss_id = get_keys('google',agcy=agcy)['ss_id']
 
-    log.error('update cell not implemented yet')
-
-    #gsheets.update_cell(service, ss_id, range_, value)
-
-    #gsheets.update_entry(
-    #  email['agency'],
-    #  request.form['event'],
-    #  email['on_status']['update'])
+    try:
+        service = gauth(get_keys('google',agcy=agcy)['oauth'])
+        headers = get_row(service, ss_id, 'Routes', 1)
+        col = headers.index('Email Status')+1
+        update_cell(service, ss_id, to_range(row,col), request.form['event'])
+    except Exception as e:
+        log.error('error updating sheet')
 
 #-------------------------------------------------------------------------------
 def on_email_dropped():
@@ -101,12 +104,17 @@ def on_email_dropped():
         {'mid': request.form['Message-Id']},
         {'$set': {'status': request.form['event']}})
 
-    log.error('update cell not implemented yet')
+    agcy = email['agency']
+    row = email['on_status']['update']['row']
+    ss_id = get_keys('google',agcy=agcy)['ss_id']
 
-    #gsheets.update_entry(
-    #  email['agency'],
-    #  request.form['event'],
-    #  email['on_status']['update'])
+    try:
+        service = gauth(get_keys('google',agcy=agcy)['oauth'])
+        headers = get_row(service, ss_id, 'Routes', 1)
+        col = headers.index('Email Status')+1
+        update_cell(service, ss_id, to_range(row,col), request.form['event'])
+    except Exception as e:
+        log.error('error updating sheet')
 
     create_rfu.delay(
         email['agency'], msg + request.form.get('description'),

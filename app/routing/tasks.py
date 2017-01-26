@@ -22,7 +22,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
     '''
 
     #sleep(3)
-    log.debug('discover_routes, days=%s, g.user=%s', within_days, g.user)
+    #log.debug('discover_routes, days=%s, g.user=%s', within_days, g.user)
     smart_emit('discover_routes', {'status':'in-progress'})
 
     n_found = 0

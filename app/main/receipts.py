@@ -2,10 +2,10 @@
 import json, logging, os, requests
 from datetime import date
 from dateutil.parser import parse
-from flask import current_app, render_template, request
-from .. import get_keys, html, mailgun, etap, gsheets
+from flask import g, current_app, render_template, request
+from .. import get_keys, html, mailgun, etap
 from app.main.tasks import create_rfu
-from app.gsheets import update_cell, a1
+from app.gsheets import update_cell, to_range, gauth, get_row
 from app.etap import get_udf, ddmmyyyy_to_date as to_date
 log = logging.getLogger(__name__)
 
@@ -19,25 +19,16 @@ def on_delivered():
         {'mid': request.form['Message-Id']},
         {'$set': {'status': request.form['event']}})
     agcy = email['agency']
-    service = gsheets.gauth(get_keys('google',agcy=agcy)['oauth'])
-    headers = gsheets.get_values(
-        service,
-        get_keys('google',agcy=agcy)['ss_id'],
-        'Routes!1:1'
-    )[0]
+    row = email['on_status']['update']['row']
+    ss_id = get_keys('google',agcy=agcy)['ss_id']
 
-    if 'Email Status' not in headers:
-        log.error('Missing "Email Status" header')
-        return False
-
-    col_a1 = gsheets.col_idx_to_a1(headers.index('Email Status'))
-
-    gsheets.update_cell(
-        service,
-        get_keys('google',agcy=agcy)['ss_id'],
-        'Routes!' + col_a1 + str(email['on_status']['update']['row']),
-        request.form['event']
-    )
+    try:
+        service = gauth(get_keys('google',agcy=agcy)['oauth'])
+        headers = get_row(service, ss_id, 'Routes', 1)
+        col = headers.index('Email Status')+1
+        update_cell(service, ss_id, to_range(row,col), request.form['event'])
+    except Exception as e:
+        log.error('error updating sheet')
 
 #-------------------------------------------------------------------------------
 def on_dropped():
@@ -53,12 +44,17 @@ def on_dropped():
     email = g.db['emails'].find_one_and_update(
         {'mid': request.form['Message-Id']},
         {'$set': {'status': request.form['event']}})
+    agcy = email['agency']
+    row = email['on_status']['update']['row']
+    ss_id = get_keys('google',agcy=agcy)['ss_id']
 
-    gsheets.update_entry(
-      email['agency'],
-      request.form['event'],
-      email['on_status']['update']
-    )
+    try:
+        service = gauth(get_keys('google',agcy=agcy)['oauth'])
+        headers = get_row(service, ss_id, 'Routes', 1)
+        col = headers.index('Email Status')+1
+        update_cell(service, ss_id, to_range(row,col), request.form['event'])
+    except Exception as e:
+        log.error('error updating sheet')
 
     create_rfu.delay(
         email['agency'],
@@ -179,10 +175,14 @@ def generate(acct, entry, gift_history=None):
         status = 'no email'
 
     row = entry['from']['row']
-    col = headers.index('Email Status')+1
+    ss_id = get_keys('google',agcy=g.user.agency)['ss_id']
 
     try:
-        update_cell(g.service, g.ss_id, a1(row,col), status)
+        service = gauth(get_keys('google',agcy=g.user.agency)['oauth'])
+        headers = get_row(service, ss_id, 'Routes', 1)
+        col = headers.index('Email Status')+1
+        range_ = to_range(row, col)
+        update_cell(service, ss_id, range_, status)
     except Exception as e:
         log.error('update_cell error')
 

@@ -11,6 +11,5 @@ log = logging.getLogger(__name__)
 
 @auth.before_request
 def before_request():
-    log.debug('auth.before_request')
-    #log.debug('auth.before_request current_user=%s', current_user)
-    #g.user = current_user
+    #log.debug('auth.before_request')
+    pass

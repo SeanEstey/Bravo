@@ -20,7 +20,7 @@ def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwar
     @args, @kwargs: the tasks positional and keyword arguments
     '''
 
-    log.debug('prerun=%s, request=%s', sender.name.split('.')[-1], '...')
+    #log.debug('prerun=%s, request=%s', sender.name.split('.')[-1], '...')
     pass
 
 #-------------------------------------------------------------------------------

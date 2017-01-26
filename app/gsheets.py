@@ -104,6 +104,11 @@ def bold_cells(service, ss_id, cells):
         range_=range_, cell=cell, fields=fields)
 
 #-------------------------------------------------------------------------------
+def to_range(row, col):
+    letter = col_idx_to_a1(col-1)
+    return '%s%s' % (letter,str(row))
+
+#-------------------------------------------------------------------------------
 def col_idx_to_a1(idx):
     alphabet = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
@@ -121,11 +126,6 @@ def col_idx_to_a1(idx):
     for i in range(int(parts[0])):
         a1 += alphabet[i]
     '''
-
-#-------------------------------------------------------------------------------
-def a1(row, col):
-    letter = col_idx_to_a1(col-1)
-    return '%s%s' % (letter,(row))
 
 #-------------------------------------------------------------------------------
 def gauth(oauth):

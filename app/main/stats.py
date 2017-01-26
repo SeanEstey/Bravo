@@ -1,17 +1,12 @@
 '''app.main.stats'''
-
 import logging
 from datetime import datetime, date, time, timedelta
 import json
-
 from .. import etap, utils, gsheets, parser
+from app.etap import EtapError
 from app.routing import parse
 from app import db, bcolors
-
 log = logging.getLogger(__name__)
-
-class EtapError(Exception):
-    pass
 
 #-------------------------------------------------------------------------------
 def update(agency, ss_id):

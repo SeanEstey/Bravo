@@ -148,7 +148,7 @@ def is_test_server():
 
     os.environ['BRAVO_HTTP_HOST'] = 'http://' + ip
 
-    log.debug('http_host=%s', os.environ['BRAVO_HTTP_HOST'])
+    #log.debug('http_host=%s', os.environ['BRAVO_HTTP_HOST'])
 
     try:
         domain = socket.gethostbyaddr(ip)

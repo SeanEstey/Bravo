@@ -1,16 +1,12 @@
 '''app.cal'''
-
 import logging
 import datetime
 from dateutil.parser import parse
 import re
 from datetime import datetime, date, time, timedelta
-
 from .parser import get_block, block_to_rmv
 from . import gcal, gsheets, etap
-
 log = logging.getLogger(__name__)
-
 
 #-------------------------------------------------------------------------------
 def get_next_block_date(cal_id, block, oauth):

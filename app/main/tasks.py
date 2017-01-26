@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def find_inactive_donors(self, agcy=None, in_days=5, max_inactive_days=None, **rest):
+def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
     '''Create RFU's for all non-participants on scheduled dates
     '''
 
@@ -22,8 +22,8 @@ def find_inactive_donors(self, agcy=None, in_days=5, max_inactive_days=None, **r
 
     for agency in agencies:
         agcy = agency['name']
-        if not max_inactive_days:
-            max_inactive_days = agency['config']['non_participant_days']
+        if not period:
+            period = agency['config']['non_participant_days']
         log.info('%s: Analyzing non-participants in 5 days...', agcy)
 
         accts = cal.get_accounts(
@@ -36,7 +36,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, max_inactive_days=None, **r
             continue
 
         for acct in accts:
-            if not donors.is_inactive(agcy, acct, days=max_inactive_days):
+            if not donors.is_inactive(agcy, acct, days=period):
                 continue
 
             npu = get_udf('Next Pickup Date', acct)
@@ -52,11 +52,11 @@ def find_inactive_donors(self, agcy=None, in_days=5, max_inactive_days=None, **r
                     '%s\n%s: non-participant (inactive for %s days)'%(
                     get_udf('Office Notes', acct),
                     date.today().strftime('%b%-d %Y'),
-                    max_inactive_days)})
+                    period)})
 
             create_rfu(
                 agcy,
-                'Non-participant. No collection in %s days.' % max_inactive_days,
+                'Non-participant. No collection in %s days.' % period,
                 options={
                     'Account Number': acct['id'],
                     'Next Pickup Date': npu,
@@ -129,6 +129,9 @@ def send_receipts(self, entries, **rest):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def create_rfu(self, agcy, note, options=None, **rest):
+
+    log.debug('agcy=%s, note=%s, options=%s, rest=%s', agcy,note,options,rest)
+    #return
 
     service = gauth(get_keys('google',agcy=agcy)['oauth'])
     ss_id = get_keys('google',agcy=agcy)['ss_id']

@@ -1,11 +1,11 @@
 '''app.notify.tasks'''
-import logging, pytz
+import logging, os, pytz
 from datetime import datetime, date, time, timedelta
 from bson import ObjectId
 from flask import g
 from app.utils import bcolors
-from app import cal, celery, smart_emit
-from . import pickups, triggers
+from app import get_keys, cal, celery, smart_emit
+from . import email, sms, voice, pickups, triggers
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -24,11 +24,9 @@ def monitor_triggers(self, **kwargs):
                 '$lt':datetime.utcnow()}})
 
         for trigger in ready:
-            event = events.get(trigger['evnt_id'])
-
             log.debug('trigger %s scheduled. firing.', str(trigger['_id']))
 
-            triggers.fire(trigger['evnt_id'], trigger['_id'])
+            fire_trigger(trigger['_id'])
 
         pending = g.db.triggers.find({
             'status':'pending',
@@ -47,14 +45,75 @@ def monitor_triggers(self, **kwargs):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def fire_trigger(self, evnt_id, trig_id, **kwargs):
-    log.debug('trigger task_id: %s', self.request.id)
+def fire_trigger(self, _id, **rest):
+    '''Sends out all dependent sms/voice/email notifics messages
+    '''
 
-    g.db.triggers.update_one({
-        '_id':ObjectId(trig_id)},
-        {'$set':{'task_id':self.request.id}})
+    errors = []
+    status = ''
+    fails = 0
+    trigger = g.db.triggers.find_one(
+        {'_id':ObjectId(_id)})
+    event = g.db.notific_events.find_one(
+        {'_id':trigger['evnt_id']})
+    agcy = event['agency']
 
-    triggers.fire(ObjectId(evnt_id), ObjectId(trig_id))
+    log.info('%s---------- firing %s trigger for "%s" event ----------%s',
+        bcolors.OKGREEN, trigger['type'], event['name'], bcolors.ENDC)
+
+    if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
+        log.info('sandbox mode detected.')
+        log.info('simulating voice/sms msgs, re-routing emails')
+
+    g.db.triggers.update_one(
+        {'_id':ObjectId(_id)},
+        {'$set': {
+            'task_id': self.request.id,
+            'status': 'in-progress',
+            'errors': errors}})
+
+    smart_emit('trigger_status',{
+        'trig_id': str(_id), 'status': 'in-progress'})
+
+    ready = g.db.notifics.find(
+        {'trig_id':ObjectId(_id), 'tracking.status':'pending'})
+    count = ready.count()
+
+    for n in ready:
+        try:
+            if n['type'] == 'voice':
+                status = voice.call(n,
+                    get_keys('twilio',agcy=agcy),
+                    get_keys('notifiy',agcy=agcy)['voice'])
+            elif n['type'] == 'sms':
+                status = sms.send(n, get_keys('twilio',agcy=agcy))
+            elif n['type'] == 'email':
+                status = email.send(n, get_keys('mailgun',agcy=agcy))
+        except Exception as e:
+            status = 'error'
+            errors.append(str(e))
+            log.error('error sending %s. _id=%s, msg=%s', n['type'],str(n['_id']), str(e))
+        else:
+            if status == 'failed':
+                fails += 1
+        finally:
+            smart_emit('notific_status', {
+                'notific_id':str(n['_id']), 'status':status})
+
+    g.db.triggers.update_one({'_id':ObjectId(_id)}, {
+        '$set': {'status': 'fired', 'errors': errors}})
+
+    smart_emit('trigger_status', {
+        'trig_id': str(_id),
+        'status': 'fired',
+        'sent': count-fails-len(errors),
+        'fails': fails,
+        'errors': len(errors)})
+
+    log.info('%s---------- queued: %s, failed: %s, errors: %s ----------%s',
+        bcolors.OKGREEN, count-fails-len(errors), fails, len(errors),bcolors.ENDC)
+
+    return True
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

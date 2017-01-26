@@ -46,73 +46,7 @@ def get(trig_id, local_time=False):
 def get_count(trig_id):
     return g.db.notifics.find({'trig_id':trig_id}).count()
 
-#-------------------------------------------------------------------------------
-def fire(evnt_id, trig_id):
-    '''Sends out all dependent sms/voice/email notifics messages
-    '''
 
-    errors = []
-    status = ''
-    fails = 0
-    event = g.db.notific_events.find_one({'_id':evnt_id})
-    agnc = event['agency']
-    ready = g.db.notifics.find(
-        {'trig_id':trig_id, 'tracking.status':'pending'})
-    count = ready.count()
-    trigger = g.db.triggers.find_one({'_id':trig_id})
-
-    log.info('%s---------- firing %s trigger for "%s" event ----------%s',
-    bcolors.OKGREEN, trigger['type'], event['name'], bcolors.ENDC)
-
-    if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
-        log.info('sandbox mode detected.')
-        log.info('simulating voice/sms msgs, re-routing emails')
-
-    g.db.triggers.update_one(
-        {'_id':trig_id},
-        {'$set': {
-            'status': 'in-progress',
-            'errors': errors
-    }})
-
-    smart_emit('trigger_status',{
-        'trig_id': str(trig_id), 'status': 'in-progress'})
-
-    for n in ready:
-        try:
-            if n['type'] == 'voice':
-                status = voice.call(n,
-                    get_keys('twilio', agnc=agnc),
-                    get_keys('notifiy', agnc=agnc)['voice'])
-            elif n['type'] == 'sms':
-                status = sms.send(n, get_keys('twilio', agnc=agnc))
-            elif n['type'] == 'email':
-                status = email.send(n, get_keys('mailgun', agnc=agnc))
-        except Exception as e:
-            status = 'error'
-            errors.append(str(e))
-            log.error('error sending %s. _id=%s, msg=%s', n['type'],str(n['_id']), str(e))
-        else:
-            if status == 'failed':
-                fails += 1
-        finally:
-            smart_emit('notific_status', {
-                'notific_id':str(n['_id']), 'status':status})
-
-    g.db.triggers.update_one({'_id':trig_id}, {
-        '$set': {'status': 'fired', 'errors': errors}})
-
-    smart_emit('trigger_status', {
-        'trig_id': str(trig_id),
-        'status': 'fired',
-        'sent': count-fails-len(errors),
-        'fails': fails,
-        'errors': len(errors)})
-
-    log.info('%s---------- queued: %s, failed: %s, errors: %s ----------%s',
-        bcolors.OKGREEN, count-fails-len(errors), fails, len(errors),bcolors.ENDC)
-
-    return True
 
 #-------------------------------------------------------------------------------
 def kill_task():

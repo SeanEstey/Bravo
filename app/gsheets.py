@@ -17,8 +17,7 @@ def gauth(oauth):
         credentials = SignedJwtAssertionCredentials(
             oauth['client_email'],
             oauth['private_key'],
-            scope
-        )
+            scope)
 
         http = httplib2.Http()
         http = credentials.authorize(http)
@@ -34,9 +33,7 @@ def gauth(oauth):
 #-------------------------------------------------------------------------------
 def get_prop(service, ss_id, sheet_name=None):
     try:
-        prop = service.spreadsheets().get(
-            spreadsheetId = ss_id
-        ).execute()
+        prop = service.spreadsheets().get(spreadsheetId=ss_id).execute()
     except Exception as e:
         log.error('couldnt get ss prop: %s', str(e))
         return False
@@ -44,12 +41,29 @@ def get_prop(service, ss_id, sheet_name=None):
     if not sheet_name:
         return prop['properties']
 
-    #from pprint import pprint
-    #pprint(prop, indent=4)
-
     for sheet in prop['sheets']:
         if sheet['properties']['title'] == sheet_name:
             return sheet['properties']
+
+
+#-------------------------------------------------------------------------------
+def write(service, ss_id, cmd, a1_range, values):
+
+    body = {
+        "values": [values],
+        "majorDimension": "ROWS"}
+    _input = 'USER_ENTERED'
+
+    if cmd == 'update':
+        func = service.spreadsheets().values().update
+    elif cmd == 'append':
+        func = service.spreadsheets().values().append
+
+    try:
+        func(spreadsheetId=ss_id, valueInputOption=_input, range=a1_range, body=body).execute()
+    except Exception as e:
+        log.error('Error writing to sheet: %s', str(e))
+        return False
 
 #-------------------------------------------------------------------------------
 def append_row(service, ss_id, sheet_name, values):
@@ -58,62 +72,17 @@ def append_row(service, ss_id, sheet_name, values):
     max_rows = prop['gridProperties']['rowCount']
     a1_range = '%s!%s:%s' % (sheet_name, max_rows+1,max_rows+1)
 
-    try:
-        service.spreadsheets().values().append(
-            spreadsheetId = ss_id,
-            valueInputOption = "USER_ENTERED",
-            range = a1_range,
-            body = {
-                "values": [values],
-                "majorDimension": "ROWS"
-                }).execute()
-    except Exception as e:
-        log.error('Error writing to sheet: %s', str(e))
-        return False
-
+    write(service, ss_id, 'append', a1_range, values)
 
 #-------------------------------------------------------------------------------
 def write_rows(service, ss_id, rows, a1_range):
-    '''Write data to sheet
-    Returns: UpdateValuesResponse
-    https://developers.google.com/sheets/reference/rest/v4/UpdateValuesResponse
-    '''
 
-    try:
-        service.spreadsheets().values().update(
-          spreadsheetId = ss_id,
-          valueInputOption = "USER_ENTERED",
-          range = a1_range,
-          body = {
-            "majorDimension": "ROWS",
-            "values": rows
-          }
-        ).execute()
-    except Exception as e:
-        log.error('Error writing to sheet: %s', str(e))
-        return False
+    write(service, ss_id, 'update', rows, a1_range, rows)
 
 #-------------------------------------------------------------------------------
 def update_cell(service, ss_id, a1_range, value):
-    '''Write data to sheet
-    @a1_range: cell range i.e. "Routes!D65"
-    Returns: UpdateValuesResponse
-    https://developers.google.com/sheets/reference/rest/v4/UpdateValuesResponse
-    '''
 
-    try:
-        service.spreadsheets().values().update(
-          spreadsheetId = ss_id,
-          valueInputOption = "USER_ENTERED",
-          range = a1_range,
-          body = {
-            "majorDimension": "ROWS",
-            "values": [[value]]
-          }
-        ).execute()
-    except Exception as e:
-        log.error('Error writing to sheet: %s', str(e))
-        return False
+    write(service, ss_id, 'update', a1_range, [[value]])
 
 #-------------------------------------------------------------------------------
 def get_values(service, ss_id, a1_range):

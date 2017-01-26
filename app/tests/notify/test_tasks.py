@@ -20,15 +20,14 @@ class NotifyTasksTests(unittest.TestCase):
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 
-    def _test_fire_trigger(self):
+    def test_fire_trigger(self):
         try:
-            evnt_id = ''
-            trig_id = ''
-            fire_trigger(evnt_id, trig_id)
+            _id = '5888f5c206dc2a2209dbc3ad'
+            fire_trigger(_id)
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 
-    def test_schedule_reminders(self):
+    def _test_schedule_reminders(self):
         try:
             r1z_date = date(2017,4,2)
             schedule_reminders(agcy='vec', for_date=r1z_date)

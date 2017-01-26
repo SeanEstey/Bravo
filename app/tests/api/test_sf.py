@@ -15,7 +15,7 @@ from app import utils
 from app import create_app
 from app.api import salesforce
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 class SalesforceTests(unittest.TestCase):
     def setUp(self):

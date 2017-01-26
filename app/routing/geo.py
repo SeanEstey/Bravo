@@ -3,7 +3,7 @@
 import json
 import logging
 import requests
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def get_gmaps_url(address, lat, lng):
@@ -46,24 +46,24 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
             'key': api_key
           })
     except requests.RequestException as e:
-        logger.error(str(e))
+        log.error(str(e))
         raise
 
-    #logger.debug(response.text)
+    #log.debug(response.text)
 
     response = json.loads(response.text)
 
     if response['status'] == 'ZERO_RESULTS':
         e = 'No geocode result for ' + address
-        logger.error(e)
+        log.error(e)
         return []
     elif response['status'] == 'INVALID_REQUEST':
         e = 'Invalid request for ' + address
-        logger.error(e)
+        log.error(e)
         return []
     elif response['status'] != 'OK':
         e = 'Could not geocode ' + address
-        logger.error(e)
+        log.error(e)
         return []
 
     # Single result
@@ -76,7 +76,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
               address, response['results'][0]['formatted_address'])
 
             response['results'][0]['warning'] = warning
-            logger.debug(warning)
+            log.debug(warning)
 
         return response['results']
 
@@ -90,7 +90,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
           'Using 1st result <strong>%s</strong>.' % (
           address, response['results'][0]['formatted_address'])
 
-        logger.debug(response['results'][0]['warning'])
+        log.debug(response['results'][0]['warning'])
 
         return [response['results'][0]]
     else:
@@ -107,7 +107,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
                   'Using as best match.' % (
                   address, get_postal(result), str(idx), result['formatted_address'])
 
-                logger.debug(result['warning'])
+                log.debug(result['warning'])
 
                 return [result]
 
@@ -119,6 +119,6 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
                   'Using <strong>%s</strong> as best guess.' % (
                   address, response['results'][0]['formatted_address'])
 
-                logger.error(response['results'][0]['warning'])
+                log.error(response['results'][0]['warning'])
 
     return [response['results'][0]]

@@ -6,7 +6,7 @@ from app import cal, celery, gsheets, get_keys
 from app.gsheets import gauth, append_row, get_row
 from app.etap import get_udf, mod_acct, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 import app.main.donors
-from app.main.receipts import generate
+
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -75,6 +75,8 @@ def send_receipts(self, entries, **rest):
     @entries: array of gift entry dicts->
         {'amount':float, 'date':str,'from':{'row':int,'upload_status':str(db_ref),'worksheet':str}}
     '''
+
+    from app.main.receipts import generate
 
     try:
         # Get all eTapestry account data.

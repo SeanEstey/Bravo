@@ -12,7 +12,7 @@ from pymongo.collection import ReturnDocument
 from app import db
 from . import events, accounts, triggers, voice, sms
 from .. import utils, etap, bcolors
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 class EtapError(Exception):
     pass
@@ -22,7 +22,7 @@ def add_event():
     agency = db.users.find_one({'user': current_user.user_id})['agency']
     conf= db.agencies.find_one({'name':agency})
 
-    logger.debug(request.form.to_dict())
+    log.debug(request.form.to_dict())
 
     try:
         response = etap.call(
@@ -35,10 +35,10 @@ def add_event():
         )
     except Exception as e:
         msg = 'Failed to retrieve query "%s". Details: %s' % (request.form['query_name'], str(e))
-        logger.error(msg)
+        log.error(msg)
         raise EtapError(msg)
     else:
-        logger.debug('returned %s accounts', response['count'])
+        log.debug('returned %s accounts', response['count'])
 
     evnt_id = events.add(
         agency,
@@ -79,7 +79,7 @@ def add_event():
              'func': 'on_interact'}
         )
 
-    logger.info(
+    log.info(
         '%s sms_announce event successfully created %s',
         bcolors.OKGREEN, bcolors.ENDC)
 

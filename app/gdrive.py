@@ -9,7 +9,7 @@ from apiclient.http import BatchHttpRequest
 import re
 import requests
 import json
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
@@ -32,10 +32,10 @@ def gauth(oauth):
         http = credentials.authorize(http)
         service = build(name, version, http=http)
     except Exception as e:
-        logger.error('Error authorizing %s: %s', name, str(e))
+        log.error('Error authorizing %s: %s', name, str(e))
         return False
 
-    logger.debug('Drive service authorized')
+    log.debug('Drive service authorized')
 
     return service
 
@@ -88,10 +88,10 @@ def permissions_callback(request_id, response, exception):
     '''
 
     if exception is not None:
-        logger.error(
+        log.error(
           'Request %s raised exception adding permissions: %s',
           request_id, str(exception))
         pass
     else:
-        logger.debug(json.dumps(response))
+        log.debug(json.dumps(response))
         pass

@@ -8,7 +8,7 @@ from .. import etap, utils, gsheets, parser
 from app.routing import parse
 from app import db, bcolors
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 class EtapError(Exception):
     pass
@@ -70,11 +70,11 @@ def update(agency, ss_id):
         row_num = find_block_row(stats_headers, rows, block)
 
         if not row_num:
-            logger.error('Stats entry not found for block ' + block)
+            log.error('Stats entry not found for block ' + block)
             return False
 
-    logger.info(worksheet)
-    logger.info(row_num)
+    log.info(worksheet)
+    log.info(row_num)
 
     dropoff_gifts = 0
     dropoffs = 0
@@ -92,7 +92,7 @@ def update(agency, ss_id):
     route_headers = route_rows[0:1][0]
     orders = route_rows[1: last_order_idx]
 
-    logger.info('orders: ' + str(len(orders)))
+    log.info('orders: ' + str(len(orders)))
 
     for order in orders:
         order_info = parse.row_to_dict(route_headers, order)
@@ -108,9 +108,9 @@ def update(agency, ss_id):
             elif order_info['$'] > 0:
                 core_gifts+=1
 
-    logger.info('dropoffs: ' + str(dropoffs))
-    logger.info('gifts: ' + str(core_gifts))
-    logger.info('zeros: '  + str(zeros))
+    log.info('dropoffs: ' + str(dropoffs))
+    log.info('gifts: ' + str(core_gifts))
+    log.info('zeros: '  + str(zeros))
 
     row = [None] * len(stats_headers)
 
@@ -177,15 +177,15 @@ def updateStats(ss_id, archive_ss_id, route):
         row_index = findStatsEntryRow(sheet, route.title_block)
 
         if not row_index:
-            logger.info('Stats entry not found for block ' + route.title_block)
+            log.info('Stats entry not found for block ' + route.title_block)
             return False
 
     stats_row = sheet.getRange(row_index+1,1,1,sheet.getLastColumn()).getValues()[0]
     headers = sheet.getRange(1,1,1,sheet.getMaxColumns()).getValues()[0]
 
     info = route.getInfo()
-    logger.info('route info:')
-    logger.info(info)
+    log.info('route info:')
+    log.info(info)
 
     if route_type == 'Res':
         num_dropoffs = 0
@@ -204,9 +204,9 @@ def updateStats(ss_id, archive_ss_id, route):
                 elif route.getValue(i,'$') > 0:
                     num_core_gifts+=1
 
-        logger.info('core_gifts: %s', String(num_core_gifts))
-        logger.info('route orders: %s', String(route.orders.length))
-        logger.info('num dropoffs: %s', String(num_dropoffs))
+        log.info('core_gifts: %s', String(num_core_gifts))
+        log.info('route orders: %s', String(route.orders.length))
+        log.info('num dropoffs: %s', String(num_dropoffs))
 
         stats_row[headers.index('Size')] = route.orders.length
         stats_row[headers.index('New')] = num_dropoffs
@@ -220,13 +220,13 @@ def updateStats(ss_id, archive_ss_id, route):
         archive_sheet = archive_ss.getSheetByName('Residential')
         prev_stats_index = findStatsEntryRow(archive_sheet, route.title_block)
 
-        logger.info('prev_route_archive_row_index: ' + prev_stats_index)
+        log.info('prev_route_archive_row_index: ' + prev_stats_index)
 
         archive_headers = archive_sheet.getRange(1,1,1,archive_sheet.getMaxColumns()).getValues()[0]
 
         if prev_stats_index:
             prev_stats_row = archive_sheet.getRange(prev_stats_index+1,1,1,archive_sheet.getLastColumn()).getValues()[0]
-            logger.info('prev_stats_row: ' + prev_stats_row)
+            log.info('prev_stats_row: ' + prev_stats_row)
             stats_row[headers.index('Last Part')] = prev_stats_row[archive_headers.index('Part')]
             stats_row[headers.index('Last Receipt')] = prev_stats_row[archive_headers.index('Receipt')]
             stats_row[headers.index('Part Diff')] = stats_row[headers.index('Part')] - stats_row[headers.index('Last Part')]
@@ -309,10 +309,10 @@ def updateInventory(ss_id, route):
     for i=0 i<headers.length i+=1:
         headers[i] = headers[i].trim()
 
-    logger.info("Headers: %s", JSON.stringify(headers))
+    log.info("Headers: %s", JSON.stringify(headers))
 
     if not sheet:
-        logger.info('No inven sheet for ' + route.months[route.date.getMonth()])
+        log.info('No inven sheet for ' + route.months[route.date.getMonth()])
         return
 
     # Find dest Inventory row
@@ -331,9 +331,9 @@ def updateInventory(ss_id, route):
     for i=0 i<row.length i+=1:
         row[i] = ''
 
-    logger.info('Inventory changes: %s ', JSON.stringify(signed_out))
+    log.info('Inventory changes: %s ', JSON.stringify(signed_out))
 
-    logger.info('Writing to Row %s', String(dest_row))
+    log.info('Writing to Row %s', String(dest_row))
 
     if headers.index('Date') > -1:
         row[headers.index('Date')] = route.date.toLocaleDateString()
@@ -366,7 +366,7 @@ def updateInventory(ss_id, route):
     row[headers.index('Driver')] = route.driver
     row[headers.index('Block')] = route.title_block
 
-    logger.info(JSON.stringify(row))
+    log.info(JSON.stringify(row))
 
     sheet.getRange(dest_row,1,1,row.length).setValues([row])
 
@@ -404,7 +404,7 @@ def calculateEstimateError():
     estimateDiffCol = sheet.getRange("A1:Y1").getValues()[0].index('Estimate Diff') + 1
     sheet.getRange(2, estimateDiffCol).setValue(estimateError)
     '''
-    logger.info('Updated estimate error')
+    log.info('Updated estimate error')
 
 #-------------------------------------------------------------------------------
 def projectMonthlyRevenue():
@@ -430,17 +430,17 @@ def projectMonthlyRevenue():
     for i=0 i<receipt_values.length i+=1:
         if Number(receipt_values[i]) > 0:
             projectedRevenue += Number(receipt_values[i])
-            logger.info('Adding receipt ' + Number(receipt_values[i]))
+            log.info('Adding receipt ' + Number(receipt_values[i]))
         elif Number(estimate_values[i]) > 0:
             projectedRevenue += Number(estimate_values[i])
-            logger.info('Adding estimate ' + Number(estimate_values[i]))
+            log.info('Adding estimate ' + Number(estimate_values[i]))
         else:
             projectedRevenue += Number(avgReceipt)
-            logger.info('Adding avg ' + Number(avgReceipt))
+            log.info('Adding avg ' + Number(avgReceipt))
 
     projectedRevCol = sheet.getRange("A1:Y1").getValues()[0].index('Projected') + 1
     sheet.getRange(2, projectedRevCol).setValue(Number(projectedRevenue.toFixed(0)))
-    logger.info('Updated projected revenue: ' + Number(projectedRevenue.toFixed(0)))
+    log.info('Updated projected revenue: ' + Number(projectedRevenue.toFixed(0)))
     '''
 
 #-------------------------------------------------------------------------------

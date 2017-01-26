@@ -5,10 +5,10 @@ from bson.objectid import ObjectId
 from flask_login import login_required
 from flask import g, request, jsonify, render_template, Response, url_for
 from app import smart_emit, get_keys, utils, cal, parser
+from app.main.tasks import create_rfu
 from .tasks import fire_trigger, skip_pickup
 from . import notify, accounts, admin, events, triggers, email, voice, sms,\
     recording, pickups, gg, voice_announce
-
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -31,8 +31,7 @@ def view_event_list():
       'views/event_list.html',
       title=None,
       events=event_list,
-      admin=g.user.is_admin()
-    )
+      admin=g.user.is_admin())
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>')
@@ -49,11 +48,10 @@ def view_event(evnt_id):
         notific_list,
         to_local_time=True,
         to_strftime="%m/%-d/%Y",
-        bson_to_json=True
-    )
+        bson_to_json=True)
 
     for trigger in trigger_list:
-        trigger['type'] = utils.to_title_case(trigger['type']);
+        trigger['type'] = utils.to_title_case(trigger['type'])
 
     return render_template(
         'views/event.html',
@@ -62,8 +60,7 @@ def view_event(evnt_id):
         evnt_id=evnt_id,
         event=event,
         triggers=trigger_list,
-        admin=g.user.is_admin()
-    )
+        admin=g.user.is_admin())
 
 #-------------------------------------------------------------------------------
 @notify.route('/new', methods=['POST'])
@@ -88,21 +85,19 @@ def new_event():
             else:
                 return jsonify({'status':'failed', 'description':'Invalid Block name'})
 
-            _date = cal.get_next_block_date(
+            date_ = cal.get_next_block_date(
                 cal_id, block, get_keys('google')['oauth'])
 
             evnt_id = pickups.create_reminder(
                 g.user.agency,
                 block,
-                _date
-            )
+                date_)
     except Exception as e:
         log.error(str(e))
         log.debug('', exc_info=True)
         return jsonify({
             'status':'failed',
-            'description': str(e)
-        })
+            'description': str(e)})
 
     event = g.db.notific_events.find_one({'_id':evnt_id})
 
@@ -117,14 +112,12 @@ def new_event():
         'event': utils.formatter(
             event,
             to_local_time=True,
-            bson_to_json=True
-        ),
+            bson_to_json=True),
         'view_url': url_for('.view_event', evnt_id=str(event['_id'])),
         'cancel_url': url_for('.cancel_event', evnt_id=str(event['_id'])),
         'description':
             'Reminders for event %s successfully scheduled.' %
-            (request.form['query_name'])
-    })
+            (request.form['query_name'])})
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/cancel')
@@ -184,12 +177,11 @@ def _fire_trigger(trig_id):
 def no_pickup(evnt_id, acct_id):
 
     if not pickups.is_valid(evnt_id, acct_id):
-        logger.error(
-            'notific event or acct not found (evnt_id=%s, acct_id=%s)',
+        log.error('event/acct not found (evnt_id=%s, acct_id=%s)',
             evnt_id, acct_id)
         return 'Sorry there was an error fulfilling your request'
 
-    skip_pickup.delay(args=[evnt_id, acct_id],kwargs={})
+    skip_pickup.delay(evnt_id, acct_id)
 
     return 'Thank You'
 
@@ -251,13 +243,13 @@ def nis():
     log.info('NIS!')
     record = request.get_json()
 
-    rfu.delay(
-        args=[
-            g.user.agency,
-            record['custom']['to'] + ' not in service'],
-        kwargs={
-            'a_id': record['account_id'],
-            'block': record['custom']['block']})
+    create_rfu.delay(
+        g.user.agency,
+        '%s not in service' % record['custom']['to'],
+        options={
+            'Account Number': record['account_id'],
+            'Block': record['custom']['block']})
+
     return str(e)
 
 #-------------------------------------------------------------------------------
@@ -270,6 +262,7 @@ def kill_trigger():
 @notify.route('/<trig_id>/get_status', methods=['POST'])
 @login_required
 def get_trig_status(trig_id):
+
     status = g.db.triggers.find_one({'_id':ObjectId(trig_id)})['status']
     return jsonify({'status':status, 'trig_id':trig_id})
 
@@ -277,6 +270,7 @@ def get_trig_status(trig_id):
 @notify.route('/get_op_stats', methods=['POST'])
 @login_required
 def get_op_stats():
+
     stats = admin.get_op_stats()
     if not stats:
         return jsonify({'status':'failed'})
@@ -298,6 +292,4 @@ def get_debug_info(evnt_id):
             event,
             to_local_time=True,
             to_strftime="%m/%-d/%Y @ %-I:%M%p",
-            bson_to_json=True
-        )
-    )
+            bson_to_json=True))

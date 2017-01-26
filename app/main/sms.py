@@ -1,20 +1,14 @@
 '''app.main.sms'''
-
-import logging
-import re
+import logging, re
 from twilio.rest.lookups import TwilioLookupsClient
-
-from .. import get_db
 from .. import etap
-
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def enable(agency, accounts):
     '''Enable eTap accounts to use Alice'''
 
-    db = get_db()
-    conf = db.agencies.find_one({'name':agency})
+    conf = g.db.agencies.find_one({'name':agency})
 
     client = TwilioLookupsClient(
       account = conf['twilio']['api']['sid'],
@@ -39,7 +33,7 @@ def enable(agency, accounts):
                 if int_format[0:1] != "1":
                     int_format = "+1" + int_format
 
-                logger.info('Adding SMS field to Account %s', str(account['id']))
+                log.info('Adding SMS field to Account %s', str(account['id']))
 
                 try:
                     etap.call('modify_account', conf['etapestry'], {
@@ -48,7 +42,7 @@ def enable(agency, accounts):
                       'persona': {}
                     })
                 except Exception as e:
-                    logger.error('Error modifying account %s: %s', str(account['id']), str(e))
+                    log.error('Error modifying account %s: %s', str(account['id']), str(e))
 
                 n_sms+=1
             # Move onto next account
@@ -68,7 +62,7 @@ def enable(agency, accounts):
         try:
             info = client.phone_numbers.get(int_format, include_carrier_info=True)
         except Exception as e:
-            logger.error('Carrier lookup error (Account %s): %s', str(account['id']), str(e))
+            log.error('Carrier lookup error (Account %s): %s', str(account['id']), str(e))
             continue
 
         if info.carrier['type'] != 'mobile':
@@ -77,7 +71,7 @@ def enable(agency, accounts):
         # Found a Mobile number labelled as Voice
         # Update Persona and SMS udf
 
-        logger.info('Acct #%s: Found mobile number. SMS ready.', str(account['id']))
+        log.info('Acct #%s: Found mobile number. SMS ready.', str(account['id']))
 
         try:
             etap.call('modify_account', conf['etapestry'], {
@@ -91,7 +85,7 @@ def enable(agency, accounts):
               }
             })
         except Exception as e:
-            logger.error('Error modifying account %s: %s', str(account['id']), str(e))
+            log.error('Error modifying account %s: %s', str(account['id']), str(e))
 
         n_mobile+=1
 

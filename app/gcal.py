@@ -6,7 +6,7 @@ import httplib2
 from apiclient.discovery import build
 import requests
 import json
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def gauth(oauth):
@@ -21,10 +21,10 @@ def gauth(oauth):
         http = credentials.authorize(http)
         service = build('calendar', 'v3', http=http)
     except Exception as e:
-        logger.error('Error authorizing gcal: %s', str(e))
+        log.error('Error authorizing gcal: %s', str(e))
         return False
 
-    #logger.debug('calendar service authorized')
+    #log.debug('calendar service authorized')
 
     return service
 
@@ -45,7 +45,7 @@ def get_events(service, cal_id, start, end):
             orderBy = 'startTime'
         ).execute()
     except Exception as e:
-        logger.error('Error pulling cal events: %s', str(e))
+        log.error('Error pulling cal events: %s', str(e))
         return False
 
     events = events_result.get('items', [])

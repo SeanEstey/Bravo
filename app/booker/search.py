@@ -4,7 +4,7 @@ import logging, re
 from flask import g
 from .. import get_keys, etap, parser, gcal
 from . import geo
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 class EtapError(Exception):
     pass
@@ -53,7 +53,7 @@ def search(agency, query, radius=None, weeks=None):
               data={'account_number': re.search(r'\d{1,6}',query).group(0)}
             )
         except Exception as e:
-            logger.error('no account id %s', query)
+            log.error('no account id %s', query)
             return {
                 'status': 'failed',
                 'description': 'No account found matching ID <b>%s</b>.'% query
@@ -188,7 +188,7 @@ def search_by_radius(coords, radius, maps, events):
         if len(bookings) > 0:
             found = true
         else:
-          logger.info('No match found within ' + radius.toString() + ' km. Expanding search.')
+          log.info('No match found within ' + radius.toString() + ' km. Expanding search.')
 
           radius += 1.0
 
@@ -254,7 +254,7 @@ def search_by_postal(postal, events):
 
     for event in events:
         if not event.get('location'):
-            logger.info('Calendar event ' + event['summary'] + ' missing postal code')
+            log.info('Calendar event ' + event['summary'] + ' missing postal code')
             continue
 
         postals = event['location'].split(",")

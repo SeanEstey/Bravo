@@ -126,9 +126,9 @@ def on_dropped():
     msg = 'receipt to %s dropped. %s.' %(
         request.form['recipient'], request.form['reason'])
 
-    rfu.delay(
-        args=[
-            g.db.notific_events.find_one({'_id':notific['evnt_id']})['agency'],
-            msg + request.form.get('description')],
-        kwargs={
-            '_date': date.today().strftime('%-m/%-d/%Y')})
+    agcy = g.db.notific_events.find_one({'_id':notific['evnt_id']})['agency']
+
+    create_rfu.delay(
+        agcy, msg + request.form.get('description'),
+        options={
+            'Date': date.today().strftime('%-m/%-d/%Y')})

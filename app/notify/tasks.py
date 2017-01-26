@@ -3,8 +3,9 @@ import logging, os, pytz
 from datetime import datetime, date, time, timedelta
 from bson import ObjectId
 from flask import g
-from app.utils import bcolors
-from app import get_keys, cal, celery, smart_emit
+from app.utils import bcolors, tz_utc_to_local
+from app import etap, get_keys, cal, celery, smart_emit
+from app.etap import EtapError
 from . import email, sms, voice, pickups, triggers
 log = logging.getLogger(__name__)
 
@@ -181,25 +182,23 @@ def skip_pickup(self, evnt_id, acct_id, **kwargs):
     # Cancel any pending parent notifications
 
     result = g.db.notifics.update_many({
-          'acct_id': acct_id,
-          'evnt_id': evnt_id,
+          'acct_id': ObjectId(acct_id),
+          'evnt_id': ObjectId(evnt_id),
           'tracking.status': 'pending'
         },
         {'$set':{'tracking.status':'cancelled'}})
 
     acct = g.db.accounts.find_one_and_update({
-        '_id':acct_id},{
+        '_id':ObjectId(acct_id)},{
         '$set': {
-          'opted_out': True
-      }})
+          'opted_out': True}})
 
-    evnt = g.db.notific_events.find_one({'_id':evnt_id})
+    evnt = g.db.notific_events.find_one({'_id':ObjectId(evnt_id)})
 
     if not evnt or not acct:
-        log.error(
-            'event or acct not found (evnt_id=%s, a_id=%s)',
-            str(evnt_id), str(acct_id))
-        raise
+        msg = 'evnt/acct not found (evnt_id=%s, acct_id=%s' %(evnt_id,acct_id)
+        log.error(msg)
+        raise Exception(msg)
 
     conf = g.db.agencies.find_one({'name': evnt['agency']})
 
@@ -210,32 +209,12 @@ def skip_pickup(self, evnt_id, acct_id, **kwargs):
             data={
                 'account': acct['udf']['etap_id'],
                 'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
-                'next_pickup': utils.tz_utc_to_local(
-                    acct['udf']['future_pickup_dt']
-                ).strftime('%d/%m/%Y')
-            })
-    except Exception as e:
-        log.error("Error writing to eTap: %s", str(e))
+                'next_pickup': tz_utc_to_local(
+                    acct['udf']['future_pickup_dt']).strftime('%d/%m/%Y')})
+    except EtapError as e:
+        log.error("etap error, desc='%s'", str(e))
 
     if not acct.get('email'):
         return 'success'
 
     return 'success'
-
-    '''
-    # Send confirmation email
-    # Running via celery worker outside request context
-    # Must create one for render_template() and set SERVER_NAME for
-    # url_for() to generate absolute URLs
-    with current_app.test_request_context():
-        try:
-            body = render_template(
-                'email/%s/no_pickup.html' % conf['name'],
-                to = acct['email'],
-                account = acct,
-                http_host= os.environ.get('BRAVO_HTTP_HOST')
-            )
-        except Exception as e:
-            log.error('Error rendering no_pickup email. %s', str(e))
-            return False
-    '''

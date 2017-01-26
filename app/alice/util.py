@@ -22,7 +22,7 @@ def lookup_acct(mobile):
     except Exception as e:
         log.error('etap api (e=%s)', str(e))
 
-        create_rfu(
+        create_rfu.delay(
             g.user.agency,
             'SMS eTap error "%s"' % str(e),
             options= {
@@ -72,7 +72,7 @@ def related_notific(log_error=False):
         return n.next()
     else:
         if log_error:
-            log.error('notific not found (from=%s)', from_)
+            log.debug('notific not found (from=%s)', from_)
         return {}
 
 #-------------------------------------------------------------------------------

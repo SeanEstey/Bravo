@@ -1,7 +1,6 @@
 '''app.alice.events'''
-
 import logging
-from app import get_db, etap, utils
+from app import etap, utils
 from app.utils import bcolors, naive_utc_to_local as to_local
 from app.etap import EtapError
 from flask import g, request, session
@@ -12,7 +11,6 @@ from .util import related_notific, event_begun, set_notific_reply
 from app.main.tasks import create_rfu
 import app.notify.pickups
 log = logging.getLogger(__name__)
-
 
 #-------------------------------------------------------------------------------
 def request_support():
@@ -110,7 +108,7 @@ def skip_pickup():
 
 #-------------------------------------------------------------------------------
 def update_mobile():
-    make_rfu(
+    create_rfu.delay(
         g.user.agency,
         'SMS update account for following address '\
         'with mobile number:' + str(request.form['Body']),
@@ -139,7 +137,7 @@ def is_unsub():
         #agency = g.db.agencies.find_one({
         #    'twilio.sms.number':request.form['To']})
 
-        create_rfu(
+        create_rfu.delay(
             g.user.agency,
             'Contributor has replied "%s" and opted out of SMS '\
             'notifications.' % request.form['Body'],

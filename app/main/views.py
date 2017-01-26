@@ -4,7 +4,7 @@ from flask import g, request, render_template, redirect, url_for, jsonify, Respo
 from flask_login import login_required
 from .. import get_keys, utils, html, gsheets, mailgun
 from . import main, receipts, signups
-from .tasks import send_receipts, add_gsheets_signup
+from .tasks import create_rfu, send_receipts, add_gsheets_signup
 from app.notify import admin
 from app.booker import book
 log = logging.getLogger(__name__)
@@ -73,7 +73,8 @@ def _send_email():
         )
     except Exception as e:
         log.error('could not email %s. %s', args['recipient'], str(e))
-        gsheets.create_rfu(args['agency'], str(e))
+        create_rfu.delay(
+            args['agency'], str(e))
         return Response(response=str(e), status=500, mimetype='application/json')
     else:
         g.db.emails.insert_one({
@@ -132,7 +133,7 @@ def email_spam_complaint():
         agency = 'wsf'
 
     try:
-        gsheets.create_rfu(
+        create_rfu.delay(
             agency,
             "%s sent spam complaint" % request.form['recipient'])
     except Exception as e:

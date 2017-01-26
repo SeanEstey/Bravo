@@ -9,7 +9,7 @@ from datetime import datetime, date
 
 import utils
 import config
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 class EtapError(Exception):
     pass
@@ -43,7 +43,7 @@ def call(func_name, keys, data, silence_exceptions=False):
             })
         )
     except requests.RequestException as e:
-        logger.error('etap exception calling %s: %s', func_name, str(e))
+        log.error('etap exception calling %s: %s', func_name, str(e))
 
         if silence_exceptions == True:
             return False
@@ -56,7 +56,7 @@ def call(func_name, keys, data, silence_exceptions=False):
     try:
         data = json.loads(response.text)
     except Exception as e:
-        logger.error(str(e))
+        log.error(str(e))
         return False
 
     return data
@@ -80,7 +80,7 @@ def mod_acct(acct_id, keys, udf=None, persona=[]):
         call('modify_account', keys, {
             'id':acct_id, 'udf':udf, 'persona': persona})
     except EtapError as e:
-        logger.error('Error modifying account %s: %s', account['id'], str(e))
+        log.error('Error modifying account %s: %s', account['id'], str(e))
         raise
 
 #-------------------------------------------------------------------------------

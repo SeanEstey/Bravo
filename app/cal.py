@@ -9,7 +9,7 @@ from datetime import datetime, date, time, timedelta
 from .parser import get_block, block_to_rmv
 from . import gcal, gsheets, etap
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ def get_blocks(cal_id, start_date, end_date, oauth):
         service = gcal.gauth(oauth)
         events = gcal.get_events(service, cal_id, start_date, end_date)
     except Exception as e:
-        logger.error('Could not access Res calendar: %s', str(e))
+        log.error('Could not access Res calendar: %s', str(e))
         return False
 
     for item in events:
@@ -51,7 +51,7 @@ def get_blocks(cal_id, start_date, end_date, oauth):
             blocks.append(get_block(item['summary']))
 
     if len(blocks) > 0:
-        logger.info('%d scheduled Blocks: %s', len(blocks), blocks)
+        log.info('%d scheduled Blocks: %s', len(blocks), blocks)
 
     return blocks
 
@@ -67,7 +67,7 @@ def get_accounts(etapestry_id, cal_id, oauth, days_from_now=None):
     blocks = get_blocks(cal_id, start_date, end_date, oauth)
 
     if len(blocks) < 1:
-        logger.info('No Blocks found on given date')
+        log.info('No Blocks found on given date')
         return []
 
     accounts = []
@@ -80,11 +80,11 @@ def get_accounts(etapestry_id, cal_id, oauth, days_from_now=None):
               {'query':block, 'query_category':etapestry_id['query_category']}
             )
         except Exception as e:
-            logger.error('Error retrieving accounts for query %s', block)
+            log.error('Error retrieving accounts for query %s', block)
 
         if 'count' in a and a['count'] > 0:
             accounts = accounts + a['data']
 
-    logger.info('Found %d accounts in blocks %s', len(accounts), blocks)
+    log.info('Found %d accounts in blocks %s', len(accounts), blocks)
 
     return accounts

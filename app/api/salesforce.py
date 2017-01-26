@@ -11,8 +11,7 @@ from datetime import datetime
 from simple_salesforce import Salesforce
 
 from app import utils
-from .. import get_db
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
@@ -34,7 +33,7 @@ def login(sandbox=False):
         version='38.0',
         sandbox=sandbox)
 
-    logger.debug(
+    log.debug(
         'login successful. user="%s" api="v%s"',
         conf['salesforce']['username'], sf.sf_version)
 
@@ -45,14 +44,14 @@ def add_account(sf, contact, block, status, neighborhood, next_pickup):
     try:
         c_resp = sf.Contact.create(contact)
     except Exception as e:
-        logger.error(str(e))
+        log.error(str(e))
         return False
 
     try:
         q_resp = sf.query(
             "SELECT Id FROM Campaign WHERE Name = 'Bottle Service'")
     except Exception as e:
-        logger.error(str(e))
+        log.error(str(e))
 
     try:
         cm_resp = sf.CampaignMember.create({
@@ -64,11 +63,11 @@ def add_account(sf, contact, block, status, neighborhood, next_pickup):
             'Next_Pickup__c': next_pickup
         })
     except Exception as e:
-        logger.error(str(e))
+        log.error(str(e))
         return False
 
     if cm_resp['success'] == True:
-        logger.debug(
+        log.debug(
             'account created successfully. name="%s %s" id="%s"',
             contact['FirstName'], contact['LastName'], c_resp['id'])
 
@@ -89,10 +88,10 @@ def add_gift(sf, a_id, campaign_id, amount, date, note):
             'Description': note
         })
     except Exception as e:
-        logger.error('error creating gift for %s: "%s"', a_id, str(e))
+        log.error('error creating gift for %s: "%s"', a_id, str(e))
         return False
 
-    #logger.debug(r)
+    #log.debug(r)
 
     return True
 
@@ -114,7 +113,7 @@ def add_note(sf, c_id, title, note):
 
         })
     except Exception as e:
-        logger.error('error creating note for c_id %s: "%s"', c_id, str(e))
+        log.error('error creating note for c_id %s: "%s"', c_id, str(e))
         return False
 
     return True
@@ -140,14 +139,14 @@ def match_records(sf, block=None, address=None, name=None):
             'WHERE Block__c includes ( \''+ block + '\')'
         )
     except Exception as e:
-        logger.error('get_records fail: %s', str(e))
+        log.error('get_records fail: %s', str(e))
         return False
 
     if response['done'] != True:
-        logger.error('still waiting for query')
+        log.error('still waiting for query')
         return False
 
-    logger.debug('found %s records for %s', response['totalSize'], block)
+    log.debug('found %s records for %s', response['totalSize'], block)
 
     return response['records']
 
@@ -163,7 +162,7 @@ def search_records(sf, term):
 def add_block(sf, cm_obj, block):
 
     if block in cm_obj['Block__c']:
-        logger.debug('obj already contains block %s', block)
+        log.debug('obj already contains block %s', block)
         return False
 
     r = sf.CampaignMember.update(
@@ -172,9 +171,9 @@ def add_block(sf, cm_obj, block):
     )
 
     if r != 204:
-        logger.error('error removing %s', block)
+        log.error('error removing %s', block)
     else:
-        logger.debug('added %s onto CampaignMember Id %s', block, cm_obj['Id'])
+        log.debug('added %s onto CampaignMember Id %s', block, cm_obj['Id'])
 
     return r
 
@@ -189,8 +188,8 @@ def rmv_block(sf, cm_obj, block):
     )
 
     if r != 204:
-        logger.error('error removing %s', block)
+        log.error('error removing %s', block)
     else:
-        logger.debug('removed %s', block)
+        log.debug('removed %s', block)
 
     return r

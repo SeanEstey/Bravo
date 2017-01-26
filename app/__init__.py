@@ -170,7 +170,6 @@ def is_test_server():
 def config_test_server(source):
     # Swap out any sandbox credentials that may be present
 
-    #db = get_db()
     #test_db = client['test']
     #agencies = db.agencies.find()
     #cred = test_db.credentials.find_one()

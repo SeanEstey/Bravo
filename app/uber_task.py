@@ -102,12 +102,7 @@ class UberTask(Task):
             #print 'saving os.environ[%s]=%s'%(var, os.environ.get(var,''))
             kwargs[self.ENVIRON_KW][var] = os.environ.get(var, '')
 
-        if has_app_context():
-
-            #from app.auth.manager import load_user
-            #log.debug('setting g.user')
-            #g.user = current_user
-            #log.debug('g.user=%s', g.user)
+        if current_user.is_authenticated:
             kwargs[self.USERID_KW] = str(g.user._id)
             print 'g.user=%s, _id=%s, kwargs=%s' % (g.user, str(g.user._id),kwargs)
 

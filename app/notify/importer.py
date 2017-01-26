@@ -27,7 +27,7 @@ def parse_csv(csvfile, import_fields):
                     for element in import_fields:
                         columns.append(element['file_header'])
 
-                    logger.error('Invalid header row. Missing columns: %s', str(columns))
+                    log.error('Invalid header row. Missing columns: %s', str(columns))
 
                     return 'Your file is missing the proper header rows:<br> \
                     <b>' + str(columns) + '</b><br><br>' \
@@ -45,7 +45,7 @@ def parse_csv(csvfile, import_fields):
                 else:
                     buffer.append(row)
     except Exception as e:
-        logger.error('reminders.parse_csv: %s', str(e))
+        log.error('reminders.parse_csv: %s', str(e))
         return False
 
     return buffer
@@ -58,7 +58,7 @@ def submit_from(form, file):
 
     # TODO: Add timezone info to datetimes before inserting into mongodb
 
-    logger.debug('new job form: %s', str(form))
+    log.debug('new job form: %s', str(form))
 
     # A. Validate file
     try:
@@ -67,13 +67,13 @@ def submit_from(form, file):
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             file_path = app.config['UPLOAD_FOLDER'] + '/' + filename
         else:
-            logger.error('could not save file')
+            log.error('could not save file')
 
             return {'status':'error',
                     'title': 'Filename Problem',
                     'msg':'Could not save file'}
     except Exception as e:
-        logger.error(str(e))
+        log.error(str(e))
 
         return {
           'status':'error',
@@ -88,7 +88,7 @@ def submit_from(form, file):
         with open('app/templates/schemas/'+agency+'.json') as json_file:
           schemas = json.load(json_file)['reminders']
     except Exception as e:
-        logger.error(str(e))
+        log.error(str(e))
         return {'status':'error',
                 'title': 'Problem Reading reminder_templates.json File',
                 'msg':'Could not parse file: ' + str(e)}
@@ -111,9 +111,9 @@ def submit_from(form, file):
                   'msg':buffer
                 }
 
-            logger.info('Parsed %d rows from %s', len(buffer), filename)
+            log.info('Parsed %d rows from %s', len(buffer), filename)
     except Exception as e:
-        logger.error('submit_job: parse_csv: %s', str(e))
+        log.error('submit_job: parse_csv: %s', str(e))
 
         return {'status':'error',
                 'title': 'Problem Reading File',
@@ -127,7 +127,7 @@ def submit_from(form, file):
     try:
         fire_calls_dtime = parse(form['date'] + ' ' + form['time'])
     except Exception as e:
-        logger.error(str(e))
+        log.error(str(e))
 
         return {
           'status':'error',
@@ -157,7 +157,7 @@ def submit_from(form, file):
     elif form['template_name'] == 'announce_text':
         job['message'] = form['message']
 
-    #logger.debug('new job dump: %s', json.dumps(job))
+    #log.debug('new job dump: %s', json.dumps(job))
 
     job_id = db['jobs'].insert(job)
     job['_id'] = job_id
@@ -182,7 +182,7 @@ def submit_from(form, file):
 
         db['reminders'].insert(reminders)
 
-        logger.info('[%s] Job "%s" Created [ID %s]', agency, job_name, str(job_id))
+        log.info('[%s] Job "%s" Created [ID %s]', agency, job_name, str(job_id))
 
         # Special case
         #if form['template_name'] == 'etw':
@@ -194,7 +194,7 @@ def submit_from(form, file):
         return {'status':'success', 'msg':banner_msg}
 
     except Exception as e:
-        logger.error(str(e))
+        log.error(str(e))
 
         return {'status':'error', 'title':'error', 'msg':str(e)}
 
@@ -245,7 +245,7 @@ def create(job, schema, idx, buf_row, errors):
                 reminder[parent][child] = buf_row[i]
         return reminder
     except Exception as e:
-        logger.info('Error writing db reminder: %s', str(e))
+        log.info('Error writing db reminder: %s', str(e))
         return False
 
 #-------------------------------------------------------------------------------

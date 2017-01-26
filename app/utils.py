@@ -10,7 +10,7 @@ import pytz
 from datetime import datetime, time, date
 from config import LOG_PATH
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 local_tz = pytz.timezone("Canada/Mountain")
 
@@ -228,6 +228,6 @@ def end_timer(start_dt, display=False, lbl=None):
     c = b - start_dt
 
     if display:
-        logger.debug('%s (%s.%ss)', lbl, c.seconds, c.microseconds/1000)
+        log.debug('%s (%s.%ss)', lbl, c.seconds, c.microseconds/1000)
 
     return c

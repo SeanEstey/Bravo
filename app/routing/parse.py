@@ -1,15 +1,11 @@
 '''app.routing.parse'''
-import logging
-import re
+import logging, re, time
 from app import gsheets
-from app import get_db
-import time
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def to_dict(agency, ss_id):
-    db = get_db()
-    conf = db.agencies.find_one({'name':agency})
+    conf = g.db.agencies.find_one({'name':agency})
     service = gsheets.gauth(conf['google']['oauth'])
 
     # get col A-B
@@ -19,7 +15,7 @@ def to_dict(agency, ss_id):
         info_idx = values.index(['***Route Info***'])
         inven_idx = values.index(['***Inventory***'])
     except ValueError as e:
-        logger.info('missing "Route Info" or "Inventory" in ss_id %s', ss_id)
+        log.info('missing "Route Info" or "Inventory" in ss_id %s', ss_id)
         return False
 
     sub = values[info_idx+1:inven_idx]
@@ -37,7 +33,7 @@ def to_dict(agency, ss_id):
     route_info['title'] = prop['title']
     route_info['driver'] = prop['title'][prop['title'].index('(')+1 : prop['title'].index(')')]
 
-    logger.debug(route_info)
+    log.debug(route_info)
 
     return route_info
 
@@ -62,7 +58,7 @@ def row_to_dict(headers, row):
     if order['$'] and len(order['$']) > 0:
         order['$'] = float(order['$'][1:])
 
-    logger.debug(order)
+    log.debug(order)
 
     return order
 
@@ -96,14 +92,14 @@ def Route(id):
 
 	this.date = new Date(full_date_str)
 
-	logger.info("Route date: %s", this.date.toLocaleDateString())
+	log.info("Route date: %s", this.date.toLocaleDateString())
 
 	this.driver = this.title.substring(
         this.title.indexOf("(")+1,
         this.title.indexOf(")")
 	)
 
-	#  logger.info('New Route block: ' + this.title_block)
+	#  log.info('New Route block: ' + this.title_block)
 
 	this.months = [
 		"Jan",
@@ -147,8 +143,8 @@ def getInfo():
     start = a.indexOf('***Route Info***')
 
     if start < 0:
-        logger.info('cant find ***Route Info***')
-        logger.info(a)
+        log.info('cant find ***Route Info***')
+        log.info(a)
         return False
     else:
         start+=1
@@ -180,7 +176,7 @@ def getInfo():
         stats[key] = b[i][0]
     '''
 
-    logger.info(stats)
+    log.info(stats)
 
     return stats
 

@@ -4,9 +4,9 @@ from datetime import date
 from dateutil.parser import parse
 from flask import current_app, render_template, request
 from .. import get_keys, html, mailgun, etap, gsheets
+from app.main.tasks import create_rfu
 from app.gsheets import update_cell, a1
-from app.etap import get_udf
-from app.etap import ddmmyyyy_to_date as to_date
+from app.etap import get_udf, ddmmyyyy_to_date as to_date
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -60,11 +60,11 @@ def on_dropped():
       email['on_status']['update']
     )
 
-    from .. import tasks
-    tasks.rfu.delay(
-        args=[email['agency'], msg],
-        kwargs={'_date': date.today().strftime('%-m/%-d/%Y')}
-    )
+    create_rfu.delay(
+        email['agency'],
+        msg,
+        options={
+            'Date': date.today().strftime('%-m/%-d/%Y')})
 
 #-------------------------------------------------------------------------------
 def render_body(path, data):

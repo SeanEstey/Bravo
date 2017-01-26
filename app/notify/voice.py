@@ -1,16 +1,13 @@
 '''app.notify.voice'''
-
-import logging
-import os
+import logging, os
 from datetime import datetime, date, time
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import g, current_app, render_template, request
 from pymongo.collection import ReturnDocument
 from .. import smart_emit, utils, html
-
-logger = logging.getLogger(__name__)
-
+from app.main.tasks import create_rfu
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
@@ -54,8 +51,8 @@ def call(notific, twilio_conf, voice_conf):
     try:
         client = TwilioRestClient(twilio_conf['api']['sid'], twilio_conf['api']['auth_id'])
     except TwilioRestException as e:
-        logger.error('twilio REST error. %s', str(e))
-        logger.debug('tb: ', exc_info=True)
+        log.error('twilio REST error. %s', str(e))
+        log.debug('tb: ', exc_info=True)
         return 'failed'
 
     # Protect against sending real calls if in sandbox
@@ -80,11 +77,11 @@ def call(notific, twilio_conf, voice_conf):
             status_events = ["completed"],
             status_method = 'POST')
     except Exception as e:
-        logger.error('call to %s failed. %s', notific['to'], str(e))
-        logger.debug('tb: ', exc_info=True)
+        log.error('call to %s failed. %s', notific['to'], str(e))
+        log.debug('tb: ', exc_info=True)
     else:
-        logger.info('%s call to %s', call.status, notific['to'])
-        logger.debug(utils.print_vars(call))
+        log.info('%s call to %s', call.status, notific['to'])
+        log.debug(utils.print_vars(call))
     finally:
         g.db.notifics.update_one({
             '_id': notific['_id']}, {
@@ -121,12 +118,12 @@ def get_speak(notific, template_path, timeout=False):
             timeout=timeout
         )
     except Exception as e:
-        logger.error('get_speak: %s ', str(e))
+        log.error('get_speak: %s ', str(e))
         return 'Error'
 
     speak = html.clean_whitespace(speak)
 
-    logger.debug('speak template: %s', speak)
+    log.debug('speak template: %s', speak)
 
     return speak
 
@@ -137,9 +134,9 @@ def on_answer():
     Return: twilio.twiml.Response
     '''
 
-    logger.debug('voice_play_answer args: %s', request.form)
+    log.debug('voice_play_answer args: %s', request.form)
 
-    logger.info('%s %s (%s)',
+    log.info('%s %s (%s)',
         request.form['To'], request.form['CallStatus'], request.form.get('AnsweredBy'))
 
     notific = g.db.notifics.find_one_and_update({
@@ -204,7 +201,7 @@ def on_interact():
     Returns: twilio.twiml.Response
     '''
 
-    logger.debug('on_interact: %s', request.form.to_dict())
+    log.debug('on_interact: %s', request.form.to_dict())
 
     notific = g.db.notifics.find_one_and_update({
           'tracking.sid': request.form['CallSid'],
@@ -229,10 +226,10 @@ def on_complete():
     Working under request context
     '''
 
-    logger.debug('call_event args: %s', request.form)
+    log.debug('call_event args: %s', request.form)
 
     if request.form['CallStatus'] == 'completed':
-        logger.info('%s %s (%s, %ss)',
+        log.info('%s %s (%s, %ss)',
             request.form['To'],
             request.form['CallStatus'],
             request.form.get('AnsweredBy'),
@@ -248,7 +245,7 @@ def on_complete():
         return_document=ReturnDocument.AFTER)
 
     if request.form['CallStatus'] == 'failed':
-        logger.error('%s %s (%s)',
+        log.error('%s %s (%s)',
             request.form['To'], request.form['CallStatus'], request.form.get('SipResponseCode'))
 
         account = g.db.accounts.find_one({
@@ -256,17 +253,14 @@ def on_complete():
 
         evnt = g.db.notific_events.find_one({'_id':notific['evnt_id']})
 
-        from app.main.tasks import rfu
-        rfu.delay(
-            args=[
-                evnt['agency'],
-                'Error calling %s. %s' %(
-                    notific['to'], request.form.get('description')),
-            ],
-            kwargs={
-                'a_id': account['udf'].get('etap_id'),
-                'name_addy': account['name'],
-                '_date': date.today().strftime('%-m/%-d/%Y')})
+        create_rfu.delay(
+            evnt['agency'],
+            'Error calling %s. %s' %(
+                notific['to'], request.form.get('description')),
+            options={
+                'Account Number': account['udf'].get('etap_id'),
+                'Name & Address': account['name'],
+                'Date': date.today().strftime('%-m/%-d/%Y')})
 
     smart_emit('notific_status', {
         'notific_id': str(notific['_id']),
@@ -282,6 +276,6 @@ def on_error():
     https://www.twilio.com/docs/api/errors/reference
     '''
 
-    logger.error('call error. %s', request.form.to_dict())
+    log.error('call error. %s', request.form.to_dict())
     return 'OK'
 

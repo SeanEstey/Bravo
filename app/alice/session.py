@@ -47,7 +47,7 @@ def create_session():
         session['anon_id'] = anon_id = str(ObjectId())
         session['valid_kws'] = keywords.anon.keys()
 
-        create_rfu(
+        create_rfu.delay(
             g.user.agency,
             'No eTap acct linked to this mobile number.\nMessage: "%s"' % msg,
             options = {

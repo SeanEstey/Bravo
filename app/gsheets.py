@@ -10,12 +10,12 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 def update_cell(service, ss_id, range_, value):
 
-    api_values_update(service, ss_id, range_, [[value]])
+    api_ss_values_update(service, ss_id, range_, [[value]])
 
 #-------------------------------------------------------------------------------
 def get_row(service, ss_id, wks, row):
     range_ = '%s!%s:%s' % (wks, str(row),str(row))
-    return api_values_get(service, ss_id, range_)[0]
+    return api_ss_values_get(service, ss_id, range_)[0]
 
 #-------------------------------------------------------------------------------
 def append_row(service, ss_id, sheet_title, values):
@@ -25,12 +25,12 @@ def append_row(service, ss_id, sheet_title, values):
     max_rows = sheet['gridProperties']['rowCount']
     range_ = '%s!%s:%s' % (sheet_title, max_rows+1,max_rows+1)
 
-    api_values_append(service, ss_id, range_, values)
+    api_ss_values_append(service, ss_id, range_, values)
 
 #-------------------------------------------------------------------------------
 def write_rows(service, ss_id, range_, values):
 
-    api_values_update(service, ss_id, range_, values)
+    api_ss_values_update(service, ss_id, range_, values)
 
 #-------------------------------------------------------------------------------
 def insert_rows_above(service, ss_id, row, num):
@@ -203,7 +203,7 @@ def api_ss_values_get(service, ss_id, range_):
     return result.get('values', [])
 
 #-------------------------------------------------------------------------------
-def api_ss_values_update(ss_id, range_, values):
+def api_ss_values_update(service, ss_id, range_, values):
     '''https://developers.google.com/resources/api-libraries/documentation/\
     sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#update
     '''
@@ -221,7 +221,7 @@ def api_ss_values_update(ss_id, range_, values):
         return False
 
 #-------------------------------------------------------------------------------
-def api_ss_values_append(ss_id, range_, values):
+def api_ss_values_append(service, ss_id, range_, values):
     '''https://developers.google.com/resources/api-libraries/documentation/\
     sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#append
     '''

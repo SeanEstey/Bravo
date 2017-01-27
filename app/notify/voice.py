@@ -3,7 +3,7 @@ import logging, os
 from datetime import datetime, date, time
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
-from flask import g, current_app, render_template, request
+from flask import g, render_template, request
 from pymongo.collection import ReturnDocument
 from .. import smart_emit, utils, html
 from app.main.tasks import create_rfu
@@ -62,7 +62,6 @@ def call(notific, twilio_conf, voice_conf):
         from_ = twilio_conf['voice']['number']
 
     call = None
-
 
     try:
         call = client.calls.create(

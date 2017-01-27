@@ -87,7 +87,7 @@ def fire_trigger(self, _id, **rest):
             if n['type'] == 'voice':
                 status = voice.call(n,
                     get_keys('twilio',agcy=agcy),
-                    get_keys('notifiy',agcy=agcy)['voice'])
+                    get_keys('notify',agcy=agcy)['voice'])
             elif n['type'] == 'sms':
                 status = sms.send(n, get_keys('twilio',agcy=agcy))
             elif n['type'] == 'email':
@@ -96,6 +96,7 @@ def fire_trigger(self, _id, **rest):
             status = 'error'
             errors.append(str(e))
             log.error('error sending %s. _id=%s, msg=%s', n['type'],str(n['_id']), str(e))
+            log.debug('', exc_info=True)
         else:
             if status == 'failed':
                 fails += 1

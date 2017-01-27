@@ -2,9 +2,10 @@
 import logging, json, os, time, requests
 from flask import g, request, render_template, redirect, url_for, jsonify, Response
 from flask_login import login_required
-from .. import get_keys, utils, html, gsheets, mailgun
+from .. import get_keys, html
 from . import main, receipts, signups
 from .tasks import create_rfu, send_receipts, add_gsheets_signup
+from .mailgun import send
 from app.notify import admin
 from app.booker import book
 log = logging.getLogger(__name__)
@@ -37,56 +38,46 @@ def update_agency_conf():
 
 #-------------------------------------------------------------------------------
 @main.route('/email/send', methods=['POST'])
-def _send_email():
-    '''Can be collection receipt from gsheets.process_receipts, reminder email,
-    or welcome letter from Google Sheets.
-    Required fields: 'agency', 'recipient', 'template', 'subject', and 'data'
-    Required fields for updating Google Sheets:
-    'data': {'from':{ 'worksheet','row','upload_status'}}
-    Returns mailgun_id of email
+def send_email():
     '''
+    @form: {'agency', 'recipient', 'type', 'template', 'subject', 'data', 'from_row'}
+    @form['type']: 'signup', 'receipt'
+    Returns: mailgun ID
+    '''
+
+    #log.debug('/email/send: "%s"', args)
+
     args = request.get_json(force=True)
-
-    log.debug('/email/send: "%s"', args)
-
-    for key in ['template', 'subject', 'recipient']:
-        if key not in args:
-            e = '/email/send: missing one or more required fields'
-            log.error(e)
-            return Response(response=e, status=500, mimetype='application/json')
+    to = args['recipient']
+    agcy = args['agency']
 
     try:
         html = render_template(
             args['template'],
-            data=args['data'],
-            http_host= os.environ.get('BRAVO_HTTP_HOST')
-        )
+            data=args['data'])
     except Exception as e:
-        msg = '/email/send: invalid email template'
+        msg = 'invalid email template'
         log.error('%s: %s', msg, str(e))
+
         return Response(response=e, status=500, mimetype='application/json')
 
     try:
-        mid = mailgun.send(
-            args['recipient'], args['subject'], html, get_keys('mailgun'),
-            v={'type':args.get('type')}
-        )
+        mid = send(
+            to,
+            args['subject'],
+            html,
+            get_keys('mailgun',agcy=agcy),
+            v={
+                'agency': agcy,
+                'type': args['type'],
+                'from_row': args['from_row']})
     except Exception as e:
-        log.error('could not email %s. %s', args['recipient'], str(e))
-        create_rfu.delay(
-            args['agency'], str(e))
-        return Response(response=str(e), status=500, mimetype='application/json')
-    else:
-        g.db.emails.insert_one({
-            'agency': args['agency'],
-            'mid': mid,
-            'type': args.get('type'),
-            'on_status': {
-                'update': args['data'].get('from')
-                }
-        })
+        log.error('could not email %s. desc=%s', to, str(e))
+        create_rfu.delay(agcy, str(e))
 
-    log.debug('Queued email to ' + args['recipient'])
+        return Response(response=str(e), status=500, mimetype='application/json')
+
+    log.debug('queued %s to %s', args.get('type'), to)
 
     return mid
 

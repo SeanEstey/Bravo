@@ -26,7 +26,7 @@ class MainTasksTests(unittest.TestCase):
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 
-    def _test_create_rfu(self):
+    def test_create_rfu(self):
         try:
             tasks.create_rfu(
                 'vec', 'Non-participant. No collection',
@@ -38,7 +38,7 @@ class MainTasksTests(unittest.TestCase):
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 
-    def test_create_rfu_delay(self):
+    def _test_create_rfu_delay(self):
         try:
             tasks.create_rfu.delay(
                 'vec', 'Testing celery worker delay()',

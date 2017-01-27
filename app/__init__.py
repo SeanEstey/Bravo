@@ -36,12 +36,15 @@ celery.Task = UberTask
 
 #-------------------------------------------------------------------------------
 def get_keys(k=None, agcy=None):
-    if g.user.is_authenticated:
-        name = g.user.agency
-    elif agcy:
-        name = agcy
-    else:
-        raise Exception('no key or agency available')
+    name = ''
+
+    try:
+        name = g.user.agency if g.user.is_authenticated else agcy
+    except Exception as e:
+        if not agcy:
+            raise
+        else:
+            name = agcy
 
     conf = g.db.agencies.find_one({'name':name})
 

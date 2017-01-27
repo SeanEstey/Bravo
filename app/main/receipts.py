@@ -15,11 +15,8 @@ def on_delivered():
 
     log.info('receipt delivered to %s', request.form['recipient'])
 
-    email = g.db.emails.find_one_and_update(
-        {'mid': request.form['Message-Id']},
-        {'$set': {'status': request.form['event']}})
-    agcy = email['agency']
-    row = email['on_status']['update']['row']
+    agcy = request.form['agency']
+    row = request.form['from_row']
     ss_id = get_keys('google',agcy=agcy)['ss_id']
 
     try:
@@ -34,6 +31,8 @@ def on_delivered():
 def on_dropped():
     '''Mailgun webhook called from view. Has request context'''
 
+    agcy = request.form['agency']
+    row = request.form['from_row']
     msg = 'receipt to %s dropped. %s. %s' %(
         request.form['recipient'],
         request.form['reason'],
@@ -41,11 +40,6 @@ def on_dropped():
 
     log.info(msg)
 
-    email = g.db['emails'].find_one_and_update(
-        {'mid': request.form['Message-Id']},
-        {'$set': {'status': request.form['event']}})
-    agcy = email['agency']
-    row = email['on_status']['update']['row']
     ss_id = get_keys('google',agcy=agcy)['ss_id']
 
     try:
@@ -56,11 +50,8 @@ def on_dropped():
     except Exception as e:
         log.error('error updating sheet')
 
-    create_rfu.delay(
-        email['agency'],
-        msg,
-        options={
-            'Date': date.today().strftime('%-m/%-d/%Y')})
+    create_rfu.delay(agcy, msg, options={
+        'Date': date.today().strftime('%-m/%-d/%Y')})
 
 #-------------------------------------------------------------------------------
 def render_body(path, data):

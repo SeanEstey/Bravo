@@ -1,10 +1,7 @@
 '''app.html'''
-
 import re
 from bson import json_util
-
 from . import utils
-
 
 #-------------------------------------------------------------------------------
 def to_list_tags(dictObj):
@@ -22,7 +19,6 @@ def to_list_tags(dictObj):
       p+='<li>'+ utils.to_title_case(k)+ ': '+ utils.remove_quotes(json_util.dumps(v)) + '</li>'
   p+='</ul>'
   return p
-
 
 #-------------------------------------------------------------------------------
 def to_div(k, v, depth=None):

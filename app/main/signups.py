@@ -77,12 +77,8 @@ def on_email_delivered():
 
     log.info('signup welcome delivered to %s', request.form['recipient'])
 
-    email = g.db.emails.find_one_and_update(
-        {'mid': request.form['Message-Id']},
-        {'$set': {'status': request.form['event']}})
-
-    agcy = email['agency']
-    row = email['on_status']['update']['row']
+    agcy = request.form['agency']
+    row = request.form['from_row']
     ss_id = get_keys('google',agcy=agcy)['ss_id']
 
     try:
@@ -100,12 +96,8 @@ def on_email_dropped():
 
     log.info(msg)
 
-    email = g.db.emails.find_one_and_update(
-        {'mid': request.form['Message-Id']},
-        {'$set': {'status': request.form['event']}})
-
-    agcy = email['agency']
-    row = email['on_status']['update']['row']
+    agcy = request.form['agency']
+    row = request.form['from_row']
     ss_id = get_keys('google',agcy=agcy)['ss_id']
 
     try:

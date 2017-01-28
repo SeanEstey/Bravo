@@ -1,8 +1,8 @@
 '''app.main.signups'''
 import json, logging
 from datetime import date, datetime
-from flask import g, request, current_app
-from .. import get_keys
+from flask import g, request, render_template
+from .. import get_keys, mailgun
 from app.gsheets import gauth, get_row, append_row, update_cell, to_range
 log = logging.getLogger(__name__)
 
@@ -20,8 +20,6 @@ def add_gsheets(signup):
     except Exception as e:
         log.error('couldnt authenticate sheets. desc=%s', str(e))
         raise Exception('auth error. desc=%s' % str(e))
-
-    #wks = gc.open(current_app.config['GSHEET_NAME']).worksheet('Signups')
 
     form_data = {
         'Signup Date': datetime.now().strftime('%-m/%-d/%Y'),
@@ -72,12 +70,50 @@ def add_gsheets(signup):
     return 'success'
 
 #-------------------------------------------------------------------------------
-def on_email_delivered():
+def send_welcome():
+    '''Send a template email from Bravo Sheets
+    @form: {'agency', 'recipient', 'type', 'tmpt_file', 'tmpt_vars, 'subject', 'from_row'}
+    @form['type']: 'signup', 'receipt'
+    Returns: mailgun ID
+    '''
+    #TODO: Change signature from Bravo Sheets
+
+    #log.debug('/email/send: "%s"', args)
+
+    args = request.get_json(force=True)
+    to = args['recipient']
+    agcy = args['agency']
+
+    if args['type'] == 'signup':
+        path = 'signups/%s/welcome.html' % agcy
+    else:
+        raise Exception('invalid template type')
+
+    try:
+        html = render_template(path, data=args['tmpt_vars'])
+    except Exception as e:
+        log.error('template error. desc=%s', str(e))
+        log.debug('', exc_info=True)
+        return str(e)
+
+    try:
+        mid = mailgun.send(to, args['subject'], html, get_keys('mailgun',agcy=agcy), v={
+            'agency':agcy, 'type':args['type'], 'from_row':args['from_row']})
+    except Exception as e:
+        log.error('could not email %s. desc=%s', to, str(e))
+        create_rfu.delay(agcy, str(e))
+        return str(e)
+
+    log.debug('queued %s to %s', args.get('type'), to)
+
+    return mid
+
+#-------------------------------------------------------------------------------
+def on_delivered(agcy):
     '''Mailgun webhook called from view. Has request context'''
 
     log.info('signup welcome delivered to %s', request.form['recipient'])
 
-    agcy = request.form['agency']
     row = request.form['from_row']
     ss_id = get_keys('google',agcy=agcy)['ss_id']
 
@@ -90,13 +126,12 @@ def on_email_delivered():
         log.error('error updating sheet')
 
 #-------------------------------------------------------------------------------
-def on_email_dropped():
+def on_dropped(agcy):
     msg = 'signup welcome to %s dropped. %s.' %(
         request.form['recipient'], request.form['reason'])
 
     log.info(msg)
 
-    agcy = request.form['agency']
     row = request.form['from_row']
     ss_id = get_keys('google',agcy=agcy)['ss_id']
 

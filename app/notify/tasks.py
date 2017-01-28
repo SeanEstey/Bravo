@@ -2,7 +2,7 @@
 import logging, os, pytz
 from datetime import datetime, date, time, timedelta
 from bson import ObjectId
-from flask import g
+from flask import g, current_app, has_request_context
 from app.utils import bcolors, tz_utc_to_local
 from app import etap, get_keys, cal, celery, smart_emit
 from app.etap import EtapError
@@ -12,35 +12,34 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def monitor_triggers(self, **kwargs):
+
+    ready = g.db.triggers.find({
+        'status':'pending',
+        'fire_dt':{
+            '$lt':datetime.utcnow()}})
+
+    for trigger in ready:
+        log.debug('trigger %s scheduled. firing.', str(trigger['_id']))
+
+        try:
+            if not has_request_context():
+                with current_app.test_request_context():
+                    fire_trigger(trigger['_id'])
+            else:
+                fire_trigger(trigger['_id'])
+        except Exception as e:
+            log.error('fire_trigger error. desc=%s', str(e))
+            log.debug('',exc_info=True)
+
+    pending = g.db.triggers.find({
+        'status':'pending',
+        'fire_dt': {
+            '$gt':datetime.utcnow()}})
+
     output = []
-
-    smart_emit('test', 'monitor triggers update')
-
-    try:
-        from app.notify import triggers, events
-
-        ready = g.db.triggers.find({
-            'status':'pending',
-            'fire_dt':{
-                '$lt':datetime.utcnow()}})
-
-        for trigger in ready:
-            log.debug('trigger %s scheduled. firing.', str(trigger['_id']))
-
-            fire_trigger(trigger['_id'])
-
-        pending = g.db.triggers.find({
-            'status':'pending',
-            'fire_dt': {
-                '$gt':datetime.utcnow()}})
-
-        for trigger in pending:
-            delta = trigger['fire_dt'] - datetime.utcnow().replace(tzinfo=pytz.utc)
-
-            output.append(
-                '%s trigger pending in %s' %(trigger['type'], str(delta)[:-7]))
-    except Exception as e:
-        log.error('%s\n%s', str(e), tb.format_exc())
+    for trigger in pending:
+        delta = trigger['fire_dt'] - datetime.utcnow().replace(tzinfo=pytz.utc)
+        output.append('%s trigger pending in %s'%(trigger['type'], str(delta)[:-7]))
 
     print '%s%s%s' %(bcolors.ENDC,output,bcolors.ENDC)
 
@@ -132,7 +131,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
         agcy = agency['name']
 
         if not for_date:
-            days_ahead = agency['scheduler']['notify']['preschedule_by_days']
+            days_ahead = int(agency['scheduler']['notify']['preschedule_by_days'])
             for_date = date.today() + timedelta(days=days_ahead)
 
         blocks = []

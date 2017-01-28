@@ -10,12 +10,11 @@ from app.etap import get_udf, ddmmyyyy_to_date as to_date
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def on_delivered():
+def on_delivered(agcy):
     '''Mailgun webhook called from view. Has request context'''
 
     log.info('receipt delivered to %s', request.form['recipient'])
 
-    agcy = request.form['agency']
     row = request.form['from_row']
     ss_id = get_keys('google',agcy=agcy)['ss_id']
 
@@ -28,10 +27,9 @@ def on_delivered():
         log.error('error updating sheet')
 
 #-------------------------------------------------------------------------------
-def on_dropped():
+def on_dropped(agcy):
     '''Mailgun webhook called from view. Has request context'''
 
-    agcy = request.form['agency']
     row = request.form['from_row']
     msg = 'receipt to %s dropped. %s. %s' %(
         request.form['recipient'],

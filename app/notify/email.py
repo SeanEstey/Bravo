@@ -6,7 +6,6 @@ from .. import smart_emit, get_keys, utils, mailgun
 from app.main.tasks import create_rfu
 log = logging.getLogger(__name__)
 
-# TODO: remove db['emails'].update op. in app.notify.views.on_delivered just search mid in db['notifics']
 # TODO: include date in email subject
 
 #-------------------------------------------------------------------------------
@@ -16,7 +15,6 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
         'template': 'path/to/template/file',
         'subject': 'msg'}
     '''
-
 
     return g.db['notifics'].insert_one({
         'evnt_id': evnt_id,
@@ -38,30 +36,23 @@ def send(notific, mailgun_conf, key='default'):
     @key = dict key in email schemas for which template to use
     '''
 
-
-    # If this is run from a Celery task, it is working outside a request
-    # context. Create one so that render_template behaves as if it were in
-    # a view function.
-    # This template uses url_for() and must require the 'request' variable, which
-    # is probably why voice.get_speak() can call render_template() by only
-    # creating an application context (without request context)
-    with current_app.test_request_context():
-        try:
-            body = render_template(
-                notific['on_send']['template'],
-                http_host = os.environ.get('BRAVO_HTTP_HOST'),
-                to = notific['to'],
-                account = utils.formatter(
-                    g.db['accounts'].find_one({'_id':notific['acct_id']}),
-                    to_local_time=True,
-                    to_strftime="%A, %B %d",
-                    bson_to_json=True
-                ),
-                evnt_id = notific['evnt_id']
-            )
-        except Exception as e:
-            log.error('Email not sent because render_template error. %s ', str(e))
-            pass
+    try:
+        body = render_template(
+            notific['on_send']['template'],
+            http_host = os.environ.get('BRAVO_HTTP_HOST'),
+            to = notific['to'],
+            account = utils.formatter(
+                g.db['accounts'].find_one({'_id':notific['acct_id']}),
+                to_local_time=True,
+                to_strftime="%A, %B %d",
+                bson_to_json=True
+            ),
+            evnt_id = notific['evnt_id']
+        )
+    except Exception as e:
+        log.error('render_template error. desc=%s', str(e))
+        log.debug('', exc_info=True)
+        raise
 
     mid = mailgun.send(
         notific['to'],

@@ -207,16 +207,18 @@ def to_intl_format(to):
 
     no_symbols = re.sub(r'\s|\-|\(|\)|[a-zA-Z]', '', to)
 
-    if no_symbols[0:2] == '+1':
-        return no_symbols
+    try:
+        if no_symbols[0:2] == '+1':
+            return no_symbols
 
-    if len(no_symbols) == 10:
-        return '+1' + no_symbols
+        if len(no_symbols) == 10:
+            return '+1' + no_symbols
 
-    if no_symbols[0] == '1':
-        return '+' + no_symbols
-
-
+        if no_symbols[0] == '1':
+            return '+' + no_symbols
+    except Exception as e:
+        log.error('invalid phone number %s', to)
+        return None
 
 #-------------------------------------------------------------------------------
 def start_timer():

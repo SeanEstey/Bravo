@@ -146,7 +146,7 @@ def send_confirm(agency, data):
         'Pickup Confirmation',
         body,
         conf['mailgun'],
-        v={'type':'confirmation'})
+        v={'agcy':agency, 'type':'confirmation'})
 
     if mid == False:
         log.error('failed to queue email to %s', data['email'])

@@ -1,10 +1,11 @@
 '''app.main.tasks'''
-import logging
+import logging, re
 from datetime import date, timedelta
 from flask import g
 from app import cal, celery, get_keys
 from app.gsheets import gauth, append_row, get_row
 from app.etap import get_udf, mod_acct, ddmmyyyy_to_mmddyyyy as swap_dd_mm
+from . import sms
 import app.main.donors
 
 log = logging.getLogger(__name__)
@@ -161,52 +162,29 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
     '''Verify that all accounts in upcoming residential routes with mobile
     numbers are set up to interact with SMS system'''
 
-    agency_name = args[0] # FIXME
-    days_delta = args[1] # FIXME
+    if not in_days:
+        in_days = 3
 
-    import re
-    from . import cal
-    from app.main import sms
-
-    if days_delta == None:
-        days_delta = 3
-    else:
-        days_delta = int(days_delta)
-
-    if agency_name:
-        conf = db.agencies.find_one({'name':agency_name})
-
-        accounts = cal.get_accounts(
-            conf['etapestry'],
-            conf['cal_ids']['res'],
-            conf['google']['oauth'],
-            days_from_now=days_delta)
-
-        if len(accounts) < 1:
-            return 'no accounts to update'
-
-        r = sms.enable(agency_name, accounts)
-
-        log.info('%s --- updated %s accounts for SMS. discovered %s mobile numbers ---%s',
-                    bcolors.OKGREEN, r['n_sms'], r['n_mobile'], bcolors.ENDC)
+    if agcy:
+        agencies = [db.agencies.find_one({'name':agcy})]
     else:
         agencies = db.agencies.find({})
 
-        for agency in agencies:
-            # Get accounts scheduled on Residential routes 3 days from now
-            accounts = cal.get_accounts(
-                agency['etapestry'],
-                agency['cal_ids']['res'],
-                agency['google']['oauth'],
-                days_from_now=days_delta)
+    for agency in agencies:
+        # Get accounts scheduled on Residential routes 3 days from now
+        accounts = cal.get_accounts(
+            agency['etapestry'],
+            agency['cal_ids']['res'],
+            agency['google']['oauth'],
+            days_from_now=in_days)
 
-            if len(accounts) < 1:
-                return 'failed'
+        if len(accounts) < 1:
+            return 'failed'
 
-            r = sms.enable(agency['name'], accounts)
+        r = sms.enable(agency['name'], accounts)
 
-            log.info('%s --- updated %s accounts for SMS. discovered %s mobile numbers ---%s',
-                        bcolors.OKGREEN, r['n_sms'], r['n_mobile'], bcolors.ENDC)
+        log.info('%supdated %s accounts for SMS. discovered %s mobile numbers%s',
+                    bcolors.OKGREEN, r['n_sms'], r['n_mobile'], bcolors.ENDC)
 
     return 'success'
 

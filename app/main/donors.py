@@ -1,9 +1,9 @@
-'''app.main.accounts'''
+'''app.main.donors'''
 import logging
 from datetime import date, timedelta
 from dateutil.parser import parse
-from flask import g
-from .. import get_keys, etap
+from flask import g, request
+from .. import mailgun, get_keys, etap
 from ..etap import EtapError, mod_acct, get_udf, ddmmyyyy_to_date as to_date
 log = logging.getLogger(__name__)
 
@@ -60,3 +60,24 @@ def is_inactive(agcy, acct, days=270):
     else:
         log.info('acct_id=%s is inactive', acct['id'])
         return True
+
+#-------------------------------------------------------------------------------
+def unsubscribe(agcy):
+    if not request.args.get('email'):
+        raise Exception('no email included in unsub')
+
+    conf = get_keys('mailgun',agcy=agcy)
+    body = '%s has requested email unsubscription. Please contact to see if '\
+            'they want to cancel the service.' % request.args['email']
+    subject = 'Unsubscribe Request'
+
+    try:
+        mid = mailgun.send(
+            conf['from'], conf['from'],
+            subject, html, conf)
+    except Exception as e:
+        log.error(str(e))
+        log.debug('', exc_info=True)
+        return 'failed'
+
+    return 'OK'

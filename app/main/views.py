@@ -1,11 +1,10 @@
 '''app.main.views'''
-import logging, json, os, time, requests
+import logging, json, time
 from flask import g, request, render_template, redirect, url_for, jsonify, Response
 from flask_login import login_required
 from .. import get_keys, html
 from . import main, receipts, signups
 from .tasks import create_rfu, send_receipts, add_gsheets_signup
-from .mailgun import send
 from app.notify import admin
 from app.booker import book
 log = logging.getLogger(__name__)
@@ -37,86 +36,69 @@ def update_agency_conf():
     return jsonify({'status':'success'})
 
 #-------------------------------------------------------------------------------
-@main.route('/email/send', methods=['POST'])
-def send_email():
-    '''
-    @form: {'agency', 'recipient', 'type', 'template', 'subject', 'data', 'from_row'}
-    @form['type']: 'signup', 'receipt'
-    Returns: mailgun ID
+@main.route('/email/delivered',methods=['POST'])
+def on_delivered():
+    '''Mailgun webhook
     '''
 
-    #log.debug('/email/send: "%s"', args)
+    log.debug(json.dumps(request.values.to_dict(), indent=4))
 
-    args = request.get_json(force=True)
-    to = args['recipient']
-    agcy = args['agency']
+    type_ = request.form.get('type')
+    agcy = request.form.get('agcy')
 
-    try:
-        html = render_template(
-            args['template'],
-            data=args['data'])
-    except Exception as e:
-        msg = 'invalid email template'
-        log.error('%s: %s', msg, str(e))
+    if not type_:
+        log.error('no v:type set. cannot route to delivered handler')
+        return 'failed'
 
-        return Response(response=e, status=500, mimetype='application/json')
+    if type_ == 'receipt':
+        receipts.on_delivered(agcy)
+    elif type_ == 'signup':
+        signups.on_delivered(agcy)
+    elif type_ == 'notific':
+        from app.notify import email
+        email.on_delivered()
+    elif type_ == 'confirmation':
+        book.on_delivered(agcy)
 
-    try:
-        mid = send(
-            to,
-            args['subject'],
-            html,
-            get_keys('mailgun',agcy=agcy),
-            v={
-                'agency': agcy,
-                'type': args['type'],
-                'from_row': args['from_row']})
-    except Exception as e:
-        log.error('could not email %s. desc=%s', to, str(e))
-        create_rfu.delay(agcy, str(e))
-
-        return Response(response=str(e), status=500, mimetype='application/json')
-
-    log.debug('queued %s to %s', args.get('type'), to)
-
-    return mid
-
-#-------------------------------------------------------------------------------
-@main.route('/email/<agency>/unsubscribe', methods=['GET'])
-def email_unsubscribe(agency):
-
-    if request.args.get('email'):
-        msg = 'Contributor ' + request.args.get('email') + ' has requested to \
-              unsubscribe from emails. Please contact to see if they want \
-              to cancel the entire service.'
-
-        conf = g.db.agencies.find_one({'name':agency})['mailgun']
-
-        try:
-            r = requests.post(
-              'https://api.mailgun.net/v3/' + 'bravoweb.ca' + '/messages',
-              auth=('api', conf['api_key']),
-              data={
-                'from': conf['from'],
-                'to': conf['from'],
-                'subject': 'Unsubscribe Request',
-                'html': msg
-            })
-        except requests.exceptions.RequestException as e:
-            log.error(str(e))
-            return flask.Response(response=e, status=500, mimetype='application/json')
-
-        return 'We have received your request to unsubscribe ' \
-                + request.args.get('email') + ' If you wish \
-                to cancel the service, please allow us to contact you once \
-                more to arrange for retrieval of the Bag Buddy or other \
-                collection materials provided to you. As a non-profit, \
-                this allows us to spread out our costs.'
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/email/spam_complaint', methods=['POST'])
-def email_spam_complaint():
+@main.route('/email/dropped', methods=['POST'])
+def on_dropped():
+    '''Mailgun webhook
+    '''
+
+    log.debug(json.dumps(request.values.to_dict(), indent=4))
+
+    type_ = request.form.get('type')
+    agcy = request.form.get('agcy')
+
+    if not type_:
+        log.error('no v:type set. cannot route to delivered handler')
+        return 'failed'
+
+    if type_ == 'receipt':
+        receipts.on_dropped(agcy)
+    elif type_ == 'signup':
+        signups.on_dropped(agcy)
+    elif type_ == 'notific':
+        email.on_dropped()
+
+    return 'OK'
+
+#-------------------------------------------------------------------------------
+@main.route('/email/<agcy>/unsub', methods=['GET'])
+def on_unsub(agcy):
+    '''Mailgun webhook
+    '''
+
+    return donors.unsubscribe(agcy)
+
+#-------------------------------------------------------------------------------
+@main.route('/email/spam', methods=['POST'])
+def on_spam():
+    '''Mailgun webhook
+    '''
 
     if request.form['domain'] == 'recycle.vecova.ca':
         agency = 'vec'
@@ -134,49 +116,15 @@ def email_spam_complaint():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/email/delivered',methods=['POST'])
-def on_email_delivered():
-    '''Mailgun webhook. Route to appropriate handler'''
-
-    log.debug(json.dumps(request.values.to_dict(), indent=4))
-
-    if not request.form.get('my-custom-data'):
-        return 'Unknown type'
-
-    v = json.loads(request.form['my-custom-data'])
-
-    if v.get('type') == 'receipt':
-        receipts.on_delivered()
-    elif v.get('type') == 'signup':
-        signups.on_email_delivered()
-    elif v.get('type') == 'notific':
-        from app.notify import email
-        email.on_delivered()
-    elif v.get('type') == 'confirmation':
-        book.on_delivered()
-
+@main.route('/receipts/process', methods=['POST'])
+def send_receipts_():
+    send_receipts.delay(request.form['entries'], etap=request.form['etapestry'])
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/email/dropped', methods=['POST'])
-def on_email_dropped():
-    '''Mailgun webhook. Route to appropriate handler'''
-
-    log.debug(json.dumps(request.values.to_dict(), indent=4))
-
-    if not request.form.get('my-custom-data'):
-        return 'Unknown type'
-
-    v = json.loads(request.form['my-custom-data'])
-
-    if v.get('type') == 'receipt':
-        receipts.on_dropped()
-    elif v.get('type') == 'signup':
-        signups.on_email_dropped()
-    elif v.get('type') == 'notific':
-        email.on_dropped()
-
-    return 'OK'
+@main.route('/signups/welcome', methods=['POST'])
+def send_welcome():
+    return signups.send_welcome()
 
 #-------------------------------------------------------------------------------
 @main.route('/receive_signup', methods=['POST'])

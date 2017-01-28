@@ -6,7 +6,8 @@ from flask import g, current_app, render_template, request
 from .. import get_keys, html, mailgun, etap
 from app.main.tasks import create_rfu
 from app.gsheets import update_cell, to_range, gauth, get_row
-from app.etap import get_udf, ddmmyyyy_to_date as to_date
+from app.etap import get_udf
+from app.dt import ddmmyyyy_to_date as to_date
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

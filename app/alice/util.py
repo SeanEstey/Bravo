@@ -1,20 +1,19 @@
 '''app.alice.util'''
-
 import logging
 from datetime import date, datetime, timedelta
 from flask import g, request, session
-from .. import etap
-from app.etap import EtapError
+from app.etap import call, EtapError
 from app.main.tasks import create_rfu
 from .dialog import *
-from app.utils import tz_utc_to_local, print_vars
+from app.utils import print_vars
+from app.dt import tz_utc_to_local
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def lookup_acct(mobile):
     try:
         # Very slow (~750ms-2200ms)
-        acct = etap.call(
+        acct = call(
             'find_account_by_phone',
             session.get('conf')['etapestry'],
             {'phone': mobile}

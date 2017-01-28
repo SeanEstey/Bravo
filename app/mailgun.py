@@ -13,7 +13,7 @@ def send(to, subject, body, conf, v=None):
     Returns: mid string on success
     '''
 
-    log.debug(conf)
+    #log.debug(conf)
 
     # Mailgun has no test API keys for use in test environment
     # If test mode enabled, re-route all emails to test address
@@ -32,8 +32,6 @@ def send(to, subject, body, conf, v=None):
     for k in v:
         data['v:'+k] = v[k]
 
-    log.debug(data)
-
     try:
         response = requests.post(
           'https://api.mailgun.net/v3/' + conf['domain'] + '/messages',
@@ -42,9 +40,11 @@ def send(to, subject, body, conf, v=None):
     except requests.RequestException as e:
         log.error('mailgun: %s ', str(e))
         log.debug('', exc_info=True)
-        pass
+        raise
 
     log.debug(response.text)
 
-    return 'ok' #json.loads(response.text)['id']
+    #return 'ok'
+
+    return json.loads(response.text)['id']
 

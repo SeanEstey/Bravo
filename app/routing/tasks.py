@@ -6,11 +6,12 @@ import bson.json_util
 from flask import g
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
-from .. import smart_emit, celery, get_keys, gcal, gdrive, gsheets, etap, parser
-from ..utils import local_today_dt, d_to_local_dt, formatter
-from ..etap import EtapError, get_query, get_udf
-from . import depots, sheet
+from app import smart_emit, celery, get_keys, gcal, gdrive, gsheets, etap, parser
+from app.utils import formatter
+from app.dt import local_today_dt, d_to_local_dt, ddmmyyyy_to_date
+from app.etap import EtapError, get_query, get_udf
 from .main import submit_job, get_solution_orders
+from . import depots, sheet
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -21,6 +22,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
     to client
     '''
 
+    log.debug('discovering routes...')
     #sleep(3)
     #log.debug('discover_routes, days=%s, g.user=%s', within_days, g.user)
     smart_emit('discover_routes', {'status':'in-progress'})
@@ -70,7 +72,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
             if npu == '':
                 continue
 
-            npu_d = etap.ddmmyyyy_to_date(npu)
+            npu_d = ddmmyyyy_to_date(npu)
 
             if npu_d == event_d:
                 n_booked += 1

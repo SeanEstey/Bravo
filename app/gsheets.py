@@ -250,15 +250,13 @@ def api_ss_batch_update(service, ss_id, request, range_=None, cell=None, fields=
         requests.append({
             'insertDimension': {
                 "range": range_,
-                "inheritFromBefore": False
-            }})
+                "inheritFromBefore": False}})
     elif request == 'updateDimensionProperties':
         requests.append({
             'updateDimensionProperties': {
                 'fields': fields,
                 'range': range_,
-                'properties': properties
-            }})
+                'properties': properties}})
     elif request == 'repeatCell':
         requests.append({
             'repeatCell': {

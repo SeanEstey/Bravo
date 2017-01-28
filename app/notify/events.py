@@ -5,6 +5,7 @@ from dateutil.parser import parse
 from bson.objectid import ObjectId
 from flask import g
 from .. import get_keys, utils
+from app.dt import localize, naive_to_local
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -18,7 +19,7 @@ def add(agency, name, event_date, _type):
     return g.db['notific_events'].insert_one({
         'name': name,
         'agency': agency,
-        'event_dt': utils.naive_to_local(datetime.combine(event_date, time(8,0))),
+        'event_dt': naive_to_local(datetime.combine(event_date, time(8,0))),
         'type': _type,
         'status': 'pending',
         'opt_outs': 0,
@@ -30,7 +31,7 @@ def get(evnt_id, local_time=True):
     event = g.db['notific_events'].find_one({'_id':evnt_id})
 
     if local_time == True:
-        return utils.localize(event)
+        return localize(event)
 
     return event
 
@@ -44,7 +45,7 @@ def get_list(agency, local_time=True, max=20):
 
     if local_time == True:
         for event in sorted_events:
-            event = utils.localize(event)
+            event = localize(event)
 
     return sorted_events
 
@@ -54,7 +55,7 @@ def get_triggers(evnt_id, local_time=True, sort_by='type'):
 
     if local_time == True:
         for trigger in trigger_list:
-            trigger = utils.localize(trigger)
+            trigger = localize(trigger)
 
     return trigger_list
 
@@ -85,7 +86,7 @@ def get_notifics(evnt_id, local_time=True, sorted_by='account.event_dt'):
         notific_list = list(notific_results)
 
         for notific in notific_list:
-            notific = utils.localize(notific)
+            notific = localize(notific)
 
         # Returning list
         return notific_list

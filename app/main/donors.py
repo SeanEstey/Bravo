@@ -3,8 +3,9 @@ import logging
 from datetime import date, timedelta
 from dateutil.parser import parse
 from flask import g, request
-from .. import mailgun, get_keys, etap
-from ..etap import EtapError, mod_acct, get_udf, ddmmyyyy_to_date as to_date
+from app import mailgun, get_keys, etap
+from app.etap import EtapError, mod_acct, get_udf
+from app.dt import ddmmyyyy_to_date as to_date
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

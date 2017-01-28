@@ -3,7 +3,8 @@ import logging, os, pytz
 from datetime import datetime, date, time, timedelta
 from bson import ObjectId
 from flask import g, current_app, has_request_context
-from app.utils import bcolors, tz_utc_to_local
+from app.utils import bcolors
+from app.dt import tz_utc_to_local
 from app import etap, get_keys, cal, celery, smart_emit
 from app.etap import EtapError
 from . import email, sms, voice, pickups, triggers
@@ -60,7 +61,7 @@ def fire_trigger(self, _id, **rest):
         {'_id':trigger['evnt_id']})
     agcy = event['agency']
 
-    log.info('%s---------- firing %s trigger for "%s" event ----------%s',
+    log.info('%sfiring %s trigger for "%s" event%s',
         bcolors.OKGREEN, trigger['type'], event['name'], bcolors.ENDC)
 
     if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':

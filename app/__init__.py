@@ -1,24 +1,24 @@
 '''app.__init__'''
-import pymongo
-import eventlet
-import os, logging, socket, requests
-from flask import Flask, g, has_app_context
+import eventlet, pymongo, os, logging, socket, requests
+from flask import Flask, g
 from flask_login import LoginManager
 from flask_kvsession import KVSessionExtension
-from flask_socketio import SocketIO, rooms
 from celery import Celery, Task
 from simplekv.db.mongo import MongoStore
 from werkzeug.contrib.fixers import ProxyFix
 import config, mongodb
-from utils import log_handler, print_vars
+from logger import create_file_handler
+from utils import print_vars
 from app.sio import smart_emit
 
 eventlet.monkey_patch()
 
-deb_hand = log_handler(logging.DEBUG, 'debug.log')
-inf_hand = log_handler(logging.INFO, 'info.log')
-err_hand = log_handler(logging.ERROR, 'error.log')
-exc_hand = log_handler(logging.CRITICAL, 'debug.log')
+deb_hand = create_file_handler(logging.DEBUG, 'debug.log')
+inf_hand = create_file_handler(logging.INFO, 'info.log')
+err_hand = create_file_handler(logging.ERROR, 'error.log')
+exc_hand = create_file_handler(logging.CRITICAL, 'debug.log')
+console = logging.StreamHandler()
+
 log = logging.getLogger(__name__)
 
 login_manager = LoginManager()
@@ -72,6 +72,7 @@ def create_app(pkg_name, kv_sess=True, testing=False):
     app.logger.addHandler(err_hand)
     app.logger.addHandler(inf_hand)
     app.logger.addHandler(deb_hand)
+    app.logger.addHandler(console)
     app.logger.setLevel(logging.DEBUG)
 
     from .auth.user import Anonymous

@@ -21,11 +21,11 @@ function checkForError($nsc) {
 
   if($nsc->fault || $nsc->getError()) {
     if(!$nsc->fault) {
-      //error_log($agency . ": Error: " . $nsc->getError());
+      error_log($agency . ": Error: " . $nsc->getError());
       return true;
     }
     else {
-      //error_log($agency . ": fault code " . $nsc->faultcode . ", msg: " . $nsc->faultstring);
+      error_log($agency . ": fault code " . $nsc->faultcode . ", msg: " . $nsc->faultstring);
       return true;
     }
   }
@@ -70,7 +70,7 @@ function find_account_by_phone($nsc, $phone) {
 	 * Returns: eTap Account object on success, false on no result.
 	 */
 
-  info_log('finding account for ' . $phone);
+  debug_log('finding account for ' . $phone);
 
   $dv = [
     'fieldName'=>'SMS',
@@ -85,11 +85,11 @@ function find_account_by_phone($nsc, $phone) {
   }
 
   if(!$account) {
-    info_log('No matching account found for phone number ' . $phone);
+    debug_log('No matching account found for phone number ' . $phone);
     return false;
   }
   else
-    info_log('Found account Id ' . $account['id'] . ' matching ' . $phone);
+    debug_log('Found account Id ' . $account['id'] . ' matching ' . $phone);
 
   return $account;
 }
@@ -161,7 +161,7 @@ function get_scheduled_block_size($nsc, $query_category, $query, $date) {
   else
     $ratio .= '?';
   
-  //debug_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
+  debug_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
 
   http_response_code(200);
 
@@ -186,7 +186,7 @@ function get_block_size($nsc, $query_category, $query) {
   }
 
   // Next P/U Date returns in dd/mm/yyyy format
-  info_log('Query ' . $query . ' count: ' . $response['count']);
+  debug_log('Query ' . $query . ' count: ' . $response['count']);
 
 	http_response_code(200); 
 
@@ -319,7 +319,7 @@ function add_note($nsc, $note) {
     return 'add_note failed: ' . $status;
   }
   else {
-    info_log('Note added for account ' . $note['id']);
+    debug_log('Note added for account ' . $note['id']);
     return $status;
   }
 }
@@ -340,7 +340,7 @@ function update_note($nsc, $data) {
     return 'update_note_failed. ' . $status;
   }
   else {
-    info_log('Note updated for account ' . $data['id']);
+    debug_log('Note updated for account ' . $data['id']);
     return $status;
   }
 }
@@ -418,7 +418,7 @@ function add_accounts($db, $nsc, $submissions) {
       $num_errors++;
     }
     else
-      info_log('Added account ' . $account['name']);
+      debug_log('Added account ' . $account['name']);
 
     $result = $db->insertOne([ 
       'function' => 'add_accounts',
@@ -429,7 +429,7 @@ function add_accounts($db, $nsc, $submissions) {
 
   }
 
-  info_log((string)count($submissions) . ' accounts added/updated. ' . (string)$num_errors . ' errors.');
+  debug_log((string)count($submissions) . ' accounts added/updated. ' . (string)$num_errors . ' errors.');
 
   return 'OK';
 }
@@ -450,7 +450,7 @@ function modify_account($nsc, $id, $udf, $persona) {
   $account = $nsc->call("getAccountById", [$id]);
 
   if(!$account)
-    return info_log('modify_account(): Id ' . (string)$id . ' does not exist');
+    return debug_log('modify_account(): Id ' . (string)$id . ' does not exist');
 
   foreach($persona as $key=>$value) {
 		// If 'phones' array is included, all phone types must be present or data will be lost
@@ -469,16 +469,16 @@ function modify_account($nsc, $id, $udf, $persona) {
   $ref = $nsc->call("updateAccount", [$account, false]);
 
   if(checkForError($nsc))
-    return info_log('in modify_account(): eTap API updateAccount() error: ' . $nsc->faultcode . ': ' . $nsc->faultstring);
+    return debug_log('in modify_account(): eTap API updateAccount() error: ' . $nsc->faultcode . ': ' . $nsc->faultstring);
 
   // Now update UDF fields 
   remove_udf($nsc, $account, $udf);
   apply_udf($nsc, $account, $udf);
   
   if(checkForError($nsc))
-    return info_log('in modify_account(): Error ' . $nsc->faultcode . ': ' . $nsc->faultstring);
+    return debug_log('in modify_account(): Error ' . $nsc->faultcode . ': ' . $nsc->faultstring);
 
-  info_log('Updated account ' . $account['firstName'] . ' ' . $account['lastName'] . ' (' . $account['id'] . ')');
+  debug_log('Updated account ' . $account['firstName'] . ' ' . $account['lastName'] . ' (' . $account['id'] . ')');
 
   return 'Success';
 }
@@ -526,7 +526,7 @@ function no_pickup($nsc, $account_id, $date, $next_pickup) {
     false
   ]);
   
-  info_log('Account ' . $account_id . ' No Pickup');
+  debug_log('Account ' . $account_id . ' No Pickup');
 
 	return json_encode(["No Pickup request received. Thanks"]);
 }
@@ -621,7 +621,7 @@ function check_duplicates($nsc, $persona_fields) {
 			$ids[] = $accounts[0]['id'];
     }
 
-    //info_log($ids);
+    //debug_log($ids);
 
     return $ids;
 }
@@ -676,7 +676,7 @@ function make_booking($nsc, $account_num, $udf, $type) {
 
   http_response_code(200);  
 
-  info_log('Booked Account #' . $account_num . ' on Block ' . $udf['Block']);
+  debug_log('Booked Account #' . $account_num . ' on Block ' . $udf['Block']);
 
   return 'Booked successfully!';
 }
@@ -709,7 +709,7 @@ function get_next_pickup($nsc, $email) {
 			extract($searchArray);
 
 			if($fieldName == 'Next Pickup Date') {
-				info_log('Next Pickup for ' . $email . ': ' . formatDateAsDateTimeString($value));
+				debug_log('Next Pickup for ' . $email . ': ' . formatDateAsDateTimeString($value));
 
 				return formatDateAsDateTimeString($value);
 			}

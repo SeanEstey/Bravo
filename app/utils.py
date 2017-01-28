@@ -1,18 +1,11 @@
 '''app.utils'''
-
-import requests
-import types
-import re
+import inspect, json, logging, pytz, re, requests, types
+from pprint import pformat
 from bson import json_util
-import json
-import logging
-import pytz
 from datetime import datetime, time, date
 from config import LOG_PATH
-
+from app.dt import localize
 log = logging.getLogger(__name__)
-
-local_tz = pytz.timezone("Canada/Mountain")
 
 class bcolors:
     HEADER = '\033[95m'
@@ -23,10 +16,6 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-
-import types
-import inspect
-from pprint import pformat
 
 #-------------------------------------------------------------------------------
 def inspector(obj, public=True, private=False):
@@ -51,7 +40,6 @@ def inspector(obj, public=True, private=False):
 
     return output
 
-'''
 #-------------------------------------------------------------------------------
 def module_inspector(mylocals=False):
     if mylocals:
@@ -64,7 +52,6 @@ def module_inspector(mylocals=False):
         #if isinstance(val, types.ModuleType):
         #    #yield val.__name__
         #    print val.__name__
-'''
 
 #-------------------------------------------------------------------------------
 def print_vars(obj, depth=0, ignore=None, l="    "):
@@ -82,7 +69,9 @@ def print_vars(obj, depth=0, ignore=None, l="    "):
         objdict = obj
     else:
         #if basic type, or list thereof, just print
-        canprint=lambda o:isinstance(o, (int, float, str, unicode, bool, types.NoneType, types.LambdaType))
+        canprint=lambda o:isinstance(
+            o,
+            (int, float, str, unicode, bool, types.NoneType, types.LambdaType))
 
         try:
             if canprint(obj) or sum(not canprint(o) for o in obj) == 0:
@@ -90,17 +79,24 @@ def print_vars(obj, depth=0, ignore=None, l="    "):
         except TypeError, e:
             pass
 
-        #try to iterate as if obj were a list
+        # Try to iterate as if obj were a list
+
         try:
-            return "[\n" + "\n".join(l + print_vars(k, depth=depth-1, ignore=ignore, l=l+"  ") + "," for k in obj) + "\n" + l + "]"
+            vars_ = print_vars(k, depth=depth-1, ignore=ignore, l=l+"  ")
+            join_ = "\n".join(l + vars_ + "," for k in obj)
+            return "[\n%s\n%s]" % (join_, l)
         except TypeError, e:
             #else, expand/recurse object attribs
 
-            name = (hasattr(obj, '__class__') and obj.__class__.__name__ or type(obj).__name__)
             objdict = {}
+            name = \
+                (hasattr(obj, '__class__') and \
+                obj.__class__.__name__ or type(obj).__name__)
+
 
             for a in dir(obj):
-                if a[:2] != "__" and (not hasattr(obj, a) or not hasattr(getattr(obj, a), '__call__')):
+                if a[:2] != "__" and (not hasattr(obj, a) or \
+                not hasattr(getattr(obj, a), '__call__')):
                     try: objdict[a] = getattr(obj, a)
                     except Exception, e:
                         objdict[a] = str(e)
@@ -118,67 +114,10 @@ def print_vars(obj, depth=0, ignore=None, l="    "):
         ) + "\n" + l + "}"
 
 #-------------------------------------------------------------------------------
-def log_handler(level, filename):
-    handler = logging.FileHandler(LOG_PATH + filename)
-    handler.setLevel(level)
-    handler.setFormatter(logging.Formatter(\
-        '[%(asctime)s %(name)s] %(message)s','%m-%d %H:%M'))
-    return handler
-
-def d_to_local_dt(d):
-    return naive_to_local(datetime.combine(d, time(0,0,0)))
-
-#-------------------------------------------------------------------------------
-def local_today_dt():
-    return naive_to_local(
-        datetime.combine(
-            date.today(),
-            time(0,0,0)))
-
-#-------------------------------------------------------------------------------
-def naive_to_local(dt):
-    return local_tz.localize(dt, is_dst=True)
-
-#-------------------------------------------------------------------------------
-def naive_utc_to_local(dt):
-    '''dt contains UTC time but has no tz. add tz and convert'''
-    return dt.replace(tzinfo=pytz.utc).astimezone(local_tz)
-
-#-------------------------------------------------------------------------------
-def tz_utc_to_local(dt):
-    '''dt is tz-aware. convert time and tz'''
-    return dt.astimezone(local_tz)
-
-#-------------------------------------------------------------------------------
-def localize(obj, to_strftime=None):
-    '''Recursively scan through MongoDB document and convert all
-    UTC datetimes to local time'''
-
-    if isinstance(obj, dict):
-        for k, v in obj.iteritems():
-            obj[k] = localize(v, to_strftime=to_strftime)
-    elif isinstance(obj, list):
-        for idx, item in enumerate(obj):
-            obj[idx] = localize(item, to_strftime=to_strftime)
-    elif isinstance(obj, datetime):
-        if obj.tzinfo is None:
-            obj = obj.replace(tzinfo=pytz.utc)
-
-        obj = obj.astimezone(local_tz)
-
-        if to_strftime:
-            obj = obj.strftime(to_strftime)
-
-    return obj
-
-#-------------------------------------------------------------------------------
-def formatter(doc,
-              to_local_time=False, to_strftime=None, bson_to_json=False):
-    '''
-    @bson_to_json:
-        convert ObjectIds->{'oid': 'string'}
-    @to_local_time, to_strftime:
-        convert utc datetimes to local time (and to string optionally)
+def formatter(doc, to_local_time=False, to_strftime=None, bson_to_json=False):
+    '''@bson_to_json: convert ObjectIds->{'oid': 'string'}
+    @to_local_time, to_strftime: convert utc datetimes to local time (and to
+    string optionally)
     '''
 
     if to_local_time == True:

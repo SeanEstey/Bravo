@@ -19,14 +19,22 @@ class MainTasksTests(unittest.TestCase):
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 
-    def _test_send_receipts(self):
+    def test_send_receipts(self):
+        entry = {
+            'agcy': 'vec',
+            'acct_id': 269,
+            'date': '1/23/2017',
+            'amount': 6.00,
+            'next_pickup': '4/17/2017',
+            'status': 'Active',
+            'from_row': 2}
+
         try:
-            print 'WRITE ME'
-            #tasks.send_receipts()
+            tasks.send_receipts([entry])
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 
-    def test_create_rfu(self):
+    def _test_create_rfu(self):
         try:
             tasks.create_rfu(
                 'vec', 'Non-participant. No collection',

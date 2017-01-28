@@ -114,8 +114,8 @@ def fire_trigger(self, _id, **rest):
         'fails': fails,
         'errors': len(errors)})
 
-    log.info('%s---------- queued: %s, failed: %s, errors: %s ----------%s',
-        bcolors.OKGREEN, count-fails-len(errors), fails, len(errors),bcolors.ENDC)
+    log.info('queued: %s, failed: %s, errors: %s',
+        count-fails-len(errors), fails, len(errors))
 
     return 'success'
 

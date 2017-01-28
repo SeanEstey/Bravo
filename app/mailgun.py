@@ -13,8 +13,6 @@ def send(to, subject, body, conf, v=None):
     Returns: mid string on success
     '''
 
-    #log.debug(conf)
-
     # Mailgun has no test API keys for use in test environment
     # If test mode enabled, re-route all emails to test address
     if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
@@ -27,10 +25,11 @@ def send(to, subject, body, conf, v=None):
         'subject': subject,
         'html': body}
 
-    # Add custom vars: 'v:var:var_name:var_value'
-    vars_ = {}
-    for k in v:
-        data['v:'+k] = v[k]
+    if v:
+        # Add custom vars: 'v:var:var_name:var_value'
+        vars_ = {}
+        for k in v:
+            data['v:'+k] = v[k]
 
     try:
         response = requests.post(
@@ -43,8 +42,6 @@ def send(to, subject, body, conf, v=None):
         raise
 
     log.debug(response.text)
-
-    #return 'ok'
 
     return json.loads(response.text)['id']
 

@@ -25,12 +25,12 @@ def append_row(service, ss_id, sheet_title, values):
     max_rows = sheet['gridProperties']['rowCount']
     range_ = '%s!%s:%s' % (sheet_title, max_rows+1,max_rows+1)
 
-    api_ss_values_append(service, ss_id, range_, values)
+    api_ss_values_append(service, ss_id, range_, [values])
 
 #-------------------------------------------------------------------------------
 def write_rows(service, ss_id, range_, values):
 
-    api_ss_values_update(service, ss_id, range_, values)
+    api_ss_values_update(service, ss_id, range_, [values])
 
 #-------------------------------------------------------------------------------
 def insert_rows_above(service, ss_id, row, num):
@@ -143,10 +143,10 @@ def gauth(oauth):
         http = credentials.authorize(http)
         service = build(name, version, http=http)
     except Exception as e:
-        log.error('Error authorizing %s: %s', name, str(e))
+        log.error('error authorizing %s: %s', name, str(e))
         return False
 
-    log.debug('Sheets service authorized')
+    log.debug('sheets service authorized')
 
     return service
 
@@ -210,14 +210,15 @@ def api_ss_values_update(service, ss_id, range_, values):
 
     call = service.spreadsheets().values().update
     body = {
-        "values": [values],
+        "values": values,
         "majorDimension": "ROWS"}
-    _input = 'USER_ENTERED'
+    input_ = 'USER_ENTERED'
 
     try:
         call(spreadsheetId=ss_id, valueInputOption=input_, range=range_, body=body).execute()
     except Exception as e:
         log.error('Error updating sheet: %s', str(e))
+        log.debug('', exc_info=True)
         return False
 
 #-------------------------------------------------------------------------------
@@ -228,7 +229,7 @@ def api_ss_values_append(service, ss_id, range_, values):
 
     call = service.spreadsheets().values().append
     body = {
-        "values": [values],
+        "values": values,
         "majorDimension": "ROWS"}
     input_ = 'USER_ENTERED'
 

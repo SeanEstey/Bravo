@@ -1,14 +1,14 @@
 '''app.main.tasks'''
 import logging, re
 from datetime import date, timedelta
+from dateutil.parser import parse
 from flask import g
 from app import cal, celery, get_keys
 from app.gsheets import gauth, append_row, get_row
-from app.etap import get_udf, mod_acct
+from app.etap import call, get_udf, mod_acct
 from app.dt import ddmmyyyy_to_mmddyyyy as swap_dd_mm
 from . import sms
 import app.main.donors
-
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -78,15 +78,15 @@ def send_receipts(self, entries, **rest):
         {'amount':float, 'date':str,'from':{'row':int,'upload_status':str(db_ref),'worksheet':str}}
     '''
 
-    from app.main.receipts import generate
+    from app.main.receipts import generate, get_ytd_gifts
 
     try:
         # Get all eTapestry account data.
         # List is indexed the same as @entries arg list
-        accts = etap.call(
+        accts = call(
             'get_accounts',
             get_keys('etapestry'),
-            {"account_numbers": [i['account_number'] for i in entries]})
+            {"account_numbers": [i['acct_id'] for i in entries]})
     except Exception as e:
         log.error('Error retrieving accounts from etap: %s', str(e))
         raise
@@ -94,7 +94,7 @@ def send_receipts(self, entries, **rest):
     gift_accts = []
     g.track = {
         'zeros': 0,
-        'drop_followups': 0,
+        'drops': 0,
         'cancels': 0,
         'no_email': 0,
         'gifts': 0
@@ -110,10 +110,9 @@ def send_receipts(self, entries, **rest):
             gift_accts.append({
                 'entry': entries[i], 'account': accts[i]})
 
-    log.info(\
-        'Receipts sent, zeros=%s, drop_followups=%s, cancels=%s, no_emails=%s',
-        tracker['zeros'], tracker['drop_followups'], tracker['cancels'],
-        tracker['no_email'])
+    log.info('sent zero_collections=%s, dropoff_followups=%s, cancels=%s. '\
+        '%s accts without email', g.track['zeros'], g.track['drops'],
+        g.track['cancels'], g.track['no_email'])
 
     # All receipts sent except Gifts. Query Journal Histories
 
@@ -122,15 +121,20 @@ def send_receipts(self, entries, **rest):
 
     year = parse(gift_accts[0]['entry']['date']).year
     acct_refs = [i['account']['ref'] for i in gift_accts]
-    gift_histories = get_gifts_ytd(acct_refs, year)
+    gift_histories = get_ytd_gifts(acct_refs, year)
 
     for i in range(0, len(gift_accts)):
-        r = generate(
-            gift_accts[i]['account'],
-            entries[i],
-            gift_history=gift_histories[i])
+        try:
+            r = generate(
+                gift_accts[i]['account'],
+                entries[i],
+                gift_history=gift_histories[i])
+        except Exception as e:
+            log.error('generate receipt error. desc=%s', str(e))
+            log.debug('',exc_info=True)
+            continue
 
-    log.info('Gift receipts sent=%s', len(gift_accts))
+    log.info('gift receipts sent=%s', len(gift_accts))
 
     return 'success'
 

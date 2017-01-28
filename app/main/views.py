@@ -3,7 +3,7 @@ import logging, json, time
 from flask import g, request, render_template, redirect, url_for, jsonify, Response
 from flask_login import login_required
 from .. import get_keys, html
-from . import main, receipts, signups
+from . import donors, main, receipts, signups
 from .tasks import create_rfu, send_receipts, add_gsheets_signup
 from app.notify import admin
 from app.booker import book

@@ -3,7 +3,7 @@ import logging
 from datetime import date, timedelta
 from dateutil.parser import parse
 from flask import g, request
-from app import mailgun, get_keys, etap
+from app import html, mailgun, get_keys, etap
 from app.etap import EtapError, mod_acct, get_udf
 from app.dt import ddmmyyyy_to_date as to_date
 log = logging.getLogger(__name__)
@@ -67,15 +67,15 @@ def unsubscribe(agcy):
     if not request.args.get('email'):
         raise Exception('no email included in unsub')
 
+    log.debug('unsub email=%s, agcy=%s', request.args['email'], agcy)
+
     conf = get_keys('mailgun',agcy=agcy)
     body = '%s has requested email unsubscription. Please contact to see if '\
             'they want to cancel the service.' % request.args['email']
     subject = 'Unsubscribe Request'
 
     try:
-        mid = mailgun.send(
-            conf['from'], conf['from'],
-            subject, html, conf)
+        mid = mailgun.send(conf['from'], subject, body, conf)
     except Exception as e:
         log.error(str(e))
         log.debug('', exc_info=True)

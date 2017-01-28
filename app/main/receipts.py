@@ -1,5 +1,5 @@
 '''app.main.receipts'''
-import json, logging, os, requests
+import json, logging, requests
 from datetime import date
 from dateutil.parser import parse
 from flask import g, current_app, render_template, request
@@ -7,8 +7,69 @@ from .. import get_keys, html, mailgun, etap
 from app.main.tasks import create_rfu
 from app.gsheets import update_cell, to_range, gauth, get_row
 from app.etap import get_udf
-from app.dt import ddmmyyyy_to_date as to_date
+from app.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
 log = logging.getLogger(__name__)
+
+#-------------------------------------------------------------------------------
+def generate(acct, entry, gift_history=None):
+    '''Refer to flask globals set in parent task: g.service, g.ss_id,
+    g.headers, g.track
+    '''
+
+    entry_date = parse(entry['date']).date()
+    acct_status = get_udf('Status', acct)
+    drop_date = to_date(get_udf('Dropoff Date', acct))
+    nf = acct['nameFormat']
+
+    if acct_status == 'Cancelled':
+        path = "receipts/%s/cancelled.html" % g.user.agency
+        subject = "Your Account has been Cancelled"
+    elif drop_date == entry_date:
+        path = "receipts/%s/dropoff_followup.html" % g.user.agency
+        subject = "Dropoff Complete"
+        g.track['drops'] +=1
+    elif entry['amount'] == 0 and nf == 3:
+        path = "receipts/%s/zero_collection.html" % g.user.agency
+        subject = "See you next time"
+        g.track['num_zeros'] +=1
+    elif entry['amount'] == 0 and nf < 3:
+        path = "receipts/%s/no_collection.html" % g.user.agency
+        subject = "See you next time"
+        g.track['num_zeros'] +=1
+    elif entry['amount'] > 0:
+        if gift_history:
+            path = "receipts/%s/collection_receipt.html" % g.user.agency
+            subject = "Thanks for your Donation"
+        else:
+            return 'wait'
+
+    if acct['email']:
+        try:
+            mid = deliver(acct['email'], path, subject, data={
+                'account':acct,'entry':entry,'history':gift_history})
+        except Exception as e:
+            log.error('receipt error. Row %s: %s',str(entry['from_row']), str(e))
+
+        status = 'queued'
+    else:
+        g.track['no_email'] +=1
+        status = 'no email'
+
+    row = entry['from_row']
+    ss_id = get_keys('google',agcy=g.user.agency)['ss_id']
+
+    try:
+        service = gauth(get_keys('google',agcy=g.user.agency)['oauth'])
+        headers = get_row(service, ss_id, 'Routes', 1)
+        col = headers.index('Email Status')+1
+        range_ = to_range(row, col)
+        update_cell(service, ss_id, range_, status)
+    except Exception as e:
+        log.error('update_cell error')
+
+    log.debug('receipt sent. mid=%s', mid)
+
+    return mid
 
 #-------------------------------------------------------------------------------
 def on_delivered(agcy):
@@ -75,9 +136,7 @@ def render_body(path, data):
             to = data['account']['email'],
             account = data['account'],
             entry = data['entry'],
-            history = data.get('history'), # optional
-            http_host= os.environ.get('BRAVO_HTTP_HOST')
-        )
+            history = data.get('history'))
     except Exception as e:
         log.error('render receipt template: %s', str(e))
         return False
@@ -96,6 +155,7 @@ def deliver(to, template, subject, data):
     body = render_body(template, data=data)
 
     if body == False:
+        log.error('no body returned from render_body')
         return False
 
     # Add Journal note
@@ -105,79 +165,17 @@ def deliver(to, template, subject, data):
         data={
             'id': data['account']['id'],
             'Note': 'Receipt:\n' + html.clean_whitespace(body),
-            'Date': etap.dt_to_ddmmyyyy(parse(data['entry']['date']))
+            'Date': dt_to_ddmmyyyy(parse(data['entry']['date']))
         },
-        silence_exceptions=False
-    )
+        silence_exceptions=False)
 
-    mid = mailgun.send(to, subject, body, get_keys('mailgun'), v={'type':'receipt'})
+    mid = mailgun.send(to, subject, body, get_keys('mailgun'),
+        v={'agcy':data['entry']['agcy'], 'type':'receipt'})
 
-    g.db.emails.insert_one({
-        'agency': g.user.agency,
-        'mid': mid,
-        'type': 'receipt',
-        'on_status': {
-            'update': data['entry']['from']}})
+    return mid
 
 #-------------------------------------------------------------------------------
-def generate(acct, entry, gift_history=None):
-    '''Refer to flask globals set in parent task: g.service, g.ss_id,
-    g.headers, g.track
-    '''
-
-    entry_date = parse(entry['date']).date()
-    acct_status = get_udf('Status', acct)
-    drop_date = to_date(get_udf('Dropoff Date', acct))
-    nf = account['nameFormat']
-
-    if acct_status == 'Cancelled':
-        path = "receipts/%s/cancelled.html" % g.user.agency
-        subject = "Your Account has been Cancelled"
-    elif drop_date == entry_date:
-        path = "receipts/%s/dropoff_followup.html" % g.user.agency
-        subject = "Dropoff Complete"
-        g.track['drop_followups'] +=1
-    elif entry['amount'] == 0 and nf == 3:
-        path = "receipts/%s/zero_collection.html" % g.user.agency
-        subject = "See you next time"
-        g.track['num_zeros'] +=1
-    elif entry['amount'] == 0 and nf < 3:
-        path = "receipts/%s/no_collection.html" % g.user.agency
-        subject = "See you next time"
-        g.track['num_zeros'] +=1
-    elif entry['amount'] > 0:
-        if gift_history:
-            path = "receipts/%s/collection_receipt.html" % g.user.agency
-            subject = "Thanks for your Donation"
-        else:
-            return 'wait'
-
-    if acct['email']:
-        try:
-            deliver(acct['email'], path, subject, data={
-                'account':acct,'entry':entry,'history':gift_history})
-        except Exception as e:
-            log.error('Receipt error. Row %s: %s',str(entry['from']['row']), str(e))
-
-        status = 'queued'
-    else:
-        g.track['no_email'] +=1
-        status = 'no email'
-
-    row = entry['from']['row']
-    ss_id = get_keys('google',agcy=g.user.agency)['ss_id']
-
-    try:
-        service = gauth(get_keys('google',agcy=g.user.agency)['oauth'])
-        headers = get_row(service, ss_id, 'Routes', 1)
-        col = headers.index('Email Status')+1
-        range_ = to_range(row, col)
-        update_cell(service, ss_id, range_, status)
-    except Exception as e:
-        log.error('update_cell error')
-
-#-------------------------------------------------------------------------------
-def get_gifts_ytd(acct_refs, year):
+def get_ytd_gifts(acct_refs, year):
     '''Get non-zero gift entries for accts in given calendar year.
     Helper function for send_receipts task.
     @acct_refs: list of eTap acct DB refs
@@ -196,5 +194,4 @@ def get_gifts_ytd(acct_refs, year):
         log.error('Error retrieving gift histories: %s', str(e))
         raise
     else:
-        log.info('%s gift histories retrieved', str(len(je_list)))
         return je_list

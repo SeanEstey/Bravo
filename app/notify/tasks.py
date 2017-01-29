@@ -4,7 +4,7 @@ from datetime import datetime, date, time, timedelta
 from bson import ObjectId
 from flask import g, current_app, has_request_context
 from app.utils import bcolors
-from app.dt import tz_utc_to_local
+from app.dt import localize
 from app import etap, get_keys, cal, celery, smart_emit
 from app.etap import EtapError
 from . import email, sms, voice, pickups, triggers
@@ -35,16 +35,26 @@ def monitor_triggers(self, **kwargs):
     pending = g.db.triggers.find({
         'status':'pending',
         'fire_dt': {
-            '$gt':datetime.utcnow()}})
+            '$gt':datetime.utcnow()}}).sort('fire_dt', 1)
 
     output = []
+    '''
     for trigger in pending:
         delta = trigger['fire_dt'] - datetime.utcnow().replace(tzinfo=pytz.utc)
         output.append('%s trigger pending in %s'%(trigger['type'], str(delta)[:-7]))
+    '''
 
-    print '%s%s%s' %(bcolors.ENDC,output,bcolors.ENDC)
+    if pending.count() > 0:
+        tgr = pending.next()
+        delta = tgr['fire_dt'] - datetime.utcnow().replace(tzinfo=pytz.utc)
+        to_str = str(delta)[:-7]
+        return 'next trigger pending in %s' % to_str
+        #%s pending, %s rdy' % (pending.count(), ready.count())
+    else:
+        return '0 pending'
 
-    return 'success'
+    #print '%s%s%s' %(bcolors.ENDC,output,bcolors.ENDC)
+    #return '%s pending, %s rdy' % (pending.count(), ready.count())
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -153,9 +163,10 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
             agcy, blocks, for_date.strftime('%b %-d'))
 
         n=0
+        evnt_ids = []
         for block in blocks:
             try:
-                pickups.create_reminder(agcy, block, for_date)
+                evnt_id = pickups.create_reminder(agcy, block, for_date)
             except EtapError as e:
                 log.error('Error creating reminder, agcy=%s, block=%s, msg="%s"',
                     agcy, block, str(e))
@@ -163,10 +174,11 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 continue
             else:
                 n+=1
+                evnt_ids.append(evnt_id)
 
         log.info('[%s] scheduled %s/%s reminder events', agcy, n, len(blocks))
 
-    return 'success'
+    return evnt_ids
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -210,8 +222,9 @@ def skip_pickup(self, evnt_id, acct_id, **kwargs):
             data={
                 'account': acct['udf']['etap_id'],
                 'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
-                'next_pickup': tz_utc_to_local(
-                    acct['udf']['future_pickup_dt']).strftime('%d/%m/%Y')})
+                'next_pickup': localize(
+                    acct['udf']['future_pickup_dt'],
+                    to_str='%d/%m/%Y')})
     except EtapError as e:
         log.error("etap error, desc='%s'", str(e))
 

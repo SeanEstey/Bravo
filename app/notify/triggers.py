@@ -5,16 +5,16 @@ import os
 from flask import g, request
 from bson.objectid import ObjectId
 from datetime import datetime,date,time
-from .. import smart_emit, get_keys, utils
-from app.utils import bcolors
+from .. import smart_emit, get_keys
+from app.dt import to_localized_dt, localize
 from . import voice, email, sms
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def add(evnt_id, _type, _date, _time):
+def add(evnt_id, _type, date_, time_):
     '''Inserts new trigger to DB, updates event with it's id.
-    @_date: naive, non-localized datetime.date
-    @_time: naive, non-localized datetime.time
+    @date_: naive, non-localized datetime.date
+    @time_: naive, non-localized datetime.time
     @_type: 'voice_sms' or 'email'
     Returns:
         -id (ObjectId)
@@ -24,7 +24,7 @@ def add(evnt_id, _type, _date, _time):
         'evnt_id': evnt_id,
         'status': 'pending',
         'type': _type,
-        'fire_dt': utils.naive_to_local(datetime.combine(_date, _time))
+        'fire_dt': to_localized_dt(date_=date_, time_=time_)
     }).inserted_id
 
     g.db.notific_events.update_one(
@@ -38,15 +38,13 @@ def get(trig_id, local_time=False):
     trig = g.db.triggers.find_one({'_id':trig_id})
 
     if local_time == True:
-        return utils.localize(trig)
+        return localize(trig)
 
     return trig
 
 #-------------------------------------------------------------------------------
 def get_count(trig_id):
     return g.db.notifics.find({'trig_id':trig_id}).count()
-
-
 
 #-------------------------------------------------------------------------------
 def kill_task():

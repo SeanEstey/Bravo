@@ -6,7 +6,7 @@ from app.etap import call, EtapError
 from app.main.tasks import create_rfu
 from .dialog import *
 from app.utils import print_vars
-from app.dt import tz_utc_to_local
+from app.dt import localize #tz_utc_to_local
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -46,9 +46,9 @@ def get_chatlogs(start_dt=None):
 
     chats = list(chats)
     for chat in chats:
-        chat['Date'] =  tz_utc_to_local(
-            chat.pop('last_msg_dt')
-        ).strftime('%b %-d @ %-I:%M%p')
+        chat['Date'] = localize(
+            chat.pop('last_msg_dt'),
+            to_str='%b %-d @ %-I:%M%p')
         chat['From'] = chat.pop('from')
         chat['Messages'] = chat.pop('messages')
 

@@ -5,14 +5,14 @@ from flask import g, request
 from datetime import time, timedelta
 from dateutil.parser import parse
 from bson.objectid import ObjectId
-from .. import get_keys, utils, parser, gcal
+from .. import get_keys, parser, gcal
 from app.etap import EtapError, get_query, get_udf, get_phone, get_prim_phone
-from app.dt import ddmmyyyy_to_local_dt as to_dt
+from app.dt import ddmmyyyy_to_local_dt as to_dt, localize
 from . import events, email, sms, voice, triggers, accounts
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def create_reminder(agcy, block, _date):
+def create_reminder(agcy, block, date_):
     '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
     Returns: evnt_id (ObjectID) on succcess, False otherwise
     '''
@@ -27,19 +27,19 @@ def create_reminder(agcy, block, _date):
 
     # Create event + triggers
 
-    evnt_id = events.add(agcy, block, _date, 'bpu')
+    evnt_id = events.add(agcy, block, date_, 'bpu')
     conf = get_keys('scheduler',agcy=agcy)['notify']['triggers']
     email_trig_id = triggers.add(
         evnt_id,
         'email',
-        _date + timedelta(days=conf['email']['fire_days_delta']),
+        date_ + timedelta(days=conf['email']['fire_days_delta']),
         time(conf['email']['fire_hour'], conf['email']['fire_min']))
 
     if parser.is_res(block):
         phone_trig_id = triggers.add(
             evnt_id,
             'voice_sms',
-            _date + timedelta(days=conf['voice_sms']['fire_days_delta']),
+            date_ + timedelta(days=conf['voice_sms']['fire_days_delta']),
             time(
                 conf['voice_sms']['fire_hour'],
                 conf['voice_sms']['fire_min']))
@@ -78,7 +78,7 @@ def create_reminder(agcy, block, _date):
 
                 sms.add(
                     evnt_id,
-                    _date,
+                    date_,
                     phone_trig_id,
                     acct_id, get_phone('Mobile', acct),
                     on_send,
@@ -95,7 +95,7 @@ def create_reminder(agcy, block, _date):
 
                 voice.add(
                     evnt_id,
-                    _date,
+                    date_,
                     phone_trig_id,
                     acct_id, get_phone('Voice', acct),
                     on_answer, on_interact)
@@ -111,7 +111,7 @@ def create_reminder(agcy, block, _date):
 
             email.add(
                 evnt_id,
-                _date,
+                date_,
                 email_trig_id,
                 acct_id, acct.get('email'),
                 on_send)
@@ -161,7 +161,7 @@ def find_all_scheduled_dates(evnt_id):
 
         if block not in block_dates:
             dt = parse(cal_event['start']['date'] + " T08:00:00")
-            block_dates[block] = utils.naive_to_local(dt)
+            block_dates[block] = localize(dt)
 
     notific_list = g.db['notifics'].find({'evnt_id':evnt_id})
 
@@ -270,7 +270,7 @@ def on_call_interact(notific):
             (str(notific['evnt_id']), str(notific['acct_id'])))
 
         acct = g.db['accounts'].find_one({'_id':notific['acct_id']})
-        dt = utils.tz_utc_to_local(acct['udf']['future_pickup_dt'])
+        dt = localize(acct['udf']['future_pickup_dt'])
 
         response.say(
             voice.get_speak(

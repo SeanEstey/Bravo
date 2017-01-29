@@ -8,7 +8,7 @@ from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 from app import smart_emit, celery, get_keys, gcal, gdrive, gsheets, etap, parser
 from app.utils import formatter
-from app.dt import local_today_dt, d_to_local_dt, ddmmyyyy_to_date
+from app.dt import local_today_dt, localize, ddmmyyyy_to_date
 from app.etap import EtapError, get_query, get_udf
 from .main import submit_job, get_solution_orders
 from . import depots, sheet
@@ -33,18 +33,19 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
     cal_ids = get_keys('cal_ids')
 
     for _id in cal_ids:
+        start_today = localize(date_=date.today())
         events += gcal.get_events(
             service,
             cal_ids[_id],
-            local_today_dt(),
-            local_today_dt() + timedelta(days=within_days))
+            start_today,
+            start_today + timedelta(days=within_days))
 
     events = sorted(events, key=lambda k: k['start'].get('date'))
 
     for event in events:
         block = parser.get_block(event['summary'])
         event_d = parse(event['start']['date']) # yyyy-mm-dd
-        event_dt = d_to_local_dt(event_d)
+        event_dt = localize(date_=event_d)
 
         if not block:
             continue
@@ -112,9 +113,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
 
     smart_emit('discover_routes', {'status':'completed'}, room=g.user.agency)
 
-    log.debug('discovered %s routes', n_found)
-
-    return 'success'
+    return 'discovered %s routes' % n_found
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

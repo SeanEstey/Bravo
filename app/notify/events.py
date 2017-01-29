@@ -5,7 +5,7 @@ from dateutil.parser import parse
 from bson.objectid import ObjectId
 from flask import g
 from .. import get_keys, utils
-from app.dt import localize, naive_to_local
+from app.dt import localize #naive_to_local
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -19,7 +19,7 @@ def add(agency, name, event_date, _type):
     return g.db['notific_events'].insert_one({
         'name': name,
         'agency': agency,
-        'event_dt': naive_to_local(datetime.combine(event_date, time(8,0))),
+        'event_dt': localize(date_= event_date, time_= time(8,0)),
         'type': _type,
         'status': 'pending',
         'opt_outs': 0,

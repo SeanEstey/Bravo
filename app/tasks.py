@@ -4,12 +4,13 @@ from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure
 from app import create_app, init_celery
 from app import celery as _celery
-from utils import inspector
+from utils import inspector, start_timer, end_timer
 
 log = logging.getLogger(__name__)
 app = create_app(__name__, kv_sess=False)
 celery = init_celery(_celery, app)
 
+timer = None
 #print 'celery (initialized)=%s' % inspector(celery, public=True, private=True)
 
 #-------------------------------------------------------------------------------
@@ -20,6 +21,8 @@ def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwar
     @args, @kwargs: the tasks positional and keyword arguments
     '''
 
+    global timer
+    timer = start_timer()
     #log.debug('prerun=%s, request=%s', sender.name.split('.')[-1], '...')
     pass
 
@@ -37,13 +40,16 @@ state=None, *args, **kwargs):
     @state: Name of the resulting state.
     '''
 
+    global timer
+    duration = end_timer(timer, display=False, lbl='task')
     name = sender.name.split('.')[-1]
 
     if state != 'SUCCESS':
         log.error('task=%s error. state=%s, retval=%s', name, state, retval)
-        log.debug('task=%s failure.', name, exc_info=True)
+        log.debug('task=%s failure (%s)', name, duration, exc_info=True)
     else:
-        log.debug('postrun=%s, state=%s, retval="%s"', name, state, retval)
+        log.debug('%s: state=%s, retval="%s" (%s)', name, state,
+        retval, duration)
 
 #-------------------------------------------------------------------------------
 @task_failure.connect

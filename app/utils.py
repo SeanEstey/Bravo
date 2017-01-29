@@ -168,7 +168,9 @@ def end_timer(start_dt, display=False, lbl=None):
     b = datetime.now()
     c = b - start_dt
 
-    if display:
-        log.debug('%s (%s.%ss)', lbl, c.seconds, c.microseconds/1000)
+    seconds = '%s.%ss' % (c.seconds, str(c.microseconds/1000))
 
-    return c
+    if display:
+        log.debug('%s (%s)', lbl, seconds)
+
+    return seconds

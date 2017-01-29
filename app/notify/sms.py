@@ -3,6 +3,7 @@ import logging, json, os
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
 from .. import smart_emit, get_keys, utils, html
+from app.dt import localize #to_local_dt
 from app.alice.outgoing import compose
 log = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
-        'event_dt': utils.naive_to_local(datetime.combine(event_date, time(8,0))),
+        'event_dt': localize(date_=event_date, time_=time(8,0)),
         'on_send': on_send,
         'on_reply': on_reply,
         'to': utils.to_intl_format(to),
@@ -105,9 +106,7 @@ def on_status():
         'tracking.sid': request.form['SmsSid']}, {
         '$set':{
             'tracking.status': request.form['SmsStatus'],
-            'tracking.sent_dt':
-            utils.naive_to_local(datetime.combine(date.today(), time()))}
-        })
+            'tracking.sent_dt': to_local_dt(datetime_=datetime.now())}})
 
     # Could be a new sid from a reply to reminder text?
     if not notific:

@@ -121,7 +121,7 @@ def formatter(doc, to_local_time=False, to_strftime=None, bson_to_json=False):
     '''
 
     if to_local_time == True:
-        doc = localize(doc, to_strftime=to_strftime)
+        doc = localize(doc, to_str=to_strftime)
 
     if bson_to_json == True:
         doc = json.loads(json_util.dumps(doc))

@@ -1,12 +1,21 @@
 '''app.dt'''
-import pytz
+import logging, pytz
 from datetime import datetime, date, time, timedelta
-local_tz = pytz.timezone("Canada/Mountain")
+#local_tz = pytz.timezone("Canada/Mountain")
+local_tz = pytz.timezone('MST')
+log = logging.getLogger(__name__)
 
-def localize(obj, date_=None, time_=None, to_str=None):
+#-------------------------------------------------------------------------------
+def localize(obj, date_=None, time_=None, to_str=None, to_tz=None):
     '''Convert all datetimes to local timezone time
     @obj: any data structure (dict, list, etc)
     '''
+
+    #log.debug('localize obj=%s, date_=%s, time=%s, to_tz=%s', obj, date_, time_, to_tz)
+
+    tz = to_tz
+    if not to_tz:
+        tz = local_tz
 
     if date_ and time_:
         return localize(datetime.combine(date_, time_))
@@ -21,15 +30,16 @@ def localize(obj, date_=None, time_=None, to_str=None):
             obj[idx] = localize(item, to_str=to_str)
     elif isinstance(obj, datetime):
         if obj.tzinfo is None:
-            obj = obj.replace(tzinfo=pytz.utc)
-
-        obj = obj.astimezone(local_tz)
+            obj = obj.replace(tzinfo=tz)
+        else:
+            obj = obj.astimezone(tz)
 
         if to_str:
             obj = obj.strftime(to_str)
 
     return obj
 
+#-------------------------------------------------------------------------------
 def to_localized_dt(datetime_=None, date_=None, time_=None):
     '''
     '''

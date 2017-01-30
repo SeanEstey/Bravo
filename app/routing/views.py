@@ -10,12 +10,12 @@ from .tasks import discover_routes
 @routing.route('', methods=['GET'])
 @login_required
 def show_routing():
-    discover_routes.delay(days=5)
+    discover_routes.delay(agcy=g.user.agency)
 
     return render_template(
-      'views/routing.html',
-      routes = get_metadata(),
-      depots = get_keys('routing')['locations']['depots'],
-      drivers = get_keys('routing')['drivers'],
-      admin=g.user.admin,
-      agency=g.user.agency)
+        'views/routing.html',
+        routes = get_metadata(),
+        depots = get_keys('routing')['locations']['depots'],
+        drivers = get_keys('routing')['drivers'],
+        admin=g.user.admin,
+        agency=g.user.agency)

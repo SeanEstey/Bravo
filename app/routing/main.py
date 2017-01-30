@@ -1,306 +1,40 @@
 '''app.routing.main'''
-import time, json, logging
-from time import sleep
-import requests
+import json, logging, re, pytz
 from dateutil.parser import parse
 from datetime import datetime, time, date
 from flask import g, request
 from bson import ObjectId
-from .. import smart_emit, get_keys, gsheets, etap, cal, utils
+from app import smart_emit, get_keys, gsheets, cal, utils
+from app.etap import EtapError, get_udf, get_query
 from app.utils import print_vars, formatter
-from . import geo, routific, sheet
+from app.dt import ddmmyyyy_to_date
+from . import depots
 log = logging.getLogger(__name__)
 
 class GeocodeError(Exception):
     pass
-class EtapBadDataError(Exception):
-    pass
 
 #-------------------------------------------------------------------------------
-def submit_job(route_id):
-    '''Submit orders to Routific via asynchronous long-running process endpoint
-    API reference: https://docs.routific.com/docs/api-reference
-    @date: string format 'Sat Sep 10 2016'
-    Returns:
-      -String job_id on success
-      -False on error'''
+def is_scheduled(acct, date_):
 
-    MIN_PER_STOP = 3
-    SHIFT_END = '19:00'
-
-    route = g.db.routes.find_one({"_id":ObjectId(route_id)})
-    agcy = route['agency']
-    #conf = .g.db.agencies.find_one({'name':route['agency']})
-
-    accounts = etap.call(
-        'get_query_accounts',
-        get_keys('etapestry',agcy=agcy), {
-            "query": route['block'],
-            "query_category": get_keys('etapestry',agcy=agcy)['query_category']
-        }
-    )['data']
-
-    num_skips = 0
-    warnings = []
-    errors = []
-    orders = []
-
-    # Build the orders for Routific
-    for account in accounts:
-        if is_scheduled(account, route['date'].date()) == False:
-            num_skips += 1
-            continue
-
-        try:
-            _order = order(
-                account,
-                warnings,
-                get_keys('google',agcy=agcy)['geocode']['api_key'],
-                route['driver']['shift_start'],
-                '19:00',
-                etap.get_udf('Service Time', account) or MIN_PER_STOP
-            )
-        except EtapBadDataError as e:
-            errors.append(str(e))
-            continue
-        except GeocodeError as e:
-            log.error('GeocodeError exception')
-            errors.append(str(e))
-            continue
-        except requests.RequestException as e:
-            errors.append(str(e))
-            continue
-
-        if order == False:
-            num_skips += 1
-        else:
-            orders.append(_order)
-
-    log.debug('Omitting %s no pickups', str(num_skips))
-
-    office = get_keys('routing',agcy=agcy)['locations']['office']
-    office_coords = geo.geocode(
-        office['formatted_address'],
-        get_keys('google',agcy=agcy)['geocode']['api_key'])[0]
-    depot = route['depot']
-    depot_coords = geo.geocode(
-        depot['formatted_address'],
-        get_keys('google',agcy=agcy)['geocode']['api_key'])[0]
-
-    job_id = routific.submit_vrp_task(
-        orders,
-        route['driver']['name'],
-        office_coords,
-        depot_coords,
-        route['driver']['shift_start'],
-        SHIFT_END,
-        get_keys('routing',agcy=agcy)['routific']['api_key'])
-
-    log.info(
-        '\nSubmitted routific task\n'\
-        'Job_id: %s\nOrders: %s\n'\
-        'Min/stop: %s',
-        job_id, len(orders), MIN_PER_STOP)
-
-    g.db.routes.update_one(
-        {'agency': agcy,
-         'block': route['block'],
-         'date': utils.naive_to_local(
-            datetime.combine(route['date'].date(), time(0,0,0)))},
-        {'$set': {
-            'job_id': job_id,
-            'status': 'processing',
-            'block_size': len(accounts),
-            'orders': len(orders),
-            'no_pickups': num_skips,
-            'start_address': office['formatted_address'],
-            'end_address': depot['formatted_address'],
-            'warnings': warnings,
-            'errors': errors}})
-
-    return job_id
-
-#-------------------------------------------------------------------------------
-def order(account, warnings, api_key, shift_start, shift_end, min_per_stop):
-    '''Returns:
-      -Dict order on success
-    Exceptions:
-      -requests.RequestException on geocode service error
-      -EtapBadDataError on missing or invalid account data
-      -GeocodeError on unable to resolve address'''
-
-    if not account.get('address') or not account.get('city'):
-        msg = \
-          "Routing error: account <strong>%s</strong> missing address/city." % account['id']
-
-        log.error(msg)
-        raise EtapBadDataError(msg)
-    else:
-        formatted_address = account['address'] + ', ' + account['city'] + ', AB'
-
-    try:
-        geo_result = geo.geocode(
-            formatted_address,
-            api_key,
-            postal=account['postalCode']
-        )
-    except requests.RequestException as e:
-        log.error(str(e))
-        raise
-
-    if len(geo_result) == 0:
-        msg = \
-            "Unable to resolve address <strong>%s, %s</strong>." %(
-            account['address'],account['city'])
-
-        log.error(msg)
-        raise GeocodeError(msg)
-
-    geo_result = geo_result[0]
-
-    if 'warning' in geo_result:
-        warnings.append(geo_result['warning'])
-
-    return routific.order(
-        account,
-        formatted_address,
-        geo_result,
-        shift_start,
-        shift_end,
-        min_per_stop
-    )
-
-#-------------------------------------------------------------------------------
-def get_solution_orders(job_id, api_key):
-    '''Check Routific for status of asynchronous long-running task
-    Job statuses: ['pending', 'processing', 'finished']
-    Solution statuses: ['success', ??]
-    @job_id: routific id (str)
-    @api_key: google geocode api key
-    Returns:
-      -List of orders from task['output']['solution']['driver'] on
-      task['status'] == 'finished'
-      -String task['status'] on incomplete
-    Exceptions:
-      -Raises requests.RequestException on Routific endpoint error'''
-
-    try:
-        r = requests.get('https://api.routific.com/jobs/' + job_id)
-    except requests.RequestException as e:
-        log.error('Error calling api.routific.com/jobs: %s', str(e))
-        raise
-
-    task = json.loads(r.text)
-
-    if task['status'] != 'finished':
-        return task['status']
-
-    #log.debug(utils.print_vars(task, depth=5))
-
-    route_info = g.db.routes.find_one({'job_id':job_id})
-    agcy = route_info['agency']
-
-    output = task['output']
-    orders = task['output']['solution'].get(route_info['driver']['name']) or\
-        task['output']['solution']['default']
-
-    log.info(
-        '\nJob_id %s: %s\n'\
-        'Sorted orders: %s\nUnserved orders: %s\nTravel time: %s',
-        job_id, output['status'], len(orders), output['num_unserved'],
-        output['total_travel_time'])
-
-    route_length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
-
-    g.db.routes.update_one({'job_id':job_id},
-      {'$set': {
-          'status':'finished',
-          'orders': task['visits'],
-          'total_travel_time': output['total_travel_time'],
-          'num_unserved': output['num_unserved'],
-          'routific': {
-              'input': task['input']['visits'],
-              'solution': task['output']['solution']
-           },
-          'duration': route_length.seconds/60
-          }})
-
-    if not route_info:
-        log.error("No mongo record for job_id '%s'", job_id)
-        return False
-
-    # Routific doesn't include custom fields in the solution object.
-    # Copy them over manually.
-    # Also create Google Maps url
-
-    for order in orders:
-        if order['location_id'] == 'office':
-            continue
-        elif order['location_id'] == 'depot':
-            # TODO: Add proper depot name, phone number, hours, and unload duration
-
-            location = geo.geocode(
-                route_info['end_address'], api_key
-            )[0]['geometry']['location']
-
-            order['customNotes'] = {
-                'id': 'depot',
-                'name': 'Depot'
-            }
-            order['gmaps_url'] = geo.get_gmaps_url(
-                order['location_name'],
-                location['lat'],
-                location['lng']
-            )
-        # Regular order
-        else:
-            _input = task['input']['visits'][order['location_id']]
-            order['customNotes'] = _input['customNotes']
-
-            order['gmaps_url'] = geo.get_gmaps_url(
-                _input['location']['name'],
-                _input['location']['lat'],
-                _input['location']['lng']
-            )
-
-    office = get_keys('routing',agcy=agcy)['locations']['office']
-
-    # Add office stop
-    # TODO: Add travel time from depot to office
-    orders.append({
-        "location_id":"office",
-        "location_name": office['formatted_address'],
-        "arrival_time":"",
-        "finish_time":"",
-        "gmaps_url": office['url'],
-        "customNotes": {
-            "id": "office",
-            "name": office['name']
-        }
-    })
-
-    return orders
-
-#-------------------------------------------------------------------------------
-def is_scheduled(account, route_date):
-    # Ignore accounts with Next Pickup > today
-    next_pickup = etap.get_udf('Next Pickup Date', account)
+    # Ignore accts with Next Pickup > today
+    next_pickup = etap.get_udf('Next Pickup Date', acct)
 
     if next_pickup:
         np = next_pickup.split('/')
         next_pickup = parse('/'.join([np[1], np[0], np[2]])).date()
 
-    next_delivery = etap.get_udf('Next Delivery Date', account)
+    next_delivery = get_udf('Next Delivery Date', acct)
 
     if next_delivery:
         nd = next_delivery.split('/')
         next_delivery = parse('/'.join([nd[1], nd[0], nd[2]])).date()
 
-    if next_pickup and next_pickup > route_date and not next_delivery:
+    if next_pickup and next_pickup > date_ and not next_delivery:
         return False
-    elif next_delivery and next_delivery != route_date and not next_pickup:
+    elif next_delivery and next_delivery != date_ and not next_pickup:
         return False
-    elif next_pickup and next_delivery and next_pickup > route_date and next_delivery != route_date:
+    elif next_pickup and next_delivery and next_pickup > date_ and next_delivery != date_:
         return False
 
     return True
@@ -309,22 +43,71 @@ def is_scheduled(account, route_date):
 def get_metadata():
     '''Get metadata for routes today and onward
     '''
-    route_docs = g.db.routes.find({
+
+    docs = g.db.routes.find({
         'agency': g.user.agency,
         'date': {'$gte':datetime.combine(date.today(),time())}
     }).sort('date', 1)
 
-    route_docs = formatter(
-        list(route_docs),
+    docs = formatter(
+        list(docs),
         bson_to_json=True,
         to_local_time=True,
         to_strftime="%A %b %d")
 
-    for route in route_docs:
+    for route in docs:
         # for storing in route_btn.attr('data-route')
         route['json'] = json.dumps(route)
 
-    return route_docs
+    return docs
+
+#-------------------------------------------------------------------------------
+def add_metadata(agcy, block, event_dt, event):
+
+    try:
+        accts = get_query(block, get_keys('etapestry',agcy=agcy))
+    except EtapError as e:
+        log.error('Error retrieving query=%s', block)
+        raise
+
+    n_drops = n_booked = 0
+
+    for acct in accts:
+        npu = get_udf('Next Pickup Date', acct)
+
+        if npu == '':
+            continue
+
+        npu_d = ddmmyyyy_to_date(npu)
+
+        if npu_d == event_dt.date():
+            n_booked += 1
+
+        if get_udf('Status', acct) == 'Dropoff':
+            n_drops += 1
+
+    postal = re.sub(r'\s', '', event['location']).split(',')
+
+    if len(get_keys('routing', agcy=agcy)['locations']['depots']) > 1:
+        depot = depots.resolve(block, postal)
+    else:
+        depot = get_keys('routing', agcy=agcy)['locations']['depots'][0]
+
+    meta = {
+      'block': block,
+      'date': event_dt.astimezone(pytz.utc),
+      'agency': agcy,
+      'status': 'pending',
+      'postal': re.sub(r'\s', '', event['location']).split(','),
+      'depot': depot,
+      'driver': get_keys('routing', agcy=agcy)['drivers'][0], # default driver
+      'orders': n_booked,
+      'block_size': len(accts),
+      'dropoffs': n_drops}
+
+    g.db.routes.insert_one(meta)
+
+    return meta
 
 #-------------------------------------------------------------------------------
 def edit_field(route_id, field, value):

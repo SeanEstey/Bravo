@@ -159,6 +159,7 @@ function addSocketIOHandlers() {
 
         socket.on('joined', function(response) {
             console.log(response);
+						//socket.emit('analyze_routes');
         });
     });
 

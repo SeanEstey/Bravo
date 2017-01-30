@@ -1,16 +1,16 @@
 '''app.routing.tasks'''
-import logging, re
+import logging, re, pytz
 from time import sleep
 from bson import ObjectId
-import bson.json_util
 from flask import g
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
-from app import smart_emit, celery, get_keys, gcal, gdrive, gsheets, etap, parser
+from app import smart_emit, celery, get_keys, gcal, gdrive, gsheets, parser
 from app.utils import formatter
-from app.dt import local_today_dt, localize, ddmmyyyy_to_date
+from app.dt import localize, ddmmyyyy_to_date
 from app.etap import EtapError, get_query, get_udf
-from .main import submit_job, get_solution_orders
+from .main import add_metadata
+from .build import submit_job, get_solution_orders
 from . import depots, sheet
 log = logging.getLogger(__name__)
 
@@ -22,96 +22,59 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
     to client
     '''
 
-    log.debug('discovering routes...')
     #sleep(3)
-    #log.debug('discover_routes, days=%s, g.user=%s', within_days, g.user)
+    log.debug('discovering routes...')
     smart_emit('discover_routes', {'status':'in-progress'})
+
+    if not agcy:
+        agcy = g.user.agency
 
     n_found = 0
     events = []
     service = gcal.gauth(get_keys('google')['oauth'])
-    cal_ids = get_keys('cal_ids')
+    cal_ids = get_keys('cal_ids', agcy=agcy)
 
     for _id in cal_ids:
-        start_today = localize(date_=date.today())
+        start = localize(None, date_=date.today())
+
         events += gcal.get_events(
             service,
             cal_ids[_id],
-            start_today,
-            start_today + timedelta(days=within_days))
+            start,
+            start + timedelta(days=within_days))
 
     events = sorted(events, key=lambda k: k['start'].get('date'))
 
     for event in events:
         block = parser.get_block(event['summary'])
-        event_d = parse(event['start']['date']) # yyyy-mm-dd
-        event_dt = localize(date_=event_d)
+        event_dt = localize(
+            None,
+            date_=parse(event['start']['date']),
+            time_=time(8,0))
 
         if not block:
             continue
 
-        if g.db.routes.find_one({
-            'date':event_dt,
+        if not g.db.routes.find_one({
+            'date':event_dt.astimezone(pytz.utc),
             'block': block,
-            'agency':g.user.agency}
-        ):
-            continue
+            'agency':agcy}):
 
-        # Build route metadata
-
-        try:
-            accts = etap.get_query(block, get_keys('etapestry'))
-        except EtapError as e:
-            log.error('Error retrieving query=%s', block)
-            continue
-
-        n_drops = n_booked = 0
-
-        for acct in accts:
-            npu = get_udf('Next Pickup Date', acct)
-
-            if npu == '':
+            try:
+                meta = add_metadata(agcy, block, event_dt, event)
+            except Exception as e:
+                log.debug('', exc_info=True)
                 continue
 
-            npu_d = ddmmyyyy_to_date(npu)
+            log.debug('discovered %s on %s', block, event_dt.strftime('%b %-d'))
 
-            if npu_d == event_d:
-                n_booked += 1
+            smart_emit('add_route_metadata', {
+                'data': formatter(meta, to_strftime=True, bson_to_json=True)},
+                room=agcy)
 
-            if get_udf('Status', acct) == 'Dropoff':
-                n_drops += 1
+            n_found +=1
 
-        postal = re.sub(r'\s', '', event['location']).split(',')
-
-        if len(get_keys('routing')['locations']['depots']) > 1:
-            depot = depots.resolve(block, postal)
-        else:
-            depot = get_keys('routing')['locations']['depots'][0]
-
-        meta = {
-          'block': block,
-          'date': event_dt,
-          'agency': g.user.agency,
-          'status': 'pending',
-          'postal': re.sub(r'\s', '', event['location']).split(','),
-          'depot': depot,
-          'driver': get_keys('routing')['drivers'][0], # default driver
-          'orders': n_booked,
-          'block_size': len(accts),
-          'dropoffs': n_drops
-        }
-
-        g.db.routes.insert_one(meta)
-
-        log.debug('discovered %s on %s', block, event_dt.strftime('%b %-d'))
-
-        smart_emit('add_route_metadata', {
-            'data': formatter(meta, to_strftime=True, bson_to_json=True)},
-            room=g.user.agency)
-
-        n_found +=1
-
-    smart_emit('discover_routes', {'status':'completed'}, room=g.user.agency)
+    smart_emit('discover_routes', {'status':'completed'}, room=agcy)
 
     return 'discovered %s routes' % n_found
 
@@ -131,7 +94,7 @@ def build_scheduled_routes(self, agcy=None, **rest):
         n_success = n_fails = 0
         routes = g.db.routes.find({'agency':agcy, 'date':local_today_dt()})
 
-        discover_routes()
+        discover_routes(agcy=agcy)
 
         log.info('%s: Building %s routes for %s',
             agcy, routes.count(), date.today().strftime("%A %b %d"))

@@ -1,5 +1,4 @@
 '''app.routing.geo'''
-
 import json
 import logging
 import requests

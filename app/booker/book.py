@@ -3,7 +3,7 @@ import logging, os
 from flask import g, render_template, request
 from datetime import datetime, time
 from .. import etap, utils, gsheets, mailgun
-from app.routing.main import order
+from app.routing.build import create_order
 from app.routing.sheet import append_order
 from app.routing.geo import get_gmaps_url
 log = logging.getLogger(__name__)
@@ -28,14 +28,12 @@ def make(agency, data):
     event_dt = utils.naive_to_local(
         datetime.combine(
             etap.ddmmyyyy_to_dt(data['date']),
-            time(0,0,0))
-    )
+            time(0,0,0)))
 
     route = g.db.routes.find_one({
         'date': event_dt,
         'block': data['block'],
-        'agency': agency}
-    )
+        'agency': agency})
 
     if route and route.get('ss'):
         append_route(agency, route, data)
@@ -45,8 +43,7 @@ def make(agency, data):
 
     return {
         'status': 'success',
-        'description': response
-    }
+        'description': response}
 
 #-------------------------------------------------------------------------------
 def update_dms(agency, data):
@@ -64,21 +61,16 @@ def update_dms(agency, data):
                 'Driver Notes': '***' + data['driver_notes'] + '***',
                 'Office Notes': '***RMV ' + data['block'] + ' --' + data['user_fname'] + '***',
                 'Block': data['block'],
-                'Next Pickup Date': data['date']
-            }
-          }
-        )
+                'Next Pickup Date': data['date']}})
     except EtapError as e:
         return {
             'status': 'failed',
-            'description': 'etapestry error: %s' % str(e)
-        }
+            'description': 'etapestry error: %s' % str(e)}
     except Exception as e:
         log.error('failed to book: %s', str(e))
         return {
             'status': 'failed',
-            'description': str(e)
-        }
+            'description': str(e)}
 
     return True
 
@@ -95,33 +87,28 @@ def append_route(agency, route, data):
     acct = etap.call(
         'get_account',
         conf['etapestry'],
-        {'account_number': data['aid']}
-    )
+        {'account_number': data['aid']})
 
     service = gsheets.gauth(
-        g.db.agencies.find_one({'name':agency})['google']['oauth']
-    )
+        g.db.agencies.find_one({'name':agency})['google']['oauth'])
 
-    _order = order(
+    order = create_order(
         acct,
         [],
         conf['google']['geocode']['api_key'],
         route['driver']['shift_start'],
         '19:00',
-        etap.get_udf('Service Time', acct) or 3
-    )
+        etap.get_udf('Service Time', acct) or 3)
 
-    _order['gmaps_url'] = get_gmaps_url(
-        _order['location']['name'],
-        _order['location']['lat'],
-        _order['location']['lng']
-    )
+    order['gmaps_url'] = get_gmaps_url(
+        order['location']['name'],
+        order['location']['lat'],
+        order['location']['lng'])
 
     append_order(
         service,
         route['ss']['id'],
-        _order
-    )
+        order)
 
     return True
 
@@ -133,8 +120,7 @@ def send_confirm(agency, data):
             http_host = os.environ.get('BRAVO_HTTP_HOST'),
             to = data['email'],
             name = data['name'],
-            date_str = etap.ddmmyyyy_to_dt(data['date']).strftime('%B %-d %Y')
-        )
+            date_str = etap.ddmmyyyy_to_dt(data['date']).strftime('%B %-d %Y'))
     except Exception as e:
         log.error('Email not sent because render_template error. %s ', str(e))
         pass

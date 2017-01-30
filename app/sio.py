@@ -72,6 +72,16 @@ def sio_disconnect():
         print '<%s> disconnected' % (current_user.user_id)
 
 #-------------------------------------------------------------------------------
+@sio_server.on('analyze_routes')
+def do_analyze_routes():
+    log.debug('received analyze_routes req')
+    from app.routing.tasks import discover_routes
+    try:
+        discover_routes.delay(agcy=current_user.agency)
+    except Exception as e:
+        log.debug('', exc_info=True)
+
+#-------------------------------------------------------------------------------
 def dump():
     log.debug('sio_server: \n%s', print_vars(sio_server))
     log.debug('sio_server dir:\n%s', dir(sio_server))

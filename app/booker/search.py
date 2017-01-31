@@ -10,67 +10,59 @@ class EtapError(Exception):
     pass
 
 #-------------------------------------------------------------------------------
-def search(agency, query, radius=None, weeks=None):
+def search(query, radius=None, weeks=None):
     '''Search query invoked from Booker client
     @query: either Account Number, Postal Code, Address, or Block
-
-    Returns: JSON object: {'search_type': str, 'status': str, 'description': str, 'results': array }
+    Returns JSON object: {'search_type': str, 'status': str, 'description': str,
+    'results': array }
     '''
 
-    # TODO: test radius and weeks, convert radius to float, convert weeks to int
+    maps = g.db.maps.find_one({'agency':g.user.agency})['features']
 
-    conf = g.db.agencies.find_one({'name':agency})
-    maps = g.db.maps.find_one({'agency':conf['name']})['features']
-
-    SEARCH_WEEKS = weeks or 12
-    SEARCH_DAYS = SEARCH_WEEKS * 7
+    SEARCH_WEEKS = int(weeks or 12)
+    SEARCH_DAYS = int(SEARCH_WEEKS * 7)
     SEARCH_RADIUS = float(radius or 4.0)
 
     events = []
     start_date = datetime.today()# + timedelta(days=1)
     end_date = datetime.today() + timedelta(days=SEARCH_DAYS)
 
-    service = gcal.gauth(conf['google']['oauth'])
+    service = gcal.gauth(get_keys('google')['oauth'])
+    cal_ids = get_keys('cal_ids')
 
-    for cal_id in conf['cal_ids']:
+    for id_ in cal_ids:
         events +=  gcal.get_events(
             service,
-            conf['cal_ids'][cal_id],
+            cal_ids[id_],
             start_date,
-            end_date
-        )
+            end_date)
 
     events =sorted(
         events,
-        key=lambda k: k['start'].get('dateTime',k['start'].get('date'))
-    )
+        key=lambda k: k['start'].get('dateTime',k['start'].get('date')))
 
     if parser.is_account_id(query):
         try:
             acct = etap.call(
               'get_account',
-              conf['etapestry'],
-              data={'account_number': re.search(r'\d{1,6}',query).group(0)}
-            )
+              get_keys('etapestry'),
+              data={'account_number': re.search(r'\d{1,6}',query).group(0)})
         except Exception as e:
             log.error('no account id %s', query)
             return {
                 'status': 'failed',
-                'description': 'No account found matching ID <b>%s</b>.'% query
-            }
+                'description': 'No account found matching ID <b>%s</b>.'% query}
 
         if not acct.get('address') or not acct.get('city'):
             return {
                 'status': 'failed',
                 'description': \
                     'Account <b>%s</b> is missing address or city. '\
-                    'Check the account in etapestry.'% acct['name']
-            }
+                    'Check the account in etapestry.'% acct['name']}
 
         geo_results = geo.geocode(
             acct['address'] + ', ' + acct['city'] + ', AB',
-            conf['google']['geocode']['api_key']
-        )
+            get_keys('google')['geocode']['api_key'])
 
         # Individual account (Residential donor)
         if acct['nameFormat'] <= 2:
@@ -78,8 +70,7 @@ def search(agency, query, radius=None, weeks=None):
                 geo_results[0]['geometry']['location'],
                 SEARCH_RADIUS,
                 maps,
-                events
-            )
+                events)
             desc = \
                 'Found <b>%s</b> options for account <b>%s</b> within '\
                 '<b><a id="a_radius" href="#">%skm</a> radius</b> '\
@@ -133,7 +124,7 @@ def search(agency, query, radius=None, weeks=None):
     else:
         geo_results = geo.geocode(
             query,
-            conf['google']['geocode']['api_key']
+            get_keys('google')['geocode']['api_key']
         )
 
         if len(geo_results) == 0:

@@ -65,10 +65,8 @@ def fire_trigger(self, _id, **rest):
     errors = []
     status = ''
     fails = 0
-    trigger = g.db.triggers.find_one(
-        {'_id':ObjectId(_id)})
-    event = g.db.notific_events.find_one(
-        {'_id':trigger['evnt_id']})
+    trigger = g.db.triggers.find_one({'_id':ObjectId(_id)})
+    event = g.db.notific_events.find_one({'_id':trigger['evnt_id']})
     agcy = event['agency']
 
     log.info('%sfiring %s trigger for "%s" event%s',
@@ -120,12 +118,12 @@ def fire_trigger(self, _id, **rest):
     smart_emit('trigger_status', {
         'trig_id': str(_id),
         'status': 'fired',
-        'sent': count-fails-len(errors),
+        'sent': count - fails - len(errors),
         'fails': fails,
         'errors': len(errors)})
 
     log.info('queued: %s, failed: %s, errors: %s',
-        count-fails-len(errors), fails, len(errors))
+        count - fails - len(errors), fails, len(errors))
 
     return 'success'
 
@@ -197,8 +195,7 @@ def skip_pickup(self, evnt_id, acct_id, **kwargs):
     result = g.db.notifics.update_many({
           'acct_id': ObjectId(acct_id),
           'evnt_id': ObjectId(evnt_id),
-          'tracking.status': 'pending'
-        },
+          'tracking.status': 'pending'},
         {'$set':{'tracking.status':'cancelled'}})
 
     acct = g.db.accounts.find_one_and_update({

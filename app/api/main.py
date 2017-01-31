@@ -2,6 +2,7 @@
 import logging
 from json import dumps, loads
 from flask import Response, request, jsonify
+from flask_login import current_user
 import celery.result
 from app.utils import start_timer, end_timer
 log = logging.getLogger(__name__)
@@ -71,7 +72,11 @@ def build_resp(rv=None, exc=False, name=None, dt=None):
 
 #-------------------------------------------------------------------------------
 def get_var(k):
+    log.debug(request.form.to_dict())
+
     if request.method == 'GET':
-        return loads(request.args.get(k))
+        return request.args.get(k)
+        #return loads(request.args.get(k))
     elif request.method == 'POST':
-        return loads(request.form.get(k))
+        #return loads(request.form.get(k))
+        return request.form.get(k)

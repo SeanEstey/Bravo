@@ -4,13 +4,13 @@ from flask_login import login_required
 from .main import get_var, build_resp, func_call, task_call, WRITE_ME
 from app.booker.geo import get_maps
 from app.booker.search import search
+from app.booker.book import make
 from app.booker.tasks import update_maps
 from app.main import donors
 from app.main.signups import lookup_carrier
 from app.main.tasks import send_receipts
 from app.routing.main import edit_field
 from app.routing.tasks import build_route
-
 
 @api.route('/accounts/get', methods=['POST'])
 @login_required
@@ -45,12 +45,12 @@ def call_alice_welcome():
 @api.route('/booker/create', methods=['POST'])
 @login_required
 def call_booker_create():
-    return func_call(WRITE_ME)
+    return func_call(make, get_var('data'))
 
 @api.route('/booker/search', methods=['POST'])
 @login_required
 def call_booker_search():
-    return func_call(search, get_var('agency'), get_var('query'),
+    return func_call(search, get_var('query'),
         radius=get_var('radius'), weeks=get_var('weeks'))
 
 @api.route('/booker/maps/get', methods=['POST'])

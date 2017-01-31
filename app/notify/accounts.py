@@ -7,6 +7,7 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add(agency, evnt_id, name, phone=None, email=None, udf=None, nameFormat=None):
+
     return g.db.accounts.insert_one({
         'evnt_id': evnt_id,
         'agency': agency,
@@ -14,13 +15,13 @@ def add(agency, evnt_id, name, phone=None, email=None, udf=None, nameFormat=None
         'phone': phone,
         'email': email,
         'udf': udf,
-        'nameFormat': nameFormat
-    }).inserted_id
+        'nameFormat': nameFormat}).inserted_id
 
 #-------------------------------------------------------------------------------
 def edit(acct_id, fields):
     '''User editing a notification value from GUI
     '''
+
     for fieldname, value in fields:
         if fieldname == 'udf.pickup_dt':
           try:

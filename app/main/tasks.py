@@ -71,7 +71,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def send_receipts(self, entries, etap=None, **rest):
+def send_receipts(self, entries, **rest):
     '''Email receipts to recipients and update email status on Bravo Sheets.
     Sheets->Routes worksheet.
     @entries: array of gift entry dicts->

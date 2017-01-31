@@ -7,8 +7,6 @@ from app.main.tasks import create_rfu
 from app.dt import to_utc
 log = logging.getLogger(__name__)
 
-# TODO: include date in email subject
-
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
     '''
@@ -17,7 +15,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
         'subject': 'msg'}
     '''
 
-    return g.db['notifics'].insert_one({
+    return g.db.notifics.insert_one({
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
@@ -27,9 +25,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
         'type': 'email',
         'tracking': {
             'status': 'pending',
-            'mid': None
-        }
-    }).inserted_id
+            'mid': None}}).inserted_id
 
 #-------------------------------------------------------------------------------
 def send(notific, mailgun_conf, key='default'):
@@ -46,10 +42,8 @@ def send(notific, mailgun_conf, key='default'):
                 g.db['accounts'].find_one({'_id':notific['acct_id']}),
                 to_local_time=True,
                 to_strftime="%A, %B %d",
-                bson_to_json=True
-            ),
-            evnt_id = notific['evnt_id']
-        )
+                bson_to_json=True),
+            evnt_id = notific['evnt_id'])
     except Exception as e:
         log.error('render_template error. desc=%s', str(e))
         log.debug('', exc_info=True)
@@ -70,12 +64,11 @@ def send(notific, mailgun_conf, key='default'):
         log.info('queued email to %s', notific['to'])
         status = 'queued'
 
-    g.db['notifics'].update_one({
+    g.db.notifics.update_one({
         '_id':notific['_id']}, {
         '$set': {
             'tracking.status':status,
-            'tracking.mid': mid}
-        })
+            'tracking.mid': mid}})
 
     return status
 
@@ -85,16 +78,12 @@ def on_delivered():
 
     log.info('notific to %s delivered', request.form['recipient'])
 
-    notific = g.db['notifics'].find_one_and_update(
+    notific = g.db.notifics.find_one_and_update(
       {'tracking.mid': request.form['Message-Id']},
-      {'$set':{
-        'tracking.status': request.form['event'],
-      }}
-    )
+      {'$set':{'tracking.status': request.form['event']}})
 
-    smart_emit('notific_status', {
-        'notific_id': str(notific['_id']),
-        'status': request.form['event']})
+    smart_emit('notific_status',
+        {'notific_id': str(notific['_id']), 'status': request.form['event']})
 
 #-------------------------------------------------------------------------------
 def on_dropped():
@@ -103,17 +92,12 @@ def on_dropped():
     log.info('notification to %s dropped. %s',
         request.form['recipient'], request.form.get('reason'))
 
-
-    notific = g.db['notifics'].find_one_and_update(
+    notific = g.db.notifics.find_one_and_update(
       {'tracking.mid': request.form['Message-Id']},
-      {'$set':{
-        'tracking.status': request.form['event'],
-      }}
-    )
+      {'$set':{'tracking.status':request.form['event']}})
 
-    smart_emit('notific_status', {
-        'notific_id': str(notific['_id']),
-        'status': request.form['event']})
+    smart_emit('notific_status',
+        {'notific_id':str(notific['_id']), 'status':request.form['event']})
 
     msg = 'receipt to %s dropped. %s.' %(
         request.form['recipient'], request.form['reason'])

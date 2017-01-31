@@ -20,20 +20,6 @@ def show_home():
         agency=g.user.agency)
 
 #-------------------------------------------------------------------------------
-@booker.route('/search', methods=['POST'])
-@login_required
-def submit_search():
-    log.info(request.form.to_dict())
-
-    results = search.search(
-        g.user.agency,
-        request.form['query'],
-        request.form.get('radius'),
-        request.form.get('weeks'))
-
-    return jsonify(results)
-
-#-------------------------------------------------------------------------------
 @booker.route('/find_nearby_blocks', methods=['POST'])
 def find_nearby_blocks():
     maps = g.db.maps.find_one({'agency':g.user.agency})['features']
@@ -71,8 +57,6 @@ def find_nearby_blocks():
 def do_booking():
     log.debug(request.form.to_dict())
 
-    user = g.db.users.find_one({'user': current_user.user_id})
-
     data = {
         'aid': request.form['aid'],
         'block': request.form['block'],
@@ -81,6 +65,6 @@ def do_booking():
         'name': request.form['name'],
         'email': request.form['email'],
         'send_confirm': request.form['confirmation'] == 'true',
-        'user_fname': user['name']}
+        'user_fname': g.user.name}
 
-    return jsonify(book.make(user['agency'], data))
+    return jsonify(book.make(data))

@@ -2,21 +2,20 @@
 import json, logging, math, os, requests, time
 import matplotlib.path as mplPath
 import numpy as np
-from datetime import datetime
 from flask import g
 from .. import smart_emit, get_keys, parser
 from app.utils import formatter
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def find_block(agency, address, api_key):
+def find_block(agcy, address, api_key):
     r = geocode(address, api_key)
 
     if not r or len(r) == 0:
         log.error('couldnt geocode %s', address)
         return False
 
-    map_name = find_map(agency, r[0]['geometry']['location'])
+    map_name = find_map(agcy, r[0]['geometry']['location'])
 
     if map_name:
         return map_name[0:map_name.find(' [')]
@@ -24,17 +23,20 @@ def find_block(agency, address, api_key):
     return False
 
 #-------------------------------------------------------------------------------
-def get_maps():
-    maps = g.db.maps.find_one({'agency':g.user.agency})['features']
+def get_maps(agcy=None):
+
+    if not agcy:
+        agcy = g.user.agency
+    maps = g.db.maps.find_one({'agency':agcy})['features']
     return formatter(maps, bson_to_json=True)
 
 #-------------------------------------------------------------------------------
-def find_map(agency, pt):
+def find_map(agcy, pt):
     '''@pt: {'lng':float, 'lat':float}'''
 
     log.info('find_map in pt %s', pt)
 
-    maps = g.db.maps.find_one({'agency':agency})['features']
+    maps = g.db.maps.find_one({'agency':agcy})['features']
 
     for map_ in maps:
         coords = map_['geometry']['coordinates'][0]
@@ -52,7 +54,6 @@ def find_map(agency, pt):
     log.debug('map not found for pt %s', pt)
 
     return False
-
 
 #-------------------------------------------------------------------------------
 def get_nearby_blocks(pt, radius, maps, events):

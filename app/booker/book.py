@@ -2,17 +2,16 @@
 import logging, os
 from flask import g, render_template, request
 from datetime import datetime, time
-from .. import etap, utils, gsheets, mailgun
+from .. import gsheets, mailgun
+from app.etap import EtapError, call, get_udf
+from app.dt import to_local, ddmmyyyy_to_dt
 from app.routing.build import create_order
 from app.routing.sheet import append_order
 from app.routing.geo import get_gmaps_url
 log = logging.getLogger(__name__)
 
-class EtapError(Exception):
-    pass
-
 #-------------------------------------------------------------------------------
-def make(agency, data):
+def make(data):
     '''Makes the booking in eTapestry by posting to Bravo.
     This function is invoked from the booker client.
     @account: dict with account date. 'date' is dd/mm/yyyy str
@@ -20,40 +19,35 @@ def make(agency, data):
 
     log.info('Booking account %s for %s', data['aid'], data['date'])
 
-    response = update_dms(agency, data)
+    response = update_dms(data)
 
     # is block/date for today and route already built?
 
     # yyyy-mm-dd format
-    event_dt = utils.naive_to_local(
-        datetime.combine(
-            etap.ddmmyyyy_to_dt(data['date']),
-            time(0,0,0)))
+    event_dt = to_local(ddmmyyyy_to_dt(data['date']))
 
     route = g.db.routes.find_one({
         'date': event_dt,
         'block': data['block'],
-        'agency': agency})
+        'agency': g.user.agency})
 
     if route and route.get('ss'):
-        append_route(agency, route, data)
+        append_route(g.user.agency, route, data)
 
     if data['send_confirm']:
-        send_confirm(agency, data)
+        send_confirm(data)
 
     return {
         'status': 'success',
         'description': response}
 
 #-------------------------------------------------------------------------------
-def update_dms(agency, data):
-
-    conf = g.db.agencies.find_one({'name':agency})
+def update_dms(data):
 
     try:
         response = etap.call(
           'make_booking',
-          conf['etapestry'],
+          get_keys('etapestry'),
           data={
             'account_num': int(data['aid']),
             'type': 'pickup',
@@ -75,27 +69,24 @@ def update_dms(agency, data):
     return True
 
 #-------------------------------------------------------------------------------
-def append_route(agency, route, data):
+def append_route(route, data):
     '''Block is already routed. Append order to end of Sheet'''
 
     log.info('%s already routed for %s. Appending to Sheet.',
                 data['block'], data['date'])
     log.debug('appending to ss_id "%s"', route['ss']['id'])
 
-    conf = g.db.agencies.find_one({'name':agency})
-
     acct = etap.call(
         'get_account',
-        conf['etapestry'],
+        get_keys('etapestry'),
         {'account_number': data['aid']})
 
-    service = gsheets.gauth(
-        g.db.agencies.find_one({'name':agency})['google']['oauth'])
+    service = gsheets.gauth(get_keys('google')['oauth'])
 
     order = create_order(
         acct,
         [],
-        conf['google']['geocode']['api_key'],
+        get_keys('google')['geocode']['api_key'],
         route['driver']['shift_start'],
         '19:00',
         etap.get_udf('Service Time', acct) or 3)
@@ -113,26 +104,23 @@ def append_route(agency, route, data):
     return True
 
 #-------------------------------------------------------------------------------
-def send_confirm(agency, data):
+def send_confirm(data):
     try:
         body = render_template(
-            'email/%s/confirmation.html' % agency,
-            http_host = os.environ.get('BRAVO_HTTP_HOST'),
+            'email/%s/confirmation.html' % g.user.agency,
             to = data['email'],
             name = data['name'],
-            date_str = etap.ddmmyyyy_to_dt(data['date']).strftime('%B %-d %Y'))
+            date_str = ddmmyyyy_to_dt(data['date']).strftime('%B %-d %Y'))
     except Exception as e:
         log.error('Email not sent because render_template error. %s ', str(e))
         pass
-
-    conf = g.db.agencies.find_one({'name':agency})
 
     mid = mailgun.send(
         data['email'],
         'Pickup Confirmation',
         body,
-        conf['mailgun'],
-        v={'agcy':agency, 'type':'confirmation'})
+        get_keys('mailgun'),
+        v={'agcy':g.user.agency, 'type':'confirmation'})
 
     if mid == False:
         log.error('failed to queue email to %s', data['email'])

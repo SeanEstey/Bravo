@@ -10,7 +10,7 @@
           <!-- Row 1: Header -->
           <tr>
             <td align='center' bgcolor='#ffffff' height='1'>
-              <img src="{{http_host}}/static/images/bpu_banner.jpg" 
+              <img src="{{url_for('static', filename='images/bpu_banner.jpg', _external=True)}}" 
 									 alt='Vecova Bottle Service', width='450' height='87'/>
             </td>
           </tr>
@@ -51,18 +51,18 @@
 				</div>
 				<div style='text-align:center'>
 					<a href="http://www.facebook.com/vecova">
-						<img src="{{http_host}}/static/images/facebook-circle-128.jpg"
+						<img src="{{url_for('static', filename='images/facebook-circle-128.jpg', _external=True)}}"
 								 alt='Follow us on Facebook', width='48' height='48'/>
 					</a>
 					<a href="http://www.twitter.com/vecova">
-						<img src="{{http_host}}/static/images/twitter-circle-128.jpg"
+						<img src="{{url_for('static', filename='images/twitter-circle-128.jpg', _external=True)}}"
 								 alt='Follow us on Twitter', width='48' height='48'/>
 					</a>
 				</div>
 				<div></div>
 				<br>
 				<div style='text-align:center; font-size:9pt'>
-					<a href="{{http_host}}{{ url_for('main.email_unsubscribe', agency='vec') }}?email={{ to }}">
+					<a href="{{url_for('main.on_unsub', agcy='vec', _external=True)}}?email={{to}}">
 						Unsubscribe</a>
 				</div>
       </td>

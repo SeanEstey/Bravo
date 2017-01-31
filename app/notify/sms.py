@@ -21,7 +21,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
         'func':'handler_func'}
     '''
 
-    return g.db['notifics'].insert_one({
+    return g.db.notifics.insert_one({
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
@@ -32,9 +32,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
         'type': 'sms',
         'tracking': {
             'status': 'pending',
-            'sid': None,
-        }
-    }).inserted_id
+            'sid': None}}).inserted_id
 
 #-------------------------------------------------------------------------------
 def send(notific, twilio_conf):
@@ -43,8 +41,7 @@ def send(notific, twilio_conf):
     Returns: twilio compose msg status
     '''
 
-    acct = g.db.accounts.find_one(
-        {'_id': notific['acct_id']})
+    acct = g.db.accounts.find_one({'_id': notific['acct_id']})
 
     try:
         body = render_template(
@@ -54,8 +51,7 @@ def send(notific, twilio_conf):
                 to_local_time=True,
                 to_strftime="%A, %B %d",
                 bson_to_json=True),
-            notific = notific
-        )
+            notific = notific)
     except Exception as e:
         log.error('Error rendering SMS body. %s', str(e))
         return 'failed'
@@ -88,8 +84,7 @@ def send(notific, twilio_conf):
                 'tracking.body': msg.body if msg else None,
                 'tracking.error_code': msg.error_code if msg else None,
                 'tracking.status': msg.status if msg else 'failed',
-                'tracking.descripton': error or None,
-            }})
+                'tracking.descripton': error or None}})
 
     return msg.status if msg else 'failed'
 

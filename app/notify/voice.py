@@ -37,9 +37,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
             'duration': None,
             'answered_by': None,
             'attempts': 0,
-            'ended_dt': None
-        }
-    }).inserted_id
+            'ended_dt': None}}).inserted_id
 
 #-------------------------------------------------------------------------------
 def call(notific, twilio_conf, voice_conf):
@@ -108,15 +106,13 @@ def get_speak(notific, template_path, timeout=False):
             notific = utils.formatter(
                 notific,
                 to_local_time=True,
-                to_strftime="%A, %B %d"
-            ),
+                to_strftime="%A, %B %d"),
             account = utils.formatter(
                 account,
                 to_local_time=True,
                 to_strftime="%A, %B %d",
                 bson_to_json=True),
-            timeout=timeout
-        )
+            timeout=timeout)
     except Exception as e:
         log.error('get_speak: %s ', str(e))
         return 'Error'
@@ -181,8 +177,7 @@ def on_answer():
 
         g.db.notifics.update_one(
             {'tracking.sid': request.form['CallSid']},
-            {'$set': {'tracking.speak': str(response).replace('\"', '')}}
-        )
+            {'$set': {'tracking.speak': str(response).replace('\"', '')}})
     elif notific['on_answer']['source'] == 'audio':
         response.play(notific['on_answer']['url'])
 
@@ -203,21 +198,16 @@ def on_interact():
 
     log.debug('on_interact: %s', request.form.to_dict())
 
-    notific = g.db.notifics.find_one_and_update({
-          'tracking.sid': request.form['CallSid'],
-        }, {
-          '$set': {
-            'tracking.digit': request.form['Digits']
-        }},
+    notific = g.db.notifics.find_one_and_update(
+        {'tracking.sid': request.form['CallSid']},
+        {'$set': {'tracking.digit': request.form['Digits']}},
         return_document=ReturnDocument.AFTER)
 
     # Import assigned handler module and invoke function
     # to get voice response
 
     module = __import__(notific['on_interact']['module'], fromlist='.' )
-
     handler_func = getattr(module, notific['on_interact']['func'])
-
     return handler_func(notific)
 
 #-------------------------------------------------------------------------------

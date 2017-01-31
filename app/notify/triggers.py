@@ -6,7 +6,7 @@ from flask import g, request
 from bson.objectid import ObjectId
 from datetime import datetime,date,time
 from .. import smart_emit, get_keys
-from app.dt import to_localized_dt, localize
+from app.dt import to_utc, to_local
 from . import voice, email, sms
 log = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ def add(evnt_id, _type, date_, time_):
         'evnt_id': evnt_id,
         'status': 'pending',
         'type': _type,
-        'fire_dt': to_localized_dt(date_=date_, time_=time_)
+        'fire_dt': to_utc(date_=date_, time_=time_)
     }).inserted_id
 
     g.db.notific_events.update_one(
@@ -38,7 +38,7 @@ def get(trig_id, local_time=False):
     trig = g.db.triggers.find_one({'_id':trig_id})
 
     if local_time == True:
-        return localize(trig)
+        return to_local(trig)
 
     return trig
 

@@ -4,7 +4,7 @@ from pprint import pformat
 from bson import json_util
 from datetime import datetime, time, date
 from config import LOG_PATH
-from app.dt import localize
+from app.dt import to_local
 log = logging.getLogger(__name__)
 
 class bcolors:
@@ -82,9 +82,8 @@ def print_vars(obj, depth=0, ignore=None, l="    "):
         # Try to iterate as if obj were a list
 
         try:
-            vars_ = print_vars(k, depth=depth-1, ignore=ignore, l=l+"  ")
-            join_ = "\n".join(l + vars_ + "," for k in obj)
-            return "[\n%s\n%s]" % (join_, l)
+			return "[\n" + "\n".join(l + print_vars(
+				k, depth=depth-1, l=l+"  ") + "," for k in obj) + "\n" + l + "]"
         except TypeError, e:
             #else, expand/recurse object attribs
 
@@ -121,7 +120,7 @@ def formatter(doc, to_local_time=False, to_strftime=None, bson_to_json=False):
     '''
 
     if to_local_time == True:
-        doc = localize(doc, to_str=to_strftime)
+        doc = to_local(doc, to_str=to_strftime)
 
     if bson_to_json == True:
         doc = json.loads(json_util.dumps(doc))

@@ -1,4 +1,4 @@
-'''app.sio'''
+'''app.socketio'''
 import logging
 from .utils import print_vars, inspector
 from datetime import datetime

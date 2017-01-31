@@ -3,7 +3,7 @@ import logging, json, os
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
 from .. import smart_emit, get_keys, utils, html
-from app.dt import localize #to_local_dt
+from app.dt import to_utc
 from app.alice.outgoing import compose
 log = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
-        'event_dt': localize(date_=event_date, time_=time(8,0)),
+        'event_dt': to_utc(date_=event_date, time_=time(8,0)),
         'on_send': on_send,
         'on_reply': on_reply,
         'to': utils.to_intl_format(to),

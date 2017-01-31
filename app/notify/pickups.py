@@ -7,7 +7,7 @@ from dateutil.parser import parse
 from bson.objectid import ObjectId
 from .. import get_keys, parser, gcal
 from app.etap import EtapError, get_query, get_udf, get_phone, get_prim_phone
-from app.dt import ddmmyyyy_to_local_dt as to_dt, localize
+from app.dt import ddmmyyyy_to_local_dt as to_dt, to_local
 from . import events, email, sms, voice, triggers, accounts
 log = logging.getLogger(__name__)
 
@@ -161,7 +161,7 @@ def find_all_scheduled_dates(evnt_id):
 
         if block not in block_dates:
             dt = parse(cal_event['start']['date'] + " T08:00:00")
-            block_dates[block] = localize(dt)
+            block_dates[block] = to_local(dt)
 
     notific_list = g.db['notifics'].find({'evnt_id':evnt_id})
 
@@ -270,7 +270,7 @@ def on_call_interact(notific):
             (str(notific['evnt_id']), str(notific['acct_id'])))
 
         acct = g.db['accounts'].find_one({'_id':notific['acct_id']})
-        dt = localize(acct['udf']['future_pickup_dt'])
+        dt = to_local(acct['udf']['future_pickup_dt'])
 
         response.say(
             voice.get_speak(

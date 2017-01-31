@@ -12,8 +12,8 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 @login_manager.user_loader
 def load_user(user_id):
-    #log.debug('load_user() user_id=%s', user_id)
 
+    #log.debug('load_user() user_id=%s', user_id)
     db = db_client['bravo']
     db_user = db.users.find_one({'user': user_id})
 
@@ -29,14 +29,13 @@ def load_user(user_id):
         admin=db_user['admin'])
 
     #log.debug('user_loader returning user_id=%s', user.user_id)
-
     return user
-'''
+
 #-------------------------------------------------------------------------------
 @login_manager.request_loader
 def load_api_user(request):
-    log.debug('request_loader(). form=%s', request.form.to_dict())
-    log.debug(print_vars(request))
+
+    #log.debug('request_loader(). form=%s', request.form.to_dict())
 
 	# first, try to login using user_id/pw
 
@@ -64,25 +63,29 @@ def load_api_user(request):
             return user
 
     # next, try to login using Basic Auth
+
+    #log.debug('trying API auth login')
     api_key = request.headers.get('Authorization')
-    #print 'api_key=%s' % api_key
 
     if api_key:
         api_key = api_key.replace('Basic ', '', 1)
         try:
             api_key = base64.b64decode(api_key)
         except TypeError:
+            log.debug('base64 decode error, desc=%s', str(e))
             pass
-        #print 'decoded api_key=%s' % api_key
 
-        if not ObjectId.is_valid(api_key):
-            return None
+        #log.debug('got api_key=%s', api_key)
+        api_user = api_key.split(':')[1]
+
+        #if not ObjectId.is_valid(api_user):
+        #    return None
 
         db = db_client['bravo']
         user = db.users.find_one({'api_key':str(api_key)})
 
         if user:
-            print 'success. loading user=%s' % user['name']
+            log.debug('"%s" API auth success', user['name'])
 
             return User(
                 user['user'],
@@ -94,6 +97,5 @@ def load_api_user(request):
             log.debug('no user found for api_key=%s', api_key)
 
     # finally, return None if both methods did not login the user
-    log.debug('failed to load api user. return none')
+    #log.debug('failed to load api user. return none')
     return None
-'''

@@ -16,6 +16,8 @@ def generate(acct, entry, gift_history=None):
     g.headers, g.track
     '''
 
+    #log.debug('generate receipt for agcy=%s', g.user.agency)
+
     entry_date = parse(entry['date']).date()
     acct_status = get_udf('Status', acct)
     drop_date = to_date(get_udf('Dropoff Date', acct))
@@ -31,11 +33,11 @@ def generate(acct, entry, gift_history=None):
     elif entry['amount'] == 0 and nf == 3:
         path = "receipts/%s/zero_collection.html" % g.user.agency
         subject = "See you next time"
-        g.track['num_zeros'] +=1
+        g.track['zeros'] +=1
     elif entry['amount'] == 0 and nf < 3:
         path = "receipts/%s/no_collection.html" % g.user.agency
         subject = "See you next time"
-        g.track['num_zeros'] +=1
+        g.track['zeros'] +=1
     elif entry['amount'] > 0:
         if gift_history:
             path = "receipts/%s/collection_receipt.html" % g.user.agency
@@ -56,18 +58,19 @@ def generate(acct, entry, gift_history=None):
         status = 'no email'
 
     row = entry['from_row']
-    ss_id = get_keys('google',agcy=g.user.agency)['ss_id']
+    ss_id = get_keys('google')['ss_id']
 
+    '''
     try:
-        service = gauth(get_keys('google',agcy=g.user.agency)['oauth'])
+        service = gauth(get_keys('google')['oauth'])
         headers = get_row(service, ss_id, 'Routes', 1)
         col = headers.index('Email Status')+1
         range_ = to_range(row, col)
         update_cell(service, ss_id, range_, status)
     except Exception as e:
         log.error('update_cell error')
-
-    log.debug('receipt sent. mid=%s', mid)
+    '''
+    #log.debug('receipt sent. mid=%s', mid)
 
     return mid
 
@@ -150,7 +153,7 @@ def deliver(to, template, subject, data):
     Adds an eTapestry journal note with the content.
     '''
 
-    log.debug('%s %s', str(data['account']['id']), template)
+    #log.debug('%s %s', str(data['account']['id']), template)
 
     body = render_body(template, data=data)
 
@@ -165,12 +168,11 @@ def deliver(to, template, subject, data):
         data={
             'id': data['account']['id'],
             'Note': 'Receipt:\n' + html.clean_whitespace(body),
-            'Date': dt_to_ddmmyyyy(parse(data['entry']['date']))
-        },
+            'Date': dt_to_ddmmyyyy(parse(data['entry']['date']))},
         silence_exceptions=False)
 
     mid = mailgun.send(to, subject, body, get_keys('mailgun'),
-        v={'agcy':data['entry']['agcy'], 'type':'receipt'})
+        v={'agcy':g.user.agency, 'type':'receipt'})
 
     return mid
 
@@ -188,8 +190,7 @@ def get_ytd_gifts(acct_refs, year):
             data={
                 "account_refs": acct_refs,
                 "start_date": "01/01/" + str(year),
-                "end_date": "31/12/" + str(year)
-            })
+                "end_date": "31/12/" + str(year)})
     except Exception as e:
         log.error('Error retrieving gift histories: %s', str(e))
         raise

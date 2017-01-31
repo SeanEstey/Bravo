@@ -116,12 +116,6 @@ def on_spam():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/receipts/process', methods=['POST'])
-def send_receipts_():
-    send_receipts.delay(request.form['entries'], etap=request.form['etapestry'])
-    return 'OK'
-
-#-------------------------------------------------------------------------------
 @main.route('/signups/welcome', methods=['POST'])
 def send_welcome():
     return signups.send_welcome()

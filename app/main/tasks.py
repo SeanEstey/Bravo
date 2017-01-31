@@ -71,13 +71,14 @@ def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def send_receipts(self, entries, **rest):
+def send_receipts(self, entries, etap=None, **rest):
     '''Email receipts to recipients and update email status on Bravo Sheets.
     Sheets->Routes worksheet.
     @entries: array of gift entry dicts->
         {'amount':float, 'date':str,'from':{'row':int,'upload_status':str(db_ref),'worksheet':str}}
     '''
 
+    #log.debug('tasks.send_receipts entries=%s, type=%s', entries, type(entries))
     from app.main.receipts import generate, get_ytd_gifts
 
     try:
@@ -97,11 +98,10 @@ def send_receipts(self, entries, **rest):
         'drops': 0,
         'cancels': 0,
         'no_email': 0,
-        'gifts': 0
-    }
+        'gifts': 0}
     g.ss_id = get_keys('google')['ss_id']
-    g.service = gauth(get_keys('google')['oauth'])
-    g.headers = get_row(g.service, g.ss_id, 'Routes', 1)
+    #g.service = gauth(get_keys('google')['oauth'])
+    #g.headers = get_row(g.service, g.ss_id, 'Routes', 1)
 
     for i in range(0, len(accts)):
         r = generate(accts[i], entries[i])
@@ -117,6 +117,7 @@ def send_receipts(self, entries, **rest):
     # All receipts sent except Gifts. Query Journal Histories
 
     if len(gift_accts) == 0:
+        log.info('no gift receipts to send')
         return 'success'
 
     year = parse(gift_accts[0]['entry']['date']).year

@@ -41,7 +41,7 @@ def send(to, subject, body, conf, v=None):
         log.debug('', exc_info=True)
         raise
 
-    log.debug(response.text)
+    #log.debug(response.text)
 
     return json.loads(response.text)['id']
 

@@ -4,7 +4,7 @@ from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
 from .. import smart_emit, get_keys, utils, mailgun
 from app.main.tasks import create_rfu
-from app.dt import localize #to_local_dt
+from app.dt import to_utc
 log = logging.getLogger(__name__)
 
 # TODO: include date in email subject
@@ -21,7 +21,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
-        'event_dt': localize(date_=event_date, time_=time(8,0)),
+        'event_dt': to_utc(date_=event_date, time_=time(8,0)),
         'on_send': on_send,
         'to': to,
         'type': 'email',

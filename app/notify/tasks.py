@@ -4,7 +4,7 @@ from datetime import datetime, date, time, timedelta
 from bson import ObjectId
 from flask import g, current_app, has_request_context
 from app.utils import bcolors
-from app.dt import localize
+from app.dt import to_local
 from app import etap, get_keys, cal, celery, smart_emit
 from app.etap import EtapError
 from . import email, sms, voice, pickups, triggers
@@ -222,7 +222,7 @@ def skip_pickup(self, evnt_id, acct_id, **kwargs):
             data={
                 'account': acct['udf']['etap_id'],
                 'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
-                'next_pickup': localize(
+                'next_pickup': to_local(
                     acct['udf']['future_pickup_dt'],
                     to_str='%d/%m/%Y')})
     except EtapError as e:

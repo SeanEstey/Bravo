@@ -1,11 +1,11 @@
 '''app.notify.events'''
-import logging
+import logging, pytz
 from datetime import datetime,date,time
 from dateutil.parser import parse
 from bson.objectid import ObjectId
 from flask import g
 from .. import get_keys, utils
-from app.dt import localize #naive_to_local
+from app.dt import to_utc, to_local
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -19,7 +19,7 @@ def add(agency, name, event_date, _type):
     return g.db['notific_events'].insert_one({
         'name': name,
         'agency': agency,
-        'event_dt': localize(date_= event_date, time_= time(8,0)),
+        'event_dt': to_utc(date_=event_date, time_=time(8,0)),
         'type': _type,
         'status': 'pending',
         'opt_outs': 0,
@@ -31,7 +31,7 @@ def get(evnt_id, local_time=True):
     event = g.db['notific_events'].find_one({'_id':evnt_id})
 
     if local_time == True:
-        return localize(event)
+        return to_local(event)
 
     return event
 
@@ -45,7 +45,7 @@ def get_list(agency, local_time=True, max=20):
 
     if local_time == True:
         for event in sorted_events:
-            event = localize(event)
+            event = to_local(event)
 
     return sorted_events
 
@@ -55,7 +55,7 @@ def get_triggers(evnt_id, local_time=True, sort_by='type'):
 
     if local_time == True:
         for trigger in trigger_list:
-            trigger = localize(trigger)
+            trigger = to_local(trigger)
 
     return trigger_list
 
@@ -86,7 +86,7 @@ def get_notifics(evnt_id, local_time=True, sorted_by='account.event_dt'):
         notific_list = list(notific_results)
 
         for notific in notific_list:
-            notific = localize(notific)
+            notific = to_local(notific)
 
         # Returning list
         return notific_list

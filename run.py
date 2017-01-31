@@ -6,7 +6,7 @@ from setup import startup_msg
 from app import db_client, create_app, config_test_server, is_test_server
 from app.auth import load_user
 from app.utils import bcolors, print_vars, inspector
-from app.sio import sio_server
+from app.socketio import sio_server
 
 app = create_app('app')
 

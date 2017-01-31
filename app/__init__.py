@@ -9,7 +9,7 @@ from werkzeug.contrib.fixers import ProxyFix
 import config, mongodb
 from logger import create_file_handler
 from utils import print_vars
-from app.sio import smart_emit
+from app.socketio import smart_emit
 
 eventlet.monkey_patch()
 

@@ -7,7 +7,7 @@ from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 from app import smart_emit, celery, get_keys, gcal, gdrive, gsheets, parser
 from app.utils import formatter
-from app.dt import localize, ddmmyyyy_to_date
+from app.dt import to_local, ddmmyyyy_to_date
 from app.etap import EtapError, get_query, get_udf
 from .main import add_metadata
 from .build import submit_job, get_solution_orders
@@ -35,7 +35,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
     cal_ids = get_keys('cal_ids', agcy=agcy)
 
     for _id in cal_ids:
-        start = localize(None, date_=date.today())
+        start = to_local(None, date_=date.today())
 
         events += gcal.get_events(
             service,
@@ -47,7 +47,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
 
     for event in events:
         block = parser.get_block(event['summary'])
-        event_dt = localize(
+        event_dt = to_local(
             None,
             date_=parse(event['start']['date']),
             time_=time(8,0))

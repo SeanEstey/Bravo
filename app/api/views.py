@@ -25,7 +25,7 @@ def call_accts_gifts():
 @api.route('/accounts/receipts', methods=['POST'])
 @login_required
 def call_accts_receipts():
-    return task_call(send_receipts, get_var('data'))
+    return task_call(send_receipts, get_var('entries'))
 
 @api.route('/accounts/create', methods=['POST'])
 @login_required

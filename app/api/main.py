@@ -4,7 +4,7 @@ from json import dumps, loads
 from flask import Response, request, jsonify
 from flask_login import current_user
 import celery.result
-from app.utils import start_timer, end_timer
+from app.utils import start_timer, end_timer, formatter
 log = logging.getLogger(__name__)
 
 def WRITE_ME(msg=None):
@@ -34,7 +34,6 @@ def task_call(function, *args, **kwargs):
 
 #-------------------------------------------------------------------------------
 def build_resp(rv=None, exc=False, name=None, dt=None):
-    #log.debug('rv=%s', rv)
 
     if exc:
         log.error('api call fail. desc=%s', exc)
@@ -48,35 +47,19 @@ def build_resp(rv=None, exc=False, name=None, dt=None):
         return Response(
             response=dumps({'status':'success','data':None}),
             status=200, mimetype='application/json')
-        '''
-        if rv.state == 'SUCCESS':
-            end_timer(dt, display=True, lbl='API call success, func="%s"' % name)
-
-            return Response(
-                response=dumps({'status':'success','data':None}),
-                status=200, mimetype='application/json')
-        elif rv.state == 'FAILURE':
-            log.error('api celery task fail. desc=%s', rv.result)
-            log.debug('trace=%s', rv.traceback)
-
-            return Response(
-                response=dumps({'status':'failure', 'desc':dumps(rv.result), 'data':None}),
-                status=200, mimetype='application/json')
-        '''
 
     end_timer(dt, display=True, lbl='API call success, func="%s"' % name)
 
+    json_rv = formatter({'status':'success', 'data':rv}, bson_to_json=True, to_json=True)
+
     return Response(
-        response=dumps({'status':'success', 'data':rv}),
-        status=200,mimetype='application/json')
+        response=json_rv, status=200,mimetype='application/json')
 
 #-------------------------------------------------------------------------------
 def get_var(k):
-    log.debug(request.form.to_dict())
+    #log.debug(request.form.to_dict())
 
     if request.method == 'GET':
         return request.args.get(k)
-        #return loads(request.args.get(k))
     elif request.method == 'POST':
-        #return loads(request.form.get(k))
         return request.form.get(k)

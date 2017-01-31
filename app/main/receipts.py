@@ -23,9 +23,10 @@ def generate(acct, entry, gift_history=None):
     drop_date = to_date(get_udf('Dropoff Date', acct))
     nf = acct['nameFormat']
 
-    if acct_status == 'Cancelled':
+    if entry['status'] == 'Cancelled':
         path = "receipts/%s/cancelled.html" % g.user.agency
         subject = "Your Account has been Cancelled"
+        g.track['cancels'] +=1
     elif drop_date == entry_date:
         path = "receipts/%s/dropoff_followup.html" % g.user.agency
         subject = "Dropoff Complete"
@@ -60,17 +61,15 @@ def generate(acct, entry, gift_history=None):
     row = entry['from_row']
     ss_id = get_keys('google')['ss_id']
 
-    '''
     try:
-        service = gauth(get_keys('google')['oauth'])
-        headers = get_row(service, ss_id, 'Routes', 1)
+        headers = get_row(g.service, ss_id, 'Routes', 1)
         col = headers.index('Email Status')+1
         range_ = to_range(row, col)
-        update_cell(service, ss_id, range_, status)
+        update_cell(g.service, ss_id, range_, status)
     except Exception as e:
         log.error('update_cell error')
-    '''
-    #log.debug('receipt sent. mid=%s', mid)
+
+    log.debug('receipt sent. mid=%s', mid)
 
     return mid
 

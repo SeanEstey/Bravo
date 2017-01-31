@@ -1,5 +1,5 @@
 '''app.main.tasks'''
-import logging, re
+import json, logging, re
 from datetime import date, timedelta
 from dateutil.parser import parse
 from flask import g
@@ -78,6 +78,9 @@ def send_receipts(self, entries, **rest):
         {'amount':float, 'date':str,'from':{'row':int,'upload_status':str(db_ref),'worksheet':str}}
     '''
 
+    entries = json.loads(entries)
+    log.info('processing receipts...')
+
     #log.debug('tasks.send_receipts entries=%s, type=%s', entries, type(entries))
     from app.main.receipts import generate, get_ytd_gifts
 
@@ -100,8 +103,8 @@ def send_receipts(self, entries, **rest):
         'no_email': 0,
         'gifts': 0}
     g.ss_id = get_keys('google')['ss_id']
-    #g.service = gauth(get_keys('google')['oauth'])
-    #g.headers = get_row(g.service, g.ss_id, 'Routes', 1)
+    g.service = gauth(get_keys('google')['oauth'])
+    g.headers = get_row(g.service, g.ss_id, 'Routes', 1)
 
     for i in range(0, len(accts)):
         r = generate(accts[i], entries[i])
@@ -120,22 +123,27 @@ def send_receipts(self, entries, **rest):
         log.info('no gift receipts to send')
         return 'success'
 
-    year = parse(gift_accts[0]['entry']['date']).year
-    acct_refs = [i['account']['ref'] for i in gift_accts]
-    gift_histories = get_ytd_gifts(acct_refs, year)
+    try:
+        year = parse(gift_accts[0]['entry']['date']).year
+        acct_refs = [i['account']['ref'] for i in gift_accts]
+        gift_histories = get_ytd_gifts(acct_refs, year)
+    except Exception as e:
+        log.error(str(e))
+        log.debug('', exc_info=True)
+        raise
 
     for i in range(0, len(gift_accts)):
         try:
             r = generate(
                 gift_accts[i]['account'],
-                entries[i],
+                gift_accts[i]['entry'],
                 gift_history=gift_histories[i])
         except Exception as e:
             log.error('generate receipt error. desc=%s', str(e))
             log.debug('',exc_info=True)
             continue
 
-    log.info('gift receipts sent=%s', len(gift_accts))
+    log.info('sent gift receipts=%s', len(gift_accts))
 
     return 'success'
 

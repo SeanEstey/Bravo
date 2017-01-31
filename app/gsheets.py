@@ -202,7 +202,8 @@ def api_ss_values_get(service, ss_id, range_):
         ).execute()
     except Exception as e:
         log.error('Error getting values from sheet: %s', str(e))
-        return False
+        log.debug('', exc_info=True)
+        raise
 
     return result.get('values', [])
 

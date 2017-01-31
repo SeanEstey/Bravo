@@ -40,7 +40,6 @@ def smart_emit(event, data, room=None):
 @sio_server.on_error()
 def _on_error(e):
     log.error('socketio error=%s', str(e))
-    #print 'socketio error=%s' % str(e)
 
 #-------------------------------------------------------------------------------
 @sio_server.on('connect')

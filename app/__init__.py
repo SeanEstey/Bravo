@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 login_manager = LoginManager()
 
 db_client = mongodb.create_client()
-mongodb.authenticate(db_client)
+
 kv_store = MongoStore(
     db_client[config.DB],
     config.SESSION_COLLECTION)
@@ -109,7 +109,7 @@ def init_celery(celery, app):
     celery = Celery(__name__, broker='amqp://')
     celery.config_from_object(celeryconfig)
     celery.app = UberTask.flsk_app = app
-    UberTask.db_client = mongodb.create_client()
+    UberTask.db_client = mongodb.create_client(connect=False, auth=False)
     celery.Task = UberTask
 
     logger = get_task_logger(__name__)

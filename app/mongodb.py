@@ -7,7 +7,7 @@ import config
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def create_client(connect=False, auth=False):
+def create_client(connect=True, auth=True):
     client = pymongo.MongoClient(
         host = config.MONGO_URL,
         port = config.MONGO_PORT,

@@ -22,7 +22,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
     to client
     '''
 
-    #sleep(3)
+    sleep(3)
     log.debug('discovering routes...')
     smart_emit('discover_routes', {'status':'in-progress'})
 
@@ -68,8 +68,8 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
 
             log.debug('discovered %s on %s', block, event_dt.strftime('%b %-d'))
 
-            smart_emit('add_route_metadata', {
-                'data': formatter(meta, to_strftime=True, bson_to_json=True)},
+            smart_emit('discover_routes', {
+                'status': 'discovered', 'route': formatter(meta, to_strftime=True, bson_to_json=True)},
                 room=agcy)
 
             n_found +=1
@@ -132,7 +132,7 @@ def build_route(self, route_id, job_id=None, **rest):
     route = g.db.routes.find_one({"_id":ObjectId(route_id)})
     agcy = route['agency']
 
-    log.info('%s: Building %s...', agcy, route['block'])
+    log.info('Building %s...', route['block'])
 
     if job_id is None:
         job_id = submit_job(ObjectId(route_id))
@@ -163,18 +163,22 @@ def build_route(self, route_id, job_id=None, **rest):
 
     route = g.db.routes.find_one_and_update(
         {'_id':ObjectId(route_id)},
-        {'$set':{ 'ss': ss}}
-    )
+        {'$set':{ 'ss': ss}})
 
-    sheet.write_orders(
-        gsheets.gauth(get_keys('google',agcy=agcy)['oauth']),
-        ss['id'],
-        orders)
+    try:
+        sheet.write_orders(
+            gsheets.gauth(get_keys('google',agcy=agcy)['oauth']),
+            ss['id'],
+            orders)
+    except Exception as e:
+        log.error('error writing orders. desc=%s', str(e))
+        log.debug('', exc_info=True)
+        raise
 
     smart_emit('route_status',{
         'status':'completed', 'ss_id':ss['id'], 'warnings':route['warnings']})
 
-    log.info(
-        '%s Sheet created. Orders written.', route['block'])
+    log.info('%s built. orders=%s, unserved=%s',
+        route['block'], len(orders), route['num_unserved'])
 
     return 'success'

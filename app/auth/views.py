@@ -26,7 +26,7 @@ def authenticate():
                 _id = db_user['_id'],
                 agency = db_user['agency'],
                 admin = db_user['admin']))
-        log.debug('logged in. current_user=%s', current_user)
+        log.debug('%s logged in', current_user)
 
     return redirect(url_for('notify.view_event_list'))
 

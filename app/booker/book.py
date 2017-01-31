@@ -118,10 +118,11 @@ def send_confirm():
         body = render_template(
             'email/%s/confirmation.html' % g.user.agency,
             to = request.form['email'],
-            name = request.form['name'],
+            name = request.form['first_name'],
             date_str = ddmmyyyy_to_dt(request.form['date']).strftime('%B %-d %Y'))
     except Exception as e:
-        log.error('Email not sent because render_template error. %s ', str(e))
+        log.error('render template error. desc=%s', str(e))
+        log.debug('', exc_info=True)
         pass
 
     mid = mailgun.send(

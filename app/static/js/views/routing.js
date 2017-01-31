@@ -52,22 +52,6 @@ function addEventHandlers() {
 				});
 		});
 
-    $('button[name="view_btn"]').each(function() {
-				var metadata = JSON.parse($(this).parent().parent().find('button[name="route_btn"]').attr('data-route'));
-				
-				if(!metadata['ss_id']) {
-						$(this).prop('disabled', true);
-						return;
-				}
-
-				$(this).show();
-				$(this).prev().hide();
-
-				$(this).click(function() {
-						window.open("https://docs.google.com/spreadsheets/d/"+metadata['ss_id']);
-				});
-		});
-
     $('button[name="route_btn"]').each(function() {
         var metadata = JSON.parse($(this).attr('data-route'));
 				
@@ -81,13 +65,32 @@ function addEventHandlers() {
 								$('.btn.loader').fadeTo('slow', 1);
 						});
 
+            var route_id = JSON.parse($(this).attr('data-route'))['_id']['$oid'];
+
 						$.ajax({
 							context: this,
-							type: 'GET',
-							url: $(this).attr('href')
+							type: 'POST',
+							url: $URL_ROOT + 'api/routing/build', //$(this).attr('href')
+              data: {'route_id': route_id} 
 						})
 						.done(function(response) {
 						});
+				});
+		});
+
+    $('button[name="view_btn"]').each(function() {
+				var metadata = JSON.parse($(this).parent().parent().find('button[name="route_btn"]').attr('data-route'));
+				
+				if(!metadata['ss_id']) {
+						$(this).prop('disabled', true);
+						return;
+				}
+
+				$(this).show();
+				$(this).prev().hide();
+
+				$(this).click(function() {
+						window.open("https://docs.google.com/spreadsheets/d/"+metadata['ss_id']);
 				});
 		});
 
@@ -159,17 +162,19 @@ function addSocketIOHandlers() {
 
         socket.on('joined', function(response) {
             console.log(response);
-						//socket.emit('analyze_routes');
         });
     });
 
-    socket.on('analyze_routes', function(data) {
-        console.log('analyze_routes, status=' + data['status']);
+    socket.on('discover_routes', function(data) {
+        console.log('discover_routes, status=' + data['status']);
 
         if(data['status'] == 'in-progress') {
 						$('.loader-div label').text('Analyzing Routes');
 						$('.loader-div').slideToggle();
 						$('.btn.loader').fadeTo('slow', 1);
+        }
+        else if(data['status'] == 'discovered') {
+            addRouteRow(data['route']);
         }
         else if(data['status'] == 'completed') {
             $('.btn.loader').fadeTo('slow', 0, function() {
@@ -183,24 +188,19 @@ function addSocketIOHandlers() {
             $('.btn.loader').fadeTo('slow', 0, function() {
                 $('.loader-div').slideToggle();
             });
+            console.log('route completed');
 	
 						// TODO: update buttons
-						// data['ss_id']
-						// data['warnings']
 				}
 		});
-
-    socket.on('add_route_metadata', function(data) {
-        if(data['agency'] != $AGENCY)
-          return;
-
-        console.log('received route metadata');
-        addRouteRow(data);
-    });
 }
 
 //------------------------------------------------------------------------------
 function addRouteRow(route) {
+		/* Columns:[Date Block Orders Size New Depot Driver Status Length Command 
+			 Sheet Geocoding]
+		*/
+
     var $row = 
       '<tr style="display:none" id="'+route['_id']['$oid']+'">' +
         '<td>' + new Date(route['date']['$date']).toDateString() + '</td>' +
@@ -213,8 +213,8 @@ function addRouteRow(route) {
         '<td>' + route['status'] + '</td>' +
         '<td>' + (route['duration'] || '-- : --') + '</td>' +
         '<td><button name="route_btn" id="" class="btn btn-outline-primary">Route</button></td>' +
-        '<td><button id="" class="btn btn-outline-primary">View</button></td>' +
-        '<td>' + route['warnings'] + '</td>';
+        '<td></td>' + //<button id="" class="btn btn-outline-primary">View</button></td>' +
+        '<td></td>'; //' + (route['warnings'] || '') + '</td>';
 
     $('#routing-tbl tbody').append($row);
     $('#routing-tbl tbody tr:last').fadeIn('slow');

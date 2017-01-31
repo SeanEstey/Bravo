@@ -54,8 +54,9 @@ state=None, *args, **kwargs):
 #-------------------------------------------------------------------------------
 @task_failure.connect
 def task_failure(signal=None, sender=None, task_id=None, exception=None, traceback=None, *args, **kwargs):
-    print 'TASK FAILED!'
-    pass
+    name = sender.name.split('.')[-1]
+    log.error('task=%s failed. exception=%s', name, exception)
+    log.debug('%s', traceback)
 
 #-------------------------------------------------------------------------------
 def kill(task_id):

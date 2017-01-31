@@ -9,7 +9,6 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def update_cell(service, ss_id, range_, value):
-
     api_ss_values_update(service, ss_id, range_, [[value]])
 
 #-------------------------------------------------------------------------------
@@ -18,8 +17,11 @@ def get_row(service, ss_id, wks, row):
     return api_ss_values_get(service, ss_id, range_)[0]
 
 #-------------------------------------------------------------------------------
-def append_row(service, ss_id, sheet_title, values):
+def get_range(service, ss_id, wks, range_):
+    return api_ss_values_get(service, ss_id, '%s!%s' %(wks,range_))
 
+#-------------------------------------------------------------------------------
+def append_row(service, ss_id, sheet_title, values):
     sheet = api_ss_get(service, ss_id, sheet_title=sheet_title)
 
     max_rows = sheet['gridProperties']['rowCount']
@@ -29,19 +31,15 @@ def append_row(service, ss_id, sheet_title, values):
 
 #-------------------------------------------------------------------------------
 def write_rows(service, ss_id, range_, values):
-
-    api_ss_values_update(service, ss_id, range_, [values])
+    api_ss_values_update(service, ss_id, range_, values)
 
 #-------------------------------------------------------------------------------
 def insert_rows_above(service, ss_id, row, num):
-
     range_ = {
         "sheetId": 0,
         "dimension": "ROWS",
         "startIndex": row-1,
-        "endIndex": row-1+num
-    }
-
+        "endIndex": row-1+num}
     api_ss_batch_update(service, ss_id, 'insertDimension', range_=range_)
 
 #-------------------------------------------------------------------------------
@@ -88,20 +86,26 @@ def bold_cells(service, ss_id, cells):
 
     # range startIndex: inclusive, endIndex: exclusive
 
-    range_ = {
-        "sheetId": 0,
-        "startRowIndex": cell[0]-1,
-        "endRowIndex": cell[0],
-        "startColumnIndex": cell[1]-1,
-        "endColumnIndex": cell[1]}
-    cell = {
-        "userEnteredFormat": {
-            "textFormat": {
-                "bold": True}}}
-    fields = 'userEnteredFormat(textFormat)'
+    requests_=[]
 
-    api_ss_batch_update(service, ss_id, 'repeatCell',
-        range_=range_, cell=cell, fields=fields)
+    for cell in cells:
+        range_ = {
+            "sheetId": 0,
+            "startRowIndex": cell[0]-1,
+            "endRowIndex": cell[0],
+            "startColumnIndex": cell[1]-1,
+            "endColumnIndex": cell[1]}
+        cell = {
+            "userEnteredFormat": {
+                "textFormat": {
+                    "bold": True}}}
+        fields = 'userEnteredFormat(textFormat)'
+
+        requests_.append(api_ss_batch_update(
+            service, ss_id, 'repeatCell',
+            range_=range_, cell=cell, fields=fields, execute=False))
+
+    api_execute(service, ss_id, requests_)
 
 #-------------------------------------------------------------------------------
 def to_range(row, col):
@@ -240,7 +244,20 @@ def api_ss_values_append(service, ss_id, range_, values):
         return False
 
 #-------------------------------------------------------------------------------
-def api_ss_batch_update(service, ss_id, request, range_=None, cell=None, fields=None, properties=None):
+def api_execute(service, ss_id, requests):
+    try:
+        service.spreadsheets().batchUpdate(
+            spreadsheetId = ss_id,
+            body = {
+                "requests": requests
+            }).execute()
+    except Exception as e:
+        log.error('error executing batch update. desc=%s', str(e))
+        log.debug('', exc_info=True)
+        raise
+
+#-------------------------------------------------------------------------------
+def api_ss_batch_update(service, ss_id, request, range_=None, cell=None, fields=None, properties=None, execute=True):
     '''https://developers.google.com/resources/api-libraries/documentation/\
     sheets/v4/python/latest/sheets_v4.spreadsheets.html#batchUpdate
     '''
@@ -264,6 +281,9 @@ def api_ss_batch_update(service, ss_id, request, range_=None, cell=None, fields=
                 'fields': fields,
                 'range': range_,
                 'cell': cell}})
+
+    if not execute:
+        return requests
 
     try:
         service.spreadsheets().batchUpdate(

@@ -18,7 +18,7 @@ class GeocodeError(Exception):
 def is_scheduled(acct, date_):
 
     # Ignore accts with Next Pickup > today
-    next_pickup = etap.get_udf('Next Pickup Date', acct)
+    next_pickup = get_udf('Next Pickup Date', acct)
 
     if next_pickup:
         np = next_pickup.split('/')

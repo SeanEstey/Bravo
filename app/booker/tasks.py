@@ -2,12 +2,12 @@
 import json, logging, os, time
 from datetime import datetime
 from flask import g
-from .. import celery
+from .. import smart_emit, celery
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task
-def update_maps(agcy=None):
+def update_maps(agcy=None, **rest):
     '''TODO: if agcy != None, called from API. send socketio emit on complete
     '''
 

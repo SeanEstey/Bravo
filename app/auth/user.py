@@ -40,7 +40,7 @@ class User():
 
     @classmethod
     def authenticate(cls, user_id, pw):
-        log.debug('User.authenticate() user_id=%s, pw=%s', user_id, pw)
+        #log.debug('User.authenticate() user_id=%s, pw=%s', user_id, pw)
 
         if not user_id or not pw:
             return None

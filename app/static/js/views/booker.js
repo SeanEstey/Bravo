@@ -197,7 +197,6 @@ function showExpandRadiusModal() {
           $('.alert-banner').data('query'),
           radius + 2.0
         );
-
     });
 }
 
@@ -223,9 +222,9 @@ function showEnterIDModal(block, date) {
 
 				$.ajax({
 					type: 'POST',
-					url: $URL_ROOT + 'booker/get_acct',
+					url: $URL_ROOT + 'api/accounts/get',
 					data: {
-						'aid': $('#mymodal input[id="aid"]').val(),
+						'acct_id': $('#mymodal input[id="aid"]').val(),
 					},
 					dataType: 'json'
 				})
@@ -241,7 +240,7 @@ function showEnterIDModal(block, date) {
 						$('#mymodal').find('#acct_info').show();
 						$('#mymodal').find('#enter_aid').hide();
 						
-						var acct = response['account'];
+						var acct = response['data']; //['account'];
 
 						showConfirmModal(
 								block,
@@ -365,7 +364,7 @@ function buildAdminPanel() {
     update_maps_btn.click(function() {
         $.ajax({
           type: 'POST',
-          url: $URL_ROOT + 'booker/update_maps',
+          url: $URL_ROOT + 'api/booker/maps/update',
           data: {},
           dataType: 'json'
         })
@@ -385,7 +384,7 @@ function buildAdminPanel() {
     print_maps_btn.click(function() {
         $.ajax({
           type: 'POST',
-          url: $URL_ROOT + 'booker/get_maps',
+          url: $URL_ROOT + 'api/booker/maps/get',
           data: {},
           dataType: 'json'
         })

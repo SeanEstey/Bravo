@@ -99,18 +99,19 @@ def write_orders(sheets_api, ss_id, orders):
         ])
 
     # Start from Row 2 Column A to Column J
-    _range = "A2:J" + str(len(orders)+1)
+    range_ = "A2:J" + str(len(orders)+1)
 
     try:
-        gsheets.write_rows(sheets_api, ss_id, rows, _range)
+        gsheets.write_rows(sheets_api, ss_id, range_, rows)
         gsheets.vert_align_cells(sheets_api, ss_id, 2, len(orders)+1, 1,1)
         gsheets.bold_cells(sheets_api, ss_id, cells_to_bold)
-        values = gsheets.get_values(sheets_api, ss_id, "A1:$A")
+        values = gsheets.get_range(sheets_api, ss_id, 'Route', 'A1:$A')
         hide_start = 1 + len(rows) + 1;
         hide_end = values.index(['***Route Info***'])
         gsheets.hide_rows(sheets_api, ss_id, hide_start, hide_end)
     except Exception as e:
         log.error('sheets error: %s', str(e))
+        raise
 
 #-------------------------------------------------------------------------------
 def write_order(sheets_api, ss_id, order, row):

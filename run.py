@@ -88,8 +88,6 @@ def main(argv):
 
     sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
 
-    #print 'sio_server (initialized)=%s' % inspector(sio_server)
-
     start_worker(celery_beat)
 
     startup_msg(sio_server, app)
@@ -97,8 +95,7 @@ def main(argv):
     sio_server.run(
         app,
         port=app.config['LOCAL_PORT'],
-        use_reloader=True
-    )
+        use_reloader=False)
 
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":

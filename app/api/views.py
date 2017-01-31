@@ -1,5 +1,6 @@
 '''app.api.views'''
 from . import api
+from flask import g
 from flask_login import login_required
 from .main import get_var, build_resp, func_call, task_call, WRITE_ME
 from app.booker.geo import get_maps

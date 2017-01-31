@@ -42,7 +42,7 @@ def submit_job(route_id):
             continue
 
         try:
-            order_ = create_order(
+            order = create_order(
                 acct,
                 warnings,
                 get_keys('google',agcy=agcy)['geocode']['api_key'],
@@ -63,7 +63,7 @@ def submit_job(route_id):
         if order == False:
             num_skips += 1
         else:
-            orders.append(order_)
+            orders.append(order)
 
     log.debug('Omitting %s no pickups', str(num_skips))
 
@@ -85,17 +85,14 @@ def submit_job(route_id):
         SHIFT_END,
         get_keys('routing',agcy=agcy)['routific']['api_key'])
 
-    log.info(
+    log.debug(
         '\nSubmitted routific task\n'\
         'Job_id: %s\nOrders: %s\n'\
         'Min/stop: %s',
         job_id, len(orders), MIN_PER_STOP)
 
     g.db.routes.update_one(
-        {'agency': agcy,
-         'block': route['block'],
-         'date': utils.naive_to_local(
-            datetime.combine(route['date'].date(), time(0,0,0)))},
+        {'_id': route['_id']},
         {'$set': {
             'job_id': job_id,
             'status': 'processing',
@@ -182,8 +179,6 @@ def get_solution_orders(job_id, api_key):
     if task['status'] != 'finished':
         return task['status']
 
-    #log.debug(utils.print_vars(task, depth=5))
-
     route_info = g.db.routes.find_one({'job_id':job_id})
     agcy = route_info['agency']
 
@@ -191,7 +186,7 @@ def get_solution_orders(job_id, api_key):
     orders = task['output']['solution'].get(route_info['driver']['name']) or\
         task['output']['solution']['default']
 
-    log.info(
+    log.debug(
         '\nJob_id %s: %s\n'\
         'Sorted orders: %s\nUnserved orders: %s\nTravel time: %s',
         job_id, output['status'], len(orders), output['num_unserved'],

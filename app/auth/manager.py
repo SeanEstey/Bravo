@@ -48,7 +48,7 @@ def load_api_user(request):
             request.form.get('password'))
 
         if db_user:
-            log.debug('request_loader returning user_id=%s', db_user['user'])
+            #log.debug('request_loader returning user_id=%s', db_user['user'])
 
             user = User(
                 db_user['user'],

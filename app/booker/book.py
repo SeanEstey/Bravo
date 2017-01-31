@@ -2,7 +2,7 @@
 import logging, os
 from flask import g, render_template, request
 from datetime import datetime, time
-from .. import gsheets, mailgun
+from .. import get_keys, gsheets, mailgun
 from app.etap import EtapError, call, get_udf
 from app.dt import to_local, ddmmyyyy_to_dt
 from app.routing.build import create_order
@@ -11,51 +11,60 @@ from app.routing.geo import get_gmaps_url
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def make(data):
+def make():
     '''Makes the booking in eTapestry by posting to Bravo.
     This function is invoked from the booker client.
     @account: dict with account date. 'date' is dd/mm/yyyy str
+    @request.form: {
+        'block': block,
+        'date': date,
+        'aid': aid,
+        'driver_notes': notes,
+        'first_name': name,
+        'email': email,
+        'confirmation': confirmation}
     '''
 
-    log.info('Booking account %s for %s', data['aid'], data['date'])
+    log.info('Booking account %s for %s', request.form['aid'], request.form['date'])
 
-    response = update_dms(data)
+    response = update_dms()
 
     # is block/date for today and route already built?
 
     # yyyy-mm-dd format
-    event_dt = to_local(ddmmyyyy_to_dt(data['date']))
+    event_dt = to_local(ddmmyyyy_to_dt(request.form['date']))
 
     route = g.db.routes.find_one({
         'date': event_dt,
-        'block': data['block'],
+        'block': request.form['block'],
         'agency': g.user.agency})
 
     if route and route.get('ss'):
-        append_route(g.user.agency, route, data)
+        append_route(route)
 
-    if data['send_confirm']:
-        send_confirm(data)
+    if request.form['confirmation']:
+        send_confirm()
 
     return {
         'status': 'success',
         'description': response}
 
 #-------------------------------------------------------------------------------
-def update_dms(data):
+def update_dms():
 
     try:
-        response = etap.call(
+        response = call(
           'make_booking',
           get_keys('etapestry'),
           data={
-            'account_num': int(data['aid']),
+            'account_num': int(request.form['aid']),
             'type': 'pickup',
             'udf': {
-                'Driver Notes': '***' + data['driver_notes'] + '***',
-                'Office Notes': '***RMV ' + data['block'] + ' --' + data['user_fname'] + '***',
-                'Block': data['block'],
-                'Next Pickup Date': data['date']}})
+                'Driver Notes': '***%s***' % request.form['driver_notes'],
+                'Office Notes': '***RMV %s --%s***' %
+                    (request.form['block'], request.form['first_name']),
+                'Block': request.form['block'],
+                'Next Pickup Date': request.form['date']}})
     except EtapError as e:
         return {
             'status': 'failed',
@@ -69,17 +78,17 @@ def update_dms(data):
     return True
 
 #-------------------------------------------------------------------------------
-def append_route(route, data):
+def append_route(route):
     '''Block is already routed. Append order to end of Sheet'''
 
     log.info('%s already routed for %s. Appending to Sheet.',
-                data['block'], data['date'])
+                request.form['block'], request.form['date'])
     log.debug('appending to ss_id "%s"', route['ss']['id'])
 
-    acct = etap.call(
+    acct = call(
         'get_account',
         get_keys('etapestry'),
-        {'account_number': data['aid']})
+        {'account_number': request.form['aid']})
 
     service = gsheets.gauth(get_keys('google')['oauth'])
 
@@ -89,7 +98,7 @@ def append_route(route, data):
         get_keys('google')['geocode']['api_key'],
         route['driver']['shift_start'],
         '19:00',
-        etap.get_udf('Service Time', acct) or 3)
+        get_udf('Service Time', acct) or 3)
 
     order['gmaps_url'] = get_gmaps_url(
         order['location']['name'],
@@ -104,28 +113,28 @@ def append_route(route, data):
     return True
 
 #-------------------------------------------------------------------------------
-def send_confirm(data):
+def send_confirm():
     try:
         body = render_template(
             'email/%s/confirmation.html' % g.user.agency,
-            to = data['email'],
-            name = data['name'],
-            date_str = ddmmyyyy_to_dt(data['date']).strftime('%B %-d %Y'))
+            to = request.form['email'],
+            name = request.form['name'],
+            date_str = ddmmyyyy_to_dt(request.form['date']).strftime('%B %-d %Y'))
     except Exception as e:
         log.error('Email not sent because render_template error. %s ', str(e))
         pass
 
     mid = mailgun.send(
-        data['email'],
+        request.form['email'],
         'Pickup Confirmation',
         body,
         get_keys('mailgun'),
         v={'agcy':g.user.agency, 'type':'confirmation'})
 
     if mid == False:
-        log.error('failed to queue email to %s', data['email'])
+        log.error('failed to queue email to %s', request.form['email'])
     else:
-        log.info('queued confirmation email to %s', data['email'])
+        log.info('queued confirmation email to %s', request.form['email'])
 
 #-------------------------------------------------------------------------------
 def on_delivered():

@@ -84,8 +84,7 @@ def get_nearby_blocks(pt, radius, maps, events):
             if parser.get_block(event['summary']) == map_block:
                 block = {
                     'name': parser.get_block(event['summary']),
-                    'event':event
-                }
+                    'event':event}
 
                 break
 

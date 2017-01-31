@@ -15,7 +15,7 @@ from app.routing.tasks import build_route
 @api.route('/accounts/get', methods=['POST'])
 @login_required
 def call_accts_get():
-    return func_call(donors.get, get_var('acct_id')) # TODO: update booker to call this from API
+    return func_call(donors.get, get_var('acct_id'))
 
 @api.route('/accounts/gifts', methods=['POST'])
 @login_required
@@ -45,7 +45,7 @@ def call_alice_welcome():
 @api.route('/booker/create', methods=['POST'])
 @login_required
 def call_booker_create():
-    return func_call(make, get_var('data'))
+    return func_call(make)
 
 @api.route('/booker/search', methods=['POST'])
 @login_required

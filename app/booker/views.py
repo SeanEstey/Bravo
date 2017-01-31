@@ -1,13 +1,9 @@
 '''booker.views'''
-import json, logging, requests
-import twilio.twiml
+import logging
 from datetime import datetime, date, time, timedelta
-from flask import g, request, jsonify, render_template, redirect, current_app,url_for
-from flask_login import login_required, current_user
-from bson.objectid import ObjectId
-from . import booker, geo, search, book
-from .. import utils
-from .tasks import update_maps
+from flask import g, request, jsonify, render_template
+from flask_login import login_required
+from . import booker, geo
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -50,21 +46,3 @@ def find_nearby_blocks():
     results = geo.get_nearby_blocks(pt, SEARCH_RADIUS, maps, events)
 
     return jsonify(results)
-
-#-------------------------------------------------------------------------------
-@booker.route('/book', methods=['POST'])
-@login_required
-def do_booking():
-    log.debug(request.form.to_dict())
-
-    data = {
-        'aid': request.form['aid'],
-        'block': request.form['block'],
-        'date': request.form['date'],
-        'driver_notes': request.form['driver_notes'],
-        'name': request.form['name'],
-        'email': request.form['email'],
-        'send_confirm': request.form['confirmation'] == 'true',
-        'user_fname': g.user.name}
-
-    return jsonify(book.make(data))

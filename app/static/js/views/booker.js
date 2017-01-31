@@ -58,7 +58,7 @@ function search(query, radius, weeks) {
 
 		$.ajax({
 			type: 'POST',
-			url: $URL_ROOT + 'booker/search',
+			url: $URL_ROOT + 'api/booker/search',
 			data: {
         'query':query,
         'radius': radius,
@@ -79,7 +79,7 @@ function search(query, radius, weeks) {
 						return;
 				}
 
-        displaySearchResults(response);
+        displaySearchResults(response['data']);
     })
 }
 
@@ -313,13 +313,13 @@ function requestBooking(aid, block, date, notes, name, email, confirmation) {
 
 		$.ajax({
 			type: 'POST',
-			url: $URL_ROOT + 'booker/book',
+			url: $URL_ROOT + '/api/booker/create',
 			data: {
         'block': block,
         'date': date,
         'aid': aid,
         'driver_notes': notes,
-				'name': name,
+				'first_name': name,
 				'email': email,
 				'confirmation': confirmation
       },

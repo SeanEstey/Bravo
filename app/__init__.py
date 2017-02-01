@@ -195,3 +195,17 @@ def config_test_server(source):
     # Set SmsUrl callback to point to correct server
     #https://www.twilio.com/docs/api/rest/incoming-phone-numbers#instance
     return True
+
+#-------------------------------------------------------------------------------
+def get_op_stats():
+    #if not g.user:
+    #    return False
+
+    return {
+        'TEST_SERVER': True if os.environ['BRAVO_TEST_SERVER'] == 'True' else False,
+        'SANDBOX_MODE': True if os.environ['BRAVO_SANDBOX_MODE'] == 'True' else False,
+        'CELERY_BEAT': True if os.environ['BRAVO_CELERY_BEAT'] == 'True' else False,
+        'ADMIN': g.user.admin,
+        'DEVELOPER': g.user.developer,
+        'USER_NAME': g.user.name
+    }

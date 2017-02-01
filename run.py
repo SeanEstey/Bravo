@@ -1,6 +1,6 @@
 '''run'''
 import logging, os, time, sys, getopt
-from flask import g, session
+from flask import current_app, g, session
 from flask_login import current_user
 from setup import startup_msg
 from app import db_client, create_app, config_test_server, is_test_server
@@ -17,10 +17,8 @@ def do_setup():
     g.db = db_client['bravo']
 
     if session.get('user_id'):
-        #app.logger.debug('app.before_request() g.user loaded')
         g.user = load_user(session['user_id'])
-    #app.logger.debug('app before_request set g.user=%s', g.user)
-    #print 'app.before_request g.db=True'
+        g.app = current_app
 
 #-------------------------------------------------------------------------------
 @app.after_request
@@ -55,6 +53,8 @@ def start_worker(celery_beat):
         os.system('celery beat &')
     else:
         os.environ['BRAVO_CELERY_BEAT'] = 'False'
+
+
 
 #-------------------------------------------------------------------------------
 def main(argv):

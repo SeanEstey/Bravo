@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-def dial():
+def dial_recording():
     '''Request: POST from Bravo javascript client with 'To' arg
     Response: JSON dict {'status':'string'}
     '''
@@ -29,17 +29,18 @@ def dial():
         return 'failed'
 
     call = None
+    host = os.environ.get('BRAVO_HTTP_HOST')
 
     try:
         call = client.calls.create(
             from_ = twilio['voice']['number'],
             to = request.form['To'],
-            url ='%s/notify/record/answer.xml' % os.environ.get('BRAVO_HTTP_HOST'),
+            url ='%s/notify/record/answer.xml' % host,
             method = 'POST',
             if_machine = 'Continue',
-            fallback_url = '%s/notify/voice/fallback' % os.environ.get('BRAVO_HTTP_HOST'),
+            fallback_url = '%s/notify/voice/fallback' % host,
             fallback_method = 'POST',
-            status_callback = '%s/notify/record/complete' % os.environ.get('BRAVO_HTTP_HOST'),
+            status_callback = '%s/notify/record/complete' % host,
             status_events = ["completed"],
             status_method = 'POST')
     except Exception as e:
@@ -59,7 +60,7 @@ def dial():
         })
 
 
-    return {'status':call.status}
+    return {'call_status':call.status}
 
 #-------------------------------------------------------------------------------
 def on_answer():

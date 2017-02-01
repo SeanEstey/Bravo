@@ -58,7 +58,7 @@ def monitor_triggers(self, **kwargs):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def fire_trigger(self, _id, **rest):
+def fire_trigger(self, _id=None, **rest):
     '''Sends out all dependent sms/voice/email notifics messages
     '''
 

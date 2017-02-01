@@ -34,7 +34,7 @@ function newEventBtnHandlers() {
 
         $.ajax({
           type: 'POST',
-          url: $URL_ROOT + 'notify/record',
+          url: $URL_ROOT + 'api/notify/events/record',
           data: {'To':$('#phone-num').val()}
         })
         .done(function(response) {
@@ -231,7 +231,7 @@ function validateNewJobForm() {
 function submit(form_data) {
 		$.ajax({
 			type: 'POST',
-			url: $URL_ROOT + 'notify/new',
+			url: $URL_ROOT + '/api/notify/events/create',
 			data: form_data,
 			contentType: false,
 			processData: false,
@@ -242,7 +242,7 @@ function submit(form_data) {
 						console.log(response);
 
 						alertMsg(
-							'Response: ' + response['description'], 
+							'Response: ' + response['data']['description'], 
 							'danger', 30000)
 
 						$('.btn.loader').fadeTo('slow', 0, function() {
@@ -255,10 +255,10 @@ function submit(form_data) {
 				console.log(response);
 
 				addEvent(
-					response['event'],
-					response['view_url'],
-					response['cancel_url'],
-					response['description']);
+					response['data']['event'],
+					response['data']['view_url'],
+					response['data']['cancel_url'],
+					response['data']['description']);
 
 				$('.btn.loader').fadeTo('slow', 0, function() {
 						$('.loader-div').slideToggle();

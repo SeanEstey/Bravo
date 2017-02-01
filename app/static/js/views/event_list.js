@@ -69,7 +69,8 @@ function addDeleteBtnHandlers() {
 				$('#mymodal .btn-primary').click(function() {
 						$.ajax({
 							type: 'GET',
-							url: $URL_ROOT + 'notify/'+event_uuid+'/cancel'
+							url: $URL_ROOT + 'api/notify/events/cancel',
+              data: {'evnt_id': event_uuid}
 						})
 						.done(function(response) {
 								if(response['status'] == 'success')

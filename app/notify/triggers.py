@@ -47,11 +47,13 @@ def get_count(trig_id):
     return g.db.notifics.find({'trig_id':trig_id}).count()
 
 #-------------------------------------------------------------------------------
-def kill_task():
+def kill_trigger():
     '''Kill the celery task spawned by firing of this trigger. Called from view
     func so has request context.
     @request: array of str trig_id's to kill
     '''
+
+    # TODO: check if user has admin privileges to kill
 
     trigger = db.triggers.find_one({'_id':ObjectId(request.form.get('trig_id'))})
 

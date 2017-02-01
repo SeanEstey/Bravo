@@ -2,6 +2,7 @@
 from . import api
 from flask import g
 from flask_login import login_required
+from app import get_op_stats
 from .main import get_var, build_resp, func_call, task_call, WRITE_ME
 from app.booker.geo import get_maps
 from app.booker.search import search
@@ -10,8 +11,17 @@ from app.booker.tasks import update_maps
 from app.main import donors
 from app.main.signups import lookup_carrier
 from app.main.tasks import send_receipts
+from app.notify.events import create_event, cancel_event, reset_event
+from app.notify.recording import dial_recording
+from app.notify.tasks import fire_trigger
+from app.notify.triggers import kill_trigger
 from app.routing.main import edit_field
 from app.routing.tasks import build_route
+
+@api.route('/properties/get', methods=['POST'])
+@login_required
+def call_op_stats():
+    return func_call(get_op_stats)
 
 @api.route('/accounts/get', methods=['POST'])
 @login_required
@@ -67,37 +77,47 @@ def call_maps_update():
 @api.route('/notify/events/create', methods=['POST'])
 @login_required
 def call_create_event():
-    return task_call(WRITE_ME)
+    return func_call(create_event)
 
 @api.route('/notify/events/cancel', methods=['POST'])
 @login_required
 def call_cancel_event():
-    return task_call(WRITE_ME)
+    return func_call(cancel_event, evnt_id=get_var('evnt_id'))
 
 @api.route('/notify/events/reset', methods=['POST'])
 @login_required
 def call_reset_event():
-    return task_call(WRITE_ME)
+    return func_call(reset_event)
 
-@api.route('/notify/acct/edit', methods=['POST'])
+@api.route('/notify/events/record', methods=['POST'])
+@login_required
+def call_record():
+    return func_call(dial_recording)
+
+@api.route('/notify/accts/edit', methods=['POST'])
 @login_required
 def call_notify_acct_edit():
+    return func_call(WRITE_ME)
+
+@api.route('/notify/accts/remove', methods=['POST'])
+@login_required
+def call_notify_acct_rmv():
     return func_call(WRITE_ME)
 
 @api.route('/notify/triggers/fire', methods=['POST'])
 @login_required
 def call_trigger_fire():
-    return task_call(WRITE_ME)
+    return task_call(fire_trigger, get_var('trig_id'))
 
 @api.route('/notify/triggers/kill', methods=['POST'])
 @login_required
 def call_trigger_kill():
-    return task_call(WRITE_ME)
+    return func_call(kill_trigger)
 
 @api.route('/notify/acct/skip', methods=['POST'])
 @login_required
 def call_skip_pickup():
-    return task_call(WRITE_ME)
+    return task_call(kill_trigger)
 
 @api.route('/signups/lookup', methods=['POST'])
 @login_required

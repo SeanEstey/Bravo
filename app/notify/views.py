@@ -6,9 +6,7 @@ from flask_login import login_required
 from flask import g, request, jsonify, render_template, Response, url_for
 from app import smart_emit, get_keys, utils, cal, parser
 from app.main.tasks import create_rfu
-from .tasks import fire_trigger, skip_pickup
-from . import notify, accounts, admin, events, triggers, email, voice, sms,\
-    recording, pickups, gg, voice_announce
+from . import notify, accounts, events, triggers
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -63,79 +61,6 @@ def view_event(evnt_id):
         admin=g.user.is_admin())
 
 #-------------------------------------------------------------------------------
-@notify.route('/new', methods=['POST'])
-@login_required
-def new_event():
-    log.debug(request.form)
-
-    template = request.form['template_name']
-
-    try:
-        if template == 'green_goods':
-            evnt_id = gg.add_event()
-        elif template == 'recorded_announcement':
-            evnt_id = voice_announce.add_event()
-        elif template == 'bpu':
-            block = request.form['query_name']
-
-            if parser.is_res(block):
-                cal_id = get_keys('cal_ids')['res']
-            elif parser.is_bus(block):
-                cal_id = get_keys('cal_ids')['bus']
-            else:
-                return jsonify({'status':'failed', 'description':'Invalid Block name'})
-
-            date_ = cal.get_next_block_date(
-                cal_id, block, get_keys('google')['oauth'])
-
-            evnt_id = pickups.create_reminder(
-                g.user.agency,
-                block,
-                date_)
-    except Exception as e:
-        log.error(str(e))
-        log.debug('', exc_info=True)
-        return jsonify({
-            'status':'failed',
-            'description': str(e)})
-
-    event = g.db.notific_events.find_one({'_id':evnt_id})
-
-    event['triggers'] = events.get_triggers(event['_id'])
-
-    for trigger in event['triggers']:
-        # modifying 'triggers' structure for view rendering
-        trigger['count'] = triggers.get_count(trigger['_id'])
-
-    return jsonify({
-        'status':'success',
-        'event': utils.formatter(
-            event,
-            to_local_time=True,
-            bson_to_json=True),
-        'view_url': url_for('.view_event', evnt_id=str(event['_id'])),
-        'cancel_url': url_for('.cancel_event', evnt_id=str(event['_id'])),
-        'description':
-            'Reminders for event %s successfully scheduled.' %
-            (request.form['query_name'])})
-
-#-------------------------------------------------------------------------------
-@notify.route('/<evnt_id>/cancel')
-@login_required
-def cancel_event(evnt_id):
-    if not events.remove(ObjectId(evnt_id)):
-        return jsonify({'status': 'failed'})
-
-    return jsonify({'status': 'success'})
-
-#-------------------------------------------------------------------------------
-@notify.route('/<evnt_id>/reset')
-@login_required
-def reset_event(evnt_id):
-    events.reset(evnt_id)
-    return 'OK'
-
-#-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/<acct_id>/remove', methods=['POST'])
 @login_required
 def rmv_notifics(evnt_id, acct_id):
@@ -160,121 +85,11 @@ def edit_msg(acct_id):
     return accounts.edit(ObjectId(acct_id), request.form.items())
 
 #-------------------------------------------------------------------------------
-@notify.route('/<trig_id>/fire', methods=['POST'])
-@login_required
-def _fire_trigger(trig_id):
-    if not admin.auth_request_type('admin'):
-        return 'Denied'
-
-    trigger = g.db.triggers.find_one({'_id':ObjectId(trig_id)})
-
-    fire_trigger.delay(_id=str(trigger['_id']))
-
-    return jsonify({'status':'OK'})
-
-#-------------------------------------------------------------------------------
-@notify.route('/<evnt_id>/<acct_id>/no_pickup', methods=['GET'])
-def no_pickup(evnt_id, acct_id):
-
-    if not pickups.is_valid(evnt_id, acct_id):
-        log.error('event/acct not found (evnt_id=%s, acct_id=%s)',
-            evnt_id, acct_id)
-        return 'Sorry there was an error fulfilling your request'
-
-    skip_pickup.delay(evnt_id, acct_id)
-
-    return 'Thank You'
-
-#-------------------------------------------------------------------------------
-@notify.route('/record', methods=['POST'])
-@login_required
-def record_msg():
-    return jsonify(recording.dial())
-
-#-------------------------------------------------------------------------------
-@notify.route('/record/answer.xml',methods=['POST'])
-def record_xml():
-    twiml = recording.on_answer()
-    return Response(response=str(twiml), mimetype='text/xml')
-
-#-------------------------------------------------------------------------------
-@notify.route('/record/interact.xml', methods=['POST'])
-def record_interact_xml():
-    twiml = recording.on_interact()
-    return Response(response=str(twiml), mimetype='text/xml')
-
-#-------------------------------------------------------------------------------
-@notify.route('/record/complete',methods=['POST'])
-def record_complete():
-    return jsonify(recording.on_complete())
-
-#-------------------------------------------------------------------------------
-@notify.route('/voice/play/answer.xml',methods=['POST'])
-def get_call_answer_xml():
-    r = str(voice.on_answer())
-    log.debug(r)
-    return Response(r, mimetype='text/xml')
-
-#-------------------------------------------------------------------------------
-@notify.route('/voice/play/interact.xml', methods=['POST'])
-def get_call_interact_xml():
-    r = str(voice.on_interact())
-    log.debug(r)
-    return Response(r, mimetype='text/xml')
-
-#-------------------------------------------------------------------------------
-@notify.route('/voice/complete', methods=['POST'])
-def call_complete():
-    return voice.on_complete()
-
-#-------------------------------------------------------------------------------
-@notify.route('/voice/fallback', methods=['POST'])
-def call_fallback():
-    return voice.on_error()
-
-#-------------------------------------------------------------------------------
-@notify.route('/sms/status', methods=['POST'])
-def sms_status():
-    return sms.on_status()
-
-#-------------------------------------------------------------------------------
-@notify.route('/call/nis', methods=['POST'])
-def nis():
-    log.info('NIS!')
-    record = request.get_json()
-
-    create_rfu.delay(
-        g.user.agency,
-        '%s not in service' % record['custom']['to'],
-        options={
-            'Account Number': record['account_id'],
-            'Block': record['custom']['block']})
-
-    return str(e)
-
-#-------------------------------------------------------------------------------
-@notify.route('/kill_trigger', methods=['POST'])
-@login_required
-def kill_trigger():
-    return jsonify(triggers.kill())
-
-#-------------------------------------------------------------------------------
 @notify.route('/<trig_id>/get_status', methods=['POST'])
 @login_required
 def get_trig_status(trig_id):
-
     status = g.db.triggers.find_one({'_id':ObjectId(trig_id)})['status']
     return jsonify({'status':status, 'trig_id':trig_id})
-
-#-------------------------------------------------------------------------------
-@notify.route('/get_op_stats', methods=['POST'])
-@login_required
-def get_op_stats():
-
-    stats = admin.get_op_stats()
-    if not stats:
-        return jsonify({'status':'failed'})
-    return jsonify(stats)
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/debug_info', methods=['POST'])

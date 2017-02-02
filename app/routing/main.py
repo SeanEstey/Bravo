@@ -86,7 +86,9 @@ def add_metadata(agcy, block, event_dt, event):
         if get_udf('Status', acct) == 'Dropoff':
             n_drops += 1
 
-    postal = re.sub(r'\s', '', event['location']).split(',')
+    postal = ''
+    if event.get('location'):
+        postal = re.sub(r'\s', '', event['location']).split(',')
 
     if len(get_keys('routing', agcy=agcy)['locations']['depots']) > 1:
         depot = depots.resolve(block, postal)
@@ -98,7 +100,7 @@ def add_metadata(agcy, block, event_dt, event):
       'date': event_dt.astimezone(pytz.utc),
       'agency': agcy,
       'status': 'pending',
-      'postal': re.sub(r'\s', '', event['location']).split(','),
+      'postal': postal,
       'depot': depot,
       'driver': get_keys('routing', agcy=agcy)['drivers'][0], # default driver
       'orders': n_booked,

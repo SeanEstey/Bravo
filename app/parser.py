@@ -5,6 +5,7 @@ re_bus_blck = r'B\d{1,2}[A-E]{1}'
 re_res_blck = r'R\d{1,2}[a-zA-Z]{1}'
 re_postal = r'T\d[A-Z]\s?(\d[A-Z]\d)?'
 re_acct_id = r'[\/]?\d{1,6}'
+re_cal_route_size = r'\d{1,3}\/\d{1,3}'
 
 def is_block(s):
     return match('^%s$' % re_blck, s) is not None
@@ -36,8 +37,13 @@ def has_postal(s):
 def is_account_id(s):
     return match(r'^%s$' % re_acct_id, s) is not None
 
-def get_num_booked(event_summary):
-    m = search(r'\(\d{1,3}\/', event_summary)
+def is_route_size(s):
+    return match(re_cal_route_size, s) is not None
+
+def get_route_size(evnt_title):
+    '''title "R6B [Area1, Area2] (35/45)" returns "45"
+    '''
+    m = search(re_cal_route_size, evnt_title)
     if not m: return False
     return m.group(0)[1:-1]
 

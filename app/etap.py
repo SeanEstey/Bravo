@@ -44,22 +44,22 @@ def call(func, keys, data, silence_exc=False):
         log.error('requests error=%s', str(e))
         return EtapError(str(e)) if silence_exc else False
 
-    if response.status_code != 200:
-        log.error('EtapError. func="%s", response_code=%s, description=%s',
-            func, response.status_code, response.text)
+    try:
+        resp_text = json.loads(response.text)
+    except Exception as e:
+        log.error('not json serializable, rv=%s', response.text)
         raise EtapError(response.text)
 
-    try:
-        data = json.loads(response.text)
-    except Exception as e:
-        log.error(str(e))
-        return False
+    if response.status_code != 200:
+        log.error('EtapError: func="%s", response_code=%s, \nDescription: %s',
+            func, response.status_code, resp_text)
+        raise EtapError(resp_text)
 
-    return data
+    return resp_text
 
 #-------------------------------------------------------------------------------
 def get_query(block, keys, category=None):
-    category_ = category if category else keys['category']
+    category_ = category if category else keys['query_category']
 
     try:
         rv = call('get_query', keys, {

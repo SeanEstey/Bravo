@@ -89,7 +89,7 @@
 		}
 	} 
 	catch(Exception $e) {
-			error_log('Error in view="' . $func . '". ' . (string)$e);
+			debug_log('Error in view="' . $func . '". ' . (string)$e);
 			debug_log(print_r($data, true));
 			http_response_code(500);
 			echo json_encode($e->getMessage());
@@ -98,7 +98,7 @@
 	}
 
 	if(http_response_code() != 200) {
-			error_log('response_code=' . http_response_code());
+			debug_log('response_code=' . http_response_code() . ' message=' . $rv);
 			echo json_encode($rv);
 			$nsc->call("logout");
 			exit;
@@ -106,6 +106,6 @@
 
 	echo json_encode($rv);
 	$nsc->call("logout");
-	debug_log('success! func="' . $func . '", response_code=' . http_response_code());
+	debug_log('status=SUCCESS, func="' . $func . '", code=' . http_response_code());
 	exit;
 ?>

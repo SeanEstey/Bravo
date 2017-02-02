@@ -19,7 +19,7 @@ class MainTasksTests(unittest.TestCase):
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 
-    def test_send_receipts(self):
+    def _test_send_receipts(self):
         entry = {
             'agcy': 'vec',
             'acct_id': 269,
@@ -64,6 +64,12 @@ class MainTasksTests(unittest.TestCase):
             #tasks.update_accts_sms(agcy='vec')
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
+
+    def test_update_cal_routes(self):
+        try:
+            tasks.update_calendar_routes()
+        except Exception as e:
+            log.debug('err=%s', str(e), exc_info=True)
 
 if __name__ == '__main__':
     unittest.main()

@@ -30,14 +30,16 @@ def get_next_block_date(cal_id, block, oauth):
     return False
 
 #-------------------------------------------------------------------------------
-def get_blocks(cal_id, start_date, end_date, oauth):
-    '''Return list of Block names between scheduled dates'''
+def get_blocks(cal_id, start_dt, end_dt, oauth):
+    '''Return list of Block names between scheduled dates
+    @start, end: naive datetime objects
+    '''
 
     blocks = []
 
     try:
         service = gcal.gauth(oauth)
-        events = gcal.get_events(service, cal_id, start_date, end_date)
+        events = gcal.get_events(service, cal_id, start_dt, end_dt)
     except Exception as e:
         log.error('Could not access Res calendar: %s', str(e))
         return False

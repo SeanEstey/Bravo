@@ -1,9 +1,12 @@
 '''app.main.tasks'''
 import json, logging, re
-from datetime import date, timedelta
+from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from flask import g
 from app import cal, celery, get_keys
+from app.parser import get_block, is_block, get_area, is_route_size
+from app.gcal import gauth as gcal_auth, get_events, to_dt, rename_event
+from app.cal import get_blocks
 from app.gsheets import gauth, append_row, get_row
 from app.etap import call, get_udf, mod_acct
 from app.dt import ddmmyyyy_to_mmddyyyy as swap_dd_mm
@@ -69,8 +72,90 @@ def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
 
     return 'success'
 
+#-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def upload_gifts(self, 
+def update_calendar_blocks(self, agcy='vec', **rest):
+    '''Update calendar events for each Block with num accounts booked and total
+    Block size
+    '''
+
+    log.info('task: updating calendar route sizes...')
+
+    if agcy:
+        agencies = [g.db.agencies.find_one({'name':agcy})]
+    else:
+        agencies = g.db.agencies.find({})
+
+    for agency in agencies:
+        agcy = agency['name']
+        etap_conf = get_keys('etapestry',agcy=agcy)
+        oauth = get_keys('google',agcy=agcy)['oauth']
+        srvc = gcal_auth(oauth)
+
+        start = datetime.combine(date.today(), time())
+        end = start + timedelta(days=30)
+        cal_ids = get_keys('cal_ids',agcy=agcy)
+
+        n_updated = n_errs = 0
+
+        for id_ in cal_ids:
+            events = get_events(srvc, cal_ids[id_], start, end)
+
+            for evnt in events:
+                dt = to_dt(evnt['start']['date'])
+                block = get_block(evnt['summary'])
+                title = evnt['summary']
+
+                if not block:
+                    continue
+
+                try:
+                    rv = call('get_route_size', etap_conf, {
+                        'category': etap_conf['query_category'],
+                        'query': block,
+                        'date':dt.strftime('%d/%m/%Y')})
+                except Exception as e:
+                    n_errs+=1
+                    continue
+
+                # Title format: 'R6B [Area1, Area2, Area3] (51/55)'
+
+                if not is_route_size(rv):
+                    log.debug('invalid value=%s from "get_route_size"', rv)
+                    n_errs+=1
+                    continue
+
+                new_title = '%s [%s] (%s)' %(
+                    get_block(title), get_area(title) or '', rv)
+
+                log.debug('updating block %s event title="%s", date=%s',
+                    block, new_title, evnt['start']['date'])
+
+                rename_event(srvc, cal_ids[id_], evnt['id'],
+                    evnt['start']['date'], evnt['end']['date'], new_title)
+                n_updated+=1
+
+                '''
+                if is_res(block):
+                    DO_ME = ''
+                    #booking_size = booking_rules['size']['res'];
+                else:
+                    DO_ME = ''
+                    #booking_size = booking_rules['size']['bus'];
+
+                if(size < booking_size['medium'])
+                  new_event['colorId'] = Settings['calendar_color_id']['green'];
+                else if(size >= booking_size['medium'] && size < booking_size['large'])
+                  new_event['coloured'] = Settings['calendar_color_id']['yellow'];
+                else if(size >= booking_size['large'] && size < booking_size['max'])
+                  new_event['colorId'] = Settings['calendar_color_id']['orange'];
+                else if(size >= booking_size['max'])
+                  new_event['colorId'] = Settings['calendar_color_id']['light_red'];
+                '''
+
+        log.info('updated %s calendar events. %s errors. agcy=%s', n_updated, n_errs, agcy)
+
+    return 'success'
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -154,10 +239,10 @@ def send_receipts(self, entries, **rest):
 @celery.task(bind=True)
 def create_rfu(self, agcy, note, options=None, **rest):
 
-    service = gauth(get_keys('google',agcy=agcy)['oauth'])
+    srvc = gauth(get_keys('google',agcy=agcy)['oauth'])
     ss_id = get_keys('google',agcy=agcy)['ss_id']
     wks = 'RFU'
-    headers = get_row(service, ss_id, wks, 1)
+    headers = get_row(srvc, ss_id, wks, 1)
     rfu = [''] * len(headers)
     rfu[headers.index('Request Note')] = note
 
@@ -168,7 +253,7 @@ def create_rfu(self, agcy, note, options=None, **rest):
         if field in options:
             rfu[headers.index(field)] = options[field]
 
-    append_row(service, ss_id, wks, rfu)
+    append_row(srvc, ss_id, wks, rfu)
     log.debug('Creating RFU=%s', rfu)
 
     return 'success'

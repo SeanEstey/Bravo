@@ -5,20 +5,26 @@ require("./lib/nusoap.php");
 //-----------------------------------------------------------------------
 function is_error($nsc) {
     /* Checks SOAP obj for API call errors */
-    return ($nsc->fault || $nsc->getError()) ? true : false;
+    
+    $err = ($nsc->fault || $nsc->getError()) ? true : false;
+
+    if($err)
+        http_response_code(500);
+
+    return $err;
 }
 
 //-----------------------------------------------------------------------
 function get_error($nsc, $log=true) {
-    if(is_error($nsc))
-        http_response_code(500);  
-
     if(!$nsc->fault)
-        $err_desc = 'error: ' . $nsc->getError();
+        $err_desc = 'Error: ' . $nsc->getError();
     else
-        $err_desc = 'error ' . $nsc->faultcode . ", desc: " . $nsc->faultstring;
+        $err_desc = 'Error ' . $nsc->faultcode . ". " . $nsc->faultstring;
 
-    return $log ? error_log($err_desc) : $err_desc;
+    if($log)
+      error_log($err_desc);
+
+    return $err_desc;
 }
 
 //-----------------------------------------------------------------------

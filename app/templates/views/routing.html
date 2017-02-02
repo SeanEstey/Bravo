@@ -86,7 +86,7 @@
           </td>
           <td name="status">{{ route.status }}</td>
           <td>
-            {% if route.duration is defined %}
+            {% if route.duration is defined and route.duration %}
               {{ (route.duration/60)|round(0,'floor')|int }} hrs {{ route.duration % 60 }} min
             {% else %}
               -- : --

@@ -16,5 +16,9 @@ beat_schedule = {
 	'build_routes': {
 		  'task': 'app.routing.tasks.build_routes',
 		  'schedule': crontab(hour=6, minute=30, day_of_week='*')
-	 }
+	 },
+     'update_calendar_blocks': {
+        'task': 'app.main.update_calendar_blocks',
+        'schedule': crontab(hour=7, minute=0, day_of_week='*')
+     }
 }

@@ -1,6 +1,6 @@
 '''app.gcal'''
-
 import logging
+from datetime import datetime
 from oauth2client.client import SignedJwtAssertionCredentials
 import httplib2
 from apiclient.discovery import build
@@ -14,7 +14,7 @@ def gauth(oauth):
         credentials = SignedJwtAssertionCredentials(
             oauth['client_email'],
             oauth['private_key'],
-            ['https://www.googleapis.com/auth/calendar.readonly']
+            ['https://www.googleapis.com/auth/calendar']
         )
 
         http = httplib2.Http()
@@ -51,3 +51,31 @@ def get_events(service, cal_id, start, end):
     events = events_result.get('items', [])
 
     return events
+
+#-------------------------------------------------------------------------------
+def rename_event(srvc, cal_id, evnt_id, start, end, title):
+    '''events.update pydoc: https://tinyurl.com/hllg2cu
+    '''
+
+    try:
+        rv = srvc.events().update(
+            calendarId=cal_id,
+            eventId=evnt_id,
+            body= {
+                'summary': title,
+                #'originalStartTime': {'date':start}}
+                'end': {'date': end},
+                'start': {'date': start}
+            }
+        ).execute()
+    except Exception as e:
+        log.error('error updating event. desc=%s', str(e))
+        log.debug('',exc_info=True)
+        raise
+
+    log.debug('event update status=%s', rv['status'])
+
+#-------------------------------------------------------------------------------
+def to_dt(date_):
+    parts = date_.split('-')
+    return datetime(int(parts[0]), int(parts[1]), int(parts[2]))

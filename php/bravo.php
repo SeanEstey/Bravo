@@ -44,9 +44,9 @@ function get_accts($acct_ids=NULL, $acct_refs=NULL) {
     for($i=0; $i< count($list); $i++) {
         try {
             if(!is_null($acct_ids))
-                $accts[] = get_acct($nsc, $id=$list[$i]);
+                $accts[] = get_acct($id=$list[$i]);
             else if(!is_null($acct_refs))
-                $accts[] = get_acct($nsc, $ref=$list[$i]);
+                $accts[] = get_acct($ref=$list[$i]);
         } catch (Exception $e) {
             $accts[] = (string)$e;
         }
@@ -106,10 +106,10 @@ function find_acct_by_phone($phone) {
 }
 
 //-----------------------------------------------------------------------
-function get_route_size($query_category, $query, $date) {
+function get_route_size($category, $query, $date) {
 	/* Find out how many stops in given Query are scheduled for given Date
 	 * @date: eTap formatted date string dd/mm/yyyy
-	 * Returns: string "num_accounts_booked/num_query_accounts" on success,
+	 * Returns: string "booked/total",
 	 * error string on fail (http_response_code 400)
 	 */
 
@@ -119,13 +119,14 @@ function get_route_size($query_category, $query, $date) {
   $response = $nsc->call("getExistingQueryResults", [[ 
     'start' => 0,
     'count' => 500,
-    'query' => "$query_category::$query"
+    'query' => "$category::$query"
   ]]);
 
-  // Fault Code 102: Invalid Query Category
-  // Fault Code 103: Invalid Query
-  if(is_error($nsc))
-			return get_error($nsc, $log=true);
+  // Often "invalid query" or "invalid category"
+  if(is_error($nsc)) {
+			$msg = get_error($nsc, $log=false);
+			return $msg . ' (query="' . $query . '", category="' . $category .'")';
+  }
 
 	// Convert from str dd/mm/yyyy to date object
 	$date = explode("/", $date);
@@ -171,7 +172,7 @@ function get_route_size($query_category, $query, $date) {
   else
     $ratio .= '?';
   
-  debug_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
+  //debug_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
 
   http_response_code(200);
 
@@ -210,7 +211,7 @@ function gift_histories($acct_refs, $start, $end) {
     $accts_je = [];
 
     for($i=0; $i < count($data['acct_refs']); $i++) {
-        $accts_je[] = gift_history($nsc, $acct_refs[$i], $start, $end);
+        $accts_je[] = gift_history($acct_refs[$i], $start, $end);
     }
 
     debug_log(count($accts_je) . ' gift histories retrieved.');
@@ -285,8 +286,8 @@ function get_upload_status($request_id, $from_row) {
 }
 
 //-----------------------------------------------------------------------
-function upload_gifts($nsc, $entries) {
-    global $db, $agcy;
+function upload_gifts($entries) {
+    global $nsc, $db, $agcy;
 
     $db_collect = new MongoDB\Collection($db, "bravo.entries");
     $num_errors = 0;
@@ -305,7 +306,7 @@ function upload_gifts($nsc, $entries) {
       else
         $entries[$i]['gift']['definedValues'] = [];
 
-      $status = upload_gift($nsc, $entries[$i]);
+      $status = upload_gift($entries[$i]);
 
       if(floatval($status) == 0)
         $num_errors++;
@@ -339,9 +340,9 @@ function upload_gift($entry) {
       return 'Acct # ' . (string)$entry['acct_id'] . ' not found.';
 
     if(!empty($entry['gift']['date']))
-      remove_udf($nsc, $acct, $entry['udf']);
+      remove_udf($acct, $entry['udf']);
 
-    apply_udf($nsc, $acct, $entry['udf']);
+    apply_udf($acct, $entry['udf']);
     
     if(is_error($nsc))
         return get_error($nsc, $log=true);
@@ -429,7 +430,7 @@ function add_accts($submissions) {
 
     // Modify existing eTap account
     if(!empty($submission['existing_account'])) {
-      $status = modify_acct($nsc, 
+      $status = modify_acct( 
         $submission['existing_account'], 
         $submission['udf'], 
         $submission['persona']
@@ -504,7 +505,7 @@ function modify_acct($id, $udf, $persona) {
      */
 
 		global $nsc;
-		$acct = get_acct($nsc, $id=$id);
+		$acct = get_acct($id=$id);
 
     foreach($persona as $key=>$value) {
       // If 'phones' array is included, all phone types must be present or data will be lost
@@ -525,8 +526,8 @@ function modify_acct($id, $udf, $persona) {
     if(is_error($nsc))
         return get_error($nsc, $log=True);
 
-    remove_udf($nsc, $acct, $udf);
-    apply_udf($nsc, $acct, $udf);
+    remove_udf($acct, $udf);
+    apply_udf($acct, $udf);
 
     if(is_error($nsc))
         return get_error($nsc, $log=True);
@@ -551,7 +552,7 @@ function skip_pickup($acct_id, $date, $next_pickup) {
 				
 		$off_notes = get_udf($acct, 'Office Notes') . ' No Pickup ' . $date;
 
-		apply_udf($nsc, $acct, [
+		apply_udf($acct, [
 				'Office Notes'=>$off_notes,
 				'Next Pickup Date'=>$next_pickup]);
 
@@ -640,8 +641,8 @@ function apply_udf($acct, $udf) {
 
   $nsc->call('applyDefinedValues', array($acct["ref"], $definedvalues, false));
   
-  if(checkForError($nsc))
-    return 'apply_udf error: ' . $nsc->faultcode . ': ' . $nsc->faultstring;
+	if(is_error($nsc))
+			return get_error($nsc, $log=true);
 }
 
 //-----------------------------------------------------------------------
@@ -649,9 +650,8 @@ function check_duplicates($persona_fields) {
 	global $nsc;
   $accts = $nsc->call("getDuplicateAccounts", array($persona_fields));
   
-  if(checkForError($nsc)) {
-    return $nsc->faultcode . ': ' . $nsc->faultstring;
-  }
+	if(is_error($nsc))
+			return get_error($nsc, $log=true);
 
 	if(empty($accts))
 		return false;
@@ -672,7 +672,7 @@ function make_booking($acct_id, $udf, $type) {
 
 	global $nsc, $agcy;
 
-  $acct = get_acct($nsc, $id=$acct_id);
+  $acct = get_acct($id=$acct_id);
   
   // convert stdclass to array
   if(is_object($udf)) {
@@ -698,7 +698,7 @@ function make_booking($acct_id, $udf, $type) {
 					$udf['Status'] = 'Green Goods Delivery';
   }
 
-  apply_udf($nsc, $acct, $udf);
+  apply_udf($acct, $udf);
 
 	if(is_error($nsc))
 			return get_error($nsc, $log=true);

@@ -13,6 +13,10 @@ celery = init_celery(_celery, app)
 timer = None
 #print 'celery (initialized)=%s' % inspector(celery, public=True, private=True)
 
+from app.main.tasks import *
+from app.booker.tasks import *
+from app.notify.tasks import *
+
 #-------------------------------------------------------------------------------
 @task_prerun.connect
 def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwargs):

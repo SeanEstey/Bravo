@@ -36,7 +36,7 @@ function get_inputs() {
             $sandbox = $_POST['sandbox'];
     }
 
-    debug_log('agcy=' . $agcy . ', func="' . $func . '"');
+    #debug_log('agcy=' . $agcy . ', func="' . $func . '"');
 }
 
 //-----------------------------------------------------------------------
@@ -53,8 +53,8 @@ function get_db() {
         http_response_code(500);
     }
 
-    if($db)
-        debug_log('db connected');
+    //if($db)
+    //    debug_log('db connected');
 
     return $db;
 }

@@ -57,10 +57,10 @@ def add_instructions():
     driver_notes = etap.get_udf('Driver Notes', acct)
 
     etap.call(
-        'modify_account',
+        'modify_acct',
         session.get('conf')['etapestry'],
         data={
-            'id': acct['id'],
+            'acct_id': acct['id'],
             'udf': {
                 'Driver Notes':\
                     '***%s***\n%s' %(
@@ -250,8 +250,8 @@ def add_acct(address, phone, block, pu_date_str):
     log.info(utils.print_vars(acct, depth=2))
 
     try:
-        account = etap.call(
-          'add_accounts',
+        etap.call(
+          'add_accts',
           conf['etapestry'],
           [acct]
         )

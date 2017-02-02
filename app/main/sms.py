@@ -36,8 +36,8 @@ def enable(agency, accounts):
                 log.info('Adding SMS field to Account %s', str(account['id']))
 
                 try:
-                    etap.call('modify_account', conf['etapestry'], {
-                      'id': account['id'],
+                    etap.call('modify_acct', conf['etapestry'], {
+                      'acct_id': account['id'],
                       'udf': {'SMS': int_format},
                       'persona': {}
                     })
@@ -74,8 +74,8 @@ def enable(agency, accounts):
         log.info('Acct #%s: Found mobile number. SMS ready.', str(account['id']))
 
         try:
-            etap.call('modify_account', conf['etapestry'], {
-              'id': account['id'],
+            etap.call('modify_acct', conf['etapestry'], {
+              'acct_id': account['id'],
               'udf': {'SMS': info.phone_number},
               'persona': {
                 'phones':[

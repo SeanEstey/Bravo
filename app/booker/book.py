@@ -57,7 +57,7 @@ def update_dms():
           'make_booking',
           get_keys('etapestry'),
           data={
-            'account_num': int(request.form['aid']),
+            'acct_id': int(request.form['aid']),
             'type': 'pickup',
             'udf': {
                 'Driver Notes': '***%s***' % request.form['driver_notes'],
@@ -86,9 +86,9 @@ def append_route(route):
     log.debug('appending to ss_id "%s"', route['ss']['id'])
 
     acct = call(
-        'get_account',
+        'get_acct',
         get_keys('etapestry'),
-        {'account_number': request.form['aid']})
+        {'acct_id': request.form['aid']})
 
     service = gsheets.gauth(get_keys('google')['oauth'])
 

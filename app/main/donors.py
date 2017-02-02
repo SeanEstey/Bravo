@@ -11,9 +11,9 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 def get(acct_id):
     return etap.call(
-        'get_account',
+        'get_acct',
         get_keys('etapestry'),
-        data={'account_number': int(acct_id)})
+        data={'acct_id': int(acct_id)})
 
 #-------------------------------------------------------------------------------
 def is_inactive(agcy, acct, days=270):
@@ -46,9 +46,9 @@ def is_inactive(agcy, acct, days=270):
         je = etap.call(
             'get_gift_histories',
             get_keys('etapestry',agcy=agcy), {
-                "account_refs": [acct['ref']],
-                "start_date": cutoff_date.strftime('%d/%b/%Y'),
-                "end_date": date.today().strftime('%d/%b/%Y')})[0]
+                "acct_refs": [acct['ref']],
+                "start": cutoff_date.strftime('%d/%b/%Y'),
+                "end": date.today().strftime('%d/%b/%Y')})[0]
     except EtapError as e:
         log.error('get_gift_histories fail. desc=%s', str(e))
         raise

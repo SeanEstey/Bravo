@@ -7,16 +7,12 @@ from .main import get_var, build_resp, func_call, task_call, WRITE_ME
 from app.booker.geo import get_maps
 from app.booker.search import search
 from app.booker.book import make
-from app.booker.tasks import update_maps
 from app.main import donors
 from app.main.signups import lookup_carrier
-from app.main.tasks import send_receipts
 from app.notify.events import create_event, cancel_event, reset_event
 from app.notify.recording import dial_recording
-from app.notify.tasks import fire_trigger
 from app.notify.triggers import kill_trigger
 from app.routing.main import edit_field
-from app.routing.tasks import build_route
 
 @api.route('/properties/get', methods=['POST'])
 @login_required
@@ -36,6 +32,7 @@ def call_accts_gifts():
 @api.route('/accounts/receipts', methods=['POST'])
 @login_required
 def call_accts_receipts():
+    from app.main.tasks import send_receipts
     return task_call(send_receipts, get_var('entries'))
 
 @api.route('/accounts/create', methods=['POST'])
@@ -72,6 +69,7 @@ def call_maps_get():
 @api.route('/booker/maps/update', methods=['POST'])
 @login_required
 def call_maps_update():
+    from app.booker.tasks import update_maps
     return task_call(update_maps, agcy=g.user.agency)
 
 @api.route('/notify/events/create', methods=['POST'])
@@ -107,6 +105,7 @@ def call_notify_acct_rmv():
 @api.route('/notify/triggers/fire', methods=['POST'])
 @login_required
 def call_trigger_fire():
+    from app.notify.tasks import fire_trigger
     return task_call(fire_trigger, get_var('trig_id'))
 
 @api.route('/notify/triggers/kill', methods=['POST'])
@@ -127,6 +126,7 @@ def call_phone_lookup():
 @api.route('/routing/build', methods=['POST'])
 @login_required
 def call_route_build():
+    from app.routing.tasks import build_route
     return task_call(build_route, get_var('route_id'), job_id=get_var('job_id'))
 
 @api.route('/routing/edit', methods=['POST'])

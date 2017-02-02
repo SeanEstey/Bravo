@@ -3,7 +3,6 @@ import logging, os
 from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
 from .. import smart_emit, get_keys, utils, mailgun
-from app.main.tasks import create_rfu
 from app.dt import to_utc
 log = logging.getLogger(__name__)
 
@@ -104,6 +103,7 @@ def on_dropped():
 
     agcy = g.db.notific_events.find_one({'_id':notific['evnt_id']})['agency']
 
+    from app.main.tasks import create_rfu
     create_rfu.delay(
         agcy, msg + request.form.get('description'),
         options={

@@ -7,8 +7,6 @@ from app import cal, celery, get_keys
 from app.gsheets import gauth, append_row, get_row
 from app.etap import call, get_udf, mod_acct
 from app.dt import ddmmyyyy_to_mmddyyyy as swap_dd_mm
-from . import sms
-import app.main.donors
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -16,6 +14,8 @@ log = logging.getLogger(__name__)
 def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
     '''Create RFU's for all non-participants on scheduled dates
     '''
+
+    import app.main.donors
 
     if agcy:
         agencies = [g.db.agencies.find_one({'name':agcy})]
@@ -69,6 +69,9 @@ def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
 
     return 'success'
 
+@celery.task(bind=True)
+def upload_gifts(self, 
+
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def send_receipts(self, entries, **rest):
@@ -88,9 +91,9 @@ def send_receipts(self, entries, **rest):
         # Get all eTapestry account data.
         # List is indexed the same as @entries arg list
         accts = call(
-            'get_accounts',
+            'get_accts',
             get_keys('etapestry'),
-            {"account_numbers": [i['acct_id'] for i in entries]})
+            {"acct_ids": [i['acct_id'] for i in entries]})
     except Exception as e:
         log.error('Error retrieving accounts from etap: %s', str(e))
         raise
@@ -175,6 +178,8 @@ def create_rfu(self, agcy, note, options=None, **rest):
 def update_accts_sms(self, agcy=None, in_days=None, **rest):
     '''Verify that all accounts in upcoming residential routes with mobile
     numbers are set up to interact with SMS system'''
+
+    from . import sms
 
     if not in_days:
         in_days = 3

@@ -1,107 +1,119 @@
 <?php
 
-require("./lib/nusoap.php");
-
-
 //-----------------------------------------------------------------------
-function connect($db) {
-  if($db->connect_errno > 0){
-    die('Unable to connect to database [' . $db->connect_error . ']');
+function connect($db_collection) {
+  if($db_collection->connect_errno > 0){
+    die('Unable to connect to database [' . $db_collection->connect_error . ']');
   }
 }
 
 //-----------------------------------------------------------------------
-function checkForError($nsc) {
-	/* Checks SOAP object for errors from the previous API call. Writes
-	 * fault code and fault string to errorlog on error.
-	 * Returns: true on error, false otherwise.
-	 */
+function get_acct($id=NULL, $ref=NULL) {
+		global $nsc;
+    $acct = NULL;
 
-  global $agency;
-
-  if($nsc->fault || $nsc->getError()) {
-    if(!$nsc->fault) {
-      error_log($agency . ": Error: " . $nsc->getError());
-      return true;
+    if(!is_null($id)) {
+        $acct = $nsc->call("getAccountById", array($id));
     }
-    else {
-      error_log($agency . ": fault code " . $nsc->faultcode . ", msg: " . $nsc->faultstring);
-      return true;
+    else if(!is_null($ref)) {
+        $acct = $nsc->call('getAccount', array($ref));
     }
-  }
 
-  return false;
+    if(!$acct) {
+        $id_or_ref = $id . $ref;
+        throw new Exception('no acct matching id/ref ' . $id_or_ref);
+    }
+
+    if(is_error($nsc))
+        throw new Exception(get_error($nsc, $log=true));
+
+    return utf8_converter($acct);
 }
 
 //-----------------------------------------------------------------------
-function formatDateAsDateTimeString($dateStr) {
-  if ($dateStr == null || $dateStr == "") return "";
-  if (substr_count($dateStr, "/") != 2) return "[Invalid Date: $dateStr]";
+function get_accts($acct_ids=NULL, $acct_refs=NULL) {
+		global $nsc;
+    $list = NULL;
+    $accts = [];
 
-  $separator1 = stripos($dateStr, "/");
-  $separator2 = stripos($dateStr, "/", $separator1 + 1);
+    if(!is_null($acct_ids))
+        $list = $acct_ids;
+    else if(!is_null($acct_refs))
+        $list = $acct_refs;
 
-  $day = substr($dateStr, 0, $separator1);
-  $month = substr($dateStr, $separator1 + 1, $separator2 - $separator1 - 1);
-  $year = substr($dateStr, $separator2 + 1);
+    for($i=0; $i< count($list); $i++) {
+        try {
+            if(!is_null($acct_ids))
+                $accts[] = get_acct($nsc, $id=$list[$i]);
+            else if(!is_null($acct_refs))
+                $accts[] = get_acct($nsc, $ref=$list[$i]);
+        } catch (Exception $e) {
+            $accts[] = (string)$e;
+        }
+    }
 
-  if($day > 0 && $month > 0 && $year > 0)
-    return date(DATE_ATOM, mktime(0, 0, 0, $month, $day, $year));
-  else
-    return "[Invalid Date: $dateStr]";
+    return $accts;
 }
 
 //-----------------------------------------------------------------------
-function get_account($nsc, $account_number) {
-  $account = $nsc->call("getAccountById", array($account_number));
+function get_query($query, $category) {
+		global $nsc;
 
-  if(!$account)
-    return false;
+    $rv = $nsc->call("getExistingQueryResults", [[
+        'start' => 0,
+        'count' => 500,
+        'query' => "$category::$query"
+      ]]
+    );
 
-  return $account;
+    if(is_error($nsc))
+        return get_error($nsc, $log=true);
+
+    debug_log($rv['count'] . ' accounts in query ' . $query);
+
+    // Prevents errors if non-utf8 characters are present. 
+    return utf8_converter($rv);
 }
 
 //-----------------------------------------------------------------------
-function find_account_by_phone($nsc, $phone) {
-	/* Searches accounts for matching User Defined Field 'SMS', which
-	 * is filled in by Bravo if an accounts Persona has a valid Mobile Phone.
-	 * Field is international format: +14035551111
-	 * @phone: international format phone number
-	 * Returns: eTap Account object on success, false on no result.
-	 */
+function find_acct_by_phone($phone) {
+		/* Searches accounts for matching User Defined Field 'SMS', which
+		 * is filled in by Bravo if an accounts Persona has a valid Mobile Phone.
+		 * Field is international format: +14035551111
+		 * @phone: international format phone number
+		 * Returns: eTap Account object on success, false on no result.
+		 */
 
-  debug_log('finding account for ' . $phone);
+		global $nsc;
+		debug_log('finding account for ' . $phone);
 
-  $dv = [
-    'fieldName'=>'SMS',
-    'value'=> $phone
-  ];
+		$dv = [
+			'fieldName'=>'SMS',
+			'value'=> $phone
+		];
 
-  $account = $nsc->call('getAccountByUniqueDefinedValue', array($dv));
+		$acct = $nsc->call('getAccountByUniqueDefinedValue', array($dv));
 
-  if(checkForError($nsc)) {
-      error_log('multiple accounts found');
-      return false;
-  }
+		if(is_error($nsc))
+				return get_error($nsc, $log=true);
 
-  if(!$account) {
-    debug_log('No matching account found for phone number ' . $phone);
-    return false;
-  }
-  else
-    debug_log('Found account Id ' . $account['id'] . ' matching ' . $phone);
+		if(!$acct)
+				throw new Exception('no acct found with SMS field="' . $phone . '"');
 
-  return $account;
+		debug_log('found acct_id=' . $acct['id'] . ' matching ' . $phone);
+
+		return utf8_converter($acct);
 }
 
 //-----------------------------------------------------------------------
-function get_scheduled_block_size($nsc, $query_category, $query, $date) {
+function get_route_size($query_category, $query, $date) {
 	/* Find out how many stops in given Query are scheduled for given Date
 	 * @date: eTap formatted date string dd/mm/yyyy
 	 * Returns: string "num_accounts_booked/num_query_accounts" on success,
 	 * error string on fail (http_response_code 400)
 	 */
 
+	global $nsc;
   ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
   
   $response = $nsc->call("getExistingQueryResults", [[ 
@@ -112,10 +124,8 @@ function get_scheduled_block_size($nsc, $query_category, $query, $date) {
 
   // Fault Code 102: Invalid Query Category
   // Fault Code 103: Invalid Query
-  if(checkForError($nsc)) {
-    http_response_code(400);
-    return $response['faultstring'];
-  }
+  if(is_error($nsc))
+			return get_error($nsc, $log=true);
 
 	// Convert from str dd/mm/yyyy to date object
 	$date = explode("/", $date);
@@ -124,13 +134,13 @@ function get_scheduled_block_size($nsc, $query_category, $query, $date) {
   
 	$matches = 0;
 
-	foreach($response['data'] as $account) {
+	foreach($response['data'] as $acct) {
 		$blocks = [];
 		$next_pickup = '';
 		$next_delivery = '';
 	
 		// Extract UDF's
-    foreach($account['accountDefinedValues'] as $udf) {
+    foreach($acct['accountDefinedValues'] as $udf) {
 			if($udf['fieldName'] == 'Next Pickup Date') {
 				// Convert from str dd/mm/yyyy to date object
 				$next_pickup = explode("/", $udf['value']);
@@ -169,10 +179,11 @@ function get_scheduled_block_size($nsc, $query_category, $query, $date) {
 }
 
 //-----------------------------------------------------------------------
-function get_block_size($nsc, $query_category, $query) {
+function get_block_size($query_category, $query) {
 	/* Return number of accounts in given query
 	 */
 
+	global $nsc;
   $response = $nsc->call('getExistingQueryResults', [[
     'start' => 0,
     'count' => 500,
@@ -180,7 +191,7 @@ function get_block_size($nsc, $query_category, $query) {
     ]]
   );
 
-  if(checkForError($nsc)) {
+  if(is_error($nsc)) {
 		http_response_code(400);
     return $response;
   }
@@ -194,26 +205,42 @@ function get_block_size($nsc, $query_category, $query) {
 }
 
 //-----------------------------------------------------------------------
-function get_gift_history($nsc, $ref, $start_date, $end_date) {
+function gift_histories($acct_refs, $start, $end) {
+		global $nsc;
+    $accts_je = [];
+
+    for($i=0; $i < count($data['acct_refs']); $i++) {
+        $accts_je[] = gift_history($nsc, $acct_refs[$i], $start, $end);
+    }
+
+    debug_log(count($accts_je) . ' gift histories retrieved.');
+
+    return $accts_je;
+}
+
+//-----------------------------------------------------------------------
+function gift_history($ref, $start, $end) {
 	/* Returns array of journal gift histories where amount > $0 and format
 	 * {'date': '2016-01-05T05:00:00:000Z', 'amount': 16.00}
 	 */
 
-  ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
+	global $nsc;
+  ini_set('max_execution_time', 3000); // IMPORTANT: prevents timeout err
 
   // Return filtered journal entries for provided year
   $request = [
     'accountRef' => $ref,
     'start' => 0,
     'count' => 100,
-    'startDate' => formatDateAsDateTimeString($start_date),
-    'endDate' => formatDateAsDateTimeString($end_date),
+    'startDate' => format_date($start),
+    'endDate' => format_date($end),
     'types' => [5] // Gifts filter
     ];
 
   $response = $nsc->call("getJournalEntries", array($request));
   
-  checkForError($nsc);
+  if(is_error($nsc))
+			return get_error($nsc, $log=true);
 
   $gifts = [];
 
@@ -232,10 +259,20 @@ function get_gift_history($nsc, $ref, $start_date, $end_date) {
 }
 
 //-----------------------------------------------------------------------
-function get_upload_status($db, $request_id, $from_row) {
+function get_upload_status($request_id, $from_row) {
 	/* Check on progress of update_accounts, add_gifts, add_accounts */
-  
-  $cursor = $db->find(['request_id'=>$request_id]);
+
+	// TODO: Make sure from_row is always included in this call, otherwise
+	// error in views when accessing data['from_row']
+
+	if(!empty($from_row))
+			$from_row = $from_row;
+	else
+			$from_row = 2;
+
+  global $db;
+  $db_collect = new MongoDB\Collection($db, "bravo.entries");
+  $cursor = $db_collect->find(['request_id'=>$request_id]);
   $results = [];
 
   foreach($cursor as $document) {
@@ -248,111 +285,137 @@ function get_upload_status($db, $request_id, $from_row) {
 }
 
 //-----------------------------------------------------------------------
-function process_route_entry($nsc, $entry) {
-	/* If no Date present, UDF will be updated but not cleared
-	 * If Gift + Date, UDF wil be updated and cleared
-	 */
+function upload_gifts($nsc, $entries) {
+    global $db, $agcy;
 
-  ini_set('max_execution_time', 30000); // IMPORTANT: To prevent fatail error timeout
+    $db_collect = new MongoDB\Collection($db, "bravo.entries");
+    $num_errors = 0;
 
-  $etap_account = $nsc->call("getAccountById", array($entry['account_number']));
+    debug_log('Processing entries for ' . 
+      (string)count($data['entries']) . ' accounts');
 
-  if(!$etap_account)
-		return 'Acct # ' . (string)$entry['account_number'] . ' not found.';
+    for($i=0; $i < count($entries); $i++) { 
 
-	if(!empty($entry['gift']['date']))
-		remove_udf($nsc, $etap_account, $entry['udf']);
+      if($agcy == 'vec') {
+        $entries[$i]['gift']['definedValues'] = [[
+          'fieldName' => 'T3010 code',  
+          'value' => '4000-560'
+        ]];
+      }
+      else
+        $entries[$i]['gift']['definedValues'] = [];
 
-  apply_udf($nsc, $etap_account, $entry['udf']);
-  
-  if(checkForError($nsc))
-    return 'Error: ' . $nsc->faultcode . ': ' . $nsc->faultstring;
+      $status = upload_gift($nsc, $entries[$i]);
 
-  // Green Goods deliveries will have no gift estimate
-	if(empty($entry['gift']['amount']))
-		if($entry['gift']['amount'] !== 0)
-			return true;
+      if(floatval($status) == 0)
+        $num_errors++;
 
-  return $nsc->call("addGift", [[
-    'accountRef' => $etap_account['ref'],
-    'amount' => $entry['gift']['amount'],
-    'fund' => $entry['gift']['fund'],
-    'campaign' => $entry['gift']['campaign'],
-    'approach' => $entry['gift']['approach'],
-    'note' => $entry['gift']['note'],
-    'date' => formatDateAsDateTimeString($entry['gift']['date']),
-    'valuable' => [
-      'type' => 5,
-      'inKind' => []
-		],
-		'definedValues' => $entry['gift']['definedValues']
-  ], 
-    false
-  ]);
+      $result = $db_collect->insertOne([ 
+        'function' => 'upload_gift',
+        'request_id' => $data['request_id'],
+        'row' => $entries[$i]['row'],
+        'status' => $status
+      ]);
+    }
+
+    debug_log('Processed ' . (string)count($entries) . 
+      ' route entries. ' . (string)$num_errors . ' errors.');
+
+    return $num_errors;
 }
 
 //-----------------------------------------------------------------------
-function add_note($nsc, $note) {
-	/* $note format: {'id': account_number, 'Note': note, 'Date': date} */
-	/* Returns response code 200 on success, 400 on failure */
+function upload_gift($entry) {
+    /* If no Date present, UDF will be updated but not cleared
+     * If Gift + Date, UDF wil be updated and cleared
+     */
 
-  global $sandbox_mode;
-  if($sandbox_mode == true) {
-    return 'sandbox mode. writes are protected';
-  }
+		global $nsc;
+    ini_set('max_execution_time', 30000); // IMPORTANT: To prevent fatail error timeout
 
-  $account = $nsc->call("getAccountById", array($note["id"]));
-  checkForError($nsc);
+    $acct = $nsc->call("getAccountById", array($entry['acct_id']));
 
-  // Define Note
-  $trans = array(
-    'accountRef' => $account['ref'],
-    'note' => $note['Note'],
-    'date' => formatDateAsDateTimeString($note['Date'])
-  );
+    if(!$acct)
+      return 'Acct # ' . (string)$entry['acct_id'] . ' not found.';
 
-  $status = $nsc->call("addNote", array($trans, false));
-  
-  if(is_array($status)) {
-    $status = $status["faultstring"];
-    http_response_code(400);
-    return 'add_note failed: ' . $status;
-  }
-  else {
-    debug_log('Note added for account ' . $note['id']);
+    if(!empty($entry['gift']['date']))
+      remove_udf($nsc, $acct, $entry['udf']);
+
+    apply_udf($nsc, $acct, $entry['udf']);
+    
+    if(is_error($nsc))
+        return get_error($nsc, $log=true);
+
+    // Green Goods deliveries will have no gift estimate
+    if(empty($entry['gift']['amount']))
+      if($entry['gift']['amount'] !== 0)
+        return true;
+
+    return $nsc->call("addGift", [[
+      'accountRef' => $acct['ref'],
+      'amount' => $entry['gift']['amount'],
+      'fund' => $entry['gift']['fund'],
+      'campaign' => $entry['gift']['campaign'],
+      'approach' => $entry['gift']['approach'],
+      'note' => $entry['gift']['note'],
+      'date' => format_date($entry['gift']['date']),
+      'valuable' => [
+        'type' => 5,
+        'inKind' => []
+      ],
+      'definedValues' => $entry['gift']['definedValues']
+    ], 
+      false
+    ]);
+}
+
+//-----------------------------------------------------------------------
+function add_note($acct_id, $date, $body) {
+    /* $note format: {'id': acct_id, 'Note': note, 'Date': date} */
+    /* Returns response code 200 on success, 400 on failure */
+
+		global $nsc;
+
+    $acct = get_acct($id=$acct_id);
+
+    $trans = [
+      'accountRef' => $acct['ref'],
+      'note' => $body,
+      'date' => format_date($date)];
+
+    $status = $nsc->call("addNote", array($trans, false));
+
+    if(is_error($nsc))
+        return get_error($nsc, $log=True);
+    
+    debug_log('Note added for account ' . $acct_id);
     return $status;
-  }
 }
 
 //-----------------------------------------------------------------------
-function update_note($nsc, $data) {
-  global $sandbox_mode;
-  if($sandbox_mode == true) {
-    return 'sandbox mode. writes are protected';
-  }
+function update_note($acct_id, $note_ref, $body) {
 
-  $note = $nsc->call('getNote', array($data['ReferenceNumber']));
-  $note['note'] = $data['Note'];
-  $status = $nsc->call('updateNote', array($note, false));
-  
-  if(is_array($status)) {
-    $status = $status["faultstring"];
-    return 'update_note_failed. ' . $status;
-  }
-  else {
-    debug_log('Note updated for account ' . $data['id']);
+		global $nsc;
+    $note = $nsc->call('getNote', array($note_ref));
+    if(is_error($nsc))
+        return get_error($nsc, $log=True);
+
+    $note['note'] = $body;
+    $status = $nsc->call('updateNote', array($note, false));
+    if(is_error($nsc))
+        return get_error($nsc, $log=True);
+    
+    debug_log('Updated note. acct_id=' . $acct_id);
+
     return $status;
-  }
 }
 
 //-----------------------------------------------------------------------
-function add_accounts($db, $nsc, $submissions) {
-  global $agency;
-  global $sandbox_mode;
-  if($sandbox_mode == true) {
-    return 'sandbox mode. writes are protected';
-  }
+function add_accts($submissions) {
 
+  global $nsc, $agcy, $db;
+
+  $db_collect = new MongoDB\Collection($db, "bravo.entries");
   $num_errors = 0;
   
   for($n=0; $n<count($submissions); $n++) {
@@ -366,7 +429,7 @@ function add_accounts($db, $nsc, $submissions) {
 
     // Modify existing eTap account
     if(!empty($submission['existing_account'])) {
-      $status = modify_account($nsc, 
+      $status = modify_acct($nsc, 
         $submission['existing_account'], 
         $submission['udf'], 
         $submission['persona']
@@ -375,8 +438,8 @@ function add_accounts($db, $nsc, $submissions) {
       if($status != 'Success')
         $num_errors++;
       
-      $result = $db->insertOne([ 
-        'function' => 'add_accounts',
+      $result = $db_collection->insertOne([ 
+        'function' => 'add_accts',
         'request_id' => $submission['request_id'],
         'row' => $submission['row'],
         'status' => $status
@@ -388,14 +451,14 @@ function add_accounts($db, $nsc, $submissions) {
     /******** Create new account ********/
     
     // Personas
-    $account = $submission['persona'];
+    $acct = $submission['persona'];
     $udf = $submission['udf'];
 
     // User Defined Fields
     // Create proper DefinedValue object
     foreach($udf as $key=>$value) {
       if($key != 'Block' && $key != 'Neighborhood') {
-        $account['accountDefinedValues'][] = [
+        $acct['accountDefinedValues'][] = [
           'fieldName'=>$key,
           'value'=>$value
         ];
@@ -405,23 +468,23 @@ function add_accounts($db, $nsc, $submissions) {
       else {
         $list = explode(",", $value);
         for($j=0; $j<count($list); $j++) {
-          $account['accountDefinedValues'][] = ['fieldName'=>$key, 'value'=>$list[$j]];
+          $acct['accountDefinedValues'][] = ['fieldName'=>$key, 'value'=>$list[$j]];
         }
       }
     }
 
-    $status = $nsc->call("addAccount", array($account, false));
+    $status = $nsc->call("addAccount", array($acct, false));
     
     if(is_array($status)) {
       $status = $status['faultstring'];
-      error_log($agency . ': Add account error: ' . $status);
+      error_log($agcy . ': Add account error: ' . $status);
       $num_errors++;
     }
     else
-      debug_log('Added account ' . $account['name']);
+      debug_log('Added account ' . $acct['name']);
 
-    $result = $db->insertOne([ 
-      'function' => 'add_accounts',
+    $result = $db_collection->insertOne([ 
+      'function' => 'add_accts',
       'request_id' => $submission['request_id'],
       'row' => $submission['row'],
       'status' => $status
@@ -435,140 +498,117 @@ function add_accounts($db, $nsc, $submissions) {
 }
 
 //-----------------------------------------------------------------------
-function modify_account($nsc, $id, $udf, $persona) {
-	/* $udf is associative array ie. ["Status"=>"Active", ...], not 
-	 * DefinedValue object. The call to apply_udf() converts to DefinedValue 
-	 * format.
-	 * $persona is associative array
-	 */
+function modify_acct($id, $udf, $persona) {
+		/* Modify an acct Persona and/or User Defined Fields
+     * @persona, @udf: associative arrays of FieldName=>Value (not DefinedValue objects)
+     */
 
-  global $sandbox_mode;
+		global $nsc;
+		$acct = get_acct($nsc, $id=$id);
 
-  if($sandbox_mode == true)
-    return 'Success';
-  
-  $account = $nsc->call("getAccountById", [$id]);
-
-  if(!$account)
-    return debug_log('modify_account(): Id ' . (string)$id . ' does not exist');
-
-  foreach($persona as $key=>$value) {
-		// If 'phones' array is included, all phone types must be present or data will be lost
-		$account[$key] = $value;
-  }
-
-  // Fix blank firstName / lastName bug in non-business accounts
-  if($account['nameFormat'] != 3)  {
-    if(!$account['lastName'] || !$account['firstName']) {
-      $split = explode(' ', $account['name']);
-      $account['firstName'] = $split[0];
-      $account['lastName'] = $split[count($split)-1];
+    foreach($persona as $key=>$value) {
+      // If 'phones' array is included, all phone types must be present or data will be lost
+      $acct[$key] = $value;
     }
-  }
 
-  $ref = $nsc->call("updateAccount", [$account, false]);
+    // Fix blank firstName / lastName bug in non-business accounts
+    if($acct['nameFormat'] != 3)  {
+      if(!$acct['lastName'] || !$acct['firstName']) {
+        $split = explode(' ', $acct['name']);
+        $acct['firstName'] = $split[0];
+        $acct['lastName'] = $split[count($split)-1];
+      }
+    }
 
-  if(checkForError($nsc))
-    return debug_log('in modify_account(): eTap API updateAccount() error: ' . $nsc->faultcode . ': ' . $nsc->faultstring);
+    $nsc->call("updateAccount", [$acct, false]);
 
-  // Now update UDF fields 
-  remove_udf($nsc, $account, $udf);
-  apply_udf($nsc, $account, $udf);
-  
-  if(checkForError($nsc))
-    return debug_log('in modify_account(): Error ' . $nsc->faultcode . ': ' . $nsc->faultstring);
+    if(is_error($nsc))
+        return get_error($nsc, $log=True);
 
-  debug_log('Updated account ' . $account['firstName'] . ' ' . $account['lastName'] . ' (' . $account['id'] . ')');
+    remove_udf($nsc, $acct, $udf);
+    apply_udf($nsc, $acct, $udf);
 
-  return 'Success';
+    if(is_error($nsc))
+        return get_error($nsc, $log=True);
+
+    debug_log('updated acct_id=' . $id);
+
+    return 'Success';
 }
 
 //-----------------------------------------------------------------------
-function no_pickup($nsc, $account_id, $date, $next_pickup) {
-	/* Updates given Accounts "Next Pickup Date" UDF to given
-	 * next date and adds "No Pickup" Journal Note for given event date
-	 * @date: dd/mm/yyyy string
-	 * @next_pickup: dd/mm/yyyy string
-	 * Returns: JSON string
+function skip_pickup($acct_id, $date, $next_pickup) {
+	/* Updates UDF's, adds JE note, return confirm. string
+	 * @date, @next_pickup: dd/mm/yyyy str
 	 */
 
-  global $sandbox_mode;
-  if($sandbox_mode == true)
-    return json_encode(["Sandbox mode. No changes made"]);
+		global $nsc;
+		$acct = $nsc->call("getAccountById", array($acct_id));
 
-  $account = $nsc->call("getAccountById", array($account_id));
-  $office_notes = "";
-  $udf = $account['accountDefinedValues'];
+		if(!acct) {
+        throw new Exception('no acct matching id ' . $acct_id);
+		}
+				
+		$off_notes = get_udf($acct, 'Office Notes') . ' No Pickup ' . $date;
 
-  foreach($udf as $key=>$value) {
-    if(in_array("Office Notes", $value, true))
-      $office_notes = $value['value'];
-  }
+		apply_udf($nsc, $acct, [
+				'Office Notes'=>$off_notes,
+				'Next Pickup Date'=>$next_pickup]);
 
-  $no_pickup_note = $office_notes . ' No Pickup ' . $date;
+		// params: Note Obj, createFieldAndValues (bool)
+		$status = $nsc->call("addNote", [[
+			'accountRef' => $acct['ref'],
+			'note' => 'No Pickup',
+			'date' => format_date($date)
+			],
+			false
+		]);
+		
+		debug_log('skipping pickup, acct_id=' . $acct_id);
 
-  // params: db_ref, defined_values, create_field_and_values (bool)
-  $status = $nsc->call("applyDefinedValues", [
-    $account['ref'],
-    array(
-      ['fieldName'=>'Office Notes', 'value'=>$no_pickup_note],
-      ['fieldName'=>'Next Pickup Date', 'value'=>$next_pickup]
-    ),
-    false
-  ]);
-
-  // params: Note Obj, createFieldAndValues (bool)
-  $status = $nsc->call("addNote", [[
-    'accountRef' => $account['ref'],
-    'note' => 'No Pickup',
-    'date' => formatDateAsDateTimeString($date)
-    ],
-    false
-  ]);
-  
-  debug_log('Account ' . $account_id . ' No Pickup');
-
-	return json_encode(["No Pickup request received. Thanks"]);
+		return json_encode(["No Pickup request received. Thanks"]);
 }
 
 //-----------------------------------------------------------------------
-function remove_udf($nsc, $account, $udf) {
+function remove_udf($acct, $udf) {
 	/* Clear all the User Defined Field values
 	 * $udf: array of defined field names
-	 * $account: eTap account
+	 * $acct: eTap account
 	 */
 
+	global $nsc;
   $udf_remove = [];
 
   // Cycle through numbered array of all UDF values. Defined Fields with
   // multiple values like checkboxes will contain an array element for each value
-  foreach($account['accountDefinedValues'] as $key=> $field) {
+  foreach($acct['accountDefinedValues'] as $key=> $field) {
 		if($field['fieldName'] == 'Data Source' || $field['fieldName'] == 'Are you ready to start collecting empty beverage containers?' || $field['fieldName'] == 'Beverage Container Customer' || $field['fieldName'] =='Next PickUp Date' || $field['fieldName'] == 'Mailing Address' || $field['fieldName'] == 'Location Type' || $field['fieldName'] == 'Pick Up Frequency') {
-			$udf_remove[] = $account['accountDefinedValues'][$key];
+			$udf_remove[] = $acct['accountDefinedValues'][$key];
 			continue;
 		}
 
     if(array_key_exists($field['fieldName'], $udf))
-      $udf_remove[] = $account["accountDefinedValues"][$key];       
+      $udf_remove[] = $acct["accountDefinedValues"][$key];       
   }
 
   if(empty($udf_remove))
     return false;
 
-  $nsc->call('removeDefinedValues', array($account["ref"], $udf_remove, false));
+  $nsc->call('removeDefinedValues', array($acct["ref"], $udf_remove, false));
 
-  if(checkForError($nsc))
-    return 'remove_udf error: ' . $nsc->faultcode . ': ' . $nsc->faultstring;
+  if(is_error($nsc))
+      return get_error($nsc, $log=true);
 }
 
 //-----------------------------------------------------------------------
-function apply_udf($nsc, $account, $udf) {
+function apply_udf($acct, $udf) {
 	/* Converts associative array of defined values into DefinedValue eTap 
 	 * object, modifies account
 	 * $udf: associative array of udf_names=>values
 	 * $account: eTap Account object
 	 */
 
+	global $nsc;
   $definedvalues = [];
   
   foreach($udf as $fieldname=>$fieldvalue) {
@@ -598,125 +638,112 @@ function apply_udf($nsc, $account, $udf) {
   if(empty($definedvalues))
     return false;
 
-  $nsc->call('applyDefinedValues', array($account["ref"], $definedvalues, false));
+  $nsc->call('applyDefinedValues', array($acct["ref"], $definedvalues, false));
   
   if(checkForError($nsc))
     return 'apply_udf error: ' . $nsc->faultcode . ': ' . $nsc->faultstring;
 }
 
 //-----------------------------------------------------------------------
-function check_duplicates($nsc, $persona_fields) {
-  $accounts = $nsc->call("getDuplicateAccounts", array($persona_fields));
+function check_duplicates($persona_fields) {
+	global $nsc;
+  $accts = $nsc->call("getDuplicateAccounts", array($persona_fields));
   
   if(checkForError($nsc)) {
     return $nsc->faultcode . ': ' . $nsc->faultstring;
   }
 
-	if(empty($accounts))
+	if(empty($accts))
 		return false;
 
     $ids = [];
 
-		for($i=0; $i<sizeof($accounts); $i++) {
-			$ids[] = $accounts[0]['id'];
+		for($i=0; $i<sizeof($accts); $i++) {
+			$ids[] = $accts[0]['id'];
     }
 
     //debug_log($ids);
-
     return $ids;
 }
 
 //-----------------------------------------------------------------------
-function make_booking($nsc, $account_num, $udf, $type) {
+function make_booking($acct_id, $udf, $type) {
 	/* Type: either 'pickup' or 'delivery' */
 
-  $account = $nsc->call("getAccountById", array($account_num));
-  
-  if(!$account)
-    return false;
+	global $nsc, $agcy;
 
+  $acct = get_acct($nsc, $id=$acct_id);
+  
   // convert stdclass to array
   if(is_object($udf)) {
       $udf = get_object_vars($udf);
   }
 
-  $has_status = false;
-  $status = '';
+	$udf['Driver Notes'] = get_udf($acct, 'Driver Notes') . '\\n' . $udf['Driver Notes'];
+	$off_notes = get_udf($acct, 'Office Notes');
+	$blocks = get_udf($acct, 'Block');
 
-  // Find existing Driver and Office notes and merge them with parameter values
-  foreach($account['accountDefinedValues'] as $index=>$a_udf) {
-    if($a_udf['fieldName'] == 'Status') {
-      $has_status = true;
-      $status = $a_udf['value'];
-    }
-    else if($a_udf['fieldName'] == 'Office Notes')
-      $udf['Office Notes'] = $a_udf['value'] . '\\n' . $udf['Office Notes'];
-    else if($a_udf['fieldName'] == 'Driver Notes')
-      $udf['Driver Notes'] = $udf['Driver Notes'] . '\\n' . $a_udf['value'];
-    // If we're booking onto a natural block, just a later one, we don't want
-    // to include a ***RMV BLK*** directive
-    else if($a_udf['fieldName'] == 'Block' && $a_udf['value'] == $udf['Block']) {
-      $udf['Office Notes'] = '';
-    }
+	// Omit ***RMV BLK*** if book block == natural block
+	if(in_array($udf['Block'], $blocks))
+			$udf['Office Notes'] = $off_notes;
+	else
+			$udf['Office Notes'] =  $off_notes . '\\n' . $udf['Office Notes'];
+
+	if($agcy == 'wsf' && $type == 'delivery') {
+			$status = get_udf($acct, 'Status');
+
+			if($status != 'Active' || $status != 'Dropoff' || $status != 'Cancelling')
+					$udf['Status'] = 'Green Goods Delivery';
+			else if(!$status)
+					$udf['Status'] = 'Green Goods Delivery';
   }
 
-  if($has_status && $type == 'delivery') {
-    if($status != 'Active' || $status != 'Dropoff' || $status != 'Cancelling')
-      $udf['Status'] = 'Green Goods Delivery';
-  }
-  else if(!$has_status)
-    $udf['Status'] = 'Green Goods Delivery';
+  apply_udf($nsc, $acct, $udf);
 
-  apply_udf($nsc, $account, $udf);
+	if(is_error($nsc))
+			return get_error($nsc, $log=true);
 
-  if(checkForError($nsc)) {
-    http_response_code(400);  
-    return $nsc->faultcode . ': ' . $nsc->faultstring;
-  }
-
-  http_response_code(200);  
-
-  debug_log('Booked Account #' . $account_num . ' on Block ' . $udf['Block']);
+  debug_log('Booked Account #' . $acct_id . ' on Block ' . $udf['Block']);
 
   return 'Booked successfully!';
 }
 
 //-----------------------------------------------------------------------
-function get_next_pickup($nsc, $email) {
+function get_next_pickup($email) {
 	/* Find account matching given Email and get it's "Next Pickup Date" 
-	 * User Defined Field.
+	 * User Defined Field. Called from emptiestowinn.com
 	 * Returns: dd/mm/yyyy string on success, false if account not found
 	 * or empty Next Pickup Date field
 	 */
 
+	global $nsc;
   $dv = [
     'email' => $email,
     'accountRoleTypes' => 1,
     'allowEmailOnlyMatch' => true
   ]; 
 
-	$response = $nsc->call("getDuplicateAccount", array($dv));
+	$acct = $nsc->call("getDuplicateAccount", array($dv));
 
-  if(empty($response))
-		return false;
+  if(empty($acct))
+			throw new Exception('acct not found for ' . $email);
 
 	// Loop through array and extract fieldName = "Next Pickup Date"
-	foreach($response as $search) {
-		if(!is_array($search))
-			continue;
+	foreach($acct as $search) {
+			if(!is_array($search))
+					continue;
 
-		foreach($search as $searchArray) {
-			extract($searchArray);
+			foreach($search as $searchArray) {
+					extract($searchArray);
 
-			if($fieldName == 'Next Pickup Date') {
-				debug_log('Next Pickup for ' . $email . ': ' . formatDateAsDateTimeString($value));
-
-				return formatDateAsDateTimeString($value);
+					if($fieldName == 'Next Pickup Date') {
+							debug_log('Next Pickup for ' . $email . ': ' . format_date($value));
+							return format_date($value);
+					}
 			}
-		}
 	}
 
-	return false;
+	throw new Exception('invalid/missing pickup date for acct_id=' . $acct);
 }
 
 ?>

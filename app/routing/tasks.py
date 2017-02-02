@@ -35,7 +35,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
     cal_ids = get_keys('cal_ids', agcy=agcy)
 
     for _id in cal_ids:
-        start = to_local(None, date_=date.today())
+        start = to_local(d=date.today())
 
         events += gcal.get_events(
             service,
@@ -47,10 +47,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
 
     for event in events:
         block = parser.get_block(event['summary'])
-        event_dt = to_local(
-            None,
-            date_=parse(event['start']['date']),
-            time_=time(8,0))
+        event_dt = to_local(d=parse(event['start']['date']), t=time(8,0))
 
         if not block:
             continue

@@ -16,11 +16,11 @@ def add_event():
 
     try:
         response = etap.call(
-            'get_query_accounts',
+            'get_query',
             get_keys('etapestry'),
             data={
                 'query': request.form['query_name'],
-                'query_category':'GG: Invoices'
+                'category':'GG: Invoices'
             }
         )
     except Exception as e:
@@ -52,9 +52,9 @@ def add_event():
 
     try:
         accts = etap.call(
-            'get_accounts_by_ref',
+            'get_accts_by_ref',
             conf['etapestry'],
-            data={'refs':refs}
+            data={'acct_refs':refs}
         )
     except Exception as e:
         msg = 'Failed to retrieve accts. %s' % str(e)

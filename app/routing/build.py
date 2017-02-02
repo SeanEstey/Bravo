@@ -26,9 +26,9 @@ def submit_job(route_id):
     agcy = route['agency']
     etap_keys = get_keys('etapestry', agcy=agcy)
     accts = call(
-        'get_query_accounts',
+        'get_query',
         get_keys('etapestry',agcy=agcy),
-        {"query": route['block'], "query_category": etap_keys['query_category']}
+        {"query": route['block'], "category": etap_keys['query_category']}
     )['data']
     num_skips = 0
     warnings = []

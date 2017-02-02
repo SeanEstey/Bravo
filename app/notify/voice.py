@@ -7,7 +7,7 @@ from flask import g, render_template, request
 from pymongo.collection import ReturnDocument
 from .. import smart_emit, utils, html
 from app.dt import to_utc
-from app.main.tasks import create_rfu
+
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -243,6 +243,7 @@ def on_complete():
 
         evnt = g.db.notific_events.find_one({'_id':notific['evnt_id']})
 
+        from app.main.tasks import create_rfu
         create_rfu.delay(
             evnt['agency'],
             'Error calling %s. %s' %(

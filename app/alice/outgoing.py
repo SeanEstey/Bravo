@@ -18,9 +18,9 @@ def send_welcome(etap_id):
     try:
         # Very slow (~750ms-2200ms)
         acct = etap.call(
-            'get_account',
+            'get_acct',
             get_keys(k='etapestry'),
-            {'account_number': int(etap_id)}
+            {'acct_id': int(etap_id)}
         )
     except Exception as e:
         pass

@@ -200,7 +200,6 @@ def config_test_server(source):
 def get_op_stats():
     #if not g.user:
     #    return False
-
     return {
         'TEST_SERVER': True if os.environ['BRAVO_TEST_SERVER'] == 'True' else False,
         'SANDBOX_MODE': True if os.environ['BRAVO_SANDBOX_MODE'] == 'True' else False,

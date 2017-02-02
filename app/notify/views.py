@@ -5,7 +5,6 @@ from bson.objectid import ObjectId
 from flask_login import login_required
 from flask import g, request, jsonify, render_template, Response, url_for
 from app import smart_emit, get_keys, utils, cal, parser
-from app.main.tasks import create_rfu
 from . import notify, accounts, events, triggers
 log = logging.getLogger(__name__)
 

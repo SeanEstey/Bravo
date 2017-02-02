@@ -4,7 +4,6 @@ from datetime import date
 from dateutil.parser import parse
 from flask import g, current_app, render_template, request
 from .. import get_keys, html, mailgun, etap
-from app.main.tasks import create_rfu
 from app.gsheets import update_cell, to_range, gauth, get_row
 from app.etap import get_udf
 from app.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
@@ -93,6 +92,7 @@ def on_delivered(agcy):
 #-------------------------------------------------------------------------------
 def on_dropped(agcy):
     '''Mailgun webhook called from view. Has request context'''
+    from app.main.tasks import create_rfu
 
     row = request.form['from_row']
     msg = 'receipt to %s dropped. %s. %s' %(
@@ -165,9 +165,9 @@ def deliver(to, template, subject, data):
         'add_note',
         get_keys('etapestry'),
         data={
-            'id': data['account']['id'],
-            'Note': 'Receipt:\n' + html.clean_whitespace(body),
-            'Date': dt_to_ddmmyyyy(parse(data['entry']['date']))},
+            'acct_id': data['account']['id'],
+            'body': 'Receipt:\n' + html.clean_whitespace(body),
+            'date': dt_to_ddmmyyyy(parse(data['entry']['date']))},
         silence_exceptions=False)
 
     mid = mailgun.send(to, subject, body, get_keys('mailgun'),
@@ -187,9 +187,9 @@ def get_ytd_gifts(acct_refs, year):
             'get_gift_histories',
             get_keys('etapestry'),
             data={
-                "account_refs": acct_refs,
-                "start_date": "01/01/" + str(year),
-                "end_date": "31/12/" + str(year)})
+                "acct_refs": acct_refs,
+                "start": "01/01/" + str(year),
+                "end": "31/12/" + str(year)})
     except Exception as e:
         log.error('Error retrieving gift histories: %s', str(e))
         raise

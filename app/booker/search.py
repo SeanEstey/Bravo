@@ -5,7 +5,6 @@ from flask import g
 from .. import get_keys, etap, parser, gcal
 from . import geo
 log = logging.getLogger(__name__)
-
 class EtapError(Exception):
     pass
 
@@ -44,11 +43,12 @@ def search(query, radius=None, weeks=None):
     if parser.is_account_id(query):
         try:
             acct = etap.call(
-              'get_account',
+              'get_acct',
               get_keys('etapestry'),
-              data={'account_number': re.search(r'\d{1,6}',query).group(0)})
-        except Exception as e:
+              data={'acct_id': re.search(r'\d{1,6}',query).group(0)})
+        except EtapError as e:
             log.error('no account id %s', query)
+
             return {
                 'status': 'failed',
                 'description': 'No account found matching ID <b>%s</b>.'% query}

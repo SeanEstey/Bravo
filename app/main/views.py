@@ -4,8 +4,6 @@ from flask import g, request, render_template, redirect, url_for, jsonify, Respo
 from flask_login import login_required
 from .. import get_keys, html
 from . import donors, main, receipts, signups
-from .tasks import create_rfu, send_receipts, add_gsheets_signup
-from app.notify import admin
 from app.booker import book
 log = logging.getLogger(__name__)
 
@@ -32,6 +30,7 @@ def view_admin():
 @main.route('/update_agency_conf', methods=['POST'])
 @login_required
 def update_agency_conf():
+    from app.notify import admin
     admin.update_agency_conf()
     return jsonify({'status':'success'})
 
@@ -99,6 +98,7 @@ def on_unsub(agcy):
 def on_spam():
     '''Mailgun webhook
     '''
+    from .tasks import create_rfu
 
     if request.form['domain'] == 'recycle.vecova.ca':
         agency = 'vec'
@@ -126,6 +126,7 @@ def rec_signup():
     '''Forwarded signup submision from emptiestowinn.com
     Adds signup data to Bravo Sheets->Signups gsheet row
     '''
+    from .tasks import add_gsheets_signup
 
     try:
         add_gsheets_signup.delay(args=(request.form.to_dict()))

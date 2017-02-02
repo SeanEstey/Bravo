@@ -15,7 +15,7 @@ class EtapError(Exception):
     pass
 
 #-------------------------------------------------------------------------------
-def call(func_name, keys, data, silence_exceptions=False):
+def call(func, keys, data, silence_exc=False):
     '''Call PHP eTapestry script
     @func_name: name of view function
     @keys: etap auth
@@ -36,22 +36,18 @@ def call(func_name, keys, data, silence_exceptions=False):
         response = requests.post(
             '%s/php/views.php' % os.environ['BRAVO_HTTP_HOST'],
             data=json.dumps({
-              'func': func_name,
+              'func': func,
               'etapestry': keys,
               'data': data,
-              'sandbox_mode': sandbox
-            })
-        )
-    except requests.RequestException as e:
-        log.error('etap exception calling %s: %s', func_name, str(e))
-
-        if silence_exceptions == True:
-            return False
-        else:
-            raise EtapError(str(e))
+              'sandbox': sandbox}))
+    except Exception as e:
+        log.error('requests error=%s', str(e))
+        return EtapError(str(e)) if silence_exc else False
 
     if response.status_code != 200:
-        raise EtapError(json.loads(response.text))
+        log.error('EtapError. func="%s", response_code=%s, description=%s',
+            func, response.status_code, response.text)
+        raise EtapError(response.text)
 
     try:
         data = json.loads(response.text)
@@ -61,14 +57,13 @@ def call(func_name, keys, data, silence_exceptions=False):
 
     return data
 
-
 #-------------------------------------------------------------------------------
 def get_query(block, keys, category=None):
-    _category = category if category else keys['query_category']
+    category_ = category if category else keys['category']
 
     try:
-        rv = call('get_query_accounts', keys, {
-            'query':block, 'query_category':_category})
+        rv = call('get_query', keys, {
+            'query':block, 'category':category_})
     except EtapError as e:
         raise
     else:
@@ -77,14 +72,14 @@ def get_query(block, keys, category=None):
 #-------------------------------------------------------------------------------
 def mod_acct(acct_id, keys, udf=None, persona=[]):
     try:
-        call('modify_account', keys, {
-            'id':acct_id, 'udf':udf, 'persona': persona})
+        call('modify_acct', keys, {
+            'acct_id':acct_id, 'udf':udf, 'persona': persona})
     except EtapError as e:
-        log.error('Error modifying account %s: %s', account['id'], str(e))
+        log.error('Error modifying account %s: %s', acct['id'], str(e))
         raise
 
 #-------------------------------------------------------------------------------
-def get_udf(field_name, etap_account):
+def get_udf(field_name, acct):
     '''Extract User Defined Fields from eTap Account object. Allows
     for UDF's which contain multiple fields (Block, Neighborhood)
     Returns: field value on success or '' if field empty
@@ -92,15 +87,15 @@ def get_udf(field_name, etap_account):
 
     field_values = []
 
-    for field in etap_account['accountDefinedValues']:
+    for field in acct['accountDefinedValues']:
         if field['fieldName'] == field_name:
           field_values.append(field['value'])
 
     return ", ".join(field_values)
 
 #-------------------------------------------------------------------------------
-def is_active(account):
-    status = get_udf('Status', account)
+def is_active(acct):
+    status = get_udf('Status', acct)
 
     if status in ['Active', 'Call-in', 'One-time', 'Cancelling', 'Dropoff']:
         return True
@@ -118,38 +113,38 @@ def get_je_udf(field_name, je):
     return ", ".join(field_values)
 
 #-------------------------------------------------------------------------------
-def get_phone(_type, account):
+def get_phone(_type, acct):
     '''@_type: ['Voice', 'Mobile']
     '''
 
-    if 'phones' not in account or account['phones'] == None:
+    if 'phones' not in acct or acct['phones'] == None:
         return False
 
-    for phone in account['phones']:
+    for phone in acct['phones']:
         if phone['type'] == _type:
             return phone['number']
 
     return False
 
 #-------------------------------------------------------------------------------
-def has_mobile(account):
-    if not account.get('phones'):
+def has_mobile(acct):
+    if not acct.get('phones'):
         return False
 
-    for phone in account['phones']:
+    for phone in acct['phones']:
         if phone['type'] == 'Mobile':
             return True
 
     return False
 
 #-------------------------------------------------------------------------------
-def get_prim_phone(account):
-    if 'phones' not in account or account['phones'] == None:
+def get_prim_phone(acct):
+    if 'phones' not in acct or acct['phones'] == None:
         return False
 
     landline = None
 
-    for phone in account['phones']:
+    for phone in acct['phones']:
         if phone['type'] == 'Mobile':
             return phone['number']
         if phone['type'] == 'Voice':

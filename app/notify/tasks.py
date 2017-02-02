@@ -214,10 +214,10 @@ def skip_pickup(self, evnt_id, acct_id, **kwargs):
 
     try:
         etap.call(
-            'no_pickup',
+            'skip_pickup',
             conf['etapestry'],
             data={
-                'account': acct['udf']['etap_id'],
+                'acct_id': acct['udf']['etap_id'],
                 'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
                 'next_pickup': to_local(
                     acct['udf']['future_pickup_dt'],

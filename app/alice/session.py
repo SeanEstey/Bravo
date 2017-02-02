@@ -9,7 +9,6 @@ from .. import kv_store, kv_ext, etap, utils
 from app.utils import print_vars, bcolors
 from . import keywords
 from .util import related_notific, lookup_acct, event_begun
-from app.main.tasks import create_rfu
 from .dialog import *
 from app.etap import EtapError
 log = logging.getLogger(__name__)
@@ -47,6 +46,7 @@ def create_session():
         session['anon_id'] = anon_id = str(ObjectId())
         session['valid_kws'] = keywords.anon.keys()
 
+        from app.main.tasks import create_rfu
         create_rfu.delay(
             g.user.agency,
             'No eTap acct linked to this mobile number.\nMessage: "%s"' % msg,

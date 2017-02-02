@@ -20,11 +20,11 @@ def add_event():
 
     try:
         response = etap.call(
-            'get_query_accounts',
+            'get_query',
             get_keys('etapestry'),
             data={
                 'query': request.form['query_name'],
-                'query_category': request.form['query_category']
+                'query': request.form['query_category']
             }
         )
     except Exception as e:

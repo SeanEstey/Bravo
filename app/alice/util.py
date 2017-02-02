@@ -3,7 +3,6 @@ import logging
 from datetime import date, datetime, timedelta
 from flask import g, request, session
 from app.etap import call, EtapError
-from app.main.tasks import create_rfu
 from .dialog import *
 from app.utils import print_vars
 from app.dt import to_local
@@ -11,10 +10,11 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def lookup_acct(mobile):
+    from app.main.tasks import create_rfu
     try:
         # Very slow (~750ms-2200ms)
         acct = call(
-            'find_account_by_phone',
+            'find_acct_by_phone',
             session.get('conf')['etapestry'],
             {'phone': mobile}
         )

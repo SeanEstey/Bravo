@@ -17,8 +17,6 @@
 	$nsc = get_endpoint($etap_conf);
 	$rv = NULL;
 
-	$func = 'funkytown';
-
 	try {
 		switch($func) {
 			case 'get_block_size':

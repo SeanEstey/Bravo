@@ -210,7 +210,7 @@ function gift_histories($acct_refs, $start, $end) {
 		global $nsc;
     $accts_je = [];
 
-    for($i=0; $i < count($data['acct_refs']); $i++) {
+    for($i=0; $i < count($acct_refs); $i++) {
         $accts_je[] = gift_history($acct_refs[$i], $start, $end);
     }
 
@@ -288,23 +288,21 @@ function get_upload_status($request_id, $from_row) {
 //-----------------------------------------------------------------------
 function process_entries($entries) {
 
-    // convert stdclass to array
-    $entries = json_decode(json_encode($entries), true);
-    //debug_log('converted entries to php array');
-
-    global $nsc, $agcy;
     ini_set('max_execution_time', 30000); // Prevents fatal timeout err
+    global $nsc, $agcy;
+
+    // stdclass -> array
+    $entries = json_decode(json_encode($entries), true);
 
     $n_errs = $n_uploads = 0;
     $n_entries = count($entries);
+    $rv = [];
 
     debug_log('processing entries for ' . (string)$n_entries . ' accts (agcy=' . $agcy . ')...');
 
-    $rv = [];
-
     for($i=0; $i<$n_entries; $i++) {
         $entry = $entries[$i];
-        $row = $entry['row'];
+        $row = $entry['ss_row'];
 
         try { 
             $acct = get_acct($id=$entry['acct_id']);
@@ -313,18 +311,17 @@ function process_entries($entries) {
             continue;
         }
 
-        apply_udf($acct, $entry['udf']);
-
-        // If no date, DV's are updated but not cleared
         if(!empty($entry['gift']['date']))
             remove_udf($acct, $entry['udf']);
-        else {
-            // No date + no gift
-            if($entry['gift']['amount'] !== 0)
-                continue;
-        }
 
-        $ref = upload_gift($entry, $acct);
+        apply_udf($acct, $entry['udf']);
+
+				if(empty($entry['gift']['amount']) && $entry['gift']['amount'] !== 0) {
+            $rv[] = ['row'=>$row, 'status'=>'Updated'];
+						continue;
+				}
+
+				$ref = upload_gift($entry, $acct);
 
         if(is_error($nsc)) {
             $rv[] = ['row'=>$row, 'status'=>get_error($nsc)];
@@ -333,9 +330,9 @@ function process_entries($entries) {
         else {
             if(floatval($ref) == 0)
                 error_log('invalid db ref="' . $ref . '"');
-            $result = ['row'=>$row, 'status'=>$ref];
+            debug_log(json_encode(['row'=>$row, 'ref'=>$ref]));
+            $result = ['row'=>$row, 'status'=>'Processed'];
             $rv[] = $result;
-            debug_log(json_encode($result));
             $n_uploads++;
         }
     }
@@ -456,7 +453,7 @@ function add_accts($submissions) {
       $result = $db_collection->insertOne([ 
         'function' => 'add_accts',
         'request_id' => $submission['request_id'],
-        'row' => $submission['row'],
+        'row' => $submission['ss_row'],
         'status' => $status
       ]);
 
@@ -501,7 +498,7 @@ function add_accts($submissions) {
     $result = $db_collection->insertOne([ 
       'function' => 'add_accts',
       'request_id' => $submission['request_id'],
-      'row' => $submission['row'],
+      'row' => $submission['ss_row'],
       'status' => $status
     ]);
 

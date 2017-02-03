@@ -18,7 +18,7 @@ beat_schedule = {
 		  'schedule': crontab(hour=6, minute=30, day_of_week='*')
 	 },
      'update_calendar_blocks': {
-        'task': 'app.main.update_calendar_blocks',
-        'schedule': crontab(hour=7, minute=0, day_of_week='*')
+        'task': 'app.main.tasks.update_calendar_blocks',
+        'schedule': crontab(hour='6,9,12,15,18,21', minute=0, day_of_week='*')
      }
 }

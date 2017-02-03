@@ -33,6 +33,10 @@ def to_timezone(tz, dt=None, d=None, t=None, to_str=False):
         return dt_.strftime(to_str) if to_str else dt_
 
 #-------------------------------------------------------------------------------
+def d_to_dt(date_):
+    return datetime.combine(date_, time())
+
+#-------------------------------------------------------------------------------
 def convert_obj(obj, to_tz=None, to_str=False):
     '''Returns a datetime with given timezone. Will convert timezones for
     non-naive datetimes

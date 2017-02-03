@@ -1,112 +1,103 @@
 '''app.main.tasks'''
 import json, logging, re
-from datetime import datetime, date, time, timedelta
+from pprint import pformat
+from datetime import datetime, date, time, timedelta as delta
 from dateutil.parser import parse
-from flask import g
+from flask import current_app, g
 from app import cal, celery, get_keys
-from app.parser import get_block, is_block, get_area, is_route_size
-from app.gcal import gauth as gcal_auth, get_events, to_dt, rename_event
+from app.dt import d_to_dt
+from app.parser import get_block, is_block, is_res, is_bus, get_area, is_route_size
+from app.gcal import gauth as gcal_auth, color_ids, get_events, evnt_date_to_dt, update_event
 from app.cal import get_blocks
-from app.gsheets import gauth, append_row, get_row
+from app.gsheets import gauth, write_rows, append_row, get_row, to_range
 from app.etap import call, get_udf, mod_acct
 from app.dt import ddmmyyyy_to_mmddyyyy as swap_dd_mm
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
-    '''Create RFU's for all non-participants on scheduled dates
-    '''
+def process_entries(self, entries, agcy='vec', **rest):
 
-    import app.main.donors
+    #log.debug('entries=%s', entries)
+    entries = json.loads(entries)
 
-    if agcy:
-        agencies = [g.db.agencies.find_one({'name':agcy})]
-    else:
-        agencies = g.db.agencies.find({})
+    log.info('task: processing entries for %s accts...', len(entries))
 
-    for agency in agencies:
-        agcy = agency['name']
-        if not period:
-            period = agency['config']['non_participant_days']
-        log.info('%s: Analyzing non-participants in 5 days...', agcy)
+    chunk_size = 7
+    etap_conf = get_keys('etapestry',agcy=agcy)
+    chunks = [entries[i:i + chunk_size] for i in xrange(0, len(entries), chunk_size)]
 
-        accts = cal.get_accounts(
-            agency['etapestry'],
-            agency['cal_ids']['res'],
-            agency['google']['oauth'],
-            days_from_now=in_days)
+    ss_id = get_keys('google',agcy=agcy)['ss_id']
+    srvc = gauth(get_keys('google',agcy=agcy)['oauth'])
+    headers = get_row(srvc, ss_id, 'Routes', 1)
+    upload_col = headers.index('Upload Status') +1
 
-        if len(accts) < 1:
-            continue
+    for n in range(0,len(chunks)):
+        chunk = chunks[n]
+        log.debug('processing chunk %s/%s...', n+1, len(chunks))
+        try:
+            rv = call(
+                'process_entries',
+                etap_conf,
+                {'entries':chunk})
+        except Exception as e:
+            log.error('process_entries error: %s', str(e))
+            log.debug('',exc_info=True)
+            return 'failed'
 
-        for acct in accts:
-            if not donors.is_inactive(agcy, acct, days=period):
-                continue
+        range_ = '%s:%s' %(
+            to_range(rv[0]['row'], upload_col),
+            to_range(rv[-1]['row'], upload_col))
 
-            npu = get_udf('Next Pickup Date', acct)
+        log.debug('writing chunk %s/%s return values to ss, range=%s', n+1, len(chunks), range_)
 
-            if len(npu.split('/')) == 3:
-                npu = swap_dd_mm(npu)
+        values = [[rv[i]['status']] for i in range(len(rv))]
 
-            mod_acct(
-                acct['id'],
-                get_keys('etapestry',agcy=agcy),
-                udf={
-                    'Office Notes':\
-                    '%s\n%s: non-participant (inactive for %s days)'%(
-                    get_udf('Office Notes', acct),
-                    date.today().strftime('%b%-d %Y'),
-                    period)})
+        try:
+            write_rows(srvc, ss_id, range_, values)
+        except Exception as e:
+            log.error(str(e))
+            log.debug('',exc_info=True)
 
-            create_rfu(
-                agcy,
-                'Non-participant. No collection in %s days.' % period,
-                options={
-                    'Account Number': acct['id'],
-                    'Next Pickup Date': npu,
-                    'Block': get_udf('Block', acct),
-                    'Date': date.today().strftime('%-m/%-d/%Y'),
-                    'Driver Notes': get_udf('Driver Notes', acct),
-                    'Office Notes': get_udf('Office Notes', acct)})
+    log.info('task: completed. entries processed')
 
     return 'success'
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def update_calendar_blocks(self, agcy='vec', **rest):
-    '''Update calendar events for each Block with num accounts booked and total
-    Block size
+def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=30),
+    agcy='vec', **rest):
+    '''Update all calendar blocks in date period with booking size/color codes.
+    @from_, to_: datetime.date
     '''
 
-    log.info('task: updating calendar route sizes...')
+    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
+    start_dt = d_to_dt(from_)
+    end_dt = d_to_dt(to)
 
-    if agcy:
-        agencies = [g.db.agencies.find_one({'name':agcy})]
-    else:
-        agencies = g.db.agencies.find({})
-
-    for agency in agencies:
+    for agency in agcy_list:
         agcy = agency['name']
         etap_conf = get_keys('etapestry',agcy=agcy)
         oauth = get_keys('google',agcy=agcy)['oauth']
         srvc = gcal_auth(oauth)
 
-        start = datetime.combine(date.today(), time())
-        end = start + timedelta(days=30)
-        cal_ids = get_keys('cal_ids',agcy=agcy)
+        log.info('task: updating calendar blocks (%s to %s)...',
+            start_dt.strftime('%m/%d'), end_dt.strftime('%m/%d'))
 
-        n_updated = n_errs = 0
+        cal_ids = get_keys('cal_ids',agcy=agcy)
+        n_updated = n_errs = n_warnings = 0
 
         for id_ in cal_ids:
-            events = get_events(srvc, cal_ids[id_], start, end)
+            events = get_events(srvc, cal_ids[id_], start_dt, end_dt)
 
             for evnt in events:
-                dt = to_dt(evnt['start']['date'])
+                dt = evnt_date_to_dt(evnt['start']['date'])
                 block = get_block(evnt['summary'])
                 title = evnt['summary']
 
                 if not block:
+                    log.debug('invalid event title="%s"', evnt['summary'])
+                    n_warnings+=1
                     continue
 
                 try:
@@ -125,35 +116,41 @@ def update_calendar_blocks(self, agcy='vec', **rest):
                     n_errs+=1
                     continue
 
+                if not evnt.get('location'):
+                    log.debug('missing postal codes in event="%s"',
+                    evnt['summary'])
+                    n_warnings+=1
+
                 new_title = '%s [%s] (%s)' %(
                     get_block(title), get_area(title) or '', rv)
 
-                log.debug('updating block %s event title="%s", date=%s',
-                    block, new_title, evnt['start']['date'])
+                n_booked = int(rv[0:rv.find('/')])
 
-                rename_event(srvc, cal_ids[id_], evnt['id'],
-                    evnt['start']['date'], evnt['end']['date'], new_title)
-                n_updated+=1
-
-                '''
                 if is_res(block):
-                    DO_ME = ''
-                    #booking_size = booking_rules['size']['res'];
+                    sizes = current_app.config['BLOCK_SIZES']['RES']
                 else:
-                    DO_ME = ''
-                    #booking_size = booking_rules['size']['bus'];
+                    sizes = current_app.config['BLOCK_SIZES']['BUS']
 
-                if(size < booking_size['medium'])
-                  new_event['colorId'] = Settings['calendar_color_id']['green'];
-                else if(size >= booking_size['medium'] && size < booking_size['large'])
-                  new_event['coloured'] = Settings['calendar_color_id']['yellow'];
-                else if(size >= booking_size['large'] && size < booking_size['max'])
-                  new_event['colorId'] = Settings['calendar_color_id']['orange'];
-                else if(size >= booking_size['max'])
-                  new_event['colorId'] = Settings['calendar_color_id']['light_red'];
-                '''
+                color_id = None
 
-        log.info('updated %s calendar events. %s errors. agcy=%s', n_updated, n_errs, agcy)
+                if n_booked < sizes['MED']:
+                    color_id = color_ids['green']
+                elif (n_booked >= sizes['MED']) and (n_booked < sizes['LRG']):
+                    color_id = color_ids['yellow']
+                elif (n_booked >= sizes['LRG']) and (n_booked < sizes['MAX']):
+                    color_id = color_ids['orange']
+                elif n_booked >= sizes['MAX']:
+                    color_id = color_ids['light_red']
+
+                try:
+                    update_event(srvc, evnt, title=new_title, color_id=color_id)
+                except Exception as e:
+                    n_errs+=1
+                else:
+                    n_updated+=1
+
+        log.info('task: completed. %s events updated, %s errors, %s warnings '\
+            '(agcy=%s)', n_updated, n_errs, n_warnings, agcy)
 
     return 'success'
 
@@ -304,5 +301,65 @@ def add_gsheets_signup(self, data, **rest):
         log.error('error adding signup. desc="%s"', str(e))
         log.debug('', exc_info=True)
         raise
+
+    return 'success'
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
+    '''Create RFU's for all non-participants on scheduled dates
+    '''
+
+    import app.main.donors
+
+    if agcy:
+        agencies = [g.db.agencies.find_one({'name':agcy})]
+    else:
+        agencies = g.db.agencies.find({})
+
+    for agency in agencies:
+        agcy = agency['name']
+        if not period:
+            period = agency['config']['non_participant_days']
+        log.info('%s: Analyzing non-participants in 5 days...', agcy)
+
+        accts = cal.get_accounts(
+            agency['etapestry'],
+            agency['cal_ids']['res'],
+            agency['google']['oauth'],
+            days_from_now=in_days)
+
+        if len(accts) < 1:
+            continue
+
+        for acct in accts:
+            if not donors.is_inactive(agcy, acct, days=period):
+                continue
+
+            npu = get_udf('Next Pickup Date', acct)
+
+            if len(npu.split('/')) == 3:
+                npu = swap_dd_mm(npu)
+
+            mod_acct(
+                acct['id'],
+                get_keys('etapestry',agcy=agcy),
+                udf={
+                    'Office Notes':\
+                    '%s\n%s: non-participant (inactive for %s days)'%(
+                    get_udf('Office Notes', acct),
+                    date.today().strftime('%b%-d %Y'),
+                    period)})
+
+            create_rfu(
+                agcy,
+                'Non-participant. No collection in %s days.' % period,
+                options={
+                    'Account Number': acct['id'],
+                    'Next Pickup Date': npu,
+                    'Block': get_udf('Block', acct),
+                    'Date': date.today().strftime('%-m/%-d/%Y'),
+                    'Driver Notes': get_udf('Driver Notes', acct),
+                    'Office Notes': get_udf('Office Notes', acct)})
 
     return 'success'

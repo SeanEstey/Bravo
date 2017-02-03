@@ -4,9 +4,23 @@ from datetime import datetime
 from oauth2client.client import SignedJwtAssertionCredentials
 import httplib2
 from apiclient.discovery import build
+from app.utils import print_vars
 import requests
 import json
 log = logging.getLogger(__name__)
+
+color_ids = {
+    'light_purple' : 1,
+    'aqua' : 2,
+    'purple' : 3,
+    'light_red' : 4,
+    'yellow' : 5,
+    'orange' : 6,
+    'turqoise' : 7,
+    'gray' : 8,
+    'blue' : 9,
+    'green' : 10,
+    'red' : 11}
 
 #-------------------------------------------------------------------------------
 def gauth(oauth):
@@ -53,19 +67,21 @@ def get_events(service, cal_id, start, end):
     return events
 
 #-------------------------------------------------------------------------------
-def rename_event(srvc, cal_id, evnt_id, start, end, title):
+def update_event(srvc, item, title=None, location=None, desc=None, color_id=None):
     '''events.update pydoc: https://tinyurl.com/hllg2cu
     '''
 
     try:
         rv = srvc.events().update(
-            calendarId=cal_id,
-            eventId=evnt_id,
+            calendarId= item['organizer']['email'],
+            eventId= item['id'],
             body= {
-                'summary': title,
-                #'originalStartTime': {'date':start}}
-                'end': {'date': end},
-                'start': {'date': start}
+                'summary': title or item.get('summary'),
+                'start': item['start'],
+                'end': item['end'],
+                'location': location or item.get('location'),
+                'description': desc or item.get('description'),
+                'colorId': color_id or item.get('colorId')
             }
         ).execute()
     except Exception as e:
@@ -73,9 +89,29 @@ def rename_event(srvc, cal_id, evnt_id, start, end, title):
         log.debug('',exc_info=True)
         raise
 
-    log.debug('event update status=%s', rv['status'])
+    # from pprint import pformat
+    # log.debug(pformat(rv,indent=4))
+    log.debug('updated event="%s", date="%s"', rv['summary'], rv['start']['date'])
 
 #-------------------------------------------------------------------------------
-def to_dt(date_):
+def get_colors(srvc):
+    '''
+    '''
+    colors = srvc.colors().get().execute()
+    log.debug(print_vars(colors))
+
+    # Print available calendarListEntry colors.
+    for id, color in colors['calendar'].iteritem():
+        print 'colorId: %s' % id
+        print '  Background: %s' % color['background']
+        print '  Foreground: %s' % color['foreground']
+    # Print available event colors.
+    for id, color in colors['event'].iteritem():
+        print 'colorId: %s' % id
+        print '  Background: %s' % color['background']
+        print '  Foreground: %s' % color['foreground']
+
+#-------------------------------------------------------------------------------
+def evnt_date_to_dt(date_):
     parts = date_.split('-')
     return datetime(int(parts[0]), int(parts[1]), int(parts[2]))

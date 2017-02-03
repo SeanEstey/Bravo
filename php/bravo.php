@@ -286,73 +286,85 @@ function get_upload_status($request_id, $from_row) {
 }
 
 //-----------------------------------------------------------------------
-function upload_gifts($entries) {
-    global $nsc, $db, $agcy;
+function process_entries($entries) {
 
-    $db_collect = new MongoDB\Collection($db, "bravo.entries");
-    $num_errors = 0;
+    // convert stdclass to array
+    $entries = json_decode(json_encode($entries), true);
+    //debug_log('converted entries to php array');
 
-    debug_log('Processing entries for ' . 
-      (string)count($data['entries']) . ' accounts');
+    global $nsc, $agcy;
+    ini_set('max_execution_time', 30000); // Prevents fatal timeout err
 
-    for($i=0; $i < count($entries); $i++) { 
+    $n_errs = $n_uploads = 0;
+    $n_entries = count($entries);
 
-      if($agcy == 'vec') {
-        $entries[$i]['gift']['definedValues'] = [[
-          'fieldName' => 'T3010 code',  
-          'value' => '4000-560'
-        ]];
-      }
-      else
-        $entries[$i]['gift']['definedValues'] = [];
+    debug_log('processing entries for ' . (string)$n_entries . ' accts (agcy=' . $agcy . ')...');
 
-      $status = upload_gift($entries[$i]);
+    $rv = [];
 
-      if(floatval($status) == 0)
-        $num_errors++;
+    for($i=0; $i<$n_entries; $i++) {
+        $entry = $entries[$i];
+        $row = $entry['row'];
 
-      $result = $db_collect->insertOne([ 
-        'function' => 'upload_gift',
-        'request_id' => $data['request_id'],
-        'row' => $entries[$i]['row'],
-        'status' => $status
-      ]);
+        try { 
+            $acct = get_acct($id=$entry['acct_id']);
+        } catch(Exception $e) {
+            $rv[] = ['row'=>$row, 'status'=>$e->getMessage()];
+            continue;
+        }
+
+        apply_udf($acct, $entry['udf']);
+
+        // If no date, DV's are updated but not cleared
+        if(!empty($entry['gift']['date']))
+            remove_udf($acct, $entry['udf']);
+        else {
+            // No date + no gift
+            if($entry['gift']['amount'] !== 0)
+                continue;
+        }
+
+        $ref = upload_gift($entry, $acct);
+
+        if(is_error($nsc)) {
+            $rv[] = ['row'=>$row, 'status'=>get_error($nsc)];
+            $n_errs++;
+        }
+        else {
+            if(floatval($ref) == 0)
+                error_log('invalid db ref="' . $ref . '"');
+            $result = ['row'=>$row, 'status'=>$ref];
+            $rv[] = $result;
+            debug_log(json_encode($result));
+            $n_uploads++;
+        }
     }
 
-    debug_log('Processed ' . (string)count($entries) . 
-      ' route entries. ' . (string)$num_errors . ' errors.');
-
-    return $num_errors;
+    debug_log('entries processed. n_uploads=' . $n_uploads . ', n_errors=' . $n_errs);
+    return $rv;
 }
 
 //-----------------------------------------------------------------------
-function upload_gift($entry) {
-    /* If no Date present, UDF will be updated but not cleared
-     * If Gift + Date, UDF wil be updated and cleared
-     */
+function upload_gift($entry, $acct) {
 
-		global $nsc;
-    ini_set('max_execution_time', 30000); // IMPORTANT: To prevent fatail error timeout
+		global $nsc, $agcy;
 
-    $acct = $nsc->call("getAccountById", array($entry['acct_id']));
+    if($agcy == 'vec') {
+        $entry['gift']['definedValues'] = [[
+          'fieldName' => 'T3010 code',  
+          'value' => '4000-560'
+        ]];
+    }
+    else {
+        // GG deliveries are blank
+        if(empty($entry['gift']['amount']))
+            if($entry['gift']['amount'] !== 0)
+                return;
 
-    if(!$acct)
-      return 'Acct # ' . (string)$entry['acct_id'] . ' not found.';
+        $entry['gift']['definedValues'] = [];
+    }
 
-    if(!empty($entry['gift']['date']))
-      remove_udf($acct, $entry['udf']);
-
-    apply_udf($acct, $entry['udf']);
-    
-    if(is_error($nsc))
-        return get_error($nsc, $log=true);
-
-    // Green Goods deliveries will have no gift estimate
-    if(empty($entry['gift']['amount']))
-      if($entry['gift']['amount'] !== 0)
-        return true;
-
-    return $nsc->call("addGift", [[
+    $rv = $nsc->call("addGift", [[
       'accountRef' => $acct['ref'],
       'amount' => $entry['gift']['amount'],
       'fund' => $entry['gift']['fund'],
@@ -368,6 +380,8 @@ function upload_gift($entry) {
     ], 
       false
     ]);
+
+    return is_error($nsc) ? get_error($nsc, $log=true) : $rv;
 }
 
 //-----------------------------------------------------------------------

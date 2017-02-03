@@ -1,5 +1,6 @@
 '''app.tests.main.test_tasks'''
 import logging, unittest, json
+from datetime import datetime, date, timedelta
 from flask import g
 from app.tests.__init__ import *
 from app.main import tasks
@@ -67,7 +68,9 @@ class MainTasksTests(unittest.TestCase):
 
     def test_update_cal_routes(self):
         try:
-            tasks.update_calendar_routes()
+            tasks.update_calendar_blocks(
+                from_=date(2017,4,24),
+                to=date(2017,4,28))
         except Exception as e:
             log.debug('err=%s', str(e), exc_info=True)
 

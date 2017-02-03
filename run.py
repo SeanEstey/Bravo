@@ -54,8 +54,6 @@ def start_worker(celery_beat):
     else:
         os.environ['BRAVO_CELERY_BEAT'] = 'False'
 
-
-
 #-------------------------------------------------------------------------------
 def main(argv):
     try:
@@ -91,6 +89,9 @@ def main(argv):
     start_worker(celery_beat)
 
     startup_msg(sio_server, app)
+
+    # TODO: check for tasks left in queue
+    app.logger.info('server restarted.')
 
     sio_server.run(
         app,

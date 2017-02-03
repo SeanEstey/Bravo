@@ -18,3 +18,20 @@ ENV_VARS = [
     'BRAVO_CELERY_BEAT',
     'BRAVO_HTTP_HOST',
     'BRAVO_TEST_SERVER']
+BLOCK_SIZES = {
+  'RES': {
+    'MED': 60,
+    'LRG': 75,
+    'MAX': 90,
+  },
+  'BUS': {
+    'MED': 20,
+    'LRG': 23,
+    'MAX': 25
+  }
+}
+BOOKING = {
+    'MAX_BLOCK_RADIUS': 10,
+    'MAX_SCHEDULE_DAYS_WAIT': 14,
+    'SEARCH_WEEKS': 16
+}

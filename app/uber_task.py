@@ -29,7 +29,7 @@ class UberTask(Task):
         '''Called by worker
         '''
 
-        print '__call__: %s' % self.name.split('.')[-1]
+        #print '__call__: %s' % self.name.split('.')[-1]
 
         req_ctx = has_request_context()
         app_ctx = has_app_context()
@@ -104,7 +104,7 @@ class UberTask(Task):
 
         if current_user.is_authenticated:
             kwargs[self.USERID_KW] = str(g.user._id)
-            print 'g.user=%s, _id=%s, kwargs=%s' % (g.user, str(g.user._id),kwargs)
+            #print 'g.user=%s, _id=%s, kwargs=%s' % (g.user, str(g.user._id),kwargs)
 
         if not has_request_context():
             return
@@ -137,7 +137,7 @@ class UberTask(Task):
         mongodb.authenticate(self.db_client)
 
         user_oid = kwargs.pop(self.USERID_KW, None)
-        print 'user_oid=%s, type=%s' % (user_oid,type(user_oid))
+        #print 'user_oid=%s, type=%s' % (user_oid,type(user_oid))
 
         if user_oid:
             db_user = g.db.users.find_one({'_id':ObjectId(str(user_oid))})
@@ -149,6 +149,5 @@ class UberTask(Task):
                 admin=db_user['admin']))
             g.user = current_user
 
-        print \
-            'call=%s, user=%s, g.db=%s, kwargs=%s' %(
-            self.name.split('.')[-1], current_user, type(g.db), kwargs)
+        #print 'call=%s, user=%s, g.db=%s' %(
+        #    self.name.split('.')[-1], current_user, type(g.db))

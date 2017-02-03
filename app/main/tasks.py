@@ -164,14 +164,13 @@ def send_receipts(self, entries, **rest):
     '''
 
     entries = json.loads(entries)
-    log.info('processing receipts...')
+    log.info('processing %s receipts...', len(entries))
 
     #log.debug('tasks.send_receipts entries=%s, type=%s', entries, type(entries))
     from app.main.receipts import generate, get_ytd_gifts
 
     try:
-        # Get all eTapestry account data.
-        # List is indexed the same as @entries arg list
+        # list indexes match @entries
         accts = call(
             'get_accts',
             get_keys('etapestry'),
@@ -180,55 +179,57 @@ def send_receipts(self, entries, **rest):
         log.error('Error retrieving accounts from etap: %s', str(e))
         raise
 
-    gift_accts = []
+    accts_data = [{
+        'acct':accts[i],
+        'entry':entries[i],
+        'ytd_gifts':get_ytd_gifts(
+            accts[i]['ref'],
+            parse(entries[i]['date']).year)
+    } for i in range(0,len(accts))]
+
     g.track = {
         'zeros': 0,
         'drops': 0,
         'cancels': 0,
         'no_email': 0,
-        'gifts': 0}
+        'gifts': 0
+    }
     g.ss_id = get_keys('google')['ss_id']
     g.service = gauth(get_keys('google')['oauth'])
     g.headers = get_row(g.service, g.ss_id, 'Routes', 1)
+    status_col = g.headers.index('Email Status') +1
 
-    for i in range(0, len(accts)):
-        r = generate(accts[i], entries[i])
+    chunk_size = 10
+    chunks = [accts_data[i:i + chunk_size] for i in xrange(0, len(accts_data), chunk_size)]
+    log.debug('chunk length=%s', len(chunks))
 
-        if r == 'wait':
-            gift_accts.append({
-                'entry': entries[i], 'account': accts[i]})
+    for i in range(0, len(chunks)):
+        rv = []
+        chunk = chunks[i]
+        for acct_data in chunk:
+            rv.append(generate(
+                acct_data['acct'],
+                acct_data['entry'],
+                ytd_gifts=acct_data['ytd_gifts']))
 
-    log.info('sent zero_collections=%s, dropoff_followups=%s, cancels=%s. '\
-        '%s accts without email', g.track['zeros'], g.track['drops'],
-        g.track['cancels'], g.track['no_email'])
+        range_ = '%s:%s' %(
+            to_range(chunk[0]['entry']['ss_row'], status_col),
+            to_range(chunk[-1]['entry']['ss_row'], status_col))
 
-    # All receipts sent except Gifts. Query Journal Histories
+        values = [[rv[idx]['status']] for idx in range(len(rv))]
 
-    if len(gift_accts) == 0:
-        log.info('no gift receipts to send')
-        return 'success'
+        log.debug('writing chunk %s/%s values to ss, range=%s',
+            i+1, len(chunks), range_)
 
-    try:
-        year = parse(gift_accts[0]['entry']['date']).year
-        acct_refs = [i['account']['ref'] for i in gift_accts]
-        gift_histories = get_ytd_gifts(acct_refs, year)
-    except Exception as e:
-        log.error(str(e))
-        log.debug('', exc_info=True)
-        raise
-
-    for i in range(0, len(gift_accts)):
         try:
-            r = generate(
-                gift_accts[i]['account'],
-                gift_accts[i]['entry'],
-                gift_history=gift_histories[i])
+            write_rows(g.service, g.ss_id, range_, values)
         except Exception as e:
-            log.error('generate receipt error. desc=%s', str(e))
+            log.error(str(e))
             log.debug('',exc_info=True)
-            continue
 
-    log.info('sent gift receipts=%s', len(gift_accts))
+    log.info('sent gifts=%s, zero_collections=%s, dropoff_followups=%s, cancels=%s. '\
+        '%s accts without email', g.track['gifts'], g.track['zeros'], g.track['drops'],
+        g.track['cancels'], g.track['no_email'])
 
     return 'success'
 

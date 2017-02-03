@@ -45,3 +45,8 @@ def send(to, subject, body, conf, v=None):
 
     return json.loads(response.text)['id']
 
+#-------------------------------------------------------------------------------
+def dump(form_values):
+    form_values['message-headers'] = json.loads(form_values['message-headers'])
+    log.debug(json.dumps(form_values, sort_keys=True, indent=4))
+

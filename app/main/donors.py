@@ -81,4 +81,5 @@ def unsubscribe(agcy):
         log.debug('', exc_info=True)
         return 'failed'
 
-    return 'OK'
+    return "We've received your request. "\
+        "Please give us a few days to remove your email from our correspondence"

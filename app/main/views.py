@@ -3,6 +3,7 @@ import logging, json, time
 from flask import g, request, render_template, redirect, url_for, jsonify, Response
 from flask_login import login_required
 from .. import get_keys, html
+from app.mailgun import dump
 from . import donors, main, receipts, signups
 from app.booker import book
 log = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ def on_delivered():
     '''Mailgun webhook
     '''
 
-    log.debug(json.dumps(request.values.to_dict(), indent=4))
+    #dump(request.values.to_dict())
 
     type_ = request.form.get('type')
     agcy = request.form.get('agcy')

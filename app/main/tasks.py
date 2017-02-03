@@ -23,7 +23,7 @@ def process_entries(self, entries, agcy='vec', **rest):
 
     log.info('task: processing entries for %s accts...', len(entries))
 
-    chunk_size = 7
+    chunk_size = 10
     etap_conf = get_keys('etapestry',agcy=agcy)
     chunks = [entries[i:i + chunk_size] for i in xrange(0, len(entries), chunk_size)]
 

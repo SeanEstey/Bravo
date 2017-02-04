@@ -25,7 +25,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
-        'event_dt': to_utc(date_=event_date, time_=time(8,0)),
+        'event_dt': to_utc(d=event_date, t=time(8,0)),
         'on_send': on_send,
         'on_reply': on_reply,
         'to': utils.to_intl_format(to),
@@ -101,7 +101,7 @@ def on_status():
         'tracking.sid': request.form['SmsSid']}, {
         '$set':{
             'tracking.status': request.form['SmsStatus'],
-            'tracking.sent_dt': to_local_dt(datetime_=datetime.now())}})
+            'tracking.sent_dt': to_local(dt=datetime.now())}})
 
     # Could be a new sid from a reply to reminder text?
     if not notific:

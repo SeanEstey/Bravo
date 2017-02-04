@@ -3,7 +3,7 @@ import logging, pytz
 from datetime import datetime,date,time
 from dateutil.parser import parse
 from bson.objectid import ObjectId
-from flask import g, request, jsonify
+from flask import g, request, jsonify, url_for
 from app import cal, parser, get_keys
 from app.parser import is_res, is_bus
 from app.utils import formatter
@@ -57,11 +57,13 @@ def create_event():
             raise
 
     event = g.db.notific_events.find_one({'_id':evnt_id})
-    event['triggers'] = events.get_triggers(event['_id'])
+    event['triggers'] = get_triggers(event['_id'])
 
     for trigger in event['triggers']:
         # modifying 'triggers' structure for view rendering
         trigger['count'] = triggers.get_count(trigger['_id'])
+
+    log.info('created event "%s"', event['name'])
 
     return {
         'event': formatter(
@@ -71,8 +73,8 @@ def create_event():
         'description':
             'Reminders for event %s successfully scheduled.' %
             (request.form['query_name']),
-        'view_url': url_for('.view_event', evnt_id=str(event['_id'])),
-        'cancel_url': url_for('.cancel_event', evnt_id=str(event['_id']))}
+        'view_url': url_for('notify.view_event', evnt_id=str(event['_id'])),
+        'cancel_url': url_for('api.call_cancel_event', evnt_id=str(event['_id']))}
 
 #-------------------------------------------------------------------------------
 def cancel_event(evnt_id=None):
@@ -82,15 +84,17 @@ def cancel_event(evnt_id=None):
     evnt_id = ObjectId(evnt_id)
     notifics = g.db['notifics'].find({'evnt_id':evnt_id})
 
+    n_accts = 0
+
     for notific in notifics:
-        g.db['accounts'].remove({'_id':notific['acct_id']})
+        n_accts += g.db['accounts'].remove({'_id':notific['acct_id']}).get('n')
 
     n_notifics = g.db['notifics'].remove({'evnt_id':evnt_id}).get('n')
     n_triggers = g.db['triggers'].remove({'evnt_id': evnt_id}).get('n')
     n_events = g.db['notific_events'].remove({'_id': evnt_id}).get('n')
 
-    log.info('Removed %s event, %s notifics, and %s triggers',
-        n_events, n_notifics, n_triggers)
+    log.info('cancelled event. notifics=%s, triggers=%s, accts=%s', n_notifics,
+    n_triggers, n_accts)
 
     return True
 
@@ -232,7 +236,7 @@ def get_notifics(evnt_id, local_time=True, sorted_by='account.event_dt'):
 def rmv_notifics(evnt_id, acct_id):
     n_notifics = g.db['notifics'].remove({'acct_id':acct_id})['n']
     n_accounts = g.db['accounts'].remove({'_id':acct_id})['n']
-    log.info('Removed %s notifics, %s account for evnt_id %s', n_notifics,
+    log.debug('removed %s notifics, %s account for evnt_id="%s"', n_notifics,
     n_accounts, evnt_id)
     return True
 

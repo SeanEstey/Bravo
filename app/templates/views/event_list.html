@@ -89,7 +89,7 @@
               class='ui-button ui-widget ui-corner-all ui-button-icon-only
               delete-btn'
 							type="button" 
-							id="{{ url_for('notify.cancel_event',evnt_id=event._id) }}" 
+							id="{{ url_for('api.call_cancel_event',evnt_id=event._id) }}" 
 							title='Delete this event'
 							name="delete-btn">
               <span class="ui-button-icon-primary ui-icon ui-icon-trash"></span>

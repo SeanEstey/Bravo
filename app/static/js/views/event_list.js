@@ -1,4 +1,3 @@
-
 //------------------------------------------------------------------------------
 function event_list_init() {
 	loadTooltip();
@@ -7,7 +6,6 @@ function event_list_init() {
 	addSocketIOHandlers();
 	addPageNavHandlers();
 	showAdminServerStatus();
-
 
   $('#new_event').click(function() {
       $('#new_event_modal').modal('show');
@@ -68,7 +66,7 @@ function addDeleteBtnHandlers() {
 
 				$('#mymodal .btn-primary').click(function() {
 						$.ajax({
-							type: 'GET',
+							type: 'POST',
 							url: $URL_ROOT + 'api/notify/events/cancel',
               data: {'evnt_id': event_uuid}
 						})

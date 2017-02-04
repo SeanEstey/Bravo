@@ -81,36 +81,33 @@ def build_scheduled_routes(self, agcy=None, **rest):
     '''Route orders for today's Blocks and build Sheets
     '''
 
-    if agcy:
-        agencies = [g.db.agencies.find_one({'name':agcy})]
-    else:
-        agencies = g.db.agencies.find({})
+    log.info('task: building scheduled routes...')
 
-    for agency in agencies:
+    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
+    n_fails = n_success = 0
+
+    for agency in agcy_list:
         agcy = agency['name']
-        n_success = n_fails = 0
-        routes = g.db.routes.find({'agency':agcy, 'date':local_today_dt()})
+        routes = g.db.routes.find({
+            'agency':agcy,
+            'date':to_local(d=date.today(),t=time(8,0))})
 
         discover_routes(agcy=agcy)
 
-        log.info('%s: Building %s routes for %s',
-            agcy, routes.count(), date.today().strftime("%A %b %d"))
-
-        n_fails = n_success = 0
+        log.info('building %s routes, agcy=%s', routes.count(), agcy)
 
         for route in routes:
             try:
                 build_route(str(route['_id']))
             except Exception as e:
-                log.error('Error building %s, msg=%s', route['block'], str(e))
+                log.error('error building %s, msg=%s', route['block'], str(e))
                 n_fails+=1
                 continue
 
             n_success += 1
             sleep(2)
 
-        log.info('%s: %s Routes built. %s failures.', agcy, n_success, n_fails)
-
+    log.info('task: completed. %s routes built, %s failures.', n_success, n_fails)
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -124,12 +121,12 @@ def build_route(self, route_id, job_id=None, **rest):
     Returns: db.routes dict on success, False on error
     '''
 
-    log.debug('route_id=%s, job_id=%s, rest=%s', route_id, job_id, rest)
+    log.debug('route_id="%s", job_id="%s"', route_id, job_id)
 
     route = g.db.routes.find_one({"_id":ObjectId(route_id)})
     agcy = route['agency']
 
-    log.info('Building %s...', route['block'])
+    log.info('building %s...', route['block'])
 
     if job_id is None:
         job_id = submit_job(ObjectId(route_id))
@@ -140,11 +137,12 @@ def build_route(self, route_id, job_id=None, **rest):
         get_keys('google',agcy=agcy)['geocode']['api_key'])
 
     if orders == False:
-        log.error('Error retrieving routific solution')
+        log.error('error retrieving routific solution')
+        log.debug('',exc_info=True)
         return 'failed'
 
     while orders == "processing":
-        log.debug('No solution yet. Sleeping 5s...')
+        log.debug('no solution yet, sleeping (5s)...')
         sleep(5)
         orders = get_solution_orders(
             job_id,
@@ -175,7 +173,8 @@ def build_route(self, route_id, job_id=None, **rest):
     smart_emit('route_status',{
         'status':'completed', 'ss_id':ss['id'], 'warnings':route['warnings']})
 
-    log.info('%s built. orders=%s, unserved=%s',
-        route['block'], len(orders), route['num_unserved'])
+    log.info('%s built. orders=%s, unserved=%s, warnings=%s, errors=%s',
+        route['block'], len(orders), route['num_unserved'],
+        len(route['warnings']), len(route['errors']))
 
-    return 'success'
+    return {'status':'success', 'route_id':str(route['_id'])}

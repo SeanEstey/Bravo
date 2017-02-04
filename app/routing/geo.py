@@ -75,7 +75,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
               address, response['results'][0]['formatted_address'])
 
             response['results'][0]['warning'] = warning
-            log.debug(warning)
+            #log.debug(warning)
 
         return response['results']
 
@@ -89,7 +89,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
           'Using 1st result <strong>%s</strong>.' % (
           address, response['results'][0]['formatted_address'])
 
-        log.debug(response['results'][0]['warning'])
+        #log.debug(response['results'][0]['warning'])
 
         return [response['results'][0]]
     else:
@@ -106,7 +106,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
                   'Using as best match.' % (
                   address, get_postal(result), str(idx), result['formatted_address'])
 
-                log.debug(result['warning'])
+                #log.debug(result['warning'])
 
                 return [result]
 

@@ -2,7 +2,8 @@
 import logging
 from flask import g
 from dateutil.parser import parse
-from .. import get_keys, utils
+from .. import get_keys
+from app.dt import to_local
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -18,14 +19,14 @@ def add(agency, evnt_id, name, phone=None, email=None, udf=None, nameFormat=None
         'nameFormat': nameFormat}).inserted_id
 
 #-------------------------------------------------------------------------------
-def edit(acct_id, fields):
+def edit_fields(acct_id, fields):
     '''User editing a notification value from GUI
     '''
 
     for fieldname, value in fields:
         if fieldname == 'udf.pickup_dt':
           try:
-            value = utils.naive_to_local(parse(value))
+            value = to_local(parse(value))
           except Exception, e:
             log.error('Could not parse event_dt in /edit/call. %s', str(e))
             return 'Date edit failed. "%s" is not a valid date.' % value

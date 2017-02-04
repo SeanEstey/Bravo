@@ -11,7 +11,7 @@ from . import voice, email, sms
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def add(evnt_id, _type, date_, time_):
+def add(evnt_id, type_, date_, time_):
     '''Inserts new trigger to DB, updates event with it's id.
     @date_: naive, non-localized datetime.date
     @time_: naive, non-localized datetime.time
@@ -23,8 +23,8 @@ def add(evnt_id, _type, date_, time_):
     trig_id = g.db.triggers.insert_one({
         'evnt_id': evnt_id,
         'status': 'pending',
-        'type': _type,
-        'fire_dt': to_utc(date_=date_, time_=time_)
+        'type': type_,
+        'fire_dt': to_utc(d=date_, t=time_)
     }).inserted_id
 
     g.db.notific_events.update_one(

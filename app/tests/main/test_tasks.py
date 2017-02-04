@@ -20,7 +20,7 @@ class MainTasksTests(unittest.TestCase):
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 
-    def _test_send_receipts(self):
+    def test_send_receipts(self):
         entry = {
             'agcy': 'vec',
             'acct_id': 269,

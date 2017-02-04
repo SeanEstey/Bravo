@@ -5,8 +5,8 @@ function init() {
     addSocketIOHandlers();
     addEventHandlers();
     prettyFormatting();
-
-		//alertMsg('Click on Warnings for each route to view any conflicts resolving addresses', 'info', 15000);
+		//alertMsg('Click on Warnings for each route to view any conflicts 
+		//resolving addresses', 'info', 15000);
 }
 
 //------------------------------------------------------------------------------

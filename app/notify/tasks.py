@@ -184,7 +184,6 @@ def skip_pickup(self, evnt_id, acct_id, **kwargs):
     '''Runs as a celery task (tasks.cancel_pickup) to update an accounts eTap
     fields to skip a pickup. The request originates from a SMS/Voice/Email
     notification. Run is_valid() before calling this function.
-
     @acct_id: _id from db.accounts, not eTap account id
     '''
 
@@ -213,15 +212,12 @@ def skip_pickup(self, evnt_id, acct_id, **kwargs):
     conf = g.db.agencies.find_one({'name': evnt['agency']})
 
     try:
-        etap.call(
-            'skip_pickup',
-            conf['etapestry'],
-            data={
-                'acct_id': acct['udf']['etap_id'],
-                'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
-                'next_pickup': to_local(
-                    acct['udf']['future_pickup_dt'],
-                    to_str='%d/%m/%Y')})
+        etap.call('skip_pickup', conf['etapestry'], data={
+            'acct_id': acct['udf']['etap_id'],
+            'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
+            'next_pickup': to_local(
+                acct['udf']['future_pickup_dt'],
+                to_str='%d/%m/%Y')})
     except EtapError as e:
         log.error("etap error, desc='%s'", str(e))
 

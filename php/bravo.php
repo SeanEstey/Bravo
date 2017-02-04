@@ -555,12 +555,7 @@ function skip_pickup($acct_id, $date, $next_pickup) {
 	 */
 
 		global $nsc;
-		$acct = $nsc->call("getAccountById", array($acct_id));
-
-		if(!acct) {
-        throw new Exception('no acct matching id ' . $acct_id);
-		}
-				
+		$acct = get_acct($id=$acct_id);
 		$off_notes = get_udf($acct, 'Office Notes') . ' No Pickup ' . $date;
 
 		apply_udf($acct, [

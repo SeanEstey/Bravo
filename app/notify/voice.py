@@ -26,7 +26,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
         'evnt_id': evnt_id,
         'trig_id': trig_id,
         'acct_id': acct_id,
-        'event_dt': to_utc(date_=event_date, time_=time(8,0)),
+        'event_dt': to_utc(d=event_date, t=time(8,0)),
         'on_answer': on_answer,
         'on_interact': on_interact,
         'to': utils.to_intl_format(to),

@@ -9,7 +9,8 @@ from app.booker.search import search
 from app.booker.book import make
 from app.main import donors
 from app.main.signups import lookup_carrier
-from app.notify.events import create_event, cancel_event, reset_event
+from app.notify.accounts import edit_fields
+from app.notify.events import create_event, cancel_event, reset_event, rmv_notifics
 from app.notify.recording import dial_recording
 from app.notify.triggers import kill_trigger
 from app.routing.main import edit_field
@@ -86,7 +87,7 @@ def call_cancel_event():
 @api.route('/notify/events/reset', methods=['POST'])
 @login_required
 def call_reset_event():
-    return func_call(reset_event)
+    return func_call(reset_event, get_var('evnt_id'))
 
 @api.route('/notify/events/record', methods=['POST'])
 @login_required
@@ -96,12 +97,12 @@ def call_record():
 @api.route('/notify/accts/edit', methods=['POST'])
 @login_required
 def call_notify_acct_edit():
-    return func_call(WRITE_ME)
+    return func_call(edit_fields, get_var('acct_id'), get_var('fields'))
 
 @api.route('/notify/accts/remove', methods=['POST'])
 @login_required
 def call_notify_acct_rmv():
-    return func_call(WRITE_ME)
+    return func_call(rmv_notifics, get_var('evnt_id'), get_var('acct_id'))
 
 @api.route('/notify/triggers/fire', methods=['POST'])
 @login_required
@@ -112,7 +113,7 @@ def call_trigger_fire():
 @api.route('/notify/triggers/kill', methods=['POST'])
 @login_required
 def call_trigger_kill():
-    return func_call(kill_trigger)
+    return func_call(kill_trigger, get_var('trig_id'))
 
 @api.route('/notify/acct/skip', methods=['POST'])
 @login_required

@@ -40,7 +40,7 @@ def build(agcy, drive_api, title):
         fields='*'
     ).execute()
 
-    log.debug('sheet_id %s created', file_copy['id'])
+    #log.debug('sheet_id %s created', file_copy['id'])
     return _file
 
 #-------------------------------------------------------------------------------

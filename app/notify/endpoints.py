@@ -1,9 +1,8 @@
 '''app.notify.endpoints'''
 import logging
 from flask import g, jsonify, Response
-import app.main.tasks import create_rfu
 from app.notify import pickups, recording, sms, voice
-from app.notify.tasks import skip_pickup
+from . import notify
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -12,6 +11,7 @@ def no_pickup(evnt_id, acct_id):
     if not pickups.is_valid(evnt_id, acct_id):
         log.error('event/acct not found (evnt_id=%s, acct_id=%s)', evnt_id, acct_id)
         return 'Sorry there was an error fulfilling your request'
+    from app.notify.tasks import skip_pickup
     skip_pickup.delay(evnt_id, acct_id)
     return 'Thank You'
 
@@ -49,6 +49,7 @@ def sms_status():
 
 @notify.route('/call/nis', methods=['POST'])
 def nis():
+    from app.main.tasks import create_rfu
     record = request.get_json()
     create_rfu.delay(g.user.agency, '%s not in service' % record['custom']['to'],
         options={

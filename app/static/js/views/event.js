@@ -1,4 +1,3 @@
-
 //------------------------------------------------------------------------------
 function init() {
     loadTooltip();
@@ -9,7 +8,6 @@ function init() {
     addDeleteBtnHandlers();
     addSocketIOHandlers();
 		showAdminServerStatus();
-
 		$('[data-toggle="tooltip"]').tooltip();
 }
 
@@ -19,7 +17,6 @@ function addSocketIOHandlers() {
 
     socket.on('connect', function(){
         console.log('socket.io connected!');
-
         socket.on('joined', function(response) {
             console.log(response);
         });
@@ -29,7 +26,6 @@ function addSocketIOHandlers() {
         console.log('notific %s [%s]', data['status'], data['notific_id']);
 
 				$td = $('td#'+data['notific_id']);
-
         $td.text(data['status'].toTitleCase());
 				
 				if('description' in data)
@@ -101,9 +97,9 @@ function addDeleteBtnHandlers() {
               $.ajax({
                 type: 'POST',
                 context: this,
-		            url: $URL_ROOT + 'notify/' + evnt_id + '/' + acct_id + '/remove'
-              })
-              .done(function(response) {
+								data: {'evnt_id':evnt_id, 'acct_id': acct_id},
+		            url: $URL_ROOT + 'api/notify/accts/remove'
+              }).done(function(response) {
                   console.log(response);
                   if(response['status'] == 'success'){ 
                       $(this).parent().parent().remove();
@@ -144,17 +140,15 @@ function buildAdminPanel() {
           btn_id,
           btn_caption,
           'btn-outline-primary', {
-            'trigId':$(this).attr('id')
-          }
-        );
+            'trigId':$(this).attr('id')});
 
         btn.click(function() {
             $.ajax({
               context: this,
               type: 'POST',
-              url: $URL_ROOT + 'notify/' + $(this).data('trigId') + '/fire'
-            })
-            .done(function(response) {
+							data: {'trig_id': $(this).data('trigId')},
+              url: $URL_ROOT + 'api/notify/triggers/fire'
+						}).done(function(response) {
                   console.log('request status: %s', response['status']);
 
                   if(response['status'] != 'OK') {
@@ -162,10 +156,9 @@ function buildAdminPanel() {
                       'danger');
                       return;
                   }
-
                   $(this).prop('disabled', true);
-            });
-        });
+						});
+				});
 
 				// Get trigger status from server
 				$.ajax({
@@ -208,12 +201,11 @@ function buildAdminPanel() {
 
             $.ajax({
                 type: 'post',
-                url: $URL_ROOT + 'notify/kill_trigger',
-                data: {'trig_id': $(this).data('trigId')}})
-            .done(function(response) {
+                url: $URL_ROOT + 'api/notify/triggers/kill',
+                data: {'trig_id': $(this).data('trigId')}
+						}).done(function(response) {
                 console.log('response: ' + JSON.stringify(response));
                 showBannerMsg(JSON.stringify(response));
-                
                 // TODO: have server send 'trigger_status' socket.io event on
                 // success, update button enabled/disabled states
             });
@@ -234,10 +226,10 @@ function buildAdminPanel() {
 
     reset_btn.click(function() {
       $.ajax({
-				type: 'GET',
-				url: $URL_ROOT + 'notify/' + evnt_id + '/reset'
-			})
-			.done(function(response, textStatus, jqXHR) {
+				type: 'POST',
+				data: {'evnt_id': evnt_id},
+				url: $URL_ROOT + 'api/notify/events/reset'
+			}).done(function(response, textStatus, jqXHR) {
 				window.location.reload();
 			});
     });
@@ -392,16 +384,16 @@ function saveFieldEdit($input) {
 
 		console.log(field_name + ' edited');
 
-		var payload = {};
-		payload[field_name] = $input.val();
+		var fields = {};
+		fields[field_name] = $input.val();
 
 		if($input.val() == '---')
 			return;
 
 		$.ajax({
 			type: 'POST',
-			url: $URL_ROOT + 'notify/' + $td.parent().attr('id') + '/edit',
-			data: payload
+			data: {'acct_id': $td.parent().attr('id'), 'fields':[fields]},
+			url: $URL_ROOT + 'api/notify/accts/edit'
 		}).done(function(msg) {
 				if(msg != 'OK') {
 					alertMsg(msg, 'danger');

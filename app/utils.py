@@ -4,7 +4,7 @@ from pprint import pformat
 from bson import json_util
 from datetime import datetime, time, date
 from config import LOG_PATH
-from app.dt import to_local
+from app.dt import to_local, local_tz, convert_obj
 log = logging.getLogger(__name__)
 
 class bcolors:
@@ -120,7 +120,7 @@ def formatter(doc, to_local_time=False, to_strftime=None, bson_to_json=False, to
     '''
 
     if to_local_time == True:
-        doc = to_local(doc, to_str=to_strftime)
+        doc = convert_obj(doc, to_tz=local_tz, to_str=to_strftime)
 
     if bson_to_json == True:
         no_bson = json_util.dumps(doc)

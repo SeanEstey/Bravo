@@ -163,11 +163,10 @@ def send_receipts(self, entries, **rest):
         {'amount':float, 'date':str,'from':{'row':int,'upload_status':str(db_ref),'worksheet':str}}
     '''
 
+    from app.main.receipts import generate, get_ytd_gifts
+
     entries = json.loads(entries)
     log.info('processing %s receipts...', len(entries))
-
-    #log.debug('tasks.send_receipts entries=%s, type=%s', entries, type(entries))
-    from app.main.receipts import generate, get_ytd_gifts
 
     try:
         # list indexes match @entries

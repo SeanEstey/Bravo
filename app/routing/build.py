@@ -65,7 +65,8 @@ def submit_job(route_id):
         else:
             orders.append(order)
 
-    log.debug('Omitting %s no pickups', str(num_skips))
+    log.debug('orders=%s, skips=%s, geo_warnings=%s, geo_errors=%s',
+        len(orders), num_skips, len(warnings), len(errors))
 
     office = get_keys('routing',agcy=agcy)['locations']['office']
     office_coords = geocode(
@@ -85,11 +86,7 @@ def submit_job(route_id):
         SHIFT_END,
         get_keys('routing',agcy=agcy)['routific']['api_key'])
 
-    log.debug(
-        '\nSubmitted routific task\n'\
-        'Job_id: %s\nOrders: %s\n'\
-        'Min/stop: %s',
-        job_id, len(orders), MIN_PER_STOP)
+    log.debug('routific job_id=%s', job_id)
 
     g.db.routes.update_one(
         {'_id': route['_id']},
@@ -186,11 +183,7 @@ def get_solution_orders(job_id, api_key):
     orders = task['output']['solution'].get(route_info['driver']['name']) or\
         task['output']['solution']['default']
 
-    log.debug(
-        '\nJob_id %s: %s\n'\
-        'Sorted orders: %s\nUnserved orders: %s\nTravel time: %s',
-        job_id, output['status'], len(orders), output['num_unserved'],
-        output['total_travel_time'])
+    log.debug('retrieved solution. route_length=%smin', output['total_travel_time'])
 
     route_length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
 

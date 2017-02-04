@@ -127,7 +127,7 @@ def find_all_scheduled_dates(evnt_id):
     @evnt_id: str of ObjectID
     '''
 
-    log.info('Getting next pickups for notification event ID \'%s\'', str(evnt_id))
+    #log.debug('Getting next pickups for notification event ID \'%s\'', str(evnt_id))
 
     cal_events = []
     block_dates = {}
@@ -161,7 +161,7 @@ def find_all_scheduled_dates(evnt_id):
 
         if block not in block_dates:
             dt = parse(cal_event['start']['date'] + " T08:00:00")
-            block_dates[block] = to_local(dt)
+            block_dates[block] = to_local(dt=dt)
 
     notific_list = g.db['notifics'].find({'evnt_id':evnt_id})
 
@@ -270,7 +270,7 @@ def on_call_interact(notific):
             (str(notific['evnt_id']), str(notific['acct_id'])))
 
         acct = g.db['accounts'].find_one({'_id':notific['acct_id']})
-        dt = to_local(acct['udf']['future_pickup_dt'])
+        dt = to_local(dt=acct['udf']['future_pickup_dt'])
 
         response.say(
             voice.get_speak(

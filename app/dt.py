@@ -55,6 +55,8 @@ def convert_obj(obj, to_tz=None, to_str=False):
         tz = to_tz if to_tz else local_tz
         obj = obj.replace(tzinfo=tz) if not obj.tzinfo else obj.astimezone(tz)
         return obj.strftime(to_str) if to_str else obj
+    else:
+        return obj
 
 #-------------------------------------------------------------------------------
 def ddmmyyyy_to_dt(ddmmyyyy):
@@ -75,8 +77,7 @@ def ddmmyyyy_to_local_dt(ddmmyyyy):
     '''@date_str: etapestry native dd/mm/yyyy
     '''
     parts = ddmmyyyy.split('/')
-    return naive_to_local(
-        datetime(int(parts[2]), int(parts[1]), int(parts[0])))
+    return to_local(dt=datetime(int(parts[2]), int(parts[1]), int(parts[0])))
 
 #-------------------------------------------------------------------------------
 def dt_to_ddmmyyyy(dt):

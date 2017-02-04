@@ -7,37 +7,40 @@ from app.utils import bcolors
 
 #-------------------------------------------------------------------------------
 def startup_msg(sio_server, app):
-    print bcolors.OKGREEN + '\n--------------------------------------'
-    print bcolors.BOLD + 'Bravo' + bcolors.ENDC + bcolors.OKGREEN
-    if os.environ['BRAVO_TEST_SERVER'] == 'True':
-        print 'HOSTNAME: Test Server'
-    else:
-        print 'HOSTNAME: Deploy Server'
-    print "HTTP_HOST: %s:%s" %(
-        os.environ['BRAVO_HTTP_HOST'],
-        app.config['PUB_PORT'])
-    if app.config['DEBUG'] == True:
-        print 'DEBUG MODE: ENABLED'
-    else:
-        print 'DEBUG MODE: DISABLED'
-    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
-        print 'SANDBOX MODE: ENABLED (blocking all outgoing Voice/Sms/Email messages) '
-    else:
-        print 'SANDBOX MODE: DISABLED'
-    if os.environ['BRAVO_CELERY_BEAT'] == 'True':
-        print 'CELERY_BEAT: ENABLED'
-    elif os.environ['BRAVO_CELERY_BEAT'] == 'False':
-        print 'CELERY_BEAT: DISABLED (no automatic task scheduling)'
+    msg = []
+    msg.append( '--------------------------------------')
+    msg.append( 'Bravo')
 
-    print 'FLASK_SOCKETIO: ' + flask_socketio.__version__
+    if os.environ['BRAVO_TEST_SERVER'] == 'True':
+        msg.append( 'HOSTNAME: Test Server')
+    else:
+        msg.append( 'HOSTNAME: Deploy Server')
+
+    msg.append( "HTTP_HOST: %s:%s" %(os.environ['BRAVO_HTTP_HOST'],app.config['PUB_PORT']))
+
+    if app.config['DEBUG'] == True:
+        msg.append( 'DEBUG MODE: ENABLED')
+    else:
+        msg.append( 'DEBUG MODE: DISABLED')
+    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
+        msg.append( 'SANDBOX MODE: ENABLED (blocking all outgoing Voice/Sms/Email messages)')
+    else:
+        msg.append( 'SANDBOX MODE: DISABLED')
+    if os.environ['BRAVO_CELERY_BEAT'] == 'True':
+        msg.append( 'CELERY_BEAT: ENABLED')
+    elif os.environ['BRAVO_CELERY_BEAT'] == 'False':
+        msg.append( 'CELERY_BEAT: DISABLED (no automatic task scheduling)')
+
+    msg.append( 'FLASK_SOCKETIO: %s' % flask_socketio.__version__)
 
     if sio_server.server.async_mode == 'eventlet':
-        print 'SERVER_SOFTWARE: Eventlet (%s)' % eventlet.__version__
+        msg.append( 'SERVER_SOFTWARE: Eventlet (%s)' % eventlet.__version__)
     else:
-        print 'SERVER_SOFTWARE: %s' % sio_server.server.async_mode
-    print 'CELERY: ' + celery.__version__
-    print 'FLASK: ' + flask.__version__
-    print '--------------------------------------\n' + bcolors.ENDC
+        msg.append( 'SERVER_SOFTWARE: %s' % sio_server.server.async_mode)
+    msg.append( 'CELERY: %s' % celery.__version__)
+    msg.append( 'FLASK: %s' % flask.__version__)
+    msg.append( '--------------------------------------')
+    return msg
 
 #-------------------------------------------------------------------------------
 def copy_files():

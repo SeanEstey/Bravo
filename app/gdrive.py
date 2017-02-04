@@ -35,7 +35,7 @@ def gauth(oauth):
         log.error('Error authorizing %s: %s', name, str(e))
         return False
 
-    log.debug('Drive service authorized')
+    #log.debug('drive service authorized')
 
     return service
 
@@ -93,5 +93,5 @@ def permissions_callback(request_id, response, exception):
           request_id, str(exception))
         pass
     else:
-        log.debug(json.dumps(response))
+        #log.debug(json.dumps(response))
         pass

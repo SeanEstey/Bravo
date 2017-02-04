@@ -88,10 +88,10 @@ def main(argv):
 
     start_worker(celery_beat)
 
-    startup_msg(sio_server, app)
-
-    # TODO: check for tasks left in queue
-    app.logger.info('server restarted.')
+    app.logger.info('server restarted')
+    msg = startup_msg(sio_server, app)
+    for ln in msg:
+        app.logger.info(ln)
 
     sio_server.run(
         app,

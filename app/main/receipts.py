@@ -15,7 +15,13 @@ def generate(acct, entry, ytd_gifts=None):
     g.headers, g.track
     '''
 
+    if not acct.get('email'):
+        log.debug('skipping acct w/o email')
+        g.track['no_email'] +=1
+        return {'mid':None, 'status': 'No Email'}
+
     #log.debug('generate receipt for agcy=%s', g.user.agency)
+    log.debug('generate for entry=%s', entry)
 
     gift_date = parse(entry['date']).date()
     acct_status = get_udf('Status', acct)
@@ -39,26 +45,24 @@ def generate(acct, entry, ytd_gifts=None):
         subject = "See you next time"
         g.track['zeros'] +=1
     elif entry['amount'] > 0:
-        if ytd_gifts:
-            path = "receipts/%s/collection_receipt.html" % g.user.agency
-            subject = "Thanks for your Donation"
-        else:
-            return 'wait'
+        path = "receipts/%s/collection_receipt.html" % g.user.agency
+        subject = "Thanks for your Donation"
+        g.track['gifts'] +=1
 
-    if acct['email']:
-        try:
-            mid = deliver(acct['email'], path, subject, acct=acct, entry=entry, ytd_gifts=ytd_gifts)
-        except Exception as e:
-            log.error('receipt error. Row %s: %s',str(entry['ss_row']), str(e))
-
-        status = 'queued'
+    try:
+        mid = deliver(acct['email'], path, subject,
+            acct=acct, entry=entry, ytd_gifts=ytd_gifts)
+    except Exception as e:
+        log.error('receipt error. Row %s: %s',
+            str(entry['ss_row']), str(e))
+        status = 'Error: %s' % str(e)
     else:
-        g.track['no_email'] +=1
-        status = 'no email'
+        status = 'Queued'
 
-    log.debug('receipt sent. mid=%s', mid)
+    log.debug('%s receipt sent, mid=%s...',
+        path.split('/')[-1][0:-5], mid[0:mid.find('.')])
 
-    return {'mid':mid, 'status':'queued'}
+    return {'mid':mid, 'status':status}
 
 #-------------------------------------------------------------------------------
 def on_delivered(agcy):

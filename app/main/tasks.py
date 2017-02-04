@@ -228,7 +228,7 @@ def send_receipts(self, entries, **rest):
             log.debug('',exc_info=True)
 
     log.info('sent gifts=%s, zero_collections=%s, dropoff_followups=%s, cancels=%s. '\
-        '%s accts without email', g.track['gifts'], g.track['zeros'], g.track['drops'],
+        'accts w/o email=%s', g.track['gifts'], g.track['zeros'], g.track['drops'],
         g.track['cancels'], g.track['no_email'])
 
     return 'success'

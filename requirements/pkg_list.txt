@@ -5,18 +5,21 @@
 
 python-openssl
 python-pip
-python-dev=2.7
-php7.0-dev=7.0.2
-php7.0-fpm=7.0.2
+python2.7-dev
+php7.0-dev
+php7.0-fpm
 php7.0-mbstring
-rabbitmq-server=3.5.4
-nginx=1.9.3
-logrotate=3.8.7
-nodejs=5.12.0
-npm=3.8.6
+rabbitmq-server
+nginx
+logrotate
+nodejs
+npm
 
 # Installing MongoDB 3.2
 # $ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
 # $ echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.2.list
 # $ sudo apt-get update
-# $ sudo apt-get install -y mongodb-org
+# $ sudo apt-get install mongodb-org
+# $ sudo systemctl start mongod
+# $ sudo systemctl enable mongod
+# Config path: /etc/mongod.conf

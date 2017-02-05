@@ -5,12 +5,9 @@
   <script> $(function() {new_event_init();}); </script>
   
   <div id='new_event_alert' class='alert-banner' style='margin-top:0'></div>
-
-  <div class='box'>
     <form id='myform' method=post>
       <fieldset id='event_fields' class='form-fieldset new_event'>
         <legend class='new_event'>Settings</legend>
-
           <!-- Form Fields -->
           <div class='form-label'>Event Type</div>
           <select name='template_name' class='form-control' id='template-select'>
@@ -18,7 +15,6 @@
 						<option id='recorded_announcement' value='recorded_announcement'>Recorded Voice Announcement</option>
 						<option id='bpu' value='bpu'>Bottle Pickup Reminder</option>
           </select>
-
           <div name='event_name' class='form-label'>Event Name</div>
           <input 
             id='event_name' 
@@ -103,4 +99,3 @@
         >
       </fieldset>
     </form>
-  </div>

@@ -20,5 +20,10 @@ beat_schedule = {
      'update_calendar_blocks': {
         'task': 'app.main.tasks.update_calendar_blocks',
         'schedule': crontab(hour='6,9,12,15,18,21', minute=0, day_of_week='*')
+     },
+     'find_inactive_donrs': {
+        'task': 'app.main.tasks.find_inactive_donors',
+        'schedule': crontab(hour=5, minute=0, day_of_week='*'),
+        'kwargs': {'agcy':'vec'}
      }
 }

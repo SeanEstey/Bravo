@@ -2,7 +2,7 @@
 import httplib2, json, logging, requests
 from datetime import datetime
 from dateutil.parser import parse
-from oauth2client.client import SignedJwtAssertionCredentials
+from oauth2client.service_account import ServiceAccountCredentials
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
 log = logging.getLogger(__name__)
@@ -138,14 +138,12 @@ def gauth(oauth):
     version = 'v4'
 
     try:
-        credentials = SignedJwtAssertionCredentials(
-            oauth['client_email'],
-            oauth['private_key'],
-            scope)
-
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+            oauth,
+            scopes=scope)
         http = httplib2.Http()
         http = credentials.authorize(http)
-        service = build(name, version, http=http)
+        service = build(name, version, http=http, cache_discovery=False)
     except Exception as e:
         log.error('error authorizing %s: %s', name, str(e))
         return False

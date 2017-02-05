@@ -103,7 +103,7 @@ def get_nearby_blocks(pt, radius, maps, events):
         if dist < radius:
             block['distance'] = str(round(dist,2)) + 'km'
             block['area'] = parser.get_area(event['summary']) or '---'
-            block['booked'] = parser.get_num_booked(event['summary']) or '---'
+            block['booked'] = parser.route_size(event['summary']) or '---'
 
             results.append(block)
 

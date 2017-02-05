@@ -10,7 +10,6 @@ from app.utils import print_vars, formatter
 from app.dt import ddmmyyyy_to_date
 from . import depots
 log = logging.getLogger(__name__)
-
 class GeocodeError(Exception):
     pass
 

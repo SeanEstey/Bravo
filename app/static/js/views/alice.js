@@ -97,15 +97,10 @@ function showSendWelcomeModal() {
 
         $.ajax({
           type: 'POST',
-          url: $URL_ROOT + 'alice/send_welcome',
-          data: JSON.stringify({
-            "etap_id": etap_id
-          }),
-          contentType: 'application/json'
-				})
-        .done(function(response) {
+          data: {'acct_id': etap_id},
+          url: $URL_ROOT + 'api/alice/welcome'
+				}).done(function(response) {
             console.log(response);
-
             if(response=='queued') {
                 alertMsg('Welcome SMS sent!', 'success');
             }

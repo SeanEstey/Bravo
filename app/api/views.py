@@ -4,6 +4,7 @@ from flask import g
 from flask_login import login_required
 from app import get_op_stats
 from .main import get_var, build_resp, func_call, task_call, WRITE_ME
+from app.alice.outgoing import send_welcome
 from app.booker.geo import get_maps
 from app.booker.search import search
 from app.booker.book import make
@@ -50,7 +51,7 @@ def call_agcy_update():
 @api.route('/alice/welcome', methods=['POST'])
 @login_required
 def call_alice_welcome():
-    return func_call(WRITE_ME, get_var('acct_id'))
+    return func_call(send_welcome, get_var('acct_id'))
 
 @api.route('/booker/create', methods=['POST'])
 @login_required

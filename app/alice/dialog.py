@@ -7,7 +7,7 @@ dialog = {
             "Ask me about your pickup SCHEDULE, or request live SUPPORT.",
         'welcome':\
             "I'll be your digital assistant for the pickup service. Text me "\
-            "anytime if you need your schedule. Save me to your contact list "\
+            "anytime you need your schedule. Save me to your contact list "\
             "if you'd like. ",
         'joke_welcome':\
             "You're looking especially sexy today. You make my circuits "\

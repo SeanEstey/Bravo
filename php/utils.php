@@ -53,9 +53,6 @@ function get_db() {
         http_response_code(500);
     }
 
-    //if($db)
-    //    debug_log('db connected');
-
     return $db;
 }
 //-----------------------------------------------------------------------

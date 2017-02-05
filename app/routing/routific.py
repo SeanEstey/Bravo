@@ -2,25 +2,28 @@
 import json
 import logging
 import requests
-from .. import etap
+from app.etap import get_udf, get_prim_phone
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key):
+    start_loc = start['geometry']['location']
+    end_loc = end['geometry']['location']
+
     payload = {
       "visits": {},
       "fleet": {
         driver: {
           "start_location": {
             "id": "office",
-            "lat": start['geometry']['location']['lat'],
-            "lng": start['geometry']['location']['lng'],
+            "lat": start_loc['lat'],
+            "lng": start_loc['lng'],
             "name": start['formatted_address']
            },
           "end_location": {
             "id": "depot",
-            "lat": end['geometry']['location']['lat'],
-            "lng": end['geometry']['location']['lng'],
+            "lat": end_loc['lat'],
+            "lng": end_loc['lng'],
             "name": end['formatted_address']
           },
           "shift_start": shift_start,
@@ -58,7 +61,7 @@ def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key)
     return json.loads(r.text)['job_id']
 
 #-------------------------------------------------------------------------------
-def order(account, formatted_address, geo, shift_start, shift_end, min_per_stop):
+def order(acct, formatted_address, geo, shift_start, shift_end, min_per_stop):
     return {
       "location": {
         "name": formatted_address,
@@ -69,16 +72,16 @@ def order(account, formatted_address, geo, shift_start, shift_end, min_per_stop)
       "end": shift_end,
       "duration": int(min_per_stop),
       "customNotes": {
-        "id": account['id'],
-        "name": account['name'],
-        "phone": etap.get_prim_phone(account),
-        "email": 'Yes' if account.get('email') else 'No',
-        "contact": etap.get_udf('Contact', account),
-        "block": etap.get_udf('Block', account),
-        "status": etap.get_udf('Status', account),
-        "neighborhood": etap.get_udf('Neighborhood', account),
-        "driver notes": etap.get_udf('Driver Notes', account),
-        "office notes": etap.get_udf('Office Notes', account),
-        "next pickup": etap.get_udf('Next Pickup Date', account)
+        "id": acct['id'],
+        "name": acct['name'],
+        "phone": get_prim_phone(acct),
+        "email": 'Yes' if acct.get('email') else 'No',
+        "contact": get_udf('Contact', acct),
+        "block": get_udf('Block', acct),
+        "status": get_udf('Status', acct),
+        "neighborhood": get_udf('Neighborhood', acct),
+        "driver notes": get_udf('Driver Notes', acct),
+        "office notes": get_udf('Office Notes', acct),
+        "next pickup": get_udf('Next Pickup Date', acct)
       }
     }

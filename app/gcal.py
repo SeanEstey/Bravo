@@ -1,7 +1,7 @@
 '''app.gcal'''
 import logging
 from datetime import datetime
-from oauth2client.client import SignedJwtAssertionCredentials
+from oauth2client.service_account import ServiceAccountCredentials
 import httplib2
 from apiclient.discovery import build
 from app.utils import print_vars
@@ -24,16 +24,16 @@ color_ids = {
 
 #-------------------------------------------------------------------------------
 def gauth(oauth):
-    try:
-        credentials = SignedJwtAssertionCredentials(
-            oauth['client_email'],
-            oauth['private_key'],
-            ['https://www.googleapis.com/auth/calendar']
-        )
 
+
+    try:
+        scopes=['https://www.googleapis.com/auth/calendar']
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+            oauth,
+            scopes=scopes)
         http = httplib2.Http()
         http = credentials.authorize(http)
-        service = build('calendar', 'v3', http=http)
+        service = build('calendar', 'v3', http=http, cache_discovery=False)
     except Exception as e:
         log.error('Error authorizing gcal: %s', str(e))
         return False

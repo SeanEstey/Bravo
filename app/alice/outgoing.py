@@ -48,11 +48,9 @@ def send_welcome(etap_id):
     msg = 'Hi %s, %s' % (name, dialog['user']['welcome'])
 
     r = compose(
+        g.user.agency,
         msg,
-        etap.get_phone('Mobile', acct),
-        from_,
-        self_name,
-        get_keys(k='twilio'))
+        etap.get_phone('Mobile', acct))
 
     log.info('%s"%s"%s', bcolors.BOLD, msg, bcolors.ENDC)
 

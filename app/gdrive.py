@@ -1,8 +1,7 @@
 '''app.gdrive'''
-
 import pymongo
 import logging
-from oauth2client.client import SignedJwtAssertionCredentials
+from oauth2client.service_account import ServiceAccountCredentials
 import httplib2
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
@@ -22,15 +21,12 @@ def gauth(oauth):
     name = 'drive'
 
     try:
-        credentials = SignedJwtAssertionCredentials(
-            oauth['client_email'],
-            oauth['private_key'],
-            scope
-        )
-
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+            oauth,
+            scopes=scope)
         http = httplib2.Http()
         http = credentials.authorize(http)
-        service = build(name, version, http=http)
+        service = build(name, version, http=http, cache_discovery=False)
     except Exception as e:
         log.error('Error authorizing %s: %s', name, str(e))
         return False

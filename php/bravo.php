@@ -1,13 +1,6 @@
 <?php
 
 //-----------------------------------------------------------------------
-function connect($db_collection) {
-  if($db_collection->connect_errno > 0){
-    die('Unable to connect to database [' . $db_collection->connect_error . ']');
-  }
-}
-
-//-----------------------------------------------------------------------
 function get_acct($id=NULL, $ref=NULL) {
 		global $nsc;
     $acct = NULL;
@@ -26,7 +19,6 @@ function get_acct($id=NULL, $ref=NULL) {
 
     if(is_error($nsc))
         throw new Exception(get_error($nsc, $log=true));
-
     return utf8_converter($acct);
 }
 
@@ -51,7 +43,6 @@ function get_accts($acct_ids=NULL, $acct_refs=NULL) {
             $accts[] = (string)$e;
         }
     }
-
     return $accts;
 }
 
@@ -70,8 +61,6 @@ function get_query($query, $category) {
         return get_error($nsc, $log=true);
 
     debug_log($rv['count'] . ' accounts in query ' . $query);
-
-    // Prevents errors if non-utf8 characters are present. 
     return utf8_converter($rv);
 }
 
@@ -101,7 +90,6 @@ function find_acct_by_phone($phone) {
 				throw new Exception('no acct found with SMS field="' . $phone . '"');
 
 		debug_log('found acct_id=' . $acct['id'] . ' matching ' . $phone);
-
 		return utf8_converter($acct);
 }
 
@@ -173,9 +161,6 @@ function get_route_size($category, $query, $date) {
     $ratio .= '?';
   
   //debug_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
-
-  http_response_code(200);
-
   return $ratio;
 }
 
@@ -197,11 +182,7 @@ function get_block_size($query_category, $query) {
     return $response;
   }
 
-  // Next P/U Date returns in dd/mm/yyyy format
   debug_log('Query ' . $query . ' count: ' . $response['count']);
-
-	http_response_code(200); 
-
 	return $response['count'];	
 }
 
@@ -255,7 +236,6 @@ function gift_history($ref, $start, $end) {
         ];
     }
   }
-
   return $gifts;
 }
 
@@ -281,7 +261,6 @@ function get_upload_status($request_id, $from_row) {
     unset($array['_id']);
     $results[] = $array;
   }
-
   return $results;
 }
 

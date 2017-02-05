@@ -1,19 +1,11 @@
 # list package versions: sudo dpkg -l | less
 
-# Installing MongoDB 3.2
-#sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
-#echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.2.list
-#sudo apt-get update
-#sudo apt-get install -y mongodb-org
-
-# WARNING: DO NOT USE PECL TO INSTALL PHP MONGODB EXTENSION ON UBUNTU
-# USE APT-GET FROM PKG BELOW
+# install package list below with:
+# $ apt-get install $(grep -vE "^\s*#" pkg_list.txt  | tr "\n" " ")
 
 python-openssl
 python-pip
 python-dev=2.7
-mongodb=3.2
-php7.0-mongodb
 php7.0-dev=7.0.2
 php7.0-fpm=7.0.2
 php7.0-mbstring
@@ -22,3 +14,9 @@ nginx=1.9.3
 logrotate=3.8.7
 nodejs=5.12.0
 npm=3.8.6
+
+# Installing MongoDB 3.2
+# $ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
+# $ echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.2.list
+# $ sudo apt-get update
+# $ sudo apt-get install -y mongodb-org

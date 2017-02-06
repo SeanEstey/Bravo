@@ -5,39 +5,6 @@ $DEBUG_LOG = '/var/www/bravo/logs/debug.log';
 $ERROR_LOG = '/var/www/bravo/logs/error.log';
 
 //-----------------------------------------------------------------------
-function get_inputs() {
-    global $agcy, $sandbox, $data, $etap_conf, $func;
-
-    // JSON data
-    if(!isset($_POST['data'])) {
-        $arr = get_object_vars(json_decode(file_get_contents("php://input")));
-        
-        $func = $arr['func'];
-        $data = get_object_vars($arr['data']);
-        $etap_conf = get_object_vars($arr['etapestry']);
-        $agcy = $etap_conf['agency'];
-
-        if(isset($arr['sandbox']))
-            if($arr['sandbox'] == true) {
-                debug_log('request made in sandbox mode.');
-                $sandbox = true;
-            }
-    }
-    // Form data
-    else {
-        $func = $_POST['func'];
-        $data = json_decode($_POST['data'], true);
-        $etap_conf = json_decode($_POST['etapestry'], true);
-        $agcy = $etap_conf['agency'];
-
-        if(isset($_POST['sandbox']))
-            $sandbox = $_POST['sandbox'];
-    }
-
-    #debug_log('agcy=' . $agcy . ', func="' . $func . '"');
-}
-
-//-----------------------------------------------------------------------
 function info_log($msg) {
     /* Convenience func */
     global $INFO_LOG;

@@ -5,4 +5,4 @@ venv*
 *~
 celerybeat-schedule
 celerybeat.pid
-mongodb_auth.py
+db_auth.py

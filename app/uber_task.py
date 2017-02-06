@@ -29,8 +29,6 @@ class UberTask(Task):
         '''Called by worker
         '''
 
-        #print '__call__: %s' % self.name.split('.')[-1]
-
         req_ctx = has_request_context()
         app_ctx = has_app_context()
         call = lambda: super(UberTask, self).__call__(*args, **kwargs)
@@ -86,25 +84,19 @@ class UberTask(Task):
 
     #---------------------------------------------------------------------------
     def _push_contexts(self, kwargs):
-        '''If request context, saves data to kwargs for setup on __call__
-        If app context, push current_user._id to kwargs also
+        '''Pass flask request/app context + flask.g vars into kwargs for worker task.
         '''
 
         # Save environ vars
 
-        #log.debug('push_contexts')
         g.user = current_user
-        #log.debug('g.user.user_id=%s', g.user.user_id)
-
         kwargs[self.ENVIRON_KW] = {}
 
         for var in current_app.config['ENV_VARS']:
-            #print 'saving os.environ[%s]=%s'%(var, os.environ.get(var,''))
             kwargs[self.ENVIRON_KW][var] = os.environ.get(var, '')
 
         if current_user.is_authenticated:
             kwargs[self.USERID_KW] = str(g.user._id)
-            #print 'g.user=%s, _id=%s, kwargs=%s' % (g.user, str(g.user._id),kwargs)
 
         if not has_request_context():
             return
@@ -124,7 +116,8 @@ class UberTask(Task):
 
     #---------------------------------------------------------------------------
     def _load_context_vars(self, kwargs):
-        '''Called by worker. Setup g.user and g.db
+        '''Called by worker. Load any request/app context + flask.g vars saved
+        by _push_contexts
         '''
 
         env_vars = kwargs.pop(self.ENVIRON_KW, None)
@@ -137,7 +130,6 @@ class UberTask(Task):
         mongodb.authenticate(self.db_client)
 
         user_oid = kwargs.pop(self.USERID_KW, None)
-        #print 'user_oid=%s, type=%s' % (user_oid,type(user_oid))
 
         if user_oid:
             db_user = g.db.users.find_one({'_id':ObjectId(str(user_oid))})
@@ -148,6 +140,3 @@ class UberTask(Task):
                 agency=db_user['agency'],
                 admin=db_user['admin']))
             g.user = current_user
-
-        #print 'call=%s, user=%s, g.db=%s' %(
-        #    self.name.split('.')[-1], current_user, type(g.db))

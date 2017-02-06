@@ -27,7 +27,6 @@ def do_teardown(response):
 
 #-------------------------------------------------------------------------------
 def start_worker(celery_beat):
-    db_name = app.config['DB']
 
     # Kill any existing worker/beat processes, start new worker
 
@@ -35,18 +34,11 @@ def start_worker(celery_beat):
     os.system("ps aux | grep '/usr/local/bin/celery beat' | awk '{print $2}' | xargs kill -9")
     os.system("ps aux | grep '/usr/local/bin/celery worker' | awk '{print $2}' | xargs kill -9")
 
-    #import pwd
-    # Start worker as www-data
-    #uid = pwd.getpwnam('www-data')[2]
-    #os.setuid(uid)
-
-    os.system('celery worker -A app.tasks.celery -n %s &' % db_name)
-
-    # Pause to give workers time to initialize before starting server
+    os.system('celery worker -A app.tasks.celery -n %s &' % app.config['DB'])
 
     #time.sleep(2)
 
-    # Start beat if option given
+    # Start celery beat if option given
 
     if celery_beat:
         os.environ['BRAVO_CELERY_BEAT'] = 'True'

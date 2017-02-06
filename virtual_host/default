@@ -1,6 +1,11 @@
 server {
   listen 80;
   listen [::]80 default_server ipv6only=on;
+
+  server_name bravotest.ca;
+  listen 443 ssl;
+  ssl_certificate /etc/nginx/793ac0361f2f0351.crt;
+  ssl_certificate_key /etc/nginx/bravotest.key;
   
   location /php/ {
     root /var/www/bravo;

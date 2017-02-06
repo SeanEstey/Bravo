@@ -1,8 +1,7 @@
 '''app.mongodb'''
-
 import logging
 import pymongo
-import mongodb_auth
+import db_auth
 import config
 log = logging.getLogger(__name__)
 
@@ -22,6 +21,6 @@ def create_client(connect=True, auth=True):
 #-------------------------------------------------------------------------------
 def authenticate(client, user=None, pw=None):
     client.admin.authenticate(
-        user or mongodb_auth.user,
-        pw or mongodb_auth.password,
+        user or db_auth.user,
+        pw or db_auth.password,
         mechanism='SCRAM-SHA-1')

@@ -2,9 +2,23 @@
 
 ###### Clone repository
 ```
-git clone https://github.com/SeanEstey/Bravo
+git clone https://github.com/SeanEstey/Bravo --branch <b_name>
 cd Bravo
 ```
+
+###### Install Ubuntu Packages
+
+Follow instructions in requirements/pkg_list.txt
+
+###### Install Python Packages
+
+Follow instructions in requirements/requirements.txt
+
+###### Run setup
+
+`python setup.py`
+
+May have to add execution permissions to log files created in /var/www/bravo/logs for PHP script.
 
 ###### Setup NodeJS & togeojson
 
@@ -18,24 +32,7 @@ Install togeojson
 npm install -g togeojson
 ```
 
-###### Run setup
 
-`python setup.py`
-
-May have to add execution permissions to log files created in /var/www/bravo/logs for PHP script.
-
-
-###### Mongo Logins
-```
-$mongo
->> use bravo
->> db.logins.insert({
-  'agency': 'name'
-  'user': 'name', 
-  'password': 'pw',
-  'admin': 'true/false'
-})
-```
 
 ###### Google Service Account
 

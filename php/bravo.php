@@ -250,8 +250,8 @@ function get_upload_status($request_id, $from_row) {
 			$from_row = $from_row;
 	else
 			$from_row = 2;
-
-  global $db;
+/*
+  //global $db;
   $db_collect = new MongoDB\Collection($db, "bravo.entries");
   $cursor = $db_collect->find(['request_id'=>$request_id]);
   $results = [];
@@ -262,6 +262,7 @@ function get_upload_status($request_id, $from_row) {
     $results[] = $array;
   }
   return $results;
+*/
 }
 
 //-----------------------------------------------------------------------
@@ -404,9 +405,9 @@ function update_note($acct_id, $note_ref, $body) {
 //-----------------------------------------------------------------------
 function add_accts($submissions) {
 
-  global $nsc, $agcy, $db;
+  global $nsc, $agcy; //$db;
 
-  $db_collect = new MongoDB\Collection($db, "bravo.entries");
+  //$db_collect = new MongoDB\Collection($db, "bravo.entries");
   $num_errors = 0;
   
   for($n=0; $n<count($submissions); $n++) {
@@ -429,12 +430,14 @@ function add_accts($submissions) {
       if($status != 'Success')
         $num_errors++;
       
+			/*
       $result = $db_collection->insertOne([ 
         'function' => 'add_accts',
         'request_id' => $submission['request_id'],
         'row' => $submission['ss_row'],
         'status' => $status
       ]);
+			*/
 
       continue;
     }
@@ -474,12 +477,14 @@ function add_accts($submissions) {
     else
       debug_log('Added account ' . $acct['name']);
 
+		/*
     $result = $db_collection->insertOne([ 
       'function' => 'add_accts',
       'request_id' => $submission['request_id'],
       'row' => $submission['ss_row'],
       'status' => $status
     ]);
+		*/
 
   }
 

@@ -1,6 +1,6 @@
 <?php
 
-require('mongodb_auth.php');
+#require('mongodb_auth.php');
 
 $INFO_LOG = '/var/www/bravo/logs/info.log';
 $DEBUG_LOG = '/var/www/bravo/logs/debug.log';
@@ -39,6 +39,7 @@ function get_inputs() {
     #debug_log('agcy=' . $agcy . ', func="' . $func . '"');
 }
 
+/*
 //-----------------------------------------------------------------------
 function get_db() {
     global $mongodb_user, $mongodb_password;
@@ -55,6 +56,7 @@ function get_db() {
 
     return $db;
 }
+*/
 //-----------------------------------------------------------------------
 function info_log($msg) {
     /* Convenience func */

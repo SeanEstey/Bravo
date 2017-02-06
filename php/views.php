@@ -13,7 +13,7 @@
 	// Populate globals with JSON/form data
 	get_inputs();
 
-	$db = get_db();
+	//$db = get_db();
 	$nsc = get_endpoint($etap_conf);
 	$rv = NULL;
 

@@ -9,8 +9,10 @@
   $username = $argv[2];
   $password = $argv[3];
   $func = $argv[4];
-  $sandbox = $argv[5];
+  $sandbox = $argv[5] === 'true'? true: false;
   $data = json_decode($argv[6], true);
+
+  debug_log('sandbox="' . $sandbox . '"');
 
 	$nsc = get_endpoint($username, $password);
 	$rv = NULL;
@@ -59,7 +61,7 @@
 					break;
 			case 'add_accts':
 					if($sandbox) {$rv = sandbox_err($func); break;}
-					$rv = add_accts($data);
+					$rv = add_accts($data['accts']);
 					break;
 			case 'add_note':
 					if($sandbox) {$rv = sandbox_err($func); break;}

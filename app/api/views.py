@@ -45,7 +45,8 @@ def call_accts_receipts():
 @api.route('/accounts/create', methods=['POST'])
 @login_required
 def call_accts_create():
-    return task_call(WRITE_ME, get_var('data'))
+    log.debug(get_var('accts'))
+    return func_call(donors.create_accts, get_var('accts'))
 
 @api.route('/agency/update', methods=['POST'])
 @login_required

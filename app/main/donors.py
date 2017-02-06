@@ -3,17 +3,29 @@ import logging
 from datetime import date, timedelta
 from dateutil.parser import parse
 from flask import g, request
-from app import html, mailgun, get_keys, etap
-from app.etap import EtapError, mod_acct, get_udf
+from app import html, mailgun, get_keys
+from app.etap import EtapError, mod_acct, get_udf, call
 from app.dt import ddmmyyyy_to_date as to_date
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def get(acct_id):
-    return etap.call(
+    return call(
         'get_acct',
         get_keys('etapestry'),
         data={'acct_id': int(acct_id)})
+
+#-------------------------------------------------------------------------------
+def create_accts(accts):
+    '''Called from API. g.user is set'''
+
+    try:
+        rv = call('add_accts', get_keys('etapestry'), {'accts':accts})
+    except Exception as e:
+        log.error('add_accts. desc=%s', str(e))
+        log.debug('', exc_info=True)
+
+    log.info('add_accts rv=%s', rv)
 
 #-------------------------------------------------------------------------------
 def is_inactive(agcy, acct, days=270):
@@ -43,7 +55,7 @@ def is_inactive(agcy, acct, days=270):
     # Retrieve journal entries from cutoff, see if donations made in period
 
     try:
-        je = etap.call(
+        je = call(
             'get_gift_histories',
             get_keys('etapestry',agcy=agcy), {
                 "acct_refs": [acct['ref']],

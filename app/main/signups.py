@@ -6,6 +6,8 @@ from .. import get_keys, mailgun
 from app.gsheets import gauth, get_row, append_row, update_cell, to_range
 log = logging.getLogger(__name__)
 
+
+
 #-------------------------------------------------------------------------------
 def add_gsheets(signup):
     '''Called by emptiestowinn.com signup form only for now

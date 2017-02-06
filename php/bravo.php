@@ -375,73 +375,78 @@ function update_note($acct_id, $note_ref, $body) {
 }
 
 //-----------------------------------------------------------------------
-function add_accts($submissions) {
+function add_accts($entries) {
 
   global $nsc, $agcy;
-  $num_errors = 0;
+  $entries = json_decode($entries, true);
+  $errors = [];
+
+  debug_log('adding ' . count($entries) . ' accounts...');
   
-  for($n=0; $n<count($submissions); $n++) {
-    $submission = $submissions[$n];
+  for($n=0; $n<count($entries); $n++) {
+      $entry = $entries[$n];
 
-    // Clear empty UDF fields (i.e. Office Notes may be blank)
-    foreach($submission['udf'] as $key=>$value) {
-      if(empty($value))
-        $submission['udf'] = remove_key($submission['udf'], $key);
-    }
-
-    // Modify existing eTap account
-    if(!empty($submission['existing_account'])) {
-      $status = modify_acct( 
-        $submission['existing_account'], 
-        $submission['udf'], 
-        $submission['persona']
-      );
-
-      if($status != 'Success')
-        $num_errors++;
-      
-      continue;
-    }
-
-    /******** Create new account ********/
-    
-    // Personas
-    $acct = $submission['persona'];
-    $udf = $submission['udf'];
-
-    // User Defined Fields
-    // Create proper DefinedValue object
-    foreach($udf as $key=>$value) {
-      if($key != 'Block' && $key != 'Neighborhood') {
-        $acct['accountDefinedValues'][] = [
-          'fieldName'=>$key,
-          'value'=>$value
-        ];
+      // Clear empty UDF fields (i.e. Office Notes may be blank)
+      foreach($entry['udf'] as $key=>$value) {
+          if(empty($value))
+              $entry['udf'] = remove_key($entry['udf'], $key);
       }
-      // Multi-value UDF like Block and Neighborhood need to each be separate array 
-      // for each comma-separated value
-      else {
-        $list = explode(",", $value);
-        for($j=0; $j<count($list); $j++) {
-          $acct['accountDefinedValues'][] = ['fieldName'=>$key, 'value'=>$list[$j]];
-        }
-      }
-    }
 
-    $status = $nsc->call("addAccount", array($acct, false));
-    
-    if(is_array($status)) {
-      $status = $status['faultstring'];
-      error_log($agcy . ': Add account error: ' . $status);
-      $num_errors++;
-    }
-    else
-      debug_log('Added account ' . $acct['name']);
+      // Modify existing eTap account
+      if(!empty($entry['existing_account'])) {
+          $status = modify_acct( 
+            $entry['existing_account'], 
+            $entry['udf'], 
+            $entry['persona']
+          );
+
+          if($status != 'Success') {
+            $errors [] = [
+                'acct_id'=>$entry['existing_account'],
+                'status'=>$status];
+          }
+          continue;
+      }
+
+      // Create new account
+      $acct = $entry['persona'];
+      $udf = $entry['udf'];
+
+      foreach($udf as $key=>$value) {
+          if($key != 'Block' && $key != 'Neighborhood') {
+              $acct['accountDefinedValues'][] = [
+                'fieldName'=>$key,
+                'value'=>$value
+              ];
+          }
+          else {
+              $list = explode(",", $value);
+              for($j=0; $j<count($list); $j++) {
+                  $acct['accountDefinedValues'][] = ['fieldName'=>$key, 'value'=>$list[$j]];
+              }
+          }
+      }
+
+      $status = $nsc->call("addAccount", array($acct, false));
+
+      if(is_error($nsc)) {
+          $errors [] = [
+              'name'=>$acct['name'],
+              'status'=>get_error($nsc, $log=false)];
+      }
+      else
+          debug_log('Added account ' . $acct['name']);
   }
 
-  debug_log((string)count($submissions) . ' accounts added/updated. ' . (string)$num_errors . ' errors.');
+  $n_success = count($entries) - count($errors);
+  $msg = (string)$n_success . ' accts added/updated. ' . (string)count($errors) . ' errors.';
 
-  return 'OK';
+  debug_log($msg);
+  debug_log(print_r($errors,true));
+
+  return [
+      'description': $msg,
+      'errors': $errors];
 }
 
 //-----------------------------------------------------------------------

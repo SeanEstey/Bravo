@@ -48,6 +48,14 @@ Twilio webhooks
 -Phone Numbers->Alice (Test Server)->Messaging
 -Update "A Message Comes In" webhook with VPS IP address
 
+#####Setup MongoDB
+
+Create database named "bravo"
+
+Create collections: "users", "agencies", "maps"
+
+Populate MongoDB bravo.agencies document with config data using format in DB.md
+
 
 ###### Setup NodeJS & togeojson
 

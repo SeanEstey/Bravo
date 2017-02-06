@@ -33,10 +33,7 @@ def start_worker(celery_beat):
     os.system('kill %1')
     os.system("ps aux | grep '/usr/local/bin/celery beat' | awk '{print $2}' | xargs kill -9")
     os.system("ps aux | grep '/usr/local/bin/celery worker' | awk '{print $2}' | xargs kill -9")
-
     os.system('celery worker -A app.tasks.celery -n %s &' % app.config['DB'])
-
-    #time.sleep(2)
 
     # Start celery beat if option given
 

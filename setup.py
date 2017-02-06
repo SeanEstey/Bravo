@@ -44,22 +44,11 @@ def startup_msg(sio_server, app):
     msg.append('--------------------------------------')
     return msg
 
-#-------------------------------------------------------------------------------
-def copy_files():
-    # PHP
+if __name__ == "__main__":
     os.system('mkdir /var/www/bravo')
     os.system('mkdir /var/www/bravo/logs')
-    os.system('mkdir /var/www/bravo/php')
-    os.system('mkdir /var/www/bravo/php/lib')
-    os.system('cp -avr php /var/www/bravo/')
-
     os.system('chown -R www-data:root /var/www/bravo/logs')
-
     os.system('cp virtual_host/default /etc/nginx/sites-enabled/')
     os.system('service nginx restart')
-
     os.system('cp logrotate/bravo /etc/logrotate.d/')
     os.system('logrotate --force /etc/logrotate.d/bravo')
-
-if __name__ == "__main__":
-    copy_files()

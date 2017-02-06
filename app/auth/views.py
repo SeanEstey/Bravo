@@ -9,8 +9,6 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 @auth.route('/login', methods=['GET'])
 def show_login():
-    from app.utils import print_vars
-    log.debug(print_vars(request))
     return render_template('views/login.html')
 
 #-------------------------------------------------------------------------------

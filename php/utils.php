@@ -1,7 +1,5 @@
 <?php
 
-#require('mongodb_auth.php');
-
 $INFO_LOG = '/var/www/bravo/logs/info.log';
 $DEBUG_LOG = '/var/www/bravo/logs/debug.log';
 $ERROR_LOG = '/var/www/bravo/logs/error.log';
@@ -39,24 +37,6 @@ function get_inputs() {
     #debug_log('agcy=' . $agcy . ', func="' . $func . '"');
 }
 
-/*
-//-----------------------------------------------------------------------
-function get_db() {
-    global $mongodb_user, $mongodb_password;
-    $db = null;
-
-    try {
-        $cred = $mongodb_user . ':' . $mongodb_password; 
-        $db = new MongoDB\Driver\Manager('mongodb://'. $cred . '@localhost:27017');
-    }
-    catch(Exception $e) {
-        error_log('mongodb auth error. desc=' . $e->getMessage());
-        http_response_code(500);
-    }
-
-    return $db;
-}
-*/
 //-----------------------------------------------------------------------
 function info_log($msg) {
     /* Convenience func */
@@ -78,16 +58,6 @@ function write_log($msg, $log_path) {
     // IMPORTANT: requires execute permissions on the folder to write!!
     file_put_contents($log_path, $line, FILE_APPEND);
     return json_encode($msg);
-}
-
-//-----------------------------------------------------------------------
-function num_php_fpms() {
-    $res = [];
-    exec("/etc/init.d/php7.0-fpm status | grep 'Processes active'", $res);
-    $start_index = strpos($res[0], 'Processes active:') + 17;
-    $end_index = strpos($res[0], ',');
-    $num_processes = substr($res[0], $start_index, $end_index-$start_index); 
-    return $num_processes;
 }
 
 /*** General PHP Helper Functions ***/
@@ -123,7 +93,5 @@ function remove_key($array,$key){
     }    
     return $holding;
 }
-
-
 
 ?>

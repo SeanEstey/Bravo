@@ -1,19 +1,13 @@
 <?php
-	//require('vendor/autoload.php'); /* Uncomment on Live server */
 	require('utils.php');
 	require('etap.php');
   require('bravo.php');
-
   ini_set('log_errors', 1);
   ini_set('error_log', $ERROR_LOG);
 
 	$sandbox = false;
-	$agcy = $func = $data = $etap_conf = $nsc = null;
-
-	// Populate globals with JSON/form data
-	get_inputs();
-
-	//$db = get_db();
+	$agcy = $func = $data = $etap_conf = null;
+	get_inputs(); // Define $agcy, $func, $data, $etap_conf with json/form data 
 	$nsc = get_endpoint($etap_conf);
 	$rv = NULL;
 

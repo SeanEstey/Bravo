@@ -1,16 +1,12 @@
 <?php
-
 require("./lib/nusoap.php");
 
 //-----------------------------------------------------------------------
 function is_error($nsc) {
     /* Checks SOAP obj for API call errors */
-    
     $err = ($nsc->fault || $nsc->getError()) ? true : false;
-
     if($err)
         http_response_code(500);
-
     return $err;
 }
 
@@ -20,10 +16,8 @@ function get_error($nsc, $log=true) {
         $err_desc = 'Error: ' . $nsc->getError();
     else
         $err_desc = 'Error ' . $nsc->faultcode . ". " . $nsc->faultstring;
-
     if($log)
       error_log($err_desc);
-
     return $err_desc;
 }
 
@@ -51,7 +45,6 @@ function get_endpoint($etap_conf) {
       if(is_error($nsc))
           return get_error($nsc, $log=True);
   }
-
   return $nsc;
 }
 
@@ -63,12 +56,10 @@ function get_udf($acct, $field) {
     */
 
     $values = [];
-
     foreach($acct['accountDefinedValues'] as $idx=>$dv) {
         if((string)$field == $dv['fieldName'])
             $values[] = $dv['value'];
     }
-
     if(count($values) == 1)
         return $values[0];
     else if(count($values) > 1)

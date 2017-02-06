@@ -240,32 +240,6 @@ function gift_history($ref, $start, $end) {
 }
 
 //-----------------------------------------------------------------------
-function get_upload_status($request_id, $from_row) {
-	/* Check on progress of update_accounts, add_gifts, add_accounts */
-
-	// TODO: Make sure from_row is always included in this call, otherwise
-	// error in views when accessing data['from_row']
-
-	if(!empty($from_row))
-			$from_row = $from_row;
-	else
-			$from_row = 2;
-/*
-  //global $db;
-  $db_collect = new MongoDB\Collection($db, "bravo.entries");
-  $cursor = $db_collect->find(['request_id'=>$request_id]);
-  $results = [];
-
-  foreach($cursor as $document) {
-    $array = get_object_vars($document);
-    unset($array['_id']);
-    $results[] = $array;
-  }
-  return $results;
-*/
-}
-
-//-----------------------------------------------------------------------
 function process_entries($entries) {
 
     ini_set('max_execution_time', 30000); // Prevents fatal timeout err
@@ -405,9 +379,7 @@ function update_note($acct_id, $note_ref, $body) {
 //-----------------------------------------------------------------------
 function add_accts($submissions) {
 
-  global $nsc, $agcy; //$db;
-
-  //$db_collect = new MongoDB\Collection($db, "bravo.entries");
+  global $nsc, $agcy;
   $num_errors = 0;
   
   for($n=0; $n<count($submissions); $n++) {
@@ -430,15 +402,6 @@ function add_accts($submissions) {
       if($status != 'Success')
         $num_errors++;
       
-			/*
-      $result = $db_collection->insertOne([ 
-        'function' => 'add_accts',
-        'request_id' => $submission['request_id'],
-        'row' => $submission['ss_row'],
-        'status' => $status
-      ]);
-			*/
-
       continue;
     }
 
@@ -476,16 +439,6 @@ function add_accts($submissions) {
     }
     else
       debug_log('Added account ' . $acct['name']);
-
-		/*
-    $result = $db_collection->insertOne([ 
-      'function' => 'add_accts',
-      'request_id' => $submission['request_id'],
-      'row' => $submission['ss_row'],
-      'status' => $status
-    ]);
-		*/
-
   }
 
   debug_log((string)count($submissions) . ' accounts added/updated. ' . (string)$num_errors . ' errors.');
@@ -556,7 +509,6 @@ function skip_pickup($acct_id, $date, $next_pickup) {
 		]);
 		
 		debug_log('skipping pickup, acct_id=' . $acct_id);
-
 		return json_encode(["No Pickup request received. Thanks"]);
 }
 
@@ -732,7 +684,6 @@ function get_next_pickup($email) {
 					}
 			}
 	}
-
 	throw new Exception('invalid/missing pickup date for acct_id=' . $acct);
 }
 

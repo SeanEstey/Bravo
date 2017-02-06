@@ -20,6 +20,27 @@ Follow instructions in requirements/requirements.txt
 
 May have to add execution permissions to log files created in /var/www/bravo/logs for PHP script.
 
+##### Domain & Webhooks
+
+######Live Server
+
+Update DNS records to point to IP address of VPS.
+The Mailgun and Twilio webhooks use the domain name so they will point resolve to the new IP address once the DNS changes sync.
+
+######Test Server
+
+Mailgun webhooks 
+
+-Update webhooks for sandbox domain: https://mailgun.com/app/webhooks
+
+Twilio webhooks
+
+-Update webhooks for Alice test Number:
+-Go to appropriate subaccount
+-Phone Numbers->Alice (Test Server)->Messaging
+-Update "A Message Comes In" webhook with VPS IP address
+
+
 ###### Setup NodeJS & togeojson
 
 If nodejs already installed as “node”, make symbolic link:

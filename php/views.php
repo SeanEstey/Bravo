@@ -87,22 +87,37 @@
 		}
 	} 
 	catch(Exception $e) {
-			debug_log('Error in view="' . $func . '". ' . (string)$e);
-			debug_log(print_r($data, true));
-			echo json_encode(['status'=>'failed', 'description'=>$e->getMessage()]);
+			$msg = 'status=FAILED, func="' . $func . '"';
+
+			error_log($msg);
+			debug_log($msg . ', desc="' . $e->getMessage() . '"');
+
+			echo json_encode([
+					'status'=>'failed',
+					'description'=>$e->getMessage()]);
+
 			$nsc->call("logout");
 			exit;
 	}
 
 	if(is_error($nsc)) {
-			debug_log('error. message=' . get_error($nsc, $log=true));
-			echo json_encode(['status'=>'failed', 'result'=>$rv]);
+			$msg = 'status=FAILED, func="' . $func . '"';
+			$err = get_error($nsc, $log=false);
+
+			error_log($msg);
+			debug_log($msg . ', desc="' . $err . '", rv="' . $rv . '"');
+
+			echo json_encode([
+					'status'=>'failed',
+					'description'=>$err)]);
+
 			$nsc->call("logout");
 			exit;
 	}
-
-	echo json_encode(['status'=>'success', 'result'=>$rv]);
-	$nsc->call("logout");
-	debug_log('status=SUCCESS, func="' . $func . '"');
-	exit;
+	else {
+			debug_log('status=SUCCESS, func="' . $func . '"');
+			echo json_encode(['status'=>'success', 'result'=>$rv]);
+			$nsc->call("logout");
+			exit;
+	}
 ?>

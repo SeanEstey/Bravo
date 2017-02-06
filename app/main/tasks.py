@@ -4,14 +4,14 @@ from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta
 from dateutil.parser import parse
 from flask import current_app, g
-from app import cal, celery, get_keys
-from app.dt import d_to_dt
+from app import celery, get_keys
+from app.dt import d_to_dt, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 from app.parser import get_block, is_block, is_res, is_bus, get_area, is_route_size
-from app.gcal import gauth as gcal_auth, color_ids, get_events, evnt_date_to_dt, update_event
-from app.cal import get_blocks
 from app.gsheets import gauth, write_rows, append_row, get_row, to_range
+from app.gcal import gauth as gcal_auth, color_ids, get_events, evnt_date_to_dt, update_event
+from app.cal import get_blocks, get_accounts
 from app.etap import call, get_udf, mod_acct
-from app.dt import ddmmyyyy_to_mmddyyyy as swap_dd_mm
+from app.main import donors
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -263,21 +263,16 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
 
     from . import sms
 
-    if not in_days:
-        in_days = 3
+    days = in_days if in_days else 3
+    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
 
-    if agcy:
-        agencies = [db.agencies.find_one({'name':agcy})]
-    else:
-        agencies = db.agencies.find({})
-
-    for agency in agencies:
+    for agency in agcy_list:
         # Get accounts scheduled on Residential routes 3 days from now
-        accounts = cal.get_accounts(
+        accounts = get_accounts(
             agency['etapestry'],
             agency['cal_ids']['res'],
             agency['google']['oauth'],
-            days_from_now=in_days)
+            days_from_now=days)
 
         if len(accounts) < 1:
             return 'failed'
@@ -310,20 +305,15 @@ def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
     '''Create RFU's for all non-participants on scheduled dates
     '''
 
-    import app.main.donors
+    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
 
-    if agcy:
-        agencies = [g.db.agencies.find_one({'name':agcy})]
-    else:
-        agencies = g.db.agencies.find({})
-
-    for agency in agencies:
+    for agency in agcy_list:
         agcy = agency['name']
         if not period:
             period = agency['config']['non_participant_days']
         log.info('%s: Analyzing non-participants in 5 days...', agcy)
 
-        accts = cal.get_accounts(
+        accts = get_accounts(
             agency['etapestry'],
             agency['cal_ids']['res'],
             agency['google']['oauth'],

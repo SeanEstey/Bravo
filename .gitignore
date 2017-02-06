@@ -2,6 +2,7 @@ venv*
 *.pyc
 *.swp
 *.swo
+*.log
 *~
 celerybeat-schedule
 celerybeat.pid

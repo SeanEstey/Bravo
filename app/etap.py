@@ -3,6 +3,7 @@ import json, logging, os, subprocess
 import requests
 from flask import current_app
 from datetime import datetime, date
+from app import get_keys
 import utils
 import config
 log = logging.getLogger(__name__)
@@ -41,6 +42,29 @@ def call(func, keys, data, silence_exc=False ):
         raise EtapError(response['description'])
     else:
         return response['result']
+
+#-------------------------------------------------------------------------------
+def block_size(category, query):
+    '''Called from API. g.user available'''
+
+    try:
+        rv = call('get_block_size', get_keys('etapestry'),
+                {'query':query, 'category':category})
+    except EtapError as e:
+        raise
+    else:
+        return rv
+
+#-------------------------------------------------------------------------------
+def route_size(category, query, date_):
+    '''Called from API. g.user available'''
+    try:
+        rv = call('get_route_size', get_keys('etapestry'),
+                {'query':query, 'category':category, 'date':date_})
+    except EtapError as e:
+        raise
+    else:
+        return rv
 
 #-------------------------------------------------------------------------------
 def get_query(block, keys, category=None):

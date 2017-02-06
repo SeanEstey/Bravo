@@ -1,8 +1,10 @@
 '''app.api.views'''
+import logging
 from . import api
 from flask import g
 from flask_login import login_required
 from app import get_op_stats
+from app.etap import block_size, route_size
 from .main import get_var, build_resp, func_call, task_call, WRITE_ME
 from app.alice.outgoing import send_welcome
 from app.booker.geo import get_maps
@@ -15,6 +17,7 @@ from app.notify.events import create_event, cancel_event, reset_event, rmv_notif
 from app.notify.recording import dial_recording
 from app.notify.triggers import kill_trigger
 from app.routing.main import edit_field
+log = logging.getLogger(__name__)
 
 @api.route('/accounts/get', methods=['POST'])
 @login_required
@@ -62,8 +65,11 @@ def call_booker_create():
 @api.route('/booker/search', methods=['POST'])
 @login_required
 def call_booker_search():
-    return func_call(search, get_var('query'),
+    from flask import jsonify
+    rv = func_call(search, get_var('query'),
         radius=get_var('radius'), weeks=get_var('weeks'))
+    log.debug('search rv=%s', rv.response)
+    return rv
 
 @api.route('/booker/maps/get', methods=['POST'])
 @login_required
@@ -130,12 +136,12 @@ def call_phone_lookup():
 @api.route('/query/block_size', methods=['POST'])
 @login_required
 def call_block_size():
-    return func_call(WRITE_ME)
+    return func_call(block_size, get_var('category'), get_var('query'))
 
 @api.route('/query/route_size', methods=['POST'])
 @login_required
 def call_route_size():
-    return task_call(WRITE_ME)
+    return func_call(route_size, get_var('category'), get_var('query'), get_var('date'))
 
 @api.route('/routing/build', methods=['POST'])
 @login_required

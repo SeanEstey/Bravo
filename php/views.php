@@ -109,7 +109,7 @@
 
 			echo json_encode([
 					'status'=>'failed',
-					'description'=>$err)]);
+					'description'=>$err]);
 
 			$nsc->call("logout");
 			exit;

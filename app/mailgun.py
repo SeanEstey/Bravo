@@ -3,6 +3,7 @@ import requests
 import json
 import os
 import logging
+from app import db_client
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -16,7 +17,10 @@ def send(to, subject, body, conf, v=None):
     # Mailgun has no test API keys for use in test environment
     # If test mode enabled, re-route all emails to test address
     if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
-        log.debug('sandbox mode enabled. rerouting email')
+        test_db = db_client['test']
+        cred = test_db.credentials.find_one()['mailgun']
+        conf = cred
+        log.debug('sandbox mode. using domain="%s"', conf['domain'])
         to = conf['sandbox_to']
 
     data = {

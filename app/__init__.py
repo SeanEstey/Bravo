@@ -174,26 +174,11 @@ def is_test_server():
 def config_test_server(source):
     # Swap out any sandbox credentials that may be present
 
-    #test_db = client['test']
-    #agencies = db.agencies.find()
-    #cred = test_db.credentials.find_one()
-
     if source == 'sandbox':
         os.environ['BRAVO_SANDBOX_MODE'] = 'True'
     else:
         os.environ['BRAVO_SANDBOX_MODE'] = 'False'
 
-    '''
-    for agency in agencies:
-        db.agencies.update_one(
-            {'name': agency['name']},
-            {'$set':{
-                'twilio': cred['twilio'][source]
-            }})
-    '''
-
-    # Set SmsUrl callback to point to correct server
-    #https://www.twilio.com/docs/api/rest/incoming-phone-numbers#instance
     return True
 
 #-------------------------------------------------------------------------------

@@ -36,11 +36,12 @@ def update_agency_conf():
     return jsonify({'status':'success'})
 
 #-------------------------------------------------------------------------------
-@main.route('/email/delivered',methods=['POST'])
+@main.route('/email/delivered', methods=['GET', 'POST'])
 def on_delivered():
     '''Mailgun webhook
     '''
 
+    log.debug('mailgun email/delivered webhook')
     #dump(request.values.to_dict())
 
     type_ = request.form.get('type')

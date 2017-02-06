@@ -18,14 +18,26 @@ Follow instructions in requirements/requirements.txt
 
 `python setup.py`
 
-This will setup /var/www/bravo folder and copy PHP files. May have to add execution permissions to log files created in /var/www/bravo/logs for PHP script.
+This will copy nginx virtual host file and setup logrotate.d
+
+Add execution permission to /var/www/bravo/logs folder. 
+
+Create empty files: info.log, debug.log, error.log. Add execution permissions.
+
+###### PHP Error Logging
+
+Open /etc/php/7.0/cli/php.ini
+
+Find line for "error_log". Replace with:
+
+error_log = /var/www/bravo/logs/debug.log
 
 ###### Create MongoDB Auth File
 
-Create "mongodb_auth.py" in Bravo root directory:
+Create "db_auth.py" in Bravo root directory:
 ```
-user = "mongodb_auth_user"
-password = "mongodb_auth_pw"
+user = "db_user"
+password = "db_pw"
 ```
 
 ##### Domain & Webhooks

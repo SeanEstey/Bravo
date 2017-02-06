@@ -1,0 +1,6 @@
+# Open /etc/php.ini
+# Find error_log line. Set:
+# error_log = /var/www/bravo/logs/debug.log
+# Make symbolic links to logs:
+# ln -s /var/www/bravo/logs/debug.log debug.log
+# Repeat for all logs

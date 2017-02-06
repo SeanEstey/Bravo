@@ -18,7 +18,15 @@ Follow instructions in requirements/requirements.txt
 
 `python setup.py`
 
-May have to add execution permissions to log files created in /var/www/bravo/logs for PHP script.
+This will setup /var/www/bravo folder and copy PHP files. May have to add execution permissions to log files created in /var/www/bravo/logs for PHP script.
+
+###### Create MongoDB Auth File
+
+Create "mongodb_auth.py" in Bravo root directory:
+```
+user = "mongodb_auth_user"
+password = "mongodb_auth_pw"
+```
 
 ##### Domain & Webhooks
 

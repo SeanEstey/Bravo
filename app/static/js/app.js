@@ -14,6 +14,8 @@ this.unicode = {
 
 //------------------------------------------------------------------------------
 function showAdminServerStatus() {
+		return;
+
 		$.ajax({
 			type: 'POST',
 			context: this,

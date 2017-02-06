@@ -3,17 +3,16 @@
 function booker_init() {
     alertMsg(
       'Enter an <b>account ID</b>, <b>address</b>, or <b>postal code</b> below',
-      'info', 
+      'info',
       -1
     );
-    
     buildAdminPanel();
     addSocketIOHandlers();
 }
 
 //------------------------------------------------------------------------------
 function addSocketIOHandlers() {
-    var socketio_url = 'http://' + document.domain + ':' + location.port;
+    var socketio_url = 'https://' + document.domain + ':' + location.port;
 
     var socket = io.connect(socketio_url);
 
@@ -31,9 +30,7 @@ function addSocketIOHandlers() {
 //---------------------------------------------------------------------
 function validateSearch(form) {
     var query = form.elements['search_box'].value;
-    
     form.elements['search_box'].value = '';
-    
     if(!query) {
       return false;
     }
@@ -42,7 +39,7 @@ function validateSearch(form) {
 }
 
 //---------------------------------------------------------------------
-function search(query, radius, weeks) {  
+function search(query, radius, weeks) {
     console.log(
       'submitting search: "' + query + '", radius: '+ radius +', weeks: '+ weeks);
 

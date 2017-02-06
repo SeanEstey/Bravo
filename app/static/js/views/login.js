@@ -6,7 +6,8 @@ function init() {
 		$('#submit_btn').click(function(event) {
 			// This line needs to be here for Firefox browsers
 			//event.preventDefault(event);
-			
+			console.log('url_root='+$URL_ROOT);
+
 			$.ajax({
 				type: 'POST',
 				url: $URL_ROOT + '/login',
@@ -25,7 +26,7 @@ function init() {
 
 //------------------------------------------------------------------------------
 function loginSuccess(response) {
-    //location.href = $URL_ROOT + '/notify';
+    location.href = $URL_ROOT + '/notify';
 
     console.log('login success');
 		console.log(response);

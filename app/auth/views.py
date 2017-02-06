@@ -9,6 +9,8 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 @auth.route('/login', methods=['GET'])
 def show_login():
+    from app.utils import print_vars
+    log.debug(print_vars(request))
     return render_template('views/login.html')
 
 #-------------------------------------------------------------------------------
@@ -28,7 +30,9 @@ def authenticate():
                 admin = db_user['admin']))
         log.debug('%s logged in', current_user)
 
-    return redirect(url_for('notify.view_event_list'))
+        return jsonify({'status':'success'})
+
+    return jsonify({'status':'success'})
 
 #-------------------------------------------------------------------------------
 @login_required

@@ -71,7 +71,7 @@ function addEventHandlers() {
 							context: this,
 							type: 'POST',
 							url: $URL_ROOT + 'api/routing/build', //$(this).attr('href')
-              data: {'route_id': route_id} 
+              data: {'route_id': route_id}
 						})
 						.done(function(response) {
 						});
@@ -80,7 +80,7 @@ function addEventHandlers() {
 
     $('button[name="view_btn"]').each(function() {
 				var metadata = JSON.parse($(this).parent().parent().find('button[name="route_btn"]').attr('data-route'));
-				
+
 				if(!metadata['ss_id']) {
 						$(this).prop('disabled', true);
 						return;
@@ -155,7 +155,7 @@ function addEventHandlers() {
 
 //------------------------------------------------------------------------------
 function addSocketIOHandlers() {
-    socket = io.connect('http://' + document.domain + ':' + location.port);
+    socket = io.connect('https://' + document.domain + ':' + location.port);
 
     socket.on('connect', function(){
         console.log('socket.io connected!');

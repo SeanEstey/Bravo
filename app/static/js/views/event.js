@@ -13,7 +13,7 @@ function init() {
 
 //------------------------------------------------------------------------------
 function addSocketIOHandlers() {
-    socket = io.connect('http://' + document.domain + ':' + location.port);
+    socket = io.connect('https://' + document.domain + ':' + location.port);
 
     socket.on('connect', function(){
         console.log('socket.io connected!');

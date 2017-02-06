@@ -5,10 +5,14 @@
   ini_set('log_errors', 1);
   ini_set('error_log', $ERROR_LOG);
 
-	$sandbox = false;
-	$agcy = $func = $data = $etap_conf = null;
-	get_inputs(); // Define $agcy, $func, $data, $etap_conf with json/form data 
-	$nsc = get_endpoint($etap_conf);
+  $agcy = $argv[1];
+  $username = $argv[2];
+  $password = $argv[3];
+  $func = $argv[4];
+  $sandbox = $argv[5];
+  $data = json_decode($argv[6], true);
+
+	$nsc = get_endpoint($username, $password);
 	$rv = NULL;
 
 	try {
@@ -85,21 +89,20 @@
 	catch(Exception $e) {
 			debug_log('Error in view="' . $func . '". ' . (string)$e);
 			debug_log(print_r($data, true));
-			http_response_code(500);
-			echo json_encode($e->getMessage());
+			echo json_encode(['status'=>'failed', 'description'=>$e->getMessage()]);
 			$nsc->call("logout");
 			exit;
 	}
 
-	if(http_response_code() != 200) {
-			debug_log('response_code=' . http_response_code() . ' message=' . $rv);
-			echo json_encode($rv);
+	if(is_error($nsc)) {
+			debug_log('error. message=' . get_error($nsc, $log=true));
+			echo json_encode(['status'=>'failed', 'result'=>$rv]);
 			$nsc->call("logout");
 			exit;
 	}
 
-	echo json_encode($rv);
+	echo json_encode(['status'=>'success', 'result'=>$rv]);
 	$nsc->call("logout");
-	debug_log('status=SUCCESS, func="' . $func . '", code=' . http_response_code());
+	debug_log('status=SUCCESS, func="' . $func . '"');
 	exit;
 ?>

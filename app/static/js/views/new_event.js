@@ -48,7 +48,7 @@ function newEventBtnHandlers() {
 
 //------------------------------------------------------------------------------
 function newEventSocketIOHandlers() {
-    var socketio_url = 'http://' + document.domain + ':' + location.port;
+    var socketio_url = 'https://' + document.domain + ':' + location.port;
     var socket = io.connect(socketio_url);
 
     socket.on('connected', function(){

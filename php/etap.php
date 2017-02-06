@@ -1,5 +1,5 @@
 <?php
-require("./lib/nusoap.php");
+require("/root/bravo/php/lib/nusoap.php");
 
 //-----------------------------------------------------------------------
 function is_error($nsc) {
@@ -22,13 +22,14 @@ function get_error($nsc, $log=true) {
 }
 
 //-----------------------------------------------------------------------
-function get_endpoint($etap_conf) {
-  $nsc = new nusoap_client($etap_conf['endpoint'], true);
+function get_endpoint($user, $pass) {
+  $endpoint = "https://sna.etapestry.com/v3messaging/service?WSDL";
+  $nsc = new nusoap_client($endpoint, true);
 
   if(is_error($nsc))
 			return get_error($nsc, $log=True);
 
-  $newEndpoint = $nsc->call('login', array($etap_conf['user'], $etap_conf['pw']));
+  $newEndpoint = $nsc->call('login', array($user, $pass));
 	if(is_error($nsc))
 			return get_error($nsc, $log=True);
 
@@ -40,7 +41,7 @@ function get_endpoint($etap_conf) {
       if(is_error($nsc))
           return get_error($nsc, $log=True);
 
-			$nsc->call("login", array($etap_conf['user'], $etap_conf['pw']));
+			$nsc->call("login", array($user, $pass));
 
       if(is_error($nsc))
           return get_error($nsc, $log=True);

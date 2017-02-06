@@ -88,7 +88,7 @@ def main(argv):
     sio_server.run(
         app,
         port=app.config['LOCAL_PORT'],
-        use_reloader=False)
+        use_reloader=True)
 
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":

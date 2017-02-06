@@ -1,12 +1,8 @@
 '''app.etap'''
-
-import json
-import os
+import json, logging, os, subprocess
 import requests
-import logging
 from flask import current_app
 from datetime import datetime, date
-
 import utils
 import config
 log = logging.getLogger(__name__)
@@ -15,47 +11,36 @@ class EtapError(Exception):
     pass
 
 #-------------------------------------------------------------------------------
-def call(func, keys, data, silence_exc=False):
-    '''Call PHP eTapestry script
-    @func_name: name of view function
-    @keys: etap auth
-    @silence_exceptions: if True, returns False on exception, otherwise
-    re-raises to caller method
-    Returns:
-      -response as python structures
-    Exceptions:
-      -Raises requests.RequestException on POST error (if not silenced)
-    '''
+def call(func, keys, data, silence_exc=False ):
 
-    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
-        sandbox = True
+    sandbox = 'true' if os.environ['BRAVO_SANDBOX_MODE'] == 'True' else 'false'
+
+    cmds = [
+        'php', '/root/bravo/php/views.php',
+        keys['agency'], keys['user'], keys['pw'],
+        func,
+        sandbox,
+        json.dumps(data)]
+
+    try:
+        response = subprocess.check_output(cmds)
+    except Exception as e:
+        log.error('subprocess error. desc=%s', str(e))
+        log.debug('',exc_info=True)
+        raise
+
+    try:
+        response = json.loads(response)
+    except Exception as e:
+        log.error('not json serializable, rv=%s', response)
+        raise EtapError(response)
+
+    if response['status'] != 'success':
+        log.error('EtapError: func="%s", \nDescription: %s',
+            func, response['description'])
+        raise EtapError(response['description'])
     else:
-        sandbox = False
-
-    try:
-        response = requests.post(
-            '%s/php/views.php' % os.environ['BRAVO_HTTP_HOST'],
-            data=json.dumps({
-              'func': func,
-              'etapestry': keys,
-              'data': data,
-              'sandbox': sandbox}))
-    except Exception as e:
-        log.error('requests error=%s', str(e))
-        return EtapError(str(e)) if silence_exc else False
-
-    try:
-        resp_text = json.loads(response.text)
-    except Exception as e:
-        log.error('not json serializable, rv=%s', response.text)
-        raise EtapError(response.text)
-
-    if response.status_code != 200:
-        log.error('EtapError: func="%s", response_code=%s, \nDescription: %s',
-            func, response.status_code, resp_text)
-        raise EtapError(resp_text)
-
-    return resp_text
+        return response['result']
 
 #-------------------------------------------------------------------------------
 def get_query(block, keys, category=None):

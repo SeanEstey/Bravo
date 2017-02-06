@@ -1,5 +1,5 @@
 '''app.routing.tasks'''
-import logging, re, pytz
+import json, logging, re, pytz
 from time import sleep
 from bson import ObjectId
 from flask import g
@@ -177,4 +177,4 @@ def build_route(self, route_id, job_id=None, **rest):
         route['block'], len(orders), route['num_unserved'],
         len(route['warnings']), len(route['errors']))
 
-    return {'status':'success', 'route_id':str(route['_id'])}
+    return json.dumps({'status':'success', 'route_id':str(route['_id'])})

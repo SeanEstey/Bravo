@@ -123,8 +123,8 @@ function display(json) {
 // we need tabs as spaces and not CSS magin-left 
 // in order to ratain format when coping and pasing the code
 window.SINGLE_TAB = "  ";
-window.ImgCollapsed = "http://www.bodurov.com/JsonFormatter/images/Collapsed.gif";
-window.ImgExpanded = "http://www.bodurov.com/JsonFormatter/images/Expanded.gif";
+window.ImgCollapsed = $URL_ROOT + '/static/images/Collapsed.gif'; //"http://www.bodurov.com/JsonFormatter/images/Collapsed.gif";
+window.ImgExpanded = $URL_ROOT + '/static/images/Expanded.gif'; //"http://www.bodurov.com/JsonFormatter/images/Expanded.gif";
 window.QuoteKeys = false;
 function $id(id){ return document.getElementById(id); }
 function IsArray(obj) {

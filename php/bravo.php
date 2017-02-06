@@ -98,7 +98,6 @@ function get_route_size($category, $query, $date) {
 	/* Find out how many stops in given Query are scheduled for given Date
 	 * @date: eTap formatted date string dd/mm/yyyy
 	 * Returns: string "booked/total",
-	 * error string on fail (http_response_code 400)
 	 */
 
 	global $nsc;
@@ -178,8 +177,7 @@ function get_block_size($query_category, $query) {
   );
 
   if(is_error($nsc)) {
-		http_response_code(400);
-    return $response;
+      throw new Exception(get_error($nsc, $log=false));
   }
 
   debug_log('Query ' . $query . ' count: ' . $response['count']);

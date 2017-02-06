@@ -150,7 +150,7 @@ def is_test_server():
     ip = s.getsockname()[0]
     s.close
 
-    os.environ['BRAVO_HTTP_HOST'] = 'http://' + ip
+    os.environ['BRAVO_HTTP_HOST'] = 'https://' + ip
 
     #log.debug('http_host=%s', os.environ['BRAVO_HTTP_HOST'])
 

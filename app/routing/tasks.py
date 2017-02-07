@@ -31,7 +31,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
 
     n_found = 0
     events = []
-    service = gcal.gauth(get_keys('google')['oauth'])
+    service = gcal.gauth(get_keys('google',agcy=agcy)['oauth'])
     cal_ids = get_keys('cal_ids', agcy=agcy)
 
     for _id in cal_ids:

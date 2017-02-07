@@ -194,7 +194,7 @@ function gift_histories($acct_refs, $start, $end) {
         $accts_je[] = gift_history($acct_refs[$i], $start, $end);
     }
 
-    debug_log(count($accts_je) . ' gift histories retrieved.');
+    //debug_log(count($accts_je) . ' gift histories retrieved.');
 
     return $accts_je;
 }
@@ -304,7 +304,7 @@ function process_entries($entries) {
         }
         else {
             if(floatval($ref) == 0)
-                error_log('invalid db ref="' . $ref . '"');
+                debug_log('invalid db ref="' . $ref . '"');
             debug_log(json_encode(['row'=>$row, 'ref'=>$ref]));
 	
 						$status = null;
@@ -388,7 +388,7 @@ function add_note($acct_id, $date, $body) {
     if(is_error($nsc))
         return get_error($nsc, $log=True);
     
-    debug_log('Note added for account ' . $acct_id);
+    //debug_log('Note added for account ' . $acct_id);
     return $status;
 }
 

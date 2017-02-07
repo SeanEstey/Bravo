@@ -4,6 +4,7 @@ from datetime import date
 from dateutil.parser import parse
 from flask import g, current_app, render_template, request
 from .. import get_keys, html, mailgun, etap
+from app.utils import to_title_case
 from app.gsheets import update_cell, to_range, gauth, get_row
 from app.etap import get_udf
 from app.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
@@ -20,19 +21,19 @@ def generate(acct, entry, ytd_gifts=None):
         g.track['no_email'] +=1
         return {'mid':None, 'status': 'No Email'}
 
-    #log.debug('generate receipt for agcy=%s', g.user.agency)
-    log.debug('generate for entry=%s', entry)
+    #log.debug('generate for entry=%s', entry)
 
     gift_date = parse(entry['date']).date()
     acct_status = get_udf('Status', acct)
-    drop_date = to_date(get_udf('Dropoff Date', acct))
+    drop_date = get_udf('Dropoff Date', acct)
+    drop_date = to_date(drop_date) if drop_date else None
     nf = acct['nameFormat']
 
     if entry['status'] == 'Cancelled':
         path = "receipts/%s/cancelled.html" % g.user.agency
         subject = "Your Account has been Cancelled"
         g.track['cancels'] +=1
-    elif drop_date == gift_date:
+    elif drop_date and drop_date == gift_date:
         path = "receipts/%s/dropoff_followup.html" % g.user.agency
         subject = "Dropoff Complete"
         g.track['drops'] +=1
@@ -59,10 +60,15 @@ def generate(acct, entry, ytd_gifts=None):
     else:
         status = 'Queued'
 
-    log.debug('%s receipt sent, mid=%s...',
-        path.split('/')[-1][0:-5], mid[0:mid.find('.')])
+    r_title = path.split('/')[-1]
 
-    return {'mid':mid, 'status':status}
+    log.debug('row=%s, receipt="%s", n_ytd_gifts=%s, mid="%s"',
+        entry['ss_row'],
+        r_title,
+        len(ytd_gifts) if ytd_gifts else None,
+        mid[0:mid.find('.')])
+
+    return {'mid':mid, 'status': '%s "%s"...' %(status, to_title_case(r_title[0:-5]))}
 
 #-------------------------------------------------------------------------------
 def on_delivered(agcy):

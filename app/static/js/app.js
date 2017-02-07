@@ -5,7 +5,7 @@ this.colors = {
   'DEFAULT': 'black',
   'IN_PROGRESS': '#337AB7'
 };
-	
+
 this.unicode = {
   'UP_ARROW': '&#8593;',
   'DOWN_ARROW': '&#8595;',
@@ -14,19 +14,16 @@ this.unicode = {
 
 //------------------------------------------------------------------------------
 function showAdminServerStatus() {
-		return;
+    api_call('server/properties', null, function(response) {
+        response = response['data'];
 
-		$.ajax({
-			type: 'POST',
-			context: this,
-			url: $URL_ROOT + 'notify/get_op_stats'
-		})
-		.done(function(response) {
 				var admin_lbl = '';
 				var msg = 'Hi ' + response['USER_NAME'] + ' ';
 
-				if(response['TEST_SERVER'])
+				if(response['TEST_SERVER']) {
 						admin_lbl += 'Server: <b>Test</b>, ';
+            document.title = 'Bravo Test (SSL)';
+        }
 				else
 						admin_lbl += 'Server: <b>Deploy</b>, ';
 
@@ -41,9 +38,19 @@ function showAdminServerStatus() {
 						admin_lbl += 'Scheduler: <b color="green">Disabled</b>';
 
 				//alertMsg(msg, 'info', 5000);
-
 				$('#admin-msg').html(admin_lbl);
-		});
+    });
+}
+
+//------------------------------------------------------------------------------
+function api_call(path, data, on_done) {
+		$.ajax({
+			type: 'POST',
+      data: data,
+			url: $URL_ROOT + 'api/' + path
+		}).done(function(response){
+        on_done(response);
+    });
 }
 
 //------------------------------------------------------------------------------
@@ -67,7 +74,6 @@ $('[data-toggle="tooltip"]').tooltip();
 			}
 		});*/
 }
-
 
 var globalTimeoutId = false;
 
@@ -110,7 +116,7 @@ function alertMsg(msg, level, duration=7500, id=null) {
             },
             duration);
         }
-		});	
+		});
 }
 
 //------------------------------------------------------------------------------
@@ -124,7 +130,6 @@ function fadeAlert(id=null) {
 
     $alert.fadeTo('slow', 0);
 }
-
 
 //------------------------------------------------------------------------------
 function showModal(id, title, body, btn_prim_lbl, btn_sec_lbl) {
@@ -155,10 +160,8 @@ function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-primary', data=fa
 				$('#'+btn_id).data(key, data[key]);
 			}
     }
-
     return btn;
 }
-
 
 //------------------------------------------------------------------------------
 function closeAdminPanel() {

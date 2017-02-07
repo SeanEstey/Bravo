@@ -182,9 +182,7 @@ def config_test_server(source):
     return True
 
 #-------------------------------------------------------------------------------
-def get_op_stats():
-    #if not g.user:
-    #    return False
+def get_server_prop():
     return {
         'TEST_SERVER': True if os.environ['BRAVO_TEST_SERVER'] == 'True' else False,
         'SANDBOX_MODE': True if os.environ['BRAVO_SANDBOX_MODE'] == 'True' else False,

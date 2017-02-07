@@ -163,8 +163,9 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
 def send_receipts(self, entries, **rest):
     '''Email receipts to recipients and update email status on Bravo Sheets.
     Sheets->Routes worksheet.
-    @entries: array of gift entry dicts->
-        {'amount':float, 'date':str,'from':{'row':int,'upload_status':str(db_ref),'worksheet':str}}
+    @entries: list of dicts: {
+        'acct_id':'<int>', 'date':'dd/mm/yyyy', 'amount':'<float>',
+        'next_pickup':'dd/mm/yyyy', 'status':'<str>', 'ss_row':'<int>' }
     '''
 
     from app.main.receipts import generate, get_ytd_gifts

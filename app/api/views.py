@@ -3,7 +3,7 @@ import logging
 from . import api
 from flask import g
 from flask_login import login_required
-from app import get_op_stats
+from app import get_server_prop
 from app.etap import block_size, route_size
 from .main import get_var, build_resp, func_call, task_call, WRITE_ME
 from app.alice.outgoing import send_welcome
@@ -158,4 +158,4 @@ def call_route_edit():
 @api.route('/server/properties', methods=['POST'])
 @login_required
 def call_op_stats():
-    return func_call(get_op_stats)
+    return func_call(get_server_prop)

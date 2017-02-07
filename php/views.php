@@ -89,7 +89,7 @@
 	catch(Exception $e) {
 			$msg = 'status=EXCEPTION, func="' . $func . '"';
 
-			error_log($msg);
+			err_log($msg);
 			debug_log($msg . ', desc="' . $e->getMessage() . '"');
 
 			echo json_encode([
@@ -104,7 +104,7 @@
 			$msg = 'status=FAILED, func="' . $func . '"';
 			$err = get_error($nsc, $log=false);
 
-			//error_log($msg);
+			//err_log($msg);
 			debug_log($msg . ', desc="' . $err . '", rv="' . json_encode($rv) . '"');
 
 			echo json_encode([

@@ -60,7 +60,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
             try:
                 meta = add_metadata(agcy, block, event_dt, event)
             except Exception as e:
-                log.debug('', exc_info=True)
+                log.debug('block %s raised exc. continuing...', block)
                 continue
 
             log.debug('discovered %s on %s', block, event_dt.strftime('%b %-d'))

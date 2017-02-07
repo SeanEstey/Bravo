@@ -18,7 +18,6 @@ log = logging.getLogger(__name__)
 @celery.task(bind=True)
 def process_entries(self, entries, agcy='vec', **rest):
 
-    #log.debug('entries=%s', entries)
     entries = json.loads(entries)
 
     log.info('task: processing entries for %s accts...', len(entries))
@@ -31,27 +30,32 @@ def process_entries(self, entries, agcy='vec', **rest):
     srvc = gauth(get_keys('google',agcy=agcy)['oauth'])
     headers = get_row(srvc, ss_id, 'Routes', 1)
     upload_col = headers.index('Upload Status') +1
+    n_success = n_errs = 0
 
     for n in range(0,len(chunks)):
         chunk = chunks[n]
         log.debug('processing chunk %s/%s...', n+1, len(chunks))
         try:
-            rv = call(
+            r = call(
                 'process_entries',
                 etap_conf,
                 {'entries':chunk})
         except Exception as e:
-            log.error('process_entries error: %s', str(e))
-            log.debug('',exc_info=True)
-            return 'failed'
+            log.error('error in chunk #%s. continuing...', n+1)
+            continue
+
+        log.debug('chunk processed. n_success=%s, n_errs=%s', r['n_success'], r['n_errs'])
+
+        n_success += r['n_success']
+        n_errs += r['n_errs']
 
         range_ = '%s:%s' %(
-            to_range(rv[0]['row'], upload_col),
-            to_range(rv[-1]['row'], upload_col))
+            to_range(r['results'][0]['row'], upload_col),
+            to_range(r['results'][-1]['row'], upload_col))
 
         log.debug('writing chunk %s/%s return values to ss, range=%s', n+1, len(chunks), range_)
 
-        values = [[rv[i]['status']] for i in range(len(rv))]
+        values = [[r['results'][i]['status']] for i in range(len(r['results']))]
 
         try:
             write_rows(srvc, ss_id, range_, values)
@@ -59,7 +63,7 @@ def process_entries(self, entries, agcy='vec', **rest):
             log.error(str(e))
             log.debug('',exc_info=True)
 
-    log.info('task: completed. entries processed')
+    log.info('task: completed. n_errs=%s', n_errs)
 
     return 'success'
 
@@ -166,7 +170,7 @@ def send_receipts(self, entries, **rest):
     from app.main.receipts import generate, get_ytd_gifts
 
     entries = json.loads(entries)
-    log.info('processing %s receipts...', len(entries))
+    log.info('task: processing %s receipts...', len(entries))
 
     try:
         # list indexes match @entries
@@ -226,8 +230,8 @@ def send_receipts(self, entries, **rest):
             log.error(str(e))
             log.debug('',exc_info=True)
 
-    log.info('sent gifts=%s, zero_collections=%s, dropoff_followups=%s, cancels=%s. '\
-        'accts w/o email=%s', g.track['gifts'], g.track['zeros'], g.track['drops'],
+    log.info('task: completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s. '\
+        'no_email=%s', g.track['gifts'], g.track['zeros'], g.track['drops'],
         g.track['cancels'], g.track['no_email'])
 
     return 'success'

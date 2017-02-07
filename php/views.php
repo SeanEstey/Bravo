@@ -12,8 +12,6 @@
   $sandbox = $argv[5] === 'true'? true: false;
   $data = json_decode($argv[6], true);
 
-  debug_log('sandbox="' . $sandbox . '"');
-
 	$nsc = get_endpoint($username, $password);
 	$rv = NULL;
 
@@ -89,13 +87,13 @@
 		}
 	} 
 	catch(Exception $e) {
-			$msg = 'status=FAILED, func="' . $func . '"';
+			$msg = 'status=EXCEPTION, func="' . $func . '"';
 
 			error_log($msg);
 			debug_log($msg . ', desc="' . $e->getMessage() . '"');
 
 			echo json_encode([
-					'status'=>'failed',
+					'status'=>'FAILED',
 					'description'=>$e->getMessage()]);
 
 			$nsc->call("logout");
@@ -106,19 +104,24 @@
 			$msg = 'status=FAILED, func="' . $func . '"';
 			$err = get_error($nsc, $log=false);
 
-			error_log($msg);
-			debug_log($msg . ', desc="' . $err . '", rv="' . $rv . '"');
+			//error_log($msg);
+			debug_log($msg . ', desc="' . $err . '", rv="' . json_encode($rv) . '"');
 
 			echo json_encode([
-					'status'=>'failed',
-					'description'=>$err]);
+					'status'=>'FAILED',
+					'description'=>$err,
+          'result'=>$rv]);
 
 			$nsc->call("logout");
 			exit;
 	}
 	else {
 			debug_log('status=SUCCESS, func="' . $func . '"');
-			echo json_encode(['status'=>'success', 'result'=>$rv]);
+			
+      echo json_encode([
+          'status'=>'SUCCESS',
+          'result'=>$rv]);
+
 			$nsc->call("logout");
 			exit;
 	}

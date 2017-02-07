@@ -66,7 +66,7 @@ def add_metadata(agcy, block, event_dt, event):
     try:
         accts = get_query(block, get_keys('etapestry',agcy=agcy))
     except EtapError as e:
-        log.error('Error retrieving query=%s', block)
+        #log.error('Error retrieving query=%s', block)
         raise
 
     n_drops = n_booked = 0

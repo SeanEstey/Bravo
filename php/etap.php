@@ -4,21 +4,27 @@ require("/root/bravo/php/lib/nusoap.php");
 //-----------------------------------------------------------------------
 function is_error($nsc) {
     /* Checks SOAP obj for API call errors */
-    $err = ($nsc->fault || $nsc->getError()) ? true : false;
-    if($err)
-        http_response_code(500);
-    return $err;
+    return $nsc->fault || $nsc->getError() ? true : false;
 }
 
 //-----------------------------------------------------------------------
 function get_error($nsc, $log=true) {
     if(!$nsc->fault)
-        $err_desc = 'Error: ' . $nsc->getError();
+        $err_desc = strtolower('error ' . $nsc->getError());
     else
-        $err_desc = 'Error ' . $nsc->faultcode . ". " . $nsc->faultstring;
-    if($log)
-      error_log($err_desc);
+        $err_desc = 'error ' . $nsc->faultcode . ". " . strtolower($nsc->faultstring);
+
+    if($log == true)
+      debug_log($err_desc);
+
     return $err_desc;
+}
+
+//-----------------------------------------------------------------------
+function reset_error($nsc) {
+		$nsc->fault = NULL;
+		$nsc->faultcode = NULL;
+		$nsc->error_str = NULL;
 }
 
 //-----------------------------------------------------------------------

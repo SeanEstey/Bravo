@@ -36,10 +36,13 @@ def call(func, keys, data, silence_exc=False ):
         log.error('not json serializable, rv=%s', response)
         raise EtapError(response)
 
-    if response['status'] != 'success':
-        log.error('EtapError: func="%s", \nDescription: %s',
-            func, response['description'])
-        raise EtapError(response['description'])
+    # On success, response={'status':'SUCCESS', 'result':'<data>'}
+    # On fail, response={'status':'FAILED', 'description':'<str>', 'result':'<optional>'}
+
+    if response['status'] == 'FAILED':
+        log.error('status=%s, func="%s", description="%s", result="%s"',
+            response['status'], func, response['description'], response.get('result'))
+        raise EtapError(response)
     else:
         return response['result']
 

@@ -58,9 +58,10 @@ function get_query($query, $category) {
     );
 
     if(is_error($nsc))
-        return get_error($nsc, $log=true);
+				return 'query ' . $query . ', category ' . $category;
 
     debug_log($rv['count'] . ' accounts in query ' . $query);
+
     return utf8_converter($rv);
 }
 
@@ -246,7 +247,7 @@ function process_entries($entries) {
     // stdclass -> array
     $entries = json_decode(json_encode($entries), true);
 
-    $n_errs = $n_uploads = 0;
+    $n_errs = $n_success = 0;
     $n_entries = count($entries);
     $rv = [];
 
@@ -255,6 +256,7 @@ function process_entries($entries) {
     for($i=0; $i<$n_entries; $i++) {
         $entry = $entries[$i];
         $row = $entry['ss_row'];
+				$mod_err = '';
 
         try { 
             $acct = get_acct($id=$entry['acct_id']);
@@ -268,29 +270,63 @@ function process_entries($entries) {
 
         apply_udf($acct, $entry['udf']);
 
+				if(is_error($nsc)) {
+						$mod_err = get_error($nsc, $log=false) . '. ';
+						$n_errs++;
+				}
+
 				if(empty($entry['gift']['amount']) && $entry['gift']['amount'] !== 0) {
-            $rv[] = ['row'=>$row, 'status'=>'Updated'];
+            $rv[] = [
+								'row'=>$row,
+								'status'=>'Updated'];
 						continue;
 				}
 
+				try {
 				$ref = upload_gift($entry, $acct);
+				} catch (Exception $e) {
+						debug_log('func="upload_gift", description="' . $e->getMessage() . '"');
+            $rv[] = [
+								'row'=>$row,
+								'status'=>'Failed: ' . $mod_err . get_error($nsc),
+								'description'=>get_error($nsc)];
+						reset_error($nsc);
+						continue;
+				}
 
         if(is_error($nsc)) {
-            $rv[] = ['row'=>$row, 'status'=>get_error($nsc)];
+            $rv[] = [
+								'row'=>$row,
+								'status'=>'Failed: ' . $mod_err . get_error($nsc),
+								'description'=>get_error($nsc)];
             $n_errs++;
+						reset_error($nsc);
         }
         else {
             if(floatval($ref) == 0)
                 error_log('invalid db ref="' . $ref . '"');
             debug_log(json_encode(['row'=>$row, 'ref'=>$ref]));
-            $result = ['row'=>$row, 'status'=>'Processed'];
+	
+						$status = null;
+
+						if(!$mod_err)
+								$status = 'Processed';
+						if($mod_err)
+								$status = 'Uploaded. Update error: ' . $mod_err;
+
+            $result = ['row'=>$row, 'status'=>$status];
             $rv[] = $result;
-            $n_uploads++;
+            $n_success++;
         }
     }
 
-    debug_log('entries processed. n_uploads=' . $n_uploads . ', n_errors=' . $n_errs);
-    return $rv;
+    debug_log($n_entries . ' entries processed. n_success=' . $n_success . ', n_errors=' . $n_errs);
+		
+		return [
+				'n_success'=>$n_success,
+				'n_errs'=>$n_errs,
+				'results'=>$rv
+		];
 }
 
 //-----------------------------------------------------------------------
@@ -386,6 +422,7 @@ function add_accts($entries) {
   for($n=0; $n<count($entries); $n++) {
       $entry = $entries[$n];
 
+
       // Clear empty UDF fields (i.e. Office Notes may be blank)
       foreach($entry['udf'] as $key=>$value) {
           if(empty($value))
@@ -415,9 +452,8 @@ function add_accts($entries) {
       foreach($udf as $key=>$value) {
           if($key != 'Block' && $key != 'Neighborhood') {
               $acct['accountDefinedValues'][] = [
-                'fieldName'=>$key,
-                'value'=>$value
-              ];
+									'fieldName'=>$key,
+									'value'=>$value];
           }
           else {
               $list = explode(",", $value);
@@ -445,8 +481,8 @@ function add_accts($entries) {
   debug_log(print_r($errors,true));
 
   return [
-      'description': $msg,
-      'errors': $errors];
+      'description'=>$msg,
+      'errors'=>$errors];
 }
 
 //-----------------------------------------------------------------------

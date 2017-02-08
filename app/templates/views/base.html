@@ -37,6 +37,7 @@
     <script>
       window.onload = function() {
         $('body').show();
+				showAdminServerStatus();
       }
     </script>
 
@@ -112,9 +113,12 @@
 
   {% if admin == True %}
   <div class='container'>
-    <div style='bottom:0' class='admin-panel-div'>
+    <div id='admin' style='bottom:0; display:none' class='admin-panel-div'>
       <fieldset id='outer_pane' class='admin-fieldset'>
 				<div>
+					<button id='admin_size_btn' type='button' class='close' aria-hidden='true' 
+									onclick="toggleAdminPanelSize();"
+									style="position:absolute; top:5px; right:25px">-</button>
 					<button id='admin_close' type='button' class='close' aria-hidden='true' 
 									onclick="$('.admin-panel-div').fadeOut('slow');"
 									style="position:absolute; top:5px; right:5px">×</button>
@@ -137,6 +141,10 @@
       </fieldset>
     </div>
   </div>
+	<div class='container' style='text-align:center' hidden>
+		<hr>
+		<span id="siteseal"><script async type="text/javascript" src="https://seal.godaddy.com/getSeal?sealID=loTv4QSDCQIZ6bXCknPY4GX9uVKJ3lrg0GDBNkkhEiMZHQd79BiDxOuQXWcs"></script></span>
+	</div>
 	{% endif %}
 
   <!-- DIALOG BOX -->

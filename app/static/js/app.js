@@ -12,6 +12,32 @@ this.unicode = {
   'SPACE': '&#32;'
 };
 
+
+var flip=0;
+
+function positionAdminPanel() {
+		console.log('admin height='+$('#admin').height());
+		var y = $('#admin').height()*-1 + 85;
+		console.log('admin y='+y);
+		$('#admin').css('bottom', y);
+		$('#admin').show();
+}
+
+
+
+//------------------------------------------------------------------------------
+function toggleAdminPanelSize() {
+		$('#admin_size_btn').toggle(
+				function() {
+						var sign = '+';
+						if(flip++ % 2 === 0)
+								sign = '-';
+						$("#admin").animate({top: sign + '=150px'}, 500);
+						$('#admin_size_btn').css('display', 'block');
+				}
+		);
+}
+
 //------------------------------------------------------------------------------
 function showAdminServerStatus() {
     api_call('server/properties', null, function(response) {
@@ -39,7 +65,8 @@ function showAdminServerStatus() {
 
 				//alertMsg(msg, 'info', 5000);
 				$('#admin-msg').html(admin_lbl);
-    });
+				positionAdminPanel();
+		});
 }
 
 //------------------------------------------------------------------------------

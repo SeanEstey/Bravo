@@ -5,7 +5,6 @@ function event_list_init() {
 	addDeleteBtnHandlers();
 	addSocketIOHandlers();
 	addPageNavHandlers();
-	showAdminServerStatus();
 
   $('#new_event').click(function() {
       $('#new_event_modal').modal('show');
@@ -164,6 +163,7 @@ function buildAdminPanel() {
 				alertMsg('Debug mode enabled. ' +
 								 'Clicking <b>Print Debug</b> buttons prints notification info to console.', 'info');
     });
+
 }
 
 

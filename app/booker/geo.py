@@ -112,7 +112,7 @@ def get_nearby_blocks(pt, radius, maps, events):
         key=lambda k: k['event']['start'].get('dateTime',k['event']['start'].get('date'))
     )
 
-    log.info('Found %s results within radius', str(len(results)))
+    log.debug('found %s results within radius', str(len(results)))
 
     for block in results:
         log.debug(

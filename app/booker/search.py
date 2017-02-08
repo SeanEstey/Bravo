@@ -222,7 +222,7 @@ def search_by_block(block, events):
             'event': event,
             'distance': '0.0km',
             'area': parser.get_area(event['summary']) or '---',
-            'booked': parser.get_num_booked(event['summary']) or '---'
+            'booked': parser.route_size(event['summary']) or '---'
         })
 
 
@@ -265,7 +265,7 @@ def search_by_postal(postal, events):
                 # TODO: calculate distance
                 'distance': '---',
                 'area': parser.get_area(event['summary']) or '---',
-                'booked': parser.get_num_booked(event['summary']) or '---'
+                'booked': parser.route_size(event['summary']) or '---'
               })
 
     results = sorted(

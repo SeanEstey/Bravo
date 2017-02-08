@@ -45,7 +45,6 @@ def call_accts_receipts():
 @api.route('/accounts/create', methods=['POST'])
 @login_required
 def call_accts_create():
-    log.debug(get_var('accts'))
     return func_call(donors.create_accts, get_var('accts'))
 
 @api.route('/agency/update', methods=['POST'])
@@ -66,11 +65,8 @@ def call_booker_create():
 @api.route('/booker/search', methods=['POST'])
 @login_required
 def call_booker_search():
-    from flask import jsonify
-    rv = func_call(search, get_var('query'),
+    return func_call(search, get_var('query'),
         radius=get_var('radius'), weeks=get_var('weeks'))
-    log.debug('search rv=%s', rv.response)
-    return rv
 
 @api.route('/booker/maps/get', methods=['POST'])
 @login_required

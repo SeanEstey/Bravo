@@ -1,4 +1,9 @@
 <?php
+	/* 
+	 * On success, returns {'status':'SUCCESS', 'result':'<data>'}
+   * On fail, returns {'status':'FAILED', 'description':'<str>', 'result':'<optional>'}
+	 */
+
 	require('utils.php');
 	require('etap.php');
   require('bravo.php');
@@ -104,7 +109,6 @@
 			$msg = 'status=FAILED, func="' . $func . '"';
 			$err = get_error($nsc, $log=false);
 
-			//err_log($msg);
 			debug_log($msg . ', desc="' . $err . '", rv="' . json_encode($rv) . '"');
 
 			echo json_encode([

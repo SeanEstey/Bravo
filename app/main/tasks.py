@@ -203,6 +203,8 @@ def send_receipts(self, entries, **rest):
     g.headers = get_row(g.service, g.ss_id, 'Routes', 1)
     status_col = g.headers.index('Email Status') +1
 
+    # Break entries into equally sized lists for batch updating google sheet
+
     chunk_size = 10
     chunks = [accts_data[i:i + chunk_size] for i in xrange(0, len(accts_data), chunk_size)]
     log.debug('chunk length=%s', len(chunks))

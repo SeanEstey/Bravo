@@ -44,13 +44,13 @@ def route_size(evnt_title):
     # title "R6B [Area1, Area2] (35/45)" returns "35"
     m = search(re_cal_route_size, evnt_title)
     if not m: return False
-    return m.group(0)[1:-1].split('/')[0]
+    return m.group(0).split('/')[0]
 
 def block_size(evnt_title):
     # title "R6B [Area1, Area2] (35/45)" returns "45"
     m = search(re_cal_route_size, evnt_title)
     if not m: return False
-    return m.group(0)[1:-1].split('/')[1]
+    return m.group(0).split('/')[1]
 
 def get_area(evnt_sumry):
     m = search(r'\[(.*)\]', evnt_sumry)

@@ -1,7 +1,7 @@
 '''app.api.views'''
 import logging
 from . import api
-from flask import g
+from flask import g, request
 from flask_login import login_required
 from app import get_server_prop
 from app.etap import block_size, route_size
@@ -19,16 +19,27 @@ from app.notify.triggers import kill_trigger
 from app.routing.main import edit_field
 log = logging.getLogger(__name__)
 
-@api.route('/accounts/get', methods=['POST'])
+@api.route('/accounts/submit_form', methods=['POST'])
+#@login_required
+def accts_add_form():
+    from app.main.tasks import add_form_signup
+    return task_call(add_form_signup, data=request.form.to_dict())
+
+@api.route('/accounts/create', methods=['POST'])
 @login_required
-def call_accts_get():
-    return func_call(donors.get, get_var('acct_id'))
+def call_accts_create():
+    return func_call(donors.create_accts, get_var('accts'))
 
 @api.route('accounts/find', methods=['POST'])
 @login_required
 def call_find_acct():
     # PHP 'check_duplicates'
     return fund_call(WRITE_ME)
+
+@api.route('/accounts/get', methods=['POST'])
+@login_required
+def call_accts_get():
+    return func_call(donors.get, get_var('acct_id'))
 
 @api.route('/accounts/gifts', methods=['POST'])
 @login_required
@@ -42,11 +53,6 @@ def call_accts_receipts():
     from app.main.tasks import send_receipts
     return task_call(send_receipts, get_var('entries'))
 
-@api.route('/accounts/create', methods=['POST'])
-@login_required
-def call_accts_create():
-    return func_call(donors.create_accts, get_var('accts'))
-
 @api.route('/agency/update', methods=['POST'])
 @login_required
 def call_agcy_update():
@@ -54,7 +60,7 @@ def call_agcy_update():
 
 @api.route('/alice/welcome', methods=['POST'])
 @login_required
-def call_alice_welcome():
+def alice_send_welcome():
     return func_call(send_welcome, get_var('acct_id'))
 
 @api.route('/booker/create', methods=['POST'])

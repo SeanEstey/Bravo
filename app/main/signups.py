@@ -6,10 +6,8 @@ from .. import get_keys, mailgun
 from app.gsheets import gauth, get_row, append_row, update_cell, to_range
 log = logging.getLogger(__name__)
 
-
-
 #-------------------------------------------------------------------------------
-def add_gsheets(signup):
+def add_etw_to_gsheets(signup):
     '''Called by emptiestowinn.com signup form only for now
     '''
 
@@ -18,7 +16,7 @@ def add_gsheets(signup):
       signup.get('last_name'))
 
     try:
-        service = gauth(get_keys('google',agcy='wsf'))
+        service = gauth(get_keys('google',agcy='wsf')['oauth'])
     except Exception as e:
         log.error('couldnt authenticate sheets. desc=%s', str(e))
         raise Exception('auth error. desc=%s' % str(e))

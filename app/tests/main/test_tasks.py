@@ -74,5 +74,21 @@ class MainTasksTests(unittest.TestCase):
         except Exception as e:
             log.debug('err=%s', str(e), exc_info=True)
 
+    def test_etw_add_form_signup(self):
+        data={
+            u'city': u'Edmonton',
+            u'first_name': u'Test', u'last_name': u'Test', u'account_type':
+            u'Residential', u'special_requests': u'', u'title': u'Mr',
+            u'referrer': u'', u'tax_receipt': u'Yes', u'email':
+            u'test@fake.com', u'phone': u'780-123-4567', u'address': u'Test',
+            u'reason_joined': u'Facebook', u'contact_person': u'', u'postal':
+            u'T5K 9F9', u'account_name': u''}
+        try:
+            tasks.add_form_signup(data)
+        except Exception as e:
+            log.debug('err=%s', str(e), exc_info=True)
+
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -3,7 +3,7 @@ import json, logging, re
 from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta
 from dateutil.parser import parse
-from flask import current_app, g
+from flask import current_app, g, request
 from app import celery, get_keys
 from app.dt import d_to_dt, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 from app.parser import get_block, is_block, is_res, is_bus, get_area, is_route_size
@@ -293,12 +293,12 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def add_gsheets_signup(self, data, **rest):
-    from app.main import signups
-    signup = args[0] # FIXME
+def add_form_signup(self, data, **rest):
+    log.debug('received ETW form submission. data=%s', data)
+    from app.main.signups import add_etw_to_gsheets
 
     try:
-        signups.add(signup)
+        add_etw_to_gsheets(data)
     except Exception as e:
         log.error('error adding signup. desc="%s"', str(e))
         log.debug('', exc_info=True)

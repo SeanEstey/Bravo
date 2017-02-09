@@ -131,6 +131,8 @@ def fire_trigger(self, _id=None, **rest):
 @celery.task(bind=True)
 def schedule_reminders(self, agcy=None, for_date=None, **rest):
 
+    log.info('task: scheduling reminder events...')
+
     if agcy and for_date:
         agencies = [g.db.agencies.find_one({'name':agcy})]
     else:
@@ -175,6 +177,8 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 evnt_ids.append(evnt_id)
 
         log.info('[%s] scheduled %s/%s reminder events', agcy, n, len(blocks))
+
+    log.info('task: completed')
 
     return evnt_ids
 

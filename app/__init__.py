@@ -137,6 +137,26 @@ def clean_expired_sessions():
 
 #-------------------------------------------------------------------------------
 def is_test_server():
+    import requests
+    os.environ['BRAVO_HOSTNAME'] = hostname = socket.gethostname()
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("gmail.com",80))
+    os.environ['BRAVO_IP'] = ip = s.getsockname()[0]
+    os.environ['BRAVO_DOMAIN'] = domain = socket.gethostbyaddr(ip)[0]
+    #log.info('hostname: %s, ip: %s, domain: %s', hostname, ip, domain)
+    SSL_CERT_PATH = '/etc/nginx/gd_bundle-g2-g1.crt'
+
+    try:
+        r = requests.get('https://%s' % domain, verify=SSL_CERT_PATH)
+    except Exception as e:
+        #log.info('exception. SSL not enabled')
+        os.environ['BRAVO_SSL'] = 'False'
+        os.environ['BRAVO_HTTP_HOST'] = 'http://' + ip
+    else:
+        #log.info('SSL enabled')
+        os.environ['BRAVO_SSL'] = 'True'
+        os.environ['BRAVO_HTTP_HOST'] = 'https://' + ip
+
     if os.environ.get('BRAVO_TEST_SERVER'):
         if os.environ['BRAVO_TEST_SERVER'] == 'True':
             return True
@@ -145,12 +165,9 @@ def is_test_server():
 
     # Don't know. Get IP and do reverse DNS lookup for domain
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("gmail.com",80))
-    ip = s.getsockname()[0]
     s.close
 
-    os.environ['BRAVO_HTTP_HOST'] = 'https://' + ip
+
 
     #log.debug('http_host=%s', os.environ['BRAVO_HTTP_HOST'])
 

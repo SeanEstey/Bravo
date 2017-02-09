@@ -77,7 +77,7 @@ def main(argv):
 
     start_worker(celery_beat)
 
-    app.logger.info('server restarted')
+    app.logger.info('server restarted\n')
     msg = startup_msg(sio_server, app)
     for ln in msg:
         app.logger.info(ln)

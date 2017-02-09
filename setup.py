@@ -3,45 +3,36 @@ import eventlet
 import celery
 import flask
 import flask_socketio
+import socket
 
 #-------------------------------------------------------------------------------
 def startup_msg(sio_server, app):
     msg = []
-    msg.append('--------------------------------------')
-    msg.append('Bravo')
-
-    if os.environ['BRAVO_TEST_SERVER'] == 'True':
-        msg.append('HOSTNAME: Test Server')
+    msg.append('--------------------------------------------------')
+    if os.environ['BRAVO_SSL'] == 'True':
+        host = 'https://%s' % os.environ['BRAVO_IP']
     else:
-        msg.append('HOSTNAME: Deploy Server')
-
-    msg.append("HTTP_HOST: %s:%s" %(os.environ['BRAVO_HTTP_HOST'],app.config['PUB_PORT']))
+        host = 'http://%s' % os.environ['BRAVO_IP']
+    msg.append('Bravo@%s' % os.environ['BRAVO_HOSTNAME'])
+    msg.append('%s' % host)
 
     if app.config['DEBUG'] == True:
-        msg.append('DEBUG MODE: ENABLED')
+        msg.append('-> debug:     enabled')
     else:
-        msg.append('DEBUG MODE: DISABLED')
-
+        msg.append('-> debug:     disabled')
     if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
-        msg.append('SANDBOX MODE: ENABLED (blocking all outgoing Voice/Sms/Email messages)')
+        msg.append('--> sandbox:   enabled') # (blocking all outgoing Voice/Sms/Email messages)')
     else:
-        msg.append('SANDBOX MODE: DISABLED')
-
+        msg.append('-> sandbox:   disabled')
     if os.environ['BRAVO_CELERY_BEAT'] == 'True':
-        msg.append('CELERY_BEAT: ENABLED')
+        msg.append('-> scheduler: on')
     elif os.environ['BRAVO_CELERY_BEAT'] == 'False':
-        msg.append('CELERY_BEAT: DISABLED (no automatic task scheduling)')
-
-    msg.append('FLASK_SOCKETIO: %s' % flask_socketio.__version__)
-
-    if sio_server.server.async_mode == 'eventlet':
-        msg.append( 'SERVER_SOFTWARE: Eventlet (%s)' % eventlet.__version__)
-    else:
-        msg.append( 'SERVER_SOFTWARE: %s' % sio_server.server.async_mode)
-
-    msg.append('CELERY: %s' % celery.__version__)
-    msg.append('FLASK: %s' % flask.__version__)
-    msg.append('--------------------------------------')
+        msg.append('-> scheduler: off') # (no automatic task scheduling)')
+    msg.append('-> server:    [flask %s, eventlet %s]' %(
+        flask.__version__, eventlet.__version__))
+    msg.append('-> software:  [flask_socketio %s, celery %s]' %(
+        flask_socketio.__version__, celery.__version__))
+    msg.append('--------------------------------------------------\n')
     return msg
 
 if __name__ == "__main__":

@@ -22,9 +22,9 @@ def process_entries(self, entries, agcy='vec', **rest):
 
     log.info('task: processing entries for %s accts...', len(entries))
 
-    chunk_size = 10
+    ch_size = 10
     etap_conf = get_keys('etapestry',agcy=agcy)
-    chunks = [entries[i:i + chunk_size] for i in xrange(0, len(entries), chunk_size)]
+    chunks = [entries[i:i + ch_size] for i in xrange(0, len(entries), ch_size)]
 
     ss_id = get_keys('google',agcy=agcy)['ss_id']
     srvc = gauth(get_keys('google',agcy=agcy)['oauth'])
@@ -44,7 +44,8 @@ def process_entries(self, entries, agcy='vec', **rest):
             log.error('error in chunk #%s. continuing...', n+1)
             continue
 
-        log.debug('chunk processed. n_success=%s, n_errs=%s', r['n_success'], r['n_errs'])
+        log.debug('chunk processed. n_success=%s, n_errs=%s',
+            r['n_success'], r['n_errs'])
 
         n_success += r['n_success']
         n_errs += r['n_errs']
@@ -53,7 +54,8 @@ def process_entries(self, entries, agcy='vec', **rest):
             to_range(r['results'][0]['row'], upload_col),
             to_range(r['results'][-1]['row'], upload_col))
 
-        log.debug('writing chunk %s/%s return values to ss, range=%s', n+1, len(chunks), range_)
+        log.debug('writing chunk %s/%s return values to ss, range=%s',
+            n+1, len(chunks), range_)
 
         values = [[r['results'][i]['status']] for i in range(len(r['results']))]
 
@@ -205,8 +207,8 @@ def send_receipts(self, entries, **rest):
 
     # Break entries into equally sized lists for batch updating google sheet
 
-    chunk_size = 10
-    chunks = [accts_data[i:i + chunk_size] for i in xrange(0, len(accts_data), chunk_size)]
+    ch_size = 10
+    chunks = [accts_data[i:i + ch_size] for i in xrange(0, len(accts_data), ch_size)]
     log.debug('chunk length=%s', len(chunks))
 
     for i in range(0, len(chunks)):

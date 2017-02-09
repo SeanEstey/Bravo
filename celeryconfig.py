@@ -9,6 +9,11 @@ timezone = 'Canada/Mountain'
 task_time_limit = 3000
 worker_concurrency = 1
 beat_schedule = {
+    'schedule_reminders': {
+        'task': 'app.notify.tasks.schedule_reminders',
+        'schedule': crontab(hour=7, minute=0, day_of_week='*'),
+        'kwargs': {'agcy':'vec'}
+    },
 	'monitor_triggers': {
 		'task': 'app.notify.tasks.monitor_triggers',
 		'schedule': crontab(minute='*/5')

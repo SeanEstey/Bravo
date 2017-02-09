@@ -274,19 +274,22 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
 
     days = in_days if in_days else 3
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
+    accts = []
 
     for agency in agcy_list:
-        # Get accounts scheduled on Residential routes 3 days from now
-        accounts = get_accounts(
-            agency['etapestry'],
-            agency['cal_ids']['res'],
-            agency['google']['oauth'],
-            days_from_now=days)
+        cal_ids = get_keys('cal_ids',agcy=agency['name'])
+        for _id in cal_ids:
+            # Get accounts scheduled on Residential routes 3 days from now
+            accts += get_accounts(
+                agency['etapestry'],
+                cal_ids[_id],
+                agency['google']['oauth'],
+                days_from_now=days)
 
-        if len(accounts) < 1:
+        if len(accts) < 1:
             return 'failed'
 
-        r = sms.enable(agency['name'], accounts)
+        r = sms.enable(agency['name'], accts)
 
         log.info('%supdated %s accounts for SMS. discovered %s mobile numbers%s',
                     bcolors.OKGREEN, r['n_sms'], r['n_mobile'], bcolors.ENDC)
@@ -314,19 +317,28 @@ def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
     '''Create RFU's for all non-participants on scheduled dates
     '''
 
+    log.info('task: identifying inactive donors...')
+
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
+    accts = []
+    n_task_inactive = 0
 
     for agency in agcy_list:
+        n_inactive = 0
         agcy = agency['name']
-        if not period:
-            period = agency['config']['non_participant_days']
-        log.info('%s: Analyzing non-participants in 5 days...', agcy)
+        cal_ids = agency['cal_ids']
+        period = period if period else agency['donors']['inactive_period']
+        on_date = date.today() + delta(days=in_days)
 
-        accts = get_accounts(
-            agency['etapestry'],
-            agency['cal_ids']['res'],
-            agency['google']['oauth'],
-            days_from_now=in_days)
+        log.info('analyzing %s blocks (period=%s days, agcy=%s)...',
+            on_date.strftime('%b-%d'), period, agcy)
+
+        for _id in cal_ids:
+            accts += get_accounts(
+                agency['etapestry'],
+                cal_ids[_id],
+                agency['google']['oauth'],
+                days_from_now=in_days)
 
         if len(accts) < 1:
             continue
@@ -360,5 +372,14 @@ def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
                     'Date': date.today().strftime('%-m/%-d/%Y'),
                     'Driver Notes': get_udf('Driver Notes', acct),
                     'Office Notes': get_udf('Office Notes', acct)})
+
+            n_inactive += 1
+
+        log.info('found %s inactive accounts!', n_inactive)
+
+        n_task_inactive += n_inactive
+
+    log.info('task: completed. %s inactive accounts identified',
+        n_task_inactive)
 
     return 'success'

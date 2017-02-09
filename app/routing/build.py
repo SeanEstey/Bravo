@@ -21,7 +21,7 @@ def submit_job(route_id):
       -False on error'''
 
     MIN_PER_STOP = 3
-    SHIFT_END = '19:00'
+    SHIFT_END = '21:00'
     route = g.db.routes.find_one({"_id":ObjectId(route_id)})
     agcy = route['agency']
     etap_keys = get_keys('etapestry', agcy=agcy)

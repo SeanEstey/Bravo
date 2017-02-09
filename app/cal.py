@@ -49,7 +49,7 @@ def get_blocks(cal_id, start_dt, end_dt, oauth):
             blocks.append(get_block(item['summary']))
 
     if len(blocks) > 0:
-        log.info('%d scheduled Blocks: %s', len(blocks), blocks)
+        log.debug('%d scheduled blocks: %s', len(blocks), blocks)
 
     return blocks
 
@@ -81,6 +81,6 @@ def get_accounts(etapestry_id, cal_id, oauth, days_from_now=None):
         if 'count' in a and a['count'] > 0:
             accounts = accounts + a['data']
 
-    log.info('Found %d accounts in blocks %s', len(accounts), blocks)
+    log.debug('found %d accounts in blocks %s', len(accounts), blocks)
 
     return accounts

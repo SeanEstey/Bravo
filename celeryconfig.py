@@ -20,7 +20,8 @@ beat_schedule = {
 	 },
 	'build_routes': {
 		  'task': 'app.routing.tasks.build_scheduled_routes',
-		  'schedule': crontab(hour=6, minute=30, day_of_week='*')
+		  'schedule': crontab(hour=6, minute=30, day_of_week='*'),
+          'kwargs': {'agcy':'vec'}
 	 },
      'update_calendar_blocks': {
         'task': 'app.main.tasks.update_calendar_blocks',

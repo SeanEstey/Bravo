@@ -35,11 +35,13 @@ def is_inactive(agcy, acct, days=270):
     # Set Dropoff Date == acct creation date if empty
 
     if not drop_date:
-        acct_date = parse(acct['accountCreatedDate']).strftime("%d/%m/%Y")
-        signup_date = acct_date.split('/')
+        log.debug('accountCreatedDate=%s', acct['accountCreatedDate'])
+        #acct_date = parse(acct['accountCreatedDate']).strftime("%d/%m/%Y")
+        #signup_date = acct_date.split('/')
 
-        mod_acct(acct['id'], get_keys('etapestry',agcy=agcy),
-            udf={'Dropoff Date':signup_date, 'Signup Date':signup_date})
+        #mod_acct(acct['id'], get_keys('etapestry',agcy=agcy),
+        #    udf={'Dropoff Date':signup_date, 'Signup Date':signup_date})
+        return
 
     # Must have been dropped off > @days
 
@@ -50,8 +52,6 @@ def is_inactive(agcy, acct, days=270):
 
     cutoff_date = date.today() - timedelta(days=days)
 
-    log.info('Cutoff date=%s', cutoff_date.strftime('%b %d %Y'))
-
     # Retrieve journal entries from cutoff, see if donations made in period
 
     try:
@@ -59,19 +59,16 @@ def is_inactive(agcy, acct, days=270):
             'get_gift_histories',
             get_keys('etapestry',agcy=agcy), {
                 "acct_refs": [acct['ref']],
-                "start": cutoff_date.strftime('%d/%b/%Y'),
-                "end": date.today().strftime('%d/%b/%Y')})[0]
+                "start": cutoff_date.strftime('%d/%m/%Y'),
+                "end": date.today().strftime('%d/%m/%Y')})[0]
     except EtapError as e:
         log.error('get_gift_histories fail. desc=%s', str(e))
         raise
 
-    log.debug(je)
-
     if len(je) > 0:
-        log.debug('acct_id=%s is active', acct['id'])
         return False
     else:
-        log.info('acct_id=%s is inactive', acct['id'])
+        log.debug('found inactive donor, acct_id="%s"', acct['id'])
         return True
 
 #-------------------------------------------------------------------------------

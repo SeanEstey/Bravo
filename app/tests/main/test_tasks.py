@@ -14,13 +14,13 @@ class MainTasksTests(unittest.TestCase):
     def tearDown(self):
         logout(self.client)
 
-    def _test_find_inactive_donors(self):
+    def test_find_inactive_donors(self):
         try:
-            tasks.find_inactive_donors(agcy='vec', in_days=-2, period=5)
+            tasks.find_inactive_donors(agcy='vec', in_days=-2, period=270)
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 
-    def test_send_receipts(self):
+    def _test_send_receipts(self):
         entry = {
             'agcy': 'vec',
             'acct_id': 269,
@@ -66,7 +66,7 @@ class MainTasksTests(unittest.TestCase):
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 
-    def test_update_cal_routes(self):
+    def _test_update_cal_routes(self):
         try:
             tasks.update_calendar_blocks(
                 from_=date(2017,4,24),
@@ -74,7 +74,7 @@ class MainTasksTests(unittest.TestCase):
         except Exception as e:
             log.debug('err=%s', str(e), exc_info=True)
 
-    def test_etw_add_form_signup(self):
+    def _test_etw_add_form_signup(self):
         data={
             u'city': u'Edmonton',
             u'first_name': u'Test', u'last_name': u'Test', u'account_type':

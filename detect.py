@@ -1,5 +1,6 @@
 '''detect'''
 import os
+from os import environ
 import eventlet
 import celery
 import flask
@@ -8,33 +9,48 @@ import socket
 
 #-------------------------------------------------------------------------------
 def startup_msg(sio_server, app):
-    msg = []
-    msg.append('--------------------------------------------------')
-    if os.environ['BRAVO_SSL'] == 'True':
-        host = 'https://%s' % os.environ['BRAVO_IP']
-    else:
-        host = 'http://%s' % os.environ['BRAVO_IP']
-    msg.append('Bravo@%s' % os.environ['BRAVO_HOSTNAME'])
-    msg.append('%s' % host)
 
-    if app.config['DEBUG'] == True:
-        msg.append('-> debug:     enabled')
-    else:
-        msg.append('-> debug:     disabled')
-    if os.environ['BRAVO_SANDBOX_MODE'] == 'True':
-        msg.append('--> sandbox:   enabled') # (blocking all outgoing Voice/Sms/Email messages)')
-    else:
-        msg.append('-> sandbox:   disabled')
-    if os.environ['BRAVO_CELERY_BEAT'] == 'True':
-        msg.append('-> scheduler: on')
-    elif os.environ['BRAVO_CELERY_BEAT'] == 'False':
-        msg.append('-> scheduler: off') # (no automatic task scheduling)')
-    msg.append('-> server:    [flask %s, eventlet %s]' %(
+    protocol = 'https://' if environ['BRAVO_SSL'] == 'True' else 'http://'
+    host = '%s%s' %(protocol, environ['BRAVO_IP'])
+
+    from app.tasks import celery as celery_app
+
+    inspect = celery_app.control.inspect()
+    tasks = '%s registered, %s scheduled' %(
+        len(inspect.registered().get('celery@bravo')),
+        len(inspect.scheduled().get('celery@bravo')))
+    stats = inspect.stats()
+    celery_host = stats.keys()[0]
+    transport = stats[celery_host]['broker']['transport']
+
+    worker = '%s' %(
+        stats[celery_host]['pool']['max-concurrency'])
+    broker_location = '%s://%s:%s' %(
+        transport, stats[celery_host]['broker']['hostname'],
+        stats[celery_host]['broker']['port'])
+
+    debug = 'enabled' if app.config['DEBUG'] else 'disabled'
+    sandbox = 'enabled' if environ['BRAVO_SANDBOX_MODE'] == 'True' else 'disabled'
+    beat = 'on' if environ['BRAVO_CELERY_BEAT'] == 'True' else 'off'
+
+    msg = []
+    #msg.append('--------------------------------------------------')
+    msg.append('bravo@%s' % os.environ['BRAVO_HOSTNAME'])
+    msg.append('%s' % host)
+    msg.append('-> debug:     %s' % debug)
+    msg.append('-> sandbox:   %s' % sandbox)
+    msg.append('-> scheduler: %s' % beat)
+    msg.append('-> server:    [Flask %s, Eventlet %s]' %(
         flask.__version__, eventlet.__version__))
-    msg.append('-> software:  [flask_socketio %s, celery %s]' %(
+    msg.append('-> software:  [Flask_SocketIO %s, Celery %s]' %(
         flask_socketio.__version__, celery.__version__))
     msg.append('-> system:    %s' % get_os_full_desc())
-    msg.append('--------------------------------------------------\n')
+    msg.append('celery@bravo')
+    msg.append(broker_location)
+    msg.append('-> workers:   %s' % worker)
+    msg.append('-> tasks:     %s' % tasks)
+    #msg.append('--------------------------------------------------\n')
+
     return msg
 
 #-------------------------------------------------------------------------------

@@ -76,16 +76,22 @@ def main(argv):
     sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
 
     start_worker(celery_beat)
+    time.sleep(4)
 
-    app.logger.info('server restarted\n')
+    line = '--------------------------------------------------------------------'
+    app.logger.info('server restarting...\n%s', line)
     msg = startup_msg(sio_server, app)
-    for ln in msg:
-        app.logger.info(ln)
+
+    for i in range(0,len(msg)):
+        if i == len(msg) - 1:
+            app.logger.info(msg[i] + '\n' + line)
+        else:
+            app.logger.info(msg[i])
 
     sio_server.run(
         app,
         port=app.config['LOCAL_PORT'],
-        use_reloader=True)
+        use_reloader=False)
 
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":

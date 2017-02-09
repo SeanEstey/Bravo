@@ -2,7 +2,7 @@
 import logging, os, time, sys, getopt
 from flask import current_app, g, session
 from flask_login import current_user
-from setup import startup_msg
+from detect import startup_msg
 from app import db_client, create_app, config_test_server, is_test_server
 from app.auth import load_user
 from app.utils import bcolors, print_vars, inspector

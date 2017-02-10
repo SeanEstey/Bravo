@@ -8,6 +8,7 @@ from app.dt import to_local, local_tz, convert_obj
 log = logging.getLogger(__name__)
 
 class bcolors:
+    WHITE = '\033[37m'
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'

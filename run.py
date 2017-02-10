@@ -2,7 +2,7 @@
 import logging, os, time, sys, getopt
 from flask import current_app, g, session
 from flask_login import current_user
-from detect import startup_msg
+from detect import log_startup_info, get_os_full_desc
 from app import db_client, create_app, config_test_server, is_test_server
 from app.auth import load_user
 from app.utils import bcolors, print_vars, inspector
@@ -73,20 +73,11 @@ def main(argv):
     else:
         os.environ['BRAVO_SANDBOX_MODE'] = 'False'
 
+    start_worker(celery_beat)
+
     sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
 
-    start_worker(celery_beat)
-    time.sleep(4)
-
-    line = '--------------------------------------------------------------------'
-    app.logger.info('server restarting...\n%s', line)
-    msg = startup_msg(sio_server, app)
-
-    for i in range(0,len(msg)):
-        if i == len(msg) - 1:
-            app.logger.info(msg[i] + '\n' + line)
-        else:
-            app.logger.info(msg[i])
+    log_startup_info(sio_server, app)
 
     sio_server.run(
         app,

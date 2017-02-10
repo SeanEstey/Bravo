@@ -7,16 +7,16 @@ from celery import Celery, Task
 from simplekv.db.mongo import MongoStore
 from werkzeug.contrib.fixers import ProxyFix
 import config, mongodb
-from logger import create_file_handler
+from logger import file_handler
 from utils import print_vars
 from app.socketio import smart_emit
 
 eventlet.monkey_patch()
 
-deb_hand = create_file_handler(logging.DEBUG, 'debug.log')
-inf_hand = create_file_handler(logging.INFO, 'info.log')
-err_hand = create_file_handler(logging.ERROR, 'error.log')
-exc_hand = create_file_handler(logging.CRITICAL, 'debug.log')
+deb_hand = file_handler(logging.DEBUG, 'debug.log')
+inf_hand = file_handler(logging.INFO, 'info.log')
+err_hand = file_handler(logging.ERROR, 'error.log')
+exc_hand = file_handler(logging.CRITICAL, 'debug.log')
 console = logging.StreamHandler()
 
 log = logging.getLogger(__name__)

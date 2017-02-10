@@ -1,35 +1,41 @@
 '''app.logger'''
 import logging
+from logging import Formatter, FileHandler, Filter, DEBUG, INFO, ERROR
 from config import LOG_PATH
-from .utils import bcolors
+from app.utils import bcolors as c
+
+class DebugFilter(Filter):
+    def filter(self, record):
+        return record.levelno == 10
+class InfoFilter(Filter):
+    def filter(self, record):
+        return record.levelno == 20
 
 #-------------------------------------------------------------------------------
-def create_file_handler(level, filename):
-    class DebugFilter(logging.Filter):
-        def filter(self, record):
-            return record.levelno == 10
-    class InfoFilter(logging.Filter):
-        def filter(self, record):
-            return record.levelno == 20
+def file_handler(level, filename, log_f=False, log_v=False):
 
-    handler = logging.FileHandler(LOG_PATH + filename)
+    colors = {
+        '10': c.WARNING,
+        '20': c.OKGREEN,
+        '40': c.FAIL,
+        '50': c.FAIL
+    }
+
+    handler = FileHandler(LOG_PATH + filename)
     handler.setLevel(level)
 
-    stamp_frmt = bcolors.OKBLUE + '[%(asctime)s %(name)s]: ' + bcolors.ENDC
-    msg_frmt = '%(message)s'
-
-    if level == logging.DEBUG:
-        stamp_frmt += bcolors.WARNING
-        msg_frmt += bcolors.ENDC
+    if level == DEBUG:
         handler.addFilter(DebugFilter())
-    elif level == logging.INFO:
-        stamp_frmt += bcolors.OKGREEN
-        msg_frmt += bcolors.ENDC
+    elif level == INFO:
         handler.addFilter(InfoFilter())
-    elif level == logging.ERROR:
-        stamp_frmt += bcolors.FAIL
-        msg_frmt += bcolors.ENDC
 
-    handler.setFormatter(logging.Formatter(stamp_frmt+msg_frmt, '%m-%d %H:%M'))
+    if log_f:
+        fmtr = Formatter(log_f, log_v)
+    else:
+        stamp_f = c.OKBLUE + '[%(asctime)s %(name)s]: ' + c.ENDC
+        msg_f   = colors[str(level)] + '%(message)s' + c.ENDC
+        fmtr = Formatter(stamp_f + msg_f, '%m-%d %H:%M')
+
+    handler.setFormatter(fmtr)
 
     return handler

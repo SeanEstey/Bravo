@@ -17,6 +17,7 @@ def file_handler(level, filename, log_f=False, log_v=False):
     colors = {
         '10': c.WARNING,
         '20': c.OKGREEN,
+        '30': c.WARNING,
         '40': c.FAIL,
         '50': c.FAIL
     }
@@ -39,3 +40,19 @@ def file_handler(level, filename, log_f=False, log_v=False):
     handler.setFormatter(fmtr)
 
     return handler
+
+#-------------------------------------------------------------------------------
+def get_dbg_logger(name):
+    log = logging.getLogger(name)
+    log.setLevel(DEBUG)
+    hdlr = file_handler(DEBUG, 'debug.log')
+    log.addHandler(hdlr)
+    return log
+
+def get_console_logger(name):
+    logger_ = logging.getLogger(name)
+    logger_.setLevel(DEBUG)
+    hdlr = logging.StreamHandler()
+    hdlr.setLevel(DEBUG)
+    logger_.addHandler(hdlr)
+    return logger_

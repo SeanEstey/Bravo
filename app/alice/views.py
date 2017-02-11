@@ -55,7 +55,7 @@ def sms_received(agency):
         log.error(str(e))
         return make_reply(dialog['error']['unknown'])
 
-    end_timer(a, lbl='alice request', log_=log)
+    end_timer(a, lbl='alice request', to_log=log)
 
     return response
 

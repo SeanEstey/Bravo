@@ -8,7 +8,6 @@ from app.auth import load_user
 from app.utils import bcolors, print_vars, inspector
 from app.socketio import sio_server
 
-
 app = create_app('app')
 
 #-------------------------------------------------------------------------------
@@ -34,13 +33,13 @@ def start_worker(beat=True):
     os.system('kill %1')
     os.system("ps aux | grep '/usr/local/bin/celery beat' | awk '{print $2}' | xargs kill -9")
     os.system("ps aux | grep '/usr/local/bin/celery worker' | awk '{print $2}' | xargs kill -9")
-    os.system('celery worker -A app.tasks.celery -n %s -f logs/worker.log &' % app.config['DB'])
+    os.system('celery -A app.tasks.celery worker -n bravo -f logs/worker.log -l INFO --detach')
 
     # Start celery beat if option given
 
     if beat:
         os.environ['BRV_BEAT'] = 'True'
-        os.system('celery beat &')
+        os.system('celery beat -f logs/worker.log -l INFO --detach')
     else:
         os.environ['BRV_BEAT'] = 'False'
 
@@ -51,6 +50,8 @@ def main(argv):
     except getopt.GetoptError:
         sys.exit(2)
 
+    beat=None
+
     for opt, arg in opts:
         if opt in('-c', '--celerybeat'):
             beat = True
@@ -60,13 +61,19 @@ def main(argv):
             os.environ['BRV_SANDBOX'] = 'True'
 
     start_worker(beat=beat)
-    sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
+    sio_server.init_app(
+        app,
+        async_mode='eventlet',
+        message_queue='amqp://')
     set_environ(app)
     startup_msg(app)
+
     sio_server.run(
         app,
         port=app.config['LOCAL_PORT'],
-        use_reloader=False)
+        log_output=False,
+        use_reloader=False
+    )
 
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":

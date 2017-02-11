@@ -16,7 +16,7 @@ from app.booker.tasks import *
 from app.notify.tasks import *
 
 from celery.utils.log import get_task_logger
-log = get_task_logger(__name__)
+log = get_task_logger('tasks')
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect
@@ -45,7 +45,7 @@ state=None, *args, **kwargs):
     '''
 
     global timer
-    duration = end_timer(timer, lbl='task', log_=log)
+    duration = end_timer(timer, lbl='task', to_log=None)
     name = sender.name.split('.')[-1]
 
     if state != 'SUCCESS':
@@ -60,7 +60,7 @@ state=None, *args, **kwargs):
 def task_failure(signal=None, sender=None, task_id=None, exception=None, traceback=None, *args, **kwargs):
     name = sender.name.split('.')[-1]
     log.error('task=%s failed. exception=%s', name, exception)
-    log.debug('%s', traceback)
+    log.debug('exception: %s', traceback)
 
 #-------------------------------------------------------------------------------
 def kill(task_id):

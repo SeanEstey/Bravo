@@ -1,5 +1,5 @@
 '''app.__init__'''
-import eventlet, pymongo, os, logging, socket, requests
+import eventlet, pymongo, os, logging, socket, sys, requests
 from flask import Flask, g
 from flask_login import LoginManager
 from flask_kvsession import KVSessionExtension
@@ -9,16 +9,13 @@ from werkzeug.contrib.fixers import ProxyFix
 import config, mongodb
 from logger import file_handler
 from utils import print_vars
-from app.socketio import smart_emit
+from app.logger import DebugFilter, InfoFilter
 
 eventlet.monkey_patch()
 
 dbg_hdlr = file_handler(logging.DEBUG, 'debug.log')
 inf_hdlr = file_handler(logging.INFO, 'info.log')
 err_hdlr = file_handler(logging.ERROR, 'error.log')
-console = logging.StreamHandler()
-
-log = logging.getLogger(__name__)
 
 login_manager = LoginManager()
 
@@ -29,6 +26,7 @@ kv_store = MongoStore(
     config.SESSION_COLLECTION)
 kv_ext = KVSessionExtension(kv_store)
 
+from app.socketio import smart_emit
 from uber_task import UberTask
 celery = Celery(__name__, broker='amqp://') #, log=log)
 celery.Task = UberTask
@@ -61,21 +59,23 @@ def get_keys(k=None, agcy=None):
 def create_app(pkg_name, kv_sess=True, testing=False):
     app = Flask(pkg_name)
     app.config.from_object(config)
-    app.clients = {}
-    app.testing = testing
 
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.jinja_env.add_extension("jinja2.ext.do")
     app.permanent_session_lifetime = app.config['PERMANENT_SESSION_LIFETIME']
 
-    for hdlr in app.logger.handlers:
-        if hdlr.level == 10:
-            app.logger.removeHandler(hdlr)
-
     app.logger.addHandler(err_hdlr)
     app.logger.addHandler(inf_hdlr)
     app.logger.addHandler(dbg_hdlr)
     app.logger.setLevel(logging.DEBUG)
+
+    #wz_logger = logging.getLogger('werkzeug')
+    #wz_logger.setLevel(logging.ERROR)
+
+    for hdlr in app.logger.handlers:
+        #print print_vars(hdlr)
+        if hdlr.level == 10:
+            app.logger.removeHandler(hdlr)
 
     from .auth.user import Anonymous
     login_manager.login_view = 'auth.show_login'
@@ -101,16 +101,14 @@ def create_app(pkg_name, kv_sess=True, testing=False):
     app.register_blueprint(api_mod)
     app.register_blueprint(alice_mod)
 
-    #print 'init flask app. n_log_handlers=%s' % len(app.logger.handlers)
-
     return app
 
 #-------------------------------------------------------------------------------
 def init_celery(app, log=None):
 
     import celeryconfig
-    #celery = Celery(__name__, broker='amqp://', log=log)
     celery.config_from_object(celeryconfig)
+    #celery.log.redirect_stdouts(name="logs/worker.log")
     celery.app = UberTask.flsk_app = app
     UberTask.db_client = mongodb.create_client(connect=False, auth=False)
     celery.Task = UberTask

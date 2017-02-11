@@ -1,27 +1,21 @@
 '''detect'''
-import logging, os, requests, socket, time
+import logging, os, requests, socket, sys, time
 import psutil
 from logging import INFO
 from os import environ as env
 from app.tasks import celery as celery_app
-import celery, eventlet, flask, flask_socketio
-from app.logger import file_handler
+import celery, eventlet, flask
 
 SSL_CERT_PATH = '/etc/nginx/gd_bundle-g2-g1.crt'
 G = '\033[92m'
 Y = '\033[93m'
 ENDC = '\033[0m'
 
-log = logging.getLogger(__name__)
-log_f = G + '%(message)s'
-hdler = file_handler(INFO, 'info.log', log_f=log_f, log_v='')
-log.addHandler(hdler)
-log.setLevel(INFO)
-
 #-------------------------------------------------------------------------------
 def startup_msg(app):
 
-    app.logger.info('server starting...\n')
+    from app.utils import print_vars
+    app.logger.info('server starting...')
 
     hostname = env['BRV_HOSTNAME']
     host = 'http://%s' %(env['BRV_IP'])
@@ -48,18 +42,15 @@ def startup_msg(app):
     "%s- |  _ <| '__/ _` \ \ / / _ \ -- %s[config]\n"                 %(G,G) +\
     "%s- | |_) | | | (_| |\ V / (_) | - %s  > debug:   %s\n"          %(G,G,debug) +\
     "%s- |____/|_|  \__,_| \_/ \___/  - %s  > sandbox: %s\n"          %(G,G,sbox) +\
-    "%s-------------------------------- %s  > running: flask %s\n"    %(G,G,flsk_v) +\
-    "%s-------------------------------- %s  > server:  eventlet %s\n" %(G,G,evntlt_v) +\
+    "%s-------------------------------- %s  > running: flask %s, eventlet %s\n" %(G,G,flsk_v,evntlt_v) +\
     "%s-------------------------------- %s  > ssl:     %s"            %(G,G,ssl) +\
     ""
+    #"%s-------------------------------- %s  > server:  eventlet %s\n" %(G,G,evntlt_v) +\
 
-    log.info(bravo_msg)
     insp = celery_app.control.inspect()
-
-    while not insp.ping():
-        print 'waiting on celery worker...'
+    while not insp.stats():
+        #log.info('starting celery...')
         time.sleep(1)
-        insp = celery_app.control.inspect()
 
     stats = insp.stats()
     stats = stats[stats.keys()[0]]
@@ -71,21 +62,29 @@ def startup_msg(app):
     beat = 'on' if env['BRV_BEAT'] == 'True' else 'off'
     clry_v = celery.__version__
     c_host = 'celery@bravo'
-    regist = '%s regist.' % len(insp.registered()[c_host])
-    sched = '%s sched.' % len(insp.scheduled()[c_host])
+    regist = '%s regist' % len(insp.registered()[c_host])
+    sched = '%s sched' % len(insp.scheduled()[c_host])
 
-    log.info(\
+    #app.logger.info('')
+
+    celery_msg =\
     "%s-------------------------------- %scelery@bravo\n"      %(G,Y) +\
     "%s-------------------------------- %s%s\n"                %(G,G,str_brkr) +\
     "%s-------------------------------- %s[config]\n"          %(G,G) +\
     "%s-------------------------------- %s  > version: %s\n"   %(G,G,clry_v) +\
     "%s-------------------------------- %s  > workers: [%s]\n" %(G,G,n_workers) +\
     "%s-------------------------------- %s  > beat:    %s\n"   %(G,G,beat) +\
-    "%s-------------------------------- %s  > tasks:   %s\n"   %(G,G,regist) +\
-    "%s-------------------------------- %s  > tasks:   %s\n"   %(G,G,sched) +\
-    "")
+    "%s-------------------------------- %s  > tasks:   %s, %s\n"%(G,G,regist,sched) +\
+    ""
+    #"%s-------------------------------- %s  > tasks:   %s\n"   %(G,G,sched) +\
 
     print bravo_msg + ENDC
+    #print celery_msg + ENDC
+
+    mem = psutil.virtual_memory()
+    free = mem.free/1000000
+    app.logger.info('mem free: %s/%s' %(free, total))
+
     app.logger.info('server ready!')
 
 #-------------------------------------------------------------------------------

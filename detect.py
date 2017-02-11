@@ -1,32 +1,35 @@
 '''detect'''
-import logging, os, time
+import logging, os, requests, socket, time
 import psutil
 from logging import INFO
-from os import environ
+from os import environ as env
 from app.tasks import celery as celery_app
 import celery, eventlet, flask, flask_socketio
-from app.utils import bcolors as c
 from app.logger import file_handler
+
+SSL_CERT_PATH = '/etc/nginx/gd_bundle-g2-g1.crt'
+G = '\033[92m'
+Y = '\033[93m'
+ENDC = '\033[0m'
+
 log = logging.getLogger(__name__)
+log_f = G + '%(message)s'
+hdler = file_handler(INFO, 'info.log', log_f=log_f, log_v='')
+log.addHandler(hdler)
+log.setLevel(INFO)
 
 #-------------------------------------------------------------------------------
-def log_startup_info(sio_server, app):
+def startup_msg(app):
 
     app.logger.info('server starting...\n')
 
-    log_f = c.OKGREEN + '%(message)s' #+ c.ENDC
-    hdler = file_handler(INFO, 'info.log', log_f=log_f, log_v='')
-    log.addHandler(hdler)
-    log.setLevel(INFO)
-
-    hostname = environ['BRAVO_HOSTNAME']
-    protocol = 'http://' #s://' if environ['BRAVO_SSL'] == 'True' else 'http://'
-    host = '%s%s' %(protocol, environ['BRAVO_IP'])
+    hostname = env['BRV_HOSTNAME']
+    host = 'http://%s' %(env['BRV_IP'])
     debug = 'enabled' if app.config['DEBUG'] else 'disabled'
-    sandbox = 'enabled' if environ['BRAVO_SANDBOX_MODE'] == 'True' else 'disabled'
-    ssl = 'enabled (nginx)' if environ['BRAVO_SSL'] == 'True' else 'disabled'
-
-
+    sbox = 'enabled' if env['BRV_SANDBOX'] == 'True' else 'disabled'
+    ssl = 'enabled (nginx)' if env['BRV_SSL'] == 'True' else 'disabled'
+    evntlt_v = eventlet.__version__
+    flsk_v = flask.__version__
     mem = psutil.virtual_memory()
     active = (mem.active/1000000)
     total = (mem.total/1000000)
@@ -35,54 +38,94 @@ def log_startup_info(sio_server, app):
     if free < 250:
         app.logger.info(\
             '%ssystem has less than 250mb free mem (%smb). '\
-            'not recommended!\n', c.WARNING, free)
+            'not recommended!\n', Y, free)
 
-    log.info(\
-    "%s-------------------------------- %s%s\n"                         %(c.OKGREEN, c.WARNING, get_os_full_desc()) +\
-    "%s-  ____ ------------------------ %smem free: %s/%s\n"            %(c.OKGREEN, c.OKGREEN, free, total) +\
-    "%s- |  _ \ ----------------------- %s%sbravo@%s%s\n"               %(c.OKGREEN, c.WARNING, c.BOLD, hostname, c.OKGREEN) +\
-    "%s- | |_) |_ __ __ ___   _____ --- %s%s\n"                         %(c.OKGREEN, c.OKGREEN, host) +\
-    "%s- |  _ <| '__/ _` \ \ / / _ \ -- %s[config]\n"                   %(c.OKGREEN, c.OKGREEN) +\
-    "%s- | |_) | | | (_| |\ V / (_) | - %s  > debug:   %s\n"          %(c.OKGREEN, c.OKGREEN, debug) +\
-    "%s- |____/|_|  \__,_| \_/ \___/  - %s  > sandbox: %s\n"          %(c.OKGREEN, c.OKGREEN, sandbox) +\
-    "%s-------------------------------- %s  > running: flask %s\n"    %(c.OKGREEN, c.OKGREEN, flask.__version__) +\
-    "%s-------------------------------- %s  > server:  eventlet %s\n" %(c.OKGREEN, c.OKGREEN, eventlet.__version__) +\
-    "%s-------------------------------- %s  > ssl:     %s"            %(c.OKGREEN, c.OKGREEN, ssl) +\
-    "")
+    bravo_msg =\
+    "%s-------------------------------- %s%s\n"                       %(G,Y,os_desc()) +\
+    "%s-  ____ ------------------------ %smem free: %s/%s\n"          %(G,G,free,total) +\
+    "%s- |  _ \ ----------------------- %sbravo@%s%s\n"               %(G,Y,hostname,G) +\
+    "%s- | |_) |_ __ __ ___   _____ --- %s%s\n"                       %(G,G,host) +\
+    "%s- |  _ <| '__/ _` \ \ / / _ \ -- %s[config]\n"                 %(G,G) +\
+    "%s- | |_) | | | (_| |\ V / (_) | - %s  > debug:   %s\n"          %(G,G,debug) +\
+    "%s- |____/|_|  \__,_| \_/ \___/  - %s  > sandbox: %s\n"          %(G,G,sbox) +\
+    "%s-------------------------------- %s  > running: flask %s\n"    %(G,G,flsk_v) +\
+    "%s-------------------------------- %s  > server:  eventlet %s\n" %(G,G,evntlt_v) +\
+    "%s-------------------------------- %s  > ssl:     %s"            %(G,G,ssl) +\
+    ""
 
-    inspect = celery_app.control.inspect()
+    log.info(bravo_msg)
+    insp = celery_app.control.inspect()
 
-    while not inspect.ping():
-        app.logger.debug('waiting on celery worker...')
+    while not insp.ping():
+        print 'waiting on celery worker...'
         time.sleep(1)
-        inspect = celery_app.control.inspect()
+        insp = celery_app.control.inspect()
 
-    tasks_reg = '%s regist.' % len(inspect.registered().get('celery@bravo'))
-    tasks_sch = '%s sched.' % len(inspect.scheduled().get('celery@bravo'))
-    stats = inspect.stats()
-    celery_host = stats.keys()[0]
-    transport = stats[celery_host]['broker']['transport']
-    worker = '%s' %(stats[celery_host]['pool']['max-concurrency'])
-    broker_location = '%s://%s:%s' %(
-        transport, stats[celery_host]['broker']['hostname'],
-        stats[celery_host]['broker']['port'])
-    beat = 'on' if environ['BRAVO_CELERY_BEAT'] == 'True' else 'off'
+    stats = insp.stats()
+    stats = stats[stats.keys()[0]]
+    broker = stats['broker']
+    trnsprt = broker['transport']
+
+    n_workers = '%s' %(stats['pool']['max-concurrency'])
+    str_brkr = '%s://%s:%s' %(trnsprt, broker['hostname'], broker['port'])
+    beat = 'on' if env['BRV_BEAT'] == 'True' else 'off'
+    clry_v = celery.__version__
+    c_host = 'celery@bravo'
+    regist = '%s regist.' % len(insp.registered()[c_host])
+    sched = '%s sched.' % len(insp.scheduled()[c_host])
 
     log.info(\
-    "%s-------------------------------- %scelery@bravo\n"      %(c.OKGREEN, c.WARNING) +\
-    "%s-------------------------------- %s%s\n"                %(c.OKGREEN, c.OKGREEN, broker_location) +\
-    "%s-------------------------------- %s[config]\n"          %(c.OKGREEN, c.OKGREEN) +\
-    "%s-------------------------------- %s  > version: %s\n"   %(c.OKGREEN, c.OKGREEN, celery.__version__) +\
-    "%s-------------------------------- %s  > workers: [%s]\n" %(c.OKGREEN, c.OKGREEN, worker) +\
-    "%s-------------------------------- %s  > beat:    %s\n"   %(c.OKGREEN, c.OKGREEN, beat) +\
-    "%s-------------------------------- %s  > tasks:   %s\n"   %(c.OKGREEN, c.OKGREEN, tasks_reg) +\
-    "%s-------------------------------- %s  > tasks:   %s\n"     %(c.OKGREEN, c.OKGREEN, tasks_sch) +\
+    "%s-------------------------------- %scelery@bravo\n"      %(G,Y) +\
+    "%s-------------------------------- %s%s\n"                %(G,G,str_brkr) +\
+    "%s-------------------------------- %s[config]\n"          %(G,G) +\
+    "%s-------------------------------- %s  > version: %s\n"   %(G,G,clry_v) +\
+    "%s-------------------------------- %s  > workers: [%s]\n" %(G,G,n_workers) +\
+    "%s-------------------------------- %s  > beat:    %s\n"   %(G,G,beat) +\
+    "%s-------------------------------- %s  > tasks:   %s\n"   %(G,G,regist) +\
+    "%s-------------------------------- %s  > tasks:   %s\n"   %(G,G,sched) +\
     "")
 
+    print bravo_msg + ENDC
     app.logger.info('server ready!')
 
 #-------------------------------------------------------------------------------
-def get_os_full_desc():
+def set_environ(app):
+
+    if not env.get('BRV_SANDBOX'):
+        env['BRV_SANDBOX'] = 'False'
+
+    env['BRV_HOSTNAME'] = hostname = socket.gethostname()
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("gmail.com",80))
+    env['BRV_IP'] = ip = s.getsockname()[0]
+    env['BRV_DOMAIN'] = domain = socket.gethostbyaddr(ip)[0]
+    s.close
+
+    try:
+        r = requests.get('https://%s' % domain, verify=SSL_CERT_PATH)
+    except Exception as e:
+        app.logger.debug('exception. SSL not enabled')
+        env['BRV_SSL'] = 'False'
+        env['BRV_HTTP_HOST'] = 'http://' + ip
+    else:
+        env['BRV_SSL'] = 'True'
+        env['BRV_HTTP_HOST'] = 'https://' + ip
+
+    try:
+        domain = socket.gethostbyaddr(ip)
+    except Exception as e:
+        app.logger.debug('no domain found')
+        env['BRV_TEST'] = 'True'
+        return
+
+    if domain[0] == 'bravoweb.ca':
+        app.logger.debug('bravoweb.ca domain. deploy server')
+        env['BRV_TEST'] = 'False'
+    else:
+        env['BRV_TEST'] = 'True'
+
+#-------------------------------------------------------------------------------
+def os_desc():
     from os.path import isfile
     name = ''
     if isfile('/etc/lsb-release'):

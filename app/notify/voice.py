@@ -55,23 +55,24 @@ def call(notific, twilio_conf, voice_conf):
         return 'failed'
 
     # Protect against sending real calls if in sandbox
-    if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
+    if os.environ.get('BRV_SANDBOX') == 'True':
         from_ = twilio_conf['voice']['valid_from_number']
     else:
         from_ = twilio_conf['voice']['number']
 
     call = None
+    http_host = os.environ.get('BRV_HTTP_HOST')
 
     try:
         call = client.calls.create(
             from_ = from_,
             to = notific['to'],
-            url ='%s/notify/voice/play/answer.xml' % os.environ.get('BRAVO_HTTP_HOST'),
+            url ='%s/notify/voice/play/answer.xml' % http_host,
             method = 'POST',
             if_machine = 'Continue',
-            fallback_url = '%s/notify/voice/fallback' % os.environ.get('BRAVO_HTTP_HOST'),
+            fallback_url = '%s/notify/voice/fallback' % http_host,
             fallback_method = 'POST',
-            status_callback = '%s/notify/voice/complete' % os.environ.get('BRAVO_HTTP_HOST'),
+            status_callback = '%s/notify/voice/complete' % http_host,
             status_events = ["completed"],
             status_method = 'POST')
     except Exception as e:
@@ -155,7 +156,7 @@ def on_answer():
                 voice='alice')
 
             response.gather(
-                action='%s/notify/voice/play/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
+                action='%s/notify/voice/play/interact.xml' % os.environ.get('BRV_HTTP_HOST'),
                 method='POST',
                 numDigits=1,
                 timeout=10)
@@ -183,7 +184,7 @@ def on_answer():
 
         response.gather(
             numDigits=1,
-            action='%s/notify/voice/play/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
+            action='%s/notify/voice/play/interact.xml' % os.environ.get('BRV_HTTP_HOST'),
             method='POST')
 
     return response

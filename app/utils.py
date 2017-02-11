@@ -172,13 +172,13 @@ def start_timer():
     return datetime.now()
 
 #-------------------------------------------------------------------------------
-def end_timer(start_dt, display=False, lbl=None):
+def end_timer(start_dt, lbl=None, log_=None):
     b = datetime.now()
     c = b - start_dt
 
     seconds = '%s.%ss' % (c.seconds, str(c.microseconds/1000))
 
-    if display:
-        log.debug('%s (%s)', lbl, seconds)
+    if log_:
+        log_.debug('%s (%s)', lbl, seconds)
 
     return seconds

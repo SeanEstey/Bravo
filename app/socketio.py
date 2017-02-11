@@ -23,17 +23,18 @@ def smart_emit(event, data, room=None):
     #log.debug('smart_emit data=%s', data)
 
     if room:
-        print 'smart_emit: sending to requested room=%s, event=%s' %(room,event)
+        #print 'smart_emit: sending to requested room=%s, event=%s' %(room,event)
         sio_client.emit(event, data, room=room)
     else:
         if current_user and current_user.is_authenticated:
-            print 'smart_emit: sending to discovered room=%s'% current_user.agency
+            #print 'smart_emit: sending to discovered room=%s'% current_user.agency
             sio_client.emit(event, data, room=current_user.agency)
         else:
             if not has_request_context():
-                print 'smart_emit: no listeners, saving energy'
+                pass
+                #print 'smart_emit: no listeners, saving energy'
             else:
-                print 'smart_emit: broadcasting to all clients'
+                #print 'smart_emit: broadcasting to all clients'
                 sio_client.emit(event, data)
 
 #-------------------------------------------------------------------------------
@@ -56,7 +57,8 @@ def sio_connect():
             #log.debug('%s connected. room=%s', user_id, room)
             emit('joined', 'connected to room=%s' % room, room=room)
     else:
-        print '<%s> connected' % current_user.user_id
+        pass
+        #print '<%s> connected' % current_user.user_id
 
 #-------------------------------------------------------------------------------
 @sio_server.on('disconnect')
@@ -67,8 +69,8 @@ def sio_disconnect():
         user_id = current_user.user_id
         room = current_user.agency
         leave_room(room)
-        print '%s leaving room=%s'%(user_id,room)
-        print '<%s> disconnected' % (current_user.user_id)
+        #print '%s leaving room=%s'%(user_id,room)
+        #print '<%s> disconnected' % (current_user.user_id)
 
 #-------------------------------------------------------------------------------
 @sio_server.on('analyze_routes')

@@ -16,7 +16,7 @@ def send(to, subject, body, conf, v=None):
 
     # Mailgun has no test API keys for use in test environment
     # If test mode enabled, re-route all emails to test address
-    if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
+    if os.environ.get('BRV_SANDBOX') == 'True':
         test_db = db_client['test']
         cred = test_db.credentials.find_one()['mailgun']
         conf = cred

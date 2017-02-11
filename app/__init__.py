@@ -13,10 +13,9 @@ from app.socketio import smart_emit
 
 eventlet.monkey_patch()
 
-deb_hand = file_handler(logging.DEBUG, 'debug.log')
-inf_hand = file_handler(logging.INFO, 'info.log')
-err_hand = file_handler(logging.ERROR, 'error.log')
-exc_hand = file_handler(logging.CRITICAL, 'debug.log')
+dbg_hdlr = file_handler(logging.DEBUG, 'debug.log')
+inf_hdlr = file_handler(logging.INFO, 'info.log')
+err_hdlr = file_handler(logging.ERROR, 'error.log')
 console = logging.StreamHandler()
 
 log = logging.getLogger(__name__)
@@ -31,7 +30,7 @@ kv_store = MongoStore(
 kv_ext = KVSessionExtension(kv_store)
 
 from uber_task import UberTask
-celery = Celery(__name__, broker='amqp://')
+celery = Celery(__name__, broker='amqp://') #, log=log)
 celery.Task = UberTask
 
 #-------------------------------------------------------------------------------
@@ -69,10 +68,13 @@ def create_app(pkg_name, kv_sess=True, testing=False):
     app.jinja_env.add_extension("jinja2.ext.do")
     app.permanent_session_lifetime = app.config['PERMANENT_SESSION_LIFETIME']
 
-    app.logger.addHandler(err_hand)
-    app.logger.addHandler(inf_hand)
-    app.logger.addHandler(deb_hand)
-    app.logger.addHandler(console)
+    for hdlr in app.logger.handlers:
+        if hdlr.level == 10:
+            app.logger.removeHandler(hdlr)
+
+    app.logger.addHandler(err_hdlr)
+    app.logger.addHandler(inf_hdlr)
+    app.logger.addHandler(dbg_hdlr)
     app.logger.setLevel(logging.DEBUG)
 
     from .auth.user import Anonymous
@@ -99,27 +101,31 @@ def create_app(pkg_name, kv_sess=True, testing=False):
     app.register_blueprint(api_mod)
     app.register_blueprint(alice_mod)
 
+    #print 'init flask app. n_log_handlers=%s' % len(app.logger.handlers)
+
     return app
 
 #-------------------------------------------------------------------------------
-def init_celery(celery, app):
-    import celeryconfig
-    from celery.utils.log import get_task_logger
+def init_celery(app, log=None):
 
-    celery = Celery(__name__, broker='amqp://')
+    import celeryconfig
+    #celery = Celery(__name__, broker='amqp://', log=log)
     celery.config_from_object(celeryconfig)
     celery.app = UberTask.flsk_app = app
     UberTask.db_client = mongodb.create_client(connect=False, auth=False)
     celery.Task = UberTask
-
-    logger = get_task_logger(__name__)
-    logger.addHandler(err_hand)
-    logger.addHandler(inf_hand)
-    logger.addHandler(deb_hand)
-    logger.addHandler(exc_hand)
-    logger.setLevel(logging.DEBUG)
-
     return celery
+
+#-------------------------------------------------------------------------------
+def task_logger(name):
+
+    from celery.utils.log import get_task_logger
+    logger = get_task_logger(name)
+    logger.addHandler(dbg_hdlr)
+    logger.addHandler(inf_hdlr)
+    logger.addHandler(err_hdlr)
+    logger.setLevel(logging.DEBUG)
+    return logger
 
 #-------------------------------------------------------------------------------
 def clean_expired_sessions():
@@ -136,74 +142,11 @@ def clean_expired_sessions():
     pass
 
 #-------------------------------------------------------------------------------
-def is_test_server():
-    import requests
-    os.environ['BRAVO_HOSTNAME'] = hostname = socket.gethostname()
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("gmail.com",80))
-    os.environ['BRAVO_IP'] = ip = s.getsockname()[0]
-    os.environ['BRAVO_DOMAIN'] = domain = socket.gethostbyaddr(ip)[0]
-    #log.info('hostname: %s, ip: %s, domain: %s', hostname, ip, domain)
-    SSL_CERT_PATH = '/etc/nginx/gd_bundle-g2-g1.crt'
-
-    try:
-        r = requests.get('https://%s' % domain, verify=SSL_CERT_PATH)
-    except Exception as e:
-        #log.info('exception. SSL not enabled')
-        os.environ['BRAVO_SSL'] = 'False'
-        os.environ['BRAVO_HTTP_HOST'] = 'http://' + ip
-    else:
-        #log.info('SSL enabled')
-        os.environ['BRAVO_SSL'] = 'True'
-        os.environ['BRAVO_HTTP_HOST'] = 'https://' + ip
-
-    if os.environ.get('BRAVO_TEST_SERVER'):
-        if os.environ['BRAVO_TEST_SERVER'] == 'True':
-            return True
-        else:
-            return False
-
-    # Don't know. Get IP and do reverse DNS lookup for domain
-
-    s.close
-
-
-
-    #log.debug('http_host=%s', os.environ['BRAVO_HTTP_HOST'])
-
-    try:
-        domain = socket.gethostbyaddr(ip)
-    except Exception as e:
-        print 'no domain registered. using twilio test server SMS number'
-        os.environ['BRAVO_TEST_SERVER'] = 'True'
-        return True
-
-    if domain[0] == 'bravoweb.ca':
-        print 'deploy server detected'
-        os.environ['BRAVO_TEST_SERVER'] = 'False'
-        return False
-
-    print 'unknown domain found. assuming test server'
-    os.environ['BRAVO_TEST_SERVER'] = 'True'
-    return True
-
-#-------------------------------------------------------------------------------
-def config_test_server(source):
-    # Swap out any sandbox credentials that may be present
-
-    if source == 'sandbox':
-        os.environ['BRAVO_SANDBOX_MODE'] = 'True'
-    else:
-        os.environ['BRAVO_SANDBOX_MODE'] = 'False'
-
-    return True
-
-#-------------------------------------------------------------------------------
 def get_server_prop():
     return {
-        'TEST_SERVER': True if os.environ['BRAVO_TEST_SERVER'] == 'True' else False,
-        'SANDBOX_MODE': True if os.environ['BRAVO_SANDBOX_MODE'] == 'True' else False,
-        'CELERY_BEAT': True if os.environ['BRAVO_CELERY_BEAT'] == 'True' else False,
+        'TEST_SERVER': True if os.environ['BRV_TEST'] == 'True' else False,
+        'SANDBOX_MODE': True if os.environ['BRV_SANDBOX'] == 'True' else False,
+        'CELERY_BEAT': True if os.environ['BRV_BEAT'] == 'True' else False,
         'ADMIN': g.user.admin,
         'DEVELOPER': g.user.developer,
         'USER_NAME': g.user.name

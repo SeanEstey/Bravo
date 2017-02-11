@@ -102,7 +102,7 @@ def on_call_interact(notific):
             voice='alice')
 
         response.gather(
-            action= '%s/notify/voice/play/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
+            action= '%s/notify/voice/play/interact.xml' % os.environ.get('BRV_HTTP_HOST'),
             method='POST',
             numDigits=1,
             timeout=10)

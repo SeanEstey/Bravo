@@ -13,9 +13,9 @@ log = logging.getLogger(__name__)
 db_client = create_client(connect=True, auth=True)
 
 ENVIRONS = {
-    'BRAVO_SANDBOX_MODE': 'False',
-    'BRAVO_TEST_SERVER': 'True',
-    'BRAVO_HTTP_HOST': 'http://104.236.184.177'
+    'BRV_SANDBOX': 'False',
+    'BRV_TEST': 'True',
+    'BRV_HTTP_HOST': 'http://104.236.184.177'
 }
 
 #-------------------------------------------------------------------------------

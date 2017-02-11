@@ -2,20 +2,21 @@
 import logging
 from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure
-from app import create_app, init_celery
+from app import create_app, init_celery, task_logger
 from app import celery as _celery
 from utils import inspector, start_timer, end_timer
 
-log = logging.getLogger(__name__)
-app = create_app(__name__, kv_sess=False)
-celery = init_celery(_celery, app)
-
 timer = None
-#print 'celery (initialized)=%s' % inspector(celery, public=True, private=True)
+app = create_app(__name__, kv_sess=False)
+celery = init_celery(app) #, log=log)
 
+# Import all tasks for worker
 from app.main.tasks import *
 from app.booker.tasks import *
 from app.notify.tasks import *
+
+from celery.utils.log import get_task_logger
+log = get_task_logger(__name__)
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect
@@ -44,7 +45,7 @@ state=None, *args, **kwargs):
     '''
 
     global timer
-    duration = end_timer(timer, display=False, lbl='task')
+    duration = end_timer(timer, lbl='task', log_=log)
     name = sender.name.split('.')[-1]
 
     if state != 'SUCCESS':

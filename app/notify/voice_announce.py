@@ -93,7 +93,7 @@ def on_interact():
 
         voice.gather(
             numDigits=1,
-            action="%s/notify/voice/play/interact.xml" % os.environ.get('BRAVO_HTTP_HOST'),
+            action="%s/notify/voice/play/interact.xml" % os.environ.get('BRV_HTTP_HOST'),
             method='POST')
 
         return voice

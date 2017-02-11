@@ -60,14 +60,14 @@ def send(notific, twilio_conf):
     error = None
 
     # Prevent sending live msgs if in sandbox
-    if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
+    if os.environ.get('BRV_SANDBOX') == 'True':
         from_ = twilio_conf['sms']['valid_from_number']
     else:
         from_ = twilio_conf['sms']['number']
         log.info('queued sms to %s', notific['to'])
 
     body = html.clean_whitespace(body)
-    callback = '%s/notify/sms/status' % os.environ.get('BRAVO_HTTP_HOST')
+    callback = '%s/notify/sms/status' % os.environ.get('BRV_HTTP_HOST')
 
     try:
         msg = compose(acct['agency'], body, notific['to'], callback=callback)

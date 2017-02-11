@@ -14,7 +14,7 @@ class EtapError(Exception):
 #-------------------------------------------------------------------------------
 def call(func, keys, data, silence_exc=False ):
 
-    sandbox = 'true' if os.environ['BRAVO_SANDBOX_MODE'] == 'True' else 'false'
+    sandbox = 'true' if os.environ['BRV_SANDBOX'] == 'True' else 'false'
 
     cmds = [
         'php', '/root/bravo/php/views.php',

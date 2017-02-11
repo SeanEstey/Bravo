@@ -5,14 +5,14 @@ from bson import ObjectId
 from flask import g
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
-from app import smart_emit, celery, get_keys, gcal, gdrive, gsheets, parser
+from app import task_logger, smart_emit, celery, get_keys, gcal, gdrive, gsheets, parser
 from app.utils import formatter
 from app.dt import to_local, ddmmyyyy_to_date
 from app.etap import EtapError, get_udf
 from .main import add_metadata
 from .build import submit_job, get_solution_orders
 from . import depots, sheet
-log = logging.getLogger(__name__)
+log = task_logger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

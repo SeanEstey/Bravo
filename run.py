@@ -2,11 +2,12 @@
 import logging, os, time, sys, getopt
 from flask import current_app, g, session
 from flask_login import current_user
-from detect import log_startup_info, get_os_full_desc
-from app import db_client, create_app, config_test_server, is_test_server
+from detect import startup_msg, set_environ
+from app import db_client, create_app
 from app.auth import load_user
 from app.utils import bcolors, print_vars, inspector
 from app.socketio import sio_server
+
 
 app = create_app('app')
 
@@ -26,22 +27,22 @@ def do_teardown(response):
     return response
 
 #-------------------------------------------------------------------------------
-def start_worker(celery_beat):
+def start_worker(beat=True):
 
     # Kill any existing worker/beat processes, start new worker
 
     os.system('kill %1')
     os.system("ps aux | grep '/usr/local/bin/celery beat' | awk '{print $2}' | xargs kill -9")
     os.system("ps aux | grep '/usr/local/bin/celery worker' | awk '{print $2}' | xargs kill -9")
-    os.system('celery worker -A app.tasks.celery -n %s &' % app.config['DB'])
+    os.system('celery worker -A app.tasks.celery -n %s -f logs/worker.log &' % app.config['DB'])
 
     # Start celery beat if option given
 
-    if celery_beat:
-        os.environ['BRAVO_CELERY_BEAT'] = 'True'
+    if beat:
+        os.environ['BRV_BEAT'] = 'True'
         os.system('celery beat &')
     else:
-        os.environ['BRAVO_CELERY_BEAT'] = 'False'
+        os.environ['BRV_BEAT'] = 'False'
 
 #-------------------------------------------------------------------------------
 def main(argv):
@@ -50,35 +51,18 @@ def main(argv):
     except getopt.GetoptError:
         sys.exit(2)
 
-    sandbox = None
-    celery_beat = None
-    debug = None
-
     for opt, arg in opts:
         if opt in('-c', '--celerybeat'):
-            celery_beat = True
+            beat = True
         elif opt in ('-d', '--debug'):
             app.config['DEBUG'] = True
         elif opt in ('-s', '--sandbox'):
-            sandbox = True
+            os.environ['BRV_SANDBOX'] = 'True'
 
-    if not app.config['DEBUG']:
-        app.config['DEBUG'] = False
-
-    if is_test_server():
-        if sandbox == True:
-            config_test_server('sandbox')
-        else:
-            config_test_server('test_server')
-    else:
-        os.environ['BRAVO_SANDBOX_MODE'] = 'False'
-
-    start_worker(celery_beat)
-
+    start_worker(beat=beat)
     sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
-
-    log_startup_info(sio_server, app)
-
+    set_environ(app)
+    startup_msg(app)
     sio_server.run(
         app,
         port=app.config['LOCAL_PORT'],

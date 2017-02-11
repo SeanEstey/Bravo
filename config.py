@@ -14,10 +14,10 @@ PUB_PORT = 80
 SECRET_KEY = 'secret'
 GSHEET_NAME = 'Bravo Sheets'
 ENV_VARS = [
-    'BRAVO_SANDBOX_MODE',
-    'BRAVO_CELERY_BEAT',
-    'BRAVO_HTTP_HOST',
-    'BRAVO_TEST_SERVER']
+    'BRV_SANDBOX',
+    'BRV_BEAT',
+    'BRV_HTTP_HOST',
+    'BRV_TEST']
 BLOCK_SIZES = {
   'RES': {
     'MED': 60,

@@ -72,7 +72,7 @@ def fire_trigger(self, _id=None, **rest):
     log.info('%sfiring %s trigger for "%s" event%s',
         bcolors.OKGREEN, trigger['type'], event['name'], bcolors.ENDC)
 
-    if os.environ.get('BRAVO_SANDBOX_MODE') == 'True':
+    if os.environ.get('BRV_SANDBOX') == 'True':
         log.info('sandbox mode detected.')
         log.info('simulating voice/sms msgs, re-routing emails')
 
@@ -157,7 +157,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
         if len(blocks) == 0:
             log.info('[%s] no blocks scheduled on %s',
                 agcy, for_date.strftime('%b %-d'))
-            return 'no blocks scheduled'
+            continue
 
         log.info('[%s] scheduling reminders for %s on %s',
             agcy, blocks, for_date.strftime('%b %-d'))

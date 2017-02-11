@@ -29,7 +29,7 @@ def dial_recording():
         return 'failed'
 
     call = None
-    host = os.environ.get('BRAVO_HTTP_HOST')
+    host = os.environ.get('BRV_HTTP_HOST')
 
     try:
         call = client.calls.create(
@@ -75,7 +75,7 @@ def on_answer():
     )
     voice.record(
         method= 'POST',
-        action= '%s/notify/record/interact.xml' % os.environ.get('BRAVO_HTTP_HOST'),
+        action= '%s/notify/record/interact.xml' % os.environ.get('BRV_HTTP_HOST'),
         playBeep= True,
         finishOnKey='#',
         timeout=120

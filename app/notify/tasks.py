@@ -1,14 +1,15 @@
 '''app.notify.tasks'''
-import logging, os, pytz
+import json, logging, os, pytz
 from datetime import datetime, date, time, timedelta
+from dateutil.parser import parse
 from bson import ObjectId
 from flask import g, current_app, has_request_context
 from app.utils import bcolors
 from app.dt import to_local
-from app import etap, get_keys, cal, celery, smart_emit
+from app import etap, get_keys, cal, celery, smart_emit, task_logger
 from app.etap import EtapError
 from . import email, sms, voice, pickups, triggers
-log = logging.getLogger(__name__)
+log = task_logger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -131,23 +132,24 @@ def fire_trigger(self, _id=None, **rest):
 @celery.task(bind=True)
 def schedule_reminders(self, agcy=None, for_date=None, **rest):
 
+    if for_date:
+        for_date = parse(for_date).date()
+
     log.info('task: scheduling reminder events...')
 
-    if agcy and for_date:
-        agencies = [g.db.agencies.find_one({'name':agcy})]
-    else:
-        agencies = g.db.agencies.find({})
+    agencies = [g.db.agencies.find_one({'name':agcy})] if agcy else g.db.agencies.find()
 
     for agency in agencies:
         agcy = agency['name']
 
         if not for_date:
-            days_ahead = int(agency['scheduler']['notify']['preschedule_by_days'])
+            days_ahead = int(agency['scheduler']['notify']['delta_days'])
             for_date = date.today() + timedelta(days=days_ahead)
 
         blocks = []
+        log.debug('for_date=%s', for_date)
 
-        for key in agency['scheduler']['notify']['cal_ids']:
+        for key in agency['cal_ids']:
             blocks += cal.get_blocks(
                 agency['cal_ids'][key],
                 datetime.combine(for_date,time(8,0)),
@@ -174,13 +176,13 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 continue
             else:
                 n+=1
-                evnt_ids.append(evnt_id)
+                evnt_ids.append(str(evnt_id))
 
         log.info('[%s] scheduled %s/%s reminder events', agcy, n, len(blocks))
 
     log.info('task: completed')
 
-    return evnt_ids
+    return json.dumps(evnt_ids)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

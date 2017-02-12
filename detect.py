@@ -24,15 +24,17 @@ def startup_msg(app):
     ssl = 'enabled (nginx)' if env['BRV_SSL'] == 'True' else 'disabled'
     evntlt_v = eventlet.__version__
     flsk_v = flask.__version__
-    mem = psutil.virtual_memory()
+
+    from app.main.tasks import mem_check
+    mem = mem_check()
+    #mem = psutil.virtual_memory()
     active = (mem.active/1000000)
     total = (mem.total/1000000)
     free = mem.free/1000000
 
-    if free < 250:
-        app.logger.info(\
-            '%ssystem has less than 250mb free mem (%smb). '\
-            'not recommended!\n', Y, free)
+    #if free < 250:
+    #    app.logger.info(\
+    #        '%swarning: less than 250mb free mem (%smb).', Y,free)
 
     bravo_msg =\
     "%s-------------------------------- %s%s\n"                       %(G,Y,os_desc()) +\
@@ -45,11 +47,8 @@ def startup_msg(app):
     "%s-------------------------------- %s  > running: flask %s, eventlet %s\n" %(G,G,flsk_v,evntlt_v) +\
     "%s-------------------------------- %s  > ssl:     %s"            %(G,G,ssl) +\
     ""
-    #"%s-------------------------------- %s  > server:  eventlet %s\n" %(G,G,evntlt_v) +\
-
     insp = celery_app.control.inspect()
     while not insp.stats():
-        #log.info('starting celery...')
         time.sleep(1)
 
     stats = insp.stats()
@@ -65,8 +64,6 @@ def startup_msg(app):
     regist = '%s regist' % len(insp.registered()[c_host])
     sched = '%s sched' % len(insp.scheduled()[c_host])
 
-    #app.logger.info('')
-
     celery_msg =\
     "%s-------------------------------- %scelery@bravo\n"      %(G,Y) +\
     "%s-------------------------------- %s%s\n"                %(G,G,str_brkr) +\
@@ -76,15 +73,11 @@ def startup_msg(app):
     "%s-------------------------------- %s  > beat:    %s\n"   %(G,G,beat) +\
     "%s-------------------------------- %s  > tasks:   %s, %s\n"%(G,G,regist,sched) +\
     ""
-    #"%s-------------------------------- %s  > tasks:   %s\n"   %(G,G,sched) +\
-
     print bravo_msg + ENDC
-    #print celery_msg + ENDC
-
+    print celery_msg + ENDC
     mem = psutil.virtual_memory()
     free = mem.free/1000000
     app.logger.info('mem free: %s/%s' %(free, total))
-
     app.logger.info('server ready!')
 
 #-------------------------------------------------------------------------------

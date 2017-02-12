@@ -16,7 +16,7 @@ class MainTasksTests(unittest.TestCase):
 
     def test_find_inactive_donors(self):
         try:
-            tasks.find_inactive_donors(agcy='vec', in_days=-2, period=270)
+            tasks.find_inactive_donors.delay(agcy='vec', in_days=-2, period=270)
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 

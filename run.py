@@ -27,15 +27,16 @@ def do_teardown(response):
 
 #-------------------------------------------------------------------------------
 def start_worker(beat=True):
-
-    # Kill any existing worker/beat processes, start new worker
+    '''Kill any existing worker/beat processes, start new worker
+    Start celery beat if option given
+    '''
 
     os.system('kill %1')
-    os.system("ps aux | grep '/usr/local/bin/celery beat' | awk '{print $2}' | xargs kill -9")
-    os.system("ps aux | grep '/usr/local/bin/celery worker' | awk '{print $2}' | xargs kill -9")
+    os.system("ps aux | grep '/usr/bin/python -m celery' | awk '{print $2}' | xargs kill -9")
+    os.system("ps aux | grep '/usr/bin/python -m celery' | awk '{print $2}' | xargs kill -9")
+    os.system("ps aux | grep '/usr/bin/python -m celery' | awk '{print $2}' | xargs kill -9")
+    os.system("ps aux | grep '/usr/bin/python -m celery' | awk '{print $2}' | xargs kill -9")
     os.system('celery -A app.tasks.celery worker -n bravo -f logs/worker.log -l INFO --detach')
-
-    # Start celery beat if option given
 
     if beat:
         os.environ['BRV_BEAT'] = 'True'
@@ -61,10 +62,7 @@ def main(argv):
             os.environ['BRV_SANDBOX'] = 'True'
 
     start_worker(beat=beat)
-    sio_server.init_app(
-        app,
-        async_mode='eventlet',
-        message_queue='amqp://')
+    sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
     set_environ(app)
     startup_msg(app)
 
@@ -72,8 +70,7 @@ def main(argv):
         app,
         port=app.config['LOCAL_PORT'],
         log_output=False,
-        use_reloader=False
-    )
+        use_reloader=False)
 
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":

@@ -8,15 +8,14 @@ from utils import inspector, start_timer, end_timer
 
 timer = None
 app = create_app(__name__, kv_sess=False)
-celery = init_celery(app) #, log=log)
+celery = init_celery(app)
 
 # Import all tasks for worker
 from app.main.tasks import *
 from app.booker.tasks import *
 from app.notify.tasks import *
 
-from celery.utils.log import get_task_logger
-log = get_task_logger('tasks')
+log = task_logger(__name__)
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect

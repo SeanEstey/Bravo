@@ -73,8 +73,7 @@ def get_accounts(etapestry_id, cal_id, oauth, days_from_now=None):
     for block in blocks:
         try:
             a = etap.call('get_query', etapestry_id,
-              {'query':block, 'category':etapestry_id['query_category']}
-            )
+              {'query':block, 'category':etapestry_id['query_category']})
         except Exception as e:
             log.error('Error retrieving accounts for query %s', block)
 

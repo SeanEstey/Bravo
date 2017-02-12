@@ -16,6 +16,7 @@ eventlet.monkey_patch()
 dbg_hdlr = file_handler(logging.DEBUG, 'debug.log')
 inf_hdlr = file_handler(logging.INFO, 'info.log')
 err_hdlr = file_handler(logging.ERROR, 'error.log')
+exc_hdlr = file_handler(logging.CRITICAL, 'error.log')
 
 login_manager = LoginManager()
 
@@ -67,6 +68,7 @@ def create_app(pkg_name, kv_sess=True, testing=False):
     app.logger.addHandler(err_hdlr)
     app.logger.addHandler(inf_hdlr)
     app.logger.addHandler(dbg_hdlr)
+    app.logger.addHandler(exc_hdlr)
     app.logger.setLevel(logging.DEBUG)
 
     #wz_logger = logging.getLogger('werkzeug')
@@ -122,6 +124,7 @@ def task_logger(name):
     logger.addHandler(dbg_hdlr)
     logger.addHandler(inf_hdlr)
     logger.addHandler(err_hdlr)
+    logger.addHandler(exc_hdlr)
     logger.setLevel(logging.DEBUG)
     return logger
 

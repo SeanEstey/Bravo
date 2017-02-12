@@ -1,10 +1,10 @@
 '''app.main.tasks'''
-import json, logging, re
+import json, logging, os, re, psutil
 from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta
 from dateutil.parser import parse
 from flask import current_app, g, request
-from app import celery, get_keys
+from app import celery, get_keys, task_logger
 from app.dt import d_to_dt, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 from app.parser import get_block, is_block, is_res, is_bus, get_area, is_route_size
 from app.gsheets import gauth, write_rows, append_row, get_row, to_range
@@ -12,7 +12,27 @@ from app.gcal import gauth as gcal_auth, color_ids, get_events, evnt_date_to_dt,
 from app.cal import get_blocks, get_accounts
 from app.etap import call, get_udf, mod_acct
 from app.main import donors
-log = logging.getLogger(__name__)
+log = task_logger(__name__)
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def mem_check(self):
+    mem = psutil.virtual_memory()
+    total = (mem.total/1000000)
+    free = mem.free/1000000
+
+    if free < 250:
+        log.info('warning: low memory. %s/%s.', free,total)
+        log.info('attempting to free unused sys mem...')
+        os.system('sudo sysctl -w vm.drop_caches=3')
+        os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
+        mem = psutil.virtual_memory()
+        total = (mem.total/1000000)
+        free = mem.free/1000000
+
+    log.info('mem free: %s/%s', free,total)
+
+    return mem
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

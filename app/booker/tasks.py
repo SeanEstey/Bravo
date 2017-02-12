@@ -2,8 +2,9 @@
 import json, logging, os, time
 from datetime import datetime
 from flask import g
+from app import task_logger
 from .. import smart_emit, celery
-log = logging.getLogger(__name__)
+log = task_logger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task

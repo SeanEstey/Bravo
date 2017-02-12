@@ -18,6 +18,7 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+
 #-------------------------------------------------------------------------------
 def inspector(obj, public=True, private=False):
     is_obj = (hasattr(obj, '__class__') and obj.__class__.__name__ or type(obj).__name__)

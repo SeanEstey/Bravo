@@ -9,6 +9,10 @@ timezone = 'Canada/Mountain'
 task_time_limit = 3000
 worker_concurrency = 1
 beat_schedule = {
+    'mem_check': {
+        'task': 'app.main.tasks.mem_check',
+        'schedule': crontab(hour='*', minute=0, day_of_week='*')
+    },
     'schedule_reminders': {
         'task': 'app.notify.tasks.schedule_reminders',
         'schedule': crontab(hour=7, minute=0, day_of_week='*'),

@@ -9,7 +9,7 @@
 # to:
 #55 23	* * *	root  test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
 
-/var/www/bravo/logs/*.log {
+~/bravo/logs/*.log {
 	daily
 	rotate 10
 	su root root

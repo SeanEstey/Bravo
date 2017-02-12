@@ -29,7 +29,7 @@ class RoutingTasksTests(unittest.TestCase):
 
     def test_build_scheduled_routes(self):
         try:
-            tasks.build_scheduled_routes(agcy='vec')
+            tasks.build_scheduled_routes.delay(agcy='vec')
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 

@@ -12,7 +12,7 @@ from app.etap import EtapError, get_udf
 from .main import add_metadata
 from .build import submit_job, get_solution_orders
 from . import depots, sheet
-log = task_logger(__name__)
+log = task_logger('routing.tasks')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

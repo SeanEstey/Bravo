@@ -1,12 +1,13 @@
 '''detect'''
 import logging, os, requests, socket, sys, time
+from flask import g
 import psutil
-from logging import INFO
 from os import environ as env
+from app import get_logger
 from app.tasks import celery as celery_app
 import celery, eventlet, flask
+log = get_logger('detect')
 
-SSL_CERT_PATH = '/etc/nginx/gd_bundle-g2-g1.crt'
 G = '\033[92m'
 Y = '\033[93m'
 ENDC = '\033[0m'
@@ -15,7 +16,6 @@ ENDC = '\033[0m'
 def startup_msg(app):
 
     from app.utils import print_vars
-    app.logger.info('server starting...')
 
     hostname = env['BRV_HOSTNAME']
     host = 'http://%s' %(env['BRV_IP'])
@@ -27,14 +27,9 @@ def startup_msg(app):
 
     from app.main.tasks import mem_check
     mem = mem_check()
-    #mem = psutil.virtual_memory()
     active = (mem.active/1000000)
     total = (mem.total/1000000)
     free = mem.free/1000000
-
-    #if free < 250:
-    #    app.logger.info(\
-    #        '%swarning: less than 250mb free mem (%smb).', Y,free)
 
     bravo_msg =\
     "%s-------------------------------- %s%s\n"                       %(G,Y,os_desc()) +\
@@ -75,10 +70,7 @@ def startup_msg(app):
     ""
     print bravo_msg + ENDC
     print celery_msg + ENDC
-    mem = psutil.virtual_memory()
-    free = mem.free/1000000
-    app.logger.info('mem free: %s/%s' %(free, total))
-    app.logger.info('server ready!')
+    mem = mem_check()
 
 #-------------------------------------------------------------------------------
 def set_environ(app):
@@ -94,7 +86,7 @@ def set_environ(app):
     s.close
 
     try:
-        r = requests.get('https://%s' % domain, verify=SSL_CERT_PATH)
+        r = requests.get('https://%s' % domain, verify=g.app.config['SSL_CERT_PATH'])
     except Exception as e:
         app.logger.debug('exception. SSL not enabled')
         env['BRV_SSL'] = 'False'

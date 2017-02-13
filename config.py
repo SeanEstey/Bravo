@@ -1,7 +1,8 @@
 from datetime import timedelta
 
+SSL_CERT_PATH = '/etc/nginx/gd_bundle-g2-g1.crt'
 TITLE = 'Bravo'
-LOG_PATH = '/var/www/bravo/logs/'
+LOG_PATH = '/root/bravo/logs/'
 LOG_LINES = 200
 DB = 'bravo'
 SESSION_COLLECTION = 'sessions'

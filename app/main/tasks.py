@@ -12,7 +12,7 @@ from app.gcal import gauth as gcal_auth, color_ids, get_events, evnt_date_to_dt,
 from app.cal import get_blocks, get_accounts
 from app.etap import call, get_udf, mod_acct
 from app.main import donors
-log = task_logger(__name__)
+log = task_logger('main.tasks')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -23,14 +23,14 @@ def mem_check(self):
 
     if free < 250:
         log.info('warning: low memory. %s/%s.', free,total)
-        log.info('attempting to free unused sys mem...')
+        log.debug('attempting to free unused sys mem...')
         os.system('sudo sysctl -w vm.drop_caches=3')
         os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
         mem = psutil.virtual_memory()
         total = (mem.total/1000000)
         free = mem.free/1000000
 
-    log.info('mem free: %s/%s', free,total)
+    log.debug('mem free: %s/%s', free,total)
 
     return mem
 

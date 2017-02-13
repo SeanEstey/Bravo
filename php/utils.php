@@ -1,8 +1,8 @@
 <?php
 
-$INFO_LOG = '/var/www/bravo/logs/info.log';
-$DEBUG_LOG = '/var/www/bravo/logs/debug.log';
-$ERROR_LOG = '/var/www/bravo/logs/error.log';
+$INFO_LOG = '/root/bravo/logs/events.log';
+$DEBUG_LOG = '/root/bravo/logs/debug.log';
+$ERROR_LOG = '/root/bravo/logs/error.log';
 
 $COLORS = array(
         // styles

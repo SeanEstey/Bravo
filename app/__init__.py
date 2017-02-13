@@ -14,22 +14,18 @@ from app.logger import DebugFilter, InfoFilter
 eventlet.monkey_patch()
 
 dbg_hdlr = file_handler(logging.DEBUG, 'debug.log')
-inf_hdlr = file_handler(logging.INFO, 'info.log')
+evnt_hdlr = file_handler(logging.INFO, 'events.log')
 err_hdlr = file_handler(logging.ERROR, 'error.log')
 exc_hdlr = file_handler(logging.CRITICAL, 'error.log')
-
 login_manager = LoginManager()
-
 db_client = mongodb.create_client()
-
-kv_store = MongoStore(
-    db_client[config.DB],
-    config.SESSION_COLLECTION)
+kv_store = MongoStore(db_client[config.DB], config.SESSION_COLLECTION)
 kv_ext = KVSessionExtension(kv_store)
 
 from app.socketio import smart_emit
 from uber_task import UberTask
-celery = Celery(__name__, broker='amqp://') #, log=log)
+
+celery = Celery(__name__, broker='amqp://')
 celery.Task = UberTask
 
 #-------------------------------------------------------------------------------
@@ -66,13 +62,10 @@ def create_app(pkg_name, kv_sess=True, testing=False):
     app.permanent_session_lifetime = app.config['PERMANENT_SESSION_LIFETIME']
 
     app.logger.addHandler(err_hdlr)
-    app.logger.addHandler(inf_hdlr)
+    app.logger.addHandler(evnt_hdlr)
     app.logger.addHandler(dbg_hdlr)
     app.logger.addHandler(exc_hdlr)
     app.logger.setLevel(logging.DEBUG)
-
-    #wz_logger = logging.getLogger('werkzeug')
-    #wz_logger.setLevel(logging.ERROR)
 
     for hdlr in app.logger.handlers:
         #print print_vars(hdlr)
@@ -110,11 +103,21 @@ def init_celery(app, log=None):
 
     import celeryconfig
     celery.config_from_object(celeryconfig)
-    #celery.log.redirect_stdouts(name="logs/worker.log")
     celery.app = UberTask.flsk_app = app
     UberTask.db_client = mongodb.create_client(connect=False, auth=False)
     celery.Task = UberTask
     return celery
+
+#-------------------------------------------------------------------------------
+def get_logger(name):
+
+    logger = logging.getLogger(name)
+    logger.addHandler(dbg_hdlr)
+    logger.addHandler(evnt_hdlr)
+    logger.addHandler(err_hdlr)
+    logger.addHandler(exc_hdlr)
+    logger.setLevel(logging.DEBUG)
+    return logger
 
 #-------------------------------------------------------------------------------
 def task_logger(name):
@@ -122,7 +125,7 @@ def task_logger(name):
     from celery.utils.log import get_task_logger
     logger = get_task_logger(name)
     logger.addHandler(dbg_hdlr)
-    logger.addHandler(inf_hdlr)
+    logger.addHandler(evnt_hdlr)
     logger.addHandler(err_hdlr)
     logger.addHandler(exc_hdlr)
     logger.setLevel(logging.DEBUG)

@@ -42,7 +42,7 @@ def make():
     if route and route.get('ss'):
         append_route(route)
 
-    if request.form['confirmation']:
+    if request.form.get('confirmation') == 'true':
         send_confirm()
 
     return {

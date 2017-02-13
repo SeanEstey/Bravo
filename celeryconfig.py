@@ -20,7 +20,7 @@ beat_schedule = {
     },
 	'monitor_triggers': {
 		'task': 'app.notify.tasks.monitor_triggers',
-		'schedule': crontab(minute='*/5')
+		'schedule': crontab(minute='*/15')
 	 },
 	'build_routes': {
 		  'task': 'app.routing.tasks.build_scheduled_routes',

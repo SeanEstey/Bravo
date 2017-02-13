@@ -33,9 +33,8 @@ def start_worker(beat=True):
 
     os.system('kill %1')
     os.system("ps aux | grep '/usr/bin/python -m celery' | awk '{print $2}' | xargs kill -9")
-    os.system("ps aux | grep '/usr/bin/python -m celery' | awk '{print $2}' | xargs kill -9")
-    os.system("ps aux | grep '/usr/bin/python -m celery' | awk '{print $2}' | xargs kill -9")
-    os.system("ps aux | grep '/usr/bin/python -m celery' | awk '{print $2}' | xargs kill -9")
+    os.system("ps aux | grep '/usr/bin/python /usr/local/bin/celery beat' | awk '{print $2}' | xargs kill -9")
+    time.sleep(1)
     os.system('celery -A app.tasks.celery worker -n bravo -f logs/worker.log -l INFO --detach')
 
     if beat:
@@ -61,10 +60,12 @@ def main(argv):
         elif opt in ('-s', '--sandbox'):
             os.environ['BRV_SANDBOX'] = 'True'
 
+    app.logger.info('server starting...')
     start_worker(beat=beat)
     sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
     set_environ(app)
     startup_msg(app)
+    app.logger.info('server ready!')
 
     sio_server.run(
         app,

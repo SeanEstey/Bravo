@@ -9,7 +9,7 @@ from app.dt import to_local
 from app import etap, get_keys, cal, celery, smart_emit, task_logger
 from app.etap import EtapError
 from . import email, sms, voice, pickups, triggers
-log = task_logger(__name__)
+log = task_logger('notify.tasks')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

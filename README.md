@@ -26,11 +26,10 @@ Create empty files: info.log, debug.log, error.log. Add execution permissions.
 
 ###### PHP Error Logging
 
-Open /etc/php/7.0/cli/php.ini
+Open /etc/php.ini
 
-Find line for "error_log". Replace with:
-
-error_log = /var/www/bravo/logs/debug.log
+Find error_log line. Set:
+`error_log = /root/bravo/logs/debug.log`
 
 ###### Create MongoDB Auth File
 

@@ -15,7 +15,7 @@ from app.main.tasks import *
 from app.booker.tasks import *
 from app.notify.tasks import *
 
-log = task_logger(__name__)
+log = task_logger('tasks')
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect

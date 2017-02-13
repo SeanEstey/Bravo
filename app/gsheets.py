@@ -5,7 +5,8 @@ from dateutil.parser import parse
 from oauth2client.service_account import ServiceAccountCredentials
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
-log = logging.getLogger(__name__)
+from app import get_logger
+log = get_logger(__name__)
 
 #-------------------------------------------------------------------------------
 def update_cell(service, ss_id, range_, value):

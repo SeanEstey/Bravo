@@ -8,7 +8,8 @@ from flask_login import login_user, current_user
 from bson.objectid import ObjectId
 from auth import user
 from .utils import print_vars
-log = logging.getLogger(__name__)
+from app import task_logger
+log = task_logger(__name__)
 
 __all__ = ['UberTask']
 
@@ -88,15 +89,18 @@ class UberTask(Task):
         '''
 
         # Save environ vars
+        if has_app_context():
+            if current_user:
+                g.user = current_user
 
-        g.user = current_user
         kwargs[self.ENVIRON_KW] = {}
 
-        for var in current_app.config['ENV_VARS']:
+        for var in self.flsk_app.config['ENV_VARS']:
             kwargs[self.ENVIRON_KW][var] = os.environ.get(var, '')
 
-        if current_user.is_authenticated:
-            kwargs[self.USERID_KW] = str(g.user._id)
+        if has_request_context():
+            if current_user.is_authenticated:
+                kwargs[self.USERID_KW] = str(g.user._id)
 
         if not has_request_context():
             return

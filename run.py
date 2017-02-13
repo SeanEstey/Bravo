@@ -35,11 +35,13 @@ def start_worker(beat=True):
     os.system("ps aux | grep '/usr/bin/python -m celery' | awk '{print $2}' | xargs kill -9")
     os.system("ps aux | grep '/usr/bin/python /usr/local/bin/celery beat' | awk '{print $2}' | xargs kill -9")
     time.sleep(1)
-    os.system('celery -A app.tasks.celery worker -n bravo -f logs/worker.log -l INFO --detach')
+    os.system('celery -A app.tasks.celery -n bravo worker -f logs/worker.log &')
 
+    # os.environ vars only get passed to beat process if it's a child process
     if beat:
         os.environ['BRV_BEAT'] = 'True'
-        os.system('celery beat -f logs/worker.log -l INFO --detach')
+        #os.system('celery -A app.tasks.celery beat -f logs/beat.log -l INFO --detach')
+        os.system('celery -A app.tasks.celery beat -f logs/beat.log -l DEBUG &')
     else:
         os.environ['BRV_BEAT'] = 'False'
 

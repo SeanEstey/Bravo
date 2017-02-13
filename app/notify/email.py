@@ -2,9 +2,9 @@
 import logging, os
 from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
-from .. import smart_emit, get_keys, utils, mailgun
+from .. import get_logger, smart_emit, get_keys, utils, mailgun
 from app.dt import to_utc
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):

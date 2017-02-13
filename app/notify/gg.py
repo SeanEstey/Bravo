@@ -3,12 +3,10 @@ import logging, os
 from twilio import twiml
 from flask import g, request
 from dateutil.parser import parse
-from .. import get_keys, etap
+from .. import get_logger, get_keys, etap
+from app.etap import EtapError
 from . import events, email, sms, voice, triggers, accounts
-log = logging.getLogger(__name__)
-
-class EtapError(Exception):
-    pass
+log = get_logger(__name__)
 
 #-------------------------------------------------------------------------------
 def add_event():

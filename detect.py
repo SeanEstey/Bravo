@@ -42,6 +42,7 @@ def startup_msg(app):
     "%s-------------------------------- %s  > running: flask %s, eventlet %s\n" %(G,G,flsk_v,evntlt_v) +\
     "%s-------------------------------- %s  > ssl:     %s"            %(G,G,ssl) +\
     ""
+    '''
     insp = celery_app.control.inspect()
     while not insp.stats():
         time.sleep(1)
@@ -68,8 +69,9 @@ def startup_msg(app):
     "%s-------------------------------- %s  > beat:    %s\n"   %(G,G,beat) +\
     "%s-------------------------------- %s  > tasks:   %s, %s\n"%(G,G,regist,sched) +\
     ""
+    '''
     print bravo_msg + ENDC
-    print celery_msg + ENDC
+    #print celery_msg + ENDC
     mem = mem_check()
 
 #-------------------------------------------------------------------------------

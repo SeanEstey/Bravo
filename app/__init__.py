@@ -22,11 +22,7 @@ db_client = mongodb.create_client()
 kv_store = MongoStore(db_client[config.DB], config.SESSION_COLLECTION)
 kv_ext = KVSessionExtension(kv_store)
 
-from app.socketio import smart_emit
-from uber_task import UberTask
 
-celery = Celery(__name__, broker='amqp://')
-celery.Task = UberTask
 
 #-------------------------------------------------------------------------------
 def get_keys(k=None, agcy=None):
@@ -155,3 +151,9 @@ def get_server_prop():
         'DEVELOPER': g.user.developer,
         'USER_NAME': g.user.name
     }
+
+from app.socketio import smart_emit
+from uber_task import UberTask
+
+celery = Celery(__name__, broker='amqp://')
+celery.Task = UberTask

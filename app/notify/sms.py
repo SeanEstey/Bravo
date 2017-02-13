@@ -2,10 +2,10 @@
 import logging, json, os
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
-from .. import smart_emit, get_keys, utils, html
-from app.dt import to_utc
+from .. import get_logger, smart_emit, get_keys, utils, html
+from app.dt import to_utc, to_local
 from app.alice.outgoing import compose
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):

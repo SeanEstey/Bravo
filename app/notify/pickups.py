@@ -5,11 +5,11 @@ from flask import g, request
 from datetime import time, timedelta
 from dateutil.parser import parse
 from bson.objectid import ObjectId
-from .. import get_keys, parser, gcal
+from .. import get_logger, get_keys, parser, gcal
 from app.etap import EtapError, get_query, get_udf, get_phone, get_prim_phone
 from app.dt import ddmmyyyy_to_local_dt as to_dt, to_local
 from . import events, email, sms, voice, triggers, accounts
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 #-------------------------------------------------------------------------------
 def create_reminder(agcy, block, date_):

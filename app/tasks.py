@@ -1,5 +1,5 @@
 '''app.tasks'''
-import logging
+import logging, os
 from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure
 from app import create_app, init_celery, task_logger
@@ -24,6 +24,9 @@ def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwar
     Sender == Task.
     @args, @kwargs: the tasks positional and keyword arguments
     '''
+
+    #for env in os.environ:
+    #    log.debug('os.environ[%s] = %s', env, os.environ[env])
 
     global timer
     timer = start_timer()

@@ -1,6 +1,6 @@
 '''app.logger'''
 import logging
-from logging import Formatter, FileHandler, Filter, DEBUG, INFO, ERROR
+from logging import Formatter, FileHandler, Filter, DEBUG, INFO, WARNING, ERROR
 from config import LOG_PATH
 from app.utils import bcolors as c
 
@@ -10,12 +10,15 @@ class DebugFilter(Filter):
 class InfoFilter(Filter):
     def filter(self, record):
         return record.levelno == 20
+class WarningFilter(Filter):
+    def filter(self, record):
+        return record.levelno == 30
 
 #-------------------------------------------------------------------------------
 def file_handler(level, filename, log_f=False, log_v=False):
 
     colors = {
-        '10': c.WARNING,
+        '10': c.WHITE,
         '20': c.OKGREEN,
         '30': c.WARNING,
         '40': c.FAIL,
@@ -25,10 +28,12 @@ def file_handler(level, filename, log_f=False, log_v=False):
     handler = FileHandler(LOG_PATH + filename)
     handler.setLevel(level)
 
-    if level == DEBUG:
+    if level == DEBUG: # 10
         handler.addFilter(DebugFilter())
-    elif level == INFO:
+    elif level == INFO: # 20
         handler.addFilter(InfoFilter())
+    elif level == WARNING: # 30
+        handler.addFilter(WarningFilter())
 
     if log_f:
         fmtr = Formatter(log_f, log_v)
@@ -40,19 +45,3 @@ def file_handler(level, filename, log_f=False, log_v=False):
     handler.setFormatter(fmtr)
 
     return handler
-
-#-------------------------------------------------------------------------------
-def get_dbg_logger(name):
-    log = logging.getLogger(name)
-    log.setLevel(DEBUG)
-    hdlr = file_handler(DEBUG, 'debug.log')
-    log.addHandler(hdlr)
-    return log
-
-def get_console_logger(name):
-    logger_ = logging.getLogger(name)
-    logger_.setLevel(DEBUG)
-    hdlr = logging.StreamHandler()
-    hdlr.setLevel(DEBUG)
-    logger_.addHandler(hdlr)
-    return logger_

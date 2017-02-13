@@ -1,15 +1,13 @@
 '''app.alice.incoming
-
 Uses KVSession in place of flask session to store data server-side in MongoDB
 Session expiry set in app.config.py, currently set to 60 min
 Conversations permanently saved to MongoDB in bravo.alice
 '''
-
 import logging, string
 from twilio import twiml
 from datetime import datetime, date, time, timedelta
 from flask import current_app, request, make_response, g, session
-from .. import etap, utils
+from .. import get_logger, etap, utils
 from app.utils import bcolors
 from app.etap import EtapError
 from . import keywords
@@ -17,8 +15,7 @@ from .dialog import *
 from .phrases import *
 from .replies import *
 from .session import *
-log = logging.getLogger(__name__)
-
+log = get_logger('alice.inc')
 
 #-------------------------------------------------------------------------------
 def receive():

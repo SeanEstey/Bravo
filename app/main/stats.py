@@ -2,11 +2,11 @@
 import logging
 from datetime import datetime, date, time, timedelta
 import json
-from .. import etap, utils, gsheets, parser
+from .. import get_logger, etap, utils, gsheets, parser
 from app.etap import EtapError
 from app.routing import parse
 from app import db, bcolors
-log = logging.getLogger(__name__)
+log = get_logger('main.stats')
 
 #-------------------------------------------------------------------------------
 def update(agency, ss_id):

@@ -2,6 +2,7 @@
 import logging
 from flask_login import login_required, current_user
 from flask import g, request, jsonify, render_template, session, Response
+from app import get_logger
 from ..utils import formatter, print_vars, start_timer, end_timer
 from . import alice, incoming
 from .session import store_sessions, dump_session, dump_sessions, wipe_sessions
@@ -9,7 +10,7 @@ from .incoming import make_reply
 from .util import get_chatlogs
 from .dialog import dialog
 from .outgoing import send_welcome
-log = logging.getLogger(__name__)
+log = get_logger('alice.views')
 
 #-------------------------------------------------------------------------------
 @alice.before_request
@@ -50,9 +51,9 @@ def sms_received(agency):
     try:
         response = incoming.receive()
     except Exception as e:
-        log.debug(str(e), exc_info=True)
-        log.debug(dump_session())
         log.error(str(e))
+        log.debug('',exc_info=True)
+        log.debug(dump_session())
         return make_reply(dialog['error']['unknown'])
 
     end_timer(a, lbl='alice request', to_log=log)

@@ -8,7 +8,7 @@ from datetime import datetime,date,time
 from .. import get_logger, smart_emit, get_keys
 from app.dt import to_utc, to_local
 from . import voice, email, sms
-log = get_logger(__name__)
+log = get_logger('notify.triggers')
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, type_, date_, time_):

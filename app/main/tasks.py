@@ -16,19 +16,22 @@ log = task_logger('main.tasks')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def mem_check(self):
+def mem_check(self, **rest):
     mem = psutil.virtual_memory()
     total = (mem.total/1000000)
     free = mem.free/1000000
 
     if free < 250:
-        log.info('warning: low memory. %s/%s.', free,total)
-        log.debug('attempting to free unused sys mem...')
+        log.debug('low memory. %s/%s. attempting to free unused sys mem...', free, total)
         os.system('sudo sysctl -w vm.drop_caches=3')
         os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
+
         mem = psutil.virtual_memory()
         total = (mem.total/1000000)
         free = mem.free/1000000
+
+        if free < 250:
+            log.warning('warning: low memory! 250mb recommended (%s/%s)', free, total)
 
     log.debug('mem free: %s/%s', free,total)
 

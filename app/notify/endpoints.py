@@ -4,7 +4,7 @@ from flask import g, jsonify, Response
 from app import get_logger
 from app.notify import pickups, recording, sms, voice
 from . import notify
-log = get_logger(__name__)
+log = get_logger('notify.endpoints')
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/<acct_id>/no_pickup', methods=['GET'])

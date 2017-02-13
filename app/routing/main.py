@@ -4,12 +4,12 @@ from dateutil.parser import parse
 from datetime import datetime, time, date
 from flask import g, request
 from bson import ObjectId
-from app import smart_emit, get_keys, gsheets, cal, utils
+from app import get_logger, smart_emit, get_keys, gsheets, cal, utils
 from app.etap import EtapError, get_udf, get_query
 from app.utils import print_vars, formatter
 from app.dt import ddmmyyyy_to_date
 from . import depots
-log = logging.getLogger(__name__)
+log = get_logger('routing.main')
 class GeocodeError(Exception):
     pass
 

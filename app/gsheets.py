@@ -6,7 +6,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
 from app import get_logger
-log = get_logger(__name__)
+log = get_logger('gsheets')
 
 #-------------------------------------------------------------------------------
 def update_cell(service, ss_id, range_, value):

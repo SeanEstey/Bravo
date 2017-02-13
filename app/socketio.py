@@ -5,16 +5,15 @@ from datetime import datetime
 from flask import g, request, current_app, has_request_context
 from flask_login import current_user
 from flask_socketio import SocketIO, join_room, leave_room, send, emit, rooms
-#from app.logger import get_dbg_logger
-
-#sio_logger = get_dbg_logger('flask_socketio')
+from app import get_logger
+log = get_logger('socket.io')
 
 # Main server initialized with flask app in run.py
-sio_server = SocketIO()#logger=sio_logger)
+sio_server = SocketIO()
 
 # Client that uses message_queue to send emit signals to
 # server. Can be used by celery tasks.
-sio_client = SocketIO(message_queue='amqp://') #, logger=sio_logger)
+sio_client = SocketIO(message_queue='amqp://')
 
 #-------------------------------------------------------------------------------
 def smart_emit(event, data, room=None):

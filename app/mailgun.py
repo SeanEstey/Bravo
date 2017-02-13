@@ -4,7 +4,7 @@ import json
 import os
 import logging
 from app import db_client
-log = logging.getLogger(__name__)
+log = logging.getLogger('mailgun')
 
 #-------------------------------------------------------------------------------
 def send(to, subject, body, conf, v=None):

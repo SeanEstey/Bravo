@@ -1,6 +1,6 @@
 '''detect'''
 import logging, os, requests, socket, sys, time
-from flask import g
+from flask import current_app, g
 import psutil
 from os import environ as env
 from app import get_logger
@@ -42,7 +42,7 @@ def startup_msg(app):
     "%s-------------------------------- %s  > running: flask %s, eventlet %s\n" %(G,G,flsk_v,evntlt_v) +\
     "%s-------------------------------- %s  > ssl:     %s"            %(G,G,ssl) +\
     ""
-    '''
+
     insp = celery_app.control.inspect()
     while not insp.stats():
         time.sleep(1)
@@ -69,13 +69,15 @@ def startup_msg(app):
     "%s-------------------------------- %s  > beat:    %s\n"   %(G,G,beat) +\
     "%s-------------------------------- %s  > tasks:   %s, %s\n"%(G,G,regist,sched) +\
     ""
-    '''
+
     print bravo_msg + ENDC
-    #print celery_msg + ENDC
+    print celery_msg + ENDC
     mem = mem_check()
 
 #-------------------------------------------------------------------------------
 def set_environ(app):
+
+    from config import SSL_CERT_PATH
 
     if not env.get('BRV_SANDBOX'):
         env['BRV_SANDBOX'] = 'False'
@@ -88,27 +90,30 @@ def set_environ(app):
     s.close
 
     try:
-        r = requests.get('https://%s' % domain, verify=g.app.config['SSL_CERT_PATH'])
-    except Exception as e:
-        app.logger.debug('exception. SSL not enabled')
-        env['BRV_SSL'] = 'False'
-        env['BRV_HTTP_HOST'] = 'http://' + ip
-    else:
-        env['BRV_SSL'] = 'True'
-        env['BRV_HTTP_HOST'] = 'https://' + ip
-
-    try:
         domain = socket.gethostbyaddr(ip)
     except Exception as e:
-        app.logger.debug('no domain found')
+        log.warning('warning: no domain found on this host (ip=%s)', ip)
         env['BRV_TEST'] = 'True'
         return
 
     if domain[0] == 'bravoweb.ca':
-        app.logger.debug('bravoweb.ca domain. deploy server')
+        log.debug('bravoweb.ca domain. deploy server')
         env['BRV_TEST'] = 'False'
     else:
+        log.debug('test server domain=%s', domain[0])
         env['BRV_TEST'] = 'True'
+
+    try:
+        r = requests.get('https://%s' % domain[0], verify=SSL_CERT_PATH)
+    except Exception as e:
+        log.warning('warning: SSL not enabled. domain=%s', domain[0])
+        log.debug('', exc_info=True)
+        env['BRV_SSL'] = 'False'
+        env['BRV_HTTP_HOST'] = 'http://' + ip
+    else:
+        log.debug('SSL certificate verified')
+        env['BRV_SSL'] = 'True'
+        env['BRV_HTTP_HOST'] = 'https://' + ip
 
 #-------------------------------------------------------------------------------
 def os_desc():

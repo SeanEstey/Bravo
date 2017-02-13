@@ -8,7 +8,7 @@ from apiclient.http import BatchHttpRequest
 import re
 import requests
 import json
-log = logging.getLogger(__name__)
+log = logging.getLogger('gdrive')
 
 
 #-------------------------------------------------------------------------------

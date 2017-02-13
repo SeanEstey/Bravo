@@ -1,7 +1,8 @@
 '''app.alice.events'''
 import logging
-from app import etap, utils
-from app.utils import bcolors, naive_utc_to_local as to_local
+from app import get_logger, etap, utils
+from app.dt import to_local, ddmmyyyy_to_dt
+from app.utils import bcolors
 from app.etap import EtapError
 from flask import g, request, session
 from datetime import datetime, date, time, timedelta
@@ -10,7 +11,7 @@ from .dialog import dialog
 from .util import related_notific, event_begun, set_notific_reply
 from app.main.tasks import create_rfu
 import app.notify.pickups
-log = logging.getLogger(__name__)
+log = get_logger('alice.events')
 
 #-------------------------------------------------------------------------------
 def request_support():
@@ -33,7 +34,7 @@ def reply_schedule():
         return dialog['error']['internal']['lookup']
     else:
         return dialog['schedule']['next'] %(
-            etap.ddmmyyyy_to_dt(next_pu).strftime('%A, %B %-d'))
+            ddmmyyyy_to_dt(next_pu).strftime('%A, %B %-d'))
 
 #-------------------------------------------------------------------------------
 def prompt_instructions():
@@ -84,7 +85,7 @@ def skip_pickup():
             return msg
 
         return msg + dialog['schedule']['next'] %(
-            etap.ddmmyyyy_to_local_dt(npu).strftime('%B %-d, %Y'))
+            to_local(dt=ddmmyyyy_to_dt(npu)).strftime('%B %-d, %Y'))
 
     if session.get('valid_notific_reply') == False:
         return dialog['skip']['too_late']
@@ -104,7 +105,7 @@ def skip_pickup():
 
     return \
         dialog['skip']['success'] + \
-        dialog['schedule']['next'] % (to_local(dt).strftime('%B %-d, %Y'))
+        dialog['schedule']['next'] % (to_local(dt=dt).strftime('%B %-d, %Y'))
 
 #-------------------------------------------------------------------------------
 def update_mobile():

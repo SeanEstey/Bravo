@@ -9,7 +9,7 @@ from bson.objectid import ObjectId
 from auth import user
 from .utils import print_vars
 from app import task_logger
-log = task_logger(__name__)
+log = task_logger('uber_task')
 
 __all__ = ['UberTask']
 

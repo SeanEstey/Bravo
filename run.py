@@ -1,13 +1,15 @@
 '''run'''
 import logging, os, time, sys, getopt
+from os import environ, system
 from flask import current_app, g, session
 from flask_login import current_user
 from detect import startup_msg, set_environ
-from app import db_client, create_app
+from app import get_logger, db_client, create_app
 from app.auth import load_user
 from app.utils import bcolors, print_vars, inspector
 from app.socketio import sio_server
 
+log = get_logger('run')
 app = create_app('app')
 
 #-------------------------------------------------------------------------------
@@ -26,24 +28,26 @@ def do_teardown(response):
     return response
 
 #-------------------------------------------------------------------------------
-def start_worker(beat=True):
+def kill_celery():
     '''Kill any existing worker/beat processes, start new worker
-    Start celery beat if option given
     '''
 
-    os.system('kill %1')
-    os.system("ps aux | grep '/usr/bin/python -m celery' | awk '{print $2}' | xargs kill -9")
-    os.system("ps aux | grep '/usr/bin/python /usr/local/bin/celery beat' | awk '{print $2}' | xargs kill -9")
-    time.sleep(1)
-    os.system('celery -A app.tasks.celery -n bravo worker -f logs/worker.log &')
+    system('kill %1')
+    system("ps aux | grep '/usr/bin/python -m celery' | awk '{print $2}' | xargs kill -9")
+    system("ps aux | grep '/usr/bin/python /usr/local/bin/celery beat' | awk '{print $2}' | xargs kill -9")
 
-    # os.environ vars only get passed to beat process if it's a child process
+#-------------------------------------------------------------------------------
+def start_celery(beat=True):
+    '''Start celery worker/beat as child processes.
+    IMPORTANT: If started from outside bravo or with --detach option, will NOT
+    have os.environ vars
+    '''
+
+    if not beat:
+        environ['BRV_BEAT'] = 'False'
+    system('celery -A app.tasks.celery -n bravo worker -f logs/worker.log -l INFO &')
     if beat:
-        os.environ['BRV_BEAT'] = 'True'
-        #os.system('celery -A app.tasks.celery beat -f logs/beat.log -l INFO --detach')
-        os.system('celery -A app.tasks.celery beat -f logs/beat.log -l DEBUG &')
-    else:
-        os.environ['BRV_BEAT'] = 'False'
+        system('celery -A app.tasks.celery beat -f logs/beat.log -l INFO &')
 
 #-------------------------------------------------------------------------------
 def main(argv):
@@ -52,22 +56,27 @@ def main(argv):
     except getopt.GetoptError:
         sys.exit(2)
 
-    beat=None
-
     for opt, arg in opts:
         if opt in('-c', '--celerybeat'):
+            environ['BRV_BEAT'] = 'True'
             beat = True
         elif opt in ('-d', '--debug'):
             app.config['DEBUG'] = True
         elif opt in ('-s', '--sandbox'):
-            os.environ['BRV_SANDBOX'] = 'True'
+            environ['BRV_SANDBOX'] = 'True'
 
-    app.logger.info('server starting...')
-    start_worker(beat=beat)
-    sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
+    log.info('server starting...')
+
     set_environ(app)
+    sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
+
+    kill_celery()
+    time.sleep(1)
+    start_celery(beat=environ.get('BRV_BEAT'))
+
     startup_msg(app)
-    app.logger.info('server ready!')
+
+    log.info('server ready!')
 
     sio_server.run(
         app,

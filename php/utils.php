@@ -1,9 +1,8 @@
 <?php
 
-$INFO_LOG = '/root/bravo/logs/events.log';
 $DEBUG_LOG = '/root/bravo/logs/debug.log';
-$ERROR_LOG = '/root/bravo/logs/error.log';
-
+$INFO_LOG = '/root/bravo/logs/events.log';
+$ERROR_LOG = '/root/bravo/logs/events.log';
 $COLORS = array(
         // styles
         // italic and blink may not work depending of your terminal
@@ -45,7 +44,7 @@ function info_log($msg) {
 function debug_log($msg) {
     /* Convenience func */
     global $DEBUG_LOG, $COLORS;
-		$str = sprintf($COLORS['yellow'], $msg);
+		$str = sprintf($COLORS['white'], $msg);
     return write_log($str, $DEBUG_LOG);
 }
 

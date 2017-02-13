@@ -6,7 +6,7 @@ from flask_login import login_required
 from flask import g, request, jsonify, render_template, Response, url_for
 from app import get_logger, smart_emit, get_keys, utils, cal, parser
 from . import notify, accounts, events, triggers
-log = get_logger(__name__)
+log = get_logger('notify.views')
 
 #-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])

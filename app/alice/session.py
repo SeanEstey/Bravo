@@ -5,13 +5,14 @@ from flask_kvsession import SessionID
 from bson.objectid import ObjectId
 import cPickle as pickle
 from datetime import datetime, date, timedelta
-from .. import kv_store, kv_ext, etap, utils
+from .. import get_logger, kv_store, kv_ext, etap, utils
+from app.dt import to_local
 from app.utils import print_vars, bcolors
 from . import keywords
 from .util import related_notific, lookup_acct, event_begun
 from .dialog import *
 from app.etap import EtapError
-log = logging.getLogger(__name__)
+log = get_logger('alice.session')
 
 #-------------------------------------------------------------------------------
 def has_session():
@@ -33,7 +34,7 @@ def create_session():
     session['messages'] = [msg]
     session['conf'] = conf = g.db.agencies.find_one({'name':session.get('agency')})
     session['self_name'] = conf['alice']['name']
-    session['last_msg_dt'] = utils.naive_to_local(datetime.now())
+    session['last_msg_dt'] = to_local(dt=datetime.now())
     session['expiry_dt'] = datetime.now() + life_duration
 
     try:
@@ -79,7 +80,7 @@ def create_session():
 #-------------------------------------------------------------------------------
 def update_session():
     session['messages'].append(request.form['Body'])
-    session['last_msg_dt'] = utils.naive_to_local(datetime.now())
+    session['last_msg_dt'] = to_local(dt=datetime.now())
 
 #-------------------------------------------------------------------------------
 def store_sessions():

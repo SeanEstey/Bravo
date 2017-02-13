@@ -1,8 +1,8 @@
 '''app.routing.sheet'''
 import logging, re, time
-from .. import get_keys, gsheets, gdrive, utils
+from .. import get_logger, get_keys, gsheets, gdrive, utils
 from ..parser import has_postal
-log = logging.getLogger(__name__)
+log = get_logger('routing.sheet')
 
 #-------------------------------------------------------------------------------
 def build(agcy, drive_api, title):

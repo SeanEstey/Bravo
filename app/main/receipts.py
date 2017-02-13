@@ -3,12 +3,12 @@ import json, logging, requests
 from datetime import date
 from dateutil.parser import parse
 from flask import g, current_app, render_template, request
-from .. import get_keys, html, mailgun, etap
+from .. import get_logger, get_keys, html, mailgun, etap
 from app.utils import to_title_case
 from app.gsheets import update_cell, to_range, gauth, get_row
 from app.etap import get_udf
 from app.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
-log = logging.getLogger(__name__)
+log = get_logger('main.receipts')
 
 #-------------------------------------------------------------------------------
 def generate(acct, entry, ytd_gifts=None):

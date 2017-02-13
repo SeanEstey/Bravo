@@ -1,7 +1,7 @@
 '''app.routing.parse'''
 import logging, re, time
-from app import gsheets
-log = logging.getLogger(__name__)
+from app import gsheets, get_logger
+log = get_logger('routing.parse')
 
 #-------------------------------------------------------------------------------
 def to_dict(agency, ss_id):

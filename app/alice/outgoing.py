@@ -3,11 +3,11 @@ import logging
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException
 from flask import g, request
-from .. import etap
+from .. import get_logger, etap
 from app.utils import bcolors
 from .. import get_keys
 from .dialog import dialog
-log = logging.getLogger(__name__)
+log = get_logger('alice.out')
 
 
 #-------------------------------------------------------------------------------

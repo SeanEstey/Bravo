@@ -4,12 +4,12 @@ from datetime import datetime,date,time
 from dateutil.parser import parse
 from bson.objectid import ObjectId
 from flask import g, request, jsonify, url_for
-from app import cal, parser, get_keys
+from app import get_logger, cal, parser, get_keys
 from app.parser import is_res, is_bus
 from app.utils import formatter
 from app.dt import to_utc, to_local
 from app.notify import triggers
-log = logging.getLogger(__name__)
+log = get_logger('notify.events')
 
 #-------------------------------------------------------------------------------
 def create_event():

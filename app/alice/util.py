@@ -4,9 +4,10 @@ from datetime import date, datetime, timedelta
 from flask import g, request, session
 from app.etap import call, EtapError
 from .dialog import *
+from app import get_logger
 from app.utils import print_vars
 from app.dt import to_local
-log = logging.getLogger(__name__)
+log = get_logger('alice.util')
 
 #-------------------------------------------------------------------------------
 def lookup_acct(mobile):

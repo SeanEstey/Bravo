@@ -61,6 +61,8 @@ def call(notific, twilio_conf, voice_conf):
 
     call = None
     http_host = os.environ.get('BRV_HTTP_HOST')
+    if http_host.find('https') == 0:
+        http_host = http_host.replace('https', 'http')
 
     try:
         call = client.calls.create(
@@ -148,6 +150,10 @@ def on_answer():
 
     response = twiml.Response()
 
+    http_host = os.environ['BRV_HTTP_HOST']
+    if http_host.find('https') == 0:
+        http_host = http_host.replace('https', 'http')
+
     if notific['on_answer']['source'] == 'template':
         if request.form['AnsweredBy'] == 'human':
             response.say(
@@ -155,7 +161,7 @@ def on_answer():
                 voice='alice')
 
             response.gather(
-                action='%s/notify/voice/play/interact.xml' % os.environ.get('BRV_HTTP_HOST'),
+                action='%s/notify/voice/play/interact.xml' % http_host,
                 method='POST',
                 numDigits=1,
                 timeout=10)
@@ -183,7 +189,7 @@ def on_answer():
 
         response.gather(
             numDigits=1,
-            action='%s/notify/voice/play/interact.xml' % os.environ.get('BRV_HTTP_HOST'),
+            action='%s/notify/voice/play/interact.xml' % http_host,
             method='POST')
 
     return response
@@ -267,6 +273,9 @@ def on_error():
     https://www.twilio.com/docs/api/errors/reference
     '''
 
-    log.error('call error. %s', request.form.to_dict())
+    from . import err_codes
+    code = str(request.form['ErrorCode'])
+    log.error('twilio error code %s: %s', code, err_codes.TWILIO_ERR[code])
+    log.debug('call dump: %s', request.form.to_dict())
     return 'OK'
 

@@ -99,8 +99,11 @@ def on_call_interact(notific):
               notific['on_answer']['template']),
             voice='alice')
 
+        http_host = os.environ.get('BRV_HTTP_HOST')
+        http_host = http_host.replace('https','http') if http_host.find('https') == 0 else http_host
+
         response.gather(
-            action= '%s/notify/voice/play/interact.xml' % os.environ.get('BRV_HTTP_HOST'),
+            action= '%s/notify/voice/play/interact.xml' % http_host,
             method='POST',
             numDigits=1,
             timeout=10)

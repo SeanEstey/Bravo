@@ -186,7 +186,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def skip_pickup(self, evnt_id, acct_id, **kwargs):
+def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
     '''Runs as a celery task (tasks.cancel_pickup) to update an accounts eTap
     fields to skip a pickup. The request originates from a SMS/Voice/Email
     notification. Run is_valid() before calling this function.

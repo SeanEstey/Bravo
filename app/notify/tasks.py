@@ -3,7 +3,7 @@ import json, logging, os, pytz
 from os import environ as env
 from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
-from bson import ObjectId
+from bson import ObjectId as oid
 from flask import g, current_app, has_request_context
 from app.utils import bcolors, to_title_case
 from app.dt import to_local
@@ -58,14 +58,14 @@ def fire_trigger(self, _id=None, **rest):
     err = []
     status = ''
     fails = 0
-    trig = g.db.triggers.find_one({'_id':ObjectId(_id)})
+    trig = g.db.triggers.find_one({'_id':oid(_id)})
     event = g.db.notific_events.find_one({'_id':trig['evnt_id']})
     agcy = event['agency']
     g.db.triggers.update_one(
-        {'_id':ObjectId(_id)},
+        {'_id':oid(_id)},
         {'$set': {'task_id':self.request.id, 'status':'in-progress', 'errors':err}})
     ready = g.db.notifics.find(
-        {'trig_id':ObjectId(_id), 'tracking.status':'pending'})
+        {'trig_id':oid(_id), 'tracking.status':'pending'})
     count = ready.count()
 
     log.warning('sending %s %s notifications for %s...',
@@ -97,7 +97,7 @@ def fire_trigger(self, _id=None, **rest):
             smart_emit('notific_status', {
                 'notific_id':str(n['_id']), 'status':status})
 
-    g.db.triggers.update_one({'_id':ObjectId(_id)}, {
+    g.db.triggers.update_one({'_id':oid(_id)}, {
         '$set': {'status': 'fired', 'errors': err}})
 
     smart_emit('trigger_status', {
@@ -109,7 +109,6 @@ def fire_trigger(self, _id=None, **rest):
 
     log.warning('notifications sent. %s queued, %s failed, %s errors.',
         count - fails - len(err), fails, len(err))
-
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -165,7 +164,6 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
         log.info('[%s] scheduled %s/%s reminder events', agcy, n, len(blocks))
 
     log.info('task: completed')
-
     return json.dumps(evnt_ids)
 
 #-------------------------------------------------------------------------------
@@ -177,41 +175,35 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
     @acct_id: _id from db.accounts, not eTap account id
     '''
 
-    log.info('Cancelling pickup for \'%s\'', acct_id)
+    log.info('cancelling pickup for \'%s\'', acct_id)
 
     # Cancel any pending parent notifications
 
-    result = g.db.notifics.update_many({
-          'acct_id': ObjectId(acct_id),
-          'evnt_id': ObjectId(evnt_id),
-          'tracking.status': 'pending'},
+    result = g.db.notifics.update_many(
+        {'acct_id':oid(acct_id), 'evnt_id':oid(evnt_id), 'tracking.status':'pending'},
         {'$set':{'tracking.status':'cancelled'}})
-
-    acct = g.db.accounts.find_one_and_update({
-        '_id':ObjectId(acct_id)},{
-        '$set': {
-          'opted_out': True}})
-
-    evnt = g.db.notific_events.find_one({'_id':ObjectId(evnt_id)})
+    acct = g.db.accounts.find_one_and_update(
+        {'_id':oid(acct_id)},
+        {'$set': {'opted_out': True}})
+    evnt = g.db.notific_events.find_one({'_id':oid(evnt_id)})
 
     if not evnt or not acct:
         msg = 'evnt/acct not found (evnt_id=%s, acct_id=%s' %(evnt_id,acct_id)
         log.error(msg)
         raise Exception(msg)
 
-    conf = g.db.agencies.find_one({'name': evnt['agency']})
-
     try:
-        etap.call('skip_pickup', conf['etapestry'], data={
-            'acct_id': acct['udf']['etap_id'],
-            'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
-            'next_pickup': to_local(
-                acct['udf']['future_pickup_dt'],
-                to_str='%d/%m/%Y')})
+        etap.call(
+            'skip_pickup',
+            get_keys('etapestry',agcy=evnt['agency']),
+            data={
+                'acct_id': acct['udf']['etap_id'],
+                'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
+                'next_pickup': to_local(
+                    acct['udf']['future_pickup_dt'],
+                    to_str='%d/%m/%Y')})
     except EtapError as e:
         log.error("etap error, desc='%s'", str(e))
 
-    if not acct.get('email'):
-        return 'success'
-
+    # TODO: send future pickup email
     return 'success'

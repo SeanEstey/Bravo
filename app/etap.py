@@ -17,7 +17,7 @@ def call(func, keys, data, silence_exc=False ):
     sandbox = 'true' if os.environ['BRV_SANDBOX'] == 'True' else 'false'
 
     cmds = [
-        'php', '/root/bravo/php/views.php',
+        'php', '/root/bravo/php/call.php',
         keys['agency'], keys['user'], keys['pw'],
         func,
         sandbox,

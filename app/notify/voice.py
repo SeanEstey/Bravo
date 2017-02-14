@@ -11,8 +11,7 @@ log = get_logger('notify.voice')
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
-    '''
-    @on_answer: {
+    '''@on_answer: {
         'source': 'template/audio',
         'template': 'path/to/template/file',
         'url': 'audio_url'}
@@ -272,9 +271,8 @@ def on_error():
     https://www.twilio.com/docs/api/errors/reference
     '''
 
-    from . import err_codes
+    from .err_codes import TWILIO_ERRS
     code = str(request.form['ErrorCode'])
-    log.error('twilio error code %s: %s', code, err_codes.TWILIO_ERR[code])
+    log.error('twilio error code %s: %s', code, TWILIO_ERRS[code])
     log.debug('call dump: %s', request.form.to_dict())
     return 'OK'
-

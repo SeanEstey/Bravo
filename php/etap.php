@@ -1,4 +1,5 @@
 <?php
+
 require("/root/bravo/php/lib/nusoap.php");
 
 //-----------------------------------------------------------------------
@@ -22,37 +23,37 @@ function get_error($nsc, $log=true) {
 
 //-----------------------------------------------------------------------
 function reset_error($nsc) {
-		$nsc->fault = NULL;
-		$nsc->faultcode = NULL;
-		$nsc->error_str = NULL;
+	$nsc->fault = NULL;
+	$nsc->faultcode = NULL;
+	$nsc->error_str = NULL;
 }
 
 //-----------------------------------------------------------------------
 function get_endpoint($user, $pass) {
-  $endpoint = "https://sna.etapestry.com/v3messaging/service?WSDL";
-  $nsc = new nusoap_client($endpoint, true);
 
-  if(is_error($nsc))
-			return get_error($nsc, $log=True);
+	$endpoint = "https://sna.etapestry.com/v3messaging/service?WSDL";
+	$nsc = new nusoap_client($endpoint, true);
 
-  $newEndpoint = $nsc->call('login', array($user, $pass));
 	if(is_error($nsc))
+		return get_error($nsc, $log=True);
+
+	$newEndpoint = $nsc->call('login', array($user, $pass));
+	if(is_error($nsc))
+		return get_error($nsc, $log=True);
+
+	if($newEndpoint != "") {
+		error_log("Given endpoint failed. Using '" . $newEndpoint . "'");
+		$nsc = new nusoap_client($newEndpoint, true);
+
+	    if(is_error($nsc))
 			return get_error($nsc, $log=True);
 
-  if($newEndpoint != "") {
-			error_log("Given endpoint failed. Using '" . $newEndpoint . "'");
+		$nsc->call("login", array($user, $pass));
 
-			$nsc = new nusoap_client($newEndpoint, true);
-
-      if(is_error($nsc))
-          return get_error($nsc, $log=True);
-
-			$nsc->call("login", array($user, $pass));
-
-      if(is_error($nsc))
-          return get_error($nsc, $log=True);
-  }
-  return $nsc;
+	    if(is_error($nsc))
+			return get_error($nsc, $log=True);
+	}
+	return $nsc;
 }
 
 //-----------------------------------------------------------------------
@@ -97,9 +98,9 @@ function format_date($dateStr) {
     $year = substr($dateStr, $separator2 + 1);
 
     if($day > 0 && $month > 0 && $year > 0)
-      return date(DATE_ATOM, mktime(0, 0, 0, $month, $day, $year));
+    	return date(DATE_ATOM, mktime(0, 0, 0, $month, $day, $year));
     else
-      return "[Invalid Date: $dateStr]";
+    	return "[Invalid Date: $dateStr]";
 }
 
 ?>

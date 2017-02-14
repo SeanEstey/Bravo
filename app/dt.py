@@ -21,15 +21,14 @@ def to_local(obj=None, dt=None, d=None, t=None, to_str=False):
 #-------------------------------------------------------------------------------
 def to_timezone(tz, dt=None, d=None, t=None, to_str=False):
     if dt:
-        dt = dt.replace(tzinfo=tz) if not dt.tzinfo else dt.astimezone(tz)
+        dt = dt.replace(tzinfo=local_tz) if not dt.tzinfo else dt
+        dt = dt.astimezone(tz)
         return dt.strftime(to_str) if to_str else dt
     elif d and t:
-        dt_ = datetime.combine(d,t)
-        dt_ = dt_.replace(tzinfo=tz) if not dt_.tzinfo else dt_.astimezone(tz)
+        dt_ = datetime.combine(d,t).replace(tzinfo=local_tz).astimezone(tz)
         return dt_.strftime(to_str) if to_str else dt_
     elif d and not t:
-        dt_ = datetime.combine(d, time(0,0))
-        dt_ = dt_.replace(tzinfo=tz) if not dt_.tzinfo else dt_.astimezone(tz)
+        dt_ = datetime.combine(d, time(0,0)).replace(tzinfo=local_tz).astimezone(tz)
         return dt_.strftime(to_str) if to_str else dt_
 
 #-------------------------------------------------------------------------------

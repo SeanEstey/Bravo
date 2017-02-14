@@ -1,4 +1,4 @@
-TWILIO_ERR = {
+TWILIO_ERRS = {
     "10001" : "Account is not active",
     "10002" : "Trial account does not support this feature",
     "10003" : "Incoming call rejected due to inactive account",

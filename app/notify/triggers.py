@@ -1,7 +1,5 @@
 '''app.notify.triggers'''
-
-import logging
-import os
+import logging, os
 from flask import g, request
 from bson.objectid import ObjectId
 from datetime import datetime,date,time

@@ -9,7 +9,7 @@ from app.parser import is_res, is_bus
 from app.utils import formatter
 from app.dt import to_utc, to_local
 from app.notify import triggers
-log = get_logger('notify.events')
+log = get_logger('notify.evnt')
 
 #-------------------------------------------------------------------------------
 def create_event():

@@ -43,7 +43,7 @@ def process_entries(self, entries, agcy='vec', **rest):
 
     entries = json.loads(entries)
 
-    log.info('task: processing entries for %s accts...', len(entries))
+    log.warning('processing %s gift entries...', len(entries))
 
     ch_size = 10
     etap_conf = get_keys('etapestry',agcy=agcy)
@@ -88,7 +88,7 @@ def process_entries(self, entries, agcy='vec', **rest):
             log.error(str(e))
             log.debug('',exc_info=True)
 
-    log.info('task: completed. n_errs=%s', n_errs)
+    log.warning('completed. %s errors.', n_errs)
 
     return 'success'
 
@@ -110,8 +110,8 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
         oauth = get_keys('google',agcy=agcy)['oauth']
         srvc = gcal_auth(oauth)
 
-        log.info('task: updating calendar blocks (%s to %s)...',
-            start_dt.strftime('%m/%d'), end_dt.strftime('%m/%d'))
+        log.warning('updating calendar events from %s to %s...',
+            start_dt.strftime('%m-%d-%Y'), end_dt.strftime('%m-%d-%Y'))
 
         cal_ids = get_keys('cal_ids',agcy=agcy)
         n_updated = n_errs = n_warnings = 0
@@ -178,7 +178,7 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
                 else:
                     n_updated+=1
 
-        log.info('task: completed. %s events updated, %s errors, %s warnings '\
+        log.warning('completed. %s events updated, %s errors, %s warnings '\
             '(agcy=%s)', n_updated, n_errs, n_warnings, agcy)
 
     return 'success'

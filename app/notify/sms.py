@@ -1,9 +1,11 @@
 '''app.notify.sms'''
 import logging, json, os
+from os import environ as env
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
 from .. import get_logger, smart_emit, get_keys, utils, html
 from app.dt import to_utc, to_local
+from app.utils import bcolors as c
 from app.alice.outgoing import compose
 log = get_logger('notify.sms')
 
@@ -60,25 +62,24 @@ def send(notific, twilio_conf):
     error = None
 
     # Prevent sending live msgs if in sandbox
-    if os.environ.get('BRV_SANDBOX') == 'True':
+    if env['BRV_SANDBOX'] == 'True':
         from_ = twilio_conf['sms']['valid_from_number']
     else:
         from_ = twilio_conf['sms']['number']
-        log.info('queued sms to %s', notific['to'])
+        log.debug('queued sms to %s', notific['to'])
 
     body = html.clean_whitespace(body)
-    http_host = os.environ.get('BRAV_HTTP_HOST')
-    if http_host.find('https') == 0:
-        http_host = http_host.replace('https', 'http')
+    http_host = env['BRV_HTTP_HOST']
+    http_host = http_host.replace('https','http') if http_host.find('https') == 0 else http_host
     callback = '%s/notify/sms/status' % http_host
 
     try:
         msg = compose(acct['agency'], body, notific['to'], callback=callback)
     except Exception as e:
-        log.error('error sending SMS, desc="%s"', str(e))
+        log.error('error queuing SMS, desc="%s"', str(e))
         log.debug('', exc_info=True)
-    else:
-        log.info('queued sms to %s', notific['to'])
+    #else:
+    #    log.debug('queued SMS to %s', notific['to'])
     finally:
         g.db.notifics.update_one(
             {'_id': notific['_id']},
@@ -97,13 +98,20 @@ def on_status():
     '''Callback for sending notific SMS
     '''
 
-    log.info('%s sms to %s', request.form['SmsStatus'], request.form['To'])
-    #log.debug('sms.on_status: %s', request.form.to_dict())
+    status = request.form['SmsStatus']
+    to = request.form['To']
+
+    if status == 'delivered':
+        log.debug('%sdelivered SMS notific to %s%s', c.OKGREEN, to, c.ENDC)
+    elif status == 'queued':
+        log.debug('queued SMS notific to %s', to)
+    else:
+        log.debug('%s SMS notific to %s', status, to)
 
     notific = g.db.notifics.find_one_and_update({
         'tracking.sid': request.form['SmsSid']}, {
         '$set':{
-            'tracking.status': request.form['SmsStatus'],
+            'tracking.status': status,
             'tracking.sent_dt': to_local(dt=datetime.now())}})
 
     # Could be a new sid from a reply to reminder text?

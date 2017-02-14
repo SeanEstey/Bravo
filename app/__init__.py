@@ -76,6 +76,9 @@ def create_app(pkg_name, kv_sess=True, testing=False):
     if kv_sess:
         kv_ext.init_app(app)
 
+    from app.main import endpoints
+    from app.notify import endpoints
+
     from app.auth import auth as auth_mod
     from app.main import main as main_mod
     from app.notify import notify as notify_mod

@@ -8,7 +8,7 @@ from twilio import twiml
 from datetime import datetime, date, time, timedelta
 from flask import current_app, request, make_response, g, session
 from .. import get_logger, etap, utils
-from app.utils import bcolors
+from app.utils import bcolors as c
 from app.etap import EtapError
 from . import keywords
 from .dialog import *
@@ -182,30 +182,31 @@ def guess_intent():
     return False
 
 #-------------------------------------------------------------------------------
-def make_reply(_dialog, on_complete=None):
+def make_reply(dialog_, on_complete=None):
     '''Add name contexts to beginning of dialog, create TWIML message
     Save this reply so we can know if the next user msg is responding to
     any keywords contained in it
     '''
 
     session['on_complete'] = on_complete
+    self = session.get('self_name')
     name = get_name()
     greet = tod_greeting()
-    context = '%s: '% session.get('self_name') if session.get('self_name') else ''
+    context = '' # '%s: '% session.get('self_name') if session.get('self_name') else ''
 
     if get_msg_count() == 1:
         context += '%s, %s. ' % (greet, name) if name else '%s. ' % (greet)
     else:
         if name:
             context += name + ', '
-            _dialog = _dialog[0].lower() + _dialog[1:]
+            dialog_ = dialog_[0].lower() + dialog_[1:]
 
-    session['messages'].append(context + _dialog)
+    session['messages'].append('%s: %s' %(self, context + dialog_))
 
     twml = twiml.Response()
-    twml.message(context + _dialog)
+    twml.message(context + dialog_)
 
-    log.info('%s"%s"%s', bcolors.BOLD, context + _dialog, bcolors.ENDC)
+    log.info('%s%s: %s"%s"%s', c.OKGREEN, self, c.WHITE, context + dialog_, c.ENDC)
 
     response = make_response()
     response.data = str(twml)
@@ -263,8 +264,8 @@ def get_msg():
 
 #-------------------------------------------------------------------------------
 def log_msg():
-    log.info('To Alice: %s"%s"%s (%s, count=%s)',
-                bcolors.BOLD, request.form['Body'], bcolors.ENDC,
+    log.info('To Alice: %s"%s"%s%s (%s, count=%s)',
+                c.WHITE, request.form['Body'], c.ENDC, c.OKGREEN,
                 request.form['From'], get_msg_count())
 
 #-------------------------------------------------------------------------------

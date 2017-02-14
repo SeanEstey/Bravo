@@ -4,12 +4,12 @@ from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
 from .. import get_logger, smart_emit, get_keys, utils, mailgun
 from app.dt import to_utc
+from app.utils import bcolors as c
 log = get_logger('notify.email')
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
-    '''
-    @on_send: {
+    '''@on_send: {
         'template': 'path/to/template/file',
         'subject': 'msg'}
     '''
@@ -56,11 +56,10 @@ def send(notific, mailgun_conf, key='default'):
         v={'type':'notific'})
 
     if mid == False:
-        log.error('failed to queue email to %s', notific['to'])
-        log.info('email to %s failed', notific['to'])
+        log.error('failed to queue %s', notific['to'])
         status = 'failed'
     else:
-        log.info('queued email to %s', notific['to'])
+        log.debug('queued notific to %s', notific['to'])
         status = 'queued'
 
     g.db.notifics.update_one({
@@ -75,7 +74,7 @@ def send(notific, mailgun_conf, key='default'):
 def on_delivered():
     '''Called from view webhook. Has request context'''
 
-    log.info('notific to %s delivered', request.form['recipient'])
+    log.debug('%sdelivered notific to %s%s', c.OKGREEN, request.form['recipient'], c.ENDC)
 
     notific = g.db.notifics.find_one_and_update(
       {'tracking.mid': request.form['Message-Id']},
@@ -88,8 +87,8 @@ def on_delivered():
 def on_dropped():
     '''Called from view webhook. Has request context'''
 
-    log.info('notification to %s dropped. %s',
-        request.form['recipient'], request.form.get('reason'))
+    log.error('dropped notific to %s', request.form['recipient'])
+    log.debug('reason dropped: %s', request.form.get('reason'))
 
     notific = g.db.notifics.find_one_and_update(
       {'tracking.mid': request.form['Message-Id']},

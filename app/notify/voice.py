@@ -80,8 +80,8 @@ def call(notific, twilio_conf, voice_conf):
         log.error('call to %s failed. %s', notific['to'], str(e))
         log.debug('tb: ', exc_info=True)
     else:
-        log.info('%s call to %s', call.status, notific['to'])
-        log.debug(utils.print_vars(call))
+        log.debug('%s call to %s', call.status, notific['to'])
+        #log.debug(utils.print_vars(call))
     finally:
         g.db.notifics.update_one({
             '_id': notific['_id']}, {
@@ -121,7 +121,7 @@ def get_speak(notific, template_path, timeout=False):
 
     speak = html.clean_whitespace(speak)
 
-    log.debug('speak template: %s', speak)
+    #log.debug('speak template: %s', speak)
 
     return speak
 
@@ -132,9 +132,9 @@ def on_answer():
     Return: twilio.twiml.Response
     '''
 
-    log.debug('voice_play_answer args: %s', request.form)
+    #log.debug('voice_play_answer args: %s', request.form)
 
-    log.info('%s %s (%s)',
+    log.debug('%s %s (%s)',
         request.form['To'], request.form['CallStatus'], request.form.get('AnsweredBy'))
 
     notific = g.db.notifics.find_one_and_update({
@@ -202,7 +202,7 @@ def on_interact():
     Returns: twilio.twiml.Response
     '''
 
-    log.debug('on_interact: %s', request.form.to_dict())
+    #log.debug('on_interact: %s', request.form.to_dict())
 
     notific = g.db.notifics.find_one_and_update(
         {'tracking.sid': request.form['CallSid']},
@@ -222,12 +222,11 @@ def on_complete():
     Working under request context
     '''
 
-    log.debug('call_event args: %s', request.form)
+    #log.debug('call_event args: %s', request.form)
 
     if request.form['CallStatus'] == 'completed':
-        log.info('%s %s (%s, %ss)',
+        log.info('completed voice notific to %s (%s, %ss)',
             request.form['To'],
-            request.form['CallStatus'],
             request.form.get('AnsweredBy'),
             request.form.get('CallDuration'))
 

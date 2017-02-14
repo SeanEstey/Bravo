@@ -25,9 +25,6 @@ def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwar
     @args, @kwargs: the tasks positional and keyword arguments
     '''
 
-    #for env in os.environ:
-    #    log.debug('os.environ[%s] = %s', env, os.environ[env])
-
     global timer
     timer = start_timer()
     #log.debug('prerun=%s, request=%s', sender.name.split('.')[-1], '...')
@@ -54,8 +51,8 @@ state=None, *args, **kwargs):
         log.error('task=%s error. state=%s, retval=%s', name, state, retval)
         log.debug('task=%s failure (%s)', name, duration, exc_info=True)
     else:
-        log.debug('%s: state=%s, retval="%s" (%s)', name, state,
-        retval, duration)
+        pass
+        #log.debug('%s: state=%s, retval="%s" (%s)', name, state, retval, duration)
 
 #-------------------------------------------------------------------------------
 @task_failure.connect

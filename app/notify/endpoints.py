@@ -4,9 +4,8 @@ from flask import g, jsonify, Response
 from app import get_logger
 from app.notify import pickups, recording, sms, voice
 from . import notify
-log = get_logger('notify.endpoints')
+log = get_logger('notify.endpt')
 
-#-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/<acct_id>/no_pickup', methods=['GET'])
 def no_pickup(evnt_id, acct_id):
     if not pickups.is_valid(evnt_id, acct_id):

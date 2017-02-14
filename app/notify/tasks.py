@@ -1,10 +1,11 @@
 '''app.notify.tasks'''
 import json, logging, os, pytz
+from os import environ as env
 from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from bson import ObjectId
 from flask import g, current_app, has_request_context
-from app.utils import bcolors
+from app.utils import bcolors, to_title_case
 from app.dt import to_local
 from app import etap, get_keys, cal, celery, smart_emit, task_logger
 from app.etap import EtapError
@@ -39,23 +40,14 @@ def monitor_triggers(self, **kwargs):
             '$gt':datetime.utcnow()}}).sort('fire_dt', 1)
 
     output = []
-    '''
-    for trigger in pending:
-        delta = trigger['fire_dt'] - datetime.utcnow().replace(tzinfo=pytz.utc)
-        output.append('%s trigger pending in %s'%(trigger['type'], str(delta)[:-7]))
-    '''
 
     if pending.count() > 0:
         tgr = pending.next()
         delta = tgr['fire_dt'] - datetime.utcnow().replace(tzinfo=pytz.utc)
         to_str = str(delta)[:-7]
         return 'next trigger pending in %s' % to_str
-        #%s pending, %s rdy' % (pending.count(), ready.count())
     else:
         return '0 pending'
-
-    #print '%s%s%s' %(bcolors.ENDC,output,bcolors.ENDC)
-    #return '%s pending, %s rdy' % (pending.count(), ready.count())
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -63,33 +55,25 @@ def fire_trigger(self, _id=None, **rest):
     '''Sends out all dependent sms/voice/email notifics messages
     '''
 
-    errors = []
+    err = []
     status = ''
     fails = 0
-    trigger = g.db.triggers.find_one({'_id':ObjectId(_id)})
-    event = g.db.notific_events.find_one({'_id':trigger['evnt_id']})
+    trig = g.db.triggers.find_one({'_id':ObjectId(_id)})
+    event = g.db.notific_events.find_one({'_id':trig['evnt_id']})
     agcy = event['agency']
-
-    log.info('%sfiring %s trigger for "%s" event%s',
-        bcolors.OKGREEN, trigger['type'], event['name'], bcolors.ENDC)
-
-    if os.environ.get('BRV_SANDBOX') == 'True':
-        log.info('sandbox mode detected.')
-        log.info('simulating voice/sms msgs, re-routing emails')
-
     g.db.triggers.update_one(
         {'_id':ObjectId(_id)},
-        {'$set': {
-            'task_id': self.request.id,
-            'status': 'in-progress',
-            'errors': errors}})
-
-    smart_emit('trigger_status',{
-        'trig_id': str(_id), 'status': 'in-progress'})
-
+        {'$set': {'task_id':self.request.id, 'status':'in-progress', 'errors':err}})
     ready = g.db.notifics.find(
         {'trig_id':ObjectId(_id), 'tracking.status':'pending'})
     count = ready.count()
+
+    log.warning('sending %s %s notifications for %s...',
+        count, to_title_case(trig['type']), event['name'])
+    smart_emit('trigger_status',{
+        'trig_id': str(_id), 'status': 'in-progress'})
+    if env['BRV_SANDBOX'] == 'True':
+        log.warning('sandbox: simulating voice/sms, rerouting emails')
 
     for n in ready:
         try:
@@ -103,8 +87,8 @@ def fire_trigger(self, _id=None, **rest):
                 status = email.send(n, get_keys('mailgun',agcy=agcy))
         except Exception as e:
             status = 'error'
-            errors.append(str(e))
-            log.error('error sending %s. _id=%s, msg=%s', n['type'],str(n['_id']), str(e))
+            err.append(str(e))
+            log.error('error sending %s to %s (%s)', n['type'], n['to'], str(e))
             log.debug('', exc_info=True)
         else:
             if status == 'failed':
@@ -114,17 +98,17 @@ def fire_trigger(self, _id=None, **rest):
                 'notific_id':str(n['_id']), 'status':status})
 
     g.db.triggers.update_one({'_id':ObjectId(_id)}, {
-        '$set': {'status': 'fired', 'errors': errors}})
+        '$set': {'status': 'fired', 'errors': err}})
 
     smart_emit('trigger_status', {
         'trig_id': str(_id),
         'status': 'fired',
-        'sent': count - fails - len(errors),
+        'sent': count - fails - len(err),
         'fails': fails,
-        'errors': len(errors)})
+        'errors': len(err)})
 
-    log.info('queued: %s, failed: %s, errors: %s',
-        count - fails - len(errors), fails, len(errors))
+    log.warning('notifications sent. %s queued, %s failed, %s errors.',
+        count - fails - len(err), fails, len(err))
 
     return 'success'
 

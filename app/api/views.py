@@ -57,6 +57,7 @@ def call_accts_receipts():
 @api.route('/agency/update', methods=['POST'])
 @login_required
 def call_agcy_update():
+    #admin.update_agency_conf()
     return func_call(WRITE_ME, get_var('data'))
 
 @api.route('/alice/welcome', methods=['POST'])

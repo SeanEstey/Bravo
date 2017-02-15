@@ -121,7 +121,7 @@ def send_confirm():
             name = request.form['first_name'],
             date_str = ddmmyyyy_to_dt(request.form['date']).strftime('%B %-d %Y'))
     except Exception as e:
-        log.error('render template error. desc=%s', str(e))
+        log.error('template error. desc=%s', str(e))
         log.debug('', exc_info=True)
         pass
 
@@ -130,7 +130,7 @@ def send_confirm():
         'Pickup Confirmation',
         body,
         get_keys('mailgun'),
-        v={'agcy':g.user.agency, 'type':'confirmation'})
+        v={'agcy':g.user.agency, 'type':'booking'})
 
     if mid == False:
         log.error('failed to queue email to %s', request.form['email'])

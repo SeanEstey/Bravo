@@ -8,7 +8,7 @@ from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
 from . import events, accounts, triggers, voice
 from .. import get_keys, utils, etap
-from app.utils import bcolors
+from app.logger import colors as c
 log = logging.getLogger(__name__)
 
 class EtapError(Exception):
@@ -72,7 +72,7 @@ def add_event():
 
     log.info(
         '%s voice_announce event successfully created %s',
-        bcolors.OKGREEN, bcolors.ENDC)
+        c.GRN, c.ENDC)
 
     return evnt_id
 

@@ -1,26 +1,23 @@
 '''app.notify.voice_announce'''
-
 import twilio
 import logging
-from flask import request, current_app
+from flask import g, request, current_app
 from flask_login import current_user
 import os
 from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
-
-from app import db
+from app import get_logger
+from app.etap import EtapError
+from app.logger import colors as c
 from . import events, accounts, triggers, voice, sms
-from .. import utils, etap, bcolors
-log = logging.getLogger(__name__)
-
-class EtapError(Exception):
-    pass
+from .. import utils, etap
+log = get_logger('notify.voice_annc')
 
 #-------------------------------------------------------------------------------
 def add_event():
-    agency = db.users.find_one({'user': current_user.user_id})['agency']
-    conf= db.agencies.find_one({'name':agency})
+    agency = g.db.users.find_one({'user': current_user.user_id})['agency']
+    conf= g.db.agencies.find_one({'name':agency})
 
     log.debug(request.form.to_dict())
 
@@ -81,14 +78,14 @@ def add_event():
 
     log.info(
         '%s sms_announce event successfully created %s',
-        bcolors.OKGREEN, bcolors.ENDC)
+        c.GRN, c.ENDC)
 
     return evnt_id
 
 #-------------------------------------------------------------------------------
 def on_interact():
     if request.form.get('Digits') == '1':
-        notific = db['notifics'].find_one_and_update({
+        notific = g.db['notifics'].find_one_and_update({
               'tracking.sid': request.form['CallSid'],
             }, {
               '$set': {

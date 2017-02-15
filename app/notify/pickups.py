@@ -6,6 +6,7 @@ from datetime import time, timedelta
 from dateutil.parser import parse
 from bson.objectid import ObjectId
 from .. import get_logger, get_keys, parser, gcal
+from app.logger import colors as c
 from app.etap import EtapError, get_query, get_udf, get_phone, get_prim_phone
 from app.dt import ddmmyyyy_to_local_dt as to_dt, to_local
 from . import events, email, sms, voice, triggers, accounts
@@ -50,8 +51,12 @@ def create_reminder(agcy, block, date_):
         npu = get_udf('Next Pickup Date', acct).split('/')
 
         if len(npu) < 3:
-            log.error('Account %s missing npu. Skipping.', acct['id'])
-            continue
+            status = get_udf('Status', acct)
+            if status == 'Call-in' or status == 'Cancelling':
+                continue
+            else:
+                log.debug('%sacct_id=%s missing next pickup date%s', c.RED, acct['id'], c.ENDC)
+                continue
 
         acct_id = accounts.add(
             agcy,
@@ -172,20 +177,20 @@ def find_all_scheduled_dates(evnt_id):
             acct = g.db['accounts'].find_one({'_id':notific['acct_id']})
 
             npu = next_scheduled_date(
-              acct['udf']['block'],
-              acct['udf']['office_notes'] or '',
-              block_dates)
+                acct['udf']['etap_id'],
+                acct['udf']['block'],
+                acct['udf']['office_notes'] or '',
+                block_dates)
 
-            if npu:
-                g.db['accounts'].update_one(
-                    {'_id':notific['acct_id']},
-                    {'$set':{'udf.future_pickup_dt':npu}})
+            g.db['accounts'].update_one(
+                {'_id':notific['acct_id']},
+                {'$set':{'udf.future_pickup_dt':npu}})
         except Exception as e:
-            log.error('Assigning future_dt %s to acct_id %s: %s',
+            log.debug('assigning future_dt %s to acct_id %s: %s',
             str(npu), str(acct['_id']), str(e))
 
 #-------------------------------------------------------------------------------
-def next_scheduled_date(blocks, office_notes, block_dates):
+def next_scheduled_date(acct_id, blocks, office_notes, block_dates):
     '''Given list of blocks, find next scheduled date
     @blocks: string of comma-separated block names
     '''
@@ -210,11 +215,12 @@ def next_scheduled_date(blocks, office_notes, block_dates):
             dates.append(block_dates[block])
 
     if len(dates) < 1:
-        log.error("Coudn't find npu for %s. office_notes: %s", blocks,office_notes)
-        return False
+        log.debug(\
+            '%sacct has no future pickup date %s (acct_id=%s, blocks="%s", off_notes="%s")',
+            c.RED, c.ENDC, acct_id, blocks, office_notes)
+        return None
 
     dates.sort()
-
     return dates[0]
 
 #-------------------------------------------------------------------------------

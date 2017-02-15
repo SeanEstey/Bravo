@@ -2,7 +2,6 @@
 import logging
 from app import get_logger, etap, utils
 from app.dt import to_local, ddmmyyyy_to_dt
-from app.utils import bcolors
 from app.etap import EtapError
 from flask import g, request, session
 from datetime import datetime, date, time, timedelta

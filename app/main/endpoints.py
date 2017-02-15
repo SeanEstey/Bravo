@@ -14,20 +14,21 @@ def on_delivered():
     # Mailgun webhook
 
     #log.debug('%s delivered', request.form['recipient'])
-    type_ = request.form.get('type')
+    webhook = request.form.get('type')
     agcy = request.form.get('agcy')
 
-    if not type_:
-        log.error('no v:type set. cannot route to delivered handler')
+    if not webhook:
+        log.error('webhook "type" not set. cannot route to handler')
+        log.debug(request.form.to_dict())
         return 'failed'
-    if type_ == 'receipt':
+    if webhook == 'receipt':
         receipts.on_delivered(agcy)
-    elif type_ == 'signup':
+    elif webhook == 'signup':
         signups.on_delivered(agcy)
-    elif type_ == 'notific':
+    elif webhook == 'notific':
         from app.notify import email
         email.on_delivered()
-    elif type_ == 'confirmation':
+    elif webhook == 'booking':
         book.on_delivered(agcy)
     return 'OK'
 
@@ -37,17 +38,18 @@ def on_dropped():
     # Mailgun webhook
 
     #log.debug(json.dumps(request.values.to_dict(), indent=4))
-    type_ = request.form.get('type')
+    webhook = request.form.get('type')
     agcy = request.form.get('agcy')
 
-    if not type_:
-        log.error('no v:type set. cannot route to delivered handler')
+    if not webhook:
+        log.error('webhook "type" not set. cannot route to handler')
+        log.debug(request.form.to_dict())
         return 'failed'
-    if type_ == 'receipt':
+    if webhook == 'receipt':
         receipts.on_dropped(agcy)
-    elif type_ == 'signup':
+    elif webhook == 'signup':
         signups.on_dropped(agcy)
-    elif type_ == 'notific':
+    elif webhook == 'notific':
         email.on_dropped()
     return 'OK'
 

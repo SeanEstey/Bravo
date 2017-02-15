@@ -1,10 +1,11 @@
 '''app.main.tasks'''
-import json, logging, os, re, psutil
+import gc, json, logging, os, re, psutil
 from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta
 from dateutil.parser import parse
 from flask import current_app, g, request
 from app import celery, get_keys, task_logger
+from app.logger import colors as c
 from app.dt import d_to_dt, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 from app.parser import get_block, is_block, is_res, is_bus, get_area, is_route_size
 from app.gsheets import gauth, write_rows, append_row, get_row, to_range
@@ -21,19 +22,20 @@ def mem_check(self, **rest):
     total = (mem.total/1000000)
     free = mem.free/1000000
 
-    if free < 250:
-        log.debug('low memory. %s/%s. attempting to free unused sys mem...', free, total)
+    if free < 350:
+        log.debug('low memory. %s/%s. forcing gc/clearing cache...', free, total)
         os.system('sudo sysctl -w vm.drop_caches=3')
         os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
-
+        gc.collect()
         mem = psutil.virtual_memory()
         total = (mem.total/1000000)
-        free = mem.free/1000000
+        now_free = mem.free/1000000
+        log.debug('freed %s mb', now_free - free)
 
-        if free < 250:
+        if free < 350:
             log.warning('warning: low memory! 250mb recommended (%s/%s)', free, total)
-
-    log.debug('mem free: %s/%s', free,total)
+    else:
+        log.debug('mem free: %s/%s', free,total)
 
     return mem
 
@@ -196,7 +198,7 @@ def send_receipts(self, entries, **rest):
     from app.main.receipts import generate, get_ytd_gifts
 
     entries = json.loads(entries)
-    log.info('task: processing %s receipts...', len(entries))
+    log.warning('processing %s receipts...', len(entries))
 
     try:
         # list indexes match @entries
@@ -258,7 +260,7 @@ def send_receipts(self, entries, **rest):
             log.error(str(e))
             log.debug('',exc_info=True)
 
-    log.info('task: completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s. '\
+    log.warning('completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s. '\
         'no_email=%s', g.track['gifts'], g.track['zeros'], g.track['drops'],
         g.track['cancels'], g.track['no_email'])
 
@@ -315,7 +317,7 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
         r = sms.enable(agency['name'], accts)
 
         log.info('%supdated %s accounts for SMS. discovered %s mobile numbers%s',
-                    bcolors.OKGREEN, r['n_sms'], r['n_mobile'], bcolors.ENDC)
+                    c.GRN, r['n_sms'], r['n_mobile'], c.ENDC)
 
     return 'success'
 
@@ -340,7 +342,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
     '''Create RFU's for all non-participants on scheduled dates
     '''
 
-    log.info('task: identifying inactive donors...')
+    log.warning('identifying inactive donors...')
 
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
     accts = []
@@ -353,8 +355,8 @@ def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
         period = period if period else agency['donors']['inactive_period']
         on_date = date.today() + delta(days=in_days)
 
-        log.info('analyzing %s blocks (period=%s days, agcy=%s)...',
-            on_date.strftime('%b-%d'), period, agcy)
+        log.info('analyzing blocks on %s blocks (period=%s days, agcy=%s)...',
+            on_date.strftime('%m-%d-%Y'), period, agcy)
 
         for _id in cal_ids:
             accts += get_accounts(
@@ -398,11 +400,9 @@ def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
 
             n_inactive += 1
 
-        log.info('found %s inactive accounts!', n_inactive)
+        log.info('found %s accounts', n_inactive)
 
         n_task_inactive += n_inactive
 
-    log.info('task: completed. %s inactive accounts identified',
-        n_task_inactive)
-
+    log.warning('completed. %s inactive accounts identified', n_task_inactive)
     return 'success'

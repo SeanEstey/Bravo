@@ -170,6 +170,8 @@ def build_route(self, route_id, job_id=None, **rest):
         log.debug('', exc_info=True)
         raise
 
+    # TODO: add trip length
+
     smart_emit('route_status',{
         'status':'completed', 'ss_id':ss['id'], 'warnings':route['warnings']})
 

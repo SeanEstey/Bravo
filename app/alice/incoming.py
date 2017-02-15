@@ -8,7 +8,7 @@ from twilio import twiml
 from datetime import datetime, date, time, timedelta
 from flask import current_app, request, make_response, g, session
 from .. import get_logger, etap, utils
-from app.utils import bcolors as c
+from app.logger import colors as c
 from app.etap import EtapError
 from . import keywords
 from .dialog import *
@@ -206,7 +206,7 @@ def make_reply(dialog_, on_complete=None):
     twml = twiml.Response()
     twml.message(context + dialog_)
 
-    log.info('%s%s: %s"%s"%s', c.OKGREEN, self, c.WHITE, context + dialog_, c.ENDC)
+    log.info('%s%s: %s"%s"%s', c.GRN, self, c.WHITE, context + dialog_, c.ENDC)
 
     response = make_response()
     response.data = str(twml)
@@ -265,7 +265,7 @@ def get_msg():
 #-------------------------------------------------------------------------------
 def log_msg():
     log.info('To Alice: %s"%s"%s%s (%s, count=%s)',
-                c.WHITE, request.form['Body'], c.ENDC, c.OKGREEN,
+                c.WHITE, request.form['Body'], c.ENDC, c.GRN,
                 request.form['From'], get_msg_count())
 
 #-------------------------------------------------------------------------------

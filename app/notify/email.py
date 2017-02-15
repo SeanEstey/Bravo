@@ -4,7 +4,7 @@ from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
 from .. import get_logger, smart_emit, get_keys, utils, mailgun
 from app.dt import to_utc
-from app.utils import bcolors as c
+from app.logger import colors as c
 log = get_logger('notify.email')
 
 #-------------------------------------------------------------------------------
@@ -44,7 +44,7 @@ def send(notific, mailgun_conf, key='default'):
                 bson_to_json=True),
             evnt_id = notific['evnt_id'])
     except Exception as e:
-        log.error('render_template error. desc=%s', str(e))
+        log.error('template error. desc=%s', str(e))
         log.debug('', exc_info=True)
         raise
 
@@ -74,7 +74,7 @@ def send(notific, mailgun_conf, key='default'):
 def on_delivered():
     '''Called from view webhook. Has request context'''
 
-    log.debug('%sdelivered notific to %s%s', c.OKGREEN, request.form['recipient'], c.ENDC)
+    log.debug('%sdelivered notific to %s%s', c.GRN, request.form['recipient'], c.ENDC)
 
     notific = g.db.notifics.find_one_and_update(
       {'tracking.mid': request.form['Message-Id']},

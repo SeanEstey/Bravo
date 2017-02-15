@@ -98,7 +98,7 @@ def create_app(pkg_name, kv_sess=True, testing=False):
     return app
 
 #-------------------------------------------------------------------------------
-def init_celery(app, log=None):
+def init_celery(app):
 
     import celeryconfig
     celery.config_from_object(celeryconfig)

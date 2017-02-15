@@ -15,7 +15,7 @@ db_client = create_client(connect=True, auth=True)
 ENVIRONS = {
     'BRV_SANDBOX': 'False',
     'BRV_TEST': 'True',
-    'BRV_HTTP_HOST': 'http://104.236.184.177'
+    'BRV_HTTP_HOST': 'http://bravotest.ca'
 }
 
 #-------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ def get_db():
 #-------------------------------------------------------------------------------
 def init(self):
     self.app = create_app('app', testing=True)
-    self.celery = init_celery(__name__, self.app)
+    self.celery = init_celery(self.app)
     self.user_id = 'sestey@vecova.ca'
     self.client = self.app.test_client()
     self._ctx = self.app.test_request_context()

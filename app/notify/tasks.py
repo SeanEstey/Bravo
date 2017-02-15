@@ -5,7 +5,7 @@ from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from bson import ObjectId as oid
 from flask import g, current_app, has_request_context
-from app.utils import bcolors, to_title_case
+from app.utils import to_title_case
 from app.dt import to_local
 from app import etap, get_keys, cal, celery, smart_emit, task_logger
 from app.etap import EtapError
@@ -118,9 +118,10 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
     if for_date:
         for_date = parse(for_date).date()
 
-    log.info('task: scheduling reminder events...')
+    log.warning('scheduling reminder events...')
 
     agencies = [g.db.agencies.find_one({'name':agcy})] if agcy else g.db.agencies.find()
+    n_success = n_fails = 0
 
     for agency in agencies:
         agcy = agency['name']
@@ -129,41 +130,38 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
             days_ahead = int(agency['scheduler']['notify']['delta_days'])
             for_date = date.today() + timedelta(days=days_ahead)
 
+        date_str = for_date.strftime('%m-%d-%Y')
         blocks = []
-        log.debug('for_date=%s', for_date)
 
         for key in agency['cal_ids']:
             blocks += cal.get_blocks(
                 agency['cal_ids'][key],
                 datetime.combine(for_date,time(8,0)),
                 datetime.combine(for_date,time(9,0)),
-                agency['google']['oauth'])
+                get_keys('google',agcy=agcy)['oauth'])
 
         if len(blocks) == 0:
-            log.info('[%s] no blocks scheduled on %s',
-                agcy, for_date.strftime('%b %-d'))
+            log.info('no blocks on %s (%s)', date_str, agcy)
             continue
+        else:
+            log.info('%s events on %s: %s (%s)',
+                len(blocks), date_str, ", ".join(blocks), agcy)
 
-        log.info('[%s] scheduling reminders for %s on %s',
-            agcy, blocks, for_date.strftime('%b %-d'))
-
-        n=0
         evnt_ids = []
         for block in blocks:
             try:
                 evnt_id = pickups.create_reminder(agcy, block, for_date)
             except EtapError as e:
-                log.error('Error creating reminder, agcy=%s, block=%s, msg="%s"',
-                    agcy, block, str(e))
-                log.debug('', exc_info=True)
+                n_fails +=1
+                log.error('failed to create %s reminder (desc: %s)', block, str(e))
+                log.debug('',exc_info=True)
                 continue
             else:
-                n+=1
+                n_success +=1
                 evnt_ids.append(str(evnt_id))
+                log.debug('%s reminder event created', block)
 
-        log.info('[%s] scheduled %s/%s reminder events', agcy, n, len(blocks))
-
-    log.info('task: completed')
+    log.warning('created %s events successfully, %s failures', n_success, n_fails)
     return json.dumps(evnt_ids)
 
 #-------------------------------------------------------------------------------

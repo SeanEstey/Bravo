@@ -2,11 +2,12 @@
 import logging, unittest, json
 from datetime import date
 from flask import g
+from app import get_logger
 from app.tests import *
 from app.notify.events import cancel_event, get_triggers
 from app.notify.pickups import create_reminder
 from app.notify.tasks import monitor_triggers, fire_trigger, schedule_reminders, skip_pickup
-log = logging.getLogger(__name__)
+log = get_logger('tests.notify.tasks')
 
 evnt_ids = []
 
@@ -14,11 +15,11 @@ class NotifyTasksTests(unittest.TestCase):
     def setUp(self):
         init(self)
         login_self(self)
-        evnt_ids.append(create_reminder('vec', 'R1Z', date(2017,4,2)))
+        #evnt_ids.append(create_reminder('vec', 'R1Z', date(2017,4,2)))
 
     def tearDown(self):
-        for id_ in evnt_ids:
-            cancel_event(id_)
+        #for id_ in evnt_ids:
+        #    cancel_event(id_)
         logout(self.client)
 
     def _test_monitor_triggers(self):
@@ -37,8 +38,8 @@ class NotifyTasksTests(unittest.TestCase):
 
     def test_schedule_reminders(self):
         try:
-            r1z_date = date(2017,4,2)
-            id_ = schedule_reminders.delay(agcy='vec', for_date=r1z_date)[0]
+            #r1z_date = date(2017,4,2)
+            id_ = schedule_reminders.delay(agcy='vec') #, for_date=r1z_date)[0]
             evnt_ids.append(id_)
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)

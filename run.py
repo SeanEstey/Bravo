@@ -6,7 +6,7 @@ from flask_login import current_user
 from detect import startup_msg, set_environ
 from app import get_logger, db_client, create_app
 from app.auth import load_user
-from app.utils import bcolors, print_vars, inspector
+from app.utils import print_vars, inspector
 from app.socketio import sio_server
 
 log = get_logger('run')
@@ -65,7 +65,7 @@ def main(argv):
         elif opt in ('-s', '--sandbox'):
             environ['BRV_SANDBOX'] = 'True'
 
-    log.info('server starting...')
+    log.info('starting server...')
 
     set_environ(app)
     sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
@@ -76,7 +76,7 @@ def main(argv):
 
     startup_msg(app)
 
-    log.info('server ready!')
+    log.info("she's ready, captain!")
 
     sio_server.run(
         app,

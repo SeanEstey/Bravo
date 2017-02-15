@@ -7,18 +7,6 @@ from config import LOG_PATH
 from app.dt import to_local, local_tz, convert_obj
 log = logging.getLogger(__name__)
 
-class bcolors:
-    WHITE = '\033[37m'
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-
 #-------------------------------------------------------------------------------
 def inspector(obj, public=True, private=False):
     is_obj = (hasattr(obj, '__class__') and obj.__class__.__name__ or type(obj).__name__)

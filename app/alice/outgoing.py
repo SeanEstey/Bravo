@@ -4,7 +4,7 @@ from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException
 from flask import g, request
 from .. import get_logger, etap
-from app.utils import bcolors
+from app.logger import colors as c
 from .. import get_keys
 from .dialog import dialog
 log = get_logger('alice.out')
@@ -52,7 +52,7 @@ def send_welcome(etap_id):
         msg,
         etap.get_phone('Mobile', acct))
 
-    log.info('%s"%s"%s', bcolors.BOLD, msg, bcolors.ENDC)
+    log.info('%s"%s"%s', c.BOLD, msg, c.ENDC)
 
     return r.status
 

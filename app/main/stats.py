@@ -5,7 +5,6 @@ import json
 from .. import get_logger, etap, utils, gsheets, parser
 from app.etap import EtapError
 from app.routing import parse
-from app import db, bcolors
 log = get_logger('main.stats')
 
 #-------------------------------------------------------------------------------

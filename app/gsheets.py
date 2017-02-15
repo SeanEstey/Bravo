@@ -144,13 +144,15 @@ def gauth(oauth):
             scopes=scope)
         http = httplib2.Http()
         http = credentials.authorize(http)
-        service = build(name, version, http=http, cache_discovery=False)
+        service = build(name, version, http=http, cache_discovery=True)
     except Exception as e:
         log.error('error authorizing %s: %s', name, str(e))
         return False
 
     log.debug('sheets service authorized')
 
+    http = None
+    credentials = None
     return service
 
 '''API Calls'''

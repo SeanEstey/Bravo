@@ -5,7 +5,7 @@ from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
 from .. import get_logger, smart_emit, get_keys, utils, html
 from app.dt import to_utc, to_local
-from app.utils import bcolors as c
+from app.logger import colors as c
 from app.alice.outgoing import compose
 log = get_logger('notify.sms')
 
@@ -102,7 +102,7 @@ def on_status():
     to = request.form['To']
 
     if status == 'delivered':
-        log.debug('%sdelivered SMS notific to %s%s', c.OKGREEN, to, c.ENDC)
+        log.debug('%sdelivered SMS notific to %s%s', c.GRN, to, c.ENDC)
     elif status == 'queued':
         log.debug('queued SMS notific to %s', to)
     else:

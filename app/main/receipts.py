@@ -1,5 +1,5 @@
 '''app.main.receipts'''
-import json, logging, requests
+import gc, json, logging, requests
 from datetime import date
 from dateutil.parser import parse
 from flask import g, current_app, render_template, request
@@ -74,7 +74,7 @@ def generate(acct, entry, ytd_gifts=None):
 def on_delivered(agcy):
     '''Mailgun webhook called from view. Has request context'''
 
-    log.info('receipt delivered to %s', request.form['recipient'])
+    log.debug('receipt delivered to %s', request.form['recipient'])
 
     row = request.form['ss_row']
     ss_id = get_keys('google',agcy=agcy)['ss_id']
@@ -84,8 +84,14 @@ def on_delivered(agcy):
         headers = get_row(service, ss_id, 'Routes', 1)
         col = headers.index('Email Status')+1
         update_cell(service, ss_id, to_range(row,col), request.form['event'].title())
+        service = None
+        gc.collect()
+        #update_cell(service, ss_id, to_range(row,col), 'delivered'.title())
     except Exception as e:
         log.error('error updating sheet')
+        log.debug('', exc_info=True)
+        service = None
+        gc.collect()
 
 #-------------------------------------------------------------------------------
 def on_dropped(agcy):

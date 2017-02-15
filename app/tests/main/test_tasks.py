@@ -3,8 +3,9 @@ import logging, unittest, json
 from datetime import datetime, date, timedelta
 from flask import g
 from app.tests.__init__ import *
+from app import get_logger
 from app.main import tasks
-log = logging.getLogger(__name__)
+log = get_logger('tests.main.tasks')
 
 class MainTasksTests(unittest.TestCase):
     def setUp(self):

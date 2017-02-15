@@ -7,7 +7,7 @@ import cPickle as pickle
 from datetime import datetime, date, timedelta
 from .. import get_logger, kv_store, kv_ext, etap, utils
 from app.dt import to_local
-from app.utils import print_vars, bcolors
+from app.utils import print_vars
 from . import keywords
 from .util import related_notific, lookup_acct, event_begun
 from .dialog import *

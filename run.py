@@ -45,9 +45,9 @@ def start_celery(beat=True):
 
     if not beat:
         environ['BRV_BEAT'] = 'False'
-    system('celery -A app.tasks.celery -n bravo worker -f logs/worker.log -l INFO &')
+    system('celery -A app.tasks.celery -n bravo worker -f logs/celery.log -l INFO &')
     if beat:
-        system('celery -A app.tasks.celery beat -f logs/beat.log -l INFO &')
+        system('celery -A app.tasks.celery beat -f logs/celery.log -l INFO &')
 
 #-------------------------------------------------------------------------------
 def main(argv):

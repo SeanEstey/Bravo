@@ -8,6 +8,8 @@ result_serializer = 'json'
 timezone = 'Canada/Mountain'
 task_time_limit = 3000
 worker_concurrency = 1
+worker_max_tasks_per_child = 10 # restart worker process frequently to fix memory leaks
+
 beat_schedule = {
     'mem_check': {
         'task': 'app.main.tasks.mem_check',

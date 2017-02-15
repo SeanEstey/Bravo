@@ -1,5 +1,6 @@
 '''app.main.tasks'''
 import gc, json, logging, os, re, psutil
+from guppy import hpy
 from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta
 from dateutil.parser import parse
@@ -13,6 +14,7 @@ from app.gcal import gauth as gcal_auth, color_ids, get_events, evnt_date_to_dt,
 from app.cal import get_blocks, get_accounts
 from app.etap import call, get_udf, mod_acct
 from app.main import donors
+from app.main.receipts import generate, get_ytd_gifts
 log = task_logger('main.tasks')
 
 #-------------------------------------------------------------------------------
@@ -38,6 +40,26 @@ def mem_check(self, **rest):
         log.debug('mem free: %s/%s', free,total)
 
     return mem
+
+#-------------------------------------------------------------------------------
+def mem_snap(hp, snap=None):
+    if snap is None:
+        before = hp.heap()
+        log.debug('m1 snap')
+        return before
+
+    log.debug('m2 snap')
+
+    try:
+        after = hp.heap()
+        leftover = after - snap
+        byrcs = leftover.byrcs
+        log.debug(str(byrcs[0])) #:10])
+        log.debug(str(byrcs.byid[0])) #:10])
+    except Exception as e:
+        pass
+
+    #import pdb; pdb.set_trace()
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -195,8 +217,8 @@ def send_receipts(self, entries, **rest):
         'next_pickup':'dd/mm/yyyy', 'status':'<str>', 'ss_row':'<int>' }
     '''
 
-    from app.main.receipts import generate, get_ytd_gifts
-
+    hp = hpy()
+    m1 = mem_snap(hp)
     entries = json.loads(entries)
     log.warning('processing %s receipts...', len(entries))
 
@@ -264,6 +286,8 @@ def send_receipts(self, entries, **rest):
         'no_email=%s', g.track['gifts'], g.track['zeros'], g.track['drops'],
         g.track['cancels'], g.track['no_email'])
 
+    mem_snap(hp, snap=m1)
+    gc.collect()
     return 'success'
 
 #-------------------------------------------------------------------------------

@@ -5,6 +5,7 @@ venv*
 *.log
 *~
 /logs
+/.cache
 celerybeat-schedule
 celerybeat.pid
 *.pid

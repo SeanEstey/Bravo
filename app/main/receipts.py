@@ -12,8 +12,7 @@ log = get_logger('main.receipts')
 
 #-------------------------------------------------------------------------------
 def generate(acct, entry, ytd_gifts=None):
-    '''Refer to flask globals set in parent task: g.service, g.ss_id,
-    g.headers, g.track
+    '''Refer to flask globals set in parent task: g.ss_id, g.headers, g.track
     '''
 
     if not acct.get('email'):

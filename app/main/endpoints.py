@@ -8,6 +8,16 @@ from . import donors, main, receipts, signups
 from .tasks import create_rfu
 log = get_logger('main.endpt')
 
+@main.route('/restart_worker', methods=['GET'])
+def restart_worker():
+    log.debug('restarting worker...')
+    from run import kill_celery, start_celery
+    log.debug('restarting worker...')
+    kill_celery()
+    time.sleep(1)
+    start_celery()
+    return 'OK'
+
 #-------------------------------------------------------------------------------
 @main.route('/email/delivered', methods=['POST'])
 def on_delivered():

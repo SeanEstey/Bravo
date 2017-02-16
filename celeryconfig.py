@@ -8,7 +8,9 @@ result_serializer = 'json'
 timezone = 'Canada/Mountain'
 task_time_limit = 3000
 worker_concurrency = 1
-worker_max_tasks_per_child = 10 # restart worker process frequently to fix memory leaks
+
+# WARNING: causes IOErrors reconnecting to eventlet if used
+#worker_max_tasks_per_child = 10
 
 beat_schedule = {
     'mem_check': {
@@ -23,7 +25,8 @@ beat_schedule = {
     },
 	'monitor_triggers': {
 		'task': 'app.notify.tasks.monitor_triggers',
-    	'schedule': crontab(minute='*/15')
+    	'schedule': crontab(minute='*/10')
+    	#'schedule': crontab(minute='*/1')
 	},
 	'build_routes': {
 		  'task': 'app.routing.tasks.build_scheduled_routes',

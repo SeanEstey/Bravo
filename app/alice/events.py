@@ -9,7 +9,7 @@ from app.booker import geo, search, book
 from .dialog import dialog
 from .util import related_notific, event_begun, set_notific_reply
 from app.main.tasks import create_rfu
-import app.notify.pickups
+from app.notify.tasks import skip_pickup as skip_pickup_task
 log = get_logger('alice.events')
 
 #-------------------------------------------------------------------------------
@@ -93,9 +93,13 @@ def skip_pickup():
 
     #log.debug(utils.formatter(notific, bson_to_json=True))
 
-    result = pickups.cancel(notific['evnt_id'], notific['acct_id'])
-
-    if not result:
+    try:
+        result = skip_pickup_task(
+            evnt_id=str(notific['evnt_id']),
+            acct_id=str(notific['acct_id']))
+    except Exception as e:
+        log.error('skip_pickup failed')
+        log.debug('',exc_info=True)
         return dialog['error']['unknown']
 
     dt = g.db.accounts.find_one(

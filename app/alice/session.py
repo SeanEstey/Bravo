@@ -12,7 +12,7 @@ from . import keywords
 from .util import related_notific, lookup_acct, event_begun
 from .dialog import *
 from app.etap import EtapError
-log = get_logger('alice.session')
+log = get_logger('alice.sess')
 
 #-------------------------------------------------------------------------------
 def has_session():

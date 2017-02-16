@@ -32,9 +32,10 @@ def kill_celery():
     '''Kill any existing worker/beat processes, start new worker
     '''
 
-    system('kill %1')
-    system("ps aux | grep '/usr/bin/python -m celery' | awk '{print $2}' | xargs kill -9")
-    system("ps aux | grep '/usr/bin/python /usr/local/bin/celery beat' | awk '{print $2}' | xargs kill -9")
+    system("ps aux | "\
+           "grep '/usr/bin/python /usr/local/bin/celery' | "\
+           "awk '{print $2}' |"\
+           "sudo xargs kill -9")
 
 #-------------------------------------------------------------------------------
 def start_celery(beat=True):
@@ -45,9 +46,9 @@ def start_celery(beat=True):
 
     if not beat:
         environ['BRV_BEAT'] = 'False'
-    system('celery -A app.tasks.celery -n bravo worker -f logs/celery.log -l INFO &')
-    if beat:
+    else:
         system('celery -A app.tasks.celery beat -f logs/celery.log -l INFO &')
+    system('celery -A app.tasks.celery -n bravo worker -f logs/celery.log -l INFO &')
 
 #-------------------------------------------------------------------------------
 def main(argv):
@@ -72,7 +73,7 @@ def main(argv):
 
     kill_celery()
     time.sleep(1)
-    start_celery(beat=environ.get('BRV_BEAT'))
+    start_celery(beat=bool(environ.get('BRV_BEAT')))
 
     startup_msg(app)
 

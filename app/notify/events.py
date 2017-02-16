@@ -2,7 +2,7 @@
 import logging, pytz
 from datetime import datetime,date,time
 from dateutil.parser import parse
-from bson.objectid import ObjectId
+from bson.objectid import ObjectId as oid
 from flask import g, request, jsonify, url_for
 from app import get_logger, cal, parser, get_keys
 from app.parser import is_res, is_bus
@@ -81,7 +81,7 @@ def cancel_event(evnt_id=None):
     '''Called via API. Remove all triggers, notifics, and event from DB
     '''
 
-    evnt_id = ObjectId(evnt_id)
+    evnt_id = oid(evnt_id)
     notifics = g.db['notifics'].find({'evnt_id':evnt_id})
 
     n_accts = 0
@@ -104,7 +104,7 @@ def reset_event(evnt_id=None):
     associated notifics
     '''
 
-    evnt_id = ObjectId(evnt_id)
+    evnt_id = oid(evnt_id)
 
     g.db['notific_events'].update_one(
         {'_id':evnt_id},
@@ -234,8 +234,8 @@ def get_notifics(evnt_id, local_time=True, sorted_by='account.event_dt'):
 
 #-------------------------------------------------------------------------------
 def rmv_notifics(evnt_id, acct_id):
-    n_notifics = g.db['notifics'].remove({'acct_id':acct_id})['n']
-    n_accounts = g.db['accounts'].remove({'_id':acct_id})['n']
+    n_notifics = g.db['notifics'].remove({'acct_id':oid(acct_id)})['n']
+    n_accounts = g.db['accounts'].remove({'_id':oid(acct_id)})['n']
     log.debug('removed %s notifics, %s account for evnt_id="%s"', n_notifics,
     n_accounts, evnt_id)
     return True
@@ -247,17 +247,17 @@ def dup_random_acct(evnt_id):
     size = g.db.accounts.find({'evnt_id':evnt_id}).count()
     rand_num = random.randrange(size)
 
-    acct = g.db.accounts.find({'evnt_id':ObjectId(evnt_id)}).limit(-1).skip(rand_num).next()
+    acct = g.db.accounts.find({'evnt_id':oid(evnt_id)}).limit(-1).skip(rand_num).next()
     notifics = g.db.notifics.find({'acct_id': acct['_id']})
 
     old_id = acct['_id']
-    acct['_id'] = ObjectId()
+    acct['_id'] = oid()
     g.db.accounts.insert(acct)
 
     #log.info('old acct_id %s, new acct_id %s', str(old_id), str(new_acct['_id']))
 
     for notific in notifics:
-        notific['_id'] = ObjectId()
+        notific['_id'] = oid()
         notific['acct_id'] = acct['_id']
         g.db.notifics.insert_one(notific)
 

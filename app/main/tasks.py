@@ -1,5 +1,5 @@
 '''app.main.tasks'''
-import gc, json, logging, os, re, psutil
+import gc, json, logging, os, re, requests, psutil
 from guppy import hpy
 from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta
@@ -20,6 +20,17 @@ log = task_logger('main.tasks')
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def mem_check(self, **rest):
+
+    # Restart celery worker at midnight to release memory leaks
+    if datetime.now().time().hour == 0:
+        log.debug('restarting celery worker/beat at midnight...')
+        try:
+            r = requests.get('http://bravotest.ca/restart_worker')
+        except Exception as e:
+            log.debug(str(e))
+        else:
+            log.debug('code=%s, text=%s', r.status_code, r.text)
+
     mem = psutil.virtual_memory()
     total = (mem.total/1000000)
     free = mem.free/1000000
@@ -217,8 +228,6 @@ def send_receipts(self, entries, **rest):
         'next_pickup':'dd/mm/yyyy', 'status':'<str>', 'ss_row':'<int>' }
     '''
 
-    hp = hpy()
-    m1 = mem_snap(hp)
     entries = json.loads(entries)
     log.warning('processing %s receipts...', len(entries))
 
@@ -248,8 +257,8 @@ def send_receipts(self, entries, **rest):
         'gifts': 0
     }
     g.ss_id = get_keys('google')['ss_id']
-    g.service = gauth(get_keys('google')['oauth'])
-    g.headers = get_row(g.service, g.ss_id, 'Routes', 1)
+    service = gauth(get_keys('google')['oauth'])
+    g.headers = get_row(service, g.ss_id, 'Routes', 1)
     status_col = g.headers.index('Email Status') +1
 
     # Break entries into equally sized lists for batch updating google sheet
@@ -277,7 +286,7 @@ def send_receipts(self, entries, **rest):
             i+1, len(chunks), range_)
 
         try:
-            write_rows(g.service, g.ss_id, range_, values)
+            write_rows(service, g.ss_id, range_, values)
         except Exception as e:
             log.error(str(e))
             log.debug('',exc_info=True)
@@ -286,7 +295,7 @@ def send_receipts(self, entries, **rest):
         'no_email=%s', g.track['gifts'], g.track['zeros'], g.track['drops'],
         g.track['cancels'], g.track['no_email'])
 
-    mem_snap(hp, snap=m1)
+    chunks = acct_data = accts = None
     gc.collect()
     return 'success'
 

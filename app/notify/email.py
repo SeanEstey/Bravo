@@ -1,5 +1,6 @@
 '''app.notify.email'''
 import logging, os
+from os import environ as env
 from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
 from .. import get_logger, smart_emit, get_keys, utils, mailgun
@@ -35,10 +36,10 @@ def send(notific, mailgun_conf, key='default'):
     try:
         body = render_template(
             notific['on_send']['template'],
-            http_host = os.environ.get('BRV_HTTP_HOST'),
+            http_host = env.get('BRV_HTTP_HOST'),
             to = notific['to'],
             account = utils.formatter(
-                g.db['accounts'].find_one({'_id':notific['acct_id']}),
+                g.db.accounts.find_one({'_id':notific['acct_id']}),
                 to_local_time=True,
                 to_strftime="%A, %B %d",
                 bson_to_json=True),

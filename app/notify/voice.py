@@ -239,6 +239,18 @@ def on_complete():
         return_document=ReturnDocument.AFTER)
 
     if request.form['CallStatus'] == 'failed':
+        agency = g.db.agencies.find_one({'twilio.api.sid': request.form['AccountSid']})
+        keys = agency['twilio']['api']
+        client = TwilioRestClient(keys['sid'], keys['aud_id'])
+        call_sid = request.form['CallSid']
+        #res = client.calls.get(call_sid)
+
+        for notific in client.notifications.list():
+            if notific.call_sid == call_sid:
+                log.debug(notific.message_text)
+                break
+
+
         log.error('%s %s (%s)',
             request.form['To'], request.form['CallStatus'], request.form.get('SipResponseCode'))
 

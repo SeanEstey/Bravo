@@ -35,11 +35,37 @@ class UberTask(Task):
         call = lambda: super(UberTask, self).__call__(*args, **kwargs)
         context = kwargs.pop(self.REQ_KW, None)
 
-        if context is None or req_ctx:
-            if not app_ctx:
-                with self.flsk_app.app_context():
+        with self.flsk_app.app_context():
+            if context:
+                with self.flsk_app.test_request_context(**context):
                     self._load_context_vars(kwargs)
+                    result = call()
+                    self.flsk_app.process_response(make_response(result or ''))
+                    return result
+            else:
+                with self.flsk_app.test_request_context():
+                    self._load_context_vars(kwargs)
+                    result = call()
+                    self.flsk_app.process_response(make_response(''))
+                    return result
+
+        '''
+            with self.flsk_app.app_context():
+                self._load_context_vars(kwargs)
+
+                if not req_ctx:
+                    with self.flsk_app.test_request_context(**context):
+                        self._load_context_vars(kwargs)
+                        return call()
+                        self.flsk_app.process_response(make_response(result or ''))
+                else:
                     return call()
+
+        if req_ctx:
+
+        #if context is None or req_ctx:
+        #    if not app_ctx:
+
             else:
                 self._load_context_vars(kwargs)
                 return call()
@@ -48,7 +74,7 @@ class UberTask(Task):
             self._load_context_vars(kwargs)
             result = call()
             self.flsk_app.process_response(make_response(result or ''))
-
+        '''
         return result
 
     #---------------------------------------------------------------------------

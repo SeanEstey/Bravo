@@ -109,11 +109,11 @@ def set_environ(app):
         log.warning('warning: SSL not enabled. domain=%s', domain[0])
         log.debug('', exc_info=True)
         env['BRV_SSL'] = 'False'
-        env['BRV_HTTP_HOST'] = 'http://' + ip
+        env['BRV_HTTP_HOST'] = 'http://' + env['BRV_DOMAIN'] #ip
     else:
         log.debug('SSL certificate verified')
         env['BRV_SSL'] = 'True'
-        env['BRV_HTTP_HOST'] = 'https://' + ip
+        env['BRV_HTTP_HOST'] = 'https://' + env['BRV_DOMAIN'] #ip
 
 #-------------------------------------------------------------------------------
 def os_desc():

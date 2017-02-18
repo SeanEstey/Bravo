@@ -119,18 +119,17 @@ def edit_field(route_id, field, value):
     if field == 'depot':
         for depot in get_keys('routing')['locations']['depots']:
             if depot['name'] == value:
-                value_type = depot
+                g.db.routes.update_one(
+                    {'_id':ObjectId(route_id)},
+                    {'$set': {'depot':depot}})
+                return 'success'
     elif field == 'driver':
         for driver in get_keys('routing')['drivers']:
             if driver['name'] == value:
-                value_type = driver
+                g.db.routes.update_one(
+                    {'_id':ObjectId(route_id)},
+                    {'$set': {'driver':driver}})
+                return 'success'
 
-    if not value_type:
-        log.error('couldnt find value in db for %s:%s', field, value)
-        return 'failed'
-
-    g.db.routes.update_one(
-        {'_id':ObjectId(route_id)},
-        {'$set': {field:value}})
-
-    return 'success'
+    log.error('couldnt find value in db for %s:%s', field, value)
+    return 'failed'

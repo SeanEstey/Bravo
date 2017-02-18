@@ -221,10 +221,8 @@ def on_complete():
     Working under request context
     '''
 
-    #log.debug('call_event args: %s', request.form)
-
     if request.form['CallStatus'] == 'completed':
-        log.info('completed voice notific to %s (%s, %ss)',
+        log.debug('completed voice notific to %s (%s, %ss)',
             request.form['To'],
             request.form.get('AnsweredBy'),
             request.form.get('CallDuration'))
@@ -239,31 +237,31 @@ def on_complete():
         return_document=ReturnDocument.AFTER)
 
     if request.form['CallStatus'] == 'failed':
+        description = request.form.get('description')
+
+        import time
+        time.sleep(10)
         agency = g.db.agencies.find_one({'twilio.api.sid': request.form['AccountSid']})
         keys = agency['twilio']['api']
-        client = TwilioRestClient(keys['sid'], keys['aud_id'])
+        client = TwilioRestClient(keys['sid'], keys['auth_id'])
         call_sid = request.form['CallSid']
-        #res = client.calls.get(call_sid)
 
-        for notific in client.notifications.list():
-            if notific.call_sid == call_sid:
-                log.debug(notific.message_text)
+        for n in client.notifications.list():
+            if n.call_sid == call_sid:
+                import urllib
+                description = urllib.unquote(n.message_text).replace('+', ' ').replace('&',' ')
                 break
 
-
         log.error('%s %s (%s)',
-            request.form['To'], request.form['CallStatus'], request.form.get('SipResponseCode'))
+            request.form['To'], request.form['CallStatus'], description)
 
-        account = g.db.accounts.find_one({
-            '_id':notific['acct_id']})
-
+        account = g.db.accounts.find_one({'_id':notific['acct_id']})
         evnt = g.db.notific_events.find_one({'_id':notific['evnt_id']})
 
         from app.main.tasks import create_rfu
         create_rfu.delay(
             evnt['agency'],
-            'Error calling %s. %s' %(
-                notific['to'], request.form.get('description')),
+            'Error calling %s\n. %s' %(notific['to'], description),
             options={
                 'Account Number': account['udf'].get('etap_id'),
                 'Name & Address': account['name'],
@@ -283,6 +281,7 @@ def on_error():
     https://www.twilio.com/docs/api/errors/reference
     '''
 
+    log.debug('voice fallback on_error()')
     from .err_codes import TWILIO_ERRS
     code = str(request.form['ErrorCode'])
     log.error('twilio error code %s: %s', code, TWILIO_ERRS[code])

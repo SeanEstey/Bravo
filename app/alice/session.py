@@ -24,6 +24,8 @@ def create_session():
     from_ = str(request.form['From'])
     msg = request.form['Body']
     life_duration = current_app.config['PERMANENT_SESSION_LIFETIME']
+    conf = g.db.agencies.find_one({'twilio.sms.number':request.form['To']})
+    log.debug('To=%s', request.form['To'])
 
     # Init session data
 
@@ -32,7 +34,8 @@ def create_session():
     session['from'] = from_
     session['date'] = date.today().isoformat()
     session['messages'] = [msg]
-    session['conf'] = conf = g.db.agencies.find_one({'name':session.get('agency')})
+    session['agcy'] = conf['name']
+    session['conf'] = conf
     session['self_name'] = conf['alice']['name']
     session['last_msg_dt'] = to_local(dt=datetime.now())
     session['expiry_dt'] = datetime.now() + life_duration
@@ -49,7 +52,7 @@ def create_session():
 
         from app.main.tasks import create_rfu
         create_rfu.delay(
-            g.user.agency,
+            session.get('agcy'),
             'No eTap acct linked to this mobile number.\nMessage: "%s"' % msg,
             options = {
                 'Name & Address': 'Mobile: %s' % from_})
@@ -64,6 +67,8 @@ def create_session():
 
         # Is there a notification user might be replying to?
         if notific:
+            g.db.notifics.update_one({'_id':notific['_id']},{'$set':{'tracking.reply':msg}})
+
             session['notific_id'] = notific['_id']
             session['messages'].insert(0, notific['tracking']['body'])
             session['valid_notific_reply'] = not event_begun(notific)

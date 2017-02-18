@@ -1,18 +1,17 @@
 '''app.notify.voice_announce'''
-import twilio
 import logging, os
+from os import environ as env
+import twilio
 from flask import g, request, current_app
 from flask_login import current_user
 from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
 from . import events, accounts, triggers, voice
-from .. import get_keys, utils, etap
+from .. import get_keys, get_logger, utils, etap
+from app.etap import EtapError
 from app.logger import colors as c
-log = logging.getLogger(__name__)
-
-class EtapError(Exception):
-    pass
+log = get_logger('notify.v_annc')
 
 #-------------------------------------------------------------------------------
 def add_event():
@@ -24,7 +23,7 @@ def add_event():
             get_keys('etapestry'),
             data={
                 'query': request.form['query_name'],
-                'query': request.form['query_category']
+                'category': request.form['query_category']
             }
         )
     except Exception as e:
@@ -91,12 +90,12 @@ def on_interact():
 
         voice.play(notific['on_answer']['audio_url'], voice='alice')
 
-        http_host = os.environ.get('BRV_HTTP_HOST')
-        http_host = http_host.replace('https','http') if http_host.find('https') == 0 else http_host
+        host = env.get('BRV_HTTP_HOST')
+        host = host.replace('https','http') if host.find('https') == 0 else host
 
         voice.gather(
             numDigits=1,
-            action="%s/notify/voice/play/interact.xml" % http_host,
+            action="%s/notify/voice/play/interact.xml" % host,
             method='POST')
 
         return voice

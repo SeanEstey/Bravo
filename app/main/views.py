@@ -24,3 +24,34 @@ def view_admin():
         settings_html = ''
 
     return render_template('views/admin.html', agency_config=settings_html)
+
+#-------------------------------------------------------------------------------
+@main.route('/client', methods=['GET', 'POST'])
+def view_client():
+    log.debug('request.method=%s', request.method)
+
+    if request.method == 'GET':
+        from twilio.util import TwilioCapability
+
+        keys = get_keys('twilio',agcy='vec')
+        capability = TwilioCapability(keys['api']['sid'], keys['api']['auth_id'])
+        app_sid = "AP30ab394c8e7460fac579d5559a8d4cb7"
+        capability.allow_client_outgoing(app_sid)
+        capability.allow_client_incoming("jenny")
+        token = capability.generate()
+        log.debug('generated token, sending to client...')
+
+        return render_template('/views/client.html', token=token)
+    elif request.method == 'POST':
+        log.debug(request.form.to_dict())
+        from app.notify.voice import get_speak
+        from twilio import twiml
+
+        notific = g.db.notifics.find_one({'type':'voice'})
+        notific['tracking']['answered_by'] = 'human'
+        notific['tracking']['digit'] = "1"
+        acct = g.db.accounts.find_one({'_id':notific['acct_id']})
+        speak = get_speak(notific, notific['on_answer']['template'], timeout=False)
+        response = twiml.Response()
+        response.say(speak, voice='alice')
+        return Response(str(response), mimetype='text/xml')

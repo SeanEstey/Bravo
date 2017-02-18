@@ -38,12 +38,14 @@ class UberTask(Task):
         with self.flsk_app.app_context():
             if context:
                 with self.flsk_app.test_request_context(**context):
+                    current_app.config['SERVER_NAME'] = "bravotest.ca"
                     self._load_context_vars(kwargs)
                     result = call()
                     self.flsk_app.process_response(make_response(result or ''))
                     return result
             else:
                 with self.flsk_app.test_request_context():
+                    current_app.config['SERVER_NAME'] = "bravotest.ca"
                     self._load_context_vars(kwargs)
                     result = call()
                     self.flsk_app.process_response(make_response(''))

@@ -1,13 +1,11 @@
 '''app.notify.recording'''
-from twilio import twiml
 import os, logging
 from datetime import datetime
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import g, request
-from .. import smart_emit, utils
-log = logging.getLogger(__name__)
-
+from .. import smart_emit, get_logger, utils
+log = get_logger('notify.record')
 
 #-------------------------------------------------------------------------------
 def dial_recording():
@@ -30,6 +28,8 @@ def dial_recording():
 
     call = None
     host = os.environ.get('BRV_HTTP_HOST')
+    if host.find('https') == 0:
+        host = host.replace('https', 'http')
 
     try:
         call = client.calls.create(
@@ -68,6 +68,9 @@ def on_answer():
     Response: twilio.twiml.Response with voice content
     '''
 
+    host = os.environ.get('BRV_HTTP_HOST')
+    if host.find('https') == 0:
+        host = host.replace('https', 'http')
     # Record voice message
     voice = twiml.Response()
     voice.say('Record your message after the beep. Press pound when complete.',
@@ -75,7 +78,7 @@ def on_answer():
     )
     voice.record(
         method= 'POST',
-        action= '%s/notify/record/interact.xml' % os.environ.get('BRV_HTTP_HOST'),
+        action= '%s/notify/record/interact.xml' % host,
         playBeep= True,
         finishOnKey='#',
         timeout=120

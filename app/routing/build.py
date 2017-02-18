@@ -6,10 +6,14 @@ from dateutil.parser import parse
 from flask import g
 from app import get_logger, get_keys
 from app.etap import call, get_udf
+from app.etap import EtapError
 from .main import is_scheduled
 from .geo import geocode, get_gmaps_url
 from . import routific, sheet
 log = get_logger('routing.build')
+
+class GeocodeError(Exception):
+    pass
 
 #-------------------------------------------------------------------------------
 def submit_job(route_id):

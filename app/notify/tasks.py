@@ -37,11 +37,7 @@ def monitor_triggers(self, **kwargs):
         log.debug('trigger %s scheduled. firing.', str(trigger['_id']))
 
         try:
-            if not has_request_context():
-                with current_app.test_request_context():
-                    fire_trigger(trigger['_id'])
-            else:
-                fire_trigger(trigger['_id'])
+            fire_trigger(trigger['_id'])
         except Exception as e:
             log.error('fire_trigger error. desc=%s', str(e))
             log.debug('',exc_info=True)

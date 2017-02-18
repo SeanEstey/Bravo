@@ -310,9 +310,6 @@ def create_rfu(self, agcy, note, options=None, **rest):
     rfu = [''] * len(headers)
     rfu[headers.index('Request Note')] = note
 
-    log.debug(headers)
-    log.debug(options)
-
     for field in headers:
         if field in options:
             rfu[headers.index(field)] = options[field]

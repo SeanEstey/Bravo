@@ -36,7 +36,6 @@ def send(notific, mailgun_conf, key='default'):
     try:
         body = render_template(
             notific['on_send']['template'],
-            http_host = env.get('BRV_HTTP_HOST'),
             to = notific['to'],
             account = utils.formatter(
                 g.db.accounts.find_one({'_id':notific['acct_id']}),

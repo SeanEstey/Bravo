@@ -87,6 +87,7 @@ def set_environ(app):
     s.connect(("gmail.com",80))
     env['BRV_IP'] = ip = s.getsockname()[0]
     env['BRV_DOMAIN'] = domain = socket.gethostbyaddr(ip)[0]
+    log.debug('domain=%s', env['BRV_DOMAIN'])
     s.close
 
     try:

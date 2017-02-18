@@ -27,105 +27,110 @@ function prettyFormatting() {
 
 //------------------------------------------------------------------------------
 function addEventHandlers() {
-		$('select[name="depots"]').change(function() {
-				$.ajax({
-					type:'POST',
-					url: $URL_ROOT + 'routing/edit/' + $(this).parent().parent().attr('id'),
-					data: {'field':'depot', 'value':$(this).find('option:selected').text()}
-				})
-				.done(function(response) {
-						if(response['status'] == 'success')
-								alertMsg('Successfully edited depot', 'success');
-				});
-		
-		});
+    $('select[name="depots"]').change(function() {
+        $.ajax({
+            type:'POST',
+            url: $URL_ROOT + 'api/routing/edit',
+            data: {
+                'route_id': $(this).parent().parent().attr('id'),
+                'field':'depot',
+                'value':$(this).find('option:selected').text()}
+        })
+        .done(function(response) {
+            if(response['status'] == 'success')
+                alertMsg('Successfully edited depot', 'success');
+        });
+    });
 
-		$('select[name="drivers"]').change(function() {
-				$.ajax({
-					type:'POST',
-					url: $URL_ROOT + 'routing/edit/' + $(this).parent().parent().attr('id'),
-					data: {'field':'driver', 'value':$(this).find('option:selected').text()}
-				})
-				.done(function(response) {
-						if(response['status'] == 'success')
-								alertMsg('Successfully edited driver', 'success');
-				});
-		});
+    $('select[name="drivers"]').change(function() {
+        $.ajax({
+            type:'POST',
+            url: $URL_ROOT + 'api/routing/edit',
+            data: {
+                'route_id': $(this).parent().parent().attr('id'),
+                'field':'driver',
+                'value':$(this).find('option:selected').text()}
+        })
+        .done(function(response) {
+            if(response['status'] == 'success')
+                alertMsg('Successfully edited driver', 'success');
+        });
+    });
 
     $('button[name="route_btn"]').each(function() {
         var metadata = JSON.parse($(this).attr('data-route'));
 				
-				if(metadata['job_id']) {
-						$(this).text('Reroute');
-				}
+        if(metadata['job_id']) {
+                $(this).text('Reroute');
+        }
 
-				$(this).click(function() {
-						$('.loader-div label').text('Building Route');
-						$('.loader-div').slideToggle(function() {
-								$('.btn.loader').fadeTo('slow', 1);
-						});
+        $(this).click(function() {
+            $('.loader-div label').text('Building Route');
+            $('.loader-div').slideToggle(function() {
+                    $('.btn.loader').fadeTo('slow', 1);
+            });
 
             var route_id = JSON.parse($(this).attr('data-route'))['_id']['$oid'];
 
-						$.ajax({
-							context: this,
-							type: 'POST',
-							url: $URL_ROOT + 'api/routing/build', //$(this).attr('href')
-              data: {'route_id': route_id}
-						})
-						.done(function(response) {
-						});
-				});
-		});
+            $.ajax({
+                context: this,
+                type: 'POST',
+                url: $URL_ROOT + 'api/routing/build',
+                data: {'route_id': route_id}
+            })
+            .done(function(response) {
+            });
+        });
+    });
 
     $('button[name="view_btn"]').each(function() {
-				var metadata = JSON.parse($(this).parent().parent().find('button[name="route_btn"]').attr('data-route'));
+        var metadata = JSON.parse($(this).parent().parent().find('button[name="route_btn"]').attr('data-route'));
 
-				if(!metadata['ss_id']) {
-						$(this).prop('disabled', true);
-						return;
-				}
+        if(!metadata['ss_id']) {
+            $(this).prop('disabled', true);
+            return;
+        }
 
-				$(this).show();
-				$(this).prev().hide();
+        $(this).show();
+        $(this).prev().hide();
 
-				$(this).click(function() {
-						window.open("https://docs.google.com/spreadsheets/d/"+metadata['ss_id']);
-				});
-		});
+        $(this).click(function() {
+            window.open("https://docs.google.com/spreadsheets/d/"+metadata['ss_id']);
+        });
+    });
 
     $('button[name="warnings_btn"]').each(function() {
-				$route_btn = $(this).parent().parent().find('button[name="route_btn"]');
+		$route_btn = $(this).parent().parent().find('button[name="route_btn"]');
 
         var warnings = JSON.parse($route_btn.attr('data-route'))['warnings'];
         var errors = JSON.parse($route_btn.attr('data-route'))['errors'];
 				
-				if(warnings == undefined) {
-					$(this).prop('disabled', true);
-					return;
-				}
+		if(warnings == undefined) {
+			$(this).prop('disabled', true);
+			return;
+		}
 
-				if(warnings.length > 0 || errors.length > 0) {
-						$(this).show();
-						$(this).prev().hide();
+		if(warnings.length > 0 || errors.length > 0) {
+			$(this).show();
+			$(this).prev().hide();
 
-						var n = warnings.length + errors.length;
-						if(n == 1)
-								$(this).text("1 issue");
-						else
-								$(this).text(String(n) + " issues");
+			var n = warnings.length + errors.length;
+			if(n == 1)
+					$(this).text("1 issue");
+			else
+					$(this).text(String(n) + " issues");
 
-						$(this).switchClass('btn-outline-primary', 'btn-outline-danger');
-				}
-				else
-						$(this).text('0 Issues');
+			$(this).switchClass('btn-outline-primary', 'btn-outline-danger');
+		}
+		else
+			$(this).text('0 Issues');
 
         $(this).click(function() {
             $modal = $('#warnings_modal');
             $modal.find('.modal-title').text('Geocode Issues');
             $modal.find('.modal-body').html('');
 
-						var html = "<div class='alert alert-warning' role='alert'><strong>Warnings</strong>";
+			var html = "<div class='alert alert-warning' role='alert'><strong>Warnings</strong>";
             html +=      "<ol>";
 
             for(var i=0; i<warnings.length; i++) {
@@ -133,19 +138,19 @@ function addEventHandlers() {
             }
 
             html += "</ol>";
-						html += "</div>";
+			html += "</div>";
 
-						if(errors.length > 0) {
-								html += "<div class='alert alert-danger' role='alert'><strong>Errors</strong>";
-								html +=   "<ol>";
+			if(errors.length > 0) {
+				html += "<div class='alert alert-danger' role='alert'><strong>Errors</strong>";
+				html +=   "<ol>";
 
-								for(var i=0; i<errors.length; i++) {
-										html += '<li>'+errors[i]+'</li>';
-								}
+				for(var i=0; i<errors.length; i++) {
+					html += '<li>'+errors[i]+'</li>';
+				}
 
-								html +=   "</ol>";
-								html += "</div>";
-						}
+				html +=   "</ol>";
+				html += "</div>";
+			}
 
             $modal.find('.modal-body').append(html);
             $modal.modal('show');
@@ -169,9 +174,9 @@ function addSocketIOHandlers() {
         console.log('discover_routes, status=' + data['status']);
 
         if(data['status'] == 'in-progress') {
-						$('.loader-div label').text('Analyzing Routes');
-						$('.loader-div').slideToggle();
-						$('.btn.loader').fadeTo('slow', 1);
+			$('.loader-div label').text('Analyzing Routes');
+			$('.loader-div').slideToggle();
+			$('.btn.loader').fadeTo('slow', 1);
         }
         else if(data['status'] == 'discovered') {
             addRouteRow(data['route']);
@@ -183,16 +188,16 @@ function addSocketIOHandlers() {
         }
     });
 
-		socket.on('route_status', function(data) {
-				if(data['status'] == 'completed') {
-            $('.btn.loader').fadeTo('slow', 0, function() {
-                $('.loader-div').slideToggle();
-            });
-            console.log('route completed');
-	
-						// TODO: update buttons
-				}
-		});
+	socket.on('route_status', function(data) {
+		if(data['status'] == 'completed') {
+			$('.btn.loader').fadeTo('slow', 0, function() {
+				$('.loader-div').slideToggle();
+			});
+			console.log('route completed');
+
+			// TODO: update buttons
+		}
+	});
 }
 
 //------------------------------------------------------------------------------

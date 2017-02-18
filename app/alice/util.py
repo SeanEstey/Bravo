@@ -64,7 +64,7 @@ def related_notific(log_error=False):
     n = g.db.notifics.find({
         'to': from_,
         'type': 'sms',
-        'tracking.status': 'delivered',
+        'tracking.status': {'$in': ['sent', 'delivered']},
         'event_dt': {  '$gte': datetime.utcnow()}}
     ).sort('tracking.sent_dt', -1).limit(1)
 

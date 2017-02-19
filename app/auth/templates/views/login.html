@@ -1,7 +1,7 @@
 	{% extends "views/base.html" %}
 	{% block content %}  
 	<script type='text/javascript' 
-					src="{{url_for('static', filename='js/views/login.js')}}">
+					src="{{url_for("auth.static", filename="js/login.js")}}">
 	</script>
 	<script>
 		jQuery(function($){

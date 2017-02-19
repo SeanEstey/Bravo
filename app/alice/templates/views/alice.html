@@ -1,15 +1,15 @@
 	{% extends "views/base.html" %}
 	{% block content %}  
-	<script type='text/javascript' 
-					src='https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js'></script>
-	<script type='text/javascript' 
-					src="{{url_for('static', filename='js/views/alice.js')}}">
+	<script type="text/javascript" 
+					src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js"></script>
+	<script type="text/javascript" 
+					src="{{url_for("alice.static", filename="js/alice.js")}}">
 	</script>
   <script> $(function() { alice_init(); 
 		});
 	</script>
 
-	<div class='container-fluid border'>
+	<div class="container-fluid border">
     <div style="margin-top:1em; text-align:center">
     <h5>Conversations in Past 14 Days</h5></div>
 
@@ -59,11 +59,11 @@
 	</div>
 
   <!-- Send Welcome SMS Modal -->
-  <div id='send_welc' style='display:none'> 
-    <form class='form-check' style='text-align:left' id='send_welc_form'>
-      <div id='enter_aid'>
-        <label for='aid'>Account number</label>
-        <input id='aid' name='aid' class='input' type='text'>
+  <div id="send_welc" style="display:none"> 
+    <form class="form-check" style="text-align:left" id="send_welc_form">
+      <div id="enter_aid">
+        <label for="aid">Account number</label>
+        <input id="aid" name="aid" class="input" type="text">
       </div>
     </form>
   </div>

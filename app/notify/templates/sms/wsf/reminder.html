@@ -1,50 +1,39 @@
-{% if 'reply' in notific['tracking'] %}
+Hi {{ account['name'].split(' ')[0] }}, 
+		
+your Empties to Winn 
 
-	{% if notific['tracking']['reply'] == 'NOPICKUP' %}
+{% if account['udf']['status'] == "Dropoff" %}
 
-		Thank you. You have been removed from the route. Your next scheduled pickup will be 
-		{{ account['udf']['future_pickup_dt'] }}.
-
-	{% else %}
-
-		If you do not need a pickup, reply with keyword NOPICKUP.
-
-	{% endif %}
+	dropoff 
 
 {% else %}
 
-		Hi {{ account['name'].split(' ')[0] }}, 
-		
-		your Empties to Winn 
+	pickup 
 
-    {% if account['udf']['status'] == "Dropoff" %}
+{% endif %}
 
-				dropoff 
+is {{ account['udf']['pickup_dt'] }}. 
 
-    {% else %}
+{% if account['udf']['status'] == "Dropoff" %}
 
-        pickup 
+	If you have any empties you can leave them out by 8am.
 
-    {% endif %}
+{% elif account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
 
-				is {{ account['udf']['pickup_dt'] }}. 
+	Please have your empties out by 8am.
 
-    {% if account['udf']['status'] == "Dropoff" %}
+{% elif account['udf']['status'] == "Cancelling" %}
 
-        If you have any empties you can leave them out by 8am.
+	A driver will be by to collect your bag buddy frame. Thanks for your past support.
 
-    {% elif account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
+{% endif %}
 
-        Please have your empties out by 8am.
+Reply with keyword INSTRUCTIONS to leave a note for our driver.
 
-    {% elif account['udf']['status'] == "Cancelling" %}
+{% if account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
 
-        A driver will be by to collect your bag buddy frame. Thanks for your past support.
+	Or SKIP to opt out of this pickup.
 
-    {% endif %}
-
-		If you do not need a pickup, reply with keyword 'NOPICKUP'.
-
-		Questions? Call 1-888-YOU-WINN
+	Questions? Call 1-888-YOU-WINN
 
 {% endif %}

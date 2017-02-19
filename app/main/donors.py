@@ -38,7 +38,6 @@ def is_inactive(agcy, acct, days=270):
         log.debug('accountCreatedDate=%s', acct['accountCreatedDate'])
         #acct_date = parse(acct['accountCreatedDate']).strftime("%d/%m/%Y")
         #signup_date = acct_date.split('/')
-
         #mod_acct(acct['id'], get_keys('etapestry',agcy=agcy),
         #    udf={'Dropoff Date':signup_date, 'Signup Date':signup_date})
         return
@@ -79,12 +78,15 @@ def unsubscribe(agcy):
     log.debug('unsub email=%s, agcy=%s', request.args['email'], agcy)
 
     conf = get_keys('mailgun',agcy=agcy)
-    body = '%s has requested email unsubscription. Please contact to see if '\
-            'they want to cancel the service.' % request.args['email']
-    subject = 'Unsubscribe Request'
 
     try:
-        mid = mailgun.send(conf['from'], subject, body, conf)
+        mailgun.send(
+            conf['from'],
+            'Unsubscribe Request',
+            '%s has requested email unsubscription. Please contact to see if '\
+            'they want to cancel the service.' % request.args['email'],
+            conf,
+            v={'type':'unsub'})
     except Exception as e:
         log.error(str(e))
         log.debug('', exc_info=True)

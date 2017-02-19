@@ -1,7 +1,7 @@
 {% if not notific['tracking']['answered_by'] == 'machine' and not notific['tracking']['digit'] and not timeout %}
 
-		This is a message from Winnifred Stewart. 
-		To listen press 1.
+	This is a message from Winnifred Stewart. 
+	To listen press 1.
 
 {% endif %}
 
@@ -9,9 +9,9 @@
 
     Hi, this is a friendly reminder that your green goods delivery is scheduled for {{ notific['event_dt'] }}. 
 
-		Your order total is ${{ account['udf']['amount'] }}.
+	Your order total is ${{ account['udf']['amount'] }}.
 
-		To repeat this message, press 1. To end this call, press 2.
+	To repeat this message, press 1. To end this call, press 2.
 
 {% endif %}
 

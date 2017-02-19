@@ -21,8 +21,10 @@ log = task_logger('main.tasks')
 @celery.task(bind=True)
 def mem_check(self, **rest):
 
+    t = datetime.now().time()
+
     # Restart celery worker at midnight to release memory leaks
-    if datetime.now().time().hour == 0:
+    if t.hour == 0 and t.minute <=15:
         log.debug('restarting celery worker/beat at midnight...')
         try:
             r = requests.get('http://bravotest.ca/restart_worker')

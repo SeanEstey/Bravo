@@ -1,5 +1,11 @@
-from flask import Blueprint, current_app
+'''app.alice.__init__'''
+from flask import Blueprint
 
-alice = Blueprint('alice', __name__, url_prefix='/alice', template_folder='templates')
+alice = Blueprint(
+    'alice',
+    __name__,
+    url_prefix='/alice',
+    static_folder='./static',
+    template_folder='./templates')
 
 from . import views

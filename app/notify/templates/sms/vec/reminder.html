@@ -1,38 +1,37 @@
+Hi {{ account['name'].split(' ')[0] }}, 
 
-		Hi {{ account['name'].split(' ')[0] }}, 
-		
-		this is a reminder that your Vecova 
+this is a reminder that your Vecova 
 
-    {% if account['udf']['status'] == "Dropoff" %}
+{% if account['udf']['status'] == "Dropoff" %}
 
-				dropoff 
+	dropoff 
 
-    {% else %}
+{% else %}
 
-        pickup 
+	pickup 
 
-    {% endif %}
+{% endif %}
 
-				is {{ account['udf']['pickup_dt'] }}. 
+is {{ account['udf']['pickup_dt'] }}. 
 
-    {% if account['udf']['status'] == "Dropoff" %}
+{% if account['udf']['status'] == "Dropoff" %}
 
-        If you have any empties you can leave them out by 8am.
+	If you have any empties you can leave them out by 8am.
 
-    {% elif account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
+{% elif account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
 
-        Please have your empties out by 8am. Glass can be separated into cases.
+	Please have your empties out by 8am. Glass can be separated.
 
-    {% elif account['udf']['status'] == "Cancelling" %}
+{% elif account['udf']['status'] == "Cancelling" %}
 
-        A driver will be by to collect your bag buddy frame. Thanks for your past support.
+	A driver will be by to collect your bag buddy frame. Thanks for your past support.
 
-    {% endif %}
+{% endif %}
 
-		Let me know if you have INSTRUCTIONS for our driver.
+Reply with keyword INSTRUCTIONS to leave a note for our driver.
 
-    {% if account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
+{% if account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
 
-			Or if you want to SKIP this pickup.
+	Or SKIP to opt out of this pickup.
 
-		{% endif %}
+{% endif %}

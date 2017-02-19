@@ -2,12 +2,14 @@
 import json, logging, time
 from flask import jsonify, request
 from app import get_logger
+from app.logger import colors as c
 from app.mailgun import dump
 from app.booker import book
 from . import donors, main, receipts, signups
 from .tasks import create_rfu
 log = get_logger('main.endpt')
 
+#-------------------------------------------------------------------------------
 @main.route('/restart_worker', methods=['GET'])
 def restart_worker():
     log.debug('restarting worker...')
@@ -23,7 +25,6 @@ def restart_worker():
 def on_delivered():
     # Mailgun webhook
 
-    #log.debug('%s delivered', request.form['recipient'])
     webhook = request.form.get('type')
     agcy = request.form.get('agcy')
 
@@ -40,6 +41,9 @@ def on_delivered():
         email.on_delivered()
     elif webhook == 'booking':
         book.on_delivered(agcy)
+    else:
+        log.debug('%sdelivered <%s> to %s%s',
+            c.GRN, webhook, request.form['To'], c.ENDC)
     return 'OK'
 
 #-------------------------------------------------------------------------------

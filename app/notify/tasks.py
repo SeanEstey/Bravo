@@ -4,10 +4,10 @@ from os import environ as env
 from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from bson import ObjectId as oid
-from flask import g, current_app, has_request_context
+from flask import g, render_template
 from app.utils import to_title_case
 from app.dt import to_local
-from app import etap, get_keys, cal, celery, smart_emit, task_logger
+from app import etap, mailgun, get_keys, cal, celery, smart_emit, task_logger
 from app.etap import EtapError
 from . import email, sms, voice, pickups, triggers
 log = task_logger('notify.tasks')
@@ -175,13 +175,10 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
-    '''Runs as a celery task (tasks.cancel_pickup) to update an accounts eTap
-    fields to skip a pickup. The request originates from a SMS/Voice/Email
-    notification. Run is_valid() before calling this function.
+    '''User has opted out of a pickup via sms/voice/email noification.
+    Run is_valid() before calling this function.
     @acct_id: _id from db.accounts, not eTap account id
     '''
-
-    log.info('cancelling pickup for \'%s\'', acct_id)
 
     # Cancel any pending parent notifications
 
@@ -198,6 +195,8 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
         log.error(msg)
         raise Exception(msg)
 
+    log.info('%s opted out of pickup', (acct['email'] or acct['phone']))
+
     try:
         etap.call(
             'skip_pickup',
@@ -211,5 +210,21 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
     except EtapError as e:
         log.error("etap error, desc='%s'", str(e))
 
-    # TODO: send future pickup email
+    body = None
+
+    try:
+        body = render_template(
+            'email/%s/no_pickup.html' % acct['agency'],
+			to=acct['email'],
+			account=to_local(obj=acct, to_str='%B %d %Y'))
+    except Exception as e:
+        log.error('render error: %s', str(e))
+    else:
+        mailgun.send(
+            acct['email'],
+            'Thanks for Opting Out',
+            body,
+            get_keys('mailgun',agcy=acct['agency']),
+            v={'type':'opt_out', 'agcy':acct['agency']})
+
     return 'success'

@@ -3,9 +3,10 @@ import logging
 from datetime import date, timedelta
 from dateutil.parser import parse
 from flask import g, request
-from app import get_logger, html, mailgun, get_keys
-from app.etap import EtapError, mod_acct, get_udf, call
-from app.dt import ddmmyyyy_to_date as to_date
+from app import get_keys, get_logger
+from app.lib import html, mailgun
+from app.main.etap import EtapError, mod_acct, get_udf, call
+from app.lib.dt import ddmmyyyy_to_date as to_date
 log = get_logger('main.donors')
 
 #-------------------------------------------------------------------------------

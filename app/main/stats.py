@@ -1,9 +1,10 @@
 '''app.main.stats'''
-import logging
+import json, logging
 from datetime import datetime, date, time, timedelta
-import json
-from .. import get_logger, etap, utils, gsheets, parser
-from app.etap import EtapError
+from app import get_logger
+from app.lib import utils, gsheets
+from . import parser
+from .etap import EtapError
 from app.routing import parse
 log = get_logger('main.stats')
 

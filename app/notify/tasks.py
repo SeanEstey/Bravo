@@ -5,10 +5,12 @@ from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from bson import ObjectId as oid
 from flask import g, render_template
-from app.utils import to_title_case
-from app.dt import to_local
-from app import etap, mailgun, get_keys, cal, celery, smart_emit, task_logger
-from app.etap import EtapError
+from app import get_keys, celery, smart_emit, task_logger
+from app.lib.utils import to_title_case
+from app.lib.dt import to_local
+from app.lib import mailgun
+from app.main import cal
+from app.main.etap import call, EtapError
 from . import email, sms, voice, pickups, triggers
 log = task_logger('notify.tasks')
 
@@ -198,7 +200,7 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
     log.info('%s opted out of pickup', (acct['email'] or acct['phone']))
 
     try:
-        etap.call(
+        call(
             'skip_pickup',
             get_keys('etapestry',agcy=evnt['agency']),
             data={

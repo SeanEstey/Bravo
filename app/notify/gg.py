@@ -3,17 +3,17 @@ import logging, os
 from twilio import twiml
 from flask import g, request
 from dateutil.parser import parse
-from .. import get_logger, get_keys, etap
-from app.etap import EtapError
+from .. import get_logger, get_keys
+from app.main.etap import call, get_prim_phone, EtapError
 from . import events, email, sms, voice, triggers, accounts
-log = get_logger(__name__)
+log = get_logger('gg')
 
 #-------------------------------------------------------------------------------
 def add_event():
     log.info(request.form.to_dict())
 
     try:
-        response = etap.call(
+        response = call(
             'get_query',
             get_keys('etapestry'),
             data={
@@ -49,7 +49,7 @@ def add_event():
         refs.append(entry['accountRef'])
 
     try:
-        accts = etap.call(
+        accts = call(
             'get_accts_by_ref',
             conf['etapestry'],
             data={'acct_refs':refs}
@@ -68,7 +68,7 @@ def add_event():
             g.user.agency,
             evnt_id,
             je[i]['accountName'],
-            phone = etap.get_prim_phone(accts[i]),
+            phone = get_prim_phone(accts[i]),
             udf = {'amount': je[i]['amount']}
         )
 
@@ -77,7 +77,7 @@ def add_event():
             delivery_date,
             trig_id,
             acct_id,
-            etap.get_prim_phone(accts[i]),
+            get_prim_phone(accts[i]),
             {'source': 'template',
              'template': 'voice/wsf/green_goods.html'},
             {'module': 'app.notify.gg',

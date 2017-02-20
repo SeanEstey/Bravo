@@ -5,10 +5,12 @@ from bson import ObjectId
 from flask import g
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
-from app import task_logger, smart_emit, celery, get_keys, gcal, gdrive, gsheets, parser
-from app.utils import formatter
-from app.dt import to_local, ddmmyyyy_to_date
-from app.etap import EtapError, get_udf
+from app import task_logger, smart_emit, celery, get_keys
+from app.lib import gcal, gdrive, gsheets
+from app.lib.utils import formatter
+from app.lib.dt import to_local, ddmmyyyy_to_date
+from app.main import parser
+from app.main.etap import EtapError, get_udf
 from .main import add_metadata
 from .build import submit_job, get_solution_orders
 from . import depots, sheet

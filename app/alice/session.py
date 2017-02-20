@@ -5,13 +5,13 @@ from flask_kvsession import SessionID
 from bson.objectid import ObjectId
 import cPickle as pickle
 from datetime import datetime, date, timedelta
-from .. import get_logger, kv_store, kv_ext, etap, utils
-from app.dt import to_local
-from app.utils import print_vars
+from app import get_logger, kv_store, kv_ext
+from app.main.etap import is_active, EtapError
+from app.lib.dt import to_local
+from app.lib.utils import print_vars
 from . import keywords
 from .util import related_notific, lookup_acct, event_begun
 from .dialog import *
-from app.etap import EtapError
 log = get_logger('alice.sess')
 
 #-------------------------------------------------------------------------------
@@ -78,7 +78,7 @@ def create_session():
 
         log.debug('Registered user session (etap_id=%s)', acct['id'])
 
-        if not etap.is_active(acct):
+        if not is_active(acct):
             log.error("Acct inactive (etap_id=%s)", acct['id'])
             raise EtapError(dialog['error']['etap']['inactive'])
 

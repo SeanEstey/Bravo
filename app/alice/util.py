@@ -2,11 +2,11 @@
 import logging
 from datetime import date, datetime, timedelta
 from flask import g, request, session
-from app.etap import call, EtapError
-from .dialog import *
 from app import get_logger
-from app.utils import print_vars
-from app.dt import to_local
+from app.main.etap import call, EtapError
+from app.lib.utils import print_vars
+from app.lib.dt import to_local
+from .dialog import *
 log = get_logger('alice.util')
 
 #-------------------------------------------------------------------------------

@@ -1,10 +1,11 @@
 '''app.alice.events'''
 import logging
-from app import get_logger, etap, utils
-from app.dt import to_local, ddmmyyyy_to_dt
-from app.etap import EtapError
 from flask import g, request, session
 from datetime import datetime, date, time, timedelta
+from app import get_logger
+from app.lib.dt import to_local, ddmmyyyy_to_dt
+from app.lib.utils import print_vars
+from app.main.etap import call, get_udf, EtapError
 from app.booker import geo, search, book
 from .dialog import dialog
 from .util import related_notific, event_begun, set_notific_reply
@@ -27,7 +28,7 @@ def request_support():
 
 #-------------------------------------------------------------------------------
 def reply_schedule():
-    next_pu = etap.get_udf('Next Pickup Date', session.get('account'))
+    next_pu = get_udf('Next Pickup Date', session.get('account'))
 
     if not next_pu:
         return dialog['error']['internal']['lookup']
@@ -54,9 +55,9 @@ def add_instructions():
 
     instruction = request.form['Body']
     acct = session.get('account')
-    driver_notes = etap.get_udf('Driver Notes', acct)
+    driver_notes = get_udf('Driver Notes', acct)
 
-    etap.call(
+    call(
         'modify_acct',
         session.get('conf')['etapestry'],
         data={
@@ -77,7 +78,7 @@ def skip_pickup():
 
     if not session.get('notific_id'):
         msg = dialog['skip']['no_evnt']
-        npu = etap.get_udf('Next Pickup Date', acct)
+        npu = get_udf('Next Pickup Date', acct)
 
         if not npu:
             log.error('field udf->npu empty (etap_id=%s)', acct['id'])
@@ -251,10 +252,10 @@ def add_acct(address, phone, block, pu_date_str):
         }
     }
 
-    log.info(utils.print_vars(acct, depth=2))
+    log.info(print_vars(acct, depth=2))
 
     try:
-        etap.call(
+        call(
           'add_accts',
           conf['etapestry'],
           [acct]

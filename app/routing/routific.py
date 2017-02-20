@@ -1,11 +1,8 @@
 '''app.routing.routific'''
-import json
-import logging
-import requests
+import json, logging, requests
 from app import get_logger
-from app.etap import get_udf, get_prim_phone
+from app.main.etap import get_udf, get_prim_phone
 log = get_logger('routing.routific')
-
 
 #-------------------------------------------------------------------------------
 def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key):

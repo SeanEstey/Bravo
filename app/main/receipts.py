@@ -1,13 +1,14 @@
 '''app.main.receipts'''
-import gc, json, logging, requests
+import gc, json, logging
 from datetime import date
 from dateutil.parser import parse
-from flask import g, current_app, render_template, request
-from .. import get_logger, get_keys, html, mailgun, etap
-from app.utils import to_title_case
-from app.gsheets import update_cell, to_range, gauth, get_row
-from app.etap import get_udf
-from app.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
+from flask import g, render_template, request
+from app import get_logger, get_keys
+from app.lib.utils import to_title_case
+from app.lib.gsheets import update_cell, to_range, gauth, get_row
+from app.lib.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
+from .etap import call, get_udf
+from . import html, mailgun
 log = get_logger('main.receipts')
 
 #-------------------------------------------------------------------------------
@@ -164,7 +165,7 @@ def deliver(to, template, subject, acct, entry=None, ytd_gifts=None):
         return False
 
     # Add Journal note
-    etap.call(
+    call(
         'add_note',
         get_keys('etapestry'),
         data={
@@ -185,7 +186,7 @@ def get_ytd_gifts(acct_ref, year):
     '''
 
     try:
-        je_list = etap.call(
+        je_list = call(
             'get_gift_histories',
             get_keys('etapestry'),
             data={

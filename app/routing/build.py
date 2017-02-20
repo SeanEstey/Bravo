@@ -5,8 +5,7 @@ from bson import ObjectId
 from dateutil.parser import parse
 from flask import g
 from app import get_logger, get_keys
-from app.etap import call, get_udf
-from app.etap import EtapError
+from app.main.etap import call, get_udf, EtapError
 from .main import is_scheduled
 from .geo import geocode, get_gmaps_url
 from . import routific, sheet

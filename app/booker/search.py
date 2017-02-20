@@ -2,11 +2,12 @@
 from datetime import datetime, timedelta
 import logging, re
 from flask import g
-from .. import get_keys, etap, parser, gcal
+from app import get_logger, get_keys
+from app.main import parser
+from app.main.etap import call, EtapError
+from app.lib imort gcal
 from . import geo
-log = logging.getLogger(__name__)
-class EtapError(Exception):
-    pass
+log = get_logger('booker.search')
 
 #-------------------------------------------------------------------------------
 def search(query, radius=None, weeks=None):
@@ -42,7 +43,7 @@ def search(query, radius=None, weeks=None):
 
     if parser.is_account_id(query):
         try:
-            acct = etap.call(
+            acct = call(
               'get_acct',
               get_keys('etapestry'),
               data={'acct_id': re.search(r'\d{1,6}',query).group(0)})

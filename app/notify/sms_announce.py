@@ -1,17 +1,15 @@
 '''app.notify.voice_announce'''
 import twilio
-import logging
+import logging, os
 from flask import g, request, current_app
 from flask_login import current_user
-import os
 from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
 from app import get_logger
-from app.etap import EtapError
-from app.logger import colors as c
+from app.lib.logger import colors as c
+from app.main.etap import call, get_prim_phone, EtapError
 from . import events, accounts, triggers, voice, sms
-from .. import utils, etap
 log = get_logger('notify.voice_annc')
 
 #-------------------------------------------------------------------------------
@@ -22,7 +20,7 @@ def add_event():
     log.debug(request.form.to_dict())
 
     try:
-        response = etap.call(
+        response = call(
             'get_query',
             conf['etapestry'],
             data={
@@ -60,7 +58,7 @@ def add_event():
             agency,
             evnt_id,
             accts[i]['name'],
-            phone = etap.get_prim_phone(accts[i])
+            phone = get_prim_phone(accts[i])
         )
 
         sms.add(
@@ -68,7 +66,7 @@ def add_event():
             event_date,
             trig_id,
             acct_id,
-            etap.get_prim_phone(accts[i]),
+            get_prim_phone(accts[i]),
             {'source': 'template',
              'template': 'sms/%s/announce.html' % agency}
              'url': request.form['audio_url']},

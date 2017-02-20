@@ -4,8 +4,9 @@ from json import dumps, loads
 from flask import Response, request, jsonify
 from flask_login import current_user
 import celery.result
-from app.utils import start_timer, end_timer, formatter
-log = logging.getLogger(__name__)
+from app import get_logger
+from app.lib.utils import start_timer, end_timer, formatter
+log = get_logger('api.main')
 
 def WRITE_ME(msg=None):
     return msg or 'NOT YET IMPLEMENTED'

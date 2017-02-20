@@ -1,12 +1,9 @@
-'''app.etap'''
+'''app.main.etap'''
 import json, logging, os, subprocess
-import requests
-from flask import current_app
 from datetime import datetime, date
-from app import get_keys
-import utils
+from app import get_logger, get_keys
 import config
-log = logging.getLogger(__name__)
+log = get_logger('etap')
 
 class EtapError(Exception):
     pass

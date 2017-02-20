@@ -1,8 +1,9 @@
 '''app.main.sms'''
 import logging, re
 from twilio.rest.lookups import TwilioLookupsClient
-from .. import etap
-log = logging.getLogger(__name__)
+from app import get_logger
+from . import etap
+log = get_logger('main.sms')
 
 #-------------------------------------------------------------------------------
 def enable(agency, accounts):

@@ -7,10 +7,10 @@ from flask_login import current_user
 from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
+from app import get_keys, get_logger
+from app.lib.logger import colors as c
+from app.main.etap import call, get_prim_phone, EtapError
 from . import events, accounts, triggers, voice
-from .. import get_keys, get_logger, utils, etap
-from app.etap import EtapError
-from app.logger import colors as c
 log = get_logger('notify.v_annc')
 
 #-------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ def add_event():
     log.debug(request.form.to_dict())
 
     try:
-        response = etap.call(
+        response = call(
             'get_query',
             get_keys('etapestry'),
             data={
@@ -55,14 +55,14 @@ def add_event():
             g.user.agency,
             evnt_id,
             accts[i]['name'],
-            phone = etap.get_prim_phone(accts[i]))
+            phone = get_prim_phone(accts[i]))
 
         voice.add(
             evnt_id,
             event_date,
             trig_id,
             acct_id,
-            etap.get_prim_phone(accts[i]),
+            get_prim_phone(accts[i]),
             {'source': 'audio',
              'url': request.form['audio_url']},
             {'module': 'app.notify.voice_announce',

@@ -1,14 +1,10 @@
 '''app.gdrive'''
-import pymongo
-import logging
+import httplib2, json, logging, re, requests, pymongo
 from oauth2client.service_account import ServiceAccountCredentials
-import httplib2
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
-import re
-import requests
-import json
-log = logging.getLogger('gdrive')
+from app import get_logger
+log = get_logger('gdrive')
 
 
 #-------------------------------------------------------------------------------

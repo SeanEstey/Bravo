@@ -1,13 +1,13 @@
 '''app.uber_task'''
 import os, logging
-import mongodb
 from celery import Task
 from flask import g, has_app_context, has_request_context,\
 make_response, request, current_app
 from flask_login import login_user, current_user
 from bson.objectid import ObjectId
 from auth import user
-from .utils import print_vars
+from app.lib import mongodb
+from app.lib.utils import print_vars
 from app import task_logger
 log = task_logger('uber_task')
 
@@ -51,32 +51,6 @@ class UberTask(Task):
                     self.flsk_app.process_response(make_response(''))
                     return result
 
-        '''
-            with self.flsk_app.app_context():
-                self._load_context_vars(kwargs)
-
-                if not req_ctx:
-                    with self.flsk_app.test_request_context(**context):
-                        self._load_context_vars(kwargs)
-                        return call()
-                        self.flsk_app.process_response(make_response(result or ''))
-                else:
-                    return call()
-
-        if req_ctx:
-
-        #if context is None or req_ctx:
-        #    if not app_ctx:
-
-            else:
-                self._load_context_vars(kwargs)
-                return call()
-
-        with self.flsk_app.test_request_context(**context):
-            self._load_context_vars(kwargs)
-            result = call()
-            self.flsk_app.process_response(make_response(result or ''))
-        '''
         return result
 
     #---------------------------------------------------------------------------

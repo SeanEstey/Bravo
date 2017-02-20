@@ -7,6 +7,7 @@ from .. import get_logger, smart_emit, get_keys, utils, html
 from app.dt import to_utc, to_local
 from app.logger import colors as c
 from app.alice.outgoing import compose
+from .utils import intrntl_format
 log = get_logger('notify.sms')
 
 #-------------------------------------------------------------------------------
@@ -30,7 +31,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
         'event_dt': to_utc(d=event_date, t=time(8,0)),
         'on_send': on_send,
         'on_reply': on_reply,
-        'to': utils.to_intl_format(to),
+        'to': intrntl_format(to),
         'type': 'sms',
         'tracking': {
             'status': 'pending',

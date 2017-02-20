@@ -7,6 +7,7 @@ from flask import g, render_template, request
 from pymongo.collection import ReturnDocument
 from .. import get_logger, smart_emit, utils, html
 from app.dt import to_utc
+from .utils import intrntl_format
 log = get_logger('notify.voice')
 
 #-------------------------------------------------------------------------------
@@ -27,7 +28,7 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
         'event_dt': to_utc(d=event_date, t=time(8,0)),
         'on_answer': on_answer,
         'on_interact': on_interact,
-        'to': utils.to_intl_format(to),
+        'to': intrntl_format(to),
         'type': 'voice',
         'tracking': {
             'status': 'pending',

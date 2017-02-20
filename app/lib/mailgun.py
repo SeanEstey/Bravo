@@ -1,10 +1,8 @@
 '''app.mailgun'''
-import requests
-import json
-import os
-import logging
-from app import db_client
-log = logging.getLogger('mailgun')
+import json, logging, requests
+from os import environ as env
+from app import db_client, get_logger
+log = get_logger('mailgun')
 
 #-------------------------------------------------------------------------------
 def send(to, subject, body, conf, v=None):
@@ -16,7 +14,7 @@ def send(to, subject, body, conf, v=None):
 
     # Mailgun has no test API keys for use in test environment
     # If test mode enabled, re-route all emails to test address
-    if os.environ.get('BRV_SANDBOX') == 'True':
+    if env.get('BRV_SANDBOX') == 'True':
         test_db = db_client['test']
         cred = test_db.credentials.find_one()['mailgun']
         conf = cred

@@ -1,15 +1,15 @@
 '''app.__init__'''
-import eventlet, pymongo, os, logging, socket, sys, time, requests
+import eventlet, os, logging
 from flask import Flask, g
 from flask_login import LoginManager
 from flask_kvsession import KVSessionExtension
 from celery import Celery, Task
 from simplekv.db.mongo import MongoStore
 from werkzeug.contrib.fixers import ProxyFix
-import config, mongodb
-from logger import file_handler
-from utils import print_vars
-from app.logger import DebugFilter, InfoFilter
+import config
+import app.lib.mongodb
+from app.lib.utils import print_vars
+from app.lib.logger import file_handler
 
 eventlet.monkey_patch()
 
@@ -157,7 +157,7 @@ def get_server_prop():
         'USER_NAME': g.user.name
     }
 
-from app.socketio import smart_emit
+from app.main.socketio import smart_emit
 from uber_task import UberTask
 
 celery = Celery(__name__, broker='amqp://')

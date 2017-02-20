@@ -3,7 +3,6 @@ import logging
 import pymongo
 import db_auth
 import config
-log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def create_client(connect=True, auth=True):

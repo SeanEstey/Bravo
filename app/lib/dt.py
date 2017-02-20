@@ -1,8 +1,7 @@
 '''app.dt'''
-import logging, pytz
+import pytz
 from datetime import datetime, date, time, timedelta
 local_tz = pytz.timezone('MST')
-log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def to_utc(obj=None, dt=None, d=None, t=None, to_str=False):

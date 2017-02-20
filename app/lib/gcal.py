@@ -1,13 +1,11 @@
-'''app.gcal'''
-import logging
+'''app.lib.gcal'''
+import httplib2, json, logging, requests
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
-import httplib2
 from apiclient.discovery import build
-from app.utils import print_vars
-import requests
-import json
-log = logging.getLogger(__name__)
+from app import get_logger
+from .utils import print_vars
+log = get_logger('gcal')
 
 color_ids = {
     'light_purple' : 1,
@@ -24,7 +22,6 @@ color_ids = {
 
 #-------------------------------------------------------------------------------
 def gauth(oauth):
-
 
     try:
         scopes=['https://www.googleapis.com/auth/calendar']

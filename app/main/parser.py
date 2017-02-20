@@ -1,3 +1,4 @@
+'''app.main.parser'''
 from re import match, search
 
 re_blck = r'(B|R)\d{1,2}\w'

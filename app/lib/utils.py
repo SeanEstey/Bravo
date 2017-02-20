@@ -1,11 +1,9 @@
 '''app.utils'''
-import inspect, json, logging, pytz, re, requests, types
+import inspect, json, pytz, re, types
 from pprint import pformat
 from bson import json_util
 from datetime import datetime, time, date
-from config import LOG_PATH
 from app.dt import to_local, local_tz, convert_obj
-log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def inspector(obj, public=True, private=False):
@@ -127,34 +125,14 @@ def formatter(doc, to_local_time=False, to_strftime=None, bson_to_json=False, to
 
 #-------------------------------------------------------------------------------
 def remove_quotes(s):
-  s = re.sub(r'\"', '', s)
-  return s
+    s = re.sub(r'\"', '', s)
+    return s
 
 #-------------------------------------------------------------------------------
 def to_title_case(s):
-  s = re.sub(r'\"', '', s)
-  s = re.sub(r'_', ' ', s)
-  return s.title()
-
-#-------------------------------------------------------------------------------
-def to_intl_format(to):
-    if not to:
-        return None
-
-    no_symbols = re.sub(r'\s|\-|\(|\)|[a-zA-Z]', '', to)
-
-    try:
-        if no_symbols[0:2] == '+1':
-            return no_symbols
-
-        if len(no_symbols) == 10:
-            return '+1' + no_symbols
-
-        if no_symbols[0] == '1':
-            return '+' + no_symbols
-    except Exception as e:
-        log.error('invalid phone number %s', to)
-        return None
+    s = re.sub(r'\"', '', s)
+    s = re.sub(r'_', ' ', s)
+    return s.title()
 
 #-------------------------------------------------------------------------------
 def start_timer():
@@ -164,12 +142,5 @@ def start_timer():
 def end_timer(start_dt, lbl=None, to_log=None):
     b = datetime.now()
     c = b - start_dt
-
     seconds = '%s.%ss' % (c.seconds, str(c.microseconds/1000))
-
-    #if to_log is not None:
-    #    print to_log
-    #    print 'logging'
-    #    to_log.debug('%s (%s)', lbl, seconds)
-
     return seconds

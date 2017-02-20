@@ -2,7 +2,8 @@
 import logging
 from flask import g, request, render_template, redirect, url_for, jsonify, Response
 from flask_login import login_required
-from .. import get_logger, get_keys, html
+from .. import get_logger, get_keys
+from app.lib import html
 from . import main
 log = get_logger('main.views')
 

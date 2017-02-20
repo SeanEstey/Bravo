@@ -4,11 +4,11 @@ from datetime import date
 from dateutil.parser import parse
 from flask import g, render_template, request
 from app import get_logger, get_keys
+from app.lib import html, mailgun
 from app.lib.utils import to_title_case
 from app.lib.gsheets import update_cell, to_range, gauth, get_row
 from app.lib.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
 from .etap import call, get_udf
-from . import html, mailgun
 log = get_logger('main.receipts')
 
 #-------------------------------------------------------------------------------

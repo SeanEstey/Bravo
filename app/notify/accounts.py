@@ -2,9 +2,9 @@
 import logging
 from flask import g
 from dateutil.parser import parse
-from .. import get_keys
-from app.dt import to_local
-log = logging.getLogger(__name__)
+from .. import get_logger, get_keys
+from app.lib.dt import to_local
+log = get_logger('notify.accts')
 
 #-------------------------------------------------------------------------------
 def add(agency, evnt_id, name, phone=None, email=None, udf=None, nameFormat=None):

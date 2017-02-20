@@ -5,7 +5,7 @@ from flask import g
 from app import get_logger, get_keys
 from app.main import parser
 from app.main.etap import call, EtapError
-from app.lib imort gcal
+from app.lib import gcal
 from . import geo
 log = get_logger('booker.search')
 

@@ -4,7 +4,9 @@ import twilio.twiml
 from bson.objectid import ObjectId
 from flask_login import login_required
 from flask import g, request, jsonify, render_template, Response, url_for
-from app import get_logger, smart_emit, get_keys, utils, cal, parser
+from app import get_logger, smart_emit, get_keys
+from app.lib.utils import formatter, to_title_case
+from app.main import parser
 from . import notify, accounts, events, triggers
 log = get_logger('notify.views')
 
@@ -41,14 +43,14 @@ def view_event(evnt_id):
     notific_list = list(events.get_notifics(ObjectId(evnt_id)))
     trigger_list = events.get_triggers(ObjectId(evnt_id))
 
-    notific_list = utils.formatter(
+    notific_list = formatter(
         notific_list,
         to_local_time=True,
         to_strftime="%m/%-d/%Y",
         bson_to_json=True)
 
     for trigger in trigger_list:
-        trigger['type'] = utils.to_title_case(trigger['type'])
+        trigger['type'] = to_title_case(trigger['type'])
 
     return render_template(
         'views/event.html',

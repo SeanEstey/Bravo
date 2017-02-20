@@ -15,8 +15,6 @@ ENDC = '\033[0m'
 #-------------------------------------------------------------------------------
 def startup_msg(app):
 
-    from app.utils import print_vars
-
     hostname = env['BRV_HOSTNAME']
     host = 'http://%s' %(env['BRV_IP'])
     debug = 'enabled' if app.config['DEBUG'] else 'disabled'

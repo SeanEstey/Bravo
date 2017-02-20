@@ -3,9 +3,10 @@ import json, logging, math, os, requests, time
 import matplotlib.path as mplPath
 import numpy as np
 from flask import g
-from .. import smart_emit, get_keys, parser
-from app.utils import formatter
-log = logging.getLogger(__name__)
+from app import get_logger, smart_emit, get_keys
+from app.main import parser
+from app.lib.utils import formatter
+log = get_logger('booker.geo')
 
 #-------------------------------------------------------------------------------
 def find_block(agcy, address, api_key):

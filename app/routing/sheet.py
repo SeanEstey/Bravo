@@ -1,7 +1,8 @@
 '''app.routing.sheet'''
 import logging, re, time
-from .. import get_logger, get_keys, gsheets, gdrive, utils
-from ..parser import has_postal
+from .. import get_logger, get_keys
+from app.lib import gdrive, gsheets
+from app.main.parser import has_postal
 log = get_logger('routing.sheet')
 
 #-------------------------------------------------------------------------------

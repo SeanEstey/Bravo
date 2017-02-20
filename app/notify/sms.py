@@ -3,9 +3,11 @@ import logging, json, os
 from os import environ as env
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
-from .. import get_logger, smart_emit, get_keys, utils, html
-from app.dt import to_utc, to_local
-from app.logger import colors as c
+from .. import get_logger, smart_emit, get_keys
+from app.lib.utils import formatter
+from app.lib import html
+from app.lib.dt import to_utc, to_local
+from app.lib.logger import colors as c
 from app.alice.outgoing import compose
 from .utils import intrntl_format
 log = get_logger('notify.sms')
@@ -49,7 +51,7 @@ def send(notific, twilio_conf):
     try:
         body = render_template(
             'sms/%s/reminder.html' % acct['agency'],
-            account = utils.formatter(
+            account = formatter(
                 acct,
                 to_local_time=True,
                 to_strftime="%A, %B %d",

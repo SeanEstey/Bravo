@@ -4,10 +4,10 @@ import base64
 from bson.objectid import ObjectId
 from flask import g
 from flask_login import current_user, login_user
-from .. import db_client, login_manager
-from app.utils import print_vars
+from app import get_logger, db_client, login_manager
+from app.lib.utils import print_vars
 from .user import User
-log = logging.getLogger(__name__)
+log = get_logger('auth.manager')
 
 #-------------------------------------------------------------------------------
 @login_manager.user_loader

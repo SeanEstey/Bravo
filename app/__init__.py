@@ -7,7 +7,7 @@ from celery import Celery, Task
 from simplekv.db.mongo import MongoStore
 from werkzeug.contrib.fixers import ProxyFix
 import config
-import app.lib.mongodb
+from app.lib import mongodb
 from app.lib.utils import print_vars
 from app.lib.logger import file_handler
 

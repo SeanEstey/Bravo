@@ -1,6 +1,8 @@
 '''app.routing.parse'''
 import logging, re, time
-from app import gsheets, get_logger
+from flask import g
+from app import get_logger
+from app.lib import gsheets
 log = get_logger('routing.parse')
 
 #-------------------------------------------------------------------------------

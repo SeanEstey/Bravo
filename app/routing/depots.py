@@ -1,7 +1,7 @@
 '''app.routing.depots'''
 import logging
-from .. import get_keys
-log = logging.getLogger(__name__)
+from app import get_logger, get_keys
+log = get_logger('routing.depots')
 
 #-------------------------------------------------------------------------------
 def resolve(block, postal_codes, event_desc=False):

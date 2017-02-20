@@ -3,9 +3,11 @@ import logging, os
 from os import environ as env
 from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
-from .. import get_logger, smart_emit, get_keys, utils, mailgun
-from app.dt import to_utc
-from app.logger import colors as c
+from .. import get_logger, smart_emit, get_keys
+from app.lib import mailgun
+from app.lib.utils import formatter
+from app.lib.dt import to_utc
+from app.lib.logger import colors as c
 log = get_logger('notify.email')
 
 #-------------------------------------------------------------------------------
@@ -37,7 +39,7 @@ def send(notific, mailgun_conf, key='default'):
         body = render_template(
             notific['on_send']['template'],
             to = notific['to'],
-            account = utils.formatter(
+            account = formatter(
                 g.db.accounts.find_one({'_id':notific['acct_id']}),
                 to_local_time=True,
                 to_strftime="%A, %B %d",

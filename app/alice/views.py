@@ -3,7 +3,7 @@ import logging
 from flask_login import login_required, current_user
 from flask import g, request, jsonify, render_template, session, Response
 from app import get_logger
-from ..utils import formatter, print_vars, start_timer, end_timer
+from app.lib.utils import formatter, print_vars, start_timer, end_timer
 from . import alice, incoming
 from .session import store_sessions, dump_session, dump_sessions, wipe_sessions
 from .incoming import make_reply

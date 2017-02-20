@@ -2,9 +2,10 @@
 import json, logging
 from datetime import date, datetime
 from flask import g, request, render_template
-from .. import get_keys, mailgun
-from app.gsheets import gauth, get_row, append_row, update_cell, to_range
-log = logging.getLogger(__name__)
+from app import get_keys, get_logger
+from app.lib import mailgun
+from app.lib.gsheets import gauth, get_row, append_row, update_cell, to_range
+log = get_logger('main.signups')
 
 #-------------------------------------------------------------------------------
 def add_etw_to_gsheets(signup):

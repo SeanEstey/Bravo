@@ -3,14 +3,15 @@ import json, logging, re, pytz
 from dateutil.parser import parse
 from datetime import datetime, time, date
 from flask import g, request
-from bson import ObjectId
+from bson import ObjectId as oid
 from app import get_logger, smart_emit, get_keys
 from app.lib import gsheets
-from app.main.etap import EtapError, get_udf, get_query
 from app.lib.utils import print_vars, formatter
 from app.lib.dt import ddmmyyyy_to_date
+from app.main.etap import EtapError, get_udf, get_query
 from . import depots
 log = get_logger('routing.main')
+
 class GeocodeError(Exception):
     pass
 
@@ -121,14 +122,14 @@ def edit_field(route_id, field, value):
         for depot in get_keys('routing')['locations']['depots']:
             if depot['name'] == value:
                 g.db.routes.update_one(
-                    {'_id':ObjectId(route_id)},
+                    {'_id':oid(route_id)},
                     {'$set': {'depot':depot}})
                 return 'success'
     elif field == 'driver':
         for driver in get_keys('routing')['drivers']:
             if driver['name'] == value:
                 g.db.routes.update_one(
-                    {'_id':ObjectId(route_id)},
+                    {'_id':oid(route_id)},
                     {'$set': {'driver':driver}})
                 return 'success'
 

@@ -5,8 +5,10 @@ from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import g, render_template, request
 from pymongo.collection import ReturnDocument
-from .. import get_logger, smart_emit, utils, html
-from app.dt import to_utc
+from app import get_logger, get_keys, smart_emit
+from app.lib.utils import formatter, print_vars
+from app.lib import html
+from app.lib.dt import to_utc
 from .utils import intrntl_format
 log = get_logger('notify.voice')
 
@@ -105,11 +107,11 @@ def get_speak(notific, template_path, timeout=False):
     try:
         speak = render_template(
             template_path,
-            notific = utils.formatter(
+            notific = formatter(
                 notific,
                 to_local_time=True,
                 to_strftime="%A, %B %d"),
-            account = utils.formatter(
+            account = formatter(
                 account,
                 to_local_time=True,
                 to_strftime="%A, %B %d",

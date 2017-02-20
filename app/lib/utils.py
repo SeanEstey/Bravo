@@ -1,9 +1,9 @@
-'''app.utils'''
+'''app.lib.utils'''
 import inspect, json, pytz, re, types
 from pprint import pformat
 from bson import json_util
 from datetime import datetime, time, date
-from app.dt import to_local, local_tz, convert_obj
+from .dt import to_local, local_tz, convert_obj
 
 #-------------------------------------------------------------------------------
 def inspector(obj, public=True, private=False):

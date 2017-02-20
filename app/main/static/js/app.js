@@ -15,6 +15,7 @@ this.unicode = {
 
 var flip=0;
 
+//------------------------------------------------------------------------------
 function positionAdminPanel() {
 	console.log('admin height='+$('#admin').height());
 	var y = $('#admin').height()*-1 + 85;
@@ -69,11 +70,11 @@ function showAdminServerStatus() {
 
 //------------------------------------------------------------------------------
 function api_call(path, data, on_done) {
-		$.ajax({
-			type: 'POST',
-      data: data,
-			url: $URL_ROOT + 'api/' + path
-		}).done(function(response){
+	$.ajax({
+		type: 'POST',
+      	data: data,
+		url: $URL_ROOT + 'api/' + path})
+	.done(function(response){
         on_done(response);
     });
 }
@@ -84,20 +85,20 @@ function loadTooltip() {
 $('[data-toggle="tooltip"]').tooltip();
 
 /*
-		$(document).tooltip({
-			position: {
-				my: 'center bottom-20',
-				at: 'center top',
-				using: function(position, feedback) {
-					$(this).css(position);
-					$('<div>')
-						.addClass('arrow')
-						.addClass(feedback.vertical)
-						.addClass(feedback.horizontal)
-						.appendTo(this);
-				}
+	$(document).tooltip({
+		position: {
+			my: 'center bottom-20',
+			at: 'center top',
+			using: function(position, feedback) {
+				$(this).css(position);
+				$('<div>')
+					.addClass('arrow')
+					.addClass(feedback.vertical)
+					.addClass(feedback.horizontal)
+					.appendTo(this);
 			}
-		});*/
+		}
+	});*/
 }
 
 var globalTimeoutId = false;
@@ -152,7 +153,6 @@ function fadeAlert(id=null) {
         var $alert = $('#'+id);
 
     clearTimeout(globalTimeoutId);
-
     $alert.fadeTo('slow', 0);
 }
 

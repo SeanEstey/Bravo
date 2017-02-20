@@ -1,4 +1,5 @@
 
+//------------------------------------------------------------------------------
 function init() {
     $('nav-tabs a').click(function (e) {
       e.preventDefault()
@@ -9,7 +10,6 @@ function init() {
     $('#scheduler').html($('div [name="scheduler"]:first').clone());
     $('#routing').html($('div [name="routing"]:first').clone());
     $('#etapestry').html($('div [name="etapestry"]:first').clone());
-
     enableEditableFields()
 }
 
@@ -52,19 +52,16 @@ function enableEditableFields() {
 
 //------------------------------------------------------------------------------
 function saveFieldEdit(field, value) {
-		$.ajax({
-			type: 'POST',
-			url: $URL_ROOT + 'update_agency_conf',
-			data: {
-        'field':field,
-        'value':value
-      }
-		}).done(function(response) {
-				if(response['status'] != 'success') {
-					alertMsg(response['status'], 'danger');
-				}
-				else {
-						alertMsg('Edited field successfully', 'success');
-				}
-		});
+	$.ajax({
+		type: 'POST',
+		url: $URL_ROOT + 'update_agency_conf',
+		data: {'field':field, 'value':value}})
+	.done(function(response) {
+		if(response['status'] != 'success') {
+			alertMsg(response['status'], 'danger');
+		}
+		else {
+				alertMsg('Edited field successfully', 'success');
+		}
+	});
 }

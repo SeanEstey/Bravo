@@ -6,9 +6,9 @@ Conversations permanently saved to MongoDB in bravo.alice
 import logging, string
 from twilio import twiml
 from datetime import datetime, date, time, timedelta
-from flask import current_app, request, make_response, g, session
+from flask import request, make_response, g, session
 from app import get_logger
-from app.logger import colors as c
+from app.lib.logger import colors as c
 from app.main.etap import EtapError
 from . import keywords
 from .dialog import *

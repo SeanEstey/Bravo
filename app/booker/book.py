@@ -2,9 +2,10 @@
 import logging, os
 from flask import g, render_template, request
 from datetime import datetime, time
-from .. import get_logger, get_keys, gsheets, mailgun
-from app.main.etap import EtapError, call, get_udf
+from .. import get_logger, get_keys
+from app.lib import gsheets, mailgun
 from app.lib.dt import to_local, ddmmyyyy_to_dt
+from app.main.etap import EtapError, call, get_udf
 from app.routing.build import create_order
 from app.routing.sheet import append_order
 from app.routing.geo import get_gmaps_url
@@ -138,7 +139,7 @@ def send_confirm():
         log.info('queued confirmation email to %s', request.form['email'])
 
 #-------------------------------------------------------------------------------
-def on_delivered():
+def on_delivered(agcy=None):
     '''Mailgun webhook called from view. Has request context'''
 
     log.info('confirmation delivered to %s', request.form['recipient'])

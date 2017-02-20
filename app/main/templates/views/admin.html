@@ -1,21 +1,21 @@
 {% extends "views/base.html" %}
 {% block content %}  
-<script type='text/javascript' 
-		src="{{url_for('static', filename='js/admin.js')}}">
+<script type="text/javascript" 
+		src="{{url_for("main.static", filename="js/admin.js")}}">
 </script>
 <script>
-document.write('<style type="text/css">body{display:none}</style>');
+document.write("<style type='text/css'> body{display:none}</style>");
 jQuery(function($){
-	$('body').css('display','block');
+	$("body").css("display","block");
 });
 </script>
 <script> 
 jQuery(function($){init();});
 </script>
 
-<div class='container'>
+<div class="container">
 	<!-- Nav tabs -->
-	<ul style='margin-bottom:2em' class="nav nav-tabs" role="tablist">
+	<ul style="margin-bottom:2em" class="nav nav-tabs" role="tablist">
 		
 		<li class="nav-item">
 			<a class="nav-link active" data-toggle="tab" href="#notify" role="tab">Notify</a>

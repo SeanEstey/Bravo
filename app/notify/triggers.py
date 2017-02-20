@@ -4,7 +4,7 @@ from flask import g, request
 from bson.objectid import ObjectId
 from datetime import datetime,date,time
 from .. import get_logger, smart_emit, get_keys
-from app.dt import to_utc, to_local
+from app.lib.dt import to_utc, to_local
 from . import voice, email, sms
 log = get_logger('notify.triggers')
 

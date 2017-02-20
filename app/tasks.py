@@ -4,7 +4,7 @@ from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure
 from app import create_app, init_celery, task_logger
 from app import celery as _celery
-from utils import inspector, start_timer, end_timer
+from app.lib.utils import inspector, start_timer, end_timer
 
 timer = None
 app = create_app(__name__, kv_sess=False)

@@ -2,8 +2,8 @@
 import json, logging, time
 from flask import jsonify, request
 from app import get_logger
-from app.logger import colors as c
-from app.mailgun import dump
+from app.lib.logger import colors as c
+from app.lib.mailgun import dump
 from app.booker import book
 from . import donors, main, receipts, signups
 from .tasks import create_rfu

@@ -1,12 +1,11 @@
 '''app.notify.voice_announce'''
-import twilio
 import logging, os
-from flask import g, request, current_app
-from flask_login import current_user
-from datetime import datetime,date,time,timedelta
+import twilio
+from flask import g, request
+from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
-from app import get_logger
+from app import get_logger, get_keys
 from app.lib.logger import colors as c
 from app.main.etap import call, get_prim_phone, EtapError
 from . import events, accounts, triggers, voice, sms
@@ -14,7 +13,7 @@ log = get_logger('notify.voice_annc')
 
 #-------------------------------------------------------------------------------
 def add_event():
-    agency = g.db.users.find_one({'user': current_user.user_id})['agency']
+    agency = g.db.users.find_one({'user': g.user.user_id})['agency']
     conf= g.db.agencies.find_one({'name':agency})
 
     log.debug(request.form.to_dict())

@@ -4,7 +4,8 @@ from datetime import datetime
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import g, request
-from .. import smart_emit, get_logger, utils
+from app.lib.utils import print_vars
+from .. import smart_emit, get_logger, get_logger
 log = get_logger('notify.record')
 
 #-------------------------------------------------------------------------------

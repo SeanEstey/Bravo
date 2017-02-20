@@ -16,57 +16,55 @@ this.unicode = {
 var flip=0;
 
 function positionAdminPanel() {
-		console.log('admin height='+$('#admin').height());
-		var y = $('#admin').height()*-1 + 85;
-		console.log('admin y='+y);
-		$('#admin').css('bottom', y);
-		$('#admin').show();
+	console.log('admin height='+$('#admin').height());
+	var y = $('#admin').height()*-1 + 85;
+	console.log('admin y='+y);
+	$('#admin').css('bottom', y);
+	$('#admin').show();
 }
-
-
 
 //------------------------------------------------------------------------------
 function toggleAdminPanelSize() {
-		$('#admin_size_btn').toggle(
-				function() {
-						var sign = '+';
-						if(flip++ % 2 === 0)
-								sign = '-';
-						$("#admin").animate({top: sign + '=150px'}, 500);
-						$('#admin_size_btn').css('display', 'block');
-				}
-		);
+	$('#admin_size_btn').toggle(
+		function() {
+			var sign = '+';
+			if(flip++ % 2 === 0)
+					sign = '-';
+			$("#admin").animate({top: sign + '=150px'}, 500);
+			$('#admin_size_btn').css('display', 'block');
+		}
+	);
 }
 
 //------------------------------------------------------------------------------
 function showAdminServerStatus() {
     api_call('server/properties', null, function(response) {
-        response = response['data'];
+		response = response['data'];
 
-				var admin_lbl = '';
-				var msg = 'Hi ' + response['USER_NAME'] + ' ';
+		var admin_lbl = '';
+		//var msg = 'Hi ' + response['USER_NAME'] + ' ';
 
-				if(response['TEST_SERVER']) {
-						admin_lbl += 'Server: <b>Test</b>, ';
-            document.title = 'Bravo Test (SSL)';
-        }
-				else
-						admin_lbl += 'Server: <b>Deploy</b>, ';
+		if(response['TEST_SERVER']) {
+			admin_lbl += 'Server: <b>Test</b>, ';
+			document.title = 'Bravo Test (SSL)';
+		}
+		else
+			admin_lbl += 'Server: <b>Deploy</b>, ';
 
-				if(response['SANDBOX_MODE'])
-						admin_lbl += 'Mode: <b>Sandbox</b>, ';
-        else
-						admin_lbl += 'Mode: <b>Live</b>, ';
+		if(response['SANDBOX_MODE'])
+			admin_lbl += 'Mode: <b>Sandbox</b>, ';
+		else
+			admin_lbl += 'Mode: <b>Live</b>, ';
 
-				if(response['CELERY_BEAT'])
-						admin_lbl += 'Scheduler: <b color="green">Enabled</b>';
-				else
-						admin_lbl += 'Scheduler: <b color="green">Disabled</b>';
+		if(response['CELERY_BEAT'])
+			admin_lbl += 'Scheduler: <b color="green">Enabled</b>';
+		else
+			admin_lbl += 'Scheduler: <b color="green">Disabled</b>';
 
-				//alertMsg(msg, 'info', 5000);
-				$('#admin-msg').html(admin_lbl);
-				positionAdminPanel();
-		});
+		//alertMsg(msg, 'info', 5000);
+		$('#admin-msg').html(admin_lbl);
+		positionAdminPanel();
+	});
 }
 
 //------------------------------------------------------------------------------
@@ -111,45 +109,45 @@ function alertMsg(msg, level, duration=7500, id=null) {
     */
 
     if(!id)
-		    var $alert = $('.alert-banner');
+		var $alert = $('.alert-banner');
     else
         var $alert = $('#'+id);
 
-		// Existing alert. Clear its timer, fade it out
-		if(globalTimeoutId) {
-				clearTimeout(globalTimeoutId);
-				globalTimeoutId = false;
-				$alert.stop(true);
+	// Existing alert. Clear its timer, fade it out
+	if(globalTimeoutId) {
+		clearTimeout(globalTimeoutId);
+		globalTimeoutId = false;
+		$alert.stop(true);
 
-				$alert.fadeTo('slow', 0, function() {
-					alertMsg(msg, level, duration, id);
-				});
-				return;
-		}
+		$alert.fadeTo('slow', 0, function() {
+			alertMsg(msg, level, duration, id);
+		});
+		return;
+	}
 
-		$alert.removeClass('success').removeClass('info').removeClass('warning').removeClass('danger');
-		$alert.addClass(level);
+	$alert.removeClass('success').removeClass('info').removeClass('warning').removeClass('danger');
+	$alert.addClass(level);
 
-		//if(duration==7500 && (level == 'warning' || level == 'danger'))
+	//if(duration==7500 && (level == 'warning' || level == 'danger'))
     //    duration = 10000;
 
-		$alert.html('<span>' + msg + '</span>');
+	$alert.html('<span>' + msg + '</span>');
 
-		$alert.fadeTo('slow', 0.75, function() {
-        if(duration > 0)  {
-            globalTimeoutId = setTimeout(function() {
-                $alert.fadeTo('slow', 0);
-                globalTimeoutId = false;
-            },
-            duration);
-        }
-		});
+	$alert.fadeTo('slow', 0.75, function() {
+		if(duration > 0)  {
+			globalTimeoutId = setTimeout(function() {
+				$alert.fadeTo('slow', 0);
+				globalTimeoutId = false;
+			},
+			duration);
+		}
+	});
 }
 
 //------------------------------------------------------------------------------
 function fadeAlert(id=null) {
     if(!id)
-		    var $alert = $('.alert-banner');
+		var $alert = $('.alert-banner');
     else
         var $alert = $('#'+id);
 
@@ -183,9 +181,9 @@ function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-primary', data=fa
     $('#'+pane_id).append(btn);
 
     if(data) {
-			for(var key in data)	{
-				$('#'+btn_id).data(key, data[key]);
-			}
+		for(var key in data)	{
+			$('#'+btn_id).data(key, data[key]);
+		}
     }
     return btn;
 }

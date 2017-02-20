@@ -189,7 +189,7 @@ function validateNewJobForm() {
     var msg = ''; 
 
     if(expired_date) {
-				console.log('showing expired date warning modal');
+		console.log('showing expired date warning modal');
 
         msg = 'The scheduled date is before the present:<br><br>' + 
         '<b>' + schedule_date.toString('dddd, MMMM d, yyyy @ hh:mm tt') + 
@@ -202,66 +202,61 @@ function validateNewJobForm() {
         $('#mymodal .btn-secondary').text('Cancel');
 
         $('#mymodal .btn-primary').click(function() {
-						$('#mymodal').modal('hide');
-						$('#new_event_modal').modal('hide');
-						submit(new FormData($('#myform')[0]));
+			$('#mymodal').modal('hide');
+			$('#new_event_modal').modal('hide');
+			submit(new FormData($('#myform')[0]));
         });
 
-				$('#mymodal .btn-secondary').click(function() {
-						$('#new_event_modal').modal('show');
-						$('#mymodal').modal('hide');
-						$(this).click(function() {});
-				});
+		$('#mymodal .btn-secondary').click(function() {
+			$('#new_event_modal').modal('show');
+			$('#mymodal').modal('hide');
+			$(this).click(function() {});
+		});
 
-				$('#new_event_modal').modal('hide');
+		$('#new_event_modal').modal('hide');
         $('#mymodal').modal('show');
     }
-		else {
-				$('#new_event_modal').modal('hide');
+	else {
+		$('#new_event_modal').modal('hide');
 
-				$('.loader-div').slideToggle(function() {
-						$('.btn.loader').fadeTo('slow', 1);
-				});
+		$('.loader-div').slideToggle(function() {
+			$('.btn.loader').fadeTo('slow', 1);
+		});
 
-				submit(new FormData($('#myform')[0]));
-		}
+		submit(new FormData($('#myform')[0]));
+	}
 }
 
 //------------------------------------------------------------------------------
 function submit(form_data) {
-		$.ajax({
-			type: 'POST',
-			url: $URL_ROOT + '/api/notify/events/create',
-			data: form_data,
-			contentType: false,
-			processData: false,
-			dataType: 'json'
-		})
-		.done(function(response) {
-				if(response['status'] != 'success') {
-						console.log(response);
+	$.ajax({
+		type: 'POST',
+		url: $URL_ROOT + '/api/notify/events/create',
+		data: form_data,
+		contentType: false,
+		processData: false,
+		dataType: 'json'})
+	.done(function(response) {
+		if(response['status'] != 'success') {
+			console.log(response);
+			alertMsg('Response: ' + response['data']['description'], 'danger', 30000)
 
-						alertMsg(
-							'Response: ' + response['data']['description'], 
-							'danger', 30000)
+			$('.btn.loader').fadeTo('slow', 0, function() {
+				$('.loader-div').slideToggle();
+			});
+			return;
+		}
 
-						$('.btn.loader').fadeTo('slow', 0, function() {
-								$('.loader-div').slideToggle();
-						});
+		console.log(response);
 
-						return;
-				}
+		addEvent(
+			response['data']['event'],
+			response['data']['view_url'],
+			response['data']['cancel_url'],
+			response['data']['description']);
 
-				console.log(response);
-
-				addEvent(
-					response['data']['event'],
-					response['data']['view_url'],
-					response['data']['cancel_url'],
-					response['data']['description']);
-
-				$('.btn.loader').fadeTo('slow', 0, function() {
-						$('.loader-div').slideToggle();
-				});
+		$('.btn.loader').fadeTo('slow', 0, function() {
+				$('.loader-div').slideToggle();
 		});
+	});
 }

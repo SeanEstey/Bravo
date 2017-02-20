@@ -26,7 +26,7 @@ def view_admin():
     return render_template('views/admin.html', agency_config=settings_html)
 
 #-------------------------------------------------------------------------------
-@main.route('/client', methods=['GET', 'POST'])
+@main.route('/preview', methods=['GET', 'POST'])
 def view_client():
     log.debug('request.method=%s', request.method)
 
@@ -41,7 +41,7 @@ def view_client():
         token = capability.generate()
         log.debug('generated token, sending to client...')
 
-        return render_template('/views/client.html', token=token)
+        return render_template('/views/preview.html', token=token)
     elif request.method == 'POST':
         log.debug(request.form.to_dict())
         from app.notify.voice import get_speak

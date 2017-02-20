@@ -3,7 +3,7 @@ import logging
 from . import api
 from flask import g, request
 from flask_login import login_required
-from app import get_server_prop
+from app import get_logger, get_server_prop
 from app.etap import block_size, route_size
 from .main import get_var, build_resp, func_call, task_call, WRITE_ME
 from app.alice.outgoing import send_welcome
@@ -13,12 +13,12 @@ from app.booker.book import make
 from app.main import donors
 from app.main.signups import lookup_carrier
 from app.notify.accounts import edit_fields
-from app.notify.events import create_event, cancel_event, reset_event, rmv_notifics
+from app.notify.events import create_event, cancel_event, dump_event, reset_event, rmv_notifics
 from app.notify.recording import dial_recording
 from app.notify.triggers import kill_trigger
 from app.routing.main import edit_field
-log = logging.getLogger(__name__)
-#-------------------------------------------------------------------------------
+log = get_logger('api')
+
 
 @api.route('/accounts/submit_form', methods=['POST'])
 #@login_required
@@ -96,6 +96,11 @@ def call_create_event():
 @login_required
 def call_cancel_event():
     return func_call(cancel_event, evnt_id=get_var('evnt_id'))
+
+@api.route('/notify/events/dump', methods=['POST'])
+@login_required
+def call_dump_event():
+    return func_call(dump_event, evnt_id=get_var('evnt_id'))
 
 @api.route('/notify/events/reset', methods=['POST'])
 @login_required

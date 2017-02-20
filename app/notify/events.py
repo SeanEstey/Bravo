@@ -82,16 +82,16 @@ def cancel_event(evnt_id=None):
     '''
 
     evnt_id = oid(evnt_id)
-    notifics = g.db['notifics'].find({'evnt_id':evnt_id})
+    notifics = g.db.notifics.find({'evnt_id':evnt_id})
 
     n_accts = 0
 
     for notific in notifics:
-        n_accts += g.db['accounts'].remove({'_id':notific['acct_id']}).get('n')
+        n_accts += g.db.accounts.remove({'_id':notific['acct_id']}).get('n')
 
-    n_notifics = g.db['notifics'].remove({'evnt_id':evnt_id}).get('n')
-    n_triggers = g.db['triggers'].remove({'evnt_id': evnt_id}).get('n')
-    n_events = g.db['notific_events'].remove({'_id': evnt_id}).get('n')
+    n_notifics = g.db.notifics.remove({'evnt_id':evnt_id}).get('n')
+    n_triggers = g.db.triggers.remove({'evnt_id': evnt_id}).get('n')
+    n_events = g.db.notific_events.remove({'_id': evnt_id}).get('n')
 
     log.info('cancelled event. notifics=%s, triggers=%s, accts=%s', n_notifics,
     n_triggers, n_accts)
@@ -106,45 +106,37 @@ def reset_event(evnt_id=None):
 
     evnt_id = oid(evnt_id)
 
-    g.db['notific_events'].update_one(
+    g.db.notific_events.update_one(
         {'_id':evnt_id},
-        {'$set':{'status':'pending'}}
-    )
-
-    n = g.db['notifics'].update(
-        {'evnt_id': evnt_id}, {
-            '$set': {
-                'tracking.status': 'pending',
-                'tracking.attempts': 0
-            },
-            '$unset': {
-                'tracking.sid': '',
-                'tracking.mid': '',
-                'tracking.answered_by': '',
-                'tracking.ended_dt': '',
-                'tracking.speak': '',
-                'tracking.code': '',
-                'tracking.duration': '',
-                'tracking.error': '',
-                'tracking.reason': '',
-                'tracking.code': '',
-                'tracking.reply': '',
-                'tracking.body': '',
-                'tracking.sent_dt': '',
-                'tracking.error_code': '',
-                'tracking.digit': ''
-            }
-        },
-        multi=True
-    )
-
-    g.db['triggers'].update(
+        {'$set':{'status':'pending'}})
+    n = g.db.notifics.update(
+        {'evnt_id': evnt_id},
+        {'$set': {
+            'tracking.status':'pending',
+            'tracking.attempts':0},
+         '$unset': {
+            'tracking.sid': '',
+            'tracking.mid': '',
+            'tracking.answered_by': '',
+            'tracking.ended_dt': '',
+            'tracking.speak': '',
+            'tracking.code': '',
+            'tracking.duration': '',
+            'tracking.error': '',
+            'tracking.reason': '',
+            'tracking.code': '',
+            'tracking.reply': '',
+            'tracking.body': '',
+            'tracking.sent_dt': '',
+            'tracking.error_code': '',
+            'tracking.digit': ''}},
+        multi=True)
+    g.db.triggers.update(
         {'evnt_id': evnt_id},
         {'$set': {'status':'pending'}},
-        multi=True
-    )
+        multi=True)
 
-    log.info('%s notifics reset', n['nModified'])
+    log.debug('%s notifics reset', n['nModified'])
 
 #-------------------------------------------------------------------------------
 def add(agency, name, event_date, _type):
@@ -154,7 +146,7 @@ def add(agency, name, event_date, _type):
       -id (ObjectId)
     '''
 
-    return g.db['notific_events'].insert_one({
+    return g.db.notific_events.insert_one({
         'name': name,
         'agency': agency,
         'event_dt': to_utc(d=event_date, t=time(8,0)),
@@ -166,11 +158,10 @@ def add(agency, name, event_date, _type):
 
 #-------------------------------------------------------------------------------
 def get(evnt_id, local_time=True):
-    event = g.db['notific_events'].find_one({'_id':evnt_id})
 
+    event = g.db.notific_events.find_one({'_id':evnt_id})
     if local_time == True:
         return to_local(obj=event)
-
     return event
 
 #-------------------------------------------------------------------------------
@@ -178,45 +169,37 @@ def get_list(agency, local_time=True, max=20):
     '''Return list of all events for agency
     '''
 
-    sorted_events = list(g.db['notific_events'].find(
+    sorted_events = list(g.db.notific_events.find(
         {'agency':agency}).sort('event_dt',-1).limit(max))
-
     if local_time == True:
         for event in sorted_events:
             event = to_local(obj=event)
-
     return sorted_events
 
 #-------------------------------------------------------------------------------
 def get_triggers(evnt_id, local_time=True, sort_by='type'):
-    trigger_list = list(g.db['triggers'].find({'evnt_id':evnt_id}).sort(sort_by,1))
 
+    trigger_list = list(g.db.triggers.find({'evnt_id':evnt_id}).sort(sort_by,1))
     if local_time == True:
         for trigger in trigger_list:
             trigger = to_local(obj=trigger)
-
     return trigger_list
 
 #-------------------------------------------------------------------------------
 def get_notifics(evnt_id, local_time=True, sorted_by='account.event_dt'):
-    notific_results = g.db['notifics'].aggregate([
+
+    notific_results = g.db.notifics.aggregate([
         {'$match': {
             'evnt_id': evnt_id
-            }
-        },
-        {'$lookup':
-            {
-              'from': "accounts",
-              'localField': "acct_id",
-              'foreignField': "_id",
-              'as': "account"
-            }
-        },
+            }},
+        {'$lookup': {
+            'from': "accounts",
+            'localField': "acct_id",
+            'foreignField': "_id",
+            'as': "account"}},
         {'$group': {
             '_id': '$acct_id',
-            'results': { '$push': '$$ROOT'}
-        }}
-    ])
+            'results': { '$push': '$$ROOT'}}}])
 
     if local_time==True:
         # Convert to list since not possible to rewind aggregate cursors
@@ -234,31 +217,24 @@ def get_notifics(evnt_id, local_time=True, sorted_by='account.event_dt'):
 
 #-------------------------------------------------------------------------------
 def rmv_notifics(evnt_id, acct_id):
-    n_notifics = g.db['notifics'].remove({'acct_id':oid(acct_id)})['n']
-    n_accounts = g.db['accounts'].remove({'_id':oid(acct_id)})['n']
+
+    n_notifics = g.db.notifics.remove({'acct_id':oid(acct_id)})['n']
+    n_accounts = g.db.accounts.remove({'_id':oid(acct_id)})['n']
     log.debug('removed %s notifics, %s account for evnt_id="%s"', n_notifics,
     n_accounts, evnt_id)
     return True
 
 #-------------------------------------------------------------------------------
-def dup_random_acct(evnt_id):
-    import random
-    random.seed()
-    size = g.db.accounts.find({'evnt_id':evnt_id}).count()
-    rand_num = random.randrange(size)
+def dump_event(evnt_id):
 
-    acct = g.db.accounts.find({'evnt_id':oid(evnt_id)}).limit(-1).skip(rand_num).next()
-    notifics = g.db.notifics.find({'acct_id': acct['_id']})
+    event = g.db.notific_events.find_one({'_id':oid(evnt_id)})
+    event['triggers'] = get_triggers(event['_id'])
 
-    old_id = acct['_id']
-    acct['_id'] = oid()
-    g.db.accounts.insert(acct)
+    for trigger in event['triggers']:
+        # modifying 'triggers' structure for view rendering
+        trigger['count'] = triggers.get_count(trigger['_id'])
 
-    #log.info('old acct_id %s, new acct_id %s', str(old_id), str(new_acct['_id']))
-
-    for notific in notifics:
-        notific['_id'] = oid()
-        notific['acct_id'] = acct['_id']
-        g.db.notifics.insert_one(notific)
-
-    return True
+    return jsonify(formatter(event,
+        to_local_time=True,
+        to_strftime="%m/%-d/%Y @ %-I:%M%p",
+        bson_to_json=True))

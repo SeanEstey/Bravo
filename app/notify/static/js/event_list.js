@@ -49,42 +49,41 @@ function addPageNavHandlers() {
 function addDeleteBtnHandlers() {
 
     $('.delete-btn').click(function(){ 
-				var $tr = $(this).parent().parent();
-				var event_uuid = $tr.attr('id');
+        var $tr = $(this).parent().parent();
+        var event_uuid = $tr.attr('id');
 
-				console.log('prompt to delete job_id: ' + event_uuid);
+        console.log('prompt to delete job_id: ' + event_uuid);
 
-				$('#mymodal .modal-title').text('Confirm');
-				$('#mymodal .modal-body').html('');
-				$('#mymodal .modal-body').text('Really delete this job?');
-				$('#mymodal .btn-secondary').text('No');
-				$('#mymodal .btn-primary').text('Yes');
+        $('#mymodal .modal-title').text('Confirm');
+        $('#mymodal .modal-body').html('');
+        $('#mymodal .modal-body').text('Really delete this job?');
+        $('#mymodal .btn-secondary').text('No');
+        $('#mymodal .btn-primary').text('Yes');
 
-				// Clear any currently bound events
-				$('#mymodal .btn-primary').off('click');
+        // Clear any currently bound events
+        $('#mymodal .btn-primary').off('click');
 
-				$('#mymodal .btn-primary').click(function() {
-						$.ajax({
-							type: 'POST',
-							url: $URL_ROOT + 'api/notify/events/cancel',
-              data: {'evnt_id': event_uuid}
-						})
-						.done(function(response) {
-								if(response['status'] == 'success')
-										$tr.remove();
-						});
+        $('#mymodal .btn-primary').click(function() {
+            $.ajax({
+                type: 'POST',
+                url: $URL_ROOT + 'api/notify/events/cancel',
+                data: {'evnt_id': event_uuid}})
+            .done(function(response) {
+                if(response['status'] == 'success')
+                    $tr.remove();
+            });
 
-						$('#mymodal').modal('hide'); 
-				});
+            $('#mymodal').modal('hide'); 
+        });
 
-				$('#mymodal').modal('show');
-		});
+        $('#mymodal').modal('show');
+    });
 }
 
 //------------------------------------------------------------------------------
 function addSocketIOHandlers() {
-    socket = io.connect('https://' + document.domain + ':' + location.port);
 
+    socket = io.connect('https://' + document.domain + ':' + location.port);
     socket.on('connect', function(){
         console.log('socket.io connected!');
 
@@ -124,7 +123,7 @@ function addSocketIOHandlers() {
 
 //------------------------------------------------------------------------------
 function buildAdminPanel() {
-		$('#admin_pane').hide();
+    $('#admin_pane').hide();
 
     show_debug_info_btn = addAdminPanelBtn(
       'dev_pane',
@@ -132,38 +131,35 @@ function buildAdminPanel() {
       'Debug Mode',
       'btn-outline-primary');
 
-		// Add debug buttons that print notific['tracking'] data to console
+    // Add debug buttons that print notific['tracking'] data to console
     show_debug_info_btn.click(function() {
-				$(this).prop('disabled', 'true');
+        $(this).prop('disabled', 'true');
 
-				$('#events_tbl th:last').after('<th>Debug</th>');
+        $('#events_tbl th:last').after('<th>Debug</th>');
 
-				$('tr[id]').each(function() {
-						var $debug_btn = 
-							'<button name="debug-btn" ' +
-											'class="btn btn-outline-warning">Print</button>';
+        $('tr[id]').each(function() {
+            var $debug_btn = 
+                '<button name="debug-btn" ' +
+                'class="btn btn-outline-warning">Print</button>';
 
-						$(this).append('<td>'+$debug_btn+'</td>');
+            $(this).append('<td>'+$debug_btn+'</td>');
 
-						$(this).find('button[name="debug-btn"]').click(function() {
-								alertMsg('Debug data printed to console. ' +
-												 'To view console in chrome, type <b>Ctrl+Shift+I</b>.', 
-												 'warning', 15000);
+            $(this).find('button[name="debug-btn"]').click(function() {
+                alertMsg('Debug data printed to console. ' +
+                         'To view console in chrome, type <b>Ctrl+Shift+I</b>.', 
+                         'warning', 15000);
+                $.ajax({
+                    type: 'post',
+                    url: $URL_ROOT + 'notify/' + $(this).parent().parent().attr('id') + '/debug_info'})
+                .done(function(response) {
+                    console.log(response);
+                });
+            });
+        });
 
-								$.ajax({
-									type: 'post',
-									url: $URL_ROOT + 'notify/' + $(this).parent().parent().attr('id') + '/debug_info'
-							  })
-								.done(function(response) {
-										console.log(response);
-								});
-						});
-				});
-
-				alertMsg('Debug mode enabled. ' +
-								 'Clicking <b>Print Debug</b> buttons prints notification info to console.', 'info');
+        alertMsg('Debug mode enabled. ' +
+                 'Clicking <b>Print Debug</b> buttons prints notification info to console.', 'info');
     });
-
 }
 
 

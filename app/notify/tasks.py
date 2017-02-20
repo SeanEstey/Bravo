@@ -210,7 +210,8 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
     except EtapError as e:
         log.error("etap error, desc='%s'", str(e))
 
-    body = None
+    if not acct.get('email'):
+        return 'success'
 
     try:
         body = render_template(

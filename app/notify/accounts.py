@@ -1,6 +1,7 @@
 '''app.notify.accounts'''
 import logging
 from flask import g
+from bson import ObjectId as oid
 from dateutil.parser import parse
 from .. import get_logger, get_keys
 from app.lib.dt import to_local
@@ -19,20 +20,24 @@ def add(agency, evnt_id, name, phone=None, email=None, udf=None, nameFormat=None
         'nameFormat': nameFormat}).inserted_id
 
 #-------------------------------------------------------------------------------
-def edit_fields(acct_id, fields):
+def edit_fields(acct_id, field):
     '''User editing a notification value from GUI
     '''
 
-    for fieldname, value in fields:
-        if fieldname == 'udf.pickup_dt':
+    for name in field:
+        if name == 'udf.pickup_dt':
           try:
-            value = to_local(parse(value))
+            value = to_local(parse(field[name]))
           except Exception, e:
             log.error('Could not parse event_dt in /edit/call. %s', str(e))
             return 'Date edit failed. "%s" is not a valid date.' % value
+        else:
+            value = field[name]
 
-        g.db.accounts.update({'_id':acct_id}, {'$set':{fieldname:value}})
+        g.db.accounts.update(
+            {'_id':oid(str(acct_id))},
+            {'$set':{name:value}})
 
-        log.info('Editing ' + fieldname + ' to value: ' + str(value))
+        log.debug('edited ' + name + ' to value: ' + str(value))
 
         return 'OK'

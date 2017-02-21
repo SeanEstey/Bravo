@@ -21,7 +21,7 @@ def monitor_triggers(self, **kwargs):
     # TESTING
     all_triggs = g.db.triggers.find({'status':'pending'})
     for t in all_triggs:
-        evnt = g.db.notific_events.find_one({'_id': t['evnt_id']})
+        evnt = g.db.events.find_one({'_id': t['evnt_id']})
         if evnt['name'] == 'R1Z':
             try:
                 fire_trigger(t['_id'])
@@ -69,7 +69,7 @@ def fire_trigger(self, _id=None, **rest):
     status = ''
     fails = 0
     trig = g.db.triggers.find_one({'_id':oid(_id)})
-    event = g.db.notific_events.find_one({'_id':trig['evnt_id']})
+    event = g.db.events.find_one({'_id':trig['evnt_id']})
     agcy = event['agency']
     g.db.triggers.update_one(
         {'_id':oid(_id)},
@@ -190,7 +190,7 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
     acct = g.db.accounts.find_one_and_update(
         {'_id':oid(acct_id)},
         {'$set': {'opted_out': True}})
-    evnt = g.db.notific_events.find_one({'_id':oid(evnt_id)})
+    evnt = g.db.events.find_one({'_id':oid(evnt_id)})
 
     if not evnt or not acct:
         msg = 'evnt/acct not found (evnt_id=%s, acct_id=%s' %(evnt_id,acct_id)

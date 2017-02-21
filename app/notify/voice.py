@@ -1,12 +1,14 @@
 '''app.notify.voice'''
-import logging, os
+import logging, os, time, urllib
 from datetime import datetime, date, time
-from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
+from twilio.rest import TwilioRestClient
+from twilio.util import TwilioCapability
 from flask import g, render_template, request
 from pymongo.collection import ReturnDocument
 from app import get_logger, get_keys, smart_emit
 from app.lib.utils import formatter, print_vars
+from app.lib.logger import colors as c
 from app.lib import html
 from app.lib.dt import to_utc
 from .utils import intrntl_format
@@ -224,57 +226,53 @@ def on_complete():
     Working under request context
     '''
 
+    form = request.form
+
     if request.form['CallStatus'] == 'completed':
-        log.debug('completed voice notific to %s (%s, %ss)',
-            request.form['To'],
-            request.form.get('AnsweredBy'),
-            request.form.get('CallDuration'))
+        log.debug('%sdelivered voice notific to %s%s (%s, %ss)',
+            c.GRN, form['To'], c.ENDC, form['AnsweredBy'], form['CallDuration'])
 
     notific = g.db.notifics.find_one_and_update({
-        'tracking.sid': request.form['CallSid']}, {
+        'tracking.sid': form['CallSid']}, {
         '$set': {
-            'tracking.status': request.form['CallStatus'],
+            'tracking.status': form['CallStatus'],
             'tracking.ended_dt': datetime.now(),
-            'tracking.duration': request.form.get('CallDuration'),
-            'tracking.answered_by': request.form.get('AnsweredBy')}},
+            'tracking.duration': form.get('CallDuration'),
+            'tracking.answered_by': form.get('AnsweredBy')}},
         return_document=ReturnDocument.AFTER)
 
-    if request.form['CallStatus'] == 'failed':
-        description = request.form.get('description')
-
-        import time
-        time.sleep(10)
-        agency = g.db.agencies.find_one({'twilio.api.sid': request.form['AccountSid']})
+    if form['CallStatus'] == 'failed':
+        time.sleep(5)
+        desc = form.get('description')
+        agency = g.db.agencies.find_one({'twilio.api.sid': form['AccountSid']})
         keys = agency['twilio']['api']
         client = TwilioRestClient(keys['sid'], keys['auth_id'])
-        call_sid = request.form['CallSid']
+        call_sid = form['CallSid']
 
         for n in client.notifications.list():
             if n.call_sid == call_sid:
-                import urllib
-                description = urllib.unquote(n.message_text).replace('+', ' ').replace('&',' ')
+                desc = urllib.unquote(n.message_text).replace('+', ' ').replace('&',' ')
                 break
 
-        log.error('%s %s (%s)',
-            request.form['To'], request.form['CallStatus'], description)
+        log.error('%s %s (%s)', form['To'], form['CallStatus'], desc)
 
-        account = g.db.accounts.find_one({'_id':notific['acct_id']})
-        evnt = g.db.notific_events.find_one({'_id':notific['evnt_id']})
+        acct = g.db.accounts.find_one({'_id':notific['acct_id']})
+        evnt = g.db.events.find_one({'_id':notific['evnt_id']})
 
         from app.main.tasks import create_rfu
         create_rfu.delay(
             evnt['agency'],
-            'Error calling %s\n. %s' %(notific['to'], description),
+            'Error calling %s\n. %s' %(notific['to'], desc),
             options={
-                'Account Number': account['udf'].get('etap_id'),
-                'Name & Address': account['name'],
+                'Account Number': acct['udf'].get('etap_id'),
+                'Name & Address': acct['name'],
                 'Date': date.today().strftime('%-m/%-d/%Y')})
 
     smart_emit('notific_status', {
         'notific_id': str(notific['_id']),
-        'status': request.form['CallStatus'],
-        'answered_by': request.form.get('AnsweredBy'),
-        'description': request.form.get('description')})
+        'status': form['CallStatus'],
+        'answered_by': form.get('AnsweredBy'),
+        'description': form.get('description')})
 
     return 'OK'
 
@@ -290,3 +288,31 @@ def on_error():
     log.error('twilio error code %s: %s', code, TWILIO_ERRS[code])
     log.debug('call dump: %s', request.form.to_dict())
     return 'OK'
+
+#-------------------------------------------------------------------------------
+def get_token():
+    '''Get token for client to make preview voice call
+    '''
+
+    log.debug('generating twilio token...')
+
+    app_sid = "AP30ab394c8e7460fac579d5559a8d4cb7"
+    keys = get_keys('twilio')['api']
+    capability = TwilioCapability(keys['sid'], keys['auth_id'])
+    capability.allow_client_outgoing(app_sid)
+    #capability.allow_client_incoming("jenny")
+    token = capability.generate()
+    return token
+
+#-------------------------------------------------------------------------------
+def preview():
+
+    log.debug(request.form.to_dict())
+    notific = g.db.notifics.find_one({'type':'voice'})
+    notific['tracking']['answered_by'] = 'human'
+    notific['tracking']['digit'] = "1"
+    acct = g.db.accounts.find_one({'_id':notific['acct_id']})
+    speak = get_speak(notific, notific['on_answer']['template'], timeout=False)
+    response = twiml.Response()
+    response.say(speak, voice='alice')
+    return response

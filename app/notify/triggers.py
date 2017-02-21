@@ -25,7 +25,7 @@ def add(evnt_id, type_, date_, time_):
         'fire_dt': to_utc(d=date_, t=time_)
     }).inserted_id
 
-    g.db.notific_events.update_one(
+    g.db.events.update_one(
         {'_id':evnt_id},
         {'$push':{'trig_ids': trig_id}})
 

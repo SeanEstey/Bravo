@@ -57,7 +57,7 @@ def create_event():
             log.debug('', exc_info=True)
             raise
 
-    event = g.db.notific_events.find_one({'_id':evnt_id})
+    event = g.db.events.find_one({'_id':evnt_id})
     event['triggers'] = get_triggers(event['_id'])
 
     for trigger in event['triggers']:
@@ -92,7 +92,7 @@ def cancel_event(evnt_id=None):
 
     n_notifics = g.db.notifics.remove({'evnt_id':evnt_id}).get('n')
     n_triggers = g.db.triggers.remove({'evnt_id': evnt_id}).get('n')
-    n_events = g.db.notific_events.remove({'_id': evnt_id}).get('n')
+    n_events = g.db.events.remove({'_id': evnt_id}).get('n')
 
     log.info('cancelled event. notifics=%s, triggers=%s, accts=%s', n_notifics,
     n_triggers, n_accts)
@@ -107,7 +107,7 @@ def reset_event(evnt_id=None):
 
     evnt_id = oid(evnt_id)
 
-    g.db.notific_events.update_one(
+    g.db.events.update_one(
         {'_id':evnt_id},
         {'$set':{'status':'pending'}})
     n = g.db.notifics.update(
@@ -147,7 +147,7 @@ def add(agency, name, event_date, _type):
       -id (ObjectId)
     '''
 
-    return g.db.notific_events.insert_one({
+    return g.db.events.insert_one({
         'name': name,
         'agency': agency,
         'event_dt': to_utc(d=event_date, t=time(8,0)),
@@ -160,7 +160,7 @@ def add(agency, name, event_date, _type):
 #-------------------------------------------------------------------------------
 def get(evnt_id, local_time=True):
 
-    event = g.db.notific_events.find_one({'_id':evnt_id})
+    event = g.db.events.find_one({'_id':evnt_id})
     if local_time == True:
         return to_local(obj=event)
     return event
@@ -170,7 +170,7 @@ def get_list(agency, local_time=True, max=20):
     '''Return list of all events for agency
     '''
 
-    sorted_events = list(g.db.notific_events.find(
+    sorted_events = list(g.db.events.find(
         {'agency':agency}).sort('event_dt',-1).limit(max))
     if local_time == True:
         for event in sorted_events:
@@ -228,7 +228,7 @@ def rmv_notifics(evnt_id, acct_id):
 #-------------------------------------------------------------------------------
 def dump_event(evnt_id):
 
-    event = g.db.notific_events.find_one({'_id':oid(evnt_id)})
+    event = g.db.events.find_one({'_id':oid(evnt_id)})
     event['triggers'] = get_triggers(event['_id'])
 
     for trigger in event['triggers']:

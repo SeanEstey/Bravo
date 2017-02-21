@@ -34,6 +34,10 @@ def call_complete():
 def call_fallback():
     return voice.on_error()
 
+@notify.route('/voice/preview', methods=['POST'])
+def call_preview():
+    return Response(str(voice.preview()), mimetype='text/xml')
+
 @notify.route('/sms/status', methods=['POST'])
 def sms_status():
     return sms.on_status()

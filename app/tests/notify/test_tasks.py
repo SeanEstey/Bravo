@@ -30,7 +30,7 @@ class NotifyTasksTests(unittest.TestCase):
 
     def _test_fire_trigger(self):
         try:
-            evnt = self.db.notific_events.find_one({'status':'pending'})
+            evnt = self.db.events.find_one({'status':'pending'})
             tgrs = get_triggers(evnt['_id'])
             fire_trigger(tgrs[0]['_id'])
         except Exception as e:

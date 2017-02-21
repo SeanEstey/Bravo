@@ -14,14 +14,17 @@ this.unicode = {
 
 
 var flip=0;
+var y_offset=0;
 
 //------------------------------------------------------------------------------
 function positionAdminPanel() {
-	console.log('admin height='+$('#admin').height());
-	var y = $('#admin').height()*-1 + 85;
-	console.log('admin y='+y);
-	$('#admin').css('bottom', y);
+
+	var height = $('#admin').height(); 
+	y_offset = (height * -1) + 85;
+	$('#admin').css('bottom', y_offset);
 	$('#admin').show();
+
+	console.log('pos_admin_panel(): admin panel height=' + height + ', y offset=' + y_offset);
 }
 
 //------------------------------------------------------------------------------
@@ -29,9 +32,12 @@ function toggleAdminPanelSize() {
 	$('#admin_size_btn').toggle(
 		function() {
 			var sign = '+';
+
 			if(flip++ % 2 === 0)
 					sign = '-';
-			$("#admin").animate({top: sign + '=150px'}, 500);
+
+			var offset_str = String(y_offset*-1) + 'px';
+			$("#admin").animate({top: sign + '='+offset_str}, 500);
 			$('#admin_size_btn').css('display', 'block');
 		}
 	);

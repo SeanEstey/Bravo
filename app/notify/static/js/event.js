@@ -121,6 +121,41 @@ function buildAdminPanel() {
      * $(this).data() 
      */
 
+    $('th[id] a:contains("Status")').parent().each(function() {
+        var col_caption = $(this).children().text();
+
+        if(col_caption.search("Voice") > -1) {
+			var btn_caption = 'Preview Voice';
+			var btn_id = 'preview-voice-btn';
+
+			btn = addAdminPanelBtn(
+			  'admin_pane',
+			  btn_id,
+			  btn_caption,
+			  'btn-outline-primary');
+
+			btn.click(function() {
+				$.ajax({
+					context: this,
+					type: 'POST',
+					url: $URL_ROOT + 'api/notify/events/preview/token'})
+				.done(function(response) {
+					//console.log('request status: %s, data: %s', response['status'], response['data']);
+
+					if(response['status'] != 'success') {
+						alertMsg('failed to get twilio client token', 'danger');
+						return;
+					}
+					else {
+						console.log('received twilio token. setting up device...');
+						alertMsg('Setting up device...', 'info');
+						Twilio.Device.setup(response['data']); 
+					}
+				});
+			});
+		}
+	});
+
     // Add btns to fire each event trigger. trig_ids are stored in data-container 
     // "Status" columns i.e. "Voice SMS Status"
     $('th[id] a:contains("Status")').parent().each(function() {
@@ -129,11 +164,11 @@ function buildAdminPanel() {
         var col_caption = $(this).children().text();
 
         if(col_caption.search("Email") > -1) {
-          var btn_caption = 'Send Emails Now';
+          var btn_caption = 'Send Emails';
           var btn_id = 'fire-email-btn';
         }
         else if(col_caption.search("Voice") > -1) {
-          var btn_caption = 'Send Voice/SMS Now';
+          var btn_caption = 'Send Voice/SMS';
           var btn_id = 'fire-voice-sms-btn';
         }
 
@@ -378,25 +413,27 @@ function saveFieldEdit($input) {
 
     var field_name = String($td.attr('name'));
 
-    console.log(field_name + ' edited');
-
     var fields = {};
     fields[field_name] = $input.val();
+
+    console.log(field_name + ' edited to value "' + $input.val() + 
+        '" for acct_id=' + $td.parent().attr('id'));
 
     if($input.val() == '---')
         return;
 
     $.ajax({
         type: 'POST',
-        data: {'acct_id': $td.parent().attr('id'), 'fields':[fields]},
+        data: {'acct_id': $td.parent().attr('id'), 'fields':JSON.stringify(fields)},
+        context: this,
         url: $URL_ROOT + 'api/notify/accts/edit'})
-    .done(function(msg) {
-        if(msg != 'OK') {
-            alertMsg(msg, 'danger');
-            $td.html(text);
+    .done(function(response) {
+        if(response['status'] != 'success'){ 
+            alertMsg(JSON.stringify(response), 'danger');
+            //$td.html(text);
         }
         else {
-                alertMsg('Edited field successfully', 'success');
+            alertMsg('Edited field successfully', 'success');
         }
     });
 
@@ -483,7 +520,6 @@ function enableColumnSorting() {
 	});
 }
 
-
 //------------------------------------------------------------------------------
 function applyStatusColor($td) {
 
@@ -544,4 +580,34 @@ function formatColumns() {
     $('td[name="sms_reply"]').each(function() {
         applyStatusColor($(this));
     });
+}
+
+/***************** TWILIO DEVICE ******************/
+
+Twilio.Device.ready(function (device) {
+	alertMsg('Device setup. Simulating voice call...', 'info');
+	var conn = Twilio.Device.connect({});
+});
+
+Twilio.Device.error(function (error) {
+	alertMsg("Error: " + error.message, 'danger');
+});
+
+Twilio.Device.connect(function (conn) {
+	alertMsg('Connected. Playing voice notification...', 'info');
+});
+
+Twilio.Device.disconnect(function (conn) {
+	alertMsg('Call ended', 'info');
+});
+
+/* Listen for incoming connections */
+Twilio.Device.incoming(function (conn) {
+	console.log("Incoming connection from " + conn.parameters.From);
+	// accept the incoming connection and start two-way audio
+	conn.accept();
+});
+
+function hangup() {
+	Twilio.Device.disconnectAll();
 }

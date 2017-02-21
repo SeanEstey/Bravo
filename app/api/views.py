@@ -1,5 +1,6 @@
 '''app.api.views'''
 import logging
+from json import loads
 from . import api
 from flask import g, request
 from flask_login import login_required
@@ -16,6 +17,7 @@ from app.notify.accounts import edit_fields
 from app.notify.events import create_event, cancel_event, dump_event, reset_event, rmv_notifics
 from app.notify.recording import dial_recording
 from app.notify.triggers import kill_trigger
+from app.notify.voice import get_token
 from app.routing.main import edit_field
 log = get_logger('api')
 
@@ -97,6 +99,11 @@ def call_create_event():
 def call_cancel_event():
     return func_call(cancel_event, evnt_id=get_var('evnt_id'))
 
+@api.route('/notify/events/preview/token', methods=['POST'])
+@login_required
+def call_preview_token():
+    return func_call(get_token)
+
 @api.route('/notify/events/dump', methods=['POST'])
 @login_required
 def call_dump_event():
@@ -115,7 +122,7 @@ def call_record():
 @api.route('/notify/accts/edit', methods=['POST'])
 @login_required
 def call_notify_acct_edit():
-    return func_call(edit_fields, get_var('acct_id'), get_var('fields'))
+    return func_call(edit_fields, str(get_var('acct_id')), loads(get_var('fields')))
 
 @api.route('/notify/accts/remove', methods=['POST'])
 @login_required

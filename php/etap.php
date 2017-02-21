@@ -42,7 +42,7 @@ function get_endpoint($user, $pass) {
 		return get_error($nsc, $log=True);
 
 	if($newEndpoint != "") {
-		error_log("Given endpoint failed. Using '" . $newEndpoint . "'");
+		//error_log("Given endpoint failed. Using '" . $newEndpoint . "'");
 		$nsc = new nusoap_client($newEndpoint, true);
 
 	    if(is_error($nsc))

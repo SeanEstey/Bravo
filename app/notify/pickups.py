@@ -139,7 +139,7 @@ def find_all_scheduled_dates(evnt_id):
     cal_events = []
     block_dates = {}
     evnt_id = ObjectId(evnt_id)
-    event = g.db['notific_events'].find_one({'_id':evnt_id})
+    event = g.db.events.find_one({'_id':evnt_id})
 
     start = event['event_dt'] + timedelta(days=1)
     end = start + timedelta(days=110)
@@ -232,7 +232,7 @@ def is_valid(evnt_id, acct_id):
     if not ObjectId.is_valid(evnt_id) or not ObjectId.is_valid(acct_id):
         return False
 
-    evnt = g.db.notific_events.find_one({'_id':ObjectId(evnt_id)})
+    evnt = g.db.events.find_one({'_id':ObjectId(evnt_id)})
     acct = g.db.accounts.find_one({'_id':ObjectId(acct_id)})
 
     if not evnt or not acct:

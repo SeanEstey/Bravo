@@ -102,7 +102,7 @@ def on_dropped():
     msg = 'receipt to %s dropped. %s.' %(
         request.form['recipient'], request.form['reason'])
 
-    agcy = g.db.notific_events.find_one({'_id':notific['evnt_id']})['agency']
+    agcy = g.db.events.find_one({'_id':notific['evnt_id']})['agency']
 
     from app.main.tasks import create_rfu
     create_rfu.delay(

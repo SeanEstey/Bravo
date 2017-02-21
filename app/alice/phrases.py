@@ -3,6 +3,7 @@
 ending_chat = [
     'THANKS',
     'THANK YOU',
+    'THANKYOU',
     'THX',
     'SOUNDS GOOD',
     'OK'

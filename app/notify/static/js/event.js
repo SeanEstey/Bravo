@@ -124,42 +124,41 @@ function buildAdminPanel() {
     $('th[id] a:contains("Status")').parent().each(function() {
         var col_caption = $(this).children().text();
 
-        if(col_caption.search("Voice") > -1) {
-			var btn_caption = 'Preview Voice';
-			var btn_id = 'preview-voice-btn';
+        if(col_caption.search("Voice") == -1)
+            return;
 
-			btn = addAdminPanelBtn(
-			  'admin_pane',
-			  btn_id,
-			  btn_caption,
-			  'btn-outline-primary');
+        var btn_caption = 'Preview Voice';
+        var btn_id = 'preview-voice-btn';
 
-			btn.click(function() {
-				$.ajax({
-					context: this,
-					type: 'POST',
-					url: $URL_ROOT + 'api/notify/events/preview/token'})
-				.done(function(response) {
-					//console.log('request status: %s, data: %s', response['status'], response['data']);
+        btn = addAdminPanelBtn(
+          'admin_pane',
+          btn_id,
+          btn_caption,
+          'btn-outline-primary');
 
-					if(response['status'] != 'success') {
-						alertMsg('failed to get twilio client token', 'danger');
-						return;
-					}
-					else {
-						console.log('received twilio token. setting up device...');
-						alertMsg('Setting up device...', 'info');
-						Twilio.Device.setup(response['data']); 
-					}
-				});
-			});
-		}
+        btn.click(function() {
+            $.ajax({
+                context: this,
+                type: 'POST',
+                url: $URL_ROOT + 'api/notify/events/preview/token'})
+            .done(function(response) {
+                if(response['status'] != 'success') {
+                    alertMsg('failed to get twilio client token', 'danger');
+                    return;
+                }
+                else {
+                    console.log('received twilio token. setting up device...');
+                    alertMsg('Setting up device...', 'info');
+                    Twilio.Device.setup(response['data']); 
+                }
+            });
+        });
 	});
 
     // Add btns to fire each event trigger. trig_ids are stored in data-container 
     // "Status" columns i.e. "Voice SMS Status"
     $('th[id] a:contains("Status")').parent().each(function() {
-        console.log('adding fire btn for trig_id ' + $(this).attr('id'));
+        //console.log('adding fire btn for trig_id ' + $(this).attr('id'));
 
         var col_caption = $(this).children().text();
 
@@ -196,6 +195,7 @@ function buildAdminPanel() {
             });
 	    });
 
+        /*
         // Get trigger status from server
         $.ajax({
             type: 'POST',
@@ -210,6 +210,7 @@ function buildAdminPanel() {
                 }
             });
         }); 
+        */
     });
 
     stop_btn = addAdminPanelBtn(
@@ -586,7 +587,9 @@ function formatColumns() {
 
 Twilio.Device.ready(function (device) {
 	alertMsg('Device setup. Simulating voice call...', 'info');
-	var conn = Twilio.Device.connect({});
+    var p = window.location.pathname.split('/');
+    evnt_id = p[p.length-1];
+	var conn = Twilio.Device.connect({evnt_id:evnt_id});
 });
 
 Twilio.Device.error(function (error) {
@@ -594,7 +597,7 @@ Twilio.Device.error(function (error) {
 });
 
 Twilio.Device.connect(function (conn) {
-	alertMsg('Connected. Playing voice notification...', 'info');
+	alertMsg('Connected. Playing voice preview...', 'success');
 });
 
 Twilio.Device.disconnect(function (conn) {

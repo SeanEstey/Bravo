@@ -19,9 +19,9 @@ beat_schedule = {
     },
     'schedule_reminders': {
         'task': 'app.notify.tasks.schedule_reminders',
-        'schedule': crontab(hour=7, minute=0, day_of_week='*'),
+        'schedule': crontab(hour=7, minute=0, day_of_week='*')
         #'schedule': crontab(minute='*/5'),
-        'kwargs': {'agcy':'vec'}
+        #'kwargs': {'agcy':'vec'}
     },
 	'monitor_triggers': {
 		'task': 'app.notify.tasks.monitor_triggers',
@@ -30,9 +30,9 @@ beat_schedule = {
 	},
 	'build_routes': {
 		  'task': 'app.routing.tasks.build_scheduled_routes',
-		  'schedule': crontab(hour=6, minute=30, day_of_week='*'),
+		  'schedule': crontab(hour=6, minute=30, day_of_week='*')
           #'schedule': crontab(minute='*/5'),
-          'kwargs': {'agcy':'vec'}
+          #'kwargs': {'agcy':'vec'}
 	 },
      'update_calendar_blocks': {
         'task': 'app.main.tasks.update_calendar_blocks',
@@ -40,8 +40,8 @@ beat_schedule = {
      },
      'find_inactive_donors': {
         'task': 'app.main.tasks.find_inactive_donors',
-        'schedule': crontab(hour=5, minute=0, day_of_week='*'),
+        'schedule': crontab(hour=5, minute=0, day_of_week='*')
         #'schedule': crontab(minute='*/5'),
-        'kwargs': {'agcy':'vec'}
+        #'kwargs': {'agcy':'vec'}
      }
 }

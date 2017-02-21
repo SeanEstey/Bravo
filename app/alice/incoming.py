@@ -69,7 +69,7 @@ def find_phrase_match(phrases):
     '''@phrases: list of >= 1 word strings
     '''
 
-    message = get_msg().upper()
+    message = get_msg().upper().translate(None, string.punctuation)
 
     return message in phrases
 
@@ -258,8 +258,9 @@ def expecting_answer():
     return session.get('on_complete')
 
 #-------------------------------------------------------------------------------
-def get_msg():
+def get_msg(upper=False, rmv_punctn=False):
     '''Convert from unicode to prevent weird parsing issues'''
+
     return str(request.form['Body']).strip()
 
 #-------------------------------------------------------------------------------

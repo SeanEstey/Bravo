@@ -1,6 +1,7 @@
 '''app.notify.voice'''
 import logging, os, time, urllib
 from datetime import datetime, date, time
+from bson import ObjectId as oid
 from twilio import TwilioRestException, twiml
 from twilio.rest import TwilioRestClient
 from twilio.util import TwilioCapability
@@ -296,22 +297,32 @@ def get_token():
 
     log.debug('generating twilio token...')
 
-    app_sid = "AP30ab394c8e7460fac579d5559a8d4cb7"
-    keys = get_keys('twilio')['api']
-    capability = TwilioCapability(keys['sid'], keys['auth_id'])
-    capability.allow_client_outgoing(app_sid)
-    #capability.allow_client_incoming("jenny")
-    token = capability.generate()
+    api = get_keys('twilio')['api']
+    app_sid = get_keys('twilio')['sms']['app_sid']
+
+    try:
+        capability = TwilioCapability(api['sid'], api['auth_id'])
+        capability.allow_client_outgoing(app_sid)
+        token = capability.generate()
+    except Exception as e:
+        log.error('error gen. twilio token: %s', str(e))
+        log.debug('',exc_info=True)
+        return str(e)
+
     return token
 
 #-------------------------------------------------------------------------------
 def preview():
 
-    log.debug(request.form.to_dict())
-    notific = g.db.notifics.find_one({'type':'voice'})
+    evnt_id = oid(request.form.get('evnt_id'))
+    log.debug('playing voice preview (evnt_id="%s")', str(evnt_id))
+    evnt = g.db.events.find_one({'_id':evnt_id})
+    notific = g.db.notifics.find_one({'evnt_id':evnt_id, 'type':'voice'})
+
     notific['tracking']['answered_by'] = 'human'
     notific['tracking']['digit'] = "1"
     acct = g.db.accounts.find_one({'_id':notific['acct_id']})
+
     speak = get_speak(notific, notific['on_answer']['template'], timeout=False)
     response = twiml.Response()
     response.say(speak, voice='alice')

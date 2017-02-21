@@ -8,7 +8,7 @@ from flask import current_app, g, request
 from app import celery, get_keys, task_logger
 from app.lib.logger import colors as c
 from app.lib.dt import d_to_dt, ddmmyyyy_to_mmddyyyy as swap_dd_mm
-from app.lib.gsheets import gauth, write_rows, append_row, get_row, to_range
+from app.lib.gsheets import gauth, write_rows, append_row, get_row, to_range, get_range
 from app.lib.gcal import gauth as gcal_auth, color_ids, get_events, evnt_date_to_dt, update_event
 from .parser import get_block, is_block, is_res, is_bus, get_area, is_route_size
 from .cal import get_blocks, get_accounts
@@ -76,7 +76,7 @@ def mem_snap(hp, snap=None):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def process_entries(self, entries, agcy='vec', **rest):
+def process_entries(self, entries, agcy=None, **rest):
 
     entries = json.loads(entries)
 
@@ -131,8 +131,7 @@ def process_entries(self, entries, agcy='vec', **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=30),
-    agcy='vec', **rest):
+def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=30), agcy=None, **rest):
     '''Update all calendar blocks in date period with booking size/color codes.
     @from_, to_: datetime.date
     '''
@@ -283,6 +282,11 @@ def send_receipts(self, entries, **rest):
             to_range(chunk[-1]['entry']['ss_row'], status_col))
 
         values = [[rv[idx]['status']] for idx in range(len(rv))]
+        curr_values = get_range(service, g.ss_id, 'Routes', range_)
+
+        for row_idx in range(0, len(curr_values)):
+            if curr_values[row_idx][0] == 'Delivered':
+                values[row_idx][0] = 'Delivered'
 
         log.debug('writing chunk %s/%s values to ss, range=%s',
             i+1, len(chunks), range_)

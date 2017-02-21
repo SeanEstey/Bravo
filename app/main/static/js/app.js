@@ -24,7 +24,7 @@ function positionAdminPanel() {
 	$('#admin').css('bottom', y_offset);
 	$('#admin').show();
 
-	console.log('pos_admin_panel(): admin panel height=' + height + ', y offset=' + y_offset);
+	//console.log('pos_admin_panel(): admin panel height=' + height + ', y offset=' + y_offset);
 }
 
 //------------------------------------------------------------------------------

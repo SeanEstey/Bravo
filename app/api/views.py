@@ -48,7 +48,7 @@ def call_accts_get():
 @login_required
 def call_accts_gifts():
     from app.main.tasks import process_entries
-    return task_call(process_entries, get_var('entries'))
+    return task_call(process_entries, get_var('entries'), agcy=get_var('agcy'))
 
 @api.route('/accounts/receipts', methods=['POST'])
 @login_required

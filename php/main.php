@@ -35,12 +35,14 @@ function get_accts($acct_ids=NULL, $acct_refs=NULL) {
     else if(!is_null($acct_refs))
         $list = $acct_refs;
 
+    debug_log('acct_ids=' . $acct_ids);
+
     for($i=0; $i< count($list); $i++) {
         try {
             if(!is_null($acct_ids))
-                $accts[] = get_acct($id=$list[$i]);
+                $accts[] = get_acct($id=$list[$i], NULL);
             else if(!is_null($acct_refs))
-                $accts[] = get_acct($ref=$list[$i]);
+                $accts[] = get_acct(NULL, $ref=$list[$i]);
         } catch (Exception $e) {
             $accts[] = (string)$e;
         }

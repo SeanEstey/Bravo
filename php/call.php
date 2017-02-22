@@ -34,10 +34,10 @@
 				$rv = get_acct($id=$data['acct_id']);
 				break;
 			case 'get_accts_by_ref':
-				$rv = get_accts($acct_refs=$data['acct_refs']);
+				$rv = get_accts($acct_ids=NULL, $acct_refs=$data['acct_refs']);
 				break;
 			case 'get_accts':
-				$rv = get_accts($acct_ids=$data['acct_ids']);
+				$rv = get_accts($acct_ids=$data['acct_ids'], $acct_refs=NULL);
 				break;
 			case 'find_acct_by_phone':
 				$rv = find_acct_by_phone($data['phone']);

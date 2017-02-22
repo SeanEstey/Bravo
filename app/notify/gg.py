@@ -18,9 +18,7 @@ def add_event():
             get_keys('etapestry'),
             data={
                 'query': request.form['query_name'],
-                'category':'GG: Invoices'
-            }
-        )
+                'category':'GG: Invoices'})
     except Exception as e:
         msg = 'Failed to retrieve query "%s". Details: %s' % (request.form['query_name'], str(e))
         log.error(msg)
@@ -34,15 +32,13 @@ def add_event():
         g.user.agency,
         request.form['event_name'] or request.form['query_name'],
         parse(request.form['event_date']),
-        'green_goods'
-    )
+        'green_goods')
 
     trig_id = triggers.add(
         evnt_id,
         'voice_sms',
         parse(request.form['notific_date']).date(),
-        parse(request.form['notific_time']).time()
-    )
+        parse(request.form['notific_time']).time())
 
     refs = []
     for entry in je:
@@ -51,12 +47,11 @@ def add_event():
     try:
         accts = call(
             'get_accts_by_ref',
-            conf['etapestry'],
-            data={'acct_refs':refs}
-        )
+            get_keys('etapestry'),
+            data={'acct_refs':refs})
     except Exception as e:
         msg = 'Failed to retrieve accts. %s' % str(e)
-        log.error(msg)
+        #log.error(msg)
         raise EtapError(msg)
 
     # both je and accts lists should be same length, point to same account
@@ -69,8 +64,7 @@ def add_event():
             evnt_id,
             je[i]['accountName'],
             phone = get_prim_phone(accts[i]),
-            udf = {'amount': je[i]['amount']}
-        )
+            udf = {'amount': je[i]['amount']})
 
         voice.add(
             evnt_id,
@@ -81,8 +75,7 @@ def add_event():
             {'source': 'template',
              'template': 'voice/wsf/green_goods.html'},
             {'module': 'app.notify.gg',
-             'func': 'on_call_interact'}
-        )
+             'func': 'on_call_interact'})
 
     return evnt_id
 

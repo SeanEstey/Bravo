@@ -27,8 +27,8 @@ def create_event():
         try:
             evnt_id = gg.add_event()
         except Exception as e:
-            log.error(str(e))
-            log.debug('', exc_info=True)
+            #log.error(str(e))
+            #log.debug('', exc_info=True)
             raise
     elif tmplt == 'recorded_announcement':
         try:

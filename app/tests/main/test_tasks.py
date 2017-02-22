@@ -15,7 +15,7 @@ class MainTasksTests(unittest.TestCase):
     def tearDown(self):
         logout(self.client)
 
-    def test_find_inactive_donors(self):
+    def _test_find_inactive_donors(self):
         try:
             tasks.find_inactive_donors.delay(agcy='vec', in_days=-2, period=270)
         except Exception as e:

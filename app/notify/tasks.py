@@ -197,7 +197,7 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
         log.error(msg)
         raise Exception(msg)
 
-    log.info('%s opted out of pickup', (acct['email'] or acct['phone']))
+    log.info('<%s> opted out of pickup', (acct['email'] or acct['phone']))
 
     try:
         call(

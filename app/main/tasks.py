@@ -307,6 +307,65 @@ def send_receipts(self, entries, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
+def create_accounts(self, accts_json, **rest):
+    '''Upload accounts + send welcome email, send status to Bravo Sheets
+    @accts_json: JSON list of form data
+    '''
+
+    accts = json.loads(accts_json)
+    log.warning('creating %s accounts...', len(accts))
+
+    ss_id = get_keys('google')['ss_id']
+    service = gauth(get_keys('google')['oauth'])
+    headers = get_row(service, g.ss_id, 'Signups', 1)
+    status_col = headers.index('Upload Status') +1
+
+    # Break accts into chunks for gsheets batch updating
+
+    ch_size = 10
+    chunks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
+    log.debug('chunk length=%s', len(chunks))
+
+    for i in range(0, len(chunks)):
+        rv = []
+        chunk = chunks[i]
+
+        try:
+            rv = call('add_accts', get_keys('etapestry'), {'accts':chunk})
+        except Exception as e:
+            log.error('add_accts. desc=%s', str(e))
+            log.debug('', exc_info=True)
+
+        log.warning('%s', rv['description'])
+
+        if len(rv['errors']) > 0:
+            log.error(rv['errors'])
+
+        range_ = 'Signups!%s:%s' %(
+            to_range(chunk[0]['ss_row'], status_col),
+            to_range(chunk[-1]['ss_row'], status_col))
+
+        values = [[rv[idx]['status']] for idx in range(len(rv))]
+
+        log.debug('writing chunk %s/%s values to ss, range=%s',
+            i+1, len(chunks), range_)
+
+        try:
+            write_rows(service, ss_id, range_, values)
+        except Exception as e:
+            log.error(str(e))
+            log.debug('',exc_info=True)
+
+    log.warning('completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s. '\
+        'no_email=%s', g.track['gifts'], g.track['zeros'], g.track['drops'],
+        g.track['cancels'], g.track['no_email'])
+
+    chunks = accts = None
+    gc.collect()
+    return 'success'
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
 def create_rfu(self, agcy, note, options=None, **rest):
 
     srvc = gauth(get_keys('google',agcy=agcy)['oauth'])

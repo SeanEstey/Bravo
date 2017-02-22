@@ -4,7 +4,7 @@ from datetime import datetime
 from flask import g
 from app import task_logger
 from .. import smart_emit, celery
-log = task_logger(__name__)
+log = task_logger('booker.tasks')
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -57,9 +57,7 @@ def update_maps(agcy=None, **rest):
                 {'agency':name},
                 {'$set': {
                     'update_dt': datetime.utcnow(),
-                    'features': data['features']
-                }}
-            )
+                    'features': data['features']}})
 
             desc = 'Updated %s maps successfully.' % len(data['features'])
 

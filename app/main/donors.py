@@ -1,5 +1,5 @@
 '''app.main.donors'''
-import logging
+import json, logging
 from datetime import date, timedelta
 from dateutil.parser import parse
 from flask import g, request
@@ -20,13 +20,18 @@ def get(acct_id):
 def create_accts(accts):
     '''Called from API. g.user is set'''
 
+    log.warning('creating %s accounts...', len(json.loads(accts)))
+
     try:
         rv = call('add_accts', get_keys('etapestry'), {'accts':accts})
     except Exception as e:
         log.error('add_accts. desc=%s', str(e))
         log.debug('', exc_info=True)
 
-    log.info('add_accts rv=%s', rv)
+    log.warning('%s', rv['description'])
+
+    if len(rv['errors']) > 0:
+        log.error(rv['errors'])
 
 #-------------------------------------------------------------------------------
 def is_inactive(agcy, acct, days=270):

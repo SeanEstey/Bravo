@@ -405,60 +405,68 @@ function add_accts($entries) {
 
 	global $nsc, $agcy;
 	$entries = json_decode($entries, true);
-	$errors = [];
+    $n_errs = $n_success = 0;
+    $rv = [];
 	debug_log('adding ' . count($entries) . ' accounts...');
   
 	for($n=0; $n<count($entries); $n++) {
-		$entry = $entries[$n];
+        $entry = $entries[$n];
 
-		// Clear empty UDF fields (i.e. Office Notes may be blank)
-		foreach($entry['udf'] as $key=>$value) {
-		  if(empty($value))
-			  $entry['udf'] = remove_key($entry['udf'], $key);
-		}
+        // Clear empty UDF fields (i.e. Office Notes may be blank)
+        foreach($entry['udf'] as $key=>$value) {
+          if(empty($value))
+              $entry['udf'] = remove_key($entry['udf'], $key);
+        }
 
-		// Modify existing eTap account
-		if(!empty($entry['existing_account'])) {
-		    $status = modify_acct( 
-			    $entry['existing_account'], 
-				$entry['udf'], 
-				$entry['persona']);
+        // Modify existing eTap account
+        if(!empty($entry['existing_account'])) {
+            $status = modify_acct( 
+                $entry['existing_account'], 
+                $entry['udf'], 
+                $entry['persona']);
 
-		    if($status != 'Success') {
-				$errors [] = [
-				  'acct_id'=>$entry['existing_account'],
-				  'status'=>$status];
-			}
-		  continue;
-		}
+            if($status != 'Success') {
+                $rv[] = ['row'=>$row, 'status'=>$status];
+                $n_errs += 1;
+            }
+            else {
+                $rv[] = ['row'=>$row, 'status'=>$status];
+                $n_success += 1;
+            }
+          continue;
+        }
 
-		// Create new account
-		$acct = $entry['persona'];
-		$udf = $entry['udf'];
+        // Create new account
+        $acct = $entry['persona'];
+        $udf = $entry['udf'];
 
-		foreach($udf as $key=>$value) {
-			if($key != 'Block' && $key != 'Neighborhood') {
-				$acct['accountDefinedValues'][] = [
-					'fieldName'=>$key,
-					'value'=>$value];
-			}
-		    else {
-				$list = explode(",", $value);
-			  	for($j=0; $j<count($list); $j++) {
-			    	$acct['accountDefinedValues'][] = ['fieldName'=>$key, 'value'=>$list[$j]];
-			  	}
-		  	}
-		}
+        foreach($udf as $key=>$value) {
+            if($key != 'Block' && $key != 'Neighborhood') {
+                $acct['accountDefinedValues'][] = [
+                    'fieldName'=>$key,
+                    'value'=>$value];
+            }
+            else {
+                $list = explode(",", $value);
+                for($j=0; $j<count($list); $j++) {
+                    $acct['accountDefinedValues'][] = ['fieldName'=>$key, 'value'=>$list[$j]];
+                }
+            }
+        }
 
-		$status = $nsc->call("addAccount", array($acct, false));
+        $status = $nsc->call("addAccount", array($acct, false));
 
-		if(is_error($nsc)) {
-		  $errors [] = [
-			  'name'=>$acct['name'],
-			  'status'=>get_error($nsc, $log=false)];
-		}
-		else
-		  debug_log('Added account ' . $acct['name']);
+        if(is_error($nsc)) {
+            $n_errs += 1;
+            $desc = get_error($nsc, $log=false);
+            $rv[] = ['row'=>$row, 'status'=>$desc];
+            debug_log('error adding account ' . $acct['name'] . '. desc: ' . $desc);
+        }
+        else {
+            $n_success += 1;
+            $rv[] = ['row'=>$row, 'status'=>$status];
+            debug_log('added account ' . $acct['name']);
+        }
 	}
 
 	$n_success = count($entries) - count($errors);

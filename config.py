@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-SSL_CERT_PATH = '/etc/nginx/gd_bundle-g2-g1.crt'
+SSL_CERT_PATH = '/etc/nginx/bravoweb.ca.chained.crt'
 TITLE = 'Bravo'
 LOG_PATH = '/root/bravo/logs/'
 LOG_LINES = 200

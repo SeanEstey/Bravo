@@ -404,7 +404,8 @@ function update_note($acct_id, $note_ref, $body) {
 function add_accts($entries) {
 
 	global $nsc, $agcy;
-	$entries = json_decode($entries, true);
+    $entries = json_decode(json_encode($entries), true); // stdclass->array
+	//$entries = json_decode($entries, true);
     $n_errs = $n_success = 0;
     $rv = [];
 	debug_log('adding ' . count($entries) . ' accounts...');
@@ -459,25 +460,22 @@ function add_accts($entries) {
         if(is_error($nsc)) {
             $n_errs += 1;
             $desc = get_error($nsc, $log=false);
-            $rv[] = ['row'=>$row, 'status'=>$desc];
+            $rv[] = ['row'=>$entry['ss_row'], 'status'=>$desc];
             debug_log('error adding account ' . $acct['name'] . '. desc: ' . $desc);
         }
         else {
             $n_success += 1;
-            $rv[] = ['row'=>$row, 'status'=>$status];
+            $rv[] = ['row'=>$entry['ss_row'], 'status'=>'Uploaded'];
             debug_log('added account ' . $acct['name']);
         }
 	}
 
-	$n_success = count($entries) - count($errors);
-	$msg = (string)$n_success . ' accts added/updated. ' . (string)count($errors) . ' errors.';
-
-	debug_log($msg);
-	debug_log(print_r($errors,true));
+	debug_log((string)$n_success . ' accts added/updated. ' . (string)$n_errs . ' errors.');
 
 	return [
-	  'description'=>$msg,
-	  'errors'=>$errors];
+		'n_success'=>$n_success,
+		'n_errs'=>$n_errs,
+		'results'=>$rv];
 }
 
 //-----------------------------------------------------------------------

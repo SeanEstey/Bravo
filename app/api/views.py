@@ -31,7 +31,8 @@ def accts_add_form():
 @api.route('/accounts/create', methods=['POST'])
 @login_required
 def call_accts_create():
-    return func_call(donors.create_accts, get_var('accts'))
+    from app.main.tasks import create_accounts
+    return task_call(create_accounts, get_var('accts'), agcy=get_var('agcy'))
 
 @api.route('accounts/find', methods=['POST'])
 @login_required

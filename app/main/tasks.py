@@ -110,7 +110,7 @@ def process_entries(self, entries, agcy=None, **rest):
         n_success += r['n_success']
         n_errs += r['n_errs']
 
-        range_ = '%s:%s' %(
+        range_ = 'Routes!%s:%s' %(
             to_range(r['results'][0]['row'], upload_col),
             to_range(r['results'][-1]['row'], upload_col))
 
@@ -292,7 +292,7 @@ def send_receipts(self, entries, **rest):
             i+1, len(chunks), range_)
 
         try:
-            write_rows(service, g.ss_id, range_, values)
+            write_rows(service, g.ss_id, 'Routes!'+range_, values)
         except Exception as e:
             log.error(str(e))
             log.debug('',exc_info=True)
@@ -307,7 +307,7 @@ def send_receipts(self, entries, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def create_accounts(self, accts_json, **rest):
+def create_accounts(self, accts_json, agcy=None, **rest):
     '''Upload accounts + send welcome email, send status to Bravo Sheets
     @accts_json: JSON list of form data
     '''
@@ -315,10 +315,11 @@ def create_accounts(self, accts_json, **rest):
     accts = json.loads(accts_json)
     log.warning('creating %s accounts...', len(accts))
 
-    ss_id = get_keys('google')['ss_id']
-    service = gauth(get_keys('google')['oauth'])
-    headers = get_row(service, g.ss_id, 'Signups', 1)
+    ss_id = get_keys('google', agcy=agcy)['ss_id']
+    service = gauth(get_keys('google', agcy=agcy)['oauth'])
+    headers = get_row(service, ss_id, 'Signups', 1)
     status_col = headers.index('Upload Status') +1
+    n_errs = n_success = 0
 
     # Break accts into chunks for gsheets batch updating
 
@@ -331,21 +332,23 @@ def create_accounts(self, accts_json, **rest):
         chunk = chunks[i]
 
         try:
-            rv = call('add_accts', get_keys('etapestry'), {'accts':chunk})
+            rv = call('add_accts', get_keys('etapestry', agcy=agcy), {'accts':chunk})
         except Exception as e:
             log.error('add_accts. desc=%s', str(e))
             log.debug('', exc_info=True)
 
-        log.warning('%s', rv['description'])
+        # rv = {'n_success':<int>, 'n_errs':<int>, 'results':[ {'row':<int>, 'status':<str>}, ... ]
 
-        if len(rv['errors']) > 0:
-            log.error(rv['errors'])
+        n_errs += int(rv['n_errs'])
+        n_success += int(rv['n_success'])
+
+        log.debug('rv=%s', rv)
 
         range_ = 'Signups!%s:%s' %(
             to_range(chunk[0]['ss_row'], status_col),
             to_range(chunk[-1]['ss_row'], status_col))
 
-        values = [[rv[idx]['status']] for idx in range(len(rv))]
+        values = [[rv['results'][idx]['status']] for idx in range(0, len(rv['results']))]
 
         log.debug('writing chunk %s/%s values to ss, range=%s',
             i+1, len(chunks), range_)
@@ -356,9 +359,7 @@ def create_accounts(self, accts_json, **rest):
             log.error(str(e))
             log.debug('',exc_info=True)
 
-    log.warning('completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s. '\
-        'no_email=%s', g.track['gifts'], g.track['zeros'], g.track['drops'],
-        g.track['cancels'], g.track['no_email'])
+    log.warning('completed. %s accounts created, %s errors.', n_success, n_errs)
 
     chunks = accts = None
     gc.collect()

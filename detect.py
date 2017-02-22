@@ -17,6 +17,7 @@ def startup_msg(app):
 
     hostname = env['BRV_HOSTNAME']
     host = 'http://%s' %(env['BRV_IP'])
+    domain = env['BRV_DOMAIN'] if env['BRV_DOMAIN'] != 'False' else 'NO_DOMAIN'
     debug = 'enabled' if app.config['DEBUG'] else 'disabled'
     sbox = 'enabled' if env['BRV_SANDBOX'] == 'True' else 'disabled'
     ssl = 'enabled (nginx)' if env['BRV_SSL'] == 'True' else 'disabled'
@@ -32,7 +33,7 @@ def startup_msg(app):
     bravo_msg =\
     "%s-------------------------------- %s%s\n"                       %(G,Y,os_desc()) +\
     "%s-  ____ ------------------------ %smem free: %s/%s\n"          %(G,G,free,total) +\
-    "%s- |  _ \ ----------------------- %sbravo@%s%s\n"               %(G,Y,hostname,G) +\
+    "%s- |  _ \ ----------------------- %s%s@%s%s\n"                  %(G,Y,hostname,domain,G) +\
     "%s- | |_) |_ __ __ ___   _____ --- %s%s\n"                       %(G,G,host) +\
     "%s- |  _ <| '__/ _` \ \ / / _ \ -- %s[config]\n"                 %(G,G) +\
     "%s- | |_) | | | (_| |\ V / (_) | - %s  > debug:   %s\n"          %(G,G,debug) +\
@@ -81,38 +82,45 @@ def set_environ(app):
         env['BRV_SANDBOX'] = 'False'
 
     env['BRV_HOSTNAME'] = hostname = socket.gethostname()
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("gmail.com",80))
-    env['BRV_IP'] = ip = s.getsockname()[0]
-    env['BRV_DOMAIN'] = domain = socket.gethostbyaddr(ip)[0]
-    log.debug('domain=%s', env['BRV_DOMAIN'])
-    s.close
 
     try:
-        domain = socket.gethostbyaddr(ip)
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("gmail.com",80))
     except Exception as e:
-        log.warning('warning: no domain found on this host (ip=%s)', ip)
-        env['BRV_TEST'] = 'True'
-        return
-
-    if domain[0] == 'bravoweb.ca':
-        log.debug('bravoweb.ca domain. deploy server')
-        env['BRV_TEST'] = 'False'
+        log.error('socket error connecting to gmail (desc: %s)', str(e))
+        env['BRV_IP'] = 'False'
     else:
-        log.debug('test server domain=%s', domain[0])
-        env['BRV_TEST'] = 'True'
+        env['BRV_IP'] = ip = s.getsockname()[0]
+        s.close()
 
     try:
-        r = requests.get('https://%s' % domain[0], verify=SSL_CERT_PATH)
+        domain = socket.gethostbyaddr(ip)[0]
     except Exception as e:
-        log.warning('warning: SSL not enabled. domain=%s', domain[0])
+        log.warning('no domain found for host ip %s', ip)
+        env['BRV_TEST'] = 'True'
+        env['BRV_DOMAIN'] = 'False'
+        env['BRV_SSL'] = 'False'
+        env['BRV_HTTP_HOST'] = 'http://' + ip
+        return
+    else:
+        env['BRV_DOMAIN'] = domain
+        if domain == 'bravoweb.ca':
+            log.debug('bravoweb.ca domain. deploy server')
+            env['BRV_TEST'] = 'False'
+        else:
+            env['BRV_TEST'] = 'True'
+
+    try:
+        r = requests.get('https://%s' % domain, verify=True) #verify=SSL_CERT_PATH)
+    except Exception as e:
+        log.warning('warning: SSL not enabled. domain=%s', domain)
         log.debug('', exc_info=True)
         env['BRV_SSL'] = 'False'
-        env['BRV_HTTP_HOST'] = 'http://' + env['BRV_DOMAIN'] #ip
+        env['BRV_HTTP_HOST'] = 'http://' + env['BRV_DOMAIN']
     else:
-        log.debug('SSL certificate verified')
+        log.debug('SSL certificate verified. status code=%s', r.status_code)
         env['BRV_SSL'] = 'True'
-        env['BRV_HTTP_HOST'] = 'https://' + env['BRV_DOMAIN'] #ip
+        env['BRV_HTTP_HOST'] = 'https://' + env['BRV_DOMAIN']
 
 #-------------------------------------------------------------------------------
 def os_desc():

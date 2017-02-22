@@ -23,7 +23,8 @@ def restart_worker():
 #-------------------------------------------------------------------------------
 @main.route('/email/delivered', methods=['POST'])
 def on_delivered():
-    # Mailgun webhook
+    '''Mailgun webhook
+    '''
 
     webhook = request.form.get('type')
     agcy = request.form.get('agcy')
@@ -49,14 +50,14 @@ def on_delivered():
 #-------------------------------------------------------------------------------
 @main.route('/email/dropped', methods=['POST'])
 def on_dropped():
-    # Mailgun webhook
+    '''Mailgun webhook
+    '''
 
-    #log.debug(json.dumps(request.values.to_dict(), indent=4))
     webhook = request.form.get('type')
     agcy = request.form.get('agcy')
 
     if not webhook:
-        log.error('webhook "type" not set. cannot route to handler')
+        log.debug('%swebhook "type" not set. cannot route to handler%s', c.RED, c.ENDC)
         log.debug(request.form.to_dict())
         return 'failed'
     if webhook == 'receipt':
@@ -64,6 +65,7 @@ def on_dropped():
     elif webhook == 'signup':
         signups.on_dropped(agcy)
     elif webhook == 'notific':
+        from app.notify import email
         email.on_dropped()
     return 'OK'
 

@@ -371,8 +371,7 @@ def create_rfu(self, agcy, note, options=None, **rest):
 
     srvc = gauth(get_keys('google',agcy=agcy)['oauth'])
     ss_id = get_keys('google',agcy=agcy)['ss_id']
-    wks = 'RFU'
-    headers = get_row(srvc, ss_id, wks, 1)
+    headers = get_row(srvc, ss_id, 'RFU', 1)
     rfu = [''] * len(headers)
     rfu[headers.index('Request Note')] = note
 
@@ -380,7 +379,7 @@ def create_rfu(self, agcy, note, options=None, **rest):
         if field in options:
             rfu[headers.index(field)] = options[field]
 
-    append_row(srvc, ss_id, wks, rfu)
+    append_row(srvc, ss_id, 'RFU', rfu)
     log.debug('Creating RFU=%s', rfu)
 
     return 'success'

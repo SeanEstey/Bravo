@@ -4,7 +4,7 @@ from flask import g, render_template, request
 from datetime import datetime, time
 from .. import get_logger, get_keys
 from app.lib import gsheets, mailgun
-from app.lib.dt import to_local, ddmmyyyy_to_dt
+from app.lib.dt import to_local, to_utc, ddmmyyyy_to_dt
 from app.main.etap import EtapError, call, get_udf
 from app.routing.build import create_order
 from app.routing.sheet import append_order
@@ -26,14 +26,15 @@ def make():
         'confirmation': confirmation}
     '''
 
-    log.info('Booking account %s for %s', request.form['aid'], request.form['date'])
+    log.info('booking account %s for %s', request.form['aid'], request.form['date'])
 
     response = update_dms()
 
     # is block/date for today and route already built?
 
-    # yyyy-mm-dd format
-    event_dt = to_local(ddmmyyyy_to_dt(request.form['date']))
+    event_dt = to_utc(
+        d=ddmmyyyy_to_dt(request.form['date']).date(),
+        t=time(8,0))
 
     route = g.db.routes.find_one({
         'date': event_dt,
@@ -83,7 +84,7 @@ def append_route(route):
     '''Block is already routed. Append order to end of Sheet'''
 
     log.info('%s already routed for %s. Appending to Sheet.',
-                request.form['block'], request.form['date'])
+        request.form['block'], request.form['date'])
     log.debug('appending to ss_id "%s"', route['ss']['id'])
 
     acct = call(

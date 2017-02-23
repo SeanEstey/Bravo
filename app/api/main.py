@@ -49,9 +49,16 @@ def build_resp(rv=None, exc=False, name=None, dt=None):
             response=dumps({'status':'success','data':None}),
             status=200, mimetype='application/json')
 
-    end_timer(dt, lbl='API call success, func="%s"' % name, to_log=log)
+    # Success
 
-    json_rv = formatter({'status':'success', 'data':rv}, bson_to_json=True, to_json=True)
+    duration = end_timer(dt)
+    log.debug('API call success, func=%s (%ss)', name, duration)
+
+    try:
+        json_rv = formatter({'status':'success', 'data':rv}, bson_to_json=True, to_json=True)
+    except Exception as e:
+        log.debug('rv is not serializable.')
+        json_rv = dumps({'status':'success', 'data':'return value not serializable'})
 
     return Response(
         response=json_rv, status=200,mimetype='application/json')

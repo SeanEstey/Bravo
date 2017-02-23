@@ -26,6 +26,7 @@ function get_acct($id=NULL, $ref=NULL) {
 //-----------------------------------------------------------------------
 function get_accts($acct_ids=NULL, $acct_refs=NULL) {
 
+	ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
 	global $nsc;
     $list = NULL;
     $accts = [];
@@ -184,6 +185,7 @@ function get_block_size($query_category, $query) {
 //-----------------------------------------------------------------------
 function gift_histories($acct_refs, $start, $end) {
 
+	ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
 	global $nsc;
     $accts_je = [];
 

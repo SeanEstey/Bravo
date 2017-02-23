@@ -53,29 +53,25 @@ function search(query, radius, weeks) {
         $('#search-loader .btn.loader').fadeTo('fast', 1);
     });
 
-		$.ajax({
-			type: 'POST',
-			url: $URL_ROOT + 'api/booker/search',
-			data: {
-        'query':query,
-        'radius': radius,
-        'weeks': weeks
-      },
-			dataType: 'json'
-		})
-		.done(function(response) {
+    $.ajax({
+        type: 'POST',
+        url: $URL_ROOT + 'api/booker/search',
+        data: {
+            'query':query,
+            'radius': radius,
+            'weeks': weeks},
+        dataType: 'json'})
+    .done(function(response) {
         console.log(response);
 
-				if(response['status'] != 'success') {
-						alertMsg(response['description'], 'danger', -1);
+        if(response['status'] != 'success') {
+            alertMsg(response['description'], 'danger', -1);
 
-						$('#search-loader .btn.loader').fadeTo('fast', 0, function() {
-								$('#search-loader').slideToggle();
-						});
-
-						return;
-				}
-
+            $('#search-loader .btn.loader').fadeTo('fast', 0, function() {
+                $('#search-loader').slideToggle();
+            });
+            return;
+        }
         displaySearchResults(response['data']);
     })
 }
@@ -150,21 +146,21 @@ function displaySearchResults(response) {
     });
 
     $('button[name="book_btn"]').click(function() {
-				$tr = $(this).parent().parent();
+        $tr = $(this).parent().parent();
 
-				if(!$(this).data('aid')) {
-						showEnterIDModal(
-								$tr.find('[name="block"]').text(),
-								$tr.find('[name="date"]').text());
-				}
-				else {
-						showConfirmModal(
-							$tr.find('[name="block"]').text(),
-							$tr.find('[name="date"]').text(),
-							$tr.find('button').data('aid'),
-							$tr.find('button').data('name'),
-							$tr.find('button').data('email'));
-				}
+        if(!$(this).data('aid')) {
+            showEnterIDModal(
+              $tr.find('[name="block"]').text(),
+              $tr.find('[name="date"]').text());
+        }
+        else {
+            showConfirmModal(
+              $tr.find('[name="block"]').text(),
+              $tr.find('[name="date"]').text(),
+              $tr.find('button').data('aid'),
+              $tr.find('button').data('name'),
+              $tr.find('button').data('email'));
+        }
     });
 }
 
@@ -180,13 +176,12 @@ function clearSearchResults(hide) {
 function showExpandRadiusModal() {
     var radius = Number($('.alert-banner').data('radius'));
 
-		showModal(
-			'mymodal',
-			'Confirm',
-			'Do you want to expand the search radius from ' + radius.toPrecision(2) + 'km?',
-			'Yes',
-			'No'
-		);
+    showModal(
+      'mymodal',
+      'Confirm',
+      'Do you want to expand the search radius from ' + radius.toPrecision(2) + 'km?',
+      'Yes',
+      'No');
 
     $('#mymodal .btn-primary').click(function() {
         $('#mymodal').modal('hide');
@@ -199,13 +194,12 @@ function showExpandRadiusModal() {
 
 //---------------------------------------------------------------------
 function showEnterIDModal(block, date) {
-		showModal(
-			'mymodal',
-			'Confirm Booking',
-			$('#booking_options').html(),
-			'Next',
-			'Close'
-		);
+    showModal(
+      'mymodal',
+      'Confirm Booking',
+      $('#booking_options').html(),
+      'Next',
+      'Close');
 
     $('#mymodal').find('#acct_info').hide();
     $('#mymodal').find('#enter_aid').show();
@@ -215,50 +209,51 @@ function showEnterIDModal(block, date) {
     })
 
     $('#mymodal .btn-primary').click(function() {
-				console.log('querying aid: ' + $('#mymodal input[id="aid"]').val());
+        console.log('querying aid: ' + $('#mymodal input[id="aid"]').val());
 
-				$.ajax({
-					type: 'POST',
-					url: $URL_ROOT + 'api/accounts/get',
-					data: {
-						'acct_id': $('#mymodal input[id="aid"]').val(),
-					},
-					dataType: 'json'
-				})
-				.done(function(response) {
-						console.log(response);
+        $.ajax({
+            type: 'POST',
+            url: $URL_ROOT + 'api/accounts/get',
+            data: {
+                'acct_id': $('#mymodal input[id="aid"]').val(),
+            },
+            dataType: 'json'
+        })
+        .done(function(response) {
+            console.log(response);
 
-						if(response['status'] != "success") {
-								$('#mymodal').modal('hide');
-								alertMsg(response['description'], 'danger');
-								return false;
-						}
+            if(response['status'] != "success") {
+                $('#mymodal').modal('hide');
+                alertMsg(response['description'], 'danger');
+                return false;
+            }
 
-						$('#mymodal').find('#acct_info').show();
-						$('#mymodal').find('#enter_aid').hide();
-						
-						var acct = response['data']; //['account'];
+            $('#mymodal').find('#acct_info').show();
+            $('#mymodal').find('#enter_aid').hide();
+            
+            var acct = response['data']; //['account'];
 
-						showConfirmModal(
-								block,
-								date,
-								acct['id'],
-								acct['name'],
-								acct['email']
-						);
-				});
+            showConfirmModal(
+                block,
+                date,
+                acct['id'],
+                acct['name'],
+                acct['email']
+            );
+        });
     });
 }
 
 //---------------------------------------------------------------------
 function showConfirmModal(block, date, aid, name, email) {
-		showModal(
-			'mymodal',
-			'Confirm Booking',
-			$('#booking_options').html(),
-			'Book',
-			'Close'
-		);
+
+    showModal(
+        'mymodal',
+        'Confirm Booking',
+        $('#booking_options').html(),
+        'Book',
+        'Close'
+    );
 
     var date_obj = new Date(date);
     var today = new Date();
@@ -271,12 +266,12 @@ function showConfirmModal(block, date, aid, name, email) {
         $('#mymodal #routed_warning').show();
     }
 
-		if(!email) {
-				email = 'None';
-				$('#mymodal').find('input[id="send_email_cb"]').prop('disabled',true);
-				$('#mymodal').find('input[id="send_email_cb"]').attr('checked',false);
-				$('#mymodal').find('.form-check-label').css('color', '#ced3db');
-		}
+    if(!email) {
+        email = 'None';
+        $('#mymodal').find('input[id="send_email_cb"]').prop('disabled',true);
+        $('#mymodal').find('input[id="send_email_cb"]').attr('checked',false);
+        $('#mymodal').find('.form-check-label').css('color', '#ced3db');
+    }
 
     $('#mymodal label[name="name"]').html('Account Name: <b>' + name + '</b>');
     $('#mymodal label[name="email"]').html('Email: <b>' + email + '</b>');
@@ -290,38 +285,37 @@ function showConfirmModal(block, date, aid, name, email) {
 
     $('#mymodal .btn-primary').click(function() {
         requestBooking(
-            aid,
-            block, 
-            new Date(date).strftime('%d/%m/%Y'),
-            $('#mymodal').find('#driver_notes').val(),
-						name,
-						email,
-						$('#mymodal').find('input[id="send_email_cb"]').prop('checked')
-        );
+          aid,
+          block, 
+          new Date(date).strftime('%d/%m/%Y'),
+          $('#mymodal').find('#driver_notes').val(),
+          name,
+          email,
+          $('#mymodal').find('input[id="send_email_cb"]').prop('checked'));
     });
 }
   
 //---------------------------------------------------------------------
 function requestBooking(aid, block, date, notes, name, email, confirmation) {
+
     $('#mymodal').find('#booker-loader').slideToggle(function() {
         $('#mymodal').find('#booker-loader .btn.loader').fadeTo('fast', 1);
     });
 
-		$.ajax({
-			type: 'POST',
-			url: $URL_ROOT + '/api/booker/create',
-			data: {
-        'block': block,
-        'date': date,
-        'aid': aid,
-        'driver_notes': notes,
-				'first_name': name,
-				'email': email,
-				'confirmation': confirmation
-      },
-			dataType: 'json'
-		})
-		.done(function(response) {
+    $.ajax({
+        type: 'POST',
+        url: $URL_ROOT + '/api/booker/create',
+        data: {
+            'block': block,
+            'date': date,
+            'aid': aid,
+            'driver_notes': notes,
+            'first_name': name,
+            'email': email,
+            'confirmation': confirmation
+        },
+        dataType: 'json'})
+    .done(function(response) {
         console.log(response);
 
         $('#booker-loader').fadeOut('fast');
@@ -332,9 +326,8 @@ function requestBooking(aid, block, date, notes, name, email, confirmation) {
             alertMsg(response['description'], 'success');
             clearSearchResults(true);
         }
-        else {
+        else
             alertMsg(response['description'], 'danger');
-        }
 
         setTimeout(function(){
             alertMsg(
@@ -348,6 +341,7 @@ function requestBooking(aid, block, date, notes, name, email, confirmation) {
   
 //------------------------------------------------------------------------------
 function buildAdminPanel() {
+
     // dev_mode pane buttons
     $('#admin_pane').hide();
     $('#dev_pane').show();
@@ -377,7 +371,7 @@ function buildAdminPanel() {
       'Print Maps',
       'btn-outline-primary');
 
-		// Prints Routific job_id to console
+    // Prints Routific job_id to console
     print_maps_btn.click(function() {
         $.ajax({
           type: 'POST',

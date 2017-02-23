@@ -9,7 +9,6 @@ from .session import store_sessions, dump_session, dump_sessions, wipe_sessions
 from .incoming import make_reply
 from .util import get_chatlogs
 from .dialog import dialog
-from .outgoing import send_welcome
 log = get_logger('alice.views')
 
 #-------------------------------------------------------------------------------
@@ -59,19 +58,6 @@ def sms_received(agency):
     end_timer(a, lbl='alice request', to_log=log)
 
     return response
-
-#-------------------------------------------------------------------------------
-@alice.route('/send_welcome', methods=['POST'])
-@login_required
-def _send_welcome():
-
-    try:
-        r = send_welcome(request.json['etap_id'])
-    except Exception as e:
-        log.debug(str(e), exc_info=True)
-        return Response(response=str(e), status_code=500)
-
-    return jsonify(r)
 
 #-------------------------------------------------------------------------------
 @alice.route('/wipe_sessions', methods=['POST'])

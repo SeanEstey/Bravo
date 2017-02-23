@@ -1,9 +1,8 @@
-//app.static.js.views.alice
-
+/* app.static.js.views.alice
+ */
 
 //------------------------------------------------------------------------------
 function alice_init() {
-    //QuoteKeysClicked();
 
     $.ajax({
       type: 'post',
@@ -15,50 +14,45 @@ function alice_init() {
         }
         display(response);
     });
-
     buildAdminPanel();
 }
 
 //------------------------------------------------------------------------------
 function buildAdminPanel() {
+
     $('#admin_pane').show();
     $('#dev_pane').show();
 
     addAdminPanelBtn(
-      'dev_pane',
-      'dump_sessions_btn',
-      'Dump Sessions',
-      'btn-outline-primary'
-		).click(function() {
+        'dev_pane',
+        'dump_sessions_btn',
+        'Dump Sessions',
+        'btn-outline-primary')
+    .click(function() {
         $.ajax({
-          type: 'POST',
-          url: $URL_ROOT + 'alice/dump_sessions',
-          data: {},
-          dataType: 'json'
-        })
+            type: 'POST',
+            url: $URL_ROOT + 'alice/dump_sessions',
+            data: {},
+            dataType: 'json'})
         .done(function(response) {
-            console.log(response.status_code);
-						console.log(response);
-
+            console.log(response);
             var summary = _.clone(response);
             delete summary['dumps'];
-						
             alertMsg(JSON.stringify(summary), 'warning', duration=0);
         });
     });
 
     addAdminPanelBtn(
-      'dev_pane',
-      'wipe_sessions_btn',
-      'Wipe Sessions',
-      'btn-outline-primary'
-		).click(function() {
+        'dev_pane',
+        'wipe_sessions_btn',
+        'Wipe Sessions',
+        'btn-outline-primary')
+    .click(function() {
         $.ajax({
-          type: 'POST',
-          url: $URL_ROOT + 'alice/wipe_sessions',
-          data: {},
-          dataType: 'json'
-        })
+            type: 'POST',
+            url: $URL_ROOT + 'alice/wipe_sessions',
+            data: {},
+            dataType: 'json'})
         .done(function(response) {
             console.log(response);
             alertMsg(response, 'info');
@@ -66,47 +60,86 @@ function buildAdminPanel() {
     });
 
     addAdminPanelBtn(
-      'admin_pane',
-      'send_welcome_btn',
-      'Send Welcome',
-      'btn-outline-primary'
-		).click(function() {
+        'admin_pane',
+        'send_welcome_btn',
+        'Send Welcome',
+        'btn-outline-primary')
+    .click(function() {
         showSendWelcomeModal();
+    });
+
+    addAdminPanelBtn(
+        'admin_pane',
+        'send_msg_btn',
+        'Send Custom Msg',
+        'btn-outline-primary')
+    .click(function() {
+        showSendCustomMsgModal();
     });
 }
 
 //---------------------------------------------------------------------
 function showSendWelcomeModal() {
     showModal(
-        'mymodal',
-        'Send Welcome SMS',
-        $('#send_welc').html(),
-        'Send',
-        'Cancel');
+      'mymodal',
+      'Send Welcome SMS',
+      $('#send_welc').html(),
+      'Send', 'Cancel');
 
-    $('#mymodal').find('#send_welc').show();
-
-    $('#mymodal').on('shown.bs.modal', function () {
-        $('#mymodal').find('#aid').focus();
+    $('#mymodal #send_welc').show();
+    $('#mymodal #enter_msg').hide(); 
+    $('#mymodal #enter_phone').hide(); 
+    $('#mymodal').on('shown.bs.modal',function(){
+        $('#mymodal #aid').focus();
     })
 
-    $('#mymodal .btn-primary').click(function() {
+    $('#mymodal .btn-primary').click(function(){
         var etap_id = $('#mymodal input[id="aid"]').val();
-
         alertMsg('Sending SMS...', 'info');
+        $('#mymodal').modal('hide');
 
         $.ajax({
-          type: 'POST',
-          data: {'acct_id': etap_id},
-          url: $URL_ROOT + 'api/alice/welcome'
-				}).done(function(response) {
+            type: 'POST',
+            data: {'acct_id': etap_id},
+            url: $URL_ROOT + 'api/alice/welcome'})
+        .done(function(response) {
             console.log(response);
-            if(response=='queued') {
+            if(response=='queued')
                 alertMsg('Welcome SMS sent!', 'success');
-            }
         });
+    });
+}
 
+//---------------------------------------------------------------------
+function showSendCustomMsgModal() {
+    showModal(
+      'mymodal',
+      'Send Custom SMS',
+      $('#send_welc').html(),
+      'Send', 'Cancel');
+
+    $('#mymodal #send_welc').show();
+    $('#mymodal #enter_aid').hide(); 
+    $('#mymodal #enter_phone').show(); 
+    $('#mymodal #enter_msg').show(); 
+    $('#mymodal').on('shown.bs.modal',function(){
+        $('#mymodal #phone').focus();
+    })
+
+    $('#mymodal .btn-primary').click(function(){
+        alertMsg('Sending SMS...', 'info');
         $('#mymodal').modal('hide');
+
+        api_call(
+          'alice/compose', {
+              'to': $('#mymodal input[id="phone"]').val(),
+              'body': $('#mymodal textarea').val()
+          },
+          function(response){
+              console.log(response);
+              if(response['status'] == 'success')
+                  alertMsg('Message sent successfully!', 'success');
+          });
     });
 }
 

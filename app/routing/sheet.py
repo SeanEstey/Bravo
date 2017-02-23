@@ -136,10 +136,15 @@ def write_order(sheets_api, ss_id, order, row):
     if notes.get('email'):
       summary += '\nEmail: ' + notes['email']
 
+    log.debug('writing order. summary=%s, loc_name=%s, gmaps_url=%s, notes[id]=%s',
+        summary, order['gmaps_url'], order['location']['name'], notes['id'])
+
     gsheets.write_rows(
         sheets_api,
-        ss_id, [[
-            "=HYPERLINK('%s','%s')" %(
+        ss_id,
+        'Route!' + str(row)+":"+str(row),
+        [[
+            '=HYPERLINK("%s","%s")' %(
                 order['gmaps_url'],order['location']['name']),
             '',
             '',
@@ -150,18 +155,18 @@ def write_order(sheets_api, ss_id, order, row):
             notes['neighborhood'],
             notes['status'],
             notes['office notes']
-        ]],
-        str(row)+":"+str(row))
+        ]])
+
 
 #-------------------------------------------------------------------------------
 def append_order(sheets_api, ss_id, order):
     '''@order: dict returned from routific.order():
     '''
 
-    values = gsheets.get_values(sheets_api, ss_id, "E1:$E")
+    values = gsheets.get_range(sheets_api, ss_id, 'Route', "E1:$E")
     insert_idx = None
 
-    for i in range(len(values)):
+    for i in range(0, len(values)):
         if values[i][0] == 'depot':
             insert_idx = i
 

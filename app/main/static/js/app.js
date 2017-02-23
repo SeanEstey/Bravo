@@ -76,6 +76,9 @@ function showAdminServerStatus() {
 
 //------------------------------------------------------------------------------
 function api_call(path, data, on_done) {
+    
+    console.log('making API call "%s" with data=%s', path, JSON.stringify(data));
+
 	$.ajax({
 		type: 'POST',
       	data: data,

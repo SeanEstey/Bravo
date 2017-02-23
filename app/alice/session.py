@@ -1,5 +1,5 @@
 '''app.alice.session'''
-import logging
+import logging, sys
 from flask import request, current_app, g, request, session
 from flask_kvsession import SessionID
 from bson.objectid import ObjectId
@@ -41,9 +41,9 @@ def create_session():
     session['expiry_dt'] = datetime.now() + life_duration
 
     try:
-        acct = lookup_acct(from_)
+        acct = lookup_acct(from_, session.get('agcy'))
     except EtapError as e:
-        pass
+        sys.exc_clear()
 
     if not acct:
         # Unregistered user
@@ -57,7 +57,7 @@ def create_session():
             options = {
                 'Name & Address': 'Mobile: %s' % from_})
 
-        log.debug('Uregistered user session (anon_id=%s)', anon_id)
+        log.debug('uregistered user session (anon_id=%s)', anon_id)
     else:
         # Registered user
         session['account'] = acct

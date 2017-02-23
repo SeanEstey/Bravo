@@ -60,6 +60,7 @@ def send_welcome(etap_id):
 def compose(agcy, body, to, callback=None):
     '''Compose SMS message to recipient
     Can be called from outside blueprint. No access to flask session
+    Returns twilio message object (not json serializable)
     '''
 
     alice = get_keys('alice',agcy=agcy)

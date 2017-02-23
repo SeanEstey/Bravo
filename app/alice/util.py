@@ -10,7 +10,7 @@ from .dialog import *
 log = get_logger('alice.util')
 
 #-------------------------------------------------------------------------------
-def lookup_acct(mobile):
+def lookup_acct(mobile, agcy):
     from app.main.tasks import create_rfu
     try:
         # Very slow (~750ms-2200ms)
@@ -23,7 +23,7 @@ def lookup_acct(mobile):
         log.error('etap api (e=%s)', str(e))
 
         create_rfu.delay(
-            g.user.agency,
+            agcy,
             'SMS eTap error "%s"' % str(e),
             options= {
                 'Name & Address': session.get('from')})

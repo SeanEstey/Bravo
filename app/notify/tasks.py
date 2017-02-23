@@ -132,6 +132,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
 
     agencies = [g.db.agencies.find_one({'name':agcy})] if agcy else g.db.agencies.find()
     n_success = n_fails = 0
+    evnt_ids = []
 
     for agency in agencies:
         agcy = agency['name']
@@ -157,7 +158,6 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
             log.info('%s events on %s: %s (%s)',
                 len(blocks), date_str, ", ".join(blocks), agcy)
 
-        evnt_ids = []
         for block in blocks:
             try:
                 evnt_id = pickups.create_reminder(agcy, block, for_date)

@@ -10,6 +10,7 @@ from app.lib.logger import colors as c
 from app.lib.dt import d_to_dt, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 from app.lib.gsheets import gauth, write_rows, append_row, get_row, to_range, get_range
 from app.lib.gcal import gauth as gcal_auth, color_ids, get_events, evnt_date_to_dt, update_event
+from app.lib.utils import start_timer, end_timer
 from .parser import get_block, is_block, is_res, is_bus, get_area, is_route_size
 from .cal import get_blocks, get_accounts
 from .etap import call, get_udf, mod_acct
@@ -229,6 +230,7 @@ def send_receipts(self, entries, **rest):
         'next_pickup':'dd/mm/yyyy', 'status':'<str>', 'ss_row':'<int>' }
     '''
 
+    start = start_timer()
     entries = json.loads(entries)
     log.warning('processing %s receipts...', len(entries))
 
@@ -297,9 +299,12 @@ def send_receipts(self, entries, **rest):
             log.error(str(e))
             log.debug('',exc_info=True)
 
-    log.warning('completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s. '\
-        'no_email=%s', g.track['gifts'], g.track['zeros'], g.track['drops'],
-        g.track['cancels'], g.track['no_email'])
+    duration = end_timer(start)
+
+    log.warning(\
+        'completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s, no_email=%s (%ss)',
+        g.track['gifts'], g.track['zeros'], g.track['drops'],
+        g.track['cancels'], g.track['no_email'], duration)
 
     chunks = acct_data = accts = None
     gc.collect()

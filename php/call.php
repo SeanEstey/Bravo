@@ -12,11 +12,12 @@
 	$agcy = $argv[1];
 	$username = $argv[2];
 	$password = $argv[3];
-	$func = $argv[4];
-	$sandbox = $argv[5] === 'true'? true: false;
-	$data = json_decode($argv[6], true);
+    $wsdl_url = $argv[4];
+	$func = $argv[5];
+	$sandbox = $argv[6] === 'true'? true: false;
+	$data = json_decode($argv[7], true);
 
-	$nsc = get_endpoint($username, $password);
+	$nsc = get_endpoint($username, $password, $wsdl_url);
 	$rv = NULL;
 
 	try {
@@ -77,6 +78,9 @@
 				if($sandbox) {$rv = sandbox_err($func); break;}
 				$rv = process_entries($data['entries']);
 				break;
+            case 'get_next_pickup':
+                $rv = get_next_pickup($data['email']);
+                break;
 			case 'skip_pickup':
 				if($sandbox) {$rv = sandbox_err($func); break;}
 				$rv = skip_pickup($data['acct_id'], $data['date'], $data['next_pickup']);

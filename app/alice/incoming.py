@@ -259,9 +259,10 @@ def expecting_answer():
 
 #-------------------------------------------------------------------------------
 def get_msg(upper=False, rmv_punctn=False):
-    '''Convert from unicode to prevent weird parsing issues'''
+    '''Convert to str, strip spaces
+    '''
 
-    return str(request.form['Body']).strip()
+    return str(request.form['Body'].encode('ascii', 'ignore')).strip()
 
 #-------------------------------------------------------------------------------
 def log_msg():

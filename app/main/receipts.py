@@ -50,23 +50,22 @@ def generate(acct, entry, ytd_gifts=None):
         subject = "Thanks for your Donation"
         g.track['gifts'] +=1
 
+    r_title = path.split('/')[-1]
+
     try:
         mid = deliver(acct['email'], path, subject,
             acct=acct, entry=entry, ytd_gifts=ytd_gifts)
     except Exception as e:
-        log.error('receipt error. Row %s: %s',
-            str(entry['ss_row']), str(e))
+        log.error('receipt error on row %s', entry['ss_row'])
+        mid = None
         status = 'Error: %s' % str(e)
     else:
         status = 'Queued'
-
-    r_title = path.split('/')[-1]
-
-    log.debug('row=%s, receipt="%s", n_ytd_gifts=%s, mid="%s"',
-        entry['ss_row'],
-        r_title,
-        len(ytd_gifts) if ytd_gifts else None,
-        mid[0:mid.find('.')])
+        log.debug('row=%s, receipt="%s", n_ytd_gifts=%s, mid="%s"',
+            entry['ss_row'],
+            r_title,
+            len(ytd_gifts) if ytd_gifts else None,
+            mid[0:mid.find('.')])
 
     return {'mid':mid, 'status': '%s "%s"...' %(status, to_title_case(r_title[0:-5]))}
 
@@ -194,7 +193,8 @@ def get_ytd_gifts(acct_ref, year):
                 "start": "01/01/" + str(year),
                 "end": "31/12/" + str(year)})
     except Exception as e:
-        log.error('Error retrieving gift histories: %s', str(e))
-        raise
+        log.error('error getting gift histories for acct_ref=%s. desc: %s',
+            acct_ref, str(e))
+        return []
     else:
         return je_list[0]

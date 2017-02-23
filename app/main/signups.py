@@ -55,11 +55,13 @@ def add_etw_to_gsheets(signup):
     headers = get_row(service, ss_id, 'Signups', 1)
     row = []
 
+    log.debug('headers=%s', headers)
+
     for field in headers:
         if form_data.has_key(field):
               row.append(form_data[field])
-    else:
-        row.append('')
+        else:
+            row.append('')
 
     try:
         append_row(service, ss_id, 'Signups', row)

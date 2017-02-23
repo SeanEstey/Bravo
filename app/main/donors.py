@@ -17,6 +17,13 @@ def get(acct_id):
         data={'acct_id': int(acct_id)})
 
 #-------------------------------------------------------------------------------
+def get_next_pickup(email, agcy):
+    return call(
+        'get_next_pickup',
+        get_keys('etapestry', agcy=agcy),
+        data={'email':email})
+
+#-------------------------------------------------------------------------------
 def create_accts(accts):
     '''Called from API. g.user is set'''
 

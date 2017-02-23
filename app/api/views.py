@@ -23,10 +23,15 @@ log = get_logger('api')
 
 
 @api.route('/accounts/submit_form', methods=['POST'])
-#@login_required
 def accts_add_form():
+    # TODO: add auth requirement
     from app.main.tasks import add_form_signup
     return task_call(add_form_signup, data=request.form.to_dict())
+
+@api.route('/accounts/get_pickup', methods=['POST'])
+def accts_get_pickup():
+    # TODO: add auth requirement
+    return func_call(donors.get_next_pickup, get_var('email'), agcy=get_var('agcy'))
 
 @api.route('/accounts/create', methods=['POST'])
 @login_required

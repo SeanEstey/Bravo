@@ -29,20 +29,21 @@ function reset_error($nsc) {
 }
 
 //-----------------------------------------------------------------------
-function get_endpoint($user, $pass) {
+function get_endpoint($user, $pass, $wsdl_url) {
 
-	$endpoint = "https://sna.etapestry.com/v3messaging/service?WSDL";
-	$nsc = new nusoap_client($endpoint, true);
+	$nsc = new nusoap_client($wsdl_url, true);
 
 	if(is_error($nsc))
 		return get_error($nsc, $log=True);
 
 	$newEndpoint = $nsc->call('login', array($user, $pass));
+
 	if(is_error($nsc))
 		return get_error($nsc, $log=True);
 
 	if($newEndpoint != "") {
-		//error_log("Given endpoint failed. Using '" . $newEndpoint . "'");
+		debug_log("couldn't acquire endpoint. using '" . $newEndpoint . "'");
+
 		$nsc = new nusoap_client($newEndpoint, true);
 
 	    if(is_error($nsc))

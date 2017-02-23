@@ -1,5 +1,6 @@
 '''app.notify.voice'''
 import logging, os, time, urllib
+from time import sleep
 from datetime import datetime, date, time
 from bson import ObjectId as oid
 from twilio import TwilioRestException, twiml
@@ -243,7 +244,7 @@ def on_complete():
         return_document=ReturnDocument.AFTER)
 
     if form['CallStatus'] == 'failed':
-        time.sleep(5)
+        sleep(5)
         desc = form.get('description')
         agency = g.db.agencies.find_one({'twilio.api.sid': form['AccountSid']})
         keys = agency['twilio']['api']

@@ -35,8 +35,6 @@ function get_accts($acct_ids=NULL, $acct_refs=NULL) {
     else if(!is_null($acct_refs))
         $list = $acct_refs;
 
-    debug_log('acct_ids=' . $acct_ids);
-
     for($i=0; $i< count($list); $i++) {
         try {
             if(!is_null($acct_ids))

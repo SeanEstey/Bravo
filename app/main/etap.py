@@ -15,7 +15,7 @@ def call(func, keys, data, silence_exc=False ):
 
     cmds = [
         'php', '/root/bravo/php/call.php',
-        keys['agency'], keys['user'], keys['pw'],
+        keys['agency'], keys['user'], keys['pw'], keys['wsdl_url'],
         func,
         sandbox,
         json.dumps(data)]

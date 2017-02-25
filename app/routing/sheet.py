@@ -51,7 +51,7 @@ def write_orders(sheets_api, ss_id, orders):
     log.debug('writing %s orders', len(orders))
 
     rows = []
-    cells_to_bold = []
+    bold_rng = []
     orders = orders[1:] # Chop off office start_address
 
     for idx in range(len(orders)):
@@ -70,7 +70,7 @@ def write_orders(sheets_api, ss_id, orders):
             summary += '\nArrive: ' + order['arrival_time']
         else:
             if notes.get('driver notes'):
-                cells_to_bold.append([idx+1+1, 4])
+                bold_rng.append([idx+1+1, 4])
                 summary += 'NOTE: ' + notes['driver notes'] +'\n\n'
                 if notes['driver notes'].find('***') > -1:
                     summary = summary.replace("***", "")
@@ -105,11 +105,16 @@ def write_orders(sheets_api, ss_id, orders):
     try:
         gsheets.write_rows(sheets_api, ss_id, range_, rows)
         gsheets.vert_align_cells(sheets_api, ss_id, 2, len(orders)+1, 1,1)
-        gsheets.bold_cells(sheets_api, ss_id, cells_to_bold)
-        values = gsheets.get_range(sheets_api, ss_id, 'Route', 'A1:$A')
-        hide_start = 1 + len(rows) + 1;
-        hide_end = values.index(['***Route Info***'])
-        gsheets.hide_rows(sheets_api, ss_id, hide_start, hide_end)
+        gsheets.bold_cells(sheets_api, ss_id, bold_rng)
+        values = gsheets.get_values(sheets_api, ss_id, 'Route', 'A1:$A')
+        marker = '***Route Info***'
+        n_rows = gsheets.num_rows(sheets_api, ss_id, 'Route')
+        hide_end = values.index([marker]) if [marker] in values else n_rows
+        gsheets.hide_rows(
+            sheets_api,
+            ss_id,
+            1 + len(rows) + 1,
+            hide_end)
     except Exception as e:
         log.error('sheets error: %s', str(e))
         raise
@@ -163,7 +168,7 @@ def append_order(sheets_api, ss_id, order):
     '''@order: dict returned from routific.order():
     '''
 
-    values = gsheets.get_range(sheets_api, ss_id, 'Route', "E1:$E")
+    values = gsheets.get_values(sheets_api, ss_id, 'Route', "E1:$E")
     insert_idx = None
 
     for i in range(0, len(values)):

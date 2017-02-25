@@ -45,15 +45,12 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
             'ended_dt': None}}).inserted_id
 
 #-------------------------------------------------------------------------------
-def call(notific, twilio_conf, voice_conf):
+def call(notific, conf):
     '''Private method called by send()
     '''
 
-    if notific['tracking']['attempts'] >= voice_conf['max_attempts']:
-        return False
-
     try:
-        client = TwilioRestClient(twilio_conf['api']['sid'], twilio_conf['api']['auth_id'])
+        client = TwilioRestClient(conf['api']['sid'], conf['api']['auth_id'])
     except TwilioRestException as e:
         log.error('twilio REST error. %s', str(e))
         log.debug('tb: ', exc_info=True)
@@ -61,9 +58,9 @@ def call(notific, twilio_conf, voice_conf):
 
     # Protect against sending real calls if in sandbox
     if os.environ.get('BRV_SANDBOX') == 'True':
-        from_ = twilio_conf['voice']['valid_from_number']
+        from_ = conf['voice']['valid_from_number']
     else:
-        from_ = twilio_conf['voice']['number']
+        from_ = conf['voice']['number']
 
     call = None
     http_host = os.environ.get('BRV_HTTP_HOST')

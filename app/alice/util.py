@@ -17,8 +17,7 @@ def lookup_acct(mobile, agcy):
         acct = call(
             'find_acct_by_phone',
             session.get('conf')['etapestry'],
-            {'phone': mobile}
-        )
+            {'phone': mobile})
     except Exception as e:
         log.error('etap api (e=%s)', str(e))
 

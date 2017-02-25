@@ -92,11 +92,6 @@ def handle_keyword(kw, handler=None):
     if on_receive['action'] == 'reply':
         return make_reply(on_receive['dialog'], on_complete=on_complete)
     elif on_receive['action'] == 'event':
-        #log.debug(
-        #    'calling event handler %s.%s',
-        #    on_receive['handler']['module'],
-        #    on_receive['handler']['func'])
-
         try:
             module = __import__(on_receive['handler']['module'], fromlist='.')
             func = getattr(module, on_receive['handler']['func'])

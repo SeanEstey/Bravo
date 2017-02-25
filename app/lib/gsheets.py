@@ -1,4 +1,4 @@
-'''app.gsheets'''
+'''app.lib.gsheets'''
 import httplib2, json, logging, requests
 from datetime import datetime
 from dateutil.parser import parse
@@ -9,29 +9,44 @@ from app import get_logger
 log = get_logger('gsheets')
 
 #-------------------------------------------------------------------------------
-def update_cell(service, ss_id, range_, value):
-    api_ss_values_update(service, ss_id, range_, [[value]])
+def num_columns(service, ss_id, wks):
+    ss_info = api_ss_get(service, ss_id)
+    for sheet in ss_info['sheets']:
+        if sheet['properties']['title'] == wks:
+            return sheet['properties']['gridProperties']['columnCount']
+
+#-------------------------------------------------------------------------------
+def num_rows(service, ss_id, wks):
+    ss_info = api_ss_get(service, ss_id)
+    for sheet in ss_info['sheets']:
+        if sheet['properties']['title'] == wks:
+            return sheet['properties']['gridProperties']['rowCount']
 
 #-------------------------------------------------------------------------------
 def get_row(service, ss_id, wks, row):
     range_ = '%s!%s:%s' % (wks, str(row),str(row))
-    return api_ss_values_get(service, ss_id, range_)[0]
+    return api_ss_values_get(service, ss_id, range_)['values'][0]
 
 #-------------------------------------------------------------------------------
-def get_range(service, ss_id, wks, range_):
-    return api_ss_values_get(service, ss_id, '%s!%s' %(wks,range_))
+def get_values(service, ss_id, wks, range_):
+    return api_ss_values_get(service, ss_id, '%s!%s' %(wks,range_))['values']
+
+#-------------------------------------------------------------------------------
+def update_cell(service, ss_id, range_, value):
+    api_ss_values_update(service, ss_id, range_, [[value]])
 
 #-------------------------------------------------------------------------------
 def append_row(service, ss_id, sheet_title, values):
     sheet = api_ss_get(service, ss_id, sheet_title=sheet_title)
-
     max_rows = sheet['gridProperties']['rowCount']
     range_ = '%s!%s:%s' % (sheet_title, max_rows+1,max_rows+1)
-
     api_ss_values_append(service, ss_id, range_, [values])
 
 #-------------------------------------------------------------------------------
 def write_rows(service, ss_id, range_, values):
+    '''Write rows to given range. Will append new rows if range exceeds
+    grid size
+    '''
     api_ss_values_update(service, ss_id, range_, values)
 
 #-------------------------------------------------------------------------------
@@ -45,11 +60,9 @@ def insert_rows_above(service, ss_id, row, num):
 
 #-------------------------------------------------------------------------------
 def hide_rows(service, ss_id, start, end):
+    '''@start: inclusive row
+       @end: inclusive row
     '''
-    @start: inclusive row
-    @end: inclusive row
-    '''
-
     fields = '*'
     range_ = {
         'startIndex': start-1,
@@ -63,9 +76,6 @@ def hide_rows(service, ss_id, start, end):
 
 #-------------------------------------------------------------------------------
 def vert_align_cells(service, ss_id, start_row, end_row, start_col, end_col):
-    '''
-    '''
-
     range_ = {
         "sheetId": 0,
         "startRowIndex": start_row-1,
@@ -81,8 +91,7 @@ def vert_align_cells(service, ss_id, start_row, end_row, start_col, end_col):
 
 #-------------------------------------------------------------------------------
 def bold_cells(service, ss_id, cells):
-    '''
-    @cells: list of [ [row,col], [row,col] ]
+    '''@cells: list of [ [row,col], [row,col] ]
     '''
 
     # range startIndex: inclusive, endIndex: exclusive
@@ -105,7 +114,6 @@ def bold_cells(service, ss_id, cells):
         requests_.append(api_ss_batch_update(
             service, ss_id, 'repeatCell',
             range_=range_, cell=cell, fields=fields, execute=False))
-
     api_execute(service, ss_id, requests_)
 
 #-------------------------------------------------------------------------------
@@ -144,8 +152,7 @@ def gauth(oauth):
             scopes=scope)
         http = httplib2.Http(cache=".cache")
         http = credentials.authorize(http)
-        #service = build(name, version, http=http, cache=MemoryCache()) #_discovery=True)
-        service = build(name, version, http=http, cache_discovery=True) #=MemoryCache()) #_discovery=True)
+        service = build(name, version, http=http, cache_discovery=True)
     except Exception as e:
         log.error('error authorizing %s: %s', name, str(e))
         return False
@@ -160,24 +167,33 @@ def gauth(oauth):
 
 #-------------------------------------------------------------------------------
 def api_ss_get(service, ss_id, sheet_title=None):
-    '''
-	Returns: spreadsheet property: {
-	  "spreadsheetId": string,
-	  "properties": {
-		object(SpreadsheetProperties)
-	  },
-	  "sheets": [
-		{
-		  object(Sheet)
-		}
+    '''Returns <Spreadsheet> dict (does not contain values)
+
+    Spreadsheet = {
+      "spreadsheetId": string,
+      "properties": {
+        <SpreadsheetProperties>
+	   },
+	   "sheets": [
+         <Sheet>
 	  ],
 	  "namedRanges": [
-		{
-		  object(NamedRange)
-		}
+        <NamedRange>
 	  ],
+      ...
 	}
-    '''
+
+    Sheet = {
+      "properties": {
+        "title": <str>,
+        "gridProperties": {
+            "columnCount": <int>,
+            "rowCount": <int>,
+        },
+        ...
+      }
+    }'''
+
     try:
         ss = service.spreadsheets().get(spreadsheetId=ss_id).execute()
     except Exception as e:
@@ -193,7 +209,16 @@ def api_ss_get(service, ss_id, sheet_title=None):
 
 #-------------------------------------------------------------------------------
 def api_ss_values_get(service, ss_id, range_):
-    '''https://developers.google.com/resources/api-libraries/documentation/\
+    '''Returns <ValuesRange>:
+	{
+      "range": string,
+      "majorDimension": enum(Dimension),
+        "values": [
+          array
+        ],
+    }
+
+    pydocs: https://developers.google.com/resources/api-libraries/documentation/\
     sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#get
     '''
 
@@ -207,7 +232,7 @@ def api_ss_values_get(service, ss_id, range_):
         log.debug('', exc_info=True)
         raise
 
-    return result.get('values', [])
+    return result
 
 #-------------------------------------------------------------------------------
 def api_ss_values_update(service, ss_id, range_, values):
@@ -445,5 +470,3 @@ def api_ss_batch_update(service, ss_id, request, range_=None, cell=None, fields=
 	}
 	'''
     pass
-
-

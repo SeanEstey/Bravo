@@ -74,7 +74,8 @@ def is_inactive(agcy, acct, days=270):
                 "start": cutoff_date.strftime('%d/%m/%Y'),
                 "end": date.today().strftime('%d/%m/%Y')})[0]
     except EtapError as e:
-        log.error('get_gift_histories fail. desc=%s', str(e))
+        log.error('get_gift_histories error for acct_id=%s. desc=%s',
+            acct['id'], str(e))
         raise
 
     if len(je) > 0:

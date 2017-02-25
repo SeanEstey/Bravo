@@ -44,6 +44,7 @@ def create_session():
         acct = lookup_acct(from_, session.get('agcy'))
     except EtapError as e:
         sys.exc_clear()
+        acct = None
 
     if not acct:
         # Unregistered user
@@ -84,6 +85,7 @@ def create_session():
 
 #-------------------------------------------------------------------------------
 def update_session():
+
     session['messages'].append(request.form['Body'])
     session['last_msg_dt'] = to_local(dt=datetime.now())
 
@@ -126,8 +128,7 @@ def store_sessions():
 
             n_stored +=1
 
-    log.debug(
-        'chat sessions stored (total=%s, stored=%s, updated=%s)',
+    log.debug('chat sessions stored (total=%s, stored=%s, updated=%s)',
         n_alice, n_stored, n_updated)
 
 #-------------------------------------------------------------------------------

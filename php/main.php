@@ -26,7 +26,7 @@ function get_acct($id=NULL, $ref=NULL) {
 //-----------------------------------------------------------------------
 function get_accts($acct_ids=NULL, $acct_refs=NULL) {
 
-	ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
+	ini_set('max_execution_time', 30000); // IMPORTANT: To prevent fatal error timeout
 	global $nsc;
     $list = NULL;
     $accts = [];
@@ -100,7 +100,7 @@ function get_route_size($category, $query, $date) {
 	 */
 
 	global $nsc;
-	ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
+	ini_set('max_execution_time', 30000); // IMPORTANT: To prevent fatal error timeout
   
 	$response = $nsc->call("getExistingQueryResults", [[ 
 	'start' => 0,
@@ -185,7 +185,9 @@ function get_block_size($query_category, $query) {
 //-----------------------------------------------------------------------
 function gift_histories($acct_refs, $start, $end) {
 
-	ini_set('max_execution_time', 3000); // IMPORTANT: To prevent fatail error timeout
+    set_time_limit(600);
+	ini_set('max_execution_time', 30000); // IMPORTANT: To prevent fatal error timeout
+
 	global $nsc;
     $accts_je = [];
 
@@ -204,7 +206,7 @@ function gift_history($ref, $start, $end) {
 	 */
 
 	global $nsc;
-	ini_set('max_execution_time', 3000); // IMPORTANT: prevents timeout err
+	ini_set('max_execution_time', 30000); // IMPORTANT: prevents timeout err
 	// Return filtered journal entries for provided year
 	$request = [
 		'accountRef' => $ref,
@@ -237,11 +239,11 @@ function gift_history($ref, $start, $end) {
 function process_entries($entries) {
 	/* Updates UDF's and upload gifts for given accts
 	@entries: 2d array: [
-			"acct_id":"int>",
-			"udf"=>["Field Name 1"=>"Field Value", ... ],
-			"gift"=>["date"=>"<str>", "amount"=>"<float>"]]
+        "acct_id":"int>",
+        "udf"=>["Field Name 1"=>"Field Value", ... ],
+        "gift"=>["date"=>"<str>", "amount"=>"<float>"]]
 	Returns 2d array of results: [
-			"row"=>"<int>", "status"=>"<str>", "description"=>"<err_str>"]
+        "row"=>"<int>", "status"=>"<str>", "description"=>"<err_str>"]
 	*/
 
     ini_set('max_execution_time', 30000); // For timeout error
@@ -651,6 +653,9 @@ function make_booking($acct_id, $udf, $type) {
 	$udf['Driver Notes'] = get_udf($acct, 'Driver Notes') . '\\n' . $udf['Driver Notes'];
 	$off_notes = get_udf($acct, 'Office Notes');
 	$blocks = get_udf($acct, 'Block');
+
+    if(!is_array($blocks))
+        $blocks = [$blocks];
 
 	// Omit ***RMV BLK*** if book block == natural block
 	if(in_array($udf['Block'], $blocks))

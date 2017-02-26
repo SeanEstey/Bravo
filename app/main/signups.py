@@ -124,7 +124,7 @@ def on_delivered(agcy):
         service = gauth(get_keys('google',agcy=agcy)['oauth'])
         headers = get_row(service, ss_id, 'Routes', 1)
         col = headers.index('Email Status')+1
-        update_cell(service, ss_id, to_range(row,col), request.form['event'])
+        update_cell(service, ss_id, 'Signups', to_range(row,col), request.form['event'])
     except Exception as e:
         log.error('error updating sheet')
 
@@ -142,7 +142,7 @@ def on_dropped(agcy):
         service = gauth(get_keys('google',agcy=agcy)['oauth'])
         headers = get_row(service, ss_id, 'Routes', 1)
         col = headers.index('Email Status')+1
-        update_cell(service, ss_id, to_range(row,col), request.form['event'])
+        update_cell(service, ss_id, 'Signups', to_range(row,col), request.form['event'])
     except Exception as e:
         log.error('error updating sheet')
 

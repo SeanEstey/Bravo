@@ -121,7 +121,7 @@ def process_entries(self, entries, agcy=None, **rest):
         values = [[r['results'][i]['status']] for i in range(len(r['results']))]
 
         try:
-            write_rows(srvc, ss_id, range_, values)
+            write_rows(srvc, ss_id, 'Routes', range_, values)
         except Exception as e:
             log.error(str(e))
             log.debug('',exc_info=True)
@@ -294,7 +294,7 @@ def send_receipts(self, entries, **rest):
             i+1, len(chunks), range_)
 
         try:
-            write_rows(service, g.ss_id, 'Routes!'+range_, values)
+            write_rows(service, g.ss_id, 'Routes', range_, values)
         except Exception as e:
             log.error(str(e))
             log.debug('',exc_info=True)
@@ -359,7 +359,7 @@ def create_accounts(self, accts_json, agcy=None, **rest):
             i+1, len(chunks), range_)
 
         try:
-            write_rows(service, ss_id, range_, values)
+            write_rows(service, ss_id, 'Signups', range_, values)
         except Exception as e:
             log.error(str(e))
             log.debug('',exc_info=True)

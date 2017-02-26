@@ -122,6 +122,7 @@ def update(agency, ss_id):
     gsheets.write_rows(
         service,
         conf['google']['stats_ss_id'],
+        'Daily',
         [row],
         worksheet+'!'+str(row_num)+':'+str(row_num)
     )

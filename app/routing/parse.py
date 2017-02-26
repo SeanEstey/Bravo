@@ -11,7 +11,11 @@ def to_dict(agency, ss_id):
     service = gsheets.gauth(conf['google']['oauth'])
 
     # get col A-B
-    values = gsheets.get_values(service, ss_id, 'A:B')
+    values = gsheets.get_values(
+        service,
+        ss_id,
+        conf['routing']['gdrive']['temp[late_orders_wks_name'],
+        'A:B')
 
     try:
         info_idx = values.index(['***Route Info***'])

@@ -2,6 +2,7 @@
 import logging, re, time
 from .. import get_logger, get_keys
 from app.lib import gdrive, gsheets
+from app.lib.gsheets import get_values, update_cell, to_range
 from app.main.parser import has_postal
 log = get_logger('routing.sheet')
 
@@ -45,7 +46,7 @@ def build(agcy, drive_api, title):
     return _file
 
 #-------------------------------------------------------------------------------
-def write_orders(sheets_api, ss_id, orders):
+def write_orders(agcy, api, ss_id, wks, orders):
     '''Write formatted orders to route sheet.'''
 
     log.debug('writing %s orders', len(orders))
@@ -103,24 +104,31 @@ def write_orders(sheets_api, ss_id, orders):
     range_ = "A2:J" + str(len(orders)+1)
 
     try:
-        gsheets.write_rows(sheets_api, ss_id, range_, rows)
-        gsheets.vert_align_cells(sheets_api, ss_id, 2, len(orders)+1, 1,1)
-        gsheets.bold_cells(sheets_api, ss_id, bold_rng)
-        values = gsheets.get_values(sheets_api, ss_id, 'Route', 'A1:$A')
-        marker = '***Route Info***'
-        n_rows = gsheets.num_rows(sheets_api, ss_id, 'Route')
-        hide_end = values.index([marker]) if [marker] in values else n_rows
-        gsheets.hide_rows(
-            sheets_api,
-            ss_id,
-            1 + len(rows) + 1,
-            hide_end)
+        gsheets.write_rows(api, ss_id, wks, range_, rows)
+        gsheets.vert_align_cells(api, ss_id, 0, 2, len(orders)+1, 1,1)
+        gsheets.bold_cells(api, ss_id, 0, bold_rng)
     except Exception as e:
         log.error('sheets error: %s', str(e))
         raise
 
+    if agcy == 'wsf':
+        try:
+            values = get_values(api, ss_id, 'Route', 'A1:$A')
+            marker = '***Route Info***'
+            n_rows = gsheets.num_rows(api, ss_id, 'Route')
+            hide_end = values.index([marker]) if [marker] in values else n_rows
+            gsheets.hide_rows(
+                api,
+                ss_id,
+                0,
+                1 + len(rows) + 1,
+                hide_end)
+        except Exception as e:
+            log.error('sheets error: %s', str(e))
+            raise
+
 #-------------------------------------------------------------------------------
-def write_order(sheets_api, ss_id, order, row):
+def write_order(api, ss_id, wks, order, row):
     '''Write single order to empty row on Sheet
     TODO: doesn't add Bold formatting yet.'''
 
@@ -145,9 +153,10 @@ def write_order(sheets_api, ss_id, order, row):
         summary, order['gmaps_url'], order['location']['name'], notes['id'])
 
     gsheets.write_rows(
-        sheets_api,
+        api,
         ss_id,
-        'Route!' + str(row)+":"+str(row),
+        wks,
+        '%s:%s' %(str(row)+":"+str(row)),
         [[
             '=HYPERLINK("%s","%s")' %(
                 order['gmaps_url'],order['location']['name']),
@@ -162,18 +171,35 @@ def write_order(sheets_api, ss_id, order, row):
             notes['office notes']
         ]])
 
+#-------------------------------------------------------------------------------
+def write_prop(agcy, api, ss_id, route):
+
+    fields = get_values(api, ss_id, 'Info', 'A:A')
+
+    update_cell(api, ss_id, 'Info',
+        to_range(fields.index(['Date'])+1, 2),
+        str(route['date'].date()))
+    update_cell(api, ss_id, 'Info',
+        to_range(fields.index(['Block'])+1, 2),
+        route['block'])
+    update_cell(api, ss_id, 'Info',
+        to_range(fields.index(['Skips'])+1, 2),
+        route['no_pickups'])
+    update_cell(api, ss_id, 'Info',
+        to_range(fields.index(['Trip Length'])+1, 2),
+        route['duration'])
 
 #-------------------------------------------------------------------------------
-def append_order(sheets_api, ss_id, order):
+def append_order(api, ss_id, wks, order):
     '''@order: dict returned from routific.order():
     '''
 
-    values = gsheets.get_values(sheets_api, ss_id, 'Route', "E1:$E")
+    values = get_values(api, ss_id, wks, "E1:$E")
     insert_idx = None
 
     for i in range(0, len(values)):
         if values[i][0] == 'depot':
             insert_idx = i
 
-    gsheets.insert_rows_above(sheets_api, ss_id, insert_idx+1, 1)
-    write_order(sheets_api, ss_id, order, insert_idx+1)
+    gsheets.insert_rows_above(api, ss_id, 0, insert_idx+1, 1)
+    write_order(api, ss_id, wks, order, insert_idx+1)

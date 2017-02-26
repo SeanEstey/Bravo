@@ -10,6 +10,7 @@ from app.lib.utils import to_title_case
 from app.lib.dt import to_local
 from app.lib import mailgun
 from app.main import cal
+from app.main.parser import is_bus
 from app.main.etap import call, EtapError
 from . import email, sms, voice, pickups, triggers
 log = task_logger('notify.tasks')
@@ -136,7 +137,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
         agcy = agency['name']
 
         if not for_date:
-            days_ahead = int(agency['scheduler']['notify']['delta_days'])
+            days_ahead = int(agency['notify']['sched_delta_days'])
             for_date = date.today() + timedelta(days=days_ahead)
 
         date_str = for_date.strftime('%m-%d-%Y')
@@ -157,6 +158,9 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 len(blocks), date_str, ", ".join(blocks), agcy)
 
         for block in blocks:
+            if is_bus(block) and agency['notify']['sched_business'] == False:
+                continue
+
             try:
                 evnt_id = pickups.create_reminder(agcy, block, for_date)
             except EtapError as e:

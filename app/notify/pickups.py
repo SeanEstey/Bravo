@@ -31,7 +31,7 @@ def create_reminder(agcy, block, date_):
     # Create event + triggers
 
     evnt_id = events.add(agcy, block, date_, 'bpu')
-    conf = get_keys('scheduler',agcy=agcy)['notify']['triggers']
+    conf = get_keys('notify',agcy=agcy)['triggers']
     email_trig_id = triggers.add(
         evnt_id,
         'email',

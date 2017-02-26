@@ -163,16 +163,22 @@ def build_route(self, route_id, job_id=None, **rest):
         {'$set':{ 'ss': ss}})
 
     try:
+        service = gsheets.gauth(get_keys('google',agcy=agcy)['oauth'])
         sheet.write_orders(
-            gsheets.gauth(get_keys('google',agcy=agcy)['oauth']),
+            agcy,
+            service,
             ss['id'],
+            get_keys('routing',agcy=agcy)['gdrive']['template_orders_wks_name'],
             orders)
+        sheet.write_prop(
+            agcy,
+            service,
+            ss['id'],
+            route)
     except Exception as e:
         log.error('error writing orders. desc=%s', str(e))
         log.debug('', exc_info=True)
         raise
-
-    # TODO: add trip length
 
     smart_emit('route_status',{
         'status':'completed', 'ss_id':ss['id'], 'warnings':route['warnings']})

@@ -24,47 +24,52 @@ def num_rows(service, ss_id, wks):
 
 #-------------------------------------------------------------------------------
 def get_row(service, ss_id, wks, row):
-    range_ = '%s!%s:%s' % (wks, str(row),str(row))
-    return api_ss_values_get(service, ss_id, range_)['values'][0]
+    return api_ss_values_get(
+        service,
+        ss_id,
+        wks,
+        '%s:%s'%(str(row),str(row))
+    )['values'][0]
 
 #-------------------------------------------------------------------------------
 def get_values(service, ss_id, wks, range_):
-    return api_ss_values_get(service, ss_id, '%s!%s' %(wks,range_))['values']
+    return api_ss_values_get(service, ss_id, wks, range_)['values']
 
 #-------------------------------------------------------------------------------
-def update_cell(service, ss_id, range_, value):
-    api_ss_values_update(service, ss_id, range_, [[value]])
+def update_cell(service, ss_id, wks, range_, value):
+    api_ss_values_update(service, ss_id, wks, range_, [[value]])
 
 #-------------------------------------------------------------------------------
-def append_row(service, ss_id, sheet_title, values):
-    sheet = api_ss_get(service, ss_id, sheet_title=sheet_title)
+def append_row(service, ss_id, wks_title, values):
+    sheet = api_ss_get(service, ss_id, wks_title=wks_title)
     max_rows = sheet['gridProperties']['rowCount']
     range_ = '%s!%s:%s' % (sheet_title, max_rows+1,max_rows+1)
     api_ss_values_append(service, ss_id, range_, [values])
 
 #-------------------------------------------------------------------------------
-def write_rows(service, ss_id, range_, values):
+def write_rows(service, ss_id, wks, range_, values):
     '''Write rows to given range. Will append new rows if range exceeds
     grid size
     '''
-    api_ss_values_update(service, ss_id, range_, values)
+    api_ss_values_update(service, ss_id, wks, range_, values)
 
 #-------------------------------------------------------------------------------
-def insert_rows_above(service, ss_id, row, num):
+def insert_rows_above(service, ss_id, wks_id, row, num):
     range_ = {
-        "sheetId": 0,
+        "sheetId": wks_id,
         "dimension": "ROWS",
         "startIndex": row-1,
         "endIndex": row-1+num}
     api_ss_batch_update(service, ss_id, 'insertDimension', range_=range_)
 
 #-------------------------------------------------------------------------------
-def hide_rows(service, ss_id, start, end):
+def hide_rows(service, ss_id, wks_id, start, end):
     '''@start: inclusive row
        @end: inclusive row
     '''
     fields = '*'
     range_ = {
+        'sheetId': wks_id,
         'startIndex': start-1,
         'endIndex': end,
         'dimension': 'ROWS'}
@@ -75,9 +80,9 @@ def hide_rows(service, ss_id, start, end):
         fields=fields, range_=range_, properties=properties)
 
 #-------------------------------------------------------------------------------
-def vert_align_cells(service, ss_id, start_row, end_row, start_col, end_col):
+def vert_align_cells(service, ss_id, wks_id, start_row, end_row, start_col, end_col):
     range_ = {
-        "sheetId": 0,
+        "sheetId": wks_id,
         "startRowIndex": start_row-1,
         "endRowIndex": end_row-1,
         "startColumnIndex": start_col-1}
@@ -90,7 +95,7 @@ def vert_align_cells(service, ss_id, start_row, end_row, start_col, end_col):
         cell=cell, range_=range_, fields=fields)
 
 #-------------------------------------------------------------------------------
-def bold_cells(service, ss_id, cells):
+def bold_cells(service, ss_id, wks_id, cells):
     '''@cells: list of [ [row,col], [row,col] ]
     '''
 
@@ -100,7 +105,7 @@ def bold_cells(service, ss_id, cells):
 
     for cell in cells:
         range_ = {
-            "sheetId": 0,
+            "sheetId": wks_id,
             "startRowIndex": cell[0]-1,
             "endRowIndex": cell[0],
             "startColumnIndex": cell[1]-1,
@@ -166,7 +171,7 @@ def gauth(oauth):
 '''API Calls'''
 
 #-------------------------------------------------------------------------------
-def api_ss_get(service, ss_id, sheet_title=None):
+def api_ss_get(service, ss_id, wks_title=None):
     '''Returns <Spreadsheet> dict (does not contain values)
 
     Spreadsheet = {
@@ -200,15 +205,15 @@ def api_ss_get(service, ss_id, sheet_title=None):
         log.error('couldnt get ss prop: %s', str(e))
         return False
 
-    if not sheet_title:
+    if not wks_title:
         return ss
 
     for sheet in ss['sheets']:
-        if sheet['properties']['title'] == sheet_title:
+        if sheet['properties']['title'] == wks_title:
             return sheet['properties']
 
 #-------------------------------------------------------------------------------
-def api_ss_values_get(service, ss_id, range_):
+def api_ss_values_get(service, ss_id, wks, range_):
     '''Returns <ValuesRange>:
 	{
       "range": string,
@@ -225,7 +230,7 @@ def api_ss_values_get(service, ss_id, range_):
     try:
         result = service.spreadsheets().values().get(
           spreadsheetId = ss_id,
-          range=range_
+          range='%s!%s'%(wks,range_)
         ).execute()
     except Exception as e:
         log.error('Error getting values from sheet: %s', str(e))
@@ -235,7 +240,7 @@ def api_ss_values_get(service, ss_id, range_):
     return result
 
 #-------------------------------------------------------------------------------
-def api_ss_values_update(service, ss_id, range_, values):
+def api_ss_values_update(service, ss_id, wks, range_, values):
     '''https://developers.google.com/resources/api-libraries/documentation/\
     sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#update
     '''
@@ -247,7 +252,11 @@ def api_ss_values_update(service, ss_id, range_, values):
     input_ = 'USER_ENTERED'
 
     try:
-        call(spreadsheetId=ss_id, valueInputOption=input_, range=range_, body=body).execute()
+        call(
+            spreadsheetId=ss_id,
+            valueInputOption=input_,
+            range='%s!%s'%(wks,range_),
+            body=body).execute()
     except Exception as e:
         log.error('Error updating sheet: %s', str(e))
         log.debug('', exc_info=True)

@@ -438,21 +438,21 @@ def add_form_signup(self, data, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def find_inactive_donors(self, agcy=None, in_days=5, period=None, **rest):
+def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
     '''Create RFU's for all non-participants on scheduled dates
     '''
 
     log.warning('identifying inactive donors...')
 
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
-    accts = []
     n_task_inactive = 0
 
     for agency in agcy_list:
+        accts = []
         n_inactive = 0
         agcy = agency['name']
         cal_ids = agency['cal_ids']
-        period = period if period else agency['donors']['inactive_period']
+        period = period_ if period_ else agency['donors']['inactive_period']
         on_date = date.today() + delta(days=in_days)
 
         log.info('analyzing blocks on %s blocks (period=%s days, agcy=%s)...',

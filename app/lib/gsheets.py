@@ -43,7 +43,7 @@ def update_cell(service, ss_id, wks, range_, value):
 def append_row(service, ss_id, wks_title, values):
     sheet = api_ss_get(service, ss_id, wks_title=wks_title)
     max_rows = sheet['gridProperties']['rowCount']
-    range_ = '%s!%s:%s' % (sheet_title, max_rows+1,max_rows+1)
+    range_ = '%s!%s:%s' % (wks_title, max_rows+1,max_rows+1)
     api_ss_values_append(service, ss_id, range_, [values])
 
 #-------------------------------------------------------------------------------
@@ -162,7 +162,7 @@ def gauth(oauth):
         log.error('error authorizing %s: %s', name, str(e))
         return False
 
-    log.debug('sheets service authorized')
+    #log.debug('sheets service authorized')
 
     http = None
     credentials = None

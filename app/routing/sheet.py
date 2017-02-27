@@ -194,7 +194,7 @@ def append_order(api, ss_id, wks, order):
     '''@order: dict returned from routific.order():
     '''
 
-    values = get_values(api, ss_id, wks, "E1:$E")
+    values = get_values(api, ss_id, wks, "E1:E")
     insert_idx = None
 
     for i in range(0, len(values)):

@@ -19,14 +19,6 @@ def lookup_acct(mobile, agcy):
             session.get('conf')['etapestry'],
             {'phone': mobile})
     except Exception as e:
-        log.error('etap api (e=%s)', str(e))
-
-        create_rfu.delay(
-            agcy,
-            'SMS eTap error "%s"' % str(e),
-            options= {
-                'Name & Address': session.get('from')})
-
         raise EtapError(dialog['error']['etap']['lookup'])
 
     return acct

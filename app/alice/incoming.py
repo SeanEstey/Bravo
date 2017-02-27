@@ -114,10 +114,10 @@ def handle_answer():
     if do['action'] == 'dialog':
         reply = do['dialog']
     elif do['action'] == 'event':
-        log.debug(
-            'calling event handler %s.%s',
-            do['handler']['module'],
-            do['handler']['func'])
+        #log.debug(
+        #    'calling event handler %s.%s',
+        #    do['handler']['module'],
+        #    do['handler']['func'])
 
         try:
             mod = __import__(do['handler']['module'], fromlist='.')

@@ -7,6 +7,7 @@ import cPickle as pickle
 from datetime import datetime, date, timedelta
 from app import get_logger, kv_store, kv_ext
 from app.main.etap import is_active, EtapError
+from app.main.tasks import create_rfu
 from app.lib.dt import to_local
 from app.lib.utils import print_vars
 from . import keywords
@@ -21,11 +22,11 @@ def has_session():
 
 #-------------------------------------------------------------------------------
 def create_session():
+
     from_ = str(request.form['From'])
     msg = request.form['Body']
     life_duration = current_app.config['PERMANENT_SESSION_LIFETIME']
     conf = g.db.agencies.find_one({'twilio.sms.number':request.form['To']})
-    log.debug('To=%s', request.form['To'])
 
     # Init session data
 
@@ -51,7 +52,6 @@ def create_session():
         session['anon_id'] = anon_id = str(ObjectId())
         session['valid_kws'] = keywords.anon.keys()
 
-        from app.main.tasks import create_rfu
         create_rfu.delay(
             session.get('agcy'),
             'No eTap acct linked to this mobile number.\nMessage: "%s"' % msg,

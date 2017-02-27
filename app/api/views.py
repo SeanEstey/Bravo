@@ -76,7 +76,7 @@ def alice_send_welcome():
 @api.route('/alice/compose', methods=['POST'])
 @login_required
 def alice_send_msg():
-    return func_call(compose, g.user.agency, get_var('body'), get_var('to'))
+    return func_call(compose, g.user.agency, get_var('body'), get_var('to'), find_session=True)
 
 @api.route('/booker/create', methods=['POST'])
 @login_required

@@ -1,11 +1,14 @@
 '''app.alice.outgoing'''
 import logging
+import cPickle as pickle
+from datetime import datetime
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException
 from flask import g, request
-from app import get_logger, get_keys
+from app import get_logger, get_keys, kv_store
 from app.main import etap
 from app.lib.logger import colors as c
+from app.lib.dt import to_local
 from .dialog import dialog
 from .session import store_sessions
 log = get_logger('alice.out')
@@ -53,8 +56,6 @@ def send_welcome(etap_id):
         msg,
         etap.get_phone('Mobile', acct))
 
-    log.info('%s"%s"%s', c.BOLD, msg, c.ENDC)
-
     return r.status
 
 #-------------------------------------------------------------------------------
@@ -63,15 +64,6 @@ def compose(agcy, body, to, callback=None, find_session=False):
     Can be called from outside blueprint. No access to flask session
     Returns twilio message object (not json serializable)
     '''
-
-    # TODO: pass in session ID if this msg is human-controlled
-    # reply to an automated conversation, so the entire convo
-    # is logged
-    if find_session:
-        store_sessions()
-        # TODO: Sort by 'last_msg_dt'
-        chats = g.db.chatlogs.find({'from':to})
-        pass
 
     alice = get_keys('alice',agcy=agcy)
 
@@ -100,7 +92,29 @@ def compose(agcy, body, to, callback=None, find_session=False):
         log.debug(e, exc_info=True)
         raise
     else:
-        return msg
+        log.info('%s"%s"%s', c.BOLD, body, c.ENDC)
+
+    if not find_session:
+        return msg.status
+
+    # Store the new message in the user's session
+
+    chats = g.db.chatlogs.find({'from':to}).sort('last_msg_dt',-1).limit(1)
+
+    if chats.count() == 0:
+        return msg.status
+
+    chat = chats.next()
+
+    try:
+        sess = pickle.loads(kv_store.get(chat['sess_id']))
+    except Exception as e:
+        sess = None
+    else:
+        sess['messages'].append(body)
+        sess['last_msg_dt'] = to_local(datetime.now())
+        kv_store.put(chat['sess_id'], pickle.dumps(sess))
+        log.debug('updated sess_id=%s with outgoing msg', chat['sess_id'])
 
     return msg.status
 

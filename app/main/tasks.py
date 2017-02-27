@@ -111,7 +111,7 @@ def process_entries(self, entries, agcy=None, **rest):
         n_success += r['n_success']
         n_errs += r['n_errs']
 
-        range_ = 'Routes!%s:%s' %(
+        range_ = '%s:%s' %(
             to_range(r['results'][0]['row'], upload_col),
             to_range(r['results'][-1]['row'], upload_col))
 
@@ -349,7 +349,7 @@ def create_accounts(self, accts_json, agcy=None, **rest):
 
         log.debug('rv=%s', rv)
 
-        range_ = 'Signups!%s:%s' %(
+        range_ = '%s:%s' %(
             to_range(chunk[0]['ss_row'], status_col),
             to_range(chunk[-1]['ss_row'], status_col))
 

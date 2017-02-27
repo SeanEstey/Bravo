@@ -19,7 +19,9 @@ def request_support():
 
     create_rfu.delay(
         session.get('agcy'),
-        'SMS help request: "%s"' % str(request.form['Body']),
+        'SMS help request: "%s"\n%s' %(
+            str(request.form['Body']),
+            session.get('from')),
         options={
             'Account Number': acct['id'],
             'Name & Address': acct['name']})

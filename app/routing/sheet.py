@@ -156,7 +156,7 @@ def write_order(api, ss_id, wks, order, row):
         api,
         ss_id,
         wks,
-        '%s:%s' %(str(row)+":"+str(row)),
+        '%s:%s' %(str(row),str(row)),
         [[
             '=HYPERLINK("%s","%s")' %(
                 order['gmaps_url'],order['location']['name']),

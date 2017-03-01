@@ -30,7 +30,8 @@ def on_delivered():
     agcy = request.form.get('agcy')
 
     if not webhook:
-        log.error('webhook "type" not set. cannot route to handler')
+        log.debug('%swebhook "type" not set. cannot route to handler%s',
+            c.RED,c.ENDC)
         log.debug(request.form.to_dict())
         return 'failed'
     if webhook == 'receipt':

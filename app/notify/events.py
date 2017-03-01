@@ -41,9 +41,9 @@ def create_event():
         block = request.form['query_name']
 
         if is_res(block):
-            cal_id = get_keys('cal_ids')['res']
+            cal_id = get_keys('cal_ids').get('res') or get_keys('cal_ids').get('routes')
         elif is_bus(block):
-            cal_id = get_keys('cal_ids')['bus']
+            cal_id = get_keys('cal_ids').get('bus') or get_keys('cal_ids').get('routes')
         else:
             raise Exception('Invalid Block name %s' % block)
 

@@ -111,22 +111,6 @@ def write_orders(agcy, api, ss_id, wks, orders):
         log.error('sheets error: %s', str(e))
         raise
 
-    if agcy == 'wsf':
-        try:
-            values = get_values(api, ss_id, 'Route', 'A1:$A')
-            marker = '***Route Info***'
-            n_rows = gsheets.num_rows(api, ss_id, 'Route')
-            hide_end = values.index([marker]) if [marker] in values else n_rows
-            gsheets.hide_rows(
-                api,
-                ss_id,
-                0,
-                1 + len(rows) + 1,
-                hide_end)
-        except Exception as e:
-            log.error('sheets error: %s', str(e))
-            raise
-
 #-------------------------------------------------------------------------------
 def write_order(api, ss_id, wks, order, row):
     '''Write single order to empty row on Sheet

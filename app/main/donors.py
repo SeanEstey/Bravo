@@ -24,6 +24,41 @@ def get_next_pickup(email, agcy):
         data={'email':email})
 
 #-------------------------------------------------------------------------------
+def save_rfu(acct_id, body, date=False, ref=False, fields=False):
+    '''Add or update RFU Journal Note for acct, update any necessary User
+    Defined Fields
+    '''
+
+    func = 'update_note' if ref else 'add_note'
+    data = {
+        "ref": ref,
+        "acct_id": acct_id,
+        "body": body,
+        "date": date}
+
+    try:
+        note_rv = call(func, get_keys("etapestry"), data=data)
+    except Exception as e:
+        raise
+
+    if fields:
+        log.debug('fields=%s', fields)
+        try:
+            updt_rv = call(
+                'modify_acct',
+                get_keys('etapestry'),
+                data={
+                    'acct_id':acct_id,
+                    'persona': [],
+                    'udf':json.loads(fields)})
+        except Exception as e:
+            raise
+
+    log.debug('save_rfu result=%s', note_rv)
+
+    return note_rv
+
+#-------------------------------------------------------------------------------
 def create_accts(accts):
     '''Called from API. g.user is set'''
 

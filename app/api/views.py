@@ -33,6 +33,13 @@ def accts_get_pickup():
     # TODO: add auth requirement
     return func_call(donors.get_next_pickup, get_var('email'), agcy=get_var('agcy'))
 
+@api.route('/accounts/save_rfu', methods=['POST'])
+def accts_save_rfu():
+    # TODO: add auth requirement
+    return func_call(donors.save_rfu,
+        get_var('acct_id'), get_var('body'), get_var('date'),
+        get_var('ref'), get_var('fields')) #, agcy=get_var('agcy'))
+
 @api.route('/accounts/create', methods=['POST'])
 @login_required
 def call_accts_create():

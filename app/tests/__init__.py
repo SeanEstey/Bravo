@@ -1,14 +1,13 @@
 '''app.tests.__init__'''
 import json, logging, os
 import celery.result
-from flask import g, url_for, has_app_context, has_request_context
+from flask import g, url_for
 from flask_login import current_user, login_user
 from app import create_app, init_celery
 from app.auth import load_user
-from app.utils import print_vars
+from app.lib.utils import print_vars
+from app.lib.mongodb import create_client
 import config
-from app.mongodb import create_client
-log = logging.getLogger(__name__)
 
 db_client = create_client(connect=True, auth=True)
 

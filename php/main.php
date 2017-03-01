@@ -369,8 +369,9 @@ function upload_gift($entry, $acct) {
 
 //-----------------------------------------------------------------------
 function add_note($acct_id, $date, $body) {
-    /* $note format: {'id': acct_id, 'Note': note, 'Date': date} */
-    /* Returns response code 200 on success, 400 on failure */
+    /* Add Journal Note
+     * Returns: note db_ref num on success
+     */
 
 	global $nsc;
     $acct = get_acct($id=$acct_id);
@@ -378,30 +379,31 @@ function add_note($acct_id, $date, $body) {
       'accountRef' => $acct['ref'],
       'note' => $body,
       'date' => format_date($date)];
-    $status = $nsc->call("addNote", array($trans, false));
+
+    $ref = $nsc->call("addNote", array($trans, false));
 
     if(is_error($nsc))
         return get_error($nsc, $log=True);
     
-    //debug_log('Note added for account ' . $acct_id);
-    return $status;
+    debug_log('note added (acct_id=' . $acct_id . ')');
+    return ["ref"=>$ref];
 }
 
 //-----------------------------------------------------------------------
-function update_note($acct_id, $note_ref, $body) {
+function update_note($acct_id, $ref, $body) {
 
 	global $nsc;
-    $note = $nsc->call('getNote', array($note_ref));
+    $note = $nsc->call('getNote', array($ref));
     if(is_error($nsc))
         return get_error($nsc, $log=True);
 
     $note['note'] = $body;
-    $status = $nsc->call('updateNote', array($note, false));
+    $update_ref = $nsc->call('updateNote', array($note, false));
     if(is_error($nsc))
         return get_error($nsc, $log=True);
     
-    debug_log('Updated note. acct_id=' . $acct_id);
-    return $status;
+    debug_log('note updated (acct_id=' . $acct_id . ')');
+    return ["ref"=>$update_ref];
 }
 
 //-----------------------------------------------------------------------

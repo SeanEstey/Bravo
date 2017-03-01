@@ -95,7 +95,7 @@ def compose(agcy, body, to, callback=None, find_session=False):
         log.info('%s"%s"%s', c.BOLD, body, c.ENDC)
 
     if not find_session:
-        return msg.status
+        return msg
 
     # Store the new message in the user's session
 

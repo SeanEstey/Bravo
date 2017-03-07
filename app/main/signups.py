@@ -23,25 +23,25 @@ def add_etw_to_gsheets(signup):
         raise Exception('auth error. desc=%s' % str(e))
 
     form_data = {
-        'Signup Date': datetime.now().strftime('%-m/%-d/%Y'),
+        'Date': datetime.now().strftime('%-m/%-d/%Y'),
         'Office Notes': signup['special_requests'],
         'Address': signup['address'],
-        'Postal Code': signup['postal'],
-        'Primary Phone': signup['phone'],
+        'Postal': signup['postal'],
+        'Landline': signup['phone'],
         'Email': signup['email'],
-        'Tax Receipt': signup['tax_receipt'],
-        'Reason Joined': signup['reason_joined'],
+        'Receipt': signup['tax_receipt'],
+        'Reason': signup['reason_joined'],
         'City': signup['city'],
         'Status': 'Dropoff'}
 
     if signup['account_type'] == 'Residential':
-        form_data['First Name'] = signup['first_name']
-        form_data['Last Name'] = signup['last_name']
+        form_data['First'] = signup['first_name']
+        form_data['Last'] = signup['last_name']
         form_data['Name Format'] = 'Individual'
         form_data['Persona Type'] = 'Personal'
     elif signup['account_type'] == 'Business':
-        form_data['Business Name'] = signup['account_name']
-        form_data['Contact Person'] = signup['contact_person']
+        form_data['Business'] = signup['account_name']
+        form_data['Contact'] = signup['contact_person']
         form_data['Name Format'] = 'Business'
         form_data['Persona Type'] = 'Business'
 
@@ -122,8 +122,8 @@ def on_delivered(agcy):
 
     try:
         service = gauth(get_keys('google',agcy=agcy)['oauth'])
-        headers = get_row(service, ss_id, 'Routes', 1)
-        col = headers.index('Email Status')+1
+        headers = get_row(service, ss_id, 'Signups', 1)
+        col = headers.index('Welcome')+1
         update_cell(service, ss_id, 'Signups', to_range(row,col), request.form['event'])
     except Exception as e:
         log.error('error updating sheet')
@@ -140,8 +140,8 @@ def on_dropped(agcy):
 
     try:
         service = gauth(get_keys('google',agcy=agcy)['oauth'])
-        headers = get_row(service, ss_id, 'Routes', 1)
-        col = headers.index('Email Status')+1
+        headers = get_row(service, ss_id, 'Signups', 1)
+        col = headers.index('Welcome')+1
         update_cell(service, ss_id, 'Signups', to_range(row,col), request.form['event'])
     except Exception as e:
         log.error('error updating sheet')

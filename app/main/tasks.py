@@ -83,14 +83,16 @@ def process_entries(self, entries, agcy=None, **rest):
 
     log.warning('processing %s gift entries...', len(entries))
 
+    wks = 'Donations'
+    checkmark = "=char(10004)"
     ch_size = 10
     etap_conf = get_keys('etapestry',agcy=agcy)
     chunks = [entries[i:i + ch_size] for i in xrange(0, len(entries), ch_size)]
 
     ss_id = get_keys('google',agcy=agcy)['ss_id']
     srvc = gauth(get_keys('google',agcy=agcy)['oauth'])
-    headers = get_row(srvc, ss_id, 'Routes', 1)
-    upload_col = headers.index('Upload Status') +1
+    headers = get_row(srvc, ss_id, wks, 1)
+    upload_col = headers.index('Upload') +1
     n_success = n_errs = 0
 
     for n in range(0,len(chunks)):
@@ -120,8 +122,13 @@ def process_entries(self, entries, agcy=None, **rest):
 
         values = [[r['results'][i]['status']] for i in range(len(r['results']))]
 
+        for i in range(len(values)):
+            log.debug('values[%s]=%s', i, values[i])
+            if values[i][0] == u'Processed' or values[i][0] == u'Updated':
+                values[i][0] = checkmark
+
         try:
-            write_rows(srvc, ss_id, 'Routes', range_, values)
+            write_rows(srvc, ss_id, wks, range_, values)
         except Exception as e:
             log.error(str(e))
             log.debug('',exc_info=True)
@@ -232,6 +239,8 @@ def send_receipts(self, entries, **rest):
 
     start = start_timer()
     entries = json.loads(entries)
+    wks = 'Donations'
+    checkmark = "=char(10004)"
     log.warning('processing %s receipts...', len(entries))
 
     try:
@@ -248,8 +257,8 @@ def send_receipts(self, entries, **rest):
         'acct':accts[i],
         'entry':entries[i],
         'ytd_gifts':get_ytd_gifts(
-            accts[i]['ref'],
-            parse(entries[i]['date']).year)
+            accts[i].get('ref'),
+            parse(entries[i].get('date')).year)
     } for i in range(0,len(accts))]
 
     g.track = {
@@ -261,8 +270,8 @@ def send_receipts(self, entries, **rest):
     }
     g.ss_id = get_keys('google')['ss_id']
     service = gauth(get_keys('google')['oauth'])
-    g.headers = get_row(service, g.ss_id, 'Routes', 1)
-    status_col = g.headers.index('Email Status') +1
+    g.headers = get_row(service, g.ss_id, wks, 1)
+    status_col = g.headers.index('Receipt') +1
 
     # Break entries into equally sized lists for batch updating google sheet
 
@@ -284,17 +293,21 @@ def send_receipts(self, entries, **rest):
             to_range(chunk[-1]['entry']['ss_row'], status_col))
 
         values = [[rv[idx]['status']] for idx in range(len(rv))]
-        curr_values = get_values(service, g.ss_id, 'Routes', range_)
+        curr_values = get_values(service, g.ss_id, wks, range_)
 
         for row_idx in range(0, len(curr_values)):
-            if curr_values[row_idx][0] == 'Delivered':
-                values[row_idx][0] = 'Delivered'
+            if curr_values[row_idx][0] == checkmark:
+                values[row_idx][0] = checkmark
+            elif values[row_idx][0] == 'No Email':
+                values[row_idx][0] = 'No Email'
+            else:
+                values[row_idx][0] = '...'
 
         log.debug('writing chunk %s/%s values to ss, range=%s',
             i+1, len(chunks), range_)
 
         try:
-            write_rows(service, g.ss_id, 'Routes', range_, values)
+            write_rows(service, g.ss_id, wks, range_, values)
         except Exception as e:
             log.error(str(e))
             log.debug('',exc_info=True)
@@ -319,11 +332,11 @@ def create_accounts(self, accts_json, agcy=None, **rest):
 
     accts = json.loads(accts_json)
     log.warning('creating %s accounts...', len(accts))
-
+    checkmark = "=char(10004)"
     ss_id = get_keys('google', agcy=agcy)['ss_id']
     service = gauth(get_keys('google', agcy=agcy)['oauth'])
     headers = get_row(service, ss_id, 'Signups', 1)
-    status_col = headers.index('Upload Status') +1
+    status_col = headers.index('Upload') +1
     n_errs = n_success = 0
 
     # Break accts into chunks for gsheets batch updating
@@ -355,6 +368,10 @@ def create_accounts(self, accts_json, agcy=None, **rest):
 
         values = [[rv['results'][idx]['status']] for idx in range(0, len(rv['results']))]
 
+        for j in range(len(values)):
+            if values[j][0] == u'Uploaded':
+                values[j][0] = checkmark
+
         log.debug('writing chunk %s/%s values to ss, range=%s',
             i+1, len(chunks), range_)
 
@@ -376,15 +393,17 @@ def create_rfu(self, agcy, note, options=None, **rest):
 
     srvc = gauth(get_keys('google',agcy=agcy)['oauth'])
     ss_id = get_keys('google',agcy=agcy)['ss_id']
-    headers = get_row(srvc, ss_id, 'RFU', 1)
+    headers = get_row(srvc, ss_id, 'Issues', 1)
     rfu = [''] * len(headers)
-    rfu[headers.index('Request Note')] = note
+    rfu[headers.index('Description')] = note
+    rfu[headers.index('Type')] = 'Followup'
+    rfu[headers.index('Resolved')] = 'No'
 
     for field in headers:
         if field in options:
             rfu[headers.index(field)] = options[field]
 
-    append_row(srvc, ss_id, 'RFU', rfu)
+    append_row(srvc, ss_id, 'Issues', rfu)
     log.debug('Creating RFU=%s', rfu)
 
     return 'success'
@@ -496,8 +515,8 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
                 agcy,
                 'Non-participant. No collection in %s days.' % period,
                 options={
-                    'Account Number': acct['id'],
-                    'Next Pickup Date': npu,
+                    'ID': acct['id'],
+                    'Next Pickup': npu,
                     'Block': get_udf('Block', acct),
                     'Date': date.today().strftime('%-m/%-d/%Y'),
                     'Driver Notes': get_udf('Driver Notes', acct),

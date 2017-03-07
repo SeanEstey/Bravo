@@ -170,7 +170,7 @@ def write_prop(agcy, api, ss_id, route):
         to_range(fields.index(['Skips'])+1, 2),
         route['no_pickups'])
     update_cell(api, ss_id, 'Info',
-        to_range(fields.index(['Trip Length'])+1, 2),
+        to_range(fields.index(['Trip Lgth Sched'])+1, 2),
         route['duration'])
 
 #-------------------------------------------------------------------------------

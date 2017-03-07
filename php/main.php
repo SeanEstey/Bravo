@@ -44,6 +44,7 @@ function get_accts($acct_ids=NULL, $acct_refs=NULL) {
                 $accts[] = get_acct(NULL, $ref=$list[$i]);
         } catch (Exception $e) {
             $accts[] = (string)$e;
+            reset_error($nsc);
         }
     }
     return $accts;
@@ -257,12 +258,15 @@ function process_entries($entries) {
     for($i=0; $i<$n_entries; $i++) {
         $entry = $entries[$i];
         $row = $entry['ss_row'];
-				$mod_err = '';
+        $mod_err = '';
 
         try { 
             $acct = get_acct($id=$entry['acct_id']);
         } catch(Exception $e) {
-            $rv[] = ['row'=>$row, 'status'=>$e->getMessage()];
+            $status = 'no acct found for ID="' . $entry['acct_id'] . '"';
+            $rv[] = ['row'=>$row, 'status'=>'Failed: ' . $status, 'description'=>$status]; 
+            debug_log($status);
+            $n_errs++;
             continue;
         }
 
@@ -272,8 +276,8 @@ function process_entries($entries) {
         apply_udf($acct, $entry['udf']);
 
 		if(is_error($nsc)) {
-				$mod_err = get_error($nsc, $log=false) . '. ';
-				$n_errs++;
+            $mod_err = get_error($nsc, $log=false) . '. ';
+            $n_errs++;
 		}
 
 		if(empty($entry['gift']['amount']) && $entry['gift']['amount'] !== 0) {
@@ -321,6 +325,7 @@ function process_entries($entries) {
     }
 
     debug_log($n_entries . ' entries processed. n_success=' . $n_success . ', n_errors=' . $n_errs);
+    reset_error($nsc);
 		
 	return [
 		'n_success'=>$n_success,
@@ -435,6 +440,7 @@ function add_accts($entries) {
             if($status != 'Success') {
                 $rv[] = ['row'=>$row, 'status'=>$status];
                 $n_errs += 1;
+                reset_error($nsc);
             }
             else {
                 $rv[] = ['row'=>$row, 'status'=>$status];
@@ -468,6 +474,7 @@ function add_accts($entries) {
             $desc = get_error($nsc, $log=false);
             $rv[] = ['row'=>$entry['ss_row'], 'status'=>$desc];
             debug_log('error adding account ' . $acct['name'] . '. desc: ' . $desc);
+            reset_error($nsc);
         }
         else {
             $n_success += 1;
@@ -477,6 +484,7 @@ function add_accts($entries) {
 	}
 
 	debug_log((string)$n_success . ' accts added/updated. ' . (string)$n_errs . ' errors.');
+    reset_error($nsc);
 
 	return [
 		'n_success'=>$n_success,

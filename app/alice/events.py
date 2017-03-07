@@ -23,8 +23,8 @@ def request_support():
             str(request.form['Body']),
             session.get('from')),
         options={
-            'Account Number': acct['id'],
-            'Name & Address': acct['name']})
+            'ID': acct['id'],
+            'Account': acct['name']})
 
     return dialog['support']['thanks']
 
@@ -48,7 +48,17 @@ def prompt_instructions():
     if session.get('valid_notific_reply') == False:
         return dialog['skip']['too_late']
 
-    return dialog['instruct']['prompt']
+    # Did user include instruction details along w/ INSTRUCTION keyword?
+    # Otherwise, if only INSTRUCTIONS keyword provided, prompt user for details
+
+    msg = str(request.form['Body'].encode('ascii', 'ignore')).strip()
+    words = msg.split(' ')
+
+    if len(words) > 1:
+        session['on_complete'] = None
+        return add_instructions()
+    else:
+        return dialog['instruct']['prompt']
 
 #-------------------------------------------------------------------------------
 def add_instructions():
@@ -120,7 +130,7 @@ def update_mobile():
         'SMS update account for following address '\
         'with mobile number:' + str(request.form['Body']),
         options = {
-            'Name & Address': request.form['From']})
+            'Account': request.form['From']})
 
     return \
         "Thank you. I'll have someone update your account for you "\
@@ -149,7 +159,7 @@ def is_unsub():
             'Contributor has replied "%s" and opted out of SMS '\
             'notifications.' % request.form['Body'],
             options = {
-                'Account Number': account['id']})
+                'ID': account['id']})
 
         return True
 

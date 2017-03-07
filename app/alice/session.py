@@ -56,7 +56,7 @@ def create_session():
             session.get('agcy'),
             'No eTap acct linked to this mobile number.\nMessage: "%s"' % msg,
             options = {
-                'Name & Address': 'Mobile: %s' % from_})
+                'Account': 'Mobile: %s' % from_})
 
         log.debug('uregistered user session (anon_id=%s)', anon_id)
     else:

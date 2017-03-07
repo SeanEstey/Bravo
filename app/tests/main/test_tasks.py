@@ -41,7 +41,7 @@ class MainTasksTests(unittest.TestCase):
             tasks.create_rfu(
                 'vec', 'Non-participant. No collection',
                 options={
-                    'Account Number': 269,
+                    'ID': 269,
                     'Block': 'R6A',
                     'Driver Notes': 'foo',
                     'Office Notes': 'bar'})
@@ -53,7 +53,7 @@ class MainTasksTests(unittest.TestCase):
             tasks.create_rfu.delay(
                 'vec', 'Testing celery worker delay()',
                 options={
-                    'Account Number': 269,
+                    'ID': 269,
                     'Block': 'R6A',
                     'Driver Notes': 'foo',
                     'Office Notes': 'bar'})

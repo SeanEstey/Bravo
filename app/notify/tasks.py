@@ -135,19 +135,16 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
 
     for agency in agencies:
         agcy = agency['name']
-
-        if not for_date:
-            days_ahead = int(agency['notify']['sched_delta_days'])
-            for_date = date.today() + timedelta(days=days_ahead)
-
-        date_str = for_date.strftime('%m-%d-%Y')
+        days_ahead = int(agency['notify']['sched_delta_days'])
+        on_date = date.today() + timedelta(days=days_ahead) if not for_date else for_date
+        date_str = on_date.strftime('%m-%d-%Y')
         blocks = []
 
         for key in agency['cal_ids']:
             blocks += cal.get_blocks(
                 agency['cal_ids'][key],
-                datetime.combine(for_date,time(8,0)),
-                datetime.combine(for_date,time(9,0)),
+                datetime.combine(on_date,time(8,0)),
+                datetime.combine(on_date,time(9,0)),
                 get_keys('google',agcy=agcy)['oauth'])
 
         if len(blocks) == 0:
@@ -162,7 +159,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 continue
 
             try:
-                evnt_id = pickups.create_reminder(agcy, block, for_date)
+                evnt_id = pickups.create_reminder(agcy, block, on_date)
             except EtapError as e:
                 n_fails +=1
                 log.error('failed to create %s reminder (desc: %s)', block, str(e))

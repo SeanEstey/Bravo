@@ -50,7 +50,7 @@ def nis():
         g.user.agency,
         '%s not in service' % record['custom']['to'],
         options={
-            'Account Number': record['account_id'],
+            'ID': record['account_id'],
             'Block': record['custom']['block']})
 
 @notify.route('/<evnt_id>/<acct_id>/no_pickup', methods=['GET'])

@@ -78,14 +78,15 @@ def on_delivered(agcy):
     row = request.form['ss_row']
     ss_id = get_keys('google',agcy=agcy)['ss_id']
 
+    status = "=char(10004)" if request.form['event'] == 'delivered' else request.form['event']
+
     try:
         service = gauth(get_keys('google',agcy=agcy)['oauth'])
-        headers = get_row(service, ss_id, 'Routes', 1)
-        col = headers.index('Email Status')+1
-        update_cell(service, ss_id, 'Routes', to_range(row,col), request.form['event'].title())
+        headers = get_row(service, ss_id, 'Donations', 1)
+        col = headers.index('Receipt')+1
+        update_cell(service, ss_id, 'Donations', to_range(row,col), status)
         service = None
         gc.collect()
-        #update_cell(service, ss_id, to_range(row,col), 'delivered'.title())
     except Exception as e:
         log.error('error updating sheet')
         log.debug('', exc_info=True)
@@ -109,9 +110,9 @@ def on_dropped(agcy):
 
     try:
         service = gauth(get_keys('google',agcy=agcy)['oauth'])
-        headers = get_row(service, ss_id, 'Routes', 1)
-        col = headers.index('Email Status')+1
-        update_cell(service, ss_id, 'Routes', to_range(row,col), request.form['event'])
+        headers = get_row(service, ss_id, 'Donations', 1)
+        col = headers.index('Receipt')+1
+        update_cell(service, ss_id, 'Donations', to_range(row,col), request.form['event'])
     except Exception as e:
         log.error('error updating sheet')
 

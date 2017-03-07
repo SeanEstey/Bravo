@@ -263,8 +263,8 @@ def on_complete():
             evnt['agency'],
             'Error calling %s\n. %s' %(notific['to'], desc),
             options={
-                'Account Number': acct['udf'].get('etap_id'),
-                'Name & Address': acct['name'],
+                'ID': acct['udf'].get('etap_id'),
+                'Account': acct['name'],
                 'Date': date.today().strftime('%-m/%-d/%Y')})
 
     smart_emit('notific_status', {

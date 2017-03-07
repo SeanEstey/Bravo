@@ -6,7 +6,8 @@ ending_chat = [
     'THANKYOU',
     'THX',
     'SOUNDS GOOD',
-    'OK'
+    'OK',
+    'OK THANKS'
 ]
 
 unsubscribe = [

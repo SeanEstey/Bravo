@@ -83,7 +83,7 @@ def build_scheduled_routes(self, agcy=None, **rest):
     '''Route orders for today's Blocks and build Sheets
     '''
 
-    log.info('task: building scheduled routes...')
+    log.warning('task: building scheduled routes...')
 
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
     n_fails = n_success = 0
@@ -109,7 +109,7 @@ def build_scheduled_routes(self, agcy=None, **rest):
             n_success += 1
             sleep(2)
 
-    log.info('task: completed. %s routes built, %s failures.', n_success, n_fails)
+    log.warning('task: completed. %s routes built, %s failures.', n_success, n_fails)
     return 'success'
 
 #-------------------------------------------------------------------------------

@@ -6,13 +6,9 @@ git clone https://github.com/SeanEstey/Bravo --branch <b_name>
 cd Bravo
 ```
 
-#### Install Ubuntu Packages
+#### Ubuntu/Python Packages
 
-Follow instructions in requirements/pkg_list.txt
-
-#### Install Python Packages
-
-Follow instructions in requirements/requirements.txt
+Follow instructions in requirements/pkg_list.txt and requirements/requirements.txt
 
 #### Run setup
 

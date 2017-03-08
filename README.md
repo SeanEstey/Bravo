@@ -49,28 +49,28 @@ The Mailgun and Twilio webhooks use the domain name so they will point resolve t
 
 (1) Setup SMTP settings for Mailgun to send email on behalf of a domain  
 (2) Set webhooks for domain: https://mailgun.com/app/webhooks:  
-	Delivered Messages: "http://www.bravoweb.ca/email/status"  
-	Dropped Messages: "http://www.bravoweb.ca/email/status"  
-	Hard Bounces: "http://www.bravoweb.ca/email/status"  
-	Spam Complaints: "http://www.bravoweb.ca/email/status"  
-	Unsubscribes: "http://www.bravoweb.ca/email/status"  
+  * Delivered Messages: "http://www.bravoweb.ca/email/status"  
+  * Dropped Messages: "http://www.bravoweb.ca/email/status"  
+    * Hard Bounces: "http://www.bravoweb.ca/email/status"  
+    * Spam Complaints: "http://www.bravoweb.ca/email/status"  
+    * Unsubscribes: "http://www.bravoweb.ca/email/status"  
 
 #####Twilio
 
 (1) Setup a Phone number  
 (2) Create Voice Preview app  
-	Tools->TwiML Apps  
-	Name  
-		"Voice Preview (Live Server)"  
-	Voice  
-		Request URL: "http://bravoweb.ca/notify/voice/preview"  
+  * Tools->TwiML Apps  
+    * Name  
+	* "Voice Preview (Live Server)"  
+	* Voice  
+	  * Request URL: "http://bravoweb.ca/notify/voice/preview"  
 (3) Configure Phone number:  
-	Voice  
-		Configure With: "TwiML App"  
-		TwiML App: "Voice Preview (Live Server)"  
-	Messaging  
-		Configure With: "Webhooks/TwiML"  
-		A Message Comes In: "http://bravoweb.ca/alice/vec/receive"  
+  * Voice  
+    * Configure With: "TwiML App"  
+    * TwiML App: "Voice Preview (Live Server)"  
+  * Messaging  
+    * Configure With: "Webhooks/TwiML"  
+    * A Message Comes In: "http://bravoweb.ca/alice/vec/receive"  
 
 ####Setup MongoDB
 

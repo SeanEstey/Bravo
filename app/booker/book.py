@@ -54,7 +54,7 @@ def make():
         send_confirm()
 
     log.info('booked acct %s for %s. email conf=%s, append order=%s',
-        request.form['aid'], request.form['date'], email_conf, append)
+        request.form['aid'], request.form['date'], email_conf, do_append)
 
     return "Booked successfully"
 

@@ -1,20 +1,20 @@
 ### Setup Instructions
 
-###### Clone repository
+#### Clone repository
 ```
 git clone https://github.com/SeanEstey/Bravo --branch <b_name>
 cd Bravo
 ```
 
-###### Install Ubuntu Packages
+#### Install Ubuntu Packages
 
 Follow instructions in requirements/pkg_list.txt
 
-###### Install Python Packages
+#### Install Python Packages
 
 Follow instructions in requirements/requirements.txt
 
-###### Run setup
+#### Run setup
 
 `python setup.py`
 
@@ -24,7 +24,7 @@ Add execution permission to Bravo/logs folder.
 
 Create empty files: celery.log, events.log, debug.log. Add execution permissions.
 
-###### PHP Error Logging
+#### PHP Error Logging
 
 Open /etc/php.ini
 
@@ -32,7 +32,7 @@ Find error_log line. Set:
 `error_log = BRAVO_PATH/logs/debug.log`
 Where BRAVO_PATH is the repository path.
 
-###### Create MongoDB Auth File
+#### Create MongoDB Auth File
 
 Create "db_auth.py" in Bravo root directory:
 ```
@@ -40,27 +40,39 @@ user = "db_user"
 password = "db_pw"
 ```
 
-##### Domain & Webhooks
-
-######Live Server
+####Integrating Mailgun & Twilio
 
 Update DNS records to point to IP address of VPS.
 The Mailgun and Twilio webhooks use the domain name so they will point resolve to the new IP address once the DNS changes sync.
 
-######Test Server
+#####Mailgun 
 
-Mailgun webhooks 
+1) Setup SMTP settings for Mailgun to send email on behalf of a domain
+2) Set webhooks for domain: https://mailgun.com/app/webhooks:
+	Delivered Messages: "http://www.bravoweb.ca/email/status"
+	Dropped Messages: "http://www.bravoweb.ca/email/status"
+	Hard Bounces: "http://www.bravoweb.ca/email/status"
+	Spam Complaints: "http://www.bravoweb.ca/email/status"
+	Unsubscribes: "http://www.bravoweb.ca/email/status"
 
--Update webhooks for sandbox domain: https://mailgun.com/app/webhooks
+#####Twilio
 
-Twilio webhooks
+1) Setup a Phone number
+2) Create Voice Preview app
+	Tools->TwiML Apps
+	Name
+		"Voice Preview (Live Server)"
+	Voice
+		Request URL: "http://bravoweb.ca/notify/voice/preview"
+2) Configure Phone number:
+	Voice
+		Configure With: "TwiML App"
+		TwiML App: "Voice Preview (Live Server)"
+	Messaging
+		Configure With: "Webhooks/TwiML"
+		A Message Comes In: "http://bravoweb.ca/alice/vec/receive"
 
--Update webhooks for Alice test Number:
--Go to appropriate subaccount
--Phone Numbers->Alice (Test Server)->Messaging
--Update "A Message Comes In" webhook with VPS IP address
-
-#####Setup MongoDB
+####Setup MongoDB
 
 Create database named "bravo"
 
@@ -83,14 +95,14 @@ npm install -g togeojson
 
 
 
-###### Google Service Account
+##### Google Service Account
 
 1. For each agency, open Google Developer Console
 2. Find Service Account
 3. Generate JSON key
 4. Add contents to MongoDB "agencies" collection under "oauth" key
 
-###### Google Sheets
+##### Google Sheets
 
 From Google Drive, create new Sheet named `Bravo Sheets` with worksheets "Donations", "Issues", "Signups"
 
@@ -110,7 +122,7 @@ Have user remove Bravo Library script from Google Drive.
 
 Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with them.
 
-##### SSL
+#### SSL
 
 Update config.py SSL_CERT_PATH="/path/to/chained_cert.crt"
 Update virtualhost/default file variables: "ssl_certificate" and "ssl_certificate_key"

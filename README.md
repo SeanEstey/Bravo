@@ -45,7 +45,7 @@ password = "db_pw"
 Update DNS records to point to IP address of VPS.
 The Mailgun and Twilio webhooks use the domain name so they will point resolve to the new IP address once the DNS changes sync.
 
-#####Mailgun 
+####Mailgun 
 
 (1) Setup SMTP settings for Mailgun to send email on behalf of a domain  
 (2) Set webhooks for domain: https://mailgun.com/app/webhooks:  
@@ -55,7 +55,7 @@ The Mailgun and Twilio webhooks use the domain name so they will point resolve t
   * Spam Complaints: "http://www.bravoweb.ca/email/status"  
   * Unsubscribes: "http://www.bravoweb.ca/email/status"  
 
-#####Twilio
+####Twilio
 
 Setup a Phone number  
 
@@ -83,7 +83,7 @@ Create collections: "users", "agencies", "maps"
 Populate MongoDB bravo.agencies document with config data using format in DB.md
 
 
-###### Setup NodeJS & togeojson
+#### Setup NodeJS & togeojson
 
 If nodejs already installed as “node”, make symbolic link:
 ```
@@ -97,14 +97,14 @@ npm install -g togeojson
 
 
 
-##### Google Service Account
+#### Google Service Account
 
 1. For each agency, open Google Developer Console
 2. Find Service Account
 3. Generate JSON key
 4. Add contents to MongoDB "agencies" collection under "oauth" key
 
-##### Google Sheets
+#### Google Sheets
 
 From Google Drive, create new Sheet named `Bravo Sheets` with worksheets "Donations", "Issues", "Signups"
 

@@ -58,19 +58,21 @@ The Mailgun and Twilio webhooks use the domain name so they will point resolve t
 #####Twilio
 
 Setup a Phone number  
+
 Create Voice Preview app  
   * Tools->TwiML Apps  
-    + Name  
-      + "Voice Preview (Live Server)"  
-    + Voice  
-      + Request URL: "http://bravoweb.ca/notify/voice/preview"  
+    * Name  
+      * "Voice Preview (Live Server)"  
+    * Voice  
+      * Request URL: "http://bravoweb.ca/notify/voice/preview"  
+
 Configure Phone number  
   * Voice  
-    + Configure With: "TwiML App"  
-    + TwiML App: "Voice Preview (Live Server)"  
+    * Configure With: "TwiML App"  
+    * TwiML App: "Voice Preview (Live Server)"  
   * Messaging  
-    + Configure With: "Webhooks/TwiML"  
-    + A Message Comes In: "http://bravoweb.ca/alice/vec/receive"  
+    * Configure With: "Webhooks/TwiML"  
+    * A Message Comes In: "http://bravoweb.ca/alice/vec/receive"  
 
 ####Setup MongoDB
 

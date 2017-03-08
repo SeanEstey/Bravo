@@ -127,7 +127,6 @@ Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with t
 Update config.py SSL_CERT_PATH="/path/to/chained_cert.crt"
 Update virtualhost/default file variables: "ssl_certificate" and "ssl_certificate_key"
 
-<br>
 ### Run Instructions
 
 Start RabbitMQ daemon:

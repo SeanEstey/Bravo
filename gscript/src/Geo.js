@@ -1,39 +1,45 @@
-function Geo() {}
-
+function Geo(){}
 //---------------------------------------------------------------------    
-Geo.findBlocksWithin = function(lat, lng, map_data, radius, end_date, cal_id, _events) {
+Geo.findBlocksWithin = function(lat, lng, maps, radius, end_date, cal_id, _events) {
   /* Return list of scheduled Blocks within given radius of lat/lng, up 
    * to end_date, sorted by date. Block Object defined in Config.
    * @radius: distance in kilometres
-   * @map_data: JSON object with lat/lng coords
+   * @maps: JSON object with lat/lng coords
    * @events: optional list of calendar events
    *
-   * Returns empty array if none found 
+   * Returns empty array if none found .
+   * Returns Error exception on error (invalid KML data).
    */
     
   var events = _events || Schedule.getEventsBetween(cal_id, new Date(), end_date);
   
   var eligible_blocks = [];
   
-  for(var i=0; i < map_data.features.length; i++) {
-    var map_name = map_data.features[i].properties.name;
-        
-    var block = Schedule.findBlock(Parser.getBlockFromTitle(map_name), events);
-    
-    if(!block)
-      continue;
-    
-    var center = Geo.centerPoint(map_data.features[i].geometry.coordinates[0]);
-    
-    // Take the first lat/lon vertex in the rectangle and calculate distance
-    var dist = Geo.distance(lat, lng, center[1], center[0]);
-    
-    if(dist > radius)
-      continue;
-    
-    if(block['date'] <= end_date) {
-      block['distance'] = dist.toPrecision(2).toString() + 'km';
-      eligible_blocks.push(block);
+  for(var i=0; i < maps.length; i++) {
+    try {
+      var map_name = maps[i].properties.name;
+      
+      var block = Schedule.findBlock(Parser.getBlockFromTitle(map_name), events);
+      
+      if(!block)
+        continue;
+      
+      var center = Geo.centerPoint(maps[i].geometry.coordinates[0]);
+      
+      // Take the first lat/lon vertex in the rectangle and calculate distance
+      var dist = Geo.distance(lat, lng, center[1], center[0]);
+      
+      if(dist > radius)
+        continue;
+      
+      if(block['date'] <= end_date) {
+        block['distance'] = dist.toPrecision(2).toString() + 'km';
+        eligible_blocks.push(block);
+      }
+    }
+    catch(e) {
+      Logger.log(e.name + ': ' + e.message);
+      return e;
     }
   }
   
@@ -80,7 +86,6 @@ Geo.distance = function(lat1, lon1, lat2, lon2) {
   return 12742 * Math.asin(Math.sqrt(a)); // 2 * R; R = 6371 km
 }
 
-
 //---------------------------------------------------------------------
 Geo.pointInPoly = function(nvert, vertx, verty, testx, testy) {
   /* Returns true if a vertex lies within the area of a given polygon,
@@ -96,45 +101,50 @@ Geo.pointInPoly = function(nvert, vertx, verty, testx, testy) {
   
   return c;
 }
- 
 
 //---------------------------------------------------------------------
-Geo.getLatLng = function(kml_map) {
+Geo.getLatLng = function(map) {
   /* Returns object containing separate lists of lat/lng coords
-   * kml_map is an object from MAP_DATA['features'][idx]
+   * map is geo_json object
    */
   
   var lat = [];
   var lng = [];
   
-  for(var i=0; i < kml_map.geometry.coordinates[0].length; i++) {
-    lng.push(kml_map.geometry.coordinates[0][i][0]);
-    lat.push(kml_map.geometry.coordinates[0][i][1]);
+  for(var i=0; i < map.geometry.coordinates[0].length; i++) {
+    lng.push(map.geometry.coordinates[0][i][0]);
+    lat.push(map.geometry.coordinates[0][i][1]);
   }
   
   return {'lat':lat, 'lng':lng};
 }
 
-
 //---------------------------------------------------------------------
-Geo.findMapTitle = function(lat, lng, map_data) {
-  /* Returns the title of the map (from MAP_DATA) the provided coords belongs
-   * to, false if no match found
+Geo.findMapTitle = function(lat, lng, maps) {
+  /* Find corresponding Block title to given coordinates.
+   * Returns: full Block title string on success ("R1E [Neighborhood1, Neighborhood2]")
+   * or false if none found
+   * Throws exception on invalid maps
    */
   
-  for(var i=0; i < map_data.features.length; i++) {
-    var map = Geo.getLatLng(map_data.features[i]);
+  for(var i=0; i < maps.length; i++) {    
+    if(maps[i].geometry.type != "Polygon") {
+      var e = "Exception: incorrect maps coordinates for Block " + maps[i].properties.name;
+      Logger.log(e);
+      throw e;
+    }
+    
+    var map = Geo.getLatLng(maps[i]);
     
     if(Geo.pointInPoly(map['lat'].length, map['lng'], map['lat'], lng, lat)) {
-      Logger.log("Found map: %s", map_data.features[i].properties.name);
+      //Logger.log("Found map: %s", maps.features[i].properties.name);
       
-      return map_data.features[i].properties.name;
+      return maps[i].properties.name;
     }
   }
   
   return false;
 }
-
 
 //---------------------------------------------------------------------
 Geo.hasAddressComponent = function(result, name) {
@@ -229,64 +239,4 @@ Geo.geocodeBeta = function(address, city, postal) {
   }
 
   return response['results'][0];
-}
-
-//---------------------------------------------------------------------
-Geo.geocode = function(address_str) {  
-  /* Wrapper for Google Maps geocoder, returns object with properties:
-   * "Neighborhood": str, "Coords": lat/lng array, "Postal_Code": str,
-   * "Partial_Match": bool
-   */
-  
-  try {
-    var r = Maps.newGeocoder().geocode(address_str);
-  }
-  catch(e) {
-    Logger.log('geocode failed: ' + e.msg);
-    return false;
-  }
-  
-  if(!r.results) {
-    Logger.log('no result for geocode of ' + address_str);
-    
-    return false;
-  }
-  
-  if(r.results > 0) {
-    Logger.log('Multiple results found: ' + r.results);
-  }
-  
-  var result = r.results[0];
-  
-  var geo_info = { 
-    "Neighborhood": false,
-    "Coords": [],
-    "Postal_Code": false,
-    "Partial_Match": false
-  };
-  
-  if(result.partial_match)
-    geo_info.Partial_Match = true;
-    
-  for(var i=0; i<result.address_components.length; i++) {
-    if(result.address_components[i].types.indexOf('neighborhood') == -1)
-      continue;
-    
-    geo_info.Neighborhood = result.address_components[i].long_name;
-  }
-  
-  for(var i=0; i<result.address_components.length; i++) { 
-    if(result.address_components[i].types.indexOf("postal_code") == -1) 
-      continue;
- 
-      var postal = result.address_components[i].long_name;
-      
-      if(postal.length == 7)
-        geo_info.Postal_Code = postal;
-  }
-
- if(result.geometry.location) 
-   geo_info.Coords = result.geometry.location;
-  
-  return geo_info;
 }

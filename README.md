@@ -20,16 +20,17 @@ Follow instructions in requirements/requirements.txt
 
 This will copy nginx virtual host file and setup logrotate.d
 
-Add execution permission to /var/www/bravo/logs folder. 
+Add execution permission to Bravo/logs folder. 
 
-Create empty files: info.log, debug.log, error.log. Add execution permissions.
+Create empty files: celery.log, events.log, debug.log. Add execution permissions.
 
 ###### PHP Error Logging
 
 Open /etc/php.ini
 
 Find error_log line. Set:
-`error_log = /root/bravo/logs/debug.log`
+`error_log = BRAVO_PATH/logs/debug.log`
+Where BRAVO_PATH is the repository path.
 
 ###### Create MongoDB Auth File
 
@@ -91,7 +92,7 @@ npm install -g togeojson
 
 ###### Google Sheets
 
-From Google Drive, create new Sheet named `Bravo Sheets` with worksheets `Routes`, `RFU`, `MPU`, `Signups`
+From Google Drive, create new Sheet named `Bravo Sheets` with worksheets "Donations", "Issues", "Signups"
 
 From Google Drive, create new Script. Open it. Tools->Script Editor, copy the ID in URL.
 
@@ -108,6 +109,11 @@ Have user open Bravo Sheets Script Editor, Resources->Libraries, paste in Bravo 
 Have user remove Bravo Library script from Google Drive.
 
 Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with them.
+
+##### SSL
+
+Update config.py SSL_CERT_PATH="/path/to/chained_cert.crt"
+Update virtualhost/default file variables: "ssl_certificate" and "ssl_certificate_key"
 
 <br>
 ### Run Instructions

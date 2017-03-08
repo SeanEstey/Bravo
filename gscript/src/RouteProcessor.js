@@ -1,100 +1,84 @@
 //---------------------------------------------------------------------
-function RouteProcessor(ss_ids, cal_ids, folder_ids, etap_id, _events) {
-  /*
-   * @_events: optional. sorted list of res/bus cal events
+function RouteManager(conf) {
+  /* @_events: optional. sorted list of res/bus cal events
    */
   
-  this.ss_ids = ss_ids;
-  this.cal_ids = cal_ids;
-  this.folder_ids = folder_ids;
-  this.etap_id = etap_id;
-  
-  this.bravo_ss = SpreadsheetApp.openById(ss_ids['bravo']);
-  
-  this.sheets = {
-    'Routes': this.bravo_ss.getSheetByName('Routes'),
-    'RFU': this.bravo_ss.getSheetByName('RFU'),
-    'MPU': this.bravo_ss.getSheetByName('MPU'), 
-  };
-  
-  this.headers = this.sheets['Routes'].getRange(1,1,1,this.sheets['Routes'].getMaxColumns()).getValues()[0];
-  
-  var today = new Date();
-  var tomorrow = new Date(Date.now() + (1000 * 3600 * 24));
-  var one_month = new Date(Date.now() + (1000 * 3600 * 24 * 7 * 4));
-  var six_weeks = new Date(today.getTime() + (1000 * 3600 * 24 * 7 * 6));
-  var sixteen_weeks = new Date(today.getTime() + (1000 * 3600 * 24 * 7 * 16));
-  
-  if(_events == undefined) {
-    var res_events = Schedule.getEventsBetween(this.cal_ids['res'], one_month, sixteen_weeks);
-    var bus_events = Schedule.getEventsBetween(this.cal_ids['bus'], tomorrow, six_weeks);
-    this.events = res_events.concat(bus_events);
-    
-    this.events.sort(function(a, b) {
-      return parseDate(a.start.date).getTime() - parseDate(b.start.date).getTime();
-    });
-  }
-  else
-    this.events = _events;
-  
   this.pickup_dates = [];
+  this.conf = conf;
+  this.bravo_ss = SpreadsheetApp.openById(conf['BRAVO_SS_ID']);
+  this.don_wks = this.bravo_ss.getSheetByName("Donations");
+  this.don_hdr = this.don_wks.getRange(1,1,1,this.don_wks.getMaxColumns()).getValues()[0];
+  this.iss_wks = this.bravo_ss.getSheetByName("Issues");
+  this.maps = API(
+    '/booker/maps/get',
+    conf);
+  
+  this.events = Schedule.getEventsBetween(
+    conf['CAL_IDS']['RES'],
+    new Date(Date.now() + WEEK_MS * 4),
+    new Date(Date.now() + WEEK_MS * 16));
+  
+  if(conf['CAL_IDS'].hasOwnProperty('BUS')) {
+    this.events = this.events.concat(
+      Schedule.getEventsBetween(
+        conf['CAL_IDS']['BUS'],
+        new Date(Date.now() + DAY_MS),
+        new Date(Date.now() + WEEK_MS * 6)));
+  }
+  
+  this.events.sort(function(a, b) {
+    return parseDate(a.start.date).getTime() - parseDate(b.start.date).getTime();
+  });
 }
 
 //---------------------------------------------------------------------
-RouteProcessor.prototype.importRoutes = function(file_ids) {
+RouteManager.prototype.importRoutes = function(file_ids) {
   /* Take a list of spreadsheet_id's, import the routes, update stats and inventory,
    * archive into 'Entered' folder.
    */
   
+  var stats_mgr = new StatsManager(this.conf);
+  
   for(var i=0; i<file_ids.length; i++) {
-    var ss_id = file_ids[i];
-    
-    var route = new Route(ss_id);
-    
-    this.import(route);
-    
-    updateStats(this.ss_ids['stats'], this.ss_ids['stats_archive'], route);
-    
-    updateInventory(this.ss_ids['inventory'], route);
-        
-    this.archive(route.id); 
+    var ss_id = file_ids[i]; 
+    var route = new Route(this.conf['AGCY'], ss_id);
+    this.import(route); 
+    stats_mgr.writeStats(route);
+    stats_mgr.writeInventory(route); 
+    this.archive(route.ss_id); 
   }
 }
 
 //---------------------------------------------------------------------
-RouteProcessor.prototype.import = function(route, ui) {
+RouteManager.prototype.import = function(route, ui) {
   /* Updates all stops then writes them to appropriate GiftEntry sheets 
    * @ui: optional UI to display MsgBox
+   * @route: Route object
    */
   
-  var gifts = [];
-  var rfus = [];
-  var mpus = [];
+  var donations = [];
+  var issues = [];
   var errors = [];
-  
   this.getPickupDates(route);
   
-  // Process all Gifts, MPU's, No Pickups, etc
+  // Process Donations and Issues
   
   for(var i=0; i<route.orders.length; i++) {
     try {  
       var results = this.processRow(route, i);
       
       for(var j in results) {
-        if(results[j]['sheet'] == 'Routes')
-          gifts.push(results[j]['row']);
-        else if(results[j]['sheet'] == 'MPU')
-          mpus.push(results[j]['row']);
-        else if(results[j]['sheet'] == 'RFU')
-          rfus.push(results[j]['row']);
-        
+        if(results[j]['sheet'] == 'Donations')
+          donations.push(results[j]['row']);
+        else if(results[j]['sheet'] == 'Issues')
+          issues.push(results[j]['row']); 
         if(results[j]['row'][0])
           errors.push(results[j]['row'][0]);
       }
     }
     catch(e) {
       var msg = 
-        route.title_block + ' import failed. \\n' +
+        route.properties['Block'] + ' import failed. \\n' +
         'Row ' + (i+1) + ': [' + route.orders[i].toString() + ']\\n' +
         'Msg: ' + e.message + '\\n' +
         'File: ' + e.fileName + '\\n' + 
@@ -105,40 +89,65 @@ RouteProcessor.prototype.import = function(route, ui) {
     }
   }
   
-  appendRowsToSheet(this.sheets['Routes'], gifts, 1);
-  appendRowsToSheet(this.sheets['RFU'], rfus, 1);
-  appendRowsToSheet(this.sheets['MPU'], mpus, 1);
+  appendRowsToSheet(this.don_wks, donations, 1);
+  appendRowsToSheet(this.iss_wks, issues, 1);
+  
+  var iss_hdr = this.iss_wks.getRange(
+    1,
+    1,
+    this.iss_wks.getMaxRows(),
+    this.iss_wks.getMaxColumns())
+  .getValues()[0];
+  
+  for(var i=0; i<issues.length; i++) {
+    var row = this.iss_wks.getMaxRows() - issues.length + i + 1;
+    
+    this.iss_wks.getRange(row, iss_hdr.indexOf('Description')+1,1,1)
+      .setNote(issues[i][iss_hdr.indexOf('Description')]);
+    this.iss_wks.getRange(row, iss_hdr.indexOf('Driver Notes')+1,1,1)
+      .setNote(issues[i][iss_hdr.indexOf('Driver Notes')]);
+    this.iss_wks.getRange(row, iss_hdr.indexOf('Office Notes')+1,1,1)
+      .setNote(issues[i][iss_hdr.indexOf('Office Notes')]);
+  }
+   
+  for(var i=0; i<donations.length; i++) {
+    var row = this.don_wks.getMaxRows() - donations.length + i + 1;
+    
+    this.don_wks.getRange(row, this.don_hdr.indexOf('Notes')+1,1,1)
+      .setNote(donations[i][this.don_hdr.indexOf('Notes')]);
+    this.don_wks.getRange(row, this.don_hdr.indexOf('Driver Notes')+1,1,1)
+      .setNote(donations[i][this.don_hdr.indexOf('Driver Notes')]);
+    this.don_wks.getRange(row, this.don_hdr.indexOf('Office Notes')+1,1,1)
+      .setNote(donations[i][this.don_hdr.indexOf('Office Notes')]);
+  }
   
   // Print Import Summary
   
   var summary_msg = 
-    route.title + ' import complete.\\n' +
-    'Gifts: ' + String(gifts.length) + '\\n' +
-    'RFUs: ' + String(rfus.length) + '\\n' +
-    'MPUs: ' + String(mpus.length) + '\\n';       
+    route.properties['Block'] + ' import complete.\\n' +
+    'Donations: ' + String(donations.length) + '\\n' +
+    'Issues: ' + String(issues.length);   
       
   if(errors.length > 0)
     summary_msg += '\\nErrors: ' + errors;
   
   Logger.log('summary_msg: ' + summary_msg);
   this.bravo_ss.toast(summary_msg);
-  
   return true;
 }
 
 //---------------------------------------------------------------------
-RouteProcessor.prototype.getPickupDates = function(route) {
+RouteManager.prototype.getPickupDates = function(route) {
   /* Build a dictionary of all blocks referenced in the route with their
    * next pickup date: {'R3C': 'September 9, 2015', 'B4A': 'Dec 20, 2016'}
    * Returns: dict obj on success, false on error finding >= 1 dates
    */
   
   this.pickup_dates = {};
-  
   var fails = [];
     
   for(var i=0; i<route.orders.length; i++) {
-    var blocks = route.getValue(i,'Block')
+    var blocks = route.getOrderValue(i,'Block');
     blocks = blocks.split(', ');
     
     for(var j=0; j<blocks.length; j++) {
@@ -159,12 +168,11 @@ RouteProcessor.prototype.getPickupDates = function(route) {
     Logger.log("Failed to find NPD's for blocks: %s", fails.toString());
     return false;
   }
-  
   return true;
 }
 
 //---------------------------------------------------------------------
-RouteProcessor.prototype.getNextPickup = function(blocks) {
+RouteManager.prototype.getNextPickup = function(blocks) {
   /* Find the soonest pickup from list of blocks
    * @blocks: string of comma separated blocks
    * Returns: Date object
@@ -193,156 +201,205 @@ RouteProcessor.prototype.getNextPickup = function(blocks) {
   return dates[0];
 }
 
-
 //---------------------------------------------------------------------
-RouteProcessor.prototype.processRow = function(route, order_idx) { 
-  /* Process a line entry from a route
-   * Returns: array of objects: {'sheet': name, 'row': array}
+RouteManager.prototype.processRow = function(route, order_idx) { 
+  /* Process a single order (row) from a route
+   * Returns: [{'sheet': 'dest_sheet_name', 'row': [column_values]}, ...], one element
+   * for each needed worksheet row
    */
-  
-  /*** Test for invalid data ***/
-    
-  var row = route.orderToDict(order_idx);
-    
+      
+  var order = route.orderToDict(order_idx);
   var errors = '';
-  
   var results = [];
   
-  if(!isNumber(row['Account Number']))
-    errors += 'Stop #' + String(order_idx+1) + ': Invalid Account #';
-  
-  if(!row['Block'] || !Parser.isBlockList(row['Block']))
+  if(!isNumber(order['ID']))
+    errors += 'Stop #' + String(order_idx+1) + ': Invalid Account #';  
+  if(!order['Block'] || !Parser.isBlockList(order['Block']))
     errors += 'Stop #' + String(order_idx+1) + ': Missing or invalid Blocks';
-  
-  if(!row['Status'])
+  if(!order['Status'])
     errors += 'Stop #' + String(order_idx+1) + ': Missing Status';
   
   // Remove unecessary newlines or spaces
-  row['Driver Notes'] = String(row['Driver Notes']).trim();
-  row['Office Notes'] = String(row['Office Notes']).trim();
-  row['Driver Input'] = String(row['Driver Input']).trim();
+  if(order['Driver Notes']) {
+    order['Driver Notes'] = String(order['Driver Notes']).trim();
+    order['Office Notes'] = String(order['Office Notes']).trim();
+    order['Notes'] = String(order['Notes']).trim();
+  }
   
   /*** Now process ***/
   
-  // Remove any necessary blocks from note with format: "***RMV R2P***"
-  var matches = String(row['Office Notes']).match(/\*{3}RMV\s(B|R)\d{1,2}[a-zA-Z]{1}\*{3}(\n|\r)?/g);
+  // Remove any necessary blocks from note with format: ***RMV R2P -GR***
+  if(order['Office Notes'])
+    var matches = String(order['Office Notes']).match(/\*{3}RMV\s(B|R)\d{1,2}\w(.+)?\*{3}(\n|\r)?/g);
   
   if(matches) {
     for(var i=0; i<matches.length; i++) {
       var rmv_note = matches[i];
-      var rmv_block = rmv_note.match(/(B|R)\d{1,2}[a-zA-Z]/g)[0];
-      var block_list = row['Block'].split(',');
+      var rmv_block = rmv_note.match(/(B|R)\d{1,2}\w/g)[0];
+      var block_list = order['Block'].split(',');
       
       for(var j=0; j<block_list.length; j++) {
         if(block_list[j] == rmv_block)
           block_list.splice(j, 1);
       }
-      row['Block'] = block_list.join(',');
-      row['Office Notes'] = row['Office Notes'].replace(rmv_note, '');
+      order['Block'] = block_list.join(',');
+      order['Office Notes'] = order['Office Notes'].replace(rmv_note, '');
     }
   }
+   
+  // Clear temp notes
+  var temp = "";
+  if(order['Driver Notes']) {
+    var matches = order['Driver Notes'].match(/\*{3}.*\*{3}(\n|\r)?/i);  
+    if(matches)
+      temp = matches.join();
+    order['Driver Notes'] = String(order['Driver Notes']).replace(/\*{3}.*\*{3}(\n|\r)?/gi, '');
+  }
   
-  // Clear any temporary Driver Notes surrounded by a set of '***' characters
-  var temp_driver_notes = "";
-  var matches = row['Driver Notes'].match(/\*{3}.*\*{3}(\n|\r)?/i);
-  if(matches)
-    temp_driver_notes = matches.join();
+  var is_miss = (!isNumber(order['Estimate']) || String(order['Notes']).match(/MPU/gi));
+  var is_issue = (String(order['Notes']).match(/RFU/gi) || order['Status'] == 'Cancelling');
   
-  row['Driver Notes'] = String(row['Driver Notes']).replace(/\*{3}.*\*{3}(\n|\r)?/gi, '');
-  
-  // Test for MPU
-  if(!isNumber(row['Gift Estimate']) || String(row['Driver Input']).match(/MPU/gi)) {
+  if(is_miss || is_issue) {
+    var hdr = this.iss_wks.getRange("1:1").getValues()[0];
+    var issue = [];
     
-    var mpu_headers = this.sheets['MPU'].getRange("1:1").getValues()[0];
-    var mpu = [];
-    
-    for(var idx in mpu_headers) {
-      if(row[mpu_headers[idx]])
-        mpu.push(row[mpu_headers[idx]]);
+    for(var idx in hdr) {
+      if(order[hdr[idx]])
+        issue.push(order[hdr[idx]]);
       else
-        mpu.push('');      
+        issue.push('');      
     }
   
-    mpu[mpu_headers.indexOf('Date')] = route.date;
-    mpu[mpu_headers.indexOf('Driver')] = route.driver;
-    mpu[mpu_headers.indexOf('Request Note')] = row['Driver Input'] + '\n' + temp_driver_notes;
-    mpu[0] = errors;
-    
-    results.push({'sheet': 'MPU', 'row': mpu});
+    issue[hdr.indexOf('Date')] = route.properties['Date'];
+    issue[hdr.indexOf('Resolved')] = "No";
+    issue[hdr.indexOf('Description')] = route.properties['Driver'] + ": \"" + order["Notes"] +"\"\n"+ temp;
+    issue[hdr.indexOf('Next Pickup')] = this.getNextPickup(order['Block']);
+    issue[hdr.indexOf('Type')] = (is_miss ? "Missed" : "Followup");    
+    results.push({'sheet': 'Issues', 'row': issue}); 
   }
-  
-  // Is a gift. Update Next Pickup, Status, clear Notes
-  
-  var next_pickup = this.getNextPickup(row['Block']);  
-  
-  if(row['Status'] == 'Dropoff')
-    row['Status'] = 'Active';
-  else if(row['Status'] == 'Cancelling') {
-    row['Status'] = 'Cancelled';
-    row['Block'] = '';
-  }
-  else if(row['Status'] == 'Call-in' || row['Status'] == 'One-time')
-    row['Block'] = '';
-
-  // Test for RFU
-  if(String(row['Driver Input']).match(/RFU/gi) || row['Status'] == 'Cancelling') {
-    var rfu_headers = this.sheets['RFU'].getRange("1:1").getValues()[0];
-    var rfu = [];
+      
+  // Process Donation
+  if(isNumber(order['Estimate'])) {   
+    if(order['Status'] == 'Dropoff')
+      order['Status'] = 'Active';
+    else if(order['Status'] == 'Cancelling') {
+      order['Status'] = 'Cancelled';
+      order['Block'] = '';
+    }
+    else if(order['Status'] == 'Call-in' || order['Status'] == 'One-time') {
+      order['Block'] = '';
+    }
     
-    for(var idx in rfu_headers) {
-      if(row[rfu_headers[idx]])
-        rfu.push(row[rfu_headers[idx]]);
+    var donation = [];
+    var hdr = this.don_hdr;
+    
+    for(var idx in hdr) {
+      if(order[hdr[idx]])
+        donation.push(order[hdr[idx]]);
       else
-        rfu.push('');      
+        donation.push('');      
     }
     
-    rfu[rfu_headers.indexOf('Date')] = route.date;
-    rfu[rfu_headers.indexOf('Next Pickup Date')] = this.getNextPickup(row['Block']); 
-    rfu[rfu_headers.indexOf('Driver')] = route.driver;
-    rfu[rfu_headers.indexOf('Request Note')] = row['Driver Input'] + '\n' + temp_driver_notes;
-    rfu[0] = errors;
-    
-    results.push({'sheet': 'RFU', 'row': rfu});
-  }
-  
-  // Must be Gift by default
-  if(isNumber(row['Gift Estimate'])) {
-    var gift_headers = this.sheets['Routes'].getRange("1:1").getValues()[0];
-    
-    var gift = [];
-    
-    for(var idx in gift_headers) {
-      if(row[gift_headers[idx]])
-        gift.push(row[gift_headers[idx]]);
-      else
-        gift.push('');      
-    }
-    
-    gift[gift_headers.indexOf('Gift Estimate')] = Number(row['Gift Estimate']);
-    gift[gift_headers.indexOf('Upload Status')] = errors;
-    gift[gift_headers.indexOf('Date')] = route.date;
-    gift[gift_headers.indexOf('Next Pickup Date')] = this.getNextPickup(row['Block']) || ''; 
-    gift[gift_headers.indexOf('Driver')] = route.driver;
-    gift[gift_headers.indexOf('Driver Input')] = row['Driver Input'] + '\n' + temp_driver_notes;
-    gift[0] = errors;
-    
-    results.push({'sheet': 'Routes', 'row': gift});
+    donation[hdr.indexOf('Estimate')] = Number(order['Estimate']);
+    donation[hdr.indexOf('Date')] = route.properties['Date'];
+    donation[hdr.indexOf('Next Pickup')] = this.getNextPickup(order['Block']) || ''; 
+    donation[hdr.indexOf('Driver')] = route.properties['Driver'];
+    donation[hdr.indexOf('Notes')] = order['Notes'] + '\n' + temp;
+    donation[0] += errors;
+    results.push({'sheet': 'Donations', 'row': donation});
   }
   
   return results;
 }
 
 //---------------------------------------------------------------------
-RouteProcessor.prototype.archive = function(id) {
-  var entered_folder = DriveApp.getFolderById(this.folder_ids['entered']);
-  var routed_folder = DriveApp.getFolderById(this.folder_ids['routed']);
+RouteManager.prototype.validate = function() {
+  return;
+  
+  /*
+  // Verify Address of Residential account is matched with correct geographical Block 
+  if(Parser.isRes(route.block)) {
+    try {
+      var response = Maps.newGeocoder().geocode(order['Address']);
+    }
+    catch(e) {
+      Logger.log('geocode failed: ' + e.msg);
+      return false;
+    }
+    
+    order['Validation'] = '';
+    
+    // Add neighborhood name into Validation column
+    
+    var neighborhoods = [];
+    
+    var partial_match = false;
+    
+    var num_rows = this.don_wks.getMaxRows();
+    
+    for(var i in response['results']) {
+      var addresses = response['results'][i]['address_components'];
+      
+      if('partial_match' in response['results'][i]) {
+        partial_match = true;
+        order['Validation'] += "Address not fully resolved. See Note.\n\n";
+      }
+      
+      for(var j=0; j<addresses.length; j++) {
+        if(addresses[j]['types'].indexOf('neighborhood') > -1)
+          if(neighborhoods.indexOf(addresses[j]['long_name']) == -1)
+             neighborhoods.push(addresses[j]['long_name']);
+      }
+    }
+    
+    if(!partial_match)
+      order['Validation'] += "Address OK\n";
+    
+    if(neighborhoods.length > 0)
+      order['Validation'] += "Neighborhood: \"" + neighborhoods.join('\",\"') + '\"\n';
+    
+        
+    // Match address coordinates to map data and find Block
+    
+    if(response['results'].length == 0)
+      order['Validation'] += "Could not verify address\n"; 
+    
+    // NOTE: Only searching through first result. May not be correct result.
+    if(response['results'].length == 1 && !('partial_match' in response.results[0])) {               
+      var map_title = Geo.findMapTitle(
+        response['results'][0]['geometry']['location']['lat'],
+        response['results'][0]['geometry']['location']['lng'],
+        this.maps);
+      
+      if(map_title) {
+        var block = Parser.getBlockFromTitle(map_title);
+        
+        if(order['Block'] != block) {
+          Logger.info('Block mismatch');
+          
+          order['Validation'] += 'Block mismatch. Belongs to ' + map_title;
+        }
+        else
+          order['Validation'] += 'Block OK';
+      }
+      else
+        order['Validation'] += 'Block map not found';
+    } 
+  }
+  */
+}
+
+//---------------------------------------------------------------------
+RouteManager.prototype.archive = function(ss_id) {
+  var entered_folder = DriveApp.getFolderById(this.conf['ENTRD_FDR_ID']);
+  var routed_folder = DriveApp.getFolderById(this.conf['ROUTED_FDR_ID']);
   
   var routed_files = routed_folder.getFiles();
   var found = false;
   while(!found && routed_files.hasNext()) {
     var file = routed_files.next();
   
-    if(file.getId() == id) {
+    if(file.getId() == ss_id) {
       found = true;
       
       entered_folder.addFile(file);
@@ -350,98 +407,63 @@ RouteProcessor.prototype.archive = function(id) {
     }
   }
   if(!found)
-    Logger.log("Could not find file id '%s' to archive to Entered folder.", id);
+    Logger.log("Could not find file id '%s' to archive to Entered folder.", ss_id);
 }
 
 //---------------------------------------------------------------------
-RouteProcessor.prototype.buildEntriesPayload = function(ui) {
+RouteManager.prototype.buildEntriesPayload = function(ui) {
   /* Prepare entries on "Routes" sheet for update/upload to eTapestry via
    * Bravo server
    * @ui: optional arg to display confirmation Dialog
    * Returns: payload array
    */
   
-  var entries = this.sheets['Routes'].getDataRange().getValues().slice(1);
-  
+  var entries = this.don_wks.getDataRange().getValues().slice(1);
+  var status = this.don_wks.getRange("B2:B").getValues();
   var request_id = new Date().getTime();
-  
-  var payload = {
-    'request_id': request_id,
-    'entries': []
-  };
+  var payload = [];
+  var req_fields = ['Date', 'ID', 'Status'];
   
   for(var i=0; i < entries.length; i++) { 
     var entry = entries[i];
         
-    if(entry[this.headers.indexOf('Upload Status')])
+    if(entry[this.don_hdr.indexOf('Upload')])
       continue;
     else
-      entry[this.headers.indexOf('Upload Status')] = '...';
+      status[i][0] = '...';
+    
+    var err = null;
+    for(var j=0; j<req_fields.length; j++) {
+      var field = req_fields[j];
+      if(!entry[this.don_hdr.indexOf(field)]) {
+        status[i][0] = "Missing field " + field;
+        err = true;
+      }
+    }
+    
+    if(err)
+      continue;
       
-    payload['entries'].push({
-      'account_number': entry[this.headers.indexOf('Account Number')],
-      'row': i+2,
+    payload.push({
+      'acct_id': entry[this.don_hdr.indexOf('ID')],
+      'ss_row': i+2,
       'udf': { 
-        'Status': entry[this.headers.indexOf('Status')],
-        'Neighborhood': entry[this.headers.indexOf('Neighborhood')],
-        'Block': entry[this.headers.indexOf('Block')],
-        'Driver Notes':  entry[this.headers.indexOf('Driver Notes')],
-        'Office Notes':  entry[this.headers.indexOf('Office Notes')],
-        'Next Pickup Date': date_to_ddmmyyyy(entry[this.headers.indexOf('Next Pickup Date')])
+        'Status': entry[this.don_hdr.indexOf('Status')],
+        'Neighborhood': entry[this.don_hdr.indexOf('Neighborhood')],
+        'Block': entry[this.don_hdr.indexOf('Block')],
+        'Driver Notes':  entry[this.don_hdr.indexOf('Driver Notes')],
+        'Office Notes':  entry[this.don_hdr.indexOf('Office Notes')],
+        'Next Pickup Date': date_to_ddmmyyyy(entry[this.don_hdr.indexOf('Next Pickup')])
       },
       'gift': {
-        'amount': entry[this.headers.indexOf('Gift Estimate')],
-        'fund': this.etap_id['gifts']['fund'],
-        'campaign': this.etap_id['gifts']['campaign'],
-        'approach': this.etap_id['gifts']['approach'],
-        'date': date_to_ddmmyyyy(entry[this.headers.indexOf('Date')]),
+        'amount': entry[this.don_hdr.indexOf('Estimate')],
+        'fund': this.conf['ETAP_FUND'],
+        'campaign': this.conf['ETAP_CAMPAIGN'],
+        'approach': this.conf['ETAP_APPROACH'],
+        'date': date_to_ddmmyyyy(entry[this.don_hdr.indexOf('Date')]),
         'note': 
-          'Driver: ' + entry[this.headers.indexOf('Driver')] + '\n' + 
-          entry[this.headers.indexOf('Driver Input')]
-      }
-    });
-  }
-  
-  if(ui != undefined) {    
-    if(ui.alert(
-      'Please confirm',
-      payload['entries'].length + ' entries to upload. Go ahead?',
-      ui.ButtonSet.YES_NO) == ui.Button.NO)
-      return false;
-  }
-
-
-  var data = [this.headers].concat(entries);
-  this.sheets['Routes'].getDataRange().setValues(data);
-
-  return payload;
-}
-
-
-//---------------------------------------------------------------------
-RouteProcessor.prototype.sendReceipts = function(ui) {
-  var entries = this.sheets['Routes'].getDataRange().getValues();//slice(1);
-  
-  var payload = [];
-  
-  for(var i=1; i<entries.length; i++) {
-    var entry = entries[i];
-    
-    if(!entry[this.headers.indexOf('Upload Status')] || entry[this.headers.indexOf('Email Status')])
-      continue;
-    else
-      entry[this.headers.indexOf('Email Status')] = '...';
-    
-    payload.push({
-      "account_number": entry[this.headers.indexOf("Account Number")],
-      "date": entry[this.headers.indexOf("Date")],
-      "amount": entry[this.headers.indexOf("Gift Estimate")],
-      "next_pickup": entry[this.headers.indexOf("Next Pickup Date")],
-      "status": entry[this.headers.indexOf("Status")],
-      "from": {
-        "row": i+1,
-        "upload_status": entry[this.headers.indexOf('Upload Status')],
-        "worksheet": "Routes"
+          'Driver: ' + entry[this.don_hdr.indexOf('Driver')] + '\n' + 
+          entry[this.don_hdr.indexOf('Notes')]
       }
     });
   }
@@ -453,18 +475,62 @@ RouteProcessor.prototype.sendReceipts = function(ui) {
       ui.ButtonSet.YES_NO) == ui.Button.NO)
       return false;
   }
+
+  var data = [this.don_hdr].concat(entries);
+  this.don_wks.getRange("B2:B").setValues(status);
+  return payload;
+}
+
+//---------------------------------------------------------------------
+RouteManager.prototype.sendReceipts = function(ui) {
   
-
-  // Add "..." to email status
-  this.sheets['Routes'].getDataRange().setValues(entries);
-
+  var entries = this.don_wks.getDataRange().getValues().slice(1);
+  var status = this.don_wks.getRange("C2:C").getValues();
+  var req_fields = ['ID', 'Date', 'Status'];
+  var payload = [];
+  
+  for(var i=0; i<entries.length; i++) {
+    var entry = entries[i];
     
-  return UrlFetchApp.fetch(Settings['bravo_url'] + '/receipts/process', {
-    "muteHttpExceptions": true,
-    "method" : 'post',
-    "payload" : {
-      "etapestry": JSON.stringify(this.etap_id),
-      "data": JSON.stringify(payload)
+    if(!entry[this.don_hdr.indexOf('Upload')] || entry[this.don_hdr.indexOf('Receipt')])
+      continue;
+    else
+      status[i][0] = '...';
+    
+    var err = null;
+    for(var j=0; j<req_fields.length; j++) {
+      var field = req_fields[j];
+      if(!entry[this.don_hdr.indexOf(field)]) {
+        status[i][0] = "Missing field " + field
+        err = true;
+      }
     }
-  });
+    
+    if(err)
+      continue;
+    
+    payload.push({
+      "acct_id": entry[this.don_hdr.indexOf("ID")],
+      "date": entry[this.don_hdr.indexOf("Date")],
+      "amount": entry[this.don_hdr.indexOf("Estimate")],
+      "next_pickup": entry[this.don_hdr.indexOf("Next Pickup")],
+      "status": entry[this.don_hdr.indexOf("Status")],
+      "ss_row": i+2
+    });
+  }
+  
+  if(ui != undefined) {    
+    if(ui.alert(
+      'Please confirm',
+      payload.length + ' entries to upload. Go ahead?',
+      ui.ButtonSet.YES_NO) == ui.Button.NO)
+      return false;
+  }
+  
+  this.don_wks.getRange("C2:C").setValues(status);
+
+  API(
+    '/accounts/receipts',
+    this.conf, {
+      "entries":JSON.stringify(payload)});
 }

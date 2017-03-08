@@ -1,7 +1,6 @@
-function Parser() {}
-
-// Bus Block title prefixed with 'B', 6 week cycle: 'B5A', 'B4D', 'B6E'
-Parser['bus_block_regex'] = /^B[1-6]{1}[A-E]{1}$/g;
+function Parser(){}
+// Bus Block title prefixed with 'B', 1-12 week cycle: 'B5A', 'B4D', 'B6E'
+Parser['bus_block_regex'] = /^B\d{1,2}[A-E]{1}$/g;
 
 // Res Block title prefixed with 'R', numbered 1-10: 'R5A', 'R6H', 'R10P'
 Parser['res_block_regex'] = /^R([1-9]|10)[a-zA-Z]{1}$/g;
@@ -16,6 +15,7 @@ Parser['block_list_regex'] = /^(,?\s*(B|R)\d{1,2}[a-zA-Z]{1})*$/g;
 Parser.isRes = function(block) { return block.match(Parser['res_block_regex']); }
 
 Parser.isBus = function(block) { return block.match(Parser['bus_block_regex']); }
+
 
 Parser.isBlockList = function(blocks) { return blocks.match(Parser['block_list_regex']); }
 

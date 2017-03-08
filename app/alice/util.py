@@ -11,7 +11,6 @@ log = get_logger('alice.util')
 
 #-------------------------------------------------------------------------------
 def lookup_acct(mobile, agcy):
-    from app.main.tasks import create_rfu
     try:
         # Very slow (~750ms-2200ms)
         acct = call(

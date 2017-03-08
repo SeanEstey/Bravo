@@ -158,8 +158,7 @@ def is_unsub():
             session.get('agcy'),
             'Contributor has replied "%s" and opted out of SMS '\
             'notifications.' % request.form['Body'],
-            options = {
-                'ID': account['id']})
+            options = {'ID': account['id']})
 
         return True
 

@@ -116,8 +116,7 @@ def on_dropped(agcy):
     except Exception as e:
         log.error('error updating sheet')
 
-    create_rfu.delay(agcy, msg, options={
-        'Date': date.today().strftime('%-m/%-d/%Y')})
+    create_rfu.delay(agcy, msg)
 
 #-------------------------------------------------------------------------------
 def render_body(path, acct, entry=None, ytd_gifts=None):

@@ -147,9 +147,8 @@ def on_dropped(agcy):
         log.error('error updating sheet')
 
     create_rfu.delay(
-        email['agency'], msg + request.form.get('description'),
-        options={
-            'Date': date.today().strftime('%-m/%-d/%Y')})
+        email['agency'],
+        msg + request.form.get('description'))
 
 #-------------------------------------------------------------------------------
 def lookup_carrier(phone):

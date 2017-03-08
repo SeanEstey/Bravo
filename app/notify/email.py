@@ -105,7 +105,4 @@ def on_dropped():
     agcy = g.db.events.find_one({'_id':notific['evnt_id']})['agency']
 
     from app.main.tasks import create_rfu
-    create_rfu.delay(
-        agcy, msg + request.form.get('description'),
-        options={
-            'Date': date.today().strftime('%-m/%-d/%Y')})
+    create_rfu.delay(agcy, msg + request.form.get('description'))

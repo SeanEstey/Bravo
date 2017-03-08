@@ -26,9 +26,11 @@ def make():
         'confirmation': confirmation}
     '''
 
-    log.info('booking account %s for %s', request.form['aid'], request.form['date'])
-
-    response = update_dms()
+    try:
+        response = update_dms()
+    except Exception as e:
+        log.error('failed to book: %s', str(e))
+        pass
 
     # is block/date for today and route already built?
 
@@ -41,15 +43,20 @@ def make():
         'block': request.form['block'],
         'agency': g.user.agency})
 
-    if route and route.get('ss'):
+    do_append = route and route.get('ss')
+
+    if do_append:
         append_route(route)
 
-    if request.form.get('confirmation') == 'true':
+    email_conf = request.form.get('confirmation')
+
+    if email_conf == 'true':
         send_confirm()
 
-    return {
-        'status': 'success',
-        'description': response}
+    log.info('booked acct %s for %s. email conf=%s, append order=%s',
+        request.form['aid'], request.form['date'], email_conf, append)
+
+    return "Booked successfully"
 
 #-------------------------------------------------------------------------------
 def update_dms():
@@ -64,18 +71,13 @@ def update_dms():
             'udf': {
                 'Driver Notes': '***%s***' % request.form['driver_notes'],
                 'Office Notes': '***RMV %s --%s***' %
-                    (request.form['block'], request.form['first_name']),
+                    (request.form['block'], g.user.name),
                 'Block': request.form['block'],
                 'Next Pickup Date': request.form['date']}})
     except EtapError as e:
-        return {
-            'status': 'failed',
-            'description': 'etapestry error: %s' % str(e)}
+        pass
     except Exception as e:
-        log.error('failed to book: %s', str(e))
-        return {
-            'status': 'failed',
-            'description': str(e)}
+        pass
 
     return True
 

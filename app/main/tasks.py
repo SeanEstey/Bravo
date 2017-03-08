@@ -84,7 +84,7 @@ def process_entries(self, entries, agcy=None, **rest):
     log.warning('processing %s gift entries...', len(entries))
 
     wks = 'Donations'
-    checkmark = "=char(10004)"
+    checkmark = u'\u2714' #"=char(10004)"
     ch_size = 10
     etap_conf = get_keys('etapestry',agcy=agcy)
     chunks = [entries[i:i + ch_size] for i in xrange(0, len(entries), ch_size)]
@@ -240,7 +240,7 @@ def send_receipts(self, entries, **rest):
     start = start_timer()
     entries = json.loads(entries)
     wks = 'Donations'
-    checkmark = "=char(10004)"
+    checkmark = u'\u2714' #"=char(10004)"
     log.warning('processing %s receipts...', len(entries))
 
     try:
@@ -296,6 +296,7 @@ def send_receipts(self, entries, **rest):
         curr_values = get_values(service, g.ss_id, wks, range_)
 
         for row_idx in range(0, len(curr_values)):
+            log.debug('val=%s, type=%s'%(curr_values[row_idx][0],type(curr_values[row_idx][0])))
             if curr_values[row_idx][0] == checkmark:
                 values[row_idx][0] = checkmark
             elif values[row_idx][0] == 'No Email':
@@ -332,7 +333,7 @@ def create_accounts(self, accts_json, agcy=None, **rest):
 
     accts = json.loads(accts_json)
     log.warning('creating %s accounts...', len(accts))
-    checkmark = "=char(10004)"
+    checkmark = u'\u2714' #"=char(10004)"
     ss_id = get_keys('google', agcy=agcy)['ss_id']
     service = gauth(get_keys('google', agcy=agcy)['oauth'])
     headers = get_row(service, ss_id, 'Signups', 1)
@@ -394,10 +395,12 @@ def create_rfu(self, agcy, note, options=None, **rest):
     srvc = gauth(get_keys('google',agcy=agcy)['oauth'])
     ss_id = get_keys('google',agcy=agcy)['ss_id']
     headers = get_row(srvc, ss_id, 'Issues', 1)
+
     rfu = [''] * len(headers)
     rfu[headers.index('Description')] = note
     rfu[headers.index('Type')] = 'Followup'
     rfu[headers.index('Resolved')] = 'No'
+    rfu[headers.index('Date')] = date.today().strftime("%m-%d-%Y")
 
     for field in headers:
         if field in options:
@@ -518,7 +521,6 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
                     'ID': acct['id'],
                     'Next Pickup': npu,
                     'Block': get_udf('Block', acct),
-                    'Date': date.today().strftime('%-m/%-d/%Y'),
                     'Driver Notes': get_udf('Driver Notes', acct),
                     'Office Notes': get_udf('Office Notes', acct)})
 

@@ -264,8 +264,7 @@ def on_complete():
             'Error calling %s\n. %s' %(notific['to'], desc),
             options={
                 'ID': acct['udf'].get('etap_id'),
-                'Account': acct['name'],
-                'Date': date.today().strftime('%-m/%-d/%Y')})
+                'Account': acct['name']})
 
     smart_emit('notific_status', {
         'notific_id': str(notific['_id']),

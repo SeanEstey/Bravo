@@ -35,6 +35,8 @@ def task_call(function, *args, **kwargs):
 
 #-------------------------------------------------------------------------------
 def build_resp(rv=None, exc=False, name=None, dt=None):
+    '''Returns JSON obj: {"status": <str>, "desc": <failure str>, "data": <str/dict/list>}
+    '''
 
     if exc:
         log.error('api call fail. desc=%s', exc)

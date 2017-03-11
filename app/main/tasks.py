@@ -126,6 +126,8 @@ def process_entries(self, entries, agcy=None, **rest):
             log.debug('values[%s]=%s', i, values[i])
             if values[i][0] == u'Processed' or values[i][0] == u'Updated':
                 values[i][0] = checkmark
+            elif values[i][0] == u'Failed':
+                values[i][0] = r['results'][i]['description']
 
         try:
             write_rows(srvc, ss_id, wks, range_, values)
@@ -403,7 +405,7 @@ def create_rfu(self, agcy, note, options=None, **rest):
     rfu[headers.index('Date')] = date.today().strftime("%m-%d-%Y")
 
     for field in headers:
-        if field in options:
+        if options and field in options:
             rfu[headers.index(field)] = options[field]
 
     append_row(srvc, ss_id, 'Issues', rfu)
@@ -512,7 +514,8 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
                     '%s\n%s: non-participant (inactive for %s days)'%(
                     get_udf('Office Notes', acct),
                     date.today().strftime('%b%-d %Y'),
-                    period)})
+                    period)},
+                exc=False)
 
             create_rfu(
                 agcy,

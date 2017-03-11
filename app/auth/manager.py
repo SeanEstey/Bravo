@@ -9,6 +9,22 @@ from app.lib.utils import print_vars
 from .user import User
 log = get_logger('auth.manager')
 
+
+#-------------------------------------------------------------------------------
+def login(username, pw):
+
+    db_user = User.authenticate(username, pw)
+
+    if db_user:
+        login_user(
+            User(
+                db_user['user'],
+                name = db_user['name'],
+                _id = db_user['_id'],
+                agency = db_user['agency'],
+                admin = db_user['admin']))
+        #log.debug('%s logged in', current_user)
+
 #-------------------------------------------------------------------------------
 @login_manager.user_loader
 def load_user(user_id):

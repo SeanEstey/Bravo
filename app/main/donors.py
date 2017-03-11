@@ -1,5 +1,5 @@
 '''app.main.donors'''
-import json, logging
+import json, logging, math
 from datetime import date, timedelta
 from dateutil.parser import parse
 from flask import g, request
@@ -22,6 +22,61 @@ def get_next_pickup(email, agcy):
         'get_next_pickup',
         get_keys('etapestry', agcy=agcy),
         data={'email':email})
+
+#-------------------------------------------------------------------------------
+def get_prev_donation(acct_id, before=None):
+
+    try:
+        acct = get(acct_id)
+    except Exception as e:
+        log.error('couldnt find acct_id=%s', acct_id)
+        return False
+
+    # Acct was active last cycle?
+
+    blocks = get_udf('Block', acct)
+    n_blocks = float(len(blocks.split(", "))) if blocks else None
+
+    if not n_blocks:
+        log.debug(blocks)
+        return False
+
+    n_weeks_ago = math.ceil(10.0/n_blocks)
+    drop_date = get_udf('Dropoff Date', acct)
+
+    if not drop_date:
+        drop_date = get_udf('Signup Date', acct)
+
+    drop_d = to_date(drop_date)
+    last_cycle_d = date.today() - timedelta(weeks=int(n_weeks_ago))
+
+    if drop_d > last_cycle_d:
+        log.debug(drop_d)
+        return False
+
+    # Search +- 1 week
+    log.debug('last_cycle_d=%s', last_cycle_d)
+
+    end = before if before else date.today()
+
+    try:
+        je_list = call(
+            'get_gift_histories',
+            get_keys('etapestry'),
+            data={
+                "acct_refs": [acct['ref']],
+                "start": (date.today() - timedelta(weeks=12)).strftime("%d/%m/%Y"),
+                "end": end.strftime("%d/%m/%Y")})
+    except Exception as e:
+        log.error('gift history error for acct_id=%s. desc: %s', acct['id'], str(e))
+        return False
+    else:
+        log.debug(je_list[0])
+
+        if len(je_list[0]) < 1:
+            return False
+
+        return je_list[0][0]
 
 #-------------------------------------------------------------------------------
 def save_rfu(acct_id, body, date=False, ref=False, fields=False):

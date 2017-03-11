@@ -99,7 +99,7 @@ def on_dropped():
     smart_emit('notific_status',
         {'notific_id':str(notific['_id']), 'status':request.form['event']})
 
-    msg = 'receipt to %s dropped. %s.' %(
+    msg = 'notification to %s dropped. %s.' %(
         request.form['recipient'], request.form['reason'])
 
     agcy = g.db.events.find_one({'_id':notific['evnt_id']})['agency']

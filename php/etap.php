@@ -9,16 +9,27 @@ function is_error($nsc) {
 }
 
 //-----------------------------------------------------------------------
-function get_error($nsc, $log=true) {
-    if(!$nsc->fault)
-        $err_desc = strtolower('error ' . $nsc->getError());
-    else
-        $err_desc = 'error ' . $nsc->faultcode . ". " . strtolower($nsc->faultstring);
+function get_error($nsc, $log=false) {
+
+    if(!is_error($nsc))
+        return "";
+
+    $num_format_exc = "NumberFormatException";
+
+    if(!$nsc->fault){
+        $desc = $nsc->getError();
+    }
+    else {
+        $desc = "Fault error: " . $nsc->faultstring;
+
+        if(strpos($desc, $num_format_exc) > -1)
+            $desc = "Fault error. Incorrect format" . substr($desc, strpos($desc, $num_format_exc) + strlen($num_format_exc));
+    }
 
     if($log == true)
-      debug_log($err_desc);
+      debug_log($desc);
 
-    return $err_desc;
+    return $desc;
 }
 
 //-----------------------------------------------------------------------

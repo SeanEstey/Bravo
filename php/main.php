@@ -158,7 +158,7 @@ function get_route_size($category, $query, $date) {
 		$ratio .= (string)$response['count'];
 	else
 		$ratio .= '?';
-  
+
 	//debug_log($query . ' ' . date("M j, Y", $date) . ': ' . $ratio);
 	return $ratio;
 }
@@ -180,7 +180,7 @@ function get_block_size($query_category, $query) {
 	}
 
 	debug_log('Query ' . $query . ' count: ' . $response['count']);
-	return $response['count'];	
+	return $response['count'];
 }
 
 //-----------------------------------------------------------------------
@@ -256,15 +256,15 @@ function process_entries($entries) {
     debug_log('processing entries for ' . (string)$n_entries . ' accts (agcy=' . $agcy . ')...');
 
     for($i=0; $i<$n_entries; $i++) {
+        reset_error($nsc);
         $entry = $entries[$i];
         $row = $entry['ss_row'];
-        $mod_err = '';
 
-        try { 
+        try {
             $acct = get_acct($id=$entry['acct_id']);
         } catch(Exception $e) {
             $status = 'no acct found for ID="' . $entry['acct_id'] . '"';
-            $rv[] = ['row'=>$row, 'status'=>'Failed: ' . $status, 'description'=>$status]; 
+            $rv[] = ['row'=>$row, 'status'=>'Failed', 'description'=>$status];
             debug_log($status);
             $n_errs++;
             continue;
@@ -276,57 +276,54 @@ function process_entries($entries) {
         apply_udf($acct, $entry['udf']);
 
 		if(is_error($nsc)) {
-            $mod_err = get_error($nsc, $log=false) . '. ';
+            $rv[] = [
+                'row'=>$row,
+                'status'=>'Failed',
+                'description'=>'Update error: ' . get_error($nsc)
+            ];
             $n_errs++;
+            debug_log(print_r(end($rv),true));
+			continue;
 		}
 
 		if(empty($entry['gift']['amount']) && $entry['gift']['amount'] !== 0) {
-			$rv[] = [
-				'row'=>$row,
-				'status'=>'Updated'];
+			$rv[] = ['row'=>$row, 'status'=>'Updated'];
 			continue;
 		}
 
 		try {
 			$ref = upload_gift($entry, $acct);
 		} catch (Exception $e) {
-			debug_log('func="upload_gift", description="' . $e->getMessage() . '"');
 			$rv[] = [
 				'row'=>$row,
-				'status'=>'Failed: ' . $mod_err . get_error($nsc),
+				'status'=>'Failed',
 				'description'=>get_error($nsc)];
-			reset_error($nsc);
+            $n_errs++;
+            debug_log(print_r(end($rv),true));
 			continue;
 		}
 
         if(is_error($nsc)) {
             $rv[] = [
 				'row'=>$row,
-				'status'=>'Failed: ' . $mod_err . get_error($nsc),
+				'status'=>'Failed',
 				'description'=>get_error($nsc)];
             $n_errs++;
-			reset_error($nsc);
+            debug_log(print_r(end($rv),true));
         }
         else {
             if(floatval($ref) == 0)
                 debug_log('invalid db ref="' . $ref . '"');
+
             debug_log(json_encode(['row'=>$row, 'ref'=>$ref]));
-			$status = null;
-
-			if(!$mod_err)
-				$status = 'Processed';
-			if($mod_err)
-				$status = 'Uploaded. Update error: ' . $mod_err;
-
-            $result = ['row'=>$row, 'status'=>$status];
-            $rv[] = $result;
+            $rv[] = ['row'=>$row, 'status'=>'Processed'];
             $n_success++;
         }
     }
 
     debug_log($n_entries . ' entries processed. n_success=' . $n_success . ', n_errors=' . $n_errs);
     reset_error($nsc);
-		
+
 	return [
 		'n_success'=>$n_success,
 		'n_errs'=>$n_errs,
@@ -340,7 +337,7 @@ function upload_gift($entry, $acct) {
 
     if($agcy == 'vec') {
         $entry['gift']['definedValues'] = [[
-          'fieldName' => 'T3010 code',  
+          'fieldName' => 'T3010 code',
           'value' => '4000-560'
         ]];
     }
@@ -352,7 +349,7 @@ function upload_gift($entry, $acct) {
         $entry['gift']['definedValues'] = [];
     }
 
-    $rv = $nsc->call("addGift", [[
+    return $nsc->call("addGift", [[
       'accountRef' => $acct['ref'],
       'amount' => $entry['gift']['amount'],
       'fund' => $entry['gift']['fund'],
@@ -365,11 +362,9 @@ function upload_gift($entry, $acct) {
         'inKind' => []
       ],
       'definedValues' => $entry['gift']['definedValues']
-    ], 
+    ],
       false
     ]);
-
-    return is_error($nsc) ? get_error($nsc, $log=true) : $rv;
 }
 
 //-----------------------------------------------------------------------

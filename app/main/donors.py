@@ -25,6 +25,9 @@ def get_next_pickup(email, agcy):
 
 #-------------------------------------------------------------------------------
 def get_prev_donation(acct_id, before=None):
+    '''Pulls all Notes and Gifts in 12 week period before @before
+    Returns most recent
+    '''
 
     try:
         acct = get(acct_id)
@@ -61,22 +64,25 @@ def get_prev_donation(acct_id, before=None):
 
     try:
         je_list = call(
-            'get_gift_histories',
+            'donor_history',
             get_keys('etapestry'),
             data={
-                "acct_refs": [acct['ref']],
+                "acct_ref": acct['ref'],
                 "start": (date.today() - timedelta(weeks=12)).strftime("%d/%m/%Y"),
                 "end": end.strftime("%d/%m/%Y")})
     except Exception as e:
-        log.error('gift history error for acct_id=%s. desc: %s', acct['id'], str(e))
+        log.error('donor history error for acct_id=%s. desc: %s', acct['id'], str(e))
         return False
     else:
-        log.debug(je_list[0])
+        for je in je_list:
+            log.debug('je type=%s, date=%s', je['type'], je['date'])
 
-        if len(je_list[0]) < 1:
-            return False
+            if je['type'] == 1 and je['note'] == "No Pickup":
+                return je
+            elif je['type'] == 5:
+                return je
 
-        return je_list[0][0]
+        return False #if len(je_list) < 1 else je_list[0]
 
 #-------------------------------------------------------------------------------
 def save_rfu(acct_id, body, date=False, ref=False, fields=False):

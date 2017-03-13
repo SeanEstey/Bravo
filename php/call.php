@@ -46,6 +46,9 @@
 			case 'get_gift_histories':
 				$rv = gift_histories($data['acct_refs'], $data['start'], $data['end']);
 				break;
+            case 'donor_history':
+                $rv = journal_entries($data['acct_ref'], $data['start'], $data['end'], [1,5]);
+                break;
 			case 'get_upload_status':
 				$rv = get_upload_status($data['request_id'], $data['from_row']);
 				break;

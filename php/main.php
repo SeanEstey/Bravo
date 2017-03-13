@@ -184,56 +184,63 @@ function get_block_size($query_category, $query) {
 }
 
 //-----------------------------------------------------------------------
-function gift_histories($acct_refs, $start, $end) {
-
-    set_time_limit(600);
-	ini_set('max_execution_time', 30000); // IMPORTANT: To prevent fatal error timeout
-
-	global $nsc;
-    $accts_je = [];
-
-    for($i=0; $i < count($acct_refs); $i++) {
-        $accts_je[] = gift_history($acct_refs[$i], $start, $end);
-    }
-
-    //debug_log(count($accts_je) . ' gift histories retrieved.');
-    return $accts_je;
-}
-
-//-----------------------------------------------------------------------
-function gift_history($ref, $start, $end) {
-	/* Returns array of journal gift histories where amount > $0 and format
-	 * {'date': '2016-01-05T05:00:00:000Z', 'amount': 16.00}
+function journal_entries($ref, $start, $end, $types) {
+	/* @ref: acct ref
+     * @start, @end: filter date str's in dd/mm/yyyy
+     * @types: array of JE types (note=1, gift=5)
 	 */
 
 	global $nsc;
 	ini_set('max_execution_time', 30000); // IMPORTANT: prevents timeout err
-	// Return filtered journal entries for provided year
+
 	$request = [
 		'accountRef' => $ref,
 		'start' => 0,
 		'count' => 100,
 		'startDate' => format_date($start),
 		'endDate' => format_date($end),
-		'types' => [5] // Gifts filter
+		'types' => $types
 	];
+
 	$response = $nsc->call("getJournalEntries", array($request));
 
 	if(is_error($nsc))
 		return get_error($nsc, $log=true);
+    
+    return $response['data'];
+}
 
-	$gifts = [];
+//-----------------------------------------------------------------------
+function gift_histories($acct_refs, $start, $end) {
+    /* For each acct ref, retrieves Gift Objects between dates, returns 
+     * "date" and "amount" fields where amount > $0.00
+     */
 
-	for($i=0; $i<$response['count']; $i++) {
-		$entry = $response['data'][$i];
+    set_time_limit(600);
+	ini_set('max_execution_time', 30000); // Prevents timeout err
+	global $nsc;
+    $accts_je = [];
 
-		if($entry['amount'] > 0) {
-			$gifts[] = [
-				'amount' => floatval($entry['amount']),
-				'date' => $entry['date']];
-		}
-	}
-	return $gifts;
+    for($i=0; $i<count($acct_refs); $i++) {
+        $entries = journal_entries($acct_refs[$i], $start, $end, [5]);
+        $pos_gifts = [];
+
+        for($j=0; $j<count($entries); $j++) {
+            $entry = $entries[$j];
+
+            if($entry['amount'] > 0) {
+                $pos_gifts[] = [
+                    'amount' => floatval($entry['amount']),
+                    'date' => $entry['date']];
+            }
+        }
+
+        $accts_je[] = $pos_gifts;
+    }
+
+    debug_log(count($accts_je) . ' gift histories retrieved.');
+
+    return $accts_je;
 }
 
 //-----------------------------------------------------------------------

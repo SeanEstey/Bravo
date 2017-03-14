@@ -4,6 +4,13 @@ from datetime import datetime, date, time, timedelta
 local_tz = pytz.timezone('MST')
 
 #-------------------------------------------------------------------------------
+def json_serial(obj):
+    if isinstance(obj, datetime):
+        serial = obj.isoformat()
+        return serial
+    raise TypeError ("Type not serializable")
+
+#-------------------------------------------------------------------------------
 def to_utc(obj=None, dt=None, d=None, t=None, to_str=False):
     if obj:
         return convert_obj(obj, to_tz=pytz.utc, to_str=to_str)

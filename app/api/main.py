@@ -19,7 +19,8 @@ def func_call(function, *args, **kwargs):
         rv = function(*args, **kwargs)
     except Exception as e:
         return build_resp(exc=str(e))
-    return build_resp(rv=rv, name=function.__name__, dt=s)
+    else:
+        return build_resp(rv=rv, name=function.__name__, dt=s)
 
 #-------------------------------------------------------------------------------
 def task_call(function, *args, **kwargs):

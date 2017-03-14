@@ -123,7 +123,6 @@ def process_entries(self, entries, agcy=None, **rest):
         values = [[r['results'][i]['status']] for i in range(len(r['results']))]
 
         for i in range(len(values)):
-            log.debug('values[%s]=%s', i, values[i])
             if values[i][0] == u'Processed' or values[i][0] == u'Updated':
                 values[i][0] = checkmark
             elif values[i][0] == u'Failed':
@@ -298,7 +297,6 @@ def send_receipts(self, entries, **rest):
         curr_values = get_values(service, g.ss_id, wks, range_)
 
         for row_idx in range(0, len(curr_values)):
-            log.debug('val=%s, type=%s'%(curr_values[row_idx][0],type(curr_values[row_idx][0])))
             if curr_values[row_idx][0] == checkmark:
                 values[row_idx][0] = checkmark
             elif values[row_idx][0] == 'No Email':

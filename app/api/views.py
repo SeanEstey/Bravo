@@ -1,5 +1,6 @@
 '''app.api.views'''
 import logging
+from dateutil.parser import parse
 from json import loads
 from . import api
 from flask import g, request
@@ -33,7 +34,17 @@ def accts_get_pickup():
     # TODO: add auth requirement
     return func_call(donors.get_next_pickup, get_var('email'), agcy=get_var('agcy'))
 
+@api.route('/accounts/get_donations', methods=['POST'])
+@login_required
+def get_donations():
+    return func_call(
+        donors.get_donations,
+        get_var('acct_id'),
+        parse(get_var('start_d')).date(),
+        parse(get_var('end_d')).date())
+
 @api.route('/accounts/save_rfu', methods=['POST'])
+@login_required
 def accts_save_rfu():
     # TODO: add auth requirement
     return func_call(donors.save_rfu,
@@ -50,7 +61,7 @@ def call_accts_create():
 @login_required
 def call_find_acct():
     # PHP 'check_duplicates'
-    return fund_call(WRITE_ME)
+    return func_call(WRITE_ME)
 
 @api.route('/accounts/get', methods=['POST'])
 @login_required

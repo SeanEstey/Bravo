@@ -24,17 +24,22 @@ def get_next_pickup(email, agcy):
         data={'email':email})
 
 #-------------------------------------------------------------------------------
-def get_prev_donation(acct_id, before=None):
+def get_donations(acct_id, start_d=None, end_d=None):
     '''Pulls all Notes and Gifts in 12 week period before @before
     Returns most recent
+    @before, @after: datetime.date
     '''
 
+    JE_NOTE = 1
+    JE_GIFT = 5
+
     try:
-        acct = get(acct_id)
+        acct = get(int(acct_id))
     except Exception as e:
         log.error('couldnt find acct_id=%s', acct_id)
         return False
 
+    '''
     # Acct was active last cycle?
 
     blocks = get_udf('Block', acct)
@@ -59,8 +64,13 @@ def get_prev_donation(acct_id, before=None):
 
     # Search +- 1 week
     log.debug('last_cycle_d=%s', last_cycle_d)
+    '''
 
-    end = before if before else date.today()
+    start = start_d if start_d else (date.today() - timedelta(weeks=12))
+    end = end_d if end_d else date.today()
+
+    log.debug('donor_history for acct_id=%s from %s to %s',
+        acct['id'], start, end)
 
     try:
         je_list = call(
@@ -68,21 +78,40 @@ def get_prev_donation(acct_id, before=None):
             get_keys('etapestry'),
             data={
                 "acct_ref": acct['ref'],
-                "start": (date.today() - timedelta(weeks=12)).strftime("%d/%m/%Y"),
+                "start": start.strftime("%d/%m/%Y"),
                 "end": end.strftime("%d/%m/%Y")})
     except Exception as e:
         log.error('donor history error for acct_id=%s. desc: %s', acct['id'], str(e))
         return False
-    else:
-        for je in je_list:
-            log.debug('je type=%s, date=%s', je['type'], je['date'])
 
-            if je['type'] == 1 and je['note'] == "No Pickup":
-                return je
-            elif je['type'] == 5:
-                return je
+    # Remove non-"No Pickup" notes
 
-        return False #if len(je_list) < 1 else je_list[0]
+    gift_list = [x for x in je_list if x['type'] == JE_GIFT or (x['type'] == JE_NOTE and x['note'] == 'No Pickup')]
+
+    # Convert "No Pickup" Notes to zero gift
+    # Strip all fields except Date, Amount, Type, and Note
+
+    for i in range(len(gift_list)):
+        je = gift_list[i]
+
+        if je['type'] == JE_NOTE and je['note'] == 'No Pickup':
+            gift_list[i] = {
+                'date': je['date'], #parse(je['date']),
+                'type': JE_GIFT,
+                'amount': 0,
+                'note': 'No Pickup'
+            }
+        elif je['type'] == JE_GIFT:
+            gift_list[i] = {
+                'date': je['date'], #parse(je['date']),
+                'type': JE_GIFT,
+                'amount': je['amount'],
+                'note': je['note']
+            }
+
+    log.debug('%s donations for acct_id=%s', len(gift_list), acct['id'])
+
+    return gift_list
 
 #-------------------------------------------------------------------------------
 def save_rfu(acct_id, body, date=False, ref=False, fields=False):

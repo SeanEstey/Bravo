@@ -103,10 +103,7 @@ def render_body(path, acct, entry=None, ytd_gifts=None):
 #-------------------------------------------------------------------------------
 def preview(acct_id=None, type_=None):
 
-    VEC_TEST_ACCT_ID = 5775
-    id_ = acct_id if acct_id else VEC_TEST_ACCT_ID
     type_ = type_ if type_ else "donation"
-
     paths = {
         "donation": "receipts/%s/collection_receipt.html" % g.user.agency,
         "no_donation": "receipts/%s/no_collection.html" % g.user.agency,
@@ -114,8 +111,7 @@ def preview(acct_id=None, type_=None):
         "post_drop": "receipts/%s/dropoff_followup.html" % g.user.agency,
         "cancelled": "receipts/%s/cancelled.html" % g.user.agency
     }
-
-    acct = donors.get(id_)
+    acct = donors.get(get_keys('admin')['pview_acct_id'])
     entry = {
         'acct_id': acct['id'],
         'date': date.today().strftime('%d/%m/%Y'),

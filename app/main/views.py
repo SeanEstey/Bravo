@@ -20,7 +20,6 @@ def view_admin():
         settings = get_keys()
         settings.pop('_id')
         settings.pop('name')
-        settings.pop('maps_id')
         settings.pop('google')
         settings.pop('donors')
         settings.pop('alice')

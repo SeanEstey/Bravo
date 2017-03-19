@@ -1,6 +1,7 @@
 
 //------------------------------------------------------------------------------
 function init() {
+
     $('nav-tabs a').click(function (e){
       e.preventDefault()
         $(this).tab('show')
@@ -12,18 +13,27 @@ function init() {
     enableEditableFields();
 
     $('#receipt_btn').click(function(e){
+        showModal(
+          'mymodal',
+          'Preview',
+          $('.loader-div').parent().html(),
+          'Send Email',
+          'Close');
+        $('#mymodal').find('.loader-div').show();
+        $('#mymodal').find('.loader-div label').text('Generating');
+        $('#mymodal').find('.btn.loader').fadeTo('slow', 1);
+        $('#mymodal .btn-primary').attr('disabled', true);
+
         e.preventDefault();
+        var data = $('#receipt_form').serialize();
 
-        api_call('accounts/preview_receipt', null, function(response){
-            console.log(response['status']);
-
-            showModal(
-              'mymodal',
-              'Preview',
-              response['data'],
-              'Close',
-              'Close');
-        });
+        api_call(
+          'accounts/preview_receipt',
+          data, 
+          function(response){
+              console.log(response['status']);
+              $('#mymodal .modal-body').html(response['data']);
+          });
     });
 }
 

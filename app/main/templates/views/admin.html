@@ -22,7 +22,7 @@ jQuery(function($){init();});
 	<!-- Nav tabs -->
 	<ul style="margin-bottom:2em" class="nav nav-tabs" role="tablist">
 		<li class="nav-item">
-			<a class="nav-link active" data-toggle="tab" href="#email" role="tab">Email</a>
+			<a class="nav-link active" data-toggle="tab" href="#email" role="tab">Previewer</a>
 		</li>
 		<li class="nav-item">
 			<a class="nav-link" data-toggle="tab" href="#settings" role="tab">Settings</a>
@@ -32,61 +32,100 @@ jQuery(function($){init();});
 	<!-- Tab panes -->
 	<div class="tab-content">
 		<div class="tab-pane active" id="email" role="tabpanel">
-      <form style='margin-top:4em'>
-        <fieldset id="" class="form-fieldset">
-          <legend class="">Receipt Preview</legend>
+        <fieldset style='margin-top:4em' class="form-fieldset">
+          <legend>Email Receipts</legend>
           <table border="0" cellpadding="5" cellspacing="10">
+            <form id='receipt_form' style='margin-top:4em'>
+              <tr>
+                <td>
+                  <select name="type_" class="form-control">
+                    <option value="donation">Donation</option>
+                    <option value="no_donation">No Donation</option>
+                    <option value="zero_donation">$0 Donation</option>
+                    <option value="post_drop">Post Dropoff</option>
+                    <option value="cancelled">Cancellation</option>
+                  </select>
+                </td>
+                <td>
+                  <button id="receipt_btn" class="btn btn-info">Show Preview</button>
+                </td>
+              </tr>
+            </form>
+          </table>
+        </fieldset>
+        <fieldset style='margin-top:2em' class="form-fieldset">
+          <legend>Email Notifications</legend>
+          <table border="0" cellpadding="5" cellspacing="10">
+            <form id='email_notific_form' style='margin-top:2em' disabled>
             <tr>
               <td>
-                <select name="" class="form-control" id="">
-                  <option id="" value="">Donation</option>
-                  <option id="" value="">No Donation</option>
-                  <option id="" value="">$0 Donation</option>
-                  <option id="" value="">Post Dropoff</option>
-                  <option id="" value="">Cancellation</option>
+                <select name="type_" class="form-control" disabled>
+                  <option value="res_pickup">Residential Pickup</option>
+                  <option value="res_drop">Residential Dropoff</option>
+                  <option value="res_cancel">Residential Cancelling</option>
+                  <option value="bus_pickup">Business Pickup</option>
                 </select>
               </td>
               <td>
-                <button id="receipt_btn" class="btn btn-info">Preview</button>
+                <button id="notific_btn" class="btn btn-info" disabled>Show Preview</button>
               </td>
             </tr>
+            </form>
           </table>
         </fieldset>
-      </form>
-      <form style='margin-top:2em'>
-        <fieldset id="" class="form-fieldset">
-          <legend class="">Notification Preview</legend>
+        <fieldset style='margin-top:2em' class="form-fieldset">
+          <legend>Voice Notifications</legend>
           <table border="0" cellpadding="5" cellspacing="10">
+            <form id='voice_notific_form' style='margin-top:2em' disabled>
             <tr>
               <td>
-                <select name="" class="form-control" id="">
-                  <option id="" value="">Residential Pickup</option>
-                  <option id="" value="">Residential Dropoff</option>
-                  <option id="" value="">Residential Cancelling</option>
-                  <option id="" value="">Business Pickup</option>
+                <select name="type_" class="form-control" disabled>
+                  <option value="res_pickup">Residential Pickup</option>
+                  <option value="res_drop">Residential Dropoff</option>
+                  <option value="res_cancel">Residential Cancelling</option>
+                  <option value="bus_pickup">Business Pickup</option>
                 </select>
               </td>
               <td>
-                <button id="notific_btn" class="btn btn-info">Preview</button>
+                <button id="notific_btn" class="btn btn-info" disabled>Hear Preview</button>
               </td>
             </tr>
+            </form>
           </table>
         </fieldset>
-      </form>
+        <fieldset style='margin-top:2em' class="form-fieldset">
+          <legend>SMS Notifications</legend>
+          <table border="0" cellpadding="5" cellspacing="10">
+            <form id='sms_notific_form' style='margin-top:2em' disabled>
+            <tr>
+              <td>
+                <select name="type_" class="form-control" disabled>
+                  <option value="res_pickup">Residential Pickup</option>
+                  <option value="res_drop">Residential Dropoff</option>
+                  <option value="res_cancel">Residential Cancelling</option>
+                  <option value="bus_pickup">Business Pickup</option>
+                </select>
+              </td>
+              <td>
+                <button id="notific_btn" class="btn btn-info" disabled>Show Preview</button>
+              </td>
+            </tr>
+            </form>
+          </table>
+        </fieldset>
+
     </div>
 
 		<div class="tab-pane" id="settings" role="tabpanel"></div>
 	</div>
 
-  <!-- Preview Modal Footer -->
-  <div id='preview' style='display:none'>
-    <form class="form-check" style="text-align:left" id="preview_form">
-        <div style="text-align:right">
-          <label class="form-check-label">
-              <input class="form-check-input" type="checkbox" name="exampleRadios" id="send_email_cb" value="option1" checked>
-                Send Email</label>
-        </div>
-      </div>
+	<!-- Loader -->
+  <div>
+    <div class="loader-div" style="background:white; display:none">
+      <button class="btn btn-info loader">
+        <span class="fa fa-refresh loader-animate"></span>
+        <label style="margin-bottom:0; margin-left:5px">Loading...</label>
+      </button>
     </div>
   </div>
 </div>

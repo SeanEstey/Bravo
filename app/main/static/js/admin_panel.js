@@ -15,9 +15,9 @@ function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-primary', data=fa
     $('#'+pane_id).append(btn);
 
     if(data) {
-		for(var key in data)	{
-			$('#'+btn_id).data(key, data[key]);
-		}
+        for(var key in data)	{
+            $('#'+btn_id).data(key, data[key]);
+        }
     }
     return btn;
 }
@@ -25,16 +25,16 @@ function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-primary', data=fa
 //------------------------------------------------------------------------------
 function positionAdminPanel() {
 
-	var height = $('#admin').height(); 
-	y_offset = (height * -1) + 85;
-	$('#admin').css('bottom', y_offset);
-	$('#admin').show();
+    var height = $('#admin').height(); 
+    y_offset = (height * -1) + 85;
+    $('#admin').css('bottom', y_offset);
+    $('#admin').show();
 }
 
 //------------------------------------------------------------------------------
 function toggleAdminPanelSize() {
 
-	$('#admin_size_btn').toggle(function(){
+    $('#admin_size_btn').toggle(function(){
         var sign = '+';
         if(flip++ % 2 === 0)
             sign = '-';
@@ -48,28 +48,28 @@ function toggleAdminPanelSize() {
 function showAdminServerStatus() {
 
     api_call('server/properties', null, function(response) {
-		response = response['data'];
-		var admin_lbl = '';
+        response = response['data'];
+        var admin_lbl = '';
 
-		if(response['TEST_SERVER']) {
-			admin_lbl += 'Server: <b>Test</b>, ';
-			document.title = 'Bravo Test (SSL)';
-		}
-		else
-			admin_lbl += 'Server: <b>Deploy</b>, ';
+        if(response['TEST_SERVER']) {
+            admin_lbl += 'Server: <b>Test</b>, ';
+            document.title = 'Bravo Test (SSL)';
+        }
+        else
+            admin_lbl += 'Server: <b>Deploy</b>, ';
 
-		if(response['SANDBOX_MODE'])
-			admin_lbl += 'Mode: <b>Sandbox</b>, ';
-		else
-			admin_lbl += 'Mode: <b>Live</b>, ';
+        if(response['SANDBOX_MODE'])
+            admin_lbl += 'Mode: <b>Sandbox</b>, ';
+        else
+            admin_lbl += 'Mode: <b>Live</b>, ';
 
-		if(response['CELERY_BEAT'])
-			admin_lbl += 'Scheduler: <b color="green">Enabled</b>';
-		else
-			admin_lbl += 'Scheduler: <b color="green">Disabled</b>';
+        if(response['CELERY_BEAT'])
+            admin_lbl += 'Scheduler: <b color="green">Enabled</b>';
+        else
+            admin_lbl += 'Scheduler: <b color="green">Disabled</b>';
 
-		//alertMsg(msg, 'info', 5000);
-		$('#admin-msg').html(admin_lbl);
-		positionAdminPanel();
+        //alertMsg(msg, 'info', 5000);
+        $('#admin-msg').html(admin_lbl);
+        positionAdminPanel();
 	});
 }

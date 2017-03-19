@@ -16,30 +16,28 @@ jQuery(function($){init();});
 <div class="container">
 	<!-- Nav tabs -->
 	<ul style="margin-bottom:2em" class="nav nav-tabs" role="tablist">
-		
 		<li class="nav-item">
-			<a class="nav-link active" data-toggle="tab" href="#notify" role="tab">Notify</a>
+			<a class="nav-link active" data-toggle="tab" href="#settings" role="tab">Settings</a>
 		</li>
 		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#scheduler" role="tab">Scheduler</a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#routing" role="tab">Routing</a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#etapestry" role="tab">eTapestry</a>
+			<a class="nav-link" data-toggle="tab" href="#email" role="tab">Email</a>
 		</li>
 	</ul>
 
 	<!-- Tab panes -->
 	<div class="tab-content">
-		<div class="tab-pane active" id="notify" role="tabpanel"></div>
-		<div class="tab-pane" id="scheduler" role="tabpanel"></div>
-		<div class="tab-pane" id="routing" role="tabpanel"></div>
-		<div class="tab-pane" id="etapestry" role="tabpanel"></div>
+		<div class="tab-pane active" id="settings" role="tabpanel"></div>
+		<div class="tab-pane" id="email" role="tabpanel">
+      <button id="receipt_btn" class="btn btn-info">
+        Preview Receipt
+      </button>
+      <button id="notific_btn" class="btn btn-info">
+        Preview Notification
+      </button>
+    </div>
 	</div>
 
-	<div hidden>
+	<div name="settings_data" hidden>
 		{{ agency_config|safe }}
 	</div>
 </div>

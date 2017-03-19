@@ -184,6 +184,35 @@ function get_block_size($query_category, $query) {
 }
 
 //-----------------------------------------------------------------------
+function batch_journal_entries($refs, $start, $end, $types) {
+
+	global $nsc;
+	ini_set('max_execution_time', 30000); // IMPORTANT: prevents timeout err
+    $rv = [];
+
+    for($i=0; $i<$count($refs); $i++) {
+        try {
+            $rv[] = [
+                'status'=>'success',
+                'je'=>journal_entries($refs[$i], $start, $end, $types)
+            ];
+        }
+        catch(Exception $e) {
+            $rv[] = [
+                'status'=>'failed',
+                'description'=>(string)$e
+            ];
+        }
+
+        if(is_error($nsc)) {
+
+            reset_error($nsc);
+        }
+        
+    }
+}
+
+//-----------------------------------------------------------------------
 function journal_entries($ref, $start, $end, $types) {
 	/* @ref: acct ref
      * @start, @end: filter date str's in dd/mm/yyyy

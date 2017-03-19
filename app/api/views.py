@@ -13,6 +13,7 @@ from app.booker.geo import get_maps
 from app.booker.search import search
 from app.booker.book import make
 from app.main import donors
+from app.main.receipts import preview
 from app.main.signups import lookup_carrier
 from app.notify.accounts import edit_fields
 from app.notify.events import create_event, cancel_event, dump_event, reset_event, rmv_notifics
@@ -79,6 +80,11 @@ def call_accts_gifts():
 def call_accts_receipts():
     from app.main.tasks import send_receipts
     return task_call(send_receipts, get_var('entries'))
+
+@api.route('/accounts/preview_receipt', methods=['POST'])
+@login_required
+def call_acct_preview_receipt():
+    return func_call(preview, get_var('acct_id'), get_var('type_'))
 
 @api.route('/agency/update', methods=['POST'])
 @login_required

@@ -20,72 +20,17 @@ log = task_logger('main.tasks')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def mem_check(self, **rest):
-
-    t = datetime.now().time()
-
-    # Restart celery worker at midnight to release memory leaks
-    if t.hour == 0 and t.minute <=15:
-        log.debug('restarting celery worker/beat at midnight...')
-        try:
-            r = requests.get('http://bravotest.ca/restart_worker')
-        except Exception as e:
-            log.debug(str(e))
-        else:
-            log.debug('code=%s, text=%s', r.status_code, r.text)
-
-    mem = psutil.virtual_memory()
-    total = (mem.total/1000000)
-    free = mem.free/1000000
-
-    if free < 350:
-        log.debug('low memory. %s/%s. forcing gc/clearing cache...', free, total)
-        os.system('sudo sysctl -w vm.drop_caches=3')
-        os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
-        gc.collect()
-        mem = psutil.virtual_memory()
-        total = (mem.total/1000000)
-        now_free = mem.free/1000000
-        log.debug('freed %s mb', now_free - free)
-
-        if free < 350:
-            log.warning('warning: low memory! 250mb recommended (%s/%s)', free, total)
-    else:
-        log.debug('mem free: %s/%s', free,total)
-
-    return mem
-
-#-------------------------------------------------------------------------------
-def mem_snap(hp, snap=None):
-    if snap is None:
-        before = hp.heap()
-        log.debug('m1 snap')
-        return before
-
-    log.debug('m2 snap')
-
-    try:
-        after = hp.heap()
-        leftover = after - snap
-        byrcs = leftover.byrcs
-        log.debug(str(byrcs[0])) #:10])
-        log.debug(str(byrcs.byid[0])) #:10])
-    except Exception as e:
-        pass
-
-    #import pdb; pdb.set_trace()
-
-#-------------------------------------------------------------------------------
-@celery.task(bind=True)
 def process_entries(self, entries, agcy=None, **rest):
 
+    start = start_timer()
     entries = json.loads(entries)
 
     log.warning('processing %s gift entries...', len(entries))
 
     wks = 'Donations'
-    checkmark = u'\u2714' #"=char(10004)"
+    checkmark = u'\u2714'
     ch_size = 10
+
     etap_conf = get_keys('etapestry',agcy=agcy)
     chunks = [entries[i:i + ch_size] for i in xrange(0, len(entries), ch_size)]
 
@@ -134,7 +79,191 @@ def process_entries(self, entries, agcy=None, **rest):
             log.error(str(e))
             log.debug('',exc_info=True)
 
-    log.warning('completed. %s errors.', n_errs)
+    duration = end_timer(start)
+    log.warning('completed. %s errors (%s)', n_errs, duration)
+
+    return 'success'
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def send_receipts(self, entries, **rest):
+    '''Email receipts to recipients and update email status on Bravo Sheets.
+    Sheets->Routes worksheet.
+    @entries: list of dicts: {
+        'acct_id':'<int>', 'date':'dd/mm/yyyy', 'amount':'<float>',
+        'next_pickup':'dd/mm/yyyy', 'status':'<str>', 'ss_row':'<int>' }
+    '''
+
+    start = start_timer()
+    entries = json.loads(entries)
+    wks = 'Donations'
+    checkmark = u'\u2714'
+    log.warning('processing %s receipts...', len(entries))
+
+    try:
+        # list indexes match @entries
+        accts = call(
+            'get_accts',
+            get_keys('etapestry'),
+            {"acct_ids": [i['acct_id'] for i in entries]})
+    except Exception as e:
+        log.error('Error retrieving accounts from etap: %s', str(e))
+        raise
+
+    accts_data = [{
+        'acct':accts[i],
+        'entry':entries[i],
+        'ytd_gifts':get_ytd_gifts(
+            accts[i].get('ref'),
+            parse(entries[i].get('date')).year)
+    } for i in range(0,len(accts))]
+
+    g.track = {
+        'zeros': 0,
+        'drops': 0,
+        'cancels': 0,
+        'no_email': 0,
+        'gifts': 0
+    }
+    g.ss_id = get_keys('google')['ss_id']
+    service = gauth(get_keys('google')['oauth'])
+    g.headers = get_row(service, g.ss_id, wks, 1)
+    status_col = g.headers.index('Receipt') +1
+
+    # Break entries into equally sized lists for batch updating google sheet
+
+    ch_size = 10
+    chunks = [accts_data[i:i + ch_size] for i in xrange(0, len(accts_data), ch_size)]
+    log.debug('chunk length=%s', len(chunks))
+
+    for i in range(0, len(chunks)):
+        rv = []
+        chunk = chunks[i]
+        for acct_data in chunk:
+            rv.append(generate(
+                acct_data['acct'],
+                acct_data['entry'],
+                ytd_gifts=acct_data['ytd_gifts']))
+
+        range_ = '%s:%s' %(
+            to_range(chunk[0]['entry']['ss_row'], status_col),
+            to_range(chunk[-1]['entry']['ss_row'], status_col))
+
+        values = [[rv[idx]['status']] for idx in range(len(rv))]
+        wks_values = get_values(service, g.ss_id, wks, range_)
+
+        for idx in range(0, len(wks_values)):
+            if wks_values[idx][0] == checkmark:
+                values[idx][0] = checkmark
+            elif wks_values[idx][0] == 'No Email':
+                values[idx][0] = 'No Email'
+            else:
+                values[idx][0] = '...'
+
+        log.debug('writing chunk %s/%s values to ss, range=%s',
+            i+1, len(chunks), range_)
+
+        try:
+            write_rows(service, g.ss_id, wks, range_, values)
+        except Exception as e:
+            log.error(str(e))
+            log.debug('',exc_info=True)
+
+    duration = end_timer(start)
+
+    log.warning(\
+        'completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s, no_email=%s (%s)',
+        g.track['gifts'], g.track['zeros'], g.track['drops'],
+        g.track['cancels'], g.track['no_email'], duration)
+
+    chunks = acct_data = accts = None
+    gc.collect()
+    return 'success'
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def create_accounts(self, accts_json, agcy=None, **rest):
+    '''Upload accounts + send welcome email, send status to Bravo Sheets
+    @accts_json: JSON list of form data
+    '''
+
+    accts = json.loads(accts_json)
+    log.warning('creating %s accounts...', len(accts))
+    checkmark = u'\u2714'
+    ss_id = get_keys('google', agcy=agcy)['ss_id']
+    service = gauth(get_keys('google', agcy=agcy)['oauth'])
+    headers = get_row(service, ss_id, 'Signups', 1)
+    status_col = headers.index('Upload') +1
+    n_errs = n_success = 0
+
+    # Break accts into chunks for gsheets batch updating
+
+    ch_size = 10
+    chunks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
+    log.debug('chunk length=%s', len(chunks))
+
+    for i in range(0, len(chunks)):
+        rv = []
+        chunk = chunks[i]
+
+        try:
+            rv = call('add_accts', get_keys('etapestry', agcy=agcy), {'accts':chunk})
+        except Exception as e:
+            log.error('add_accts. desc=%s', str(e))
+            log.debug('', exc_info=True)
+
+        # rv = {'n_success':<int>, 'n_errs':<int>, 'results':[ {'row':<int>, 'status':<str>}, ... ]
+
+        n_errs += int(rv['n_errs'])
+        n_success += int(rv['n_success'])
+
+        log.debug('rv=%s', rv)
+
+        range_ = '%s:%s' %(
+            to_range(chunk[0]['ss_row'], status_col),
+            to_range(chunk[-1]['ss_row'], status_col))
+
+        values = [[rv['results'][idx]['status']] for idx in range(0, len(rv['results']))]
+
+        for j in range(len(values)):
+            if values[j][0] == u'Uploaded':
+                values[j][0] = checkmark
+
+        log.debug('writing chunk %s/%s values to ss, range=%s',
+            i+1, len(chunks), range_)
+
+        try:
+            write_rows(service, ss_id, 'Signups', range_, values)
+        except Exception as e:
+            log.error(str(e))
+            log.debug('',exc_info=True)
+
+    log.warning('completed. %s accounts created, %s errors.', n_success, n_errs)
+
+    chunks = accts = None
+    gc.collect()
+    return 'success'
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def create_rfu(self, agcy, note, options=None, **rest):
+
+    srvc = gauth(get_keys('google',agcy=agcy)['oauth'])
+    ss_id = get_keys('google',agcy=agcy)['ss_id']
+    headers = get_row(srvc, ss_id, 'Issues', 1)
+
+    rfu = [''] * len(headers)
+    rfu[headers.index('Description')] = note
+    rfu[headers.index('Type')] = 'Followup'
+    rfu[headers.index('Resolved')] = 'No'
+    rfu[headers.index('Date')] = date.today().strftime("%m-%d-%Y")
+
+    for field in headers:
+        if options and field in options:
+            rfu[headers.index(field)] = options[field]
+
+    append_row(srvc, ss_id, 'Issues', rfu)
+    log.debug('Creating RFU=%s', rfu)
 
     return 'success'
 
@@ -145,6 +274,7 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
     @from_, to_: datetime.date
     '''
 
+    start = start_timer()
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
     start_dt = d_to_dt(from_)
     end_dt = d_to_dt(to)
@@ -225,189 +355,6 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
 
         log.warning('completed. %s events updated, %s errors, %s warnings '\
             '(agcy=%s)', n_updated, n_errs, n_warnings, agcy)
-
-    return 'success'
-
-#-------------------------------------------------------------------------------
-@celery.task(bind=True)
-def send_receipts(self, entries, **rest):
-    '''Email receipts to recipients and update email status on Bravo Sheets.
-    Sheets->Routes worksheet.
-    @entries: list of dicts: {
-        'acct_id':'<int>', 'date':'dd/mm/yyyy', 'amount':'<float>',
-        'next_pickup':'dd/mm/yyyy', 'status':'<str>', 'ss_row':'<int>' }
-    '''
-
-    start = start_timer()
-    entries = json.loads(entries)
-    wks = 'Donations'
-    checkmark = u'\u2714' #"=char(10004)"
-    log.warning('processing %s receipts...', len(entries))
-
-    try:
-        # list indexes match @entries
-        accts = call(
-            'get_accts',
-            get_keys('etapestry'),
-            {"acct_ids": [i['acct_id'] for i in entries]})
-    except Exception as e:
-        log.error('Error retrieving accounts from etap: %s', str(e))
-        raise
-
-    accts_data = [{
-        'acct':accts[i],
-        'entry':entries[i],
-        'ytd_gifts':get_ytd_gifts(
-            accts[i].get('ref'),
-            parse(entries[i].get('date')).year)
-    } for i in range(0,len(accts))]
-
-    g.track = {
-        'zeros': 0,
-        'drops': 0,
-        'cancels': 0,
-        'no_email': 0,
-        'gifts': 0
-    }
-    g.ss_id = get_keys('google')['ss_id']
-    service = gauth(get_keys('google')['oauth'])
-    g.headers = get_row(service, g.ss_id, wks, 1)
-    status_col = g.headers.index('Receipt') +1
-
-    # Break entries into equally sized lists for batch updating google sheet
-
-    ch_size = 10
-    chunks = [accts_data[i:i + ch_size] for i in xrange(0, len(accts_data), ch_size)]
-    log.debug('chunk length=%s', len(chunks))
-
-    for i in range(0, len(chunks)):
-        rv = []
-        chunk = chunks[i]
-        for acct_data in chunk:
-            rv.append(generate(
-                acct_data['acct'],
-                acct_data['entry'],
-                ytd_gifts=acct_data['ytd_gifts']))
-
-        range_ = '%s:%s' %(
-            to_range(chunk[0]['entry']['ss_row'], status_col),
-            to_range(chunk[-1]['entry']['ss_row'], status_col))
-
-        values = [[rv[idx]['status']] for idx in range(len(rv))]
-        curr_values = get_values(service, g.ss_id, wks, range_)
-
-        for row_idx in range(0, len(curr_values)):
-            if curr_values[row_idx][0] == checkmark:
-                values[row_idx][0] = checkmark
-            elif values[row_idx][0] == 'No Email':
-                values[row_idx][0] = 'No Email'
-            else:
-                values[row_idx][0] = '...'
-
-        log.debug('writing chunk %s/%s values to ss, range=%s',
-            i+1, len(chunks), range_)
-
-        try:
-            write_rows(service, g.ss_id, wks, range_, values)
-        except Exception as e:
-            log.error(str(e))
-            log.debug('',exc_info=True)
-
-    duration = end_timer(start)
-
-    log.warning(\
-        'completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s, no_email=%s (%ss)',
-        g.track['gifts'], g.track['zeros'], g.track['drops'],
-        g.track['cancels'], g.track['no_email'], duration)
-
-    chunks = acct_data = accts = None
-    gc.collect()
-    return 'success'
-
-#-------------------------------------------------------------------------------
-@celery.task(bind=True)
-def create_accounts(self, accts_json, agcy=None, **rest):
-    '''Upload accounts + send welcome email, send status to Bravo Sheets
-    @accts_json: JSON list of form data
-    '''
-
-    accts = json.loads(accts_json)
-    log.warning('creating %s accounts...', len(accts))
-    checkmark = u'\u2714' #"=char(10004)"
-    ss_id = get_keys('google', agcy=agcy)['ss_id']
-    service = gauth(get_keys('google', agcy=agcy)['oauth'])
-    headers = get_row(service, ss_id, 'Signups', 1)
-    status_col = headers.index('Upload') +1
-    n_errs = n_success = 0
-
-    # Break accts into chunks for gsheets batch updating
-
-    ch_size = 10
-    chunks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
-    log.debug('chunk length=%s', len(chunks))
-
-    for i in range(0, len(chunks)):
-        rv = []
-        chunk = chunks[i]
-
-        try:
-            rv = call('add_accts', get_keys('etapestry', agcy=agcy), {'accts':chunk})
-        except Exception as e:
-            log.error('add_accts. desc=%s', str(e))
-            log.debug('', exc_info=True)
-
-        # rv = {'n_success':<int>, 'n_errs':<int>, 'results':[ {'row':<int>, 'status':<str>}, ... ]
-
-        n_errs += int(rv['n_errs'])
-        n_success += int(rv['n_success'])
-
-        log.debug('rv=%s', rv)
-
-        range_ = '%s:%s' %(
-            to_range(chunk[0]['ss_row'], status_col),
-            to_range(chunk[-1]['ss_row'], status_col))
-
-        values = [[rv['results'][idx]['status']] for idx in range(0, len(rv['results']))]
-
-        for j in range(len(values)):
-            if values[j][0] == u'Uploaded':
-                values[j][0] = checkmark
-
-        log.debug('writing chunk %s/%s values to ss, range=%s',
-            i+1, len(chunks), range_)
-
-        try:
-            write_rows(service, ss_id, 'Signups', range_, values)
-        except Exception as e:
-            log.error(str(e))
-            log.debug('',exc_info=True)
-
-    log.warning('completed. %s accounts created, %s errors.', n_success, n_errs)
-
-    chunks = accts = None
-    gc.collect()
-    return 'success'
-
-#-------------------------------------------------------------------------------
-@celery.task(bind=True)
-def create_rfu(self, agcy, note, options=None, **rest):
-
-    srvc = gauth(get_keys('google',agcy=agcy)['oauth'])
-    ss_id = get_keys('google',agcy=agcy)['ss_id']
-    headers = get_row(srvc, ss_id, 'Issues', 1)
-
-    rfu = [''] * len(headers)
-    rfu[headers.index('Description')] = note
-    rfu[headers.index('Type')] = 'Followup'
-    rfu[headers.index('Resolved')] = 'No'
-    rfu[headers.index('Date')] = date.today().strftime("%m-%d-%Y")
-
-    for field in headers:
-        if options and field in options:
-            rfu[headers.index(field)] = options[field]
-
-    append_row(srvc, ss_id, 'Issues', rfu)
-    log.debug('Creating RFU=%s', rfu)
 
     return 'success'
 
@@ -533,3 +480,60 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
     log.warning('completed. %s inactive accounts identified', n_task_inactive)
     return 'success'
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def mem_check(self, **rest):
+
+    t = datetime.now().time()
+
+    # Restart celery worker at midnight to release memory leaks
+    if t.hour == 0 and t.minute <=15:
+        log.debug('restarting celery worker/beat at midnight...')
+        try:
+            r = requests.get('http://bravotest.ca/restart_worker')
+        except Exception as e:
+            log.debug(str(e))
+        else:
+            log.debug('code=%s, text=%s', r.status_code, r.text)
+
+    mem = psutil.virtual_memory()
+    total = (mem.total/1000000)
+    free = mem.free/1000000
+
+    if free < 350:
+        log.debug('low memory. %s/%s. forcing gc/clearing cache...', free, total)
+        os.system('sudo sysctl -w vm.drop_caches=3')
+        os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
+        gc.collect()
+        mem = psutil.virtual_memory()
+        total = (mem.total/1000000)
+        now_free = mem.free/1000000
+        log.debug('freed %s mb', now_free - free)
+
+        if free < 350:
+            log.warning('warning: low memory! 250mb recommended (%s/%s)', free, total)
+    else:
+        log.debug('mem free: %s/%s', free,total)
+
+    return mem
+
+#-------------------------------------------------------------------------------
+def mem_snap(hp, snap=None):
+    if snap is None:
+        before = hp.heap()
+        log.debug('m1 snap')
+        return before
+
+    log.debug('m2 snap')
+
+    try:
+        after = hp.heap()
+        leftover = after - snap
+        byrcs = leftover.byrcs
+        log.debug(str(byrcs[0])) #:10])
+        log.debug(str(byrcs.byid[0])) #:10])
+    except Exception as e:
+        pass
+
+    #import pdb; pdb.set_trace()

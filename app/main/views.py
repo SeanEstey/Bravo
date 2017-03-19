@@ -19,7 +19,15 @@ def view_admin():
     if g.user.admin == True:
         settings = get_keys()
         settings.pop('_id')
-        settings['google'].pop('oauth')
+        settings.pop('name')
+        settings.pop('maps_id')
+        settings.pop('google')
+        settings.pop('donors')
+        settings.pop('alice')
+        settings.pop('mailgun')
+        settings.pop('twilio')
+        settings['routing'].pop('routific')
+        settings['routing'].pop('gdrive')
         settings_html = html.to_div('', settings)
     else:
         settings_html = ''

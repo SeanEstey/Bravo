@@ -4,6 +4,7 @@ from datetime import date
 from dateutil.parser import parse
 from flask import g, render_template, request
 from app import get_logger, get_keys
+from . import donors
 from app.lib import html, mailgun
 from app.lib.utils import to_title_case
 from app.lib.gsheets import update_cell, to_range, gauth, get_row
@@ -70,55 +71,6 @@ def generate(acct, entry, ytd_gifts=None):
     return {'mid':mid, 'status': '%s "%s"...' %(status, to_title_case(r_title[0:-5]))}
 
 #-------------------------------------------------------------------------------
-def on_delivered(agcy):
-    '''Mailgun webhook called from view. Has request context'''
-
-    log.debug('receipt delivered to %s', request.form['recipient'])
-
-    row = request.form['ss_row']
-    ss_id = get_keys('google',agcy=agcy)['ss_id']
-
-    status = "=char(10004)" if request.form['event'] == 'delivered' else request.form['event']
-
-    try:
-        service = gauth(get_keys('google',agcy=agcy)['oauth'])
-        headers = get_row(service, ss_id, 'Donations', 1)
-        col = headers.index('Receipt')+1
-        update_cell(service, ss_id, 'Donations', to_range(row,col), status)
-        service = None
-        gc.collect()
-    except Exception as e:
-        log.error('error updating sheet')
-        log.debug('', exc_info=True)
-        service = None
-        gc.collect()
-
-#-------------------------------------------------------------------------------
-def on_dropped(agcy):
-    '''Mailgun webhook called from view. Has request context'''
-    from app.main.tasks import create_rfu
-
-    row = request.form['ss_row']
-    msg = 'receipt to %s dropped. %s. %s' %(
-        request.form['recipient'],
-        request.form['reason'],
-        request.form.get('description'))
-
-    log.info(msg)
-
-    ss_id = get_keys('google',agcy=agcy)['ss_id']
-
-    try:
-        service = gauth(get_keys('google',agcy=agcy)['oauth'])
-        headers = get_row(service, ss_id, 'Donations', 1)
-        col = headers.index('Receipt')+1
-        update_cell(service, ss_id, 'Donations', to_range(row,col), request.form['event'])
-    except Exception as e:
-        log.error('error updating sheet')
-
-    create_rfu.delay(agcy, msg)
-
-#-------------------------------------------------------------------------------
 def render_body(path, acct, entry=None, ytd_gifts=None):
     '''Convert all dates in data to long format strings, render into html'''
 
@@ -145,6 +97,39 @@ def render_body(path, acct, entry=None, ytd_gifts=None):
     except Exception as e:
         log.error('render receipt template: %s', str(e))
         return False
+
+    return body
+
+#-------------------------------------------------------------------------------
+def preview(acct_id=None, type_=None):
+
+    VEC_TEST_ACCT_ID = 5775
+    id_ = acct_id if acct_id else VEC_TEST_ACCT_ID
+    type_ = type_ if type_ else "donation"
+
+    paths = {
+        "donation": "receipts/%s/collection_receipt.html" % g.user.agency,
+        "no_donation": "receipts/%s/no_collection.html" % g.user.agency,
+        "zero_donation": "receipts/%s/zero_collection.html" % g.user.agency,
+        "post_drop": "receipts/%s/dropoff_followup.html" % g.user.agency,
+        "cancelled": "receipts/%s/cancelled.html" % g.user.agency
+    }
+
+    acct = donors.get(id_)
+    entry = {
+        'acct_id': acct['id'],
+        'date': date.today().strftime('%d/%m/%Y'),
+        'amount':12.40,
+        'next_pickup': get_udf('Next Pickup Date', acct),
+        'status':'Active',
+        'ss_row':2
+    }
+
+    body = render_body(
+        paths[type_],
+        acct,
+        entry = entry,
+        ytd_gifts = get_ytd_gifts(acct['ref'], date.today().year))
 
     return body
 
@@ -198,3 +183,52 @@ def get_ytd_gifts(acct_ref, year):
         return []
     else:
         return je_list[0]
+
+#-------------------------------------------------------------------------------
+def on_delivered(agcy):
+    '''Mailgun webhook called from view. Has request context'''
+
+    log.debug('receipt delivered to %s', request.form['recipient'])
+
+    row = request.form['ss_row']
+    ss_id = get_keys('google',agcy=agcy)['ss_id']
+
+    status = "=char(10004)" if request.form['event'] == 'delivered' else request.form['event']
+
+    try:
+        service = gauth(get_keys('google',agcy=agcy)['oauth'])
+        headers = get_row(service, ss_id, 'Donations', 1)
+        col = headers.index('Receipt')+1
+        update_cell(service, ss_id, 'Donations', to_range(row,col), status)
+        service = None
+        gc.collect()
+    except Exception as e:
+        log.error('error updating sheet')
+        log.debug('', exc_info=True)
+        service = None
+        gc.collect()
+
+#-------------------------------------------------------------------------------
+def on_dropped(agcy):
+    '''Mailgun webhook called from view. Has request context'''
+    from app.main.tasks import create_rfu
+
+    row = request.form['ss_row']
+    msg = 'receipt to %s dropped. %s. %s' %(
+        request.form['recipient'],
+        request.form['reason'],
+        request.form.get('description'))
+
+    log.info(msg)
+
+    ss_id = get_keys('google',agcy=agcy)['ss_id']
+
+    try:
+        service = gauth(get_keys('google',agcy=agcy)['oauth'])
+        headers = get_row(service, ss_id, 'Donations', 1)
+        col = headers.index('Receipt')+1
+        update_cell(service, ss_id, 'Donations', to_range(row,col), request.form['event'])
+    except Exception as e:
+        log.error('error updating sheet')
+
+    create_rfu.delay(agcy, msg)

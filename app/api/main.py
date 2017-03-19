@@ -19,8 +19,8 @@ def func_call(function, *args, **kwargs):
         rv = function(*args, **kwargs)
     except Exception as e:
         return build_resp(exc=str(e))
-    else:
-        return build_resp(rv=rv, name=function.__name__, dt=s)
+
+    return build_resp(rv=rv, name=function.__name__, dt=s)
 
 #-------------------------------------------------------------------------------
 def task_call(function, *args, **kwargs):
@@ -55,7 +55,7 @@ def build_resp(rv=None, exc=False, name=None, dt=None):
     # Success
 
     duration = end_timer(dt)
-    log.debug('API call success, func=%s (%ss)', name, duration)
+    log.debug('API call success, func=%s (%s)', name, duration)
 
     try:
         json_rv = formatter({'status':'success', 'data':rv}, bson_to_json=True, to_json=True)

@@ -25,8 +25,7 @@ def get_next_pickup(email, agcy):
 
 #-------------------------------------------------------------------------------
 def get_donations(acct_id, start_d=None, end_d=None):
-    '''Pulls all Notes and Gifts in 12 week period before @before
-    Returns most recent
+    '''Pulls all Notes and Gifts in given period
     @before, @after: datetime.date
     '''
 
@@ -38,33 +37,6 @@ def get_donations(acct_id, start_d=None, end_d=None):
     except Exception as e:
         log.error('couldnt find acct_id=%s', acct_id)
         return False
-
-    '''
-    # Acct was active last cycle?
-
-    blocks = get_udf('Block', acct)
-    n_blocks = float(len(blocks.split(", "))) if blocks else None
-
-    if not n_blocks:
-        log.debug(blocks)
-        return False
-
-    n_weeks_ago = math.ceil(10.0/n_blocks)
-    drop_date = get_udf('Dropoff Date', acct)
-
-    if not drop_date:
-        drop_date = get_udf('Signup Date', acct)
-
-    drop_d = to_date(drop_date)
-    last_cycle_d = date.today() - timedelta(weeks=int(n_weeks_ago))
-
-    if drop_d > last_cycle_d:
-        log.debug(drop_d)
-        return False
-
-    # Search +- 1 week
-    log.debug('last_cycle_d=%s', last_cycle_d)
-    '''
 
     start = start_d if start_d else (date.today() - timedelta(weeks=12))
     end = end_d if end_d else date.today()
@@ -96,17 +68,16 @@ def get_donations(acct_id, start_d=None, end_d=None):
 
         if je['type'] == JE_NOTE and je['note'] == 'No Pickup':
             gift_list[i] = {
-                'date': je['date'], #parse(je['date']),
-                'type': JE_GIFT,
-                'amount': 0,
+                'id': acct['id'],
+                'date': je['date'],
+                'amount': 0.0,
                 'note': 'No Pickup'
             }
         elif je['type'] == JE_GIFT:
             gift_list[i] = {
-                'date': je['date'], #parse(je['date']),
-                'type': JE_GIFT,
-                'amount': je['amount'],
-                'note': je['note']
+                'id': acct['id'],
+                'date': je['date'],
+                'amount': float(je['amount'])
             }
 
     log.debug('%s donations for acct_id=%s', len(gift_list), acct['id'])

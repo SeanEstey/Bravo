@@ -14,32 +14,81 @@ jQuery(function($){init();});
 </script>
 
 <div class="container">
+  <!-- Agency settings data -->
+	<div name="settings_data" hidden>
+		{{ agency_config|safe }}
+	</div>
+
 	<!-- Nav tabs -->
 	<ul style="margin-bottom:2em" class="nav nav-tabs" role="tablist">
 		<li class="nav-item">
-			<a class="nav-link active" data-toggle="tab" href="#settings" role="tab">Settings</a>
+			<a class="nav-link active" data-toggle="tab" href="#email" role="tab">Email</a>
 		</li>
 		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#email" role="tab">Email</a>
+			<a class="nav-link" data-toggle="tab" href="#settings" role="tab">Settings</a>
 		</li>
 	</ul>
 
 	<!-- Tab panes -->
 	<div class="tab-content">
-		<div class="tab-pane active" id="settings" role="tabpanel"></div>
-		<div class="tab-pane" id="email" role="tabpanel">
-      <button id="receipt_btn" class="btn btn-info">
-        Preview Receipt
-      </button>
-      <button id="notific_btn" class="btn btn-info">
-        Preview Notification
-      </button>
+		<div class="tab-pane active" id="email" role="tabpanel">
+      <form style='margin-top:4em'>
+        <fieldset id="" class="form-fieldset">
+          <legend class="">Receipt Preview</legend>
+          <table border="0" cellpadding="5" cellspacing="10">
+            <tr>
+              <td>
+                <select name="" class="form-control" id="">
+                  <option id="" value="">Donation</option>
+                  <option id="" value="">No Donation</option>
+                  <option id="" value="">$0 Donation</option>
+                  <option id="" value="">Post Dropoff</option>
+                  <option id="" value="">Cancellation</option>
+                </select>
+              </td>
+              <td>
+                <button id="receipt_btn" class="btn btn-info">Preview</button>
+              </td>
+            </tr>
+          </table>
+        </fieldset>
+      </form>
+      <form style='margin-top:2em'>
+        <fieldset id="" class="form-fieldset">
+          <legend class="">Notification Preview</legend>
+          <table border="0" cellpadding="5" cellspacing="10">
+            <tr>
+              <td>
+                <select name="" class="form-control" id="">
+                  <option id="" value="">Residential Pickup</option>
+                  <option id="" value="">Residential Dropoff</option>
+                  <option id="" value="">Residential Cancelling</option>
+                  <option id="" value="">Business Pickup</option>
+                </select>
+              </td>
+              <td>
+                <button id="notific_btn" class="btn btn-info">Preview</button>
+              </td>
+            </tr>
+          </table>
+        </fieldset>
+      </form>
     </div>
+
+		<div class="tab-pane" id="settings" role="tabpanel"></div>
 	</div>
 
-	<div name="settings_data" hidden>
-		{{ agency_config|safe }}
-	</div>
+  <!-- Preview Modal Footer -->
+  <div id='preview' style='display:none'>
+    <form class="form-check" style="text-align:left" id="preview_form">
+        <div style="text-align:right">
+          <label class="form-check-label">
+              <input class="form-check-input" type="checkbox" name="exampleRadios" id="send_email_cb" value="option1" checked>
+                Send Email</label>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
   {% endblock %}

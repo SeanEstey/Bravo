@@ -1,7 +1,7 @@
 
 //------------------------------------------------------------------------------
 function init() {
-    $('nav-tabs a').click(function (e) {
+    $('nav-tabs a').click(function (e){
       e.preventDefault()
         $(this).tab('show')
     })
@@ -11,16 +11,25 @@ function init() {
     $('#settings [name="settings_data"]:first').show();
     enableEditableFields();
 
-    $('#receipt_btn').click(function() {
-        var rv = api_call('accounts/preview_receipt', null, function(response){
-            console.log(response);
+    $('#receipt_btn').click(function(e){
+        e.preventDefault();
+
+        api_call('accounts/preview_receipt', null, function(response){
+            console.log(response['status']);
+
+            showModal(
+              'mymodal',
+              'Preview',
+              response['data'],
+              'Close',
+              'Close');
         });
-        console.log(rv);
     });
 }
 
 //------------------------------------------------------------------------------
 function enableEditableFields() {
+
   $('input').each(function() {
       $(this).keyup(function(event) {
           if(event.keyCode == 13){

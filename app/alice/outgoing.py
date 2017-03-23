@@ -59,7 +59,7 @@ def send_welcome(etap_id):
     return r.status
 
 #-------------------------------------------------------------------------------
-def compose(agcy, body, to, callback=None, find_session=False):
+def compose(agcy, body, to, callback=None, find_session=False, event_log=False):
     '''Compose SMS message to recipient
     Can be called from outside blueprint. No access to flask session
     Returns twilio message object (not json serializable)
@@ -92,7 +92,10 @@ def compose(agcy, body, to, callback=None, find_session=False):
         log.debug(e, exc_info=True)
         raise
     else:
-        log.info('%s"%s"%s', c.BOLD, body, c.ENDC)
+        if event_log:
+            log.info('%s"%s"%s', c.BOLD, body, c.ENDC)
+        else:
+            log.debug('%s"%s"%s', c.BOLD, body, c.ENDC)
 
     if not find_session:
         return msg

@@ -9,11 +9,10 @@ from twilio.util import TwilioCapability
 from flask import g, render_template, request
 from pymongo.collection import ReturnDocument
 from app import get_logger, get_keys, smart_emit
-from app.lib.utils import formatter, print_vars
 from app.lib.logger import colors as c
 from app.lib import html
 from app.lib.dt import to_utc
-from .utils import intrntl_format
+from .utils import intrntl_format, simple_dict
 log = get_logger('notify.voice')
 
 #-------------------------------------------------------------------------------
@@ -84,7 +83,6 @@ def call(notific, conf):
         log.debug('tb: ', exc_info=True)
     else:
         log.debug('%s call to %s', call.status, notific['to'])
-        #log.debug(utils.print_vars(call))
     finally:
         g.db.notifics.update_one({
             '_id': notific['_id']}, {
@@ -108,24 +106,14 @@ def get_speak(notific, template_path, timeout=False):
     try:
         speak = render_template(
             template_path,
-            notific = formatter(
-                notific,
-                to_local_time=True,
-                to_strftime="%A, %B %d"),
-            account = formatter(
-                account,
-                to_local_time=True,
-                to_strftime="%A, %B %d",
-                bson_to_json=True),
+            notific = simple_dict(notific),
+            account = simple_dict(account),
             timeout=timeout)
     except Exception as e:
         log.error('get_speak: %s ', str(e))
         return 'Error'
 
     speak = html.clean_whitespace(speak)
-
-    #log.debug('speak template: %s', speak)
-
     return speak
 
 #-------------------------------------------------------------------------------

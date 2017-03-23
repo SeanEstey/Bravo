@@ -1,13 +1,17 @@
 '''app.notify.email'''
 import logging, os
 from os import environ as env
+from bson.objectid import ObjectId
 from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
 from .. import get_logger, smart_emit, get_keys
 from app.lib import mailgun
 from app.lib.utils import formatter
-from app.lib.dt import to_utc
+from app.lib.dt import to_utc, to_dt
 from app.lib.logger import colors as c
+from app.main import donors
+from app.main.etap import get_udf
+from .utils import simple_dict
 log = get_logger('notify.email')
 
 #-------------------------------------------------------------------------------
@@ -30,6 +34,40 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
             'mid': None}}).inserted_id
 
 #-------------------------------------------------------------------------------
+def preview(acct_id, template):
+
+    path = ''
+    if template == 'reminder':
+        path = "email/%s/reminder.html" % g.user.agency
+
+    acct = donors.get(acct_id)
+    db_acct = {
+      '_id': ObjectId(),
+      'name': acct['name'],
+      'udf': {
+        'etap_id': acct['id'],
+        'status': get_udf('Status', acct),
+        'block': get_udf('Block', acct),
+        'driver_notes': get_udf('Driver Notes', acct),
+        'office_notes': get_udf('Office Notes', acct),
+        'pickup_dt': to_dt(get_udf('Next Pickup Date', acct))
+      }
+    }
+
+    try:
+        body = render_template(
+            path,
+            to = acct['email'],
+            account = simple_dict(db_acct),
+            evnt_id = '')
+    except Exception as e:
+        log.error('template error. desc=%s', str(e))
+        log.debug('', exc_info=True)
+        raise
+    else:
+        return body
+
+#-------------------------------------------------------------------------------
 def send(notific, mailgun_conf, key='default'):
     '''Private method called by send()
     @key = dict key in email schemas for which template to use
@@ -39,11 +77,7 @@ def send(notific, mailgun_conf, key='default'):
         body = render_template(
             notific['on_send']['template'],
             to = notific['to'],
-            account = formatter(
-                g.db.accounts.find_one({'_id':notific['acct_id']}),
-                to_local_time=True,
-                to_strftime="%A, %B %d",
-                bson_to_json=True),
+            account = simple_dict(g.db.accounts.find_one({'_id':notific['acct_id']})),
             evnt_id = notific['evnt_id'])
     except Exception as e:
         log.error('template error. desc=%s', str(e))

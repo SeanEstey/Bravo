@@ -1,6 +1,7 @@
 '''app.notify.utils'''
 import re
 from app import get_logger
+from app.lib.utils import formatter
 log = get_logger('notify.utils')
 
 #-------------------------------------------------------------------------------
@@ -22,3 +23,11 @@ def intrntl_format(to):
     except Exception as e:
         log.error('invalid phone number %s', to)
         return None
+
+#-------------------------------------------------------------------------------
+def simple_dict(mongo_dict):
+    return formatter(
+        mongo_dict,
+        to_local_time=True,
+        to_strftime="%A, %B %d",
+        bson_to_json=True)

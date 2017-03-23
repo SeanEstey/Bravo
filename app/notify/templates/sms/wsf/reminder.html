@@ -4,11 +4,11 @@ your Empties to Winn
 
 {% if account['udf']['status'] == "Dropoff" %}
 
-	dropoff 
+dropoff 
 
 {% else %}
 
-	pickup 
+pickup 
 
 {% endif %}
 
@@ -16,15 +16,15 @@ is {{ account['udf']['pickup_dt'] }}.
 
 {% if account['udf']['status'] == "Dropoff" %}
 
-	If you have any empties you can leave them out by 8am.
+If you have any empties you can leave them out by 8am.
 
 {% elif account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
 
-	Please have your empties out by 8am.
+Please have your empties out by 8am.
 
 {% elif account['udf']['status'] == "Cancelling" %}
 
-	A driver will be by to collect your bag buddy frame. Thanks for your past support.
+A driver will be by to collect your bag buddy frame. Thanks for your past support.
 
 {% endif %}
 
@@ -32,8 +32,8 @@ Reply with keyword INSTRUCTIONS to leave a note for our driver.
 
 {% if account['udf']['status'] == "Active" or account['udf']['status'] == "One-time" %}
 
-	Or SKIP to opt out of this pickup.
+Or SKIP to opt out of this pickup.
 
-	Questions? Call 1-888-YOU-WINN
+Questions? Call 1-888-YOU-WINN
 
 {% endif %}

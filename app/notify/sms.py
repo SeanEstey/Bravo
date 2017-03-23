@@ -4,12 +4,11 @@ from os import environ as env
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
 from .. import get_logger, smart_emit, get_keys
-from app.lib.utils import formatter
 from app.lib import html
 from app.lib.dt import to_utc, to_local
 from app.lib.logger import colors as c
 from app.alice.outgoing import compose
-from .utils import intrntl_format
+from .utils import intrntl_format, simple_dict
 log = get_logger('notify.sms')
 
 #-------------------------------------------------------------------------------
@@ -51,11 +50,7 @@ def send(notific, twilio_conf):
     try:
         body = render_template(
             'sms/%s/reminder.html' % acct['agency'],
-            account = formatter(
-                acct,
-                to_local_time=True,
-                to_strftime="%A, %B %d",
-                bson_to_json=True),
+            account = simple_dict(acct),
             notific = notific)
     except Exception as e:
         log.error('Error rendering SMS body. %s', str(e))
@@ -81,8 +76,6 @@ def send(notific, twilio_conf):
     except Exception as e:
         log.error('error queuing SMS, desc="%s"', str(e))
         log.debug('', exc_info=True)
-    #else:
-    #    log.debug('queued SMS to %s', notific['to'])
     finally:
         g.db.notifics.update_one(
             {'_id': notific['_id']},

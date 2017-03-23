@@ -43,10 +43,10 @@ def make():
         'block': request.form['block'],
         'agency': g.user.agency})
 
-    do_append = route and route.get('ss')
+    append = True if route and route.get('ss') else False
 
-    if do_append:
-        append_route(route)
+    if append:
+        append_to(route)
 
     email_conf = request.form.get('confirmation')
 
@@ -54,7 +54,7 @@ def make():
         send_confirm()
 
     log.info('booked acct %s for %s. email conf=%s, append order=%s',
-        request.form['aid'], request.form['date'], email_conf, do_append)
+        request.form['aid'], request.form['date'], email_conf, append)
 
     return "Booked successfully"
 
@@ -82,7 +82,7 @@ def update_dms():
     return True
 
 #-------------------------------------------------------------------------------
-def append_route(route):
+def append_to(route):
     '''Block is already routed. Append order to end of Sheet'''
 
     log.info('%s already routed for %s. Appending to Sheet.',

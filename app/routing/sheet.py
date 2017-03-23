@@ -78,7 +78,7 @@ def write_orders(agcy, api, ss_id, wks, orders):
             summary += 'Name: ' + notes['name'] + '\n'
             if notes.get('neighborhood'):
               summary += 'Neighborhood: ' + notes['neighborhood'] + '\n'
-            summary += 'Block: ' + notes['block']
+            #summary += 'Block: ' + notes['block']
             if notes.get('contact'):
               summary += '\nContact: ' + notes['contact']
             if notes.get('phone'):
@@ -125,7 +125,7 @@ def write_order(api, ss_id, wks, order, row):
     summary += 'Name: %s\n'% notes['name']
     if notes.get('neighborhood'):
       summary += 'Neighborhood: %s\n'% notes['neighborhood']
-    summary += 'Block: %s'% notes['block']
+    #summary += 'Block: %s'% notes['block']
     if notes.get('contact'):
       summary += '\nContact: ' + notes['contact']
     if notes.get('phone'):
@@ -170,7 +170,7 @@ def write_prop(agcy, api, ss_id, route):
         to_range(fields.index(['Skips'])+1, 2),
         route['no_pickups'])
     update_cell(api, ss_id, 'Info',
-        to_range(fields.index(['Trip Lgth Sched'])+1, 2),
+        to_range(fields.index(['Trip Sched'])+1, 2),
         route['duration'])
 
 #-------------------------------------------------------------------------------

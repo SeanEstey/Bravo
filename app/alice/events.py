@@ -165,43 +165,49 @@ def is_unsub():
     return False
 
 #-------------------------------------------------------------------------------
-def request_pickup(msg, response):
-    agency = session.get('agency')
-    conf = sessin.get('conf')
+def request_pickup():
+
+    address = request.form['Body']
+    agcy = session.get('agcy')
+    conf = session.get('conf')
 
     # Msg reply should contain address
-    log.info('pickup request address: \"%s\" (SMS: %s)', msg, request.form['From'])
+    log.info('pickup request at \"%s\" (SMS: %s)', address, request.form['From'])
 
-    block = geo.find_block(agency, msg, conf['google']['geocode']['api_key'])
+    block = geo.find_block(agcy, address, conf['google']['geocode']['api_key'])
 
     if not block:
-        log.error('could not find map for address %s', msg)
-
-        send_reply('We could not locate your address', response)
-
-        return False
+        log.error('could not find map for address %s', address)
+        create_rfu.delay(
+            session.get('agcy'),
+            "Could not locate block for address \"%s\"" % address,
+            options={
+                "Account": "Mobile: %s" % request.form['From']})
+        return dialog['anon']['geo_fail']
 
     log.info('address belongs to Block %s', block)
 
-    set_cookie(response, 'status', None)
+    #set_cookie(response, 'status', None)
 
-    r = search.search(agency['name'], block, radius=None, weeks=None)
+    r = search.search(block, radius=None, weeks=None, agcy=agcy)
 
     log.info(r['results'][0])
 
-    add_acct(
-        msg,
-        request.form['From'],
-        r['results'][0]['name'],
-        r['results'][0]['event']['start']['date']
-    )
+    #add_acct(
+    #    address,
+    #    request.form['From'],
+    #    r['results'][0]['name'],
+    #    r['results'][0]['event']['start']['date'])
 
-    #book.make(agency['name'], aid, block, date_str, driver_notes, name, email, confirmation):
+    #book.make(agcy, aid, block, date_str, driver_notes, name, email, confirmation):
 
-    return send_reply(
-        "Thank you. We'll get back to you shortly with a pickup date",
-        response
-    )
+    create_rfu.delay(
+        agcy,
+        "Pickup request result: %s" % r['results'][0],
+        options={
+            "Account": "Address: %s\nMobile: %s" %(address, request.form['From'])})
+
+    return dialog['anon']['geo_success']
 
 #-------------------------------------------------------------------------------
 def add_acct(address, phone, block, pu_date_str):

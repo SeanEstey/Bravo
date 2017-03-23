@@ -151,14 +151,14 @@ def send_receipts(self, entries, **rest):
 
         values = [[rv[idx]['status']] for idx in range(len(rv))]
         wks_values = get_values(service, g.ss_id, wks, range_)
+        log.debug('values len=%s, values=%s, wks_values len=%s, wks_values=%s',
+            len(values), values, len(wks_values), wks_values)
 
         for idx in range(0, len(wks_values)):
             if wks_values[idx][0] == checkmark:
                 values[idx][0] = checkmark
-            elif wks_values[idx][0] == 'No Email':
+            elif wks_values[idx][0] == u'No Email':
                 values[idx][0] = 'No Email'
-            else:
-                values[idx][0] = '...'
 
         log.debug('writing chunk %s/%s values to ss, range=%s',
             i+1, len(chunks), range_)
@@ -458,7 +458,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
                     'Office Notes':\
                     '%s\n%s: non-participant (inactive for %s days)'%(
                     get_udf('Office Notes', acct),
-                    date.today().strftime('%b%-d %Y'),
+                    date.today().strftime('%b %-d %Y'),
                     period)},
                 exc=False)
 

@@ -67,10 +67,8 @@ anon = {
                 'func': 'update_mobile'
             }
         }
-    }
-}
-'''
-    'REGISTER': {
+    },
+    'PICKUP': {
         'on_receive': {
             'action': 'reply',
             'dialog': \
@@ -85,4 +83,3 @@ anon = {
         }
     }
 }
-'''

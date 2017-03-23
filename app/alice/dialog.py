@@ -16,8 +16,11 @@ dialog = {
     'anon': {
         'options': \
             "I don't recognize this number. "\
-            "Do you have an account? I can UPDATE it for you. "#\
-            #"If you're new, you can REGISTER for a pickup. "
+            "Do you have an account? I can UPDATE it for you. ",
+        'geo_success': \
+            "Thank you. We'll get back to you shortly with a pickup date. ",
+        'geo_fail': \
+            "I'm sorry, I'm having trouble identifying  your address. "
     },
     'general': {
         'intro': \

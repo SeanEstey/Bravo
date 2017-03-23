@@ -10,14 +10,16 @@ from . import geo
 log = get_logger('booker.search')
 
 #-------------------------------------------------------------------------------
-def search(query, radius=None, weeks=None):
+def search(query, radius=None, weeks=None, agcy=None):
     '''Search query invoked from Booker client
     @query: either Account Number, Postal Code, Address, or Block
     Returns JSON object: {'search_type': str, 'status': str, 'description': str,
     'results': array }
     '''
 
-    maps = g.db.maps.find_one({'agency':g.user.agency})['features']
+    agcy = agcy if agcy else g.user.agency
+
+    maps = g.db.maps.find_one({'agency':agcy})['features']
 
     SEARCH_WEEKS = int(weeks or 12)
     SEARCH_DAYS = int(SEARCH_WEEKS * 7)
@@ -27,8 +29,8 @@ def search(query, radius=None, weeks=None):
     start_date = datetime.today()# + timedelta(days=1)
     end_date = datetime.today() + timedelta(days=SEARCH_DAYS)
 
-    service = gcal.gauth(get_keys('google')['oauth'])
-    cal_ids = get_keys('cal_ids')
+    service = gcal.gauth(get_keys('google',agcy=agcy)['oauth'])
+    cal_ids = get_keys('cal_ids',agcy=agcy)
 
     for id_ in cal_ids:
         events +=  gcal.get_events(
@@ -45,7 +47,7 @@ def search(query, radius=None, weeks=None):
         try:
             acct = call(
               'get_acct',
-              get_keys('etapestry'),
+              get_keys('etapestry',agcy=agcy),
               data={'acct_id': re.search(r'\d{1,6}',query).group(0)})
         except EtapError as e:
             log.error('no account id %s', query)
@@ -63,7 +65,7 @@ def search(query, radius=None, weeks=None):
 
         geo_results = geo.geocode(
             acct['address'] + ', ' + acct['city'] + ', AB',
-            get_keys('google')['geocode']['api_key'])
+            get_keys('google',agcy=agcy)['geocode']['api_key'])
 
         # Individual account (Residential donor)
         if acct['nameFormat'] <= 2:
@@ -125,7 +127,7 @@ def search(query, radius=None, weeks=None):
     else:
         geo_results = geo.geocode(
             query,
-            get_keys('google')['geocode']['api_key']
+            get_keys('google',agcy=agcy)['geocode']['api_key']
         )
 
         if len(geo_results) == 0:

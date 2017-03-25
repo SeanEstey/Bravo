@@ -44,12 +44,11 @@ state=None, *args, **kwargs):
     '''
 
     global timer
-    duration = end_timer(timer, lbl='task', to_log=None)
     name = sender.name.split('.')[-1]
 
     if state != 'SUCCESS':
         log.error('task=%s error. state=%s, retval=%s', name, state, retval)
-        log.debug('task=%s failure (%s)', name, duration, exc_info=True)
+        log.debug('task=%s failure (%s)', name, end_timer(timer), exc_info=True)
     else:
         pass
         #log.debug('%s: state=%s, retval="%s" (%s)', name, state, retval, duration)

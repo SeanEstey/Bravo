@@ -139,7 +139,7 @@ def start_timer():
     return datetime.now()
 
 #-------------------------------------------------------------------------------
-def end_timer(start_dt, lbl=None, to_log=None):
+def end_timer(start_dt):
     b = datetime.now()
     c = b - start_dt
     seconds = '%s.%ss' % (c.seconds, str(c.microseconds/1000))

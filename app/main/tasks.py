@@ -79,8 +79,7 @@ def process_entries(self, entries, agcy=None, **rest):
             log.error(str(e))
             log.debug('',exc_info=True)
 
-    duration = end_timer(start)
-    log.warning('completed. %s errors (%s)', n_errs, duration)
+    log.warning('completed. %s errors (%s)', n_errs, end_timer(start))
 
     return 'success'
 
@@ -169,12 +168,10 @@ def send_receipts(self, entries, **rest):
             log.error(str(e))
             log.debug('',exc_info=True)
 
-    duration = end_timer(start)
-
     log.warning(\
         'completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s, no_email=%s (%s)',
         g.track['gifts'], g.track['zeros'], g.track['drops'],
-        g.track['cancels'], g.track['no_email'], duration)
+        g.track['cancels'], g.track['no_email'], end_timer(start))
 
     chunks = acct_data = accts = None
     gc.collect()

@@ -7,7 +7,7 @@ from flask import g, request
 from flask_login import login_required
 from app import get_logger, get_server_prop
 from app.main.etap import block_size, route_size
-from .main import get_var, build_resp, func_call, task_call, WRITE_ME
+from .manager import get_var, build_resp, func_call, task_call, WRITE_ME
 from app.alice.outgoing import send_welcome, compose
 from app.booker.geo import get_maps
 from app.booker.search import search
@@ -105,6 +105,7 @@ def alice_send_msg():
 @api.route('/booker/create', methods=['POST'])
 @login_required
 def call_booker_create():
+    log.debug('api make')
     return func_call(make)
 
 @api.route('/booker/search', methods=['POST'])

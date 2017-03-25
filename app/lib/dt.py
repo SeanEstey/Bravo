@@ -1,7 +1,7 @@
 '''app.dt'''
 import pytz
 from datetime import datetime, date, time, timedelta
-local_tz = pytz.timezone('MST')
+local_tz = pytz.timezone('America/Edmonton')
 
 #-------------------------------------------------------------------------------
 def json_serial(obj):

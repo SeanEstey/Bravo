@@ -284,6 +284,8 @@ function showConfirmModal(block, date, aid, name, email) {
     );
 
     $('#mymodal .btn-primary').click(function() {
+        $(this).prop('disabled', true);
+
         requestBooking(
           aid,
           block, 

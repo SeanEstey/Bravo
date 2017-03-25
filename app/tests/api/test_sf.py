@@ -132,7 +132,7 @@ class SalesforceTests(unittest.TestCase):
             'Arbour Lake',
             self.rnd_date()
         )
-        utils.end_timer(a, display=True, lbl='add account')
+        utils.end_timer(a)
 
         self.assertTrue(c_id is not False)
     #'''
@@ -141,7 +141,7 @@ class SalesforceTests(unittest.TestCase):
         a = utils.start_timer()
         c_id = '0034100000GDjtXAAT' # jordan peterson
         salesforce.add_note(self.sf, c_id, 'a_title', 'note body')
-        utils.end_timer(a, display=True, lbl='add note')
+        utils.end_timer(a)
     #'''
     #'''
     def test_add_gift(self):
@@ -156,7 +156,7 @@ class SalesforceTests(unittest.TestCase):
             self.rnd_date(),
             '2 vb'
         )
-        utils.end_timer(a, display=True, lbl='add gift')
+        utils.end_timer(a)
     #'''
 
 

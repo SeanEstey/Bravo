@@ -7,7 +7,7 @@ from datetime import datetime, date, time
 from .. import get_logger, smart_emit, get_keys
 from app.lib import mailgun
 from app.lib.utils import formatter
-from app.lib.dt import to_utc, to_dt
+from app.lib.dt import to_utc, ddmmyyyy_to_dt
 from app.lib.logger import colors as c
 from app.main import donors
 from app.main.etap import get_udf
@@ -50,7 +50,7 @@ def preview(acct_id, template):
         'block': get_udf('Block', acct),
         'driver_notes': get_udf('Driver Notes', acct),
         'office_notes': get_udf('Office Notes', acct),
-        'pickup_dt': to_dt(get_udf('Next Pickup Date', acct))
+        'pickup_dt': ddmmyyyy_to_dt(get_udf('Next Pickup Date', acct))
       }
     }
 

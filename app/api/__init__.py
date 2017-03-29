@@ -1,5 +1,5 @@
 '''app.api.__init__'''
-from flask import g, Blueprint
+from flask import g,Blueprint
 from flask_login import current_user
 
 api = Blueprint(

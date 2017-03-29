@@ -294,6 +294,8 @@ function showConfirmModal(block, date, aid, name, email) {
           name,
           email,
           $('#mymodal').find('input[id="send_email_cb"]').prop('checked'));
+
+        $(this).prop('disabled', false);
     });
 }
   

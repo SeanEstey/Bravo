@@ -2,12 +2,10 @@
 import logging
 from dateutil.parser import parse
 from json import loads
-from . import api
 from flask import g, request
 from flask_login import login_required
 from app import get_logger, get_server_prop
 from app.main.etap import block_size, route_size
-from .manager import get_var, build_resp, func_call, task_call, WRITE_ME
 from app.alice.outgoing import send_welcome, compose
 from app.booker.geo import get_maps
 from app.booker.search import search
@@ -21,8 +19,8 @@ from app.notify.recording import dial_recording
 from app.notify.triggers import kill_trigger
 from app.notify.voice import get_token
 from app.routing.main import edit_field
-log = get_logger('api')
-
+from . import api
+from .manager import get_var, build_resp, func_call, task_call, WRITE_ME
 
 @api.route('/accounts/submit_form', methods=['POST'])
 def accts_add_form():
@@ -34,6 +32,17 @@ def accts_add_form():
 def accts_get_pickup():
     # TODO: add auth requirement
     return func_call(donors.get_next_pickup, get_var('email'), agcy=get_var('agcy'))
+
+@api.route('/accounts/estimate_trend', methods=['POST'])
+@login_required
+def estmt_trend():
+    from app.main.tasks import estimate_trend
+    return task_call(
+        estimate_trend,
+        get_var('date'),
+        loads(get_var('donations')),
+        get_var('ss_id'),
+        get_var('ss_row'))
 
 @api.route('/accounts/get_donations', methods=['POST'])
 @login_required
@@ -105,7 +114,6 @@ def alice_send_msg():
 @api.route('/booker/create', methods=['POST'])
 @login_required
 def call_booker_create():
-    log.debug('api make')
     return func_call(make)
 
 @api.route('/booker/search', methods=['POST'])

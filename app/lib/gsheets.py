@@ -132,18 +132,12 @@ def col_idx_to_a1(idx):
 
     if idx < len(alphabet):
         return alphabet[idx]
-
-    # TODO: expand this if necessary for wide sheets w/ columns like AA, AB, etc
-    '''
-    parts = str(round(float(idx/len(alphabet)),1)).split('.')
-
-    if int(parts[0]) < len(alphabet):
-        return alphabet[int(parts[1])]
-
-    col_size = int(parts[0])
-    for i in range(int(parts[0])):
-        a1 += alphabet[i]
-    '''
+    elif idx < len(alphabet)*2:
+        # AA, AB, AC, etc
+        return "A%s" % alphabet[idx - len(alphabet)]
+    else:
+        log.error('not implemented converting to range for wide idx of %s', idx)
+        return False
 
 #-------------------------------------------------------------------------------
 def gauth(oauth):

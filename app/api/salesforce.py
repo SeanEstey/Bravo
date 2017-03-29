@@ -10,8 +10,8 @@ import pytz
 from datetime import datetime
 from simple_salesforce import Salesforce
 
-from app import utils
-log = logging.getLogger(__name__)
+from app import get_logger
+log = get_logger('api.salesforce')
 
 
 #-------------------------------------------------------------------------------

@@ -83,35 +83,38 @@ def load_api_user(request):
     #log.debug('trying API auth login')
     api_key = request.headers.get('Authorization')
 
-    if api_key:
-        api_key = api_key.replace('Basic ', '', 1)
-        try:
-            api_key = base64.b64decode(api_key)
-        except TypeError:
-            log.debug('base64 decode error, desc=%s', str(e))
-            pass
+    if not api_key:
+        print 'no api key in header'
+        return None
 
-        #log.debug('got api_key=%s', api_key)
-        api_user = api_key.split(':')[1]
+    api_key = api_key.replace('Basic ', '', 1)
 
-        #if not ObjectId.is_valid(api_user):
-        #    return None
+    try:
+        api_key = base64.b64decode(api_key)
+    except TypeError:
+        log.debug('base64 decode error, desc=%s', str(e))
+        return None
 
-        db = db_client['bravo']
-        user = db.users.find_one({'api_key':str(api_key)})
+    api_user = api_key.split(':')[1]
 
-        if user:
-            log.debug('"%s" API auth success', user['name'])
+    #if not ObjectId.is_valid(api_user):
+    #    return None
 
-            return User(
-                user['user'],
-                name = user['name'],
-                _id = user['_id'],
-                agency = user['agency'],
-                admin = user['admin'])
-        else:
-            log.debug('no user found for api_key=%s', api_key)
+    db = db_client['bravo']
+    user = db.users.find_one({'api_key':str(api_key)})
+
+    if user:
+        log.debug('"%s" API auth success', user['name'])
+
+        return User(
+            user['user'],
+            name = user['name'],
+            _id = user['_id'],
+            agency = user['agency'],
+            admin = user['admin'])
+    else:
+        log.debug('no user found for api_key=%s', api_key)
 
     # finally, return None if both methods did not login the user
-    #log.debug('failed to load api user. return none')
+    log.debug('failed to load api user. return none')
     return None

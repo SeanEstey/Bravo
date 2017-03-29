@@ -8,7 +8,8 @@ from flask import current_app, g, request
 from app import celery, get_keys, task_logger
 from app.lib.logger import colors as c
 from app.lib.dt import d_to_dt, ddmmyyyy_to_mmddyyyy as swap_dd_mm
-from app.lib.gsheets import gauth, write_rows, append_row, get_row, to_range, get_values
+from app.lib.gsheets import gauth, write_rows, append_row, get_row, to_range,\
+get_values, update_cell
 from app.lib.gcal import gauth as gcal_auth, color_ids, get_events, evnt_date_to_dt, update_event
 from app.lib.utils import start_timer, end_timer
 from .parser import get_block, is_block, is_res, is_bus, get_area, is_route_size
@@ -17,6 +18,50 @@ from .etap import call, get_udf, mod_acct
 from . import donors
 from .receipts import generate, get_ytd_gifts
 log = task_logger('main.tasks')
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
+
+    ss_row = int(float(ss_row))
+    route_d = parse(date_str).date()
+    diff = 0
+    n_repeat = 0
+
+    log.info('analyzing estimate trend for %s accts...', len(donations))
+
+    for donation in donations:
+        try:
+            je_hist = donors.get_donations(
+                donation['acct_id'],
+                start_d = route_d - delta(weeks=12),
+                end_d = route_d)
+        except Exception as e:
+            log.error('error retrieving donations: %s (acct %s)', str(e), donation['acct_id'])
+            continue
+
+        if len(je_hist) < 1:
+            log.debug('skipping acct w/ je len < 1')
+            continue
+
+        diff += float(donation['amount']) - je_hist[0]['amount']
+        n_repeat += 1
+
+    log.debug('n_repeat=%s, diff=%s', n_repeat, diff)
+
+    trend = diff / n_repeat
+
+    service = gauth(get_keys('google')['oauth'])
+    headers = get_row(service, ss_id, 'Daily', 1)
+
+    update_cell(
+        service,
+        ss_id,
+        'Daily',
+        to_range(ss_row, headers.index('Estmt Trend')+1),
+        diff/n_repeat)
+
+    log.debug('wrote estmt trend %s', trend)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

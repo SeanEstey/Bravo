@@ -7,10 +7,11 @@ function init() {
         $(this).tab('show')
     })
 
-    $('#settings').html($('div [name="settings_data"]:first').clone());
-    $('#settings [name="settings_data"]').attr('hidden', false);
-    $('#settings [name="settings_data"]:first').show();
-    enableEditableFields();
+    $('#service_acct').tooltip();
+    $('#linked_cal').tooltip();
+
+    populateServiceInfo();
+    //enableEditableFields();
 
     $('#receipt_btn').click(function(e){
         showModal(
@@ -83,6 +84,11 @@ function init() {
               $('#mymodal .modal-body').html(response['data']);
           });
     });
+}
+
+//------------------------------------------------------------------------------
+function populateServiceInfo() {
+    $("#phone_number").text("+15874000672");
 }
 
 //------------------------------------------------------------------------------

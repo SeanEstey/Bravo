@@ -21,6 +21,11 @@ log = task_logger('main.tasks')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
+def wipe_sessions(self, **rest):
+    pass
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
 def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
 
     t1 = start_timer()

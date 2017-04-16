@@ -22,16 +22,88 @@ jQuery(function($){init();});
 	<!-- Nav tabs -->
 	<ul style="margin-bottom:2em" class="nav nav-tabs" role="tablist">
 		<li class="nav-item">
-			<a class="nav-link active" data-toggle="tab" href="#email" role="tab">Previewer</a>
+			<a class="nav-link active" data-toggle="tab" href="#services" role="tab">Services</a>
 		</li>
 		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#settings" role="tab">Settings</a>
+			<a class="nav-link" data-toggle="tab" href="#previewer" role="tab">Previewer</a>
 		</li>
 	</ul>
 
-	<!-- Tab panes -->
 	<div class="tab-content">
-		<div class="tab-pane active" id="email" role="tabpanel">
+
+    <!-- Services Pane -->
+		<div class="tab-pane active" id="services" style='margin-bottom:7em' role="tabpanel">
+      <form>
+        <fieldset style="max-width:600px" class="form-fieldset new_event">
+          <legend class="new_event">CRM</legend>
+            <div class='form-label'>Service: <b>eTapestry v7.2.9</b></div>
+            <div class='form-label'>API: <b>v3</b></div>
+            <div class='form-label'>Organization: <b>ORG_NAME</b></div>
+            <div class='form-label'>Account ID: <b>LOGIN_ID</b></div>
+        </fieldset>
+        <fieldset style="max-width:600px" class="form-fieldset new_event">
+          <legend class="new_event">Google</legend>
+            <div class='form-label'>Service Account ID: 
+              <label id='service_acct' data-toggle="tooltip" data-placement="right" 
+                     title="bravo-738@project-id-uicnlcvxxveqfuokxwj.iam.gserviceaccount.com"><b>bravo-738</b>
+                <i class="fa fa-question-circle-o"></i>
+              </label>
+            </div>
+            <div class='form-label'>Linked Calendars: 
+              <a id="linked_cal" data-toggle="tooltip" data-placement="right" 
+                 title="k6hg0v65hcn4vg12ioll7nfeuk@group.calendar.google.com" href="">routes</a>
+            </div>
+            <div class='form-label'>Linked Sheets:
+              <a href="">Bravo Sheets</a>
+            </div>
+        </fieldset>
+        <fieldset style="max-width:600px" class="form-fieldset new_event">
+          <legend class="new_event">Notify</legend>
+            <div class='form-label'>Voice/SMS Service: <b>Twilio</b></div>
+            <div class='form-label'>Account ID: <b>LOGIN_ID</b></div>
+            <div class='form-label'>API: <b>v5.7.0</b></div>
+            <div class='form-label'>Phone Number: <b><label id="phone_number">LOGIN_ID</label></b></div>
+            <div class='form-label'>Email Service: <b>Mailgun</b></div>
+            <div class='form-label'>Account ID: <b>LOGIN_ID</b></div>
+            <div class='form-label'>API: <b>v3</b></div>
+            <div style="margin-top:1em" class='form-label'>
+              <label style="border-bottom:1px solid white; padding-bottom:3px; letter-spacing:1px;">SETTINGS</label>
+            </div>
+            <div class='form-label'>Pre-schedule Days <i class="fa fa-question-circle-o"></i></div>
+            <input class="input">
+            <div class='form-label'>Send Email Reminders Time</div>
+            <input class="input">
+            <div class='form-label'>Send Voice/SMS Reminders Time</div>
+            <input class="input">
+            <div style="margin:1.5em 0em">
+              <button style="float:right" type="button" class="btn btn-primary">Save Changes</button>
+            </div>
+        </fieldset>
+        <fieldset style="max-width:600px" class="form-fieldset new_event">
+          <legend class="new_event">Routing</legend>
+            <div class='form-label'>Routing Service: <b>Routific</b></div>
+            <div class='form-label'>Account ID: <b>LOGIN_ID</b></div>
+            <div class='form-label'>API: <b>v1.5.0</b></div>
+            <div style="margin-top:1em" class='form-label'>
+              <label style="border-bottom:1px solid white; padding-bottom:3px; letter-spacing:1px;">SETTINGS</label>
+            </div>
+            <div class='form-label'>Build Routes Time</div>
+            <input class="input">
+            <div class='form-label'>Depots</div>
+            <select name="type_" class="form-control">
+              <option>Depot A</option>
+              <option>Depot B</option>
+              <option>Depot C</option>
+            </select>
+            <div style="margin:1.5em 0em">
+              <button style="float:right" type="button" class="btn btn-primary">Save Changes</button>
+            </div>
+        </fieldset>
+      </form>
+    </div>
+
+    <!-- Previewer Pane -->
+		<div class="tab-pane" id="previewer" style='margin-bottom:5em' role="tabpanel">
         <fieldset style='margin-top:4em' class="form-fieldset">
           <legend>Email Receipts</legend>
           <table border="0" cellpadding="5" cellspacing="10">
@@ -47,7 +119,7 @@ jQuery(function($){init();});
                   </select>
                 </td>
                 <td>
-                  <button id="receipt_btn" class="btn btn-info">Show Preview</button>
+                  <button id="receipt_btn" class="btn btn-info">Preview</button>
                 </td>
               </tr>
             </form>
@@ -68,7 +140,7 @@ jQuery(function($){init();});
                 </select>
               </td>
               <td>
-                <button id="email_notific_btn" class="btn btn-info">Show Preview</button>
+                <button id="email_notific_btn" class="btn btn-info">Preview</button>
               </td>
             </tr>
             </form>
@@ -88,7 +160,7 @@ jQuery(function($){init();});
                 </select>
               </td>
               <td>
-                <button id="notific_btn" class="btn btn-info" disabled>Hear Preview</button>
+                <button id="notific_btn" class="btn btn-info" disabled>Preview</button>
               </td>
             </tr>
             </form>
@@ -100,24 +172,23 @@ jQuery(function($){init();});
             <form id='sms_notific_form' style='margin-top:2em'>
             <tr>
               <td>
-                <select name="type_" class="form-control" disabled>
+                <select name="type_" class="form-control">
                   <option value="res_pickup">Residential Pickup</option>
-                  <option value="res_drop">Residential Dropoff</option>
+                  <!--<option value="res_drop">Residential Dropoff</option>
                   <option value="res_cancel">Residential Cancelling</option>
-                  <option value="bus_pickup">Business Pickup</option>
+                  <option value="bus_pickup">Business Pickup</option>-->
                 </select>
               </td>
               <td>
-                <button id="sms_btn" class="btn btn-info">Show Preview</button>
+                <button id="sms_btn" class="btn btn-info">Preview</button>
               </td>
             </tr>
             </form>
           </table>
         </fieldset>
-
     </div>
 
-		<div class="tab-pane" id="settings" role="tabpanel"></div>
+
 	</div>
 
 	<!-- Loader -->

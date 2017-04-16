@@ -95,11 +95,17 @@ def call_accts_receipts():
 def call_acct_preview_receipt():
     return func_call(preview, get_var('acct_id'), get_var('type_'))
 
-@api.route('/agency/update', methods=['POST'])
+@api.route('/agency/conf/get', methods=['POST'])
+@login_required
+def get_agcy_conf():
+    from app.main import agency
+    return func_call(agency.get_conf)
+
+@api.route('/agency/conf/update', methods=['POST'])
 @login_required
 def call_agcy_update():
-    #admin.update_agency_conf()
-    return func_call(WRITE_ME, get_var('data'))
+    from app.main import agency
+    return func_call(agency.update_conf, get_var('data'))
 
 @api.route('/alice/welcome', methods=['POST'])
 @login_required

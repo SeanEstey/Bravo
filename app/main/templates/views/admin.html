@@ -37,21 +37,25 @@ jQuery(function($){init();});
         <fieldset style="max-width:600px" class="form-fieldset new_event">
           <legend class="new_event">CRM</legend>
             <div class='form-label'>Service: <b>eTapestry v7.2.9</b></div>
+            <div class='form-label'>Organization: 
+              <b><label id="crm_org_name"></b></label>
+            </div>
+            <div class='form-label'>Account ID: 
+              <b><label id="crm_acct_id"></label></b>
+            </div>
             <div class='form-label'>API: <b>v3</b></div>
-            <div class='form-label'>Organization: <b>ORG_NAME</b></div>
-            <div class='form-label'>Account ID: <b>LOGIN_ID</b></div>
         </fieldset>
         <fieldset style="max-width:600px" class="form-fieldset new_event">
           <legend class="new_event">Google</legend>
             <div class='form-label'>Service Account ID: 
               <label id='service_acct' data-toggle="tooltip" data-placement="right" 
-                     title="bravo-738@project-id-uicnlcvxxveqfuokxwj.iam.gserviceaccount.com"><b>bravo-738</b>
+                     title=""><b>bravo-738</b>
                 <i class="fa fa-question-circle-o"></i>
               </label>
             </div>
             <div class='form-label'>Linked Calendars: 
               <a id="linked_cal" data-toggle="tooltip" data-placement="right" 
-                 title="k6hg0v65hcn4vg12ioll7nfeuk@group.calendar.google.com" href="">routes</a>
+                 title="" href="">routes</a>
             </div>
             <div class='form-label'>Linked Sheets:
               <a href="">Bravo Sheets</a>
@@ -60,21 +64,31 @@ jQuery(function($){init();});
         <fieldset style="max-width:600px" class="form-fieldset new_event">
           <legend class="new_event">Notify</legend>
             <div class='form-label'>Voice/SMS Service: <b>Twilio</b></div>
-            <div class='form-label'>Account ID: <b>LOGIN_ID</b></div>
+            <div class='form-label'>Account ID: 
+              <b><label id="twilio_acct_id"></label></b>
+            </div>
             <div class='form-label'>API: <b>v5.7.0</b></div>
-            <div class='form-label'>Phone Number: <b><label id="phone_number">LOGIN_ID</label></b></div>
+            <div class='form-label'>Phone Number: 
+              <b><label id="phone_number"></label></b>
+            </div>
             <div class='form-label'>Email Service: <b>Mailgun</b></div>
-            <div class='form-label'>Account ID: <b>LOGIN_ID</b></div>
+            <div class='form-label'>Account ID: 
+              <b><label id="mailgun_acct_id"></b></label>
+            </div>
             <div class='form-label'>API: <b>v3</b></div>
             <div style="margin-top:1em" class='form-label'>
               <label style="border-bottom:1px solid white; padding-bottom:3px; letter-spacing:1px;">SETTINGS</label>
             </div>
             <div class='form-label'>Pre-schedule Days <i class="fa fa-question-circle-o"></i></div>
-            <input class="input">
-            <div class='form-label'>Send Email Reminders Time</div>
-            <input class="input">
-            <div class='form-label'>Send Voice/SMS Reminders Time</div>
-            <input class="input">
+            <input id="sched_delta_days" class="input">
+            <div class='form-label'>Days in Advance to Send Emails</div>
+            <input id="email_fire_days_delta" class="input">
+            <div class='form-label'>Time to Send Emails</div>
+            <input id="email_fire_hour" class="input">
+            <div class='form-label'>Days in Advance to Send Voice/SMS</div>
+            <input id="voice_sms_fire_days_delta" class="input">
+            <div class='form-label'>Time to Send Voice/SMS</div>
+            <input id="voice_sms_fire_hour" class="input">
             <div style="margin:1.5em 0em">
               <button style="float:right" type="button" class="btn btn-primary">Save Changes</button>
             </div>
@@ -82,7 +96,9 @@ jQuery(function($){init();});
         <fieldset style="max-width:600px" class="form-fieldset new_event">
           <legend class="new_event">Routing</legend>
             <div class='form-label'>Routing Service: <b>Routific</b></div>
-            <div class='form-label'>Account ID: <b>LOGIN_ID</b></div>
+            <div class='form-label'>Account ID: 
+              <b><label id="routing_acct_id"></b></label>
+            </div>
             <div class='form-label'>API: <b>v1.5.0</b></div>
             <div style="margin-top:1em" class='form-label'>
               <label style="border-bottom:1px solid white; padding-bottom:3px; letter-spacing:1px;">SETTINGS</label>

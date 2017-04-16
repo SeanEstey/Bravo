@@ -88,7 +88,26 @@ function init() {
 
 //------------------------------------------------------------------------------
 function populateServiceInfo() {
-    $("#phone_number").text("+15874000672");
+
+    api_call(
+      'agency/conf/get',
+      null, 
+      function(response){
+          console.log(response['status']);
+          var conf = response['data'];
+
+          $("#crm_org_name").text(conf['etapestry']['org_name']);
+          $("#crm_acct_id").text(conf['etapestry']['user']);
+          $("#routing_acct_id").text(conf['routing']['routific']['acct_id']);
+          $("#twilio_acct_id").text(conf['twilio']['acct_id']);
+          $("#phone_number").text(conf['twilio']['sms']['number']);
+          $("#mailgun_acct_id").text(conf['mailgun']['acct_id']);
+          $("#sched_delta_days").val(conf['notify']['sched_delta_days']);
+          $("#email_fire_days_delta").val(conf['notify']['triggers']['email']['fire_days_delta']);
+          $("#email_fire_hour").val(conf['notify']['triggers']['email']['fire_hour']);
+          $("#voice_sms_fire_days_delta").val(conf['notify']['triggers']['voice_sms']['fire_days_delta']);
+          $("#voice_sms_fire_hour").val(conf['notify']['triggers']['voice_sms']['fire_hour']);
+      });
 }
 
 //------------------------------------------------------------------------------

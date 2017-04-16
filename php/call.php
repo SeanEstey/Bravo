@@ -9,6 +9,7 @@
 	ini_set('log_errors', 1);
 	ini_set('error_log', $ERROR_LOG);
 
+    $t1 = start_timer();
 	$agcy = $argv[1];
 	$username = $argv[2];
 	$password = $argv[3];
@@ -101,9 +102,11 @@
 		$msg = 'status=EXCEPTION, func="' . $func . '"';
 		err_log($msg);
 		debug_log($msg . ', desc="' . $e->getMessage() . '"');
+
 		echo json_encode([
 			'status'=>'FAILED',
 			'description'=>$e->getMessage()]);
+
 		$nsc->call("logout");
 		exit;
 	}
@@ -111,19 +114,24 @@
 	if(is_error($nsc)) {
 		$msg = 'status=FAILED, func="' . $func . '"';
 		$err = get_error($nsc, $log=false);
+
 		debug_log($msg . ', desc="' . $err . '", rv="' . json_encode($rv) . '"');
+
 		echo json_encode([
 			'status'=>'FAILED',
 			'description'=>$err,
 			'result'=>$rv]);
+
 		$nsc->call("logout");
 		exit;
 	}
 	else {
-		debug_log('status=SUCCESS, func="' . $func . '"');
+		debug_log('status=SUCCESS, func="' . $func . '" [' . end_timer($t1) . 's]');
+
 		echo json_encode([
 		  'status'=>'SUCCESS',
 		  'result'=>$rv]);
+
 		$nsc->call("logout");
 		exit;
 	}

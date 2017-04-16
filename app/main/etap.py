@@ -8,6 +8,13 @@ log = get_logger('etap')
 class EtapError(Exception):
     pass
 
+NAME_FORMAT = {
+    'NONE': 0,
+    'INDIVIDUAL': 1,
+    'FAMILY': 2,
+    'BUSINESS': 3
+}
+
 #-------------------------------------------------------------------------------
 def call(func, keys, data, silence_exc=False ):
 

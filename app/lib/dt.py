@@ -31,7 +31,8 @@ def to_timezone(tz, dt=None, d=None, t=None, to_str=False):
         dt = dt.astimezone(tz)
         return dt.strftime(to_str) if to_str else dt
     elif d and t:
-        dt_ = datetime.combine(d,t).replace(tzinfo=local_tz).astimezone(tz)
+        dt_ = datetime.combine(d,t)
+        dt_ = local_tz.localize(dt_).astimezone(tz)
         return dt_.strftime(to_str) if to_str else dt_
     elif d and not t:
         dt_ = datetime.combine(d, time(0,0)).replace(tzinfo=local_tz).astimezone(tz)

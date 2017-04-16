@@ -9,8 +9,8 @@ from app.lib import mailgun
 from app.lib.utils import formatter
 from app.lib.dt import to_utc, ddmmyyyy_to_dt
 from app.lib.logger import colors as c
-from app.main import donors
-from app.main.etap import get_udf
+from app.main.donors import get
+from app.main.etap import get_udf, NAME_FORMAT
 from .utils import simple_dict
 log = get_logger('notify.email')
 
@@ -34,31 +34,47 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
             'mid': None}}).inserted_id
 
 #-------------------------------------------------------------------------------
-def preview(acct_id, template):
+def preview(template, state):
+    '''Generate HTML preview
+    @template: str from list ['reminder', 'no_pickup']
+    @state: str from list ['res_pickup', 'res_drop', 'res_cancel', 'bus_pickup']
+    '''
+
+    name_fmt = None
+    status = None
+
+    if state == 'bus_pickup':
+        status = 'Active'
+        name_fmt = NAME_FORMAT['BUSINESS']
+    elif state == 'res_pickup':
+        status = 'Active'
+        name_fmt = NAME_FORMAT['INDIVIDUAL']
+    elif state == 'res_drop':
+        status = 'Dropoff'
+        name_fmt = NAME_FORMAT['INDIVIDUAL']
+    elif state == 'res_cancel':
+        status = 'Cancelling'
+        name_fmt = NAME_FORMAT['INDIVIDUAL']
+
+    acct = g.db.accounts.find_one({
+        'agency':g.user.agency,
+        'nameFormat': name_fmt,
+        'udf.status': status})
+
+    if not acct:
+        log.error('no scheduled acct to preview (name_format=%s)', name_fmt)
+        raise
 
     path = ''
+
     if template == 'reminder':
         path = "email/%s/reminder.html" % g.user.agency
-
-    acct = donors.get(acct_id)
-    db_acct = {
-      '_id': ObjectId(),
-      'name': acct['name'],
-      'udf': {
-        'etap_id': acct['id'],
-        'status': get_udf('Status', acct),
-        'block': get_udf('Block', acct),
-        'driver_notes': get_udf('Driver Notes', acct),
-        'office_notes': get_udf('Office Notes', acct),
-        'pickup_dt': ddmmyyyy_to_dt(get_udf('Next Pickup Date', acct))
-      }
-    }
 
     try:
         body = render_template(
             path,
             to = acct['email'],
-            account = simple_dict(db_acct),
+            account = simple_dict(acct),
             evnt_id = '')
     except Exception as e:
         log.error('template error. desc=%s', str(e))

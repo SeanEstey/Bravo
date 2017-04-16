@@ -1,4 +1,4 @@
-'''app.api.views'''
+'''app.api.endpoints'''
 import logging
 from dateutil.parser import parse
 from json import loads
@@ -188,6 +188,18 @@ def call_trigger_kill():
 @login_required
 def call_skip_pickup():
     return task_call(kill_trigger)
+
+@api.route('/notify/preview/sms', methods=['POST'])
+@login_required
+def preview_sms_notific():
+    from app.notify.sms import preview
+    return func_call(preview) #, get_var('acct_id'), get_var('type_'))
+
+@api.route('/notify/preview/email', methods=['POST'])
+@login_required
+def preview_email_notific():
+    from app.notify.email import preview
+    return func_call(preview, get_var('template'), get_var('state'))
 
 @api.route('/phone/lookup', methods=['POST'])
 @login_required

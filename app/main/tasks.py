@@ -23,6 +23,7 @@ log = task_logger('main.tasks')
 @celery.task(bind=True)
 def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
 
+    t1 = start_timer()
     ss_row = int(float(ss_row))
     route_d = parse(date_str).date()
     diff = 0
@@ -31,6 +32,9 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
     log.info('analyzing estimate trend for %s accts...', len(donations))
 
     for donation in donations:
+        if not donation['amount']:
+            continue
+
         try:
             je_hist = donors.get_donations(
                 donation['acct_id'],
@@ -61,7 +65,7 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
         to_range(ss_row, headers.index('Estmt Trend')+1),
         diff/n_repeat)
 
-    log.debug('wrote estmt trend %s', trend)
+    log.info('completed. trend=$%.2f [%s]', diff/n_repeat, end_timer(t1))
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

@@ -48,7 +48,7 @@ def dial_recording():
         log.error('call to %s failed. %s', request.form['To'], str(e))
         return {'status':'failed', 'description': 'Invalid phone number'}
     else:
-        log.debug(utils.print_vars(call))
+        log.debug(print_vars(call))
 
         g.db.audio.insert_one({
             'date': datetime.utcnow(),

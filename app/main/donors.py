@@ -36,7 +36,7 @@ def get_donations(acct_id, start_d=None, end_d=None):
         acct = get(int(acct_id))
     except Exception as e:
         log.error('couldnt find acct_id=%s', acct_id)
-        return False
+        raise
 
     start = start_d if start_d else (date.today() - timedelta(weeks=12))
     end = end_d if end_d else date.today()

@@ -35,6 +35,54 @@ function init() {
               $('#mymodal .modal-body').html(response['data']);
           });
     });
+    
+    $('#sms_btn').click(function(e){
+        showModal(
+          'mymodal',
+          'Preview',
+          $('.loader-div').parent().html(),
+          'Send SMS',
+          'Close');
+        $('#mymodal').find('.loader-div').show();
+        $('#mymodal').find('.loader-div label').text('Generating');
+        $('#mymodal').find('.btn.loader').fadeTo('slow', 1);
+        $('#mymodal .btn-primary').attr('disabled', true);
+
+        e.preventDefault();
+        var data = $('#sms_notific_form').serialize();
+
+        api_call(
+          'notify/preview/sms',
+          data, 
+          function(response){
+              console.log(response['status']);
+              $('#mymodal .modal-body').html(response['data']);
+          });
+    });
+
+    $('#email_notific_btn').click(function(e){
+        showModal(
+          'mymodal',
+          'Preview',
+          $('.loader-div').parent().html(),
+          'Send Email',
+          'Close');
+        $('#mymodal').find('.loader-div').show();
+        $('#mymodal').find('.loader-div label').text('Generating');
+        $('#mymodal').find('.btn.loader').fadeTo('slow', 1);
+        $('#mymodal .btn-primary').attr('disabled', true);
+
+        e.preventDefault();
+        var data = $('#email_notific_form').serialize();
+
+        api_call(
+          'notify/preview/email',
+          data, 
+          function(response){
+              console.log(response['status']);
+              $('#mymodal .modal-body').html(response['data']);
+          });
+    });
 }
 
 //------------------------------------------------------------------------------

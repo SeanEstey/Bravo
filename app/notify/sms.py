@@ -8,6 +8,7 @@ from app.lib import html
 from app.lib.dt import to_utc, to_local
 from app.lib.logger import colors as c
 from app.alice.outgoing import compose
+from app.main.donors import get
 from .utils import intrntl_format, simple_dict
 log = get_logger('notify.sms')
 
@@ -17,9 +18,6 @@ def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
     @on_send: {
         'template': 'path/to/template/file'
     }
-
-    I think I need to register Twilio 'app_sid' to receive text replies
-
     @on_reply: {
         'module':'module_name',
         'func':'handler_func'}
@@ -88,6 +86,30 @@ def send(notific, twilio_conf):
 
     return msg.status if msg else 'failed'
 
+#-------------------------------------------------------------------------------
+def preview(acct_id=None):
+
+    acct = get(acct_id) if acct_id else None
+
+    if not acct:
+        # Find one from one of the reminder events
+        try:
+            evnt = g.db.events.find_one({'type':'bpu', 'agency':g.user.agency})
+            acct = g.db.accounts.find_one({'evnt_id':evnt['_id']})
+        except Exception as e:
+            log.error('no evnt or acct available for sms preview')
+            log.debug(str(e))
+            raise
+
+    try:
+        body = render_template(
+            'sms/%s/reminder.html' % g.user.agency,
+            account = simple_dict(acct))
+    except Exception as e:
+        log.error('Error rendering SMS body. %s', str(e))
+        raise
+    else:
+        return body
 
 #-------------------------------------------------------------------------------
 def on_status():

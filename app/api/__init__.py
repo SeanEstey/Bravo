@@ -11,4 +11,4 @@ api = Blueprint(
 def api_pre_req():
     g.user = current_user
 
-from . import views
+from . import endpoints

@@ -34,6 +34,17 @@ $COLORS = array(
 );
 
 //-----------------------------------------------------------------------
+function start_timer() {
+    return round(microtime(true) * 1000);
+}
+
+//-----------------------------------------------------------------------
+function end_timer($t1) {
+    $now_ms = start_timer();
+    return ($now_ms - $t1)/1000;
+}
+
+//-----------------------------------------------------------------------
 function info_log($msg) {
     /* Convenience func */
 

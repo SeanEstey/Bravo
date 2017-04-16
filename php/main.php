@@ -493,7 +493,8 @@ function add_accts($entries) {
             else {
                 $list = explode(",", $value);
                 for($j=0; $j<count($list); $j++) {
-                    $acct['accountDefinedValues'][] = ['fieldName'=>$key, 'value'=>$list[$j]];
+                    if($list[$j])
+                        $acct['accountDefinedValues'][] = ['fieldName'=>$key, 'value'=>$list[$j]];
                 }
             }
         }

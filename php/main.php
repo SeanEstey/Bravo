@@ -208,7 +208,6 @@ function batch_journal_entries($refs, $start, $end, $types) {
 
             reset_error($nsc);
         }
-        
     }
 }
 
@@ -240,8 +239,31 @@ function journal_entries($ref, $start, $end, $types) {
 }
 
 //-----------------------------------------------------------------------
+function get_receipts($acct_ref, $start, $end) {
+
+	global $nsc;
+
+    $entries = journal_entries($acct_ref, $start, $end, [5]);
+
+	if(is_error($nsc))
+		return get_error($nsc, $log=true);
+
+    $receipt_entries = null;
+
+    for($i=0; $i<count($entries); $i++) {
+		if(array_key_exists('receipt', $entries[$i])) {
+            $receipt_entries[] = $entries[$i];
+        }
+    }
+
+    debug_log(count($receipt_entries) . ' receiptable gifts retrieved.');
+
+    return $receipt_entries;
+}
+
+//-----------------------------------------------------------------------
 function gift_histories($acct_refs, $start, $end) {
-    /* For each acct ref, retrieves Gift Objects between dates, returns 
+    /* For each acct ref, retrieves Gift Objects between dates, returns
      * "date" and "amount" fields where amount > $0.00
      */
 
@@ -259,6 +281,7 @@ function gift_histories($acct_refs, $start, $end) {
 
             if($entry['amount'] > 0) {
                 $pos_gifts[] = [
+                    'ref' => $acct_refs[$i],
                     'amount' => floatval($entry['amount']),
                     'date' => $entry['date']];
             }

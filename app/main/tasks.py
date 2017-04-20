@@ -17,12 +17,44 @@ from .cal import get_blocks, get_accounts
 from .etap import call, get_udf, mod_acct
 from . import donors
 from .receipts import generate, get_ytd_gifts
+from .leaderboard import update_accts, update_gifts
 log = task_logger('main.tasks')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def wipe_sessions(self, **rest):
     pass
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def update_leaderboard_accts(self, agcy=None, **rest):
+
+    log.warning('updating leaderboard data...')
+
+    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
+
+    for agency in agcy_list:
+        # Get list of all scheduled blocks from calendar
+        blocks = get_blocks(
+            get_keys('cal_ids',agcy=agency['name'])['routes'], # FIXME. only works for VEC
+            datetime.now(),
+            datetime.now() + delta(weeks=10),
+            get_keys('google',agcy=agency['name'])['oauth'])
+
+        for query in blocks:
+            update_accts(query, agency['name'])
+
+        # Now update gifts
+        accts = list(g.db.etap_accts.find({'agcy':agency['name']}))
+        ch_size = 100
+        chunks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
+
+        for n in range(0,len(chunks)):
+            chunk = chunks[n]
+            update_gifts(chunk, agency['name'])
+
+    # Duration: ~1277s for 2900 accts
+    log.warning('leaderboard data updated!')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

@@ -64,12 +64,27 @@ def update_gifts(accts, agcy):
     log.debug('updated gifts for %s accts', len(accts))
 
 #-------------------------------------------------------------------------------
-def get_ytd_total(neighborhood, agcy):
+def get_all_ytd(agcy):
 
-    accts = g.db.etap_accts.find({'neighborhood':neighborhood, 'agcy':agcy})
-    total = 0
+    rankings = g.db.etap_accts.aggregate([
+        {'$match': {'agcy':agcy}},
+        {'$group': {
+            '_id': '$neighborhood',
+            'ytd': { '$sum': '$ytd'}}},
+        {'$sort' : {'ytd':-1}}
+    ])
 
-    for acct in accts:
-        total += acct.get('ytd') or 0
+    return rankings
 
-    log.debug('%s ytd total=$%s', neighborhood, total)
+#-------------------------------------------------------------------------------
+def get_rank(neighborhood, agcy):
+
+    rankings = get_all_ytd(agcy)
+
+    idx = 0
+    for rank in rankings:
+        if rank['_id'] == neighborhood:
+            count = len(list(rankings)) + idx + 1
+            log.debug('%s rank=%s/%s (ytd=$%s)', neighborhood, idx, count, rank['ytd'])
+            return
+        idx += 1

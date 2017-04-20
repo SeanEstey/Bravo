@@ -15,11 +15,15 @@ class LeaderboardTests(unittest.TestCase):
     def tearDown(self):
         logout(self.client)
 
-    def test_get_ytd_total(self):
-        neighbhds = ['Tuscany', 'Royal Oak', 'Rocky Ridge', 'Bowness', 'Scenic Acres']
+    def _test_get_all_ytd(self):
+        leaderboard.get_all_ytd('vec')
 
-        for neighbhd in neighbhds:
-            leaderboard.get_ytd_total(neighbhd, 'vec')
+    def test_get_rank(self):
+        leaderboard.get_rank('Deer Ridge', 'vec')
+        leaderboard.get_rank('Bowness', 'vec')
+        leaderboard.get_rank('Citadel', 'vec')
+        leaderboard.get_rank('Varsity', 'vec')
+        leaderboard.get_rank('Hawkwood', 'vec')
 
     def _test_update_accts(self):
         query = 'foo'

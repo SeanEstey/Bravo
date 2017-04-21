@@ -64,10 +64,12 @@ def update_gifts(accts, agcy):
     log.debug('updated gifts for %s accts', len(accts))
 
 #-------------------------------------------------------------------------------
-def get_all_ytd(agcy):
+def get_all_rankings(agcy=None):
+
+    agency = agcy if agcy else g.user.agency
 
     rankings = g.db.etap_accts.aggregate([
-        {'$match': {'agcy':agcy}},
+        {'$match': {'agcy':agency}},
         {'$group': {
             '_id': '$neighborhood',
             'ytd': { '$sum': '$ytd'}}},
@@ -77,9 +79,9 @@ def get_all_ytd(agcy):
     return rankings
 
 #-------------------------------------------------------------------------------
-def get_rank(neighborhood, agcy):
+def get_ranking(neighborhood, agcy=None):
 
-    rankings = get_all_ytd(agcy)
+    rankings = get_all_rankings(agcy=agcy if agcy else g.user.agency)
 
     idx = 0
     for rank in rankings:

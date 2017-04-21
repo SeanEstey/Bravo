@@ -4,7 +4,8 @@ from flask import g, request, render_template, redirect, url_for, jsonify, sessi
 from flask_login import current_user, logout_user, login_required, login_user
 from . import auth
 from .user import User
-log = logging.getLogger(__name__)
+from app import get_logger, get_keys
+log = get_logger('etap')
 
 #-------------------------------------------------------------------------------
 @auth.route('/login', methods=['GET'])
@@ -43,7 +44,7 @@ def client_logout():
 @auth.route('/logout', methods=['POST'])
 @login_required
 def logout():
+    log.debug('%s logged out', current_user.user_id)
     rv = logout_user()
-    #log.debug('User %s logged out. rv=%s', current_user.user_id, rv)
     return 'OK'
     #return redirect(url_for('main.landing_page'))

@@ -22,17 +22,47 @@ jQuery(function($){init();});
 	<!-- Nav tabs -->
 	<ul style="margin-bottom:2em" class="nav nav-tabs" role="tablist">
 		<li class="nav-item">
-			<a class="nav-link active" data-toggle="tab" href="#services" role="tab">Services</a>
+			<a class="nav-link active" data-toggle="tab" href="#me" role="tab">Me</a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link" data-toggle="tab" href="#services" role="tab">3rd Party Services</a>
 		</li>
 		<li class="nav-item">
 			<a class="nav-link" data-toggle="tab" href="#previewer" role="tab">Previewer</a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link" data-toggle="tab" href="#leaderboard" role="tab">Leaderboard</a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link" data-toggle="tab" href="#properties" role="tab">Properties</a>
 		</li>
 	</ul>
 
 	<div class="tab-content">
 
+    <!-- Me Pane -->
+		<div class="tab-pane active" id="me" style='margin-bottom:7em' role="tabpanel">
+      <form>
+        <fieldset style="max-width:600px" class="form-fieldset new_event">
+          <legend class="new_event">My Settings</legend>
+            <div class='form-label'>Name: 
+              <b><label id="first_name"></label></b>
+            </div>
+            <div class='form-label'>Username: 
+              <b><label id="user_name"></label></b>
+            </div>
+            <div class='form-label'>Administrator: 
+              <b><label id="is_admin"></label></b>
+            </div>
+            <div style="margin:1.5em 0em">
+              <button id='logout' style="float:right" type="button" class="btn btn-primary">Logout</button>
+            </div>
+        </fieldset>
+      </form>
+    </div>
+
     <!-- Services Pane -->
-		<div class="tab-pane active" id="services" style='margin-bottom:7em' role="tabpanel">
+		<div class="tab-pane" id="services" style='margin-bottom:7em' role="tabpanel">
       <form>
         <fieldset style="max-width:600px" class="form-fieldset new_event">
           <legend class="new_event">CRM</legend>
@@ -204,10 +234,48 @@ jQuery(function($){init();});
         </fieldset>
     </div>
 
+    <!-- Leaderboard Pane -->
+		<div class="tab-pane" id="leaderboard" style='margin-bottom:7em' role="tabpanel">
+    </div>
+
+    <!-- Properties Pane -->
+		<div class="tab-pane" id="properties" style='margin-bottom:7em' role="tabpanel">
+      <form>
+        <fieldset style="max-width:600px" class="form-fieldset new_event">
+          <legend class="new_event">Statistics</legend>
+            <div class='form-label'>Alice Conversations: 
+              <b><label id="n_alice_convos"></label></b>
+            </div>
+            <div class='form-label' hidden>Alice SMS Received: 
+              <b><label id="n_alice_received"></label></b>
+            </div>
+            <div class='form-label'>Visual Maps Synchronized:
+              <b><label id='n_maps_indexed'></label></b>
+            </div>
+            <div class='form-label'>Notification Events:
+              <b><label id='n_notific_events'></label></b>
+            </div>
+            <div class='form-label' hidden>Emails Sent:
+              <b><label id='n_emails_sent'></label></b>
+            </div>
+            <div class='form-label'>Leaderboard Accounts Tracked:
+              <b><label id='n_leaderboard_accts'></label></b>
+            </div>
+            <div class='form-label'>Users Registered:
+              <b><label id='n_users'></label></b>
+            </div>
+            <div class='form-label'>Sessions Active:
+              <b><label id='n_sessions'></label></b>
+            </div>
+        </fieldset>
+      </form>
+    </div>
+
+
 
 	</div>
 
-	<!-- Loader -->
+	<!-- Loader-->
   <div>
     <div class="loader-div" style="background:white; display:none">
       <button class="btn btn-info loader">
@@ -216,6 +284,11 @@ jQuery(function($){init();});
       </button>
     </div>
   </div>
+
+
+
+
+
 </div>
 
   {% endblock %}

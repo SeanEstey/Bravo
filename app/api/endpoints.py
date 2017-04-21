@@ -107,6 +107,12 @@ def call_agcy_update():
     from app.main import agency
     return func_call(agency.update_conf, get_var('data'))
 
+@api.route('/agency/properties/get', methods=['POST'])
+@login_required
+def get_agcy_prop():
+    from app.main.agency import get_admin_prop
+    return func_call(get_admin_prop)
+
 @api.route('/alice/welcome', methods=['POST'])
 @login_required
 def alice_send_welcome():
@@ -138,6 +144,12 @@ def call_maps_get():
 def call_maps_update():
     from app.booker.tasks import update_maps
     return task_call(update_maps, agcy=g.user.agency)
+
+@api.route('/leaderboard/get', methods=['POST'])
+@login_required
+def get_leaderboards():
+    from app.main.leaderboard import get_all_rankings
+    return func_call(get_all_rankings)
 
 @api.route('/notify/events/create', methods=['POST'])
 @login_required
@@ -237,3 +249,9 @@ def call_route_edit():
 @login_required
 def call_op_stats():
     return func_call(get_server_prop)
+
+@api.route('/user/logout', methods=['POST'])
+@login_required
+def user_logout():
+    from app.auth.views import logout
+    return func_call(logout)

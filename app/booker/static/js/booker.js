@@ -1,11 +1,9 @@
 
+var DEF_SEARCH_PROMPT = 'Enter an <b>account ID</b>, <b>address</b>, or <b>postal code</b> below';
+
 //---------------------------------------------------------------------
 function booker_init() {
-    alertMsg(
-      'Enter an <b>account ID</b>, <b>address</b>, or <b>postal code</b> below',
-      'info',
-      -1
-    );
+    alertMsg(DEF_SEARCH_PROMPT, 'info', -1);
     buildAdminPanel();
     addSocketIOHandlers();
 }
@@ -141,10 +139,12 @@ function displaySearchResults(response) {
         }
     }
 
+    $('#a_radius').off('click');
     $('#a_radius').click(function() {
         showExpandRadiusModal();
     });
 
+    $('button[name="book_btn"]').off('click');
     $('button[name="book_btn"]').click(function() {
         $tr = $(this).parent().parent();
 
@@ -283,6 +283,7 @@ function showConfirmModal(block, date, aid, name, email) {
         new Date(date).strftime('%b %d') + ': Pickup requested.'
     );
 
+    $('#mymodal .btn-primary').off('click');
     $('#mymodal .btn-primary').click(function() {
         $(this).prop('disabled', true);
 
@@ -294,8 +295,6 @@ function showConfirmModal(block, date, aid, name, email) {
           name,
           email,
           $('#mymodal').find('input[id="send_email_cb"]').prop('checked'));
-
-        $(this).prop('disabled', false);
     });
 }
   
@@ -306,10 +305,9 @@ function requestBooking(aid, block, date, notes, name, email, confirmation) {
         $('#mymodal').find('#booker-loader .btn.loader').fadeTo('fast', 1);
     });
 
-    $.ajax({
-        type: 'POST',
-        url: $URL_ROOT + '/api/booker/create',
-        data: {
+    api_call(
+        'booker/create',
+        data={
             'block': block,
             'date': date,
             'aid': aid,
@@ -318,29 +316,22 @@ function requestBooking(aid, block, date, notes, name, email, confirmation) {
             'email': email,
             'confirmation': confirmation
         },
-        dataType: 'json'})
-    .done(function(response) {
-        console.log(response);
+        function(response){
+            console.log(response);
+            $('#mymodal .btn-primary').prop('disabled', false);
+            $('#booker-loader').fadeOut('fast');
+            $('#mymodal').modal('hide');
 
-        $('#booker-loader').fadeOut('fast');
+            if(response['status'] == 'success') {
+                alertMsg(response['data'], 'success');
+                clearSearchResults(true);
+            }
+            else
+                alertMsg(response['data'], 'danger');
 
-        $('#mymodal').modal('hide');
-
-        if(response['status'] == 'success') {
-            alertMsg(response['description'], 'success');
-            clearSearchResults(true);
+            setTimeout(function(){ alertMsg(DEF_SEARCH_PROMPT, 'info',-1);}, 10000);
         }
-        else
-            alertMsg(response['description'], 'danger');
-
-        setTimeout(function(){
-            alertMsg(
-              'Enter an <b>account ID</b>, <b>address</b>, or <b>postal code</b> below',
-              'info', 
-              -1
-            );
-        }, 10000);
-    });
+    );
 }
   
 //------------------------------------------------------------------------------

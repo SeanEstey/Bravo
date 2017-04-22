@@ -38,10 +38,20 @@ function initUserPane() {
     if(user_pane_init)
         return;
 
+    $("[name='adm_panl_check']").bootstrapSwitch();
+
     $('#logout').click(function(e){
         e.preventDefault();
-        api_call('user/logout', null, function(response) {});
-        console.log('logged out');
+        
+        api_call(
+            'user/logout',
+            data=null,
+            function(response){
+                console.log(response['status']);
+                var msg = "You've been logged out successfully.";
+                location.href = $URL_ROOT+'/login?msg='+encodeURIComponent(msg);
+            }
+        );
     });
 
     user_pane_init = true;

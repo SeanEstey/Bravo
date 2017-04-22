@@ -2,37 +2,29 @@
 /*---------------------------- COMMON -----------------------------*/
 
 a.hover {
-  text-decoration: none;
+    text-decoration: none;
 }
-
 a.hover:hover {
-  color: black;
-  text-decoration: underline;
+    color: black;
+    text-decoration: underline;
 }
-
 a.hover:link {
-  color: #365766;
+    color: #365766;
 }
-
 a.hover:visited {
-  color: #365766;
+    color: #365766;
 }
-
-
 .main-menu-icon {
-  color: #365766;
+    color: #365766;
 }
-
 .main-menu-a {
-  color: #365766;
+    color: #365766;
 }
-
 .main-menu-item {
 	margin-left:0.5em; 
 	margin-right:0.5em; 
 	text-align:center;
 }
-
 .header-div {
 	display:inline-block; 
 	position: absolute; 
@@ -41,52 +33,45 @@ a.hover:visited {
 	height: 1px;
 	background-color:transparent; 
 }
-
 .header-img {
-  width: 200px;
-  height: 60px;
+    width: 200px;
+    height: 60px;
+    /* height: 117px; */
 }
-
 .alert-banner {
-	visibility: visible;
-	opacity: 0;
-	margin-top: 3em;
-	margin-bottom: 0;
-	margin-left: auto;
-	margin-right: auto;
-  -webkit-border-radius:7px 7px 7px 7px; 
-  padding:0.5em; 
-  text-align:center;
-  color: #365766;
+    visibility: visible;
+    opacity: 0;
+    margin-top: 3em;
+    margin-bottom: 0;
+    margin-left: auto;
+    margin-right: auto;
+    -webkit-border-radius:7px 7px 7px 7px; 
+    padding:0.5em; 
+    text-align:center;
+    color: #365766;
 }
-
 .alert-banner.info {
-		background-color: #BDE5F8;
-		border: 1px solid #75c9f0;
+    background-color: #BDE5F8;
+    border: 1px solid #75c9f0;
 }
-
 .alert-banner.success {
     background-color: #DFF2BF;
-		border: 1px solid #cae995;
+    border: 1px solid #cae995;
 }
-
 .alert-banner.warning {
     background-color: #FEEFB3;
-		border: 1px solid #fde481;
+    border: 1px solid #fde481;
 }
-
 .alert-banner.danger {
     background-color: #FFCCCC;
-		border: 1px solid #ff9999;
+    border: 1px solid #ff9999;
 }
-
 .container-fluid.top {
 	max-width: 1600px;
 	margin-left: auto;
 	margin-right: auto;
 	padding: 0;
 }
-
 .container-fluid.border {
 	position: absolute;
 	top: 13em;
@@ -96,65 +81,59 @@ a.hover:visited {
 	margin-bottom: 5em;
 	margin-left: auto;	
 	margin-right: auto;
-  border:1px solid #bbbbbb; 
-  border-radius:7px; 
-  -webkit-border-radius:7px 7px 0px 0px;
-	padding: 0;
+    border:1px solid #bbbbbb; 
+    border-radius:7px; 
+    -webkit-border-radius:7px 7px 0px 0px;
+    padding: 0;
 }
-
 .data-navbar-div {
-  -webkit-border-radius:7px 7px 0px 0px; 
-  background-color: white; 
-  border-bottom: solid 1px #bbbbbb; 
-  padding:0.5em; 
-  text-align:left;
+    -webkit-border-radius:7px 7px 0px 0px; 
+    background-color: white; 
+    border-bottom: solid 1px #bbbbbb; 
+    padding:0.5em; 
+    text-align:left;
 }
-
 .admin-panel-div {
-	display: table;
-  position: fixed; 
-  bottom:-2.5em;
-  right:0; 
-  right:50%;
-  background: rgba(255,255,255,1.0); 
-  /*background: rgba(255,255,255,0.85); */
-  text-align: center; 
-	width: 600px;
-	margin-right: -300px;
-  padding: 0;
+    display: table;
+    position: fixed; 
+    bottom:-2.5em;
+    right:0; 
+    right:50%;
+    background: rgba(255,255,255,1.0); 
+    /*background: rgba(255,255,255,0.85); */
+    text-align: center; 
+    width: 600px;
+    margin-right: -300px;
+    padding: 0;
 }
-
 .admin-fieldset {
-  position: relative;
-	visibility: visible;
-	display: inline-block;
-  width: 100%;
-  margin: 0;
-	text-align: center;
-  border: 1px solid black;
-  -moz-border-radius: 7px;
-  -webkit-border-radius: 7px;
-	-moz-box-sizing: border-box;
-	-webkit-box-sizing: border-box;
-	box-sizing: border-box;
-  padding-left: 0;
-  padding-right: 0; 
-  padding-bottom: 2.5em;
+    position: relative;
+    visibility: visible;
+    display: inline-block;
+    width: 100%;
+    margin: 0;
+    text-align: center;
+    border: 1px solid black;
+    -moz-border-radius: 7px;
+    -webkit-border-radius: 7px;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    padding-left: 0;
+    padding-right: 0; 
+    padding-bottom: 2.5em;
 }
-
 span.admin-outer {
 	border-bottom:1px solid black;
 }
-
 legend.admin-outer {
-	font-size: 1.0rem;
-	padding: 0.5em;
-  background-color: rgba(71, 59, 59, 0.075);
-	margin:auto;
-	border-bottom:1px solid black;
-  width:100%;
+    font-size: 1.0rem;
+    padding: 0.5em;
+    background-color: rgba(71, 59, 59, 0.075);
+    margin:auto;
+    border-bottom:1px solid black;
+    width:100%;
 }
-
 .admin-status {
 	border-radius:7px; 
 	width: 500px;
@@ -162,129 +141,111 @@ legend.admin-outer {
 	margin: 0.5em auto;
 	background-color:white;
 }
-
 .admin-fieldset.child {
-	vertical-align:top;
-	height: 100%;
-  border: 1px solid black;
-  padding: 1.0em;
-  width: auto;
-	margin-left: 0.5em;
-	margin-right: 0.5em;
-	margin-bottom: 0.25em;
+    vertical-align:top;
+    height: 100%;
+    border: 1px solid black;
+    padding: 1.0em;
+    width: auto;
+    margin-left: 0.5em;
+    margin-right: 0.5em;
+    margin-bottom: 0.25em;
 }
-
 legend.admin-border {
-  width:auto;
-	padding: 0.25em 0.5em 0em 0.25em;
-  margin:0px 0px 0px 0px;
-  border-bottom:none;
-	font-size: 18px;
+    width:auto;
+    padding: 0.25em 0.5em 0em 0.25em;
+    margin:0px 0px 0px 0px;
+    border-bottom:none;
+    font-size: 18px;
 }
-
 .btn.admin {
-  /*width: 150px;*/
- /* font-size: 14px;*/
-  margin-left: 0.25em;
-  margin-right: 0.25em;
+    margin-left: 0.25em;
+    margin-right: 0.25em;
 }
-
-/* Loading button with spinning refresh icon */
-
 .loader-div {
+    /* Loading button with spinning refresh icon */
 	display: none;
 	background-color:#f7f7f7;
 	text-align:center;
 	padding:1em;
 }
-
 .btn.loader {
 	opacity: 0;
 	pointer-events: none;
 	cursor: default;
 }
-
 .loader-animate {
     -animation: loader_spin .7s infinite linear;
     -webkit-animation: loader_spin2 .7s infinite linear;
 }
-
 @-webkit-keyframes loader_spin2 {
     from { -webkit-transform: rotate(0deg);}
     to { -webkit-transform: rotate(360deg);}
 }
-
 @keyframes loader_spin {
     from { transform: scale(1) rotate(0deg);}
     to { transform: scale(1) rotate(360deg);}
 }
 
+/*-------------------------- NOTIFIC EVENT VIEW ---------------------------*/
 
-/*-------------------------- Event View ---------------------------*/
-
-.opt {font-size: 16px;}
-
-.hidden {display: none;}
-
+.opt {
+    font-size: 16px;
+}
+.hidden {
+    display: none;
+}
 .delete-btn {
-  font-size: 0.75em;
-  width: 24px;
-  height: 24px;
+    font-size: 0.75em;
+    width: 24px;
+    height: 24px;
 }
-
 .form-label {
-  padding-bottom:0.3em; 
-  padding-top:0.7em;
-  text-align:left;
-  color: #2b547e;
+    padding-bottom:0.3em; 
+    padding-top:0.7em;
+    text-align:left;
+    color: #2b547e;
 }
-
 .ui-tooltip, .arrow:after {
-  background: black;
-  border: 0px solid black;
+    background: black;
+    border: 0px solid black;
 }
-
 .ui-tooltip {
-  padding: 5px 10px;
-  color: white;
-  border-radius: 20px;
-  font: bold 14px "Helvetica Neue", Sans-Serif;
+    padding: 5px 10px;
+    color: white;
+    border-radius: 20px;
+    font: bold 14px "Helvetica Neue", Sans-Serif;
 }
-
 .arrow {
-  width: 70px;
-  height: 16px;
-  overflow: hidden;
-  position: absolute;
-  left: 50%;
-  margin-left: -35px;
-  bottom: -16px;
+    width: 70px;
+    height: 16px;
+    overflow: hidden;
+    position: absolute;
+    left: 50%;
+    margin-left: -35px;
+    bottom: -16px;
 }
-
 .arrow.top {
-  top: -16px;
-  bottom: auto;
+    top: -16px;
+    bottom: auto;
 }
-
 .arrow.left {
-  left: 20%;
+    left: 20%;
 }
-
 .arrow:after {
-  content: "";
-  position: absolute;
-  left: 20px;
-  top: -20px;
-  width: 25px;
-  height: 25px;
-  -webkit-transform: rotate(45deg);
-  -ms-transform: rotate(45deg);
-  transform: rotate(45deg);
+    content: "";
+    position: absolute;
+    left: 20px;
+    top: -20px;
+    width: 25px;
+    height: 25px;
+    -webkit-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
 }
-
 .arrow.top:after {
-  bottom: -20px;
-  top: auto;
+    bottom: -20px;
+    top: auto;
 }
 
 /*-------------------------- Booker View ---------------------------*/
@@ -307,26 +268,28 @@ legend.admin-border {
   -webkit-border-radius: 10px;
 }
 
+/*-------------------------- LOGIN VIEW ---------------------------*/
+
 /*------------------------ BOOTSTRAP OVERRIDES ----------------------*/
 
 .tooltip-wide .tooltip {min-width:500px;}
-
 .vertical-alignment-helper {
     display:table;
     height: 100%;
     width: 100%;
-    pointer-events:none; /* This makes sure that we can still click outside of the modal to close it */
+    /* Allows clicking outside modal area to close it */
+    pointer-events:none; 
 }
-
 .vertical-align-center {
     /* To center vertically */
     display: table-cell;
     vertical-align: middle;
     pointer-events:none;
 }
-
 .modal-content {
-    /* Bootstrap sets the size of the modal in the modal-dialog class, we need to inherit it */
+    /* Bootstrap sets the size of the modal in the modal-dialog 
+     * class, we need to inherit it 
+     */
     width:inherit;
     max-width:600px;
     height:inherit;
@@ -334,72 +297,80 @@ legend.admin-border {
     margin: 0 auto;
     pointer-events: all;
 } 
-
 .thin {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  text-rendering: optimizeLegibility !important;
-  -webkit-font-smoothing: antialiased !important;
-  font-weight: lighter;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    text-rendering: optimizeLegibility !important;
+    -webkit-font-smoothing: antialiased !important;
+    font-weight: lighter;
 }
-
 .table.table-colored {
-	position: relative;
-  table-layout: fixed;
-	width: 100%;
-/*
-  word-wrap: normal;*/
-  background-color: #f7f7f7;
-  /*font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;*/
-  text-rendering: optimizeLegibility !important;
-  -webkit-font-smoothing: antialiased !important;
-  font-size:11pt;
-  margin-bottom:0px;
+    position: relative;
+    table-layout: fixed;
+    width: 100%;
+    background-color: #f7f7f7;
+    text-rendering: optimizeLegibility !important;
+    -webkit-font-smoothing: antialiased !important;
+    font-size:11pt;
+    margin-bottom:0px;
 }
-
 .table.table-colored th {
-  background-color: #e8f5f9;
-  padding:12px 6px 12px 6px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+    background-color: #e8f5f9;
+    padding:12px 6px 12px 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .table.table-colored td {
-	width: auto;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-  padding:12px 12px 12px 12px;
-  color: black;
-  vertical-align:middle;
-  font-family: Helvetica, Arial, sans-serif;
-  text-rendering: optimizeLegibility !important;
-  font-weight: lighter;
-  -webkit-font-smoothing: antialiased !important;
+    width: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding:12px 12px 12px 12px;
+    color: black;
+    vertical-align:middle;
+    font-family: Helvetica, Arial, sans-serif;
+    text-rendering: optimizeLegibility !important;
+    font-weight: lighter;
+    -webkit-font-smoothing: antialiased !important;
 }
-
 .table.table-colored.table-hover tbody tr:hover td {
-  background-color: white;
+    background-color: white;
 }
-
 .table.table-colored.table-hover tbody tr:hover th {
-  background-color: #e8f5f9;
+    background-color: #e8f5f9;
 }
-
 .table.table-colored hr {
 	margin: 0;
 	text-align: left;
 	width: 25px;
 }
-
-
-
 .center {
-	position: absolute;
-  float: none;
-  margin-left: auto;
-  margin-right: auto;
+    position: absolute;
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
 }
 
+/*----------------- LOGIN ---------------------*/
+
+.login-outer {
+    width: 400px;
+    border: 1px solid #bbbbbb;
+    border-radius: 7px;
+	-webkit-border-radius: 7px 7px 7px 7px;
+    padding: 0;
+    margin-top: 5em;
+}
+.login-inner {
+	border-radius:7px;
+    background-color: white;
+    padding:3.0em;
+}
+.login-btn {
+	font-size: 20px;
+    width:100%;
+    padding:0.5em;
+}
 
 /*------------------------ BREAKPOINTS ----------------------*/
 /* Remove all extra margins/padding for Portrait display on
@@ -407,72 +378,62 @@ legend.admin-border {
 
 @media (max-width: 480px) {
     .container {
-      padding:0;
-      margin:0;
+        padding:0;
+        margin:0;
     }
-	
-		.container-fluid.border {
-			position: relative;
-			left:0;
-			right:0;
-			top: 0;
-			width:90%;
-			padding:0;
-			margin: 0 auto;
-		}
-
-		.header-div {
-			display:inline-block; 
-			position: relative; 
-			height: 60px;
-			left:0; 
-			right:0;
-		}
-
-		.alert-banner {
-			margin: 0.1em;
-		}
-
+    .container-fluid.border {
+        position: relative;
+        left:0;
+        right:0;
+        top: 0;
+        width:90%;
+        padding:0;
+        margin: 0 auto;
+    }
+    .header-div {
+        display:inline-block; 
+        position: relative; 
+        height: 60px;
+        left:0; 
+        right:0;
+    }
+    .alert-banner {
+        margin: 0.1em;
+    }
     body {
-      padding:0;
+        padding:0;
     }
-
     .navbar-fixed-top, .navbar-fixed-bottom, .navbar-static-top {
-      margin-left: 0;
-      margin-right: 0;
-      margin-bottom:0;
+        margin-left: 0;
+        margin-right: 0;
+        margin-bottom:0;
     }
-
-		.main-menu-item {
-			margin: 0.1em;
-		}
-
-		.admin-panel-div {
-			display: none;
-		}
+    .main-menu-item {
+        margin: 0.1em;
+    }
+    .admin-panel-div {
+        display: none;
+    }
 }
 
-
 @media (max-width: 1200px) {
-		.header-div {
-			display:inline-block; 
-			position: relative; 
-			height: 60px;
-			left:0; 
-			right:0;
-		}
-
-		.container-fluid.border {
-			position: relative;
-			top: 0;
-			left:0;
-			right:0;
-			width:90%;
-			padding:0;
-			margin: 0 auto;
-		}
-
-		.alert-banner {
-			margin: 1.0em 0em;
-		}
+    .header-div {
+        display:inline-block; 
+        position: relative; 
+        height: 60px;
+        left:0; 
+        right:0;
+    }
+    .container-fluid.border {
+        position: relative;
+        top: 0;
+        left:0;
+        right:0;
+        width:80%;
+        padding:0;
+        margin: 0 auto;
+    }
+    .alert-banner {
+        margin: 1.0em 0em;
+    }
 }

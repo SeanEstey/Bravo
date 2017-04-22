@@ -14,9 +14,8 @@ log = get_logger('notify.views')
 @notify.route('/', methods=['GET'])
 @login_required
 def view_event_list():
-    event_list = events.get_list(g.user.agency)
 
-    smart_emit('test', 'notify/views smart_emit')
+    event_list = events.get_list(g.user.agency)
 
     for event in event_list:
         # modifying 'notification_event' structure for view rendering
@@ -26,10 +25,21 @@ def view_event_list():
             # modifying 'triggers' structure for view rendering
             trigger['count'] = triggers.get_count(trigger['_id'])
 
+    msg = ""
+
+    if request.args.get('status') == 'logged_in':
+        n_pending = g.db.events.find(
+            {'agency':g.user.agency, 'status':'pending'}
+        ).count()
+
+        msg = "Welcome, <b>%s</b>. There are <b>%s pending events</b> at the moment." %(
+            g.user.name, n_pending)
+
     return render_template(
       'views/event_list.html',
       title=None,
       events=event_list,
+      msg=msg,
       admin=g.user.is_admin())
 
 #-------------------------------------------------------------------------------

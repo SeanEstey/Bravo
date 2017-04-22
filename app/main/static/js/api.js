@@ -16,5 +16,7 @@ function api_call(path, data, on_done) {
 		url: $URL_ROOT + 'api/' + path})
 	.done(function(response){
         on_done(response);
-    });
+    })
+    .fail(function(response){
+        on_done(response)});
 }

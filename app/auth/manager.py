@@ -3,27 +3,36 @@ import logging
 import base64
 from bson.objectid import ObjectId
 from flask import g
-from flask_login import current_user, login_user
+from flask_login import current_user, login_user, logout_user
 from app import get_logger, db_client, login_manager
 from app.lib.utils import print_vars
 from .user import User
 log = get_logger('auth.manager')
-
 
 #-------------------------------------------------------------------------------
 def login(username, pw):
 
     db_user = User.authenticate(username, pw)
 
-    if db_user:
-        login_user(
-            User(
-                db_user['user'],
-                name = db_user['name'],
-                _id = db_user['_id'],
-                agency = db_user['agency'],
-                admin = db_user['admin']))
-        #log.debug('%s logged in', current_user)
+    if not db_user:
+        #log.error('invalid login credentials. user=%s, pw=%s', username, pw)
+        raise Exception("Login failed. Invalid username or password")
+
+    login_user(
+        User(
+            db_user['user'],
+            name = db_user['name'],
+            _id = db_user['_id'],
+            agency = db_user['agency'],
+            admin = db_user['admin']))
+
+    log.debug('%s logged in', current_user)
+
+#-------------------------------------------------------------------------------
+def logout():
+
+    log.debug('%s logged out', current_user.user_id)
+    rv = logout_user()
 
 #-------------------------------------------------------------------------------
 @login_manager.user_loader
@@ -52,7 +61,6 @@ def load_user(user_id):
 def load_api_user(request):
 
     #log.debug('request_loader(). form=%s', request.form.to_dict())
-
 	# first, try to login using user_id/pw
 
     username = request.form.get('username')
@@ -65,7 +73,6 @@ def load_api_user(request):
 
         if db_user:
             #log.debug('request_loader returning user_id=%s', db_user['user'])
-
             user = User(
                 db_user['user'],
                 name = db_user['name'],
@@ -79,7 +86,6 @@ def load_api_user(request):
             return user
 
     # next, try to login using Basic Auth
-
     #log.debug('trying API auth login')
     api_key = request.headers.get('Authorization')
 

@@ -53,7 +53,7 @@
 					<a class="navbar-brand float-xs-none"
 						 href="{{url_for("notify.view_event_list")}}"
 						 style="margin-left:auto; margin-right: auto;">
-						<img src="{{url_for("static", filename="main/images/bravo_comfortaa.png")}}"
+						<img id="logo_img" src='{{url_for("static", filename="main/images/bravo_logo.png")}}'
 								 class="header-img d-inline-block align-top .m-x-auto">
 					</a>
 				</div>
@@ -97,16 +97,6 @@
 								class="main-menu-a">Admin</p>
 						</a>
 					</li>
-          <!--
-					<li class="nav-item main-menu-item">
-						<a class="nav-link"
-								href="{{url_for("auth.logout")}}">
-							<i class="fa fa-sign-out fa-2x main-menu-icon"></i>
-							<p style="margin-bottom:0"
-								class="main-menu-a">Logout</p>
-						</a>
-					</li>
-          -->
 				</ul>
 			</nav>
 
@@ -127,7 +117,7 @@
 									onclick="toggleAdminPanelSize();"
 									style="position:absolute; top:5px; right:25px">-</button>
 					<button id="admin_close" type="button" class="close" aria-hidden="true" 
-									onclick="$(".admin-panel-div").fadeOut("slow");"
+									onclick="$('.admin-panel-div').fadeOut('slow');"
 									style="position:absolute; top:5px; right:5px">×</button>
 				</div>
 				<span>

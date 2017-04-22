@@ -1,16 +1,16 @@
 {% extends "views/base.html" %}
 {% block content %}
-<script type="text/javascript"
-		src="{{url_for("main.static", filename="js/admin.js")}}">
-</script>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-switch/3.3.4/css/bootstrap2/bootstrap-switch.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-switch/3.3.4/js/bootstrap-switch.js"></script>
+<script type="text/javascript" src="{{url_for("main.static", filename="js/admin.js")}}"></script>
+
 <script>
-document.write("<style type='text/css'> body{display:none}</style>");
-jQuery(function($){
-	$("body").css("display","block");
-});
-</script>
-<script>
-jQuery(function($){init();});
+  document.write("<style type='text/css'> body{display:none}</style>");
+  jQuery(function($){
+      init();
+      $("body").css("display","block");
+  });
 </script>
 
 <div class="container">
@@ -56,6 +56,12 @@ jQuery(function($){init();});
             </div>
             <div style="margin:1.5em 0em">
               <button id='logout' style="float:right" type="button" class="btn btn-primary">Logout</button>
+            </div>
+        </fieldset>
+        <fieldset style="max-width:600px" class="form-fieldset new_event">
+          <legend class="new_event">Admin</legend>
+            <div class='form-label'>Admin Panel: 
+              <input type="checkbox" name="adm_panl_check" checked>
             </div>
         </fieldset>
       </form>

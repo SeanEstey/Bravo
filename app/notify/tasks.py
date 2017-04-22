@@ -12,7 +12,7 @@ from app.lib import mailgun
 from app.main import cal
 from app.main.parser import is_bus
 from app.main.etap import call, EtapError
-from . import email, sms, voice, pickups, triggers
+from . import email, events, sms, voice, pickups, triggers
 log = task_logger('notify.tasks')
 
 #-------------------------------------------------------------------------------
@@ -72,17 +72,23 @@ def fire_trigger(self, _id=None, **rest):
     trig = g.db.triggers.find_one({'_id':oid(_id)})
     event = g.db.events.find_one({'_id':trig['evnt_id']})
     agcy = event['agency']
+
     g.db.triggers.update_one(
         {'_id':oid(_id)},
         {'$set': {'task_id':self.request.id, 'status':'in-progress', 'errors':err}})
+
+    events.update_status(trig['evnt_id'])
+
     ready = g.db.notifics.find(
         {'trig_id':oid(_id), 'tracking.status':'pending'})
     count = ready.count()
 
     log.warning('sending %s %s notifications for %s...',
         count, to_title_case(trig['type']), event['name'])
+
     smart_emit('trigger_status',{
         'trig_id': str(_id), 'status': 'in-progress'})
+
     if env['BRV_SANDBOX'] == 'True':
         log.warning('sandbox: simulating voice/sms, rerouting emails')
 
@@ -118,6 +124,7 @@ def fire_trigger(self, _id=None, **rest):
 
     log.warning('notifications sent. %s queued, %s failed, %s errors.',
         count - fails - len(err), fails, len(err))
+
     return 'success'
 
 #-------------------------------------------------------------------------------

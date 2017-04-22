@@ -1,59 +1,44 @@
+/* login.js */
 
 //------------------------------------------------------------------------------
-function init() {
+function init_login() {
+
+    $('#logo_img').attr('src', $URL_ROOT+'/static/main/images/bravo_logo_barbell.png');
+    $('.header-img').width(250);
+    $('.header-img').height(146);
+
     $('.nav').hide();
+    $('.alert-banner').css('margin-top', '11em'); 
+    $('.alert-banner').css('max-width', '400px');
 
-		$('#submit_btn').click(function(event) {
-			// This line needs to be here for Firefox browsers
-			//event.preventDefault(event);
-			console.log('url_root='+$URL_ROOT);
+    $('#submit_btn').click(function(e) {
+        e.preventDefault(); // Firefox browsers
 
-			$.ajax({
-				type: 'POST',
-				url: $URL_ROOT + '/login',
-				data: new FormData($('#myform')[0]),
-        contentType: false,
-        processData: false,
-        dataType: 'json'
-      }).done(function(response) {
-          console.log('success!!');
-          loginSuccess(response);
-      })
-		});
+        var credentials = {
+            "username": $('#myform [name="username"]').val(),
+            "password": $('#myform [name="password"]').val()
+        };
 
-	//	$('body').css('display','block');
+        api_call(
+            'user/login',
+            data=credentials,
+            login_handler
+        );
+    });
 }
 
 //------------------------------------------------------------------------------
-function loginSuccess(response) {
-    location.href = $URL_ROOT + '/notify';
+function login_handler(response) {
 
-    console.log('login success');
-		console.log(response);
+    if(response['status'] == 'success') {
+        alertMsg("Logged in successfully", 'success');
+        
+        location.href = $URL_ROOT + '/notify?status=logged_in';
+    }
+    else {
+        alertMsg(response['responseJSON']['desc'], 'danger', -1);
 
-		if(typeof response == 'string')
-			response = JSON.parse(response);
-
-		if(response['status'] == 'success') {
-			console.log('login success');
-			location.href = $URL_ROOT + '/notify';
-		}
-		else if(response['status'] == 'error') {
-			$('.modal-title').text(response['title']);
-			$('.modal-body').html(response['msg']);
-			$('#btn-primary').hide();
-			$('#mymodal').modal('show');
-		}
-}
-
-//------------------------------------------------------------------------------
-function loginFailure(xhr, textStatus, errorThrown) {
-		console.log(xhr);
-		console.log(textStatus);
-		console.log(errorThrown);
-
-		$('.modal-title').text('Error');
-		$('.modal-body').html(xhr.responseText);
-		$('.btn-primary').hide();
-		$('#mymodal').modal('show');
+        $('#myform [name="username"]').val("");
+        $('#myform [name="password"]').val("");
+    }
 }

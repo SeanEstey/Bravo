@@ -250,8 +250,13 @@ def call_route_edit():
 def call_op_stats():
     return func_call(get_server_prop)
 
+@api.route('/user/login', methods=['POST'])
+def user_login():
+    from app.auth.manager import login
+    return func_call(login, get_var('username'), get_var('password'))
+
 @api.route('/user/logout', methods=['POST'])
 @login_required
 def user_logout():
-    from app.auth.views import logout
+    from app.auth.manager import logout
     return func_call(logout)

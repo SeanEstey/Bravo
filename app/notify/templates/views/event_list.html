@@ -3,7 +3,12 @@
 {% block content %}  
   <script src="{{url_for("static", filename="main/js/strftime.js")}}"></script>
   <script src="{{url_for("notify.static", filename="js/event_list.js")}}"></script>
-  <script> $(function() {event_list_init();}); </script>
+  <script> 
+    jQuery(function($) {
+      event_list_init();
+      alertMsg("{{msg|safe}}", "info", 15000);
+    }); 
+  </script>
 
   <div style="margin-bottom:10em" class="container-fluid border">
     <div class="data-navbar-div">

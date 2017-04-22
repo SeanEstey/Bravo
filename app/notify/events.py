@@ -217,6 +217,25 @@ def get_notifics(evnt_id, local_time=True, sorted_by='account.event_dt'):
     return notific_results
 
 #-------------------------------------------------------------------------------
+def update_status(evnt_id):
+    '''Update event status depending on attached trigger status(es)
+    '''
+
+    pend_trigr = g.db.triggers.find(
+        {'evnt_id': evnt_id, 'status':'pending'})
+
+    if pend_trigr.count() >= 1:
+        status = 'in-progress'
+    else:
+        status = 'completed'
+
+    g.db.events.update_one(
+        {'_id':evnt_id},
+        {'$set': {'status':status}})
+
+    log.debug('event updated to %s (evnt_id=%s)', status, str(evnt_id))
+
+#-------------------------------------------------------------------------------
 def rmv_notifics(evnt_id, acct_id):
 
     n_notifics = g.db.notifics.remove({'acct_id':oid(acct_id)})['n']

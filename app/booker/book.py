@@ -142,10 +142,10 @@ def send_confirm():
     if mid == False:
         log.error('failed to queue email to %s', request.form['email'])
     else:
-        log.info('queued confirmation email to %s', request.form['email'])
+        log.debug('queued confirmation email to %s', request.form['email'])
 
 #-------------------------------------------------------------------------------
 def on_delivered(agcy=None):
     '''Mailgun webhook called from view. Has request context'''
 
-    log.info('confirmation delivered to %s', request.form['recipient'])
+    log.debug('confirmation delivered to %s', request.form['recipient'])

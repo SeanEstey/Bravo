@@ -10,7 +10,8 @@ log = get_logger('gg')
 
 #-------------------------------------------------------------------------------
 def add_event():
-    log.info(request.form.to_dict())
+
+    log.debug(request.form.to_dict())
 
     try:
         response = call(
@@ -24,7 +25,7 @@ def add_event():
         log.error(msg)
         raise EtapError(msg)
     else:
-        log.info('returned %s journal entries', response['count'])
+        log.debug('returned %s journal entries', response['count'])
 
     je = response['data']
 

@@ -64,7 +64,7 @@ def create_event():
         # modifying 'triggers' structure for view rendering
         trigger['count'] = triggers.get_count(trigger['_id'])
 
-    log.info('created event "%s"', event['name'])
+    log.warning('created %s event "%s"', event['type'], event['name'])
 
     return {
         'event': formatter(

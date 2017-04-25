@@ -134,7 +134,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
     if for_date:
         for_date = parse(for_date).date()
 
-    log.warning('scheduling reminder events...')
+    log.warning('task: scheduling reminder events...')
 
     agencies = [g.db.agencies.find_one({'name':agcy})] if agcy else g.db.agencies.find()
     n_success = n_fails = 0
@@ -177,7 +177,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 evnt_ids.append(str(evnt_id))
                 log.debug('%s reminder event created', block)
 
-    log.warning('created %s events successfully, %s failures', n_success, n_fails)
+    log.warning('task: complete. created %s events successfully, %s failures', n_success, n_fails)
     return json.dumps(evnt_ids)
 
 #-------------------------------------------------------------------------------

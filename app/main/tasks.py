@@ -29,7 +29,7 @@ def wipe_sessions(self, **rest):
 @celery.task(bind=True)
 def update_leaderboard_accts(self, agcy=None, **rest):
 
-    log.warning('updating leaderboard data...')
+    log.warning('task: updating leaderboard data...')
 
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
 
@@ -54,7 +54,7 @@ def update_leaderboard_accts(self, agcy=None, **rest):
             update_gifts(chunk, agency['name'])
 
     # Duration: ~1277s for 2900 accts
-    log.warning('leaderboard data updated!')
+    log.warning('task: complete. leaderboard data updated!')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -66,7 +66,7 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
     diff = 0
     n_repeat = 0
 
-    log.info('analyzing estimate trend for %s accts...', len(donations))
+    log.warning('task: analyzing estimate trend for %s accts...', len(donations))
 
     for donation in donations:
         if not donation['amount']:
@@ -102,7 +102,7 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
         to_range(ss_row, headers.index('Estmt Trend')+1),
         diff/n_repeat)
 
-    log.info('completed. trend=$%.2f [%s]', diff/n_repeat, end_timer(t1))
+    log.warning('task: completed. trend=$%.2f [%s]', diff/n_repeat, end_timer(t1))
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -111,7 +111,7 @@ def process_entries(self, entries, agcy=None, **rest):
     start = start_timer()
     entries = json.loads(entries)
 
-    log.warning('processing %s gift entries...', len(entries))
+    log.warning('task: processing %s gift entries...', len(entries))
 
     wks = 'Donations'
     checkmark = u'\u2714'
@@ -165,7 +165,7 @@ def process_entries(self, entries, agcy=None, **rest):
             log.error(str(e))
             log.debug('',exc_info=True)
 
-    log.warning('completed. %s errors (%s)', n_errs, end_timer(start))
+    log.warning('task: completed. %s errors (%s)', n_errs, end_timer(start))
 
     return 'success'
 
@@ -183,7 +183,7 @@ def send_receipts(self, entries, **rest):
     entries = json.loads(entries)
     wks = 'Donations'
     checkmark = u'\u2714'
-    log.warning('processing %s receipts...', len(entries))
+    log.warning('task: processing %s receipts...', len(entries))
 
     try:
         # list indexes match @entries
@@ -255,7 +255,7 @@ def send_receipts(self, entries, **rest):
             log.debug('',exc_info=True)
 
     log.warning(\
-        'completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s, no_email=%s (%s)',
+        'task: completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s, no_email=%s (%s)',
         g.track['gifts'], g.track['zeros'], g.track['drops'],
         g.track['cancels'], g.track['no_email'], end_timer(start))
 
@@ -368,7 +368,7 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
         oauth = get_keys('google',agcy=agcy)['oauth']
         srvc = gcal_auth(oauth)
 
-        log.warning('updating calendar events from %s to %s...',
+        log.warning('task: updating calendar events from %s to %s...',
             start_dt.strftime('%m-%d-%Y'), end_dt.strftime('%m-%d-%Y'))
 
         cal_ids = get_keys('cal_ids',agcy=agcy)
@@ -436,7 +436,7 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
                 else:
                     n_updated+=1
 
-        log.warning('completed. %s events updated, %s errors, %s warnings '\
+        log.warning('task: completed. %s events updated, %s errors, %s warnings '\
             '(agcy=%s)', n_updated, n_errs, n_warnings, agcy)
 
     return 'success'
@@ -494,7 +494,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
     '''Create RFU's for all non-participants on scheduled dates
     '''
 
-    log.warning('identifying inactive donors...')
+    log.warning('task: identifying inactive donors...')
 
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
     n_task_inactive = 0
@@ -561,7 +561,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
         n_task_inactive += n_inactive
 
-    log.warning('completed. %s inactive accounts identified', n_task_inactive)
+    log.warning('task: completed. %s inactive accounts identified', n_task_inactive)
     return 'success'
 
 #-------------------------------------------------------------------------------

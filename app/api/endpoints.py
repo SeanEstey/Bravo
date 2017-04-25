@@ -4,8 +4,8 @@ from dateutil.parser import parse
 from json import loads
 from flask import g, request
 from flask_login import login_required
-from app import get_logger, get_server_prop
-from app.main.etap import block_size, route_size
+from app import get_logger, get_server_prop, get_keys
+from app.main.etap import block_size, route_size, call
 from app.alice.outgoing import send_welcome, compose
 from app.booker.geo import get_maps
 from app.booker.search import search
@@ -89,6 +89,12 @@ def call_accts_gifts():
 def call_accts_receipts():
     from app.main.tasks import send_receipts
     return task_call(send_receipts, get_var('entries'))
+
+@api.route('/accounts/update', methods=['POST'])
+@login_required
+def update_acct():
+    return func_call(call, 'modify_acct', get_keys('etapestry'),
+        get_var('acct_id'), get_var('udf'), get_var('persona'))
 
 @api.route('/accounts/preview_receipt', methods=['POST'])
 @login_required
@@ -201,11 +207,6 @@ def call_trigger_fire():
 @login_required
 def call_trigger_kill():
     return func_call(kill_trigger, get_var('trig_id'))
-
-@api.route('/notify/acct/skip', methods=['POST'])
-@login_required
-def call_skip_pickup():
-    return task_call(kill_trigger)
 
 @api.route('/notify/preview/sms', methods=['POST'])
 @login_required

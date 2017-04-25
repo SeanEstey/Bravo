@@ -7,7 +7,8 @@ from flask_login import current_user, login_user, logout_user
 from app import get_logger, db_client, login_manager
 from app.lib.utils import print_vars
 from .user import User
-log = get_logger('auth.manager')
+from app.lib.loggy import Loggy
+log = Loggy('auth.manager')
 
 #-------------------------------------------------------------------------------
 def login(username, pw):
@@ -15,7 +16,7 @@ def login(username, pw):
     db_user = User.authenticate(username, pw)
 
     if not db_user:
-        #log.error('invalid login credentials. user=%s, pw=%s', username, pw)
+        log.debug('invalid login credentials for <%s>', username)
         raise Exception("Login failed. Invalid username or password")
 
     login_user(
@@ -26,7 +27,7 @@ def login(username, pw):
             agency = db_user['agency'],
             admin = db_user['admin']))
 
-    log.debug('%s logged in', current_user)
+    log.debug('%s logged in', username)
 
 #-------------------------------------------------------------------------------
 def logout():
@@ -38,12 +39,11 @@ def logout():
 @login_manager.user_loader
 def load_user(user_id):
 
-    #log.debug('load_user() user_id=%s', user_id)
     db = db_client['bravo']
     db_user = db.users.find_one({'user': user_id})
 
     if not db_user:
-        log.debug('cant load user_id=%s', user_id)
+        log.debug('cant load user_id=%s', user_id, agcy=None)
         return None
 
     user = User(
@@ -60,7 +60,6 @@ def load_user(user_id):
 @login_manager.request_loader
 def load_api_user(request):
 
-    #log.debug('request_loader(). form=%s', request.form.to_dict())
 	# first, try to login using user_id/pw
 
     username = request.form.get('username')
@@ -72,7 +71,6 @@ def load_api_user(request):
             request.form.get('password'))
 
         if db_user:
-            #log.debug('request_loader returning user_id=%s', db_user['user'])
             user = User(
                 db_user['user'],
                 name = db_user['name'],
@@ -80,13 +78,12 @@ def load_api_user(request):
                 agency = db_user['agency'],
                 admin = db_user['admin'])
 
-            log.debug('logging in')
+            log.debug('logging in', agcy=user['agency'])
             login_user(user)
 
             return user
 
     # next, try to login using Basic Auth
-    #log.debug('trying API auth login')
     api_key = request.headers.get('Authorization')
 
     if not api_key:
@@ -98,19 +95,16 @@ def load_api_user(request):
     try:
         api_key = base64.b64decode(api_key)
     except TypeError:
-        log.debug('base64 decode error, desc=%s', str(e))
+        log.debug('base64 decode error, desc=%s', str(e), agcy=None)
         return None
 
     api_user = api_key.split(':')[1]
-
-    #if not ObjectId.is_valid(api_user):
-    #    return None
 
     db = db_client['bravo']
     user = db.users.find_one({'api_key':str(api_key)})
 
     if user:
-        log.debug('"%s" API auth success', user['name'])
+        log.debug('"%s" API auth success', user['name'], agcy=user['agency'])
 
         return User(
             user['user'],
@@ -119,8 +113,8 @@ def load_api_user(request):
             agency = user['agency'],
             admin = user['admin'])
     else:
-        log.debug('no user found for api_key=%s', api_key)
+        log.debug('no user found for api_key=%s', api_key, agcy=None)
 
     # finally, return None if both methods did not login the user
-    log.debug('failed to load api user. return none')
+    log.debug('failed to load api user. return none', agcy=None)
     return None

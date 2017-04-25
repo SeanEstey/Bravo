@@ -14,11 +14,3 @@ def show_login():
     return render_template(
         'views/login.html',
         msg=msg if msg else 'Welcome!')
-
-#-------------------------------------------------------------------------------
-@login_required
-@auth.route('/logout', methods=['GET'])
-def client_logout():
-
-    logout_user()
-    return redirect(url_for('main.landing_page'))

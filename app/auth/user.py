@@ -2,7 +2,6 @@
 import logging
 from flask_login import AnonymousUserMixin, UserMixin, login_user
 from app import db_client, get_logger
-log = get_logger('auth.user')
 
 class User():
 
@@ -49,11 +48,8 @@ class User():
     @classmethod
     def authenticate(cls, user_id, pw):
 
-        #log.debug('User.authenticate() user_id=%s, pw=%s', user_id, pw)
-
         if not user_id or not pw:
             return None
-            #return Response('No username', status=500)
 
         db = db_client['bravo']
         db_user = db.users.find_one({
@@ -61,7 +57,6 @@ class User():
             'password': pw})
 
         if not db_user:
-            log.error('invalid credentials, user_id=%s', user_id)
             return None
         else:
             return db_user
@@ -81,7 +76,6 @@ class Anonymous(AnonymousUserMixin):
     #---------------------------------------------------------------------------
     def __init__(self):
 
-        #log.debug('loading guest')
         self.user_id = 'Guest'
         self._id = None
 

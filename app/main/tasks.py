@@ -18,7 +18,9 @@ from .etap import call, get_udf, mod_acct
 from . import donors
 from .receipts import generate, get_ytd_gifts
 from .leaderboard import update_accts, update_gifts
-log = task_logger('main.tasks')
+from app.lib.loggy import Loggy
+log = Loggy('main.tasks', celery_task=True)
+
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -29,7 +31,7 @@ def wipe_sessions(self, **rest):
 @celery.task(bind=True)
 def update_leaderboard_accts(self, agcy=None, **rest):
 
-    log.warning('task: updating leaderboard data...')
+    log.warning('task: updating leaderboard data...', agcy=agcy)
 
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
 
@@ -54,7 +56,7 @@ def update_leaderboard_accts(self, agcy=None, **rest):
             update_gifts(chunk, agency['name'])
 
     # Duration: ~1277s for 2900 accts
-    log.warning('task: complete. leaderboard data updated!')
+    log.warning('task: complete. leaderboard data updated!', agcy=agcy)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -346,7 +348,7 @@ def create_rfu(self, agcy, note, options=None, **rest):
             rfu[headers.index(field)] = options[field]
 
     append_row(srvc, ss_id, 'Issues', rfu)
-    log.debug('Creating RFU=%s', rfu)
+    log.debug('Creating RFU=%s', rfu, agcy=agcy)
 
     return 'success'
 
@@ -369,7 +371,9 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
         srvc = gcal_auth(oauth)
 
         log.warning('task: updating calendar events from %s to %s...',
-            start_dt.strftime('%m-%d-%Y'), end_dt.strftime('%m-%d-%Y'))
+            start_dt.strftime('%m-%d-%Y'),
+            end_dt.strftime('%m-%d-%Y'),
+            agcy=agcy)
 
         cal_ids = get_keys('cal_ids',agcy=agcy)
         n_updated = n_errs = n_warnings = 0
@@ -399,13 +403,14 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
                 # Title format: 'R6B [Area1, Area2, Area3] (51/55)'
 
                 if not is_route_size(rv):
-                    log.debug('invalid value=%s from "get_route_size"', rv)
+                    log.debug('invalid value=%s from "get_route_size"', rv, agcy=agcy)
                     n_errs+=1
                     continue
 
                 if not evnt.get('location'):
                     log.debug('missing postal codes in event="%s"',
-                    evnt['summary'])
+                    evnt['summary'],
+                    agcy=agcy)
                     n_warnings+=1
 
                 new_title = '%s [%s] (%s)' %(
@@ -436,8 +441,8 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
                 else:
                     n_updated+=1
 
-        log.warning('task: completed. %s events updated, %s errors, %s warnings '\
-            '(agcy=%s)', n_updated, n_errs, n_warnings, agcy)
+        log.warning('task: completed. %s events updated, %s errors, %s warnings',
+            n_updated, n_errs, n_warnings, agcy=agcy)
 
     return 'success'
 
@@ -469,21 +474,22 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
         r = sms.enable(agency['name'], accts)
 
         log.info('%supdated %s accounts for SMS. discovered %s mobile numbers%s',
-                    c.GRN, r['n_sms'], r['n_mobile'], c.ENDC)
+            c.GRN, r['n_sms'], r['n_mobile'], c.ENDC, agcy=agency['name'])
 
     return 'success'
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def add_form_signup(self, data, **rest):
-    log.debug('received ETW form submission. data=%s', data)
+
+    log.debug('received ETW form submission. data=%s', data, agcy='wsf')
     from app.main.signups import add_etw_to_gsheets
 
     try:
         add_etw_to_gsheets(data)
     except Exception as e:
-        log.error('error adding signup. desc="%s"', str(e))
-        log.debug('', exc_info=True)
+        log.error('error adding signup. desc="%s"', str(e), agcy='wsf')
+        log.debug('', exc_info=True, agcy='wsf')
         raise
 
     return 'success'
@@ -507,8 +513,8 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
         period = period_ if period_ else agency['donors']['inactive_period']
         on_date = date.today() + delta(days=in_days)
 
-        log.info('analyzing blocks on %s blocks (period=%s days, agcy=%s)...',
-            on_date.strftime('%m-%d-%Y'), period, agcy)
+        log.info('analyzing blocks on %s blocks (period=%s days)...',
+            on_date.strftime('%m-%d-%Y'), period, agcy=agcy)
 
         for _id in cal_ids:
             accts += get_accounts(
@@ -557,7 +563,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
             n_inactive += 1
 
-        log.info('found %s accounts', n_inactive)
+        log.info('found %s inactive donors', n_inactive, agcy=agcy)
 
         n_task_inactive += n_inactive
 
@@ -572,51 +578,31 @@ def mem_check(self, **rest):
 
     # Restart celery worker at midnight to release memory leaks
     if t.hour == 0 and t.minute <=15:
-        log.debug('restarting celery worker/beat at midnight...')
+        log.debug('restarting celery worker/beat at midnight...', agcy=None)
         try:
             r = requests.get('http://bravotest.ca/restart_worker')
         except Exception as e:
-            log.debug(str(e))
+            log.debug(str(e),agcy=None)
         else:
-            log.debug('code=%s, text=%s', r.status_code, r.text)
+            log.debug('code=%s, text=%s', r.status_code, r.text, agcy=None)
 
     mem = psutil.virtual_memory()
     total = (mem.total/1000000)
     free = mem.free/1000000
 
     if free < 350:
-        log.debug('low memory. %s/%s. forcing gc/clearing cache...', free, total)
+        log.debug('low memory. %s/%s. forcing gc/clearing cache...', free, total, agcy=None)
         os.system('sudo sysctl -w vm.drop_caches=3')
         os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
         gc.collect()
         mem = psutil.virtual_memory()
         total = (mem.total/1000000)
         now_free = mem.free/1000000
-        log.debug('freed %s mb', now_free - free)
+        log.debug('freed %s mb', now_free - free, agcy=None)
 
         if free < 350:
-            log.warning('warning: low memory! 250mb recommended (%s/%s)', free, total)
+            log.warning('warning: low memory! 250mb recommended (%s/%s)', free, total, agcy=None)
     else:
-        log.debug('mem free: %s/%s', free,total)
+        log.debug('mem free: %s/%s', free,total, agcy=None)
 
     return mem
-
-#-------------------------------------------------------------------------------
-def mem_snap(hp, snap=None):
-    if snap is None:
-        before = hp.heap()
-        log.debug('m1 snap')
-        return before
-
-    log.debug('m2 snap')
-
-    try:
-        after = hp.heap()
-        leftover = after - snap
-        byrcs = leftover.byrcs
-        log.debug(str(byrcs[0])) #:10])
-        log.debug(str(byrcs.byid[0])) #:10])
-    except Exception as e:
-        pass
-
-    #import pdb; pdb.set_trace()

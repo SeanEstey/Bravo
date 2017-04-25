@@ -3,7 +3,9 @@ from logging import getLogger, Formatter, FileHandler, Filter
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from config import LOG_PATH
 from flask import g
+from celery.utils.log import get_task_logger
 from datetime import datetime
+from . import mongodb
 
 class colors:
     BLUE = '\033[94m'
@@ -66,6 +68,15 @@ class Loggy():
 
         return handler
 
+    #---------------------------------------------------------------------------
+    @staticmethod
+    def get_logs(start_dt, end_dt, agcy):
+
+        logs = g.db.logs.find(
+            {'agcy':agcy, 'dt': {'$gte':start_dt, '$lt':end_dt}})
+        print "found %s logs" %(logs.count())
+        return logs
+
     # Static Members
     dbg_hdlr = file_handler.__func__(DEBUG, 'debug.log')
     inf_hdlr = file_handler.__func__(INFO, 'events.log')
@@ -75,38 +86,43 @@ class Loggy():
 
     # Instance Member
     logger = None
-    db = None
+
+    #---------------------------------------------------------------------------
+    def _get_tag(self, kwargs):
+
+        if kwargs.get('agcy'):
+            return kwargs['agcy']
+        elif g.get('user'):
+            return g.get('user').agency
+        else:
+            return 'sys'
 
     #---------------------------------------------------------------------------
     def debug(self, msg, *args, **kwargs):
 
-        agcy = kwargs['agcy'] if kwargs['agcy'] else g.user.agency
-        self.db.logs.insert_one(
-            {'agcy':agcy, 'lvl':'debug', 'msg':msg % (args), 'dt':datetime.now()})
+        g.db.logs.insert_one(
+            {'tag':self._get_tag(kwargs), 'lvl':'debug', 'msg':msg % (args), 'dt':datetime.now()})
         self.logger.debug(msg, *args)
 
     #---------------------------------------------------------------------------
     def info(self, msg, *args, **kwargs):
 
-        agcy = kwargs['agcy'] if kwargs['agcy'] else g.user.agency
-        self.db.logs.insert_one(
-            {'agcy':agcy, 'lvl':'info', 'msg':msg % (args), 'dt':datetime.now()})
+        g.db.logs.insert_one(
+            {'tag':self._get_tag(kwargs), 'lvl':'info', 'msg':msg % (args), 'dt':datetime.now()})
         self.logger.info(msg, *args)
 
     #---------------------------------------------------------------------------
     def warning(self, msg, *args, **kwargs):
 
-        agcy = kwargs['agcy'] if kwargs['agcy'] else g.user.agency
-        self.db.logs.insert_one(
-            {'agcy':agcy, 'lvl':'task', 'msg':msg % (args), 'dt':datetime.now()})
+        g.db.logs.insert_one(
+            {'tag':self._get_tag(kwargs), 'lvl':'task', 'msg':msg % (args), 'dt':datetime.now()})
         self.logger.warning(msg, *args)
 
     #---------------------------------------------------------------------------
     def error(self, msg, *args, **kwargs):
 
-        agcy = kwargs['agcy'] if kwargs['agcy'] else g.user.agency
-        self.db.logs.insert_one(
-            {'agcy':agcy, 'lvl':'error', 'msg':msg % (args), 'dt':datetime.now()})
+        g.db.logs.insert_one(
+            {'tag':self._get_tag(kwargs), 'lvl':'error', 'msg':msg % (args), 'dt':datetime.now()})
         self.logger.error(msg, *args)
 
     #---------------------------------------------------------------------------
@@ -114,10 +130,13 @@ class Loggy():
         pass
 
     #---------------------------------------------------------------------------
-    def __init__(self, name, db):
+    def __init__(self, name, celery_task=False):
 
-        self.db = db
-        self.logger = getLogger(name)
+        if not celery_task:
+            self.logger = getLogger(name)
+        else:
+            self.logger = get_task_logger(name)
+
         self.logger.addHandler(Loggy.dbg_hdlr)
         self.logger.addHandler(Loggy.inf_hdlr)
         self.logger.addHandler(Loggy.wrn_hdlr)

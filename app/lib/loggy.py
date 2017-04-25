@@ -1,5 +1,6 @@
 '''app.lib.loggy'''
-from logging import getLogger, Formatter, FileHandler, Filter, DEBUG, INFO, WARNING, ERROR
+from logging import getLogger, Formatter, FileHandler, Filter
+from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from config import LOG_PATH
 from flask import g
 from datetime import datetime
@@ -27,15 +28,10 @@ class WarningFilter(Filter):
 
 
 class Loggy():
-
-    # Static FileHandlers
-    dbg_hdlr = file_handler(DEBUG, 'debug.log') # May not work calling method defined inside own class
-    inf_hdlr = file_handler(INFO, 'events.log')
-    wrn_hdlr = file_handler(WARNING, 'events.log')
-    err_hdlr = file_handler(ERROR, 'events.log')
-    exc_hdlr = file_handler(CRITICAL, 'events.log')
-    # Instance logger
-    logger = None
+    '''Each instance of this class contains a Logger object connected
+    to a set of FileHandlers. Contains Logger wrapping functions which also
+    save the log msg to the DB.
+    '''
 
     #---------------------------------------------------------------------------
     @staticmethod
@@ -70,41 +66,61 @@ class Loggy():
 
         return handler
 
-    #---------------------------------------------------------------------------
-    def debug(self, msg, *args):
+    # Static Members
+    dbg_hdlr = file_handler.__func__(DEBUG, 'debug.log')
+    inf_hdlr = file_handler.__func__(INFO, 'events.log')
+    wrn_hdlr = file_handler.__func__(WARNING, 'events.log')
+    err_hdlr = file_handler.__func__(ERROR, 'events.log')
+    exc_hdlr = file_handler.__func__(CRITICAL, 'events.log')
 
-        g.db.logs.insert_one(
-            {'agcy':g.user.agency, 'lvl':'debug', 'msg':msg % (args), 'dt':datetime.now()})
-        logger.debug(msg, *args)
-
-    #---------------------------------------------------------------------------
-    def info(self, msg, *args):
-
-        g.db.logs.insert_one(
-            {'agcy':g.user.agency, 'lvl':'info', 'msg':msg % (args), 'dt':datetime.now()})
-        logger.info(msg, *args)
+    # Instance Member
+    logger = None
+    db = None
 
     #---------------------------------------------------------------------------
-    def task(self, msg, *args):
+    def debug(self, msg, *args, **kwargs):
 
-        g.db.logs.insert_one(
-            {'agcy':g.user.agency, 'lvl':'task', 'msg':msg % (args), 'dt':datetime.now()})
-        logger.warning(msg, *args)
-
-    #---------------------------------------------------------------------------
-    def error(self, msg, *args):
-
-        g.db.logs.insert_one(
-            {'agcy':g.user.agency, 'lvl':'error', 'msg':msg % (args), 'dt':datetime.now()})
-        logger.error(msg, *args)
+        agcy = kwargs['agcy'] if kwargs['agcy'] else g.user.agency
+        self.db.logs.insert_one(
+            {'agcy':agcy, 'lvl':'debug', 'msg':msg % (args), 'dt':datetime.now()})
+        self.logger.debug(msg, *args)
 
     #---------------------------------------------------------------------------
-    def __init__(self, name):
+    def info(self, msg, *args, **kwargs):
 
+        agcy = kwargs['agcy'] if kwargs['agcy'] else g.user.agency
+        self.db.logs.insert_one(
+            {'agcy':agcy, 'lvl':'info', 'msg':msg % (args), 'dt':datetime.now()})
+        self.logger.info(msg, *args)
+
+    #---------------------------------------------------------------------------
+    def warning(self, msg, *args, **kwargs):
+
+        agcy = kwargs['agcy'] if kwargs['agcy'] else g.user.agency
+        self.db.logs.insert_one(
+            {'agcy':agcy, 'lvl':'task', 'msg':msg % (args), 'dt':datetime.now()})
+        self.logger.warning(msg, *args)
+
+    #---------------------------------------------------------------------------
+    def error(self, msg, *args, **kwargs):
+
+        agcy = kwargs['agcy'] if kwargs['agcy'] else g.user.agency
+        self.db.logs.insert_one(
+            {'agcy':agcy, 'lvl':'error', 'msg':msg % (args), 'dt':datetime.now()})
+        self.logger.error(msg, *args)
+
+    #---------------------------------------------------------------------------
+    def critical(self, msg, *args, **kwargs):
+        pass
+
+    #---------------------------------------------------------------------------
+    def __init__(self, name, db):
+
+        self.db = db
         self.logger = getLogger(name)
-        self.logger.addHandler(dbg_hdlr)
-        self.logger.addHandler(inf_hdlr)
-        self.logger.addHandler(wrn_hdlr)
-        self.logger.addHandler(err_hdlr)
-        self.logger.addHandler(exc_hdlr)
+        self.logger.addHandler(Loggy.dbg_hdlr)
+        self.logger.addHandler(Loggy.inf_hdlr)
+        self.logger.addHandler(Loggy.wrn_hdlr)
+        self.logger.addHandler(Loggy.err_hdlr)
+        self.logger.addHandler(Loggy.exc_hdlr)
         self.logger.setLevel(DEBUG)

@@ -8,12 +8,13 @@ from datetime import datetime, date, timedelta
 from app import get_logger, kv_store, kv_ext
 from app.main.etap import is_active, EtapError
 from app.main.tasks import create_rfu
+from app.lib.loggy import Loggy
 from app.lib.dt import to_local
 from app.lib.utils import print_vars
 from . import keywords
 from .util import related_notific, lookup_acct, event_begun
 from .dialog import *
-log = get_logger('alice.sess')
+log = Loggy('alice.sess')
 
 #-------------------------------------------------------------------------------
 def has_session():
@@ -202,12 +203,12 @@ def del_expired_session(key, force=False):
 
         if force:
             kv_store.delete(key)
-            log.debug('sess forced delete (key=%s)', key)
         elif sid.has_expired(lifetime, now):
-                log.debug('sess expired. deleted (key=%s)', key)
+                #log.debug('sess expired. deleted (key=%s)', key)
                 kv_store.delete(key)
         else:
-            log.debug('sess not yet expired (key=%s)', key)
+            #log.debug('sess not yet expired (key=%s)', key)
+            pass
 
 #-------------------------------------------------------------------------------
 def wipe_sessions():

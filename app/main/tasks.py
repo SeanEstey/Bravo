@@ -578,31 +578,31 @@ def mem_check(self, **rest):
 
     # Restart celery worker at midnight to release memory leaks
     if t.hour == 0 and t.minute <=15:
-        log.debug('restarting celery worker/beat at midnight...', agcy=None)
+        log.debug('restarting celery worker/beat at midnight...')
         try:
             r = requests.get('http://bravotest.ca/restart_worker')
         except Exception as e:
             log.debug(str(e),agcy=None)
         else:
-            log.debug('code=%s, text=%s', r.status_code, r.text, agcy=None)
+            log.debug('code=%s, text=%s', r.status_code, r.text)
 
     mem = psutil.virtual_memory()
     total = (mem.total/1000000)
     free = mem.free/1000000
 
     if free < 350:
-        log.debug('low memory. %s/%s. forcing gc/clearing cache...', free, total, agcy=None)
+        log.debug('low memory. %s/%s. forcing gc/clearing cache...', free, total)
         os.system('sudo sysctl -w vm.drop_caches=3')
         os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
         gc.collect()
         mem = psutil.virtual_memory()
         total = (mem.total/1000000)
         now_free = mem.free/1000000
-        log.debug('freed %s mb', now_free - free, agcy=None)
+        log.debug('freed %s mb', now_free - free)
 
         if free < 350:
-            log.warning('warning: low memory! 250mb recommended (%s/%s)', free, total, agcy=None)
+            log.warning('warning: low memory! 250mb recommended (%s/%s)', free, total)
     else:
-        log.debug('mem free: %s/%s', free,total, agcy=None)
+        log.debug('mem free: %s/%s', free,total)
 
     return mem

@@ -43,7 +43,7 @@ def load_user(user_id):
     db_user = db.users.find_one({'user': user_id})
 
     if not db_user:
-        log.debug('cant load user_id=%s', user_id, agcy=None)
+        log.debug('cant load user_id=%s', user_id)
         return None
 
     user = User(
@@ -53,7 +53,6 @@ def load_user(user_id):
         agency=db_user['agency'],
         admin=db_user['admin'])
 
-    #log.debug('user_loader returning user_id=%s', user.user_id)
     return user
 
 #-------------------------------------------------------------------------------
@@ -95,7 +94,7 @@ def load_api_user(request):
     try:
         api_key = base64.b64decode(api_key)
     except TypeError:
-        log.debug('base64 decode error, desc=%s', str(e), agcy=None)
+        log.debug('base64 decode error, desc=%s', str(e))
         return None
 
     api_user = api_key.split(':')[1]
@@ -113,8 +112,8 @@ def load_api_user(request):
             agency = user['agency'],
             admin = user['admin'])
     else:
-        log.debug('no user found for api_key=%s', api_key, agcy=None)
+        log.debug('no user found for api_key=%s', api_key)
 
     # finally, return None if both methods did not login the user
-    log.debug('failed to load api user. return none', agcy=None)
+    log.debug('failed to load api user. return none')
     return None

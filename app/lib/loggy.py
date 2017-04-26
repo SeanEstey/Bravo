@@ -70,10 +70,10 @@ class Loggy():
 
     #---------------------------------------------------------------------------
     @staticmethod
-    def get_logs(start_dt, end_dt, agcy):
+    def get_logs(start_dt, end_dt, tag):
 
         logs = g.db.logs.find(
-            {'agcy':agcy, 'dt': {'$gte':start_dt, '$lt':end_dt}})
+            {'tag':tag, 'dt': {'$gte':start_dt, '$lt':end_dt}})
         print "found %s logs" %(logs.count())
         return logs
 
@@ -115,7 +115,7 @@ class Loggy():
     def warning(self, msg, *args, **kwargs):
 
         g.db.logs.insert_one(
-            {'tag':self._get_tag(kwargs), 'lvl':'task', 'msg':msg % (args), 'dt':datetime.now()})
+            {'tag':self._get_tag(kwargs), 'lvl':'warning', 'msg':msg % (args), 'dt':datetime.now()})
         self.logger.warning(msg, *args)
 
     #---------------------------------------------------------------------------

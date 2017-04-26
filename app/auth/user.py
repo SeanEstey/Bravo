@@ -78,6 +78,7 @@ class Anonymous(AnonymousUserMixin):
 
         self.user_id = 'Guest'
         self._id = None
+        self.agency = 'anon'
 
 class API(UserMixin):
 

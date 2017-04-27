@@ -5,11 +5,12 @@ from datetime import datetime, time
 from .. import get_logger, get_keys
 from app.lib import gsheets, mailgun
 from app.lib.dt import to_local, to_utc, ddmmyyyy_to_dt
+from app.lib.loggy import Loggy
 from app.main.etap import EtapError, call, get_udf
 from app.routing.build import create_order
 from app.routing.sheet import append_order
 from app.routing.geo import get_gmaps_url
-log = get_logger('book')
+log = Loggy('book')
 
 #-------------------------------------------------------------------------------
 def make():

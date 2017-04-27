@@ -9,8 +9,9 @@ from app.main import cal, parser
 from app.main.parser import is_res, is_bus
 from app.lib.utils import formatter
 from app.lib.dt import to_utc, to_local
+from app.lib.loggy import Loggy
 from . import triggers
-log = get_logger('notify.evnt')
+log = Loggy('notify.evnt')
 
 #-------------------------------------------------------------------------------
 def create_event():

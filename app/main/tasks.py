@@ -31,7 +31,7 @@ def wipe_sessions(self, **rest):
 @celery.task(bind=True)
 def update_leaderboard_accts(self, agcy=None, **rest):
 
-    log.warning('task: updating leaderboard data...', agcy=agcy)
+    log.warning('task: updating leaderboard data...', group=agcy)
 
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
 
@@ -56,7 +56,7 @@ def update_leaderboard_accts(self, agcy=None, **rest):
             update_gifts(chunk, agency['name'])
 
     # Duration: ~1277s for 2900 accts
-    log.warning('task: complete. leaderboard data updated!', agcy=agcy)
+    log.warning('task: complete. leaderboard data updated!', group=agcy)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -348,7 +348,7 @@ def create_rfu(self, agcy, note, options=None, **rest):
             rfu[headers.index(field)] = options[field]
 
     append_row(srvc, ss_id, 'Issues', rfu)
-    log.debug('Creating RFU=%s', rfu, agcy=agcy)
+    log.debug('Creating RFU=%s', rfu, group=agcy)
 
     return 'success'
 
@@ -373,7 +373,7 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
         log.warning('task: updating calendar events from %s to %s...',
             start_dt.strftime('%m-%d-%Y'),
             end_dt.strftime('%m-%d-%Y'),
-            agcy=agcy)
+            group=agcy)
 
         cal_ids = get_keys('cal_ids',agcy=agcy)
         n_updated = n_errs = n_warnings = 0
@@ -403,14 +403,14 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
                 # Title format: 'R6B [Area1, Area2, Area3] (51/55)'
 
                 if not is_route_size(rv):
-                    log.debug('invalid value=%s from "get_route_size"', rv, agcy=agcy)
+                    log.debug('invalid value=%s from "get_route_size"', rv, group=agcy)
                     n_errs+=1
                     continue
 
                 if not evnt.get('location'):
                     log.debug('missing postal codes in event="%s"',
                     evnt['summary'],
-                    agcy=agcy)
+                    group=agcy)
                     n_warnings+=1
 
                 new_title = '%s [%s] (%s)' %(
@@ -442,7 +442,7 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
                     n_updated+=1
 
         log.warning('task: completed. %s events updated, %s errors, %s warnings',
-            n_updated, n_errs, n_warnings, agcy=agcy)
+            n_updated, n_errs, n_warnings, group=agcy)
 
     return 'success'
 
@@ -474,7 +474,7 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
         r = sms.enable(agency['name'], accts)
 
         log.info('%supdated %s accounts for SMS. discovered %s mobile numbers%s',
-            c.GRN, r['n_sms'], r['n_mobile'], c.ENDC, agcy=agency['name'])
+            c.GRN, r['n_sms'], r['n_mobile'], c.ENDC, group=agency['name'])
 
     return 'success'
 
@@ -482,14 +482,14 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
 @celery.task(bind=True)
 def add_form_signup(self, data, **rest):
 
-    log.debug('received ETW form submission. data=%s', data, agcy='wsf')
+    log.debug('received ETW form submission. data=%s', data, group='wsf')
     from app.main.signups import add_etw_to_gsheets
 
     try:
         add_etw_to_gsheets(data)
     except Exception as e:
-        log.error('error adding signup. desc="%s"', str(e), agcy='wsf')
-        log.debug('', exc_info=True, agcy='wsf')
+        log.error('error adding signup. desc="%s"', str(e), group='wsf')
+        log.debug('', exc_info=True, group='wsf')
         raise
 
     return 'success'
@@ -514,7 +514,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
         on_date = date.today() + delta(days=in_days)
 
         log.info('analyzing blocks on %s blocks (period=%s days)...',
-            on_date.strftime('%m-%d-%Y'), period, agcy=agcy)
+            on_date.strftime('%m-%d-%Y'), period, group=agcy)
 
         for _id in cal_ids:
             accts += get_accounts(
@@ -563,7 +563,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
             n_inactive += 1
 
-        log.info('found %s inactive donors', n_inactive, agcy=agcy)
+        log.info('found %s inactive donors', n_inactive, group=agcy)
 
         n_task_inactive += n_inactive
 
@@ -582,7 +582,7 @@ def mem_check(self, **rest):
         try:
             r = requests.get('http://bravotest.ca/restart_worker')
         except Exception as e:
-            log.debug(str(e),agcy=None)
+            log.debug(str(e), group='sys')
         else:
             log.debug('code=%s, text=%s', r.status_code, r.text)
 

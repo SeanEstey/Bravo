@@ -3,6 +3,7 @@
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-switch/3.3.4/css/bootstrap2/bootstrap-switch.css" rel="stylesheet" type="text/css">
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-switch/3.3.4/js/bootstrap-switch.js"></script>
+<script type="text/javascript" src="{{url_for("main.static", filename="js/strftime.js")}}"></script>
 <script type="text/javascript" src="{{url_for("main.static", filename="js/admin.js")}}"></script>
 
 <script>
@@ -36,9 +37,14 @@
 		<li class="nav-item">
 			<a class="nav-link" data-toggle="tab" href="#properties" role="tab">Properties</a>
 		</li>
+		<li class="nav-item">
+			<a class="nav-link" data-toggle="tab" href="#recent" role="tab">Recent</a>
+		</li>
 	</ul>
 
 	<div class="tab-content">
+
+
 
     <!-- Me Pane -->
 		<div class="tab-pane active" id="me" style='margin-bottom:7em' role="tabpanel">
@@ -277,6 +283,11 @@
       </form>
     </div>
 
+    <!-- Recent Pane -->
+		<div class="tab-pane" id="recent" style='margin-bottom:7em' role="tabpanel">
+      <div id='recnt_list' class="list-group">
+      </div>
+    </div>
 
 
 	</div>

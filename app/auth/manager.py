@@ -77,7 +77,7 @@ def load_api_user(request):
                 agency = db_user['agency'],
                 admin = db_user['admin'])
 
-            log.debug('logging in', agcy=user['agency'])
+            log.debug('logging in', group=user['agency'])
             login_user(user)
 
             return user
@@ -103,7 +103,7 @@ def load_api_user(request):
     user = db.users.find_one({'api_key':str(api_key)})
 
     if user:
-        log.debug('"%s" API auth success', user['name'], agcy=user['agency'])
+        log.debug('"%s" API auth success', user['name'], group=user['agency'])
 
         return User(
             user['user'],

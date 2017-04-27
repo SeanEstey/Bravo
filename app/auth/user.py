@@ -76,7 +76,7 @@ class Anonymous(AnonymousUserMixin):
     #---------------------------------------------------------------------------
     def __init__(self):
 
-        self.user_id = 'Guest'
+        self.user_id = 'anon'
         self._id = None
         self.agency = 'anon'
 

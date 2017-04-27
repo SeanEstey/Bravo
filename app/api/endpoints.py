@@ -251,6 +251,12 @@ def call_route_edit():
 def call_op_stats():
     return func_call(get_server_prop)
 
+@api.route('/server/recent', methods=['POST'])
+@login_required
+def get_logs():
+    from app.lib.loggy import Loggy
+    return func_call(Loggy.get_logs, group=g.user.agency, levels=['info','warning','error'])
+
 @api.route('/user/login', methods=['POST'])
 def user_login():
     from app.auth.manager import login

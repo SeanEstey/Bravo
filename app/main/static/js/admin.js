@@ -2,6 +2,7 @@
 var serv_pane_init = false;
 var prop_pane_init = false;
 var user_pane_init = false;
+var recnt_pane_init = false;
 
 //------------------------------------------------------------------------------
 function init() {
@@ -27,6 +28,9 @@ function init() {
         else if(id == '#me') {
             initUserPane();
         }
+        else if(id == '#recent') {
+            initRecentPane();
+        }
 
         $(this).tab('show');
     })
@@ -42,7 +46,7 @@ function initUserPane() {
 
     $('#logout').click(function(e){
         e.preventDefault();
-        
+
         api_call(
             'user/logout',
             data=null,
@@ -68,7 +72,7 @@ function initServicesPane() {
 
     api_call(
       'agency/conf/get',
-      null, 
+      null,
       function(response){
           console.log(response['status']);
           var conf = response['data'];
@@ -117,7 +121,7 @@ function initPreviewerPane() {
               $('#mymodal .modal-body').html(response['data']);
           });
     });
-    
+
     $('#sms_btn').click(function(e){
         showModal(
           'mymodal',
@@ -197,29 +201,54 @@ function initPropertiesPane() {
     if(prop_pane_init)
         return;
 
-    api_call(
-      'agency/properties/get',
-      null, 
-      function(response){
-          console.log(response['status']);
-          var prop = response['data'];
+    api_call('agency/properties/get', null, function(response){
+        console.log(response['status']);
+        var prop = response['data'];
 
-          $("#n_alice_convos").text(prop['n_alice_convos']);
-          $("#n_maps_indexed").text(prop['n_maps_indexed']);
-          $("#n_notific_events").text(prop['n_notific_events']);
-          $("#n_leaderboard_accts").text(prop['n_leaderboard_accts']);
-          $("#n_users").text(prop['n_users']);
-          $("#n_sessions").text(prop['n_sessions']);
+        $("#n_alice_convos").text(prop['n_alice_convos']);
+        $("#n_maps_indexed").text(prop['n_maps_indexed']);
+        $("#n_notific_events").text(prop['n_notific_events']);
+        $("#n_leaderboard_accts").text(prop['n_leaderboard_accts']);
+        $("#n_users").text(prop['n_users']);
+        $("#n_sessions").text(prop['n_sessions']);
 
-          prop_pane_init = true;
-      }
-    );
+        prop_pane_init = true;
+    });
 }
 
+//------------------------------------------------------------------------------
+function initRecentPane() {
 
+    if(recnt_pane_init)
+        return;
+
+    var styles = {
+        'debug': '',
+        'info': 'list-group-item-info',
+        'warning': 'list-group-item-warning',
+        'error': 'list-group-item-danger'
+    };
+
+    api_call('server/recent', null, function(response){
+        console.log("%s. %s events returned", response['status'], response['data'].length);
+        var logs = response['data'];
+
+        for(var i=0; i<logs.length; i++) {
+
+            $('#recnt_list').append(
+                '<a href="#" ' +
+                'class="list-group-item list-group-item-action ' + styles[logs[i]['level']] + '">' +
+                new Date(logs[i]["created"]["$date"]).strftime("%I:%M%p: ") + logs[i]["msg"] +
+                '</a>')
+        }
+
+        recnt_pane_init = true;
+    });
+}
 
 //------------------------------------------------------------------------------
 function saveFieldEdit(field, value) {
+
     api_call(
         'agency/conf/update',
         {'field':field, 'value':value},

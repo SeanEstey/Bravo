@@ -304,6 +304,9 @@ def preview():
     evnt = g.db.events.find_one({'_id':evnt_id})
     notific = g.db.notifics.find_one({'evnt_id':evnt_id, 'type':'voice'})
 
+    if not notific:
+        raise Exception('preview event cant find notific')
+
     notific['tracking']['answered_by'] = 'human'
     notific['tracking']['digit'] = "1"
     acct = g.db.accounts.find_one({'_id':notific['acct_id']})

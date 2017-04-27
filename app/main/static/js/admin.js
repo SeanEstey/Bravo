@@ -238,7 +238,7 @@ function initRecentPane() {
             $('#recnt_list').append(
                 '<a href="#" ' +
                 'class="list-group-item list-group-item-action ' + styles[logs[i]['level']] + '">' +
-                new Date(logs[i]["created"]["$date"]).strftime("%I:%M%p: ") + logs[i]["msg"] +
+                new Date(logs[i]["created"]["$date"]).strftime("%b %d: %I:%M%p: ") + logs[i]["msg"] +
                 '</a>')
         }
 

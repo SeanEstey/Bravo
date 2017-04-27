@@ -8,11 +8,11 @@ from .. import get_logger, smart_emit, get_keys
 from app.lib import mailgun
 from app.lib.utils import formatter
 from app.lib.dt import to_utc, ddmmyyyy_to_dt
-from app.lib.logger import colors as c
+from app.lib.loggy import Loggy, colors as c
 from app.main.donors import get
 from app.main.etap import get_udf, NAME_FORMAT
 from .utils import simple_dict
-log = get_logger('notify.email')
+log= Loggy('notify.email')
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
@@ -97,7 +97,7 @@ def send(notific, mailgun_conf, key='default'):
             evnt_id = notific['evnt_id'])
     except Exception as e:
         log.error('template error. desc=%s', str(e))
-        log.debug('', exc_info=True)
+        log.debug(str(e))
         raise
 
     mid = mailgun.send(
@@ -126,11 +126,14 @@ def send(notific, mailgun_conf, key='default'):
 def on_delivered():
     '''Called from view webhook. Has request context'''
 
-    log.debug('%sdelivered notific to %s%s', c.GRN, request.form['recipient'], c.ENDC)
-
     notific = g.db.notifics.find_one_and_update(
       {'tracking.mid': request.form['Message-Id']},
       {'$set':{'tracking.status': request.form['event']}})
+
+    evnt = g.db.events.find_one({'_id':notific['evnt_id']})
+
+    log.debug('%sdelivered notific to %s%s',
+        c.GRN, request.form['recipient'], c.ENDC, group=evnt['agency'])
 
     smart_emit('notific_status',
         {'notific_id': str(notific['_id']), 'status': request.form['event']})
@@ -139,12 +142,14 @@ def on_delivered():
 def on_dropped():
     '''Called from view webhook. Has request context'''
 
-    log.error('dropped notific to %s', request.form['recipient'])
-    log.debug('reason dropped: %s', request.form.get('reason'))
-
     notific = g.db.notifics.find_one_and_update(
       {'tracking.mid': request.form['Message-Id']},
       {'$set':{'tracking.status':request.form['event']}})
+
+    evnt = g.db.events.find_one({'_id':notific['evnt_id']})
+
+    log.error('dropped notific to %s', request.form['recipient'], group=evnt['agency'])
+    log.debug('reason dropped: %s', request.form.get('reason'), group=evnt['agency'])
 
     smart_emit('notific_status',
         {'notific_id':str(notific['_id']), 'status':request.form['event']})

@@ -6,11 +6,11 @@ from datetime import datetime, date, time
 from .. import get_logger, smart_emit, get_keys
 from app.lib import html
 from app.lib.dt import to_utc, to_local
-from app.lib.logger import colors as c
+from app.lib.loggy import Loggy, colors as c
 from app.alice.outgoing import compose
 from app.main.donors import get
 from .utils import intrntl_format, simple_dict
-log = get_logger('notify.sms')
+log = Loggy('notify.sms')
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
@@ -119,24 +119,26 @@ def on_status():
     status = request.form['SmsStatus']
     to = request.form['To']
 
-    if status == 'delivered':
-        log.debug('%sdelivered SMS notific to %s%s', c.GRN, to, c.ENDC)
-    elif status == 'queued':
-        log.debug('queued SMS notific to %s', to)
-    else:
-        log.debug('%s SMS notific to %s', status, to)
-
     notific = g.db.notifics.find_one_and_update({
         'tracking.sid': request.form['SmsSid']}, {
         '$set':{
             'tracking.status': status,
             'tracking.sent_dt': to_local(dt=datetime.now())}})
 
+    evnt = g.db.events.find_one({'_id':notific.get('evnt_id')})
+
+    if status == 'delivered':
+        log.debug('%sdelivered SMS notific to %s%s',
+            c.GRN, to, c.ENDC, group=evnt['agency'])
+    elif status == 'queued':
+        log.debug('queued SMS notific to %s', to, group=evnt['agency'])
+    else:
+        log.debug('%s SMS notific to %s', status, to, group=evnt['agency'])
+
     # Could be a new sid from a reply to reminder text?
     if not notific:
         log.debug('no notific for sid %s. must be reply.', str(request.form['SmsSid']))
         return 'OK'
-        log.info('rest call')
 
     smart_emit('notific_status', {
         'notific_id': str(notific['_id']),

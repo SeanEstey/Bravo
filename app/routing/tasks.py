@@ -9,12 +9,13 @@ from app import task_logger, smart_emit, celery, get_keys
 from app.lib import gcal, gdrive, gsheets
 from app.lib.utils import formatter
 from app.lib.dt import to_local, ddmmyyyy_to_date
+from app.lib.loggy import Loggy
 from app.main import parser
 from app.main.etap import EtapError, get_udf
 from .main import add_metadata
 from .build import submit_job, get_solution_orders
 from . import depots, sheet
-log = task_logger('routing.tasks')
+log = Loggy('routing.tasks')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -25,7 +26,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
     '''
 
     sleep(3)
-    log.debug('discovering routes...')
+    log.debug('discovering routes...', group=agcy)
     smart_emit('discover_routes', {'status':'in-progress'})
 
     if not agcy:
@@ -65,7 +66,8 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
                 log.debug('block %s raised exc. continuing...', block)
                 continue
 
-            log.debug('discovered %s on %s', block, event_dt.strftime('%b %-d'))
+            log.debug('discovered %s on %s',
+                block, event_dt.strftime('%b %-d'), group=agcy)
 
             smart_emit('discover_routes', {
                 'status': 'discovered', 'route': formatter(meta, to_strftime=True, bson_to_json=True)},
@@ -83,7 +85,7 @@ def build_scheduled_routes(self, agcy=None, **rest):
     '''Route orders for today's Blocks and build Sheets
     '''
 
-    log.warning('task: building scheduled routes...')
+    log.warning('task: building scheduled routes...', group=agcy)
 
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
     n_fails = n_success = 0
@@ -96,20 +98,20 @@ def build_scheduled_routes(self, agcy=None, **rest):
 
         discover_routes(agcy=agcy)
 
-        log.info('building %s routes, agcy=%s', routes.count(), agcy)
+        log.info('building %s routes', routes.count(), group=agcy)
 
         for route in routes:
             try:
                 build_route(str(route['_id']))
             except Exception as e:
-                log.error('error building %s, msg=%s', route['block'], str(e))
+                log.error('error building %s, msg=%s', route['block'], str(e), group=agcy)
                 n_fails+=1
                 continue
 
             n_success += 1
             sleep(2)
 
-    log.warning('task: completed. %s routes built, %s failures.', n_success, n_fails)
+    log.warning('task: completed. %s routes built, %s failures.', n_success, n_fails, group=agcy)
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -123,12 +125,11 @@ def build_route(self, route_id, job_id=None, **rest):
     Returns: db.routes dict on success, False on error
     '''
 
-    log.debug('route_id="%s", job_id="%s"', route_id, job_id)
-
     route = g.db.routes.find_one({"_id":ObjectId(route_id)})
     agcy = route['agency']
 
-    log.info('building %s...', route['block'])
+    log.debug('route_id="%s", job_id="%s"', route_id, job_id, group=agcy)
+    log.info('building %s...', route['block'], group=agcy)
 
     if job_id is None:
         job_id = submit_job(ObjectId(route_id))
@@ -139,12 +140,12 @@ def build_route(self, route_id, job_id=None, **rest):
         get_keys('google',agcy=agcy)['geocode']['api_key'])
 
     if orders == False:
-        log.error('error retrieving routific solution')
-        log.debug('',exc_info=True)
+        log.error('error retrieving routific solution', group=agcy)
+        log.debug(str(e), group=agcy)
         return 'failed'
 
     while orders == "processing":
-        log.debug('no solution yet, sleeping (5s)...')
+        log.debug('no solution yet, sleeping (5s)...', group=agcy)
         sleep(5)
         orders = get_solution_orders(
             job_id,
@@ -176,8 +177,8 @@ def build_route(self, route_id, job_id=None, **rest):
             ss['id'],
             route)
     except Exception as e:
-        log.error('error writing orders. desc=%s', str(e))
-        log.debug('', exc_info=True)
+        log.error('error writing orders. desc=%s', str(e), group=agcy)
+        log.debug(str(e), group=agcy)
         raise
 
     smart_emit('route_status',{
@@ -185,6 +186,6 @@ def build_route(self, route_id, job_id=None, **rest):
 
     log.info('%s built. orders=%s, unserved=%s, warnings=%s, errors=%s',
         route['block'], len(orders), route['num_unserved'],
-        len(route['warnings']), len(route['errors']))
+        len(route['warnings']), len(route['errors']), group=agcy)
 
     return json.dumps({'status':'success', 'route_id':str(route['_id'])})

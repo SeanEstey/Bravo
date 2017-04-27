@@ -89,7 +89,7 @@ class Loggy():
              },
             },
             {'_id':0}
-        ).limit(25)
+        ).limit(25).sort('created', -1)
 
         print "found %s logs" %(logs.count())
 

@@ -5,8 +5,8 @@ from dateutil.parser import parse
 from oauth2client.service_account import ServiceAccountCredentials
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
-from app import get_logger
-log = get_logger('gsheets')
+from app.lib.loggy import Loggy
+log = Loggy('gsheets')
 
 #-------------------------------------------------------------------------------
 def num_columns(service, ss_id, wks):
@@ -228,7 +228,7 @@ def api_ss_values_get(service, ss_id, wks, range_):
         ).execute()
     except Exception as e:
         log.error('Error getting values from sheet: %s', str(e))
-        log.debug('', exc_info=True)
+        log.debug(str(e))
         raise
 
     return result
@@ -253,7 +253,7 @@ def api_ss_values_update(service, ss_id, wks, range_, values):
             body=body).execute()
     except Exception as e:
         log.error('Error updating sheet: %s', str(e))
-        log.debug('', exc_info=True)
+        log.debug(str(e))
         return False
 
 #-------------------------------------------------------------------------------
@@ -284,7 +284,7 @@ def api_execute(service, ss_id, requests):
             }).execute()
     except Exception as e:
         log.error('error executing batch update. desc=%s', str(e))
-        log.debug('', exc_info=True)
+        log.debug(str(e))
         raise
 
 #-------------------------------------------------------------------------------

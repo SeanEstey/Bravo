@@ -1,11 +1,13 @@
 '''app.lib.loggy'''
+import re
 from logging import getLogger, Formatter, FileHandler, Filter
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from datetime import datetime, timedelta
 from config import LOG_PATH
-from flask import g
+from flask import g, session, has_app_context, has_request_context
 from celery.utils.log import get_task_logger
 from datetime import datetime
+from app import db_client
 from . import mongodb
 from .utils import formatter
 
@@ -96,6 +98,7 @@ class Loggy():
         return formatter(list(logs), bson_to_json=True) #, to_json=True)
 
     # Static Members
+    regex_colors = re.compile('\\x1b\[[0-9]{1,2}m')
     levels = ['debug', 'info', 'warning', 'error']
     dbg_hdlr = file_handler.__func__(DEBUG, 'debug.log')
     inf_hdlr = file_handler.__func__(INFO, 'events.log')
@@ -114,8 +117,10 @@ class Loggy():
 
         if kwargs.get('group'):
             return kwargs['group']
-        elif g.get('user'):
+        elif has_app_context() and g.get('user'):
             return g.get('user').agency
+        elif has_request_context() and session.get('agcy'):
+            return session['agcy']
         else:
             return 'sys'
 
@@ -124,16 +129,32 @@ class Loggy():
         '''user_id for
         '''
 
-        if g.get('user'):
+        # Bravo user
+        if has_app_context() and g.get('user'):
             return g.get('user').user_id
+        elif has_request_context():
+            # Reg. end-user using Alice
+            if session.get('account'):
+                return session['account']['id']
+            # Unreg. end-user using Alice
+            elif session.get('anon_id'):
+                return session['anon_id']
+            # Celery task w/ req ctx
+            else:
+                return 'sys'
+        # System task
         else:
             return 'sys'
 
     #---------------------------------------------------------------------------
     def _insert(self, level, msg, args, kwargs):
 
-        g.db.logs.insert_one({
-            'msg': msg %(args),
+        db = g.db if has_app_context() else db_client['bravo']
+
+        frmt_msg = re.sub(Loggy.regex_colors, '', msg %(args))
+
+        db.logs.insert_one({
+            'msg': frmt_msg,
             'level': level,
             'name': self.name,
             'tag': kwargs.get('tag', None),

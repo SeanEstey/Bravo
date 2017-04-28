@@ -3,8 +3,8 @@ import httplib2, json, logging, re, requests, pymongo
 from oauth2client.service_account import ServiceAccountCredentials
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
-from app import get_logger
-log = get_logger('gdrive')
+from app.lib.loggy import Loggy
+log = Loggy('gdrive')
 
 
 #-------------------------------------------------------------------------------

@@ -3,9 +3,9 @@ import httplib2, json, logging, requests
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from apiclient.discovery import build
-from app import get_logger
+from app.lib.loggy import Loggy
 from .utils import print_vars
-log = get_logger('gcal')
+log = Loggy('gcal')
 
 color_ids = {
     'light_purple' : 1,
@@ -34,8 +34,6 @@ def gauth(oauth):
     except Exception as e:
         log.error('Error authorizing gcal: %s', str(e))
         return False
-
-    #log.debug('calendar service authorized')
 
     return service
 
@@ -83,11 +81,9 @@ def update_event(srvc, item, title=None, location=None, desc=None, color_id=None
         ).execute()
     except Exception as e:
         log.error('error updating event. desc=%s', str(e))
-        log.debug('',exc_info=True)
+        log.debug(str(e))
         raise
 
-    # from pprint import pformat
-    # log.debug(pformat(rv,indent=4))
     log.debug('updated event="%s", date="%s"', rv['summary'], rv['start']['date'])
 
 #-------------------------------------------------------------------------------

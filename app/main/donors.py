@@ -3,11 +3,12 @@ import json, logging, math
 from datetime import date, timedelta
 from dateutil.parser import parse
 from flask import g, request
-from app import get_keys, get_logger
+from app import get_keys
 from app.lib import html, mailgun
+from app.lib.loggy import Loggy
 from app.main.etap import EtapError, mod_acct, get_udf, call
 from app.lib.dt import ddmmyyyy_to_date as to_date
-log = get_logger('main.donors')
+log = Loggy('main.donors')
 
 #-------------------------------------------------------------------------------
 def get(acct_id):
@@ -129,7 +130,7 @@ def create_accts(accts):
         rv = call('add_accts', get_keys('etapestry'), {'accts':accts})
     except Exception as e:
         log.error('add_accts. desc=%s', str(e))
-        log.debug('', exc_info=True)
+        log.debug(str(e))
 
     log.warning('%s', rv['description'])
 
@@ -144,7 +145,7 @@ def is_inactive(agcy, acct, days=270):
     # Set Dropoff Date == acct creation date if empty
 
     if not drop_date:
-        log.debug('accountCreatedDate=%s', acct['accountCreatedDate'])
+        log.debug('accountCreatedDate=%s', acct['accountCreatedDate'], group=agcy)
         #acct_date = parse(acct['accountCreatedDate']).strftime("%d/%m/%Y")
         #signup_date = acct_date.split('/')
         #mod_acct(acct['id'], get_keys('etapestry',agcy=agcy),
@@ -171,13 +172,13 @@ def is_inactive(agcy, acct, days=270):
                 "end": date.today().strftime('%d/%m/%Y')})[0]
     except EtapError as e:
         log.error('get_gift_histories error for acct_id=%s. desc=%s',
-            acct['id'], str(e))
+            acct['id'], str(e), group=agcy)
         raise
 
     if len(je) > 0:
         return False
     else:
-        log.debug('found inactive donor, acct_id="%s"', acct['id'])
+        log.debug('found inactive donor, acct_id="%s"', acct['id'], group=agcy)
         return True
 
 #-------------------------------------------------------------------------------
@@ -185,7 +186,7 @@ def unsubscribe(agcy):
     if not request.args.get('email'):
         raise Exception('no email included in unsub')
 
-    log.debug('unsub email=%s, agcy=%s', request.args['email'], agcy)
+    log.debug('unsub email=%s', request.args['email'], group=agcy)
 
     conf = get_keys('mailgun',agcy=agcy)
 
@@ -198,8 +199,8 @@ def unsubscribe(agcy):
             conf,
             v={'type':'unsub'})
     except Exception as e:
-        log.error(str(e))
-        log.debug('', exc_info=True)
+        log.error(str(e), group=agcy)
+        log.debug(str(e), gropu=agcy)
         return 'failed'
 
     return "We've received your request. "\

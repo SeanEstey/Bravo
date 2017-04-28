@@ -9,8 +9,9 @@ from app.lib import html, mailgun
 from app.lib.utils import to_title_case
 from app.lib.gsheets import update_cell, to_range, gauth, get_row
 from app.lib.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
+from app.lib.loggy import Loggy
 from .etap import call, get_udf
-log = get_logger('main.receipts')
+log = Loggy('main.receipts')
 
 #-------------------------------------------------------------------------------
 def generate(acct, entry, ytd_gifts=None):
@@ -184,7 +185,7 @@ def get_ytd_gifts(acct_ref, year):
 def on_delivered(agcy):
     '''Mailgun webhook called from view. Has request context'''
 
-    log.debug('receipt delivered to %s', request.form['recipient'])
+    log.debug('receipt delivered to %s', request.form['recipient'], group=agcy)
 
     row = request.form['ss_row']
     ss_id = get_keys('google',agcy=agcy)['ss_id']
@@ -199,8 +200,8 @@ def on_delivered(agcy):
         service = None
         gc.collect()
     except Exception as e:
-        log.error('error updating sheet')
-        log.debug('', exc_info=True)
+        log.error('error updating sheet', group=agcy)
+        log.debug(str(e), group=agcy)
         service = None
         gc.collect()
 
@@ -215,7 +216,7 @@ def on_dropped(agcy):
         request.form['reason'],
         request.form.get('description'))
 
-    log.info(msg)
+    log.info(msg, group=agcy)
 
     ss_id = get_keys('google',agcy=agcy)['ss_id']
 
@@ -225,6 +226,6 @@ def on_dropped(agcy):
         col = headers.index('Receipt')+1
         update_cell(service, ss_id, 'Donations', to_range(row,col), request.form['event'])
     except Exception as e:
-        log.error('error updating sheet')
+        log.error('error updating sheet', group=agcy)
 
     create_rfu.delay(agcy, msg)

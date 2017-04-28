@@ -7,11 +7,12 @@ from twilio import TwilioRestException
 from flask import g, request
 from app import get_logger, get_keys, kv_store
 from app.main import etap
-from app.lib.logger import colors as c
+from app.lib.loggy import Loggy, colors as c
 from app.lib.dt import to_local
 from .dialog import dialog
 from .session import store_sessions
-log = get_logger('alice.out')
+log = Loggy('alice.out')
+#log = get_logger('alice.out')
 
 
 #-------------------------------------------------------------------------------
@@ -77,8 +78,8 @@ def compose(agcy, body, to, callback=None, find_session=False, event_log=False):
             conf['api']['sid'],
             conf['api']['auth_id'])
     except Exception as e:
-        log.error(e)
-        log.debug(e, exc_info=True)
+        log.error(e, group=agcy)
+        log.debug(str(e), group=agcy)
         raise
 
     try:
@@ -88,14 +89,14 @@ def compose(agcy, body, to, callback=None, find_session=False, event_log=False):
             from_ = conf['sms']['number'],
             status_callback = callback)
     except Exception as e:
-        log.error(e)
-        log.debug(e, exc_info=True)
+        log.error(e, group=agcy)
+        log.debug(str(e), group=agcy)
         raise
     else:
         if event_log:
-            log.info('%s"%s"%s', c.BOLD, body, c.ENDC)
+            log.info('%s"%s"%s', c.BOLD, body, c.ENDC, group=agcy)
         else:
-            log.debug('%s"%s"%s', c.BOLD, body, c.ENDC)
+            log.debug('%s"%s"%s', c.BOLD, body, c.ENDC, group=agcy)
 
     if not find_session:
         return msg

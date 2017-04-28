@@ -1,9 +1,10 @@
 '''app.main.etap'''
 import json, logging, os, subprocess
 from datetime import datetime, date
-from app import get_logger, get_keys
+from app import get_keys
+from app.lib.loggy import Loggy
 import config
-log = get_logger('etap')
+log = Loggy('etap')
 
 class EtapError(Exception):
     pass
@@ -16,7 +17,7 @@ NAME_FORMAT = {
 }
 
 #-------------------------------------------------------------------------------
-def call(func, keys, data, silence_exc=False ):
+def call(func, keys, data, silence_exc=False):
 
     sandbox = 'true' if os.environ['BRV_SANDBOX'] == 'True' else 'false'
 
@@ -30,14 +31,14 @@ def call(func, keys, data, silence_exc=False ):
     try:
         response = subprocess.check_output(cmds)
     except Exception as e:
-        log.error('subprocess error. desc=%s', str(e))
-        log.debug('',exc_info=True)
+        log.error('subprocess error. desc=%s', str(e), group=keys['agency'])
+        log.debug(str(e), group=keys['agency'])
         raise
 
     try:
         response = json.loads(response)
     except Exception as e:
-        log.error('not json serializable, rv=%s', response)
+        log.error('not json serializable, rv=%s', response, group=keys['agency'])
         raise EtapError(response)
 
     # Success: {'status':'SUCCESS', 'result':'<data>'}
@@ -45,7 +46,8 @@ def call(func, keys, data, silence_exc=False ):
 
     if response['status'] == 'FAILED':
         log.error('status=%s, func="%s", description="%s", result="%s"',
-            response['status'], func, response['description'], response.get('result'))
+            response['status'], func, response['description'], response.get('result'),
+            group=keys['agency'])
         raise EtapError(response)
     else:
         return response['result']
@@ -91,7 +93,7 @@ def mod_acct(acct_id, keys, udf=None, persona=[], exc=False):
         call('modify_acct', keys, {
             'acct_id':acct_id, 'udf':udf, 'persona': persona})
     except EtapError as e:
-        log.error('Error modifying account %s: %s', acct_id, str(e))
+        log.error('Error modifying account %s: %s', acct_id, str(e), group=keys['agency'])
 
         if not exc:
             return str(e)

@@ -4,12 +4,12 @@ from os import environ, system
 from flask import current_app, g, session
 from flask_login import current_user
 from detect import startup_msg, set_environ
-from app import get_logger, db_client, create_app
+from app import db_client, create_app
 from app.auth import load_user
 from app.lib.utils import print_vars, inspector
 from app.main.socketio import sio_server
-
-log = get_logger('run')
+from app.lib.loggy import Loggy
+log = Loggy('app')
 app = create_app('app')
 
 #-------------------------------------------------------------------------------

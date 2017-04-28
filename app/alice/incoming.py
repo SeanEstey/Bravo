@@ -8,23 +8,21 @@ from twilio import twiml
 from datetime import datetime, date, time, timedelta
 from flask import request, make_response, g, session
 from app import get_logger
-from app.lib.logger import colors as c
+from app.lib.loggy import Loggy, colors as c
 from app.main.etap import EtapError
 from . import keywords
 from .dialog import *
 from .phrases import *
 from .replies import *
 from .session import *
-log = get_logger('alice.inc')
+log = Loggy('alice.inc')
+#log = get_logger('alice.inc')
 
 #-------------------------------------------------------------------------------
 def receive():
     '''Try to parse message.
     Return Twiml response
     '''
-
-    inc_msg_count()
-    log_msg()
 
     if not has_session():
         try:
@@ -33,6 +31,9 @@ def receive():
             return make_reply(str(e))
     else:
         update_session()
+
+    inc_msg_count()
+    log_msg()
 
     kws = find_kw_matches(get_msg(), session.get('valid_kws'))
 

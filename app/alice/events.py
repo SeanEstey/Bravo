@@ -5,13 +5,14 @@ from datetime import datetime, date, time, timedelta
 from app import get_logger
 from app.lib.dt import to_local, ddmmyyyy_to_dt
 from app.lib.utils import print_vars
+from app.lib.loggy import Loggy
 from app.main.etap import call, get_udf, EtapError
 from app.booker import geo, search, book
 from .dialog import dialog
 from .util import related_notific, event_begun, set_notific_reply
 from app.main.tasks import create_rfu
 from app.notify.tasks import skip_pickup as skip_pickup_task
-log = get_logger('alice.events')
+log = Loggy('alice.events')
 
 #-------------------------------------------------------------------------------
 def request_support():
@@ -43,7 +44,7 @@ def prompt_instructions():
     if not session.get('notific_id'):
         return dialog['skip']['no_evnt']
 
-    log.debug('valid_notific_reply=%s', session.get('valid_notific_reply'))
+    log.debug('is_notific_reply=%s', session.get('valid_notific_reply'))
 
     if session.get('valid_notific_reply') == False:
         return dialog['skip']['too_late']
@@ -112,7 +113,7 @@ def skip_pickup():
             acct_id=str(notific['acct_id']))
     except Exception as e:
         log.error('skip_pickup failed')
-        log.debug('',exc_info=True)
+        log.debug(str(e))
         return dialog['error']['unknown']
 
     dt = g.db.accounts.find_one(

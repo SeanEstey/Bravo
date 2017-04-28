@@ -5,7 +5,7 @@ from bson import ObjectId
 from flask import g
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
-from app import task_logger, smart_emit, celery, get_keys
+from app import smart_emit, celery, get_keys
 from app.lib import gcal, gdrive, gsheets
 from app.lib.utils import formatter
 from app.lib.dt import to_local, ddmmyyyy_to_date

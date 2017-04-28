@@ -578,9 +578,11 @@ def mem_check(self, **rest):
 
     # Restart celery worker at midnight to release memory leaks
     if t.hour == 0 and t.minute <=15:
+        from os import environ as env
         log.debug('restarting celery worker/beat at midnight...')
+        log.debug('env[BRV_HTTP_HOST]=%s', env.get('BRV_HTTP_HOST'))
         try:
-            r = requests.get('http://bravotest.ca/restart_worker')
+            r = requests.get(env['BRV_HTTP_HOST'] + '/restart_worker')
         except Exception as e:
             log.debug(str(e), group='sys')
         else:

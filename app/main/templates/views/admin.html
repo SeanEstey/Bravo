@@ -276,7 +276,7 @@
 		<div class="tab-pane" id="recent" style='margin-bottom:7em' role="tabpanel">
       <div>
         <fieldset class="form-fieldset new_event" style="margin:0; padding:.5em 2em;">
-          <legend class="new_event">Filter</legend>
+          <legend class="new_event">Filter Events</legend>
             <form id='filtr_lvls' class="form-inline">
               <div class="form-check mb-1 mr-sm-2 mb-sm-0">
                 <label style="font-size:14pt" class="form-check-label mr-2">Levels</label>
@@ -308,12 +308,17 @@
               </div>
               <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
                 <label class="form-check-label">
-                  <input name="usr_grp" class="form-check-input" type="checkbox" checked> User Group
+                  <input name="usr_grp" class="form-check-input" type="checkbox" checked> Organization
                 </label>
               </div>
               <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
                 <label class="form-check-label">
-                  <input name="sys_grp" class="form-check-input" type="checkbox"> System Tasks
+                  <input name="sys_grp" class="form-check-input" type="checkbox"> System
+                </label>
+              </div>
+              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+                <label class="form-check-label">
+                  <input name="anon_grp" class="form-check-input" type="checkbox"> Unregistered
                 </label>
               </div>
             </form>

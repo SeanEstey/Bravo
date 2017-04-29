@@ -1,18 +1,23 @@
 from datetime import timedelta
 
-SSL_CERT_PATH = '/etc/nginx/bravoweb.ca.chained.crt'
-TITLE = 'Bravo'
-LOG_PATH = '/root/bravo/logs/'
-LOG_LINES = 200
-DB = 'bravo'
+# Flask
+TEMPLATES_AUTO_RELOAD = True
 SESSION_COLLECTION = 'sessions'
 PERMANENT_SESSION_LIFETIME = timedelta(minutes=60)
+SECRET_KEY = 'secret'
+
+# App
+TITLE = 'Bravo'
+SSL_CERT_PATH = '/etc/nginx/bravoweb.ca.chained.crt'
+LOG_PATH = '/root/bravo/logs/'
 MONGO_URL = 'localhost'
 MONGO_PORT = 27017
 LOCAL_PORT = 8000
 LOCAL_URL = 'http://localhost:%s' % LOCAL_PORT
 PUB_PORT = 80
-SECRET_KEY = 'secret'
+DB = 'bravo'
+
+# Other
 GSHEET_NAME = 'Bravo Sheets'
 ENV_VARS = [
     'BRV_SANDBOX',

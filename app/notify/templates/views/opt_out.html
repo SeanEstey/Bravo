@@ -1,0 +1,29 @@
+{% extends "views/base.html" %}
+
+{% block content %}  
+  <script src="{{url_for("notify.static", filename="js/opt_out.js")}}"></script>
+  <script> 
+    jQuery(function($) {
+      opt_out_init();
+      //alertMsg("{{msg|safe}}", "info", 15000);
+    }); 
+  </script>
+
+  <div class="container">
+    <div class="row">
+      <div class="col-3">
+        left bumper
+      </div>
+      <div class="col">
+        <label>Thank you for opting out of your pick-up. This helps us tremendously
+        in being efficient with our driver resources.<label>
+      </div>
+      <div class="col-3">
+      right bumper
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+

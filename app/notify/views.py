@@ -70,3 +70,10 @@ def view_event(evnt_id):
         event=event,
         triggers=trigger_list,
         admin=g.user.is_admin())
+
+#-------------------------------------------------------------------------------
+@notify.route('/skip')
+def view_opt_out(evnt_id=None):
+    return render_template(
+        'views/opt_out.html'
+    )

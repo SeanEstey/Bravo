@@ -100,7 +100,6 @@ a.hover:visited {
     right:0; 
     right:50%;
     background: rgba(255,255,255,1.0); 
-    /*background: rgba(255,255,255,0.85); */
     text-align: center; 
     width: 600px;
     margin-right: -300px;
@@ -163,7 +162,6 @@ legend.admin-border {
     margin-right: 0.25em;
 }
 .loader-div {
-    /* Loading button with spinning refresh icon */
 	display: none;
 	background-color:#f7f7f7;
 	text-align:center;
@@ -259,7 +257,6 @@ legend.admin-border {
   font-size: 14pt;
   max-width: 800px;
 }
-
 .input.booker:focus {
   border-color: #365766;
   /*color: #367998;*/
@@ -271,6 +268,7 @@ legend.admin-border {
 /*-------------------------- LOGIN VIEW ---------------------------*/
 
 /*------------------------ BOOTSTRAP OVERRIDES ----------------------*/
+
 
 .tooltip-wide .tooltip {min-width:500px;}
 .vertical-alignment-helper {
@@ -376,7 +374,7 @@ legend.admin-border {
 /* Remove all extra margins/padding for Portrait display on
 	mobile devices. Not pretty, but somewhat helpful. */
 
-@media (max-width: 480px) {
+@media (max-width: 480px) { 
     .container {
         padding:0;
         margin:0;
@@ -418,7 +416,7 @@ legend.admin-border {
 
 @media (max-width: 1200px) {
     .header-div {
-        display:inline-block; 
+        display:nline-block; 
         position: relative; 
         height: 60px;
         left:0; 

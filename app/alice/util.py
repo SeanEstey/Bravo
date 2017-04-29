@@ -55,7 +55,7 @@ def related_notific(log_error=False):
         'to': from_,
         'type': 'sms',
         'tracking.status': {'$in': ['sent', 'delivered']},
-        'event_dt': {  '$gte': datetime.utcnow()}}
+        'event_dt': {  '$gte': datetime.utcnow() - timedelta(hours=8)}}
     ).sort('tracking.sent_dt', -1).limit(1)
 
     if n.count() > 0:

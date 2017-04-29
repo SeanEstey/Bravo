@@ -247,7 +247,7 @@ function initRecentPane() {
 function requestLogEntries() {
 
     api_call(
-        'server/recent',
+        'logger/get',
         data = {
             'levels': JSON.stringify($('#filtr_lvls').serializeArray()),
             'groups': JSON.stringify($('#filtr_grps').serializeArray())

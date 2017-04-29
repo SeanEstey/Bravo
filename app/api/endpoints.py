@@ -1,5 +1,4 @@
 '''app.api.endpoints'''
-import logging
 from dateutil.parser import parse
 from json import loads
 from flask import g, request
@@ -22,6 +21,7 @@ from app.notify.voice import get_token
 from app.routing.main import edit_field
 from . import api
 from .manager import get_var, build_resp, func_call, task_call, WRITE_ME
+log = Loggy('api')
 
 @api.route('/accounts/submit_form', methods=['POST'])
 def accts_add_form():
@@ -252,7 +252,21 @@ def call_route_edit():
 def call_op_stats():
     return func_call(get_server_prop)
 
-@api.route('/server/recent', methods=['POST'])
+@api.route('/logger/write', methods=['POST'])
+@login_required
+def write_log():
+    lvl = get_var('level')
+
+    if lvl == 'info':
+        return func_call(log.info, get_var('msg'))
+    elif lvl == 'warning':
+        return func_call(log.warning, get_var('msg'))
+    elif lvl == 'error':
+        return func_call(log.error, get_var('msg'))
+    else:
+        raise Exception('invalid level var')
+
+@api.route('/logger/get', methods=['POST'])
 @login_required
 def get_logs():
 
@@ -268,6 +282,7 @@ def get_logs():
     for grp in loads(get_var('groups')):
         groups.append(g.user.agency) if grp['name'] == 'usr_grp' else None
         groups.append('sys') if grp['name'] == 'sys_grp' else None
+        groups.append('anon') if grp['name'] == 'anon_grp' else None
 
     return func_call(Loggy.get_logs, groups=groups, levels=levels)
 

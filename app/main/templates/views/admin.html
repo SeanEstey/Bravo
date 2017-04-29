@@ -43,7 +43,6 @@
 	</ul>
 
 	<div class="tab-content">
-
     <!-- Me Pane -->
 		<div class="tab-pane active" id="me" style='margin-bottom:7em' role="tabpanel">
       <form>
@@ -70,7 +69,6 @@
         </fieldset>
       </form>
     </div>
-
     <!-- Services Pane -->
 		<div class="tab-pane" id="services" style='margin-bottom:7em' role="tabpanel">
       <form>
@@ -157,7 +155,6 @@
         </fieldset>
       </form>
     </div>
-
     <!-- Previewer Pane -->
 		<div class="tab-pane" id="previewer" style='margin-bottom:5em' role="tabpanel">
         <fieldset style='margin-top:4em' class="form-fieldset">
@@ -230,9 +227,6 @@
               <td>
                 <select name="type_" class="form-control">
                   <option value="res_pickup">Residential Pickup</option>
-                  <!--<option value="res_drop">Residential Dropoff</option>
-                  <option value="res_cancel">Residential Cancelling</option>
-                  <option value="bus_pickup">Business Pickup</option>-->
                 </select>
               </td>
               <td>
@@ -243,11 +237,9 @@
           </table>
         </fieldset>
     </div>
-
     <!-- Leaderboard Pane -->
 		<div class="tab-pane" id="leaderboard" style='margin-bottom:7em' role="tabpanel">
     </div>
-
     <!-- Properties Pane -->
 		<div class="tab-pane" id="properties" style='margin-bottom:7em' role="tabpanel">
       <form>
@@ -280,18 +272,57 @@
         </fieldset>
       </form>
     </div>
-
     <!-- Recent Pane -->
 		<div class="tab-pane" id="recent" style='margin-bottom:7em' role="tabpanel">
-      <!--<form>
-        <fieldset style="max-width:600px" class="form-fieldset new_event">
-          <legend class="new_event">Recent Events</legend>-->
-            <div id='recnt_list' class="list-group"></div>
-        <!--</fieldset>
-      </form>-->
+      <div>
+        <fieldset class="form-fieldset new_event" style="margin:0; padding:.5em 2em;">
+          <legend class="new_event">Filter</legend>
+            <form id='filtr_lvls' class="form-inline">
+              <div class="form-check mb-1 mr-sm-2 mb-sm-0">
+                <label style="font-size:14pt" class="form-check-label mr-2">Levels</label>
+              </div>
+              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+                <label class="form-check-label">
+                  <input name="dbg_lvl" class="form-check-input" type="checkbox"> Debug
+                </label>
+              </div>
+              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+                <label class="form-check-label">
+                  <input name="inf_lvl" class="form-check-input" type="checkbox" checked> Info
+                </label>
+              </div>
+              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+                <label class="form-check-label">
+                  <input name="wrn_lvl" class="form-check-input" type="checkbox" checked> Warnings
+                </label>
+              </div>
+              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+                <label class="form-check-label">
+                  <input name="err_lvl" class="form-check-input" type="checkbox" checked> Errors
+                </label>
+              </div>
+            </form>
+            <form id='filtr_grps' class="form-inline">
+              <div class="form-check mb-1 mr-sm-2 mb-sm-0">
+                <label style="font-size:14pt" class="form-check-label mr-2">Groups</label>
+              </div>
+              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+                <label class="form-check-label">
+                  <input name="usr_grp" class="form-check-input" type="checkbox" checked> User Group
+                </label>
+              </div>
+              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+                <label class="form-check-label">
+                  <input name="sys_grp" class="form-check-input" type="checkbox"> System Tasks
+                </label>
+              </div>
+            </form>
+          </fieldset>
+      </div>
+      <div id='recnt_list' class="list-group">
+      </div>
     </div>
-
-	</div>
+	</div> <!--END TAB_CONTENT-->
 
 	<!-- Loader-->
   <div>

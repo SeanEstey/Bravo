@@ -74,28 +74,34 @@ class Loggy():
 
     #---------------------------------------------------------------------------
     @staticmethod
-    def get_logs(start=None, end=None, user=None, group=None, tag=None, levels=None):
+    def get_logs(start=None, end=None, user=None, groups=None, tag=None, levels=None):
         '''
         @start, end: naive datetime
-        @show_levels: list of subset ['debug', 'info', 'warning', 'error']
+        @show_levels: subset of ['debug', 'info', 'warning', 'error']
+        @groups: subset of [g.user.agency, 'sys']
         '''
 
-        logs = g.db.logs.find(
-            {'tag':tag,
-             'level': {'$in': levels or Loggy.levels},
-             'user': user or {'$exists': True},
-             'group': group or {'$exists': True},
-             'created': {
-                '$gte': start or (datetime.utcnow() - timedelta(hours=24)),
-                '$lt': end or datetime.utcnow()
-             },
+        DELTA_HRS = 24
+
+        now = datetime.utcnow()
+        start_dt = start if start else (now - timedelta(hours=DELTA_HRS))
+        end_dt = end if end else now
+
+        logs = g.db.logs.find({
+            'tag':tag,
+            'level': {'$in': levels} if levels else Loggy.levels,
+            'user': user or {'$exists': True},
+            'group': {'$in': groups} if groups else {'$exists':True},
+            'created': {
+               '$gte': start_dt,
+               '$lt': end_dt}
             },
             {'_id':0}
-        ).limit(25).sort('created', -1)
+        ).limit(50).sort('created', -1)
 
-        print "found %s logs" %(logs.count())
+        print "%s logs queried" %(logs.count())
 
-        return formatter(list(logs), bson_to_json=True) #, to_json=True)
+        return formatter(list(logs), bson_to_json=True)
 
     # Static Members
     regex_colors = re.compile('\\x1b\[[0-9]{1,2}m')

@@ -4,7 +4,8 @@ from dateutil.parser import parse
 from json import loads
 from flask import g, request
 from flask_login import login_required
-from app import get_logger, get_server_prop, get_keys
+from app import get_server_prop, get_keys
+from app.lib.loggy import Loggy
 from app.main.etap import block_size, route_size, call
 from app.alice.outgoing import send_welcome, compose
 from app.booker.geo import get_maps
@@ -254,8 +255,21 @@ def call_op_stats():
 @api.route('/server/recent', methods=['POST'])
 @login_required
 def get_logs():
-    from app.lib.loggy import Loggy
-    return func_call(Loggy.get_logs, group=g.user.agency, levels=['info','warning','error'])
+
+    levels = []
+    groups = []
+
+    for lvl in loads(get_var('levels')):
+        levels.append('debug') if lvl['name'] == 'dbg_lvl' else None
+        levels.append('info') if lvl['name'] == 'inf_lvl' else None
+        levels.append('warning') if lvl['name'] == 'wrn_lvl' else None
+        levels.append('error') if lvl['name'] == 'err_lvl' else None
+
+    for grp in loads(get_var('groups')):
+        groups.append(g.user.agency) if grp['name'] == 'usr_grp' else None
+        groups.append('sys') if grp['name'] == 'sys_grp' else None
+
+    return func_call(Loggy.get_logs, groups=groups, levels=levels)
 
 @api.route('/user/login', methods=['POST'])
 def user_login():

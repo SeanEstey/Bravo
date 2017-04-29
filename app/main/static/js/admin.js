@@ -3,6 +3,12 @@ var serv_pane_init = false;
 var prop_pane_init = false;
 var user_pane_init = false;
 var recnt_pane_init = false;
+var list_item_styles = {
+    'debug': '',
+    'info': 'list-group-item-info',
+    'warning': 'list-group-item-warning',
+    'error': 'list-group-item-danger'
+};
 
 //------------------------------------------------------------------------------
 function init() {
@@ -221,30 +227,55 @@ function initRecentPane() {
 
     if(recnt_pane_init)
         return;
-
-    var styles = {
-        'debug': '',
-        'info': 'list-group-item-info',
-        'warning': 'list-group-item-warning',
-        'error': 'list-group-item-danger'
-    };
-
-    api_call('server/recent', null, function(response){
-        console.log("%s. %s events returned", response['status'], response['data'].length);
-        var logs = response['data'];
-
-        for(var i=0; i<logs.length; i++) {
-
-            $('#recnt_list').append(
-                '<a href="#" ' +
-                'class="list-group-item list-group-item-action ' + styles[logs[i]['level']] + '">' +
-                new Date(logs[i]["created"]["$date"]).strftime("%b %d: %I:%M%p: ") + logs[i]["msg"] +
-                '</a>')
-        }
-
+    else
         recnt_pane_init = true;
-    });
+
+	$('#filtr_lvls input').change(function() {
+        console.log('%s=%s', $(this).prop('name'), $(this).prop('checked'));	
+        requestLogEntries();
+	});
+
+	$('#filtr_grps input').change(function() {
+        console.log('%s=%s', $(this).prop('name'), $(this).prop('checked'));	
+        requestLogEntries();
+	});
+
+    requestLogEntries();
 }
+
+//------------------------------------------------------------------------------
+function requestLogEntries() {
+
+    api_call(
+        'server/recent',
+        data = {
+            'levels': JSON.stringify($('#filtr_lvls').serializeArray()),
+            'groups': JSON.stringify($('#filtr_grps').serializeArray())
+        },
+        appendLogEntries
+    );
+}
+
+//------------------------------------------------------------------------------
+function appendLogEntries(response) {
+
+    console.log("%s. %s events returned",
+        response['status'], response['data'].length);
+
+    var logs = response['data'];
+
+    $('#recnt_list').empty();
+
+    for(var i=0; i<logs.length; i++) {
+        $('#recnt_list').append(
+            '<a href="#" ' +
+            'class="list-group-item list-group-item-action ' + list_item_styles[logs[i]['level']] + '">' +
+            new Date(logs[i]["created"]["$date"]).strftime("%b %d: %I:%M%p: ") + logs[i]["msg"] +
+            '</a>'
+        );
+    }
+}
+
 
 //------------------------------------------------------------------------------
 function saveFieldEdit(field, value) {

@@ -46,8 +46,6 @@ def view_event_list():
 @notify.route('/<evnt_id>')
 @login_required
 def view_event(evnt_id):
-    '''GUI event view'''
-    from flask import current_app
 
     event = events.get(ObjectId(evnt_id))
     notific_list = list(events.get_notifics(ObjectId(evnt_id)))
@@ -64,7 +62,6 @@ def view_event(evnt_id):
 
     return render_template(
         'views/event.html',
-        title=current_app.config['TITLE'],
         notific_list=notific_list,
         evnt_id=evnt_id,
         event=event,
@@ -72,8 +69,24 @@ def view_event(evnt_id):
         admin=g.user.is_admin())
 
 #-------------------------------------------------------------------------------
-@notify.route('/skip')
-def view_opt_out(evnt_id=None):
+@notify.route('/<evnt_id>/<acct_id>/skip')
+def view_opt_out(evnt_id, acct_id):
+
+    from . import pickups
+    valid = pickups.is_valid(evnt_id, acct_id)
+    acct = None
+
+    if valid:
+        acct = formatter(
+            g.db.accounts.find_one({'_id':ObjectId(acct_id)}),
+            to_local_time=True,
+            to_strftime="%m/%-d/%Y",
+            bson_to_json=True)
+
     return render_template(
-        'views/opt_out.html'
+        'views/opt_out.html',
+        valid = valid,
+        acct_id = acct_id,
+        evnt_id = evnt_id,
+        acct = acct
     )

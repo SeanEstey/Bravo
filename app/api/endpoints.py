@@ -198,6 +198,26 @@ def call_notify_acct_edit():
 def call_notify_acct_rmv():
     return func_call(rmv_notifics, get_var('evnt_id'), get_var('acct_id'))
 
+@api.route('/notify/accts/optout', methods=['POST'])
+def call_notify_acct_optout():
+
+
+    evnt_id = get_var('evnt_id')
+    acct_id = get_var('acct_id')
+
+    print 'optout evnt_id=%s, acct_id=%s' %(evnt_id,acct_id)
+    return func_call(WRITE_ME)
+
+    '''
+    if not pickups.is_valid(evnt_id, acct_id):
+        log.error('event/acct not found (evnt_id=%s, acct_id=%s)', evnt_id, acct_id)
+        return 'Sorry there was an error fulfilling your request'
+    from app.notify.tasks import skip_pickup
+    skip_pickup.delay(evnt_id, acct_id)
+    return 'Thank You'
+    return func_call(rmv_notifics, get_var('evnt_id'), get_var('acct_id'))
+    '''
+
 @api.route('/notify/triggers/fire', methods=['POST'])
 @login_required
 def call_trigger_fire():

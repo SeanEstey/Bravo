@@ -3,7 +3,8 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<!--<meta http-equiv="x-ua-compatible" content="ie=edge">-->
+    <title>Bravo</title>
+
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css">
 		<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
 		<link href="{{url_for("static", filename="main/images/favicon.ico")}}" rel="shortcut icon">
@@ -16,11 +17,7 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
 		<script src="https://use.fontawesome.com/e2c4434e45.js"></script>
     <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
-
-    <title>Bravo</title>
-
   </head>
-	<!-- BODY -->
   <body style="display:none">
     <script src="{{url_for("static", filename="main/js/globals.js")}}"></script>
     <script src="{{url_for("static", filename="main/js/utils.js")}}"></script>
@@ -33,15 +30,15 @@
     <script>
       window.onload = function() {
         $("body").show();
-				showAdminServerStatus();
+				//showAdminServerStatus();
       }
     </script>
 
    <div class="container-fluid top">
       <!-- NAVBAR -->
 			<nav class="navbar navbar-toggleable-md navbar-light" style="text-align:center;">
-        <a id="logo_href" class="navbar-brand" href="/notify/">
-          <img id="logo_img" src="/static/main/images/bravo_logo.png" class="header-img d-inline-block align-top .m-x-auto">
+        <a id="logo_a" class="navbar-brand" href="/notify/">
+          <img id="logo_img" class="logo-img-sm d-inline-block align-top .m-x-auto">
         </a>
         <ul class="nav navbar-nav mr-auto"></ul>
         <ul id="main_menu" class="nav navbar-nav">
@@ -87,7 +84,7 @@
 				</ul>
 			</nav>
 
-			<hr id="divider" style="margin-top:0; margin-bottom:1.0em;"></hr>
+			<!--<hr id="divider" style="margin-top:0; margin-bottom:1.0em;"></hr>-->
 
 			<div class="alert-banner"></div>
   </div><!-- /.container -->

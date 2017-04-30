@@ -3,14 +3,11 @@
 //------------------------------------------------------------------------------
 function init_login() {
 
-    $('#logo_href').css('margin-left', 'auto');
-    $('#logo_href').css('margin-right', 'auto');
-    $('#logo_img').attr('src', $URL_ROOT+'/static/main/images/bravo_logo_barbell.png');
-    $('.header-img').width(250);
-    $('.header-img').height(146);
-
+    $('#logo_a').addClass('logo-a-center');
+    $('#logo_img').addClass('logo-img-lg');
+    $('#logo_img').removeClass('logo-img-sm');
     $('.nav').hide();
-    $('.alert-banner').css('margin-top', '4em'); 
+    $('.alert-banner').css('margin-top', '3em'); 
     $('.alert-banner').css('max-width', '400px');
 
     $('#submit_btn').click(function(e) {

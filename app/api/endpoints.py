@@ -1,7 +1,7 @@
 '''app.api.endpoints'''
 from dateutil.parser import parse
-from json import loads
-from flask import g, request
+from json import loads, dumps
+from flask import g, request, Response
 from flask_login import login_required
 from app import get_server_prop, get_keys
 from app.lib.loggy import Loggy
@@ -13,6 +13,7 @@ from app.booker.book import make
 from app.main import donors
 from app.main.receipts import preview
 from app.main.signups import lookup_carrier
+from app.notify.pickups import is_valid
 from app.notify.accounts import edit_fields
 from app.notify.events import create_event, cancel_event, dump_event, reset_event, rmv_notifics
 from app.notify.recording import dial_recording
@@ -200,23 +201,20 @@ def call_notify_acct_rmv():
 
 @api.route('/notify/accts/optout', methods=['POST'])
 def call_notify_acct_optout():
-
-
     evnt_id = get_var('evnt_id')
     acct_id = get_var('acct_id')
 
-    print 'optout evnt_id=%s, acct_id=%s' %(evnt_id,acct_id)
-    return func_call(WRITE_ME)
+    if not is_valid(evnt_id, acct_id):
+        return Response(
+            response=dumps({
+                'status':'failed',
+                'desc':'Invalid account/event'
+            }),
+            status=200,
+            mimetype='application/json')
 
-    '''
-    if not pickups.is_valid(evnt_id, acct_id):
-        log.error('event/acct not found (evnt_id=%s, acct_id=%s)', evnt_id, acct_id)
-        return 'Sorry there was an error fulfilling your request'
     from app.notify.tasks import skip_pickup
-    skip_pickup.delay(evnt_id, acct_id)
-    return 'Thank You'
-    return func_call(rmv_notifics, get_var('evnt_id'), get_var('acct_id'))
-    '''
+    return task_call(skip_pickup, evnt_id=evnt_id, acct_id=acct_id)
 
 @api.route('/notify/triggers/fire', methods=['POST'])
 @login_required

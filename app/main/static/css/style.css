@@ -38,8 +38,8 @@ a.hover:visited {
     margin-right: auto;
 }
 .logo-img-sm {
-    width: 150px;
-    height: 45px;
+    width: 100px;
+    height: 30px;
     content: url("/static/main/images/bravo_logo.png");
 }
 .logo-img-lg {

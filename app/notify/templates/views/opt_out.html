@@ -1,36 +1,31 @@
 {% extends "views/base.html" %}
-
 {% block content %}  
   <script src="{{url_for("notify.static", filename="js/opt_out.js")}}"></script>
   <script> 
     jQuery(function($) {
       opt_out_init();
-      //alertMsg("{{msg|safe}}", "info", 15000);
     }); 
   </script>
-
-  <div class="container">
+  <div class="container" style="max-width:400px; padding:0">
     <div style="margin-top:3em" class="row">
-      <div class="col-3">
-      </div>
       <div style="text-align:center" class="col">
         <p>
-          <label style="font-size:16pt" id="user_msg">Hi {{acct['name']}}, please confirm your request to opt out of your upcoming pick-up.</label>
+          <label style="font-size:16pt" id="user_msg">
+            Hi {{acct['name']}}, please confirm your request to opt out of your upcoming pick-up.
+          </label>
         </p>
         <p>
           <form>
             <input name="evnt_id" value="{{evnt_id}}" hidden></input>
             <input name="acct_id" value="{{acct_id}}" hidden></input>
-            <button type="button" class="btn btn-primary btn-lg">Confirm Cancellation</button>
+            <button type="button" class="btn btn-primary btn-lg">
+              Confirm Cancellation
+            </button>
           </form>
         </p>
-
-      </div>
-      <div class="col-3">
       </div>
     </div>
   </div>
-
 {% endblock %}
 
 

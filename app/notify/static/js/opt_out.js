@@ -28,6 +28,7 @@ function opt_out_init() {
                     );
                 }
                 else {
+                    alertMsg(response['desc'], 'danger');
                 }
             });
 

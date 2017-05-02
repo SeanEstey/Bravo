@@ -1,18 +1,18 @@
 '''app.notify.pickups'''
-import logging, json, os
+import json, os
 from twilio import twiml
 from flask import g, request
 from datetime import time, timedelta
 from dateutil.parser import parse
 from bson.objectid import ObjectId
-from app import get_logger, get_keys
+from app import get_keys
 from app.lib import gcal
-from app.lib.logger import colors as c
+from app.lib.loggy import Loggy, colors as c
 from app.lib.dt import ddmmyyyy_to_local_dt as to_dt, to_local
 from app.main import parser
 from app.main.etap import EtapError, get_query, get_udf, get_phone, get_prim_phone
 from . import events, email, sms, voice, triggers, accounts
-log = get_logger('notify.pickups')
+log = Loggy('notify.pickups')
 
 #-------------------------------------------------------------------------------
 def create_reminder(agcy, block, date_):
@@ -57,7 +57,8 @@ def create_reminder(agcy, block, date_):
             if status == 'Call-in' or status == 'Cancelling':
                 continue
             else:
-                log.debug('%sacct_id=%s missing next pickup date%s', c.RED, acct['id'], c.ENDC)
+                log.debug('acct_id=%s missing next pickup date%s',
+                    acct['id'], group=agcy)
                 continue
 
         acct_id = accounts.add(
@@ -157,7 +158,7 @@ def find_all_scheduled_dates(evnt_id):
                 end)
     except Exception as e:
         log.error('%s', str(e))
-        log.debug('', exc_info=True)
+        log.exception(str(e))
         raise
 
     log.debug('%i calendar events pulled', len(cal_events))
@@ -236,6 +237,9 @@ def is_valid(evnt_id, acct_id):
     acct = g.db.accounts.find_one({'_id':ObjectId(acct_id)})
 
     if not evnt or not acct:
+        return False
+
+    if acct.get('opted_out'):
         return False
 
     return True

@@ -1,10 +1,11 @@
 '''app.routing.sheet'''
-import logging, re, time
-from .. import get_logger, get_keys
+import re, time
+from .. import get_keys
+from app.lib.loggy import Loggy
 from app.lib import gdrive, gsheets
 from app.lib.gsheets import get_values, update_cell, to_range
 from app.main.parser import has_postal
-log = get_logger('routing.sheet')
+log = Loggy('routing.sheet')
 
 #-------------------------------------------------------------------------------
 def build(agcy, drive_api, title):
@@ -49,7 +50,7 @@ def build(agcy, drive_api, title):
 def write_orders(agcy, api, ss_id, wks, orders):
     '''Write formatted orders to route sheet.'''
 
-    log.debug('writing %s orders', len(orders))
+    log.debug('writing %s orders', len(orders), group=agcy)
 
     rows = []
     bold_rng = []
@@ -108,7 +109,7 @@ def write_orders(agcy, api, ss_id, wks, orders):
         gsheets.vert_align_cells(api, ss_id, 0, 2, len(orders)+1, 1,1)
         gsheets.bold_cells(api, ss_id, 0, bold_rng)
     except Exception as e:
-        log.error('sheets error: %s', str(e))
+        log.error('sheets error: %s', str(e), group=agcy)
         raise
 
 #-------------------------------------------------------------------------------

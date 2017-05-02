@@ -1,5 +1,5 @@
 '''app.uber_task'''
-import os, logging
+import os
 from celery import Task
 from flask import g, has_app_context, has_request_context,\
 make_response, request, current_app
@@ -7,9 +7,9 @@ from flask_login import login_user, current_user
 from bson.objectid import ObjectId
 from auth import user
 from app.lib import mongodb
+from app.lib.loggy import Loggy
 from app.lib.utils import print_vars
-from app import task_logger
-log = task_logger('uber_task')
+log = Loggy('uber_task', celery_task=True)
 
 __all__ = ['UberTask']
 
@@ -58,7 +58,7 @@ class UberTask(Task):
         '''Called by Flask app
         '''
 
-        log.debug('apply args=%s, kwargs=%s, options=%s', args, kwargs, options)
+        #log.debug('apply args=%s, kwargs=%s, options=%s', args, kwargs, options)
         if options.pop('with_request_context', True) or has_app_context():
             self._push_contexts(kwargs)
 

@@ -1,10 +1,10 @@
 '''app.notify.email'''
-import logging, os
+import os
 from os import environ as env
 from bson.objectid import ObjectId
 from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
-from .. import get_logger, smart_emit, get_keys
+from .. import smart_emit, get_keys
 from app.lib import mailgun
 from app.lib.utils import formatter
 from app.lib.dt import to_utc, ddmmyyyy_to_dt
@@ -12,7 +12,7 @@ from app.lib.loggy import Loggy, colors as c
 from app.main.donors import get
 from app.main.etap import get_udf, NAME_FORMAT
 from .utils import simple_dict
-log= Loggy('notify.email')
+log = Loggy('notify.email')
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
@@ -89,15 +89,17 @@ def send(notific, mailgun_conf, key='default'):
     @key = dict key in email schemas for which template to use
     '''
 
+    acct = g.db.accounts.find_one({'_id':notific['acct_id']})
+
     try:
         body = render_template(
             notific['on_send']['template'],
             to = notific['to'],
-            account = simple_dict(g.db.accounts.find_one({'_id':notific['acct_id']})),
+            account = simple_dict(acct),
             evnt_id = notific['evnt_id'])
     except Exception as e:
-        log.error('template error. desc=%s', str(e))
-        log.debug(str(e))
+        log.error('template error. desc=%s', str(e), group=acct['agency'])
+        log.debug(str(e), group=acct['agency'])
         raise
 
     mid = mailgun.send(
@@ -108,10 +110,10 @@ def send(notific, mailgun_conf, key='default'):
         v={'type':'notific'})
 
     if mid == False:
-        log.error('failed to queue %s', notific['to'])
+        log.error('failed to queue %s', notific['to'], group=acct['agency'])
         status = 'failed'
     else:
-        log.debug('queued notific to %s', notific['to'])
+        log.debug('queued notific to %s', notific['to'], group=acct['agency'])
         status = 'queued'
 
     g.db.notifics.update_one({

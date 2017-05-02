@@ -1,13 +1,14 @@
 '''app.booker.search'''
 from datetime import datetime, timedelta
-import logging, re
+import re
 from flask import g
-from app import get_logger, get_keys
+from app import get_keys
 from app.main import parser
 from app.main.etap import call, EtapError
 from app.lib import gcal
+from app.lib.loggy import Loggy
 from . import geo
-log = get_logger('booker.search')
+log = Loggy('booker.search')
 
 #-------------------------------------------------------------------------------
 def search(query, radius=None, weeks=None, agcy=None):

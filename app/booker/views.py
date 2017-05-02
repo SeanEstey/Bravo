@@ -1,10 +1,10 @@
 '''booker.views'''
-import logging
 from datetime import datetime, date, time, timedelta
 from flask import g, request, jsonify, render_template
 from flask_login import login_required
+from app.lib.loggy import Loggy
 from . import booker, geo
-log = logging.getLogger(__name__)
+log = Loggy('booker.views')
 
 #-------------------------------------------------------------------------------
 @booker.route('/', methods=['GET'])

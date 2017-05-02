@@ -8,6 +8,12 @@ function opt_out_init() {
     $('.nav').hide();
     $('.alert-banner').css('max-width', '400px');
 
+    if($('form input[name="valid"]').val() == "false") {
+        alertMsg("This event has expired", "danger");
+        $('form button').prop('disabled', true);
+        return;
+    }
+
     $('button').click(function(e) {
         e.preventDefault(); // Firefox browsers
 

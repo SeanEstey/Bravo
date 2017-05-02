@@ -3,10 +3,10 @@ import logging
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 from .parser import get_block, block_to_rmv
-from app import get_logger
+from app.lib.loggy import Loggy
 from app.lib import gcal
 from . import etap
-log = get_logger('app.cal')
+log = Loggy('app.cal')
 
 #-------------------------------------------------------------------------------
 def get_next_block_date(cal_id, block, oauth):

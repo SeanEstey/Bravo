@@ -1,5 +1,5 @@
 '''app.routing.tasks'''
-import json, logging, re, pytz
+import json, re, pytz
 from time import sleep
 from bson import ObjectId
 from flask import g
@@ -15,7 +15,7 @@ from app.main.etap import EtapError, get_udf
 from .main import add_metadata
 from .build import submit_job, get_solution_orders
 from . import depots, sheet
-log = Loggy('routing.tasks')
+log = Loggy('routing.tasks', celery_task=True)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

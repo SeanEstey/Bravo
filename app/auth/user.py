@@ -1,7 +1,7 @@
 '''app.auth.user'''
 import logging
 from flask_login import AnonymousUserMixin, UserMixin, login_user
-from app import db_client, get_logger
+from app import db_client
 
 class User():
 

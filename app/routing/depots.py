@@ -1,7 +1,7 @@
 '''app.routing.depots'''
-import logging
-from app import get_logger, get_keys
-log = get_logger('routing.depots')
+from app import get_keys
+from app.lib.loggy import Loggy
+log = Loggy('routing.depots')
 
 #-------------------------------------------------------------------------------
 def resolve(block, postal_codes, event_desc=False):
@@ -38,7 +38,7 @@ def resolve(block, postal_codes, event_desc=False):
     log.error(
         'No depot defined for Block %s. '\
         'Postal codes: [%s]. Using Strathcona as default.',
-        block, postal_codes)
+        block, postal_codes, group='wsf')
 
     for depot in depots:
         if depot['name'] == 'Strathcona':

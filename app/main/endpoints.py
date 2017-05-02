@@ -1,13 +1,12 @@
 '''app.main.endpoints'''
-import json, logging, time
+import json, time
 from flask import jsonify, request
-from app import get_logger
-from app.lib.logger import colors as c
+from app.lib.loggy import Loggy, colors as c
 from app.lib.mailgun import dump
 from app.booker import book
 from . import donors, main, receipts, signups
 from .tasks import create_rfu
-log = get_logger('main.endpt')
+log = Loggy('main.endpt')
 
 #-------------------------------------------------------------------------------
 @main.route('/restart_worker', methods=['GET'])

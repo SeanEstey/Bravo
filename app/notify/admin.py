@@ -1,9 +1,10 @@
 '''app.notify.admin'''
-import logging, os
+import os
 from bson import json_util
 from flask import g, request
-from .. import get_logger, get_keys
-log = get_logger('notify.admin')
+from .. import get_keys
+from app.lib.loggy import Loggy
+log = Loggy('notify.admin')
 
 #-------------------------------------------------------------------------------
 def update_agency_conf():

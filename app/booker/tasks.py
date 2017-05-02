@@ -1,10 +1,10 @@
 '''app.booker.tasks'''
-import json, logging, os, time
+import json, os, time
 from datetime import datetime
 from flask import g
-from app import task_logger
 from .. import smart_emit, celery
-log = task_logger('booker.tasks')
+from app.lib.loggy import Loggy
+log = Loggy('booker.tasks', celery_task=True)
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -22,7 +22,7 @@ def update_maps(agcy=None, **rest):
         name = agency['name']
         conf = g.db.maps.find_one({'agency':name})
 
-        log.debug('downloading kml file...')
+        log.warning('Task: updating maps...', group=name)
 
         # download KML file
         os.system(
@@ -32,14 +32,12 @@ def update_maps(agcy=None, **rest):
 
         time.sleep(2)
 
-        log.debug('converting to geo_json...')
+        log.debug('converting KML->geo_json...', group=name)
 
         # convert to geo_json
         os.system('togeojson /tmp/maps.xml > /tmp/maps.json')
 
         time.sleep(2)
-
-        log.debug('loading geo_json...')
 
         try:
             with open(os.path.join('/tmp', 'maps.json')) as data_file:
@@ -48,7 +46,7 @@ def update_maps(agcy=None, **rest):
             desc = \
                 'problem opening maps.json. may be issue either '\
                 'downloading .xml file or conversion to .json. '
-            log.error(desc + str(e))
+            log.error(desc + str(e), group=name)
             status = 'failed'
         else:
             status = 'success'
@@ -59,9 +57,9 @@ def update_maps(agcy=None, **rest):
                     'update_dt': datetime.utcnow(),
                     'features': data['features']}})
 
-            desc = 'Updated %s maps successfully.' % len(data['features'])
+            desc = 'Task: updated %s maps successfully.' % len(data['features']
 
-            log.info('%s: %s', name, desc)
+            log.warning(desc, group=name)
 
         if agcy:
             smart_emit('update_maps',{

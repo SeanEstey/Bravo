@@ -1,5 +1,5 @@
 '''run'''
-import logging, os, time, sys, getopt
+import os, time, sys, getopt
 from os import environ, system
 from flask import current_app, g, session
 from flask_login import current_user

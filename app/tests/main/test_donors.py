@@ -3,9 +3,9 @@ import logging, unittest, json
 from flask import g
 from app.lib.dt import json_serial
 from app.tests.__init__ import *
-from app import get_keys, get_logger
+from app import get_keys
 from app.main import donors
-log = get_logger('test_donors')
+log = Loggy('test_donors')
 
 class DonorsTests(unittest.TestCase):
     def setUp(self):

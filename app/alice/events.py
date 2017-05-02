@@ -1,8 +1,6 @@
 '''app.alice.events'''
-import logging
 from flask import g, request, session
 from datetime import datetime, date, time, timedelta
-from app import get_logger
 from app.lib.dt import to_local, ddmmyyyy_to_dt
 from app.lib.utils import print_vars
 from app.lib.loggy import Loggy

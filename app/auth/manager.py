@@ -1,10 +1,9 @@
 '''app.auth.manager'''
-import logging
 import base64
 from bson.objectid import ObjectId
 from flask import g
 from flask_login import current_user, login_user, logout_user
-from app import get_logger, db_client, login_manager
+from app import db_client, login_manager
 from app.lib.utils import print_vars
 from .user import User
 from app.lib.loggy import Loggy

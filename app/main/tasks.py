@@ -1,5 +1,5 @@
 '''app.main.tasks'''
-import gc, json, logging, os, re, requests, psutil
+import gc, json, os, re, requests, psutil
 from guppy import hpy
 from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta

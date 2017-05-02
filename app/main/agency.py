@@ -1,8 +1,8 @@
 '''app.main.agency'''
-import logging
 from flask import g, request
-from app import get_logger, get_keys
-log = get_logger('etap')
+from app import get_keys
+from app.lib.loggy import Loggy
+log = Loggy('main.agency')
 
 #-------------------------------------------------------------------------------
 def get_admin_prop():

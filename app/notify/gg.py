@@ -1,12 +1,13 @@
 '''app.notify.gg'''
-import logging, os
+import os
 from twilio import twiml
 from flask import g, request
 from dateutil.parser import parse
-from .. import get_logger, get_keys
+from .. import get_keys
+from app.lib.loggy import Loggy
 from app.main.etap import call, get_prim_phone, EtapError
 from . import events, email, sms, voice, triggers, accounts
-log = get_logger('gg')
+log = Loggy('gg')
 
 #-------------------------------------------------------------------------------
 def add_event():

@@ -2,12 +2,12 @@
 import logging
 from datetime import date, datetime, timedelta
 from flask import g, request, session
-from app import get_logger
 from app.main.etap import call, EtapError
 from app.lib.utils import print_vars
+from app.lib.loggy import Loggy
 from app.lib.dt import to_local
 from .dialog import *
-log = get_logger('alice.util')
+log = Loggy('alice.util')
 
 #-------------------------------------------------------------------------------
 def lookup_acct(mobile, agcy):
@@ -26,7 +26,7 @@ def lookup_acct(mobile, agcy):
 def get_chatlogs(start_dt=None):
 
     if not start_dt:
-        start_dt = datetime.utcnow() - timedelta(days=14)
+        start_dt = datetime.utcnow() - timedelta(days=7)
 
     chats = g.db.chatlogs.find(
         {'agency':g.agency, 'last_msg_dt': {'$gt': start_dt}},

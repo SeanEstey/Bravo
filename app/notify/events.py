@@ -1,10 +1,10 @@
 '''app.notify.events'''
-import logging, pytz
+import pytz
 from datetime import datetime,date,time
 from dateutil.parser import parse
 from bson.objectid import ObjectId as oid
 from flask import g, request, jsonify, url_for
-from app import get_logger, get_keys
+from app import get_keys
 from app.main import cal, parser
 from app.main.parser import is_res, is_bus
 from app.lib.utils import formatter
@@ -21,7 +21,6 @@ def create_event():
     from app.notify.pickups import create_reminder
     from app.notify import gg, voice_announce
 
-    #log.debug(request.form)
     tmplt = request.form['template_name']
 
     if tmplt == 'green_goods':
@@ -35,8 +34,8 @@ def create_event():
         try:
             evnt_id = voice_announce.add_event()
         except Exception as e:
-            log.error(str(e))
-            log.debug('', exc_info=True)
+            log.error('Error creating announcement event')
+            log.debug(str(e))
             raise
     elif tmplt == 'bpu':
         block = request.form['query_name']
@@ -54,8 +53,8 @@ def create_event():
         try:
             evnt_id = create_reminder(g.user.agency, block, date_)
         except Exception as e:
-            log.error(str(e))
-            log.debug('', exc_info=True)
+            log.error('Error creating pick-up event')
+            log.debug(str(e))
             raise
 
     event = g.db.events.find_one({'_id':evnt_id})

@@ -1,11 +1,12 @@
 '''app.main.leaderboard'''
-import json, logging
+import json
 from flask import g
 from datetime import datetime, date, timedelta
-from app import get_logger, get_keys
+from app import get_keys
+from app.lib.loggy import Loggy
 from .cal import get_blocks
 from .etap import call, get_query, get_udf
-log = get_logger('leaderboard')
+log = Loggy('leaderboard')
 
 #-------------------------------------------------------------------------------
 def update_accts(query, agcy):
@@ -23,7 +24,7 @@ def update_accts(query, agcy):
                 'neighborhood': get_udf('Neighborhood', acct)}},
             upsert=True)
 
-    log.debug('stored %s accts from %s', len(accts), query)
+    log.debug('stored %s accts from %s', len(accts), query, group=agcy)
 
 #-------------------------------------------------------------------------------
 def update_gifts(accts, agcy):
@@ -41,7 +42,7 @@ def update_gifts(accts, agcy):
     except Exception as e:
         raise
 
-    log.debug('retrieved %s acct je histories', len(accts_je_hist))
+    log.debug('retrieved %s acct je histories', len(accts_je_hist), group=agcy)
 
     # Each list element contains list of {'amount':<float>, 'date':<str>}
 
@@ -61,7 +62,7 @@ def update_gifts(accts, agcy):
                 {'ref':je_hist[0]['ref'], 'agcy':agcy},
                 {'$set': {'year':date.today().year, 'ytd': acct_total}})
 
-    log.debug('updated gifts for %s accts', len(accts))
+    log.debug('updated gifts for %s accts', len(accts), group=agcy)
 
 #-------------------------------------------------------------------------------
 def get_all_rankings(agcy=None):

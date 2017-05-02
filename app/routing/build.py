@@ -1,15 +1,16 @@
 '''app.routing.build'''
-import json, logging, requests
+import json, requests
 from datetime import datetime, time, date
 from bson import ObjectId
 from dateutil.parser import parse
 from flask import g
-from app import get_logger, get_keys
+from app import get_keys
+from app.lib.loggy import Loggy
 from app.main.etap import call, get_udf, EtapError
 from .main import is_scheduled
 from .geo import geocode, get_gmaps_url
 from . import routific, sheet
-log = get_logger('routing.build')
+log = Loggy('routing.build')
 
 class GeocodeError(Exception):
     pass

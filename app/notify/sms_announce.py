@@ -1,15 +1,15 @@
-'''app.notify.voice_announce'''
-import logging, os
+'''app.notify.sms_announce'''
+import os
 import twilio
 from flask import g, request
 from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
-from app import get_logger, get_keys
-from app.lib.logger import colors as c
+from app import get_keys
+from app.lib.loggy import Loggy, colors as c
 from app.main.etap import call, get_prim_phone, EtapError
 from . import events, accounts, triggers, voice, sms
-log = get_logger('notify.voice_annc')
+log = Loggy('notify.sms_annc')
 
 #-------------------------------------------------------------------------------
 def add_event():

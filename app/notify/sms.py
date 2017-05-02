@@ -1,9 +1,9 @@
 '''app.notify.sms'''
-import logging, json, os
+import json, os
 from os import environ as env
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
-from .. import get_logger, smart_emit, get_keys
+from .. import smart_emit, get_keys
 from app.lib import html
 from app.lib.dt import to_utc, to_local
 from app.lib.loggy import Loggy, colors as c

@@ -1,10 +1,9 @@
 '''app.notify.endpoints'''
-import logging
 from flask import g, jsonify, Response
-from app import get_logger
+from app.lib.loggy import Loggy
 from app.notify import pickups, recording, sms, voice
 from . import notify
-log = get_logger('notify.endpt')
+log = Loggy('notify.endpt')
 
 @notify.route('/record/answer.xml',methods=['POST'])
 def record_xml():

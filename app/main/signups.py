@@ -1,11 +1,12 @@
 '''app.main.signups'''
-import json, logging
+import json
 from datetime import date, datetime
 from flask import g, request, render_template
-from app import get_keys, get_logger
+from app import get_keys
+from app.lib.loggy import Loggy
 from app.lib import mailgun
 from app.lib.gsheets import gauth, get_row, append_row, update_cell, to_range
-log = get_logger('main.signups')
+log = Loggy('signups')
 
 #-------------------------------------------------------------------------------
 def add_etw_to_gsheets(signup):
@@ -14,12 +15,13 @@ def add_etw_to_gsheets(signup):
 
     log.info('New signup received: %s %s',
       signup.get('first_name'),
-      signup.get('last_name'))
+      signup.get('last_name'),
+      group='wsf')
 
     try:
         service = gauth(get_keys('google',agcy='wsf')['oauth'])
     except Exception as e:
-        log.error('couldnt authenticate sheets. desc=%s', str(e))
+        log.error('couldnt authenticate sheets. desc=%s', str(e), group='wsf')
         raise Exception('auth error. desc=%s' % str(e))
 
     form_data = {
@@ -55,7 +57,7 @@ def add_etw_to_gsheets(signup):
     headers = get_row(service, ss_id, 'Signups', 1)
     row = []
 
-    log.debug('headers=%s', headers)
+    log.debug('headers=%s', headers, group='wsf')
 
     for field in headers:
         if form_data.has_key(field):
@@ -66,8 +68,9 @@ def add_etw_to_gsheets(signup):
     try:
         append_row(service, ss_id, 'Signups', row)
     except Exception, e:
-        log.error('couldnt add signup="%s". desc="%s"', json.dumps(signup), str(e))
-        log.debug('', exc_info=True)
+        log.error('couldnt add signup="%s". desc="%s"',
+            json.dumps(signup), str(e), group='wsf')
+        log.debug(str(e), group='wsf')
         return 'There was an error handling your request'
 
     return 'success'
@@ -115,7 +118,8 @@ def send_welcome():
 def on_delivered(agcy):
     '''Mailgun webhook called from view. Has request context'''
 
-    log.info('signup welcome delivered to %s', request.form['recipient'])
+    log.info('signup welcome delivered to %s',
+        request.form['recipient'], group=agcy)
 
     row = request.form['from_row']
     ss_id = get_keys('google',agcy=agcy)['ss_id']
@@ -126,14 +130,14 @@ def on_delivered(agcy):
         col = headers.index('Welcome')+1
         update_cell(service, ss_id, 'Signups', to_range(row,col), request.form['event'])
     except Exception as e:
-        log.error('error updating sheet')
+        log.error('error updating sheet', group=agcy)
 
 #-------------------------------------------------------------------------------
 def on_dropped(agcy):
     msg = 'signup welcome to %s dropped. %s.' %(
         request.form['recipient'], request.form['reason'])
 
-    log.info(msg)
+    log.info(msg, group=agcy)
 
     row = request.form['from_row']
     ss_id = get_keys('google',agcy=agcy)['ss_id']
@@ -144,7 +148,7 @@ def on_dropped(agcy):
         col = headers.index('Welcome')+1
         update_cell(service, ss_id, 'Signups', to_range(row,col), request.form['event'])
     except Exception as e:
-        log.error('error updating sheet')
+        log.error('error updating sheet', group=agcy)
 
     create_rfu.delay(
         email['agency'],

@@ -2,12 +2,11 @@
 import logging, unittest, json
 from datetime import date
 from flask import g
-from app import get_logger
 from app.tests import *
 from app.notify.events import cancel_event, get_triggers
 from app.notify.pickups import create_reminder
 from app.notify.tasks import monitor_triggers, fire_trigger, schedule_reminders, skip_pickup
-log = get_logger('tests.notify.tasks')
+log = Loggy('tests.notify.tasks')
 
 evnt_ids = []
 

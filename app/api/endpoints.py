@@ -208,7 +208,7 @@ def call_notify_acct_optout():
         return Response(
             response=dumps({
                 'status':'failed',
-                'desc':'Invalid account/event'
+                'desc':'Invalid account/event or already opted out.'
             }),
             status=200,
             mimetype='application/json')

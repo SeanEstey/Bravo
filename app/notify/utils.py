@@ -1,8 +1,8 @@
 '''app.notify.utils'''
 import re
-from app import get_logger
 from app.lib.utils import formatter
-log = get_logger('notify.utils')
+from app.lib.loggy import Loggy
+log = Loggy('notify.utils')
 
 #-------------------------------------------------------------------------------
 def intrntl_format(to):

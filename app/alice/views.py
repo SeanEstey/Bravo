@@ -2,14 +2,14 @@
 import logging
 from flask_login import login_required, current_user
 from flask import g, request, jsonify, render_template, session, Response
-from app import get_logger
 from app.lib.utils import formatter, print_vars, start_timer, end_timer
+from app.lib.loggy import Loggy
 from . import alice, incoming
 from .session import store_sessions, dump_session, dump_sessions, wipe_sessions
 from .incoming import make_reply
 from .util import get_chatlogs
 from .dialog import dialog
-log = get_logger('alice.views')
+log = Loggy('alice.views')
 
 #-------------------------------------------------------------------------------
 @alice.before_request
@@ -44,7 +44,6 @@ def _get_chatlogs():
 @alice.route('/<agency>/receive', methods=['POST'])
 def sms_received(agency):
     session['agency'] = agency
-    #log.debug(print_vars(request))
     a = start_timer()
 
     try:

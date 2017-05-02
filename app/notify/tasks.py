@@ -1,11 +1,11 @@
 '''app.notify.tasks'''
-import json, logging, os, pytz
+import json, os, pytz
 from os import environ as env
 from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from bson import ObjectId as oid
 from flask import g, render_template
-from app import get_keys, celery, smart_emit, task_logger
+from app import get_keys, celery, smart_emit
 from app.lib.utils import to_title_case
 from app.lib.dt import to_local
 from app.lib import mailgun

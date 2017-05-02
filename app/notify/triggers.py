@@ -1,12 +1,13 @@
 '''app.notify.triggers'''
-import logging, os
+import os
 from flask import g, request
 from bson.objectid import ObjectId
 from datetime import datetime,date,time
-from .. import get_logger, smart_emit, get_keys
+from .. import smart_emit, get_keys
 from app.lib.dt import to_utc, to_local
+from app.lib.loggy import Loggy
 from . import voice, email, sms
-log = get_logger('notify.triggers')
+log = Loggy('notify.triggers')
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, type_, date_, time_):

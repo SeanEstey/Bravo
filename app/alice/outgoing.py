@@ -1,19 +1,16 @@
 '''app.alice.outgoing'''
-import logging
 import cPickle as pickle
 from datetime import datetime
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException
 from flask import g, request
-from app import get_logger, get_keys, kv_store
+from app import get_keys, kv_store
 from app.main import etap
 from app.lib.loggy import Loggy, colors as c
 from app.lib.dt import to_local
 from .dialog import dialog
 from .session import store_sessions
 log = Loggy('alice.out')
-#log = get_logger('alice.out')
-
 
 #-------------------------------------------------------------------------------
 def send_welcome(etap_id):

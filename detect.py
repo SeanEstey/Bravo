@@ -1,12 +1,12 @@
 '''detect'''
-import logging, os, requests, socket, sys, time
+import os, requests, socket, sys, time
 from flask import current_app, g
 import psutil
 from os import environ as env
-from app import get_logger
+from app.lib.loggy import Loggy
 from app.tasks import celery as celery_app
 import celery, eventlet, flask
-log = get_logger('detect')
+log = Loggy('detect')
 
 G = '\033[92m'
 Y = '\033[93m'

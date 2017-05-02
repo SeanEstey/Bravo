@@ -1,11 +1,14 @@
 '''app.routing.routific'''
-import json, logging, requests
-from app import get_logger
+import json, requests
+from flask import g
+from app.lib.loggy import Loggy
 from app.main.etap import get_udf, get_prim_phone
-log = get_logger('routing.routific')
+log = Loggy('routific')
 
 #-------------------------------------------------------------------------------
 def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key):
+
+    agcy = g.db.agencies.find_one({'routing.routific.api_key':api_key})['name']
     start_loc = start['geometry']['location']
     end_loc = end['geometry']['location']
 
@@ -49,12 +52,13 @@ def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key)
             data=json.dumps(payload)
         )
     except Exception as e:
-        log.error('Routific exception=%s', str(e))
-        log.debug(str(e), exc_info=True)
+        log.error('Routific exception=%s', str(e), group=agcy)
+        log.exception(str(e), group=agcy)
         return False
 
     if r.status_code != 202:
-        log.error('Failed to retrieve Routific job_id. Msg="%s"',r.text['error'])
+        log.error('Failed to retrieve Routific job_id. Msg="%s"',
+            r.text['error'], group=agcy)
         return False
 
     return json.loads(r.text)['job_id']

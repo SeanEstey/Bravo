@@ -1,8 +1,8 @@
 '''app.booker.book'''
-import logging, os
+import os
 from flask import g, render_template, request
 from datetime import datetime, time
-from .. import get_logger, get_keys
+from .. import get_keys
 from app.lib import gsheets, mailgun
 from app.lib.dt import to_local, to_utc, ddmmyyyy_to_dt
 from app.lib.loggy import Loggy

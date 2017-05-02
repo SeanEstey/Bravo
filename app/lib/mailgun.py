@@ -1,8 +1,9 @@
 '''app.mailgun'''
 import json, logging, requests
 from os import environ as env
-from app import db_client, get_logger
-log = get_logger('mailgun')
+from app import db_client
+from app.lib.loggy import Loggy
+log = Loggy('mailgun')
 
 #-------------------------------------------------------------------------------
 def send(to, subject, body, conf, v=None):
@@ -39,11 +40,10 @@ def send(to, subject, body, conf, v=None):
           auth=('api', conf['api_key']),
           data=data)
     except requests.RequestException as e:
-        log.error('mailgun: %s ', str(e))
-        log.debug('', exc_info=True)
+        agcy = g.db.agencies.find_one({'mailgun.from':conf['from']})
+        log.error('mailgun: %s ', str(e), group=agcy)
+        log.debug(str(e), group=agcy)
         raise
-
-    #log.debug(response.text)
 
     return json.loads(response.text)['id']
 

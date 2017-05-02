@@ -1,12 +1,11 @@
 '''app.main.socketio'''
-import logging
 from datetime import datetime
 from flask import g, request, has_request_context
 from flask_login import current_user
 from flask_socketio import SocketIO, join_room, leave_room, send, emit, rooms
-from app import get_logger
+from app.lib.loggy import Loggy
 from app.lib.utils import print_vars, inspector
-log = get_logger('socket.io')
+log = Loggy('socket.io')
 
 # Main server initialized with flask app in run.py
 sio_server = SocketIO()

@@ -1,5 +1,5 @@
 '''app.notify.voice'''
-import logging, os, time, urllib
+import os, time, urllib
 from time import sleep
 from datetime import datetime, date, time
 from bson import ObjectId as oid
@@ -8,12 +8,12 @@ from twilio.rest import TwilioRestClient
 from twilio.util import TwilioCapability
 from flask import g, render_template, request
 from pymongo.collection import ReturnDocument
-from app import get_logger, get_keys, smart_emit
-from app.lib.logger import colors as c
+from app import get_keys, smart_emit
+from app.lib.loggy import Loggy, colors as c
 from app.lib import html
 from app.lib.dt import to_utc
 from .utils import intrntl_format, simple_dict
-log = get_logger('notify.voice')
+log = Loggy('notify.voice')
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):
@@ -52,7 +52,7 @@ def call(notific, conf):
         client = TwilioRestClient(conf['api']['sid'], conf['api']['auth_id'])
     except TwilioRestException as e:
         log.error('twilio REST error. %s', str(e))
-        log.debug('tb: ', exc_info=True)
+        log.exception(str(e))
         return 'failed'
 
     # Protect against sending real calls if in sandbox
@@ -80,7 +80,7 @@ def call(notific, conf):
             status_method = 'POST')
     except Exception as e:
         log.error('call to %s failed. %s', notific['to'], str(e))
-        log.debug('tb: ', exc_info=True)
+        log.exception(str(e))
     else:
         log.debug('%s call to %s', call.status, notific['to'])
     finally:

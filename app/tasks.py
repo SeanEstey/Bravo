@@ -1,9 +1,10 @@
 '''app.tasks'''
-import logging, os
+import os
 from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure
-from app import create_app, init_celery, task_logger
+from app import create_app, init_celery
 from app import celery as _celery
+from app.lib.loggy import Loggy
 from app.lib.utils import inspector, start_timer, end_timer
 
 timer = None
@@ -15,7 +16,7 @@ from app.main.tasks import *
 from app.booker.tasks import *
 from app.notify.tasks import *
 
-log = task_logger('tasks')
+log = Loggy('tasks', celery_task=True)
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect
@@ -48,7 +49,7 @@ state=None, *args, **kwargs):
 
     if state != 'SUCCESS':
         log.error('task=%s error. state=%s, retval=%s', name, state, retval)
-        log.debug('task=%s failure (%s)', name, end_timer(timer), exc_info=True)
+        log.exception('task=%s failure (%s)', name, end_timer(timer))
     else:
         pass
         #log.debug('%s: state=%s, retval="%s" (%s)', name, state, retval, duration)

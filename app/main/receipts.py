@@ -1,9 +1,9 @@
 '''app.main.receipts'''
-import gc, json, logging
+import gc, json
 from datetime import date
 from dateutil.parser import parse
 from flask import g, render_template, request
-from app import get_logger, get_keys
+from app import get_keys
 from . import donors
 from app.lib import html, mailgun
 from app.lib.utils import to_title_case

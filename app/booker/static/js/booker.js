@@ -301,9 +301,9 @@ function showConfirmModal(block, date, aid, name, email) {
 //---------------------------------------------------------------------
 function requestBooking(aid, block, date, notes, name, email, confirmation) {
 
-    $('#mymodal').find('#booker-loader').slideToggle(function() {
+    /*$('#mymodal').find('#booker-loader').slideToggle(function() {
         $('#mymodal').find('#booker-loader .btn.loader').fadeTo('fast', 1);
-    });
+    });*/
 
     api_call(
         'booker/create',
@@ -319,7 +319,8 @@ function requestBooking(aid, block, date, notes, name, email, confirmation) {
         function(response){
             console.log(response);
             $('#mymodal .btn-primary').prop('disabled', false);
-            $('#booker-loader').fadeOut('fast');
+            //$('#booker-loader').fadeOut('fast');
+            //$('#booker-loader').hide();
             $('#mymodal').modal('hide');
 
             if(response['status'] == 'success') {

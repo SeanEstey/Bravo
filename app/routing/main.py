@@ -1,16 +1,17 @@
 '''app.routing.main'''
-import json, logging, re, pytz
+import json, re, pytz
 from dateutil.parser import parse
 from datetime import datetime, time, date
 from flask import g, request
 from bson import ObjectId as oid
-from app import get_logger, smart_emit, get_keys
+from app import smart_emit, get_keys
 from app.lib import gsheets
 from app.lib.utils import print_vars, formatter
 from app.lib.dt import ddmmyyyy_to_date
+from app.lib.loggy import Loggy
 from app.main.etap import EtapError, get_udf, get_query
 from . import depots
-log = get_logger('routing.main')
+log = Loggy('routing.main')
 
 class GeocodeError(Exception):
     pass
@@ -114,6 +115,7 @@ def add_metadata(agcy, block, event_dt, event):
 
 #-------------------------------------------------------------------------------
 def edit_field(route_id, field, value):
+
     log.debug('edit_route id=%s, field=%s, value=%s',route_id,field,value)
 
     value_type = None

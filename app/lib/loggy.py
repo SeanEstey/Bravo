@@ -174,7 +174,7 @@ class Loggy():
         '''kwargs can include 'group', 'tag'
         '''
 
-        self._insert('debug', msg, args, kwargs)
+        #self._insert('debug', msg, args, kwargs)
         self.logger.debug(msg, *args)
 
     #---------------------------------------------------------------------------
@@ -199,6 +199,12 @@ class Loggy():
     def critical(self, msg, *args, **kwargs):
 
         pass
+
+    #---------------------------------------------------------------------------
+    def exception(self, msg, *args, **kwargs):
+
+        self._insert('error', msg, args, kwargs)
+        self.logger.exception(msg, *args)
 
     #---------------------------------------------------------------------------
     def __init__(self, name, celery_task=False):

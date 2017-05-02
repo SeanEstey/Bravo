@@ -4,7 +4,7 @@ from flask import g
 from app.tests.__init__ import *
 from app import get_keys, get_logger
 from app.main import leaderboard
-log = get_logger('test_leaderboard')
+log = Loggy('test_leaderboard')
 
 class LeaderboardTests(unittest.TestCase):
     def setUp(self):

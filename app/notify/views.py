@@ -1,14 +1,15 @@
 '''app.notify.views'''
-import logging
+from json import dumps
 import twilio.twiml
 from bson.objectid import ObjectId
 from flask_login import login_required
 from flask import g, request, jsonify, render_template, Response, url_for
-from app import get_logger, smart_emit, get_keys
+from app import smart_emit, get_keys
 from app.lib.utils import formatter, to_title_case
+from app.lib.loggy import Loggy
 from app.main import parser
 from . import notify, accounts, events, triggers
-log = get_logger('notify.views')
+log = Loggy('notify.views')
 
 #-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])
@@ -85,7 +86,7 @@ def view_opt_out(evnt_id, acct_id):
 
     return render_template(
         'views/opt_out.html',
-        valid = valid,
+        valid = dumps(valid),
         acct_id = acct_id,
         evnt_id = evnt_id,
         acct = acct

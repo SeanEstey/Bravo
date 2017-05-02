@@ -1,12 +1,13 @@
 '''app.notify.recording'''
-import os, logging
+import os
 from datetime import datetime
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import g, request
 from app.lib.utils import print_vars
-from .. import smart_emit, get_logger, get_logger
-log = get_logger('notify.record')
+from app.lib.loggy import Loggy
+from .. import smart_emit
+log = Loggy('notify.record')
 
 #-------------------------------------------------------------------------------
 def dial_recording():
@@ -95,14 +96,14 @@ def on_interact():
     Response: twilio.twiml.Response with voice content
     '''
 
-    log.debug('on_interact: %s', request.form.to_dict())
+    #log.debug('on_interact: %s', request.form.to_dict())
 
     if request.form.get('Digits') == '#':
         record = g.db.audio.find_one({'sid': request.form['CallSid']})
 
         log.info(
             'recording successful. duration: %ss',
-            request.form['RecordingDuration'])
+            request.form['RecordingDuration'], group=record['agency'])
 
         # Reminder job has not been created yet so save in 'audio' for now
 

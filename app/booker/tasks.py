@@ -57,7 +57,7 @@ def update_maps(agcy=None, **rest):
                     'update_dt': datetime.utcnow(),
                     'features': data['features']}})
 
-            desc = 'Task: updated %s maps successfully.' % len(data['features']
+            desc = 'Task: updated %s maps successfully.' % len(data['features'])
 
             log.warning(desc, group=name)
 

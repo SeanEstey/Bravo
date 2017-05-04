@@ -1,5 +1,5 @@
 '''app.__init__'''
-import eventlet, os, logging
+import eventlet, os
 from flask import Flask, g
 from flask_login import LoginManager
 from flask_kvsession import KVSessionExtension
@@ -9,19 +9,17 @@ from werkzeug.contrib.fixers import ProxyFix
 import config
 from app.lib import mongodb
 from app.lib.utils import print_vars
-from app.lib.logger import file_handler
 
 eventlet.monkey_patch()
 
-dbg_hdlr = file_handler(logging.DEBUG, 'debug.log')
-inf_hdlr = file_handler(logging.INFO, 'events.log')
-wrn_hdlr = file_handler(logging.WARNING, 'events.log')
-err_hdlr = file_handler(logging.ERROR, 'events.log')
-exc_hdlr = file_handler(logging.CRITICAL, 'events.log')
 login_manager = LoginManager()
 db_client = mongodb.create_client()
 kv_store = MongoStore(db_client[config.DB], config.SESSION_COLLECTION)
 kv_ext = KVSessionExtension(kv_store)
+
+from app.lib.loggy import Loggy
+logger = Loggy(__name__)
+Loggy.dump(logger.logger)
 
 #-------------------------------------------------------------------------------
 def get_keys(k=None, agcy=None):
@@ -49,6 +47,7 @@ def get_keys(k=None, agcy=None):
 
 #-------------------------------------------------------------------------------
 def create_app(pkg_name, kv_sess=True, testing=False):
+
     app = Flask(pkg_name)
     app.config.from_object(config)
 
@@ -56,17 +55,18 @@ def create_app(pkg_name, kv_sess=True, testing=False):
     app.jinja_env.add_extension("jinja2.ext.do")
     app.permanent_session_lifetime = app.config['PERMANENT_SESSION_LIFETIME']
 
-    app.logger.addHandler(dbg_hdlr)
-    app.logger.addHandler(inf_hdlr)
-    app.logger.addHandler(wrn_hdlr)
-    app.logger.addHandler(err_hdlr)
-    app.logger.addHandler(exc_hdlr)
-    app.logger.setLevel(logging.DEBUG)
+    Loggy.dump(app.logger)
 
     for hdlr in app.logger.handlers:
-        #print print_vars(hdlr)
         if hdlr.level == 10:
             app.logger.removeHandler(hdlr)
+
+    #app.logger.addHandler(Loggy.dbg_hdlr)
+    app.logger.addHandler(Loggy.inf_hdlr)
+    app.logger.addHandler(Loggy.wrn_hdlr)
+    app.logger.addHandler(Loggy.err_hdlr)
+
+    app.logger.setLevel(10) # logging.DEBUG
 
     from .auth.user import Anonymous
     login_manager.login_view = 'auth.show_login'
@@ -106,31 +106,6 @@ def init_celery(app):
     UberTask.db_client = mongodb.create_client(connect=False, auth=False)
     celery.Task = UberTask
     return celery
-
-#-------------------------------------------------------------------------------
-def get_logger(name):
-
-    logger = logging.getLogger(name)
-    logger.addHandler(dbg_hdlr)
-    logger.addHandler(inf_hdlr)
-    logger.addHandler(wrn_hdlr)
-    logger.addHandler(err_hdlr)
-    logger.addHandler(exc_hdlr)
-    logger.setLevel(logging.DEBUG)
-    return logger
-
-#-------------------------------------------------------------------------------
-def task_logger(name):
-
-    from celery.utils.log import get_task_logger
-    logger = get_task_logger(name)
-    logger.addHandler(dbg_hdlr)
-    logger.addHandler(inf_hdlr)
-    logger.addHandler(wrn_hdlr)
-    logger.addHandler(err_hdlr)
-    logger.addHandler(exc_hdlr)
-    logger.setLevel(logging.DEBUG)
-    return logger
 
 #-------------------------------------------------------------------------------
 def clean_expired_sessions():

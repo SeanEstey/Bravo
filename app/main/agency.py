@@ -2,7 +2,7 @@
 from flask import g, request
 from app import get_keys
 from app.lib.loggy import Loggy
-log = Loggy('main.agency')
+log = Loggy(__name__)
 
 #-------------------------------------------------------------------------------
 def get_admin_prop():

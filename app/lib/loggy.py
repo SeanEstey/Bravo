@@ -1,6 +1,6 @@
 '''app.lib.loggy'''
 import re
-from logging import getLogger, Formatter, FileHandler, Filter
+from logging import getLogger, Formatter, FileHandler, Filter, getLoggerClass
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from datetime import datetime, timedelta
 from config import LOG_PATH
@@ -33,11 +33,43 @@ class WarningFilter(Filter):
         return record.levelno == 30
 
 
+'''
+Python logging notes
+
+log.debug()
+-level == 10
+-logger invokes all attached handlers:
+    dbg_hdlr->filter set to 10, returns True, msg logged to debug.log
+    inf_hdlr->filter set to 20, returns False, nothing logged to events.log
+    wrn_hdlr->filter set to 30, returns False, nothing logged to events.log
+    ...
+        parent_name = a_logger.parent.name if a_logger.parent else None
+log.critical()
+-level == 50
+-logger invokes all attached handlers:
+    dbg_hdlr->handles levels 10-10 w/ filter. Returns False, not logged
+    wrn_hdlr->handlers levels 30-30 w/ filter. Returns False, not logged
+    err_hdlr->no filter, handlers levels 40-50. msg is logged to events.log
+'''
+
+
 class Loggy():
     '''Each instance of this class contains a Logger object connected
     to a set of FileHandlers. Contains Logger wrapping functions which also
     save the log msg to the DB.
     '''
+
+    #---------------------------------------------------------------------------
+    @staticmethod
+    def dump(a_logger, verbose=False):
+
+        print 'logger name=%s, parent=%s, parent_name=%s, n_handlers=%s' %(
+            a_logger.name, a_logger.parent, a_logger.parent.name, len(a_logger.handlers))
+
+        if verbose:
+            for hdlr in a_logger.handlers:
+                print 'name=%s, type=%s, level=%s' %(
+                    hdlr.name, type(hdlr), hdlr.level)
 
     #---------------------------------------------------------------------------
     @staticmethod
@@ -106,11 +138,16 @@ class Loggy():
     # Static Members
     regex_colors = re.compile('\\x1b\[[0-9]{1,2}m')
     levels = ['debug', 'info', 'warning', 'error']
+
+    # Static Handlers
     dbg_hdlr = file_handler.__func__(DEBUG, 'debug.log')
+    dbg_hdlr.name = 'loggy_dbg'
     inf_hdlr = file_handler.__func__(INFO, 'events.log')
+    inf_hdlr.name = 'loggy_inf'
     wrn_hdlr = file_handler.__func__(WARNING, 'events.log')
+    wrn_hdlr.name = 'loggy_wrn'
     err_hdlr = file_handler.__func__(ERROR, 'events.log')
-    exc_hdlr = file_handler.__func__(CRITICAL, 'events.log')
+    err_hdlr.name = 'loggy_err'
 
     # Instance Members
     logger = None
@@ -175,35 +212,35 @@ class Loggy():
         '''
 
         #self._insert('debug', msg, args, kwargs)
+        # Logger.debug only looks for kwargs 'exc_info' and 'extras'
         self.logger.debug(msg, *args)
 
     #---------------------------------------------------------------------------
     def info(self, msg, *args, **kwargs):
 
         self._insert('info', msg, args, kwargs)
+        # Logger.info only looks for kwargs 'exc_info' and 'extras'
         self.logger.info(msg, *args)
 
     #---------------------------------------------------------------------------
     def warning(self, msg, *args, **kwargs):
 
         self._insert('warning', msg, args, kwargs)
+        # Logger.warning only looks for kwargs 'exc_info' and 'extras'
         self.logger.warning(msg, *args)
 
     #---------------------------------------------------------------------------
     def error(self, msg, *args, **kwargs):
 
         self._insert('error', msg, args, kwargs)
+        # Logger.error only looks for kwargs 'exc_info' and 'extras'
         self.logger.error(msg, *args)
-
-    #---------------------------------------------------------------------------
-    def critical(self, msg, *args, **kwargs):
-
-        pass
 
     #---------------------------------------------------------------------------
     def exception(self, msg, *args, **kwargs):
 
         self._insert('error', msg, args, kwargs)
+        # Logger.exception only looks for kwarg 'a'
         self.logger.exception(msg, *args)
 
     #---------------------------------------------------------------------------
@@ -215,5 +252,4 @@ class Loggy():
         self.logger.addHandler(Loggy.inf_hdlr)
         self.logger.addHandler(Loggy.wrn_hdlr)
         self.logger.addHandler(Loggy.err_hdlr)
-        self.logger.addHandler(Loggy.exc_hdlr)
         self.logger.setLevel(DEBUG)

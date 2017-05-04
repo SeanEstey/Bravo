@@ -8,9 +8,8 @@ from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
 from app import get_keys
-from app.lib.logger import colors as c
 from app.main.etap import call, get_prim_phone, EtapError
-from app.lib.loggy import Loggy
+from app.lib.loggy import Loggy, colors as c
 from . import events, accounts, triggers, voice
 log = Loggy('notify.v_annc')
 

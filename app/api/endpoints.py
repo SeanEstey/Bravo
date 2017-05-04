@@ -22,7 +22,7 @@ from app.notify.voice import get_token
 from app.routing.main import edit_field
 from . import api
 from .manager import get_var, build_resp, func_call, task_call, WRITE_ME
-log = Loggy('api')
+log = Loggy(__name__)
 
 @api.route('/accounts/submit_form', methods=['POST'])
 def accts_add_form():
@@ -287,6 +287,7 @@ def write_log():
 @api.route('/logger/get', methods=['POST'])
 @login_required
 def get_logs():
+    print 'get_logs api'
 
     levels = []
     groups = []

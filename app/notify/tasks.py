@@ -14,7 +14,7 @@ from app.main import cal
 from app.main.parser import is_bus
 from app.main.etap import call, EtapError
 from . import email, events, sms, voice, pickups, triggers
-log = Loggy('notify.tasks')
+log = Loggy(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

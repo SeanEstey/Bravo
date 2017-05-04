@@ -9,7 +9,7 @@ from app.auth import load_user
 from app.lib.utils import print_vars, inspector
 from app.main.socketio import sio_server
 from app.lib.loggy import Loggy
-log = Loggy('app')
+log = Loggy(__name__)
 app = create_app('app')
 
 #-------------------------------------------------------------------------------

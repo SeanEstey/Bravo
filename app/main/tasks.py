@@ -5,8 +5,7 @@ from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta
 from dateutil.parser import parse
 from flask import current_app, g, request
-from app import celery, get_keys, task_logger
-from app.lib.logger import colors as c
+from app import celery, get_keys
 from app.lib.dt import d_to_dt, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 from app.lib.gsheets import gauth, write_rows, append_row, get_row, to_range,\
 get_values, update_cell
@@ -18,8 +17,8 @@ from .etap import call, get_udf, mod_acct
 from . import donors
 from .receipts import generate, get_ytd_gifts
 from .leaderboard import update_accts, update_gifts
-from app.lib.loggy import Loggy
-log = Loggy('main.tasks', celery_task=True)
+from app.lib.loggy import Loggy, colors as c
+log = Loggy(__name__, celery_task=True)
 
 
 #-------------------------------------------------------------------------------
@@ -365,7 +364,7 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
     end_dt = d_to_dt(to)
 
     for agency in agcy_list:
-        agcy = agency['name']
+        g.group = agcy = agency['name']
         etap_conf = get_keys('etapestry',agcy=agcy)
         oauth = get_keys('google',agcy=agcy)['oauth']
         srvc = gcal_auth(oauth)

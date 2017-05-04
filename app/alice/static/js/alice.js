@@ -15,6 +15,7 @@ function alice_init() {
         display(response);
     });
     buildAdminPanel();
+    showAdminServerStatus();
 }
 
 //------------------------------------------------------------------------------

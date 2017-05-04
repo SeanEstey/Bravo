@@ -4,6 +4,8 @@ import pymongo
 import db_auth
 import config
 
+
+
 #-------------------------------------------------------------------------------
 def create_client(connect=True, auth=True):
     client = pymongo.MongoClient(

@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 # Flask
+LOGGER_NAME = 'flask'
 TEMPLATES_AUTO_RELOAD = True
 SESSION_COLLECTION = 'sessions'
 PERMANENT_SESSION_LIFETIME = timedelta(minutes=60)

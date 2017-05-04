@@ -2,7 +2,7 @@
 import logging, unittest, json
 from flask import g
 from app.tests.__init__ import *
-from app import get_keys, get_logger
+from app import get_keys
 from app.main import leaderboard
 log = Loggy('test_leaderboard')
 

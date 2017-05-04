@@ -15,7 +15,7 @@ from app.main.etap import EtapError, get_udf
 from .main import add_metadata
 from .build import submit_job, get_solution_orders
 from . import depots, sheet
-log = Loggy('routing.tasks', celery_task=True)
+log = Loggy(__name__, celery_task=True)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

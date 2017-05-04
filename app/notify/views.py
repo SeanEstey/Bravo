@@ -9,12 +9,14 @@ from app.lib.utils import formatter, to_title_case
 from app.lib.loggy import Loggy
 from app.main import parser
 from . import notify, accounts, events, triggers
-log = Loggy('notify.views')
+log = Loggy(__name__)
 
 #-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])
 @login_required
 def view_event_list():
+
+    Loggy.dump(log.logger)
 
     event_list = events.get_list(g.user.agency)
 

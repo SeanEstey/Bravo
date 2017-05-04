@@ -10,3 +10,4 @@ celerybeat-schedule
 celerybeat.pid
 *.pid
 db_auth.py
+log_test.py

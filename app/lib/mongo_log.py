@@ -5,40 +5,36 @@ from pymongo.collection import Collection
 from pymongo.errors import OperationFailure, PyMongoError
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
+from flask import g, session, has_app_context, has_request_context
 write_method = 'insert_one'
 write_many_method = 'insert_many'
 _connection = None
-g = {}
-
-def has_app_context():
-    return True
-
-def has_request_context():
-    return True
 
 #-------------------------------------------------------------------------------
 class MongoFormatter(logging.Formatter):
+    '''Based on log4mongo in PyPI'''
 
     DEFAULT_PROPERTIES = logging.LogRecord(
         '', '', '', '', '', '', '', '').__dict__.keys()
 
     def _get_group(self):
-        global g
-
-        if g.get('group'):
-            return g.get('group')
+        if has_app_context():
+            if g.get('group'):
+                return g.get('group')
+            elif g.get('user'):
+                return g.get('user').agency
+        elif has_request_context():
+            if session.get('agcy'):
+                return session['agcy']
         else:
             return 'sys'
 
     def _get_user(self):
-        global g
-
         # Bravo user
         if has_app_context() and g.get('user'):
-            return g.get('user')#.user_id
+            return g.get('user').user_id
         elif has_request_context():
-            return 'session_user'
-            '''# Reg. end-user using Alice
+            # Reg. end-user using Alice
             if session.get('account'):
                 return session['account']['id']
             # Unreg. end-user using Alice
@@ -47,7 +43,6 @@ class MongoFormatter(logging.Formatter):
             # Celery task w/ req ctx
             else:
                 return 'sys'
-            '''
         # System task
         else:
             return 'sys'
@@ -61,9 +56,9 @@ class MongoFormatter(logging.Formatter):
             'timestamp': dt.datetime.utcnow(),
             'level': record.levelname,
             'message': record.getMessage(),
-            'loggerName': record.name
-            #'thread': record.thread,
-            #'threadName': record.threadName,
+            'loggerName': record.name,
+            'thread': record.thread,
+            'threadName': record.threadName
             #'fileName': record.pathname,
             #'module': record.module,
             #'method': record.funcName,
@@ -89,54 +84,60 @@ class MongoFormatter(logging.Formatter):
 
 #-------------------------------------------------------------------------------
 class MongoHandler(logging.Handler):
+    '''Based on log4mongo in PyPI'''
 
-    def __init__(self, level=INFO, formatter=None, fail_silently=False, reuse=True,
+    def __init__(self, level=INFO, formatter=None, raise_exc=True, reuse=True,
                  host='localhost', port=27017, db_name=None, coll='logs',
                  auth_db_name='admin', user=None, pw=None,
                  capped=False, cap_max=1000, cap_size=1000000, **kwargs):
         '''Init Mongo DB connection.
         @reuse: if False, every handler will have it's own MongoClient (slow).
-        '''
+        @kwargs: list of keywords to pass to _connect()'''
 
         logging.Handler.__init__(self, level)
-        self.host = host
-        self.port = port
-        self.db_name = db_name
-        self.coll_name = coll
-        self.user = user
-        self.pw = pw
-        self.auth_db_name = auth_db_name
-        self.fail_silently = fail_silently
-        self.connection = None
+        self.conn = None
         self.db = None
         self.coll = None
-        self.authenticated = False
+        self.is_authed = False
+        self.host = host
+        self.port = port
+        self.raise_exc = raise_exc
+        self.reuse = reuse
+        self.db_name = db_name
+        self.coll_name = coll
+        self.auth_db_name = auth_db_name
+        self.user = user
+        self.pw = pw
         self.formatter = formatter or MongoFormatter()
         self.capped = capped
         self.cap_max = cap_max
         self.cap_size = cap_size
-        self.reuse = reuse
+
         self._connect(**kwargs)
 
     def _connect(self, **kwargs):
         global _connection
 
         if self.reuse and _connection:
-            self.connection = _connection
+            self.conn = _connection
         else:
-            self.connection = MongoClient(host=self.host, port=self.port, **kwargs)
-            _connection = self.connection
+            self.conn = MongoClient(host=self.host, port=self.port, **kwargs)
+            _connection = self.conn
 
-        self.db = self.connection[self.db_name]
+        self.db = self.conn[self.db_name]
 
         if self.user is not None and self.pw is not None:
-            auth_db = self.connection[self.auth_db_name]
-            self.authenticated = auth_db.authenticate(self.user, self.pw, mechanism='SCRAM-SHA-1')
+            auth_db = self.conn[self.auth_db_name]
+
+            self.is_authed = auth_db.authenticate(
+                self.user,
+                self.pw,
+                mechanism='SCRAM-SHA-1')
 
         try:
-            self.connection.admin.command('ismaster')
+            self.conn.admin.command('ismaster')
         except ConnectionFailure:
-            if self.fail_silently:
+            if self.raise_exc:
                 return
             else:
                 raise
@@ -144,9 +145,9 @@ class MongoHandler(logging.Handler):
         if self.capped:
             # Prevent override of capped collection
             try:
-                self.coll = Collection(self.db, self.coll_name,
-                                             capped=True, max=self.cap_max,
-                                             size=self.cap_size)
+                self.coll = Collection(
+                    self.db, self.coll_name,
+                    capped=True, max=self.cap_max, size=self.cap_size)
             except OperationFailure:
                 # Capped collection exists, so get it.
                 self.coll = self.db[self.coll_name]
@@ -156,10 +157,10 @@ class MongoHandler(logging.Handler):
     def close(self):
         '''If authenticated, logging out and closing mongo database connection.
         '''
-        if self.authenticated:
+        if self.is_authed:
             self.db.logout()
-        if self.connection is not None:
-            self.connection.close()
+        if self.conn is not None:
+            self.conn.close()
 
     def emit(self, record):
         '''Inserting new logging record to mongo database.
@@ -168,7 +169,7 @@ class MongoHandler(logging.Handler):
             try:
                 getattr(self.coll, write_method)(self.format(record))
             except Exception:
-                if not self.fail_silently:
+                if not self.raise_exc:
                     self.handleError(record)
 
     def __exit__(self, type, value, traceback):
@@ -176,9 +177,10 @@ class MongoHandler(logging.Handler):
 
 #-------------------------------------------------------------------------------
 class BufferedMongoHandler(MongoHandler):
-    '''Provides buffering mechanism to avoid write-locking mongo.'''
+    '''Based on log4mongo in PyPI
+    Provides buffering mechanism to avoid write-locking mongo.'''
 
-    def __init__(self, level=INFO, formatter=None, fail_silently=False, reuse=True,
+    def __init__(self, level=INFO, formatter=None, raise_exc=True, reuse=True,
                  host='localhost', port=27017, db_name=None, coll='logs',
                  auth_db_name='admin', user=None, pw=None,
                  capped=False, cap_max=1000, cap_size=1000000,
@@ -187,7 +189,7 @@ class BufferedMongoHandler(MongoHandler):
         flush until full buf or critical message sent.'''
 
         MongoHandler.__init__(self,
-            level=level, formatter=formatter, fail_silently=fail_silently, reuse=reuse,
+            level=level, formatter=formatter, raise_exc=raise_exc, reuse=reuse,
             host=host, port=port, db_name=db_name, coll=coll, user=user, pw=pw, auth_db_name=auth_db_name,
             capped=capped, cap_max=cap_max, cap_size=cap_size, **kwargs)
 
@@ -255,7 +257,7 @@ class BufferedMongoHandler(MongoHandler):
     def flush_to_mongo(self):
         """Flush all records to mongo database."""
         if self.coll is not None and len(self.buf) > 0:
-            print 'flushing to mongo'
+            print 'saving buffer to Mongo'
             self.buf_lock_acquire()
             try:
 
@@ -263,7 +265,7 @@ class BufferedMongoHandler(MongoHandler):
                 self.empty_buf()
 
             except Exception as e:
-                if not self.fail_silently:
+                if not self.raise_exc:
                     self.handleError(self.last_record) #handling the error on flush
             finally:
                 self.buf_lock_release()

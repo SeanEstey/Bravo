@@ -17,6 +17,8 @@ LOCAL_PORT = 8000
 LOCAL_URL = 'http://localhost:%s' % LOCAL_PORT
 PUB_PORT = 80
 DB = 'bravo'
+APP_ROOT_LOGGER_NAME = 'app'
+CELERY_ROOT_LOGGER_NAME = 'test'
 
 # Other
 GSHEET_NAME = 'Bravo Sheets'

@@ -1,10 +1,11 @@
 '''app.main.etap'''
+from flask import g
 import json, logging, os, subprocess
 from datetime import datetime, date
 from app import get_keys
-from app.lib.loggy import Loggy
 import config
-log = Loggy('etap')
+from logging import getLogger
+log = getLogger(__name__)
 
 class EtapError(Exception):
     pass
@@ -20,6 +21,7 @@ NAME_FORMAT = {
 def call(func, keys, data, silence_exc=False):
 
     sandbox = 'true' if os.environ['BRV_SANDBOX'] == 'True' else 'false'
+    g.group = keys['agency']
 
     cmds = [
         'php', '/root/bravo/php/call.php',
@@ -31,14 +33,14 @@ def call(func, keys, data, silence_exc=False):
     try:
         response = subprocess.check_output(cmds)
     except Exception as e:
-        log.error('subprocess error. desc=%s', str(e), group=keys['agency'])
-        log.debug(str(e), group=keys['agency'])
+        log.error('subprocess error. desc=%s', str(e))
+        log.debug(str(e))
         raise
 
     try:
         response = json.loads(response)
     except Exception as e:
-        log.error('not json serializable, rv=%s', response, group=keys['agency'])
+        log.error('not json serializable, rv=%s', response)
         raise EtapError(response)
 
     # Success: {'status':'SUCCESS', 'result':'<data>'}
@@ -46,8 +48,7 @@ def call(func, keys, data, silence_exc=False):
 
     if response['status'] == 'FAILED':
         log.error('status=%s, func="%s", description="%s", result="%s"',
-            response['status'], func, response['description'], response.get('result'),
-            group=keys['agency'])
+            response['status'], func, response['description'], response.get('result'))
         raise EtapError(response)
     else:
         return response['result']
@@ -89,11 +90,13 @@ def get_query(block, keys, category=None):
 
 #-------------------------------------------------------------------------------
 def mod_acct(acct_id, keys, udf=None, persona=[], exc=False):
+    g.group = keys['agency']
+
     try:
         call('modify_acct', keys, {
             'acct_id':acct_id, 'udf':udf, 'persona': persona})
     except EtapError as e:
-        log.error('Error modifying account %s: %s', acct_id, str(e), group=keys['agency'])
+        log.error('Error modifying account %s: %s', acct_id, str(e))
 
         if not exc:
             return str(e)

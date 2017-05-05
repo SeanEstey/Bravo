@@ -79,7 +79,7 @@ class UberTask(Task):
         '''Called by Flask app. Wrapper for apply_async
         '''
 
-        #log.debug('async args=%s, kwargs=%s', args, kwargs)
+        #log.debug('apply_async args=%s, kwargs=%s, rest=%s', args, kwargs, rest)
         if rest.pop('with_request_context', True) or has_app_context():
             self._push_contexts(kwargs)
 

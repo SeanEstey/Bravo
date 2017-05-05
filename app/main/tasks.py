@@ -5,7 +5,7 @@ from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta
 from dateutil.parser import parse
 from flask import current_app, g, request
-from app import celery, get_keys
+from app import celery, get_keys, colors as c
 from app.lib.dt import d_to_dt, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 from app.lib.gsheets import gauth, write_rows, append_row, get_row, to_range,\
 get_values, update_cell
@@ -17,8 +17,10 @@ from .etap import call, get_udf, mod_acct
 from . import donors
 from .receipts import generate, get_ytd_gifts
 from .leaderboard import update_accts, update_gifts
-from app.lib.loggy import Loggy, colors as c
-log = Loggy(__name__, celery_task=True)
+
+from config import CELERY_ROOT_LOGGER_NAME as loggr_name
+from logging import getLogger
+log = getLogger(loggr_name +'.' + __name__)
 
 
 #-------------------------------------------------------------------------------
@@ -30,32 +32,37 @@ def wipe_sessions(self, **rest):
 @celery.task(bind=True)
 def update_leaderboard_accts(self, agcy=None, **rest):
 
-    log.warning('task: updating leaderboard data...', group=agcy)
+    g.group=agcy
+
+    log.warning('task: updating leaderboard data...')
 
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
 
     for agency in agcy_list:
+        g.group = agency['name']
+
         # Get list of all scheduled blocks from calendar
         blocks = get_blocks(
-            get_keys('cal_ids',agcy=agency['name'])['routes'], # FIXME. only works for VEC
+            get_keys('cal_ids',agcy=g.group)['routes'], # FIXME. only works for VEC
             datetime.now(),
             datetime.now() + delta(weeks=10),
-            get_keys('google',agcy=agency['name'])['oauth'])
+            get_keys('google',agcy=g.group)['oauth'])
 
         for query in blocks:
-            update_accts(query, agency['name'])
+            update_accts(query, g.group)
 
         # Now update gifts
-        accts = list(g.db.etap_accts.find({'agcy':agency['name']}))
+        accts = list(g.db.etap_accts.find({'agcy':g.group}))
         ch_size = 100
         chunks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
 
         for n in range(0,len(chunks)):
             chunk = chunks[n]
-            update_gifts(chunk, agency['name'])
+            update_gifts(chunk, g.group)
 
     # Duration: ~1277s for 2900 accts
-    log.warning('task: complete. leaderboard data updated!', group=agcy)
+    g.group = None
+    log.warning('task: complete. leaderboard data updated!')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -111,6 +118,7 @@ def process_entries(self, entries, agcy=None, **rest):
 
     start = start_timer()
     entries = json.loads(entries)
+    g.group = agcy
 
     log.warning('task: processing %s gift entries...', len(entries))
 
@@ -118,11 +126,11 @@ def process_entries(self, entries, agcy=None, **rest):
     checkmark = u'\u2714'
     ch_size = 10
 
-    etap_conf = get_keys('etapestry',agcy=agcy)
+    etap_conf = get_keys('etapestry',agcy=g.group)
     chunks = [entries[i:i + ch_size] for i in xrange(0, len(entries), ch_size)]
 
-    ss_id = get_keys('google',agcy=agcy)['ss_id']
-    srvc = gauth(get_keys('google',agcy=agcy)['oauth'])
+    ss_id = get_keys('google',agcy=g.group)['ss_id']
+    srvc = gauth(get_keys('google',agcy=g.group)['oauth'])
     headers = get_row(srvc, ss_id, wks, 1)
     upload_col = headers.index('Upload') +1
     n_success = n_errs = 0
@@ -274,8 +282,9 @@ def create_accounts(self, accts_json, agcy=None, **rest):
     accts = json.loads(accts_json)
     log.warning('creating %s accounts...', len(accts))
     checkmark = u'\u2714'
-    ss_id = get_keys('google', agcy=agcy)['ss_id']
-    service = gauth(get_keys('google', agcy=agcy)['oauth'])
+    g.group = agcy
+    ss_id = get_keys('google', agcy=g.group)['ss_id']
+    service = gauth(get_keys('google', agcy=g.group)['oauth'])
     headers = get_row(service, ss_id, 'Signups', 1)
     status_col = headers.index('Upload') +1
     n_errs = n_success = 0
@@ -291,7 +300,7 @@ def create_accounts(self, accts_json, agcy=None, **rest):
         chunk = chunks[i]
 
         try:
-            rv = call('add_accts', get_keys('etapestry', agcy=agcy), {'accts':chunk})
+            rv = call('add_accts', get_keys('etapestry', agcy=g.group), {'accts':chunk})
         except Exception as e:
             log.error('add_accts. desc=%s', str(e))
             log.debug('', exc_info=True)
@@ -332,8 +341,9 @@ def create_accounts(self, accts_json, agcy=None, **rest):
 @celery.task(bind=True)
 def create_rfu(self, agcy, note, options=None, **rest):
 
-    srvc = gauth(get_keys('google',agcy=agcy)['oauth'])
-    ss_id = get_keys('google',agcy=agcy)['ss_id']
+    g.group = agcy
+    srvc = gauth(get_keys('google',agcy=g.group)['oauth'])
+    ss_id = get_keys('google',agcy=g.group)['ss_id']
     headers = get_row(srvc, ss_id, 'Issues', 1)
 
     rfu = [''] * len(headers)
@@ -347,7 +357,7 @@ def create_rfu(self, agcy, note, options=None, **rest):
             rfu[headers.index(field)] = options[field]
 
     append_row(srvc, ss_id, 'Issues', rfu)
-    log.debug('Creating RFU=%s', rfu, group=agcy)
+    log.debug('Creating RFU=%s', rfu)
 
     return 'success'
 
@@ -364,17 +374,16 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
     end_dt = d_to_dt(to)
 
     for agency in agcy_list:
-        g.group = agcy = agency['name']
-        etap_conf = get_keys('etapestry',agcy=agcy)
-        oauth = get_keys('google',agcy=agcy)['oauth']
+        g.group = agency['name']
+        etap_conf = get_keys('etapestry',agcy=g.group)
+        oauth = get_keys('google',agcy=g.group)['oauth']
         srvc = gcal_auth(oauth)
 
         log.warning('task: updating calendar events from %s to %s...',
             start_dt.strftime('%m-%d-%Y'),
-            end_dt.strftime('%m-%d-%Y'),
-            group=agcy)
+            end_dt.strftime('%m-%d-%Y'))
 
-        cal_ids = get_keys('cal_ids',agcy=agcy)
+        cal_ids = get_keys('cal_ids',agcy=g.group)
         n_updated = n_errs = n_warnings = 0
 
         for id_ in cal_ids:
@@ -402,14 +411,12 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
                 # Title format: 'R6B [Area1, Area2, Area3] (51/55)'
 
                 if not is_route_size(rv):
-                    log.debug('invalid value=%s from "get_route_size"', rv, group=agcy)
+                    log.debug('invalid value=%s from "get_route_size"', rv)
                     n_errs+=1
                     continue
 
                 if not evnt.get('location'):
-                    log.debug('missing postal codes in event="%s"',
-                    evnt['summary'],
-                    group=agcy)
+                    log.debug('missing postal codes in event="%s"', evnt['summary'])
                     n_warnings+=1
 
                 new_title = '%s [%s] (%s)' %(
@@ -440,8 +447,11 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
                 else:
                     n_updated+=1
 
-        log.warning('task: completed. %s events updated, %s errors, %s warnings',
-            n_updated, n_errs, n_warnings, group=agcy)
+        log.warning('%s events updated, %s errors, %s warnings',
+            n_updated, n_errs, n_warnings)
+
+    g.group = None
+    log.debug('task: completed')
 
     return 'success'
 
@@ -458,7 +468,8 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
     accts = []
 
     for agency in agcy_list:
-        cal_ids = get_keys('cal_ids',agcy=agency['name'])
+        g.group = agency['name']
+        cal_ids = get_keys('cal_ids',agcy=g.group)
         for _id in cal_ids:
             # Get accounts scheduled on Residential routes 3 days from now
             accts += get_accounts(
@@ -473,7 +484,7 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
         r = sms.enable(agency['name'], accts)
 
         log.info('%supdated %s accounts for SMS. discovered %s mobile numbers%s',
-            c.GRN, r['n_sms'], r['n_mobile'], c.ENDC, group=agency['name'])
+            c.GRN, r['n_sms'], r['n_mobile'], c.ENDC)
 
     return 'success'
 
@@ -481,14 +492,15 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
 @celery.task(bind=True)
 def add_form_signup(self, data, **rest):
 
-    log.debug('received ETW form submission. data=%s', data, group='wsf')
+    g.group = 'wsf'
+    log.debug('received ETW form submission. data=%s', data)
     from app.main.signups import add_etw_to_gsheets
 
     try:
         add_etw_to_gsheets(data)
     except Exception as e:
-        log.error('error adding signup. desc="%s"', str(e), group='wsf')
-        log.debug('', exc_info=True, group='wsf')
+        log.error('error adding signup. desc="%s"', str(e))
+        log.debug('', exc_info=True)
         raise
 
     return 'success'
@@ -507,13 +519,13 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
     for agency in agcy_list:
         accts = []
         n_inactive = 0
-        agcy = agency['name']
+        g.group = agency['name']
         cal_ids = agency['cal_ids']
         period = period_ if period_ else agency['donors']['inactive_period']
         on_date = date.today() + delta(days=in_days)
 
         log.info('analyzing blocks on %s blocks (period=%s days)...',
-            on_date.strftime('%m-%d-%Y'), period, group=agcy)
+            on_date.strftime('%m-%d-%Y'), period)
 
         for _id in cal_ids:
             accts += get_accounts(
@@ -527,7 +539,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
         for acct in accts:
             try:
-                res = donors.is_inactive(agcy, acct, days=period)
+                res = donors.is_inactive(g.group, acct, days=period)
             except Exception as e:
                 continue
             else:
@@ -541,7 +553,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
             mod_acct(
                 acct['id'],
-                get_keys('etapestry',agcy=agcy),
+                get_keys('etapestry',agcy=g.group),
                 udf={
                     'Office Notes':\
                     '%s\n%s: non-participant (inactive for %s days)'%(
@@ -551,7 +563,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
                 exc=False)
 
             create_rfu(
-                agcy,
+                g.group,
                 'Non-participant. No collection in %s days.' % period,
                 options={
                     'ID': acct['id'],
@@ -562,10 +574,11 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
             n_inactive += 1
 
-        log.info('found %s inactive donors', n_inactive, group=agcy)
+        log.info('found %s inactive donors', n_inactive)
 
         n_task_inactive += n_inactive
 
+    g.group = None
     log.warning('task: completed. %s inactive accounts identified', n_task_inactive)
     return 'success'
 

@@ -4,8 +4,8 @@ from flask import Response, request, jsonify
 from flask_login import current_user
 import celery.result
 from app.lib.utils import start_timer, end_timer, formatter
-from app.lib.loggy import Loggy
-log = Loggy(__name__)
+from logging import getLogger
+log = getLogger(__name__)
 
 def WRITE_ME(msg=None):
     return msg or 'NOT YET IMPLEMENTED'
@@ -52,8 +52,6 @@ def build_resp(rv=None, exc=False, name=None, dt=None):
             status=200, mimetype='application/json')
 
     # Success
-
-    Loggy.dump(log.logger)
 
     log.debug('API call success, func=%s (%s)', name, end_timer(dt))
 

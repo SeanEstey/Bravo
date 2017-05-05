@@ -1,14 +1,57 @@
 import logging, sys, pymongo
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
-import datetime as dt
+from datetime import datetime, timedelta
 from pymongo.collection import Collection
 from pymongo.errors import OperationFailure, PyMongoError
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
-from flask import g, session, has_app_context, has_request_context
+from app import get_username, get_group
+from .utils import formatter
 write_method = 'insert_one'
 write_many_method = 'insert_many'
 _connection = None
+
+class colors:
+    BLUE = '\033[94m'
+    GRN = '\033[92m'
+    YLLW = '\033[93m'
+    RED = '\033[91m'
+    WHITE = '\033[37m'
+    ENDC = '\033[0m'
+    HEADER = '\033[95m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+#---------------------------------------------------------------------------
+def get_logs(start=None, end=None, user=None, groups=None, tag=None, levels=None):
+    '''
+    @start, end: naive datetime
+    @show_levels: subset of ['debug', 'info', 'warning', 'error']
+    @groups: subset of [g.user.agency, 'sys']
+    '''
+
+    DELTA_HRS = 24
+    now = datetime.utcnow()
+    start_dt = start if start else (now - timedelta(hours=DELTA_HRS))
+    end_dt = end if end else now
+    all_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+
+    from flask import g
+
+    logs = g.db.buffer.find({
+        'level': {'$in': levels} if levels else all_levels,
+        'user': user or {'$exists': True},
+        'group': {'$in': groups} if groups else {'$exists':True},
+        'timestamp': {
+           '$gte': start_dt,
+           '$lt': end_dt}
+        },
+        {'_id':0}
+    ).limit(50).sort('timestamp', -1)
+
+    print "%s logs queried" %(logs.count())
+
+    return formatter(list(logs), bson_to_json=True)
 
 #-------------------------------------------------------------------------------
 class MongoFormatter(logging.Formatter):
@@ -17,43 +60,13 @@ class MongoFormatter(logging.Formatter):
     DEFAULT_PROPERTIES = logging.LogRecord(
         '', '', '', '', '', '', '', '').__dict__.keys()
 
-    def _get_group(self):
-        if has_app_context():
-            if g.get('group'):
-                return g.get('group')
-            elif g.get('user'):
-                return g.get('user').agency
-        elif has_request_context():
-            if session.get('agcy'):
-                return session['agcy']
-        else:
-            return 'sys'
-
-    def _get_user(self):
-        # Bravo user
-        if has_app_context() and g.get('user'):
-            return g.get('user').user_id
-        elif has_request_context():
-            # Reg. end-user using Alice
-            if session.get('account'):
-                return session['account']['id']
-            # Unreg. end-user using Alice
-            elif session.get('anon_id'):
-                return session['anon_id']
-            # Celery task w/ req ctx
-            else:
-                return 'sys'
-        # System task
-        else:
-            return 'sys'
-
     def format(self, record):
         """Formats LogRecord into python dictionary."""
         # Standard document
         document = {
-            'group': self._get_group(),
-            'user': self._get_user(),
-            'timestamp': dt.datetime.utcnow(),
+            'group': get_group(),
+            'user': get_username(),
+            'timestamp': datetime.utcnow(),
             'level': record.levelname,
             'message': record.getMessage(),
             'loggerName': record.name,
@@ -87,12 +100,14 @@ class MongoHandler(logging.Handler):
     '''Based on log4mongo in PyPI'''
 
     def __init__(self, level=INFO, formatter=None, raise_exc=True, reuse=True,
-                 host='localhost', port=27017, db_name=None, coll='logs',
+                 host='localhost', port=27017, connect=False, db_name=None, coll='logs',
                  auth_db_name='admin', user=None, pw=None,
                  capped=False, cap_max=1000, cap_size=1000000, **kwargs):
         '''Init Mongo DB connection.
         @reuse: if False, every handler will have it's own MongoClient (slow).
-        @kwargs: list of keywords to pass to _connect()'''
+        @kwargs: list of keywords to pass to _connect()
+        @connect: if False, defer creating MongoClient and connection until
+        required (for forked celery tasks)'''
 
         logging.Handler.__init__(self, level)
         self.conn = None
@@ -112,8 +127,10 @@ class MongoHandler(logging.Handler):
         self.capped = capped
         self.cap_max = cap_max
         self.cap_size = cap_size
+        self.kwargs = kwargs
 
-        self._connect(**kwargs)
+        if connect:
+            self._connect(**self.kwargs)
 
     def _connect(self, **kwargs):
         global _connection
@@ -121,7 +138,11 @@ class MongoHandler(logging.Handler):
         if self.reuse and _connection:
             self.conn = _connection
         else:
-            self.conn = MongoClient(host=self.host, port=self.port, **kwargs)
+            self.conn = MongoClient(
+                host=self.host,
+                port=self.port,
+                connect=False,
+                **kwargs)
             _connection = self.conn
 
         self.db = self.conn[self.db_name]
@@ -134,6 +155,7 @@ class MongoHandler(logging.Handler):
                 self.pw,
                 mechanism='SCRAM-SHA-1')
 
+        '''
         try:
             self.conn.admin.command('ismaster')
         except ConnectionFailure:
@@ -141,6 +163,7 @@ class MongoHandler(logging.Handler):
                 return
             else:
                 raise
+        '''
 
         if self.capped:
             # Prevent override of capped collection
@@ -165,6 +188,9 @@ class MongoHandler(logging.Handler):
     def emit(self, record):
         '''Inserting new logging record to mongo database.
         '''
+        if self.conn is None:
+            self._connect(**self.kwargs)
+
         if self.coll is not None:
             try:
                 getattr(self.coll, write_method)(self.format(record))
@@ -181,7 +207,7 @@ class BufferedMongoHandler(MongoHandler):
     Provides buffering mechanism to avoid write-locking mongo.'''
 
     def __init__(self, level=INFO, formatter=None, raise_exc=True, reuse=True,
-                 host='localhost', port=27017, db_name=None, coll='logs',
+                 host='localhost', port=27017, connect=False, db_name=None, coll='logs',
                  auth_db_name='admin', user=None, pw=None,
                  capped=False, cap_max=1000, cap_size=1000000,
                  buf_size=100, buf_flush_tim=5.0, buf_flush_lvl=CRITICAL, **kwargs):
@@ -190,7 +216,7 @@ class BufferedMongoHandler(MongoHandler):
 
         MongoHandler.__init__(self,
             level=level, formatter=formatter, raise_exc=raise_exc, reuse=reuse,
-            host=host, port=port, db_name=db_name, coll=coll, user=user, pw=pw, auth_db_name=auth_db_name,
+            host=host, port=port, connect=connect, db_name=db_name, coll=coll, user=user, pw=pw, auth_db_name=auth_db_name,
             capped=capped, cap_max=cap_max, cap_size=cap_size, **kwargs)
 
         self.buf = []
@@ -219,6 +245,7 @@ class BufferedMongoHandler(MongoHandler):
                 # actual thread function
                 def loop():
                     while not stopped.wait(interval) and main_thead.is_alive():  # the first call is in `interval` secs
+                        #print 'mongo_log timer expired. calling flush()'
                         func(*args)
 
                 timer_thread = threading.Thread(target=loop)
@@ -256,8 +283,13 @@ class BufferedMongoHandler(MongoHandler):
 
     def flush_to_mongo(self):
         """Flush all records to mongo database."""
+
+        if self.conn is None:
+            self._connect(**self.kwargs)
+
         if self.coll is not None and len(self.buf) > 0:
-            print 'saving buffer to Mongo'
+            print 'flushing log buffer to Mongo'
+
             self.buf_lock_acquire()
             try:
 
@@ -277,6 +309,7 @@ class BufferedMongoHandler(MongoHandler):
 
     def destroy(self):
         """Clean quit logging. Flush buffer. Stop the periodical thread if needed."""
+        print 'destroy() invoked. flushing'
         if self._timer_stopper:
             self._timer_stopper()
         self.flush_to_mongo()

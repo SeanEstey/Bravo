@@ -9,9 +9,9 @@ from app.lib import html, mailgun
 from app.lib.utils import to_title_case
 from app.lib.gsheets import update_cell, to_range, gauth, get_row
 from app.lib.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
-from app.lib.loggy import Loggy
 from .etap import call, get_udf
-log = Loggy('main.receipts')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def generate(acct, entry, ytd_gifts=None):
@@ -185,23 +185,22 @@ def get_ytd_gifts(acct_ref, year):
 def on_delivered(agcy):
     '''Mailgun webhook called from view. Has request context'''
 
-    log.debug('receipt delivered to %s', request.form['recipient'], group=agcy)
-
+    g.group = agcy
+    log.debug('receipt delivered to %s', request.form['recipient'])
     row = request.form['ss_row']
-    ss_id = get_keys('google',agcy=agcy)['ss_id']
-
+    ss_id = get_keys('google',agcy=g.group)['ss_id']
     status = "=char(10004)" if request.form['event'] == 'delivered' else request.form['event']
 
     try:
-        service = gauth(get_keys('google',agcy=agcy)['oauth'])
+        service = gauth(get_keys('google',agcy=g.group)['oauth'])
         headers = get_row(service, ss_id, 'Donations', 1)
         col = headers.index('Receipt')+1
         update_cell(service, ss_id, 'Donations', to_range(row,col), status)
         service = None
         gc.collect()
     except Exception as e:
-        log.error('error updating sheet', group=agcy)
-        log.debug(str(e), group=agcy)
+        log.error('error updating sheet')
+        log.debug(str(e))
         service = None
         gc.collect()
 
@@ -210,22 +209,23 @@ def on_dropped(agcy):
     '''Mailgun webhook called from view. Has request context'''
     from app.main.tasks import create_rfu
 
+    g.group = agcy
     row = request.form['ss_row']
     msg = 'receipt to %s dropped. %s. %s' %(
         request.form['recipient'],
         request.form['reason'],
         request.form.get('description'))
 
-    log.info(msg, group=agcy)
+    log.info(msg)
 
-    ss_id = get_keys('google',agcy=agcy)['ss_id']
+    ss_id = get_keys('google',agcy=g.group)['ss_id']
 
     try:
-        service = gauth(get_keys('google',agcy=agcy)['oauth'])
+        service = gauth(get_keys('google',agcy=g.group)['oauth'])
         headers = get_row(service, ss_id, 'Donations', 1)
         col = headers.index('Receipt')+1
         update_cell(service, ss_id, 'Donations', to_range(row,col), request.form['event'])
     except Exception as e:
-        log.error('error updating sheet', group=agcy)
+        log.error('error updating sheet')
 
-    create_rfu.delay(agcy, msg)
+    create_rfu.delay(g.group, msg)

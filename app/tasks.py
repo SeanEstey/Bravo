@@ -18,6 +18,7 @@ from app.notify.tasks import *
 
 log = Loggy('tasks', celery_task=True)
 
+
 #-------------------------------------------------------------------------------
 @task_prerun.connect
 def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwargs):
@@ -46,6 +47,18 @@ state=None, *args, **kwargs):
 
     global timer
     name = sender.name.split('.')[-1]
+
+    # Force log flush to Mongo if timer set since thread timer seems to sleep after task is complete.
+
+    from config import CELERY_ROOT_LOGGER_NAME
+    from logging import getLogger
+    from app.lib.mongo_log import BufferedMongoHandler
+
+    #root_task_logger = getLogger(CELERY_ROOT_LOGGER_NAME)
+
+    for hdlr in getLogger(CELERY_ROOT_LOGGER_NAME).handlers:
+        if isinstance(hdlr, BufferedMongoHandler) and hdlr.buf_flush_tim:
+            hdlr.flush_to_mongo()
 
     if state != 'SUCCESS':
         log.error('task=%s error. state=%s, retval=%s', name, state, retval)

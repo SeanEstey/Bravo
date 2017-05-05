@@ -9,12 +9,14 @@ from app import get_keys, celery, smart_emit
 from app.lib.utils import to_title_case
 from app.lib.dt import to_local
 from app.lib import mailgun
-from app.lib.loggy import Loggy
 from app.main import cal
 from app.main.parser import is_bus
 from app.main.etap import call, EtapError
 from . import email, events, sms, voice, pickups, triggers
-log = Loggy(__name__)
+
+from config import CELERY_ROOT_LOGGER_NAME as loggr_name
+from logging import getLogger
+log = getLogger(loggr_name +'.' + __name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -39,14 +41,15 @@ def monitor_triggers(self, **kwargs):
 
     for trigger in ready:
         evnt = g.db.events.find_one({'_id':trigger['evnt_id']})
+        g.group = evnt['agency']
 
-        log.debug('trigger %s scheduled. firing.', str(trigger['_id']), group=evnt['agency'])
+        log.debug('trigger %s scheduled. firing.', str(trigger['_id'])) #, group=evnt['agency'])
 
         try:
             fire_trigger(trigger['_id'])
         except Exception as e:
-            log.error('fire_trigger error. desc=%s', str(e), group=evnt['agency'])
-            log.debug(str(e), group=evnt['agency'])
+            log.error('fire_trigger error. desc=%s', str(e)) #, group=evnt['agency'])
+            log.debug(str(e)) #, group=evnt['agency'])
 
     pending = g.db.triggers.find({
         'status':'pending',
@@ -74,7 +77,7 @@ def fire_trigger(self, _id=None, **rest):
     fails = 0
     trig = g.db.triggers.find_one({'_id':oid(_id)})
     event = g.db.events.find_one({'_id':trig['evnt_id']})
-    agcy = event['agency']
+    g.group = event['agency']
 
     g.db.triggers.update_one(
         {'_id':oid(_id)},
@@ -87,7 +90,7 @@ def fire_trigger(self, _id=None, **rest):
     count = ready.count()
 
     log.warning('sending %s %s notifications for %s...',
-        count, to_title_case(trig['type']), event['name'], group=agcy)
+        count, to_title_case(trig['type']), event['name'])
 
     smart_emit('trigger_status',{
         'trig_id': str(_id), 'status': 'in-progress'})
@@ -98,16 +101,16 @@ def fire_trigger(self, _id=None, **rest):
     for n in ready:
         try:
             if n['type'] == 'voice':
-                status = voice.call(n, get_keys('twilio',agcy=agcy))
+                status = voice.call(n, get_keys('twilio',agcy=g.group))
             elif n['type'] == 'sms':
-                status = sms.send(n, get_keys('twilio',agcy=agcy))
+                status = sms.send(n, get_keys('twilio',agcy=g.group))
             elif n['type'] == 'email':
-                status = email.send(n, get_keys('mailgun',agcy=agcy))
+                status = email.send(n, get_keys('mailgun',agcy=g.group))
         except Exception as e:
             status = 'error'
             err.append(str(e))
-            log.error('error sending %s to %s (%s)', n['type'], n['to'], str(e), group=agcy)
-            log.debug(str(e), group=agcy)
+            log.error('error sending %s to %s (%s)', n['type'], n['to'], str(e))
+            log.debug(str(e))
         else:
             if status == 'failed':
                 fails += 1
@@ -126,7 +129,7 @@ def fire_trigger(self, _id=None, **rest):
         'errors': len(err)})
 
     log.warning('notifications sent. %s queued, %s failed, %s errors.',
-        count - fails - len(err), fails, len(err), group=agcy)
+        count - fails - len(err), fails, len(err))
 
     return 'success'
 
@@ -144,7 +147,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
     evnt_ids = []
 
     for agency in agencies:
-        agcy = agency['name']
+        g.group = agency['name']
         days_ahead = int(agency['notify']['sched_delta_days'])
         on_date = date.today() + timedelta(days=days_ahead) if not for_date else for_date
         date_str = on_date.strftime('%m-%d-%Y')
@@ -155,33 +158,33 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 agency['cal_ids'][key],
                 datetime.combine(on_date,time(8,0)),
                 datetime.combine(on_date,time(9,0)),
-                get_keys('google',agcy=agcy)['oauth'])
+                get_keys('google',agcy=g.group)['oauth'])
 
         if len(blocks) == 0:
-            log.info('no blocks on %s', date_str, group=agcy)
+            log.info('no blocks on %s', date_str)
             continue
         else:
             log.info('%s events on %s: %s',
-                len(blocks), date_str, ", ".join(blocks), group=agcy)
+                len(blocks), date_str, ", ".join(blocks))
 
         for block in blocks:
             if is_bus(block) and agency['notify']['sched_business'] == False:
                 continue
 
             try:
-                evnt_id = pickups.create_reminder(agcy, block, on_date)
+                evnt_id = pickups.create_reminder(g.group, block, on_date)
             except EtapError as e:
                 n_fails +=1
-                log.error('failed to create %s reminder (desc: %s)', block, str(e), group=agcy)
-                log.debug(str(e), group=agcy)
+                log.error('failed to create %s reminder (desc: %s)', block, str(e))
+                log.debug(str(e))
                 continue
             else:
                 n_success +=1
                 evnt_ids.append(str(evnt_id))
-                log.debug('%s reminder event created', block, group=agcy)
+                log.debug('%s reminder event created', block)
 
     log.warning('task: complete. created %s events successfully, %s failures',
-        n_success, n_fails, group=agcy)
+        n_success, n_fails)
     return json.dumps(evnt_ids)
 
 #-------------------------------------------------------------------------------
@@ -207,13 +210,14 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
         log.error(msg)
         raise Exception(msg)
 
-    log.info('%s opted out of pickup',
-        acct['email'] or acct['phone'], group=evnt['agency'])
+    g.group = evnt['agency']
+
+    log.info('%s opted out of pickup', acct['email'] or acct['phone'])
 
     try:
         call(
             'skip_pickup',
-            get_keys('etapestry',agcy=evnt['agency']),
+            get_keys('etapestry',agcy=g.group),
             data={
                 'acct_id': acct['udf']['etap_id'],
                 'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
@@ -221,24 +225,24 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
                     acct['udf']['future_pickup_dt'],
                     to_str='%d/%m/%Y')})
     except EtapError as e:
-        log.error("etap error, desc='%s'", str(e), group=evnt['agency'])
+        log.error("etap error, desc='%s'", str(e))
 
     if not acct.get('email'):
         return 'success'
 
     try:
         body = render_template(
-            'email/%s/no_pickup.html' % acct['agency'],
+            'email/%s/no_pickup.html' % g.group,
 			to=acct['email'],
 			account=to_local(obj=acct, to_str='%B %d %Y'))
     except Exception as e:
-        log.error('render error: %s', str(e), group=evnt['agency'])
+        log.error('render error: %s', str(e))
     else:
         mailgun.send(
             acct['email'],
             'Thanks for Opting Out',
             body,
-            get_keys('mailgun',agcy=acct['agency']),
-            v={'type':'opt_out', 'agcy':acct['agency']})
+            get_keys('mailgun',agcy=g.group),
+            v={'type':'opt_out', 'agcy':g.group})
 
     return 'success'

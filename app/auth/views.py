@@ -5,6 +5,8 @@ from flask_login import login_required
 from . import auth
 from app.lib.loggy import Loggy
 log = Loggy('auth.views')
+from logging import getLogger
+test_log = getLogger('test.auth.views')
 
 #-------------------------------------------------------------------------------
 @auth.route('/login', methods=['GET'])

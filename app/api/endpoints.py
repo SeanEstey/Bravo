@@ -4,7 +4,7 @@ from json import loads, dumps
 from flask import g, request, Response
 from flask_login import login_required
 from app import get_server_prop, get_keys
-from app.lib.loggy import Loggy
+
 from app.main.etap import block_size, route_size, call
 from app.alice.outgoing import send_welcome, compose
 from app.booker.geo import get_maps
@@ -22,7 +22,9 @@ from app.notify.voice import get_token
 from app.routing.main import edit_field
 from . import api
 from .manager import get_var, build_resp, func_call, task_call, WRITE_ME
-log = Loggy(__name__)
+
+from logging import getLogger
+log = getLogger(__name__)
 
 @api.route('/accounts/submit_form', methods=['POST'])
 def accts_add_form():
@@ -273,37 +275,38 @@ def call_op_stats():
 @api.route('/logger/write', methods=['POST'])
 @login_required
 def write_log():
-    lvl = get_var('level')
+    lvl = get_var('level').upper()
 
-    if lvl == 'info':
+    if lvl == 'INFO':
         return func_call(log.info, get_var('msg'))
-    elif lvl == 'warning':
+    elif lvl == 'WARNING':
         return func_call(log.warning, get_var('msg'))
-    elif lvl == 'error':
+    elif lvl == 'ERROR':
         return func_call(log.error, get_var('msg'))
     else:
         raise Exception('invalid level var')
 
 @api.route('/logger/get', methods=['POST'])
 @login_required
-def get_logs():
-    print 'get_logs api'
+def retrieve_logs():
 
     levels = []
     groups = []
 
     for lvl in loads(get_var('levels')):
-        levels.append('debug') if lvl['name'] == 'dbg_lvl' else None
-        levels.append('info') if lvl['name'] == 'inf_lvl' else None
-        levels.append('warning') if lvl['name'] == 'wrn_lvl' else None
-        levels.append('error') if lvl['name'] == 'err_lvl' else None
+        levels.append('DEBUG') if lvl['name'] == 'dbg_lvl' else None
+        levels.append('INFO') if lvl['name'] == 'inf_lvl' else None
+        levels.append('WARNING') if lvl['name'] == 'wrn_lvl' else None
+        levels.append('ERROR') if lvl['name'] == 'err_lvl' else None
 
     for grp in loads(get_var('groups')):
         groups.append(g.user.agency) if grp['name'] == 'usr_grp' else None
         groups.append('sys') if grp['name'] == 'sys_grp' else None
         groups.append('anon') if grp['name'] == 'anon_grp' else None
 
-    return func_call(Loggy.get_logs, groups=groups, levels=levels)
+    from app.lib.mongo_log import get_logs
+
+    return func_call(get_logs, groups=groups, levels=levels)
 
 @api.route('/user/login', methods=['POST'])
 def user_login():

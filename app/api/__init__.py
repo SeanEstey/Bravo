@@ -7,9 +7,6 @@ api = Blueprint(
     __name__,
     url_prefix='/api')
 
-from app.lib.loggy import Loggy
-logger = Loggy(__name__)
-
 @api.before_request
 def api_pre_req():
     g.user = current_user

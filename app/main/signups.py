@@ -3,25 +3,26 @@ import json
 from datetime import date, datetime
 from flask import g, request, render_template
 from app import get_keys
-from app.lib.loggy import Loggy
 from app.lib import mailgun
 from app.lib.gsheets import gauth, get_row, append_row, update_cell, to_range
-log = Loggy('signups')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add_etw_to_gsheets(signup):
     '''Called by emptiestowinn.com signup form only for now
     '''
 
+    g.group = 'wsf'
+
     log.info('New signup received: %s %s',
       signup.get('first_name'),
-      signup.get('last_name'),
-      group='wsf')
+      signup.get('last_name'))
 
     try:
         service = gauth(get_keys('google',agcy='wsf')['oauth'])
     except Exception as e:
-        log.error('couldnt authenticate sheets. desc=%s', str(e), group='wsf')
+        log.error('couldnt authenticate sheets. desc=%s', str(e))
         raise Exception('auth error. desc=%s' % str(e))
 
     form_data = {
@@ -57,7 +58,7 @@ def add_etw_to_gsheets(signup):
     headers = get_row(service, ss_id, 'Signups', 1)
     row = []
 
-    log.debug('headers=%s', headers, group='wsf')
+    log.debug('headers=%s', headers)
 
     for field in headers:
         if form_data.has_key(field):
@@ -69,8 +70,8 @@ def add_etw_to_gsheets(signup):
         append_row(service, ss_id, 'Signups', row)
     except Exception, e:
         log.error('couldnt add signup="%s". desc="%s"',
-            json.dumps(signup), str(e), group='wsf')
-        log.debug(str(e), group='wsf')
+            json.dumps(signup), str(e))
+        log.debug(str(e))
         return 'There was an error handling your request'
 
     return 'success'
@@ -88,10 +89,10 @@ def send_welcome():
 
     args = request.get_json(force=True)
     to = args['recipient']
-    agcy = args['agency']
+    g.group = args['agency']
 
     if args['type'] == 'signup':
-        path = 'signups/%s/welcome.html' % agcy
+        path = 'signups/%s/welcome.html' % g.group
     else:
         raise Exception('invalid template type')
 
@@ -103,11 +104,11 @@ def send_welcome():
         return str(e)
 
     try:
-        mid = mailgun.send(to, args['subject'], html, get_keys('mailgun',agcy=agcy), v={
-            'agency':agcy, 'type':args['type'], 'from_row':args['from_row']})
+        mid = mailgun.send(to, args['subject'], html, get_keys('mailgun',agcy=g.group), v={
+            'agency':g.group, 'type':args['type'], 'from_row':args['from_row']})
     except Exception as e:
         log.error('could not email %s. desc=%s', to, str(e))
-        create_rfu.delay(agcy, str(e))
+        create_rfu.delay(g.group, str(e))
         return str(e)
 
     log.debug('queued %s to %s', args.get('type'), to)
@@ -118,41 +119,41 @@ def send_welcome():
 def on_delivered(agcy):
     '''Mailgun webhook called from view. Has request context'''
 
+    g.group = agcy
     log.info('signup welcome delivered to %s',
-        request.form['recipient'], group=agcy)
+        request.form['recipient'])
 
     row = request.form['from_row']
-    ss_id = get_keys('google',agcy=agcy)['ss_id']
+    ss_id = get_keys('google',agcy=g.group)['ss_id']
 
     try:
-        service = gauth(get_keys('google',agcy=agcy)['oauth'])
+        service = gauth(get_keys('google',agcy=g.group)['oauth'])
         headers = get_row(service, ss_id, 'Signups', 1)
         col = headers.index('Welcome')+1
         update_cell(service, ss_id, 'Signups', to_range(row,col), request.form['event'])
     except Exception as e:
-        log.error('error updating sheet', group=agcy)
+        log.error('error updating sheet')
 
 #-------------------------------------------------------------------------------
 def on_dropped(agcy):
+    g.group = agcy
     msg = 'signup welcome to %s dropped. %s.' %(
         request.form['recipient'], request.form['reason'])
 
-    log.info(msg, group=agcy)
+    log.info(msg)
 
     row = request.form['from_row']
-    ss_id = get_keys('google',agcy=agcy)['ss_id']
+    ss_id = get_keys('google',agcy=g.group)['ss_id']
 
     try:
-        service = gauth(get_keys('google',agcy=agcy)['oauth'])
+        service = gauth(get_keys('google',agcy=g.group)['oauth'])
         headers = get_row(service, ss_id, 'Signups', 1)
         col = headers.index('Welcome')+1
         update_cell(service, ss_id, 'Signups', to_range(row,col), request.form['event'])
     except Exception as e:
-        log.error('error updating sheet', group=agcy)
+        log.error('error updating sheet')
 
-    create_rfu.delay(
-        email['agency'],
-        msg + request.form.get('description'))
+    create_rfu.delay(g.group, msg + request.form.get('description'))
 
 #-------------------------------------------------------------------------------
 def lookup_carrier(phone):

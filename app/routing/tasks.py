@@ -5,7 +5,7 @@ from bson import ObjectId
 from flask import g
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
-from app import smart_emit, celery, get_keys
+from app import smart_emit, celery, get_keys, get_group
 from app.lib import gcal, gdrive, gsheets
 from app.lib.utils import formatter
 from app.lib.dt import to_local, ddmmyyyy_to_date
@@ -14,10 +14,8 @@ from app.main.etap import EtapError, get_udf
 from .main import add_metadata
 from .build import submit_job, get_solution_orders
 from . import depots, sheet
-
-from config import CELERY_ROOT_LOGGER_NAME as loggr_name
 from logging import getLogger
-log = getLogger(loggr_name +'.' + __name__)
+log = getLogger('worker.%s'%__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -29,16 +27,12 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
 
     sleep(3)
     smart_emit('discover_routes', {'status':'in-progress'})
-
-    if not agcy:
-        g.group = agcy
-
+    g.group = agcy
     log.info('discovering routes...')
-
     n_found = 0
     events = []
-    service = gcal.gauth(get_keys('google',agcy=g.group)['oauth'])
-    cal_ids = get_keys('cal_ids', agcy=g.group)
+    service = gcal.gauth(get_keys('google')['oauth'])
+    cal_ids = get_keys('cal_ids')
 
     for _id in cal_ids:
         start = to_local(d=date.today())

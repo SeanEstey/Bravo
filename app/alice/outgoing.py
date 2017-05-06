@@ -4,13 +4,13 @@ from datetime import datetime
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException
 from flask import g, request
-from app import get_keys, kv_store
+from app import get_keys, kv_store, colors as c
 from app.main import etap
-from app.lib.loggy import Loggy, colors as c
 from app.lib.dt import to_local
 from .dialog import dialog
 from .session import store_sessions
-log = Loggy('alice.out')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def send_welcome(etap_id):
@@ -63,20 +63,21 @@ def compose(agcy, body, to, callback=None, find_session=False, event_log=False):
     Returns twilio message object (not json serializable)
     '''
 
-    alice = get_keys('alice',agcy=agcy)
+    g.group = agcy
+    alice = get_keys('alice')
 
     if alice.get('name'):
         body = '%s: %s' % (alice.get('name'), body)
 
-    conf = get_keys('twilio',agcy=agcy)
+    conf = get_keys('twilio')
 
     try:
         client = TwilioRestClient(
             conf['api']['sid'],
             conf['api']['auth_id'])
     except Exception as e:
-        log.error(e, group=agcy)
-        log.debug(str(e), group=agcy)
+        log.error(str(e))
+        log.debug(str(e), exc_info=True)
         raise
 
     try:
@@ -86,14 +87,14 @@ def compose(agcy, body, to, callback=None, find_session=False, event_log=False):
             from_ = conf['sms']['number'],
             status_callback = callback)
     except Exception as e:
-        log.error(e, group=agcy)
-        log.debug(str(e), group=agcy)
+        log.error(str(e))
+        log.debug(str(e))
         raise
     else:
         if event_log:
-            log.info('%s"%s"%s', c.BOLD, body, c.ENDC, group=agcy)
+            log.info('%s"%s"%s', c.BOLD, body, c.ENDC)
         else:
-            log.debug('%s"%s"%s', c.BOLD, body, c.ENDC, group=agcy)
+            log.debug('%s"%s"%s', c.BOLD, body, c.ENDC)
 
     if not find_session:
         return msg

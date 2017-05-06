@@ -7,14 +7,15 @@ import string
 from twilio import twiml
 from datetime import datetime, date, time, timedelta
 from flask import request, make_response, g, session
-from app.lib.loggy import Loggy, colors as c
+from app import colors as c
 from app.main.etap import EtapError
 from . import keywords
 from .dialog import *
 from .phrases import *
 from .replies import *
 from .session import *
-log = Loggy('alice.inc')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def receive():
@@ -47,8 +48,6 @@ def find_kw_matches(message, kws):
     '''@message: either incoming or outgoing text
     '''
 
-    #log.debug('searching matches in %s', kws)
-
     # Remove punctuation, make upper case, split into individual words
     words = message.upper().translate(
         None,
@@ -67,9 +66,7 @@ def find_kw_matches(message, kws):
 def find_phrase_match(phrases):
     '''@phrases: list of >= 1 word strings
     '''
-
     message = get_msg().upper().translate(None, string.punctuation)
-
     return message in phrases
 
 #-------------------------------------------------------------------------------
@@ -113,11 +110,6 @@ def handle_answer():
     if do['action'] == 'dialog':
         reply = do['dialog']
     elif do['action'] == 'event':
-        #log.debug(
-        #    'calling event handler %s.%s',
-        #    do['handler']['module'],
-        #    do['handler']['func'])
-
         try:
             mod = __import__(do['handler']['module'], fromlist='.')
             func = getattr(mod, do['handler']['func'])

@@ -1,10 +1,9 @@
 '''app.tasks'''
 import os
 from celery.task.control import revoke
-from celery.signals import task_prerun, task_postrun, task_failure
+from celery.signals import task_prerun, task_postrun, task_failure, worker_process_init
 from app import create_app, init_celery
 from app import celery as _celery
-from app.lib.loggy import Loggy
 from app.lib.utils import inspector, start_timer, end_timer
 
 timer = None
@@ -16,8 +15,40 @@ from app.main.tasks import *
 from app.booker.tasks import *
 from app.notify.tasks import *
 
-log = Loggy('tasks', celery_task=True)
+#-------------------------------------------------------------------------------
+@worker_process_init.connect
+def worker_init(**kwargs):
 
+    from logging import getLogger
+    from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
+    # Root celery loger for this process
+    logger = getLogger('worker')
+
+    from app.lib.mongo_log import file_handler, BufferedMongoHandler
+    from db_auth import user, password
+    from config import LOG_PATH as path
+    from app import colors
+
+    logger.addHandler(file_handler(DEBUG,
+        '%sdebug.log'%path,
+        color=colors.WHITE))
+    logger.addHandler(file_handler(INFO,
+        '%sevents.log'%path,
+        color=colors.GRN))
+    logger.addHandler(file_handler(WARNING,
+        '%sevents.log'%path,
+        color=colors.YLLW))
+    logger.addHandler(file_handler(ERROR,
+        '%sevents.log'%path,
+        color=colors.RED))
+    buf_mongo_handler = BufferedMongoHandler(
+        level=DEBUG,
+        connect=True,
+        db_name='bravo',
+        user=user,
+        pw=password)
+    buf_mongo_handler.init_buf_timer()
+    logger.addHandler(buf_mongo_handler)
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect
@@ -49,16 +80,15 @@ state=None, *args, **kwargs):
     name = sender.name.split('.')[-1]
 
     # Force log flush to Mongo if timer set since thread timer seems to sleep after task is complete.
-
+    '''
     from config import CELERY_ROOT_LOGGER_NAME
     from logging import getLogger
     from app.lib.mongo_log import BufferedMongoHandler
 
-    #root_task_logger = getLogger(CELERY_ROOT_LOGGER_NAME)
-
     for hdlr in getLogger(CELERY_ROOT_LOGGER_NAME).handlers:
         if isinstance(hdlr, BufferedMongoHandler) and hdlr.buf_flush_tim:
             hdlr.flush_to_mongo()
+    '''
 
     if state != 'SUCCESS':
         log.error('task=%s error. state=%s, retval=%s', name, state, retval)

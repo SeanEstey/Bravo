@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 # Flask
-LOGGER_NAME = 'flask'
+#LOGGER_NAME = 'flask'
 TEMPLATES_AUTO_RELOAD = True
 SESSION_COLLECTION = 'sessions'
 PERMANENT_SESSION_LIFETIME = timedelta(minutes=60)
@@ -18,7 +18,7 @@ LOCAL_URL = 'http://localhost:%s' % LOCAL_PORT
 PUB_PORT = 80
 DB = 'bravo'
 APP_ROOT_LOGGER_NAME = 'app'
-CELERY_ROOT_LOGGER_NAME = 'test'
+CELERY_ROOT_LOGGER_NAME = 'app'
 
 # Other
 GSHEET_NAME = 'Bravo Sheets'

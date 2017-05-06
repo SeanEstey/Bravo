@@ -8,13 +8,13 @@ from datetime import datetime, date, timedelta
 from app import kv_store, kv_ext
 from app.main.etap import is_active, EtapError
 from app.main.tasks import create_rfu
-from app.lib.loggy import Loggy
 from app.lib.dt import to_local
 from app.lib.utils import print_vars
 from . import keywords
 from .util import related_notific, lookup_acct, event_begun
 from .dialog import *
-log = Loggy('alice.sess')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def has_session():

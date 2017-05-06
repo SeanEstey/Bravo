@@ -3,14 +3,14 @@ from flask import g, request, session
 from datetime import datetime, date, time, timedelta
 from app.lib.dt import to_local, ddmmyyyy_to_dt
 from app.lib.utils import print_vars
-from app.lib.loggy import Loggy
 from app.main.etap import call, get_udf, EtapError
 from app.booker import geo, search, book
 from .dialog import dialog
 from .util import related_notific, event_begun, set_notific_reply
 from app.main.tasks import create_rfu
 from app.notify.tasks import skip_pickup as skip_pickup_task
-log = Loggy('alice.events')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def request_support():
@@ -167,18 +167,18 @@ def is_unsub():
 def request_pickup():
 
     address = request.form['Body']
-    agcy = session.get('agcy')
+    g.group = session.get('agcy')
     conf = session.get('conf')
 
     # Msg reply should contain address
     log.info('pickup request at \"%s\" (SMS: %s)', address, request.form['From'])
 
-    block = geo.find_block(agcy, address, conf['google']['geocode']['api_key'])
+    block = geo.find_block(g.group, address, conf['google']['geocode']['api_key'])
 
     if not block:
         log.error('could not find map for address %s', address)
         create_rfu.delay(
-            session.get('agcy'),
+            g.group,
             "Could not locate block for address \"%s\"" % address,
             options={
                 "Account": "Mobile: %s" % request.form['From']})
@@ -188,7 +188,7 @@ def request_pickup():
 
     #set_cookie(response, 'status', None)
 
-    r = search.search(block, radius=None, weeks=None, agcy=agcy)
+    r = search.search(block, radius=None, weeks=None, agcy=g.group)
 
     log.info(r['results'][0])
 
@@ -201,7 +201,7 @@ def request_pickup():
     #book.make(agcy, aid, block, date_str, driver_notes, name, email, confirmation):
 
     create_rfu.delay(
-        agcy,
+        g.group,
         "Pickup request result: %s" % r['results'][0],
         options={
             "Account": "Address: %s\nMobile: %s" %(address, request.form['From'])})

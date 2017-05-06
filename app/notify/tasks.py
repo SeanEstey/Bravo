@@ -13,10 +13,8 @@ from app.main import cal
 from app.main.parser import is_bus
 from app.main.etap import call, EtapError
 from . import email, events, sms, voice, pickups, triggers
-
-from config import CELERY_ROOT_LOGGER_NAME as loggr_name
 from logging import getLogger
-log = getLogger(loggr_name +'.' + __name__)
+log = getLogger('worker.'+__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -43,13 +41,13 @@ def monitor_triggers(self, **kwargs):
         evnt = g.db.events.find_one({'_id':trigger['evnt_id']})
         g.group = evnt['agency']
 
-        log.debug('trigger %s scheduled. firing.', str(trigger['_id'])) #, group=evnt['agency'])
+        log.debug('trigger %s scheduled. firing.', str(trigger['_id']))
 
         try:
             fire_trigger(trigger['_id'])
         except Exception as e:
-            log.error('fire_trigger error. desc=%s', str(e)) #, group=evnt['agency'])
-            log.debug(str(e)) #, group=evnt['agency'])
+            log.error('fire_trigger error. desc=%s', str(e))
+            log.debug(str(e))
 
     pending = g.db.triggers.find({
         'status':'pending',
@@ -101,11 +99,11 @@ def fire_trigger(self, _id=None, **rest):
     for n in ready:
         try:
             if n['type'] == 'voice':
-                status = voice.call(n, get_keys('twilio',agcy=g.group))
+                status = voice.call(n, get_keys('twilio'))
             elif n['type'] == 'sms':
-                status = sms.send(n, get_keys('twilio',agcy=g.group))
+                status = sms.send(n, get_keys('twilio'))
             elif n['type'] == 'email':
-                status = email.send(n, get_keys('mailgun',agcy=g.group))
+                status = email.send(n, get_keys('mailgun'))
         except Exception as e:
             status = 'error'
             err.append(str(e))
@@ -158,7 +156,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 agency['cal_ids'][key],
                 datetime.combine(on_date,time(8,0)),
                 datetime.combine(on_date,time(9,0)),
-                get_keys('google',agcy=g.group)['oauth'])
+                get_keys('google')['oauth'])
 
         if len(blocks) == 0:
             log.info('no blocks on %s', date_str)
@@ -217,7 +215,7 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
     try:
         call(
             'skip_pickup',
-            get_keys('etapestry',agcy=g.group),
+            get_keys('etapestry'),
             data={
                 'acct_id': acct['udf']['etap_id'],
                 'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
@@ -242,7 +240,7 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
             acct['email'],
             'Thanks for Opting Out',
             body,
-            get_keys('mailgun',agcy=g.group),
+            get_keys('mailgun'),
             v={'type':'opt_out', 'agcy':g.group})
 
     return 'success'

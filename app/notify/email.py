@@ -4,15 +4,15 @@ from os import environ as env
 from bson.objectid import ObjectId
 from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
-from .. import smart_emit, get_keys
+from .. import smart_emit, get_keys, colors as c
 from app.lib import mailgun
 from app.lib.utils import formatter
 from app.lib.dt import to_utc, ddmmyyyy_to_dt
-from app.lib.loggy import Loggy, colors as c
 from app.main.donors import get
 from app.main.etap import get_udf, NAME_FORMAT
 from .utils import simple_dict
-log = Loggy('notify.email')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply=None):
@@ -90,6 +90,7 @@ def send(notific, mailgun_conf, key='default'):
     '''
 
     acct = g.db.accounts.find_one({'_id':notific['acct_id']})
+    g.group = acct['agency']
 
     try:
         body = render_template(
@@ -98,8 +99,8 @@ def send(notific, mailgun_conf, key='default'):
             account = simple_dict(acct),
             evnt_id = notific['evnt_id'])
     except Exception as e:
-        log.error('template error. desc=%s', str(e), group=acct['agency'])
-        log.debug(str(e), group=acct['agency'])
+        log.error('template error. desc=%s', str(e))
+        log.debug(str(e))
         raise
 
     mid = mailgun.send(
@@ -110,10 +111,10 @@ def send(notific, mailgun_conf, key='default'):
         v={'type':'notific'})
 
     if mid == False:
-        log.error('failed to queue %s', notific['to'], group=acct['agency'])
+        log.error('failed to queue %s', notific['to'])
         status = 'failed'
     else:
-        log.debug('queued notific to %s', notific['to'], group=acct['agency'])
+        log.debug('queued notific to %s', notific['to'])
         status = 'queued'
 
     g.db.notifics.update_one({
@@ -133,9 +134,10 @@ def on_delivered():
       {'$set':{'tracking.status': request.form['event']}})
 
     evnt = g.db.events.find_one({'_id':notific['evnt_id']})
+    g.group = evnt['agency']
 
     log.debug('%sdelivered notific to %s%s',
-        c.GRN, request.form['recipient'], c.ENDC, group=evnt['agency'])
+        c.GRN, request.form['recipient'], c.ENDC)
 
     smart_emit('notific_status',
         {'notific_id': str(notific['_id']), 'status': request.form['event']})
@@ -149,9 +151,10 @@ def on_dropped():
       {'$set':{'tracking.status':request.form['event']}})
 
     evnt = g.db.events.find_one({'_id':notific['evnt_id']})
+    g.group = evnt['agency']
 
-    log.error('dropped notific to %s', request.form['recipient'], group=evnt['agency'])
-    log.debug('reason dropped: %s', request.form.get('reason'), group=evnt['agency'])
+    log.error('dropped notific to %s', request.form['recipient'])
+    log.debug('reason dropped: %s', request.form.get('reason'))
 
     smart_emit('notific_status',
         {'notific_id':str(notific['_id']), 'status':request.form['event']})
@@ -159,7 +162,5 @@ def on_dropped():
     msg = 'notification to %s dropped. %s.' %(
         request.form['recipient'], request.form['reason'])
 
-    agcy = g.db.events.find_one({'_id':notific['evnt_id']})['agency']
-
     from app.main.tasks import create_rfu
-    create_rfu.delay(agcy, msg + request.form.get('description'))
+    create_rfu.delay(g.group, msg + request.form.get('description'))

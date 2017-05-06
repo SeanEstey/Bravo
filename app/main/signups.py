@@ -20,7 +20,7 @@ def add_etw_to_gsheets(signup):
       signup.get('last_name'))
 
     try:
-        service = gauth(get_keys('google',agcy='wsf')['oauth'])
+        service = gauth(get_keys('google')['oauth'])
     except Exception as e:
         log.error('couldnt authenticate sheets. desc=%s', str(e))
         raise Exception('auth error. desc=%s' % str(e))
@@ -54,7 +54,7 @@ def add_etw_to_gsheets(signup):
     if 'referrer' in signup:
         form_data['Referrer'] = signup['referrer']
 
-    ss_id = get_keys('google',agcy='wsf')['ss_id']
+    ss_id = get_keys('google')['ss_id']
     headers = get_row(service, ss_id, 'Signups', 1)
     row = []
 
@@ -104,7 +104,7 @@ def send_welcome():
         return str(e)
 
     try:
-        mid = mailgun.send(to, args['subject'], html, get_keys('mailgun',agcy=g.group), v={
+        mid = mailgun.send(to, args['subject'], html, get_keys('mailgun'), v={
             'agency':g.group, 'type':args['type'], 'from_row':args['from_row']})
     except Exception as e:
         log.error('could not email %s. desc=%s', to, str(e))
@@ -124,10 +124,10 @@ def on_delivered(agcy):
         request.form['recipient'])
 
     row = request.form['from_row']
-    ss_id = get_keys('google',agcy=g.group)['ss_id']
+    ss_id = get_keys('google')['ss_id']
 
     try:
-        service = gauth(get_keys('google',agcy=g.group)['oauth'])
+        service = gauth(get_keys('google')['oauth'])
         headers = get_row(service, ss_id, 'Signups', 1)
         col = headers.index('Welcome')+1
         update_cell(service, ss_id, 'Signups', to_range(row,col), request.form['event'])
@@ -143,10 +143,10 @@ def on_dropped(agcy):
     log.info(msg)
 
     row = request.form['from_row']
-    ss_id = get_keys('google',agcy=g.group)['ss_id']
+    ss_id = get_keys('google')['ss_id']
 
     try:
-        service = gauth(get_keys('google',agcy=g.group)['oauth'])
+        service = gauth(get_keys('google')['oauth'])
         headers = get_row(service, ss_id, 'Signups', 1)
         col = headers.index('Welcome')+1
         update_cell(service, ss_id, 'Signups', to_range(row,col), request.form['event'])

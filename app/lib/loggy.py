@@ -96,7 +96,7 @@ class Loggy():
         if log_f:
             fmtr = Formatter(log_f, log_v)
         else:
-            stamp_f = colors.BLUE + '[%(asctime)s %(name)s]: ' + colors.ENDC
+            stamp_f = colors.BLUE + '[%(asctime)s %(name)s: %(processName)s] ' + colors.ENDC
             msg_f   = to_color[str(level)] + '%(message)s' + colors.ENDC
             fmtr = Formatter(stamp_f + msg_f, '%m-%d %H:%M')
 

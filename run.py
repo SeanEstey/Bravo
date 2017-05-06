@@ -8,9 +8,12 @@ from app import db_client, create_app
 from app.auth import load_user
 from app.lib.utils import print_vars, inspector
 from app.main.socketio import sio_server
-from app.lib.loggy import Loggy
-log = Loggy(__name__)
 app = create_app('app')
+
+from app.lib.mongo_log import BufferedMongoHandler
+for handler in app.logger.handlers:
+    if isinstance(handler, BufferedMongoHandler):
+        handler.init_buf_timer()
 
 #-------------------------------------------------------------------------------
 @app.before_request
@@ -48,7 +51,7 @@ def start_celery(beat=True):
         environ['BRV_BEAT'] = 'False'
     else:
         system('celery -A app.tasks.celery beat -f logs/celery.log -l INFO &')
-    system('celery -A app.tasks.celery -n bravo worker -f logs/celery.log -l INFO &')
+    system('celery -A app.tasks.celery -n bravo worker -f logs/celery.log -l INFO -Ofair &')
 
 #-------------------------------------------------------------------------------
 def main(argv):
@@ -66,7 +69,7 @@ def main(argv):
         elif opt in ('-s', '--sandbox'):
             environ['BRV_SANDBOX'] = 'True'
 
-    log.info('starting server...')
+    app.logger.info('starting server...')
 
     set_environ(app)
     sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
@@ -77,7 +80,7 @@ def main(argv):
 
     startup_msg(app)
 
-    log.info("she's ready, captain!")
+    app.logger.info("she's ready, captain!")
 
     sio_server.run(
         app,

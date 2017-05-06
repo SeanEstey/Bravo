@@ -8,7 +8,4 @@ notify = Blueprint(
     static_folder='./static',
     template_folder='./templates')
 
-from app.lib.loggy import Loggy
-logger = Loggy(__name__)
-
 from . import views

@@ -24,6 +24,7 @@ class UberTask(Task):
     ENVIRON_KW = '_environ_var'
     flsk_app = None
     db_client = None
+    buf_mongo_hndlr = None
 
     #---------------------------------------------------------------------------
     def __call__(self, *args, **kwargs):

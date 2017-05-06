@@ -6,8 +6,8 @@ from flask_login import current_user, login_user, logout_user
 from app import db_client, login_manager
 from app.lib.utils import print_vars
 from .user import User
-from app.lib.loggy import Loggy
-log = Loggy('auth.manager')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def login(username, pw):
@@ -85,7 +85,7 @@ def load_api_user(request):
     api_key = request.headers.get('Authorization')
 
     if not api_key:
-        print 'no api key in header'
+        #print 'no api key in header'
         return None
 
     api_key = api_key.replace('Basic ', '', 1)

@@ -3,14 +3,14 @@ import json, os
 from os import environ as env
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
-from .. import smart_emit, get_keys
+from .. import smart_emit, get_keys, colors as c
 from app.lib import html
 from app.lib.dt import to_utc, to_local
-from app.lib.loggy import Loggy, colors as c
 from app.alice.outgoing import compose
 from app.main.donors import get
 from .utils import intrntl_format, simple_dict
-log = Loggy('notify.sms')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_send, on_reply):
@@ -126,14 +126,15 @@ def on_status():
             'tracking.sent_dt': to_local(dt=datetime.now())}})
 
     evnt = g.db.events.find_one({'_id':notific.get('evnt_id')})
+    g.group = evnt['agency']
 
     if status == 'delivered':
         log.debug('%sdelivered SMS notific to %s%s',
-            c.GRN, to, c.ENDC, group=evnt['agency'])
+            c.GRN, to, c.ENDC)
     elif status == 'queued':
-        log.debug('queued SMS notific to %s', to, group=evnt['agency'])
+        log.debug('queued SMS notific to %s', to)
     else:
-        log.debug('%s SMS notific to %s', status, to, group=evnt['agency'])
+        log.debug('%s SMS notific to %s', status, to)
 
     # Could be a new sid from a reply to reminder text?
     if not notific:

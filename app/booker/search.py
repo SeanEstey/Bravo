@@ -6,9 +6,9 @@ from app import get_keys
 from app.main import parser
 from app.main.etap import call, EtapError
 from app.lib import gcal
-from app.lib.loggy import Loggy
 from . import geo
-log = Loggy('booker.search')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def search(query, radius=None, weeks=None, agcy=None):
@@ -18,9 +18,10 @@ def search(query, radius=None, weeks=None, agcy=None):
     'results': array }
     '''
 
-    agcy = agcy if agcy else g.user.agency
+    g.group = agcy if agcy else g.user.agency
+    print 'g.group=%s'%g.group
 
-    maps = g.db.maps.find_one({'agency':agcy})['features']
+    maps = g.db.maps.find_one({'agency':g.group})['features']
 
     SEARCH_WEEKS = int(weeks or 12)
     SEARCH_DAYS = int(SEARCH_WEEKS * 7)
@@ -30,8 +31,8 @@ def search(query, radius=None, weeks=None, agcy=None):
     start_date = datetime.today()# + timedelta(days=1)
     end_date = datetime.today() + timedelta(days=SEARCH_DAYS)
 
-    service = gcal.gauth(get_keys('google',agcy=agcy)['oauth'])
-    cal_ids = get_keys('cal_ids',agcy=agcy)
+    service = gcal.gauth(get_keys('google')['oauth'])
+    cal_ids = get_keys('cal_ids')
 
     for id_ in cal_ids:
         events +=  gcal.get_events(
@@ -48,7 +49,7 @@ def search(query, radius=None, weeks=None, agcy=None):
         try:
             acct = call(
               'get_acct',
-              get_keys('etapestry',agcy=agcy),
+              get_keys('etapestry'),
               data={'acct_id': re.search(r'\d{1,6}',query).group(0)})
         except EtapError as e:
             log.error('no account id %s', query)
@@ -66,7 +67,7 @@ def search(query, radius=None, weeks=None, agcy=None):
 
         geo_results = geo.geocode(
             acct['address'] + ', ' + acct['city'] + ', AB',
-            get_keys('google',agcy=agcy)['geocode']['api_key'])
+            get_keys('google')['geocode']['api_key'])
 
         # Individual account (Residential donor)
         if acct['nameFormat'] <= 2:
@@ -128,7 +129,7 @@ def search(query, radius=None, weeks=None, agcy=None):
     else:
         geo_results = geo.geocode(
             query,
-            get_keys('google',agcy=agcy)['geocode']['api_key']
+            get_keys('google')['geocode']['api_key']
         )
 
         if len(geo_results) == 0:

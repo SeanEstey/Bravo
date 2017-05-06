@@ -3,9 +3,9 @@ import httplib2, json, logging, requests
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from apiclient.discovery import build
-from app.lib.loggy import Loggy
 from .utils import print_vars
-log = Loggy('gcal')
+from logging import getLogger
+log = getLogger(__name__)
 
 color_ids = {
     'light_purple' : 1,

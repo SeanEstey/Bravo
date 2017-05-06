@@ -8,16 +8,6 @@ from simplekv.db.mongo import MongoStore
 from werkzeug.contrib.fixers import ProxyFix
 import config
 from app.lib import mongodb
-from app.lib.utils import print_vars
-
-eventlet.monkey_patch()
-
-login_manager = LoginManager()
-db_client = mongodb.create_client()
-kv_store = MongoStore(db_client[config.DB], config.SESSION_COLLECTION)
-kv_ext = KVSessionExtension(kv_store)
-
-from app.lib.loggy import Loggy
 
 class colors:
     BLUE = '\033[94m'
@@ -30,33 +20,45 @@ class colors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+eventlet.monkey_patch()
+
+login_manager = LoginManager()
+db_client = mongodb.create_client()
+kv_store = MongoStore(db_client[config.DB], config.SESSION_COLLECTION)
+kv_ext = KVSessionExtension(kv_store)
 
 #-------------------------------------------------------------------------------
 def get_keys(k=None, agcy=None):
-    name = ''
+    '''Find user group configuration document
+    @k: sub-document key
+    @agcy: user group name'''
 
-    try:
-        name = g.user.agency if g.user.is_authenticated else agcy
-    except Exception as e:
-        if not agcy:
-            raise
-        else:
-            name = agcy
+    name = None
+
+    if agcy is not None:
+        name = agcy
+    else:
+        if g.get('group'):
+            name = g.group
+        elif g.get('user') and g.user.is_authenticated:
+            name = g.user.agency
+
+    if name is None:
+        raise Exception('no user group found in get_keys')
 
     conf = g.db.agencies.find_one({'name':name})
 
-    if conf:
-        if not k:
-            return conf
-        elif k in conf:
-            return conf[k]
-        else:
-            raise Exception('key=%s not found'%k)
-    else:
-        raise Exception('no agency doc found ')
+    if conf is None:
+        raise Exception('no doc found for name=%s' % name)
+    if k and k not in conf:
+        raise Exception('key=%s not found' % k)
+
+    return conf if not k else conf[k]
 
 #-------------------------------------------------------------------------------
 def get_group():
+    '''Find user group name'''
+
     if has_app_context():
         if g.get('group'):
             return g.get('group')
@@ -74,6 +76,7 @@ def get_group():
 
 #-------------------------------------------------------------------------------
 def get_username():
+
     # Bravo user
     if has_app_context() and g.get('user'):
         return g.get('user').user_id
@@ -93,29 +96,43 @@ def get_username():
 
 #-------------------------------------------------------------------------------
 def create_app(pkg_name, kv_sess=True, testing=False):
-
     from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
+    from app.lib.mongo_log import file_handler, BufferedMongoHandler
+    from db_auth import user, password
+    from config import LOG_PATH as path
 
     app = Flask(pkg_name)
     app.config.from_object(config)
-
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.jinja_env.add_extension("jinja2.ext.do")
     app.permanent_session_lifetime = app.config['PERMANENT_SESSION_LIFETIME']
 
-    # Loggers
-
-    for hdlr in app.logger.handlers:
-        if hdlr.level == DEBUG:
-            app.logger.removeHandler(hdlr)
-    app.logger.addHandler(Loggy.inf_hdlr)
-    app.logger.addHandler(Loggy.wrn_hdlr)
-    app.logger.addHandler(Loggy.err_hdlr)
-    app.logger.addHandler(create_buf_mongo_hndlr(INFO))
+    # Flask App Logger & Handlers
     app.logger.setLevel(DEBUG)
 
-    king_app_logger = create_mongo_logger(app.config['APP_ROOT_LOGGER_NAME'], DEBUG)
-    king_celery_logger = create_mongo_logger(app.config['CELERY_ROOT_LOGGER_NAME'], INFO)
+    for handler in app.logger.handlers:
+        if handler.level == DEBUG:
+            app.logger.removeHandler(handler)
+
+    app.logger.addHandler(file_handler(DEBUG,
+        '%sdebug.log'%path,
+        color=colors.WHITE))
+    app.logger.addHandler(file_handler(INFO,
+        '%sevents.log'%path,
+        color=colors.GRN))
+    app.logger.addHandler(file_handler(WARNING,
+        '%sevents.log'%path,
+        color=colors.YLLW))
+    app.logger.addHandler(file_handler(ERROR,
+        '%sevents.log'%path,
+        color=colors.RED))
+    # Init connection in Run.py to prevent celery fork errors
+    app.logger.addHandler(BufferedMongoHandler(
+        level=DEBUG,
+        connect=False,
+        db_name='bravo',
+        user=user,
+        pw=password))
 
     # Flask-Login ext.
 
@@ -151,68 +168,23 @@ def create_app(pkg_name, kv_sess=True, testing=False):
 #-------------------------------------------------------------------------------
 def init_celery(app):
 
+    from config import APP_ROOT_LOGGER_NAME as name
+    from logging import getLogger
     import celeryconfig
+
     celery.config_from_object(celeryconfig)
     celery.app = UberTask.flsk_app = app
     UberTask.db_client = mongodb.create_client(connect=False, auth=False)
     celery.Task = UberTask
     return celery
 
-#-------------------------------------------------------------------------------
-def create_buf_mongo_hndlr(level):
 
-    from app.lib.mongo_log import BufferedMongoHandler
-    from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
-    import db_auth
+from app.main.socketio import smart_emit
+from uber_task import UberTask
 
-    return BufferedMongoHandler(
-        level = level,
-        connect=False,
-        user=db_auth.user,
-        pw=db_auth.password,
-        db_name='bravo',
-        coll='buffer',
-        auth_db_name='admin',
-        capped=True,
-        cap_max=10000,
-        cap_size=10000000,
-        buf_size=50,
-        buf_flush_tim=5.0,
-        buf_flush_lvl=ERROR)
+celery = Celery(__name__, broker='amqp://')
+celery.Task = UberTask
 
-#-------------------------------------------------------------------------------
-def create_mongo_logger(name, level):
-
-    import sys
-    from logging import getLogger, StreamHandler, DEBUG, INFO, WARNING, ERROR, CRITICAL
-
-    stream_hndlr = StreamHandler(sys.stdout)
-    stream_hndlr.setLevel(DEBUG)
-
-    log = getLogger(name)
-    log.setLevel(level)
-    log.addHandler(stream_hndlr)
-    log.addHandler(create_buf_mongo_hndlr(level))
-    log.addHandler(Loggy.dbg_hdlr)
-    log.addHandler(Loggy.inf_hdlr)
-    log.addHandler(Loggy.wrn_hdlr)
-    log.addHandler(Loggy.err_hdlr)
-
-    return log
-
-#-------------------------------------------------------------------------------
-def clean_expired_sessions():
-    '''
-    from app import kv_ext
-    try:
-        with current_app.test_request_context():
-            log.info('cleaning expired sessions')
-            log.debug(utils.print_vars(kv_ext))
-            kv_ext.cleanup_sessions()
-    except Exception as e:
-        log.debug(str(e))
-    '''
-    pass
 
 #-------------------------------------------------------------------------------
 def get_server_prop():
@@ -225,9 +197,11 @@ def get_server_prop():
         'USER_NAME': g.user.name
     }
 
-from app.main.socketio import smart_emit
-from uber_task import UberTask
+#-------------------------------------------------------------------------------
+def get_pname():
+    import os
+    import psutil
 
-celery = Celery(__name__, broker='amqp://')
-celery.Task = UberTask
-
+    process = psutil.Process(os.getpid())
+    process_name = process.name()
+    return process_name

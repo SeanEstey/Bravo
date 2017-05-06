@@ -188,11 +188,11 @@ def on_delivered(agcy):
     g.group = agcy
     log.debug('receipt delivered to %s', request.form['recipient'])
     row = request.form['ss_row']
-    ss_id = get_keys('google',agcy=g.group)['ss_id']
+    ss_id = get_keys('google')['ss_id']
     status = "=char(10004)" if request.form['event'] == 'delivered' else request.form['event']
 
     try:
-        service = gauth(get_keys('google',agcy=g.group)['oauth'])
+        service = gauth(get_keys('google')['oauth'])
         headers = get_row(service, ss_id, 'Donations', 1)
         col = headers.index('Receipt')+1
         update_cell(service, ss_id, 'Donations', to_range(row,col), status)
@@ -218,10 +218,10 @@ def on_dropped(agcy):
 
     log.info(msg)
 
-    ss_id = get_keys('google',agcy=g.group)['ss_id']
+    ss_id = get_keys('google')['ss_id']
 
     try:
-        service = gauth(get_keys('google',agcy=g.group)['oauth'])
+        service = gauth(get_keys('google')['oauth'])
         headers = get_row(service, ss_id, 'Donations', 1)
         col = headers.index('Receipt')+1
         update_cell(service, ss_id, 'Donations', to_range(row,col), request.form['event'])

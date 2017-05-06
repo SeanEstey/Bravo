@@ -3,8 +3,8 @@ import json, os, time
 from datetime import datetime
 from flask import g
 from .. import smart_emit, celery
-from app.lib.loggy import Loggy
-log = Loggy('booker.tasks', celery_task=True)
+from logging import getLogger
+log = getLogger('worker.%s'%__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -18,11 +18,11 @@ def update_maps(agcy=None, **rest):
         agencies = list(g.db.agencies.find({}))
 
     for agency in agencies:
+        g.group = agency['name']
         status = desc = None
-        name = agency['name']
-        conf = g.db.maps.find_one({'agency':name})
+        conf = g.db.maps.find_one({'agency':g.group})
 
-        log.warning('Task: updating maps...', group=name)
+        log.warning('Task: updating maps...')
 
         # download KML file
         os.system(
@@ -32,7 +32,7 @@ def update_maps(agcy=None, **rest):
 
         time.sleep(2)
 
-        log.debug('converting KML->geo_json...', group=name)
+        log.debug('converting KML->geo_json...')
 
         # convert to geo_json
         os.system('togeojson /tmp/maps.xml > /tmp/maps.json')
@@ -46,20 +46,20 @@ def update_maps(agcy=None, **rest):
             desc = \
                 'problem opening maps.json. may be issue either '\
                 'downloading .xml file or conversion to .json. '
-            log.error(desc + str(e), group=name)
+            log.error(desc + str(e))
             status = 'failed'
         else:
             status = 'success'
 
             maps = g.db.maps.find_one_and_update(
-                {'agency':name},
+                {'agency':g.group},
                 {'$set': {
                     'update_dt': datetime.utcnow(),
                     'features': data['features']}})
 
             desc = 'Task: updated %s maps successfully.' % len(data['features'])
 
-            log.warning(desc, group=name)
+            log.warning(desc)
 
         if agcy:
             smart_emit('update_maps',{

@@ -17,10 +17,8 @@ from .etap import call, get_udf, mod_acct
 from . import donors
 from .receipts import generate, get_ytd_gifts
 from .leaderboard import update_accts, update_gifts
-
-from config import CELERY_ROOT_LOGGER_NAME as loggr_name
 from logging import getLogger
-log = getLogger(loggr_name +'.' + __name__)
+log = getLogger('worker.'+__name__)
 
 
 #-------------------------------------------------------------------------------

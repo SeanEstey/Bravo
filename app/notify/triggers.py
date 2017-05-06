@@ -5,9 +5,9 @@ from bson.objectid import ObjectId
 from datetime import datetime,date,time
 from .. import smart_emit, get_keys
 from app.lib.dt import to_utc, to_local
-from app.lib.loggy import Loggy
 from . import voice, email, sms
-log = Loggy('notify.triggers')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, type_, date_, time_):

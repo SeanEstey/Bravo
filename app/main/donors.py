@@ -167,7 +167,7 @@ def is_inactive(agcy, acct, days=270):
     try:
         je = call(
             'get_gift_histories',
-            get_keys('etapestry',agcy=agcy), {
+            get_keys('etapestry'), {
                 "acct_refs": [acct['ref']],
                 "start": cutoff_date.strftime('%d/%m/%Y'),
                 "end": date.today().strftime('%d/%m/%Y')})[0]
@@ -189,7 +189,7 @@ def unsubscribe(agcy):
 
     g.group = agcy
     log.debug('unsub email=%s', request.args['email'])
-    conf = get_keys('mailgun',agcy=g.group)
+    conf = get_keys('mailgun')
 
     try:
         mailgun.send(

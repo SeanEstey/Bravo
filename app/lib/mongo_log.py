@@ -1,26 +1,54 @@
 import logging, sys, pymongo
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
+from logging import Filter, FileHandler, Formatter
 from datetime import datetime, timedelta
 from pymongo.collection import Collection
 from pymongo.errors import OperationFailure, PyMongoError
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
-from app import get_username, get_group
+from config import LOG_PATH
+from app import get_username, get_group, colors as c
 from .utils import formatter
 write_method = 'insert_one'
 write_many_method = 'insert_many'
 _connection = None
 
-class colors:
-    BLUE = '\033[94m'
-    GRN = '\033[92m'
-    YLLW = '\033[93m'
-    RED = '\033[91m'
-    WHITE = '\033[37m'
-    ENDC = '\033[0m'
-    HEADER = '\033[95m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+class DebugFilter(Filter):
+    def filter(self, record):
+        return record.levelno == DEBUG
+class InfoFilter(Filter):
+    def filter(self, record):
+        return record.levelno == INFO
+class WarningFilter(Filter):
+    def filter(self, record):
+        return record.levelno == WARNING
+
+#---------------------------------------------------------------------------
+def file_handler(level, file_path,
+                 fmt=None, datefmt=None, color=None, name=None):
+
+    handler = FileHandler(file_path)
+    handler.setLevel(level)
+
+    if name is not None:
+        handler.name = name
+    else:
+        handler.name = 'lvl_%s_file_handler' % str(level)
+
+    if level == DEBUG:
+        handler.addFilter(DebugFilter())
+    elif level == INFO:
+        handler.addFilter(InfoFilter())
+    elif level == WARNING:
+        handler.addFilter(WarningFilter())
+
+    formatter = Formatter(
+        c.BLUE + (fmt or '[%(asctime)s %(name)s %(processName)s]: ' + c.ENDC + color + '%(message)s') + c.ENDC,
+        (datefmt or '%m-%d %H:%M'))
+
+    handler.setFormatter(formatter)
+
+    return handler
 
 #---------------------------------------------------------------------------
 def get_logs(start=None, end=None, user=None, groups=None, tag=None, levels=None):
@@ -38,7 +66,7 @@ def get_logs(start=None, end=None, user=None, groups=None, tag=None, levels=None
 
     from flask import g
 
-    logs = g.db.buffer.find({
+    logs = g.db.logs.find({
         'level': {'$in': levels} if levels else all_levels,
         'user': user or {'$exists': True},
         'group': {'$in': groups} if groups else {'$exists':True},
@@ -70,6 +98,8 @@ class MongoFormatter(logging.Formatter):
             'level': record.levelname,
             'message': record.getMessage(),
             'loggerName': record.name,
+            'process': record.process,
+            'processName': record.processName,
             'thread': record.thread,
             'threadName': record.threadName
             #'fileName': record.pathname,
@@ -209,8 +239,8 @@ class BufferedMongoHandler(MongoHandler):
     def __init__(self, level=INFO, formatter=None, raise_exc=True, reuse=True,
                  host='localhost', port=27017, connect=False, db_name=None, coll='logs',
                  auth_db_name='admin', user=None, pw=None,
-                 capped=False, cap_max=1000, cap_size=1000000,
-                 buf_size=100, buf_flush_tim=5.0, buf_flush_lvl=CRITICAL, **kwargs):
+                 capped=True, cap_max=10000, cap_size=10000000,
+                 buf_size=50, buf_flush_tim=5.0, buf_flush_lvl=ERROR, **kwargs):
         '''@buf_flush_tim: freq. that buffer saved to Mongo. None/0 prevent
         flush until full buf or critical message sent.'''
 
@@ -228,33 +258,36 @@ class BufferedMongoHandler(MongoHandler):
         self._buf_lock = None
         self._timer_stopper = None
 
-        if self.buf_flush_tim:
-            # clean exit event
-            import atexit
-            atexit.register(self.destroy)
+        #if self.buf_flush_tim:
+        #    self.init_buf_timer()
 
-            # retrieving main thread as a safety
-            import threading
-            main_thead = threading.current_thread()
-            self._buf_lock = threading.RLock()
+    def init_buf_timer(self):
+        # clean exit event
+        import atexit
+        atexit.register(self.destroy)
 
-            # call at interval function
-            def call_repeatedly(interval, func, *args):
-                stopped = threading.Event()
+        # retrieving main thread as a safety
+        import threading
+        main_thead = threading.current_thread()
+        self._buf_lock = threading.RLock()
 
-                # actual thread function
-                def loop():
-                    while not stopped.wait(interval) and main_thead.is_alive():  # the first call is in `interval` secs
-                        #print 'mongo_log timer expired. calling flush()'
-                        func(*args)
+        # call at interval function
+        def call_repeatedly(interval, func, *args):
+            stopped = threading.Event()
 
-                timer_thread = threading.Thread(target=loop)
-                timer_thread.daemon = True
-                timer_thread.start()
-                return stopped.set, timer_thread
+            # actual thread function
+            def loop():
+                while not stopped.wait(interval) and main_thead.is_alive():  # the first call is in `interval` secs
+                    #print 'mongo_log timer expired. calling flush()'
+                    func(*args)
 
-            # launch thread
-            self._timer_stopper, self.buf_timer_thread = call_repeatedly(self.buf_flush_tim, self.flush_to_mongo)
+            timer_thread = threading.Thread(target=loop)
+            timer_thread.daemon = True
+            timer_thread.start()
+            return stopped.set, timer_thread
+
+        # launch thread
+        self._timer_stopper, self.buf_timer_thread = call_repeatedly(self.buf_flush_tim, self.flush_to_mongo)
 
     def emit(self, record):
         """Inserting new logging record to buffer and flush if necessary."""
@@ -288,7 +321,7 @@ class BufferedMongoHandler(MongoHandler):
             self._connect(**self.kwargs)
 
         if self.coll is not None and len(self.buf) > 0:
-            print 'flushing log buffer to Mongo'
+            print 'flushing log to mongo'
 
             self.buf_lock_acquire()
             try:
@@ -309,7 +342,7 @@ class BufferedMongoHandler(MongoHandler):
 
     def destroy(self):
         """Clean quit logging. Flush buffer. Stop the periodical thread if needed."""
-        print 'destroy() invoked. flushing'
+        #print 'destroy() invoked. flushing'
         if self._timer_stopper:
             self._timer_stopper()
         self.flush_to_mongo()

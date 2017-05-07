@@ -252,17 +252,16 @@ function requestLogEntries() {
             'levels': JSON.stringify($('#filtr_lvls').serializeArray()),
             'groups': JSON.stringify($('#filtr_grps').serializeArray())
         },
-        appendLogEntries
+        writeLogEntries
     );
 }
 
 //------------------------------------------------------------------------------
-function appendLogEntries(response) {
+function writeLogEntries(resp) {
 
-    console.log("%s. %s events returned",
-        response['status'], response['data'].length);
+    console.log("%s. %s events returned", resp['status'], resp['data'].length);
 
-    var logs = response['data'];
+    var logs = resp['data'];
 
     $('#recnt_list').empty();
 
@@ -278,39 +277,70 @@ function appendLogEntries(response) {
         );
 
         // Store log properties for viewing in modal
+        logs[i]['timestamp'] = new Date(logs[i]['timestamp']['$date']).strftime('%b %d, %I:%M %p');
+        delete logs[i]['asctime'];
         $('#'+id).data("details", logs[i]);
     }
 
-    $('.list-group-item').click(function(e) {
-        e.preventDefault();
-
-        var data = $(this).data('details');
-        var container = $('<div></div>');
-
-        for(var key in data){
-            var value = "";
-
-            if(data[key] !== null && typeof data[key] === 'object') {
-                var str_data = JSON.stringify(data[key], null, 2).replace(/\\n/g, "<BR>");
-                value = '<pre style="white-space:pre-wrap">' + str_data + '</pre>';
-            }
-            else {
-                value = data[key];
-            }
-            
-            container.append('<div><b>' + key + '</b>: ' + value + '</div>');
-        }
-
-        showModal(
-          'log_modal',
-          'Event Details',
-          container,
-          null,
-          'Ok');
-
-    });
+    $('.list-group-item').click(showLogEntryDetailsModal);
 }
 
+//------------------------------------------------------------------------------
+function showLogEntryDetailsModal(e) {
+
+    var stand_fields = [
+        "message", "user", "group", "level", "loggerName", "thread",
+        "threadName", "process", "processName", "timestamp", "exception"];
+
+    e.preventDefault();
+
+    var log_record = $(this).data('details');
+    var container = $('<div></div>');
+
+    appendLogField('message', log_record['message'], container);
+
+    for(var field in log_record) {
+        if(stand_fields.indexOf(field) == -1)
+            appendLogField(field, log_record[field], container);
+    }
+
+    container.append('<div><br></div>');
+
+    for(var i=1; i<stand_fields.length; i++){
+        var field = stand_fields[i];
+
+        if(log_record.hasOwnProperty(field))
+            appendLogField(field, log_record[field], container);
+    }
+
+    showModal(
+      'log_modal',
+      'Event Details',
+      container,
+      null,
+      'Ok');
+}
+
+//------------------------------------------------------------------------------
+function appendLogField(field, value, container) {
+
+    if(!value)
+        return;
+
+    var div = "<DIV><B>" + field + "</B>: ";
+
+    if(typeof value === 'object')
+        div += 
+            '<PRE style="white-space:pre-wrap">' + 
+                JSON.stringify(value, null, 2)
+                    .replace(/\\n/g, "<BR>") +
+            '</PRE>' +
+          '</DIV>';
+    else
+        div += value + '</DIV>';
+
+    container.append(div);
+}
 
 //------------------------------------------------------------------------------
 function saveFieldEdit(field, value) {

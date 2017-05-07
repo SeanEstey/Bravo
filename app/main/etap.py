@@ -33,9 +33,8 @@ def call(func, keys, data, silence_exc=False):
     try:
         response = subprocess.check_output(cmds)
     except Exception as e:
-        log.error('subprocess error. desc=%s', str(e))
-        log.debug(str(e))
-        raise
+        log.exception('Error calling "%s"', func)
+        raise EtapError(e)
 
     try:
         response = json.loads(response)

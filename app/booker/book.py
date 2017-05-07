@@ -30,8 +30,8 @@ def make():
     try:
         response = update_dms()
     except Exception as e:
-        log.error('failed to book: %s', str(e))
-        pass
+        log.exception('Error updating account with Booking request')
+        raise
 
     # is block/date for today and route already built?
 
@@ -54,8 +54,10 @@ def make():
     if email_conf == 'true':
         send_confirm()
 
-    log.info('booked acct %s for %s. email conf=%s, append order=%s',
-        request.form['aid'], request.form['date'], email_conf, append)
+    log.info('Booked account ID %s on %s for %s',
+        request.form['aid'], request.form['block'],
+        ddmmyyyy_to_dt(request.form['date']).strftime('%b %d'),
+        extra={'email_confirmation':email_conf, 'append_to_route': append})
 
     return "Booked successfully"
 
@@ -76,9 +78,9 @@ def update_dms():
                 'Block': request.form['block'],
                 'Next Pickup Date': request.form['date']}})
     except EtapError as e:
-        pass
+        raise
     except Exception as e:
-        pass
+        raise
 
     return True
 

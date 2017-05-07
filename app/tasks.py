@@ -1,8 +1,9 @@
 '''app.tasks'''
 import os
+from logging import getLogger, DEBUG, INFO, WARNING, ERROR, CRITICAL
 from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure, worker_process_init
-from app import create_app, init_celery
+from app import create_app, init_celery, colors as c
 from app import celery as _celery
 from app.lib.utils import inspector, start_timer, end_timer
 
@@ -19,28 +20,17 @@ from app.notify.tasks import *
 @worker_process_init.connect
 def worker_init(**kwargs):
 
-    from logging import getLogger
-    from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
     # Root celery loger for this process
     logger = getLogger('worker')
 
     from app.lib.mongo_log import file_handler, BufferedMongoHandler
     from db_auth import user, password
     from config import LOG_PATH as path
-    from app import colors
 
-    logger.addHandler(file_handler(DEBUG,
-        '%sdebug.log'%path,
-        color=colors.WHITE))
-    logger.addHandler(file_handler(INFO,
-        '%sevents.log'%path,
-        color=colors.GRN))
-    logger.addHandler(file_handler(WARNING,
-        '%sevents.log'%path,
-        color=colors.YLLW))
-    logger.addHandler(file_handler(ERROR,
-        '%sevents.log'%path,
-        color=colors.RED))
+    logger.addHandler(file_handler(DEBUG, '%sdebug.log'%path, color=c.WHITE))
+    logger.addHandler(file_handler(INFO, '%sevents.log'%path, color=c.GRN))
+    logger.addHandler(file_handler(WARNING, '%sevents.log'%path, color=c.YLLW))
+    logger.addHandler(file_handler(ERROR, '%sevents.log'%path, color=c.RED))
     buf_mongo_handler = BufferedMongoHandler(
         level=DEBUG,
         connect=True,
@@ -80,22 +70,20 @@ state=None, *args, **kwargs):
     name = sender.name.split('.')[-1]
 
     # Force log flush to Mongo if timer set since thread timer seems to sleep after task is complete.
-    '''
-    from config import CELERY_ROOT_LOGGER_NAME
-    from logging import getLogger
     from app.lib.mongo_log import BufferedMongoHandler
 
-    for hdlr in getLogger(CELERY_ROOT_LOGGER_NAME).handlers:
-        if isinstance(hdlr, BufferedMongoHandler) and hdlr.buf_flush_tim:
-            hdlr.flush_to_mongo()
-    '''
+    for handler in getLogger('worker').handlers:
+        if isinstance(handler, BufferedMongoHandler) and handler.buf_flush_tim:
+            handler.flush_to_mongo()
 
+    '''
     if state != 'SUCCESS':
         log.error('task=%s error. state=%s, retval=%s', name, state, retval)
         log.exception('task=%s failure (%s)', name, end_timer(timer))
     else:
         pass
         #log.debug('%s: state=%s, retval="%s" (%s)', name, state, retval, duration)
+    '''
 
 #-------------------------------------------------------------------------------
 @task_failure.connect

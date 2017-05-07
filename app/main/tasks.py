@@ -78,7 +78,7 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
     diff = 0
     n_repeat = 0
 
-    log.warning('task: analyzing estimate trend for %s accts...', len(donations))
+    log.warning('Analyzing estimate trend...', extra={'n_accts': len(donations)})
 
     for donation in donations:
         if not donation['amount']:
@@ -114,7 +114,8 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
         to_range(ss_row, headers.index('Estmt Trend')+1),
         diff/n_repeat)
 
-    log.warning('task: completed. trend=$%.2f [%s]', diff/n_repeat, end_timer(t1))
+    log.warning('Estimate trend is $%.2f', diff/n_repeat,
+        extra={'duration': end_timer(t1)})
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -124,17 +125,17 @@ def process_entries(self, entries, agcy=None, **rest):
     entries = json.loads(entries)
     g.group = agcy
 
-    log.warning('task: processing %s gift entries...', len(entries))
+    log.warning('Uploading %s donations...', len(entries))
 
     wks = 'Donations'
     checkmark = u'\u2714'
     ch_size = 10
 
-    etap_conf = get_keys('etapestry',agcy=g.group)
+    etap_conf = get_keys('etapestry')
     chunks = [entries[i:i + ch_size] for i in xrange(0, len(entries), ch_size)]
 
-    ss_id = get_keys('google',agcy=g.group)['ss_id']
-    srvc = gauth(get_keys('google',agcy=g.group)['oauth'])
+    ss_id = get_keys('google')['ss_id']
+    srvc = gauth(get_keys('google')['oauth'])
     headers = get_row(srvc, ss_id, wks, 1)
     upload_col = headers.index('Upload') +1
     n_success = n_errs = 0
@@ -178,7 +179,8 @@ def process_entries(self, entries, agcy=None, **rest):
             log.error(str(e))
             log.debug('',exc_info=True)
 
-    log.warning('task: completed. %s errors (%s)', n_errs, end_timer(start))
+    log.warning('Donations uploaded.',
+        extra={'n_errs': n_errs, 'duration': end_timer(start)})
 
     return 'success'
 
@@ -196,7 +198,7 @@ def send_receipts(self, entries, **rest):
     entries = json.loads(entries)
     wks = 'Donations'
     checkmark = u'\u2714'
-    log.warning('task: processing %s receipts...', len(entries))
+    log.warning('Processing %s receipts...', len(entries))
 
     try:
         # list indexes match @entries
@@ -205,7 +207,7 @@ def send_receipts(self, entries, **rest):
             get_keys('etapestry'),
             {"acct_ids": [i['acct_id'] for i in entries]})
     except Exception as e:
-        log.error('Error retrieving accounts from etap: %s', str(e))
+        log.exception('Error retrieving accounts from eTapestry.')
         raise
 
     accts_data = [{
@@ -267,10 +269,14 @@ def send_receipts(self, entries, **rest):
             log.error(str(e))
             log.debug('',exc_info=True)
 
-    log.warning(\
-        'task: completed. sent gifts=%s, zeros=%s, post_drops=%s, cancels=%s, no_email=%s (%s)',
-        g.track['gifts'], g.track['zeros'], g.track['drops'],
-        g.track['cancels'], g.track['no_email'], end_timer(start))
+    log.warning('Receipts delivered.', extra={
+        'gifts': g.track['gifts'],
+        'zeros': g.track['zeros'],
+        'post_drops': g.track['drops'],
+        'cancels': g.track['cancels'],
+        'no_email': g.track['no_email'],
+        'task_duration': end_timer(start)
+        })
 
     chunks = acct_data = accts = None
     gc.collect()
@@ -283,38 +289,43 @@ def create_accounts(self, accts_json, agcy=None, **rest):
     @accts_json: JSON list of form data
     '''
 
-    accts = json.loads(accts_json)
-    log.warning('creating %s accounts...', len(accts))
     checkmark = u'\u2714'
     g.group = agcy
-    ss_id = get_keys('google', agcy=g.group)['ss_id']
-    service = gauth(get_keys('google', agcy=g.group)['oauth'])
+    accts = json.loads(accts_json)
+    log.warning('Creating %s accounts...', len(accts))
+
+    ss_id = get_keys('google')['ss_id']
+    service = gauth(get_keys('google')['oauth'])
     headers = get_row(service, ss_id, 'Signups', 1)
     status_col = headers.index('Upload') +1
-    n_errs = n_success = 0
 
     # Break accts into chunks for gsheets batch updating
 
     ch_size = 10
     chunks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
     log.debug('chunk length=%s', len(chunks))
+    log_rec = {
+        'n_success': 0,
+        'n_errs': 0,
+        'errors':[]}
 
     for i in range(0, len(chunks)):
         rv = []
         chunk = chunks[i]
 
         try:
-            rv = call('add_accts', get_keys('etapestry', agcy=g.group), {'accts':chunk})
+            rv = call('add_accts', get_keys('etapestry'), {'accts':chunk})
         except Exception as e:
-            log.error('add_accts. desc=%s', str(e))
-            log.debug('', exc_info=True)
+            log.exception('Error adding accounts')
+            log_rec['errors'].append(e)
 
         # rv = {'n_success':<int>, 'n_errs':<int>, 'results':[ {'row':<int>, 'status':<str>}, ... ]
-
-        n_errs += int(rv['n_errs'])
-        n_success += int(rv['n_success'])
-
         log.debug('rv=%s', rv)
+        log_rec['n_success'] += int(rv['n_success'])
+
+        if int(rv['n_errs']) > 0:
+            log_rec['n_errs'] += int(rv['n_errs'])
+            log_rec['errors'].append(rv['results'])
 
         range_ = '%s:%s' %(
             to_range(chunk[0]['ss_row'], status_col),
@@ -332,10 +343,14 @@ def create_accounts(self, accts_json, agcy=None, **rest):
         try:
             write_rows(service, ss_id, 'Signups', range_, values)
         except Exception as e:
-            log.error(str(e))
-            log.debug('',exc_info=True)
+            log.exception('Error writing to Bravo Sheets.')
 
-    log.warning('completed. %s accounts created, %s errors.', n_success, n_errs)
+    if log_rec['n_errs'] > 0:
+        log.error('%s/%s accounts created. See Bravo Sheets for details.',
+            log_rec['n_success'], log_rec['n_success'] + log_rec['n_errs'],
+            extra=log_rec)
+    else:
+        log.info('%s accounts created.', log_rec['n_success'], extra=log_rec)
 
     chunks = accts = None
     gc.collect()
@@ -372,20 +387,21 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
     @from_, to_: datetime.date
     '''
 
-    start = start_timer()
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
     start_dt = d_to_dt(from_)
     end_dt = d_to_dt(to)
 
     for agency in agcy_list:
+        group_start = start_timer()
         g.group = agency['name']
         etap_conf = get_keys('etapestry',agcy=g.group)
         oauth = get_keys('google',agcy=g.group)['oauth']
         srvc = gcal_auth(oauth)
 
-        log.warning('task: updating calendar events from %s to %s...',
-            start_dt.strftime('%m-%d-%Y'),
-            end_dt.strftime('%m-%d-%Y'))
+        log.warning('Updating calendar events...', extra={
+            'start_date': start_dt.strftime('%m-%d-%Y'),
+            'end_date': end_dt.strftime('%m-%d-%Y')
+        })
 
         cal_ids = get_keys('cal_ids',agcy=g.group)
         n_updated = n_errs = n_warnings = 0
@@ -451,11 +467,14 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
                 else:
                     n_updated+=1
 
-        log.warning('%s events updated, %s errors, %s warnings',
-            n_updated, n_errs, n_warnings)
+        log.warning('Calendar events updated.', extra= {
+            'n_events': n_updated,
+            'n_errs': n_errs,
+            'n_warnings': n_warnings,
+            'duration': end_timer(group_start)
+        })
 
     g.group = None
-    log.debug('task: completed')
 
     return 'success'
 
@@ -503,8 +522,7 @@ def add_form_signup(self, data, **rest):
     try:
         add_etw_to_gsheets(data)
     except Exception as e:
-        log.error('error adding signup. desc="%s"', str(e))
-        log.debug('', exc_info=True)
+        log.exception('Error writing signup to Bravo Sheets.')
         raise
 
     return 'success'
@@ -515,21 +533,22 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
     '''Create RFU's for all non-participants on scheduled dates
     '''
 
-    log.warning('task: identifying inactive donors...')
+    log.warning('Identifying inactive donors...')
 
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
     n_task_inactive = 0
 
     for agency in agcy_list:
         accts = []
+        acct_matches = []
         n_inactive = 0
         g.group = agency['name']
         cal_ids = agency['cal_ids']
         period = period_ if period_ else agency['donors']['inactive_period']
         on_date = date.today() + delta(days=in_days)
 
-        log.info('analyzing blocks on %s blocks (period=%s days)...',
-            on_date.strftime('%m-%d-%Y'), period)
+        log.info('Analyzing inactive donors on %s routes...', on_date.strftime('%m-%d'),
+            extra={'inactive_period (days)': period})
 
         for _id in cal_ids:
             accts += get_accounts(
@@ -550,6 +569,8 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
                 if res == False:
                     continue
 
+            acct_matches.append({'id':acct['id'], 'name':acct.get('name','')})
+
             npu = get_udf('Next Pickup Date', acct)
 
             if len(npu.split('/')) == 3:
@@ -557,7 +578,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
             mod_acct(
                 acct['id'],
-                get_keys('etapestry',agcy=g.group),
+                get_keys('etapestry'),
                 udf={
                     'Office Notes':\
                     '%s\n%s: non-participant (inactive for %s days)'%(
@@ -578,12 +599,12 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
             n_inactive += 1
 
-        log.info('found %s inactive donors', n_inactive)
+        log.info('Found %s inactive donors.', n_inactive, extra={acct_matches})
 
         n_task_inactive += n_inactive
 
     g.group = None
-    log.warning('task: completed. %s inactive accounts identified', n_task_inactive)
+    log.warning('Inactive Donors task completed. %s accounts found.', n_task_inactive)
     return 'success'
 
 #-------------------------------------------------------------------------------

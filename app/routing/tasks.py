@@ -28,7 +28,7 @@ def discover_routes(self, agcy, within_days=5, **rest):
     sleep(3)
     g.group = agcy
     smart_emit('discover_routes', {'status':'in-progress'})
-    log.info('discovering routes...')
+    log.debug('discovering routes...')
     n_found = 0
     events = []
     service = gcal.gauth(get_keys('google')['oauth'])

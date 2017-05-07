@@ -192,7 +192,7 @@ def make_reply(dialog_, on_complete=None):
     twml = twiml.Response()
     twml.message(context + dialog_)
 
-    log.info('%s%s: %s"%s"%s', c.GRN, self, c.WHITE, context + dialog_, c.ENDC)
+    log.info('%s to %s: "%s"', self, session['from'][2:], context + dialog_,)
 
     response = make_response()
     response.data = str(twml)
@@ -252,9 +252,9 @@ def get_msg(upper=False, rmv_punctn=False):
 
 #-------------------------------------------------------------------------------
 def log_msg():
-    log.info('To Alice: %s"%s"%s%s (%s, count=%s)',
-                c.WHITE, request.form['Body'], c.ENDC, c.GRN,
-                request.form['From'], get_msg_count())
+    log.info('%s to %s: "%s"',
+        session['from'][2:], session['self_name'], request.form['Body'],
+        extra={'n_convo_messages': get_msg_count()})
 
 #-------------------------------------------------------------------------------
 def get_msg_count():

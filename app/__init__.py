@@ -64,15 +64,11 @@ def get_group():
             return g.get('group')
         elif g.get('user'):
             return g.get('user').agency
-        else:
-            return 'sys'
-    elif has_request_context():
-        if session.get('agcy'):
-            return session['agcy']
-        else:
-            return 'sys'
-    else:
-        return 'sys'
+        elif has_request_context():
+            if session.get('agcy'):
+                return session['agcy']
+
+    return 'sys'
 
 #-------------------------------------------------------------------------------
 def get_username():

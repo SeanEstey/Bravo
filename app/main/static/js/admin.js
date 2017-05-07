@@ -4,10 +4,10 @@ var prop_pane_init = false;
 var user_pane_init = false;
 var recnt_pane_init = false;
 var list_item_styles = {
-    'debug': '',
-    'info': 'list-group-item-info',
-    'warning': 'list-group-item-warning',
-    'error': 'list-group-item-danger'
+    'DEBUG': '',
+    'INFO': 'list-group-item-info',
+    'WARNING': 'list-group-item-warning',
+    'ERROR': 'list-group-item-danger'
 };
 
 //------------------------------------------------------------------------------
@@ -267,13 +267,48 @@ function appendLogEntries(response) {
     $('#recnt_list').empty();
 
     for(var i=0; i<logs.length; i++) {
+        var id = "list_grp_" + String(i);
+
         $('#recnt_list').append(
             '<a href="#" ' +
+            'id=' + id + ' ' +
             'class="list-group-item list-group-item-action ' + list_item_styles[logs[i]['level']] + '">' +
             new Date(logs[i]["timestamp"]["$date"]).strftime("%b %d: %I:%M%p: ") + logs[i]["message"] +
             '</a>'
         );
+
+        // Store log properties for viewing in modal
+        $('#'+id).data("details", logs[i]);
     }
+
+    $('.list-group-item').click(function(e) {
+        e.preventDefault();
+
+        var data = $(this).data('details');
+        var container = $('<div></div>');
+
+        for(var key in data){
+            var value = "";
+
+            if(data[key] !== null && typeof data[key] === 'object') {
+                var str_data = JSON.stringify(data[key], null, 2).replace(/\\n/g, "<BR>");
+                value = '<pre style="white-space:pre-wrap">' + str_data + '</pre>';
+            }
+            else {
+                value = data[key];
+            }
+            
+            container.append('<div><b>' + key + '</b>: ' + value + '</div>');
+        }
+
+        showModal(
+          'log_modal',
+          'Event Details',
+          container,
+          null,
+          'Ok');
+
+    });
 }
 
 

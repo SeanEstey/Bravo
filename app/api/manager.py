@@ -17,7 +17,8 @@ def func_call(function, *args, **kwargs):
     try:
         rv = function(*args, **kwargs)
     except Exception as e:
-        return build_resp(exc=str(e))
+        log.exception('API function "%s" failed', function.__name__)
+        return build_resp(exc=e)
 
     return build_resp(rv=rv, name=function.__name__, dt=s)
 
@@ -26,24 +27,19 @@ def task_call(function, *args, **kwargs):
     try:
         rv = function.delay(*args, **kwargs)
     except Exception as e:
-        log.error('task failed')
-        log.error('%s failed. desc=%s', function.__name__, str(e))
-        log.debug('', exc_info=True)
-        return build_resp(exc=str(e))
+        log.exception('API task "%s" failed', function.__name__)
+        return build_resp(exc=e)
 
     return build_resp(rv=rv)
 
 #-------------------------------------------------------------------------------
-def build_resp(rv=None, exc=False, name=None, dt=None):
+def build_resp(rv=None, exc=None, name=None, dt=None):
     '''Returns JSON obj: {"status": <str>, "desc": <failure str>, "data": <str/dict/list>}
     '''
 
     if exc:
-        log.error('api call fail. desc=%s', exc)
-        log.debug('',exc_info=True)
-
         return Response(
-            response=dumps({'status':'failed','desc':exc}),
+            response=dumps({'status':'failed','desc':str(exc)}),
             status=500, mimetype='application/json')
 
     if rv and isinstance(rv, celery.result.AsyncResult):

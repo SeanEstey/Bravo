@@ -32,7 +32,7 @@ def on_delivered():
     if not webhook:
         log.debug('%swebhook "type" not set. cannot route to handler%s',
             c.RED,c.ENDC)
-        log.debug(request.form.to_dict())
+        #log.debug(request.form.to_dict())
         return 'failed'
     if webhook == 'receipt':
         receipts.on_delivered(g.group)

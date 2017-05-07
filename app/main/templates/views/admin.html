@@ -339,6 +339,29 @@
     </div>
   </div>
 
+	<!-- Large modal -->
+	<div id="log_modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg" style="min-width:600px; max-width:1000px; min-height: calc(100vh - 60px); display: flex; flex-direction: column; justify-content: center; overflow: auto; 
+      @media(max-width: 768px) { min-height: calc(100vh - 20px);">
+			<div class="modal-content" 
+           style="min-width:600px; max-width:1000px; -webkit-border-top-left-radius:3px; -webkit-border-top-right-radius: 3px; -moz-border-radius-topleft: 3px;
+                 -moz-border-radius-topright: 3px; border-top-left-radius: 3px; border-top-right-radius: 3px;">
+        <div class="modal-header bg-info text-white"
+             style="-webkit-border-top-left-radius:3px; -webkit-border-top-right-radius: 3px; -moz-border-radius-topleft: 3px;
+                 -moz-border-radius-topright: 3px; border-top-left-radius: 3px; border-top-right-radius: 3px;">
+          <h3 class="modal-title">Modal title</h3>
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        </div>
+        <div class="modal-body">
+          <p></p>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-default" type="button" class="btn btn-secondary btn-lg" data-dismiss="modal">Close</button>
+        </div>
+			</div>
+		</div>
+	</div>
+
 
 
 

@@ -100,7 +100,7 @@
 	} 
 	catch(Exception $e) {
 		$msg = 'status=EXCEPTION, func="' . $func . '"';
-		err_log($msg);
+		//err_log($msg);
 		debug_log($msg . ', desc="' . $e->getMessage() . '"');
 
 		echo json_encode([

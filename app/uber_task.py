@@ -7,9 +7,9 @@ from flask_login import login_user, current_user
 from bson.objectid import ObjectId
 from auth import user
 from app.lib import mongodb
-from app.lib.loggy import Loggy
 from app.lib.utils import print_vars
-log = Loggy('uber_task', celery_task=True)
+#from logging import getLogger
+#log = getLogger('worker.%s'%__name__)
 
 __all__ = ['UberTask']
 

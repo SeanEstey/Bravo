@@ -4,10 +4,10 @@ from twilio import twiml
 from flask import g, request
 from dateutil.parser import parse
 from .. import get_keys
-from app.lib.loggy import Loggy
 from app.main.etap import call, get_prim_phone, EtapError
 from . import events, email, sms, voice, triggers, accounts
-log = Loggy('gg')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add_event():

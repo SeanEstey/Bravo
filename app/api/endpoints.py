@@ -4,7 +4,6 @@ from json import loads, dumps
 from flask import g, request, Response
 from flask_login import login_required
 from app import get_server_prop, get_keys
-
 from app.main.etap import block_size, route_size, call
 from app.alice.outgoing import send_welcome, compose
 from app.booker.geo import get_maps
@@ -21,8 +20,7 @@ from app.notify.triggers import kill_trigger
 from app.notify.voice import get_token
 from app.routing.main import edit_field
 from . import api
-from .manager import get_var, build_resp, func_call, task_call, WRITE_ME
-
+from app.api.manager import get_var, build_resp, func_call, task_call, WRITE_ME
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -60,7 +58,6 @@ def get_donations():
 @api.route('/accounts/save_rfu', methods=['POST'])
 @login_required
 def accts_save_rfu():
-    # TODO: add auth requirement
     return func_call(donors.save_rfu,
         get_var('acct_id'), get_var('body'), get_var('date'),
         get_var('ref'), get_var('fields')) #, agcy=get_var('agcy'))

@@ -5,9 +5,9 @@ import numpy as np
 from flask import g
 from app import smart_emit, get_keys
 from app.lib.utils import formatter
-from app.lib.loggy import Loggy
 from app.main import parser
-log = Loggy('booker.geo')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def find_block(agcy, address, api_key):

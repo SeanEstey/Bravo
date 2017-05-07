@@ -1,9 +1,10 @@
 '''app.main.sms'''
 import logging, re
+from flask import g
 from twilio.rest.lookups import TwilioLookupsClient
-from app.lib.loggy import Loggy
 from . import etap
-log = Loggy('main.sms')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def enable(agency, accounts):

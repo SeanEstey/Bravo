@@ -3,9 +3,8 @@ import httplib2, json, logging, re, requests, pymongo
 from oauth2client.service_account import ServiceAccountCredentials
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
-from app.lib.loggy import Loggy
-log = Loggy('gdrive')
-
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def gauth(oauth):

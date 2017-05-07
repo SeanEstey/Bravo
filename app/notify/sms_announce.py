@@ -5,16 +5,16 @@ from flask import g, request
 from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
-from app import get_keys
-from app.lib.loggy import Loggy, colors as c
+from app import get_keys, colors as c
 from app.main.etap import call, get_prim_phone, EtapError
 from . import events, accounts, triggers, voice, sms
-log = Loggy('notify.sms_annc')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add_event():
-    agency = g.db.users.find_one({'user': g.user.user_id})['agency']
-    conf= g.db.agencies.find_one({'name':agency})
+    g.group = g.user.agency
+    conf= g.db.agencies.find_one({'name':g.user.agency})
 
     log.debug(request.form.to_dict())
 
@@ -35,7 +35,7 @@ def add_event():
         log.debug('returned %s accounts', response['count'])
 
     evnt_id = events.add(
-        agency,
+        g.group,
         request.form['event_name'] or request.form['query_name'],
         parse(request.form['event_date']),
         'recorded_announcement'

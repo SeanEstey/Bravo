@@ -3,8 +3,8 @@ import os
 from bson import json_util
 from flask import g, request
 from .. import get_keys
-from app.lib.loggy import Loggy
-log = Loggy('notify.admin')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def update_agency_conf():

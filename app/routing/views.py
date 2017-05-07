@@ -10,7 +10,7 @@ from .tasks import discover_routes
 @routing.route('', methods=['GET'])
 @login_required
 def show_routing():
-    discover_routes.delay()
+    discover_routes.delay(g.user.agency)
 
     return render_template(
         'views/routing.html',

@@ -2,12 +2,13 @@
 import re, time
 from flask import g
 from app.lib import gsheets
-from app.lib.loggy import Loggy
-log = Loggy('routing.parse')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def to_dict(agency, ss_id):
 
+    g.group = agency
     conf = g.db.agencies.find_one({'name':agency})
     service = gsheets.gauth(conf['google']['oauth'])
 

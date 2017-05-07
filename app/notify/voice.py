@@ -8,12 +8,12 @@ from twilio.rest import TwilioRestClient
 from twilio.util import TwilioCapability
 from flask import g, render_template, request
 from pymongo.collection import ReturnDocument
-from app import get_keys, smart_emit
-from app.lib.loggy import Loggy, colors as c
+from app import get_keys, smart_emit, colors as c
 from app.lib import html
 from app.lib.dt import to_utc
 from .utils import intrntl_format, simple_dict
-log = Loggy('notify.voice')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add(evnt_id, event_date, trig_id, acct_id, to, on_answer, on_interact):

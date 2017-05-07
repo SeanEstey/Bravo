@@ -1,8 +1,8 @@
 '''app.main.agency'''
 from flask import g, request
 from app import get_keys
-from app.lib.loggy import Loggy
-log = Loggy(__name__)
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def get_admin_prop():

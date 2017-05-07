@@ -2,9 +2,9 @@
 from datetime import datetime, date, time, timedelta
 from flask import g, request, jsonify, render_template
 from flask_login import login_required
-from app.lib.loggy import Loggy
 from . import booker, geo
-log = Loggy('booker.views')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @booker.route('/', methods=['GET'])

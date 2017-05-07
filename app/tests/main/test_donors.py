@@ -5,7 +5,8 @@ from app.lib.dt import json_serial
 from app.tests.__init__ import *
 from app import get_keys
 from app.main import donors
-log = Loggy('test_donors')
+from logging import getLogger
+log = getLogger(__name__)
 
 class DonorsTests(unittest.TestCase):
     def setUp(self):

@@ -1,8 +1,8 @@
 '''app.routing.geo'''
 import json, logging, requests
-from app.lib.loggy import Loggy
 from app import get_keys
-log = Loggy('routing.geo')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def get_gmaps_url(address, lat, lng):

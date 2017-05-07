@@ -3,8 +3,8 @@ import json
 from flask import g
 from datetime import datetime, timedelta
 from app import get_keys
-from app.lib.loggy import Loggy
-log = Loggy('analytics')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def calculateEstimateError():

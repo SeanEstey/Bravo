@@ -1,14 +1,15 @@
 '''app.routing.sheet'''
 import re, time
+from flask import g
 from .. import get_keys
-from app.lib.loggy import Loggy
 from app.lib import gdrive, gsheets
 from app.lib.gsheets import get_values, update_cell, to_range
 from app.main.parser import has_postal
-log = Loggy('routing.sheet')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def build(agcy, drive_api, title):
+def build(drive_api, title):
     '''Makes copy of Route Template, add edit/owner permissions
     IMPORTANT: Make sure 'Routed' folder has edit permissions for agency
     service account.
@@ -20,7 +21,7 @@ def build(agcy, drive_api, title):
 
     # Copy Route Template
 
-    gdrive_conf = get_keys('routing',agcy=agcy)['gdrive']
+    gdrive_conf = get_keys('routing')['gdrive']
     file_copy = drive_api.files().copy(
       fileId = gdrive_conf['template_sheet_id'],
       body = {
@@ -47,10 +48,10 @@ def build(agcy, drive_api, title):
     return _file
 
 #-------------------------------------------------------------------------------
-def write_orders(agcy, api, ss_id, wks, orders):
+def write_orders(api, ss_id, wks, orders):
     '''Write formatted orders to route sheet.'''
 
-    log.debug('writing %s orders', len(orders), group=agcy)
+    log.debug('writing %s orders', len(orders))
 
     rows = []
     bold_rng = []
@@ -109,7 +110,7 @@ def write_orders(agcy, api, ss_id, wks, orders):
         gsheets.vert_align_cells(api, ss_id, 0, 2, len(orders)+1, 1,1)
         gsheets.bold_cells(api, ss_id, 0, bold_rng)
     except Exception as e:
-        log.error('sheets error: %s', str(e), group=agcy)
+        log.error('sheets error: %s', str(e))
         raise
 
 #-------------------------------------------------------------------------------
@@ -157,7 +158,7 @@ def write_order(api, ss_id, wks, order, row):
         ]])
 
 #-------------------------------------------------------------------------------
-def write_prop(agcy, api, ss_id, route):
+def write_prop(api, ss_id, route):
 
     fields = get_values(api, ss_id, 'Info', 'A:A')
 

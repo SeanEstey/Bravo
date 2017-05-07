@@ -1,7 +1,8 @@
 '''app.routing.depots'''
+from flask import g
 from app import get_keys
-from app.lib.loggy import Loggy
-log = Loggy('routing.depots')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def resolve(block, postal_codes, event_desc=False):
@@ -12,9 +13,8 @@ def resolve(block, postal_codes, event_desc=False):
     Return 'Strathcona' as default if none found.
     '''
 
-    agcy = 'wsf'
-
-    depots = list(get_keys('routing',agcy=agcy)['locations']['depots'])
+    g.group = 'wsf'
+    depots = list(get_keys('routing')['locations']['depots'])
 
     for depot in depots:
         # The block defined under depot in list?
@@ -38,7 +38,7 @@ def resolve(block, postal_codes, event_desc=False):
     log.error(
         'No depot defined for Block %s. '\
         'Postal codes: [%s]. Using Strathcona as default.',
-        block, postal_codes, group='wsf')
+        block, postal_codes)
 
     for depot in depots:
         if depot['name'] == 'Strathcona':

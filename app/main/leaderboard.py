@@ -3,15 +3,16 @@ import json
 from flask import g
 from datetime import datetime, date, timedelta
 from app import get_keys
-from app.lib.loggy import Loggy
 from .cal import get_blocks
 from .etap import call, get_query, get_udf
-log = Loggy('leaderboard')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def update_accts(query, agcy):
 
     accts = get_query(query, get_keys('etapestry'))
+    g.group = agcy
 
     for acct in accts:
         g.db.etap_accts.update(
@@ -24,17 +25,19 @@ def update_accts(query, agcy):
                 'neighborhood': get_udf('Neighborhood', acct)}},
             upsert=True)
 
-    log.debug('stored %s accts from %s', len(accts), query, group=agcy)
+    log.debug('stored %s accts from %s', len(accts), query)
 
 #-------------------------------------------------------------------------------
 def update_gifts(accts, agcy):
     '''accts: list of results from db.etap_accts
     '''
 
+    g.group = agcy
+
     try:
         accts_je_hist = call(
             'get_gift_histories',
-            get_keys('etapestry', agcy=agcy),
+            get_keys('etapestry'),
             data={
                 "acct_refs": [x['ref'] for x in accts],
                 "start": "01/01/" + str(date.today().year),
@@ -42,7 +45,7 @@ def update_gifts(accts, agcy):
     except Exception as e:
         raise
 
-    log.debug('retrieved %s acct je histories', len(accts_je_hist), group=agcy)
+    log.debug('retrieved %s acct je histories', len(accts_je_hist))
 
     # Each list element contains list of {'amount':<float>, 'date':<str>}
 
@@ -62,15 +65,15 @@ def update_gifts(accts, agcy):
                 {'ref':je_hist[0]['ref'], 'agcy':agcy},
                 {'$set': {'year':date.today().year, 'ytd': acct_total}})
 
-    log.debug('updated gifts for %s accts', len(accts), group=agcy)
+    log.debug('updated gifts for %s accts', len(accts))
 
 #-------------------------------------------------------------------------------
 def get_all_rankings(agcy=None):
 
-    agency = agcy if agcy else g.user.agency
+    g.group = agcy if agcy else g.user.agency
 
     rankings = g.db.etap_accts.aggregate([
-        {'$match': {'agcy':agency}},
+        {'$match': {'agcy':g.group}},
         {'$group': {
             '_id': '$neighborhood',
             'ytd': { '$sum': '$ytd'}}},

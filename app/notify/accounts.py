@@ -4,9 +4,9 @@ from flask import g
 from bson import ObjectId as oid
 from dateutil.parser import parse
 from .. import get_keys
-from app.lib.loggy import Loggy
 from app.lib.dt import to_local
-log = Loggy('notify.accts')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add(agency, evnt_id, name, phone=None, email=None, udf=None, nameFormat=None):

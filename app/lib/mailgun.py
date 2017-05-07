@@ -1,9 +1,10 @@
 '''app.mailgun'''
 import json, logging, requests
+from flask import g
 from os import environ as env
 from app import db_client
-from app.lib.loggy import Loggy
-log = Loggy('mailgun')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def send(to, subject, body, conf, v=None):
@@ -40,9 +41,9 @@ def send(to, subject, body, conf, v=None):
           auth=('api', conf['api_key']),
           data=data)
     except requests.RequestException as e:
-        agcy = g.db.agencies.find_one({'mailgun.from':conf['from']})
-        log.error('mailgun: %s ', str(e), group=agcy)
-        log.debug(str(e), group=agcy)
+        g.group = g.db.agencies.find_one({'mailgun.from':conf['from']})
+        log.error('mailgun: %s ', str(e))
+        log.debug(str(e))
         raise
 
     return json.loads(response.text)['id']

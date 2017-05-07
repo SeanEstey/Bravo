@@ -1,8 +1,9 @@
 '''app.notify.utils'''
 import re
+from flask import g
 from app.lib.utils import formatter
-from app.lib.loggy import Loggy
-log = Loggy('notify.utils')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def intrntl_format(to):

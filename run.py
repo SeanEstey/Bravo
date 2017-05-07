@@ -24,6 +24,7 @@ def do_setup():
     if session.get('user_id'):
         g.user = load_user(session['user_id'])
         g.app = current_app
+        g.group = g.user.agency
 
 #-------------------------------------------------------------------------------
 @app.after_request

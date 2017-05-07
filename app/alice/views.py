@@ -3,13 +3,13 @@ import logging
 from flask_login import login_required, current_user
 from flask import g, request, jsonify, render_template, session, Response
 from app.lib.utils import formatter, print_vars, start_timer, end_timer
-from app.lib.loggy import Loggy
 from . import alice, incoming
 from .session import store_sessions, dump_session, dump_sessions, wipe_sessions
 from .incoming import make_reply
 from .util import get_chatlogs
 from .dialog import dialog
-log = Loggy('alice.views')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @alice.before_request

@@ -5,9 +5,9 @@ from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import g, request
 from app.lib.utils import print_vars
-from app.lib.loggy import Loggy
 from .. import smart_emit
-log = Loggy('notify.record')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def dial_recording():
@@ -15,11 +15,11 @@ def dial_recording():
     Response: JSON dict {'status':'string'}
     '''
 
-    agency = g.db['users'].find_one({'user': g.user.user_id})['agency']
+    #agency = g.db['users'].find_one({'user': g.user.user_id})['agency']
 
     log.info('Record audio request from ' + request.form['To'])
 
-    twilio = g.db['agencies'].find_one({'name':agency})['twilio']
+    twilio = g.db['agencies'].find_one({'name':g.user.agency})['twilio']
 
     try:
         client = TwilioRestClient(twilio['api']['sid'], twilio['api']['auth_id'])
@@ -54,7 +54,7 @@ def dial_recording():
         g.db.audio.insert_one({
             'date': datetime.utcnow(),
             'sid': call.sid,
-            'agency': agency,
+            'agency': g.user.agency,
             'to': call.to,
             'from': call.from_,
             'status': call.status,
@@ -96,14 +96,11 @@ def on_interact():
     Response: twilio.twiml.Response with voice content
     '''
 
-    #log.debug('on_interact: %s', request.form.to_dict())
-
     if request.form.get('Digits') == '#':
         record = g.db.audio.find_one({'sid': request.form['CallSid']})
+        g.group = record['agency']
 
-        log.info(
-            'recording successful. duration: %ss',
-            request.form['RecordingDuration'], group=record['agency'])
+        log.info('recording done. duration: %ss', request.form['RecordingDuration'])
 
         # Reminder job has not been created yet so save in 'audio' for now
 
@@ -127,7 +124,8 @@ def on_interact():
 
 #-------------------------------------------------------------------------------
 def on_complete():
-    log.debug('on_complete: %s', request.form.to_dict())
+
+    #log.debug('on_complete: %s', request.form.to_dict())
 
     r = g.db.audio.find_one({'sid': request.form['CallSid']})
 

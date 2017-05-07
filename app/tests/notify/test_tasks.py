@@ -6,7 +6,8 @@ from app.tests import *
 from app.notify.events import cancel_event, get_triggers
 from app.notify.pickups import create_reminder
 from app.notify.tasks import monitor_triggers, fire_trigger, schedule_reminders, skip_pickup
-log = Loggy('tests.notify.tasks')
+from logging import getLogger
+log = getLogger(__name__)
 
 evnt_ids = []
 

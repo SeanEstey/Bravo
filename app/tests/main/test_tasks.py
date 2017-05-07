@@ -4,7 +4,8 @@ from datetime import datetime, date, timedelta
 from flask import g
 from app.tests.__init__ import *
 from app.main import tasks
-log = Loggy('tests.main.tasks')
+from logging import getLogger
+log = getLogger(__name__)
 
 class MainTasksTests(unittest.TestCase):
     def setUp(self):

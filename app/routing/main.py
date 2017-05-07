@@ -8,13 +8,15 @@ from app import smart_emit, get_keys
 from app.lib import gsheets
 from app.lib.utils import print_vars, formatter
 from app.lib.dt import ddmmyyyy_to_date
-from app.lib.loggy import Loggy
 from app.main.etap import EtapError, get_udf, get_query
 from . import depots
-log = Loggy('routing.main')
+from logging import getLogger
+log = getLogger(__name__)
 
 class GeocodeError(Exception):
     pass
+
+'''Methods called either from client user or celery task. g.group set'''
 
 #-------------------------------------------------------------------------------
 def is_scheduled(acct, date_):
@@ -64,10 +66,10 @@ def get_metadata():
     return docs
 
 #-------------------------------------------------------------------------------
-def add_metadata(agcy, block, event_dt, event):
+def add_metadata(block, event_dt, event):
 
     try:
-        accts = get_query(block, get_keys('etapestry',agcy=agcy))
+        accts = get_query(block, get_keys('etapestry'))
     except EtapError as e:
         #log.error('Error retrieving query=%s', block)
         raise
@@ -92,19 +94,19 @@ def add_metadata(agcy, block, event_dt, event):
     if event.get('location'):
         postal = re.sub(r'\s', '', event['location']).split(',')
 
-    if len(get_keys('routing', agcy=agcy)['locations']['depots']) > 1:
+    if len(get_keys('routing')['locations']['depots']) > 1:
         depot = depots.resolve(block, postal)
     else:
-        depot = get_keys('routing', agcy=agcy)['locations']['depots'][0]
+        depot = get_keys('routing')['locations']['depots'][0]
 
     meta = {
       'block': block,
       'date': event_dt.astimezone(pytz.utc),
-      'agency': agcy,
+      'agency': g.group,
       'status': 'pending',
       'postal': postal,
       'depot': depot,
-      'driver': get_keys('routing', agcy=agcy)['drivers'][0], # default driver
+      'driver': get_keys('routing')['drivers'][0], # default driver
       'orders': n_booked,
       'block_size': len(accts),
       'dropoffs': n_drops}

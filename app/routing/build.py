@@ -5,15 +5,18 @@ from bson import ObjectId
 from dateutil.parser import parse
 from flask import g
 from app import get_keys
-from app.lib.loggy import Loggy
 from app.main.etap import call, get_udf, EtapError
 from .main import is_scheduled
 from .geo import geocode, get_gmaps_url
 from . import routific, sheet
-log = Loggy('routing.build')
+from logging import getLogger
+log = getLogger(__name__)
 
 class GeocodeError(Exception):
     pass
+
+'''Methods can either be called from client user or celery task. Task
+sets g.group var'''
 
 #-------------------------------------------------------------------------------
 def submit_job(route_id):
@@ -26,18 +29,17 @@ def submit_job(route_id):
 
     MIN_PER_STOP = 3
     SHIFT_END = '21:00'
-    route = g.db.routes.find_one({"_id":ObjectId(route_id)})
-    agcy = route['agency']
-    etap_keys = get_keys('etapestry', agcy=agcy)
-    accts = call(
-        'get_query',
-        get_keys('etapestry',agcy=agcy),
-        {"query": route['block'], "category": etap_keys['query_category']}
-    )['data']
     num_skips = 0
     warnings = []
     errors = []
     orders = []
+
+    route = g.db.routes.find_one({"_id":ObjectId(route_id)})
+    etap_keys = get_keys('etapestry')
+    accts = call('get_query', get_keys('etapestry'), {
+        "query":route['block'],
+        "category":etap_keys['query_category']}
+    )['data']
 
     # Build the orders for Routific
     for acct in accts:
@@ -49,7 +51,7 @@ def submit_job(route_id):
             order = create_order(
                 acct,
                 warnings,
-                get_keys('google',agcy=agcy)['geocode']['api_key'],
+                get_keys('google')['geocode']['api_key'],
                 route['driver']['shift_start'],
                 '19:00',
                 get_udf('Service Time', acct) or MIN_PER_STOP)
@@ -72,14 +74,14 @@ def submit_job(route_id):
     log.debug('orders=%s, skips=%s, geo_warnings=%s, geo_errors=%s',
         len(orders), num_skips, len(warnings), len(errors))
 
-    office = get_keys('routing',agcy=agcy)['locations']['office']
+    office = get_keys('routing')['locations']['office']
     office_coords = geocode(
         office['formatted_address'],
-        get_keys('google',agcy=agcy)['geocode']['api_key'])[0]
+        get_keys('google')['geocode']['api_key'])[0]
     depot = route['depot']
     depot_coords = geocode(
         depot['formatted_address'],
-        get_keys('google',agcy=agcy)['geocode']['api_key'])[0]
+        get_keys('google')['geocode']['api_key'])[0]
 
     job_id = routific.submit_vrp_task(
         orders,
@@ -88,7 +90,7 @@ def submit_job(route_id):
         depot_coords,
         route['driver']['shift_start'],
         SHIFT_END,
-        get_keys('routing',agcy=agcy)['routific']['api_key'])
+        get_keys('routing')['routific']['api_key'])
 
     log.debug('routific job_id=%s', job_id)
 
@@ -181,7 +183,6 @@ def get_solution_orders(job_id, api_key):
         return task['status']
 
     route_info = g.db.routes.find_one({'job_id':job_id})
-    agcy = route_info['agency']
 
     output = task['output']
     orders = task['output']['solution'].get(route_info['driver']['name']) or\
@@ -237,7 +238,7 @@ def get_solution_orders(job_id, api_key):
                 input_['location']['lat'],
                 input_['location']['lng'])
 
-    office = get_keys('routing',agcy=agcy)['locations']['office']
+    office = get_keys('routing')['locations']['office']
 
     # Add office stop
     # TODO: Add travel time from depot to office

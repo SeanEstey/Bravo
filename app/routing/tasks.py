@@ -19,15 +19,15 @@ log = getLogger('worker.%s'%__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def discover_routes(self, agcy=None, within_days=5, **rest):
+def discover_routes(self, agcy, within_days=5, **rest):
     '''Celery task
     Scans schedule for blocks, adds metadata to db, sends socketio signal
     to client
     '''
 
     sleep(3)
-    smart_emit('discover_routes', {'status':'in-progress'})
     g.group = agcy
+    smart_emit('discover_routes', {'status':'in-progress'})
     log.info('discovering routes...')
     n_found = 0
     events = []
@@ -58,7 +58,7 @@ def discover_routes(self, agcy=None, within_days=5, **rest):
             'agency':g.group}):
 
             try:
-                meta = add_metadata(g.group, block, event_dt, event)
+                meta = add_metadata(block, event_dt, event)
             except Exception as e:
                 log.debug('block %s raised exc. continuing...', block)
                 continue
@@ -85,7 +85,7 @@ def build_scheduled_routes(self, agcy=None, **rest):
     g.group = agcy
     log.warning('task: building scheduled routes...')
 
-    agcy_list = [get_keys(agcy=g.group)] if agcy else g.db.agencies.find()
+    agcy_list = [get_keys()] if agcy else g.db.agencies.find()
     n_fails = n_success = 0
 
     for agency in agcy_list:
@@ -94,7 +94,7 @@ def build_scheduled_routes(self, agcy=None, **rest):
             'agency':g.group,
             'date':to_local(d=date.today(),t=time(8,0))})
 
-        discover_routes(agcy=g.group)
+        discover_routes(g.group)
 
         log.info('building %s routes', routes.count())
 
@@ -135,7 +135,7 @@ def build_route(self, route_id, job_id=None, **rest):
     # Keep looping and sleeping until receive solution or hit task_time_limit
     orders = get_solution_orders(
         job_id,
-        get_keys('google',agcy=g.group)['geocode']['api_key'])
+        get_keys('google')['geocode']['api_key'])
 
     if orders == False:
         log.error('error retrieving routific solution')
@@ -147,14 +147,13 @@ def build_route(self, route_id, job_id=None, **rest):
         sleep(5)
         orders = get_solution_orders(
             job_id,
-            get_keys('google',agcy=g.group)['geocode']['api_key'])
+            get_keys('google')['geocode']['api_key'])
 
     title = '%s: %s (%s)' %(
         route['date'].strftime('%b %-d'), route['block'], route['driver']['name'])
 
     ss = sheet.build(
-        g.group,
-        gdrive.gauth(get_keys('google',agcy=g.group)['oauth']),
+        gdrive.gauth(get_keys('google')['oauth']),
         title)
 
     route = g.db.routes.find_one_and_update(
@@ -162,12 +161,11 @@ def build_route(self, route_id, job_id=None, **rest):
         {'$set':{ 'ss': ss}})
 
     try:
-        service = gsheets.gauth(get_keys('google',agcy=g.group)['oauth'])
+        service = gsheets.gauth(get_keys('google')['oauth'])
         sheet.write_orders(
-            g.group,
             service,
             ss['id'],
-            get_keys('routing',agcy=g.group)['gdrive']['template_orders_wks_name'],
+            get_keys('routing')['gdrive']['template_orders_wks_name'],
             orders)
         sheet.write_prop(
             g.group,

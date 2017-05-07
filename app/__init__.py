@@ -169,7 +169,6 @@ def create_app(pkg_name, kv_sess=True, testing=False):
 def init_celery(app):
 
     from config import APP_ROOT_LOGGER_NAME as name
-    from logging import getLogger
     import celeryconfig
 
     celery.config_from_object(celeryconfig)

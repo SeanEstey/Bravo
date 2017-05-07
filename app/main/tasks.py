@@ -20,6 +20,12 @@ from .leaderboard import update_accts, update_gifts
 from logging import getLogger
 log = getLogger('worker.'+__name__)
 
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def backup_mongo(self, **rest):
+
+    from db_auth import user, password
+    os.system("mongodump -u %s -p %s -o ~/Dropbox/mongo" %(user,password))
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

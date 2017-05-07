@@ -5,8 +5,8 @@ from dateutil.parser import parse
 from oauth2client.service_account import ServiceAccountCredentials
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
-from app.lib.loggy import Loggy
-log = Loggy('gsheets')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def num_columns(service, ss_id, wks):

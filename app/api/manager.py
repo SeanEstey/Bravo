@@ -1,6 +1,6 @@
 '''app.api.manager'''
 from json import dumps, loads
-from flask import Response, request, jsonify
+from flask import g, Response, request, jsonify
 from flask_login import current_user
 import celery.result
 from app.lib.utils import start_timer, end_timer, formatter

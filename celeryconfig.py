@@ -9,10 +9,11 @@ timezone = 'Canada/Mountain'
 task_time_limit = 3000
 worker_concurrency = 2
 
-# WARNING: causes IOErrors reconnecting to eventlet if used
-#worker_max_tasks_per_child = 10
-
 beat_schedule = {
+    'backup_mongo': {
+        'task': 'app.main.tasks.backup_mongo',
+        'schedule': crontab(hour=1, minute=0, day_of_week='*')
+    },
     'wipe_sessions': {
         'task': 'app.main.tasks.wipe_sessions',
         'schedule': crontab(hour=0, minute=5, day_of_week='*')
@@ -38,7 +39,7 @@ beat_schedule = {
     },
     'mem_check': {
         'task': 'app.main.tasks.mem_check',
-        'schedule': crontab(hour='*', minute=0, day_of_week='*')
+        'schedule': crontab(hour='*', minute=10, day_of_week='*')
     },
 	'monitor_triggers': {
 		'task': 'app.notify.tasks.monitor_triggers',

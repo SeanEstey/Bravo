@@ -23,6 +23,9 @@ class WarningFilter(Filter):
     def filter(self, record):
         return record.levelno == WARNING
 
+"""TODO: remove iterm color signals from alice strings on client end
+regex_colors = re.compile('\\x1b\[[0-9]{1,2}m')"""
+
 #---------------------------------------------------------------------------
 def file_handler(level, file_path,
                  fmt=None, datefmt=None, color=None, name=None):

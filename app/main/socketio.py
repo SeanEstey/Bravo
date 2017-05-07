@@ -3,9 +3,9 @@ from datetime import datetime
 from flask import g, request, has_request_context
 from flask_login import current_user
 from flask_socketio import SocketIO, join_room, leave_room, send, emit, rooms
-from app.lib.loggy import Loggy
 from app.lib.utils import print_vars, inspector
-log = Loggy('socket.io')
+from logging import getLogger
+log = getLogger(__name__)
 
 # Main server initialized with flask app in run.py
 sio_server = SocketIO()
@@ -78,7 +78,7 @@ def do_analyze_routes():
     log.debug('received analyze_routes req')
     from app.routing.tasks import discover_routes
     try:
-        discover_routes.delay(agcy=current_user.agency)
+        discover_routes.delay(current_user.agency)
     except Exception as e:
         log.debug('', exc_info=True)
 

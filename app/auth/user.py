@@ -79,13 +79,3 @@ class Anonymous(AnonymousUserMixin):
         self.user_id = 'anon'
         self._id = None
         self.agency = 'anon'
-
-class API(UserMixin):
-
-    #---------------------------------------------------------------------------
-    def get_id(self):
-
-        try:
-            return unicode(self.user_id)  # python 2
-        except NameError:
-            return str(self.user_id)  # python 3

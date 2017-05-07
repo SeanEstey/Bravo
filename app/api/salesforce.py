@@ -9,9 +9,6 @@ import logging
 import pytz
 from datetime import datetime
 from simple_salesforce import Salesforce
-from app.lib.loggy import Loggy
-
-log = Loggy(__name__)
 
 
 #-------------------------------------------------------------------------------

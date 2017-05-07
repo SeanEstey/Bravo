@@ -1,12 +1,13 @@
 '''app.main.endpoints'''
 import json, time
-from flask import jsonify, request
-from app.lib.loggy import Loggy, colors as c
+from flask import g, jsonify, request
+from app import colors as c
 from app.lib.mailgun import dump
 from app.booker import book
 from . import donors, main, receipts, signups
 from .tasks import create_rfu
-log = Loggy('main.endpt')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @main.route('/restart_worker', methods=['GET'])
@@ -26,7 +27,7 @@ def on_delivered():
     '''
 
     webhook = request.form.get('type')
-    agcy = request.form.get('agcy')
+    g.group = request.form.get('agcy')
 
     if not webhook:
         log.debug('%swebhook "type" not set. cannot route to handler%s',
@@ -34,14 +35,14 @@ def on_delivered():
         log.debug(request.form.to_dict())
         return 'failed'
     if webhook == 'receipt':
-        receipts.on_delivered(agcy)
+        receipts.on_delivered(g.group)
     elif webhook == 'signup':
-        signups.on_delivered(agcy)
+        signups.on_delivered(g.group)
     elif webhook == 'notific':
         from app.notify import email
         email.on_delivered()
     elif webhook == 'booking':
-        book.on_delivered(agcy)
+        book.on_delivered(g.group)
     else:
         log.debug('%sdelivered <%s> to %s%s',
             c.GRN, webhook, request.form['To'], c.ENDC)
@@ -54,16 +55,16 @@ def on_dropped():
     '''
 
     webhook = request.form.get('type')
-    agcy = request.form.get('agcy')
+    g.group = request.form.get('agcy')
 
     if not webhook:
         log.debug('%swebhook "type" not set. cannot route to handler%s', c.RED, c.ENDC)
         log.debug(request.form.to_dict())
         return 'failed'
     if webhook == 'receipt':
-        receipts.on_dropped(agcy)
+        receipts.on_dropped(g.group)
     elif webhook == 'signup':
-        signups.on_dropped(agcy)
+        signups.on_dropped(g.group)
     elif webhook == 'notific':
         from app.notify import email
         email.on_dropped()

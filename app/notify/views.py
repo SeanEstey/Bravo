@@ -6,17 +6,15 @@ from flask_login import login_required
 from flask import g, request, jsonify, render_template, Response, url_for
 from app import smart_emit, get_keys
 from app.lib.utils import formatter, to_title_case
-from app.lib.loggy import Loggy
 from app.main import parser
 from . import notify, accounts, events, triggers
-log = Loggy(__name__)
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @notify.route('/', methods=['GET'])
 @login_required
 def view_event_list():
-
-    Loggy.dump(log.logger)
 
     event_list = events.get_list(g.user.agency)
 

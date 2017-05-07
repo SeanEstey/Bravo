@@ -5,14 +5,14 @@ from flask import g, request
 from datetime import time, timedelta
 from dateutil.parser import parse
 from bson.objectid import ObjectId
-from app import get_keys
+from app import get_keys, colors as c
 from app.lib import gcal
-from app.lib.loggy import Loggy, colors as c
 from app.lib.dt import ddmmyyyy_to_local_dt as to_dt, to_local
 from app.main import parser
 from app.main.etap import EtapError, get_query, get_udf, get_phone, get_prim_phone
 from . import events, email, sms, voice, triggers, accounts
-log = Loggy('notify.pickups')
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def create_reminder(agcy, block, date_):
@@ -20,8 +20,10 @@ def create_reminder(agcy, block, date_):
     Returns: evnt_id (ObjectID) on succcess, False otherwise
     '''
 
+    g.group = agcy
+
     try:
-        accts = get_query(block, get_keys('etapestry',agcy=agcy))
+        accts = get_query(block, get_keys('etapestry'))
     except EtapError as e:
         raise
     else:
@@ -31,7 +33,7 @@ def create_reminder(agcy, block, date_):
     # Create event + triggers
 
     evnt_id = events.add(agcy, block, date_, 'bpu')
-    conf = get_keys('notify',agcy=agcy)['triggers']
+    conf = get_keys('notify')['triggers']
     email_trig_id = triggers.add(
         evnt_id,
         'email',
@@ -58,7 +60,7 @@ def create_reminder(agcy, block, date_):
                 continue
             else:
                 log.debug('acct_id=%s missing next pickup date%s',
-                    acct['id'], group=agcy)
+                    acct['id'])
                 continue
 
         acct_id = accounts.add(
@@ -135,17 +137,15 @@ def find_all_scheduled_dates(evnt_id):
     @evnt_id: str of ObjectID
     '''
 
-    #log.debug('Getting next pickups for notification event ID \'%s\'', str(evnt_id))
-
     cal_events = []
     block_dates = {}
     evnt_id = ObjectId(evnt_id)
     event = g.db.events.find_one({'_id':evnt_id})
-
+    g.group = event['agency']
     start = event['event_dt'] + timedelta(days=1)
     end = start + timedelta(days=110)
-    oauth = get_keys('google',agcy=event['agency'])['oauth']
-    cal_ids = get_keys('cal_ids',agcy=event['agency'])
+    oauth = get_keys('google')['oauth']
+    cal_ids = get_keys('cal_ids')
 
     try:
         service = gcal.gauth(oauth)
@@ -201,7 +201,6 @@ def next_scheduled_date(acct_id, blocks, office_notes, block_dates):
     block_list = blocks.split(', ')
 
     # Remove temporary blocks
-
     # TODO: Handle multiple RMV BLK strings in office_notes
 
     if office_notes:

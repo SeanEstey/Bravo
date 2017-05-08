@@ -34,8 +34,7 @@ def create_event():
         try:
             evnt_id = voice_announce.add_event()
         except Exception as e:
-            log.error('Error creating announcement event')
-            log.debug(str(e))
+            log.exception('Error creating event')
             raise
     elif tmplt == 'bpu':
         block = request.form['query_name']
@@ -53,8 +52,7 @@ def create_event():
         try:
             evnt_id = create_reminder(g.user.agency, block, date_)
         except Exception as e:
-            log.error('Error creating pick-up event')
-            log.debug(str(e))
+            log.exception('Error creating pick-up event')
             raise
 
     event = g.db.events.find_one({'_id':evnt_id})
@@ -64,7 +62,8 @@ def create_event():
         # modifying 'triggers' structure for view rendering
         trigger['count'] = triggers.get_count(trigger['_id'])
 
-    log.warning('created %s event "%s"', event['type'], event['name'])
+    log.warning('Created notification event %s.', event['name'],
+        extra={'type':event['type']})
 
     return {
         'event': formatter(
@@ -83,6 +82,7 @@ def cancel_event(evnt_id=None):
     '''
 
     evnt_id = oid(evnt_id)
+    evnt = g.db.events.find_one({'_id':evnt_id})
     notifics = g.db.notifics.find({'evnt_id':evnt_id})
 
     n_accts = 0
@@ -94,8 +94,10 @@ def cancel_event(evnt_id=None):
     n_triggers = g.db.triggers.remove({'evnt_id': evnt_id}).get('n')
     n_events = g.db.events.remove({'_id': evnt_id}).get('n')
 
-    log.info('cancelled event. notifics=%s, triggers=%s, accts=%s', n_notifics,
-    n_triggers, n_accts)
+    log.info('Cancelled event %s', evnt['name'], extra={
+        'n_del_notific':n_notifics,
+        'n_del_triggers': n_triggers,
+        'n_del_accounts': n_accts})
 
     return True
 

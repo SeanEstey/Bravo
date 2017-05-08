@@ -41,13 +41,12 @@ def monitor_triggers(self, **kwargs):
         evnt = g.db.events.find_one({'_id':trigger['evnt_id']})
         g.group = evnt['agency']
 
-        log.debug('trigger %s scheduled. firing.', str(trigger['_id']))
+        log.debug('Firing event trigger for %s', evnt['name'], extra={'trigger_id':str(trigger['_id'])})
 
         try:
             fire_trigger(trigger['_id'])
         except Exception as e:
-            log.error('fire_trigger error. desc=%s', str(e))
-            log.debug(str(e))
+            log.exception('Error firing event trigger for %s', evnt['name'])
 
     pending = g.db.triggers.find({
         'status':'pending',
@@ -87,8 +86,8 @@ def fire_trigger(self, _id=None, **rest):
         {'trig_id':oid(_id), 'tracking.status':'pending'})
     count = ready.count()
 
-    log.warning('sending %s %s notifications for %s...',
-        count, to_title_case(trig['type']), event['name'])
+    log.warning('Sending notifications for event %s...', event['name'],
+        extra={'type':trig['type'], 'n_total':count})
 
     smart_emit('trigger_status',{
         'trig_id': str(_id), 'status': 'in-progress'})
@@ -106,9 +105,9 @@ def fire_trigger(self, _id=None, **rest):
                 status = email.send(n, get_keys('mailgun'))
         except Exception as e:
             status = 'error'
-            err.append(str(e))
-            log.error('error sending %s to %s (%s)', n['type'], n['to'], str(e))
-            log.debug(str(e))
+            err.append(e)
+            log.exception('Error sending notification to %s', n['to'],
+                extra={'type':n['type'], 'error':e})
         else:
             if status == 'failed':
                 fails += 1
@@ -126,8 +125,9 @@ def fire_trigger(self, _id=None, **rest):
         'fails': fails,
         'errors': len(err)})
 
-    log.warning('notifications sent. %s queued, %s failed, %s errors.',
-        count - fails - len(err), fails, len(err))
+    log.warning('%s/%s notifications sent for event %s',
+        count - fails - len(err), count, event['name'],
+        extra={'type':trig['type'], 'n_total':count, 'n_fails':fails, 'errors':err})
 
     return 'success'
 
@@ -138,7 +138,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
     if for_date:
         for_date = parse(for_date).date()
 
-    log.warning('task: scheduling reminder events...')
+    log.warning('Scheduling notification events...')
 
     agencies = [g.db.agencies.find_one({'name':agcy})] if agcy else g.db.agencies.find()
     n_success = n_fails = 0
@@ -159,10 +159,10 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 get_keys('google')['oauth'])
 
         if len(blocks) == 0:
-            log.info('no blocks on %s', date_str)
+            log.debug('no blocks on %s', date_str)
             continue
         else:
-            log.info('%s events on %s: %s',
+            log.debug('%s events on %s: %s',
                 len(blocks), date_str, ", ".join(blocks))
 
         for block in blocks:
@@ -173,16 +173,16 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 evnt_id = pickups.create_reminder(g.group, block, on_date)
             except EtapError as e:
                 n_fails +=1
-                log.error('failed to create %s reminder (desc: %s)', block, str(e))
-                log.debug(str(e))
+                log.exception('Error creating notification event %s', block)
                 continue
             else:
                 n_success +=1
                 evnt_ids.append(str(evnt_id))
-                log.debug('%s reminder event created', block)
+                log.info('Created notification event %s', block)
 
-    log.warning('task: complete. created %s events successfully, %s failures',
-        n_success, n_fails)
+    log.warning('Created %s/%s scheduled notification events',
+        n_success, n_success + n_fails)
+
     return json.dumps(evnt_ids)
 
 #-------------------------------------------------------------------------------
@@ -210,7 +210,9 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
 
     g.group = evnt['agency']
 
-    log.info('%s opted out of pickup', acct['email'] or acct['phone'])
+    log.info('%s opted out of pickup',
+        acct.get('name') or acct.get('email'),
+        extra={'event_name':evnt['name'], 'account_id':acct['id']})
 
     try:
         call(
@@ -223,7 +225,9 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
                     acct['udf']['future_pickup_dt'],
                     to_str='%d/%m/%Y')})
     except EtapError as e:
-        log.error("etap error, desc='%s'", str(e))
+        log.exception("Error updating account %s",
+            acct.get('name') or acct.get('email'),
+            extra={'account_id': acct['id']})
 
     if not acct.get('email'):
         return 'success'
@@ -234,7 +238,8 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
 			to=acct['email'],
 			account=to_local(obj=acct, to_str='%B %d %Y'))
     except Exception as e:
-        log.error('render error: %s', str(e))
+        log.exception('Error rendering no_pickup template')
+        raise
     else:
         mailgun.send(
             acct['email'],

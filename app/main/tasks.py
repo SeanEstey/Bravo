@@ -533,8 +533,6 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
     '''Create RFU's for all non-participants on scheduled dates
     '''
 
-    log.warning('Identifying inactive donors...')
-
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
     n_task_inactive = 0
 
@@ -543,6 +541,9 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
         acct_matches = []
         n_inactive = 0
         g.group = agency['name']
+
+        log.warning('Identifying inactive donors...')
+
         cal_ids = agency['cal_ids']
         period = period_ if period_ else agency['donors']['inactive_period']
         on_date = date.today() + delta(days=in_days)
@@ -599,7 +600,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
             n_inactive += 1
 
-        log.info('Found %s inactive donors.', n_inactive, extra={acct_matches})
+        log.info('Found %s inactive donors.', n_inactive, extra={'matches':acct_matches})
 
         n_task_inactive += n_inactive
 

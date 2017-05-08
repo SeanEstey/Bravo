@@ -138,14 +138,14 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
     if for_date:
         for_date = parse(for_date).date()
 
-    log.warning('Scheduling notification events...')
-
     agencies = [g.db.agencies.find_one({'name':agcy})] if agcy else g.db.agencies.find()
-    n_success = n_fails = 0
     evnt_ids = []
 
     for agency in agencies:
+        n_success = n_fails = 0
         g.group = agency['name']
+        log.warning('Scheduling notification events...')
+
         days_ahead = int(agency['notify']['sched_delta_days'])
         on_date = date.today() + timedelta(days=days_ahead) if not for_date else for_date
         date_str = on_date.strftime('%m-%d-%Y')
@@ -180,8 +180,8 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 evnt_ids.append(str(evnt_id))
                 log.info('Created notification event %s', block)
 
-    log.warning('Created %s/%s scheduled notification events',
-        n_success, n_success + n_fails)
+        log.warning('Created %s/%s scheduled notification events',
+            n_success, n_success + n_fails)
 
     return json.dumps(evnt_ids)
 
@@ -212,7 +212,7 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
 
     log.info('%s opted out of pickup',
         acct.get('name') or acct.get('email'),
-        extra={'event_name':evnt['name'], 'account_id':acct['id']})
+        extra={'event_name':evnt['name'], 'account_id':acct['udf']['etap_id']})
 
     try:
         call(
@@ -227,7 +227,7 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
     except EtapError as e:
         log.exception("Error updating account %s",
             acct.get('name') or acct.get('email'),
-            extra={'account_id': acct['id']})
+            extra={'account_id': acct['udf']['etap_id']})
 
     if not acct.get('email'):
         return 'success'

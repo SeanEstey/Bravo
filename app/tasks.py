@@ -22,6 +22,7 @@ def worker_init(**kwargs):
 
     # Root celery loger for this process
     logger = getLogger('worker')
+    logger.setLevel(DEBUG)
 
     from app.lib.mongo_log import file_handler, BufferedMongoHandler
     from db_auth import user, password

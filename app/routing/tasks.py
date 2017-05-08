@@ -83,33 +83,33 @@ def build_scheduled_routes(self, agcy=None, **rest):
     '''
 
     g.group = agcy
-    log.warning('task: building scheduled routes...')
-
     agcy_list = [get_keys()] if agcy else g.db.agencies.find()
-    n_fails = n_success = 0
 
     for agency in agcy_list:
+        n_fails = n_success = 0
         g.group = agency['name']
+        log.warning("Building today's scheduled routes...")
+
         routes = g.db.routes.find({
             'agency':g.group,
             'date':to_local(d=date.today(),t=time(8,0))})
 
         discover_routes(g.group)
 
-        log.info('building %s routes', routes.count())
-
         for route in routes:
             try:
                 build_route(str(route['_id']))
             except Exception as e:
-                log.error('error building %s, msg=%s', route['block'], str(e))
+                log.exception('Error building route %s', route['block'],
+                    extra={'route_id':str(route['_id'])})
                 n_fails+=1
                 continue
 
             n_success += 1
             sleep(2)
 
-    log.warning('task: completed. %s routes built, %s failures.', n_success, n_fails)
+        log.warning('Built %s/%s scheduled routes', n_success, n_success+n_fails)
+
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -126,8 +126,8 @@ def build_route(self, route_id, job_id=None, **rest):
     route = g.db.routes.find_one({"_id":ObjectId(route_id)})
     g.group = route['agency']
 
-    log.debug('route_id="%s", job_id="%s"', route_id, job_id)
-    log.info('building %s...', route['block'])
+    log.debug('Building route %s...', route['block'],
+        extra={'route_id':route_id, 'job_id':job_id or None})
 
     if job_id is None:
         job_id = submit_job(ObjectId(route_id))
@@ -168,20 +168,20 @@ def build_route(self, route_id, job_id=None, **rest):
             get_keys('routing')['gdrive']['template_orders_wks_name'],
             orders)
         sheet.write_prop(
-            g.group,
             service,
             ss['id'],
             route)
     except Exception as e:
-        log.error('error writing orders. desc=%s', str(e))
-        log.debug(str(e))
+        log.debug('Error writing %s to Google Sheets', extra={'exc:':str(e)})
         raise
 
     smart_emit('route_status',{
         'status':'completed', 'ss_id':ss['id'], 'warnings':route['warnings']})
 
-    log.info('%s built. orders=%s, unserved=%s, warnings=%s, errors=%s',
-        route['block'], len(orders), route['num_unserved'],
-        len(route['warnings']), len(route['errors']))
+    log.info('Built route %s', route['block'], extra={
+        'n_orders': len(orders),
+        'n_unserved': route['num_unserved'],
+        'n_warnings': len(route['warnings']),
+        'n_errors': len(route['errors'])})
 
     return json.dumps({'status':'success', 'route_id':str(route['_id'])})

@@ -18,6 +18,10 @@ def generate(acct, entry, ytd_gifts=None):
     '''Refer to flask globals set in parent task: g.ss_id, g.headers, g.track
     '''
 
+    if not acct.get('ref'):
+        log.error('Invalid account for receipt', extra={'account':acct})
+        return {'mid':None, 'status':acct.get('message')}
+
     if not acct.get('email'):
         log.debug('skipping acct w/o email')
         g.track['no_email'] +=1
@@ -166,6 +170,9 @@ def get_ytd_gifts(acct_ref, year):
     @acct_refs: list of eTap acct DB refs
     '''
 
+    if not acct_ref:
+        return []
+
     try:
         je_list = call(
             'get_gift_histories',
@@ -175,8 +182,7 @@ def get_ytd_gifts(acct_ref, year):
                 "start": "01/01/" + str(year),
                 "end": "31/12/" + str(year)})
     except Exception as e:
-        log.error('error getting gift histories for acct_ref=%s. desc: %s',
-            acct_ref, str(e))
+        log.exception('Error retrieving donation history')
         return []
     else:
         return je_list[0]

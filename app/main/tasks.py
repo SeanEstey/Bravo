@@ -18,7 +18,7 @@ from . import donors
 from .receipts import generate, get_ytd_gifts
 from .leaderboard import update_accts, update_gifts
 from logging import getLogger
-log = getLogger('worker.'+__name__)
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -210,6 +210,8 @@ def send_receipts(self, entries, **rest):
         log.exception('Error retrieving accounts from eTapestry.')
         raise
 
+    log.debug('accts_dump', extra={'accts':accts})
+
     accts_data = [{
         'acct':accts[i],
         'entry':entries[i],
@@ -346,11 +348,13 @@ def create_accounts(self, accts_json, agcy=None, **rest):
             log.exception('Error writing to Bravo Sheets.')
 
     if log_rec['n_errs'] > 0:
-        log.error('%s/%s accounts created. See Bravo Sheets for details.',
+        log.error('Created %s/%s accounts. See Bravo Sheets for details.',
             log_rec['n_success'], log_rec['n_success'] + log_rec['n_errs'],
             extra=log_rec)
     else:
-        log.info('%s accounts created.', log_rec['n_success'], extra=log_rec)
+        log.info('Created %s/%s accounts',
+            log_rec['n_success'], log_rec['n_success'] + log_rec['n_errs'],
+            extra=log_rec)
 
     chunks = accts = None
     gc.collect()

@@ -42,11 +42,13 @@ def send(to, subject, body, conf, v=None):
           data=data)
     except requests.RequestException as e:
         g.group = g.db.agencies.find_one({'mailgun.from':conf['from']})
-        log.error('mailgun: %s ', str(e))
-        log.debug(str(e))
+        log.exception('Mailgun error')
         raise
 
-    return json.loads(response.text)['id']
+    if response.status_code == requests.codes.ok:
+        return json.loads(response.text)['id']
+    else:
+        raise Exception('Error sending email to "%s"' % to)
 
 #-------------------------------------------------------------------------------
 def dump(form_values):

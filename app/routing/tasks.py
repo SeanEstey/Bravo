@@ -15,7 +15,8 @@ from .main import add_metadata
 from .build import submit_job, get_solution_orders
 from . import depots, sheet
 from logging import getLogger
-log = getLogger('worker.%s'%__name__)
+#log = getLogger('worker.%s'%__name__)
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -28,7 +29,7 @@ def discover_routes(self, agcy, within_days=5, **rest):
     sleep(3)
     g.group = agcy
     smart_emit('discover_routes', {'status':'in-progress'})
-    log.debug('discovering routes...')
+    log.debug('Discovering routes...')
     n_found = 0
     events = []
     service = gcal.gauth(get_keys('google')['oauth'])
@@ -60,7 +61,7 @@ def discover_routes(self, agcy, within_days=5, **rest):
             try:
                 meta = add_metadata(block, event_dt, event)
             except Exception as e:
-                log.debug('block %s raised exc. continuing...', block)
+                log.exception('Error writing route %s metadata', block)
                 continue
 
             log.debug('discovered %s on %s',
@@ -108,7 +109,10 @@ def build_scheduled_routes(self, agcy=None, **rest):
             n_success += 1
             sleep(2)
 
-        log.warning('Built %s/%s scheduled routes', n_success, n_success+n_fails)
+        if n_fails == 0:
+            log.warning('Built %s/%s scheduled routes', n_success, n_success+n_fails)
+        else:
+            log.error('Built %s/%s scheduled routes. Click for error details.', n_success, n_success+n_fails)
 
     return 'success'
 
@@ -132,15 +136,7 @@ def build_route(self, route_id, job_id=None, **rest):
     if job_id is None:
         job_id = submit_job(ObjectId(route_id))
 
-    # Keep looping and sleeping until receive solution or hit task_time_limit
-    orders = get_solution_orders(
-        job_id,
-        get_keys('google')['geocode']['api_key'])
-
-    if orders == False:
-        log.error('error retrieving routific solution')
-        log.debug(str(e))
-        return 'failed'
+    orders = "processing"
 
     while orders == "processing":
         log.debug('no solution yet, sleeping (5s)...')
@@ -160,6 +156,8 @@ def build_route(self, route_id, job_id=None, **rest):
         {'_id':ObjectId(route_id)},
         {'$set':{ 'ss': ss}})
 
+    # Append any non-geocodable orders
+
     try:
         service = gsheets.gauth(get_keys('google')['oauth'])
         sheet.write_orders(
@@ -172,7 +170,7 @@ def build_route(self, route_id, job_id=None, **rest):
             ss['id'],
             route)
     except Exception as e:
-        log.debug('Error writing %s to Google Sheets', extra={'exc:':str(e)})
+        log.exception('Error writing route %s to Google Sheets', route['block'])
         raise
 
     smart_emit('route_status',{

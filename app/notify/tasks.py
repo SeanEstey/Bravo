@@ -14,7 +14,8 @@ from app.main.parser import is_bus
 from app.main.etap import call, EtapError
 from . import email, events, sms, voice, pickups, triggers
 from logging import getLogger
-log = getLogger('worker.'+__name__)
+#log = getLogger('worker.'+__name__)
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -69,16 +70,15 @@ def fire_trigger(self, _id=None, **rest):
     '''Sends out all dependent sms/voice/email notifics messages
     '''
 
-    err = []
     status = ''
-    fails = 0
+    n_errors = 0
     trig = g.db.triggers.find_one({'_id':oid(_id)})
     event = g.db.events.find_one({'_id':trig['evnt_id']})
     g.group = event['agency']
 
     g.db.triggers.update_one(
         {'_id':oid(_id)},
-        {'$set': {'task_id':self.request.id, 'status':'in-progress', 'errors':err}})
+        {'$set': {'task_id':self.request.id, 'status':'in-progress'}})
 
     events.update_status(trig['evnt_id'])
 
@@ -104,30 +104,27 @@ def fire_trigger(self, _id=None, **rest):
             elif n['type'] == 'email':
                 status = email.send(n, get_keys('mailgun'))
         except Exception as e:
+            n_errors +=1
             status = 'error'
-            err.append(e)
             log.exception('Error sending notification to %s', n['to'],
                 extra={'type':n['type'], 'error':e})
         else:
             if status == 'failed':
-                fails += 1
+                n_errors += 1
         finally:
             smart_emit('notific_status', {
                 'notific_id':str(n['_id']), 'status':status})
 
-    g.db.triggers.update_one({'_id':oid(_id)}, {
-        '$set': {'status': 'fired', 'errors': err}})
+    g.db.triggers.update_one({'_id':oid(_id)}, {'$set': {'status': 'fired'}})
 
     smart_emit('trigger_status', {
         'trig_id': str(_id),
         'status': 'fired',
-        'sent': count - fails - len(err),
-        'fails': fails,
-        'errors': len(err)})
+        'sent': count - n_errors,
+        'errors': n_errors})
 
-    log.warning('%s/%s notifications sent for event %s',
-        count - fails - len(err), count, event['name'],
-        extra={'type':trig['type'], 'n_total':count, 'n_fails':fails, 'errors':err})
+    log.warning('%s/%s notifications sent for event %s', count - n_errors, count, event['name'],
+        extra={'type':trig['type'], 'n_total':count, 'n_errors':n_errors})
 
     return 'success'
 

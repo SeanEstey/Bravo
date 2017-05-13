@@ -250,7 +250,7 @@ def search_by_postal(postal, events):
 
     for event in events:
         if not event.get('location'):
-            log.info('Calendar event ' + event['summary'] + ' missing postal code')
+            #log.info('Calendar event ' + event['summary'] + ' missing postal code')
             continue
 
         postals = event['location'].split(",")

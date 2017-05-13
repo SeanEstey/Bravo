@@ -3,7 +3,7 @@ from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from logging import Filter, FileHandler, Formatter
 from datetime import datetime, timedelta
 from pymongo.collection import Collection
-from pymongo.errors import OperationFailure, PyMongoError
+from pymongo.errors import OperationFailure, PyMongoError, ConnectionFailure
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 from config import LOG_PATH
@@ -165,6 +165,17 @@ class MongoHandler(logging.Handler):
         if connect:
             self._connect(**self.kwargs)
 
+    def test_connection(self):
+        if not self.conn:
+            return False
+        try:
+            self.conn.admin.command('ismaster')
+        except ConnectionFailure:
+            print 'No mongo connection!'
+            return False
+        else:
+            return True
+
     def _connect(self, **kwargs):
         global _connection
 
@@ -188,15 +199,7 @@ class MongoHandler(logging.Handler):
                 self.pw,
                 mechanism='SCRAM-SHA-1')
 
-        '''
-        try:
-            self.conn.admin.command('ismaster')
-        except ConnectionFailure:
-            if self.raise_exc:
-                return
-            else:
-                raise
-        '''
+
 
         if self.capped:
             # Prevent override of capped collection

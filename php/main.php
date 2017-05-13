@@ -43,7 +43,7 @@ function get_accts($acct_ids=NULL, $acct_refs=NULL) {
             else if(!is_null($acct_refs))
                 $accts[] = get_acct(NULL, $ref=$list[$i]);
         } catch (Exception $e) {
-            $accts[] = (string)$e;
+            $accts[] = ["ref"=>null, "message"=>(string)$e];
             reset_error($nsc);
         }
     }

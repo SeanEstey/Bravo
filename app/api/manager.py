@@ -49,7 +49,8 @@ def build_resp(rv=None, exc=None, name=None, dt=None):
 
     # Success
 
-    log.debug('API call success, func=%s (%s)', name, end_timer(dt))
+    log.debug('%s success', request.path,
+        extra={'url':request.url, 'data':request.data, 'duration': end_timer(dt), 'function':name})
 
     try:
         json_rv = formatter({'status':'success', 'data':rv}, bson_to_json=True, to_json=True)
@@ -62,7 +63,6 @@ def build_resp(rv=None, exc=None, name=None, dt=None):
 
 #-------------------------------------------------------------------------------
 def get_var(k):
-    #log.debug(request.form.to_dict())
 
     if request.method == 'GET':
         return request.args.get(k)

@@ -6,7 +6,7 @@ from bson import ObjectId as oid
 from twilio import TwilioRestException, twiml
 from twilio.rest import TwilioRestClient
 from twilio.util import TwilioCapability
-from flask import g, render_template, request
+from flask import g, render_template, request, Response
 from pymongo.collection import ReturnDocument
 from app import get_keys, smart_emit, colors as c
 from app.lib import html
@@ -305,7 +305,8 @@ def preview():
     notific = g.db.notifics.find_one({'evnt_id':evnt_id, 'type':'voice'})
 
     if not notific:
-        raise Exception('preview event cant find notific')
+        log.error('Notification not found for Preview', extra={'request':request})
+        return False
 
     notific['tracking']['answered_by'] = 'human'
     notific['tracking']['digit'] = "1"

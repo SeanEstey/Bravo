@@ -16,12 +16,15 @@ from app.main.tasks import *
 from app.booker.tasks import *
 from app.notify.tasks import *
 
+log = getLogger(__name__)
+
 #-------------------------------------------------------------------------------
 @worker_process_init.connect
 def worker_init(**kwargs):
 
     # Root celery loger for this process
-    logger = getLogger('worker')
+    #logger = getLogger('worker')
+    logger = getLogger('app') #__name__)
     logger.setLevel(DEBUG)
 
     from app.lib.mongo_log import file_handler, BufferedMongoHandler
@@ -73,8 +76,11 @@ state=None, *args, **kwargs):
     # Force log flush to Mongo if timer set since thread timer seems to sleep after task is complete.
     from app.lib.mongo_log import BufferedMongoHandler
 
-    for handler in getLogger('worker').handlers:
+    #for handler in getLogger('worker').handlers:
+    for handler in getLogger('app').handlers: #__name__).handlers:
         if isinstance(handler, BufferedMongoHandler) and handler.buf_flush_tim:
+            if not handler.test_connection():
+                handler._connect()
             handler.flush_to_mongo()
 
     '''
@@ -89,9 +95,10 @@ state=None, *args, **kwargs):
 #-------------------------------------------------------------------------------
 @task_failure.connect
 def task_failure(signal=None, sender=None, task_id=None, exception=None, traceback=None, *args, **kwargs):
+
     name = sender.name.split('.')[-1]
-    log.error('task=%s failed. exception=%s', name, exception)
-    log.debug('exception: %s', traceback)
+    log.error('Task %s failed. Click for more info.', name,
+        extra={'exception':exception, 'traceback':traceback})
 
 #-------------------------------------------------------------------------------
 def kill(task_id):

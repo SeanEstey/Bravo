@@ -59,7 +59,7 @@ def submit_job(route_id):
             errors.append(str(e))
             continue
         except GeocodeError as e:
-            log.error('GeocodeError exception')
+            log.exception('Geocode Error: %s' % e.message)
             errors.append(str(e))
             continue
         except requests.RequestException as e:
@@ -174,7 +174,7 @@ def get_solution_orders(job_id, api_key):
     try:
         r = requests.get('https://api.routific.com/jobs/' + job_id)
     except requests.RequestException as e:
-        log.error('Error calling api.routific.com/jobs: %s', str(e))
+        log.exception('Error retrieving Routific solution')
         raise
 
     task = json.loads(r.text)

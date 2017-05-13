@@ -45,47 +45,20 @@ def load_user(user_id):
         log.debug('cant load user_id=%s', user_id)
         return None
 
-    user = User(
+    return User(
         user_id,
         name=db_user['name'],
         _id=db_user['_id'],
         agency=db_user['agency'],
         admin=db_user['admin'])
 
-    return user
-
 #-------------------------------------------------------------------------------
 @login_manager.request_loader
 def load_api_user(request):
 
-	# first, try to login using user_id/pw
-
-    username = request.form.get('username')
-    password = request.form.get('password')
-
-    if username and password:
-        db_user = User.authenticate(
-            request.form.get('username'),
-            request.form.get('password'))
-
-        if db_user:
-            user = User(
-                db_user['user'],
-                name = db_user['name'],
-                _id = db_user['_id'],
-                agency = db_user['agency'],
-                admin = db_user['admin'])
-
-            log.debug('logging in')
-            login_user(user)
-
-            return user
-
-    # next, try to login using Basic Auth
     api_key = request.headers.get('Authorization')
 
     if not api_key:
-        #print 'no api key in header'
         return None
 
     api_key = api_key.replace('Basic ', '', 1)
@@ -102,8 +75,6 @@ def load_api_user(request):
     user = db.users.find_one({'api_key':str(api_key)})
 
     if user:
-        log.debug('"%s" API auth success', user['name'])
-
         return User(
             user['user'],
             name = user['name'],
@@ -111,8 +82,4 @@ def load_api_user(request):
             agency = user['agency'],
             admin = user['admin'])
     else:
-        log.debug('no user found for api_key=%s', api_key)
-
-    # finally, return None if both methods did not login the user
-    log.debug('failed to load api user. return none')
-    return None
+        return None

@@ -135,8 +135,11 @@ def write_order(api, ss_id, wks, order, row):
     if notes.get('email'):
       summary += '\nEmail: ' + notes['email']
 
-    log.debug('writing order. summary=%s, loc_name=%s, gmaps_url=%s, notes[id]=%s',
-        summary, order['gmaps_url'], order['location']['name'], notes['id'])
+    log.debug('Writing order to Route Sheet', extra={
+        'ss_id': ss_id,
+        'account_id': notes['id'],
+        'order_summary': summary,
+        'address': order['location']['name']})
 
     gsheets.write_rows(
         api,

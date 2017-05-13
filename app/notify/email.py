@@ -153,14 +153,17 @@ def on_dropped():
     evnt = g.db.events.find_one({'_id':notific['evnt_id']})
     g.group = evnt['agency']
 
-    log.error('dropped notific to %s', request.form['recipient'])
-    log.debug('reason dropped: %s', request.form.get('reason'))
+    if not evnt:
+        log.error('No event found for dropped notification to %s', request.form['recipient'])
+
+    log.error('Notification failed to send to %s', request.form['recipient'],
+        extra={'request':request.form})
 
     smart_emit('notific_status',
         {'notific_id':str(notific['_id']), 'status':request.form['event']})
 
     msg = 'notification to %s dropped. %s.' %(
-        request.form['recipient'], request.form['reason'])
+        request.form.get('recipient'), request.form.get('reason'))
 
     from app.main.tasks import create_rfu
     create_rfu.delay(g.group, msg + request.form.get('description'))

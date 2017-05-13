@@ -77,15 +77,16 @@ def add_etw_to_gsheets(signup):
     return 'success'
 
 #-------------------------------------------------------------------------------
-def send_welcome():
+def send_confirmation():
     '''Send a template email from Bravo Sheets
     @form: {'agency', 'recipient', 'type', 'tmpt_file', 'tmpt_vars, 'subject', 'from_row'}
     @form['type']: 'signup', 'receipt'
     Returns: mailgun ID
     '''
-    #TODO: Change signature from Bravo Sheets
 
     #log.debug('/email/send: "%s"', args)
+    log.debug("sending signup confirmation!", extra={'form':request.form})
+    return True
 
     args = request.get_json(force=True)
     to = args['recipient']

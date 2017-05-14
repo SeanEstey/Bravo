@@ -13,9 +13,6 @@ from . import depots
 from logging import getLogger
 log = getLogger(__name__)
 
-class GeocodeError(Exception):
-    pass
-
 '''Methods called either from client user or celery task. g.group set'''
 
 #-------------------------------------------------------------------------------

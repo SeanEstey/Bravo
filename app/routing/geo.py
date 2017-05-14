@@ -4,6 +4,9 @@ from app import get_keys
 from logging import getLogger
 log = getLogger(__name__)
 
+class GeocodeError(Exception):
+    pass
+
 #-------------------------------------------------------------------------------
 def get_gmaps_url(address, lat, lng):
     base_url = 'https://www.google.ca/maps/place/'
@@ -48,22 +51,14 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
         log.error(str(e))
         raise
 
-    #log.debug(response.text)
-
     response = json.loads(response.text)
 
     if response['status'] == 'ZERO_RESULTS':
-        e = 'No geocode result for ' + address
-        log.error(e)
-        return []
+        raise GeocodeError('No geocode result for ' + address)
     elif response['status'] == 'INVALID_REQUEST':
-        e = 'Invalid request for ' + address
-        log.error(e)
-        return []
+        raise GeocodeError('Invalid request for ' + address)
     elif response['status'] != 'OK':
-        e = 'Could not geocode ' + address
-        log.error(e)
-        return []
+        raise GeocodeError('Could not geocode ' + address)
 
     # Single result
 

@@ -7,13 +7,10 @@ from flask import g
 from app import get_keys
 from app.main.etap import call, get_udf, EtapError
 from .main import is_scheduled
-from .geo import geocode, get_gmaps_url
+from .geo import GeocodeError, geocode, get_gmaps_url
 from . import routific, sheet
 from logging import getLogger
 log = getLogger(__name__)
-
-class GeocodeError(Exception):
-    pass
 
 '''Methods can either be called from client user or celery task. Task
 sets g.group var'''
@@ -29,7 +26,7 @@ def submit_job(route_id):
 
     MIN_PER_STOP = 3
     SHIFT_END = '21:00'
-    num_skips = 0
+    n_skips = 0
     warnings = []
     errors = []
     orders = []
@@ -44,7 +41,7 @@ def submit_job(route_id):
     # Build the orders for Routific
     for acct in accts:
         if is_scheduled(acct, route['date'].date()) == False:
-            num_skips += 1
+            n_skips += 1
             continue
 
         try:
@@ -56,23 +53,20 @@ def submit_job(route_id):
                 '19:00',
                 get_udf('Service Time', acct) or MIN_PER_STOP)
         except EtapError as e:
-            errors.append(str(e))
+            errors.append({'acct':acct, 'desc':str(e)})
             continue
         except GeocodeError as e:
-            log.exception('Geocode Error: %s' % e.message)
-            errors.append(str(e))
+            log.exception(e.message)
+            errors.append({'acct':acct, 'desc':str(e)})
             continue
         except requests.RequestException as e:
-            errors.append(str(e))
+            errors.append({'acct':acct, 'desc':str(e)})
             continue
 
         if order == False:
-            num_skips += 1
+            n_skips += 1
         else:
             orders.append(order)
-
-    log.debug('orders=%s, skips=%s, geo_warnings=%s, geo_errors=%s',
-        len(orders), num_skips, len(warnings), len(errors))
 
     office = get_keys('routing')['locations']['office']
     office_coords = geocode(
@@ -101,16 +95,24 @@ def submit_job(route_id):
             'status': 'processing',
             'block_size': len(accts),
             'orders': len(orders),
-            'no_pickups': num_skips,
+            'no_pickups': n_skips,
             'start_address': office['formatted_address'],
             'end_address': depot['formatted_address'],
             'warnings': warnings,
             'errors': errors}})
 
+    if len(errors) > 0:
+        log.error('Failed to resolve %s addresses on Route %s',
+            len(errors), route['block'],
+            extra={'errors':errors})
+    else:
+        log.debug('Submitted %s orders to Routific', len(orders),
+            extra={'orders':len(orders), 'skips':n_skips, 'warnings':len(warnings)})
+
     return job_id
 
 #-------------------------------------------------------------------------------
-def create_order(acct, warnings, api_key, shift_start, shift_end, min_per_stop):
+def create_order(acct, warnings, api_key, shift_start, shift_end, stop_time):
     '''Returns:
       -Dict order on success
     Exceptions:
@@ -133,14 +135,15 @@ def create_order(acct, warnings, api_key, shift_start, shift_end, min_per_stop):
             api_key,
             postal=acct['postalCode'])
     except requests.RequestException as e:
-        log.error(str(e))
+        log.exception('Error requesting Google Geocodeder')
+        raise
+    except GeocodeError as e:
         raise
 
     if len(geo_result) == 0:
         msg = \
             "Unable to resolve address <strong>%s, %s</strong>." %(
             acct['address'],acct['city'])
-
         log.error(msg)
         raise GeocodeError(msg)
 
@@ -155,7 +158,7 @@ def create_order(acct, warnings, api_key, shift_start, shift_end, min_per_stop):
         geo_result,
         shift_start,
         shift_end,
-        min_per_stop)
+        stop_time)
 
 #-------------------------------------------------------------------------------
 def get_solution_orders(job_id, api_key):

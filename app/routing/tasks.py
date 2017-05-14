@@ -13,9 +13,8 @@ from app.main import parser
 from app.main.etap import EtapError, get_udf
 from .main import add_metadata
 from .build import submit_job, get_solution_orders
-from . import depots, sheet
+from . import depots, sheet, routific
 from logging import getLogger
-#log = getLogger('worker.%s'%__name__)
 log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -156,19 +155,24 @@ def build_route(self, route_id, job_id=None, **rest):
         {'_id':ObjectId(route_id)},
         {'$set':{ 'ss': ss}})
 
-    # Append any non-geocodable orders
+
+    wks_name = get_keys('routing')['gdrive']['template_orders_wks_name']
 
     try:
         service = gsheets.gauth(get_keys('google')['oauth'])
         sheet.write_orders(
             service,
             ss['id'],
-            get_keys('routing')['gdrive']['template_orders_wks_name'],
+            wks_name,
             orders)
         sheet.write_prop(
             service,
             ss['id'],
             route)
+        # Append any non-geocodable orders
+        for e in route['errors']:
+            order = routific.order(e['acct'], e['acct']['address'], {}, '', '',0)
+            sheet.append_order(service, ss['id'], wks_name, order)
     except Exception as e:
         log.exception('Error writing route %s to Google Sheets', route['block'])
         raise

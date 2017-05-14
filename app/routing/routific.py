@@ -67,10 +67,11 @@ def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key)
 #-------------------------------------------------------------------------------
 def order(acct, formatted_address, geo, shift_start, shift_end, min_per_stop):
     return {
+      "gmaps_url": "",
       "location": {
         "name": formatted_address,
-        "lat": geo['geometry']['location']['lat'],
-        "lng": geo['geometry']['location']['lng']
+        "lat": geo.get('geometry',{}).get('location',{}).get('lat',{}),
+        "lng": geo.get('geometry',{}).get('location',{}).get('lng',{})
       },
       "start": shift_start,
       "end": shift_end,

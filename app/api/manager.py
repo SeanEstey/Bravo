@@ -65,6 +65,6 @@ def build_resp(rv=None, exc=None, name=None, dt=None):
 def get_var(k):
 
     if request.method == 'GET':
-        return request.args.get(k)
+        return request.args.get(k, None)
     elif request.method == 'POST':
-        return request.form.get(k)
+        return request.form.get(k, None)

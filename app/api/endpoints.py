@@ -68,11 +68,15 @@ def call_accts_create():
     from app.main.tasks import create_accounts
     return task_call(create_accounts, get_var('accts'), agcy=get_var('agcy'))
 
-@api.route('accounts/find', methods=['POST'])
+@api.route('/accounts/find', methods=['POST'])
 @login_required
 def call_find_acct():
-    # PHP 'check_duplicates'
-    return func_call(WRITE_ME)
+    from app.main.signups import check_duplicates
+    return func_call(check_duplicates,
+        name=get_var("name"),
+        email=get_var("email"),
+        address=get_var("address"),
+        phone=get_var("phone"))
 
 @api.route('/accounts/get', methods=['POST'])
 @login_required

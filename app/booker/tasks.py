@@ -4,7 +4,7 @@ from datetime import datetime
 from flask import g
 from .. import smart_emit, celery
 from logging import getLogger
-log = getLogger('worker.%s'%__name__)
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task
@@ -57,9 +57,9 @@ def update_maps(agcy=None, **rest):
                     'update_dt': datetime.utcnow(),
                     'features': data['features']}})
 
-            desc = 'Task: updated %s maps successfully.' % len(data['features'])
+            desc = 'Updated %s maps successfully' % len(data['features'])
 
-            log.warning(desc)
+            log.warning(desc, extra={'map_id':maps['mid']})
 
         if agcy:
             smart_emit('update_maps',{

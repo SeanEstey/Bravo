@@ -166,4 +166,4 @@ def on_dropped():
         request.form.get('recipient'), request.form.get('reason'))
 
     from app.main.tasks import create_rfu
-    create_rfu.delay(g.group, msg + request.form.get('description'))
+    create_rfu.delay(g.group, msg + request.form.get('description',''))

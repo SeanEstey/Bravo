@@ -5,6 +5,7 @@ from flask import g, request, render_template
 from app import get_keys
 from app.lib import mailgun
 from app.lib.gsheets import gauth, get_row, append_row, update_cell, to_range
+from app.main.etap import call
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -75,6 +76,29 @@ def add_etw_to_gsheets(signup):
         return 'There was an error handling your request'
 
     return 'success'
+
+#-------------------------------------------------------------------------------
+def check_duplicates(name=None, email=None, address=None, phone=None):
+    '''Return list of acct_id of any duplicate accounts already in CRM DB'''
+
+    fields = {}
+    if name is not None:
+        fields["name"] = name
+    if email is not None:
+        fields["email"] = email
+    if address is not None:
+        fields["address"] = address
+    '''if phone is not None:
+        fields["phone"] = {
+            "type": "",
+            "number": phone
+        }
+    '''
+
+    return call(
+        'check_duplicates',
+        get_keys('etapestry'),
+        data=fields)
 
 #-------------------------------------------------------------------------------
 def send_confirmation():

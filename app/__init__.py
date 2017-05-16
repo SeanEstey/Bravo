@@ -92,6 +92,7 @@ def get_username():
 
 #-------------------------------------------------------------------------------
 def create_app(pkg_name, kv_sess=True, testing=False):
+
     from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
     from app.lib.mongo_log import file_handler, BufferedMongoHandler
     from db_auth import user, password
@@ -124,7 +125,7 @@ def create_app(pkg_name, kv_sess=True, testing=False):
         color=colors.RED))
     # Init connection in Run.py to prevent celery fork errors
     app.logger.addHandler(BufferedMongoHandler(
-        level=DEBUG,
+        level=INFO,
         connect=False,
         db_name='bravo',
         user=user,
@@ -191,12 +192,3 @@ def get_server_prop():
         'DEVELOPER': g.user.developer,
         'USER_NAME': g.user.name
     }
-
-#-------------------------------------------------------------------------------
-def get_pname():
-    import os
-    import psutil
-
-    process = psutil.Process(os.getpid())
-    process_name = process.name()
-    return process_name

@@ -700,6 +700,9 @@ function check_duplicates($persona_fields) {
 	for($i=0; $i<sizeof($accts); $i++) {
 		$ids[] = $accts[0]['id'];
     }
+
+    debug_log("Found " . (string)sizeof($accts) . " duplicate accounts");
+
     return $ids;
 }
 

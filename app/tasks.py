@@ -23,8 +23,7 @@ log = getLogger(__name__)
 def worker_init(**kwargs):
 
     # Root celery loger for this process
-    #logger = getLogger('worker')
-    logger = getLogger('app') #__name__)
+    logger = getLogger('app')
     logger.setLevel(DEBUG)
 
     from app.lib.mongo_log import file_handler, BufferedMongoHandler
@@ -36,7 +35,7 @@ def worker_init(**kwargs):
     logger.addHandler(file_handler(WARNING, '%sevents.log'%path, color=c.YLLW))
     logger.addHandler(file_handler(ERROR, '%sevents.log'%path, color=c.RED))
     buf_mongo_handler = BufferedMongoHandler(
-        level=DEBUG,
+        level=INFO,
         connect=True,
         db_name='bravo',
         user=user,

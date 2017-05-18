@@ -46,7 +46,7 @@ def file_handler(level, file_path,
         handler.addFilter(WarningFilter())
 
     formatter = Formatter(
-        c.BLUE + (fmt or '[%(asctime)s %(name)s %(processName)s]: ' + c.ENDC + color + '%(message)s') + c.ENDC,
+        c.BLUE + (fmt or '[%(asctime)s %(name)s %(processName)s %(process)d]: ' + c.ENDC + color + '%(message)s') + c.ENDC,
         (datefmt or '%m-%d %H:%M'))
 
     handler.setFormatter(formatter)
@@ -172,7 +172,8 @@ class MongoHandler(logging.Handler):
             self.conn.admin.command('ismaster')
         except ConnectionFailure:
             print 'No mongo connection!'
-            return False
+            raise
+            #return False
         else:
             return True
 
@@ -189,6 +190,8 @@ class MongoHandler(logging.Handler):
                 **kwargs)
             _connection = self.conn
 
+        self.test_connection()
+
         self.db = self.conn[self.db_name]
 
         if self.user is not None and self.pw is not None:
@@ -198,8 +201,6 @@ class MongoHandler(logging.Handler):
                 self.user,
                 self.pw,
                 mechanism='SCRAM-SHA-1')
-
-
 
         if self.capped:
             # Prevent override of capped collection
@@ -330,12 +331,16 @@ class BufferedMongoHandler(MongoHandler):
             print 'flushing log to mongo'
 
             self.buf_lock_acquire()
-            try:
 
+            try:
                 getattr(self.coll, write_many_method)(self.buf)
                 self.empty_buf()
-
             except Exception as e:
+                print 'Mongo write error! %s' % str(e)
+                from app.lib.utils import print_vars
+                print print_vars(e)
+                self.empty_buf()
+
                 if not self.raise_exc:
                     self.handleError(self.last_record) #handling the error on flush
             finally:

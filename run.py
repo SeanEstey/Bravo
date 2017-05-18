@@ -20,6 +20,7 @@ for handler in app.logger.handlers:
 def do_setup():
     session.permanent = True
     g.db = db_client['bravo']
+    print 'g.db set in before_req'
 
     if session.get('user_id'):
         g.user = load_user(session['user_id'])
@@ -51,7 +52,10 @@ def start_celery(beat=True):
     if not beat:
         environ['BRV_BEAT'] = 'False'
     else:
+        # Start beat process
         system('celery -A app.tasks.celery beat -f logs/celery.log -l INFO &')
+
+    # Start worker process(es)
     system('celery -A app.tasks.celery -n bravo worker -f logs/celery.log -l INFO -Ofair &')
 
 #-------------------------------------------------------------------------------

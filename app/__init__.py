@@ -23,7 +23,7 @@ class colors:
 eventlet.monkey_patch()
 
 login_manager = LoginManager()
-db_client = mongodb.create_client()
+db_client = mongodb.create_client(connect=False)
 kv_store = MongoStore(db_client[config.DB], config.SESSION_COLLECTION)
 kv_ext = KVSessionExtension(kv_store)
 
@@ -165,12 +165,9 @@ def create_app(pkg_name, kv_sess=True, testing=False):
 #-------------------------------------------------------------------------------
 def init_celery(app):
 
-    from config import APP_ROOT_LOGGER_NAME as name
     import celeryconfig
-
     celery.config_from_object(celeryconfig)
-    celery.app = UberTask.flsk_app = app
-    UberTask.db_client = mongodb.create_client(connect=False, auth=False)
+    UberTask.flsk_app = app
     celery.Task = UberTask
     return celery
 

@@ -8,8 +8,6 @@ from bson.objectid import ObjectId
 from auth import user
 from app.lib import mongodb
 from app.lib.utils import print_vars
-#from logging import getLogger
-#log = getLogger('worker.%s'%__name__)
 
 __all__ = ['UberTask']
 
@@ -23,7 +21,7 @@ class UberTask(Task):
     USERID_KW = '_user_id_oid'
     ENVIRON_KW = '_environ_var'
     flsk_app = None
-    db_client = None
+    db=None
     buf_mongo_hndlr = None
 
     #---------------------------------------------------------------------------
@@ -133,8 +131,7 @@ class UberTask(Task):
             for k in env_vars:
                 os.environ[k] = env_vars[k]
 
-        g.db = self.db_client[self.flsk_app.config['DB']]
-        mongodb.authenticate(self.db_client)
+        g.db = self.db
 
         user_oid = kwargs.pop(self.USERID_KW, None)
 

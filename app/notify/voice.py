@@ -305,8 +305,8 @@ def preview():
     notific = g.db.notifics.find_one({'evnt_id':evnt_id, 'type':'voice'})
 
     if not notific:
-        log.error('Notification not found for Preview', extra={'request':request})
-        return False
+        log.error('Notification not found for Preview', extra={'request':request.form})
+        return "False"
 
     notific['tracking']['answered_by'] = 'human'
     notific['tracking']['digit'] = "1"

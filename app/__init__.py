@@ -23,9 +23,6 @@ class colors:
 eventlet.monkey_patch()
 
 login_manager = LoginManager()
-db_client = mongodb.create_client(connect=False)
-kv_store = MongoStore(db_client[config.DB], config.SESSION_COLLECTION)
-kv_ext = KVSessionExtension(kv_store)
 
 #-------------------------------------------------------------------------------
 def get_keys(k=None, agcy=None):
@@ -91,18 +88,30 @@ def get_username():
         return 'sys'
 
 #-------------------------------------------------------------------------------
-def create_app(pkg_name, kv_sess=True, testing=False):
+def create_app(pkg_name, kv_sess=True, mongo_client=True):
 
     from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
-    from app.lib.mongo_log import file_handler, BufferedMongoHandler
+    from app.lib.mongo_log import _connection, file_handler, BufferedMongoHandler
     from db_auth import user, password
     from config import LOG_PATH as path
+    import config
 
     app = Flask(pkg_name)
     app.config.from_object(config)
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.jinja_env.add_extension("jinja2.ext.do")
     app.permanent_session_lifetime = app.config['PERMANENT_SESSION_LIFETIME']
+
+    if mongo_client:
+        print 'creating flask app MongoClient'
+        app.db_client = mongodb.create_client(connect=False)
+
+    if kv_sess:
+        kv_store = MongoStore(app.db_client[config.DB], config.SESSION_COLLECTION)
+        kv_ext = KVSessionExtension(kv_store)
+        kv_ext.init_app(app)
+        app.kv_ext = kv_ext
+        app.kv_store = kv_store
 
     # Flask App Logger & Handlers
     app.logger.setLevel(DEBUG)
@@ -137,9 +146,7 @@ def create_app(pkg_name, kv_sess=True, testing=False):
     login_manager.login_view = 'auth.show_login'
     login_manager.anonymous_user = Anonymous
     login_manager.init_app(app)
-
-    if kv_sess:
-        kv_ext.init_app(app)
+    app.login_manager = login_manager
 
     # Blueprints
 
@@ -168,6 +175,8 @@ def init_celery(app):
     import celeryconfig
     celery.config_from_object(celeryconfig)
     UberTask.flsk_app = app
+    print 'Creating celery app MongoClient'
+    celery.db_client = UberTask.db_client = mongodb.create_client(connect=False, auth=False)
     celery.Task = UberTask
     return celery
 

@@ -3,9 +3,7 @@ import os, time, sys, getopt
 from os import environ, system
 from flask import current_app, g, session
 from flask_login import current_user
-from detect import startup_msg, set_environ
-from app import db_client, create_app
-from app.auth import load_user
+from app import create_app
 from app.lib.utils import print_vars, inspector
 from app.main.socketio import sio_server
 app = create_app('app')
@@ -19,11 +17,10 @@ for handler in app.logger.handlers:
 @app.before_request
 def do_setup():
     session.permanent = True
-    g.db = db_client['bravo']
-    print 'g.db set in before_req'
+    g.db = current_app.db_client['bravo']
 
     if session.get('user_id'):
-        g.user = load_user(session['user_id'])
+        g.user = current_user
         g.app = current_app
         g.group = g.user.agency
 
@@ -60,6 +57,9 @@ def start_celery(beat=True):
 
 #-------------------------------------------------------------------------------
 def main(argv):
+
+    from detect import startup_msg, set_environ
+
     try:
         opts, args = getopt.getopt(argv,"cds", ['celerybeat', 'debug', 'sandbox'])
     except getopt.GetoptError:
@@ -83,7 +83,7 @@ def main(argv):
     time.sleep(1)
     start_celery(beat=bool(environ.get('BRV_BEAT')))
 
-    startup_msg(app)
+    #startup_msg(app)
 
     app.logger.info("she's ready, captain!")
 

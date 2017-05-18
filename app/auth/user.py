@@ -1,7 +1,8 @@
 '''app.auth.user'''
 import logging
+from flask import current_app
 from flask_login import AnonymousUserMixin, UserMixin, login_user
-from app import db_client
+#from app import db_client
 
 class User():
 
@@ -51,7 +52,7 @@ class User():
         if not user_id or not pw:
             return None
 
-        db = db_client['bravo']
+        db = current_app.db_client['bravo']
         db_user = db.users.find_one({
             'user': user_id,
             'password': pw})

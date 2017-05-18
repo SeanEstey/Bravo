@@ -6,7 +6,6 @@ make_response, request, current_app
 from flask_login import login_user, current_user
 from bson.objectid import ObjectId
 from auth import user
-from app.lib import mongodb
 from app.lib.utils import print_vars
 
 __all__ = ['UberTask']
@@ -21,7 +20,7 @@ class UberTask(Task):
     USERID_KW = '_user_id_oid'
     ENVIRON_KW = '_environ_var'
     flsk_app = None
-    db=None
+    db_client=None
     buf_mongo_hndlr = None
 
     #---------------------------------------------------------------------------
@@ -131,7 +130,7 @@ class UberTask(Task):
             for k in env_vars:
                 os.environ[k] = env_vars[k]
 
-        g.db = self.db
+        g.db = self.db_client['bravo']
 
         user_oid = kwargs.pop(self.USERID_KW, None)
 

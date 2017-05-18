@@ -5,7 +5,7 @@ from flask_kvsession import SessionID
 from bson.objectid import ObjectId
 import cPickle as pickle
 from datetime import datetime, date, timedelta
-from app import kv_store, kv_ext
+#from app import kv_store, kv_ext
 from app.main.etap import is_active, EtapError
 from app.main.tasks import create_rfu
 from app.lib.dt import to_local
@@ -102,8 +102,8 @@ def store_sessions():
 
     #log.debug('saving sessions. total=%s', len(kv_store.keys()))
 
-    for key in kv_store.keys():
-        sess = pickle.loads(kv_store.get(key))
+    for key in current_app.kv_store.keys():
+        sess = pickle.loads(current_app.kv_store.get(key))
 
         if not sess.get('type') == 'alice_chat':
             continue
@@ -146,7 +146,7 @@ def dump_session(key=None, to_dict=False):
         # Get current session
         sess = session.copy()
     else:
-        sess = pickle.loads(kv_store.get(key)).copy()
+        sess = pickle.loads(current_app.kv_store.get(key)).copy()
 
     for k in omit:
         sess.pop(k, None)
@@ -162,15 +162,15 @@ def dump_sessions():
     '''
 
     lifetime = current_app.config['PERMANENT_SESSION_LIFETIME']
-    n_sess = len(kv_store.keys())
+    n_sess = len(current_app.kv_store.keys())
     n_chats = 0
     n_chats_expired = 0
     n_chats_active = 0
     now = datetime.utcnow()
     dumps = []
 
-    for key in kv_store.keys():
-        sess = pickle.loads(kv_store.get(key))
+    for key in current_app.kv_store.keys():
+        sess = pickle.loads(current_app.kv_store.get(key))
 
         if sess.get('type') == 'alice_chat':
             n_chats += 1
@@ -193,7 +193,7 @@ def dump_sessions():
 
 #-------------------------------------------------------------------------------
 def del_expired_session(key, force=False):
-    m = kv_ext.key_regex.match(key)
+    m = current_app.kv_ext.key_regex.match(key)
 
     if m:
         sid = SessionID.unserialize(key)
@@ -202,10 +202,10 @@ def del_expired_session(key, force=False):
         lifetime = current_app.config['PERMANENT_SESSION_LIFETIME']
 
         if force:
-            kv_store.delete(key)
+            current_app.kv_store.delete(key)
         elif sid.has_expired(lifetime, now):
                 #log.debug('sess expired. deleted (key=%s)', key)
-                kv_store.delete(key)
+                current_app.kv_store.delete(key)
         else:
             #log.debug('sess not yet expired (key=%s)', key)
             pass
@@ -215,12 +215,12 @@ def wipe_sessions():
     '''Destroy all sessions
     '''
 
-    n_start = len(kv_store.keys())
+    n_start = len(current_app.kv_store.keys())
 
-    for key in kv_store.keys():
+    for key in current_app.kv_store.keys():
         del_expired_session(key, force=True)
 
-    n_end = len(kv_store.keys())
+    n_end = len(current_app.kv_store.keys())
 
     log.debug('wiped sessions, start=%s, end=%s', n_start, n_end)
 

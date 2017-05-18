@@ -5,12 +5,13 @@ from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure, worker_process_init
 from app import create_app, init_celery, colors as c
 from app import celery as _celery
-from app.lib.mongodb import create_client
+from app.lib.mongodb import create_client, authenticate
 from app.lib.utils import inspector, start_timer, end_timer
 from uber_task import UberTask
 
 timer = None
-app = create_app(__name__, kv_sess=False)
+# App has no MongoClient since it's pre-fork here
+app = create_app(__name__, kv_sess=False, mongo_client=False)
 celery = init_celery(app)
 
 # Import all tasks for worker
@@ -18,14 +19,14 @@ from app.main.tasks import *
 from app.booker.tasks import *
 from app.notify.tasks import *
 
-log = getLogger(__name__)
+#log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @worker_process_init.connect
 def pool_worker_init(**kwargs):
 
-    # Each pool process has separate MongoClient
-    celery.db_client = create_client()
+    global celery
+    authenticate(celery.db_client)
 
     # Root celery logger for this process
     logger = getLogger('app')
@@ -48,6 +49,7 @@ def pool_worker_init(**kwargs):
     buf_mongo_handler.init_buf_timer()
     logger.addHandler(buf_mongo_handler)
 
+
     print 'pool worker initialized'
 
 #-------------------------------------------------------------------------------
@@ -60,8 +62,6 @@ def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwar
 
     global timer
     timer = start_timer()
-    task.db = celery.db_client['bravo'] #_client = celery.db_client
-    print task.db
     #log.debug('prerun=%s, request=%s', sender.name.split('.')[-1], '...')
 
 #-------------------------------------------------------------------------------
@@ -105,8 +105,9 @@ state=None, *args, **kwargs):
 def task_failure(signal=None, sender=None, task_id=None, exception=None, traceback=None, *args, **kwargs):
 
     name = sender.name.split('.')[-1]
-    log.error('Task %s failed. Click for more info.', name,
-        extra={'exception':exception, 'traceback':traceback})
+    print 'Task %s failed' % name
+    #log.error('Task %s failed. Click for more info.', name,
+    #    extra={'exception':exception, 'traceback':traceback})
 
 #-------------------------------------------------------------------------------
 def kill(task_id):

@@ -1,13 +1,16 @@
 '''app.auth.manager'''
 import base64
 from bson.objectid import ObjectId
-from flask import g
+from flask import g, current_app
 from flask_login import current_user, login_user, logout_user
-from app import db_client, login_manager
+from app import login_manager
 from app.lib.utils import print_vars
 from .user import User
 from logging import getLogger
 log = getLogger(__name__)
+
+#from run import my_g
+
 
 #-------------------------------------------------------------------------------
 def login(username, pw):
@@ -38,7 +41,7 @@ def logout():
 @login_manager.user_loader
 def load_user(user_id):
 
-    db = db_client['bravo']
+    db = current_app.db_client['bravo']
     db_user = db.users.find_one({'user': user_id})
 
     if not db_user:
@@ -71,7 +74,7 @@ def load_api_user(request):
 
     api_user = api_key.split(':')[1]
 
-    db = db_client['bravo']
+    db = current_app.db_client['bravo']
     user = db.users.find_one({'api_key':str(api_key)})
 
     if user:

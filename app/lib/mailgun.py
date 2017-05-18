@@ -1,8 +1,8 @@
 '''app.mailgun'''
 import json, logging, requests
-from flask import g
+from flask import g, current_app
 from os import environ as env
-from app import db_client
+#from app import db_client
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -17,7 +17,7 @@ def send(to, subject, body, conf, v=None):
     # Mailgun has no test API keys for use in test environment
     # If test mode enabled, re-route all emails to test address
     if env.get('BRV_SANDBOX') == 'True':
-        test_db = db_client['test']
+        test_db = current_app.db_client['test']
         cred = test_db.credentials.find_one()['mailgun']
         conf = cred
         log.debug('sandbox mode. using domain="%s"', conf['domain'])

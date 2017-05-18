@@ -3,8 +3,8 @@ import cPickle as pickle
 from datetime import datetime
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException
-from flask import g, request
-from app import get_keys, kv_store, colors as c
+from flask import g, request, current_app
+from app import get_keys, colors as c #kv_store, colors as c
 from app.main import etap
 from app.lib.dt import to_local
 from .dialog import dialog
@@ -109,13 +109,13 @@ def compose(agcy, body, to, callback=None, find_session=False, event_log=False):
     chat = chats.next()
 
     try:
-        sess = pickle.loads(kv_store.get(chat['sess_id']))
+        sess = pickle.loads(current_app.kv_store.get(chat['sess_id']))
     except Exception as e:
         sess = None
     else:
         sess['messages'].append(body)
         sess['last_msg_dt'] = to_local(datetime.now())
-        kv_store.put(chat['sess_id'], pickle.dumps(sess))
+        current_app.kv_store.put(chat['sess_id'], pickle.dumps(sess))
         log.debug('updated sess_id=%s with outgoing msg', chat['sess_id'])
 
     return msg.status

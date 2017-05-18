@@ -4,13 +4,13 @@ from logging import getLogger, DEBUG, INFO, WARNING, ERROR, CRITICAL
 from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure, worker_process_init
 from app import create_app, init_celery, colors as c
-from app import celery as _celery
 from app.lib.mongodb import create_client, authenticate
 from app.lib.utils import inspector, start_timer, end_timer
 from uber_task import UberTask
 
 timer = None
-# App has no MongoClient since it's pre-fork here
+# TODO: refactor mongo_log to provide MongoClient arg to re-use isntead of
+# creating new one
 app = create_app(__name__, kv_sess=False, mongo_client=False)
 celery = init_celery(app)
 
@@ -24,6 +24,7 @@ from app.notify.tasks import *
 #-------------------------------------------------------------------------------
 @worker_process_init.connect
 def pool_worker_init(**kwargs):
+    '''Do NOT import app.__init__, since it will over-write celery app'''
 
     global celery
     authenticate(celery.db_client)

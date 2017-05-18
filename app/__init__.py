@@ -2,13 +2,9 @@
 import eventlet, os
 from flask import Flask, g, session, has_app_context, has_request_context
 from flask_login import LoginManager
-from flask_kvsession import KVSessionExtension
-from celery import Celery, Task
-from simplekv.db.mongo import MongoStore
-from werkzeug.contrib.fixers import ProxyFix
-import config
-from app.lib import mongodb
+eventlet.monkey_patch()
 
+# Globals
 class colors:
     BLUE = '\033[94m'
     GRN = '\033[92m'
@@ -19,10 +15,10 @@ class colors:
     HEADER = '\033[95m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-
-eventlet.monkey_patch()
-
 login_manager = LoginManager()
+from app.main.socketio import smart_emit
+from celery import Celery
+celery = Celery(__name__, broker='amqp://')
 
 #-------------------------------------------------------------------------------
 def get_keys(k=None, agcy=None):
@@ -88,8 +84,20 @@ def get_username():
         return 'sys'
 
 #-------------------------------------------------------------------------------
+def get_server_prop():
+    return {
+        'TEST_SERVER': True if os.environ['BRV_TEST'] == 'True' else False,
+        'SANDBOX_MODE': True if os.environ['BRV_SANDBOX'] == 'True' else False,
+        'CELERY_BEAT': True if os.environ['BRV_BEAT'] == 'True' else False,
+        'ADMIN': g.user.admin,
+        'DEVELOPER': g.user.developer,
+        'USER_NAME': g.user.name
+    }
+
+#-------------------------------------------------------------------------------
 def create_app(pkg_name, kv_sess=True, mongo_client=True):
 
+    from werkzeug.contrib.fixers import ProxyFix
     from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
     from app.lib.mongo_log import _connection, file_handler, BufferedMongoHandler
     from db_auth import user, password
@@ -103,10 +111,13 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
     app.permanent_session_lifetime = app.config['PERMANENT_SESSION_LIFETIME']
 
     if mongo_client:
+        from app.lib import mongodb
         print 'creating flask app MongoClient'
         app.db_client = mongodb.create_client(connect=False)
 
     if kv_sess:
+        from simplekv.db.mongo import MongoStore
+        from flask_kvsession import KVSessionExtension
         kv_store = MongoStore(app.db_client[config.DB], config.SESSION_COLLECTION)
         kv_ext = KVSessionExtension(kv_store)
         kv_ext.init_app(app)
@@ -172,7 +183,10 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
 #-------------------------------------------------------------------------------
 def init_celery(app):
 
+    from app.lib import mongodb
+    from uber_task import UberTask
     import celeryconfig
+
     celery.config_from_object(celeryconfig)
     UberTask.flsk_app = app
     print 'Creating celery app MongoClient'
@@ -181,20 +195,5 @@ def init_celery(app):
     return celery
 
 
-from app.main.socketio import smart_emit
-from uber_task import UberTask
-
-celery = Celery(__name__, broker='amqp://')
-celery.Task = UberTask
 
 
-#-------------------------------------------------------------------------------
-def get_server_prop():
-    return {
-        'TEST_SERVER': True if os.environ['BRV_TEST'] == 'True' else False,
-        'SANDBOX_MODE': True if os.environ['BRV_SANDBOX'] == 'True' else False,
-        'CELERY_BEAT': True if os.environ['BRV_BEAT'] == 'True' else False,
-        'ADMIN': g.user.admin,
-        'DEVELOPER': g.user.developer,
-        'USER_NAME': g.user.name
-    }

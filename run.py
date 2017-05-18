@@ -82,6 +82,7 @@ def main(argv):
     kill_celery()
     time.sleep(1)
     start_celery(beat=bool(environ.get('BRV_BEAT')))
+    time.sleep(1)
 
     #startup_msg(app)
 

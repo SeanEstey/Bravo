@@ -8,6 +8,7 @@ from app.lib.utils import print_vars, inspector
 from app.main.socketio import sio_server
 app = create_app('app')
 
+
 from app.lib.mongo_log import BufferedMongoHandler
 for handler in app.logger.handlers:
     if isinstance(handler, BufferedMongoHandler):
@@ -82,9 +83,9 @@ def main(argv):
     kill_celery()
     time.sleep(1)
     start_celery(beat=bool(environ.get('BRV_BEAT')))
-    time.sleep(1)
+    time.sleep(2)
 
-    #startup_msg(app)
+    startup_msg(app)
 
     app.logger.info("she's ready, captain!")
 

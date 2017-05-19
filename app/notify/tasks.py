@@ -14,7 +14,6 @@ from app.main.parser import is_bus
 from app.main.etap import call, EtapError
 from . import email, events, sms, voice, pickups, triggers
 from logging import getLogger
-#log = getLogger('worker.'+__name__)
 log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------

@@ -19,15 +19,14 @@ from app.main.tasks import *
 from app.booker.tasks import *
 from app.notify.tasks import *
 
-#log = getLogger(__name__)
-
 #-------------------------------------------------------------------------------
 @worker_process_init.connect
 def pool_worker_init(**kwargs):
     '''Do NOT import app.__init__, since it will over-write celery app'''
 
-    global celery
+    #global celery
     authenticate(celery.db_client)
+    print celery.db_client
 
     # Root celery logger for this process
     logger = getLogger('app')

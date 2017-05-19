@@ -106,7 +106,7 @@ def skip_pickup():
     #log.debug(utils.formatter(notific, bson_to_json=True))
 
     try:
-        result = skip_pickup_task(
+        result = skip_pickup_task.delay(
             evnt_id=str(notific['evnt_id']),
             acct_id=str(notific['acct_id']))
     except Exception as e:

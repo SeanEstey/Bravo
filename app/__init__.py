@@ -113,7 +113,7 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
     if mongo_client:
         from app.lib import mongodb
         print 'creating flask app MongoClient'
-        app.db_client = mongodb.create_client(connect=False)
+        app.db_client = mongodb.create_client()
 
     if kv_sess:
         from simplekv.db.mongo import MongoStore
@@ -143,7 +143,7 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
     app.logger.addHandler(file_handler(ERROR,
         '%sevents.log'%path,
         color=colors.RED))
-    # Init connection in Run.py to prevent celery fork errors
+    # TODO: Refactor to pass in existing MongoClient
     app.logger.addHandler(BufferedMongoHandler(
         level=INFO,
         connect=False,
@@ -193,7 +193,3 @@ def init_celery(app):
     celery.db_client = UberTask.db_client = mongodb.create_client(connect=False, auth=False)
     celery.Task = UberTask
     return celery
-
-
-
-

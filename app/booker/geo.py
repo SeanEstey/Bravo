@@ -3,7 +3,7 @@ import json, math, os, requests, time
 import matplotlib.path as mplPath
 import numpy as np
 from flask import g
-from app import smart_emit, get_keys
+from app import get_keys
 from app.lib.utils import formatter
 from app.main import parser
 from logging import getLogger

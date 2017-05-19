@@ -5,7 +5,7 @@ from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from bson import ObjectId as oid
 from flask import g, render_template
-from app import get_keys, celery, smart_emit
+from app import get_keys, celery #, smart_emit
 from app.lib.utils import to_title_case
 from app.lib.dt import to_local
 from app.lib import mailgun
@@ -88,8 +88,8 @@ def fire_trigger(self, _id=None, **rest):
     log.warning('Sending notifications for event %s...', event['name'],
         extra={'type':trig['type'], 'n_total':count})
 
-    smart_emit('trigger_status',{
-        'trig_id': str(_id), 'status': 'in-progress'})
+    #smart_emit('trigger_status',{
+    #    'trig_id': str(_id), 'status': 'in-progress'})
 
     if env['BRV_SANDBOX'] == 'True':
         log.warning('sandbox: simulating voice/sms, rerouting emails')
@@ -111,16 +111,17 @@ def fire_trigger(self, _id=None, **rest):
             if status == 'failed':
                 n_errors += 1
         finally:
-            smart_emit('notific_status', {
-                'notific_id':str(n['_id']), 'status':status})
+            pass
+            #smart_emit('notific_status', {
+            #    'notific_id':str(n['_id']), 'status':status})
 
     g.db.triggers.update_one({'_id':oid(_id)}, {'$set': {'status': 'fired'}})
 
-    smart_emit('trigger_status', {
+    '''smart_emit('trigger_status', {
         'trig_id': str(_id),
         'status': 'fired',
         'sent': count - n_errors,
-        'errors': n_errors})
+        'errors': n_errors})'''
 
     log.warning('%s/%s notifications sent for event %s', count - n_errors, count, event['name'],
         extra={'type':trig['type'], 'n_total':count, 'n_errors':n_errors})

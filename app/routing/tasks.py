@@ -5,7 +5,7 @@ from bson import ObjectId
 from flask import g
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
-from app import smart_emit, celery, get_keys, get_group
+from app import celery, get_keys, get_group
 from app.lib import gcal, gdrive, gsheets
 from app.lib.utils import formatter
 from app.lib.dt import to_local, ddmmyyyy_to_date
@@ -27,7 +27,7 @@ def discover_routes(self, agcy, within_days=5, **rest):
 
     sleep(3)
     g.group = agcy
-    smart_emit('discover_routes', {'status':'in-progress'})
+    #smart_emit('discover_routes', {'status':'in-progress'})
     log.debug('Discovering routes...')
     n_found = 0
     events = []
@@ -66,13 +66,13 @@ def discover_routes(self, agcy, within_days=5, **rest):
             log.debug('discovered %s on %s',
                 block, event_dt.strftime('%b %-d'))
 
-            smart_emit('discover_routes', {
+            '''smart_emit('discover_routes', {
                 'status': 'discovered', 'route': formatter(meta, to_strftime=True, bson_to_json=True)},
-                room=g.group)
+                room=g.group)'''
 
             n_found +=1
 
-    smart_emit('discover_routes', {'status':'completed'}, room=g.group)
+    #smart_emit('discover_routes', {'status':'completed'}, room=g.group)
 
     return 'discovered %s routes' % n_found
 
@@ -177,8 +177,8 @@ def build_route(self, route_id, job_id=None, **rest):
         log.exception('Error writing route %s to Google Sheets', route['block'])
         raise
 
-    smart_emit('route_status',{
-        'status':'completed', 'ss_id':ss['id'], 'warnings':route['warnings']})
+    #smart_emit('route_status',{
+    #    'status':'completed', 'ss_id':ss['id'], 'warnings':route['warnings']})
 
     log.info('Built route %s', route['block'], extra={
         'n_orders': len(orders),

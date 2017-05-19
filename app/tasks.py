@@ -9,6 +9,7 @@ from app.lib.utils import inspector, start_timer, end_timer
 from uber_task import UberTask
 import celeryconfig
 
+# Pre-fork vars
 app = create_app(__name__, kv_sess=False, mongo_client=False)
 UberTask.flsk_app = app
 celery.config_from_object(celeryconfig)
@@ -16,6 +17,7 @@ db_client = create_client(connect=False, auth=False)
 UberTask.db_client = db_client
 celery.Task = UberTask
 timer = None
+print 'Celery app initialized for PID %s' % os.getpid()
 
 # Import all tasks for worker
 from app.main.tasks import *
@@ -25,7 +27,7 @@ from app.notify.tasks import *
 #-------------------------------------------------------------------------------
 @worker_process_init.connect
 def pool_worker_init(**kwargs):
-    '''Do NOT import app.__init__, since it will over-write celery app'''
+    '''Post-fork code per pool worker.'''
 
     authenticate(db_client)
 
@@ -50,6 +52,8 @@ def pool_worker_init(**kwargs):
         pw=password)
     buf_mongo_handler.init_buf_timer()
     logger.addHandler(buf_mongo_handler)
+
+    print 'Initialized MongoHandler for PID %s' % os.getpid()
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect

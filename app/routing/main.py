@@ -4,7 +4,7 @@ from dateutil.parser import parse
 from datetime import datetime, time, date
 from flask import g, request
 from bson import ObjectId as oid
-from app import smart_emit, get_keys
+from app import get_keys
 from app.lib import gsheets
 from app.lib.utils import print_vars, formatter
 from app.lib.dt import ddmmyyyy_to_date

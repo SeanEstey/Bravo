@@ -4,7 +4,7 @@ import twilio.twiml
 from bson.objectid import ObjectId
 from flask_login import login_required
 from flask import g, request, jsonify, render_template, Response, url_for
-from app import smart_emit, get_keys
+from app import get_keys
 from app.lib.utils import formatter, to_title_case
 from app.main import parser
 from . import notify, accounts, events, triggers

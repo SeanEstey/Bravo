@@ -22,13 +22,13 @@ def create_client(connect=True, auth=True, appname=None):
 #-------------------------------------------------------------------------------
 def authenticate(client, user=None, pw=None):
 
-    print 'authenticating clinet %s' % client
-
     try:
         client.admin.authenticate(
             user or db_auth.user,
             pw or db_auth.password,
             mechanism='SCRAM-SHA-1')
     except Exception as e:
-        print 'mongodb authentication error. %s' % str(e)
+        print 'Mongo authentication error: %s' % str(e)
         raise
+
+    print 'MongoClient authenticated'

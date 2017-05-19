@@ -8,7 +8,7 @@ from twilio.rest import TwilioRestClient
 from twilio.util import TwilioCapability
 from flask import g, render_template, request, Response
 from pymongo.collection import ReturnDocument
-from app import get_keys, smart_emit, colors as c
+from app import get_keys, colors as c
 from app.lib import html
 from app.lib.dt import to_utc
 from .utils import intrntl_format, simple_dict
@@ -135,9 +135,9 @@ def on_answer():
             'tracking.answered_by': request.form.get('AnsweredBy')}},
         return_document=ReturnDocument.AFTER)
 
-    smart_emit('notific_status', {
+    '''smart_emit('notific_status', {
         'notific_id': str(notific['_id']),
-        'status': request.form['CallStatus']})
+        'status': request.form['CallStatus']})'''
 
     response = twiml.Response()
 
@@ -254,11 +254,11 @@ def on_complete():
                 'ID': acct['udf'].get('etap_id'),
                 'Account': acct['name']})
 
-    smart_emit('notific_status', {
+    '''smart_emit('notific_status', {
         'notific_id': str(notific['_id']),
         'status': form['CallStatus'],
         'answered_by': form.get('AnsweredBy'),
-        'description': form.get('description')})
+        'description': form.get('description')})'''
 
     return 'OK'
 

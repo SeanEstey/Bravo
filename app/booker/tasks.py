@@ -2,7 +2,7 @@
 import json, os, time
 from datetime import datetime
 from flask import g
-from .. import smart_emit, celery
+from .. import celery
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -62,7 +62,8 @@ def update_maps(agcy=None, **rest):
             log.warning(desc, extra={'map_id':maps['mid']})
 
         if agcy:
-            smart_emit('update_maps',{
-                'status': status,
-                'description': desc,
-                'n_updated': len(maps['features'])})
+            pass
+            #smart_emit('update_maps',{
+            #    'status': status,
+            #    'description': desc,
+            #    'n_updated': len(maps['features'])})

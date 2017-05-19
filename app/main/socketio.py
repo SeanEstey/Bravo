@@ -14,6 +14,9 @@ sio_server = SocketIO()
 # server. Can be used by celery tasks.
 sio_client = SocketIO(message_queue='amqp://')
 
+import eventlet
+eventlet.monkey_patch()
+
 #-------------------------------------------------------------------------------
 def smart_emit(event, data, room=None):
     '''Sends a socketio emit signal to the appropriate client (room).

@@ -3,7 +3,7 @@ import json, os
 from os import environ as env
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
-from .. import smart_emit, get_keys, colors as c
+from .. import get_keys, colors as c
 from app.lib import html
 from app.lib.dt import to_utc, to_local
 from app.alice.outgoing import compose
@@ -141,9 +141,9 @@ def on_status():
         log.debug('no notific for sid %s. must be reply.', str(request.form['SmsSid']))
         return 'OK'
 
-    smart_emit('notific_status', {
+    '''smart_emit('notific_status', {
         'notific_id': str(notific['_id']),
         'status': request.form['SmsStatus'],
-        'description': request.form.get('description')})
+        'description': request.form.get('description')})'''
 
     return 'OK'

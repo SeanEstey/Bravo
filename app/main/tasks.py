@@ -398,6 +398,8 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
     for agency in agcy_list:
         group_start = start_timer()
         g.group = agency['name']
+        if g.group == 'vec':
+            end_dt += delta(days=60)
         etap_conf = get_keys('etapestry',agcy=g.group)
         oauth = get_keys('google',agcy=g.group)['oauth']
         srvc = gcal_auth(oauth)

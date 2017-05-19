@@ -4,7 +4,7 @@ from os import environ as env
 from bson.objectid import ObjectId
 from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
-from .. import smart_emit, get_keys, colors as c
+from .. import get_keys, colors as c
 from app.lib import mailgun
 from app.lib.utils import formatter
 from app.lib.dt import to_utc, ddmmyyyy_to_dt
@@ -139,8 +139,9 @@ def on_delivered():
     log.debug('%sdelivered notific to %s%s',
         c.GRN, request.form['recipient'], c.ENDC)
 
-    smart_emit('notific_status',
-        {'notific_id': str(notific['_id']), 'status': request.form['event']})
+    '''smart_emit('notific_status',
+        {'notific_id': str(notific['_id']), 'status':
+        request.form['event']})'''
 
 #-------------------------------------------------------------------------------
 def on_dropped():
@@ -159,8 +160,8 @@ def on_dropped():
     log.error('Notification failed to send to %s', request.form['recipient'],
         extra={'request':request.form})
 
-    smart_emit('notific_status',
-        {'notific_id':str(notific['_id']), 'status':request.form['event']})
+    '''smart_emit('notific_status',
+        {'notific_id':str(notific['_id']), 'status':request.form['event']})'''
 
     msg = 'notification to %s dropped. %s.' %(
         request.form.get('recipient'), request.form.get('reason'))

@@ -1,5 +1,5 @@
 '''run'''
-import os, time, sys, getopt
+import eventlet, os, time, sys, getopt
 from os import environ, system
 from flask import current_app, g, session
 from flask_login import current_user
@@ -81,11 +81,10 @@ def main(argv):
     sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
 
     kill_celery()
-    time.sleep(1)
-    start_celery(beat=bool(environ.get('BRV_BEAT')))
     time.sleep(2)
+    start_celery(beat=bool(environ.get('BRV_BEAT')))
 
-    startup_msg(app)
+    #startup_msg(app)
 
     app.logger.info("she's ready, captain!")
 

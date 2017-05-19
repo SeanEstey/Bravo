@@ -2,7 +2,7 @@ server {
     # Only for Mailgun webhooks which must use HTTP
 
     listen 80;
-    server_name bravotest.ca;
+    server_name bravoweb.ca;
     #return 301 https://$server_name$request_uri;
 
     location / {
@@ -13,7 +13,7 @@ server {
 
 server {
   listen 443;
-  server_name bravotest.ca;
+  server_name bravoweb.ca;
 
   add_header Strict-Transport-Security "max-age=31536000";
 

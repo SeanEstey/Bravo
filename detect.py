@@ -3,7 +3,6 @@ import os, requests, socket, sys, time
 from flask import current_app, g
 import psutil
 from os import environ as env
-from app.tasks import celery as celery_app
 import celery, eventlet, flask
 from logging import getLogger
 log = getLogger(__name__)
@@ -13,7 +12,7 @@ Y = '\033[93m'
 ENDC = '\033[0m'
 
 #-------------------------------------------------------------------------------
-def startup_msg(app):
+def startup_msg(app, show_celery=False):
 
     hostname = env['BRV_HOSTNAME']
     host = 'http://%s' %(env['BRV_IP'])
@@ -42,6 +41,14 @@ def startup_msg(app):
     "%s-------------------------------- %s  > ssl:     %s"            %(G,G,ssl) +\
     ""
 
+    print bravo_msg + ENDC
+    mem = mem_check()
+
+    if not show_celery:
+        return False
+
+    from app.tasks import celery as celery_app
+
     insp = celery_app.control.inspect()
     while not insp.stats():
         time.sleep(1)
@@ -69,7 +76,7 @@ def startup_msg(app):
     "%s-------------------------------- %s  > tasks:   %s, %s\n"%(G,G,regist,sched) +\
     ""
 
-    print bravo_msg + ENDC
+    #print bravo_msg + ENDC
     print celery_msg + ENDC
     mem = mem_check()
 

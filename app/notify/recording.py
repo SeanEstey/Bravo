@@ -5,7 +5,7 @@ from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import g, request
 from app.lib.utils import print_vars
-from .. import smart_emit
+#from .. import smart_emit
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -86,7 +86,7 @@ def on_answer():
         timeout=120
     )
 
-    smart_emit('record_audio', {'status':'answered'})
+    #smart_emit('record_audio', {'status':'answered'})
 
     return voice
 
@@ -100,7 +100,7 @@ def on_interact():
         record = g.db.audio.find_one({'sid': request.form['CallSid']})
         g.group = record['agency']
 
-        log.info('recording done. duration: %ss', request.form['RecordingDuration'])
+        '''log.info('recording done. duration: %ss', request.form['RecordingDuration'])
 
         # Reminder job has not been created yet so save in 'audio' for now
 
@@ -114,7 +114,7 @@ def on_interact():
 
         smart_emit('record_audio', {
             'status': 'recorded',
-            'audio_url': request.form['RecordingUrl']})
+            'audio_url': request.form['RecordingUrl']})'''
 
         voice = twiml.Response()
         voice.say('Message recorded. Goodbye.', voice='alice')
@@ -130,8 +130,9 @@ def on_complete():
     r = g.db.audio.find_one({'sid': request.form['CallSid']})
 
     if r['status'] != 'recorded':
-        smart_emit('record_audio', {
-            'status': 'failed',
-            'description': 'There was a problem recording your voice audio'})
+        pass
+        #smart_emit('record_audio', {
+        #    'status': 'failed',
+        #    'description': 'There was a problem recording your voice audio'})
 
     return True

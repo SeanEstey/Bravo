@@ -1,8 +1,8 @@
 '''app.__init__'''
-import eventlet, os
+import os
 from flask import Flask, g, session, has_app_context, has_request_context
 from flask_login import LoginManager
-eventlet.monkey_patch()
+from celery import Celery
 
 # Globals
 class colors:
@@ -16,8 +16,6 @@ class colors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 login_manager = LoginManager()
-from app.main.socketio import smart_emit
-from celery import Celery
 celery = Celery(__name__, broker='amqp://')
 
 #-------------------------------------------------------------------------------
@@ -112,16 +110,15 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
 
     if mongo_client:
         from app.lib import mongodb
-        print 'creating flask app MongoClient'
         app.db_client = mongodb.create_client()
 
-        app.logger.addHandler(BufferedMongoHandler(
+        '''app.logger.addHandler(BufferedMongoHandler(
             level=INFO,
             mongo_client=app.db_client,
             connect=False,
             db_name='bravo',
             user=user,
-            pw=password))
+            pw=password))'''
 
     if kv_sess:
         from simplekv.db.mongo import MongoStore

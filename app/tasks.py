@@ -3,16 +3,19 @@ import os
 from logging import getLogger, DEBUG, INFO, WARNING, ERROR, CRITICAL
 from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure, worker_process_init
-from app import create_app, init_celery, colors as c
+from app import create_app, colors as c, celery
 from app.lib.mongodb import create_client, authenticate
 from app.lib.utils import inspector, start_timer, end_timer
 from uber_task import UberTask
+import celeryconfig
 
-timer = None
-# TODO: refactor mongo_log to provide MongoClient arg to re-use isntead of
-# creating new one
 app = create_app(__name__, kv_sess=False, mongo_client=False)
-celery = init_celery(app)
+UberTask.flsk_app = app
+celery.config_from_object(celeryconfig)
+db_client = create_client(connect=False, auth=False)
+UberTask.db_client = db_client
+celery.Task = UberTask
+timer = None
 
 # Import all tasks for worker
 from app.main.tasks import *
@@ -24,9 +27,7 @@ from app.notify.tasks import *
 def pool_worker_init(**kwargs):
     '''Do NOT import app.__init__, since it will over-write celery app'''
 
-    #global celery
-    authenticate(celery.db_client)
-    print celery.db_client
+    authenticate(db_client)
 
     # Root celery logger for this process
     logger = getLogger('app')
@@ -42,15 +43,13 @@ def pool_worker_init(**kwargs):
     logger.addHandler(file_handler(ERROR, '%sevents.log'%path, color=c.RED))
     buf_mongo_handler = BufferedMongoHandler(
         level=INFO,
+        mongo_client = db_client,
         connect=True,
         db_name='bravo',
         user=user,
         pw=password)
     buf_mongo_handler.init_buf_timer()
     logger.addHandler(buf_mongo_handler)
-
-
-    print 'pool worker initialized'
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect

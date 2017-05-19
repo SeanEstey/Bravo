@@ -133,7 +133,7 @@ class MongoHandler(logging.Handler):
     '''Based on log4mongo in PyPI'''
 
     def __init__(self, level=INFO, formatter=None, raise_exc=True, reuse=True,
-                 host='localhost', port=27017, connect=False, db_name=None, coll='logs',
+                 mongo_client=None, host='localhost', port=27017, connect=False, db_name=None, coll='logs',
                  auth_db_name='admin', user=None, pw=None,
                  capped=False, cap_max=1000, cap_size=1000000, **kwargs):
         '''Init Mongo DB connection.
@@ -143,7 +143,9 @@ class MongoHandler(logging.Handler):
         required (for forked celery tasks)'''
 
         logging.Handler.__init__(self, level)
-        self.conn = None
+        global _connection
+        _connection = mongo_client
+        self.conn = None #mongo_client
         self.db = None
         self.coll = None
         self.is_authed = False
@@ -247,7 +249,7 @@ class BufferedMongoHandler(MongoHandler):
                  host='localhost', port=27017, connect=False, db_name=None, coll='logs',
                  auth_db_name='admin', user=None, pw=None,
                  capped=True, cap_max=10000, cap_size=10000000,
-                 buf_size=50, buf_flush_tim=5.0, buf_flush_lvl=ERROR, **kwargs):
+                 buf_size=50, buf_flush_tim=15.0, buf_flush_lvl=ERROR, **kwargs):
         '''@buf_flush_tim: freq. that buffer saved to Mongo. None/0 prevent
         flush until full buf or critical message sent.'''
 

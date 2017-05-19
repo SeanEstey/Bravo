@@ -115,6 +115,14 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
         print 'creating flask app MongoClient'
         app.db_client = mongodb.create_client()
 
+        app.logger.addHandler(BufferedMongoHandler(
+            level=INFO,
+            mongo_client=app.db_client,
+            connect=False,
+            db_name='bravo',
+            user=user,
+            pw=password))
+
     if kv_sess:
         from simplekv.db.mongo import MongoStore
         from flask_kvsession import KVSessionExtension
@@ -126,10 +134,6 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
 
     # Flask App Logger & Handlers
     app.logger.setLevel(DEBUG)
-
-    for handler in app.logger.handlers:
-        if handler.level == DEBUG:
-            app.logger.removeHandler(handler)
 
     app.logger.addHandler(file_handler(DEBUG,
         '%sdebug.log'%path,
@@ -143,13 +147,7 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
     app.logger.addHandler(file_handler(ERROR,
         '%sevents.log'%path,
         color=colors.RED))
-    # TODO: Refactor to pass in existing MongoClient
-    app.logger.addHandler(BufferedMongoHandler(
-        level=INFO,
-        connect=False,
-        db_name='bravo',
-        user=user,
-        pw=password))
+
 
     # Flask-Login ext.
 
@@ -179,17 +177,3 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
     app.register_blueprint(alice_mod)
 
     return app
-
-#-------------------------------------------------------------------------------
-def init_celery(app):
-
-    from app.lib import mongodb
-    from uber_task import UberTask
-    import celeryconfig
-
-    celery.config_from_object(celeryconfig)
-    UberTask.flsk_app = app
-    print 'Creating celery app MongoClient'
-    celery.db_client = UberTask.db_client = mongodb.create_client(connect=False, auth=False)
-    celery.Task = UberTask
-    return celery

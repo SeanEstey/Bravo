@@ -23,8 +23,6 @@ def do_setup():
 def do_teardown(response):
     return response
 
-
-
 #-------------------------------------------------------------------------------
 def main(argv):
 

@@ -154,17 +154,22 @@ pip install flower
 
 To run it:
 
-flower --url_prefix=flower
+flower --url_prefix=flower --basic_auth=user1:password1
 
-To enable it via nginx reverse proxy, add the following to
-/etc/nginx/sites-enabled/default to "serve" declaration listening on port 80:
+To access it remotely through the browser, add the following to the nginx virtual_host file:
 
-    location /flower/ {
-        rewrite ^/flower/(.*)$ /$1 break;
-        proxy_pass http://127.0.0.1:5555;
-        proxy_set_header Host $host;
-    }
+    server {
+        listen 80;
+        server_name bravoweb.ca;
+ 
+        location /flower/ {
+            rewrite ^/flower/(.*)$ /$1 break;
+            proxy_pass http://127.0.0.1:5555;
+            proxy_set_header Host $host;
+        }
 
 Restart nginx:
 
 service nginx restart
+
+It should now be accessible and secured via http://bravoweb.ca/flower

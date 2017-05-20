@@ -80,7 +80,7 @@ def get_logs(start=None, end=None, user=None, groups=None, tag=None, levels=None
         {'_id':0}
     ).limit(50).sort('timestamp', -1)
 
-    print "%s logs queried" %(logs.count())
+    #print "%s logs queried" %(logs.count())
 
     return formatter(list(logs), bson_to_json=True)
 
@@ -249,7 +249,7 @@ class BufferedMongoHandler(MongoHandler):
                  host='localhost', port=27017, connect=False, db_name=None, coll='logs',
                  auth_db_name='admin', user=None, pw=None,
                  capped=True, cap_max=10000, cap_size=10000000,
-                 buf_size=50, buf_flush_tim=15.0, buf_flush_lvl=ERROR, **kwargs):
+                 buf_size=50, buf_flush_tim=5.0, buf_flush_lvl=ERROR, **kwargs):
         '''@buf_flush_tim: freq. that buffer saved to Mongo. None/0 prevent
         flush until full buf or critical message sent.'''
 
@@ -330,7 +330,7 @@ class BufferedMongoHandler(MongoHandler):
             self._connect(**self.kwargs)
 
         if self.coll is not None and len(self.buf) > 0:
-            print 'flushing log to mongo'
+            #print 'flushing log to mongo'
 
             self.buf_lock_acquire()
 

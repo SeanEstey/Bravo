@@ -80,11 +80,12 @@ def update_event(srvc, item, title=None, location=None, desc=None, color_id=None
             }
         ).execute()
     except Exception as e:
-        log.error('error updating event. desc=%s', str(e))
-        log.debug(str(e))
+        log.exception("Error updating Calendar Event",
+            extra={'name':rv['summary'], 'date':rv['start']['date']})
         raise
 
-    log.debug('updated event="%s", date="%s"', rv['summary'], rv['start']['date'])
+    log.debug('Updated event %s...' % rv['summary'][0:4],
+        extra={'date':rv['start']['date'], 'name':rv['summary']})
 
 #-------------------------------------------------------------------------------
 def get_colors(srvc):

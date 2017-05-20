@@ -386,22 +386,21 @@ def create_rfu(self, agcy, note, options=None, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=30), agcy=None, **rest):
+def update_calendar_blocks(self, from_=date.today(), agcy=None, **rest):
     '''Update all calendar blocks in date period with booking size/color codes.
     @from_, to_: datetime.date
     '''
 
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
     start_dt = d_to_dt(from_)
-    end_dt = d_to_dt(to)
+    today = date.today()
 
     for agency in agcy_list:
         group_start = start_timer()
         g.group = agency['name']
-        if g.group == 'vec':
-            end_dt += delta(days=60)
-        etap_conf = get_keys('etapestry',agcy=g.group)
-        oauth = get_keys('google',agcy=g.group)['oauth']
+        end_dt = d_to_dt(today + delta(days=get_keys('main')['cal_block_delta_days']))
+        etap_conf = get_keys('etapestry')
+        oauth = get_keys('google')['oauth']
         srvc = gcal_auth(oauth)
 
         log.warning('Updating calendar events...', extra={
@@ -409,7 +408,7 @@ def update_calendar_blocks(self, from_=date.today(), to=date.today()+delta(days=
             'end_date': end_dt.strftime('%m-%d-%Y')
         })
 
-        cal_ids = get_keys('cal_ids',agcy=g.group)
+        cal_ids = get_keys('cal_ids')
         n_updated = n_errs = n_warnings = 0
 
         for id_ in cal_ids:

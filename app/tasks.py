@@ -1,6 +1,6 @@
 '''app.tasks'''
 import os
-from logging import getLogger, DEBUG, INFO, WARNING, ERROR, CRITICAL
+from logging import getLogger
 from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure, worker_process_init
 from app import create_app, colors as c, celery
@@ -17,17 +17,36 @@ db_client = create_client(connect=False, auth=False)
 UberTask.db_client = db_client
 celery.Task = UberTask
 timer = None
-print 'Celery app initialized for PID %s' % os.getpid()
 
-# Import all tasks for worker
-from app.main.tasks import *
-from app.booker.tasks import *
-from app.notify.tasks import *
+from celery.utils.log import get_task_logger
+log = get_task_logger(__name__)
+
+from celery.signals import celeryd_init
+@celeryd_init.connect
+def foo_bar(**kwargs):
+    print 'CELERYD_INIT'
+
+from celery.signals import celeryd_after_setup
+@celeryd_after_setup.connect
+def setup_direct_queue(sender, instance, **kwargs):
+    print 'CELERYD_AFTER_SETUP'
+
+from celery.signals import worker_ready
+@worker_ready.connect
+def do_something(**kwargs):
+    print 'WORKER_READY'
+
+from celery.signals import worker_shutdown
+@worker_shutdown.connect
+def shutting_down(**kwargs):
+    print 'WORKER_SHUTTING_DOWN'
 
 #-------------------------------------------------------------------------------
 @worker_process_init.connect
 def pool_worker_init(**kwargs):
     '''Post-fork code per pool worker.'''
+
+    from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     authenticate(db_client)
 
@@ -53,7 +72,7 @@ def pool_worker_init(**kwargs):
     buf_mongo_handler.init_buf_timer()
     logger.addHandler(buf_mongo_handler)
 
-    print 'Initialized MongoHandler for PID %s' % os.getpid()
+    print 'Celery PoolWorker initialized. PID %s' % os.getpid()
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect
@@ -63,6 +82,7 @@ def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwar
     @args, @kwargs: the tasks positional and keyword arguments
     '''
 
+    print 'RECEIVED TASK %s' % sender.name.split('.')[-1]
     global timer
     timer = start_timer()
     #log.debug('prerun=%s, request=%s', sender.name.split('.')[-1], '...')

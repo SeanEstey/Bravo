@@ -145,3 +145,26 @@ Now kill it using that PID:
 `$kill -9 <PID>`
 
 (May need to run twice)
+
+# Monitoring
+
+Monitor Celery worker(s) with Flower:
+
+pip install flower
+
+To run it:
+
+flower --url_prefix=flower
+
+To enable it via nginx reverse proxy, add the following to
+/etc/nginx/sites-enabled/default to "serve" declaration listening on port 80:
+
+    location /flower/ {
+        rewrite ^/flower/(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:5555;
+        proxy_set_header Host $host;
+    }
+
+Restart nginx:
+
+service nginx restart

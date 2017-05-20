@@ -1,25 +1,12 @@
 server {
-    # Only for Mailgun webhooks which must use HTTP
-
-    listen 80;
-    server_name bravoweb.ca;
-    #return 301 https://$server_name$request_uri;
-
-    location / {
-      include proxy_params;
-      proxy_pass http://127.0.0.1:8000/;
-    }
-}
-
-server {
   listen 443;
   server_name bravoweb.ca;
 
   add_header Strict-Transport-Security "max-age=31536000";
 
   ssl on;
-  ssl_certificate /etc/nginx/793ac0361f2f0351.crt;
-  ssl_certificate_key /etc/nginx/bravotest.key;
+  ssl_certificate /etc/nginx/bravoweb.ca.chained.crt;
+  ssl_certificate_key /etc/nginx/bravoweb.key;
   ssl_protocols SSLv3 TLSv1;
   
   location / {
@@ -35,4 +22,20 @@ server {
       proxy_set_header Connection "Upgrade";
       proxy_read_timeout 86400;
   }
+}
+
+server {
+    listen 80;
+    server_name bravoweb.ca;
+
+    location / {
+        include proxy_params;
+        proxy_pass http://127.0.0.1:8000/;
+    }
+
+    location /flower/ {
+        rewrite ^/flower/(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:5555;
+        proxy_set_header Host $host;
+    }
 }

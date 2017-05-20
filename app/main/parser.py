@@ -1,7 +1,7 @@
 '''app.main.parser'''
 from re import match, search
 
-re_blck = r'(B|R)\d{1,2}\w'
+re_blck = r'(D|B|R)\d{1,2}\w'
 re_bus_blck = r'B\d{1,2}[A-E]{1}'
 re_res_blck = r'R\d{1,2}[a-zA-Z]{1}'
 re_postal = r'T\d[A-Z]\s?(\d[A-Z]\d)?'

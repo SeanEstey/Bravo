@@ -9,6 +9,7 @@ SECRET_KEY = 'secret'
 
 # App
 TITLE = 'Bravo'
+DEBUG = False
 SSL_CERT_PATH = '/etc/nginx/bravoweb.ca.chained.crt'
 LOG_PATH = '/root/bravo/logs/'
 MONGO_URL = 'localhost'

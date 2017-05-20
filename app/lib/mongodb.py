@@ -31,4 +31,4 @@ def authenticate(client, user=None, pw=None):
         print 'Mongo authentication error: %s' % str(e)
         raise
 
-    print 'MongoClient authenticated'
+    #print 'MongoClient authenticated'

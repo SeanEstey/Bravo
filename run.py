@@ -4,15 +4,8 @@ from os import environ, system
 from flask import current_app, g, session
 from flask_login import current_user
 from app import create_app
-from app.lib.utils import print_vars, inspector
 from app.main.socketio import sio_server
 app = create_app('app')
-
-
-from app.lib.mongo_log import BufferedMongoHandler
-for handler in app.logger.handlers:
-    if isinstance(handler, BufferedMongoHandler):
-        handler.init_buf_timer()
 
 #-------------------------------------------------------------------------------
 @app.before_request
@@ -30,36 +23,18 @@ def do_setup():
 def do_teardown(response):
     return response
 
-#-------------------------------------------------------------------------------
-def kill_celery():
-    '''Kill any existing worker/beat processes, start new worker
-    '''
 
-    system("ps aux | "\
-           "grep '/usr/bin/python /usr/local/bin/celery' | "\
-           "awk '{print $2}' |"\
-           "sudo xargs kill -9")
-
-#-------------------------------------------------------------------------------
-def start_celery(beat=True):
-    '''Start celery worker/beat as child processes.
-    IMPORTANT: If started from outside bravo or with --detach option, will NOT
-    have os.environ vars
-    '''
-
-    if not beat:
-        environ['BRV_BEAT'] = 'False'
-    else:
-        # Start beat process
-        system('celery -A app.tasks.celery beat -f logs/celery.log -l INFO &')
-
-    # Start worker process(es)
-    system('celery -A app.tasks.celery -n bravo worker -f logs/celery.log -l INFO -Ofair &')
 
 #-------------------------------------------------------------------------------
 def main(argv):
 
     from detect import startup_msg, set_environ
+    import workers
+
+    from app.lib.mongo_log import BufferedMongoHandler
+    for handler in app.logger.handlers:
+        if isinstance(handler, BufferedMongoHandler):
+            handler.init_buf_timer()
 
     try:
         opts, args = getopt.getopt(argv,"cds", ['celerybeat', 'debug', 'sandbox'])
@@ -72,24 +47,23 @@ def main(argv):
             beat = True
         elif opt in ('-d', '--debug'):
             app.config['DEBUG'] = True
+            app.config['USE_DEBUGGER'] = True
         elif opt in ('-s', '--sandbox'):
             environ['BRV_SANDBOX'] = 'True'
 
-    app.logger.info('starting server...')
+    app.logger.info('Starting server...')
 
     set_environ(app)
     sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
+    workers.kill()
+    time.sleep(1)
+    workers.start(beat=bool(environ.get('BRV_BEAT')))
+    time.sleep(4)
+    startup_msg(app, show_celery=False)
 
-    kill_celery()
-    time.sleep(2)
-    start_celery(beat=bool(environ.get('BRV_BEAT')))
+    app.logger.info("She's ready, captain!")
 
-    #startup_msg(app)
-
-    app.logger.info("she's ready, captain!")
-
-    sio_server.run(
-        app,
+    sio_server.run(app,
         port=app.config['LOCAL_PORT'],
         log_output=False,
         use_reloader=False)

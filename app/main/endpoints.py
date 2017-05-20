@@ -9,6 +9,11 @@ from .tasks import create_rfu
 from logging import getLogger
 log = getLogger(__name__)
 
+@main.route('/1983_debug', methods=['GET'])
+def invoke_debugger():
+    raise
+    return 'oh-oh!'
+
 #-------------------------------------------------------------------------------
 @main.route('/restart_worker', methods=['GET'])
 def restart_worker():

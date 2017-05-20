@@ -1,13 +1,13 @@
 from celery.schedules import crontab
 
-imports = ('app.tasks',)
+imports = ('app.tasks', 'app.main.tasks', 'app.booker.tasks', 'app.notify.tasks', 'app.routing.tasks')
 broker_url = 'amqp://'
 accept_content = ['json']
 task_serializer = 'json'
 result_serializer = 'json'
 timezone = 'Canada/Mountain'
 task_time_limit = 3000
-worker_concurrency = 2
+worker_concurrency = 5
 
 beat_schedule = {
     'backup_mongo': {
@@ -25,17 +25,14 @@ beat_schedule = {
      'find_inactive_donors': {
         'task': 'app.main.tasks.find_inactive_donors',
         'schedule': crontab(hour=5, minute=0, day_of_week='*')
-        #'kwargs': {'agcy':'vec'}
      },
 	'build_routes': {
 		  'task': 'app.routing.tasks.build_scheduled_routes',
 		  'schedule': crontab(hour=6, minute=30, day_of_week='*')
-          #'kwargs': {'agcy':'vec'}
 	 },
     'schedule_reminders': {
         'task': 'app.notify.tasks.schedule_reminders',
         'schedule': crontab(hour=7, minute=0, day_of_week='*')
-        #'kwargs': {'agcy':'vec'}
     },
     'mem_check': {
         'task': 'app.main.tasks.mem_check',

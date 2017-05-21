@@ -49,7 +49,7 @@ def main(argv):
         elif opt in ('-s', '--sandbox'):
             environ['BRV_SANDBOX'] = 'True'
 
-    app.logger.info('Starting server...')
+    app.logger.debug('Starting server...')
 
     set_environ(app)
     sio_server.init_app(app, async_mode='eventlet', message_queue='amqp://')
@@ -59,7 +59,7 @@ def main(argv):
     time.sleep(4)
     startup_msg(app, show_celery=False)
 
-    app.logger.info("She's ready, captain!")
+    app.logger.info("Server ready @%s", app.config['LOCAL_URL'])
 
     sio_server.run(app,
         port=app.config['LOCAL_PORT'],

@@ -2,7 +2,9 @@
 import os
 from logging import getLogger
 from celery.task.control import revoke
-from celery.signals import task_prerun, task_postrun, task_failure, worker_process_init
+from celery.signals import task_prerun, task_postrun, task_failure, task_revoked
+from celery.signals import worker_process_init, worker_ready, worker_shutdown
+from celery.signals import celeryd_init, celeryd_after_setup
 from app import create_app, colors as c, celery
 from app.lib.mongodb import create_client, authenticate
 from app.lib.utils import inspector, start_timer, end_timer
@@ -18,25 +20,33 @@ UberTask.db_client = db_client
 celery.Task = UberTask
 timer = None
 
-from celery.utils.log import get_task_logger
-log = get_task_logger(__name__)
-
-from celery.signals import celeryd_init
 @celeryd_init.connect
 def foo_bar(**kwargs):
     print 'CELERYD_INIT'
 
-from celery.signals import celeryd_after_setup
 @celeryd_after_setup.connect
 def setup_direct_queue(sender, instance, **kwargs):
     print 'CELERYD_AFTER_SETUP'
 
-from celery.signals import worker_ready
 @worker_ready.connect
 def do_something(**kwargs):
-    print 'WORKER_READY'
+    '''Called by parent worker process'''
 
-from celery.signals import worker_shutdown
+    print 'WORKER_READY'
+    from logging import DEBUG
+    from app.lib.mongo_log import BufferedMongoHandler
+    from db_auth import user, password
+    authenticate(db_client)
+    mongo_handler = BufferedMongoHandler(
+        level=DEBUG,
+        mongo_client=db_client,
+        connect=True,
+        db_name='bravo',
+        user=user,
+        pw=password)
+    app.logger.addHandler(mongo_handler)
+    mongo_handler.init_buf_timer()
+
 @worker_shutdown.connect
 def shutting_down(**kwargs):
     print 'WORKER_SHUTTING_DOWN'
@@ -44,13 +54,13 @@ def shutting_down(**kwargs):
 #-------------------------------------------------------------------------------
 @worker_process_init.connect
 def pool_worker_init(**kwargs):
-    '''Post-fork code per pool worker.'''
+    '''Called by each child worker process (forked)'''
 
     from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     authenticate(db_client)
 
-    # Root celery logger for this process
+    # Set root logger for this child process
     logger = getLogger('app')
     logger.setLevel(DEBUG)
 
@@ -63,7 +73,7 @@ def pool_worker_init(**kwargs):
     logger.addHandler(file_handler(WARNING, '%sevents.log'%path, color=c.YLLW))
     logger.addHandler(file_handler(ERROR, '%sevents.log'%path, color=c.RED))
     buf_mongo_handler = BufferedMongoHandler(
-        level=INFO,
+        level=DEBUG,
         mongo_client = db_client,
         connect=True,
         db_name='bravo',
@@ -85,7 +95,6 @@ def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwar
     print 'RECEIVED TASK %s' % sender.name.split('.')[-1]
     global timer
     timer = start_timer()
-    #log.debug('prerun=%s, request=%s', sender.name.split('.')[-1], '...')
 
 #-------------------------------------------------------------------------------
 @task_postrun.connect
@@ -107,8 +116,7 @@ state=None, *args, **kwargs):
     # Force log flush to Mongo if timer set since thread timer seems to sleep after task is complete.
     from app.lib.mongo_log import BufferedMongoHandler
 
-    #for handler in getLogger('worker').handlers:
-    for handler in getLogger('app').handlers: #__name__).handlers:
+    for handler in getLogger('app').handlers:
         if isinstance(handler, BufferedMongoHandler) and handler.buf_flush_tim:
             if not handler.test_connection():
                 handler._connect()
@@ -129,19 +137,17 @@ def task_failure(signal=None, sender=None, task_id=None, exception=None, traceba
 
     name = sender.name.split('.')[-1]
     print 'Task %s failed' % name
-    #log.error('Task %s failed. Click for more info.', name,
-    #    extra={'exception':exception, 'traceback':traceback})
+    app.logger.error('Task %s failed. Click for more info.', name,
+        extra={'exception':str(exception), 'traceback':traceback})
 
 #-------------------------------------------------------------------------------
-def kill(task_id):
-    log.info('attempting to kill task_id %s', task_id)
+@task_revoked.connect
+def task_revoke(sender=None, task_id=None, request=None, terminated=None, signum=None, expired=None, *args, **kwargs):
+    '''Called by worker parent. Task is revoked and child worker is also
+    terminated. A new child worker will spawn, causing Mongo fork warnings.
+    '''
 
-    try:
-        response = revoke(task_id, terminate=True)
-    except Exception as e:
-        log.error('revoke task error: %s', str(e))
-        return False
-
-    log.info('revoke response: %s', str(response))
-
-    return response
+    from app.lib.utils import dump, print_vars
+    name = sender.name.split('.')[-1]
+    str_req = print_vars(request)
+    app.logger.warning('Task %s revoked', name, extra={'request':str_req})

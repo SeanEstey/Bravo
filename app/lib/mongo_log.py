@@ -23,9 +23,6 @@ class WarningFilter(Filter):
     def filter(self, record):
         return record.levelno == WARNING
 
-"""TODO: remove iterm color signals from alice strings on client end
-regex_colors = re.compile('\\x1b\[[0-9]{1,2}m')"""
-
 #---------------------------------------------------------------------------
 def file_handler(level, file_path,
                  fmt=None, datefmt=None, color=None, name=None):
@@ -46,7 +43,7 @@ def file_handler(level, file_path,
         handler.addFilter(WarningFilter())
 
     formatter = Formatter(
-        c.BLUE + (fmt or '[%(asctime)s %(name)s %(processName)s %(process)d]: ' + c.ENDC + color + '%(message)s') + c.ENDC,
+        c.BLUE + (fmt or '[%(asctime)s %(name)s %(processName)s]: ' + c.ENDC + color + '%(message)s') + c.ENDC,
         (datefmt or '%m-%d %H:%M'))
 
     handler.setFormatter(formatter)
@@ -287,7 +284,6 @@ class BufferedMongoHandler(MongoHandler):
             # actual thread function
             def loop():
                 while not stopped.wait(interval) and main_thead.is_alive():  # the first call is in `interval` secs
-                    #print 'mongo_log timer expired. calling flush()'
                     func(*args)
 
             timer_thread = threading.Thread(target=loop)
@@ -330,8 +326,6 @@ class BufferedMongoHandler(MongoHandler):
             self._connect(**self.kwargs)
 
         if self.coll is not None and len(self.buf) > 0:
-            #print 'flushing log to mongo'
-
             self.buf_lock_acquire()
 
             try:
@@ -355,7 +349,6 @@ class BufferedMongoHandler(MongoHandler):
 
     def destroy(self):
         """Clean quit logging. Flush buffer. Stop the periodical thread if needed."""
-        #print 'destroy() invoked. flushing'
         if self._timer_stopper:
             self._timer_stopper()
         self.flush_to_mongo()

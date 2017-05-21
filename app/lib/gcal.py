@@ -3,7 +3,7 @@ import httplib2, json, logging, requests
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from apiclient.discovery import build
-from .utils import print_vars
+from .utils import print_vars, dump
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -84,8 +84,8 @@ def update_event(srvc, item, title=None, location=None, desc=None, color_id=None
             extra={'name':rv['summary'], 'date':rv['start']['date']})
         raise
 
-    log.debug('Updated event %s...' % rv['summary'][0:4],
-        extra={'date':rv['start']['date'], 'name':rv['summary']})
+    log.debug('Updated event %s...', rv['summary'][0:4],
+        extra={'event':dump(dump_event(rv))})
 
 #-------------------------------------------------------------------------------
 def get_colors(srvc):
@@ -109,3 +109,14 @@ def get_colors(srvc):
 def evnt_date_to_dt(date_):
     parts = date_.split('-')
     return datetime(int(parts[0]), int(parts[1]), int(parts[2]))
+
+#-------------------------------------------------------------------------------
+def dump_event(item):
+    return {
+        'title': item['summary'],
+        'description': item.get('description'),
+        'location': item.get('location'),
+        'start': item['start'],
+        'end': item['end']
+
+    }

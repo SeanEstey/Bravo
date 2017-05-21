@@ -26,6 +26,7 @@ def backup_mongo(self, **rest):
 
     from db_auth import user, password
     os.system("mongodump -u %s -p %s -o ~/Dropbox/mongo" %(user,password))
+    log.warning('MongoDB backup created')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -449,10 +450,10 @@ def update_calendar_blocks(self, from_=date.today(), agcy=None, **rest):
 
                 n_booked = int(rv[0:rv.find('/')])
 
-                if is_res(block):
-                    sizes = current_app.config['BLOCK_SIZES']['RES']
-                else:
+                if is_bus(block):
                     sizes = current_app.config['BLOCK_SIZES']['BUS']
+                else:
+                    sizes = current_app.config['BLOCK_SIZES']['RES']
 
                 color_id = None
 
@@ -468,19 +469,22 @@ def update_calendar_blocks(self, from_=date.today(), agcy=None, **rest):
                 try:
                     update_event(srvc, evnt, title=new_title, color_id=color_id)
                 except Exception as e:
+                    log.exception(str(e))
                     n_errs+=1
                 else:
                     n_updated+=1
-
-        log.warning('Calendar events updated.', extra= {
+        extra= {
             'n_events': n_updated,
             'n_errs': n_errs,
             'n_warnings': n_warnings,
             'duration': end_timer(group_start)
-        })
+        }
+        if n_errs > 0:
+            log.error('Calendar events updated. %s errors.', n_errs, extra=extra)
+        else:
+            log.warning('Calendar events updated.', extra=extra)
 
     g.group = None
-
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -617,20 +621,6 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 @celery.task(bind=True)
 def mem_check(self, **rest):
 
-    t = datetime.now().time()
-
-    # Restart celery worker at midnight to release memory leaks
-    if t.hour == 0 and t.minute <=15:
-        from os import environ as env
-        log.debug('restarting celery worker/beat at midnight...')
-        log.debug('env[BRV_HTTP_HOST]=%s', env.get('BRV_HTTP_HOST'))
-        try:
-            r = requests.get(env['BRV_HTTP_HOST'] + '/restart_worker')
-        except Exception as e:
-            log.debug(str(e), group='sys')
-        else:
-            log.debug('code=%s, text=%s', r.status_code, r.text)
-
     mem = psutil.virtual_memory()
     total = (mem.total/1000000)
     free = mem.free/1000000
@@ -647,7 +637,5 @@ def mem_check(self, **rest):
 
         if free < 350:
             log.warning('warning: low memory! 250mb recommended (%s/%s)', free, total)
-    else:
-        log.debug('mem free: %s/%s', free,total)
 
     return mem

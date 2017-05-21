@@ -467,6 +467,9 @@ function update_note($acct_id, $ref, $body) {
 
 //-----------------------------------------------------------------------
 function add_accts($entries) {
+    /* Returns: Array of ['row'=>INT, 'status'=>STR, 'ref'=>STR] for each
+     * acct created.
+     */
 
 	global $nsc, $agcy;
     $entries = json_decode(json_encode($entries), true); // stdclass->array
@@ -533,7 +536,7 @@ function add_accts($entries) {
         }
         else {
             $n_success += 1;
-            $rv[] = ['row'=>$entry['ss_row'], 'status'=>'Uploaded'];
+            $rv[] = ['row'=>$entry['ss_row'], 'status'=>'Uploaded', 'ref'=>$status];
             debug_log('added account ' . $acct['name']);
         }
 	}

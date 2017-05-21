@@ -1,6 +1,7 @@
 '''app.main.endpoints'''
 import json, time
 from flask import g, jsonify, request
+from flask_login import login_required
 from app import colors as c
 from app.lib.mailgun import dump
 from app.booker import book
@@ -9,10 +10,18 @@ from .tasks import create_rfu
 from logging import getLogger
 log = getLogger(__name__)
 
-@main.route('/1983_debug', methods=['GET'])
+@login_required
+@main.route('/debug', methods=['GET'])
 def invoke_debugger():
     raise
     return 'oh-oh!'
+
+@login_required
+@main.route('/update_calendar', methods=['GET'])
+def update_cal():
+    from app.main.tasks import update_calendar_blocks
+    update_calendar_blocks.delay(agcy=g.user.agency)
+    return 'success'
 
 #-------------------------------------------------------------------------------
 @main.route('/restart_worker', methods=['GET'])

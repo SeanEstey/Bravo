@@ -4,7 +4,6 @@ from flask import Flask, g, session, has_app_context, has_request_context
 from flask_login import LoginManager
 from celery import Celery
 
-# Globals
 class colors:
     BLUE = '\033[94m'
     GRN = '\033[92m'
@@ -98,7 +97,6 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
     from werkzeug.contrib.fixers import ProxyFix
     from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
     from app.lib.mongo_log import _connection, file_handler, BufferedMongoHandler
-    from db_auth import user, password
     from config import LOG_PATH as path
     import config
 
@@ -110,15 +108,18 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
 
     if mongo_client:
         from app.lib import mongodb
+        from db_auth import user, password
         app.db_client = mongodb.create_client()
 
-        '''app.logger.addHandler(BufferedMongoHandler(
-            level=INFO,
+        mongo_handler = BufferedMongoHandler(
+            level=DEBUG,
             mongo_client=app.db_client,
-            connect=False,
+            connect=True,
             db_name='bravo',
             user=user,
-            pw=password))'''
+            pw=password)
+        app.logger.addHandler(mongo_handler)
+        mongo_handler.init_buf_timer()
 
     if kv_sess:
         from simplekv.db.mongo import MongoStore
@@ -144,7 +145,6 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
     app.logger.addHandler(file_handler(ERROR,
         '%sevents.log'%path,
         color=colors.RED))
-
 
     # Flask-Login ext.
 

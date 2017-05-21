@@ -101,6 +101,13 @@ def print_vars(obj, depth=0, ignore=None, l="    "):
         ) + "\n" + l + "}"
 
 #-------------------------------------------------------------------------------
+def dump(doc):
+    return formatter(doc,
+        to_local_time=True,
+        to_strftime="%b %d, %H:%M %p",
+        bson_to_json=True)
+
+#-------------------------------------------------------------------------------
 def formatter(doc, to_local_time=False, to_strftime=None, bson_to_json=False, to_json=False):
     '''@bson_to_json: convert ObjectIds->{'oid': 'string'}
     @to_local_time, to_strftime: convert utc datetimes to local time (and to

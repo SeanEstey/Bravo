@@ -106,22 +106,12 @@ def get_nearby_blocks(pt, radius, maps, events):
             block['distance'] = str(round(dist,2)) + 'km'
             block['area'] = parser.get_area(event['summary']) or '---'
             block['booked'] = parser.route_size(event['summary']) or '---'
-
             results.append(block)
 
-    results = sorted(
-        results,
-        key=lambda k: k['event']['start'].get('dateTime',k['event']['start'].get('date'))
-    )
+    results = sorted(results,
+        key=lambda k: k['event']['start'].get('dateTime',k['event']['start'].get('date')))
 
-    log.debug('found %s results within radius', str(len(results)))
-
-    for block in results:
-        log.debug(
-            '%s: %s (%s away)',
-            block['event']['start'].get('dateTime', block['event']['start'].get('date')),
-            block['name'],
-            block['distance'])
+    log.debug('Found %s Blocks within %s radius', len(results), radius)
 
     return results
 

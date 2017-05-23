@@ -1,5 +1,6 @@
 '''app.uber_task'''
 import os
+from logging import getLogger
 from celery import Task
 from flask import g, has_app_context, has_request_context,\
 make_response, request, current_app
@@ -7,6 +8,8 @@ from flask_login import login_user, current_user
 from bson.objectid import ObjectId
 from auth import user
 from app.lib.utils import print_vars
+
+log = getLogger(__name__)
 
 __all__ = ['UberTask']
 
@@ -57,6 +60,7 @@ class UberTask(Task):
         '''
 
         #log.debug('apply args=%s, kwargs=%s, options=%s', args, kwargs, options)
+
         if options.pop('with_request_context', True) or has_app_context():
             self._push_contexts(kwargs)
 
@@ -78,6 +82,7 @@ class UberTask(Task):
         '''
 
         #log.debug('apply_async args=%s, kwargs=%s, rest=%s', args, kwargs, rest)
+
         if rest.pop('with_request_context', True) or has_app_context():
             self._push_contexts(kwargs)
 
@@ -88,19 +93,16 @@ class UberTask(Task):
         '''Pass flask request/app context + flask.g vars into kwargs for worker task.
         '''
 
+        kwargs[self.ENVIRON_KW] = {}
+
         # Save environ vars
         if has_app_context():
             if current_user:
                 g.user = current_user
-
-        kwargs[self.ENVIRON_KW] = {}
-
-        for var in self.flsk_app.config['ENV_VARS']:
-            kwargs[self.ENVIRON_KW][var] = os.environ.get(var, '')
-
-        if has_request_context():
-            if current_user.is_authenticated:
                 kwargs[self.USERID_KW] = str(g.user._id)
+
+        for var in current_app.config['ENV_VARS']:
+            kwargs[self.ENVIRON_KW][var] = os.environ.get(var, '')
 
         if not has_request_context():
             return
@@ -143,3 +145,4 @@ class UberTask(Task):
                 agency=db_user['agency'],
                 admin=db_user['admin']))
             g.user = current_user
+            g.group = current_user.agency

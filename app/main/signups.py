@@ -108,9 +108,11 @@ def send_confirmation():
     Returns: mailgun ID
     '''
 
-    #log.debug('/email/send: "%s"', args)
+    # Get Acct from Ref
+    from app.main.donors import get
+    acct = d
+
     log.debug("sending signup confirmation!", extra={'form':request.form})
-    return True
 
     args = request.get_json(force=True)
     to = args['recipient']
@@ -124,19 +126,19 @@ def send_confirmation():
     try:
         html = render_template(path, data=args['tmpt_vars'])
     except Exception as e:
-        log.error('template error. desc=%s', str(e))
-        log.debug('', exc_info=True)
-        return str(e)
+        log.exception('Email template error')
+        raise
 
     try:
-        mid = mailgun.send(to, args['subject'], html, get_keys('mailgun'), v={
-            'agency':g.group, 'type':args['type'], 'from_row':args['from_row']})
+        mid = mailgun.send(to, args['subject'], html, get_keys('mailgun'),
+            v={'agency':g.group, 'type':'signup', 'from_row':args['from_row']})
     except Exception as e:
-        log.error('could not email %s. desc=%s', to, str(e))
+        log.exception('Failed to send Sign-up Welcome to %s', to,
+            extra={'row':args['from_row'], 'message':str(e)})
         create_rfu.delay(g.group, str(e))
-        return str(e)
+        raise
 
-    log.debug('queued %s to %s', args.get('type'), to)
+    log.debug('Queued %s to %s', 'signup', to)
 
     return mid
 

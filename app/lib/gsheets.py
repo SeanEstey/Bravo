@@ -149,9 +149,11 @@ def gauth(oauth):
         credentials = ServiceAccountCredentials.from_json_keyfile_dict(
             oauth,
             scopes=scope)
-        http = httplib2.Http(cache=".cache")
+        #http = httplib2.Http(cache=".cache")
+        http = httplib2.Http()
         http = credentials.authorize(http)
-        service = build(name, version, http=http, cache_discovery=True)
+        #service = build(name, version, http=http, cache_discovery=True)
+        service = build(name, version, http=http, cache_discovery=False)
     except Exception as e:
         log.error('error authorizing %s: %s', name, str(e))
         return False

@@ -12,11 +12,9 @@ app = create_app('app')
 def do_setup():
     session.permanent = True
     g.db = current_app.db_client['bravo']
-
-    if session.get('user_id'):
-        g.user = current_user
-        g.app = current_app
-        g.group = g.user.agency
+    g.user = current_user
+    g.app = current_app
+    g.group = g.user.agency
 
 #-------------------------------------------------------------------------------
 @app.after_request
@@ -26,7 +24,8 @@ def do_teardown(response):
 #-------------------------------------------------------------------------------
 def main(argv):
 
-    from detect import startup_msg, set_environ
+    #from detect import startup_msg,
+    from detect import set_environ
     import workers
 
     from app.lib.mongo_log import BufferedMongoHandler
@@ -57,7 +56,7 @@ def main(argv):
     time.sleep(1)
     workers.start(beat=bool(environ.get('BRV_BEAT')))
     time.sleep(4)
-    startup_msg(app, show_celery=False)
+    #startup_msg(app, show_celery=False)
 
     app.logger.info("Server ready @%s", app.config['LOCAL_URL'])
 

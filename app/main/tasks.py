@@ -5,6 +5,7 @@ from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta
 from dateutil.parser import parse
 from flask import current_app, g, request
+from flask_login import current_user
 from app import celery, get_keys, colors as c
 from app.lib.dt import d_to_dt, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 from app.lib.gsheets import gauth, write_rows, append_row, get_row, to_range,\
@@ -78,6 +79,7 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
     route_d = parse(date_str).date()
     diff = 0
     n_repeat = 0
+    g.group = current_user.agency
 
     log.warning('Analyzing estimate trend...', extra={'n_accts': len(donations)})
 
@@ -102,6 +104,9 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
         n_repeat += 1
 
     log.debug('n_repeat=%s, diff=%s', n_repeat, diff)
+
+    if n_repeat == 0:
+        n_repeat += 1
 
     trend = diff / n_repeat
 
@@ -300,7 +305,6 @@ def create_accounts(self, accts_json, agcy=None, **rest):
     ss_id = get_keys('google')['ss_id']
     service = gauth(get_keys('google')['oauth'])
     headers = get_row(service, ss_id, 'Signups', 1)
-    status_col = headers.index('Upload') +1
 
     # Break accts into chunks for gsheets batch updating
 
@@ -331,14 +335,16 @@ def create_accounts(self, accts_json, agcy=None, **rest):
             log_rec['errors'].append(rv['results'])
 
         range_ = '%s:%s' %(
-            to_range(chunk[0]['ss_row'], status_col),
-            to_range(chunk[-1]['ss_row'], status_col))
+            to_range(chunk[0]['ss_row'], headers.index('Ref')+1),
+            to_range(chunk[-1]['ss_row'], headers.index('Upload')+1))
 
-        values = [[rv['results'][idx]['status']] for idx in range(0, len(rv['results']))]
+        values = [
+            [rv['results'][idx].get('ref'), rv['results'][idx]['status']] for idx in range(0, len(rv['results']))
+        ]
 
         for j in range(len(values)):
-            if values[j][0] == u'Uploaded':
-                values[j][0] = checkmark
+            if values[j][1] == u'Uploaded':
+                values[j][1] = checkmark
 
         log.debug('writing chunk %s/%s values to ss, range=%s',
             i+1, len(chunks), range_)

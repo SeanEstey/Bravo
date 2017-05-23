@@ -1,6 +1,7 @@
 '''app.tasks'''
 import os
 from logging import getLogger
+from flask_login import current_user
 from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure, task_revoked
 from celery.signals import worker_process_init, worker_ready, worker_shutdown
@@ -12,7 +13,7 @@ from uber_task import UberTask
 import celeryconfig
 
 # Pre-fork vars
-app = create_app(__name__, kv_sess=False, mongo_client=False)
+app = create_app('app', kv_sess=False, mongo_client=False)
 UberTask.flsk_app = app
 celery.config_from_object(celeryconfig)
 db_client = create_client(connect=False, auth=False)
@@ -32,13 +33,12 @@ def setup_direct_queue(sender, instance, **kwargs):
 def do_something(**kwargs):
     '''Called by parent worker process'''
 
-    print 'WORKER_READY'
-    from logging import DEBUG
+    from logging import WARNING
     from app.lib.mongo_log import BufferedMongoHandler
     from db_auth import user, password
     authenticate(db_client)
     mongo_handler = BufferedMongoHandler(
-        level=DEBUG,
+        level=WARNING,
         mongo_client=db_client,
         connect=True,
         db_name='bravo',
@@ -46,6 +46,7 @@ def do_something(**kwargs):
         pw=password)
     app.logger.addHandler(mongo_handler)
     mongo_handler.init_buf_timer()
+    print 'WORKER_READY. PID %s' % os.getpid()
 
 @worker_shutdown.connect
 def shutting_down(**kwargs):
@@ -68,10 +69,6 @@ def pool_worker_init(**kwargs):
     from db_auth import user, password
     from config import LOG_PATH as path
 
-    logger.addHandler(file_handler(DEBUG, '%sdebug.log'%path, color=c.WHITE))
-    logger.addHandler(file_handler(INFO, '%sevents.log'%path, color=c.GRN))
-    logger.addHandler(file_handler(WARNING, '%sevents.log'%path, color=c.YLLW))
-    logger.addHandler(file_handler(ERROR, '%sevents.log'%path, color=c.RED))
     buf_mongo_handler = BufferedMongoHandler(
         level=DEBUG,
         mongo_client = db_client,
@@ -82,7 +79,8 @@ def pool_worker_init(**kwargs):
     buf_mongo_handler.init_buf_timer()
     logger.addHandler(buf_mongo_handler)
 
-    print 'Celery PoolWorker initialized. PID %s' % os.getpid()
+    print 'WORKER_CHILD_INIT. PID %s' % os.getpid()
+
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect
@@ -122,21 +120,12 @@ state=None, *args, **kwargs):
                 handler._connect()
             handler.flush_to_mongo()
 
-    '''
-    if state != 'SUCCESS':
-        log.error('task=%s error. state=%s, retval=%s', name, state, retval)
-        log.exception('task=%s failure (%s)', name, end_timer(timer))
-    else:
-        pass
-        #log.debug('%s: state=%s, retval="%s" (%s)', name, state, retval, duration)
-    '''
-
 #-------------------------------------------------------------------------------
 @task_failure.connect
 def task_failure(signal=None, sender=None, task_id=None, exception=None, traceback=None, *args, **kwargs):
 
     name = sender.name.split('.')[-1]
-    print 'Task %s failed' % name
+    print 'TASK_FAILURE. NAME %s' % name
     app.logger.error('Task %s failed. Click for more info.', name,
         extra={'exception':str(exception), 'traceback':traceback})
 
@@ -150,4 +139,5 @@ def task_revoke(sender=None, task_id=None, request=None, terminated=None, signum
     from app.lib.utils import dump, print_vars
     name = sender.name.split('.')[-1]
     str_req = print_vars(request)
+    print 'TASK_REVOKED. NAME %s' % name
     app.logger.warning('Task %s revoked', name, extra={'request':str_req})

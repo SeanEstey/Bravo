@@ -78,6 +78,7 @@ def load_api_user(request):
     user = db.users.find_one({'api_key':str(api_key)})
 
     if user:
+        #print 'loaded api_user %s, group %s' %(user['name'], user['agency'])
         return User(
             user['user'],
             name = user['name'],

@@ -4,6 +4,7 @@ from flask import Flask, g, session, has_app_context, has_request_context
 from flask_login import LoginManager
 from celery import Celery
 
+
 class colors:
     BLUE = '\033[94m'
     GRN = '\033[92m'
@@ -16,6 +17,8 @@ class colors:
     UNDERLINE = '\033[4m'
 login_manager = LoginManager()
 celery = Celery(__name__, broker='amqp://')
+from uber_task import UberTask
+celery.Task = UberTask
 
 #-------------------------------------------------------------------------------
 def get_keys(k=None, agcy=None):

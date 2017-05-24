@@ -35,7 +35,7 @@ def resolve(block, postal_codes, event_desc=False):
             return depot
 
     # Still haven't found depot. Use Strathcona as default
-    log.error(
+    log.debug(
         'No depot defined for Block %s. '\
         'Postal codes: [%s]. Using Strathcona as default.',
         block, postal_codes)

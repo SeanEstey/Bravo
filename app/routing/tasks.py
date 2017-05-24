@@ -25,9 +25,10 @@ def discover_routes(self, agcy, within_days=5, **rest):
     to client
     '''
 
+    from app.main.socketio import smart_emit
     sleep(3)
     g.group = agcy
-    #smart_emit('discover_routes', {'status':'in-progress'})
+    smart_emit('discover_routes', {'status':'in-progress'})
     log.debug('Discovering routes...')
     n_found = 0
     events = []
@@ -66,13 +67,13 @@ def discover_routes(self, agcy, within_days=5, **rest):
             log.debug('discovered %s on %s',
                 block, event_dt.strftime('%b %-d'))
 
-            '''smart_emit('discover_routes', {
+            smart_emit('discover_routes', {
                 'status': 'discovered', 'route': formatter(meta, to_strftime=True, bson_to_json=True)},
-                room=g.group)'''
+                room=g.group)
 
             n_found +=1
 
-    #smart_emit('discover_routes', {'status':'completed'}, room=g.group)
+    smart_emit('discover_routes', {'status':'completed'}, room=g.group)
 
     return 'discovered %s routes' % n_found
 

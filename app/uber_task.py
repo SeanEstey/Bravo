@@ -99,9 +99,11 @@ class UberTask(Task):
         if has_app_context():
             if current_user:
                 g.user = current_user
-                kwargs[self.USERID_KW] = str(g.user._id)
+                if g.user.is_authenticated:
+                    kwargs[self.USERID_KW] = str(g.user._id)
 
-        for var in current_app.config['ENV_VARS']:
+        app = self.flsk_app if self.flsk_app else current_app
+        for var in app.config['ENV_VARS']:
             kwargs[self.ENVIRON_KW][var] = os.environ.get(var, '')
 
         if not has_request_context():

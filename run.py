@@ -13,7 +13,6 @@ def do_setup():
     session.permanent = True
     g.db = current_app.db_client['bravo']
     g.user = current_user
-    g.app = current_app
     g.group = g.user.agency
 
 #-------------------------------------------------------------------------------

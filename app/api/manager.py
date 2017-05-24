@@ -7,6 +7,18 @@ from app.lib.utils import start_timer, end_timer, formatter
 from logging import getLogger
 log = getLogger(__name__)
 
+headers = [
+    "Content-Length",
+    "X-Forwarded-For",
+    "Connection",
+    "Accept",
+    "Host",
+    "X-Forwarded-Proto",
+    "X-Real-Ip",
+    "Content-Type",
+    "Authorization"
+]
+
 def WRITE_ME(msg=None):
     return msg or 'NOT YET IMPLEMENTED'
 
@@ -17,7 +29,12 @@ def func_call(function, *args, **kwargs):
     try:
         rv = function(*args, **kwargs)
     except Exception as e:
-        log.exception('API function "%s" failed', function.__name__)
+        _headers = {}
+        for name in headers:
+            _headers[name] = request.headers.get(name)
+
+        log.exception('API function "%s" failed', function.__name__,
+            extra={'request_headers':_headers, 'request_data':request.form.to_dict()})
         return build_resp(exc=e)
 
     return build_resp(rv=rv, name=function.__name__, dt=s)
@@ -64,7 +81,13 @@ def build_resp(rv=None, exc=None, name=None, dt=None):
 #-------------------------------------------------------------------------------
 def get_var(k):
 
-    if request.method == 'GET':
-        return request.args.get(k, None)
-    elif request.method == 'POST':
+    if request.method != 'POST':
+        raise Exception("Only POST requests allowed with API")
+
+    if request.headers["Content-Type"] == "application/json":
+        from json import loads
+        json_data = request.json
+        v = json_data[k]
+        return v
+    else:
         return request.form.get(k, None)

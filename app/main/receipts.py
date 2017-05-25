@@ -67,11 +67,12 @@ def generate(acct, entry, ytd_gifts=None):
         status = 'Error: %s' % str(e)
     else:
         status = 'Queued'
-        log.debug('row=%s, receipt="%s", n_ytd_gifts=%s, mid="%s"',
-            entry['ss_row'],
-            r_title,
-            len(ytd_gifts) if ytd_gifts else None,
-            mid[0:mid.find('.')])
+        log.debug('Queued receipt to %s', acct['email'],
+            extra={
+                'row':entry['ss_row'],
+                'template': r_title,
+                'n_ytd_gifts':len(ytd_gifts) if ytd_gifts else 0,
+                'mid':mid[0:mid.find('.')]})
 
     return {'mid':mid, 'status': '%s "%s"...' %(status, to_title_case(r_title[0:-5]))}
 
@@ -192,7 +193,7 @@ def on_delivered(agcy):
     '''Mailgun webhook called from view. Has request context'''
 
     g.group = agcy
-    log.debug('receipt delivered to %s', request.form['recipient'])
+    log.debug('Receipt delivered to %s', request.form['recipient'])
     row = request.form['ss_row']
     ss_id = get_keys('google')['ss_id']
     status = "=char(10004)" if request.form['event'] == 'delivered' else request.form['event']
@@ -205,8 +206,7 @@ def on_delivered(agcy):
         service = None
         gc.collect()
     except Exception as e:
-        log.error('error updating sheet')
-        log.debug(str(e))
+        log.exception('Error updating Sheet')
         service = None
         gc.collect()
 
@@ -217,7 +217,7 @@ def on_dropped(agcy):
 
     g.group = agcy
     row = request.form['ss_row']
-    msg = 'receipt to %s dropped. %s. %s' %(
+    msg = 'Receipt to %s dropped. %s. %s' %(
         request.form['recipient'],
         request.form['reason'],
         request.form.get('description'))

@@ -1,5 +1,5 @@
-import logging, sys, pymongo
-from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
+import logging, sys, pymongo, os
+from logging import getLogger, DEBUG, INFO, WARNING, ERROR, CRITICAL
 from logging import Filter, FileHandler, Formatter
 from datetime import datetime, timedelta
 from pymongo.collection import Collection
@@ -142,7 +142,7 @@ class MongoHandler(logging.Handler):
         logging.Handler.__init__(self, level)
         global _connection
         _connection = mongo_client
-        self.conn = None #mongo_client
+        self.conn = None
         self.db = None
         self.coll = None
         self.is_authed = False
@@ -182,12 +182,7 @@ class MongoHandler(logging.Handler):
         if self.reuse and _connection:
             self.conn = _connection
         else:
-            self.conn = MongoClient(
-                host=self.host,
-                port=self.port,
-                connect=False,
-                **kwargs)
-            _connection = self.conn
+            raise Exception('No connection available!')
 
         self.test_connection()
 

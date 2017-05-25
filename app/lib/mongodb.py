@@ -1,18 +1,20 @@
 '''app.lib.mongodb'''
 import logging
+import os
 import pymongo
 import db_auth
 import config
 
 #-------------------------------------------------------------------------------
-def create_client(connect=True, auth=True, appname=None):
+def create_client(host=None, port=None, connect=True, auth=True):
+
+    print 'CREATING MONGOCLIENT. PID %s' % os.getpid()
 
     client = pymongo.MongoClient(
-        host = config.MONGO_URL,
-        port = config.MONGO_PORT,
+        host = host or config.MONGO_URL,
+        port = port or config.MONGO_PORT,
         tz_aware = True,
         connect = connect)
-        #appname = appname or 'app')
 
     if auth:
         authenticate(client)

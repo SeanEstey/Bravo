@@ -59,13 +59,13 @@ def create_session():
             options = {
                 'Account': 'Mobile: %s' % from_})
 
-        log.debug('uregistered user session (anon_id=%s)', anon_id)
+        log.debug('Uregistered user')
     else:
         # Registered user
         session['account'] = acct
         session['valid_kws'] = keywords.user.keys()
 
-        notific = related_notific(log_error=True)
+        notific = related_notific(log_error=False)
 
         # Is there a notification user might be replying to?
         if notific:
@@ -75,10 +75,10 @@ def create_session():
             session['messages'].insert(0, notific['tracking']['body'])
             session['valid_notific_reply'] = not event_begun(notific)
 
-            log.debug('Reply linked to notific_id=%s. valid=%s',
-                notific['_id'], session.get('valid_notific_reply'))
+            #log.debug('Reply linked to notific_id=%s. valid=%s',
+            #    notific['_id'], session.get('valid_notific_reply'))
 
-        log.debug('Registered user session (etap_id=%s)', acct['id'])
+        log.debug('Registered user %s', acct.get('name'))
 
         if not is_active(acct):
             log.error("Acct inactive (etap_id=%s)", acct['id'])

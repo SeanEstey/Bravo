@@ -33,7 +33,7 @@ def get_chatlogs(start_dt=None):
         {'agency':0, '_id':0, 'date':0, 'account':0, 'twilio':0}
     ).sort('last_msg_dt',-1)
 
-    log.debug('chatlogs retrieved, n=%s', chats.count())
+    log.debug('%s chatlogs retrieved.', chats.count())
 
     chats = list(chats)
     for chat in chats:

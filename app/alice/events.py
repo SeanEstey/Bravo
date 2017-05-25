@@ -42,7 +42,7 @@ def prompt_instructions():
     if not session.get('notific_id'):
         return dialog['skip']['no_evnt']
 
-    log.debug('is_notific_reply=%s', session.get('valid_notific_reply'))
+    #log.debug('is_notific_reply=%s', session.get('valid_notific_reply'))
 
     if session.get('valid_notific_reply') == False:
         return dialog['skip']['too_late']

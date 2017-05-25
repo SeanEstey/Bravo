@@ -22,15 +22,15 @@ celery.Task = UberTask
 timer = None
 
 @celeryd_init.connect
-def foo_bar(**kwargs):
+def _celeryd_init(**kwargs):
     print 'CELERYD_INIT'
 
 @celeryd_after_setup.connect
-def setup_direct_queue(sender, instance, **kwargs):
+def _celeryd_after_setup(sender, instance, **kwargs):
     print 'CELERYD_AFTER_SETUP'
 
 @worker_ready.connect
-def do_something(**kwargs):
+def _parent_worker_ready(**kwargs):
     '''Called by parent worker process'''
 
     from logging import WARNING
@@ -49,17 +49,23 @@ def do_something(**kwargs):
     print 'WORKER_READY. PID %s' % os.getpid()
 
 @worker_shutdown.connect
-def shutting_down(**kwargs):
+def _parent_worker_shutdown(**kwargs):
     print 'WORKER_SHUTTING_DOWN'
 
 #-------------------------------------------------------------------------------
 @worker_process_init.connect
-def pool_worker_init(**kwargs):
+def _child_worker_init(**kwargs):
     '''Called by each child worker process (forked)'''
 
     from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-    authenticate(db_client)
+    # Experimental
+    global celery
+    db_client = create_client()
+    UberTask.db_client = db_client
+    celery.Task = UberTask
+
+    #authenticate(db_client)
 
     # Set root logger for this child process
     logger = getLogger('app')
@@ -84,7 +90,7 @@ def pool_worker_init(**kwargs):
 
 #-------------------------------------------------------------------------------
 @task_prerun.connect
-def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwargs):
+def _child_task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwargs):
     '''Dispatched before a task is executed by Task obj.
     Sender == Task.
     @args, @kwargs: the tasks positional and keyword arguments
@@ -96,7 +102,7 @@ def task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwar
 
 #-------------------------------------------------------------------------------
 @task_postrun.connect
-def task_postrun(signal=None, sender=None, task_id=None, task=None, retval=None,\
+def _child_task_postrun(signal=None, sender=None, task_id=None, task=None, retval=None,\
 state=None, *args, **kwargs):
     '''Dispatched after a task has been executed by Task obj.
     @Sender: the task object executed.
@@ -122,7 +128,7 @@ state=None, *args, **kwargs):
 
 #-------------------------------------------------------------------------------
 @task_failure.connect
-def task_failure(signal=None, sender=None, task_id=None, exception=None, traceback=None, *args, **kwargs):
+def _child_task_failure(signal=None, sender=None, task_id=None, exception=None, traceback=None, *args, **kwargs):
 
     name = sender.name.split('.')[-1]
     print 'TASK_FAILURE. NAME %s' % name
@@ -131,7 +137,7 @@ def task_failure(signal=None, sender=None, task_id=None, exception=None, traceba
 
 #-------------------------------------------------------------------------------
 @task_revoked.connect
-def task_revoke(sender=None, task_id=None, request=None, terminated=None, signum=None, expired=None, *args, **kwargs):
+def _child_task_revoke(sender=None, task_id=None, request=None, terminated=None, signum=None, expired=None, *args, **kwargs):
     '''Called by worker parent. Task is revoked and child worker is also
     terminated. A new child worker will spawn, causing Mongo fork warnings.
     '''

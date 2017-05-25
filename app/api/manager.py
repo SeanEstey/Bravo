@@ -119,6 +119,6 @@ def dump_response(resp):
     return {
         'headers': dump_headers(dict(resp.headers)),
         'status': resp._status,
-        'data': resp.response
+        'data': str(resp.response)[0:50]+ ' ...'
 
     }

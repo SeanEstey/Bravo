@@ -78,7 +78,7 @@ function find_acct_by_phone($phone) {
 	 */
 
 	global $nsc;
-	debug_log('finding account for ' . $phone);
+	//debug_log('finding account for ' . $phone);
 
 	$dv = ['fieldName'=>'SMS', 'value'=> $phone];
 	$acct = $nsc->call('getAccountByUniqueDefinedValue', array($dv));
@@ -89,7 +89,7 @@ function find_acct_by_phone($phone) {
 	if(!$acct)
 		throw new Exception('no acct found with SMS field="' . $phone . '"');
 
-	debug_log('found acct_id=' . $acct['id'] . ' matching ' . $phone);
+	//debug_log('found acct_id=' . $acct['id'] . ' matching ' . $phone);
 	return utf8_converter($acct);
 }
 
@@ -444,7 +444,7 @@ function add_note($acct_id, $date, $body) {
     if(is_error($nsc))
         return get_error($nsc, $log=True);
     
-    debug_log('note added (acct_id=' . $acct_id . ')');
+    //debug_log('note added (acct_id=' . $acct_id . ')');
     return ["ref"=>$ref];
 }
 
@@ -584,7 +584,7 @@ function modify_acct($id, $udf, $persona) {
     if(is_error($nsc))
         return get_error($nsc, $log=True);
 
-    debug_log('updated acct_id=' . $id);
+    //debug_log('updated acct_id=' . $id);
     return 'Success';
 }
 
@@ -611,7 +611,7 @@ function skip_pickup($acct_id, $date, $next_pickup) {
 		false
 	]);
 	
-	debug_log('skipping pickup, acct_id=' . $acct_id);
+	//debug_log('skipping pickup, acct_id=' . $acct_id);
 	return json_encode(["No Pickup request received. Thanks"]);
 }
 

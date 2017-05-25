@@ -36,14 +36,11 @@ def get_donations(acct_id, start_d=None, end_d=None):
     try:
         acct = get(int(acct_id))
     except Exception as e:
-        log.error('couldnt find acct_id=%s', acct_id)
+        log.exception('couldnt find acct_id=%s', acct_id)
         raise
 
     start = start_d if start_d else (date.today() - timedelta(weeks=12))
     end = end_d if end_d else date.today()
-
-    log.debug('donor_history for acct_id=%s from %s to %s',
-        acct['id'], start, end)
 
     try:
         je_list = call(
@@ -54,8 +51,9 @@ def get_donations(acct_id, start_d=None, end_d=None):
                 "start": start.strftime("%d/%m/%Y"),
                 "end": end.strftime("%d/%m/%Y")})
     except Exception as e:
-        log.error('donor history error for acct_id=%s. desc: %s', acct['id'], str(e))
-        return False
+        log.exception('Failed to get donations for Acct #%s.', acct['id'],
+            extra={'exception':str(e)})
+        raise
 
     # Remove non-"No Pickup" notes
 
@@ -80,8 +78,6 @@ def get_donations(acct_id, start_d=None, end_d=None):
                 'date': je['date'],
                 'amount': float(je['amount'])
             }
-
-    log.debug('%s donations for acct_id=%s', len(gift_list), acct['id'])
 
     return gift_list
 

@@ -29,12 +29,8 @@ def func_call(function, *args, **kwargs):
     try:
         rv = function(*args, **kwargs)
     except Exception as e:
-        _headers = {}
-        for name in headers:
-            _headers[name] = request.headers.get(name)
-
         log.exception('API function "%s" failed', function.__name__,
-            extra={'request_headers':_headers, 'request_data':request.form.to_dict()})
+            extra={'request':dump_request()})
         return build_resp(exc=e)
 
     return build_resp(rv=rv, name=function.__name__, dt=s)
@@ -66,17 +62,23 @@ def build_resp(rv=None, exc=None, name=None, dt=None):
 
     # Success
 
-    log.debug('%s success', request.path,
-        extra={'url':request.url, 'data':request.data, 'duration': end_timer(dt), 'function':name})
-
     try:
         json_rv = formatter({'status':'success', 'data':rv}, bson_to_json=True, to_json=True)
     except Exception as e:
         log.debug('rv is not serializable.')
         json_rv = dumps({'status':'success', 'data':'return value not serializable'})
 
-    return Response(
-        response=json_rv, status=200,mimetype='application/json')
+    resp = Response(response=json_rv, status=200,mimetype='application/json')
+
+    if "logger" not in request.path:
+        log.debug('%s success', request.path,
+            extra={
+                'request':dump_request(),
+                'duration': end_timer(dt),
+                'function':name,
+                'response': dump_response(resp)})
+
+    return resp
 
 #-------------------------------------------------------------------------------
 def get_var(k):
@@ -91,3 +93,32 @@ def get_var(k):
         return v
     else:
         return request.form.get(k, None)
+
+#-------------------------------------------------------------------------------
+def dump_headers(obj):
+
+    _headers = {}
+    for name in headers:
+        if obj.get(name):
+            _headers[name] = obj[name]
+    return _headers
+
+#-------------------------------------------------------------------------------
+def dump_request():
+    return {
+        'url': request.url,
+        'headers': dump_headers(request.headers),
+        'json_data': request.json,
+        'form_data': request.form.to_dict(),
+        'request_data': request.data
+    }
+
+#-------------------------------------------------------------------------------
+def dump_response(resp):
+
+    return {
+        'headers': dump_headers(dict(resp.headers)),
+        'status': resp._status,
+        'data': resp.response
+
+    }

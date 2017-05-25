@@ -93,11 +93,10 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
                 start_d = route_d - delta(weeks=12),
                 end_d = route_d)
         except Exception as e:
-            log.error('error retrieving donations: %s (acct %s)', str(e), donation['acct_id'])
             continue
 
         if len(je_hist) < 1:
-            log.debug('skipping acct w/ je len < 1')
+            #log.debug('skipping acct w/ je len < 1')
             continue
 
         diff += float(donation['amount']) - je_hist[0]['amount']
@@ -148,7 +147,6 @@ def process_entries(self, entries, agcy=None, **rest):
 
     for n in range(0,len(chunks)):
         chunk = chunks[n]
-        log.debug('processing chunk %s/%s...', n+1, len(chunks))
         try:
             r = call(
                 'process_entries',
@@ -158,18 +156,12 @@ def process_entries(self, entries, agcy=None, **rest):
             log.error('error in chunk #%s. continuing...', n+1)
             continue
 
-        log.debug('chunk processed. n_success=%s, n_errs=%s',
-            r['n_success'], r['n_errs'])
-
         n_success += r['n_success']
         n_errs += r['n_errs']
 
         range_ = '%s:%s' %(
             to_range(r['results'][0]['row'], upload_col),
             to_range(r['results'][-1]['row'], upload_col))
-
-        log.debug('writing chunk %s/%s return values to ss, range=%s',
-            n+1, len(chunks), range_)
 
         values = [[r['results'][i]['status']] for i in range(len(r['results']))]
 
@@ -182,8 +174,10 @@ def process_entries(self, entries, agcy=None, **rest):
         try:
             write_rows(srvc, ss_id, wks, range_, values)
         except Exception as e:
-            log.error(str(e))
-            log.debug('',exc_info=True)
+            log.exception('Error writing chunk %s', n+1)
+        else:
+            log.debug('Chunk %s/%s uploaded/written to Sheets.', n+1, len(chunks),
+                extra={'n_success': r['n_success'] , 'n_errs': r['n_errs']})
 
     log.warning('Donations uploaded.',
         extra={'n_errs': n_errs, 'duration': end_timer(start)})
@@ -216,7 +210,7 @@ def send_receipts(self, entries, **rest):
         log.exception('Error retrieving accounts from eTapestry.')
         raise
 
-    log.debug('accts_dump', extra={'accts':accts})
+    log.debug('Retrieved %s accounts', len(accts))
 
     accts_data = [{
         'acct':accts[i],
@@ -242,7 +236,6 @@ def send_receipts(self, entries, **rest):
 
     ch_size = 10
     chunks = [accts_data[i:i + ch_size] for i in xrange(0, len(accts_data), ch_size)]
-    log.debug('chunk length=%s', len(chunks))
 
     for i in range(0, len(chunks)):
         rv = []
@@ -259,8 +252,6 @@ def send_receipts(self, entries, **rest):
 
         values = [[rv[idx]['status']] for idx in range(len(rv))]
         wks_values = get_values(service, g.ss_id, wks, range_)
-        log.debug('values len=%s, values=%s, wks_values len=%s, wks_values=%s',
-            len(values), values, len(wks_values), wks_values)
 
         for idx in range(0, len(wks_values)):
             if wks_values[idx][0] == checkmark:
@@ -268,14 +259,13 @@ def send_receipts(self, entries, **rest):
             elif wks_values[idx][0] == u'No Email':
                 values[idx][0] = 'No Email'
 
-        log.debug('writing chunk %s/%s values to ss, range=%s',
-            i+1, len(chunks), range_)
-
         try:
             write_rows(service, g.ss_id, wks, range_, values)
         except Exception as e:
-            log.error(str(e))
-            log.debug('',exc_info=True)
+            log.exception('Error writing chunk %s to Sheets', i+1)
+        else:
+            log.debug('Chunk %s/%s receipts generated/written to Sheets',
+                i+1, len(chunks))
 
     log.warning('Receipts delivered.', extra={
         'gifts': g.track['gifts'],
@@ -310,7 +300,7 @@ def create_accounts(self, accts_json, agcy=None, **rest):
 
     ch_size = 10
     chunks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
-    log.debug('chunk length=%s', len(chunks))
+    #log.debug('chunk length=%s', len(chunks))
     log_rec = {
         'n_success': 0,
         'n_errs': 0,
@@ -346,13 +336,12 @@ def create_accounts(self, accts_json, agcy=None, **rest):
             if values[j][1] == u'Uploaded':
                 values[j][1] = checkmark
 
-        log.debug('writing chunk %s/%s values to ss, range=%s',
-            i+1, len(chunks), range_)
-
         try:
             write_rows(service, ss_id, 'Signups', range_, values)
         except Exception as e:
             log.exception('Error writing to Bravo Sheets.')
+        else:
+            log.debug('Chunk %s/%s written to Sheets', i+1, len(chunks))
 
     if log_rec['n_errs'] > 0:
         log.error('Created %s/%s accounts. See Bravo Sheets for details.',

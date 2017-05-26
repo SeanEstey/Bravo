@@ -291,20 +291,17 @@ def create_accounts(self, accts_json, agcy=None, **rest):
     g.group = agcy
     accts = json.loads(accts_json)
     log.warning('Creating %s accounts...', len(accts))
-
-    ss_id = get_keys('google')['ss_id']
-    service = gauth(get_keys('google')['oauth'])
-    headers = get_row(service, ss_id, 'Signups', 1)
-
     # Break accts into chunks for gsheets batch updating
-
     ch_size = 10
     chunks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
-    #log.debug('chunk length=%s', len(chunks))
     log_rec = {
         'n_success': 0,
         'n_errs': 0,
         'errors':[]}
+
+    ss_id = get_keys('google')['ss_id']
+    service = gauth(get_keys('google')['oauth'])
+    headers = get_row(service, ss_id, 'Signups', 1)
 
     for i in range(0, len(chunks)):
         rv = []
@@ -329,7 +326,10 @@ def create_accounts(self, accts_json, agcy=None, **rest):
             to_range(chunk[-1]['ss_row'], headers.index('Upload')+1))
 
         values = [
-            [rv['results'][idx].get('ref'), rv['results'][idx]['status']] for idx in range(0, len(rv['results']))
+            [rv['results'][idx].get('ref'),
+            "",
+            rv['results'][idx]['status']]
+            for idx in range(0, len(rv['results']))
         ]
 
         for j in range(len(values)):

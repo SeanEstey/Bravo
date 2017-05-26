@@ -51,7 +51,7 @@ def send(notific, twilio_conf):
             account = simple_dict(acct),
             notific = notific)
     except Exception as e:
-        log.error('Error rendering SMS body. %s', str(e))
+        log.exception('Error rendering SMS body')
         return 'failed'
 
     msg = None
@@ -72,8 +72,7 @@ def send(notific, twilio_conf):
     try:
         msg = compose(acct['agency'], body, notific['to'], callback=callback)
     except Exception as e:
-        log.error('error queuing SMS, desc="%s"', str(e))
-        log.debug('', exc_info=True)
+        log.exception('Error queuing SMS message')
     finally:
         g.db.notifics.update_one(
             {'_id': notific['_id']},

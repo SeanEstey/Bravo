@@ -77,8 +77,7 @@ def preview(template, state):
             account = simple_dict(acct),
             evnt_id = '')
     except Exception as e:
-        log.error('template error. desc=%s', str(e))
-        log.debug('', exc_info=True)
+        log.exception('Template error')
         raise
     else:
         return body
@@ -99,8 +98,7 @@ def send(notific, mailgun_conf, key='default'):
             account = simple_dict(acct),
             evnt_id = notific['evnt_id'])
     except Exception as e:
-        log.error('template error. desc=%s', str(e))
-        log.debug(str(e))
+        log.exception('Template error')
         raise
 
     mid = mailgun.send(
@@ -111,10 +109,10 @@ def send(notific, mailgun_conf, key='default'):
         v={'type':'notific'})
 
     if mid == False:
-        log.error('failed to queue %s', notific['to'])
+        log.error('Failed to queue %s', notific['to'])
         status = 'failed'
     else:
-        log.debug('queued notific to %s', notific['to'])
+        log.debug('Queued notific to %s', notific['to'])
         status = 'queued'
 
     g.db.notifics.update_one({
@@ -136,8 +134,7 @@ def on_delivered():
     evnt = g.db.events.find_one({'_id':notific['evnt_id']})
     g.group = evnt['agency']
 
-    log.debug('%sdelivered notific to %s%s',
-        c.GRN, request.form['recipient'], c.ENDC)
+    log.debug('Delivered notific to %s', request.form['recipient'])
 
     '''smart_emit('notific_status',
         {'notific_id': str(notific['_id']), 'status':
@@ -163,7 +160,7 @@ def on_dropped():
     '''smart_emit('notific_status',
         {'notific_id':str(notific['_id']), 'status':request.form['event']})'''
 
-    msg = 'notification to %s dropped. %s.' %(
+    msg = 'Notification to %s dropped. %s.' %(
         request.form.get('recipient'), request.form.get('reason'))
 
     from app.main.tasks import create_rfu

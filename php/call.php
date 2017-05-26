@@ -35,6 +35,9 @@
 			case 'get_acct':
 				$rv = get_acct($id=$data['acct_id']);
 				break;
+			case 'get_acct_by_ref':
+				$rv = get_acct($id=NULL, $ref=$data['ref']);
+				break;
 			case 'get_accts_by_ref':
 				$rv = get_accts($acct_ids=NULL, $acct_refs=$data['acct_refs']);
 				break;

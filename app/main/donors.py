@@ -12,10 +12,11 @@ log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def get(acct_id):
-    return call(
-        'get_acct',
-        get_keys('etapestry'),
-        data={'acct_id': int(acct_id)})
+    return call('get_acct', get_keys('etapestry'), data={'acct_id':int(acct_id)})
+
+#-------------------------------------------------------------------------------
+def get_acct_by_ref(ref):
+    return call('get_acct_by_ref', get_keys('etapestry'), data={'ref':ref})
 
 #-------------------------------------------------------------------------------
 def get_next_pickup(email, agcy):

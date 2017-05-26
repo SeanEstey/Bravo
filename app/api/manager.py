@@ -40,7 +40,8 @@ def task_call(function, *args, **kwargs):
     try:
         rv = function.delay(*args, **kwargs)
     except Exception as e:
-        log.exception('API task "%s" failed', function.__name__)
+        log.exception('API task "%s" failed', function.__name__,
+            extra={'request':dump_request()})
         return build_resp(exc=e)
 
     return build_resp(rv=rv)

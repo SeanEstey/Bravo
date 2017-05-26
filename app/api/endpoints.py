@@ -11,7 +11,7 @@ from app.booker.search import search
 from app.booker.book import make
 from app.main import donors
 from app.main.receipts import preview
-from app.main.signups import lookup_carrier, send_confirmation
+from app.main.signups import send_welcome
 from app.notify.pickups import is_valid
 from app.notify.accounts import edit_fields
 from app.notify.events import create_event, cancel_event, dump_event, reset_event, rmv_notifics
@@ -273,10 +273,10 @@ def call_route_edit():
 def call_op_stats():
     return func_call(get_server_prop)
 
-@api.route('/signups/confirmation/send', methods=['POST'])
+@api.route('/signups/welcome/send', methods=['POST'])
 @login_required
-def send_signup_confirmation():
-    return func_call(send_confirmation)
+def send_signup_welcome():
+    return func_call(send_welcome)
 
 @api.route('/logger/write', methods=['POST'])
 @login_required

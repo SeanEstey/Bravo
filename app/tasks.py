@@ -128,12 +128,17 @@ state=None, *args, **kwargs):
 
 #-------------------------------------------------------------------------------
 @task_failure.connect
-def _child_task_failure(signal=None, sender=None, task_id=None, exception=None, traceback=None, *args, **kwargs):
+def _child_task_failure(signal=None, sender=None, task_id=None, exception=None,
+traceback=None, einfo=None, *args, **kwargs):
 
     name = sender.name.split('.')[-1]
     print 'TASK_FAILURE. NAME %s' % name
     app.logger.error('Task %s failed. Click for more info.', name,
-        extra={'exception':str(exception)}) #'traceback':traceback})
+        extra={
+            'exception':str(exception),
+            'traceback':str(traceback),
+            'task_args': args,
+            'task_kwargs': kwargs})
 
 #-------------------------------------------------------------------------------
 @task_revoked.connect

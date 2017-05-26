@@ -4,8 +4,8 @@ from datetime import date, datetime
 from flask import g, request, render_template
 from app import get_keys
 from app.lib import mailgun
-from app.lib.gsheets import gauth, get_row, append_row, update_cell, to_range
-from app.main.etap import call
+from app.lib.gsheets import gauth, get_row, get_headers, append_row, update_cell, to_range
+from app.main.etap import call, get_udf
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -101,44 +101,46 @@ def check_duplicates(name=None, email=None, address=None, phone=None):
         data=fields)
 
 #-------------------------------------------------------------------------------
-def send_confirmation():
+def send_welcome():
     '''Send a template email from Bravo Sheets
     @form: {'agency', 'recipient', 'type', 'tmpt_file', 'tmpt_vars, 'subject', 'from_row'}
     @form['type']: 'signup', 'receipt'
     Returns: mailgun ID
     '''
 
-    # Get Acct from Ref
-    from app.main.donors import get
-    acct = d
+    from app.main.donors import get_acct_by_ref
+    acct = get_acct_by_ref(request.form.get('ref'))
 
-    log.debug("sending signup confirmation!", extra={'form':request.form})
+    udf = acct['accountDefinedValues']
+    acct['accountDefinedValues'] = {
+        'Dropoff Date': get_udf('Dropoff Date', acct),
+        'Frequency': get_udf('Frequency', acct),
+        'Status': get_udf('Status', acct),
+        'Contact': get_udf('Contact', acct)
+    }
 
-    args = request.get_json(force=True)
-    to = args['recipient']
-    g.group = args['agency']
-
-    if args['type'] == 'signup':
-        path = 'signups/%s/welcome.html' % g.group
-    else:
-        raise Exception('invalid template type')
+    if not acct.get('email'):
+        log.debug('Acct has no email to send Welcome')
+        return 'No Email'
 
     try:
-        html = render_template(path, data=args['tmpt_vars'])
+        html = render_template('signups/%s/welcome.html' % g.group,
+            acct=acct, to=acct['email'])
     except Exception as e:
         log.exception('Email template error')
         raise
 
+    row = int(float(request.form['row']))
     try:
-        mid = mailgun.send(to, args['subject'], html, get_keys('mailgun'),
-            v={'agency':g.group, 'type':'signup', 'from_row':args['from_row']})
+        mid = mailgun.send(acct['email'], 'Welcome!', html, get_keys('mailgun'),
+            v={'agcy':g.group, 'type':'signup', 'from_row':row})
     except Exception as e:
-        log.exception('Failed to send Sign-up Welcome to %s', to,
-            extra={'row':args['from_row'], 'message':str(e)})
+        log.exception('Failed to send Sign-up Welcome to %s', acct['email'],
+            extra={'row':row})
         create_rfu.delay(g.group, str(e))
         raise
 
-    log.debug('Queued %s to %s', 'signup', to)
+    log.debug('Queued welcome to %s', acct['email'])
 
     return mid
 
@@ -147,56 +149,40 @@ def on_delivered(agcy):
     '''Mailgun webhook called from view. Has request context'''
 
     g.group = agcy
-    log.info('signup welcome delivered to %s',
-        request.form['recipient'])
-
+    log.debug('Welcome delivered to %s', request.form['recipient'])
     row = request.form['from_row']
     ss_id = get_keys('google')['ss_id']
 
     try:
         service = gauth(get_keys('google')['oauth'])
-        headers = get_row(service, ss_id, 'Signups', 1)
-        col = headers.index('Welcome')+1
-        update_cell(service, ss_id, 'Signups', to_range(row,col), request.form['event'])
+        hdr = get_headers(service, ss_id, 'Signups')
+        update_cell(service, ss_id, 'Signups',
+            to_range(row, hdr.index('Welcome')+1),
+            request.form['event'])
     except Exception as e:
-        log.error('error updating sheet')
+        log.exception('Error updating Sheet')
 
 #-------------------------------------------------------------------------------
 def on_dropped(agcy):
+
+    from app.api.manager import dump_headers
     g.group = agcy
-    msg = 'signup welcome to %s dropped. %s.' %(
-        request.form['recipient'], request.form['reason'])
-
-    log.info(msg)
-
+    log.warning('Welcome dropped to %s', request.form['recipient'],
+        extra={'headers':dump_headers(request.headers)})
     row = request.form['from_row']
     ss_id = get_keys('google')['ss_id']
 
     try:
         service = gauth(get_keys('google')['oauth'])
-        headers = get_row(service, ss_id, 'Signups', 1)
-        col = headers.index('Welcome')+1
-        update_cell(service, ss_id, 'Signups', to_range(row,col), request.form['event'])
+        hdr = get_headers(service, ss_id, 'Signups')
+        update_cell(service, ss_id, 'Signups',
+            to_range(row, hdr.index('Welcome')+1),
+            request.form['event'])
     except Exception as e:
-        log.error('error updating sheet')
+        log.exception('Error updating Sheet')
 
-    create_rfu.delay(g.group, msg + request.form.get('description'))
-
-#-------------------------------------------------------------------------------
-def lookup_carrier(phone):
-    url = 'https://lookups.twilio.com/v1/PhoneNumbers/'
-    '''
-    headers = {
-        "Authorization" : "Basic " + Utilities.base64Encode(this.twilio_auth_key)
-    }
-
-    try:
-        response = UrlFetchApp.fetch(
-            url+phone+'?Type=carrier', {
-                'method':'GET',
-                'muteHttpExceptions': True,
-                'headers':headers
-            }
-        )
-      }
-    '''
+    create_rfu.delay(g.group,
+        'Welcome dropped to %s. %s. %s.' %(
+            request.form['recipient'],
+            request.form['reason'],
+            request.form.get('description')))

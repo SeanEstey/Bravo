@@ -32,6 +32,10 @@ def get_row(service, ss_id, wks, row):
     )['values'][0]
 
 #-------------------------------------------------------------------------------
+def get_headers(service, ss_id, wks):
+    return get_row(service, ss_id, wks, 1)
+
+#-------------------------------------------------------------------------------
 def get_values(service, ss_id, wks, range_):
     return api_ss_values_get(service, ss_id, wks, range_)['values']
 

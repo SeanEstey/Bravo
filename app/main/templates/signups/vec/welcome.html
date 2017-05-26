@@ -1,15 +1,19 @@
   {% extends "signups/vec/base.html" %}
   {% block content %}  
-		{% if data["status"] == "Dropoff" and data["name_format"] == "Individual" %}
+		{% if acct["accountDefinedValues"]["Status"] == "Dropoff" and acct["nameFormat"] < 3 %}
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
-				<p>Hi {{ data['first_name'] }}, </p>
-				<p>Thanks for signing up with Vecova Bottle Pickup service.</p>
+				<p>Hi {{ acct["firstName"] }}, </p>
+				<p>Thanks for signing up with Vecova Bottle Pickup service. Our driver
+        will be by on the date below.</p>
 			</div>
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
-				Dropoff Date: {{ data['dropoff_date'] }} 
+				Date: {{ acct["accountDefinedValues"]["Dropoff Date"] }} 
 			</div>
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
-				Address: {{ data['address'] }}, {{ data['postal'] }}
+				Address: {{ acct["address"] }}, {{ acct["postalCode"] }}
+			</div>
+			<div style='font-size:12pt; margin: 1.0em 0.5em'>
+				Frequency: {{ acct["accountDefinedValues"]["Frequency"] }}
 			</div>
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
 				Please let us know if the address above is incorrect.
@@ -17,22 +21,18 @@
 				If you have empties, you can label them <b>'Vecova'</b> and place them at your front entrance by 8am.
 			</div>
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
-				Residential pickups are scheduled every 10 weeks. 
-				We provide email/voice reminders and leave you a collection slip for your records.
-			</div>
-			<div style='font-size:12pt; margin: 1.0em 0.5em'>
 				We hope you enjoy the service.
 			</div>
-		{% elif data["status"] == "Dropoff" and data["name_format"] == "Business" %}
+		{% elif acct["accountDefinedValues"]["Status"] == "Dropoff" and acct["nameFormat"] == 3 %}
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
-				<p>Hi {{ data['contact_person'] }}, </p>
+				<p>Hi {{ acct["accountDefinedValues"]["Contact"] }}, </p>
 				<p>Thanks for signing up with Vecova Bottle Pickup service.</p>
 			</div>
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
-				Dropoff Date: {{ data['dropoff_date'] }} 
+				Dropoff Date: {{ acct["accountDefinedValues"]["Dropoff Date"] }} 
 			</div>
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
-				Address: {{ data['address'] }}, {{ data['postal'] }}
+				Address: {{ acct["address"] }}, {{ acct["postalCode"] }}
 			</div>
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
 				We'll come by on that date and dropoff your collection containers and Vecova bags.
@@ -40,16 +40,16 @@
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
 				We hope you enjoy the service.
 			</div>
-		{% elif data["status"] == "One-time" %}
+		{% elif acct["accountDefinedValues"]["Status"] == "One-time" %}
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
-				<p>Hi {{ data['first_name'] }}, </p>
+				<p>Hi {{ acct["firstName"] }}, </p>
 				<p>Thanks for signing up with Vecova Bottle Pickup service.</p>
 			</div>
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
-				Pickup Date: {{ data['dropoff_date'] }} 
+				Pickup Date: {{ acct["accountDefinedValues"]["Dropoff Date"] }} 
 			</div>
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
-				Address: {{ data['address'] }}, {{ data['postal'] }}
+				Address: {{ acct["address"] }}, {{ acct["postalCode"] }}
 			</div>
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
 				Please let us know if the address above is incorrect.

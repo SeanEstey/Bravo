@@ -157,8 +157,7 @@ def find_all_scheduled_dates(evnt_id):
                 start,
                 end)
     except Exception as e:
-        log.error('%s', str(e))
-        log.exception(str(e))
+        log.exception('Error retrieving Calendar events')
         raise
 
     log.debug('%i calendar events pulled', len(cal_events))
@@ -189,8 +188,7 @@ def find_all_scheduled_dates(evnt_id):
                 {'_id':notific['acct_id']},
                 {'$set':{'udf.future_pickup_dt':npu}})
         except Exception as e:
-            log.debug('assigning future_dt %s to acct_id %s: %s',
-            str(npu), str(acct['_id']), str(e))
+            log.debug('assigning future_dt %s to acct_id %s: %s', str(npu), str(acct['_id']), str(e))
 
 #-------------------------------------------------------------------------------
 def next_scheduled_date(acct_id, blocks, office_notes, block_dates):

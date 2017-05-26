@@ -51,8 +51,7 @@ def call(notific, conf):
     try:
         client = TwilioRestClient(conf['api']['sid'], conf['api']['auth_id'])
     except TwilioRestException as e:
-        log.error('twilio REST error. %s', str(e))
-        log.exception(str(e))
+        log.exception('Error creating Twilio client')
         return 'failed'
 
     # Protect against sending real calls if in sandbox
@@ -79,8 +78,7 @@ def call(notific, conf):
             status_events = ["completed"],
             status_method = 'POST')
     except Exception as e:
-        log.error('call to %s failed. %s', notific['to'], str(e))
-        log.exception(str(e))
+        log.exception('Call to %s failed', notific['to'])
     else:
         log.debug('%s call to %s', call.status, notific['to'])
     finally:
@@ -110,7 +108,7 @@ def get_speak(notific, template_path, timeout=False):
             account = simple_dict(account),
             timeout=timeout)
     except Exception as e:
-        log.error('get_speak: %s ', str(e))
+        log.exception('Error retrieving voice dialog')
         return 'Error'
 
     speak = html.clean_whitespace(speak)
@@ -122,8 +120,6 @@ def on_answer():
     Working under request context
     Return: twilio.twiml.Response
     '''
-
-    #log.debug('voice_play_answer args: %s', request.form)
 
     log.debug('%s %s (%s)',
         request.form['To'], request.form['CallStatus'], request.form.get('AnsweredBy'))
@@ -192,8 +188,6 @@ def on_interact():
     request contextuser has entered input. Invoke handler function to get response.
     Returns: twilio.twiml.Response
     '''
-
-    #log.debug('on_interact: %s', request.form.to_dict())
 
     notific = g.db.notifics.find_one_and_update(
         {'tracking.sid': request.form['CallSid']},
@@ -280,8 +274,6 @@ def get_token():
     '''Get token for client to make preview voice call
     '''
 
-    log.debug('generating twilio token...')
-
     api = get_keys('twilio')['api']
     app_sid = get_keys('twilio')['sms']['app_sid']
 
@@ -290,8 +282,7 @@ def get_token():
         capability.allow_client_outgoing(app_sid)
         token = capability.generate()
     except Exception as e:
-        log.error('error gen. twilio token: %s', str(e))
-        log.debug('',exc_info=True)
+        log.exception('Error generating Twilio token')
         return str(e)
 
     return token

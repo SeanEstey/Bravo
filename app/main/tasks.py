@@ -1,5 +1,5 @@
 '''app.main.tasks'''
-import gc, json, os, re, requests, psutil
+import json, os, re, requests
 from guppy import hpy
 from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta
@@ -11,7 +11,7 @@ from app.lib.dt import d_to_dt, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 from app.lib.gsheets import gauth, write_rows, append_row, get_row, to_range,\
 get_values, update_cell
 from app.lib.gcal import gauth as gcal_auth, color_ids, get_events, evnt_date_to_dt, update_event
-from app.lib.utils import start_timer, end_timer
+from app.lib.timer import Timer
 from .parser import get_block, is_block, is_res, is_bus, get_area, is_route_size
 from .cal import get_blocks, get_accounts
 from .etap import call, get_udf, mod_acct
@@ -31,6 +31,12 @@ def backup_mongo(self, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
+def health_check(self, **rest):
+    from app.lib.utils import mem_check
+    mem_check()
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
 def wipe_sessions(self, **rest):
     pass
 
@@ -39,10 +45,9 @@ def wipe_sessions(self, **rest):
 def update_leaderboard_accts(self, agcy=None, **rest):
 
     g.group=agcy
-
-    log.warning('task: updating leaderboard data...')
-
+    log.warning('Updating leaderboards...')
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
+    timer = Timer()
 
     for agency in agcy_list:
         g.group = agency['name']
@@ -66,15 +71,18 @@ def update_leaderboard_accts(self, agcy=None, **rest):
             chunk = chunks[n]
             update_gifts(chunk, g.group)
 
+        log.warning('Updated leaderboards', extra={'duration':timer.clock()})
+
+        timer.restart()
+
     # Duration: ~1277s for 2900 accts
     g.group = None
-    log.warning('task: complete. leaderboard data updated!')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
 
-    t1 = start_timer()
+    timer = Timer()
     ss_row = int(float(ss_row))
     route_d = parse(date_str).date()
     diff = 0
@@ -120,13 +128,13 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
         diff/n_repeat)
 
     log.warning('Estimate trend is $%.2f', diff/n_repeat,
-        extra={'duration': end_timer(t1)})
+        extra={'duration': timer.clock()})
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def process_entries(self, entries, agcy=None, **rest):
 
-    start = start_timer()
+    timer = Timer()
     entries = json.loads(entries)
     g.group = agcy
 
@@ -180,7 +188,7 @@ def process_entries(self, entries, agcy=None, **rest):
                 extra={'n_success': r['n_success'] , 'n_errs': r['n_errs']})
 
     log.warning('Donations uploaded.',
-        extra={'n_errs': n_errs, 'duration': end_timer(start)})
+        extra={'n_errs': n_errs, 'duration': timer.clock()})
 
     return 'success'
 
@@ -194,7 +202,7 @@ def send_receipts(self, entries, **rest):
         'next_pickup':'dd/mm/yyyy', 'status':'<str>', 'ss_row':'<int>' }
     '''
 
-    start = start_timer()
+    timer = Timer()
     entries = json.loads(entries)
     wks = 'Donations'
     checkmark = u'\u2714'
@@ -273,7 +281,7 @@ def send_receipts(self, entries, **rest):
         'post_drops': g.track['drops'],
         'cancels': g.track['cancels'],
         'no_email': g.track['no_email'],
-        'task_duration': end_timer(start)
+        'duration': start.clock()
         })
 
     chunks = acct_data = accts = None
@@ -288,6 +296,7 @@ def create_accounts(self, accts_json, agcy=None, **rest):
     '''
 
     checkmark = u'\u2714'
+    timer = Timer()
     g.group = agcy
     accts = json.loads(accts_json)
     log.warning('Creating %s accounts...', len(accts))
@@ -343,6 +352,8 @@ def create_accounts(self, accts_json, agcy=None, **rest):
         else:
             log.debug('Chunk %s/%s written to Sheets', i+1, len(chunks))
 
+    log_rec['duration'] = timer.clock()
+
     if log_rec['n_errs'] > 0:
         log.error('Created %s/%s accounts. See Bravo Sheets for details.',
             log_rec['n_success'], log_rec['n_success'] + log_rec['n_errs'],
@@ -390,18 +401,18 @@ def update_calendar_blocks(self, from_=date.today(), agcy=None, **rest):
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
     start_dt = d_to_dt(from_)
     today = date.today()
+    timer = Timer()
+    d_str = '%m-%d-%Y'
 
     for agency in agcy_list:
-        group_start = start_timer()
         g.group = agency['name']
         end_dt = d_to_dt(today + delta(days=get_keys('main')['cal_block_delta_days']))
         etap_conf = get_keys('etapestry')
         oauth = get_keys('google')['oauth']
         srvc = gcal_auth(oauth)
 
-        log.warning('Updating calendar events...', extra={
-            'start_date': start_dt.strftime('%m-%d-%Y'),
-            'end_date': end_dt.strftime('%m-%d-%Y')
+        log.warning('Updating calendar events...',
+            extra={'start': start_dt.strftime(d_str), 'end': end_dt.strftime(d_str)
         })
 
         cal_ids = get_keys('cal_ids')
@@ -472,12 +483,14 @@ def update_calendar_blocks(self, from_=date.today(), agcy=None, **rest):
             'n_events': n_updated,
             'n_errs': n_errs,
             'n_warnings': n_warnings,
-            'duration': end_timer(group_start)
+            'duration': timer.clock()
         }
         if n_errs > 0:
             log.error('Calendar events updated. %s errors.', n_errs, extra=extra)
         else:
             log.warning('Calendar events updated.', extra=extra)
+
+        timer.restart()
 
     g.group = None
     return 'success'
@@ -539,6 +552,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
     agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
     n_task_inactive = 0
+    timer = Timer()
 
     for agency in agcy_list:
         accts = []
@@ -604,33 +618,13 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
             n_inactive += 1
 
-        log.info('Found %s inactive donors.', n_inactive, extra={'matches':acct_matches})
+        log.info('Found %s inactive donors.', n_inactive,
+            extra={'matches':acct_matches, 'n_sec':timer.clock()})
 
         n_task_inactive += n_inactive
+
+        timer.restart()
 
     g.group = None
     log.warning('Inactive Donors task completed. %s accounts found.', n_task_inactive)
     return 'success'
-
-#-------------------------------------------------------------------------------
-@celery.task(bind=True)
-def mem_check(self, **rest):
-
-    mem = psutil.virtual_memory()
-    total = (mem.total/1000000)
-    free = mem.free/1000000
-
-    if free < 350:
-        log.debug('low memory. %s/%s. forcing gc/clearing cache...', free, total)
-        os.system('sudo sysctl -w vm.drop_caches=3')
-        os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
-        gc.collect()
-        mem = psutil.virtual_memory()
-        total = (mem.total/1000000)
-        now_free = mem.free/1000000
-        log.debug('freed %s mb', now_free - free)
-
-        if free < 350:
-            log.warning('warning: low memory! 250mb recommended (%s/%s)', free, total)
-
-    return mem

@@ -6,7 +6,6 @@ from flask import g, render_template, current_app, request
 from datetime import datetime, date, time
 from .. import get_keys, colors as c
 from app.lib import mailgun
-from app.lib.utils import formatter
 from app.lib.dt import to_utc, ddmmyyyy_to_dt
 from app.main.donors import get
 from app.main.etap import get_udf, NAME_FORMAT
@@ -71,11 +70,8 @@ def preview(template, state):
         path = "email/%s/reminder.html" % g.user.agency
 
     try:
-        body = render_template(
-            path,
-            to = acct['email'],
-            account = simple_dict(acct),
-            evnt_id = '')
+        body = render_template(path,
+            to=acct['email'], account=simple_dict(acct), evnt_id='')
     except Exception as e:
         log.exception('Template error')
         raise

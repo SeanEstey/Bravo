@@ -34,8 +34,8 @@ beat_schedule = {
         'task': 'app.notify.tasks.schedule_reminders',
         'schedule': crontab(hour=7, minute=0, day_of_week='*')
     },
-    'mem_check': {
-        'task': 'app.main.tasks.mem_check',
+    'health_check': {
+        'task': 'app.main.tasks.health_check',
         'schedule': crontab(hour='*', minute=10, day_of_week='*')
     },
 	'monitor_triggers': {

@@ -4,7 +4,7 @@ import matplotlib.path as mplPath
 import numpy as np
 from flask import g
 from app import get_keys
-from app.lib.utils import formatter
+from app.lib.utils import format_bson
 from app.main import parser
 from logging import getLogger
 log = getLogger(__name__)
@@ -30,7 +30,7 @@ def get_maps(agcy=None):
     if not agcy:
         agcy = g.user.agency
     maps = g.db.maps.find_one({'agency':agcy})['features']
-    return formatter(maps, bson_to_json=True)
+    return maps
 
 #-------------------------------------------------------------------------------
 def find_map(agcy, pt):

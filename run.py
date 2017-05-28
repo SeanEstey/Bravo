@@ -23,7 +23,7 @@ def do_teardown(response):
 #-------------------------------------------------------------------------------
 def main(argv):
 
-    #from detect import startup_msg,
+    from detect import startup_msg
     from detect import set_environ
     import workers
 
@@ -54,8 +54,8 @@ def main(argv):
     workers.kill()
     time.sleep(1)
     workers.start(beat=bool(environ.get('BRV_BEAT')))
-    time.sleep(4)
-    #startup_msg(app, show_celery=False)
+    time.sleep(1)
+    startup_msg(app, show_celery=False)
 
     app.logger.info("Server ready @%s", app.config['LOCAL_URL'])
 

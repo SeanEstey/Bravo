@@ -3,7 +3,6 @@ import logging
 from datetime import date, datetime, timedelta
 from flask import g, request, session
 from app.main.etap import call, EtapError
-from app.lib.utils import print_vars
 from app.lib.dt import to_local
 from .dialog import *
 from logging import getLogger

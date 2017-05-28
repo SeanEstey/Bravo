@@ -1,9 +1,8 @@
 '''detect'''
 import os, requests, socket, sys, time
 from flask import current_app, g
-import psutil
 from os import environ as env
-import celery, eventlet, flask
+import eventlet, flask #,celery
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -23,11 +22,12 @@ def startup_msg(app, show_celery=False):
     evntlt_v = eventlet.__version__
     flsk_v = flask.__version__
 
-    from app.main.tasks import mem_check
+    from app.lib.utils import mem_check
     mem = mem_check()
     active = (mem.active/1000000)
     total = (mem.total/1000000)
     free = mem.free/1000000
+    from app.lib.utils import os_desc
 
     bravo_msg =\
     "%s-------------------------------- %s%s\n"                       %(G,Y,os_desc()) +\
@@ -128,29 +128,3 @@ def set_environ(app):
         log.debug('SSL certificate verified. status code=%s', r.status_code)
         env['BRV_SSL'] = 'True'
         env['BRV_HTTP_HOST'] = 'https://' + env['BRV_DOMAIN']
-
-#-------------------------------------------------------------------------------
-def os_desc():
-    from os.path import isfile
-    name = ''
-    if isfile('/etc/lsb-release'):
-        lines = open('/etc/lsb-release').read().split('\n')
-        for line in lines:
-            if line.startswith('DISTRIB_DESCRIPTION='):
-                name = line.split('=')[1]
-                if name[0]=='"' and name[-1]=='"':
-                    return name[1:-1]
-    if isfile('/suse/etc/SuSE-release'):
-        return open('/suse/etc/SuSE-release').read().split('\n')[0]
-    try:
-        import platform
-        return ' '.join(platform.dist()).strip().title()
-        #return platform.platform().replace('-', ' ')
-    except ImportError:
-        pass
-    if os.name=='posix':
-        osType = os.getenv('OSTYPE')
-        if osType!='':
-            return osType
-    ## sys.platform == 'linux2'
-    return os.name

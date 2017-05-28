@@ -6,7 +6,6 @@ from dateutil.parser import parse
 from bson import ObjectId as oid
 from flask import g, render_template
 from app import get_keys, celery #, smart_emit
-from app.lib.utils import to_title_case
 from app.lib.dt import to_local
 from app.lib import mailgun
 from app.main import cal

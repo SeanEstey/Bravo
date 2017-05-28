@@ -8,7 +8,7 @@ from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 from config import LOG_PATH
 from app import get_username, get_group, colors as c
-from .utils import formatter
+from .utils import format_bson
 write_method = 'insert_one'
 write_many_method = 'insert_many'
 _connection = None
@@ -77,9 +77,7 @@ def get_logs(start=None, end=None, user=None, groups=None, tag=None, levels=None
         {'_id':0}
     ).limit(50).sort('timestamp', -1)
 
-    #print "%s logs queried" %(logs.count())
-
-    return formatter(list(logs), bson_to_json=True)
+    return format_bson(list(logs))
 
 #-------------------------------------------------------------------------------
 class MongoFormatter(logging.Formatter):
@@ -328,8 +326,8 @@ class BufferedMongoHandler(MongoHandler):
                 self.empty_buf()
             except Exception as e:
                 print 'Mongo write error! %s' % str(e)
-                from app.lib.utils import print_vars
-                print print_vars(e)
+                from app.lib.utils import obj_vars
+                print obj_vars(e)
                 self.empty_buf()
 
                 if not self.raise_exc:

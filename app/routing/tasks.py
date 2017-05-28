@@ -7,7 +7,7 @@ from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 from app import celery, get_keys, get_group
 from app.lib import gcal, gdrive, gsheets
-from app.lib.utils import formatter
+from app.lib.utils import format_bson
 from app.lib.dt import to_local, ddmmyyyy_to_date
 from app.main import parser
 from app.main.etap import EtapError, get_udf
@@ -68,7 +68,7 @@ def discover_routes(self, agcy, within_days=5, **rest):
                 block, event_dt.strftime('%b %-d'))
 
             smart_emit('discover_routes', {
-                'status': 'discovered', 'route': formatter(meta, to_strftime=True, bson_to_json=True)},
+                'status': 'discovered', 'route': format_bson(meta, dt_str=True)},
                 room=g.group)
 
             n_found +=1

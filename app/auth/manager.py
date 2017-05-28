@@ -4,13 +4,9 @@ from bson.objectid import ObjectId
 from flask import g, current_app
 from flask_login import current_user, login_user, logout_user
 from app import login_manager
-from app.lib.utils import print_vars
 from .user import User
 from logging import getLogger
 log = getLogger(__name__)
-
-#from run import my_g
-
 
 #-------------------------------------------------------------------------------
 def login(username, pw):

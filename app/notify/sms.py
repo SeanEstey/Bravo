@@ -8,6 +8,7 @@ from app.lib import html
 from app.lib.dt import to_utc, to_local
 from app.alice.outgoing import compose
 from app.main.donors import get
+from app.main.parser import title_case
 from .utils import intrntl_format, simple_dict
 from logging import getLogger
 log = getLogger(__name__)
@@ -62,7 +63,7 @@ def send(notific, twilio_conf):
         from_ = twilio_conf['sms']['valid_from_number']
     else:
         from_ = twilio_conf['sms']['number']
-        log.debug('queued sms to %s', notific['to'])
+        log.debug('Queued SMS notific to %s', notific['to'])
 
     body = html.clean_whitespace(body)
     http_host = env['BRV_HTTP_HOST']
@@ -96,8 +97,7 @@ def preview(acct_id=None):
             evnt = g.db.events.find_one({'type':'bpu', 'agency':g.user.agency})
             acct = g.db.accounts.find_one({'evnt_id':evnt['_id']})
         except Exception as e:
-            log.error('no evnt or acct available for sms preview')
-            log.debug(str(e))
+            log.exception('Invalid event/acct for SMS preview')
             raise
 
     try:
@@ -105,7 +105,7 @@ def preview(acct_id=None):
             'sms/%s/reminder.html' % g.user.agency,
             account = simple_dict(acct))
     except Exception as e:
-        log.error('Error rendering SMS body. %s', str(e))
+        log.exception('Error rendering SMS body. %s')
         raise
     else:
         return body
@@ -127,13 +127,7 @@ def on_status():
     evnt = g.db.events.find_one({'_id':notific.get('evnt_id')})
     g.group = evnt['agency']
 
-    if status == 'delivered':
-        log.debug('%sdelivered SMS notific to %s%s',
-            c.GRN, to, c.ENDC)
-    elif status == 'queued':
-        log.debug('queued SMS notific to %s', to)
-    else:
-        log.debug('%s SMS notific to %s', status, to)
+    log.debug('%s SMS notific to %s', title_case(status), to)
 
     # Could be a new sid from a reply to reminder text?
     if not notific:

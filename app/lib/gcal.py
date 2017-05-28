@@ -3,7 +3,7 @@ import httplib2, json, logging, requests
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from apiclient.discovery import build
-from .utils import print_vars, dump
+from .utils import obj_vars, dump_bson
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -85,14 +85,13 @@ def update_event(srvc, item, title=None, location=None, desc=None, color_id=None
         raise
 
     log.debug('Updated event %s...', rv['summary'][0:4],
-        extra={'event':dump(dump_event(rv))})
+        extra={'event':dump_bson(dump_event(rv))})
 
 #-------------------------------------------------------------------------------
 def get_colors(srvc):
     '''
     '''
     colors = srvc.colors().get().execute()
-    log.debug(print_vars(colors))
 
     # Print available calendarListEntry colors.
     for id, color in colors['calendar'].iteritem():
@@ -118,5 +117,4 @@ def dump_event(item):
         'location': item.get('location'),
         'start': item['start'],
         'end': item['end']
-
     }

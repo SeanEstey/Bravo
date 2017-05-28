@@ -7,7 +7,6 @@ make_response, request, current_app
 from flask_login import login_user, current_user
 from bson.objectid import ObjectId
 from auth import user
-from app.lib.utils import print_vars
 
 log = getLogger(__name__)
 

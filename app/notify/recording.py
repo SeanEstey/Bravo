@@ -4,7 +4,7 @@ from datetime import datetime
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException, twiml
 from flask import g, request
-from app.lib.utils import print_vars
+from app.lib.utils import obj_vars
 #from .. import smart_emit
 from logging import getLogger
 log = getLogger(__name__)
@@ -49,7 +49,7 @@ def dial_recording():
         log.error('call to %s failed. %s', request.form['To'], str(e))
         return {'status':'failed', 'description': 'Invalid phone number'}
     else:
-        log.debug(print_vars(call))
+        log.debug(obj_vars(call))
 
         g.db.audio.insert_one({
             'date': datetime.utcnow(),

@@ -5,7 +5,7 @@ from bson.objectid import ObjectId
 from flask_login import login_required
 from flask import g, request, jsonify, render_template, Response, url_for
 from app import get_keys
-from app.lib.utils import formatter, to_title_case
+from app.lib.utils import format_bson
 from app.main import parser
 from . import notify, accounts, events, triggers
 from logging import getLogger
@@ -52,14 +52,13 @@ def view_event(evnt_id):
     notific_list = list(events.get_notifics(ObjectId(evnt_id)))
     trigger_list = events.get_triggers(ObjectId(evnt_id))
 
-    notific_list = formatter(
+    notific_list = format_bson(
         notific_list,
-        to_local_time=True,
-        to_strftime="%m/%-d/%Y",
-        bson_to_json=True)
+        loc_time=True,
+        dt_str="%m/%-d/%Y")
 
     for trigger in trigger_list:
-        trigger['type'] = to_title_case(trigger['type'])
+        trigger['type'] = parser.title_case(trigger['type'])
 
     return render_template(
         'views/event.html',
@@ -78,11 +77,9 @@ def view_opt_out(evnt_id, acct_id):
     acct = None
 
     if valid:
-        acct = formatter(
+        acct = format_bson(
             g.db.accounts.find_one({'_id':ObjectId(acct_id)}),
-            to_local_time=True,
-            to_strftime="%m/%-d/%Y",
-            bson_to_json=True)
+            loc_time=True, dt_str="%m/%-d/%Y")
 
     return render_template(
         'views/opt_out.html',

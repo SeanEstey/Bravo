@@ -2,7 +2,7 @@
 import logging
 from flask_login import login_required, current_user
 from flask import g, request, jsonify, render_template, session, Response
-from app.lib.utils import formatter, print_vars, start_timer, end_timer
+from app.lib.utils import format_bson
 from . import alice, incoming
 from .session import store_sessions, dump_session, dump_sessions, wipe_sessions
 from .incoming import make_reply
@@ -35,26 +35,22 @@ def _get_chatlogs():
         log.debug(str(e))
 
     return jsonify(
-        formatter(
+        format_bson(
             chatlogs,
-            to_local_time=True,
-            bson_to_json=True))
+            loc_time=True,
+            to_json=True))
 
 #-------------------------------------------------------------------------------
 @alice.route('/<agency>/receive', methods=['POST'])
 def sms_received(agency):
+
     session['agency'] = agency
-    a = start_timer()
 
     try:
         response = incoming.receive()
     except Exception as e:
-        log.error(str(e))
-        log.debug('',exc_info=True)
-        log.debug(dump_session())
+        log.exception('Error receiving SMS', extra={'session':dump_session()})
         return make_reply(dialog['error']['unknown'])
-
-    end_timer(a)
 
     return response
 

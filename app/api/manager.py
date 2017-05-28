@@ -3,7 +3,8 @@ from json import dumps, loads
 from flask import g, Response, request, jsonify
 from flask_login import current_user
 import celery.result
-from app.lib.utils import start_timer, end_timer, formatter
+from app.lib.utils import format_bson
+from app.lib.timer import Timer
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -24,7 +25,8 @@ def WRITE_ME(msg=None):
 
 #-------------------------------------------------------------------------------
 def func_call(function, *args, **kwargs):
-    s = start_timer()
+
+    timer = Timer()
 
     try:
         rv = function(*args, **kwargs)
@@ -33,7 +35,7 @@ def func_call(function, *args, **kwargs):
             extra={'request':dump_request()})
         return build_resp(exc=e)
 
-    return build_resp(rv=rv, name=function.__name__, dt=s)
+    return build_resp(rv=rv, name=function.__name__, timer=timer)
 
 #-------------------------------------------------------------------------------
 def task_call(function, *args, **kwargs):
@@ -47,7 +49,7 @@ def task_call(function, *args, **kwargs):
     return build_resp(rv=rv)
 
 #-------------------------------------------------------------------------------
-def build_resp(rv=None, exc=None, name=None, dt=None):
+def build_resp(rv=None, exc=None, name=None, timer=None):
     '''Returns JSON obj: {"status": <str>, "desc": <failure str>, "data": <str/dict/list>}
     '''
 
@@ -64,9 +66,9 @@ def build_resp(rv=None, exc=None, name=None, dt=None):
     # Success
 
     try:
-        json_rv = formatter({'status':'success', 'data':rv}, bson_to_json=True, to_json=True)
+        json_rv = format_bson({'status':'success', 'data':rv}, to_json=True)
     except Exception as e:
-        log.debug('rv is not serializable.')
+        log.exception('Return value is not serializable.')
         json_rv = dumps({'status':'success', 'data':'return value not serializable'})
 
     resp = Response(response=json_rv, status=200,mimetype='application/json')
@@ -75,7 +77,7 @@ def build_resp(rv=None, exc=None, name=None, dt=None):
         log.debug('%s success', request.path,
             extra={
                 'request':dump_request(),
-                'duration': end_timer(dt),
+                'duration': timer.clock(),
                 'function':name,
                 'response': dump_response(resp)})
 

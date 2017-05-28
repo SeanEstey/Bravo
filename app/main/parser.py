@@ -1,5 +1,5 @@
 '''app.main.parser'''
-from re import match, search
+from re import match, search, sub
 
 re_blck = r'(D|B|R)\d{1,2}\w'
 re_bus_blck = r'B\d{1,2}[A-E]{1}'
@@ -57,3 +57,8 @@ def get_area(evnt_sumry):
     m = search(r'\[(.*)\]', evnt_sumry)
     if not m: return False
     return m.group(0)[1:-1]
+
+def title_case(s):
+    s = sub(r'\"', '', s)
+    s = sub(r'_', ' ', s)
+    return s.title()

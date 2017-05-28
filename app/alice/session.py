@@ -9,7 +9,7 @@ from datetime import datetime, date, timedelta
 from app.main.etap import is_active, EtapError
 from app.main.tasks import create_rfu
 from app.lib.dt import to_local
-from app.lib.utils import print_vars
+from app.lib.utils import obj_vars
 from . import keywords
 from .util import related_notific, lookup_acct, event_begun
 from .dialog import *
@@ -154,7 +154,7 @@ def dump_session(key=None, to_dict=False):
     if to_dict:
         return sess
     else:
-        return 'session dump (id=%s):\n%s' % (key, print_vars(sess))
+        return 'session dump (id=%s):\n%s' % (key, obj_vars(sess))
 
 #-------------------------------------------------------------------------------
 def dump_sessions():

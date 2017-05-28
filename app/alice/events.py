@@ -2,7 +2,7 @@
 from flask import g, request, session
 from datetime import datetime, date, time, timedelta
 from app.lib.dt import to_local, ddmmyyyy_to_dt
-from app.lib.utils import print_vars
+from app.lib.utils import obj_vars
 from app.main.etap import call, get_udf, EtapError
 from app.booker import geo, search, book
 from .dialog import dialog
@@ -102,8 +102,6 @@ def skip_pickup():
         return dialog['skip']['too_late']
 
     notific = g.db.notifics.find_one({'_id':session.get('notific_id')})
-
-    #log.debug(utils.formatter(notific, bson_to_json=True))
 
     try:
         result = skip_pickup_task.delay(
@@ -217,7 +215,7 @@ def add_acct(address, phone, block, pu_date_str):
         conf['google']['geocode']['api_key']
     )[0]
 
-    #log.info(utils.print_vars(geo_result, depth=2))
+    #log.info(utils.obj_vars(geo_result, depth=2))
 
     addy = {
         'postal': None,
@@ -268,7 +266,7 @@ def add_acct(address, phone, block, pu_date_str):
         }
     }
 
-    log.info(print_vars(acct, depth=2))
+    log.info(obj_vars(acct, depth=2))
 
     try:
         call(

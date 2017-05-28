@@ -1,48 +1,28 @@
 '''app.lib.utils'''
-import inspect, json, pytz, re, types
-from pprint import pformat
-from bson import json_util
+import gc, json, logging, os, re, types
+from logging import getLogger
 from datetime import datetime, time, date
 from .dt import to_local, local_tz, convert_obj
 
-#-------------------------------------------------------------------------------
-def inspector(obj, public=True, private=False):
-    is_obj = (hasattr(obj, '__class__') and obj.__class__.__name__ or type(obj).__name__)
-
-    if is_obj == False:
-        return 'not an object. cant print'
-
-    output = ''
-
-    if public:
-        name = obj.__class__.__name__
-        if name == 'Flask':
-            output += 'Public: %\n' % print_vars(obj, ignore=['url_map', 'view_functions'])
-        elif name == 'Celery':
-            output += 'Public: %s\n' % print_vars(obj, ignore=['_conf', '_tasks'])
-        else:
-            output += 'Public: %s\n' % print_vars(obj)
-
-    if private:
-        output += 'Private: %s' % pformat(vars(obj),indent=4)
-
-    return output
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def module_inspector(mylocals=False):
-    if mylocals:
+def global_vars(deep=False):
+
+    if deep:
         _globals = globals().copy()
         _globals.pop('__builtins__')
-        return print_vars(_globals,depth=1)
+        return obj_vars(_globals,depth=1)
+
+    _vars = ''
 
     for name, val in globals().items():
-        print 'name=%s, val=%s' %(name, val)
-        #if isinstance(val, types.ModuleType):
-        #    #yield val.__name__
-        #    print val.__name__
+        _vars += 'name=%s, val=%s' %(name, val)
+
+    return _vars
 
 #-------------------------------------------------------------------------------
-def print_vars(obj, depth=0, ignore=None, l="    "):
+def obj_vars(obj, depth=0, ignore=None, l="    "):
     '''Print vars for any object.
     @depth: level of recursion
     @l: separator string
@@ -70,7 +50,7 @@ def print_vars(obj, depth=0, ignore=None, l="    "):
         # Try to iterate as if obj were a list
 
         try:
-			return "[\n" + "\n".join(l + print_vars(
+			return "[\n" + "\n".join(l + obj_vars(
 				k, depth=depth-1, l=l+"  ") + "," for k in obj) + "\n" + l + "]"
         except TypeError, e:
             #else, expand/recurse object attribs
@@ -96,58 +76,87 @@ def print_vars(obj, depth=0, ignore=None, l="    "):
     return name + "{\n" + "\n"\
         .join(
             l + repr(k) + ": " + \
-            print_vars(v, depth=depth-1, ignore=ignore, l=l+"  ") + \
+            obj_vars(v, depth=depth-1, ignore=ignore, l=l+"  ") + \
             "," for k, v in objdict.iteritems()
         ) + "\n" + l + "}"
 
 #-------------------------------------------------------------------------------
-def dump(doc):
-    return formatter(doc,
-        to_local_time=True,
-        to_strftime="%b %d, %H:%M %p",
-        bson_to_json=True)
-
-#-------------------------------------------------------------------------------
-def formatter(doc, to_local_time=False, to_strftime=None, bson_to_json=False, to_json=False):
-    '''@bson_to_json: convert ObjectIds->{'oid': 'string'}
-    @to_local_time, to_strftime: convert utc datetimes to local time (and to
-    string optionally)
+def format_bson(obj, loc_time=False, dt_str=None, to_json=False):
+    '''Make BSON obj vars printable (default) or to JSON str.
+    @to_json: convert to str (BSON.date->{'$date':<timestamp str>})
+    @loc_time: UTC dt to localized tz dt
+    @dt_str: BSON->Date to strftime formatted str
     '''
 
-    if to_local_time == True:
-        doc = convert_obj(doc, to_tz=local_tz, to_str=to_strftime)
+    if loc_time == True or dt_str:
+        obj = convert_obj(obj, to_tz=local_tz, to_str=dt_str)
 
-    if bson_to_json == True:
-        no_bson = json_util.dumps(doc)
+    from bson import json_util
 
-        if to_json:
-            return no_bson
-        else:
-            return json.loads(no_bson)
-
-    if to_json:
-        return json.dumps(doc)
-
-    return doc
+    if to_json == True:
+        return json_util.dumps(obj)
+    else:
+        return json.loads(json_util.dumps(obj))
 
 #-------------------------------------------------------------------------------
-def remove_quotes(s):
-    s = re.sub(r'\"', '', s)
-    return s
+def dump_bson(obj):
+    '''BSON obj->JSON str'''
+
+    return format_bson(obj,
+        loc_time=True,
+        dt_str="%b %d, %H:%M %p",
+        to_json=True)
 
 #-------------------------------------------------------------------------------
-def to_title_case(s):
-    s = re.sub(r'\"', '', s)
-    s = re.sub(r'_', ' ', s)
-    return s.title()
+def mem_check():
+
+    import psutil
+    mem = psutil.virtual_memory()
+    total = (mem.total/1000000)
+    free = mem.free/1000000
+
+    if free < 350:
+        log.debug('low memory. %s/%s. forcing gc/clearing cache...', free, total)
+        os.system('sudo sysctl -w vm.drop_caches=3')
+        os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
+        gc.collect()
+        mem = psutil.virtual_memory()
+        total = (mem.total/1000000)
+        now_free = mem.free/1000000
+        log.debug('freed %s mb', now_free - free)
+
+        if free < 350:
+            log.warning('warning: low memory! 250mb recommended (%s/%s)', free, total)
+
+    return mem
 
 #-------------------------------------------------------------------------------
-def start_timer():
-    return datetime.now()
+def os_desc():
 
-#-------------------------------------------------------------------------------
-def end_timer(start_dt):
-    b = datetime.now()
-    c = b - start_dt
-    seconds = '%s.%ss' % (c.seconds, str(c.microseconds/1000))
-    return seconds
+    from os.path import isfile
+
+    name = ''
+    if isfile('/etc/lsb-release'):
+        lines = open('/etc/lsb-release').read().split('\n')
+        for line in lines:
+            if line.startswith('DISTRIB_DESCRIPTION='):
+                name = line.split('=')[1]
+                if name[0]=='"' and name[-1]=='"':
+                    return name[1:-1]
+    if isfile('/suse/etc/SuSE-release'):
+        return open('/suse/etc/SuSE-release').read().split('\n')[0]
+    try:
+        import platform
+
+        return ' '.join(platform.dist()).strip().title()
+        #return platform.platform().replace('-', ' ')
+    except ImportError:
+        pass
+    if os.name=='posix':
+        osType = os.getenv('OSTYPE')
+        if osType!='':
+            return osType
+    ## sys.platform == 'linux2'
+    return os.name
+
+

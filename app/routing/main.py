@@ -6,7 +6,7 @@ from flask import g, request
 from bson import ObjectId as oid
 from app import get_keys
 from app.lib import gsheets
-from app.lib.utils import print_vars, formatter
+from app.lib.utils import format_bson
 from app.lib.dt import ddmmyyyy_to_date
 from app.main.etap import EtapError, get_udf, get_query
 from . import depots
@@ -50,11 +50,7 @@ def get_metadata():
         'date': {'$gte':datetime.combine(date.today(),time())}
     }).sort('date', 1)
 
-    docs = formatter(
-        list(docs),
-        bson_to_json=True,
-        to_local_time=True,
-        to_strftime="%A %b %d")
+    docs = format_bson(list(docs), loc_time=True, dt_str="%A %b %d")
 
     for route in docs:
         # for storing in route_btn.attr('data-route')

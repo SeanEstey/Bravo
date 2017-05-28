@@ -7,7 +7,7 @@ from flask import g, request, jsonify, url_for
 from app import get_keys
 from app.main import cal, parser
 from app.main.parser import is_res, is_bus
-from app.lib.utils import formatter
+from app.lib.utils import format_bson
 from app.lib.dt import to_utc, to_local
 from . import triggers
 from logging import getLogger
@@ -66,10 +66,7 @@ def create_event():
         extra={'type':event['type']})
 
     return {
-        'event': formatter(
-            event,
-            to_local_time=True,
-            bson_to_json=True),
+        'event': format_bson(event, loc_time=True),
         'description':
             'Reminders for event %s successfully scheduled.' %
             (request.form['query_name']),
@@ -256,7 +253,7 @@ def dump_event(evnt_id):
         # modifying 'triggers' structure for view rendering
         trigger['count'] = triggers.get_count(trigger['_id'])
 
-    return jsonify(formatter(event,
-        to_local_time=True,
-        to_strftime="%m/%-d/%Y @ %-I:%M%p",
-        bson_to_json=True))
+    return jsonify(format_bson(event,
+        loc_time=True,
+        dt_str="%m/%-d/%Y @ %-I:%M%p",
+        to_json=True))

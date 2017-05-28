@@ -8,7 +8,7 @@ from celery.signals import worker_process_init, worker_ready, worker_shutdown
 from celery.signals import celeryd_init, celeryd_after_setup
 from app import create_app, colors as c, celery
 from app.lib.mongodb import create_client, authenticate
-from app.lib.utils import inspector, start_timer, end_timer
+from app.lib.timer import Timer
 from uber_task import UberTask
 import celeryconfig
 
@@ -19,7 +19,7 @@ celery.config_from_object(celeryconfig)
 db_client = create_client(connect=False, auth=False)
 UberTask.db_client = db_client
 celery.Task = UberTask
-timer = None
+timer = Timer(start=False)
 
 @celeryd_init.connect
 def _celeryd_init(**kwargs):
@@ -98,7 +98,7 @@ def _child_task_prerun(signal=None, sender=None, task_id=None, task=None, *args,
 
     print 'RECEIVED TASK %s' % sender.name.split('.')[-1]
     global timer
-    timer = start_timer()
+    timer.restart()
 
 #-------------------------------------------------------------------------------
 @task_postrun.connect
@@ -115,6 +115,7 @@ state=None, *args, **kwargs):
     '''
 
     global timer
+    timer.stop()
     name = sender.name.split('.')[-1]
 
     # Force log flush to Mongo if timer set since thread timer seems to sleep after task is complete.
@@ -147,8 +148,8 @@ def _child_task_revoke(sender=None, task_id=None, request=None, terminated=None,
     terminated. A new child worker will spawn, causing Mongo fork warnings.
     '''
 
-    from app.lib.utils import dump, print_vars
+    from app.lib.utils import obj_vars
     name = sender.name.split('.')[-1]
-    str_req = print_vars(request)
+    str_req = obj_vars(request)
     print 'TASK_REVOKED. NAME %s' % name
     app.logger.warning('Task %s revoked', name, extra={'request':str_req})

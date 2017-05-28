@@ -6,7 +6,7 @@ from flask import g, render_template, request
 from app import get_keys
 from . import donors
 from app.lib import html, mailgun
-from app.lib.utils import to_title_case
+from app.main.parser import title_case
 from app.lib.gsheets import update_cell, to_range, gauth, get_row
 from app.lib.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
 from .etap import call, get_udf
@@ -74,7 +74,7 @@ def generate(acct, entry, ytd_gifts=None):
                 'n_ytd_gifts':len(ytd_gifts) if ytd_gifts else 0,
                 'mid':mid[0:mid.find('.')]})
 
-    return {'mid':mid, 'status': '%s "%s"...' %(status, to_title_case(r_title[0:-5]))}
+    return {'mid':mid, 'status': '%s "%s"...' %(status, title_case(r_title[0:-5]))}
 
 #-------------------------------------------------------------------------------
 def render_body(path, acct, entry=None, ytd_gifts=None):

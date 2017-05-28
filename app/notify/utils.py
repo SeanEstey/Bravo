@@ -1,7 +1,7 @@
 '''app.notify.utils'''
 import re
 from flask import g
-from app.lib.utils import formatter
+from app.lib.utils import format_bson
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -26,9 +26,5 @@ def intrntl_format(to):
         return None
 
 #-------------------------------------------------------------------------------
-def simple_dict(mongo_dict):
-    return formatter(
-        mongo_dict,
-        to_local_time=True,
-        to_strftime="%A, %B %d",
-        bson_to_json=True)
+def simple_dict(bson_obj):
+    return format_bson(bson_obj, loc_time=True, dt_str="%A, %B %d")

@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import g, request, has_request_context
 from flask_login import current_user
 from flask_socketio import SocketIO, join_room, leave_room, send, emit, rooms
-from app.lib.utils import print_vars, inspector
+from app.lib.utils import obj_vars
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -87,8 +87,8 @@ def do_analyze_routes():
 
 #-------------------------------------------------------------------------------
 def dump():
-    log.debug('sio_server: \n%s', print_vars(sio_server))
+    log.debug('sio_server: \n%s', obj_vars(sio_server))
     log.debug('sio_server dir:\n%s', dir(sio_server))
-    log.debug('sio_server.server: \n%s', print_vars(sio_server.server))
+    log.debug('sio_server.server: \n%s', obj_vars(sio_server.server))
     log.debug('sio_server.server dir:\n%s', dir(sio_server.server))
-    log.debug('request:\n%s', print_vars(request))
+    log.debug('request:\n%s', obj_vars(request))

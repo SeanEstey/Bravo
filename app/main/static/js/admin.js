@@ -50,9 +50,19 @@ function initUserPane() {
 
     $("[name='adm_panl_check']").bootstrapSwitch();
 
+    api_call(
+      'user/get',
+      data=null,
+      function(response){
+          var user = response['data'];
+          console.log(user);
+          $("#user_form [id='first_name']").text(user['name']);
+          $("#user_form [id='user_name']").text(user['user_id']);
+          $("#user_form [id='is_admin']").text(user['admin']);
+      });
+
     $('#logout').click(function(e){
         e.preventDefault();
-
         api_call(
             'user/logout',
             data=null,

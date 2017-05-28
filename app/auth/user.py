@@ -23,6 +23,12 @@ class User():
         return self.name
 
     #---------------------------------------------------------------------------
+    def to_dict(self):
+        user_dict = self.__dict__
+        user_dict['_id'] = str(user_dict['_id'])
+        return user_dict
+
+    #---------------------------------------------------------------------------
     def is_admin(self):
         return self.admin
 

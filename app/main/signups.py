@@ -135,6 +135,7 @@ def send_welcome():
         mid = mailgun.send(acct['email'], 'Welcome!', html, get_keys('mailgun'),
             v={'agcy':g.group, 'type':'signup', 'from_row':row})
     except Exception as e:
+        from app.main.tasks import create_rfu
         log.exception('Failed to send Sign-up Welcome to %s', acct['email'],
             extra={'row':row})
         create_rfu.delay(g.group, str(e))
@@ -181,6 +182,7 @@ def on_dropped(agcy):
     except Exception as e:
         log.exception('Error updating Sheet')
 
+    from app.main.tasks import create_rfu
     create_rfu.delay(g.group,
         'Welcome dropped to %s. %s. %s.' %(
             request.form['recipient'],

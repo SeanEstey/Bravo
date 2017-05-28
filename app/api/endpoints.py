@@ -324,3 +324,8 @@ def user_login():
 def user_logout():
     from app.auth.manager import logout
     return func_call(logout)
+
+@api.route('/user/get', methods=['POST'])
+@login_required
+def get_user_info():
+    return func_call(g.user.to_dict)

@@ -15,11 +15,16 @@
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
 				Frequency: {{ acct["accountDefinedValues"]["Frequency"] }}
 			</div>
-			<div style='font-size:12pt; margin: 1.0em 0.5em'>
-				Please let us know if the address above is incorrect.
-				We'll leave you a Bag Buddy stand and Vecova bags. You do not need to be home. 
-				If you have empties, you can label them <b>'Vecova'</b> and place them at your front entrance by 8am.
-			</div>
+      {% if acct["accountDefinedValues"]["Frequency"] == "Single Pick-up" %}
+        <div style='font-size:12pt; margin: 1.0em 0.5em'>
+          Our driver will be by between 9:00 - 5:00. You do not need to be home for the pick-up, simply leave your empties by your front entrance (unless another arrangement has been discussed).
+        </div>
+      {% else %}
+        <div style='font-size:12pt; margin: 1.0em 0.5em'>
+          Please let us know if the address above is incorrect.
+          Our driver will be by between 9:00 - 5:00 to deliver your collection supplies. You do not need to be home. If you have empties, you can label them <b>'Vecova'</b> and place them at your front entrance.
+        </div>
+      {% endif %}
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
 				We hope you enjoy the service.
 			</div>

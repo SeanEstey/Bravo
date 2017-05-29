@@ -1,10 +1,7 @@
 '''app.lib.utils'''
-import gc, json, logging, os, re, types
-from logging import getLogger
+import json, os, types
 from datetime import datetime, time, date
 from .dt import to_local, local_tz, convert_obj
-
-log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def global_vars(deep=False):
@@ -23,7 +20,7 @@ def global_vars(deep=False):
 
 #-------------------------------------------------------------------------------
 def obj_vars(obj, depth=0, ignore=None, l="    "):
-    '''Print vars for any object.
+    '''Recursive str dump of object vars.
     @depth: level of recursion
     @l: separator string
     '''
@@ -82,9 +79,9 @@ def obj_vars(obj, depth=0, ignore=None, l="    "):
 
 #-------------------------------------------------------------------------------
 def format_bson(obj, loc_time=False, dt_str=None, to_json=False):
-    '''Make BSON obj vars printable (default) or to JSON str.
-    @to_json: convert to str (BSON.date->{'$date':<timestamp str>})
-    @loc_time: UTC dt to localized tz dt
+    '''Serialize BSON object.
+    @to_json: BSON->JSON str (BSON.date->{'$date':<timestamp str>})
+    @loc_time: UTC dt->localized tz dt
     @dt_str: BSON->Date to strftime formatted str
     '''
 
@@ -109,26 +106,14 @@ def dump_bson(obj):
 
 #-------------------------------------------------------------------------------
 def mem_check():
+    '''Returns dict of sys mem in MB {'free', 'active', 'tottal', etc}'''
 
     import psutil
     mem = psutil.virtual_memory()
-    total = (mem.total/1000000)
-    free = mem.free/1000000
-
-    if free < 350:
-        log.debug('low memory. %s/%s. forcing gc/clearing cache...', free, total)
-        os.system('sudo sysctl -w vm.drop_caches=3')
-        os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
-        gc.collect()
-        mem = psutil.virtual_memory()
-        total = (mem.total/1000000)
-        now_free = mem.free/1000000
-        log.debug('freed %s mb', now_free - free)
-
-        if free < 350:
-            log.warning('warning: low memory! 250mb recommended (%s/%s)', free, total)
-
-    return mem
+    mem_dict = mem.__dict__
+    for k in mem_dict:
+        mem_dict[k] = mem_dict[k] / 1000000
+    return mem_dict
 
 #-------------------------------------------------------------------------------
 def os_desc():

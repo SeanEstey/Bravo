@@ -68,7 +68,7 @@ def discover_routes(self, agcy, within_days=5, **rest):
                 block, event_dt.strftime('%b %-d'))
 
             smart_emit('discover_routes', {
-                'status': 'discovered', 'route': format_bson(meta, dt_str=True)},
+                'status': 'discovered', 'route': format_bson(meta)},
                 room=g.group)
 
             n_found +=1

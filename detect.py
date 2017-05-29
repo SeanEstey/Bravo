@@ -24,9 +24,9 @@ def startup_msg(app, show_celery=False):
 
     from app.lib.utils import mem_check
     mem = mem_check()
-    active = (mem.active/1000000)
-    total = (mem.total/1000000)
-    free = mem.free/1000000
+    active = mem['active']
+    total = mem['total']
+    free = mem['free']
     from app.lib.utils import os_desc
 
     bravo_msg =\

@@ -1,5 +1,5 @@
 '''app.main.tasks'''
-import json, os, re, requests
+import json
 from guppy import hpy
 from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta
@@ -26,14 +26,30 @@ log = getLogger(__name__)
 def backup_mongo(self, **rest):
 
     from db_auth import user, password
+    import os
     os.system("mongodump -u %s -p %s -o ~/Dropbox/mongo" %(user,password))
     log.warning('MongoDB backup created')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def health_check(self, **rest):
+
     from app.lib.utils import mem_check
-    mem_check()
+    mem = mem_check()
+
+    if mem['free'] < 350:
+        import gc, os
+        log.debug('Low memory. %s/%s. forcing gc/clearing cache...',
+            mem['free'], mem['total'])
+        os.system('sudo sysctl -w vm.drop_caches=3')
+        os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
+        gc.collect()
+        mem2 = mem_check()
+        log.debug('Freed %s mb', mem2['free'] - mem['free'])
+
+        if mem2['free'] < 350:
+            log.warning('warning: low memory! 250mb recommended (%s/%s)',
+                mem2['free'], mem['total'])
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

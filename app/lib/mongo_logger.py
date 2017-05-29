@@ -1,83 +1,15 @@
-import logging, sys, pymongo, os
-from logging import getLogger, DEBUG, INFO, WARNING, ERROR, CRITICAL
-from logging import Filter, FileHandler, Formatter
-from datetime import datetime, timedelta
+import logging
+from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
+from datetime import datetime
 from pymongo.collection import Collection
 from pymongo.errors import OperationFailure, PyMongoError, ConnectionFailure
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 from config import LOG_PATH
-from app import get_username, get_group, colors as c
-from .utils import format_bson
+from app import get_username, get_group
 write_method = 'insert_one'
 write_many_method = 'insert_many'
 _connection = None
-
-class DebugFilter(Filter):
-    def filter(self, record):
-        return record.levelno == DEBUG
-class InfoFilter(Filter):
-    def filter(self, record):
-        return record.levelno == INFO
-class WarningFilter(Filter):
-    def filter(self, record):
-        return record.levelno == WARNING
-
-#---------------------------------------------------------------------------
-def file_handler(level, file_path,
-                 fmt=None, datefmt=None, color=None, name=None):
-
-    handler = FileHandler(file_path)
-    handler.setLevel(level)
-
-    if name is not None:
-        handler.name = name
-    else:
-        handler.name = 'lvl_%s_file_handler' % str(level)
-
-    if level == DEBUG:
-        handler.addFilter(DebugFilter())
-    elif level == INFO:
-        handler.addFilter(InfoFilter())
-    elif level == WARNING:
-        handler.addFilter(WarningFilter())
-
-    formatter = Formatter(
-        c.BLUE + (fmt or '[%(asctime)s %(name)s %(processName)s]: ' + c.ENDC + color + '%(message)s') + c.ENDC,
-        (datefmt or '%m-%d %H:%M'))
-
-    handler.setFormatter(formatter)
-
-    return handler
-
-#---------------------------------------------------------------------------
-def get_logs(start=None, end=None, user=None, groups=None, tag=None, levels=None):
-    '''
-    @start, end: naive datetime
-    @show_levels: subset of ['debug', 'info', 'warning', 'error']
-    @groups: subset of [g.user.agency, 'sys']
-    '''
-
-    DELTA_HRS = 24
-    now = datetime.utcnow()
-    start_dt = start if start else (now - timedelta(hours=DELTA_HRS))
-    end_dt = end if end else now
-    all_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
-
-    from flask import g
-
-    logs = g.db.logs.find({
-        'level': {'$in': levels} if levels else all_levels,
-        'user': user or {'$exists': True},
-        'group': {'$in': groups} if groups else {'$exists':True},
-        'timestamp': {
-           '$gte': start_dt,
-           '$lt': end_dt}
-        },
-        {'_id':0}
-    ).limit(50).sort('timestamp', -1)
-
-    return format_bson(list(logs))
 
 #-------------------------------------------------------------------------------
 class MongoFormatter(logging.Formatter):
@@ -99,11 +31,11 @@ class MongoFormatter(logging.Formatter):
             'process': record.process,
             'processName': record.processName,
             'thread': record.thread,
-            'threadName': record.threadName
-            #'fileName': record.pathname,
-            #'module': record.module,
-            #'method': record.funcName,
-            #'lineNumber': record.lineno
+            'threadName': record.threadName,
+            'fileName': record.pathname,
+            'module': record.module,
+            'method': record.funcName,
+            'lineNumber': record.lineno
         }
         # Standard document decorated with exception info
         if record.exc_info is not None:
@@ -128,7 +60,7 @@ class MongoHandler(logging.Handler):
     '''Based on log4mongo in PyPI'''
 
     def __init__(self, level=INFO, formatter=None, raise_exc=True, reuse=True,
-                 mongo_client=None, host='localhost', port=27017, connect=False, db_name=None, coll='logs',
+                 client=None, host='localhost', port=27017, connect=False, db_name=None, coll='logs',
                  auth_db_name='admin', user=None, pw=None,
                  capped=False, cap_max=1000, cap_size=1000000, **kwargs):
         '''Init Mongo DB connection.
@@ -139,7 +71,7 @@ class MongoHandler(logging.Handler):
 
         logging.Handler.__init__(self, level)
         global _connection
-        _connection = mongo_client
+        _connection = client
         self.conn = None
         self.db = None
         self.coll = None

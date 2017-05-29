@@ -1,4 +1,5 @@
 '''app.api.endpoints'''
+import logging
 from dateutil.parser import parse
 from json import loads, dumps
 from flask import g, request, Response
@@ -21,8 +22,7 @@ from app.notify.voice import get_token
 from app.routing.main import edit_field
 from . import api
 from app.api.manager import get_var, build_resp, func_call, task_call, WRITE_ME
-from logging import getLogger
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 @api.route('/accounts/submit_form', methods=['POST'])
 def accts_add_form():
@@ -295,24 +295,8 @@ def write_log():
 @api.route('/logger/get', methods=['POST'])
 @login_required
 def retrieve_logs():
-
-    levels = []
-    groups = []
-
-    for lvl in loads(get_var('levels')):
-        levels.append('DEBUG') if lvl['name'] == 'dbg_lvl' else None
-        levels.append('INFO') if lvl['name'] == 'inf_lvl' else None
-        levels.append('WARNING') if lvl['name'] == 'wrn_lvl' else None
-        levels.append('ERROR') if lvl['name'] == 'err_lvl' else None
-
-    for grp in loads(get_var('groups')):
-        groups.append(g.user.agency) if grp['name'] == 'usr_grp' else None
-        groups.append('sys') if grp['name'] == 'sys_grp' else None
-        groups.append('anon') if grp['name'] == 'anon_grp' else None
-
-    from app.lib.mongo_log import get_logs
-
-    return func_call(get_logs, groups=groups, levels=levels)
+    from app.main.logs import get_logs
+    return func_call(get_logs)
 
 @api.route('/user/login', methods=['POST'])
 def user_login():

@@ -1,10 +1,27 @@
 '''app.__init__'''
-import os
+import logging, os
 from flask import Flask, g, session, has_app_context, has_request_context
 from flask_login import LoginManager
 from celery import Celery
 
+# GLOBALS
 
+login_manager = LoginManager()
+celery = Celery(__name__, broker='amqp://')
+from uber_task import UberTask
+celery.Task = UberTask
+
+# CLASSES
+
+class DebugFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno == logging.DEBUG
+class InfoFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno == logging.INFO
+class WarningFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno == logging.WARNING
 class colors:
     BLUE = '\033[94m'
     GRN = '\033[92m'
@@ -15,10 +32,8 @@ class colors:
     HEADER = '\033[95m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-login_manager = LoginManager()
-celery = Celery(__name__, broker='amqp://')
-from uber_task import UberTask
-celery.Task = UberTask
+
+# METHODS
 
 #-------------------------------------------------------------------------------
 def get_keys(k=None, agcy=None):
@@ -99,7 +114,7 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
 
     from werkzeug.contrib.fixers import ProxyFix
     from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
-    from app.lib.mongo_log import _connection, file_handler, BufferedMongoHandler
+    from app.lib.mongo_logger import _connection, BufferedMongoHandler
     from config import LOG_PATH as path
     import config
 
@@ -110,13 +125,13 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
     app.permanent_session_lifetime = app.config['PERMANENT_SESSION_LIFETIME']
 
     if mongo_client:
-        from app.lib import mongodb
+        from app.lib import mongo
         from db_auth import user, password
-        app.db_client = mongodb.create_client()
+        app.db_client = mongo.create_client()
 
         mongo_handler = BufferedMongoHandler(
             level=DEBUG,
-            mongo_client=app.db_client,
+            client=app.db_client,
             connect=True,
             db_name='bravo',
             user=user,
@@ -177,3 +192,29 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
     app.register_blueprint(alice_mod)
 
     return app
+
+#---------------------------------------------------------------------------
+def file_handler(level, file_path,
+                 fmt=None, datefmt=None, color=None, name=None):
+
+    handler = logging.FileHandler(file_path)
+    handler.setLevel(level)
+
+    if name is not None:
+        handler.name = name
+    else:
+        handler.name = 'lvl_%s_file_handler' % str(level)
+
+    if level == logging.DEBUG:
+        handler.addFilter(DebugFilter())
+    elif level == logging.INFO:
+        handler.addFilter(InfoFilter())
+    elif level == logging.WARNING:
+        handler.addFilter(WarningFilter())
+
+    formatter = logging.Formatter(
+        colors.BLUE + (fmt or '[%(asctime)s %(name)s %(processName)s]: ' + colors.ENDC + color + '%(message)s') + colors.ENDC,
+        (datefmt or '%m-%d %H:%M'))
+
+    handler.setFormatter(formatter)
+    return handler

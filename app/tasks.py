@@ -7,7 +7,7 @@ from celery.signals import task_prerun, task_postrun, task_failure, task_revoked
 from celery.signals import worker_process_init, worker_ready, worker_shutdown
 from celery.signals import celeryd_init, celeryd_after_setup
 from app import create_app, colors as c, celery
-from app.lib.mongodb import create_client, authenticate
+from app.lib.mongo import create_client, authenticate
 from app.lib.timer import Timer
 from uber_task import UberTask
 import celeryconfig
@@ -34,12 +34,13 @@ def _parent_worker_ready(**kwargs):
     '''Called by parent worker process'''
 
     from logging import WARNING
-    from app.lib.mongo_log import BufferedMongoHandler
+    from app.lib.mongo_logger import BufferedMongoHandler
     from db_auth import user, password
+
     authenticate(db_client)
     mongo_handler = BufferedMongoHandler(
         level=WARNING,
-        mongo_client=db_client,
+        client=db_client,
         connect=True,
         db_name='bravo',
         user=user,
@@ -58,6 +59,10 @@ def _child_worker_init(**kwargs):
     '''Called by each child worker process (forked)'''
 
     from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
+    from app import file_handler
+    from app.lib.mongo_logger import BufferedMongoHandler
+    from db_auth import user, password
+    from config import LOG_PATH as path
 
     # Experimental
     global celery
@@ -65,19 +70,13 @@ def _child_worker_init(**kwargs):
     UberTask.db_client = db_client
     celery.Task = UberTask
 
-    #authenticate(db_client)
-
     # Set root logger for this child process
     logger = getLogger('app')
     logger.setLevel(DEBUG)
 
-    from app.lib.mongo_log import file_handler, BufferedMongoHandler
-    from db_auth import user, password
-    from config import LOG_PATH as path
-
     buf_mongo_handler = BufferedMongoHandler(
         level=DEBUG,
-        mongo_client = db_client,
+        client = db_client,
         connect=True,
         db_name='bravo',
         user=user,
@@ -119,7 +118,7 @@ state=None, *args, **kwargs):
     name = sender.name.split('.')[-1]
 
     # Force log flush to Mongo if timer set since thread timer seems to sleep after task is complete.
-    from app.lib.mongo_log import BufferedMongoHandler
+    from app.lib.mongo_logger import BufferedMongoHandler
 
     for handler in getLogger('app').handlers:
         if isinstance(handler, BufferedMongoHandler) and handler.buf_flush_tim:

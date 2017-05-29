@@ -6,7 +6,7 @@ from flask import g, url_for
 from flask_login import current_user, login_user
 from app import create_app, init_celery
 from app.auth import load_user
-from app.lib.mongodb import create_client
+from app.lib.mongo import create_client
 import config
 
 db_client = create_client(connect=True, auth=True)

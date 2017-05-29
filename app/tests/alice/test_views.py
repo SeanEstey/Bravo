@@ -12,7 +12,7 @@ from flask import g, session, request, url_for
 from flask import has_app_context, has_request_context
 from datetime import datetime, date, time, timedelta
 import config
-from app import mongodb, kv_ext, db_client, create_app
+from app import mongo, kv_ext, db_client, create_app
 from app import is_test_server,config_test_server
 import app.alice.session
 log = logging.getLogger(__name__)

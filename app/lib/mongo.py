@@ -1,4 +1,4 @@
-'''app.lib.mongodb'''
+'''app.lib.mongo'''
 import logging
 import os
 import pymongo

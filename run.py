@@ -27,7 +27,7 @@ def main(argv):
     from detect import set_environ
     import workers
 
-    from app.lib.mongo_log import BufferedMongoHandler
+    from app.lib.mongo_logger import BufferedMongoHandler
     for handler in app.logger.handlers:
         if isinstance(handler, BufferedMongoHandler):
             handler.init_buf_timer()

@@ -1,25 +1,20 @@
 '''app.tasks'''
-import os
-from logging import getLogger
+import logging, os
 from flask_login import current_user
 from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure, task_revoked
 from celery.signals import worker_process_init, worker_ready, worker_shutdown
 from celery.signals import celeryd_init, celeryd_after_setup
-from app import create_app, colors as c, celery
+from app import create_app, celery
 from app.lib.mongo import create_client, authenticate
-from app.lib.timer import Timer
 from uber_task import UberTask
 import celeryconfig
 
 # Pre-fork vars
-app = create_app('app', kv_sess=False, mongo_client=False)
-UberTask.flsk_app = app
+UberTask.flsk_app = app = create_app('app', kv_sess=False, mongo_client=False)
+UberTask.db_client = parent_client = create_client(connect=False, auth=False)
 celery.config_from_object(celeryconfig)
-db_client = create_client(connect=False, auth=False)
-UberTask.db_client = db_client
 celery.Task = UberTask
-timer = Timer(start=False)
 
 @celeryd_init.connect
 def _celeryd_init(**kwargs):
@@ -30,125 +25,108 @@ def _celeryd_after_setup(sender, instance, **kwargs):
     print 'CELERYD_AFTER_SETUP'
 
 @worker_ready.connect
-def _parent_worker_ready(**kwargs):
+def parent_ready(**kwargs):
     '''Called by parent worker process'''
 
-    from logging import WARNING
+    import db_auth
     from app.lib.mongo_logger import BufferedMongoHandler
-    from db_auth import user, password
 
-    authenticate(db_client)
-    mongo_handler = BufferedMongoHandler(
-        level=WARNING,
-        client=db_client,
+    authenticate(parent_client)
+
+    handler = BufferedMongoHandler(
+        level=logging.WARNING,
+        client=parent_client,
         connect=True,
         db_name='bravo',
-        user=user,
-        pw=password)
-    app.logger.addHandler(mongo_handler)
-    mongo_handler.init_buf_timer()
+        user=db_auth.user,
+        pw=db_auth.password)
+    app.logger.addHandler(handler)
+    handler.init_buf_timer()
+
     print 'WORKER_READY. PID %s' % os.getpid()
 
 @worker_shutdown.connect
-def _parent_worker_shutdown(**kwargs):
+def parent_shutdown(**kwargs):
+
     print 'WORKER_SHUTTING_DOWN'
 
-#-------------------------------------------------------------------------------
 @worker_process_init.connect
-def _child_worker_init(**kwargs):
+def child_init(**kwargs):
     '''Called by each child worker process (forked)'''
 
-    from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
-    from app import file_handler
+    import db_auth
     from app.lib.mongo_logger import BufferedMongoHandler
-    from db_auth import user, password
-    from config import LOG_PATH as path
 
     # Experimental
     global celery
-    db_client = create_client()
-    UberTask.db_client = db_client
+    UberTask.db_client = child_client = create_client()
     celery.Task = UberTask
 
     # Set root logger for this child process
-    logger = getLogger('app')
-    logger.setLevel(DEBUG)
+    logger = logging.getLogger('app')
+    logger.setLevel(logging.DEBUG)
 
-    buf_mongo_handler = BufferedMongoHandler(
-        level=DEBUG,
-        client = db_client,
-        connect=True,
+    handler = BufferedMongoHandler(
+        level = logging.DEBUG,
+        client = child_client,
+        connect = True,
         db_name='bravo',
-        user=user,
-        pw=password)
-    buf_mongo_handler.init_buf_timer()
-    logger.addHandler(buf_mongo_handler)
+        user = db_auth.user,
+        pw = db_auth.password)
+    handler.init_buf_timer()
+    logger.addHandler(handler)
 
     print 'WORKER_CHILD_INIT. PID %s' % os.getpid()
 
-
-#-------------------------------------------------------------------------------
 @task_prerun.connect
-def _child_task_prerun(signal=None, sender=None, task_id=None, task=None, *args, **kwargs):
-    '''Dispatched before a task is executed by Task obj.
-    Sender == Task.
-    @args, @kwargs: the tasks positional and keyword arguments
-    '''
+def task_init(signal=None, sender=None, task_id=None, task=None, *args, **kwargs):
+    '''Dispatched before a task is executed by Task obj. Sender == Task.
+    @args, @kwargs: the tasks positional and keyword arguments'''
 
     print 'RECEIVED TASK %s' % sender.name.split('.')[-1]
-    global timer
-    timer.restart()
 
-#-------------------------------------------------------------------------------
 @task_postrun.connect
-def _child_task_postrun(signal=None, sender=None, task_id=None, task=None, retval=None,\
-state=None, *args, **kwargs):
+def task_done(signal=None, sender=None, task_id=None, task=None, retval=None, state=None, *args, **kwargs):
     '''Dispatched after a task has been executed by Task obj.
-    @Sender: the task object executed.
-    @task_id: Id of the task to be executed. (meaning the next one in the queue???)
-    @task: The task being executed.
-    @args: The tasks positional arguments.
-    @kwargs: The tasks keyword arguments.
-    @retval: The return value of the task.
-    @state: Name of the resulting state.
-    '''
+    @Sender: the task object executed
+    @task_id: Id of the task to be executed
+    @task: The task being executed
+    @args: The tasks positional arguments
+    @kwargs: The tasks keyword arguments
+    @retval: The return value of the task
+    @state: Name of the resulting state'''
 
-    global timer
-    timer.stop()
-    name = sender.name.split('.')[-1]
+    # Force buffer flush to mongo (child process sleeps between tasks)
+    from app.lib.mongo_logger import BufferedMongoHandler as DBHandler
 
-    # Force log flush to Mongo if timer set since thread timer seems to sleep after task is complete.
-    from app.lib.mongo_logger import BufferedMongoHandler
-
-    for handler in getLogger('app').handlers:
-        if isinstance(handler, BufferedMongoHandler) and handler.buf_flush_tim:
+    for handler in logging.getLogger('app').handlers:
+        if isinstance(handler, DBHandler) and handler.buf_flush_tim:
             if not handler.test_connection():
                 handler._connect()
             handler.flush_to_mongo()
 
-#-------------------------------------------------------------------------------
+    name = sender.name.split('.')[-1]
+    print 'COMPLETED TASK %s' % name
+
 @task_failure.connect
-def _child_task_failure(signal=None, sender=None, task_id=None, exception=None,
-traceback=None, einfo=None, *args, **kwargs):
+def task_failed(signal=None, sender=None, task_id=None, exception=None, traceback=None, einfo=None, *args, **kwargs):
 
     name = sender.name.split('.')[-1]
-    print 'TASK_FAILURE. NAME %s' % name
     app.logger.error('Task %s failed. Click for more info.', name,
         extra={
             'exception':str(exception),
             'traceback':str(traceback),
             'task_args': args,
             'task_kwargs': kwargs})
+    print 'TASK_FAILURE. NAME %s' % name
 
-#-------------------------------------------------------------------------------
 @task_revoked.connect
-def _child_task_revoke(sender=None, task_id=None, request=None, terminated=None, signum=None, expired=None, *args, **kwargs):
+def task_killed(sender=None, task_id=None, request=None, terminated=None, signum=None, expired=None, *args, **kwargs):
     '''Called by worker parent. Task is revoked and child worker is also
-    terminated. A new child worker will spawn, causing Mongo fork warnings.
-    '''
+    terminated. A new child worker will spawn, causing Mongo fork warnings.'''
 
     from app.lib.utils import obj_vars
-    name = sender.name.split('.')[-1]
     str_req = obj_vars(request)
-    print 'TASK_REVOKED. NAME %s' % name
+    name = sender.name.split('.')[-1]
     app.logger.warning('Task %s revoked', name, extra={'request':str_req})
+    print 'TASK_REVOKED. NAME %s' % name

@@ -14,3 +14,8 @@ def landing_page():
 @login_required
 def view_admin():
     return render_template('views/admin.html')
+
+@main.route('/tools')
+@login_required
+def view_tools():
+    return render_template('views/tools.html')

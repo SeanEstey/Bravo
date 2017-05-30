@@ -1,0 +1,96 @@
+{% extends "views/base.html" %}
+{% block content %}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-switch/3.3.4/css/bootstrap2/bootstrap-switch.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-switch/3.3.4/js/bootstrap-switch.js"></script>
+<script type="text/javascript" src="{{url_for("main.static", filename="js/strftime.js")}}"></script>
+<script type="text/javascript" src="{{url_for("main.static", filename="js/tools.js")}}"></script>
+
+<script>
+  document.write("<style type='text/css'> body{display:none}</style>");
+  jQuery(function($){
+      tools_init();
+      $("body").css("display","block");
+  });
+</script>
+
+<div class="container">
+	<!-- Navigation tabs -->
+	<ul style="margin-bottom:2em" class="nav nav-tabs" role="tablist">
+		<li class="nav-item">
+			<a class="nav-link active" data-toggle="tab" href="#block_splitter" role="tab">Mapping</a>
+		</li>
+	</ul>
+
+	<div class="tab-content">
+    <!-- Block Splitter Pane -->
+		<div class="tab-pane active" id="block_splitter" style='margin-bottom:7em' role="tabpanel">
+      <form id="user_form">
+        <!--MY MAPS-->
+        <fieldset style="max-width:700px" class="form-fieldset new_event">
+          <legend class="new_event">My Maps</legend>
+          <div class="form-group row">
+            <label for="map_count" class="col-3 col-form-label">Count:</label>
+            <label type="text" id="map_count" class="col-form-label col-7">67</label>
+          </div>
+          <div class="form-group row">
+            <label for="last_updated" class="col-3 col-form-label">Last Updated:</label>
+            <label type="text" id="last_updated" class="col-form-label col-7">May 29 6:39:01 PM</label>
+          </div>
+            <button id="update_maps" type="button" class="btn btn-secondary">Update All</button>
+        </fieldset>
+        <!--PROPERTIES-->
+        <fieldset style="max-width:700px" class="form-fieldset new_event">
+          <legend class="new_event">Properties</legend>
+          <div class="form-group row">
+            <label for="map_select" class="col-3 col-form-label">Map Title:</label>
+            <select class="form-control col-7" id="map_select">
+              <option selected>...</option>
+              <option value="1">R4C [Acadia, Bonavista Downs, Bridlewood, Chaparral, Deer Ridge, Evergreen Estates, Riverglen, Silverado, Shawnessy, Somerset, Sundance, Willow Park]</option>
+              <option value="2">R3D [Hawkwood]</option>
+              <option value="3">R3E [Hillhurst, Hounsfield Heights - Briar Hill, West Hillhurst, Upper Hillhurst, Westmount]</option>
+            </select>
+          </div>
+          <div class="form-group row">
+            <label for="block" class="col-3 col-form-label">Block:</label>
+            <label type="text" id="block" class="col-form-label col-7">R3E</label>
+          </div>
+          <div class="form-group row">
+            <label for="neighborhoods" class="col-3 col-form-label">Neighborhoods:</label>
+            <label type="text" id="neighborhoods" class="col-form-label col-7">Tuscany, Hillhurst, Silverado</label>
+          </div>
+          <div class="form-group row">
+            <label for="description" class="col-3 col-form-label">Description:</label>
+            <label type="text" id="description" class="col-form-label col-7">Split from R4C</label>
+          </div>
+          <div class="form-group row">
+            <label for="n_coords" class="col-3 col-form-label">Coordinate Sets:</label>
+            <label type="text" id="n_coords" class="col-form-label col-7">11</label>
+          </div>
+          <button id='analyze' style="float:right" type="button" class="btn btn-primary">Analyze Map Area</button>
+        </fieldset>
+        <!--RESULTS-->
+        <fieldset style="max-width:700px" class="form-fieldset new_event">
+          <legend class="new_event">Results</legend>
+          <div class="form-group row">
+            <label for="n_accts" class="col-4 col-form-label">Accounts within Area:</label>
+            <label type="text" id="n_accts" class="col-form-label col-6">107</label>
+          </div>
+          <button id='export' style="float:right" type="button" class="btn btn-primary">Export Accounts</button>
+        </fieldset>
+      </form>
+    </div>
+	</div> <!--END CONTENT-->
+
+	<!-- Loader-->
+  <div>
+    <div class="loader-div" style="background:white; display:none">
+      <button class="btn btn-info loader">
+        <span class="fa fa-refresh loader-animate"></span>
+        <label style="margin-bottom:0; margin-left:5px">Analyzing...</label>
+      </button>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

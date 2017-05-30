@@ -298,7 +298,7 @@ function writeLogEntries(resp) {
 //------------------------------------------------------------------------------
 function showLogEntryDetailsModal(e) {
 
-    var stand_fields = [
+    var std_fields = [
         "message", "user", "group", "level", "loggerName", "thread",
         "threadName", "process", "processName", "timestamp", "exception"];
 
@@ -310,14 +310,14 @@ function showLogEntryDetailsModal(e) {
     appendLogField('message', log_record['message'], container);
 
     for(var field in log_record) {
-        if(stand_fields.indexOf(field) == -1)
+        if(std_fields.indexOf(field) == -1)
             appendLogField(field, log_record[field], container);
     }
 
     container.append('<div><br></div>');
 
-    for(var i=1; i<stand_fields.length; i++){
-        var field = stand_fields[i];
+    for(var i=1; i<std_fields.length; i++){
+        var field = std_fields[i];
 
         if(log_record.hasOwnProperty(field))
             appendLogField(field, log_record[field], container);

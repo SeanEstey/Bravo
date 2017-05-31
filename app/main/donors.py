@@ -101,7 +101,6 @@ def save_rfu(acct_id, body, date=False, ref=False, fields=False):
         raise
 
     if fields:
-        log.debug('fields=%s', fields)
         try:
             updt_rv = call(
                 'modify_acct',
@@ -113,7 +112,7 @@ def save_rfu(acct_id, body, date=False, ref=False, fields=False):
         except Exception as e:
             raise
 
-    log.debug('save_rfu result=%s', note_rv)
+    log.debug('Created issue in Bravo Sheets', extra={'fields':note_rv})
 
     return note_rv
 
@@ -121,7 +120,7 @@ def save_rfu(acct_id, body, date=False, ref=False, fields=False):
 def create_accts(accts):
     '''Called from API. g.user is set'''
 
-    log.warning('creating %s accounts...', len(json.loads(accts)))
+    log.warning('Creating %s accounts...', len(json.loads(accts)))
 
     try:
         rv = call('add_accts', get_keys('etapestry'), {'accts':accts})

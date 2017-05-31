@@ -106,6 +106,13 @@ def update_acct():
 def call_acct_preview_receipt():
     return func_call(preview, get_var('acct_id'), get_var('type_'))
 
+@api.route('/accounts/find_within_map', methods=['POST'])
+@login_required
+def _find_accts_within_map():
+    from app.main.tasks import find_accts_within_map
+    return task_call(find_accts_within_map,
+        map_title=get_var('map_title'), blocks=loads(get_var('blocks')))
+
 @api.route('/agency/conf/get', methods=['POST'])
 @login_required
 def get_agcy_conf():
@@ -149,6 +156,18 @@ def call_booker_search():
 @login_required
 def call_maps_get():
     return func_call(get_maps)
+
+@api.route('/maps/get', methods=['POST'])
+@login_required
+def _get_maps():
+    from app.main.maps import get_maps
+    return func_call(get_maps)
+
+@api.route('/maps/update', methods=['POST'])
+@login_required
+def _update_maps():
+    from app.booker.tasks import update_maps
+    return task_call(update_maps, agcy=g.group)
 
 @api.route('/booker/maps/update', methods=['POST'])
 @login_required

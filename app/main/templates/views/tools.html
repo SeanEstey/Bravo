@@ -31,11 +31,11 @@
           <legend class="new_event">My Maps</legend>
           <div class="form-group row">
             <label for="map_count" class="col-3 col-form-label">Count:</label>
-            <label type="text" id="map_count" class="col-form-label col-7">67</label>
+            <label type="text" id="map_count" class="col-form-label col-7"></label>
           </div>
           <div class="form-group row">
             <label for="last_updated" class="col-3 col-form-label">Last Updated:</label>
-            <label type="text" id="last_updated" class="col-form-label col-7">May 29 6:39:01 PM</label>
+            <label type="text" id="last_updated" class="col-form-label col-7"></label>
           </div>
             <button id="update_maps" type="button" class="btn btn-secondary">Update All</button>
         </fieldset>
@@ -44,37 +44,42 @@
           <legend class="new_event">Properties</legend>
           <div class="form-group row">
             <label for="map_select" class="col-3 col-form-label">Map Title:</label>
-            <select class="form-control col-7" id="map_select">
+            <select class="form-control col-9" id="map_select">
               <option selected>...</option>
-              <option value="1">R4C [Acadia, Bonavista Downs, Bridlewood, Chaparral, Deer Ridge, Evergreen Estates, Riverglen, Silverado, Shawnessy, Somerset, Sundance, Willow Park]</option>
-              <option value="2">R3D [Hawkwood]</option>
-              <option value="3">R3E [Hillhurst, Hounsfield Heights - Briar Hill, West Hillhurst, Upper Hillhurst, Westmount]</option>
             </select>
           </div>
           <div class="form-group row">
-            <label for="block" class="col-3 col-form-label">Block:</label>
-            <label type="text" id="block" class="col-form-label col-7">R3E</label>
-          </div>
-          <div class="form-group row">
-            <label for="neighborhoods" class="col-3 col-form-label">Neighborhoods:</label>
-            <label type="text" id="neighborhoods" class="col-form-label col-7">Tuscany, Hillhurst, Silverado</label>
-          </div>
-          <div class="form-group row">
             <label for="description" class="col-3 col-form-label">Description:</label>
-            <label type="text" id="description" class="col-form-label col-7">Split from R4C</label>
+            <label type="text" id="description" class="col-form-label col-7"></label>
           </div>
           <div class="form-group row">
             <label for="n_coords" class="col-3 col-form-label">Coordinate Sets:</label>
-            <label type="text" id="n_coords" class="col-form-label col-7">11</label>
+            <label type="text" id="n_coords" class="col-form-label col-7"></label>
           </div>
-          <button id='analyze' style="float:right" type="button" class="btn btn-primary">Analyze Map Area</button>
+          <div class="form-group row">
+            <label for="block" class="col-3 col-form-label">Block:</label>
+            <label type="text" id="block" class="col-form-label col-7"></label>
+          </div>
+          <div class="form-group row">
+            <label for="neighborhoods" class="col-3 col-form-label">Neighborhoods:</label>
+            <label type="text" id="neighborhoods" class="col-form-label col-7"></label>
+          </div>
+          <div class="form-group row">
+            <label for="search_blocks" class="col-3 col-form-label">Blocks to Analyze:</label>
+            <label type="text" id="search_blocks" class="col-form-label col-7"></label>
+          </div>
+          <button id='analyze' style="float:right" type="button" class="btn btn-primary">Analyze Blocks</button>
         </fieldset>
         <!--RESULTS-->
         <fieldset style="max-width:700px" class="form-fieldset new_event">
           <legend class="new_event">Results</legend>
           <div class="form-group row">
-            <label for="n_accts" class="col-4 col-form-label">Accounts within Area:</label>
-            <label type="text" id="n_accts" class="col-form-label col-6">107</label>
+            <label for="n_matches" class="col-3 col-form-label">Count:</label>
+            <label type="text" id="n_matches" class="col-form-label col-7"></label>
+          </div>
+          <div class="form-group row">
+            <label for="acct_ids" class="col-3 col-form-label">Account IDs:</label>
+            <label type="text" id="acct_ids" class="col-form-label col-9"></label>
           </div>
           <button id='export' style="float:right" type="button" class="btn btn-primary">Export Accounts</button>
         </fieldset>

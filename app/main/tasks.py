@@ -35,6 +35,7 @@ def backup_mongo(self, **rest):
 def health_check(self, **rest):
 
     from app.lib.utils import mem_check
+    import gc
     mem = mem_check()
 
     if mem['free'] < 350:
@@ -48,13 +49,56 @@ def health_check(self, **rest):
         log.debug('Freed %s mb', mem2['free'] - mem['free'])
 
         if mem2['free'] < 350:
-            log.warning('warning: low memory! 250mb recommended (%s/%s)',
+            log.warning('Warning: low memory! 250mb recommended (%s/%s)',
                 mem2['free'], mem['total'])
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def wipe_sessions(self, **rest):
     pass
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def find_accts_within_map(self, map_title=None, blocks=None, **rest):
+
+    from app.main.etap import get_query
+    from app.main.maps import geocode, in_map
+    from app.main.socketio import smart_emit
+
+    log.warning('Searching acct matches from Blocks %s in Map %s', blocks, map_title)
+
+    target_map = None
+
+    for m in g.db.maps.find_one({'agency':g.group})['features']:
+        if map_title == m['properties']['name']:
+            target_map = m
+            break
+
+    api_key = get_keys('google')['geocode']['api_key']
+    matches = []
+
+    for block in blocks:
+        accts = get_query(block, get_keys('etapestry'))
+
+        log.debug('Searching Block %s', block)
+
+        for acct in accts:
+            address = acct['address'] + ', ' + acct['city'] + ', AB'
+            geo_rv = geocode(address, api_key)
+            pt = geo_rv[0]['geometry']['location']
+
+            if in_map(pt, target_map):
+                log.debug('Found match! Acct %s', acct['id'])
+                matches.append(acct)
+                smart_emit('analyze_results',
+                    {'status':'match', 'acct_id':acct['id'], 'n_matches':len(matches)})
+
+    log.warning('Found %s matches', len(matches))
+
+
+    smart_emit('analyze_results', {'status':'completed', 'n_matches':len(matches)})
+
+    return 'success'
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -297,11 +341,10 @@ def send_receipts(self, entries, **rest):
         'post_drops': g.track['drops'],
         'cancels': g.track['cancels'],
         'no_email': g.track['no_email'],
-        'duration': start.clock()
+        'duration': timer.clock()
         })
 
     chunks = acct_data = accts = None
-    gc.collect()
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -380,7 +423,6 @@ def create_accounts(self, accts_json, agcy=None, **rest):
             extra=log_rec)
 
     chunks = accts = None
-    gc.collect()
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -453,6 +495,7 @@ def update_calendar_blocks(self, from_=date.today(), agcy=None, **rest):
                         'query': block,
                         'date':dt.strftime('%d/%m/%Y')})
                 except Exception as e:
+                    log.exception('Error retrieving query for %s', block)
                     n_errs+=1
                     continue
 

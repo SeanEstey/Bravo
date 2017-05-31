@@ -1,8 +1,9 @@
 /* tools.js */
 
 map_data = {};
+matches = [];
 
-function parse_neighb(title) { return title.slice(title.indexOf('[')+1, title.indexOf(']')); }
+function parse_areas(title) { return title.slice(title.indexOf('[')+1, title.indexOf(']')); }
 function parse_block(title) { return title.slice(0, title.indexOf(' ')); }
 
 //------------------------------------------------------------------------------
@@ -25,7 +26,7 @@ function update_map_data() {
       'maps/update',
       data=null,
       function(response){
-          console.log(response);
+          alertMsg(JSON.stringify(response), 'info');
       });
 }
 
@@ -48,6 +49,18 @@ function get_maps() {
               $('#map_select').append(
                 '<option value='+i+'>'+maps[i]['properties']['name']+'</option>');
           }
+
+          var options = $("#map_select option");
+          var selected = $("#map_select").val();
+
+          options.sort(function(a,b) {
+              if (a.text > b.text) return 1;
+              if (a.text < b.text) return -1;
+              return 0
+          })
+
+          $("#map_select").empty().append(options);
+          $("#map_select").val(selected);
       }
     );
 }
@@ -55,30 +68,22 @@ function get_maps() {
 //------------------------------------------------------------------------------
 function load_map() {
 
-    console.log('selected option ' + this.value);
-    
     var map_idx = this.value;
     var maps = map_data['features'];
     var map = map_data['features'][this.value];
     var title = map['properties']['name'];
     var desc = map['properties']['description'];
     
-
     $('#block').text(title.slice(0, title.indexOf(' ')));
-    $('#neighborhoods').text(parse_neighb(title));
+    $('#neighborhoods').text(parse_areas(title));
     $('#description').html(desc);
     $('#n_coords').text(map['geometry']['coordinates'][0].length);
 
-    var l_areas = parse_neighb(map['properties']['name']).split(", ");
+    var l_areas = parse_areas(map['properties']['name']).split(", ");
     var blocks = [];
 
-    console.log('Finding maps matching areas: ' + l_areas);
-    
     for(var i=0; i<maps.length; i++) {
-        if(i == map_idx)
-            continue;
-
-        var r_areas = parse_neighb(maps[i]['properties']['name']).split(", ");
+        var r_areas = parse_areas(maps[i]['properties']['name']).split(", ");
 
         for(var j=0; j<l_areas.length; j++) {
             if(r_areas.indexOf(l_areas[j]) > -1) {
@@ -87,7 +92,6 @@ function load_map() {
             }
         }
     }
-
     $('#search_blocks').text(blocks);
 }
 
@@ -97,7 +101,9 @@ function analyze_blocks() {
     var map_title = $('#map_select option:selected').text();
     var blocks = $('#search_blocks').text().split(",");
 
-    console.log('Analyzing accounts within map "' + map_title + '". Searching Blocks: ' + blocks);
+    matches = [];
+    $('#acct_ids').text("");
+    $('#n_matches').text("");
 
     api_call(
       'accounts/find_within_map',
@@ -106,7 +112,7 @@ function analyze_blocks() {
         'blocks': JSON.stringify(blocks)},
       function(response){
           console.log(response);
-          alertMsg('Running analysis for accounts within ' + map_title + '.', 'info', 60000);
+          alertMsg('Running analysis for accounts within ' + map_title + '...', 'info');
       });
 }
 
@@ -122,16 +128,17 @@ function init_socketio() {
         });
     });
 
-    socket.on('analyze_results', function(data) {
-        if(data['status'] == 'match') {
-            console.log('Found match: Acct ID ' + data['acct_id']);
+    socket.on('analyze_results', function(rv) {
+        if(rv['status'] == 'match') {
+            if(matches.indexOf(rv['acct_id']) > -1)
+                return;
 
-            $('#n_matches').text(data['n_matches']);
-            $('#acct_ids').text($('#acct_ids').text() + ", " + String(data['acct_id']));
+            matches.push(rv['acct_id']);
+            $('#n_matches').text(rv['n_matches']);
+            $('#acct_ids').text(matches.join(", "));
         }
-        else if(data['status'] == 'completed') {
-            console.log('Total matches: ' + data['n_matches']);
-            alertMsg('Analysis complete. ' + data['n_matches'] + ' account matches found', 'success');
+        else if(rv['status'] == 'completed') {
+            alertMsg('Analysis complete. ' + rv['n_matches'] + ' account matches found.', 'success');
         }
     });
 }

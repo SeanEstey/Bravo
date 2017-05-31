@@ -95,8 +95,32 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
 
     log.warning('Found %s matches', len(matches))
 
-
     smart_emit('analyze_results', {'status':'completed', 'n_matches':len(matches)})
+
+    # Write accounts to Bravo Sheets->Updater
+
+    ss_id = get_keys('google')['ss_id']
+    srvc = gauth(get_keys('google')['oauth'])
+    values = []
+
+    for acct in matches:
+        values.append([
+            acct['id'],
+            acct['address'],
+            acct['name'],
+            get_udf('Block', acct),
+            get_udf('Neighborhood', acct),
+            get_udf('Status', acct),
+            get_udf('Next Pickup Date', acct),
+            get_udf('Driver Notes', acct),
+            get_udf('Office Notes', acct)])
+
+    rg = '%s:%s' %(to_range(2, 2), to_range(len(matches)+1, 10))
+
+    try:
+        write_rows(srvc, ss_id, 'Updater', rg, values)
+    except Exception as e:
+        log.exception('Error writing to Sheet')
 
     return 'success'
 

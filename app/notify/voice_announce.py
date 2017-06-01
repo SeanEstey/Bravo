@@ -20,7 +20,6 @@ def add_event():
     try:
         response = call(
             'get_query',
-            get_keys('etapestry'),
             data={
                 'query': request.form['query_name'],
                 'category': request.form['query_category']

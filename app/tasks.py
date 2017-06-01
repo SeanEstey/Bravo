@@ -1,5 +1,6 @@
 '''app.tasks'''
 import logging, os
+from flask import g
 from flask_login import current_user
 from celery.task.control import revoke
 from celery.signals import task_prerun, task_postrun, task_failure, task_revoked

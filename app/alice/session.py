@@ -5,7 +5,6 @@ from flask_kvsession import SessionID
 from bson.objectid import ObjectId
 import cPickle as pickle
 from datetime import datetime, date, timedelta
-#from app import kv_store, kv_ext
 from app.main.etap import is_active, EtapError
 from app.main.tasks import create_rfu
 from app.lib.dt import to_local
@@ -36,7 +35,7 @@ def create_session():
     session['from'] = from_
     session['date'] = date.today().isoformat()
     session['messages'] = [msg]
-    session['agcy'] = conf['name']
+    session['agcy'] = g.group = conf['name']
     session['conf'] = conf
     session['self_name'] = conf['alice']['name']
     session['last_msg_dt'] = to_local(dt=datetime.now())

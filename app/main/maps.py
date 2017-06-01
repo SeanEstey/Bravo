@@ -201,8 +201,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
         log.error(e)
         return []
     elif response['status'] != 'OK':
-        e = 'Could not geocode ' + address
-        log.error(e)
+        log.error('Error geocoding %s', address, extra={'response':response})
         return []
 
     # Single result

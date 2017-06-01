@@ -258,9 +258,12 @@ class BufferedMongoHandler(MongoHandler):
                 getattr(self.coll, write_many_method)(self.buf)
                 self.empty_buf()
             except Exception as e:
-                print 'Mongo write error! %s' % str(e)
-                from app.lib.utils import obj_vars
-                traceback.print_exc()
+                from bson.json_util import dumps
+                print 'Mongo error:\nDesc:  %s\nBuffer: %s' %(e.message, dumps(self.buf))
+
+                #from app.lib.utils import obj_vars
+                #traceback.print_exc()
+
                 self.empty_buf()
 
                 if not self.raise_exc:

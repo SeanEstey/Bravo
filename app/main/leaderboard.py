@@ -9,10 +9,9 @@ from logging import getLogger
 log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def update_accts(query, agcy):
+def update_accts(query):
 
-    accts = get_query(query, get_keys('etapestry'))
-    g.group = agcy
+    accts = get_query(query)
 
     for acct in accts:
         g.db.etap_accts.update(
@@ -20,7 +19,7 @@ def update_accts(query, agcy):
             {'$set': {
                 'acct_id': acct['id'],
                 'ref': acct['ref'],
-                'agcy': agcy,
+                'agcy': g.group,
                 'name_format': acct.get('nameFormat'),
                 'neighborhood': get_udf('Neighborhood', acct)}},
             upsert=True)
@@ -28,16 +27,13 @@ def update_accts(query, agcy):
     log.debug('stored %s accts from %s', len(accts), query)
 
 #-------------------------------------------------------------------------------
-def update_gifts(accts, agcy):
+def update_gifts(accts):
     '''accts: list of results from db.etap_accts
     '''
-
-    g.group = agcy
 
     try:
         accts_je_hist = call(
             'get_gift_histories',
-            get_keys('etapestry'),
             data={
                 "acct_refs": [x['ref'] for x in accts],
                 "start": "01/01/" + str(date.today().year),

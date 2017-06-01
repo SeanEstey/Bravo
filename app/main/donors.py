@@ -12,18 +12,15 @@ log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def get(acct_id):
-    return call('get_acct', get_keys('etapestry'), data={'acct_id':int(acct_id)})
+    return call('get_acct', data={'acct_id':int(acct_id)})
 
 #-------------------------------------------------------------------------------
 def get_acct_by_ref(ref):
-    return call('get_acct_by_ref', get_keys('etapestry'), data={'ref':ref})
+    return call('get_acct_by_ref', data={'ref':ref})
 
 #-------------------------------------------------------------------------------
-def get_next_pickup(email, agcy):
-    return call(
-        'get_next_pickup',
-        get_keys('etapestry', agcy=agcy),
-        data={'email':email})
+def get_next_pickup(email):
+    return call('get_next_pickup', data={'email':email})
 
 #-------------------------------------------------------------------------------
 def get_donations(acct_id, start_d=None, end_d=None):
@@ -46,7 +43,6 @@ def get_donations(acct_id, start_d=None, end_d=None):
     try:
         je_list = call(
             'donor_history',
-            get_keys('etapestry'),
             data={
                 "acct_ref": acct['ref'],
                 "start": start.strftime("%d/%m/%Y"),
@@ -96,7 +92,7 @@ def save_rfu(acct_id, body, date=False, ref=False, fields=False):
         "date": date}
 
     try:
-        note_rv = call(func, get_keys("etapestry"), data=data)
+        note_rv = call(func, data=data)
     except Exception as e:
         raise
 
@@ -104,7 +100,6 @@ def save_rfu(acct_id, body, date=False, ref=False, fields=False):
         try:
             updt_rv = call(
                 'modify_acct',
-                get_keys('etapestry'),
                 data={
                     'acct_id':acct_id,
                     'persona': [],
@@ -123,7 +118,7 @@ def create_accts(accts):
     log.warning('Creating %s accounts...', len(json.loads(accts)))
 
     try:
-        rv = call('add_accts', get_keys('etapestry'), {'accts':accts})
+        rv = call('add_accts', data={'accts':accts})
     except Exception as e:
         log.error('add_accts. desc=%s', str(e))
         log.debug(str(e))
@@ -134,10 +129,9 @@ def create_accts(accts):
         log.error(rv['errors'])
 
 #-------------------------------------------------------------------------------
-def is_inactive(agcy, acct, days=270):
+def is_inactive(acct, days=270):
 
     drop_date = get_udf('Dropoff Date', acct)
-    g.group = agcy
 
     # Set Dropoff Date == acct creation date if empty
 
@@ -163,7 +157,7 @@ def is_inactive(agcy, acct, days=270):
     try:
         je = call(
             'get_gift_histories',
-            get_keys('etapestry'), {
+            data={
                 "acct_refs": [acct['ref']],
                 "start": cutoff_date.strftime('%d/%m/%Y'),
                 "end": date.today().strftime('%d/%m/%Y')})[0]

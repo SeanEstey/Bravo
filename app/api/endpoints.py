@@ -33,7 +33,8 @@ def accts_add_form():
 @api.route('/accounts/get_pickup', methods=['POST'])
 def accts_get_pickup():
     # TODO: add auth requirement
-    return func_call(donors.get_next_pickup, get_var('email'), agcy=get_var('agcy'))
+    g.group = get_var('agcy')
+    return func_call(donors.get_next_pickup, get_var('email'))
 
 @api.route('/accounts/estimate_trend', methods=['POST'])
 @login_required
@@ -87,7 +88,11 @@ def call_accts_get():
 @login_required
 def call_accts_gifts():
     from app.main.tasks import process_entries
-    return task_call(process_entries, get_var('entries'), agcy=get_var('agcy'))
+    return task_call(
+        process_entries,
+        loads(get_var('entries')),
+        wks=get_var('wks'),
+        col=get_var('col'))
 
 @api.route('/accounts/receipts', methods=['POST'])
 @login_required
@@ -95,11 +100,21 @@ def call_accts_receipts():
     from app.main.tasks import send_receipts
     return task_call(send_receipts, get_var('entries'))
 
-@api.route('/accounts/update', methods=['POST'])
+@api.route('/account/update', methods=['POST'])
 @login_required
 def update_acct():
-    return func_call(call, 'modify_acct', get_keys('etapestry'),
+    return func_call(call, 'modify_acct',
         get_var('acct_id'), get_var('udf'), get_var('persona'))
+
+@api.route('/accounts/update', methods=['POST'])
+@login_required
+def update_accts():
+    from app.main.tasks import process_entries
+    return task_call(
+        process_entries,
+        loads(get_var('accts')),
+        wks=get_var('wks'),
+        col=get_var('col'))
 
 @api.route('/accounts/preview_receipt', methods=['POST'])
 @login_required

@@ -329,8 +329,8 @@ function process_entries($entries) {
             continue;
         }
 
-        if(!empty($entry['gift']['date']))
-            remove_udf($acct, $entry['udf']);
+        //if(!empty($entry['gift']['date']))
+        remove_udf($acct, $entry['udf']);
 
         apply_udf($acct, $entry['udf']);
 

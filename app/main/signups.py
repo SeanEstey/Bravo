@@ -97,7 +97,6 @@ def check_duplicates(name=None, email=None, address=None, phone=None):
 
     return call(
         'check_duplicates',
-        get_keys('etapestry'),
         data=fields)
 
 #-------------------------------------------------------------------------------

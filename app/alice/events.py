@@ -64,22 +64,17 @@ def add_instructions():
     # We've already verified user reply is valid for a notific event
     set_notific_reply()
 
-    instruction = request.form['Body']
+    instruct = request.form['Body']
     acct = session.get('account')
-    driver_notes = get_udf('Driver Notes', acct)
+    old_notes = get_udf('Driver Notes', acct)
 
-    call(
-        'modify_acct',
-        session.get('conf')['etapestry'],
+    call('modify_acct',
         data={
-            'acct_id': acct['id'],
-            'udf': {
-                'Driver Notes':\
-                    '***%s***\n%s' %(
-                    str(instruction), driver_notes)
-            },
-            'persona': []
-        })
+          'acct_id': acct['id'],
+          'udf': {'Driver Notes': '***%s***\n%s' %(str(instruct), old_notes)},
+          'persona': []
+        }
+    )
 
     return dialog['instruct']['thanks']
 
@@ -269,11 +264,7 @@ def add_acct(address, phone, block, pu_date_str):
     log.info(obj_vars(acct, depth=2))
 
     try:
-        call(
-          'add_accts',
-          conf['etapestry'],
-          [acct]
-        )
+        call('add_accts', data=[acct])
     except Exception as e:
-        log.error("error calling eTap API: %s", str(e))
+        log.exception('Error creating account.')
         raise EtapError('error calling eTap API')

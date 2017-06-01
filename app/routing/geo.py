@@ -5,7 +5,12 @@ from logging import getLogger
 log = getLogger(__name__)
 
 class GeocodeError(Exception):
-    pass
+    def __init__(self, message, **kwargs):
+        Exception.__init__(self, message)
+        for kw in kwargs:
+            if kw == 'message':
+                continue
+            setattr(self, kw, kwargs[kw])
 
 #-------------------------------------------------------------------------------
 def get_gmaps_url(address, lat, lng):
@@ -49,7 +54,7 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
           })
     except requests.RequestException as e:
         log.error(str(e))
-        raise
+        raise GeocodeError('Could not geocode %s' % address)
 
     response = json.loads(response.text)
 
@@ -58,7 +63,8 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
     elif response['status'] == 'INVALID_REQUEST':
         raise GeocodeError('Invalid request for ' + address)
     elif response['status'] != 'OK':
-        raise GeocodeError('Could not geocode ' + address)
+        log.error('Error geocoding %s', address, extra={'response':response})
+        raise GeocodeError('Could not geocode %s ' % address, response=response)
 
     # Single result
 

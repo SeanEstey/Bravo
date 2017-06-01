@@ -23,7 +23,7 @@ def create_reminder(agcy, block, date_):
     g.group = agcy
 
     try:
-        accts = get_query(block, get_keys('etapestry'))
+        accts = get_query(block)
     except EtapError as e:
         raise
     else:
@@ -59,8 +59,7 @@ def create_reminder(agcy, block, date_):
             if status == 'Call-in' or status == 'Cancelling':
                 continue
             else:
-                log.debug('acct_id=%s missing next pickup date%s',
-                    acct['id'])
+                log.debug('acct_id=%s missing next pickup date', acct['id'])
                 continue
 
         acct_id = accounts.add(

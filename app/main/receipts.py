@@ -153,7 +153,6 @@ def deliver(to, template, subject, acct, entry=None, ytd_gifts=None):
     # Add Journal note
     call(
         'add_note',
-        get_keys('etapestry'),
         data={
             'acct_id': acct['id'],
             'body': 'Receipt:\n' + html.clean_whitespace(body),
@@ -177,7 +176,6 @@ def get_ytd_gifts(acct_ref, year):
     try:
         je_list = call(
             'get_gift_histories',
-            get_keys('etapestry'),
             data={
                 "acct_refs": [acct_ref],
                 "start": "01/01/" + str(year),

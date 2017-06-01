@@ -17,7 +17,6 @@ def add_event():
     try:
         response = call(
             'get_query',
-            get_keys('etapestry'),
             data={
                 'query': request.form['query_name'],
                 'category':'GG: Invoices'})
@@ -47,10 +46,7 @@ def add_event():
         refs.append(entry['accountRef'])
 
     try:
-        accts = call(
-            'get_accts_by_ref',
-            get_keys('etapestry'),
-            data={'acct_refs':refs})
+        accts = call('get_accts_by_ref', data={'acct_refs':refs})
     except Exception as e:
         msg = 'Failed to retrieve accts. %s' % str(e)
         #log.error(msg)

@@ -127,6 +127,8 @@ def build_route(self, route_id, job_id=None, **rest):
     Returns: db.routes dict on success, False on error
     '''
 
+    from app.routing.geo import GeocodeError
+
     route = g.db.routes.find_one({"_id":ObjectId(route_id)})
     g.group = route['agency']
 
@@ -134,7 +136,11 @@ def build_route(self, route_id, job_id=None, **rest):
         extra={'route_id':route_id, 'job_id':job_id or None})
 
     if job_id is None:
-        job_id = submit_job(ObjectId(route_id))
+        try:
+            job_id = submit_job(ObjectId(route_id))
+        except GeocodeError as e:
+            log.exception('A Geocoding error prevented the route from being built.', extra={'response':e.response})
+            raise
 
     orders = "processing"
 

@@ -10,11 +10,11 @@ function parse_block(title) { return title.slice(0, title.indexOf(' ')); }
 function tools_init() {
     
     $('#update_maps').click(update_map_data)
-    $('#map_select').change(load_map);
-    $('#analyze').click(analyze_blocks);
+    $('#map_select').change(show_map_properties);
+    $('#analyze').click(run_analyzer);
 
     $('.tab-content').prepend($('.alert-banner'));
-    alertMsg("Use this tool to assist with splitting blocks.", "info");
+    alertMsg("Loading maps...", "info");
 
     get_maps();
     init_socketio();
@@ -37,18 +37,22 @@ function update_map_data() {
 function get_maps() {
     /* From Bravo */
 
+    $('#map_count').text("...");
+    $('#last_updated').text("...");
+
     api_call(
       'maps/get',
       data=null,
       function(response){
           console.log(response);
+
+          var MAX_CHARS = 40;
           map_data = response['data'];
           var maps = map_data['features'];
 
           $('#map_count').text(maps.length);
           $('#last_updated').text(new Date(map_data['update_dt']['$date']).strftime("%B %d %H:%M:%S %p"));
-
-          var MAX_CHARS = 40;
+          $('#map_select').empty();
 
           for(var i=0; i<maps.length; i++) {
               var title = maps[i]['properties']['name'];
@@ -61,22 +65,21 @@ function get_maps() {
           }
 
           var options = $("#map_select option");
-          var selected = $("#map_select").val();
-
           options.sort(function(a,b) {
               if (a.text > b.text) return 1;
               if (a.text < b.text) return -1;
               return 0
           })
 
-          $("#map_select").empty().append(options);
-          $("#map_select").val(selected);
+          $("#map_select").append('<option value="" disabled selected>Select a Map</option>').append(options);
+
+          fadeAlert();
       }
     );
 }
 
 //------------------------------------------------------------------------------
-function load_map() {
+function show_map_properties() {
 
     var map_idx = this.value;
     var maps = map_data['features'];
@@ -106,14 +109,14 @@ function load_map() {
 }
 
 //------------------------------------------------------------------------------
-function analyze_blocks() {
+function run_analyzer() {
 
     var map_title = $('#map_select option:selected').text();
     var blocks = $('#search_blocks').text().split(",");
 
     matches = [];
-    $('#acct_ids').text("");
-    $('#n_matches').text("");
+    $('#acct_ids').text("None");
+    $('#n_matches').text("None");
 
     api_call(
       'accounts/find_within_map',
@@ -124,6 +127,8 @@ function analyze_blocks() {
           console.log(response);
           
           $('#analyze').prop('disabled', true);
+          $('#map_select').prop('disabled', true);
+          $('#update_maps').prop('disabled', true);
           alertMsg('Running analysis for accounts within ' + map_title + '...', 'info');
           $('#status').text("Running...");
       });
@@ -151,10 +156,12 @@ function init_socketio() {
             $('#acct_ids').text(matches.join(", "));
         }
         else if(rv['status'] == 'completed') {
-            alertMsg('Analysis complete. ' + rv['n_matches'] + ' account matches found.', 'success');
+            alertMsg('Analysis complete. ' + rv['n_matches'] + ' account matches found. Results written to <a href="https://docs.google.com/spreadsheets/d/1JjibGqBivKpQt4HSW0RFfuTPYAI9LxJu-QOd6dWySDE/edit#gid=1060952486">Bravo Sheets</a>', 'success', -1);
             
             $('#status').text("Finished");
-            $('#analyze').prop('disabled', true);
+            $('#analyze').prop('disabled', false);
+            $('#map_select').prop('disabled', false);
+            $('#update_maps').prop('disabled', false);
         }
     });
 }

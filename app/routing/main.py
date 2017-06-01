@@ -62,7 +62,7 @@ def get_metadata():
 def add_metadata(block, event_dt, event):
 
     try:
-        accts = get_query(block, get_keys('etapestry'))
+        accts = get_query(block)
     except EtapError as e:
         #log.error('Error retrieving query=%s', block)
         raise

@@ -65,10 +65,8 @@ def make():
 def update_dms():
 
     try:
-        response = call(
-          'make_booking',
-          get_keys('etapestry'),
-          data={
+        response = call('make_booking',
+          data= {
             'acct_id': int(request.form['aid']),
             'type': 'pickup',
             'udf': {
@@ -92,10 +90,7 @@ def append_to(route):
         request.form['block'], request.form['date'])
     log.debug('appending to ss_id "%s"', route['ss']['id'])
 
-    acct = call(
-        'get_acct',
-        get_keys('etapestry'),
-        {'acct_id': request.form['aid']})
+    acct = call('get_acct', data={'acct_id': request.form['aid']})
 
     service = gsheets.gauth(get_keys('google')['oauth'])
 

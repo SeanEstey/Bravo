@@ -18,14 +18,13 @@ NAME_FORMAT = {
 }
 
 #-------------------------------------------------------------------------------
-def call(func, keys, data, silence_exc=False):
+def call(func, data=None, silence_exc=False):
 
     sandbox = 'true' if os.environ['BRV_SANDBOX'] == 'True' else 'false'
-    g.group = keys['agency']
-
+    conf = get_keys('etapestry')
     cmds = [
         'php', '/root/bravo/php/call.php',
-        keys['agency'], keys['user'], keys['pw'], keys['wsdl_url'],
+        g.group, conf['user'], conf['pw'], conf['wsdl_url'],
         func,
         sandbox,
         json.dumps(data)]
@@ -57,8 +56,7 @@ def block_size(category, query):
     '''Called from API. g.user available'''
 
     try:
-        rv = call('get_block_size', get_keys('etapestry'),
-                {'query':query, 'category':category})
+        rv = call('get_block_size', data={'query':query, 'category':category})
     except EtapError as e:
         raise
     else:
@@ -68,31 +66,28 @@ def block_size(category, query):
 def route_size(category, query, date_):
     '''Called from API. g.user available'''
     try:
-        rv = call('get_route_size', get_keys('etapestry'),
-                {'query':query, 'category':category, 'date':date_})
+        rv = call('get_route_size', data={'query':query, 'category':category, 'date':date_})
     except EtapError as e:
         raise
     else:
         return rv
 
 #-------------------------------------------------------------------------------
-def get_query(block, keys, category=None):
-    category_ = category if category else keys['query_category']
-
+def get_query(block, category=None):
     try:
-        rv = call('get_query', keys, {
-            'query':block, 'category':category_})
+        rv = call('get_query',
+            data={
+                'query':block,
+                'category': category or get_keys('etapestry')['query_category']
+            })
     except EtapError as e:
         raise
-    else:
-        return rv['data']
+    return rv['data']
 
 #-------------------------------------------------------------------------------
-def mod_acct(acct_id, keys, udf=None, persona=[], exc=False):
-    g.group = keys['agency']
-
+def mod_acct(acct_id, udf=None, persona=[], exc=False):
     try:
-        call('modify_acct', keys, {
+        call('modify_acct', data={
             'acct_id':acct_id, 'udf':udf, 'persona': persona})
     except EtapError as e:
         log.error('Error modifying account %s: %s', acct_id, str(e))

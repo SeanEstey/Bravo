@@ -12,10 +12,7 @@ log = getLogger(__name__)
 def lookup_acct(mobile, agcy):
     try:
         # Very slow (~750ms-2200ms)
-        acct = call(
-            'find_acct_by_phone',
-            session.get('conf')['etapestry'],
-            {'phone': mobile})
+        acct = call('find_acct_by_phone', data={'phone': mobile})
     except Exception as e:
         raise EtapError(dialog['error']['etap']['lookup'])
 

@@ -54,14 +54,15 @@ def get_blocks(cal_id, start_dt, end_dt, oauth):
     return blocks
 
 #-------------------------------------------------------------------------------
-def get_accounts(etapestry_id, cal_id, oauth, days_from_now=None):
+def get_accounts(cal_id, delta_days=None):
     '''Return list of eTapestry Accounts from all scheduled routes in given
     calendar on the date specified.
     '''
 
-    start_date = datetime.now() + timedelta(days=days_from_now)
+    oauth = get_keys('google')['oauth']
+    start_date = datetime.now() + timedelta(days=delta_days)
     end_date = start_date + timedelta(hours=1)
-
+    category = get_keys('etapestry')['query_category']
     blocks = get_blocks(cal_id, start_date, end_date, oauth)
 
     if len(blocks) < 1:
@@ -72,8 +73,7 @@ def get_accounts(etapestry_id, cal_id, oauth, days_from_now=None):
 
     for block in blocks:
         try:
-            a = etap.call('get_query', etapestry_id,
-              {'query':block, 'category':etapestry_id['query_category']})
+            a = etap.call('get_query', data={'query':block, 'category':category})
         except Exception as e:
             log.error('Error retrieving accounts for query %s', block)
 

@@ -1,7 +1,5 @@
 '''app.main.tasks'''
 import json
-from guppy import hpy
-from pprint import pformat
 from datetime import datetime, date, time, timedelta as delta
 from dateutil.parser import parse
 from flask import current_app, g, request
@@ -78,13 +76,21 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
     matches = []
 
     for block in blocks:
-        accts = get_query(block, get_keys('etapestry'))
+        accts = get_query(block)
 
         log.debug('Searching Block %s', block)
 
         for acct in accts:
             address = acct['address'] + ', ' + acct['city'] + ', AB'
-            geo_rv = geocode(address, api_key)
+
+            try:
+                geo_rv = geocode(address, api_key)
+            except Exception as e:
+                continue
+            else:
+                if len(geo_rv) == 0:
+                    continue
+
             pt = geo_rv[0]['geometry']['location']
 
             if in_map(pt, target_map):
@@ -111,14 +117,16 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
             get_udf('Block', acct),
             get_udf('Neighborhood', acct),
             get_udf('Status', acct),
+            get_udf('Signup Date', acct),
             get_udf('Next Pickup Date', acct),
             get_udf('Driver Notes', acct),
-            get_udf('Office Notes', acct)])
+            get_udf('Office Notes', acct)
+        ])
 
-    rg = '%s:%s' %(to_range(2, 2), to_range(len(matches)+1, 10))
+    rg = '%s:%s' %(to_range(2, 2), to_range(len(matches)+1, 11))
 
     try:
-        write_rows(srvc, ss_id, 'Updater', rg, values)
+        write_rows(srvc, ss_id, 'Account Updater', rg, values)
     except Exception as e:
         log.exception('Error writing to Sheet')
 
@@ -149,11 +157,11 @@ def update_leaderboard_accts(self, agcy=None, **rest):
         # Now update gifts
         accts = list(g.db.etap_accts.find({'agcy':g.group}))
         ch_size = 100
-        chunks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
+        chks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
 
-        for n in range(0,len(chunks)):
-            chunk = chunks[n]
-            update_gifts(chunk, g.group)
+        for n in range(0,len(chks)):
+            chk = chks[n]
+            update_gifts(chk, g.group)
 
         log.warning('Updated leaderboards', extra={'duration':timer.clock()})
 
@@ -216,63 +224,54 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def process_entries(self, entries, agcy=None, **rest):
+def process_entries(self, entries, wks='Donations', col='Upload', **rest):
+    '''Update accounts/upload donations, write results to Bravo Sheets.
+    @entries: list of dicts w/ account fields/donations
+    @wks: worksheet name
+    @col: result column name
+    '''
+
+    CHK_SIZE = 10
+    CHECKMK = u'\u2714'
+    SUCCESS = [u'Processed', u'Updated']
+
+    log.warning('Processing %s account entries...', len(entries))
 
     timer = Timer()
-    entries = json.loads(entries)
-    g.group = agcy
-
-    log.warning('Uploading %s donations...', len(entries))
-
-    wks = 'Donations'
-    checkmark = u'\u2714'
-    ch_size = 10
-
-    etap_conf = get_keys('etapestry')
-    chunks = [entries[i:i + ch_size] for i in xrange(0, len(entries), ch_size)]
-
+    chks = [entries[i:i + CHK_SIZE] for i in xrange(0, len(entries), CHK_SIZE)]
     ss_id = get_keys('google')['ss_id']
     srvc = gauth(get_keys('google')['oauth'])
     headers = get_row(srvc, ss_id, wks, 1)
-    upload_col = headers.index('Upload') +1
-    n_success = n_errs = 0
+    rv_col = headers.index(col) +1
+    n_errs = 0
 
-    for n in range(0,len(chunks)):
-        chunk = chunks[n]
+    for n in range(0,len(chks)):
+        chk = chks[n]
         try:
-            r = call(
-                'process_entries',
-                etap_conf,
-                {'entries':chunk})
+            r = call('process_entries', data={'entries':chk})
         except Exception as e:
             log.error('error in chunk #%s. continuing...', n+1)
             continue
+        else:
+            results = r['results']
+            n_errs += r['n_errs']
+            range_ = '%s:%s' %(
+                to_range(results[0]['row'], rv_col),
+                to_range(results[-1]['row'], rv_col))
+            values = [[results[i]['status']] for i in range(len(results))]
 
-        n_success += r['n_success']
-        n_errs += r['n_errs']
-
-        range_ = '%s:%s' %(
-            to_range(r['results'][0]['row'], upload_col),
-            to_range(r['results'][-1]['row'], upload_col))
-
-        values = [[r['results'][i]['status']] for i in range(len(r['results']))]
-
-        for i in range(len(values)):
-            if values[i][0] == u'Processed' or values[i][0] == u'Updated':
-                values[i][0] = checkmark
-            elif values[i][0] == u'Failed':
-                values[i][0] = r['results'][i]['description']
+            for i in range(len(values)):
+                values[i][0] = CHECKMK if values[i][0] in SUCCESS else results[i]['descripton']
 
         try:
             write_rows(srvc, ss_id, wks, range_, values)
         except Exception as e:
             log.exception('Error writing chunk %s', n+1)
         else:
-            log.debug('Chunk %s/%s uploaded/written to Sheets.', n+1, len(chunks),
-                extra={'n_success': r['n_success'] , 'n_errs': r['n_errs']})
+            log.debug('Chunk %s/%s uploaded/written to Sheets.', n+1, len(chks),
+                extra={'n_success':r['n_success'], 'n_errs':r['n_errs']})
 
-    log.warning('Donations uploaded.',
-        extra={'n_errs': n_errs, 'duration': timer.clock()})
+    log.warning('Processed account entries.', extra={'n_errs':n_errs,'duration':timer.clock()})
 
     return 'success'
 
@@ -289,14 +288,13 @@ def send_receipts(self, entries, **rest):
     timer = Timer()
     entries = json.loads(entries)
     wks = 'Donations'
-    checkmark = u'\u2714'
+    CHECKMK = u'\u2714'
     log.warning('Processing %s receipts...', len(entries))
 
     try:
         # list indexes match @entries
         accts = call(
             'get_accts',
-            get_keys('etapestry'),
             {"acct_ids": [i['acct_id'] for i in entries]})
     except Exception as e:
         log.exception('Error retrieving accounts from eTapestry.')
@@ -327,27 +325,27 @@ def send_receipts(self, entries, **rest):
     # Break entries into equally sized lists for batch updating google sheet
 
     ch_size = 10
-    chunks = [accts_data[i:i + ch_size] for i in xrange(0, len(accts_data), ch_size)]
+    chks = [accts_data[i:i + ch_size] for i in xrange(0, len(accts_data), ch_size)]
 
-    for i in range(0, len(chunks)):
+    for i in range(0, len(chks)):
         rv = []
-        chunk = chunks[i]
-        for acct_data in chunk:
+        chk = chks[i]
+        for acct_data in chk:
             rv.append(generate(
                 acct_data['acct'],
                 acct_data['entry'],
                 ytd_gifts=acct_data['ytd_gifts']))
 
         range_ = '%s:%s' %(
-            to_range(chunk[0]['entry']['ss_row'], status_col),
-            to_range(chunk[-1]['entry']['ss_row'], status_col))
+            to_range(chk[0]['entry']['ss_row'], status_col),
+            to_range(chk[-1]['entry']['ss_row'], status_col))
 
         values = [[rv[idx]['status']] for idx in range(len(rv))]
         wks_values = get_values(service, g.ss_id, wks, range_)
 
         for idx in range(0, len(wks_values)):
-            if wks_values[idx][0] == checkmark:
-                values[idx][0] = checkmark
+            if wks_values[idx][0] == CHECKMK:
+                values[idx][0] = CHECKMK
             elif wks_values[idx][0] == u'No Email':
                 values[idx][0] = 'No Email'
 
@@ -357,7 +355,7 @@ def send_receipts(self, entries, **rest):
             log.exception('Error writing chunk %s to Sheets', i+1)
         else:
             log.debug('Chunk %s/%s receipts generated/written to Sheets',
-                i+1, len(chunks))
+                i+1, len(chks))
 
     log.warning('Receipts delivered.', extra={
         'gifts': g.track['gifts'],
@@ -368,7 +366,7 @@ def send_receipts(self, entries, **rest):
         'duration': timer.clock()
         })
 
-    chunks = acct_data = accts = None
+    chks = acct_data = accts = None
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -378,14 +376,14 @@ def create_accounts(self, accts_json, agcy=None, **rest):
     @accts_json: JSON list of form data
     '''
 
-    checkmark = u'\u2714'
+    CHECKMK = u'\u2714'
     timer = Timer()
     g.group = agcy
     accts = json.loads(accts_json)
     log.warning('Creating %s accounts...', len(accts))
     # Break accts into chunks for gsheets batch updating
     ch_size = 10
-    chunks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
+    chks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
     log_rec = {
         'n_success': 0,
         'n_errs': 0,
@@ -395,12 +393,12 @@ def create_accounts(self, accts_json, agcy=None, **rest):
     service = gauth(get_keys('google')['oauth'])
     headers = get_row(service, ss_id, 'Signups', 1)
 
-    for i in range(0, len(chunks)):
+    for i in range(0, len(chks)):
         rv = []
-        chunk = chunks[i]
+        chk = chks[i]
 
         try:
-            rv = call('add_accts', get_keys('etapestry'), {'accts':chunk})
+            rv = call('add_accts', data={'accts':chk})
         except Exception as e:
             log.exception('Error adding accounts')
             log_rec['errors'].append(e)
@@ -414,8 +412,8 @@ def create_accounts(self, accts_json, agcy=None, **rest):
             log_rec['errors'].append(rv['results'])
 
         range_ = '%s:%s' %(
-            to_range(chunk[0]['ss_row'], headers.index('Ref')+1),
-            to_range(chunk[-1]['ss_row'], headers.index('Upload')+1))
+            to_range(chk[0]['ss_row'], headers.index('Ref')+1),
+            to_range(chk[-1]['ss_row'], headers.index('Upload')+1))
 
         values = [
             [rv['results'][idx].get('ref'),
@@ -426,14 +424,14 @@ def create_accounts(self, accts_json, agcy=None, **rest):
 
         for j in range(len(values)):
             if values[j][1] == u'Uploaded':
-                values[j][1] = checkmark
+                values[j][1] = CHECKMK
 
         try:
             write_rows(service, ss_id, 'Signups', range_, values)
         except Exception as e:
             log.exception('Error writing to Bravo Sheets.')
         else:
-            log.debug('Chunk %s/%s written to Sheets', i+1, len(chunks))
+            log.debug('Chunk %s/%s written to Sheets', i+1, len(chks))
 
     log_rec['duration'] = timer.clock()
 
@@ -446,7 +444,7 @@ def create_accounts(self, accts_json, agcy=None, **rest):
             log_rec['n_success'], log_rec['n_success'] + log_rec['n_errs'],
             extra=log_rec)
 
-    chunks = accts = None
+    chks = accts = None
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -514,7 +512,7 @@ def update_calendar_blocks(self, from_=date.today(), agcy=None, **rest):
                     continue
 
                 try:
-                    rv = call('get_route_size', etap_conf, {
+                    rv = call('get_route_size', data={
                         'category': etap_conf['query_category'],
                         'query': block,
                         'date':dt.strftime('%d/%m/%Y')})
@@ -595,11 +593,7 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
         cal_ids = get_keys('cal_ids',agcy=g.group)
         for _id in cal_ids:
             # Get accounts scheduled on Residential routes 3 days from now
-            accts += get_accounts(
-                agency['etapestry'],
-                cal_ids[_id],
-                agency['google']['oauth'],
-                days_from_now=days)
+            accts += get_accounts(cal_ids[_id], delta_days=days)
 
         if len(accts) < 1:
             return 'failed'
@@ -653,18 +647,14 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
             extra={'inactive_period (days)': period})
 
         for _id in cal_ids:
-            accts += get_accounts(
-                agency['etapestry'],
-                cal_ids[_id],
-                agency['google']['oauth'],
-                days_from_now=in_days)
+            accts += get_accounts(cal_ids[_id], delta_days=in_days)
 
         if len(accts) < 1:
             continue
 
         for acct in accts:
             try:
-                res = donors.is_inactive(g.group, acct, days=period)
+                res = donors.is_inactive(acct, days=period)
             except Exception as e:
                 continue
             else:
@@ -672,7 +662,6 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
                     continue
 
             acct_matches.append({'id':acct['id'], 'name':acct.get('name','')})
-
             npu = get_udf('Next Pickup Date', acct)
 
             if len(npu.split('/')) == 3:
@@ -680,13 +669,12 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
             mod_acct(
                 acct['id'],
-                get_keys('etapestry'),
                 udf={
-                    'Office Notes':\
-                    '%s\n%s: non-participant (inactive for %s days)'%(
-                    get_udf('Office Notes', acct),
-                    date.today().strftime('%b %-d %Y'),
-                    period)},
+                    'Office Notes': '%s\n%s: Inactive for %s days'%(
+                        get_udf('Office Notes', acct),
+                        date.today().strftime('%b %-d %Y'),
+                        period)
+                },
                 exc=False)
 
             create_rfu(
@@ -705,7 +693,6 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
             extra={'matches':acct_matches, 'n_sec':timer.clock()})
 
         n_task_inactive += n_inactive
-
         timer.restart()
 
     g.group = None

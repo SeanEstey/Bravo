@@ -58,8 +58,7 @@ def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key)
         return False
 
     if r.status_code != 202:
-        log.error('Failed to retrieve Routific job_id. Msg="%s"',
-            r.text['error'])
+        log.error('Failed to retrieve Routific job_id. Msg="%s"', r.text)
         return False
 
     return json.loads(r.text)['job_id']

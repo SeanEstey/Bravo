@@ -32,11 +32,9 @@ def submit_job(route_id):
     orders = []
 
     route = g.db.routes.find_one({"_id":ObjectId(route_id)})
-    etap_keys = get_keys('etapestry')
-    accts = call('get_query', get_keys('etapestry'), {
-        "query":route['block'],
-        "category":etap_keys['query_category']}
-    )['data']
+    category = get_keys('etapestry')['query_category']
+
+    accts = call('get_query', data={"query":route['block'],"category":category})['data']
 
     # Build the orders for Routific
     for acct in accts:
@@ -56,7 +54,7 @@ def submit_job(route_id):
             errors.append({'acct':acct, 'desc':str(e)})
             continue
         except GeocodeError as e:
-            log.exception(e.message)
+            log.exception(e.message, extra={'response':e.response})
             errors.append({'acct':acct, 'desc':str(e)})
             continue
         except requests.RequestException as e:
@@ -69,13 +67,19 @@ def submit_job(route_id):
             orders.append(order)
 
     office = get_keys('routing')['locations']['office']
-    office_coords = geocode(
-        office['formatted_address'],
-        get_keys('google')['geocode']['api_key'])[0]
     depot = route['depot']
-    depot_coords = geocode(
-        depot['formatted_address'],
-        get_keys('google')['geocode']['api_key'])[0]
+
+    try:
+        office_coords = geocode(
+            office['formatted_address'],
+            get_keys('google')['geocode']['api_key'])[0]
+
+        depot_coords = geocode(
+            depot['formatted_address'],
+            get_keys('google')['geocode']['api_key'])[0]
+    except GeocodeError as e:
+        log.exception('Error geocoding Start/End points.', extra={'response':e.response})
+        raise
 
     job_id = routific.submit_vrp_task(
         orders,

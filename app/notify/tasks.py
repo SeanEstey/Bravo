@@ -211,15 +211,12 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
         extra={'event_name':evnt['name'], 'account_id':acct['udf']['etap_id']})
 
     try:
-        call(
-            'skip_pickup',
-            get_keys('etapestry'),
-            data={
-                'acct_id': acct['udf']['etap_id'],
-                'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
-                'next_pickup': to_local(
-                    acct['udf']['future_pickup_dt'],
-                    to_str='%d/%m/%Y')})
+        call('skip_pickup', data={
+            'acct_id': acct['udf']['etap_id'],
+            'date': acct['udf']['pickup_dt'].strftime('%d/%m/%Y'),
+            'next_pickup': to_local(
+                acct['udf']['future_pickup_dt'],
+                to_str='%d/%m/%Y')})
     except EtapError as e:
         log.exception("Error updating account %s",
             acct.get('name') or acct.get('email'),

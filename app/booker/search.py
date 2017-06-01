@@ -47,10 +47,7 @@ def search(query, radius=None, weeks=None, agcy=None):
 
     if parser.is_account_id(query):
         try:
-            acct = call(
-              'get_acct',
-              get_keys('etapestry'),
-              data={'acct_id': re.search(r'\d{1,6}',query).group(0)})
+            acct = call('get_acct', data={'acct_id': re.search(r'\d{1,6}',query).group(0)})
         except EtapError as e:
             log.error('no account id %s', query)
 

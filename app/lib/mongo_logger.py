@@ -1,4 +1,5 @@
 import logging
+import traceback
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from datetime import datetime
 from pymongo.collection import Collection
@@ -259,11 +260,11 @@ class BufferedMongoHandler(MongoHandler):
             except Exception as e:
                 print 'Mongo write error! %s' % str(e)
                 from app.lib.utils import obj_vars
-                print obj_vars(e)
+                traceback.print_exc()
                 self.empty_buf()
 
                 if not self.raise_exc:
-                    self.handleError(self.last_record) #handling the error on flush
+                    self.handleError(self.last_record)
             finally:
                 self.buf_lock_release()
 

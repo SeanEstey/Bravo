@@ -13,6 +13,9 @@ function tools_init() {
     $('#map_select').change(load_map);
     $('#analyze').click(analyze_blocks);
 
+    $('.tab-content').prepend($('.alert-banner'));
+    alertMsg("Use this tool to assist with splitting blocks.", "info");
+
     get_maps();
     init_socketio();
 }
@@ -45,9 +48,16 @@ function get_maps() {
           $('#map_count').text(maps.length);
           $('#last_updated').text(new Date(map_data['update_dt']['$date']).strftime("%B %d %H:%M:%S %p"));
 
+          var MAX_CHARS = 40;
+
           for(var i=0; i<maps.length; i++) {
+              var title = maps[i]['properties']['name'];
+
+              if(title.length > MAX_CHARS)
+                  title = title.slice(0, MAX_CHARS) + "...";
+
               $('#map_select').append(
-                '<option value='+i+'>'+maps[i]['properties']['name']+'</option>');
+                '<option value='+i+'>' + title);
           }
 
           var options = $("#map_select option");
@@ -112,7 +122,10 @@ function analyze_blocks() {
         'blocks': JSON.stringify(blocks)},
       function(response){
           console.log(response);
+          
+          $('#analyze').prop('disabled', true);
           alertMsg('Running analysis for accounts within ' + map_title + '...', 'info');
+          $('#status').text("Running...");
       });
 }
 
@@ -139,6 +152,9 @@ function init_socketio() {
         }
         else if(rv['status'] == 'completed') {
             alertMsg('Analysis complete. ' + rv['n_matches'] + ' account matches found.', 'success');
+            
+            $('#status').text("Finished");
+            $('#analyze').prop('disabled', true);
         }
     });
 }

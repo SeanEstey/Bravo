@@ -15,87 +15,101 @@
 </script>
 
 <div class="container">
-	<!-- Navigation tabs -->
-	<ul style="margin-bottom:2em" class="nav nav-tabs" role="tablist">
+	<ul style="margin-bottom:0em" class="nav nav-tabs" role="tablist">
 		<li class="nav-item">
-			<a class="nav-link active" data-toggle="tab" href="#block_splitter" role="tab">Mapping</a>
+			<a class="nav-link active" data-toggle="tab" href="#block_splitter" role="tab">Map Analyzer</a>
 		</li>
 	</ul>
-
+  <!--!TABS-->
 	<div class="tab-content">
-    <!-- Block Splitter Pane -->
 		<div class="tab-pane active" id="block_splitter" style='margin-bottom:7em' role="tabpanel">
-      <form id="user_form">
-        <!--MY MAPS-->
-        <fieldset style="max-width:700px" class="form-fieldset new_event">
-          <legend class="new_event">My Maps</legend>
-          <div class="form-group row">
-            <label for="map_count" class="col-3 col-form-label">Count:</label>
-            <label type="text" id="map_count" class="col-form-label col-7"></label>
+      <div class="card-deck">
+        <div class="card" style="margin-top:2em">
+          <div class="card-header">
+            <label style="font-weight:400; font-size:1.5rem" class="">My Maps</label>
           </div>
-          <div class="form-group row">
-            <label for="last_updated" class="col-3 col-form-label">Last Updated:</label>
-            <label type="text" id="last_updated" class="col-form-label col-7"></label>
-          </div>
-            <button id="update_maps" type="button" class="btn btn-secondary">Update All</button>
-        </fieldset>
-        <!--PROPERTIES-->
-        <fieldset style="max-width:700px" class="form-fieldset new_event">
-          <legend class="new_event">Properties</legend>
-          <div class="form-group row">
-            <label for="map_select" class="col-3 col-form-label">Map Title:</label>
-            <select class="form-control col-9" id="map_select">
-              <option selected>...</option>
-            </select>
-          </div>
-          <div class="form-group row">
-            <label for="description" class="col-3 col-form-label">Description:</label>
-            <label type="text" id="description" class="col-form-label col-7"></label>
-          </div>
-          <div class="form-group row">
-            <label for="n_coords" class="col-3 col-form-label">Coordinate Sets:</label>
-            <label type="text" id="n_coords" class="col-form-label col-7"></label>
-          </div>
-          <div class="form-group row">
-            <label for="block" class="col-3 col-form-label">Block:</label>
-            <label type="text" id="block" class="col-form-label col-7"></label>
-          </div>
-          <div class="form-group row">
-            <label for="neighborhoods" class="col-3 col-form-label">Neighborhoods:</label>
-            <label type="text" id="neighborhoods" class="col-form-label col-7"></label>
-          </div>
-          <div class="form-group row">
-            <label for="search_blocks" class="col-3 col-form-label">Blocks to Analyze:</label>
-            <label type="text" id="search_blocks" class="col-form-label col-7"></label>
-          </div>
-          <button id='analyze' style="float:right" type="button" class="btn btn-primary">Analyze Blocks</button>
-        </fieldset>
-        <!--RESULTS-->
-        <fieldset style="max-width:700px" class="form-fieldset new_event">
-          <legend class="new_event">Results</legend>
-          <div class="form-group row">
-            <label for="n_matches" class="col-3 col-form-label">Count:</label>
-            <label type="text" id="n_matches" class="col-form-label col-7"></label>
-          </div>
-          <div class="form-group row">
-            <label for="acct_ids" class="col-3 col-form-label">Account IDs:</label>
-            <label type="text" id="acct_ids" class="col-form-label col-9"></label>
-          </div>
-          <button id='export' style="float:right" type="button" class="btn btn-primary">Export Accounts</button>
-        </fieldset>
-      </form>
-    </div>
-	</div> <!--END CONTENT-->
+          <div class="card-block">
 
-	<!-- Loader-->
-  <div>
-    <div class="loader-div" style="background:white; display:none">
-      <button class="btn btn-info loader">
-        <span class="fa fa-refresh loader-animate"></span>
-        <label style="margin-bottom:0; margin-left:5px">Analyzing...</label>
-      </button>
+            <div class=" row">
+              <label for="map_count" class="col-3 col-form-label">Count:</label>
+              <label type="text" id="map_count" class="col-form-label col-7"></label>
+            </div>
+            <div class=" row">
+              <label for="last_updated" class="col-3 col-form-label">Last Updated:</label>
+              <label type="text" id="last_updated" class="col-form-label col-7"></label>
+            </div>
+						<div class="row mt-3">
+							<label class="col-form-label col-3">Synchronize:</label>
+							<div class="pl-3">
+								<button id="update_maps" type="button" class="btn btn-secondary mt-2">Update Now</button>
+							</div>
+						</div>
+						<br><hr><br>
+            <div class="row mb-3">
+              <label for="map_select" class="col-3 col-form-label">Map Title:</label>
+							<div class="col-9">
+								<select class="form-control" id="map_select">
+									<option selected>Select a Map</option>
+								</select>
+							</div>
+            </div>
+            <div class=" row">
+              <label for="description" class="col-3 col-form-label">Description:</label>
+              <label type="text" id="description" class="col-form-label col-7">None</label>
+            </div>
+            <div class="row" hidden>
+              <label for="n_coords" class="col-3 col-form-label">Coordinate Sets:</label>
+              <label type="text" id="n_coords" class="col-form-label col-7">None</label>
+            </div>
+            <div class=" row">
+              <label for="block" class="col-3 col-form-label">Block:</label>
+              <label type="text" id="block" class="col-form-label col-7">None</label>
+            </div>
+            <div class=" row">
+              <label for="neighborhoods" class="col-3 col-form-label">Areas:</label>
+              <label type="text" id="neighborhoods" class="col-form-label col-7">None</label>
+            </div>
+            <div class=" row">
+              <label for="search_blocks" class="col-3 col-form-label">Search Blocks:</label>
+              <label type="text" id="search_blocks" class="col-form-label col-7">None</label>
+            </div>
+						<br><hr><br>
+            <div class="alert alert-warning" role="alert">
+              Any accounts within the selected map area will be identified and written to Bravo Sheets. 
+              This process may take a few minutes.
+            </div>
+            <div style="margin-top:1.5em; text-align:center">
+              <button id="analyze" style="width:100%; margin-left:auto; margin-right:auto;" type="button" class="btn btn-primary btn-lg">Run Analysis</button>
+            </div>
+          </div>
+        </div>
+        <!--!CARD-->
+        <div class="card" style="height:50%; margin-top:2em">
+          <div class="card-header">
+            <label style="font-weight:400; font-size:1.5rem" class="">Analysis Results</label>
+          </div>
+          <div class="card-block">
+            <div class=" row">
+              <label for="status" class="col-3 col-form-label">Status:</label>
+              <label type="text" id="status" class="col-form-label col-7">Inactive</label>
+            </div>
+            <div class="row">
+              <label for="n_matches" class="col-3 col-form-label">Matches:</label>
+              <label type="text" id="n_matches" class="col-form-label col-7">None</label>
+            </div>
+            <div class="row">
+              <label for="acct_ids" class="col-3 col-form-label">Account ID's:</label>
+              <label type="text" id="acct_ids" class="col-form-label col-9">None</label>
+            </div>
+          </div>
+        </div>
+        <!--!CARD-->
+      </div>
+      <!--!CARD DECK-->
     </div>
+    <!--!TAB-PANE-->
   </div>
-
+  <!--!TAB-CONTENT-->
 </div>
+<!--!CONTAINER-->
 {% endblock %}

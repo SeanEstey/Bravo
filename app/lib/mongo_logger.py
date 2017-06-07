@@ -259,10 +259,8 @@ class BufferedMongoHandler(MongoHandler):
                 self.empty_buf()
             except Exception as e:
                 from bson.json_util import dumps
-                print 'Mongo error:\nDesc:  %s\nBuffer: %s' %(e.message, dumps(self.buf))
-
-                #from app.lib.utils import obj_vars
-                #traceback.print_exc()
+                print 'Mongo error: %s\nBuf length: %s\nBuf: %s'%(
+                    e.message, len(self.buf), dumps(self.buf))
 
                 self.empty_buf()
 

@@ -299,8 +299,10 @@ function writeLogEntries(resp) {
 function showLogEntryDetailsModal(e) {
 
     var std_fields = [
-        "message", "user", "group", "level", "loggerName", "thread",
-        "threadName", "process", "processName", "timestamp", "exception"];
+        "message",
+        "user", "group", "level", "process", "processName", "thread", "threadName",
+        "loggerName", "module", "fileName", "method", "lineNumber", "exception", "timestamp"
+    ];
 
     e.preventDefault();
 

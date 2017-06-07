@@ -107,12 +107,13 @@ def send_welcome():
     Returns: mailgun ID
     '''
 
+    from app.lib.dt import ddmmyyyy_to_date
     from app.main.donors import get_acct_by_ref
     acct = get_acct_by_ref(request.form.get('ref'))
 
     udf = acct['accountDefinedValues']
     acct['accountDefinedValues'] = {
-        'Dropoff Date': get_udf('Dropoff Date', acct),
+        'Dropoff Date': ddmmyyyy_to_date(get_udf('Dropoff Date', acct)),
         'Frequency': get_udf('Frequency', acct),
         'Status': get_udf('Status', acct),
         'Contact': get_udf('Contact', acct)

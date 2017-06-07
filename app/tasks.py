@@ -115,8 +115,8 @@ def task_failed(signal=None, sender=None, task_id=None, exception=None, tracebac
     name = sender.name.split('.')[-1]
     app.logger.error('Task %s failed. Click for more info.', name,
         extra={
-            'exception':str(exception),
-            'traceback':str(traceback),
+            'exception': str(exception),
+            'traceback': str(traceback),
             'task_args': args,
             'task_kwargs': kwargs})
     print 'TASK_FAILURE. NAME %s' % name

@@ -7,7 +7,7 @@
         will be by on the date below.</p>
 			</div>
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
-				Date: {{ acct["accountDefinedValues"]["Dropoff Date"] }} 
+				Date: {{ acct["accountDefinedValues"]["Dropoff Date"].strftime("%B %d") }} 
 			</div>
 			<div style='font-size:12pt; margin: 1.0em 0.5em'>
 				Address: {{ acct["address"] }}, {{ acct["postalCode"] }}

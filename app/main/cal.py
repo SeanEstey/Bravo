@@ -2,6 +2,7 @@
 import logging
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
+from app import get_keys
 from .parser import get_block, block_to_rmv
 from app.lib import gcal
 from . import etap

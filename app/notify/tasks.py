@@ -105,7 +105,7 @@ def fire_trigger(self, _id=None, **rest):
             n_errors +=1
             status = 'error'
             log.exception('Error sending notification to %s', n['to'],
-                extra={'type':n['type'], 'error':e})
+                extra={'type':n['type']})
         else:
             if status == 'failed':
                 n_errors += 1

@@ -1,34 +1,18 @@
-'''app.gdrive'''
-import httplib2, json, logging, re, requests, pymongo
-from oauth2client.service_account import ServiceAccountCredentials
-from apiclient.discovery import build
-from apiclient.http import BatchHttpRequest
-from logging import getLogger
-log = getLogger(__name__)
+'''app.lib.gdrive'''
+import logging
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def gauth(oauth):
-    scope = [
-        'https://www.googleapis.com/auth/drive',
-        'https://www.googleapis.com/auth/drive.file'
-    ]
-    version = 'v3'
-    name = 'drive'
+def gauth(keyfile_dict):
 
-    try:
-        credentials = ServiceAccountCredentials.from_json_keyfile_dict(
-            oauth,
-            scopes=scope)
-        http = httplib2.Http()
-        http = credentials.authorize(http)
-        service = build(name, version, http=http, cache_discovery=False)
-    except Exception as e:
-        log.error('Error authorizing %s: %s', name, str(e))
-        return False
-
-    #log.debug('drive service authorized')
-
-    return service
+    from .gservice_acct import auth
+    return auth(
+        keyfile_dict,
+        name='drive',
+        scopes=[
+            'https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/drive.file'],
+        version='v3')
 
 #-------------------------------------------------------------------------------
 def add_permissions(service, file_id, permissions):
@@ -37,6 +21,8 @@ def add_permissions(service, file_id, permissions):
     @file_id: string google drive id
     https://developers.google.com/drive/v3/reference/permissions
     '''
+
+    import httplib2
 
     batch = service.new_batch_http_request()
 
@@ -84,5 +70,4 @@ def permissions_callback(request_id, response, exception):
           request_id, str(exception))
         pass
     else:
-        #log.debug(json.dumps(response))
         pass

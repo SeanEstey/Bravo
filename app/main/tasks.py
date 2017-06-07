@@ -76,9 +76,13 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
     matches = []
 
     for block in blocks:
-        accts = get_query(block)
-
         log.debug('Searching Block %s', block)
+
+        try:
+            accts = get_query(block)
+        except Exception as e:
+            log.debug('Error retrieving %s. Skipping', block)
+            continue
 
         for acct in accts:
             address = acct['address'] + ', ' + acct['city'] + ', AB'
@@ -111,6 +115,7 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
 
     for acct in matches:
         values.append([
+            map_title,
             acct['id'],
             acct['address'],
             acct['name'],
@@ -123,10 +128,10 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
             get_udf('Office Notes', acct)
         ])
 
-    rg = '%s:%s' %(to_range(2, 2), to_range(len(matches)+1, 11))
+    rg = '%s:%s' %(to_range(2, 2), to_range(len(matches)+1, 12))
 
     try:
-        write_rows(srvc, ss_id, 'Account Updater', rg, values)
+        write_rows(srvc, ss_id, 'Accounts', rg, values)
     except Exception as e:
         log.exception('Error writing to Sheet')
 
@@ -261,7 +266,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
             values = [[results[i]['status']] for i in range(len(results))]
 
             for i in range(len(values)):
-                values[i][0] = CHECKMK if values[i][0] in SUCCESS else results[i]['descripton']
+                values[i][0] = CHECKMK if values[i][0] in SUCCESS else results[i].get('description','')
 
         try:
             write_rows(srvc, ss_id, wks, range_, values)
@@ -452,8 +457,8 @@ def create_accounts(self, accts_json, agcy=None, **rest):
 def create_rfu(self, agcy, note, options=None, **rest):
 
     g.group = agcy
-    srvc = gauth(get_keys('google',agcy=g.group)['oauth'])
-    ss_id = get_keys('google',agcy=g.group)['ss_id']
+    srvc = gauth(get_keys('google')['oauth'])
+    ss_id = get_keys('google')['ss_id']
     headers = get_row(srvc, ss_id, 'Issues', 1)
 
     rfu = [''] * len(headers)

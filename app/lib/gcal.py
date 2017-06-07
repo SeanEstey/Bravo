@@ -1,11 +1,8 @@
 '''app.lib.gcal'''
-import httplib2, json, logging, requests
+import logging
 from datetime import datetime
-from oauth2client.service_account import ServiceAccountCredentials
-from apiclient.discovery import build
-from .utils import obj_vars, dump_bson
-from logging import getLogger
-log = getLogger(__name__)
+from .utils import dump_bson
+log = logging.getLogger(__name__)
 
 color_ids = {
     'light_purple' : 1,
@@ -21,21 +18,14 @@ color_ids = {
     'red' : 11}
 
 #-------------------------------------------------------------------------------
-def gauth(oauth):
+def gauth(keyfile_dict):
 
-    try:
-        scopes=['https://www.googleapis.com/auth/calendar']
-        credentials = ServiceAccountCredentials.from_json_keyfile_dict(
-            oauth,
-            scopes=scopes)
-        http = httplib2.Http()
-        http = credentials.authorize(http)
-        service = build('calendar', 'v3', http=http, cache_discovery=False)
-    except Exception as e:
-        log.error('Error authorizing gcal: %s', str(e))
-        return False
-
-    return service
+    from .gservice_acct import auth
+    return auth(
+        keyfile_dict,
+        name='calendar',
+        scopes=['https://www.googleapis.com/auth/calendar'],
+        version='v3')
 
 #-------------------------------------------------------------------------------
 def get_events(service, cal_id, start, end):
@@ -54,8 +44,8 @@ def get_events(service, cal_id, start, end):
             orderBy = 'startTime'
         ).execute()
     except Exception as e:
-        log.error('Error pulling cal events: %s', str(e))
-        return False
+        log.exception('Error pulling cal events: %s', e.message)
+        raise
 
     events = events_result.get('items', [])
 

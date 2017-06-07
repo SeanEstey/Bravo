@@ -13,7 +13,7 @@ def do_setup():
     session.permanent = True
     g.db = current_app.db_client['bravo']
     g.user = current_user
-    g.group = g.user.agency
+    g.group = session.get('agency') if session.get('agency') else g.user.agency
 
 #-------------------------------------------------------------------------------
 @app.after_request

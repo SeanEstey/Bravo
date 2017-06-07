@@ -1,30 +1,37 @@
 '''app.lib.gsheets'''
-import httplib2, json, logging, requests
-from datetime import datetime
-from dateutil.parser import parse
-from oauth2client.service_account import ServiceAccountCredentials
-from apiclient.discovery import build
-from apiclient.http import BatchHttpRequest
-from logging import getLogger
-log = getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
+
+#-------------------------------------------------------------------------------
+def gauth(keyfile_dict):
+
+    from .gservice_acct import auth
+    return auth(
+        keyfile_dict,
+        name='sheets',
+        scopes=['https://www.googleapis.com/auth/spreadsheets'],
+        version='v4')
 
 #-------------------------------------------------------------------------------
 def num_columns(service, ss_id, wks):
-    ss_info = api_ss_get(service, ss_id)
-    for sheet in ss_info['sheets']:
+
+    ss = _ss_get(service, ss_id)
+    for sheet in ss['sheets']:
         if sheet['properties']['title'] == wks:
             return sheet['properties']['gridProperties']['columnCount']
 
 #-------------------------------------------------------------------------------
 def num_rows(service, ss_id, wks):
-    ss_info = api_ss_get(service, ss_id)
-    for sheet in ss_info['sheets']:
+
+    ss = _ss_get(service, ss_id)
+    for sheet in ss['sheets']:
         if sheet['properties']['title'] == wks:
             return sheet['properties']['gridProperties']['rowCount']
 
 #-------------------------------------------------------------------------------
 def get_row(service, ss_id, wks, row):
-    return api_ss_values_get(
+
+    return _ss_values_get(
         service,
         ss_id,
         wks,
@@ -33,105 +40,130 @@ def get_row(service, ss_id, wks, row):
 
 #-------------------------------------------------------------------------------
 def get_headers(service, ss_id, wks):
+
     return get_row(service, ss_id, wks, 1)
 
 #-------------------------------------------------------------------------------
 def get_values(service, ss_id, wks, range_):
-    return api_ss_values_get(service, ss_id, wks, range_)['values']
+
+    return _ss_values_get(service, ss_id, wks, range_)['values']
 
 #-------------------------------------------------------------------------------
 def update_cell(service, ss_id, wks, range_, value):
-    api_ss_values_update(service, ss_id, wks, range_, [[value]])
+
+    _ss_values_update(service, ss_id, wks, range_, [[value]])
 
 #-------------------------------------------------------------------------------
 def append_row(service, ss_id, wks_title, values):
-    sheet = api_ss_get(service, ss_id, wks_title=wks_title)
-    max_rows = sheet['gridProperties']['rowCount']
-    range_ = '%s!%s:%s' % (wks_title, max_rows+1,max_rows+1)
-    api_ss_values_append(service, ss_id, range_, [values])
+
+    n_rows = _ss_get(service, ss_id, wks_title=wks_title)['gridProperties']['rowCount']
+    _ss_values_append(
+        service,
+        ss_id,
+        '%s!%s:%s' % (wks_title, n_rows+1, n_rows+1),
+        [values]
+    )
 
 #-------------------------------------------------------------------------------
 def write_rows(service, ss_id, wks, range_, values):
     '''Write rows to given range. Will append new rows if range exceeds
-    grid size
-    '''
-    api_ss_values_update(service, ss_id, wks, range_, values)
+    grid size'''
+
+    _ss_values_update(service, ss_id, wks, range_, values)
 
 #-------------------------------------------------------------------------------
 def insert_rows_above(service, ss_id, wks_id, row, num):
-    range_ = {
-        "sheetId": wks_id,
-        "dimension": "ROWS",
-        "startIndex": row-1,
-        "endIndex": row-1+num}
-    api_ss_batch_update(service, ss_id, 'insertDimension', range_=range_)
+
+    _ss_batch_update(
+        service, ss_id, 'insertDimension',
+        range_ = {
+            "sheetId": wks_id,
+            "dimension": "ROWS",
+            "startIndex": row-1,
+            "endIndex": row-1+num
+        }
+    )
 
 #-------------------------------------------------------------------------------
 def hide_rows(service, ss_id, wks_id, start, end):
     '''@start: inclusive row
        @end: inclusive row
     '''
-    fields = '*'
-    range_ = {
-        'sheetId': wks_id,
-        'startIndex': start-1,
-        'endIndex': end,
-        'dimension': 'ROWS'}
-    properties = {
-        'hiddenByUser': True}
 
-    api_ss_batch_update(service, ss_id, 'updateDimensionProperties',
-        fields=fields, range_=range_, properties=properties)
+    _ss_batch_update(
+        service, ss_id, 'updateDimensionProperties',
+        fields= '*',
+        range_= {
+            'sheetId': wks_id,
+            'startIndex': start-1,
+            'endIndex': end,
+            'dimension': 'ROWS'
+        },
+        properties= {
+            'hiddenByUser': True
+        }
+    )
 
 #-------------------------------------------------------------------------------
 def vert_align_cells(service, ss_id, wks_id, start_row, end_row, start_col, end_col):
-    range_ = {
-        "sheetId": wks_id,
-        "startRowIndex": start_row-1,
-        "endRowIndex": end_row-1,
-        "startColumnIndex": start_col-1}
-    cell = {
-        "userEnteredFormat": {
-            "verticalAlignment" : "MIDDLE"}}
-    fields = 'userEnteredFormat(verticalAlignment)'
 
-    api_ss_batch_update(service, ss_id, 'repeatCell',
-        cell=cell, range_=range_, fields=fields)
+    _ss_batch_update(
+        service, ss_id, 'repeatCell',
+        cell= {
+            "userEnteredFormat": {
+                "verticalAlignment" : "MIDDLE"
+            }
+        },
+        range_={
+            "sheetId": wks_id,
+            "startRowIndex": start_row-1,
+            "endRowIndex": end_row-1,
+            "startColumnIndex": start_col-1
+        },
+        fields= 'userEnteredFormat(verticalAlignment)'
+    )
 
 #-------------------------------------------------------------------------------
 def bold_cells(service, ss_id, wks_id, cells):
     '''@cells: list of [ [row,col], [row,col] ]
     '''
 
-    # range startIndex: inclusive, endIndex: exclusive
-
-    requests_=[]
+    actions=[]
 
     for cell in cells:
-        range_ = {
-            "sheetId": wks_id,
-            "startRowIndex": cell[0]-1,
-            "endRowIndex": cell[0],
-            "startColumnIndex": cell[1]-1,
-            "endColumnIndex": cell[1]}
-        cell = {
-            "userEnteredFormat": {
-                "textFormat": {
-                    "bold": True}}}
-        fields = 'userEnteredFormat(textFormat)'
+        actions.append(
+            _ss_batch_update(
+                service, ss_id, 'repeatCell',
+                range_= {
+                    "sheetId": wks_id,
+                    "startRowIndex": cell[0]-1,
+                    "endRowIndex": cell[0],
+                    "startColumnIndex": cell[1]-1, # Inclusive
+                    "endColumnIndex": cell[1] # Exclusive
+                },
+                cell= {
+                    "userEnteredFormat": {
+                        "textFormat": {
+                            "bold": True
+                        }
+                    }
+                },
+                fields='userEnteredFormat(textFormat)',
+                execute=False
+            )
+        )
 
-        requests_.append(api_ss_batch_update(
-            service, ss_id, 'repeatCell',
-            range_=range_, cell=cell, fields=fields, execute=False))
-    api_execute(service, ss_id, requests_)
+    _execute(service, ss_id, actions)
 
 #-------------------------------------------------------------------------------
 def to_range(row, col):
+
     letter = col_idx_to_a1(col-1)
     return '%s%s' % (letter,str(row))
 
 #-------------------------------------------------------------------------------
 def col_idx_to_a1(idx):
+
     alphabet = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
     if idx < len(alphabet):
@@ -143,35 +175,11 @@ def col_idx_to_a1(idx):
         log.error('not implemented converting to range for wide idx of %s', idx)
         return False
 
-#-------------------------------------------------------------------------------
-def gauth(oauth):
-    name = 'sheets'
-    scope = ['https://www.googleapis.com/auth/spreadsheets']
-    version = 'v4'
-
-    try:
-        credentials = ServiceAccountCredentials.from_json_keyfile_dict(
-            oauth,
-            scopes=scope)
-        #http = httplib2.Http(cache=".cache")
-        http = httplib2.Http()
-        http = credentials.authorize(http)
-        #service = build(name, version, http=http, cache_discovery=True)
-        service = build(name, version, http=http, cache_discovery=False)
-    except Exception as e:
-        log.error('error authorizing %s: %s', name, str(e))
-        return False
-
-    #log.debug('sheets service authorized')
-
-    http = None
-    credentials = None
-    return service
 
 '''API Calls'''
 
 #-------------------------------------------------------------------------------
-def api_ss_get(service, ss_id, wks_title=None):
+def _ss_get(service, ss_id, wks_title=None):
     '''Returns <Spreadsheet> dict (does not contain values)
 
     Spreadsheet = {
@@ -202,8 +210,8 @@ def api_ss_get(service, ss_id, wks_title=None):
     try:
         ss = service.spreadsheets().get(spreadsheetId=ss_id).execute()
     except Exception as e:
-        log.error('couldnt get ss prop: %s', str(e))
-        return False
+        log.exception('Error getting SS properties')
+        raise
 
     if not wks_title:
         return ss
@@ -213,7 +221,7 @@ def api_ss_get(service, ss_id, wks_title=None):
             return sheet['properties']
 
 #-------------------------------------------------------------------------------
-def api_ss_values_get(service, ss_id, wks, range_):
+def _ss_values_get(service, ss_id, wks, range_):
     '''Returns <ValuesRange>:
 	{
       "range": string,
@@ -229,108 +237,110 @@ def api_ss_values_get(service, ss_id, wks, range_):
 
     try:
         result = service.spreadsheets().values().get(
-          spreadsheetId = ss_id,
+          spreadsheetId= ss_id,
           range='%s!%s'%(wks,range_)
         ).execute()
     except Exception as e:
-        log.error('Error getting values from sheet: %s', str(e))
-        log.debug(str(e))
+        log.exception('Error getting SS values from %s', wks)
         raise
 
     return result
 
 #-------------------------------------------------------------------------------
-def api_ss_values_update(service, ss_id, wks, range_, values):
+def _ss_values_update(service, ss_id, wks, range_, values):
     '''https://developers.google.com/resources/api-libraries/documentation/\
     sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#update
     '''
 
-    call = service.spreadsheets().values().update
-    body = {
-        "values": values,
-        "majorDimension": "ROWS"}
-    input_ = 'USER_ENTERED'
-
     try:
-        call(
-            spreadsheetId=ss_id,
-            valueInputOption=input_,
-            range='%s!%s'%(wks,range_),
-            body=body).execute()
+        service.spreadsheets().values().update(
+            spreadsheetId= ss_id,
+            valueInputOption= 'USER_ENTERED',
+            range= '%s!%s' % (wks, range_),
+            body = {
+                "values": values,
+                "majorDimension": "ROWS"
+            }
+        ).execute()
     except Exception as e:
-        log.error('Error updating sheet: %s', str(e))
-        log.debug(str(e))
+        log.exception('Error updating %s worksheet: %s', wks, e.message)
         return False
 
 #-------------------------------------------------------------------------------
-def api_ss_values_append(service, ss_id, range_, values):
+def _ss_values_append(service, ss_id, range_, values):
     '''https://developers.google.com/resources/api-libraries/documentation/\
     sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#append
     '''
 
-    call = service.spreadsheets().values().append
-    body = {
-        "values": values,
-        "majorDimension": "ROWS"}
-    input_ = 'USER_ENTERED'
-
     try:
-        call(spreadsheetId=ss_id, valueInputOption=input_, range=range_, body=body).execute()
+        service.spreadsheets().values().append(
+            spreadsheetId= ss_id,
+            valueInputOption= 'USER_ENTERED',
+            range= range_,
+            body = {
+                "values": values,
+                "majorDimension": "ROWS"
+            }
+        ).execute()
     except Exception as e:
-        log.error('Error appending to sheet: %s', str(e))
-        return False
+        log.exception('Error appending to sheet: %s', e.message)
+        raise
 
 #-------------------------------------------------------------------------------
-def api_execute(service, ss_id, requests):
+def _execute(service, ss_id, actions):
     try:
         service.spreadsheets().batchUpdate(
             spreadsheetId = ss_id,
             body = {
-                "requests": requests
+                "requests": actions
             }).execute()
     except Exception as e:
-        log.error('error executing batch update. desc=%s', str(e))
-        log.debug(str(e))
+        log.exception('Error executing batch update: %s', e.message, extra={'requests':actions})
         raise
 
 #-------------------------------------------------------------------------------
-def api_ss_batch_update(service, ss_id, request, range_=None, cell=None, fields=None, properties=None, execute=True):
+def _ss_batch_update(service, ss_id, request, range_=None, cell=None, fields=None, properties=None, execute=True):
     '''https://developers.google.com/resources/api-libraries/documentation/\
     sheets/v4/python/latest/sheets_v4.spreadsheets.html#batchUpdate
     '''
 
-    requests = []
+    actions = []
 
     if request == 'insertDimension':
-        requests.append({
+        actions.append({
             'insertDimension': {
                 "range": range_,
-                "inheritFromBefore": False}})
+                "inheritFromBefore": False
+            }
+        })
     elif request == 'updateDimensionProperties':
-        requests.append({
+        actions.append({
             'updateDimensionProperties': {
                 'fields': fields,
                 'range': range_,
-                'properties': properties}})
+                'properties': properties
+            }
+        })
     elif request == 'repeatCell':
-        requests.append({
+        actions.append({
             'repeatCell': {
                 'fields': fields,
                 'range': range_,
-                'cell': cell}})
+                'cell': cell
+            }
+        })
 
     if not execute:
-        return requests
+        return actions
 
     try:
         service.spreadsheets().batchUpdate(
             spreadsheetId = ss_id,
-            body = {
-                "requests": requests
-            }).execute()
+            body = {"requests": actions}
+        ).execute()
     except Exception as e:
-        log.error('error doing batch update request=%s. desc=%s', request, str(e))
-        return False
+        log.exception('Error performing batch update: %s', e.message, extra={'requests':actions})
+        raise
 
     '''Requests resource: {
 	  // Union field kind can be only one of the following:

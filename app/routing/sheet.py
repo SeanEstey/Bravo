@@ -110,7 +110,7 @@ def write_orders(api, ss_id, wks, orders):
         gsheets.vert_align_cells(api, ss_id, 0, 2, len(orders)+1, 1,1)
         gsheets.bold_cells(api, ss_id, 0, bold_rng)
     except Exception as e:
-        log.error('sheets error: %s', str(e))
+        log.exception('Error writing orders: %s', e.message)
         raise
 
 #-------------------------------------------------------------------------------

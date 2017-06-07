@@ -160,7 +160,8 @@ def is_inactive(acct, days=270):
             data={
                 "acct_refs": [acct['ref']],
                 "start": cutoff_date.strftime('%d/%m/%Y'),
-                "end": date.today().strftime('%d/%m/%Y')})[0]
+                "end": date.today().strftime('%d/%m/%Y')
+            })[0]
     except EtapError as e:
         log.error('get_gift_histories error for acct_id=%s. desc=%s',
             acct['id'], str(e))

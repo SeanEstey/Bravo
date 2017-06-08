@@ -253,7 +253,7 @@ function renderChatEntries(resp){
      */
 
     var MAX_PREVIEW_LINES = 3;
-    var strftime = "%b %d: %I:%M%p";
+    var strftime = "%b %d @ %I:%M%p";
     alice_pane_init = true;
     var chat_data = resp['data'];
     $('#convo_list').empty();
@@ -261,7 +261,7 @@ function renderChatEntries(resp){
     console.log("%s chats (%s)", resp['data'].length, resp['status']);
 
     for(var i=0; i<chat_data.length; i++) {
-        var id = "list_grp_" + String(i);
+        var id = "item_" + String(i);
         var user_chat = chat_data[i];
         var lines = '';
         var n_msgs = user_chat['messages'].length;
@@ -274,42 +274,36 @@ function renderChatEntries(resp){
             if(msg['direction'] == 'out')
                 continue;
             
-            var date_str = new Date(msg["timestamp"]["$date"]).strftime(strftime)+": ";
+            var date_str = new Date(msg["timestamp"]["$date"]).strftime(strftime);
+
+            if(user_chat['account'])
+                var name = user_chat['account']['name'];
+            else
+                var name = 'Unregistered User (' + user_chat['mobile'] + ')';
+
             card = $(
-              '<a href="#" id="'+id+'" style="text-decoration:none;" class="justify-content-between">' +
+              '<a href="#" id="'+id+'" style="margin:0.1em; text-decoration:none;" class="justify-content-between">' +
                 '<div ' +
                     'class="card list-group-item list-group-item-action ' + 
                     'style="width:100%" ' +
                     'onmouseover="this.style.color=\'#0275d8\'; this.style.background=\'white\'" ' +
                     'onmouseout="this.style.color=\'gray\'"> ' +
-                  '<div class="card-block">' +
-                    '<h4 style="" class="card-title">'+ user_chat['account']['name'] + '</h4>' +
+                  '<div class="card-block" style="padding-bottom:0; padding-top:0">' +
+                    '<h4 style="" class="card-title">'+ name + '</h4>' +
                     '<span class="card-text">Last Message: "'+ msg['message'] +'"</span>' +
-                    '<p class="card-text"><small class="text-muted">' + date_str + '</small></p>' +
+                    '<p class="card-text">'+ date_str +'</p>' +
                   '</div>' +
-                  '<span class="badge badge-default badge-pill">'+n_msgs+'</span>' +
+                  '<h5><span class="badge badge-default badge-pill">'+n_msgs+'</span></h5>' +
                 '</div>' +
               '</a>'
             );
-
             break;
         }
 
         card.click(showChatlogModal);
         card.data("details", user_chat);
         $('#convo_list').append(card);
-        
-        /*
-        var item_cls = "list-group-item list-group-item-action";
-
-        $('#convo_list').append(card);
-          '<a href="#" id="'+id+'" class="'+item_cls+'" style="padding:0">' + 
-            card +
-          '</a>');
-        $('#'+id).data("details", user_chat);*/
     }
-
-    //$('.list-group-item').click(showChatlogModal);
 }
 
 //------------------------------------------------------------------------------
@@ -325,7 +319,11 @@ function showChatlogModal(e) {
     var rows = '';
     var user_chat = $(this).data('details');
     var container = $('<div></div>');
-    container.append('<div><b>User</b>: ' + user_chat['account']['name'] + '</div>');
+    if(user_chat['account'])
+        var name = user_chat['account']['name'];
+    else
+        var name = 'Unregistered User (' + user_chat['mobile'] + ')';
+    container.append('<div><b>User</b>: ' + name + '</div>');
     container.append('<div><b>Mobile</b>: ' + user_chat['mobile'] + '</div>');
     
     for(var i=0; i<user_chat['messages'].length; i++) {
@@ -334,7 +332,7 @@ function showChatlogModal(e) {
 
         rows += 
           '<tr>' + 
-            '<td style="width:15%; border:none" class="text-muted">'+ date_str +': </td>' +
+            '<td style="width:19%; border:none" class="text-muted">'+ date_str +': </td>' +
             '<td style="border:none" class="'+ color[msg['direction']] +'">'+ msg['message'] +'</td>' +
           '</tr>';
     }
@@ -393,9 +391,7 @@ function requestLogEntries() {
 function renderLogEntries(resp) {
 
     console.log("%s. %s events returned", resp['status'], resp['data'].length);
-
     var logs = resp['data'];
-
     $('#recnt_list').empty();
 
     for(var i=0; i<logs.length; i++) {
@@ -409,10 +405,9 @@ function renderLogEntries(resp) {
             '</a>'
         );
 
-        // Store log properties for viewing in modal
         logs[i]['timestamp'] = new Date(logs[i]['timestamp']['$date']).strftime('%b %d, %I:%M %p');
         delete logs[i]['asctime'];
-        $('#'+id).data("details", logs[i]);
+        $('#'+id).data("details", logs[i]); // Save for viewing in Modal
     }
 
     $('.list-group-item').click(showLogEntryDetailsModal);

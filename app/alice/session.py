@@ -83,6 +83,8 @@ def create_session():
             log.error("Acct inactive (etap_id=%s)", acct['id'])
             raise EtapError(dialog['error']['etap']['inactive'])
 
+    save_msg(direction="in")
+
 #-------------------------------------------------------------------------------
 def update_session():
 
@@ -90,14 +92,45 @@ def update_session():
     session['last_msg_dt'] = to_local(dt=datetime.now())
 
 #-------------------------------------------------------------------------------
-def save_msg():
+def save_msg(text=None, direction=None):
 
-    session['messages'].append({
-        'timestamp': datetime.now(),
-        'message': request.form['Body']
-    })
+    d = g.db['alice_chats'].find_one({'mobile':session['from']})
 
-    pass
+    #from bson import json_util
+    #log.debug('%s', json_util.dumps(d))
+
+    if not d:
+        if not session.get('account'):
+            log.debug('no account to insert')
+
+        g.db['alice_chats'].insert_one({
+            'group':g.group,
+            'mobile': session['from'],
+            'account': session.get('account',None),
+            'messages': [{
+                'timestamp': datetime.utcnow(),
+                'message': text or request.form['Body'],
+                'direction': direction
+            }],
+            'last_message': datetime.utcnow()
+        })
+    else:
+        # TODO If record has no 'account', check if user is now registered,
+        # then add account data
+
+        g.db['alice_chats'].update_one(
+            {'mobile': session['from']},
+            {'$push': {
+                'messages': {
+                    'timestamp': datetime.utcnow(),
+                    'message': text or request.form['Body'],
+                    'direction': direction
+                }
+             },
+             '$set': {'group':g.group, 'last_message':datetime.utcnow()}
+           },
+           True
+        )
 
 #-------------------------------------------------------------------------------
 def archive_chats():

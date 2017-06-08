@@ -49,7 +49,7 @@ def get_chatlogs(start_dt=None, collection='chatlogs', serialize=True):
             {
                 'group':0, '_id':0
             }
-        )#.sort('last_msg_dt',-1)
+        ).sort('last_message',-1)
 
         log.debug('%s new alice_chats retrieved.', chats.count())
 

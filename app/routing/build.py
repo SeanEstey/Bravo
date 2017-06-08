@@ -54,7 +54,7 @@ def submit_job(route_id):
             errors.append({'acct':acct, 'desc':str(e)})
             continue
         except GeocodeError as e:
-            log.exception(e.message, extra={'response':e.response})
+            log.exception(e.message, extra={'response':e.message})
             errors.append({'acct':acct, 'desc':str(e)})
             continue
         except requests.RequestException as e:

@@ -71,8 +71,7 @@ def compose(agcy, body, to, callback=None, find_session=False, event_log=False):
             conf['api']['sid'],
             conf['api']['auth_id'])
     except Exception as e:
-        log.error(str(e))
-        log.debug(str(e), exc_info=True)
+        log.exception('Error creating Twilio client: %s', e.message)
         raise
 
     try:
@@ -82,8 +81,7 @@ def compose(agcy, body, to, callback=None, find_session=False, event_log=False):
             from_ = conf['sms']['number'],
             status_callback = callback)
     except Exception as e:
-        log.error(str(e))
-        log.debug(str(e))
+        log.exception('Error sending SMS message: %s', e.message)
         raise
     else:
         if event_log:

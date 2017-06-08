@@ -51,14 +51,3 @@ def nis():
         options={
             'ID': record['account_id'],
             'Block': record['custom']['block']})
-
-# FIXME: old endpoint. delete once API endpoint working
-@notify.route('/<evnt_id>/<acct_id>/no_pickup', methods=['GET'])
-def no_pickup(evnt_id, acct_id):
-
-    if not pickups.is_valid(evnt_id, acct_id):
-        log.error('event/acct not found (evnt_id=%s, acct_id=%s)', evnt_id, acct_id)
-        return 'Sorry there was an error fulfilling your request'
-    from app.notify.tasks import skip_pickup
-    skip_pickup.delay(evnt_id, acct_id)
-    return 'Thank You'

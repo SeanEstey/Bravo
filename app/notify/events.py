@@ -71,7 +71,7 @@ def create_event():
             'Reminders for event %s successfully scheduled.' %
             (request.form['query_name']),
         'view_url': url_for('notify.view_event', evnt_id=str(event['_id'])),
-        'cancel_url': url_for('api.call_cancel_event', evnt_id=str(event['_id']))}
+        'cancel_url': url_for('api._cancel_event', evnt_id=str(event['_id']))}
 
 #-------------------------------------------------------------------------------
 def cancel_event(evnt_id=None):

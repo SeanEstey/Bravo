@@ -1,175 +1,176 @@
 '''app.api.endpoints'''
 import logging
-from dateutil.parser import parse
-from json import loads, dumps
+from json import loads
 from flask import g, request, Response
 from flask_login import login_required
-from app import get_server_prop, get_keys
-from app.main.etap import block_size, route_size, call
-from app.alice.outgoing import send_welcome, compose
-from app.booker.geo import get_maps
-from app.booker.search import search
-from app.booker.book import make
 from app.main import donors
-from app.main.receipts import preview
-from app.main.signups import send_welcome
-from app.notify.pickups import is_valid
-from app.notify.accounts import edit_fields
 from app.notify.events import create_event, cancel_event, dump_event, reset_event, rmv_notifics
-from app.notify.recording import dial_recording
-from app.notify.triggers import kill_trigger
-from app.notify.voice import get_token
-from app.routing.main import edit_field
 from . import api
-from app.api.manager import get_var, build_resp, func_call, task_call, WRITE_ME
+from app.api.manager import var, build_resp, func_call, task_call
 log = logging.getLogger(__name__)
 
 @api.route('/accounts/submit_form', methods=['POST'])
-def accts_add_form():
-    # TODO: add auth requirement
+#@login_required
+def _submit_form_signup():
     from app.main.tasks import add_form_signup
     return task_call(add_form_signup, data=request.form.to_dict())
 
 @api.route('/accounts/get_pickup', methods=['POST'])
-def accts_get_pickup():
-    # TODO: add auth requirement
-    g.group = get_var('agcy')
-    return func_call(donors.get_next_pickup, get_var('email'))
+#@login_required
+def _get_next_pickup():
+    g.group = var('agcy')
+    return func_call(donors.get_next_pickup, var('email'))
 
 @api.route('/accounts/estimate_trend', methods=['POST'])
 @login_required
-def estmt_trend():
+def _est_trend():
     from app.main.tasks import estimate_trend
     return task_call(
         estimate_trend,
-        get_var('date'),
-        loads(get_var('donations')),
-        get_var('ss_id'),
-        get_var('ss_row'))
+        var('date'),
+        loads(var('donations')),
+        var('ss_id'),
+        var('ss_row'))
 
 @api.route('/accounts/get_donations', methods=['POST'])
 @login_required
-def get_donations():
+def _get_donations():
+    from dateutil.parser import parse
     return func_call(
         donors.get_donations,
-        get_var('acct_id'),
-        parse(get_var('start_d')).date(),
-        parse(get_var('end_d')).date())
+        var('acct_id'),
+        parse(var('start_d')).date(),
+        parse(var('end_d')).date())
 
 @api.route('/accounts/save_rfu', methods=['POST'])
 @login_required
-def accts_save_rfu():
-    return func_call(donors.save_rfu,
-        get_var('acct_id'), get_var('body'), get_var('date'),
-        get_var('ref'), get_var('fields')) #, agcy=get_var('agcy'))
+def _save_rfu():
+    return func_call(
+        donors.save_rfu,
+        var('acct_id'), var('body'), var('date'), var('ref'), var('fields'))
 
 @api.route('/accounts/create', methods=['POST'])
 @login_required
-def call_accts_create():
+def _create_accts():
     from app.main.tasks import create_accounts
-    return task_call(create_accounts, get_var('accts'), agcy=get_var('agcy'))
+    return task_call(create_accounts, var('accts'), agcy=var('agcy'))
 
 @api.route('/accounts/find', methods=['POST'])
 @login_required
-def call_find_acct():
+def _find_acct():
     from app.main.signups import check_duplicates
     return func_call(check_duplicates,
-        name=get_var("name"),
-        email=get_var("email"),
-        address=get_var("address"),
-        phone=get_var("phone"))
+        name=var("name"),
+        email=var("email"),
+        address=var("address"),
+        phone=var("phone"))
 
 @api.route('/accounts/get', methods=['POST'])
 @login_required
-def call_accts_get():
-    return func_call(donors.get, get_var('acct_id'))
+def _get_accts():
+    return func_call(donors.get, var('acct_id'))
 
 @api.route('/accounts/gifts', methods=['POST'])
 @login_required
-def call_accts_gifts():
+def _do_gifts():
     from app.main.tasks import process_entries
     return task_call(
         process_entries,
-        loads(get_var('entries')),
-        wks=get_var('wks'),
-        col=get_var('col'))
+        loads(var('entries')),
+        wks=var('wks'),
+        col=var('col'))
 
 @api.route('/accounts/receipts', methods=['POST'])
 @login_required
-def call_accts_receipts():
+def _do_receipts():
     from app.main.tasks import send_receipts
-    return task_call(send_receipts, get_var('entries'))
+    return task_call(send_receipts, var('entries'))
 
 @api.route('/account/update', methods=['POST'])
 @login_required
-def update_acct():
-    return func_call(call, 'modify_acct',
-        get_var('acct_id'), get_var('udf'), get_var('persona'))
+def _update_acct():
+    from app.main.etap import call
+    return func_call(call, 'modify_acct', var('acct_id'), var('udf'), var('persona'))
 
 @api.route('/accounts/update', methods=['POST'])
 @login_required
-def update_accts():
+def _update_accts():
     from app.main.tasks import process_entries
     return task_call(
         process_entries,
-        loads(get_var('accts')),
-        wks=get_var('wks'),
-        col=get_var('col'))
+        loads(var('accts')),
+        wks=var('wks'),
+        col=var('col'))
 
 @api.route('/accounts/preview_receipt', methods=['POST'])
 @login_required
-def call_acct_preview_receipt():
-    return func_call(preview, get_var('acct_id'), get_var('type_'))
+def _preview_receipt():
+    from app.main.receipts import preview
+    return func_call(preview, var('acct_id'), var('type_'))
 
 @api.route('/accounts/find_within_map', methods=['POST'])
 @login_required
 def _find_accts_within_map():
     from app.main.tasks import find_accts_within_map
     return task_call(find_accts_within_map,
-        map_title=get_var('map_title'), blocks=loads(get_var('blocks')))
+        map_title=var('map_title'),
+        blocks=loads(var('blocks')))
 
 @api.route('/agency/conf/get', methods=['POST'])
 @login_required
-def get_agcy_conf():
+def _get_group_conf():
     from app.main import agency
     return func_call(agency.get_conf)
 
 @api.route('/agency/conf/update', methods=['POST'])
 @login_required
-def call_agcy_update():
+def _update_group_conf():
     from app.main import agency
-    return func_call(agency.update_conf, get_var('data'))
+    return func_call(agency.update_conf, var('data'))
 
 @api.route('/agency/properties/get', methods=['POST'])
 @login_required
-def get_agcy_prop():
+def _get_admin_prop():
     from app.main.agency import get_admin_prop
     return func_call(get_admin_prop)
 
 @api.route('/alice/welcome', methods=['POST'])
 @login_required
-def alice_send_welcome():
-    return func_call(send_welcome, get_var('acct_id'))
+def _send_welcome():
+    from app.alice.outgoing import send_welcome
+    return func_call(send_welcome, var('acct_id'))
 
 @api.route('/alice/compose', methods=['POST'])
 @login_required
-def alice_send_msg():
-    return func_call(compose, g.user.agency, get_var('body'), get_var('to'), find_session=True)
+def _compose():
+    from app.alice.outgoing import compose
+    return func_call(compose, g.group, var('body'), var('to'), find_session=True)
+
+@api.route('/alice/chatlogs', methods=['POST'])
+@login_required
+def _get_chatlogs():
+    from app.alice.util import get_chatlogs
+    return func_call(get_chatlogs, collection='alice_chats', serialize=True)
 
 @api.route('/booker/create', methods=['POST'])
 @login_required
-def call_booker_create():
+def _book_acct():
+    from app.booker.book import make
     return func_call(make)
 
 @api.route('/booker/search', methods=['POST'])
 @login_required
-def call_booker_search():
-    return func_call(search, get_var('query'),
-        radius=get_var('radius'), weeks=get_var('weeks'))
+def _search_bookings():
+    from app.booker.search import search
+    return func_call(
+        search, var('query'),
+        radius=var('radius'),
+        weeks=var('weeks'))
 
 @api.route('/booker/maps/get', methods=['POST'])
 @login_required
-def call_maps_get():
+def _get_booker_maps():
+    from app.booker.geo import get_maps
     return func_call(get_maps)
 
 @api.route('/maps/get', methods=['POST'])
@@ -186,62 +187,69 @@ def _update_maps():
 
 @api.route('/booker/maps/update', methods=['POST'])
 @login_required
-def call_maps_update():
+def _update_booker_maps():
     from app.booker.tasks import update_maps
     return task_call(update_maps, agcy=g.user.agency)
 
 @api.route('/leaderboard/get', methods=['POST'])
 @login_required
-def get_leaderboards():
+def _get_leaderboards():
     from app.main.leaderboard import get_all_rankings
     return func_call(get_all_rankings)
 
 @api.route('/notify/events/create', methods=['POST'])
 @login_required
-def call_create_event():
+def _create_event():
     return func_call(create_event)
 
 @api.route('/notify/events/cancel', methods=['POST'])
 @login_required
-def call_cancel_event():
-    return func_call(cancel_event, evnt_id=get_var('evnt_id'))
+def _cancel_event():
+    return func_call(cancel_event, evnt_id=var('evnt_id'))
 
 @api.route('/notify/events/preview/token', methods=['POST'])
 @login_required
-def call_preview_token():
+def _preview_token():
+    from app.notify.voice import get_token
     return func_call(get_token)
 
 @api.route('/notify/events/dump', methods=['POST'])
 @login_required
-def call_dump_event():
-    return func_call(dump_event, evnt_id=get_var('evnt_id'))
+def _dump_event():
+    return func_call(dump_event, evnt_id=var('evnt_id'))
 
 @api.route('/notify/events/reset', methods=['POST'])
 @login_required
-def call_reset_event():
-    return func_call(reset_event, get_var('evnt_id'))
+def _reset_event():
+    return func_call(reset_event, var('evnt_id'))
 
 @api.route('/notify/events/record', methods=['POST'])
 @login_required
-def call_record():
+def _record_voice():
+    from app.notify.recording import dial_recording
     return func_call(dial_recording)
 
 @api.route('/notify/accts/edit', methods=['POST'])
 @login_required
-def call_notify_acct_edit():
-    return func_call(edit_fields, str(get_var('acct_id')), loads(get_var('fields')))
+def _edit_acct_fields():
+    from app.notify.accounts import edit_fields
+    return func_call(edit_fields, str(var('acct_id')), loads(var('fields')))
 
 @api.route('/notify/accts/remove', methods=['POST'])
 @login_required
-def call_notify_acct_rmv():
-    return func_call(rmv_notifics, get_var('evnt_id'), get_var('acct_id'))
+def _rmv_notific():
+    return func_call(rmv_notifics, var('evnt_id'), var('acct_id'))
 
 @api.route('/notify/accts/optout', methods=['POST'])
-def call_notify_acct_optout():
-    evnt_id = get_var('evnt_id')
-    acct_id = get_var('acct_id')
+def _optout_pickup():
+    from app.notify.pickups import is_valid
+    from app.notify.tasks import skip_pickup
+
+    evnt_id = var('evnt_id')
+    acct_id = var('acct_id')
 
     if not is_valid(evnt_id, acct_id):
+        from json import dumps
         return Response(
             response=dumps({
                 'status':'failed',
@@ -250,100 +258,105 @@ def call_notify_acct_optout():
             status=200,
             mimetype='application/json')
 
-    from app.notify.tasks import skip_pickup
     return task_call(skip_pickup, evnt_id=evnt_id, acct_id=acct_id)
 
 @api.route('/notify/triggers/fire', methods=['POST'])
 @login_required
-def call_trigger_fire():
+def _fire_trig():
     from app.notify.tasks import fire_trigger
-    return task_call(fire_trigger, get_var('trig_id'))
+    return task_call(fire_trigger, var('trig_id'))
 
 @api.route('/notify/triggers/kill', methods=['POST'])
 @login_required
-def call_trigger_kill():
-    return func_call(kill_trigger, get_var('trig_id'))
+def _kill_trig():
+    from app.notify.triggers import kill_trigger
+    return func_call(kill_trigger, var('trig_id'))
 
 @api.route('/notify/preview/sms', methods=['POST'])
 @login_required
-def preview_sms_notific():
+def _sms_preview():
     from app.notify.sms import preview
-    return func_call(preview) #, get_var('acct_id'), get_var('type_'))
+    return func_call(preview)
 
 @api.route('/notify/preview/email', methods=['POST'])
 @login_required
-def preview_email_notific():
+def _email_preview():
     from app.notify.email import preview
-    return func_call(preview, get_var('template'), get_var('state'))
+    return func_call(preview, var('template'), var('state'))
 
 @api.route('/phone/lookup', methods=['POST'])
 @login_required
-def call_phone_lookup():
-    return func_call(lookup_carrier, get_var('phone'))
+def _carrier_lookup():
+    return func_call(lookup_carrier, var('phone'))
 
 @api.route('/query/block_size', methods=['POST'])
 @login_required
-def call_block_size():
-    return func_call(block_size, get_var('category'), get_var('query'))
+def _block_size():
+    from app.main.etap import block_size
+    return func_call(block_size, var('category'), var('query'))
 
 @api.route('/query/route_size', methods=['POST'])
 @login_required
-def call_route_size():
-    return func_call(route_size, get_var('category'), get_var('query'), get_var('date'))
+def _route_size():
+    from app.main.etap import route_size
+    return func_call(route_size, var('category'), var('query'), var('date'))
 
 @api.route('/routing/build', methods=['POST'])
 @login_required
-def call_route_build():
+def _build_route():
     from app.routing.tasks import build_route
-    return task_call(build_route, get_var('route_id'), job_id=get_var('job_id'))
+    return task_call(build_route, var('route_id'), job_id=var('job_id'))
 
 @api.route('/routing/edit', methods=['POST'])
 @login_required
-def call_route_edit():
-    return func_call(edit_field, get_var('route_id'), get_var('field'), get_var('value'))
+def _edit_route():
+    from app.routing.main import edit_field
+    return func_call(edit_field, var('route_id'), var('field'), var('value'))
 
 @api.route('/server/properties', methods=['POST'])
 @login_required
-def call_op_stats():
+def _server_prop():
+    from app import get_server_prop
     return func_call(get_server_prop)
 
 @api.route('/signups/welcome/send', methods=['POST'])
 @login_required
-def send_signup_welcome():
+def _signup_welcome():
+    from app.main.signups import send_welcome
     return func_call(send_welcome)
 
 @api.route('/logger/write', methods=['POST'])
 @login_required
-def write_log():
-    lvl = get_var('level').upper()
+def _write_log():
+    lvl = var('level').upper()
 
     if lvl == 'INFO':
-        return func_call(log.info, get_var('msg'))
+        return func_call(log.info, var('msg'))
     elif lvl == 'WARNING':
-        return func_call(log.warning, get_var('msg'))
+        return func_call(log.warning, var('msg'))
     elif lvl == 'ERROR':
-        return func_call(log.error, get_var('msg'))
+        return func_call(log.error, var('msg'))
     else:
         raise Exception('invalid level var')
 
 @api.route('/logger/get', methods=['POST'])
 @login_required
-def retrieve_logs():
+def _get_logs():
     from app.main.logs import get_logs
     return func_call(get_logs)
 
 @api.route('/user/login', methods=['POST'])
-def user_login():
+def _login_user():
     from app.auth.manager import login
-    return func_call(login, get_var('username'), get_var('password'))
+    return func_call(login, var('username'), var('password'))
 
 @api.route('/user/logout', methods=['POST'])
 @login_required
-def user_logout():
+def _logout_user():
     from app.auth.manager import logout
     return func_call(logout)
 
 @api.route('/user/get', methods=['POST'])
 @login_required
-def get_user_info():
+def _get_user_info():
     return func_call(g.user.to_dict)

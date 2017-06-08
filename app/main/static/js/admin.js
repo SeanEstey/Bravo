@@ -2,6 +2,7 @@
 var serv_pane_init = false;
 var prop_pane_init = false;
 var user_pane_init = false;
+var alice_pane_init = false;
 var recnt_pane_init = false;
 var list_item_styles = {
     'DEBUG': '',
@@ -33,6 +34,9 @@ function init() {
         }
         else if(id == '#me') {
             initUserPane();
+        }
+        else if(id == '#alice') {
+            initAlicePane();
         }
         else if(id == '#recent') {
             initRecentPane();
@@ -233,6 +237,125 @@ function initPropertiesPane() {
 }
 
 //------------------------------------------------------------------------------
+function initAlicePane() {
+
+    if(alice_pane_init)
+        return;
+
+    // Retrieve chatlogs JSON
+    api_call('alice/chatlogs', data={}, renderChatEntries);
+}
+
+//------------------------------------------------------------------------------
+function renderChatEntries(resp){
+    /* Render list-items displaying abbreviated user chat data.
+     * Clicking on list-items shows a Modal dialog with full chat data.
+     */
+
+    var MAX_PREVIEW_LINES = 3;
+    var strftime = "%b %d: %I:%M%p";
+    alice_pane_init = true;
+    var chat_data = resp['data'];
+    $('#convo_list').empty();
+
+    console.log("%s chats (%s)", resp['data'].length, resp['status']);
+
+    for(var i=0; i<chat_data.length; i++) {
+        var id = "list_grp_" + String(i);
+        var user_chat = chat_data[i];
+        var lines = '';
+        var n_msgs = user_chat['messages'].length;
+        var card = '';
+        
+        // Chat data -> HTML string
+        for(var j=n_msgs-1; j>=0; j--) {
+            var msg = user_chat['messages'][j];
+
+            if(msg['direction'] == 'out')
+                continue;
+            
+            var date_str = new Date(msg["timestamp"]["$date"]).strftime(strftime)+": ";
+            card = $(
+              '<a href="#" id="'+id+'" style="text-decoration:none;" class="justify-content-between">' +
+                '<div ' +
+                    'class="card list-group-item list-group-item-action ' + 
+                    'style="width:100%" ' +
+                    'onmouseover="this.style.color=\'#0275d8\'; this.style.background=\'white\'" ' +
+                    'onmouseout="this.style.color=\'gray\'"> ' +
+                  '<div class="card-block">' +
+                    '<h4 style="" class="card-title">'+ user_chat['account']['name'] + '</h4>' +
+                    '<span class="card-text">Last Message: "'+ msg['message'] +'"</span>' +
+                    '<p class="card-text"><small class="text-muted">' + date_str + '</small></p>' +
+                  '</div>' +
+                  '<span class="badge badge-default badge-pill">'+n_msgs+'</span>' +
+                '</div>' +
+              '</a>'
+            );
+
+            break;
+        }
+
+        card.click(showChatlogModal);
+        card.data("details", user_chat);
+        $('#convo_list').append(card);
+        
+        /*
+        var item_cls = "list-group-item list-group-item-action";
+
+        $('#convo_list').append(card);
+          '<a href="#" id="'+id+'" class="'+item_cls+'" style="padding:0">' + 
+            card +
+          '</a>');
+        $('#'+id).data("details", user_chat);*/
+    }
+
+    //$('.list-group-item').click(showChatlogModal);
+}
+
+//------------------------------------------------------------------------------
+function showChatlogModal(e) {
+
+    e.preventDefault();
+
+    var color =  {
+        "out": "text-primary",
+        "in": "text-success"
+    };
+    var DATE_FRMT = "%b %d: %I:%M%p";
+    var rows = '';
+    var user_chat = $(this).data('details');
+    var container = $('<div></div>');
+    container.append('<div><b>User</b>: ' + user_chat['account']['name'] + '</div>');
+    container.append('<div><b>Mobile</b>: ' + user_chat['mobile'] + '</div>');
+    
+    for(var i=0; i<user_chat['messages'].length; i++) {
+        var msg = user_chat['messages'][i];
+        var date_str = new Date(msg["timestamp"]["$date"]).strftime(DATE_FRMT);
+
+        rows += 
+          '<tr>' + 
+            '<td style="width:15%; border:none" class="text-muted">'+ date_str +': </td>' +
+            '<td style="border:none" class="'+ color[msg['direction']] +'">'+ msg['message'] +'</td>' +
+          '</tr>';
+    }
+
+    container.append(
+      '<div><b>Message History</b>:<br>' +
+        '<table class="table table-sm">' +
+          rows +
+        '</table>' +
+      '</div>'
+    );
+
+    showModal(
+      'log_modal',
+      'Chat History',
+      container,
+      null,
+      'Ok');
+}
+
+//------------------------------------------------------------------------------
 function initRecentPane() {
 
     if(recnt_pane_init)
@@ -262,12 +385,12 @@ function requestLogEntries() {
             'levels': JSON.stringify($('#filtr_lvls').serializeArray()),
             'groups': JSON.stringify($('#filtr_grps').serializeArray())
         },
-        writeLogEntries
+        renderLogEntries
     );
 }
 
 //------------------------------------------------------------------------------
-function writeLogEntries(resp) {
+function renderLogEntries(resp) {
 
     console.log("%s. %s events returned", resp['status'], resp['data'].length);
 

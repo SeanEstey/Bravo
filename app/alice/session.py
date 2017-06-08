@@ -90,8 +90,18 @@ def update_session():
     session['last_msg_dt'] = to_local(dt=datetime.now())
 
 #-------------------------------------------------------------------------------
-def store_sessions():
-    '''Store session chat to permanent db.chatlogs
+def save_msg():
+
+    session['messages'].append({
+        'timestamp': datetime.now(),
+        'message': request.form['Body']
+    })
+
+    pass
+
+#-------------------------------------------------------------------------------
+def archive_chats():
+    '''Store all session chats to mongo chatlogs collection.
     '''
 
     n_stored = 0

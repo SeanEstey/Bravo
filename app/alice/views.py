@@ -1,19 +1,17 @@
 '''app.alice.views'''
 import logging
 from flask_login import login_required, current_user
-from flask import g, request, jsonify, render_template, session, Response
-from app.lib.utils import format_bson
+from flask import g, jsonify, render_template, session
 from . import alice, incoming
-from .session import store_sessions, dump_session, dump_sessions, wipe_sessions
+from .session import archive_chats, dump_session, dump_sessions, wipe_sessions
 from .incoming import make_reply
-from .util import get_chatlogs
 from .dialog import dialog
-from logging import getLogger
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @alice.before_request
 def alice_globals():
+    # TODO: Delete this??
     if current_user.is_authenticated:
         g.agency = current_user.agency
 
@@ -26,19 +24,19 @@ def show_chatlogs():
 #-------------------------------------------------------------------------------
 @alice.route('/chatlogs', methods=['POST'])
 @login_required
-def _get_chatlogs():
-    store_sessions()
+def view_chatlogs():
+
+    from .util import get_chatlogs
+
+    archive_chats()
 
     try:
-        chatlogs = get_chatlogs()
+        chatlogs_json = get_chatlogs(serialize=True)
     except Exception as e:
-        log.debug(str(e))
-
-    return jsonify(
-        format_bson(
-            chatlogs,
-            loc_time=True,
-            to_json=True))
+        log.exception('Error retrieving Alice chats: %s', e.message)
+        raise
+    else:
+        return jsonify(chatlogs_json)
 
 #-------------------------------------------------------------------------------
 @alice.route('/<agency>/receive', methods=['POST'])

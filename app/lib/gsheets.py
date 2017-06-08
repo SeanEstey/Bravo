@@ -1,5 +1,6 @@
 '''app.lib.gsheets'''
 import logging
+from urllib2 import HTTPError
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -262,9 +263,13 @@ def _ss_values_update(service, ss_id, wks, range_, values):
                 "majorDimension": "ROWS"
             }
         ).execute()
+    except HTTPError as e:
+        log.exception('Error updating %s worksheet: %s', str(e.reason),
+            extra={'code':e.code, 'reason':str(e.reason)})
+        raise
     except Exception as e:
         log.exception('Error updating %s worksheet: %s', wks, e.message)
-        return False
+        raise
 
 #-------------------------------------------------------------------------------
 def _ss_values_append(service, ss_id, range_, values):
@@ -338,6 +343,10 @@ def _ss_batch_update(service, ss_id, request, range_=None, cell=None, fields=Non
             spreadsheetId = ss_id,
             body = {"requests": actions}
         ).execute()
+    except HTTPError as e:
+        log.exception('Error batch updating %s worksheet: %s', str(e.reason),
+            extra={'code':e.code, 'reason':str(e.reason)})
+        raise
     except Exception as e:
         log.exception('Error performing batch update: %s', e.message, extra={'requests':actions})
         raise

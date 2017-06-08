@@ -84,7 +84,7 @@ def build_resp(rv=None, exc=None, name=None, timer=None):
     return resp
 
 #-------------------------------------------------------------------------------
-def get_var(k):
+def var(k):
 
     if request.method != 'POST':
         raise Exception("Only POST requests allowed with API")

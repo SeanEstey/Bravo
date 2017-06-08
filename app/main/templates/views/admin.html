@@ -38,6 +38,9 @@
 			<a class="nav-link" data-toggle="tab" href="#properties" role="tab">Properties</a>
 		</li>
 		<li class="nav-item">
+			<a class="nav-link" data-toggle="tab" href="#alice" role="tab">Alice</a>
+		</li>
+		<li class="nav-item">
 			<a class="nav-link" data-toggle="tab" href="#recent" role="tab">Recent</a>
 		</li>
 	</ul>
@@ -271,6 +274,16 @@
             </div>
         </fieldset>
       </form>
+    </div>
+    <!-- Alice Pane -->
+		<div class="tab-pane" id="alice" style='margin-bottom:7em' role="tabpanel">
+      <div class="card" style="margin-top:2em; visibility:hidden;">
+        <div class="card-header">
+          <label style="font-weight:400; font-size:1.5rem" class="">Recent Conversations</label>
+        </div>
+      </div>
+      <div id="convo_list" class="list-group">
+      </div>
     </div>
     <!-- Recent Pane -->
 		<div class="tab-pane" id="recent" style='margin-bottom:7em' role="tabpanel">

@@ -379,6 +379,41 @@ legend.admin-border {
     padding:0.5em;
 }
 
+/*-------------------- ADMIN VIEWS -------------*/
+
+.admin-modal {
+    min-width:600px;
+    max-width:1000px;
+    min-height: calc(100vh - 60px);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    overflow: auto; 
+    @media(max-width: 768px) { min-height: calc(100vh - 20px);}
+}
+
+.admin-modal-header {
+    -webkit-border-top-left-radius:5px;
+    -webkit-border-top-right-radius:5px;
+    -moz-border-radius-topleft:5px;
+    -moz-border-radius-topright:5px;
+    border-top-left-radius:5px;
+    border-top-right-radius:5px;
+}
+
+.chatlog-dt {
+    padding:0;
+    padding-right:0.25em;
+    border:none;
+}
+
+.chatlog-msg {
+    border:none;
+    padding:0;
+}
+
+
+
 /*------------------------ BREAKPOINTS ----------------------*/
 /* Remove all extra margins/padding for Portrait display on
 	mobile devices. Not pretty, but somewhat helpful. */

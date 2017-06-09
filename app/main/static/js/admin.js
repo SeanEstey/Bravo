@@ -310,54 +310,33 @@ function renderChatEntries(resp){
 function showChatlogModal(e) {
 
     e.preventDefault();
-
-    var color =  {
-        "out": "text-primary",
-        "in": "text-success"};
-    var DATE_FRMT = "%b %d: %I:%M%p";
+    var color = {"out":"text-primary", "in":"text-success"};
     var user_chat = $(this).data('details');
+    var name = user_chat['account'] ? user_chat['account']['name'] : 'Unregistered User';
 
-    if(user_chat['account'])
-        var name = user_chat['account']['name'];
-    else
-        var name = 'Unregistered User (' + user_chat['mobile'] + ')';
+    $chatlog = $('#chatlog');
+    $chatlog.empty();
 
-    var container = $(
-      '<div>' +
-        '<div><b>User</b>: '+name+'</div>' +
-        '<div><b>Mobile</b>: '+user_chat['mobile']+'</div>' +
-        '<div><b>Message History</b></div>' + 
-      '</div>'
-    );
-    messages_tbl = $(
-      '<table id="chatlog" class="table table-responsive table-sm" style="max-height:300px">' +
-      '</table>'
-    );
-    
     for(var i=0; i<user_chat['messages'].length; i++) {
         var msg = user_chat['messages'][i];
-        var date_str = new Date(msg["timestamp"]["$date"]).strftime(DATE_FRMT);
-
-        messages_tbl.append(
-          '<tr>' + 
-            '<td nowrap style="padding:0; padding-right:0.25em; border:none" class="text-muted">'+ date_str +': </td>' +
-            '<td style="border:none; padding:0;" class="'+ color[msg['direction']] +'">'+ msg['message'] +'</td>' +
-          '</tr>'
-        );
+        var date = new Date(msg["timestamp"]["$date"])
+            .strftime("%b %d: %I:%M%p");
+        $chatlog.append(
+          '<tr>'+ 
+            '<td nowrap class="chatlog-dt text-muted">'+date+': </td>'+
+            '<td class="chatlog-msg '+color[msg['direction']]+'">'+msg['message']+'</td>'+
+          '</tr>');
     }
 
-    container.append(messages_tbl);
-
-    $('#log_modal').on('shown.bs.modal', function () {
+    $modal = $('#chat_modal');
+    $modal.on('shown.bs.modal', function() {
         $('#chatlog').scrollTop($('#chatlog')[0].scrollHeight);
     })
+    $modal.find('.modal-title').text(name+ ' (' +user_chat['mobile']+ ')');
+    $modal.find('.modal-footer .btn-primary').unbind('click');
+    $modal.find('.modal-footer .btn-primary').off('click');
+    $modal.modal('show');
 
-    showModal(
-      'log_modal',
-      'Chat History',
-      container,
-      null,
-      'Ok');
 }
 
 //------------------------------------------------------------------------------

@@ -351,16 +351,12 @@
       </button>
     </div>
   </div>
-
-	<!-- Large modal -->
-	<div id="log_modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg" style="min-width:600px; max-width:1000px; min-height: calc(100vh - 60px); display: flex; flex-direction: column; justify-content: center; overflow: auto; 
-      @media(max-width: 768px) { min-height: calc(100vh - 20px);">
-			<div class="modal-content" 
-           style="min-width:600px; max-width:1000px;">
-        <div class="modal-header bg-info text-white"
-             style="-webkit-border-top-left-radius:5px; -webkit-border-top-right-radius: 5px; -moz-border-radius-topleft: 5px;
-                 -moz-border-radius-topright: 5px; border-top-left-radius: 5px; border-top-right-radius: 5px;">
+	<!-- Log Entry Modal -->
+	<div id="log_modal" class="modal fade bd-example-modal-lg" tabindex="-1"
+       role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg admin-modal">
+			<div class="modal-content" style="min-width:600px; max-width:1000px;">
+        <div class="modal-header admin-modal-header bg-info text-white">
           <h3 class="modal-title">Modal title</h3>
           <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
         </div>
@@ -369,6 +365,32 @@
         </div>
         <div class="modal-footer">
           <button id="btn-default" type="button" class="btn btn-secondary btn-lg" data-dismiss="modal">Close</button>
+        </div>
+			</div>
+		</div>
+	</div>
+	<!-- Chat Modal -->
+	<div id="chat_modal" class="modal fade bd-example-modal-lg" tabindex="-1"
+       role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg admin-modal">
+			<div class="modal-content" style="min-width:1000px; max-width:1000px;">
+        <div class="modal-header admin-modal-header bg-info text-white">
+          <h3 class="modal-title">Modal title</h3>
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        </div>
+        <div class="modal-body">
+          <div>
+            <table id="chatlog" class="table table-responsive table-sm" style="max-height:300px">
+            </table>
+            <div>
+              <form class="form-inline">
+                <input class="form-control col-10 mr-sm-4" type="text" value="" id="example-text-input">
+                  <button type="submit" class="btn btn-primary">Send SMS</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
         </div>
 			</div>
 		</div>

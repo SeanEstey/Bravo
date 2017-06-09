@@ -30,7 +30,7 @@ def receive():
             return make_reply(str(e))
     else:
         update_session()
-        save_msg(direction="in")
+        save_msg(request.form['Body'], direction="in")
 
 
     inc_msg_count()
@@ -191,7 +191,7 @@ def make_reply(dialog_, on_complete=None):
 
     reply = '%s: %s' %(self, context + dialog_)
 
-    save_msg(text=reply, direction='out')
+    save_msg(reply, direction='out')
     session['messages'].append(reply)
 
     twml = twiml.Response()

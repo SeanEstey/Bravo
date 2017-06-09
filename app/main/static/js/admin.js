@@ -313,37 +313,44 @@ function showChatlogModal(e) {
 
     var color =  {
         "out": "text-primary",
-        "in": "text-success"
-    };
+        "in": "text-success"};
     var DATE_FRMT = "%b %d: %I:%M%p";
-    var rows = '';
     var user_chat = $(this).data('details');
-    var container = $('<div></div>');
+
     if(user_chat['account'])
         var name = user_chat['account']['name'];
     else
         var name = 'Unregistered User (' + user_chat['mobile'] + ')';
-    container.append('<div><b>User</b>: ' + name + '</div>');
-    container.append('<div><b>Mobile</b>: ' + user_chat['mobile'] + '</div>');
+
+    var container = $(
+      '<div>' +
+        '<div><b>User</b>: '+name+'</div>' +
+        '<div><b>Mobile</b>: '+user_chat['mobile']+'</div>' +
+        '<div><b>Message History</b></div>' + 
+      '</div>'
+    );
+    messages_tbl = $(
+      '<table id="chatlog" class="table table-responsive table-sm" style="max-height:300px">' +
+      '</table>'
+    );
     
     for(var i=0; i<user_chat['messages'].length; i++) {
         var msg = user_chat['messages'][i];
         var date_str = new Date(msg["timestamp"]["$date"]).strftime(DATE_FRMT);
 
-        rows += 
+        messages_tbl.append(
           '<tr>' + 
-            '<td style="width:19%; border:none" class="text-muted">'+ date_str +': </td>' +
-            '<td style="border:none" class="'+ color[msg['direction']] +'">'+ msg['message'] +'</td>' +
-          '</tr>';
+            '<td nowrap style="padding:0; padding-right:0.25em; border:none" class="text-muted">'+ date_str +': </td>' +
+            '<td style="border:none; padding:0;" class="'+ color[msg['direction']] +'">'+ msg['message'] +'</td>' +
+          '</tr>'
+        );
     }
 
-    container.append(
-      '<div><b>Message History</b>:<br>' +
-        '<table class="table table-sm">' +
-          rows +
-        '</table>' +
-      '</div>'
-    );
+    container.append(messages_tbl);
+
+    $('#log_modal').on('shown.bs.modal', function () {
+        $('#chatlog').scrollTop($('#chatlog')[0].scrollHeight);
+    })
 
     showModal(
       'log_modal',

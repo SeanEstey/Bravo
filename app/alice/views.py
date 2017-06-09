@@ -27,7 +27,6 @@ def show_chatlogs():
 def view_chatlogs():
 
     from .util import get_chatlogs
-
     archive_chats()
 
     try:

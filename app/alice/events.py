@@ -183,7 +183,7 @@ def request_pickup():
 
     r = search.search(block, radius=None, weeks=None, agcy=g.group)
 
-    log.info(r['results'][0])
+    #log.info(r['results'][0])
 
     #add_acct(
     #    address,
@@ -192,10 +192,11 @@ def request_pickup():
     #    r['results'][0]['event']['start']['date'])
 
     #book.make(agcy, aid, block, date_str, driver_notes, name, email, confirmation):
+    from json import dumps
 
     create_rfu.delay(
         g.group,
-        "Pickup request result: %s" % r['results'][0],
+        "Pickup request result: %s" % dumps(r['results']),
         options={
             "Account": "Address: %s\nMobile: %s" %(address, request.form['From'])})
 

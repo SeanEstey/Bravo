@@ -8,6 +8,7 @@ from app import get_keys
 from app.main import etap
 from app.lib.dt import to_local
 from .dialog import dialog
+from .session import save_msg
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -85,6 +86,7 @@ def compose(agcy, body, to, callback=None, find_session=False, event_log=False):
         raise
     else:
         if event_log:
+            save_msg(body, mobile=to, direction='out')
             log.info(body)
         else:
             log.debug(body)

@@ -4,6 +4,8 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-switch/3.3.4/css/bootstrap2/bootstrap-switch.css" rel="stylesheet" type="text/css">
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-switch/3.3.4/js/bootstrap-switch.js"></script>
 <script type="text/javascript" src="{{url_for("main.static", filename="js/strftime.js")}}"></script>
+<script type="text/javascript" src="{{url_for("main.static", filename="js/alice.js")}}"></script>
+<script type="text/javascript" src="{{url_for("main.static", filename="js/recent.js")}}"></script>
 <script type="text/javascript" src="{{url_for("main.static", filename="js/admin.js")}}"></script>
 
 <script>
@@ -383,10 +385,10 @@
             <table id="chatlog" class="table table-responsive table-sm" style="max-height:300px">
             </table>
             <div>
-              <form class="form-inline">
-                <input class="form-control col-10 mr-sm-4" type="text" value="" id="example-text-input">
-                  <button type="submit" class="btn btn-primary">Send SMS</button>
-              </form>
+              <div class="form-inline">
+                <input class="form-control col-10 mr-sm-4" type="text" value="">
+                  <button id="send_sms" type="button" class="btn btn-primary">Send SMS</button>
+              </div>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 '''app.main.sms'''
 import logging, re
 from flask import g
-from twilio.rest.lookups import TwilioLookupsClient
+from twilio.rest.lookups import Client
 from . import etap
 from logging import getLogger
 log = getLogger(__name__)
@@ -12,7 +12,7 @@ def enable(agency, accounts):
 
     conf = g.db.agencies.find_one({'name':agency})
 
-    client = TwilioLookupsClient(
+    client = Client(
       account = conf['twilio']['api']['sid'],
       token = conf['twilio']['api']['auth_id']
     )

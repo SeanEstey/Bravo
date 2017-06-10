@@ -1,8 +1,8 @@
 '''app.notify.recording'''
 import os
 from datetime import datetime
-from twilio.rest import TwilioRestClient
-from twilio import TwilioRestException, twiml
+from twilio.rest import Client
+from twilio import twiml
 from flask import g, request
 from app.lib.utils import obj_vars
 #from .. import smart_emit
@@ -22,10 +22,9 @@ def dial_recording():
     twilio = g.db['agencies'].find_one({'name':g.user.agency})['twilio']
 
     try:
-        client = TwilioRestClient(twilio['api']['sid'], twilio['api']['auth_id'])
-    except TwilioRestException as e:
-        log.error('twilio REST error. %s', str(e))
-        log.debug('tb: ', exc_info=True)
+        client = Client(twilio['api']['sid'], twilio['api']['auth_id'])
+    except Exception as e:
+        log.exception('twilio REST error. %s', e.message)
         return 'failed'
 
     call = None

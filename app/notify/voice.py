@@ -3,9 +3,9 @@ import os, time, urllib
 from time import sleep
 from datetime import datetime, date, time
 from bson import ObjectId as oid
-from twilio import TwilioRestException, twiml
-from twilio.rest import TwilioRestClient
-from twilio.util import TwilioCapability
+from twilio import twiml
+from twilio.rest import Client
+#from twilio.util import TwilioCapability
 from flask import g, render_template, request, Response
 from pymongo.collection import ReturnDocument
 from app import get_keys, colors as c
@@ -49,8 +49,8 @@ def call(notific, conf):
     '''
 
     try:
-        client = TwilioRestClient(conf['api']['sid'], conf['api']['auth_id'])
-    except TwilioRestException as e:
+        client = Client(conf['api']['sid'], conf['api']['auth_id'])
+    except Exception as e:
         log.exception('Error creating Twilio client')
         return 'failed'
 
@@ -227,7 +227,7 @@ def on_complete():
         desc = form.get('description')
         agency = g.db.agencies.find_one({'twilio.api.sid': form['AccountSid']})
         keys = agency['twilio']['api']
-        client = TwilioRestClient(keys['sid'], keys['auth_id'])
+        client = Client(keys['sid'], keys['auth_id'])
         call_sid = form['CallSid']
 
         for n in client.notifications.list():
@@ -278,9 +278,10 @@ def get_token():
     app_sid = get_keys('twilio')['sms']['app_sid']
 
     try:
-        capability = TwilioCapability(api['sid'], api['auth_id'])
-        capability.allow_client_outgoing(app_sid)
-        token = capability.generate()
+        #capability = TwilioCapability(api['sid'], api['auth_id'])
+        #capability.allow_client_outgoing(app_sid)
+        #token = capability.generate()
+        token = ''
     except Exception as e:
         log.exception('Error generating Twilio token')
         return str(e)

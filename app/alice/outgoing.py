@@ -1,8 +1,7 @@
 '''app.alice.outgoing'''
 import cPickle as pickle
 from datetime import datetime
-from twilio.rest import TwilioRestClient
-from twilio import TwilioRestException
+from twilio.rest import Client
 from flask import g, request, current_app
 from app import get_keys
 from app.main import etap
@@ -45,30 +44,25 @@ def send_welcome(etap_id):
 
     msg = 'Hi %s, %s' % (name, dialog['user']['welcome'])
 
-    r = compose(
-        g.user.agency,
-        msg,
-        etap.get_phone('Mobile', acct))
+    r = compose(msg, etap.get_phone('Mobile', acct))
 
     return r.status
 
 #-------------------------------------------------------------------------------
-def compose(agcy, body, to, callback=None, find_session=False, event_log=False):
+def compose(body, to, callback=None, find_session=False, event_log=True):
     '''Compose SMS message to recipient
     Can be called from outside blueprint. No access to flask session
     Returns twilio message object (not json serializable)
     '''
 
-    g.group = agcy
     alice = get_keys('alice')
+    conf = get_keys('twilio')
 
     if alice.get('name'):
         body = '%s: %s' % (alice.get('name'), body)
 
-    conf = get_keys('twilio')
-
     try:
-        client = TwilioRestClient(
+        client = Client(
             conf['api']['sid'],
             conf['api']['auth_id'])
     except Exception as e:
@@ -84,12 +78,13 @@ def compose(agcy, body, to, callback=None, find_session=False, event_log=False):
     except Exception as e:
         log.exception('Error sending SMS message: %s', e.message)
         raise
-    else:
-        if event_log:
-            save_msg(body, mobile=to, direction='out')
-            log.info(body)
-        else:
-            log.debug(body)
+
+    save_msg(body, mobile=to, direction='out')
+
+    from twilio.base import serialize
+    log.info(body) if event_log else log.debug(body)
+
+    # TODO Delete this code once Alice chat view is complete
 
     if not find_session:
         return msg
@@ -113,6 +108,7 @@ def compose(agcy, body, to, callback=None, find_session=False, event_log=False):
         current_app.kv_store.put(chat['sess_id'], pickle.dumps(sess))
         log.debug('updated sess_id=%s with outgoing msg', chat['sess_id'])
 
+    log.debug('msg.status=%s', msg.status)
     return msg.status
 
 #-------------------------------------------------------------------------------

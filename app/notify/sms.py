@@ -71,7 +71,7 @@ def send(notific, twilio_conf):
     callback = '%s/notify/sms/status' % http_host
 
     try:
-        msg = compose(acct['agency'], body, notific['to'], callback=callback)
+        msg = compose(body, notific['to'], callback=callback, event_log=False)
     except Exception as e:
         log.exception('Error queuing SMS message')
     finally:

@@ -19,18 +19,6 @@ log = getLogger(__name__)
 @celery.task(bind=True)
 def monitor_triggers(self, **kwargs):
 
-    # TESTING
-    all_triggs = g.db.triggers.find({'status':'pending'})
-    for t in all_triggs:
-        evnt = g.db.events.find_one({'_id': t['evnt_id']})
-        if evnt['name'] == 'R1Z':
-            try:
-                fire_trigger(t['_id'])
-            except Exception as e:
-                log.error('fire_trigger error. desc=%s', str(e))
-                log.debug('',exc_info=True)
-    # END TESTING
-
     ready = g.db.triggers.find({
         'status':'pending',
         'fire_dt':{

@@ -146,8 +146,8 @@ def _compose():
     from app.alice.outgoing import compose
     return func_call(
         compose,
-        g.group, var('body'), var('to'),
-        find_session=True, event_log=True)
+        var('body'), var('to'),
+        find_session=True)
 
 @api.route('/alice/chatlogs', methods=['POST'])
 @login_required

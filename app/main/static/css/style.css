@@ -1,24 +1,12 @@
 
-/*---------------------------- COMMON -----------------------------*/
+/*NAV MENU*/
 
-a.hover {
-    text-decoration: none;
-}
-a.hover:hover {
-    color: black;
-    text-decoration: underline;
-}
-a.hover:link {
-    color: #365766;
-}
-a.hover:visited {
-    color: #365766;
-}
 .main-menu-icon {
     color: #365766;
 }
 .main-menu-a {
     color: #365766;
+    margin-bottom:0;
 }
 .main-menu-item {
 	margin-left:0.5em; 
@@ -46,6 +34,27 @@ a.hover:visited {
     width: 200px;
     height: 117px;
     content: url("/static/main/images/bravo_logo_barbell.png");
+}
+
+/*BRAVO COMMON*/
+
+.modal-wide {
+    min-width:600px;
+    max-width:1000px;
+    min-height: calc(100vh - 60px);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    overflow: auto; 
+    @media(max-width: 768px) { min-height: calc(100vh - 20px);}
+}
+.rounded-header {
+    -webkit-border-top-left-radius:5px;
+    -webkit-border-top-right-radius:5px;
+    -moz-border-radius-topleft:5px;
+    -moz-border-radius-topright:5px;
+    border-top-left-radius:5px;
+    border-top-right-radius:5px;
 }
 .alert-banner {
     visibility: visible;
@@ -75,34 +84,14 @@ a.hover:visited {
     background-color: #FFCCCC;
     border: 1px solid #ff9999;
 }
-.container-fluid.top {
-	max-width: 1600px;
-	margin-left: auto;
-	margin-right: auto;
-	padding: 0;
-}
-.container-fluid.border {
-	position: absolute;
-	top: 13em;
-	left: 1em;
-	right: 1em;
-	max-width: 1600px;
-	margin-bottom: 5em;
-	margin-left: auto;	
-	margin-right: auto;
-    border:1px solid #bbbbbb; 
-    border-radius:7px; 
-    -webkit-border-radius:7px 7px 0px 0px;
-    padding: 0;
-}
-.data-navbar-div {
+.data-header {
     -webkit-border-radius:7px 7px 0px 0px; 
     background-color: white; 
     border-bottom: solid 1px #bbbbbb; 
     padding:0.5em; 
     text-align:left;
 }
-.admin-panel-div {
+.admin-panel-container {
     display: table;
     position: fixed; 
     bottom:-2.5em;
@@ -114,7 +103,7 @@ a.hover:visited {
     margin-right: -300px;
     padding: 0;
 }
-.admin-fieldset {
+.admin-panel-outer {
     position: relative;
     visibility: visible;
     display: inline-block;
@@ -130,6 +119,30 @@ a.hover:visited {
     padding-left: 0;
     padding-right: 0; 
     padding-bottom: 2.5em;
+}
+.btn_resize {
+    position:absolute;
+    top:5px;
+    right:25px;
+}
+.btn_close {
+	position:absolute;
+    top:5px;
+    right:5px;
+}
+.admin-panel-body {
+    display: inline-block;
+}
+.admin-pane {
+    display: inline-block;
+    vertical-align:top;
+    height: 100%;
+    border: 1px solid black;
+    padding: 1.0em;
+    width: auto;
+    margin-left: 0.5em;
+    margin-right: 0.5em;
+    margin-bottom: 0.25em;
 }
 span.admin-outer {
 	border-bottom:1px solid black;
@@ -148,16 +161,6 @@ legend.admin-outer {
 	padding: 0.25em;
 	margin: 0.5em auto;
 	background-color:white;
-}
-.admin-fieldset.child {
-    vertical-align:top;
-    height: 100%;
-    border: 1px solid black;
-    padding: 1.0em;
-    width: auto;
-    margin-left: 0.5em;
-    margin-right: 0.5em;
-    margin-bottom: 0.25em;
 }
 legend.admin-border {
     width:auto;
@@ -194,7 +197,7 @@ legend.admin-border {
     to { transform: scale(1) rotate(360deg);}
 }
 
-/*-------------------------- NOTIFIC EVENT VIEW ---------------------------*/
+/*NOTIFY EVENT*/
 
 .opt {
     font-size: 16px;
@@ -255,30 +258,59 @@ legend.admin-border {
     top: auto;
 }
 
-/*-------------------------- Booker View ---------------------------*/
+/*BOOKER VIEW*/
 
 .input.booker {
-  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue",
-  Helvetica, Arial, "Lucida Grande", sans-serif;
-  border-radius: 10px;
-  -webkit-border-radius: 10px;
-  height: 43px;
-  font-size: 14pt;
-  max-width: 800px;
+    font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue",
+    Helvetica, Arial, "Lucida Grande", sans-serif;
+    border-radius: 10px;
+    -webkit-border-radius: 10px;
+    height: 43px;
+    font-size: 14pt;
+    max-width: 800px;
 }
 .input.booker:focus {
-  border-color: #365766;
-  /*color: #367998;*/
-  outline: none;
-  border-radius: 10px;
-  -webkit-border-radius: 10px;
+    border-color: #365766;
+    outline: none;
+    border-radius: 10px;
+    -webkit-border-radius: 10px;
 }
 
-/*-------------------------- LOGIN VIEW ---------------------------*/
+/*BOOTSTRAP OVERRIDE*/
 
-/*------------------------ BOOTSTRAP OVERRIDES ----------------------*/
-
-
+.container-fluid.top {
+	max-width: 1600px;
+	margin-left: auto;
+	margin-right: auto;
+	padding: 0;
+}
+.container-fluid.border {
+	position: absolute;
+	top: 13em;
+	left: 1em;
+	right: 1em;
+	max-width: 1600px;
+	margin-bottom: 5em;
+	margin-left: auto;	
+	margin-right: auto;
+    border:1px solid #bbbbbb; 
+    border-radius:7px; 
+    -webkit-border-radius:7px 7px 0px 0px;
+    padding: 0;
+}
+a.hover {
+    text-decoration: none;
+}
+a.hover:hover {
+    color: black;
+    text-decoration: underline;
+}
+a.hover:link {
+    color: #365766;
+}
+a.hover:visited {
+    color: #365766;
+}
 .tooltip-wide .tooltip {min-width:500px;}
 .vertical-alignment-helper {
     display:table;
@@ -295,8 +327,7 @@ legend.admin-border {
 }
 .modal-content {
     /* Bootstrap sets the size of the modal in the modal-dialog 
-     * class, we need to inherit it 
-     */
+     * class, we need to inherit it `*/
     width:inherit;
     max-width:600px;
     height:inherit;
@@ -358,7 +389,7 @@ legend.admin-border {
     margin-right: auto;
 }
 
-/*----------------- LOGIN ---------------------*/
+/*LOGIN VIEW*/
 
 .login-outer {
     width: 400px;
@@ -379,34 +410,15 @@ legend.admin-border {
     padding:0.5em;
 }
 
-/*-------------------- ADMIN VIEWS -------------*/
+/*RECENT VIEW*/
 
-.admin-modal {
-    min-width:600px;
-    max-width:1000px;
-    min-height: calc(100vh - 60px);
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    overflow: auto; 
-    @media(max-width: 768px) { min-height: calc(100vh - 20px);}
-}
 
-.admin-modal-header {
-    -webkit-border-top-left-radius:5px;
-    -webkit-border-top-right-radius:5px;
-    -moz-border-radius-topleft:5px;
-    -moz-border-radius-topright:5px;
-    border-top-left-radius:5px;
-    border-top-right-radius:5px;
-}
 
-/*------------------ALICE VIEW--------------------*/
+/*ALICE VIEW*/
 
 .chat-item {
     margin:0.1em;
 }
-
 .chat-card:hover {
     cursor:pointer;
     background-color:white;
@@ -415,28 +427,23 @@ legend.admin-border {
     /*color: #b7d3f3;*/
     color: #83aedf;
 }
-
 .chat-card {
     width:100%;
     color:gray;
 }
-
 .chatlog-dt {
     padding:0;
     padding-right:0.25em;
     border:none;
 }
-
 .chatlog-msg {
     border:none;
     padding:0;
 }
 
-
-
-/*------------------------ BREAKPOINTS ----------------------*/
+/*BREAKPOINTS*/
 /* Remove all extra margins/padding for Portrait display on
-	mobile devices. Not pretty, but somewhat helpful. */
+mobile devices. Not pretty, but somewhat helpful. */
 
 @media (max-width: 480px) { 
     .container {

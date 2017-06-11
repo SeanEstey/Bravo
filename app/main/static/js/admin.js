@@ -4,15 +4,12 @@ var prop_pane_init = false;
 var user_pane_init = false;
 var alice_pane_init = false;
 var recnt_pane_init = false;
-var list_item_styles = {
-    'DEBUG': '',
-    'INFO': 'list-group-item-info',
-    'WARNING': 'list-group-item-warning',
-    'ERROR': 'list-group-item-danger'
-};
+
 
 //------------------------------------------------------------------------------
 function init() {
+
+    $('.alert-banner').hide();
 
     // Init default pane
     initUserPane();
@@ -52,7 +49,7 @@ function initUserPane() {
     if(user_pane_init)
         return;
 
-    $("[name='adm_panl_check']").bootstrapSwitch();
+    //$("[name='adm_panl_check']").bootstrapSwitch();
 
     api_call(
       'user/get',

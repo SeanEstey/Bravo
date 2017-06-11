@@ -3,8 +3,6 @@
 var flip=0;
 var y_offset=0;
 
-function closeAdminPanel() { $('.admin-panel-div').hide(); }
-
 //------------------------------------------------------------------------------
 function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-primary', data=false) {
 
@@ -25,23 +23,30 @@ function addAdminPanelBtn(pane_id, btn_id, caption, style='btn-primary', data=fa
 //------------------------------------------------------------------------------
 function positionAdminPanel() {
 
-    var height = $('#admin').height(); 
+    var $container = $('#.admin-panel-container');
+    var height = $container.height(); 
     y_offset = (height * -1) + 85;
-    $('#admin').css('bottom', y_offset);
-    $('#admin').show();
+    $container.css('bottom', y_offset);
+    $container.show();
 }
 
 //------------------------------------------------------------------------------
-function toggleAdminPanelSize() {
+function resizeAdminPanel() {
 
-    $('#admin_size_btn').toggle(function(){
+    $('.btn_resize').toggle(function(){
         var sign = '+';
         if(flip++ % 2 === 0)
             sign = '-';
         var offset_str = String(y_offset*-1) + 'px';
-        $("#admin").animate({top: sign + '='+offset_str}, 500);
-        $('#admin_size_btn').css('display', 'block');
+        console.log('resizing admin panel. offset='+offset_str+', sign='+sign);
+        $('.admin-panel-container').animate({top: sign + '='+offset_str}, 500);
+        $('.btn_resize').css('display', 'block');
     });
+}
+
+//------------------------------------------------------------------------------
+function closeAdminPanel() {
+    $('.admin-panel-container').fadeOut('slow');
 }
 
 //------------------------------------------------------------------------------

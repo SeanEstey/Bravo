@@ -5,10 +5,7 @@
 <script type="text/javascript" src="{{url_for("alice.static", filename="js/alice.js")}}"></script>
 <script>
   document.write("<style type='text/css'> body{display:none}</style>");
-  jQuery(function($){
-      initAlicePane();
-      $("body").css("display","block");
-  });
+  jQuery(function($){ initAlicePane(); $("body").css("display","block"); });
 </script>
 
 <div class="container">
@@ -18,9 +15,9 @@
 	<!-- Chat Modal -->
 	<div id="chat_modal" class="modal fade bd-example-modal-lg" tabindex="-1"
        role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg admin-modal">
+		<div class="modal-dialog modal-lg modal-wide">
 			<div class="modal-content" style="min-width:1000px; max-width:1000px;">
-        <div class="modal-header admin-modal-header bg-info text-white">
+        <div class="modal-header rounded-header bg-info text-white">
           <h3 class="modal-title">Modal title</h3>
           <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
         </div>

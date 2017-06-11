@@ -1,17 +1,11 @@
 {% extends "views/base.html" %}
 {% block content %}
 
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-switch/3.3.4/css/bootstrap2/bootstrap-switch.css" rel="stylesheet" type="text/css">
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-switch/3.3.4/js/bootstrap-switch.js"></script>
 <script type="text/javascript" src="{{url_for("main.static", filename="js/strftime.js")}}"></script>
 <script type="text/javascript" src="{{url_for("main.static", filename="js/tools.js")}}"></script>
-
 <script>
   document.write("<style type='text/css'> body{display:none}</style>");
-  jQuery(function($){
-      tools_init();
-      $("body").css("display","block");
-  });
+  jQuery(function($){ tools_init(); $("body").css("display","block"); });
 </script>
 
 <div class="container">

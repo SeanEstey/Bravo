@@ -1,12 +1,14 @@
 /* recent.js */
 
-//------------------------------------------------------------------------------
-function initRecentPane() {
+var list_item_styles = {
+    'DEBUG': '',
+    'INFO': 'list-group-item-info',
+    'WARNING': 'list-group-item-warning',
+    'ERROR': 'list-group-item-danger'
+};
 
-    if(recnt_pane_init)
-        return;
-    else
-        recnt_pane_init = true;
+//------------------------------------------------------------------------------
+function initRecent() {
 
 	$('#filtr_lvls input').change(function() {
         console.log('%s=%s', $(this).prop('name'), $(this).prop('checked'));	

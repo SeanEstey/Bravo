@@ -1,28 +1,16 @@
 {% extends "views/base.html" %}
 {% block content %}
 
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-switch/3.3.4/css/bootstrap2/bootstrap-switch.css" rel="stylesheet" type="text/css">
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-switch/3.3.4/js/bootstrap-switch.js"></script>
 <script type="text/javascript" src="{{url_for("main.static", filename="js/strftime.js")}}"></script>
-<script type="text/javascript" src="{{url_for("main.static", filename="js/recent.js")}}"></script>
 <script type="text/javascript" src="{{url_for("main.static", filename="js/admin.js")}}"></script>
-
 <script>
   document.write("<style type='text/css'> body{display:none}</style>");
-  jQuery(function($){
-      init();
-      $("body").css("display","block");
-  });
+  jQuery(function($){ init(); $("body").css("display","block"); });
 </script>
 
+<div name="settings_data" hidden>{{ agency_config|safe }}</div>
 <div class="container">
-  <!-- Agency settings data -->
-	<div name="settings_data" hidden>
-		{{ agency_config|safe }}
-	</div>
-
-	<!-- Nav tabs -->
-	<ul style="margin-bottom:2em" class="nav nav-tabs" role="tablist">
+	<ul style="margin-bottom:0em" class="nav nav-tabs" role="tablist">
 		<li class="nav-item">
 			<a class="nav-link active" data-toggle="tab" href="#me" role="tab">Me</a>
 		</li>
@@ -38,11 +26,7 @@
 		<li class="nav-item">
 			<a class="nav-link" data-toggle="tab" href="#properties" role="tab">Properties</a>
 		</li>
-		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#recent" role="tab">Recent</a>
-		</li>
 	</ul>
-
 	<div class="tab-content">
     <!-- Me Pane -->
 		<div class="tab-pane active" id="me" style='margin-bottom:7em' role="tabpanel">
@@ -273,63 +257,7 @@
         </fieldset>
       </form>
     </div>
-    <!-- Recent Pane -->
-		<div class="tab-pane" id="recent" style='margin-bottom:7em' role="tabpanel">
-      <div>
-        <fieldset class="form-fieldset new_event" style="margin:0; padding:.5em 2em;">
-          <legend class="new_event">Filter Events</legend>
-            <form id='filtr_lvls' class="form-inline">
-              <div class="form-check mb-1 mr-sm-2 mb-sm-0">
-                <label style="font-size:14pt" class="form-check-label mr-2">Levels</label>
-              </div>
-              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-                <label class="form-check-label">
-                  <input name="dbg_lvl" class="form-check-input" type="checkbox"> Debug
-                </label>
-              </div>
-              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-                <label class="form-check-label">
-                  <input name="inf_lvl" class="form-check-input" type="checkbox" checked> Info
-                </label>
-              </div>
-              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-                <label class="form-check-label">
-                  <input name="wrn_lvl" class="form-check-input" type="checkbox" checked> Warnings
-                </label>
-              </div>
-              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-                <label class="form-check-label">
-                  <input name="err_lvl" class="form-check-input" type="checkbox" checked> Errors
-                </label>
-              </div>
-            </form>
-            <form id='filtr_grps' class="form-inline">
-              <div class="form-check mb-1 mr-sm-2 mb-sm-0">
-                <label style="font-size:14pt" class="form-check-label mr-2">Groups</label>
-              </div>
-              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-                <label class="form-check-label">
-                  <input name="usr_grp" class="form-check-input" type="checkbox" checked> Organization
-                </label>
-              </div>
-              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-                <label class="form-check-label">
-                  <input name="sys_grp" class="form-check-input" type="checkbox"> System
-                </label>
-              </div>
-              <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-                <label class="form-check-label">
-                  <input name="anon_grp" class="form-check-input" type="checkbox"> Unregistered
-                </label>
-              </div>
-            </form>
-          </fieldset>
-      </div>
-      <div id='recnt_list' class="list-group">
-      </div>
-    </div>
 	</div> <!--END TAB_CONTENT-->
-
 	<!-- Loader-->
   <div>
     <div class="loader-div" style="background:white; display:none">
@@ -339,23 +267,5 @@
       </button>
     </div>
   </div>
-	<!-- Log Entry Modal -->
-	<div id="log_modal" class="modal fade bd-example-modal-lg" tabindex="-1"
-       role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg admin-modal">
-			<div class="modal-content" style="min-width:600px; max-width:1000px;">
-        <div class="modal-header admin-modal-header bg-info text-white">
-          <h3 class="modal-title">Modal title</h3>
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        </div>
-        <div class="modal-body">
-          <p></p>
-        </div>
-        <div class="modal-footer">
-          <button id="btn-default" type="button" class="btn btn-secondary btn-lg" data-dismiss="modal">Close</button>
-        </div>
-			</div>
-		</div>
-	</div>
 </div>
 {% endblock %}

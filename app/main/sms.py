@@ -10,7 +10,7 @@ log = getLogger(__name__)
 def enable(agency, accounts):
     '''Enable eTap accounts to use Alice'''
 
-    conf = g.db.agencies.find_one({'name':agency})
+    conf = g.db['groups'].find_one({'name':agency})
 
     client = Client(
       account = conf['twilio']['api']['sid'],

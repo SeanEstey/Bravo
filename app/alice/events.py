@@ -143,7 +143,7 @@ def is_unsub():
 
         #account = get_identity(make_response())
 
-        #agency = g.db.agencies.find_one({
+        #agency = g.db['groups'].find_one({
         #    'twilio.sms.number':request.form['To']})
 
         create_rfu.delay(

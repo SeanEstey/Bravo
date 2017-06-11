@@ -113,4 +113,4 @@ def compose(body, to, callback=None, find_session=False, event_log=True):
 
 #-------------------------------------------------------------------------------
 def get_self_name(agency):
-    return g.db.agencies.find_one({'name':agency})['alice']['name']
+    return g.db['groups'].find_one({'name':agency})['alice']['name']

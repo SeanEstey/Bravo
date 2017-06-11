@@ -9,7 +9,7 @@ log = getLogger(__name__)
 #-------------------------------------------------------------------------------
 def send(to, subject, body, conf, v=None):
     '''Send email via mailgun.
-    @conf: db.agencies.mailgun
+    @conf: db['groups']['mailgun']
     @v: custom dict to included in webhooks
     Returns: mid string on success
     '''
@@ -41,7 +41,7 @@ def send(to, subject, body, conf, v=None):
           auth=('api', conf['api_key']),
           data=data)
     except requests.RequestException as e:
-        g.group = g.db.agencies.find_one({'mailgun.from':conf['from']})
+        g.group = g.db['groups'].find_one({'mailgun.from':conf['from']})
         log.exception('Mailgun error')
         raise
 

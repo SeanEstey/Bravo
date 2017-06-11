@@ -84,7 +84,7 @@ def build_scheduled_routes(self, agcy=None, **rest):
     '''
 
     g.group = agcy
-    agcy_list = [get_keys()] if agcy else g.db.agencies.find()
+    agcy_list = [get_keys()] if agcy else g.db['groups'].find()
 
     for agency in agcy_list:
         n_fails = n_success = 0

@@ -19,7 +19,7 @@ def dial_recording():
 
     log.info('Record audio request from ' + request.form['To'])
 
-    twilio = g.db['agencies'].find_one({'name':g.user.agency})['twilio']
+    twilio = g.db['groups'].find_one({'name':g.user.agency})['twilio']
 
     try:
         client = Client(twilio['api']['sid'], twilio['api']['auth_id'])

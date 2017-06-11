@@ -122,7 +122,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
     if for_date:
         for_date = parse(for_date).date()
 
-    agencies = [g.db.agencies.find_one({'name':agcy})] if agcy else g.db.agencies.find()
+    agencies = [g.db['groups'].find_one({'name':agcy})] if agcy else g.db['groups'].find()
     evnt_ids = []
 
     for agency in agencies:

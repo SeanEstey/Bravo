@@ -1,84 +1,58 @@
-	{% extends "views/base.html" %}
-	{% block content %}  
-	<script type="text/javascript" 
-					src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js"></script>
-	<script type="text/javascript" 
-					src="{{url_for("alice.static", filename="js/alice.js")}}">
-	</script>
-  <script> $(function() { alice_init(); 
-		});
-	</script>
+{% extends "views/base.html" %}
+{% block content %}
 
-	<div class="container-fluid border">
-    <div style="margin-top:1em; text-align:center">
-    <h5>Conversations in Past 14 Days</h5></div>
+<script type="text/javascript" src="{{url_for("main.static", filename="js/strftime.js")}}"></script>
+<script type="text/javascript" src="{{url_for("alice.static", filename="js/alice.js")}}"></script>
+<script>
+  document.write("<style type='text/css'> body{display:none}</style>");
+  jQuery(function($){
+      initAlicePane();
+      $("body").css("display","block");
+  });
+</script>
 
-		<textarea id="RawJson" hidden></textarea> 
-		<div id="ControlsRow" hidden> 
-			<input type="Button" value="Format" onClick="Process()"/> 
-			<span id="TabSizeHolder"> 
-				tab size: 
-				<select id="TabSize" onChange="TabSizeChanged()"> 
-					<option value="1">1</option> 
-					<option value="2">2</option> 
-					<option value="3" selected="true">3</option> 
-					<option value="4">4</option> 
-					<option value="5">5</option> 
-					<option value="6">6</option> 
-				</select> 
-			</span> 
-			<label for="QuoteKeys"> 
-				<input type="checkbox" id="QuoteKeys" onClick="QuoteKeysClicked()" /> 
-				Keys in Quotes
-			</label>&nbsp; 
-			<a href="javascript:void(0);" onClick="SelectAllClicked()">select all</a> 
-			&nbsp;
-			<span id="CollapsibleViewHolder" > 
-					<label for="CollapsibleView"> 
-						<input type="checkbox" id="CollapsibleView" onClick="CollapsibleViewClicked()" checked="true" /> 
-						Collapsible View
-					</label> 
-			</span> 
-			<span id="CollapsibleViewDetail"> 
-				<a href="javascript:void(0);" onClick="ExpandAllClicked()">expand all</a> 
-				<a href="javascript:void(0);" onClick="CollapseAllClicked()">collapse all</a> 
-				<a href="javascript:void(0);" onClick="CollapseLevel(3)">level 2+</a> 
-				<a href="javascript:void(0);" onClick="CollapseLevel(4)">level 3+</a> 
-				<a href="javascript:void(0);" onClick="CollapseLevel(5)">level 4+</a> 
-				<a href="javascript:void(0);" onClick="CollapseLevel(6)">level 5+</a> 
-				<a href="javascript:void(0);" onClick="CollapseLevel(7)">level 6+</a> 
-				<a href="javascript:void(0);" onClick="CollapseLevel(8)">level 7+</a> 
-				<a href="javascript:void(0);" onClick="CollapseLevel(9)">level 8+</a> 
-			</span> 
-		</div> 
-		<div id="Canvas" class="Canvas"></div> 
-		 
-		<form id="InvisibleLink" action="" target="_blank"> 
-			<input type="hidden" id="InvisibleLinkUrl" name="json" value="" /> 
-		</form> 
-	</div>
-
-  <!-- Send SMS Msg Modal -->
-  <div id="send_welc" style="display:none"> 
-    <form class="form-check" style="text-align:left" id="send_welc_form">
-      <div id="enter_aid">
-        <label for="aid">Account number</label>
-        <input id="aid" name="aid" class="input" type="text">
-      </div>
-      <div id="enter_phone">
-        <label for="phone">Phone Number</label>
-        <input id="phone" name="phone" class="input" type="text">
-      </div>
-      <div id='enter_msg' class="form-group">
-        <label for="msg_body">Enter your message:</label>
-        <textarea
-          class="form-control"
-          id="msg_body" 
-          name="msg_body" 
-          rows="5"
-        ></textarea>
-      </div>
-    </form>
+<div class="container">
+  <!-- Chatlogs -->
+  <div id="convo_list" class="list-group">
   </div>
-
+	<!-- Chat Modal -->
+	<div id="chat_modal" class="modal fade bd-example-modal-lg" tabindex="-1"
+       role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg admin-modal">
+			<div class="modal-content" style="min-width:1000px; max-width:1000px;">
+        <div class="modal-header admin-modal-header bg-info text-white">
+          <h3 class="modal-title">Modal title</h3>
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        </div>
+        <div class="modal-body">
+          <div>
+            <table id="chatlog" class="table table-responsive table-sm" style="max-height:300px">
+            </table>
+            <div>
+              <div class="form-inline">
+                <input class="form-control col-10 mr-sm-4" type="text" value="">
+                  <button id="send_sms" type="button" class="btn btn-primary">Send SMS</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+        </div>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- Chat List Item -->
+<div id="chat_item" class="chat-item justify-content-between" hidden>
+  <div class="card list-group-item list-group-item-action chat-card">
+    <div class="card-block" style="padding-bottom:0; padding-top:0">
+      <h4 class="card-title"></h4>
+        <span class="card-text">Last Message: </span><span id="last_msg" class="card-text"></span>
+        <p id="msg_date" class="card-text"></p>
+    </div>
+    <h5>
+      <span id="n_msg" class="badge badge-default badge-pill"></span>
+    </h5>
+  </div>
+</div>
 {% endblock %}

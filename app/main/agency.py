@@ -27,7 +27,7 @@ def get_conf():
 def update_conf(data=None):
     log.info('updating %s with value %s', request.form['field'], request.form['value'])
 
-    '''old_value = db.agencies.find_one({'name':user['agency']})[request.form['field']]
+    '''old_value = g.db['groups'].find_one({'name':user['agency']})[request.form['field']]
 
     if type(old_value) != type(request.form['value']):
         log.error('type mismatch')
@@ -35,7 +35,7 @@ def update_conf(data=None):
     '''
 
     try:
-        r = g.db.agencies.update_one(
+        r = g.db['groups'].update_one(
             {'name':g.user.agency},
             {'$set':{request.form['field']:request.form['value']}}
         )

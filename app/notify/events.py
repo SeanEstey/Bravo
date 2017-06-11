@@ -39,12 +39,10 @@ def create_event():
     elif tmplt == 'bpu':
         block = request.form['query_name']
 
-        if is_res(block):
-            cal_id = get_keys('cal_ids').get('res') or get_keys('cal_ids').get('routes')
-        elif is_bus(block):
+        if is_bus(block):
             cal_id = get_keys('cal_ids').get('bus') or get_keys('cal_ids').get('routes')
         else:
-            raise Exception('Invalid Block name %s' % block)
+            cal_id = get_keys('cal_ids').get('res') or get_keys('cal_ids').get('routes')
 
         oauth = get_keys('google')['oauth']
         date_ = cal.get_next_block_date(cal_id, block, oauth)
@@ -141,7 +139,7 @@ def reset_event(evnt_id=None):
 #-------------------------------------------------------------------------------
 def add(agency, name, event_date, _type):
     '''Creates a new job and adds to DB
-    @conf: db.agencies->'reminders'
+    @conf: g.db['groups']['reminders']
     Returns:
       -id (ObjectId)
     '''

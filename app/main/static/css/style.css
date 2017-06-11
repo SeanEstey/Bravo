@@ -401,6 +401,26 @@ legend.admin-border {
     border-top-right-radius:5px;
 }
 
+/*------------------ALICE VIEW--------------------*/
+
+.chat-item {
+    margin:0.1em;
+}
+
+.chat-card:hover {
+    cursor:pointer;
+    background-color:white;
+    text-decoration:none;
+    border-color: #b7d3f3;
+    /*color: #b7d3f3;*/
+    color: #83aedf;
+}
+
+.chat-card {
+    width:100%;
+    color:gray;
+}
+
 .chatlog-dt {
     padding:0;
     padding-right:0.25em;

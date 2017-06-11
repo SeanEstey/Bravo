@@ -2,6 +2,7 @@
 import logging
 from datetime import date, datetime, timedelta
 from flask import g, request, session
+from app import get_keys
 from app.main.etap import call, EtapError
 from app.lib.dt import to_local
 from .dialog import *
@@ -21,8 +22,10 @@ def lookup_acct(mobile, agcy):
 #-------------------------------------------------------------------------------
 def get_chatlogs(start_dt=None, collection='chatlogs', serialize=True):
 
+    view_days = get_keys('alice')['chatlog_view_days']
+
     if not start_dt:
-        start_dt = datetime.utcnow() - timedelta(days=7)
+        start_dt = datetime.utcnow() - timedelta(days=view_days)
 
     if collection == 'chatlogs':
         chats = g.db['chatlogs'].find(
@@ -39,12 +42,11 @@ def get_chatlogs(start_dt=None, collection='chatlogs', serialize=True):
                 to_str='%b %-d @ %-I:%M%p')
             chat['From'] = chat.pop('from')
             chat['Messages'] = chat.pop('messages')
-
     elif collection == 'alice_chats':
         chats = g.db['alice_chats'].find(
             {
-                'group':g.group
-                #'last_msg_dt': {'$gt': start_dt}
+                'group':g.group,
+                'last_message': {'$gt': start_dt}
             },
             {
                 'group':0, '_id':0

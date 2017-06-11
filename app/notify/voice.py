@@ -225,7 +225,7 @@ def on_complete():
     if form['CallStatus'] == 'failed':
         sleep(5)
         desc = form.get('description')
-        agency = g.db.agencies.find_one({'twilio.api.sid': form['AccountSid']})
+        agency = g.db['groups'].find_one({'twilio.api.sid': form['AccountSid']})
         keys = agency['twilio']['api']
         client = Client(keys['sid'], keys['auth_id'])
         call_sid = form['CallSid']

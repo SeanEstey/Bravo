@@ -14,7 +14,7 @@ log = getLogger(__name__)
 #-------------------------------------------------------------------------------
 def add_event():
     g.group = g.user.agency
-    conf= g.db.agencies.find_one({'name':g.user.agency})
+    conf= g.db['groups'].find_one({'name':g.user.agency})
 
     log.debug(request.form.to_dict())
 

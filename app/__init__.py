@@ -54,7 +54,7 @@ def get_keys(k=None, agcy=None):
     if name is None:
         raise Exception('no user group found in get_keys')
 
-    conf = g.db.agencies.find_one({'name':name})
+    conf = g.db['groups'].find_one({'name':name})
 
     if conf is None:
         raise Exception('no doc found for name=%s' % name)

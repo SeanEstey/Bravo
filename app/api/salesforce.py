@@ -16,7 +16,7 @@ def login(sandbox=False):
     '''Make sure to keep simple_salesforce pkg and 'version' arg up to date
     '''
 
-    conf = db.agencies.find_one({'name':'vec'})
+    conf = g.db['groups'].find_one({'name':'vec'})
 
     username=conf['salesforce']['username']
 

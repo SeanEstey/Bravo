@@ -9,7 +9,7 @@ log = getLogger(__name__)
 def to_dict(agency, ss_id):
 
     g.group = agency
-    conf = g.db.agencies.find_one({'name':agency})
+    conf = g.db['groups'].find_one({'name':agency})
     service = gsheets.gauth(conf['google']['oauth'])
 
     # get col A-B

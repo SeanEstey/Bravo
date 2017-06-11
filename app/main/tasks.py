@@ -143,7 +143,7 @@ def update_leaderboard_accts(self, agcy=None, **rest):
 
     g.group=agcy
     log.warning('Updating leaderboards...')
-    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
+    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db['groups'].find()
     timer = Timer()
 
     for agency in agcy_list:
@@ -483,7 +483,7 @@ def update_calendar_blocks(self, from_=date.today(), agcy=None, **rest):
     @from_, to_: datetime.date
     '''
 
-    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
+    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db['groups'].find()
     start_dt = d_to_dt(from_)
     today = date.today()
     timer = Timer()
@@ -590,7 +590,7 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
     from . import sms
 
     days = in_days if in_days else 3
-    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
+    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db['groups'].find()
     accts = []
 
     for agency in agcy_list:
@@ -632,7 +632,7 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
     '''Create RFU's for all non-participants on scheduled dates
     '''
 
-    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db.agencies.find()
+    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db['groups'].find()
     n_task_inactive = 0
     timer = Timer()
 

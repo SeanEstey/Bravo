@@ -26,7 +26,7 @@ def create_session():
     from_ = str(request.form['From'])
     msg = request.form['Body']
     life_duration = current_app.config['PERMANENT_SESSION_LIFETIME']
-    conf = g.db.agencies.find_one({'twilio.sms.number':request.form['To']})
+    conf = g.db['groups'].find_one({'twilio.sms.number':request.form['To']})
 
     # Init session data
 

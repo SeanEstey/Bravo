@@ -13,9 +13,9 @@ def update_maps(agcy=None, **rest):
     '''
 
     if agcy:
-        agencies = [g.db.agencies.find_one({'name':agcy})]
+        agencies = [g.db['groups'].find_one({'name':agcy})]
     else:
-        agencies = list(g.db.agencies.find({}))
+        agencies = list(g.db['groups'].find({}))
 
     for agency in agencies:
         g.group = agency['name']

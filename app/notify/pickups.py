@@ -40,7 +40,7 @@ def create_reminder(agcy, block, date_):
         date_ + timedelta(days=conf['email']['fire_days_delta']),
         time(conf['email']['fire_hour'], conf['email']['fire_min']))
 
-    if parser.is_res(block):
+    if not parser.is_bus(block):
         phone_trig_id = triggers.add(
             evnt_id,
             'voice_sms',

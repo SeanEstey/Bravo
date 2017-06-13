@@ -5,7 +5,7 @@ var DEF_SEARCH_PROMPT = 'Enter an <b>account ID</b>, <b>address</b>, or <b>posta
 function booker_init() {
 
     $('#search_ctnr').prepend($('.alert-banner'));
-    alertMsg(DEF_SEARCH_PROMPT, 'info', -1);
+    //alertMsg(DEF_SEARCH_PROMPT, 'info', -1);
     buildAdminPanel();
     addSocketIOHandlers();
 }

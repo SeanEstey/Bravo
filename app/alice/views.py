@@ -52,7 +52,7 @@ def sms_received(agency):
     return response
 
 #-------------------------------------------------------------------------------
-@alice.route('/wipe_sessions', methods=['POST'])
+@alice.route('/wipe_sessions', methods=['GET', 'POST'])
 @login_required
 def _wipe_sessions():
     n = wipe_sessions()

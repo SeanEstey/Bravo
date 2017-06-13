@@ -4,7 +4,7 @@ from datetime import timedelta
 #LOGGER_NAME = 'flask'
 TEMPLATES_AUTO_RELOAD = True
 SESSION_COLLECTION = 'sessions'
-PERMANENT_SESSION_LIFETIME = timedelta(minutes=60)
+PERMANENT_SESSION_LIFETIME = timedelta(days=1) #minutes=60)
 SECRET_KEY = 'secret'
 
 # App

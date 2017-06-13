@@ -3,9 +3,7 @@ import os, time, urllib
 from time import sleep
 from datetime import datetime, date, time
 from bson import ObjectId as oid
-from twilio import twiml
 from twilio.rest import Client
-#from twilio.util import TwilioCapability
 from flask import g, render_template, request, Response
 from pymongo.collection import ReturnDocument
 from app import get_keys, colors as c
@@ -75,8 +73,8 @@ def call(notific, conf):
             fallback_url = '%s/notify/voice/fallback' % http_host,
             fallback_method = 'POST',
             status_callback = '%s/notify/voice/complete' % http_host,
-            status_events = ["completed"],
-            status_method = 'POST')
+            status_callback_event = "completed",
+            status_callback_method = 'POST')
     except Exception as e:
         log.exception('Call to %s failed', notific['to'])
     else:
@@ -135,7 +133,8 @@ def on_answer():
         'notific_id': str(notific['_id']),
         'status': request.form['CallStatus']})'''
 
-    response = twiml.Response()
+    from twilio.twiml.voice_response import VoiceResponse
+    response = VoiceResponse()
 
     http_host = os.environ['BRV_HTTP_HOST']
     if http_host.find('https') == 0:
@@ -150,7 +149,7 @@ def on_answer():
             response.gather(
                 action='%s/notify/voice/play/interact.xml' % http_host,
                 method='POST',
-                numDigits=1,
+                num_digits=1,
                 timeout=10)
 
             # Entering digit triggers action URL
@@ -175,7 +174,7 @@ def on_answer():
         response.play(notific['on_answer']['url'])
 
         response.gather(
-            numDigits=1,
+            num_digits=1,
             action='%s/notify/voice/play/interact.xml' % http_host,
             method='POST')
 

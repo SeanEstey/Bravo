@@ -1,6 +1,7 @@
 '''app.main.views'''
-from flask import render_template, redirect, url_for
+from flask import g, render_template, redirect, url_for
 from flask_login import login_required
+from app import get_keys
 from . import main
 
 @main.route('/')
@@ -21,4 +22,14 @@ def view_admin():
 @main.route('/tools')
 @login_required
 def view_tools():
-    return render_template('views/tools.html')
+    return render_template(
+        'views/tools.html',
+        api_key=get_keys('google')['maps_api_key'])
+
+@main.route('/map')
+@login_required
+def view_map():
+
+    return render_template(
+        'views/map.html',
+        api_key=get_keys('google')['maps_api_key'])

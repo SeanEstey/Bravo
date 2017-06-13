@@ -89,13 +89,15 @@ def on_interact():
             }},
             return_document=ReturnDocument.AFTER)
 
-        voice = twilio.twiml.Response()
 
-        voice.play(notific['on_answer']['audio_url'], voice='alice')
+        from twilio.twiml.messaging_response import MessagingResponse
+        response = MessagingResponse()
 
-        voice.gather(
-            numDigits=1,
+        response.play(notific['on_answer']['audio_url'], voice='alice')
+
+        response.gather(
+            num_digits=1,
             action="%s/notify/voice/play/interact.xml" % os.environ.get('BRV_HTTP_HOST'),
             method='POST')
 
-        return voice
+        return response

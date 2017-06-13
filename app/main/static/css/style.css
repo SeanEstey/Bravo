@@ -1,6 +1,4 @@
-
 /*NAV MENU*/
-
 .main-menu-icon {
     color: #365766;
 }
@@ -37,7 +35,6 @@
 }
 
 /*BRAVO COMMON*/
-
 .modal-wide {
     min-width:600px;
     max-width:1000px;
@@ -86,7 +83,7 @@
 }
 .data-header {
     -webkit-border-radius:7px 7px 0px 0px; 
-    background-color: white; 
+    background-color:#f7f7f9;
     border-bottom: solid 1px #bbbbbb; 
     padding:0.5em; 
     text-align:left;
@@ -116,8 +113,8 @@
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     box-sizing: border-box;
-    padding-left: 0;
-    padding-right: 0; 
+    padding-left:0em;
+    padding-right:0em; 
     padding-bottom: 2.5em;
 }
 .btn_resize {
@@ -198,7 +195,6 @@ legend.admin-border {
 }
 
 /*NOTIFY EVENT*/
-
 .opt {
     font-size: 16px;
 }
@@ -259,7 +255,6 @@ legend.admin-border {
 }
 
 /*BOOKER VIEW*/
-
 .input.booker {
     font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue",
     Helvetica, Arial, "Lucida Grande", sans-serif;
@@ -277,7 +272,6 @@ legend.admin-border {
 }
 
 /*BOOTSTRAP OVERRIDE*/
-
 .container-fluid.top {
 	max-width: 1600px;
 	margin-left: auto;
@@ -345,14 +339,14 @@ a.hover:visited {
     position: relative;
     table-layout: fixed;
     width: 100%;
-    background-color: #f7f7f7;
+    background-color:white;
     text-rendering: optimizeLegibility !important;
     -webkit-font-smoothing: antialiased !important;
     font-size:11pt;
     margin-bottom:0px;
 }
 .table.table-colored th {
-    background-color: #e8f5f9;
+    background-color:white;
     padding:12px 6px 12px 6px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -390,7 +384,6 @@ a.hover:visited {
 }
 
 /*LOGIN VIEW*/
-
 .login-outer {
     width: 400px;
     border: 1px solid #bbbbbb;
@@ -410,12 +403,7 @@ a.hover:visited {
     padding:0.5em;
 }
 
-/*RECENT VIEW*/
-
-
-
 /*ALICE VIEW*/
-
 .chat-item {
     margin:0.1em;
 }
@@ -424,8 +412,8 @@ a.hover:visited {
     background-color:white;
     text-decoration:none;
     border-color: #b7d3f3;
-    /*color: #b7d3f3;*/
-    color: #83aedf;
+    /*color: #83aedf;*/
+    color: rgb(0,116,172); 
 }
 .chat-card {
     width:100%;
@@ -444,7 +432,6 @@ a.hover:visited {
 /*BREAKPOINTS*/
 /* Remove all extra margins/padding for Portrait display on
 mobile devices. Not pretty, but somewhat helpful. */
-
 @media (max-width: 480px) { 
     .container {
         padding:0;
@@ -484,7 +471,6 @@ mobile devices. Not pretty, but somewhat helpful. */
         display: none;
     }
 }
-
 @media (max-width: 1200px) {
     .header-div {
         display:nline-block; 

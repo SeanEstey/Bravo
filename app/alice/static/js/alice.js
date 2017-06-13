@@ -43,6 +43,9 @@ function renderChatCards(resp){
 
     for(var i=0; i<resp['data'].length; i++) {
         var chat = resp['data'][i];
+        if(chat['messages'].length < 2)
+            continue;
+
         var title = chat['account'] ? chat['account']['name'] : 'Unregistered User (' + chat['mobile'] + ')';
         var id = "item_" + String(i);
         var last_msg_text = '';

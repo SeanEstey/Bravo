@@ -22,6 +22,7 @@ def has_session():
 
 #-------------------------------------------------------------------------------
 def create_session():
+    '''Init session vars after receiving incoming SMS msg'''
 
     from_ = str(request.form['From'])
     msg = request.form['Body']
@@ -68,7 +69,7 @@ def create_session():
 
         # Is there a notification user might be replying to?
         if notific:
-            g.db.notifics.update_one({'_id':notific['_id']},{'$set':{'tracking.reply':msg}})
+            g.db['notifics'].update_one({'_id':notific['_id']},{'$set':{'tracking.reply':msg}})
 
             session['notific_id'] = notific['_id']
             session['messages'].insert(0, notific['tracking']['body'])
@@ -96,9 +97,9 @@ def save_msg(text, mobile=None, direction=None):
 
     number = mobile or session.get('from')
     acct = session.get('account', None)
-    d = g.db['alice_chats'].find_one({'mobile':number})
+    chatlog = g.db['alice_chats'].find_one({'mobile':number})
 
-    if not d:
+    if not chatlog:
         if not acct:
             log.debug('no account to insert')
 
@@ -122,16 +123,14 @@ def save_msg(text, mobile=None, direction=None):
                         'timestamp': datetime.utcnow(),
                         'message': text,
                         'direction': direction
-                    }
-                },
+                    }},
                 '$set': {
                     'group':g.group,
-                    'last_message':datetime.utcnow()
-                }
+                    'last_message':datetime.utcnow()}
            },
            True)
 
-        if not d['account'] and acct:
+        if not chatlog['account'] and acct:
             g.db['alice_chats'].update_one(
                 {'mobile': number},
                 {'$set': {'account':acct}}

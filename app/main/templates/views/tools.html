@@ -3,9 +3,10 @@
 
 <script type="text/javascript" src="{{url_for("main.static", filename="js/strftime.js")}}"></script>
 <script type="text/javascript" src="{{url_for("main.static", filename="js/tools.js")}}"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}&callback=initGoogleMap" async defer></script> 
 <script>
   document.write("<style type='text/css'> body{display:none}</style>");
-  jQuery(function($){ tools_init(); $("body").css("display","block"); });
+  jQuery(function($){ init(); $("body").css("display","block"); });
 </script>
 
 <div class="container">
@@ -62,10 +63,6 @@
               <label for="neighborhoods" class="col-3 col-form-label">Areas:</label>
               <label type="text" id="neighborhoods" class="col-form-label col-7">None</label>
             </div>
-            <div class=" row">
-              <label for="search_blocks" class="col-3 col-form-label">Search Blocks:</label>
-              <label type="text" id="search_blocks" class="col-form-label col-7">None</label>
-            </div>
 						<br><hr><br>
             <div class="alert alert-warning" role="alert">
               Any accounts within the selected map area will be identified and written to Bravo Sheets. 
@@ -86,14 +83,17 @@
               <label for="status" class="col-3 col-form-label">Status:</label>
               <label type="text" id="status" class="col-form-label col-7">Inactive</label>
             </div>
+            <div class=" row">
+              <label for="search_in" class="col-3 col-form-label">Searching in:</label>
+              <label type="text" id="search_in" class="col-form-label col-7">None</label>
+            </div>
             <div class="row">
               <label for="n_matches" class="col-3 col-form-label">Matches:</label>
               <label type="text" id="n_matches" class="col-form-label col-7">None</label>
             </div>
-            <div class="row">
-              <label for="acct_ids" class="col-3 col-form-label">Account ID's:</label>
-              <label type="text" id="acct_ids" class="col-form-label col-9">None</label>
-            </div>
+          </div>
+          <div class="card-block">
+            <div style="height:600px" id="map"></div>
           </div>
         </div>
         <!--!CARD-->

@@ -85,7 +85,8 @@ def on_interact():
             }},
             return_document=ReturnDocument.AFTER)
 
-        voice = twilio.twiml.Response()
+        from twilio.twiml.voice_response import VoiceResponse
+        voice = VoiceResponse()
 
         voice.play(notific['on_answer']['audio_url'], voice='alice')
 
@@ -93,7 +94,7 @@ def on_interact():
         host = host.replace('https','http') if host.find('https') == 0 else host
 
         voice.gather(
-            numDigits=1,
+            num_digits=1,
             action="%s/notify/voice/play/interact.xml" % host,
             method='POST')
 

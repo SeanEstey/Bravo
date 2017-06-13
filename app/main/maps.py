@@ -215,8 +215,8 @@ def geocode(address, api_key, postal=None, raise_exceptions=False):
 
             response['results'][0]['warning'] = warning
             log.debug(warning)
-
-        return response['results']
+        else:
+            return [response['results'][0]]
 
     # Multiple results
 

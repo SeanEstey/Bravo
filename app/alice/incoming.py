@@ -4,7 +4,6 @@ Session expiry set in app.config.py, currently set to 60 min
 Conversations permanently saved to MongoDB in bravo.alice
 '''
 import string
-from twilio import twiml
 from datetime import datetime, date, time, timedelta
 from flask import request, make_response, g, session
 from app import colors as c
@@ -194,13 +193,14 @@ def make_reply(dialog_, on_complete=None):
     save_msg(reply, direction='out')
     session['messages'].append(reply)
 
-    twml = twiml.Response()
-    twml.message(context + dialog_)
+    from twilio.twiml.messaging_response import MessagingResponse
+    m_response = MessagingResponse()
+    m_response.message(context + dialog_)
 
     log.info('%s to %s: "%s"', self, session['from'][2:], context + dialog_,)
 
     response = make_response()
-    response.data = str(twml)
+    response.data = str(m_response)
 
     return response
 

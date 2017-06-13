@@ -1,6 +1,5 @@
 '''app.notify.gg'''
 import os
-from twilio import twiml
 from flask import g, request
 from dateutil.parser import parse
 from .. import get_keys
@@ -80,7 +79,8 @@ def add_event():
 #-------------------------------------------------------------------------------
 def on_call_interact(notific):
 
-    response = twiml.Response()
+    from twilio.twiml.voice_response import VoiceResponse
+    response = VoiceResponse()
 
     # Digit 1: Play live message
     if request.form['Digits'] == '1':
@@ -96,7 +96,7 @@ def on_call_interact(notific):
         response.gather(
             action= '%s/notify/voice/play/interact.xml' % http_host,
             method='POST',
-            numDigits=1,
+            num_digits=1,
             timeout=10)
 
         response.say(

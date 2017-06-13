@@ -3,6 +3,8 @@ var DEF_SEARCH_PROMPT = 'Enter an <b>account ID</b>, <b>address</b>, or <b>posta
 
 //---------------------------------------------------------------------
 function booker_init() {
+
+    $('#search_ctnr').prepend($('.alert-banner'));
     alertMsg(DEF_SEARCH_PROMPT, 'info', -1);
     buildAdminPanel();
     addSocketIOHandlers();
@@ -10,15 +12,13 @@ function booker_init() {
 
 //------------------------------------------------------------------------------
 function addSocketIOHandlers() {
+
     var socketio_url = 'https://' + document.domain + ':' + location.port;
-
     var socket = io.connect(socketio_url);
-
     socket.on('connected', function(data){
         $AGENCY = data['agency'];
         console.log('socket.io connected! agency: ' + data['agency']);
     });
-
     socket.on('update_maps', function(data) {
         console.log(data['description']);
         alertMsg(data['description'], 'success');

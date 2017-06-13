@@ -55,7 +55,7 @@ function renderChatCards(resp){
             if(chat['messages'][j]['direction'] == 'in') {
                 last_msg_text = chat['messages'][j]['message'];
                 last_msg_date = new Date(chat['messages'][j]['timestamp']['$date'])
-                    .strftime("%b %d @ %I:%M%p");
+                    .strftime("%b %d at %I:%M%p");
                 break;
             }
         }
@@ -80,7 +80,7 @@ function appendMsgRow(body, date, direction) {
     $td_dt = $('<td nowrap class="chatlog-dt text-muted"></td>');
     $td_dt.html(date.strftime("%b %d: %I:%M%p"));
 
-    $td_msg = $('<td class="chatlog-msg '+color[direction]+'"></td>');
+    $td_msg = $('<td class="chatlog-msg text-muted"></td>');
     $td_msg.html(body);
 
     $tr = $('<tr></tr>');

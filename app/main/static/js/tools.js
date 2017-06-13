@@ -285,5 +285,3 @@ function runAnalyzer() {
           alertMsg('Running analysis for accounts within ' + title + '...', 'info');
       });
 }
-
-

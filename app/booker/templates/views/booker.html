@@ -8,27 +8,15 @@
       booker_init();
     }); </script>
 
-  <div class="container-fluid" style="width:75%; text-align:center">
+  <div class="container-fluid" id="search_ctnr" style="width:75%; text-align:center">
     <!-- Search -->
     <div style="margin: 4em 0">
       <form style="width:100%; margin:0 auto;" onsubmit="return false;" id="main_form" name="main_form">  
         <div id="search_row">
-          <input 
-            id="search_box"
-            class="input booker"
-            name="search_box"
-            type="text"
-            onkeydown="searchKeyPress(event)"
-            autocomplete="off"
-            autofocus> 
-          <button 
-            class="btn btn-primary" 
-            style="font-size:20px;" 
-            type="button"
-            id="find_btn"
-            onclick="validateSearch(this.form)"
-            name="find_btn">Search
-          </button>
+          <input id="search_box" class="input booker" name="search_box" type="text"
+          onkeydown="searchKeyPress(event)" autocomplete="off" autofocus> 
+          <button class="btn btn-secondary" type="button" id="find_btn" name="find_btn"
+          style="font-size:20px;" onclick="validateSearch(this.form)">Search</button>
         </div>
       </form>
     </div>

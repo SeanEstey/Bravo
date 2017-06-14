@@ -28,8 +28,11 @@ function alertMsg(msg, level, duration=7500, id=null) {
 		return;
 	}
 
-	$alert.removeClass('success').removeClass('info').removeClass('warning').removeClass('danger');
-	$alert.addClass(level);
+	$alert.removeClass('alert-success')
+        .removeClass('alert-info')
+        .removeClass('alert-warning')
+        .removeClass('alert-danger')
+	    .addClass('alert-'+level);
 
 	$alert.html('<span>' + msg + '</span>');
     fixStyling();

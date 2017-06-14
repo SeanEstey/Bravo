@@ -41,22 +41,24 @@
 </div>
 <!-- Chat List Item -->
 <div id="chat_item" class="chat-item justify-content-between" hidden>
-  <div class="card list-group-item list-group-item-action chat-card">
-    <div class="card-block col-10" style="padding-bottom:0; padding-top:0">
-      <div class="mb-2">
+  <div class="card chat-card list-group-item list-group-item-action">
+    <div class="card-block col-10 pl-0" style="padding-bottom:0; padding-top:0">
+      <div class="mb-1">
         <h4 style="margin:0" class="card-title"></h4>
       </div>
       <div class="">
-        <span class="card-text text-muted">Message: "</span><span id="last_msg" class="card-text text-muted"></span>"
+        <span class="card-text text-muted">Message: "</span>
+        <span id="last_msg" class="card-text text-muted"></span>"
       </div>
-      <div class="mt-2">
-        <small class="card-text text-muted">Received </small><small id="msg_date" class="card-text text-muted">></small>
+      <div class="mt-1">
+        <small class="card-text text-muted">Received </small>
+        <small id="msg_date" class="card-text text-muted"></small>
       </div>
     </div>
-    <h5 class="col-1 mb-0">
-        <span class="badge badge-default">New</span>
+    <h5 class="col-1 mb-0 text-right">
+        <span class="badge badge-default"></span>
     </h5>
-    <h5 class="col-1 mb-0">
+    <h5 class="col-1 mb-0 text-right">
       <span id="n_msg" class="badge badge-default badge-pill"></span>
     </h5>
   </div>

@@ -81,8 +81,7 @@ def compose(body, to, callback=None, find_session=False, event_log=True):
 
     save_msg(body, mobile=to, direction='out')
 
-    from twilio.base import serialize
-    log.info(body) if event_log else log.debug(body)
+    log.info(body, extra={'tag':'sms_msg'}) if event_log else log.debug(body, extra={'tag':'sms_msg'})
 
     # TODO Delete this code once Alice chat view is complete
 

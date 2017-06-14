@@ -39,25 +39,37 @@ function requestLogEntries() {
 //------------------------------------------------------------------------------
 function renderLogEntries(resp) {
 
+    var filter_tags = ['sms_msg'];
+    var badges = {
+        'DEBUG': {'class': 'badge-default', 'text':'Debug'},
+        'INFO': {'class': 'badge-info', 'text':'Info'},
+        'WARNING': {'class': 'badge-warning', 'text':'Warning'},
+        'ERROR': {'class': 'badge-danger', 'text':'Error'},
+        'EXCEPTION': {'class':'badge-danger', 'text':'Exception'}
+    };
+
     console.log("%s. %s events returned", resp['status'], resp['data'].length);
     var logs = resp['data'];
     $('#recnt_list').empty();
 
     for(var i=0; i<logs.length; i++) {
-        var id = "list_grp_" + String(i);
+        if(logs[i]['tag'] && filter_tags.indexOf(logs[i]['tag']) > -1)
+                continue;
 
-        $('#recnt_list').append(
-            '<a href="#" ' +
-            'id=' + id + ' ' +
-            'class="list-group-item list-group-item-action ' + list_item_styles[logs[i]['level']] + '">' +
-            new Date(logs[i]["timestamp"]["$date"]).strftime("%b %d: %I:%M%p: ") + logs[i]["message"] +
-            '</a>'
-        );
+        $evnt_item = $('#event_item').clone().prop('id', 'list_grp_'+String(i));
+        $evnt_item.find('#event_msg').html(logs[i]['message']);
+        $evnt_item.find('#event_dt').html(
+            new Date(logs[i]['timestamp']['$date'])
+                .strftime('%b %d at %I:%M%p'));
+        $evnt_item.click(showLogEntryDetailsModal);
+        $evnt_item.prop('hidden', false);
+        $evnt_item.find('.badge').addClass(badges[logs[i]['level']]['class']);
+        $evnt_item.find('.badge').html(badges[logs[i]['level']]['text']);
+        $('#recnt_list').append($evnt_item);
 
-        logs[i]['timestamp'] = new Date(logs[i]['timestamp']['$date']).strftime('%b %d, %I:%M %p');
+        $evnt_item.data("details", logs[i]); // Save for viewing in Modal
+        logs[i]['timestamp'] = new Date(logs[i]['timestamp']['$date']).strftime('%b %d at %I:%M %p');
         delete logs[i]['asctime'];
-        $('#'+id).data("details", logs[i]); // Save for viewing in Modal
-        $('#'+id).click(showLogEntryDetailsModal);
     }
 }
 
@@ -82,7 +94,7 @@ function showLogEntryDetailsModal(e) {
             appendLogField(field, log_record[field], container);
     }
 
-    container.append('<div><br></div>');
+    //container.append('<div><br></div>');
 
     for(var i=1; i<std_fields.length; i++){
         var field = std_fields[i];

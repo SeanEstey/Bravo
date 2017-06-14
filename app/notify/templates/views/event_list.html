@@ -10,105 +10,107 @@
     }); 
   </script>
 
-  <div style="margin-bottom:10em" class="container-fluid border">
-    <div class="data-header">
-      <a class="hover" 
-         href="{{ url_for("notify.view_event_list") }}">Notification Events</a> / 
-      <a id="new_event"
-         style="font-weight:bold; text-decoration:none;" 
-         title="Schedule a new event" 
-         href="#">+</a>
+  <div style="margin-bottom:10em; padding:0; max-width:1600px;" class="container-fluid">
+    <div class="card">
+      <div class="card-header" style="background-color:#517ba3; color:white;">
+        <a class="hover" style="color:white"
+           href="{{ url_for("notify.view_event_list") }}">Notification Events</a> / 
+        <a id="new_event"
+           style="font-weight:bold; text-decoration:none; color:white" 
+           title="Schedule a new event" 
+           href="#">+</a>
+      </div>
+      <table id="events_tbl" class="table table-hover table-colored">
+        <thead>
+          <tr style="color:grey;">
+            <th>Name</th>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Email Notifications</th>
+            <th width="5%" >Count</th>
+            <th>Voice/SMS Notifications</th>
+            <th width="5%" >Count</th>
+            <th style="width:50px"></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for event in events %}
+        {% set show_event_url = url_for("notify.view_event", evnt_id=event._id)
+        %}
+          <tr id="{{event._id}}">
+            <td>
+              <a class="hover" href="{{ show_event_url }}">{{ event.name }}</a>
+            </td>
+            <td>
+              {% if event.event_dt is defined %}
+                <a class="hover" href="{{ show_event_url }}">{{
+                  event.event_dt.strftime("%A %b %d") }}</a>
+              {% endif %}
+            </td>
+            <td>{{ event.type }}</td>
+
+            {% set vars = {"email_trig": False} %}
+            {% for trigger in event.triggers if trigger.type == "email" %}
+                {% if trigger.status == "fired" %}
+                  <td><font color="green">Sent</font> @ {{
+                    trigger.fire_dt.strftime("%b %d, %I:%M %p")
+                  }}</td>
+                {% elif trigger.status == "pending" %}
+                  <td><font color="blue">Pending</font> @ {{
+                    trigger.fire_dt.strftime("%b %d, %I:%M %p")
+                  }}</td>
+                {% endif %}
+                <td>{{ trigger["count"] }}</td>
+
+                {% do vars.update({"email_trig":True}) %}
+            {% endfor %}
+
+            {% if not vars.email_trig %}
+              <td><hr></td><td><hr></td>
+            {% endif %}
+
+            {% set vars = {"voice_sms_trig": False} %}
+            {% for trigger in event.triggers if trigger.type == "voice_sms" %}
+                {% if trigger.status == "fired" %}
+                  <td><font color="green">Sent</font> @ {{
+                    trigger.fire_dt.strftime("%b %d, %I:%M %p")
+                  }}</td>
+                {% elif trigger.status == "pending" %}
+                  <td><font color="blue">Pending</font> @ {{
+                    trigger.fire_dt.strftime("%b %d, %I:%M %p")
+                  }}</td>
+                {% endif %}
+                <td>{{ trigger["count"] }}</td>
+
+                {% do vars.update({"voice_sms_trig":True}) %}
+            {% endfor %}
+
+            {% if not vars.voice_sms_trig %}
+              <td><hr></td><td><hr></td>
+            {% endif %}
+
+            <td>
+              <button 
+                data-toggle="tooltip"	
+                class="ui-button ui-widget ui-corner-all ui-button-icon-only
+                delete-btn"
+                type="button" 
+                id="{{ url_for("api._cancel_event",evnt_id=event._id) }}" 
+                title="Delete this event"
+                name="delete-btn">
+                <span class="ui-button-icon-primary ui-icon ui-icon-trash"></span>
+              </button>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="loader-div">
+        <button class="btn btn-info loader">
+          <span class="fa fa-refresh loader-animate"></span>  Creating Event...</button>
+      </div>
     </div>
-    <table id="events_tbl" class="table table-hover table-colored">
-      <thead>
-        <tr>
-          <th>Name</th>
-					<th>Date</th>
-					<th>Type</th>
-					<th>Email Notifications</th>
-					<th width="5%" >Count</th>
-					<th>Voice/SMS Notifications</th>
-					<th width="5%" >Count</th>
-          <th style="width:50px"></th>
-        </tr>
-      </thead>
-      <tbody>
-      {% for event in events %}
-      {% set show_event_url = url_for("notify.view_event", evnt_id=event._id)
-      %}
-				<tr id="{{event._id}}">
-					<td>
-						<a class="hover" href="{{ show_event_url }}">{{ event.name }}</a>
-					</td>
-					<td>
-						{% if event.event_dt is defined %}
-							<a class="hover" href="{{ show_event_url }}">{{
-                event.event_dt.strftime("%A %b %d") }}</a>
-						{% endif %}
-					</td>
-          <td>{{ event.type }}</td>
-
-          {% set vars = {"email_trig": False} %}
-          {% for trigger in event.triggers if trigger.type == "email" %}
-              {% if trigger.status == "fired" %}
-                <td><font color="green">Sent</font> @ {{
-                  trigger.fire_dt.strftime("%b %d, %I:%M %p")
-                }}</td>
-              {% elif trigger.status == "pending" %}
-                <td><font color="blue">Pending</font> @ {{
-                  trigger.fire_dt.strftime("%b %d, %I:%M %p")
-                }}</td>
-              {% endif %}
-              <td>{{ trigger["count"] }}</td>
-
-              {% do vars.update({"email_trig":True}) %}
-          {% endfor %}
-
-          {% if not vars.email_trig %}
-            <td><hr></td><td><hr></td>
-          {% endif %}
-
-          {% set vars = {"voice_sms_trig": False} %}
-          {% for trigger in event.triggers if trigger.type == "voice_sms" %}
-              {% if trigger.status == "fired" %}
-                <td><font color="green">Sent</font> @ {{
-                  trigger.fire_dt.strftime("%b %d, %I:%M %p")
-                }}</td>
-              {% elif trigger.status == "pending" %}
-                <td><font color="blue">Pending</font> @ {{
-                  trigger.fire_dt.strftime("%b %d, %I:%M %p")
-                }}</td>
-              {% endif %}
-              <td>{{ trigger["count"] }}</td>
-
-              {% do vars.update({"voice_sms_trig":True}) %}
-          {% endfor %}
-
-          {% if not vars.voice_sms_trig %}
-            <td><hr></td><td><hr></td>
-          {% endif %}
-
-					<td>
-						<button 
-							data-toggle="tooltip"	
-              class="ui-button ui-widget ui-corner-all ui-button-icon-only
-              delete-btn"
-							type="button" 
-							id="{{ url_for("api._cancel_event",evnt_id=event._id) }}" 
-							title="Delete this event"
-							name="delete-btn">
-              <span class="ui-button-icon-primary ui-icon ui-icon-trash"></span>
-						</button>
-					</td>
-				</tr>
-      {% endfor %}
-      </tbody>
-    </table>
-
-		<div class="loader-div">
-			<button class="btn btn-info loader">
-				<span class="fa fa-refresh loader-animate"></span>  Creating Event...</button>
-		</div>
   </div>
 
   <!-- New Event Dialog -->

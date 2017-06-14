@@ -58,30 +58,14 @@
 .alert-banner {
     visibility: visible;
     opacity: 0;
-    margin-top: 2em;
-    margin-bottom: 0;
+    max-width:1600px;
+    margin-top: 1em;
+    margin-bottom:1em;
     margin-left: auto;
     margin-right: auto;
     -webkit-border-radius:7px 7px 7px 7px; 
     padding:0.5em; 
     text-align:center;
-    color: #365766;
-}
-.alert-banner.info {
-    background-color: #BDE5F8;
-    border: 1px solid #75c9f0;
-}
-.alert-banner.success {
-    background-color: #DFF2BF;
-    border: 1px solid #cae995;
-}
-.alert-banner.warning {
-    background-color: #FEEFB3;
-    border: 1px solid #fde481;
-}
-.alert-banner.danger {
-    background-color: #FFCCCC;
-    border: 1px solid #ff9999;
 }
 .data-header {
     -webkit-border-radius:7px 7px 0px 0px; 
@@ -348,8 +332,9 @@ a.hover:visited {
     margin-bottom:0px;
 }
 .table.table-colored th {
+    padding:0.75em;
     background-color:white;
-    padding:12px 6px 12px 6px;
+    /*padding:12px 6px 12px 6px;*/
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -405,6 +390,13 @@ a.hover:visited {
     padding:0.5em;
 }
 
+/*RECENT VIEW*/
+.recent-event-item:hover {
+    background-color:white;
+    border-color: #b7d3f3;
+    color: rgb(0,116,172); 
+}
+
 /*ALICE VIEW*/
 .chat-item {
     margin:0.1em;
@@ -414,7 +406,6 @@ a.hover:visited {
     background-color:white;
     text-decoration:none;
     border-color: #b7d3f3;
-    /*color: #83aedf;*/
     color: rgb(0,116,172); 
 }
 .chat-card {

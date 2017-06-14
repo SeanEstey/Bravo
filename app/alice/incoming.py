@@ -197,7 +197,8 @@ def make_reply(dialog_, on_complete=None):
     m_response = MessagingResponse()
     m_response.message(context + dialog_)
 
-    log.info('%s to %s: "%s"', self, session['from'][2:], context + dialog_,)
+    log.info('%s to %s: "%s"', self, session['from'][2:], context + dialog_,
+        extra={'tag':'sms_msg'})
 
     response = make_response()
     response.data = str(m_response)
@@ -259,7 +260,7 @@ def get_msg(upper=False, rmv_punctn=False):
 def log_msg():
     log.info('%s to %s: "%s"',
         session['from'][2:], session['self_name'], request.form['Body'],
-        extra={'n_convo_messages': get_msg_count()})
+        extra={'n_convo_messages': get_msg_count(), 'tag':'sms_msg'})
 
 #-------------------------------------------------------------------------------
 def get_msg_count():

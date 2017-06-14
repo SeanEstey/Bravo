@@ -4,7 +4,7 @@ var DEF_SEARCH_PROMPT = 'Enter an <b>account ID</b>, <b>address</b>, or <b>posta
 //---------------------------------------------------------------------
 function booker_init() {
 
-    $('#search_ctnr').prepend($('.alert-banner'));
+    $('#search_ctnr').prepend($('.br-alert'));
     //alertMsg(DEF_SEARCH_PROMPT, 'info', -1);
     buildAdminPanel();
     addSocketIOHandlers();
@@ -96,9 +96,9 @@ function displaySearchResults(response) {
     alertMsg(response['description'], 'success', -1);
 
     // save prev query in banner in case user wants to expand search
-    $('.alert-banner').data('query', response['query']);
-    $('.alert-banner').data('radius', response['radius']);
-    $('.alert-banner').data('weeks', response['weeks']);
+    $('.br-alert').data('query', response['query']);
+    $('.br-alert').data('radius', response['radius']);
+    $('.br-alert').data('weeks', response['weeks']);
 
 
     for(var i=0; i<response['results'].length; i++) {
@@ -174,7 +174,7 @@ function clearSearchResults(hide) {
 
 //---------------------------------------------------------------------
 function showExpandRadiusModal() {
-    var radius = Number($('.alert-banner').data('radius'));
+    var radius = Number($('.br-alert').data('radius'));
 
     showModal(
       'mymodal',
@@ -186,7 +186,7 @@ function showExpandRadiusModal() {
     $('#mymodal .btn-primary').click(function() {
         $('#mymodal').modal('hide');
         search(
-          $('.alert-banner').data('query'),
+          $('.br-alert').data('query'),
           radius + 2.0
         );
     });

@@ -1,23 +1,34 @@
+/* BRAVO COLOR SCHEME
+ * Elements:
+ *   #517ba3    Deep Blue  Primary (logo, borders, card header bg)
+ *   #ffffff    White      Secondary
+ * Fonts:
+ *   #365766    Dark Blue  Primary
+ *   #808080    Gray       Secondary (table headers, card titles)
+ */
+
+
+.body {
+    max-width:1600px;
+}
+
 /*NAV MENU*/
-.main-menu-icon {
+.container-fluid.br-nav {
+	margin-left: auto;
+	margin-right: auto;
+	padding: 0;
+}
+.br-nav-icon {
     color: #365766;
 }
-.main-menu-a {
+.br-nav-a {
     color: #365766;
     margin-bottom:0;
 }
-.main-menu-item {
+.br-nav-item {
 	margin-left:0.5em; 
 	margin-right:0.5em; 
 	text-align:center;
-}
-.header-div {
-	display:inline-block; 
-	position: absolute; 
-	left:0; 
-	right:0;
-	height: 1px;
-	background-color:transparent; 
 }
 .logo-a-center {
     margin-left: auto;
@@ -52,27 +63,16 @@
     -moz-border-radius-topright:5px;
     border-top-left-radius:5px;
     border-top-right-radius:5px;
-    background-color: #206275;
+    background-color: #517ba3;
     padding:10px;
 }
-.alert-banner {
+.br-alert {
     visibility: visible;
     opacity: 0;
-    max-width:1600px;
-    margin-top: 1em;
-    margin-bottom:1em;
-    margin-left: auto;
-    margin-right: auto;
+    margin:1em 2em;
     -webkit-border-radius:7px 7px 7px 7px; 
     padding:0.5em; 
     text-align:center;
-}
-.data-header {
-    -webkit-border-radius:7px 7px 0px 0px; 
-    background-color:#f7f7f9;
-    border-bottom: solid 1px #bbbbbb; 
-    padding:0.5em; 
-    text-align:left;
 }
 .admin-panel-container {
     display: table;
@@ -184,9 +184,6 @@ legend.admin-border {
 .opt {
     font-size: 16px;
 }
-.hidden {
-    display: none;
-}
 .delete-btn {
     font-size: 0.75em;
     width: 24px;
@@ -257,27 +254,14 @@ legend.admin-border {
     -webkit-border-radius: 10px;
 }
 
+/*BOOTSTRAP SUBCLASSES*/
+.card-header.blue {
+    background-color:#517ba3;
+    color:white;
+}
+
 /*BOOTSTRAP OVERRIDE*/
-.container-fluid.top {
-	max-width: 1600px;
-	margin-left: auto;
-	margin-right: auto;
-	padding: 0;
-}
-.container-fluid.border {
-	position: absolute;
-	top: 13em;
-	left: 1em;
-	right: 1em;
-	max-width: 1600px;
-	margin-bottom: 5em;
-	margin-left: auto;	
-	margin-right: auto;
-    border:1px solid #bbbbbb; 
-    border-radius:7px; 
-    -webkit-border-radius:7px 7px 0px 0px;
-    padding: 0;
-}
+
 a.hover {
     text-decoration: none;
 }
@@ -291,7 +275,9 @@ a.hover:link {
 a.hover:visited {
     color: #365766;
 }
-.tooltip-wide .tooltip {min-width:500px;}
+.tooltip-wide .tooltip {
+    min-width:500px;
+}
 .vertical-alignment-helper {
     display:table;
     height: 100%;
@@ -363,12 +349,6 @@ a.hover:visited {
 	text-align: left;
 	width: 25px;
 }
-.center {
-    position: absolute;
-    float: none;
-    margin-left: auto;
-    margin-right: auto;
-}
 
 /*LOGIN VIEW*/
 .login-outer {
@@ -391,9 +371,18 @@ a.hover:visited {
 }
 
 /*RECENT VIEW*/
+.recent-event-item {
+    border-left:0px;
+    border-right:0px;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+    border-top: 1px solid rgba(0,0,0,.125);
+}
 .recent-event-item:hover {
     background-color:white;
-    border-color: #b7d3f3;
+    border-left: 1px solid #517ba3;
+    border-right: 1px solid #b7d3f3;
+    border-top: 1px solid #b7d3f3;
+    border-bottom: 2px solid #b7d3f3;
     color: rgb(0,116,172); 
 }
 
@@ -423,28 +412,20 @@ a.hover:visited {
 }
 
 /*BREAKPOINTS*/
-/* Remove all extra margins/padding for Portrait display on
-mobile devices. Not pretty, but somewhat helpful. */
+
+/*Mobile Phones*/
 @media (max-width: 480px) { 
-    .container {
+    /*.container {
         padding:0;
         margin:0;
-    }
-    .container-fluid.border {
+    }*/
+    .container-fluid {
         position: relative;
         left:0;
         right:0;
         top: 0;
-        width:90%;
         padding:0;
-        margin: 0 auto;
-    }
-    .header-div {
-        display:inline-block; 
-        position: relative; 
-        height: 60px;
-        left:0; 
-        right:0;
+        margin: 0em 1em;
     }
     .alert-banner {
         margin: 0.1em;
@@ -464,24 +445,29 @@ mobile devices. Not pretty, but somewhat helpful. */
         display: none;
     }
 }
-@media (max-width: 1200px) {
-    .header-div {
-        display:nline-block; 
-        position: relative; 
-        height: 60px;
-        left:0; 
-        right:0;
-    }
-    .container-fluid.border {
+@media (min-width: 992px) {
+    .container-fluid {
         position: relative;
         top: 0;
         left:0;
         right:0;
-        width:80%;
         padding:0;
-        margin: 0 auto;
+        margin: 0em 2em;
     }
     .alert-banner {
         margin: 1.0em 0em;
+    }
+}
+@media (min-width: 1200px) {
+    .container-fluid {
+        /*position: relative;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 0;*/
+        margin: 0em 2em;
+    }
+    .br-alert {
+        margin: 1.0em 2em;
     }
 }

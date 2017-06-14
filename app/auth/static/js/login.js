@@ -7,8 +7,8 @@ function init_login() {
     $('#logo_img').addClass('logo-img-lg');
     $('#logo_img').removeClass('logo-img-sm');
     $('.nav').hide();
-    $('.alert-banner').css('margin-top', '3em'); 
-    $('.alert-banner').css('max-width', '400px');
+    $('.br-alert').css('margin-top', '3em'); 
+    $('.br-alert').css('max-width', '400px');
 
     $('#submit_btn').click(function(e) {
         e.preventDefault(); // Firefox browsers

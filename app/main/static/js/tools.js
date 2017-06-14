@@ -25,7 +25,7 @@ function init() {
     $('#map_select').change(selectMap);
     $('#analyze').click(runAnalyzer);
 
-    $('.tab-content').prepend($('.alert-banner'));
+    $('.tab-content').prepend($('.br-alert'));
     alertMsg("Loading maps...", "info");
 
     loadMapData();

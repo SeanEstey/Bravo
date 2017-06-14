@@ -1,5 +1,4 @@
 {% extends "views/base.html" %}
-
 {% block content %}  
   <script src="{{url_for("static", filename="main/js/strftime.js")}}"></script>
   <script src="{{url_for("notify.static", filename="js/event_list.js")}}"></script>
@@ -10,9 +9,9 @@
     }); 
   </script>
 
-  <div style="margin-bottom:10em; padding:0; max-width:1600px;" class="container-fluid">
+  <div style="margin-bottom:10em;" class="container-fluid">
     <div class="card">
-      <div class="card-header" style="background-color:#517ba3; color:white;">
+      <div class="card-header blue">
         <a class="hover" style="color:white"
            href="{{ url_for("notify.view_event_list") }}">Notification Events</a> / 
         <a id="new_event"

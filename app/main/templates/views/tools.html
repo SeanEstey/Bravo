@@ -10,7 +10,7 @@
 </script>
 
 <div class="container">
-	<ul style="margin-bottom:0em" class="nav nav-tabs" role="tablist">
+	<ul style="margin-bottom:0em" class="nav nav-tabs" role="tablist" hidden>
 		<li class="nav-item">
 			<a class="nav-link active" data-toggle="tab" href="#block_splitter" role="tab">Map Analyzer</a>
 		</li>
@@ -19,11 +19,11 @@
 	<div class="tab-content">
 		<div class="tab-pane active" id="block_splitter" style='margin-bottom:7em' role="tabpanel">
       <div class="card-deck">
-        <div class="card" style="margin-top:2em">
-          <div class="card-header">
+        <div class="card mt-0">
+          <div class="card-header blue">
             <label style="font-weight:400; font-size:1.5rem" class="">My Maps</label>
           </div>
-          <div class="card-block">
+          <div class="card-block" style="max-height:700px">
             <div class=" row">
               <label for="map_count" class="col-3 col-form-label">Count:</label>
               <label type="text" id="map_count" class="col-form-label col-7"></label>
@@ -47,9 +47,11 @@
 								</select>
 							</div>
             </div>
-            <div class=" row">
+            <div class="row">
               <label for="description" class="col-3 col-form-label">Description:</label>
-              <label type="text" id="description" class="col-form-label col-7">None</label>
+              <label type="text" id="description" class="col-form-label col-10"
+              style="max-width:366px; max-height:40px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis"
+                >None</label>
             </div>
             <div class="row" hidden>
               <label for="n_coords" class="col-3 col-form-label">Coordinate Sets:</label>
@@ -60,8 +62,11 @@
               <label type="text" id="block" class="col-form-label col-7">None</label>
             </div>
             <div class=" row">
-              <label for="neighborhoods" class="col-3 col-form-label">Areas:</label>
-              <label type="text" id="neighborhoods" class="col-form-label col-7">None</label>
+              <label for="neighborhoods" 
+              class="col-3 col-form-label">Areas:</label>
+              <label type="text" id="neighborhoods" class="col-form-label col-10"
+              style="max-width:366px;  white-space:nowrap; overflow:hidden; text-overflow:ellipsis"
+                >None</label>
             </div>
 						<br><hr><br>
             <div class="alert alert-warning" role="alert">
@@ -69,13 +74,13 @@
               This process may take a few minutes.
             </div>
             <div style="margin-top:1.5em; text-align:center">
-              <button id="analyze" style="width:100%; margin-left:auto; margin-right:auto;" type="button" class="btn btn-primary btn-lg">Run Analysis</button>
+              <button id="analyze" style="width:100%; margin-left:auto; margin-right:auto;" type="button" class="btn btn-secondary btn-lg">Run Analysis</button>
             </div>
           </div>
         </div>
         <!--!CARD-->
-        <div class="card" style="height:50%; margin-top:2em">
-          <div class="card-header">
+        <div class="card" style="height:100%;">
+          <div class="card-header" style="background-color:#517ba3; color:white;">
             <label style="font-weight:400; font-size:1.5rem" class="">Analysis Results</label>
           </div>
           <div class="card-block">
@@ -93,7 +98,7 @@
             </div>
           </div>
           <div class="card-block">
-            <div style="height:600px" id="map"></div>
+            <div style="height:460px" id="map"></div>
           </div>
         </div>
         <!--!CARD-->

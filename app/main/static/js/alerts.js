@@ -11,7 +11,7 @@ function alertMsg(msg, level, duration=7500, id=null) {
     if(!msg)
         return;
     if(!id)
-		var $alert = $('.alert-banner');
+		var $alert = $('.br-alert');
     else
         var $alert = $('#'+id);
 
@@ -52,7 +52,7 @@ function alertMsg(msg, level, duration=7500, id=null) {
 function fadeAlert(id=null) {
 
     if(!id)
-		var $alert = $('.alert-banner');
+		var $alert = $('.br-alert');
     else
         var $alert = $('#'+id);
     clearTimeout(globalTimeoutId);
@@ -61,6 +61,6 @@ function fadeAlert(id=null) {
 
 //------------------------------------------------------------------------------
 function fixStyling() {
-    $('.alert-banner').css('margin-left', 'auto'); 
-    $('.alert-banner').css('margin-right', 'auto'); 
+    $('.br-alert').css('margin-left', 'auto'); 
+    $('.br-alert').css('margin-right', 'auto'); 
 }

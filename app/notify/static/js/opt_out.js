@@ -6,7 +6,7 @@ function opt_out_init() {
     $('#logo_img').addClass('logo-img-lg');
     $('#logo_img').removeClass('logo-img-sm');
     $('.nav').hide();
-    $('.alert-banner').css('max-width', '400px');
+    $('.br-alert').css('max-width', '400px');
 
     if($('form input[name="valid"]').val() == "false") {
         alertMsg("This event has expired", "danger");

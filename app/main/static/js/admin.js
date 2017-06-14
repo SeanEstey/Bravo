@@ -9,7 +9,7 @@ var recnt_pane_init = false;
 //------------------------------------------------------------------------------
 function init() {
 
-    $('.alert-banner').hide();
+    $('.br-alert').hide();
 
     // Init default pane
     initUserPane();

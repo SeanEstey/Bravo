@@ -8,84 +8,88 @@
   jQuery(function($){ initRecent(); $("body").css("display","block"); });
 </script>
 
-<div class="container">
-  <div class="card card-header mb-1">
-    <div style="margin:0; padding:0;">
-      <legend class="mb-0" hidden>Events</legend>
-      <div class="row">
-        <div class="col-2"></div>
-        <form id='filtr_lvls' class="form-inline col-4">
-          <div class="col-12 mb-1 mb-sm-0 p-0">
-            <label style="font-size:14pt" class="form-check-label mr-2 pull-left">Levels</label>
-          </div>
-          <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-            <label class="form-check-label">
-              <input name="dbg_lvl" class="form-check-input" type="checkbox"> Debug
-            </label>
-          </div>
-          <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-            <label class="form-check-label">
-              <input name="inf_lvl" class="form-check-input" type="checkbox" checked> Info
-            </label>
-          </div>
-          <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-            <label class="form-check-label">
-              <input name="wrn_lvl" class="form-check-input" type="checkbox" checked> Warnings
-            </label>
-          </div>
-          <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-            <label class="form-check-label">
-              <input name="err_lvl" class="form-check-input" type="checkbox" checked> Errors
-            </label>
-          </div>
-        </form>
-        <form id='filtr_grps' class="form-inline col-4">
-          <div class="col-12 mb-1 mb-sm-0 p-0">
-            <label style="font-size:14pt" class="form-check-label pull-left">Groups</label>
-          </div>
-          <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-            <label class="form-check-label">
-              <input name="usr_grp" class="form-check-input" type="checkbox" checked> Organization
-            </label>
-          </div>
-          <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-            <label class="form-check-label">
-              <input name="sys_grp" class="form-check-input" type="checkbox"> System
-            </label>
-          </div>
-          <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
-            <label class="form-check-label">
-              <input name="anon_grp" class="form-check-input" type="checkbox"> Unregistered
-            </label>
-          </div>
-        </form>
-        <div class="col-2"></div>
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-header blue">
+      <label style="font-weight:400; font-size:1.5rem">Event History</label>
+    </div>
+    <div class="card-header" style="border-bottom:0px">
+      <div style="margin:0; padding:0;">
+        <div class="row">
+          <div class="col-2"></div>
+          <form id='filtr_lvls' class="form-inline col-4">
+            <div class="col-12 mb-1 mb-sm-0 p-0">
+              <label style="font-size:14pt" class="form-check-label mr-2 pull-left">Levels</label>
+            </div>
+            <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+              <label class="form-check-label">
+                <input name="dbg_lvl" class="form-check-input" type="checkbox"> Debug
+              </label>
+            </div>
+            <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+              <label class="form-check-label">
+                <input name="inf_lvl" class="form-check-input" type="checkbox" checked> Info
+              </label>
+            </div>
+            <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+              <label class="form-check-label">
+                <input name="wrn_lvl" class="form-check-input" type="checkbox" checked> Warnings
+              </label>
+            </div>
+            <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+              <label class="form-check-label">
+                <input name="err_lvl" class="form-check-input" type="checkbox" checked> Errors
+              </label>
+            </div>
+          </form>
+          <form id='filtr_grps' class="form-inline col-4">
+            <div class="col-12 mb-1 mb-sm-0 p-0">
+              <label style="font-size:14pt" class="form-check-label pull-left">Groups</label>
+            </div>
+            <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+              <label class="form-check-label">
+                <input name="usr_grp" class="form-check-input" type="checkbox" checked> Organization
+              </label>
+            </div>
+            <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+              <label class="form-check-label">
+                <input name="sys_grp" class="form-check-input" type="checkbox"> System
+              </label>
+            </div>
+            <div class="form-check mr-2 mb-1 mr-sm-2 mb-sm-0">
+              <label class="form-check-label">
+                <input name="anon_grp" class="form-check-input" type="checkbox"> Unregistered
+              </label>
+            </div>
+          </form>
+          <div class="col-2"></div>
+        </div>
       </div>
     </div>
+    <div id='recnt_list' class="list-group"></div>
   </div>
-  <div id='recnt_list' class="list-group"></div>
-</div>
-<!--LOG_EVENT MODAL-->
-<div id="log_modal" class="modal fade bd-example-modal-lg" tabindex="-1"
- role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-wide">
-    <div class="modal-content" style="min-width:1000px; max-width:1000px;">
-      <div class="modal-header rounded-header text-white">
-        <h3 class="modal-title">Modal title</h3>
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-      </div>
-      <div class="modal-body">
-        <p></p>
-      </div>
-      <div class="modal-footer">
-        <button id="btn-default" type="button" class="btn btn-secondary"
-         data-dismiss="modal">Ok</button>
+  <!--LOG_EVENT MODAL-->
+  <div id="log_modal" class="modal fade bd-example-modal-lg" tabindex="-1"
+   role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-wide">
+      <div class="modal-content" style="min-width:1000px; max-width:1000px;">
+        <div class="modal-header rounded-header text-white" style="background-color:#517ba3">
+          <h3 class="modal-title">Modal title</h3>
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        </div>
+        <div class="modal-body">
+          <p></p>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-default" type="button" class="btn btn-secondary"
+           data-dismiss="modal">Ok</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 <!--EVENT LIST-ITEM-->
-<a href="#" id="event_item" class="list-group-item list-group-item-action recent-event-item mb-1" hidden>
+<a href="#" id="event_item" class="list-group-item list-group-item-action recent-event-item " hidden>
 	<div class="col-11">
 		<div style="width:100%" class="row">
 			<span id="event_msg" class="col-12 pl-0"></span>

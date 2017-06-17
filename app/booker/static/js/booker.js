@@ -5,6 +5,7 @@ map_data = {};
 shapes = [];
 markers = [];
 current_map = null;
+current_marker = null;
 
 DEF_ZOOM = 11;
 DEF_MAP_ZOOM = 14;
@@ -13,17 +14,24 @@ CALGARY = {lat:51.055336, lng:-114.077959};
 MAP_FILL ='#99ccff';
 MAP_STROKE = '#6666ff';
 
-DEF_SEARCH_PROMPT = 'Enter an <b>account ID</b>, <b>address</b>, or <b>postal code</b> below';
-
 function parse_block(title) { return title.slice(0, title.indexOf(' ')); }
 
 //---------------------------------------------------------------------
 function bookerInit() {
 
-    //alertMsg(DEF_SEARCH_PROMPT, 'info', -1);
+    alertMsg('Enter search terms below', 'info', -1);
+
     $('#search_ctnr').prepend($('.br-alert'));
     loadMapData();
     addSocketIOHandlers();
+
+    $('#find_acct').click(function() {
+       searchAcct($('#acct_input').val());
+    });
+
+    $('#find_block').click(function() {
+       search($('#block_input').val());
+    });
 }
 
 //------------------------------------------------------------------------------
@@ -67,6 +75,7 @@ function addSocketIOHandlers() {
 
 //---------------------------------------------------------------------
 function validateSearch(form) {
+
     var query = form.elements['search_box'].value;
     form.elements['search_box'].value = '';
     if(!query) {
@@ -74,6 +83,26 @@ function validateSearch(form) {
     }
 
     search(query);
+}
+
+//---------------------------------------------------------------------
+function searchAcct(acct_id) {
+    
+    //$('#or').hide();
+    //$('#block_row').hide();
+
+    search(acct_id);
+
+    api_call(
+        'booker/get_acct_geo',
+        data={'acct_id': acct_id},
+        function(response){
+            console.log(response['status']);
+            console.log(response['data']['acct']);
+            var title = response['data']['acct']['name'];
+            var coords = response['data']['coords'];
+            addMarker(title, coords);
+        });
 }
 
 //---------------------------------------------------------------------
@@ -88,9 +117,7 @@ function search(query, radius, weeks) {
     $('#results2').show();
     $('#results2 tr:first').hide();
 
-    $('#search-loader').slideToggle(function() {
-        $('#search-loader .btn.loader').fadeTo('fast', 1);
-    });
+    alertMsg('Searching...', 'info');
 
     $.ajax({
         type: 'POST',
@@ -105,10 +132,6 @@ function search(query, radius, weeks) {
 
         if(response['status'] != 'success') {
             alertMsg(response['description'], 'danger', -1);
-
-            $('#search-loader .btn.loader').fadeTo('fast', 0, function() {
-                $('#search-loader').slideToggle();
-            });
             return;
         }
         displaySearchResults(response['data']);
@@ -130,10 +153,9 @@ function searchKeyPress(e) {
 //---------------------------------------------------------------------
 function displaySearchResults(response) {
 
-    $('#search-loader .btn.loader').fadeTo('slow', 0, function() {
-        $('#search-loader').slideUp();
-    });
+    var MAX_RESULTS = 9;
 
+    $('#results2').prop('hidden', false);
     $('#results2 tr:first').show();
 
     alertMsg(response['description'], 'success', -1);
@@ -144,6 +166,9 @@ function displaySearchResults(response) {
     $('.br-alert').data('weeks', response['weeks']);
 
     for(var i=0; i<response['results'].length; i++) {
+        if(i > MAX_RESULTS)
+            break;
+
         var result = response['results'][i];
         
         // HACK: convert local date to UTC
@@ -154,18 +179,18 @@ function displaySearchResults(response) {
 
         var $row = $(
           '<tr style="background-color:white">' + 
-            '<td>'+
+            '<td style="width:8%">'+
               '<div>'+
                 '<label>'+
                   '<input name="radio-stacked" type="radio"><span></span>'+
                 '</label>'+
               '</div>'+
             '</td>'+
-            '<td name="date">' + 
-              local_date.strftime('%B %d %Y') + 
+            '<td name="date" style="width:40%">' + 
+              local_date.strftime('%b %d %Y') + 
             '</td>' +
             '<td name="block">' + result['name'] + '</td>' +
-            '<td>' + result['booked'] + '</td>' +
+            //'<td>' + result['booked'] + '</td>' +
             '<td>' + result['distance'] + '</td>' +
           '</tr>'
         );
@@ -210,7 +235,7 @@ function selectResult() {
 
     $row = $(this).parent().parent().parent().parent();
     var this_block = $row.find('[name="block"]').text();
-    console.log('this_block: ' +this_block);
+    $('#block_input').val(this_block);
 
     var match = false;
     var idx=0;
@@ -239,7 +264,10 @@ function drawMapPolygon(coords) {
         paths.push({"lat":coords[i][1], "lng":coords[i][0]});
     }
 
-    var shape = new google.maps.Polygon({
+    if(current_map)
+        current_map.setMap(null);
+
+    current_map = new google.maps.Polygon({
         paths: paths,
         strokeColor: MAP_STROKE,
         strokeOpacity: 0.8,
@@ -247,12 +275,26 @@ function drawMapPolygon(coords) {
         fillColor: MAP_FILL,
         fillOpacity: 0.35
     });
-    shape.setMap(gmaps);
-    //shapes.push(shape);
 
+    current_map.setMap(gmaps);
+
+    //shapes.push(shape);
     //var center = centerPoint(coords);
     //gmaps.setCenter({'lat':center[1], 'lng':center[0]});
     //setOptimalZoom(paths);
+}
+
+//---------------------------------------------------------------------    
+function addMarker(title, coords) {
+
+    if(current_marker)
+        current_marker.setMap(null);
+
+    current_marker = new google.maps.Marker({
+        position: coords,
+        map: gmaps,
+        title: title
+    });
 }
 
 //---------------------------------------------------------------------

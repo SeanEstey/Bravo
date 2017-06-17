@@ -161,6 +161,14 @@ def _book_acct():
     from app.booker.book import make
     return func_call(make)
 
+@api.route('/booker/get_acct_geo', methods=['POST'])
+@login_required
+def _get_acct_geo():
+    from app.booker.search import get_acct_geo
+    return func_call(
+        get_acct_geo,
+        var('acct_id'))
+
 @api.route('/booker/search', methods=['POST'])
 @login_required
 def _search_bookings():

@@ -11,6 +11,27 @@ from logging import getLogger
 log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
+def get_acct_geo(acct_id):
+
+    try:
+        acct = call('get_acct', data={'acct_id': re.search(r'\d{1,6}',acct_id).group(0)})
+    except EtapError as e:
+        log.error('Acct %s not found', acct_id)
+        raise
+
+    # Get coords
+    from app.main.maps import geocode
+
+    coords = geocode(
+        '%s, %s, AB' % (acct['address'], acct['city']),
+        get_keys('google')['geocode']['api_key'])
+
+    return {
+        'acct': acct,
+        'coords': coords[0]['geometry']['location']
+    }
+
+#-------------------------------------------------------------------------------
 def search(query, radius=None, weeks=None, agcy=None):
     '''Search query invoked from Booker client
     @query: either Account Number, Postal Code, Address, or Block
@@ -19,7 +40,6 @@ def search(query, radius=None, weeks=None, agcy=None):
     '''
 
     g.group = agcy if agcy else g.user.agency
-    print 'g.group=%s'%g.group
 
     maps = g.db.maps.find_one({'agency':g.group})['features']
 

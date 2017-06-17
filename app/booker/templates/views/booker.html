@@ -9,67 +9,49 @@
   jQuery(function($){ bookerInit(); $("body").css("display","block"); });
 </script>
 
-<div class="container-fluid" id="search_ctnr" style="text-align:center">
-
-
-  <!--RESULTS/MAP PANE-->
-  <div class="card-deck mt-5">
-    <div class="card mt-0 mr-1" style="max-width:300px">
-      <div class="card-header">
-        Search
-      </div>
-      <div class="">
-        <!--SEARCH-->
-        <form id="main_form" name="main_form" onsubmit="return false;">  
-          <div class="card-block">
-            <div class="form-group row ml-2">
-              <input id="search_box" class="form-control col-8 mr-2" name="search_box" type="text" placeholder="Account"
-              onkeydown="searchKeyPress(event)" autocomplete="off" autofocus> 
-              <button class="btn btn-secondary" type="button" id="find_btn" name="find_btn" style=""
-              onclick="validateSearch(this.form)">Go</button>
-            </div>
-            <div class="form-group row ml-2">
-              <input id="search_box" class="form-control col-8 mr-2" name="search_box" type="text" placeholder="Block"
-              onkeydown="searchKeyPress(event)" autocomplete="off" autofocus> 
-              <button class="btn btn-secondary" type="button" id="find_btn" name="find_btn" style=""
-              onclick="validateSearch(this.form)">Go</button>
-            </div>
-            <div class="row ml-2">
-              <div class="col-5"></div>
-              <button class="btn btn-primary" type="submit">Make Booking</button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-    <div class="card ml-0" style="height:100%;">
-      <div class="card-header">
-        Map
+<div class="container-fluid pl-0 pr-0" id="search_ctnr" style="text-align:center">
+  <div class="card-deck mt-0">
+    <!--SEARCH-->
+    <div class="card mt-0 mr-1" style="max-width:350px;">
+      <div class="card-header blue">
+        <label style="font-weight:400; font-size:1.5rem" class="">Search Options</label>
       </div>
       <div class="card-block">
-        <div style="height:460px" id="map"></div>
+        <div id="acct_row" class="row">
+          <input id="acct_input" class="form-control col-9 ml-2 mr-2" name="acct" type="text" placeholder="Enter Account ID"
+          onkeydown="searchKeyPress(event)" autocomplete="off" autofocus> 
+          <button class="btn btn-secondary" type="button" id="find_acct">Go</button>
+        </div>
+        <div id="or" class="row ml-3 pt-1 pb-1">
+          <span>On</span>
+        </div>
+        <div id="block_row" class="row">
+          <input id="block_input" class="form-control col-9 ml-2 mr-2" name="block" type="text" placeholder="Enter Block"
+          onkeydown="searchKeyPress(event)" autocomplete="off" autofocus> 
+          <button class="btn btn-secondary" type="button" id="find_block">Go</button>
+        </div>
+        <div class="row mt-4">
+          <table id="results2" class="table table-hover table-colored ml-1 mr-1" hidden>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="mb-3 mr-4">
+        <div class="row ml-0">
+          <div class="col-7"></div>
+          <button class="btn btn-secondary" id="book_btn" type="submit">Make Booking</button>
+        </div>
       </div>
     </div>
-  </div>
-
-  <table id="results2" class="table table-hover table-colored" hidden>
-    <thead>
-      <th style="background-color:#f7f7f7">Select</th>
-      <th style="background-color:#f7f7f7">Date</th>
-      <th style="background-color:#f7f7f7">Block</th>
-      <th style="background-color:#f7f7f7">Booked</th>
-      <th style="background-color:#f7f7f7">Distance</th>
-    </thead>
-    <tbody>
-    </tbody>
-  </table>
-
-  <!--LOADER-->
-  <div style="background-color:white" id="search-loader" class="loader-div">
-    <button class="btn btn-info loader">
-      <span class="fa fa-refresh loader-animate"></span>
-      <label style="margin-bottom:0; margin-left:5px">Searching</label>
-    </button>
+    <!--MAP-->
+    <div class="card ml-0" style="">
+      <div class="card-header blue">
+        <label style="font-weight:400; font-size:1.5rem" class="">Map</label>
+      </div>
+      <div class="">
+        <div style="height:800px" id="map"></div>
+      </div>
+    </div>
   </div>
 </div>
 

@@ -9,15 +9,17 @@
     }); 
   </script>
 
-  <div style="margin-bottom:10em;" class="container-fluid">
+  <div style="margin-bottom:10em;" class="container">
     <div class="card">
       <div class="card-header blue">
-        <a class="hover" style="color:white"
-           href="{{ url_for("notify.view_event_list") }}">Notification Events</a> / 
-        <a id="new_event"
-           style="font-weight:bold; text-decoration:none; color:white" 
-           title="Schedule a new event" 
-           href="#">+</a>
+        <label style="font-weight:400; font-size:1.5rem">
+          <a class="hover" style="color:white"
+             href="{{ url_for("notify.view_event_list") }}">Notification Events</a> / 
+          <a id="new_event"
+             style="font-weight:bold; text-decoration:none; color:white" 
+             title="Schedule a new event" 
+             href="#">+</a>
+        </label>
       </div>
       <table id="events_tbl" class="table table-hover table-colored">
         <thead>

@@ -2,6 +2,7 @@
 from datetime import datetime, date, time, timedelta
 from flask import g, request, jsonify, render_template
 from flask_login import login_required
+from app import get_keys
 from . import booker, geo
 from logging import getLogger
 log = getLogger(__name__)
@@ -10,10 +11,13 @@ log = getLogger(__name__)
 @booker.route('/', methods=['GET'])
 @login_required
 def show_home():
+
     return render_template(
         'views/booker.html',
         admin=g.user.admin,
-        agency=g.user.agency)
+        agency=g.user.agency,
+        api_key=get_keys('google')['maps_api_key']
+    )
 
 #-------------------------------------------------------------------------------
 @booker.route('/find_nearby_blocks', methods=['POST'])

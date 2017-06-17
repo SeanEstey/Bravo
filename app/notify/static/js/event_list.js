@@ -1,7 +1,7 @@
 //------------------------------------------------------------------------------
 function event_list_init() {
 	loadTooltip();
-	buildAdminPanel();
+	//buildAdminPanel();
 	addDeleteBtnHandlers();
 	addSocketIOHandlers();
 	addPageNavHandlers();

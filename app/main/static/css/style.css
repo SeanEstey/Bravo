@@ -245,7 +245,7 @@ legend.admin-border {
     -webkit-border-radius: 10px;
     height: 43px;
     font-size: 14pt;
-    max-width: 800px;
+    /* max-width: 800px;*/
 }
 .input.booker:focus {
     border-color: #365766;
@@ -352,12 +352,14 @@ a.hover:visited {
 
 /*LOGIN VIEW*/
 .login-outer {
-    width: 400px;
+    max-width: 400px;
     border: 1px solid #bbbbbb;
     border-radius: 7px;
 	-webkit-border-radius: 7px 7px 7px 7px;
     padding: 0;
-    margin-top: 5em;
+    margin-top: 7.5em;
+    margin-left: auto;
+    margin-right: auto;
 }
 .login-inner {
 	border-radius:7px;
@@ -379,7 +381,7 @@ a.hover:visited {
 }
 .recent-event-item:hover {
     background-color:white;
-    border-left: 1px solid #517ba3;
+    border-left: 1px solid #b7d3f3;
     border-right: 1px solid #b7d3f3;
     border-top: 1px solid #b7d3f3;
     border-bottom: 2px solid #b7d3f3;
@@ -419,13 +421,13 @@ a.hover:visited {
         padding:0;
         margin:0;
     }*/
-    .container-fluid {
+    .container {
         position: relative;
         left:0;
         right:0;
         top: 0;
         padding:0;
-        margin: 0em 1em;
+        margin: 0em auto;
     }
     .alert-banner {
         margin: 0.1em;
@@ -446,7 +448,7 @@ a.hover:visited {
     }
 }
 @media (min-width: 992px) {
-    .container-fluid {
+    .container {
         position: relative;
         top: 0;
         left:0;
@@ -455,17 +457,18 @@ a.hover:visited {
         margin: 0em 2em;
     }
     .alert-banner {
-        margin: 1.0em 0em;
+        margin: 1.0em auto;
     }
 }
 @media (min-width: 1200px) {
-    .container-fluid {
+    .container {
         /*position: relative;
         top: 0;
         left: 0;
         right: 0;
         padding: 0;*/
-        margin: 0em 2em;
+        width:100%;
+        margin: 0em auto;
     }
     .br-alert {
         margin: 1.0em 2em;

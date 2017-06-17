@@ -18,6 +18,7 @@
 
   <body style="display:none">
     <script src="{{url_for("static", filename="main/js/globals.js")}}"></script>
+    <script src="{{url_for("static", filename="main/js/admin_panel.js")}}"></script>
     <script src="{{url_for("static", filename="main/js/utils.js")}}"></script>
     <script src="{{url_for("static", filename="main/js/api.js")}}"></script>
     <script src="{{url_for("static", filename="main/js/alerts.js")}}"></script>
@@ -29,19 +30,21 @@
         $("body").show();
       }
     </script>
+    
+    <div class="container-fluid" style="max-width:1600px">
+      {% include "views/navbar.html" %}
+      <hr class="mt-0">
+      <div class="alert br-alert"></div>
+      {% block content %}{% endblock %}
 
-    {% include "views/navbar.html" %}
-    <hr class="mt-0">
-    <div class="alert br-alert"></div>
-    {% block content %}{% endblock %}
-
-    {% if admin == True %}
-      {% include "views/admin_panel.html" %}
-    {% endif %}
-    {% include "views/dialog.html" %}
-  
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"></script>
+      {% if admin == True %}
+        {% include "views/admin_panel.html" %}
+      {% endif %}
+      {% include "views/dialog.html" %}
+    
+      <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"></script>
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"></script>
+    </div>
 </body>
 </html>

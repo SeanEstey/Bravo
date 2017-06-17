@@ -1,13 +1,54 @@
+/* booker.js */
 
-var DEF_SEARCH_PROMPT = 'Enter an <b>account ID</b>, <b>address</b>, or <b>postal code</b> below';
+gmaps = null;
+map_data = {};
+shapes = [];
+markers = [];
+current_map = null;
+
+DEF_ZOOM = 11;
+DEF_MAP_ZOOM = 14;
+MAX_ZOOM = 21;
+CALGARY = {lat:51.055336, lng:-114.077959};
+MAP_FILL ='#99ccff';
+MAP_STROKE = '#6666ff';
+
+DEF_SEARCH_PROMPT = 'Enter an <b>account ID</b>, <b>address</b>, or <b>postal code</b> below';
+
+function parse_block(title) { return title.slice(0, title.indexOf(' ')); }
 
 //---------------------------------------------------------------------
-function booker_init() {
+function bookerInit() {
 
-    $('#search_ctnr').prepend($('.br-alert'));
     //alertMsg(DEF_SEARCH_PROMPT, 'info', -1);
-    buildAdminPanel();
+    $('#search_ctnr').prepend($('.br-alert'));
+    loadMapData();
     addSocketIOHandlers();
+}
+
+//------------------------------------------------------------------------------
+function initGoogleMap() {
+
+    gmaps = new google.maps.Map(
+        $('#map')[0],
+        {mapTypeId:'roadmap', center:CALGARY, zoom:DEF_ZOOM}
+    );
+    console.log('Google Map initialized.');
+}
+
+//------------------------------------------------------------------------------
+function loadMapData() {
+
+    api_call(
+      'maps/get',
+      data=null,
+      function(response){
+          if(response['status'] == 'success') {
+              console.log('Map data loaded');
+              map_data = response['data'];
+          }
+      }
+    );
 }
 
 //------------------------------------------------------------------------------
@@ -15,9 +56,8 @@ function addSocketIOHandlers() {
 
     var socketio_url = 'https://' + document.domain + ':' + location.port;
     var socket = io.connect(socketio_url);
-    socket.on('connected', function(data){
-        $AGENCY = data['agency'];
-        console.log('socket.io connected! agency: ' + data['agency']);
+    socket.on('connect', function(data){
+        console.log('Socket.IO connected.');
     });
     socket.on('update_maps', function(data) {
         console.log(data['description']);
@@ -38,14 +78,15 @@ function validateSearch(form) {
 
 //---------------------------------------------------------------------
 function search(query, radius, weeks) {
+
     console.log(
       'submitting search: "' + query + '", radius: '+ radius +', weeks: '+ weeks);
 
     fadeAlert();
     clearSearchResults(false);
 
-    $('#results').show();
-    $('#results tr:first').hide();
+    $('#results2').show();
+    $('#results2 tr:first').hide();
 
     $('#search-loader').slideToggle(function() {
         $('#search-loader .btn.loader').fadeTo('fast', 1);
@@ -76,6 +117,7 @@ function search(query, radius, weeks) {
 
 //---------------------------------------------------------------------
 function searchKeyPress(e) {
+
     // look for window.event in case event isn't passed in
     e = e || window.event;
     if (e.keyCode == 13) {
@@ -87,11 +129,12 @@ function searchKeyPress(e) {
 
 //---------------------------------------------------------------------
 function displaySearchResults(response) {
+
     $('#search-loader .btn.loader').fadeTo('slow', 0, function() {
         $('#search-loader').slideUp();
     });
 
-    $('#results tr:first').show();
+    $('#results2 tr:first').show();
 
     alertMsg(response['description'], 'success', -1);
 
@@ -99,7 +142,6 @@ function displaySearchResults(response) {
     $('.br-alert').data('query', response['query']);
     $('.br-alert').data('radius', response['radius']);
     $('.br-alert').data('weeks', response['weeks']);
-
 
     for(var i=0; i<response['results'].length; i++) {
         var result = response['results'][i];
@@ -110,32 +152,31 @@ function displaySearchResults(response) {
           7*60*60*1000
         );
 
-        var $row = 
+        var $row = $(
           '<tr style="background-color:white">' + 
+            '<td>'+
+              '<div>'+
+                '<label>'+
+                  '<input name="radio-stacked" type="radio"><span></span>'+
+                '</label>'+
+              '</div>'+
+            '</td>'+
             '<td name="date">' + 
               local_date.strftime('%B %d %Y') + 
             '</td>' +
             '<td name="block">' + result['name'] + '</td>' +
             '<td>' + result['booked'] + '</td>' +
-            '<td>' + '100' + '</td>' +
             '<td>' + result['distance'] + '</td>' +
-            '<td name="postal">' + result['event']['location'] + '</td>' +
-            '<td>' + result['area'] + '</td>' +
-            '<td style="width:6%; text-align:right"> ' +
-              '<button ' +
-                'name="book_btn"'+
-                'class="btn btn-outline-primary"' +
-                '>Book' +
-              '</button>' +
-            '</td>' +
-          '</tr>';
-        $('#results tbody').append($row);
+          '</tr>'
+        );
+        $row.find('input').click(selectResult);
+        $('#results2 tbody').append($row);
 
         // save account info in button data
         if(response.hasOwnProperty('account')) {
-            $('#results tr:last button').data('aid', response['account']['id']);
-            $('#results tr:last button').data('name', response['account']['name']);
-            $('#results tr:last button').data('email', response['account']['email']);
+            $('#results2 tr:last button').data('aid', response['account']['id']);
+            $('#results2 tr:last button').data('name', response['account']['name']);
+            $('#results2 tr:last button').data('email', response['account']['email']);
         }
     }
 
@@ -165,11 +206,61 @@ function displaySearchResults(response) {
 }
 
 //---------------------------------------------------------------------
+function selectResult() {
+
+    $row = $(this).parent().parent().parent().parent();
+    var this_block = $row.find('[name="block"]').text();
+    console.log('this_block: ' +this_block);
+
+    var match = false;
+    var idx=0;
+
+    while(!match && idx<map_data['features'].length) {
+        var map = map_data['features'][idx];
+        var title = map['properties']['name'];
+        var block = parse_block(title);
+        if(this_block == block) {
+            match = true;
+            break;
+        }
+        
+        idx++;
+    }
+
+    var coords = map_data['features'][idx]['geometry']['coordinates'][0];
+    drawMapPolygon(coords);
+}
+
+//------------------------------------------------------------------------------
+function drawMapPolygon(coords) {
+
+    var paths = [];
+    for(var i=0; i<coords.length; i++) {
+        paths.push({"lat":coords[i][1], "lng":coords[i][0]});
+    }
+
+    var shape = new google.maps.Polygon({
+        paths: paths,
+        strokeColor: MAP_STROKE,
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: MAP_FILL,
+        fillOpacity: 0.35
+    });
+    shape.setMap(gmaps);
+    //shapes.push(shape);
+
+    //var center = centerPoint(coords);
+    //gmaps.setCenter({'lat':center[1], 'lng':center[0]});
+    //setOptimalZoom(paths);
+}
+
+//---------------------------------------------------------------------
 function clearSearchResults(hide) {
-    $('#results tbody').html('');
+    $('#results2 tbody').html('');
 
     if(hide == true)
-        $('#results').hide();
+        $('#results2').hide();
 }
 
 //---------------------------------------------------------------------
@@ -333,51 +424,4 @@ function requestBooking(aid, block, date, notes, name, email, confirmation) {
             setTimeout(function(){ alertMsg(DEF_SEARCH_PROMPT, 'info',-1);}, 10000);
         }
     );
-}
-  
-//------------------------------------------------------------------------------
-function buildAdminPanel() {
-
-    // dev_mode pane buttons
-    $('#admin_pane').hide();
-    $('#dev_pane').show();
-
-    update_maps_btn = addAdminPanelBtn(
-      'dev_pane',
-      'update_maps_btn',
-      'Update Maps',
-      'btn-outline-primary');
-
-    update_maps_btn.click(function() {
-        $.ajax({
-          type: 'POST',
-          url: $URL_ROOT + 'api/booker/maps/update',
-          data: {},
-          dataType: 'json'
-        })
-        .done(function(response) {
-            console.log(response);
-            alertMsg('Updating maps...', 'info');
-        });
-    });
-
-    print_maps_btn = addAdminPanelBtn(
-      'dev_pane',
-      'print_maps_btn',
-      'Print Maps',
-      'btn-outline-primary');
-
-    // Prints Routific job_id to console
-    print_maps_btn.click(function() {
-        $.ajax({
-          type: 'POST',
-          url: $URL_ROOT + 'api/booker/maps/get',
-          data: {},
-          dataType: 'json'
-        })
-        .done(function(response) {
-            console.log(response);
-            alertMsg('Map data printed to console.', 'success')
-        });
-    });
 }

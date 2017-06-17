@@ -4,7 +4,7 @@ function init() {
     enableEditableFields();
     enableColumnSorting();
     formatColumns();
-    buildAdminPanel();
+    //buildAdminPanel();
     addDeleteBtnHandlers();
     addSocketIOHandlers();
     showAdminServerStatus();

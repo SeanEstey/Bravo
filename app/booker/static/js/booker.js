@@ -2,9 +2,8 @@
 
 gmaps = null;
 map_data = {};
-shapes = [];
-markers = [];
-current_map = null;
+acct = null;
+current_polygon = null;
 current_marker = null;
 
 DEF_ZOOM = 11;
@@ -32,6 +31,8 @@ function bookerInit() {
     $('#find_block').click(function() {
        search($('#block_input').val());
     });
+
+    $('#book_btn').click(showConfirmModal);
 }
 
 //------------------------------------------------------------------------------
@@ -88,9 +89,6 @@ function validateSearch(form) {
 //---------------------------------------------------------------------
 function searchAcct(acct_id) {
     
-    //$('#or').hide();
-    //$('#block_row').hide();
-
     search(acct_id);
 
     api_call(
@@ -99,6 +97,7 @@ function searchAcct(acct_id) {
         function(response){
             console.log(response['status']);
             console.log(response['data']['acct']);
+            acct = response['data']['acct'];
             var title = response['data']['acct']['name'];
             var coords = response['data']['coords'];
             addMarker(title, coords);
@@ -215,9 +214,6 @@ function displaySearchResults(response) {
         $tr = $(this).parent().parent();
 
         if(!$(this).data('aid')) {
-            showEnterIDModal(
-              $tr.find('[name="block"]').text(),
-              $tr.find('[name="date"]').text());
         }
         else {
             showConfirmModal(
@@ -233,7 +229,7 @@ function displaySearchResults(response) {
 //---------------------------------------------------------------------
 function selectResult() {
 
-    $row = $(this).parent().parent().parent().parent();
+    var $row = $(this).closest('tr');
     var this_block = $row.find('[name="block"]').text();
     $('#block_input').val(this_block);
 
@@ -256,6 +252,20 @@ function selectResult() {
     drawMapPolygon(coords);
 }
 
+//---------------------------------------------------------------------    
+function centerPoint(arr){
+  /* Returns [x,y] coordinates of center of polygon passed in */
+  
+    var minX, maxX, minY, maxY;
+    for(var i=0; i< arr.length; i++){
+        minX = (arr[i][0] < minX || minX == null) ? arr[i][0] : minX;
+        maxX = (arr[i][0] > maxX || maxX == null) ? arr[i][0] : maxX;
+        minY = (arr[i][1] < minY || minY == null) ? arr[i][1] : minY;
+        maxY = (arr[i][1] > maxY || maxY == null) ? arr[i][1] : maxY;
+    }
+    return [(minX + maxX) /2, (minY + maxY) /2];
+}
+
 //------------------------------------------------------------------------------
 function drawMapPolygon(coords) {
 
@@ -264,10 +274,10 @@ function drawMapPolygon(coords) {
         paths.push({"lat":coords[i][1], "lng":coords[i][0]});
     }
 
-    if(current_map)
-        current_map.setMap(null);
+    if(current_polygon)
+        current_polygon.setMap(null);
 
-    current_map = new google.maps.Polygon({
+    current_polygon = new google.maps.Polygon({
         paths: paths,
         strokeColor: MAP_STROKE,
         strokeOpacity: 0.8,
@@ -276,12 +286,19 @@ function drawMapPolygon(coords) {
         fillOpacity: 0.35
     });
 
-    current_map.setMap(gmaps);
+    current_polygon.setMap(gmaps);
 
-    //shapes.push(shape);
-    //var center = centerPoint(coords);
-    //gmaps.setCenter({'lat':center[1], 'lng':center[0]});
-    //setOptimalZoom(paths);
+    var _coords = coords.slice();
+
+    if(current_marker){
+        var marker_coords = JSON.parse(JSON.stringify(current_marker.getPosition()));
+        paths.push(marker_coords);
+        _coords.push([marker_coords['lng'],marker_coords['lat'],0]);
+    }
+
+    var center = centerPoint(_coords);
+    gmaps.setCenter({'lat':center[1], 'lng':center[0]});
+    setOptimalZoom(paths);
 }
 
 //---------------------------------------------------------------------    
@@ -295,6 +312,41 @@ function addMarker(title, coords) {
         map: gmaps,
         title: title
     });
+}
+
+//------------------------------------------------------------------------------
+function setOptimalZoom(paths) {
+
+    var zoom = DEF_MAP_ZOOM;
+    gmaps.setZoom(zoom);
+    var bounds = gmaps.getBounds();
+
+    if(inBounds(bounds, paths)) {
+        while(inBounds(gmaps.getBounds(), paths) && zoom <= MAX_ZOOM) {
+            gmaps.setZoom(++zoom);
+        }
+
+        // Zoom back out one level
+        gmaps.setZoom(--zoom);
+    }
+    else {
+        while(!inBounds(gmaps.getBounds(), paths)) {
+            gmaps.setZoom(--zoom);
+        }
+    }
+
+    console.log('Optimal zoom set to ' + zoom);
+}
+
+//------------------------------------------------------------------------------
+function inBounds(bounds, paths) {
+
+    for(var i=0; i<paths.length; i++) {
+        if(!bounds.contains(paths[i]))
+            return false;
+    }
+
+    return true;
 }
 
 //---------------------------------------------------------------------
@@ -326,59 +378,7 @@ function showExpandRadiusModal() {
 }
 
 //---------------------------------------------------------------------
-function showEnterIDModal(block, date) {
-    showModal(
-      'mymodal',
-      'Confirm Booking',
-      $('#booking_options').html(),
-      'Next',
-      'Close');
-
-    $('#mymodal').find('#acct_info').hide();
-    $('#mymodal').find('#enter_aid').show();
-
-    $('#mymodal').on('shown.bs.modal', function () {
-        $('#mymodal').find('#aid').focus();
-    })
-
-    $('#mymodal .btn-primary').click(function() {
-        console.log('querying aid: ' + $('#mymodal input[id="aid"]').val());
-
-        $.ajax({
-            type: 'POST',
-            url: $URL_ROOT + 'api/accounts/get',
-            data: {
-                'acct_id': $('#mymodal input[id="aid"]').val(),
-            },
-            dataType: 'json'
-        })
-        .done(function(response) {
-            console.log(response);
-
-            if(response['status'] != "success") {
-                $('#mymodal').modal('hide');
-                alertMsg(response['description'], 'danger');
-                return false;
-            }
-
-            $('#mymodal').find('#acct_info').show();
-            $('#mymodal').find('#enter_aid').hide();
-            
-            var acct = response['data']; //['account'];
-
-            showConfirmModal(
-                block,
-                date,
-                acct['id'],
-                acct['name'],
-                acct['email']
-            );
-        });
-    });
-}
-
-//---------------------------------------------------------------------
-function showConfirmModal(block, date, aid, name, email) {
+function showConfirmModal() {
 
     showModal(
         'mymodal',
@@ -388,10 +388,14 @@ function showConfirmModal(block, date, aid, name, email) {
         'Close'
     );
 
-    var date_obj = new Date(date);
+    var $row = $('table input:checked').closest('tr');
+
+    var date = new Date($row.find('td[name="date"]').text());
+    var block = $('#block_input').val();
+
     var today = new Date();
 
-    if(date_obj.getMonth() == today.getMonth() &&  date_obj.getDate() == today.getDate()) {
+    if(date.getMonth() == today.getMonth() &&  date.getDate() == today.getDate()) {
         $('#mymodal #routed_warning').html(
             "<strong>Warning: </strong>" +
             block + ' has already been routed.<br> ' +
@@ -399,16 +403,15 @@ function showConfirmModal(block, date, aid, name, email) {
         $('#mymodal #routed_warning').show();
     }
 
-    if(!email) {
-        email = 'None';
+    if(!acct['email']) {
         $('#mymodal').find('input[id="send_email_cb"]').prop('disabled',true);
         $('#mymodal').find('input[id="send_email_cb"]').attr('checked',false);
         $('#mymodal').find('.form-check-label').css('color', '#ced3db');
     }
 
-    $('#mymodal label[name="name"]').html('Account Name: <b>' + name + '</b>');
-    $('#mymodal label[name="email"]').html('Email: <b>' + email + '</b>');
-    $('#mymodal label[name="block"]').html('Block: <b>' + block + '</b>');
+    $('#mymodal label[name="name"]').html('Account Name: <b>' + acct['name'] + '</b>');
+    $('#mymodal label[name="email"]').html('Email: <b>' + acct['email'] + '</b>');
+    $('#mymodal label[name="block"]').html('Block: <b>' + $('#block_input').val() + '</b>');
     $('#mymodal label[name="date"]').html(
         'Date: <b>' + new Date(date).strftime('%B %d %Y') + '</b>'
     );
@@ -421,22 +424,18 @@ function showConfirmModal(block, date, aid, name, email) {
         $(this).prop('disabled', true);
 
         requestBooking(
-          aid,
+          acct['id'],
           block, 
           new Date(date).strftime('%d/%m/%Y'),
           $('#mymodal').find('#driver_notes').val(),
-          name,
-          email,
+          acct['name'],
+          acct['email'],
           $('#mymodal').find('input[id="send_email_cb"]').prop('checked'));
     });
 }
   
 //---------------------------------------------------------------------
 function requestBooking(aid, block, date, notes, name, email, confirmation) {
-
-    /*$('#mymodal').find('#booker-loader').slideToggle(function() {
-        $('#mymodal').find('#booker-loader .btn.loader').fadeTo('fast', 1);
-    });*/
 
     api_call(
         'booker/create',
@@ -452,8 +451,6 @@ function requestBooking(aid, block, date, notes, name, email, confirmation) {
         function(response){
             console.log(response);
             $('#mymodal .btn-primary').prop('disabled', false);
-            //$('#booker-loader').fadeOut('fast');
-            //$('#booker-loader').hide();
             $('#mymodal').modal('hide');
 
             if(response['status'] == 'success') {
@@ -462,8 +459,6 @@ function requestBooking(aid, block, date, notes, name, email, confirmation) {
             }
             else
                 alertMsg(response['data'], 'danger');
-
-            setTimeout(function(){ alertMsg(DEF_SEARCH_PROMPT, 'info',-1);}, 10000);
         }
     );
 }

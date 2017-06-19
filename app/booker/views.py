@@ -12,10 +12,11 @@ log = getLogger(__name__)
 @login_required
 def show_home():
 
+    from json import dumps, loads
     return render_template(
         'views/booker.html',
-        admin=g.user.admin,
-        agency=g.user.agency,
+        city_coords=dumps(get_keys('routing')['locations']['city']['coords']),
+        home_coords=dumps(get_keys('routing')['locations']['office']['coords']),
         api_key=get_keys('google')['maps_api_key']
     )
 

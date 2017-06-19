@@ -97,8 +97,6 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
             except Exception as e:
                 continue
             else:
-                log.debug('%s geo_results found', len(geo_rv))
-                log.debug('geo_rv=%s', geo_rv)
                 if len(geo_rv) == 0:
                     continue
 

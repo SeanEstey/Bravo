@@ -30,6 +30,10 @@ def view_tools():
 @login_required
 def view_map():
 
+    from json import dumps
+
     return render_template(
         'views/map.html',
-        api_key=get_keys('google')['maps_api_key'])
+        api_key=get_keys('google')['maps_api_key'],
+        city_coords=dumps(get_keys('routing')['locations']['city']['coords']),
+        home_coords=dumps(get_keys('routing')['locations']['office']['coords']))

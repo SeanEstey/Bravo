@@ -9,7 +9,9 @@ current_marker = null;
 DEF_ZOOM = 11;
 DEF_MAP_ZOOM = 14;
 MAX_ZOOM = 21;
-CALGARY = {lat:51.055336, lng:-114.077959};
+CITY_COORDS = $('#coord_data').data()['city'];
+HOME_COORDS = $('#coord_data').data()['home'];
+HOME_ICON = "https://bravoweb.ca/static/main/images/house_map_icon.png";
 MAP_FILL ='#99ccff';
 MAP_STROKE = '#6666ff';
 
@@ -37,11 +39,15 @@ function bookerInit() {
 
 //------------------------------------------------------------------------------
 function initGoogleMap() {
-
+    
     gmaps = new google.maps.Map(
         $('#map')[0],
-        {mapTypeId:'roadmap', center:CALGARY, zoom:DEF_ZOOM}
+        {
+            mapTypeId: 'roadmap',
+            center: CITY_COORDS,
+            zoom: DEF_ZOOM}
     );
+
     console.log('Google Map initialized.');
 }
 
@@ -96,11 +102,14 @@ function searchAcct(acct_id) {
         data={'acct_id': acct_id},
         function(response){
             console.log(response['status']);
-            console.log(response['data']['acct']);
+
             acct = response['data']['acct'];
-            var title = response['data']['acct']['name'];
-            var coords = response['data']['coords'];
-            addMarker(title, coords);
+
+            if(current_marker)
+                current_marker.setMap(null);
+
+            addMarker("Office", HOME_COORDS, HOME_ICON);
+            current_marker = addMarker(acct['name'], response['data']['coords']);
         });
 }
 
@@ -292,8 +301,10 @@ function drawMapPolygon(coords) {
 
     if(current_marker){
         var marker_coords = JSON.parse(JSON.stringify(current_marker.getPosition()));
-        paths.push(marker_coords);
+        paths.push(marker_coords)
+        paths.push(HOME_COORDS);
         _coords.push([marker_coords['lng'],marker_coords['lat'],0]);
+        _coords.push([HOME_COORDS['lng'], HOME_COORDS['lat'], 0]);
     }
 
     var center = centerPoint(_coords);
@@ -302,16 +313,19 @@ function drawMapPolygon(coords) {
 }
 
 //---------------------------------------------------------------------    
-function addMarker(title, coords) {
+function addMarker(title, coords, icon) {
 
-    if(current_marker)
-        current_marker.setMap(null);
-
-    current_marker = new google.maps.Marker({
+    var options = {
         position: coords,
+        clickable: true,
         map: gmaps,
         title: title
-    });
+    };
+
+    if(icon)
+        options['icon'] = icon;
+
+    return new google.maps.Marker(options);
 }
 
 //------------------------------------------------------------------------------

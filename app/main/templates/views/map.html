@@ -1,0 +1,23 @@
+{% extends "views/base.html" %}
+{% block content %}
+
+<meta id="coord_data" data-city="{{city_coords}}" data-home="{{home_coords}}">
+
+<script type="text/javascript" src="{{url_for("main.static", filename="js/strftime.js")}}"></script>
+<script type="text/javascript" src="{{url_for("main.static", filename="js/maps.js")}}"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}&callback=initGoogleMap" async defer></script> 
+<script>
+  document.write("<style type='text/css'> body{display:none}</style>");
+  jQuery(function($){ $("body").css("display","block"); });
+</script>
+
+<div class="container-fluid ml-0 mr-0 pl-0 pr-0">
+  <div class="card" style="height:100%;">
+    <div class="card-header blue">
+      <label style="font-weight:400; font-size:1.5rem" class="">Map</label>
+    </div>
+    <div style="height:600px" id="map"></div>
+  </div>
+</div>
+
+{% endblock %}

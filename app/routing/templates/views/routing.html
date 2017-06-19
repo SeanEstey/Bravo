@@ -54,7 +54,8 @@
         {% for route in routes %}
           <tr id="{{route["_id"]["$oid"]|string}}">
             <td>{{ route.date }}</td>
-            <td>{{ route.block }}</td>
+            <td><a href="{{url_for('main.view_map',
+            block=route.block)}}">{{route.block}}</a></td>
             <td>{{ route.orders }}</td>
             <td>{{ route.block_size }}</td>
             <td>{{ route.dropoffs }}</td>

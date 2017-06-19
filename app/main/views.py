@@ -26,14 +26,19 @@ def view_tools():
         'views/tools.html',
         api_key=get_keys('google')['maps_api_key'])
 
-@main.route('/map')
+@main.route('/map/<block>')
 @login_required
-def view_map():
+def view_map(block):
 
     from json import dumps
+    city_coords = dumps(get_keys('routing')['locations']['city']['coords'])
+    home_coords = dumps(get_keys('routing')['locations']['office']['coords'])
 
     return render_template(
         'views/map.html',
         api_key=get_keys('google')['maps_api_key'],
-        city_coords=dumps(get_keys('routing')['locations']['city']['coords']),
-        home_coords=dumps(get_keys('routing')['locations']['office']['coords']))
+        city_coords = city_coords,
+        home_coords = home_coords,
+        block = block
+    )
+

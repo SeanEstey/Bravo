@@ -1,14 +1,14 @@
 {% extends "views/base.html" %}
 {% block content %}
 
-<meta id="coord_data" data-city="{{city_coords}}" data-home="{{home_coords}}">
+<meta id="coord_data" data-city="{{city_coords}}" data-home="{{home_coords}}" data-block="{{block}}">
 
 <script type="text/javascript" src="{{url_for("main.static", filename="js/strftime.js")}}"></script>
 <script type="text/javascript" src="{{url_for("main.static", filename="js/maps.js")}}"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}&callback=initGoogleMap" async defer></script> 
 <script>
   document.write("<style type='text/css'> body{display:none}</style>");
-  jQuery(function($){ $("body").css("display","block"); });
+  jQuery(function($){ loadMapData(); $("body").css("display","block"); });
 </script>
 
 <div class="container-fluid ml-0 mr-0 pl-0 pr-0">

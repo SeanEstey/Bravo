@@ -26,6 +26,8 @@ function initGoogleMap() {
         $('#map')[0],
         {mapTypeId:'roadmap', center:CITY_COORDS, zoom:DEF_ZOOM}
     );
+
+
 }
 
 //------------------------------------------------------------------------------
@@ -37,7 +39,18 @@ function loadMapData() {
       function(response){
           if(response['status'] == 'success') {
               console.log('Map data loaded');
+              
               map_data = response['data'];
+              var block = $('#coord_data').data()['block'];
+            
+              for(var i=0; i<map_data['features'].length; i++) {
+                  var feature = map_data['features'][i];
+                  if(parse_block(feature['properties']['name']) == block) {
+                      console.log('Drawing ' + block);
+                      drawMapPolygon(feature['geometry']['coordinates'][0]);
+                      break;
+                  }
+              }
           }
       }
     );

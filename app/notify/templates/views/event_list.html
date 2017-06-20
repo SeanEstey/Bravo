@@ -1,15 +1,50 @@
 {% extends "views/base.html" %}
 {% block content %}  
-  <script src="{{url_for("static", filename="main/js/strftime.js")}}"></script>
-  <script src="{{url_for("notify.static", filename="js/event_list.js")}}"></script>
-  <script> 
-    jQuery(function($) {
-      event_list_init();
-      alertMsg("{{msg|safe}}", "info", 15000);
-    }); 
-  </script>
 
-  <div style="margin-bottom:10em;" class="container">
+<script src="{{url_for("static", filename="main/js/strftime.js")}}"></script>
+<script src="{{url_for("notify.static", filename="js/event_list.js")}}"></script>
+<script> 
+  jQuery(function($) { initEventList(); alertMsg("{{msg|safe}}", "info", 15000); }); 
+</script>
+
+  <!--NEW EVENT FORMAT-->
+  <a href="#" id="event_item" class="list-group-item list-group-item-action recent-event-item" hidden>
+    <div class="col-2">
+      <div class="row">
+        <!--MAKE INTO MAP URL-->
+        <span class="col-12 pl-0" id="event_name">.</span>
+        <span class="col-4 pl-0">
+          <small id="event_dt">.</small>
+        </span>
+      </div>
+    </div>
+    <div class="col-2">
+      <div id="n_email"></div>
+      <small id="email_dt"></small>
+    </div>
+    <div class="col-2">
+      <div id="n_voice"></div>
+      <small id="voice_dt"></small>
+    </div>
+    <div class="col-4">
+      <div id="n_sms"></div>
+      <small id="sms_dt"></small>
+    </div>
+    <div class="col-1 pull-right text-right pr-0">
+      <h6 class="mb-0 text-right">
+        <span class="badge badge-info" style="padding:.45em .4em">BPU</span>
+      </h6>
+    </div>
+    <div class="col-1 text-right">
+      <button 
+        data-toggle="tooltip"	class="ui-button ui-widget ui-corner-all ui-button-icon-only delete-btn"
+        type="button" title="Delete this event" name="delete-btn">
+        <span class="ui-button-icon-primary ui-icon ui-icon-trash"></span>
+      </button>
+    </div>
+  </a>
+
+  <div style="margin-bottom:10em;" class="container-fluid pl-0 pr-0">
     <div class="card">
       <div class="card-header blue">
         <label style="font-weight:400; font-size:1.5rem">
@@ -21,7 +56,10 @@
              href="#">+</a>
         </label>
       </div>
-      <table id="events_tbl" class="table table-hover table-colored">
+      <div id="event_list"></div>
+
+      <!--DELETE ONCE AJAX BRANCH WORKING-->
+      <table id="events_tbl" class="table table-hover table-colored" hidden>
         <thead>
           <tr style="color:grey;">
             <th>Name</th>
@@ -38,28 +76,21 @@
         {% for event in events %}
         {% set show_event_url = url_for("notify.view_event", evnt_id=event._id)
         %}
-          <tr id="{{event._id}}">
+          <tr id="{{event['_id']['$oid']}}">
             <td>
               <a class="hover" href="{{ show_event_url }}">{{ event.name }}</a>
             </td>
             <td>
-              {% if event.event_dt is defined %}
-                <a class="hover" href="{{ show_event_url }}">{{
-                  event.event_dt.strftime("%A %b %d") }}</a>
-              {% endif %}
+                <a class="hover" href="{{ show_event_url }}">{{event["event_dt"]}}</a>
             </td>
             <td>{{ event.type }}</td>
 
             {% set vars = {"email_trig": False} %}
             {% for trigger in event.triggers if trigger.type == "email" %}
                 {% if trigger.status == "fired" %}
-                  <td><font color="green">Sent</font> @ {{
-                    trigger.fire_dt.strftime("%b %d, %I:%M %p")
-                  }}</td>
+                  <td><font color="green">Sent</font> @ {{trigger["fire_dt"]}}</td>
                 {% elif trigger.status == "pending" %}
-                  <td><font color="blue">Pending</font> @ {{
-                    trigger.fire_dt.strftime("%b %d, %I:%M %p")
-                  }}</td>
+                  <td><font color="blue">Pending</font> @ {{trigger["fire_dt"]}}</td>
                 {% endif %}
                 <td>{{ trigger["count"] }}</td>
 
@@ -73,13 +104,9 @@
             {% set vars = {"voice_sms_trig": False} %}
             {% for trigger in event.triggers if trigger.type == "voice_sms" %}
                 {% if trigger.status == "fired" %}
-                  <td><font color="green">Sent</font> @ {{
-                    trigger.fire_dt.strftime("%b %d, %I:%M %p")
-                  }}</td>
+                  <td><font color="green">Sent</font> @ {{trigger["fire_dt"]}}</td>
                 {% elif trigger.status == "pending" %}
-                  <td><font color="blue">Pending</font> @ {{
-                    trigger.fire_dt.strftime("%b %d, %I:%M %p")
-                  }}</td>
+                  <td><font color="blue">Pending</font> @ {{trigger["fire_dt"]}}</td>
                 {% endif %}
                 <td>{{ trigger["count"] }}</td>
 

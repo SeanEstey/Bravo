@@ -53,12 +53,11 @@ def create_event():
             log.exception('Error creating pick-up event')
             raise
 
-    event = g.db.events.find_one({'_id':evnt_id})
-    event['triggers'] = get_triggers(event['_id'])
+    event = get(evnt_id)
 
     for trigger in event['triggers']:
         # modifying 'triggers' structure for view rendering
-        trigger['count'] = triggers.get_count(trigger['_id'])
+        trigger['count'] = triggers.n_notifics(trigger['_id'])
 
     log.warning('Created notification event %s.', event['name'],
         extra={'type':event['type']})
@@ -155,11 +154,13 @@ def add(agency, name, event_date, _type):
     }).inserted_id
 
 #-------------------------------------------------------------------------------
-def get(evnt_id, local_time=True):
+def get(evnt_id, local_time=True, triggers=True):
 
     event = g.db.events.find_one({'_id':evnt_id})
-    if local_time == True:
-        return to_local(obj=event)
+
+    if triggers:
+        event['triggers'] = list(g.db.triggers.find({'evnt_id':evnt_id}))
+
     return event
 
 #-------------------------------------------------------------------------------
@@ -175,43 +176,72 @@ def get_list(agency, local_time=True, max=20):
     return sorted_events
 
 #-------------------------------------------------------------------------------
-def get_triggers(evnt_id, local_time=True, sort_by='type'):
+def recent(n_skip=0, n_max=20, triggers=True):
+    '''Returns list of db['events']. 
+    @triggers: include list of g.db['triggers'] in each event element
+    '''
 
-    trigger_list = list(g.db.triggers.find({'evnt_id':evnt_id}).sort(sort_by,1))
-    if local_time == True:
-        for trigger in trigger_list:
-            trigger = to_local(obj=trigger)
-    return trigger_list
+    events = list(
+        g.db.events.find({'agency':g.group}).sort('event_dt',-1).skip(n_skip).limit(n_max)
+    )
+
+    if triggers:
+        for event in events:
+            event['triggers'] = get_triggers(event['_id'])
+
+    return events
 
 #-------------------------------------------------------------------------------
-def get_notifics(evnt_id, local_time=True, sorted_by='account.event_dt'):
+def get_recent(n_skip=0, n_max=20, triggers=True, no_bson=True):
+    '''Returns list of db['events']. 
+    @triggers: include list of g.db['triggers'] in each event element
+    '''
 
-    notific_results = g.db.notifics.aggregate([
-        {'$match': {
-            'evnt_id': evnt_id
-            }},
-        {'$lookup': {
-            'from': "accounts",
-            'localField': "acct_id",
-            'foreignField': "_id",
-            'as': "account"}},
-        {'$group': {
-            '_id': '$acct_id',
-            'results': { '$push': '$$ROOT'}}}])
+    events = list(
+        g.db.events.find({'agency':g.group}).sort('event_dt',-1).skip(n_skip).limit(n_max)
+    )
 
-    if local_time==True:
-        # Convert to list since not possible to rewind aggregate cursors
+    if triggers:
+        for event in events:
+            event['triggers'] = get_triggers(event['_id'])
 
-        notific_list = list(notific_results)
+    return format_bson(events, loc_time=True)
 
-        for notific in notific_list:
-            notific = to_local(obj=notific)
+#-------------------------------------------------------------------------------
+def n_pending():
 
-        # Returning list
-        return notific_list
+    return g.db.events.find({'agency':g.group, 'status':'pending'}).count()
 
-    # Returning cursor
-    return notific_results
+#-------------------------------------------------------------------------------
+def get_triggers(evnt_id, sort_k='type'):
+    '''Returns list (not pymongo cursor) of triggers for Event ID'''
+
+    trigs = list(g.db.triggers.find({'evnt_id':evnt_id}))
+
+    for trig in trigs:
+        trig['count'] = triggers.n_notifics(trig['_id'])
+
+    return trigs
+
+#-------------------------------------------------------------------------------
+def notifications(evnt_id, sorted_by='account.event_dt'):
+    '''Get aggregate list of db['notifics'] for event ID
+    '''
+
+    return list(
+        g.db.notifics.aggregate([
+            {'$match': {
+                'evnt_id': evnt_id
+                }},
+            {'$lookup': {
+                'from': "accounts",
+                'localField': "acct_id",
+                'foreignField': "_id",
+                'as': "account"}},
+            {'$group': {
+                '_id': '$acct_id',
+                'results': { '$push': '$$ROOT'}}}])
+    )
 
 #-------------------------------------------------------------------------------
 def update_status(evnt_id):
@@ -244,14 +274,11 @@ def rmv_notifics(evnt_id, acct_id):
 #-------------------------------------------------------------------------------
 def dump_event(evnt_id):
 
-    event = g.db.events.find_one({'_id':oid(evnt_id)})
-    event['triggers'] = get_triggers(event['_id'])
-
-    for trigger in event['triggers']:
-        # modifying 'triggers' structure for view rendering
-        trigger['count'] = triggers.get_count(trigger['_id'])
-
-    return jsonify(format_bson(event,
-        loc_time=True,
-        dt_str="%m/%-d/%Y @ %-I:%M%p",
-        to_json=True))
+    return jsonify(
+        format_bson(
+            get(evnt_id),
+            loc_time=True,
+            dt_str="%m/%-d/%Y @ %-I:%M%p",
+            to_json=True
+        )
+    )

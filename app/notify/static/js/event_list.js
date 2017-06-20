@@ -1,14 +1,93 @@
+/* event_list.js */
+
+events_data = null;
+
 //------------------------------------------------------------------------------
-function event_list_init() {
+function initEventList() {
+
+    getEventData();
 	loadTooltip();
 	//buildAdminPanel();
 	addDeleteBtnHandlers();
 	addSocketIOHandlers();
 	addPageNavHandlers();
 
-  $('#new_event').click(function() {
-      $('#new_event_modal').modal('show');
-  });
+    $('#new_event').click(function() {
+        $('#new_event_modal').modal('show');
+    });
+}
+
+//------------------------------------------------------------------------------
+function getEventData() {
+
+    api_call(
+        'notify/events/get_recent', 
+        data=null,
+        function(response){
+            console.log(response['data']);
+
+            event_data = response['data']
+
+            for(var i=0; i<event_data.length; i++) {
+                var _event = event_data[i];
+
+                $item = $('#event_item').clone().prop('id', 'list_item_'+String(i));
+                $item.find('#event_name').html(_event['name']);
+                $item.find('#event_dt').html(
+                    new Date(_event['event_dt']['$date']).strftime("%b %d"));
+
+                for(var j=0; j<_event['triggers'].length; j++) {
+                    var trig = _event['triggers'][j];
+
+                    if(trig['type'] == 'email') {
+                        $item.find('#n_email').html(
+                            'Email: ' + trig['count'] + ' ' + trig['status'].toTitleCase());
+                        $item.find('#email_dt').html(
+                            new Date(trig['fire_dt']['$date']).strftime("%b %d at %I:%M%p"));
+                    }
+                    else if(trig['type'] == 'voice_sms') {
+                        $item.find('#n_voice').html(
+                            'Voice: ' + trig['count'] + ' ' + trig['status'].toTitleCase());
+                        $item.find('#voice_dt').html(
+                            new Date(trig['fire_dt']['$date']).strftime("%b %d at %I:%M%p"));
+
+                        $item.find('#n_sms').html(
+                            'SMS: ' + trig['count'] + ' ' + trig['status'].toTitleCase());
+                        $item.find('#sms_dt').html(
+                            new Date(trig['fire_dt']['$date']).strftime("%b %d at %I:%M%p"));
+                    }
+
+                }
+
+                $item.find('button').click(function(e){
+                    e.preventDefault();
+                    $('#mymodal .modal-title').text('Confirm');
+                    $('#mymodal .modal-body').html('');
+                    $('#mymodal .modal-body').text('Really delete this job?');
+                    $('#mymodal .btn-secondary').text('No');
+                    $('#mymodal .btn-primary').text('Yes');
+                    $('#mymodal .btn-primary').off('click');
+
+                    $('#mymodal .btn-primary').click(function() {
+                        
+                        /*api_call(
+                            'notify/events/cancel',
+                            data={'evnt_id':_event['_id']['$oid']},
+                            function(response){
+                                console.log(response['status']);
+                            }
+                        );*/
+                    });
+
+                    $('#mymodal').modal('show');
+                });
+
+                $item.prop('href', _event['_id']['$oid']);
+                $item.prop('hidden', false);
+                $('#event_list').append($item);
+            }
+        }
+    );
 }
 
 //------------------------------------------------------------------------------

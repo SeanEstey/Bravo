@@ -30,8 +30,8 @@
           <th><a class="hover" href="#">Email</a></th>
         {% endfor %}
 
-            {% if notific_list[0]["results"][0]["account"][0]["udf"] %}
-              {% for field in notific_list[0]["results"][0]["account"][0]["udf"] %}
+            {% if notifications[0]["results"][0]["account"][0]["udf"] %}
+              {% for field in notifications[0]["results"][0]["account"][0]["udf"] %}
                 <th><a class="hover" href="#">{{ field }}</a></th>
               {% endfor %}
             {% endif %}
@@ -61,7 +61,7 @@
         <!-- Notifications Rows -->
         <tbody id="notific-rows">
 
-        {% for row in notific_list %}
+        {% for row in notifications %}
           <tr id="{{row["_id"]["$oid"]}}"
               data-tracking="{{row["results"]}}">
           <td name="name">{{row["results"][0]["account"][0]["name"]}}</td>

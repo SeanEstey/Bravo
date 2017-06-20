@@ -208,6 +208,12 @@ def _get_leaderboards():
     from app.main.leaderboard import get_all_rankings
     return func_call(get_all_rankings)
 
+@api.route('/notify/events/get_recent', methods=['POST'])
+@login_required
+def get_recent_events():
+    from app.notify.events import get_recent
+    return func_call(get_recent)
+
 @api.route('/notify/events/create', methods=['POST'])
 @login_required
 def _create_event():

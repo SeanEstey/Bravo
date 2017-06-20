@@ -1,5 +1,6 @@
 //------------------------------------------------------------------------------
 function init() {
+
     loadTooltip();
     enableEditableFields();
     enableColumnSorting();
@@ -7,7 +8,7 @@ function init() {
     //buildAdminPanel();
     addDeleteBtnHandlers();
     addSocketIOHandlers();
-    showAdminServerStatus();
+    //showAdminServerStatus();
     $('[data-toggle="tooltip"]').tooltip();
 }
 

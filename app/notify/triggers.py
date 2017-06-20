@@ -42,7 +42,7 @@ def get(trig_id, local_time=False):
     return trig
 
 #-------------------------------------------------------------------------------
-def get_count(trig_id):
+def n_notifics(trig_id):
     return g.db.notifics.find({'trig_id':trig_id}).count()
 
 #-------------------------------------------------------------------------------

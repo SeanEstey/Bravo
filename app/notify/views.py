@@ -1,7 +1,7 @@
 '''app.notify.views'''
-from json import dumps
+from json import dumps, loads
 import twilio.twiml
-from bson.objectid import ObjectId
+from bson.objectid import ObjectId as oid
 from flask_login import login_required
 from flask import g, request, jsonify, render_template, Response, url_for
 from app import get_keys
@@ -16,57 +16,44 @@ log = getLogger(__name__)
 @login_required
 def view_event_list():
 
-    event_list = events.get_list(g.user.agency)
-
-    for event in event_list:
-        # modifying 'notification_event' structure for view rendering
-        event['triggers'] = events.get_triggers(event['_id'])
-
-        for trigger in event['triggers']:
-            # modifying 'triggers' structure for view rendering
-            trigger['count'] = triggers.get_count(trigger['_id'])
-
-    msg = ""
+    user_msg = ""
 
     if request.args.get('status') == 'logged_in':
-        n_pending = g.db.events.find(
-            {'agency':g.user.agency, 'status':'pending'}
-        ).count()
+        user_msg = \
+            "Welcome, <b>%s</b>."+\
+            "There are <b>%s pending events</b> at the moment."%\
+            (g.user.name, events.n_pending())
 
-        msg = "Welcome, <b>%s</b>. There are <b>%s pending events</b> at the moment." %(
-            g.user.name, n_pending)
+    event_list = format_bson(
+        events.recent(),
+        loc_time=True,
+        dt_str="%b %d, %I:%M %p")
 
     return render_template(
-      'views/event_list.html',
-      title=None,
-      events=event_list,
-      msg=msg,
-      admin=g.user.is_admin())
+        'views/event_list.html',
+        title=None,
+        msg=user_msg,
+        admin=g.user.is_admin(),
+        events=loads(dumps(event_list)))
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>')
 @login_required
 def view_event(evnt_id):
 
-    event = events.get(ObjectId(evnt_id))
-    notific_list = list(events.get_notifics(ObjectId(evnt_id)))
-    trigger_list = events.get_triggers(ObjectId(evnt_id))
-
-    notific_list = format_bson(
-        notific_list,
-        loc_time=True,
-        dt_str="%m/%-d/%Y")
-
-    for trigger in trigger_list:
-        trigger['type'] = parser.title_case(trigger['type'])
-
     return render_template(
         'views/event.html',
-        notific_list=notific_list,
         evnt_id=evnt_id,
-        event=event,
-        triggers=trigger_list,
-        admin=g.user.is_admin())
+        event=format_bson(events.get(oid(evnt_id)), loc_time=True),
+        admin=g.user.is_admin(),
+        notifications = format_bson(
+            events.notifications(oid(evnt_id)),
+            loc_time=True,
+            dt_str="%m/%-d/%Y"),
+        triggers = format_bson(
+            events.get_triggers(oid(evnt_id)),
+            loc_time=True)
+    )
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>/<acct_id>/skip')
@@ -78,7 +65,7 @@ def view_opt_out(evnt_id, acct_id):
 
     if valid:
         acct = format_bson(
-            g.db.accounts.find_one({'_id':ObjectId(acct_id)}),
+            g.db.accounts.find_one({'_id':oid(acct_id)}),
             loc_time=True, dt_str="%m/%-d/%Y")
 
     return render_template(

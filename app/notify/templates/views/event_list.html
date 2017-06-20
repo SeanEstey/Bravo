@@ -9,14 +9,23 @@
 
   <!--NEW EVENT FORMAT-->
   <a href="#" id="event_item" class="list-group-item list-group-item-action recent-event-item" hidden>
-    <div class="col-2">
-      <div class="row">
+    <div class="col-1 pl-0">
+      <div style='
+      font-family: "Avenir Next",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
+      font-size:14px;
+      color:#4E5C6E;
+      font-weight:600;
+      letter-spacing:1px;'
+      id="evnt_mon"></div>
+      <div style='font-family: "Avenir Next",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
+      font-size: 22px;
+      letter-spacing: 1px;
+      color: #9BA6B2;'
+      id="evnt_day"></div>
+    </div>
+    <div class="col-1 pl-0">
         <!--MAKE INTO MAP URL-->
-        <span class="col-12 pl-0" id="event_name">.</span>
-        <span class="col-4 pl-0">
-          <small id="event_dt">.</small>
-        </span>
-      </div>
+        <div id="event_name"></div>
     </div>
     <div class="col-2">
       <div id="n_email"></div>
@@ -26,16 +35,16 @@
       <div id="n_voice"></div>
       <small id="voice_dt"></small>
     </div>
-    <div class="col-4">
+    <div class="col-2">
       <div id="n_sms"></div>
       <small id="sms_dt"></small>
     </div>
-    <div class="col-1 pull-right text-right pr-0">
-      <h6 class="mb-0 text-right">
-        <span class="badge badge-info" style="padding:.45em .4em">BPU</span>
+    <div class="col-1">
+      <h6 class="mb-0">
+        <span id="category" class="badge badge-info" style="padding:.45em .4em"></span>
       </h6>
     </div>
-    <div class="col-1 text-right">
+    <div class="col-3 text-right">
       <button 
         data-toggle="tooltip"	class="ui-button ui-widget ui-corner-all ui-button-icon-only delete-btn"
         type="button" title="Delete this event" name="delete-btn">

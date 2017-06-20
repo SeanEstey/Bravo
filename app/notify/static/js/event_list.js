@@ -1,6 +1,7 @@
 /* event_list.js */
 
 events_data = null;
+btn_id = null;
 
 //------------------------------------------------------------------------------
 function initEventList() {
@@ -32,9 +33,20 @@ function getEventData() {
                 var _event = event_data[i];
 
                 $item = $('#event_item').clone().prop('id', 'list_item_'+String(i));
-                $item.find('#event_name').html(_event['name']);
-                $item.find('#event_dt').html(
-                    new Date(_event['event_dt']['$date']).strftime("%b %d"));
+
+                       
+                if(_event['type'] == 'bpu') {
+                    $item.find('#event_name').html(
+                        '<a href="/map/'+_event['name']+'">'+_event['name']+'</a>')
+                }
+                else { 
+                    $item.find('#event_name').html(_event['name']);
+                }
+                $item.find('#evnt_mon').html(
+                    new Date(_event['event_dt']['$date']).strftime("%b"));
+                $item.find('#evnt_day').html(
+                    new Date(_event['event_dt']['$date']).strftime("%d"));
+                $item.find('#category').html(_event['type'].toUpperCase());
 
                 for(var j=0; j<_event['triggers'].length; j++) {
                     var trig = _event['triggers'][j];
@@ -56,27 +68,28 @@ function getEventData() {
                         $item.find('#sms_dt').html(
                             new Date(trig['fire_dt']['$date']).strftime("%b %d at %I:%M%p"));
                     }
-
                 }
 
+                $item.find('button').prop('id', _event['_id']['$oid']);
                 $item.find('button').click(function(e){
                     e.preventDefault();
+                    btn_id = $(this).prop('id');
                     $('#mymodal .modal-title').text('Confirm');
                     $('#mymodal .modal-body').html('');
                     $('#mymodal .modal-body').text('Really delete this job?');
                     $('#mymodal .btn-secondary').text('No');
                     $('#mymodal .btn-primary').text('Yes');
                     $('#mymodal .btn-primary').off('click');
-
                     $('#mymodal .btn-primary').click(function() {
-                        
-                        /*api_call(
+                        api_call(
                             'notify/events/cancel',
-                            data={'evnt_id':_event['_id']['$oid']},
+                            data={'evnt_id':btn_id},
                             function(response){
                                 console.log(response['status']);
+                                $('#'+btn_id).closest('.list-group-item').remove();
+                                $('#mymodal').modal('hide');
                             }
-                        );*/
+                        );
                     });
 
                     $('#mymodal').modal('show');

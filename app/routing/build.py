@@ -6,6 +6,7 @@ from dateutil.parser import parse
 from flask import g
 from app import get_keys
 from app.main.etap import call, get_udf, EtapError
+from app.main.donors import cache_accts
 from .main import is_scheduled
 from .geo import GeocodeError, geocode, get_gmaps_url
 from . import routific, sheet
@@ -35,6 +36,7 @@ def submit_job(route_id):
     category = get_keys('etapestry')['query_category']
 
     accts = call('get_query', data={"query":route['block'],"category":category})['data']
+    cache_accts(accts)
 
     # Build the orders for Routific
     for acct in accts:

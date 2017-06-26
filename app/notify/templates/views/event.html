@@ -36,21 +36,21 @@
               {% endfor %}
             {% endif %}
 
-        {% for trigger in triggers if trigger["type"] == "Email" %}
+        {% for trigger in triggers if trigger["type"] == "email" %}
               <th width="7%" id="{{trigger["_id"]}}"><a 
                 class="hover"
                 href="#">{{trigger["type"]}} Status</a>
               </th>
         {% endfor %}
 
-        {% for trigger in triggers if trigger["type"] == "Voice Sms" %}
+        {% for trigger in triggers if trigger["type"] == "voice_sms" %}
               <th width="7%" id="{{trigger["_id"]}}"><a 
                 class="hover"
                 href="#">{{trigger["type"]}} Status</a>
               </th>
         {% endfor %}
 
-            {% for trigger in triggers if trigger["type"] == "Voice Sms" %}
+            {% for trigger in triggers if trigger["type"] == "voice_sms" %}
               <th>SMS Reply</th>
             {% endfor %}
 
@@ -96,7 +96,7 @@
           {% endif %}
 
           <!-- email status -->
-      {% for trigger in triggers if trigger["type"] == "Email" %}
+      {% for trigger in triggers if trigger["type"] == "email" %}
         {% set status = {"email":"<hr>", "_id":""} %}
         {% for notific in row["results"] if notific["type"] == "email" %}
             {% do status.update({"email": notific["tracking"]["status"]}) %}
@@ -106,7 +106,7 @@
       {% endfor %}
 
       <!-- voice/sms status -->
-      {% for trigger in triggers if trigger["type"] == "Voice Sms" %}
+      {% for trigger in triggers if trigger["type"] == "voice_sms" %}
         {% set status = {"phone":"<hr>", "_id":""} %}
         {% for notific in row["results"]%}
           {% if notific["type"] == "voice" or notific["type"] == "sms" %}

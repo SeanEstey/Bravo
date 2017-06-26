@@ -52,21 +52,27 @@ function getEventData() {
                     var trig = _event['triggers'][j];
 
                     if(trig['type'] == 'email') {
-                        $item.find('#n_email').html(
-                            'Email: ' + trig['count'] + ' ' + trig['status'].toTitleCase());
+                        $item.find('#n_email').html(trig['count']);
+                        $item.find('#email_status').html(trig['status'].toTitleCase());
+                        if(trig['status'] == 'fired')
+                            $item.find('#email_status').css('color', '#4ba231');
                         $item.find('#email_dt').html(
                             new Date(trig['fire_dt']['$date']).strftime("%b %d at %I:%M%p"));
                     }
                     else if(trig['type'] == 'voice_sms') {
-                        $item.find('#n_voice').html(
-                            'Voice: ' + trig['count'] + ' ' + trig['status'].toTitleCase());
+                        $item.find('#n_voice').html(trig['count']);
+                        $item.find('#voice_status').html(trig['status'].toTitleCase());
                         $item.find('#voice_dt').html(
                             new Date(trig['fire_dt']['$date']).strftime("%b %d at %I:%M%p"));
+                        if(trig['status'] == 'fired')
+                            $item.find('#voice_status').css('color', '#4ba231');
 
-                        $item.find('#n_sms').html(
-                            'SMS: ' + trig['count'] + ' ' + trig['status'].toTitleCase());
+                        $item.find('#n_sms').html(trig['count']);
+                        $item.find('#sms_status').html(trig['status'].toTitleCase());
                         $item.find('#sms_dt').html(
                             new Date(trig['fire_dt']['$date']).strftime("%b %d at %I:%M%p"));
+                        if(trig['status'] == 'fired')
+                            $item.find('#sms_status').css('color', '#4ba231');
                     }
                 }
 
@@ -99,6 +105,8 @@ function getEventData() {
                 $item.prop('hidden', false);
                 $('#event_list').append($item);
             }
+
+           $('#page_nav').prop('hidden', false); 
         }
     );
 }

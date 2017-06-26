@@ -306,6 +306,13 @@ def _email_preview():
 def _carrier_lookup():
     return func_call(lookup_carrier, var('phone'))
 
+@api.route('/query/get', methods=['POST'])
+@login_required
+def _get_query():
+    from app.main.etap import call
+    return func_call(call, 'get_query',
+        data={'query':var('name'), 'category':var('category')})
+
 @api.route('/query/block_size', methods=['POST'])
 @login_required
 def _block_size():

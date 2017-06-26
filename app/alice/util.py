@@ -20,29 +20,14 @@ def lookup_acct(mobile, agcy):
     return acct
 
 #-------------------------------------------------------------------------------
-def get_chatlogs(start_dt=None, collection='chatlogs', serialize=True):
+def get_chatlogs(start_dt=None, collection='alice_chats', serialize=True):
 
     view_days = get_keys('alice')['chatlog_view_days']
 
     if not start_dt:
         start_dt = datetime.utcnow() - timedelta(days=view_days)
 
-    if collection == 'chatlogs':
-        chats = g.db['chatlogs'].find(
-            {'agency':g.group, 'last_msg_dt': {'$gt': start_dt}},
-            {'agency':0, '_id':0, 'date':0, 'account':0, 'twilio':0}
-        ).sort('last_msg_dt',-1)
-
-        log.debug('%s chatlogs retrieved.', chats.count())
-
-        chats = list(chats)
-        for chat in chats:
-            chat['Date'] = to_local(
-                chat.pop('last_msg_dt'),
-                to_str='%b %-d @ %-I:%M%p')
-            chat['From'] = chat.pop('from')
-            chat['Messages'] = chat.pop('messages')
-    elif collection == 'alice_chats':
+    if collection == 'alice_chats':
         chats = g.db['alice_chats'].find(
             {
                 'group':g.group,

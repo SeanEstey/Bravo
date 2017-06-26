@@ -157,7 +157,8 @@ def on_delivered(agcy):
         hdr = get_headers(service, ss_id, 'Signups')
         update_cell(service, ss_id, 'Signups',
             to_range(row, hdr.index('Welcome')+1),
-            request.form['event'])
+            'SENT')
+            #request.form['event'])
     except Exception as e:
         log.exception('Error updating Sheet')
 
@@ -176,7 +177,8 @@ def on_dropped(agcy):
         hdr = get_headers(service, ss_id, 'Signups')
         update_cell(service, ss_id, 'Signups',
             to_range(row, hdr.index('Welcome')+1),
-            request.form['event'])
+            'DROPPED')
+            #request.form['event'])
     except Exception as e:
         log.exception('Error updating Sheet')
 

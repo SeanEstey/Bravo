@@ -7,168 +7,114 @@
   jQuery(function($) { initEventList(); alertMsg("{{msg|safe}}", "info", 15000); }); 
 </script>
 
-  <!--NEW EVENT FORMAT-->
-  <a href="#" id="event_item" class="list-group-item list-group-item-action recent-event-item" hidden>
-    <div class="col-1 pl-0">
-      <div style='
-      font-family: "Avenir Next",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
-      font-size:14px;
-      color:#4E5C6E;
-      font-weight:600;
-      letter-spacing:1px;'
-      id="evnt_mon"></div>
-      <div style='font-family: "Avenir Next",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
-      font-size: 22px;
-      letter-spacing: 1px;
-      color: #9BA6B2;'
-      id="evnt_day"></div>
+<!--CONTAINER-->
+<div style="margin-bottom:10em;" class="container-fluid pl-0 pr-0">
+  <div class="card" >
+    <div class="card-header blue">
+      <label style="font-weight:400; font-size:1.5rem">
+        <a class="hover" style="color:white"
+           href="{{ url_for("notify.view_event_list") }}">Notification Events</a> / 
+        <a id="new_event"
+           style="font-weight:bold; text-decoration:none; color:white" 
+           title="Schedule a new event" 
+           href="#">+</a>
+      </label>
     </div>
-    <div class="col-1 pl-0">
-        <!--MAKE INTO MAP URL-->
-        <div id="event_name"></div>
+    <div id="event_list"></div>
+    <div class="loader-div">
+      <button class="btn btn-info loader">
+        <span class="fa fa-refresh loader-animate"></span>  Creating Event...</button>
     </div>
-    <div class="col-2">
-      <div id="n_email"></div>
-      <small id="email_dt"></small>
-    </div>
-    <div class="col-2">
-      <div id="n_voice"></div>
-      <small id="voice_dt"></small>
-    </div>
-    <div class="col-2">
-      <div id="n_sms"></div>
-      <small id="sms_dt"></small>
-    </div>
-    <div class="col-1">
-      <h6 class="mb-0">
-        <span id="category" class="badge badge-info" style="padding:.45em .4em"></span>
-      </h6>
-    </div>
-    <div class="col-3 text-right">
-      <button 
-        data-toggle="tooltip"	class="ui-button ui-widget ui-corner-all ui-button-icon-only delete-btn"
-        type="button" title="Delete this event" name="delete-btn">
-        <span class="ui-button-icon-primary ui-icon ui-icon-trash"></span>
-      </button>
-    </div>
-  </a>
+  </div>
+  <nav id="page_nav" class="mt-4" aria-label="..." hidden>
+    <ul class="pagination mx-auto" style="width:225px">
+      <li class="page-item disabled">
+        <span class="page-link">Prev</span>
+      </li>
+      <li class="page-item">
+        <a class="page-link" href="#">Next</a>
+      </li>
+    </ul>
+  </nav>
+</div>
 
-  <div style="margin-bottom:10em;" class="container-fluid pl-0 pr-0">
-    <div class="card">
-      <div class="card-header blue">
-        <label style="font-weight:400; font-size:1.5rem">
-          <a class="hover" style="color:white"
-             href="{{ url_for("notify.view_event_list") }}">Notification Events</a> / 
-          <a id="new_event"
-             style="font-weight:bold; text-decoration:none; color:white" 
-             title="Schedule a new event" 
-             href="#">+</a>
-        </label>
+<!--EVENT ITEM-->
+<a href="#" id="event_item" class="list-group-item list-group-item-action recent-event-item" hidden>
+  <div class="col-1 pl-0">
+    <div class="event-item-mon" id="evnt_mon"></div>
+    <div class="event-item-day" id="evnt_day"></div>
+  </div>
+  <div class="col-1 pl-0">
+    <div id="event_name"></div>
+  </div>
+  <div class="col-2">
+    <h6 class="mb-0">
+      <span id="category"></span>
+    </h6>
+  </div>
+  <div class="col-2">
+    <div id="inbox_icon" class="d-inline-block align-middle mr-2">
+      <div style="text-align:center">
+        <i class="fa fa-inbox fa-2x" aria-hidden="true"></i>
       </div>
-      <div id="event_list"></div>
+      <h5 id="n_email" style="text-align:center; color:#4E5C6E;" class="mb-0"></h5>
+    </div>
+    <div class="d-inline-block align-middle">
+      <h5 class="mb-0" style="font-weight:400; color:#517ba3" id="email_status"></h5>
+      <small class="card-text text-muted" id="email_dt"></small>
+    </div>
+  </div>
+  <div class="col-2">
+    <div id="phone_icon" class="d-inline-block align-middle mr-2">
+      <div style="text-align:center">
+        <i class="fa fa-phone fa-2x" aria-hidden="true"></i>
+      </div>
+      <h5 id="n_voice" style="text-align:center; color:#4E5C6E;" class="mb-0"></h5>
+    </div>
+    <div class="d-inline-block align-middle">
+      <h5 class="mb-0" style="font-weight:400; color:#517ba3" id="voice_status"></h5>
+      <small class="card-text text-muted" id="voice_dt"></small>
+    </div>
+  </div>
+  <div class="col-2">
+    <div id="mobile_icon" class="d-inline-block align-middle mr-2">
+      <div style="text-align:center">
+        <i class="fa fa-mobile fa-3x" aria-hidden="true"></i>
+      </div>
+      <h5 id="n_sms" style="text-align:center; color:#4E5C6E;" class="mb-0"></h5>
+    </div>
+    <div class="d-inline-block align-middle">
+      <h5 class="mb-0" style="font-weight:400; color:#517ba3" id="sms_status"></h5>
+      <small class="card-text text-muted" id="sms_dt"></small>
+    </div>
+  </div>
+  <div class="col-2 text-right">
+    <button 
+      data-toggle="tooltip"	class="ui-button ui-widget ui-corner-all ui-button-icon-only delete-btn"
+      type="button" title="Delete this event" name="delete-btn">
+      <span class="ui-button-icon-primary ui-icon ui-icon-trash"></span>
+    </button>
+  </div>
+</a>
 
-      <!--DELETE ONCE AJAX BRANCH WORKING-->
-      <table id="events_tbl" class="table table-hover table-colored" hidden>
-        <thead>
-          <tr style="color:grey;">
-            <th>Name</th>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Email Notifications</th>
-            <th width="5%" >Count</th>
-            <th>Voice/SMS Notifications</th>
-            <th width="5%" >Count</th>
-            <th style="width:50px"></th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for event in events %}
-        {% set show_event_url = url_for("notify.view_event", evnt_id=event._id)
-        %}
-          <tr id="{{event['_id']['$oid']}}">
-            <td>
-              <a class="hover" href="{{ show_event_url }}">{{ event.name }}</a>
-            </td>
-            <td>
-                <a class="hover" href="{{ show_event_url }}">{{event["event_dt"]}}</a>
-            </td>
-            <td>{{ event.type }}</td>
-
-            {% set vars = {"email_trig": False} %}
-            {% for trigger in event.triggers if trigger.type == "email" %}
-                {% if trigger.status == "fired" %}
-                  <td><font color="green">Sent</font> @ {{trigger["fire_dt"]}}</td>
-                {% elif trigger.status == "pending" %}
-                  <td><font color="blue">Pending</font> @ {{trigger["fire_dt"]}}</td>
-                {% endif %}
-                <td>{{ trigger["count"] }}</td>
-
-                {% do vars.update({"email_trig":True}) %}
-            {% endfor %}
-
-            {% if not vars.email_trig %}
-              <td><hr></td><td><hr></td>
-            {% endif %}
-
-            {% set vars = {"voice_sms_trig": False} %}
-            {% for trigger in event.triggers if trigger.type == "voice_sms" %}
-                {% if trigger.status == "fired" %}
-                  <td><font color="green">Sent</font> @ {{trigger["fire_dt"]}}</td>
-                {% elif trigger.status == "pending" %}
-                  <td><font color="blue">Pending</font> @ {{trigger["fire_dt"]}}</td>
-                {% endif %}
-                <td>{{ trigger["count"] }}</td>
-
-                {% do vars.update({"voice_sms_trig":True}) %}
-            {% endfor %}
-
-            {% if not vars.voice_sms_trig %}
-              <td><hr></td><td><hr></td>
-            {% endif %}
-
-            <td>
-              <button 
-                data-toggle="tooltip"	
-                class="ui-button ui-widget ui-corner-all ui-button-icon-only
-                delete-btn"
-                type="button" 
-                id="{{ url_for("api._cancel_event",evnt_id=event._id) }}" 
-                title="Delete this event"
-                name="delete-btn">
-                <span class="ui-button-icon-primary ui-icon ui-icon-trash"></span>
-              </button>
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-
-      <div class="loader-div">
-        <button class="btn btn-info loader">
-          <span class="fa fa-refresh loader-animate"></span>  Creating Event...</button>
+<!--CREATE EVENT MODAL-->
+<div id="new_event_modal" class="modal fade">
+  <div class="modal-dialog modal-lg">
+    <div style="width:1200px" class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h4 class="modal-title">Schedule a New Event</h4>
+      </div>
+      <div class="modal-body">
+        {% include "views/new_event.html" %} 
+      </div>
+      <div class="modal-footer">
+        <button id="btn-default" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button id="submit_btn" type="button" class="btn
+        btn-primary">Schedule</button>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- New Event Dialog -->
-  <div id="new_event_modal" class="modal fade">
-    <div class="modal-dialog modal-lg">
-      <div style="width:1200px" class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-          <h4 class="modal-title">Schedule a New Event</h4>
-        </div>
-        <div class="modal-body">
-          {% include "views/new_event.html" %} 
-        </div>
-        <div class="modal-footer">
-          <button id="btn-default" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button id="submit_btn" type="button" class="btn
-          btn-primary">Schedule</button>
-        </div>
-      </div>
-    </div>
-  </div>
 {% endblock %}
-
-

@@ -18,23 +18,18 @@ def view_event_list():
 
     user_msg = ""
 
-    if request.args.get('status') == 'logged_in':
+    '''if request.args.get('status') == 'logged_in':
         user_msg = \
             "Welcome, <b>%s</b>."+\
             "There are <b>%s pending events</b> at the moment."%\
             (g.user.name, events.n_pending())
-
-    event_list = format_bson(
-        events.recent(),
-        loc_time=True,
-        dt_str="%b %d, %I:%M %p")
+   '''
 
     return render_template(
         'views/event_list.html',
         title=None,
-        msg=user_msg,
-        admin=g.user.is_admin(),
-        events=loads(dumps(event_list)))
+        #msg=user_msg,
+        admin=g.user.is_admin())
 
 #-------------------------------------------------------------------------------
 @notify.route('/<evnt_id>')

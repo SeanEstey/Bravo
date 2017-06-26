@@ -10,11 +10,6 @@ from .tasks import create_rfu
 from logging import getLogger
 log = getLogger(__name__)
 
-@login_required
-@main.route('/debug', methods=['GET'])
-def invoke_debugger():
-    raise
-    return 'oh-oh!'
 
 @login_required
 @main.route('/update_calendar', methods=['GET'])

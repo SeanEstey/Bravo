@@ -14,8 +14,8 @@ def update_accts(query):
     accts = get_query(query)
 
     for acct in accts:
-        g.db.etap_accts.update(
-            {'acct_id': acct['id']},
+        g.db['accts_cache'].update(
+            {'group':g.group, 'account.id': acct['id']},
             {'$set': {
                 'acct_id': acct['id'],
                 'ref': acct['ref'],
@@ -57,7 +57,7 @@ def update_gifts(accts):
             total += je['amount']
 
         if len(je_hist) > 0:
-            g.db.etap_accts.update_one(
+            g.db['accts_cache'].update_one(
                 {'ref':je_hist[0]['ref'], 'agcy':agcy},
                 {'$set': {'year':date.today().year, 'ytd': acct_total}})
 
@@ -68,7 +68,7 @@ def get_all_rankings(agcy=None):
 
     g.group = agcy if agcy else g.user.agency
 
-    rankings = g.db.etap_accts.aggregate([
+    rankings = g.db['accts_cache'].aggregate([
         {'$match': {'agcy':g.group}},
         {'$group': {
             '_id': '$neighborhood',

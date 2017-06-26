@@ -10,6 +10,19 @@ from app.lib.dt import ddmmyyyy_to_date as to_date
 from logging import getLogger
 log = getLogger(__name__)
 
+
+#-------------------------------------------------------------------------------
+def cache_accts(accts):
+
+    for acct in accts:
+        g.db['accts_cache'].update_one(
+            {'group':g.group, 'account.id':acct['id']},
+            {'$set':{'group':g.group, 'account':acct}},
+            upsert=True
+        )
+
+    pass
+
 #-------------------------------------------------------------------------------
 def get(acct_id):
     return call('get_acct', data={'acct_id':int(acct_id)})

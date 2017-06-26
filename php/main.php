@@ -536,7 +536,7 @@ function add_accts($entries) {
         }
         else {
             $n_success += 1;
-            $rv[] = ['row'=>$entry['ss_row'], 'status'=>'Uploaded', 'ref'=>$status];
+            $rv[] = ['row'=>$entry['ss_row'], 'status'=>'COMPLETED', 'ref'=>$status];
             debug_log('added account ' . $acct['name']);
         }
 	}

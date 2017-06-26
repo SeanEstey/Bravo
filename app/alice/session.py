@@ -138,48 +138,6 @@ def save_msg(text, mobile=None, direction=None):
             log.debug('Added account to chatlog record')
 
 #-------------------------------------------------------------------------------
-def archive_chats():
-    '''Store all session chats to mongo chatlogs collection.
-    '''
-
-    n_stored = 0
-    n_updated = 0
-    n_alice = 0
-    store_keys = ['account', 'from', 'agency', 'messages', 'last_msg_dt']
-
-    #log.debug('saving sessions. total=%s', len(kv_store.keys()))
-
-    for key in current_app.kv_store.keys():
-        sess = pickle.loads(current_app.kv_store.get(key))
-
-        if not sess.get('type') == 'alice_chat':
-            continue
-
-        n_alice += 1
-
-        r = g.db.chatlogs.update_one(
-            {'sess_id':key},
-            {'$set': {
-                'messages': sess['messages'],
-                'last_msg_dt': sess['last_msg_dt']}})
-
-        if r.matched_count == 1:
-            n_updated +=1
-        elif r.matched_count == 0:
-            r = g.db.chatlogs.insert_one({
-                'sess_id': key,
-                'account': sess.get('account',{}).copy(),
-                'messages': sess.get('messages')[:],
-                'from': sess.get('from'),
-                'agency': sess.get('agency'),
-                'last_msg_dt': sess.get('last_msg_dt')})
-
-            n_stored +=1
-
-    log.debug('chat sessions stored (total=%s, stored=%s, updated=%s)',
-        n_alice, n_stored, n_updated)
-
-#-------------------------------------------------------------------------------
 def dump_session(key=None, to_dict=False):
     '''dumps the current chat session. If key specified, dumps session
     from kv_store

@@ -169,7 +169,7 @@ def update_leaderboard_accts(self, agcy=None, **rest):
             update_accts(query, g.group)
 
         # Now update gifts
-        accts = list(g.db.etap_accts.find({'agcy':g.group}))
+        accts = list(g.db['accts_cache'].find({'agcy':g.group}))
         ch_size = 100
         chks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
 
@@ -429,16 +429,13 @@ def create_accounts(self, accts_json, agcy=None, **rest):
             to_range(chk[0]['ss_row'], headers.index('Ref')+1),
             to_range(chk[-1]['ss_row'], headers.index('Upload')+1))
 
-        values = [
-            [rv['results'][idx].get('ref'),
-            "",
-            rv['results'][idx]['status']]
+        values = [[rv['results'][idx].get('ref'), rv['results'][idx]['status']]
             for idx in range(0, len(rv['results']))
         ]
 
-        for j in range(len(values)):
-            if values[j][1] == u'Uploaded':
-                values[j][1] = CHECKMK
+        #for j in range(len(values)):
+        #    if values[j][2] == u'Uploaded':
+        #        values[j][2] = 'COMPLETED' #CHECKMK
 
         try:
             write_rows(service, ss_id, 'Signups', range_, values)

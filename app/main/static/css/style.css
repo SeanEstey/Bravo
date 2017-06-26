@@ -181,6 +181,19 @@ legend.admin-border {
 }
 
 /*NOTIFY EVENT*/
+.event-item-mon {
+    font-family: "Avenir Next",-apple-system, BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
+    font-size:14px;
+    color:#4E5C6E;
+    font-weight:600;
+    letter-spacing:1px;
+}
+.event-item-day {
+    font-family: "Avenir Next",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    color: #9BA6B2;
+}
 .opt {
     font-size: 16px;
 }

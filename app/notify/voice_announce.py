@@ -8,34 +8,22 @@ from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
 from app import get_keys, colors as c
-from app.main.etap import call, get_prim_phone, EtapError
+from app.main.etap import call, get_prim_phone, EtapError, get_query
 from . import events, accounts, triggers, voice
 from logging import getLogger
 log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add_event():
-    log.debug(request.form.to_dict())
 
     try:
-        response = call(
-            'get_query',
-            data={
-                'query': request.form['query_name'],
-                'category': request.form['query_category']
-            }
-        )
+        accts = get_query(request.form['query_name'], category=request.form['query_category'])
     except Exception as e:
-        msg = \
-            'Failed to retrieve query "%s". Msg=%s' %(
-            request.form['query_name'], str(e))
-        log.error(msg)
-        raise EtapError(msg)
-    else:
-        log.debug('returned %s accounts', response['count'])
+        log.exception('Failed to retrieve query %s', request.form['query_name'])
+        raise EtapError(e.message)
 
     evnt_id = events.add(
-        g.user.agency,
+        g.group,
         request.form['event_name'] or request.form['query_name'],
         parse(request.form['event_date']),
         'recorded_announcement')
@@ -46,7 +34,6 @@ def add_event():
         parse(request.form['notific_date']).date(),
         parse(request.form['notific_time']).time())
 
-    accts = response['data']
     event_date = parse(request.form['event_date']).date()
 
     for i in range(len(accts)):
@@ -68,10 +55,7 @@ def add_event():
              'func': 'on_interact'}
         )
 
-    log.info(
-        '%s voice_announce event successfully created %s',
-        c.GRN, c.ENDC)
-
+    log.info('Voice announcement created')
     return evnt_id
 
 #-------------------------------------------------------------------------------

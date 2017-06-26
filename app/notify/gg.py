@@ -3,7 +3,7 @@ import os
 from flask import g, request
 from dateutil.parser import parse
 from .. import get_keys
-from app.main.etap import call, get_prim_phone, EtapError
+from app.main.etap import call, get_prim_phone, EtapError, get_query
 from . import events, email, sms, voice, triggers, accounts
 from logging import getLogger
 log = getLogger(__name__)
@@ -11,25 +11,14 @@ log = getLogger(__name__)
 #-------------------------------------------------------------------------------
 def add_event():
 
-    log.debug(request.form.to_dict())
-
     try:
-        response = call(
-            'get_query',
-            data={
-                'query': request.form['query_name'],
-                'category':'GG: Invoices'})
+        je_list = get_query(request.form['query_name'], category='GG: Invoices')
     except Exception as e:
-        msg = 'Failed to retrieve query "%s". Details: %s' % (request.form['query_name'], str(e))
-        log.error(msg)
-        raise EtapError(msg)
-    else:
-        log.debug('returned %s journal entries', response['count'])
-
-    je = response['data']
+        log.exception('Failed to retrieve query %s', request.form['query_name'])
+        raise EtapError(e.message)
 
     evnt_id = events.add(
-        g.user.agency,
+        g.group,
         request.form['event_name'] or request.form['query_name'],
         parse(request.form['event_date']),
         'green_goods')
@@ -41,7 +30,7 @@ def add_event():
         parse(request.form['notific_time']).time())
 
     refs = []
-    for entry in je:
+    for entry in je_list:
         refs.append(entry['accountRef'])
 
     try:
@@ -55,13 +44,13 @@ def add_event():
 
     delivery_date = parse(request.form['event_date']).date()
 
-    for i in range(len(je)):
+    for i in range(len(je_list)):
         acct_id = accounts.add(
-            g.user.agency,
+            g.group,
             evnt_id,
-            je[i]['accountName'],
+            je_list[i]['accountName'],
             phone = get_prim_phone(accts[i]),
-            udf = {'amount': je[i]['amount']})
+            udf = {'amount': je_list[i]['amount']})
 
         voice.add(
             evnt_id,

@@ -113,35 +113,16 @@ function getEventData() {
 
 //------------------------------------------------------------------------------
 function addPageNavHandlers() {
-    var num_page_records = $('tbody').children().length;
-    var n = 1;
-    var n_ind = location.href.indexOf('n=');
 
-    if(n_ind > -1) {
-      if(location.href.indexOf('&') > -1)
-        n = location.href.substring(n_ind+2, location.href.indexOf('&'));
-      else
-        n = location.href.substring(n_ind+2, location.href.length);
-
-      n = parseInt(n, 10);
-    }
-
-    $('#newer-page').click(function() {
-      if(n > 1) {
-        var prev_n = n - num_page_records;
-        if(prev_n < 1)
-          prev_n = 1;
-        location.href = $URL_ROOT + '?n='+prev_n;
-      }
+    $('#prev').click(function() {
+        var p = new URL(location.href).searchParams.get("p");
+        if(p > 1)
+            p--;
     });
     
-    $('#older-page').click(function() {
-      var next_n = num_page_records + 1;
-
-      if(n)
-        next_n += n;
-
-      location.href = $URL_ROOT + '?n='+next_n;
+    $('#next').click(function() {
+        var p = new URL(location.href).searchParams.get("p");
+        p++;
     });
 }
 

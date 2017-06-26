@@ -6,48 +6,34 @@ from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
 from app import get_keys, colors as c
-from app.main.etap import call, get_prim_phone, EtapError
+from app.main.etap import call, get_prim_phone, EtapError, get_query
 from . import events, accounts, triggers, voice, sms
 from logging import getLogger
 log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add_event():
-    g.group = g.user.agency
-    conf= g.db['groups'].find_one({'name':g.user.agency})
 
     log.debug(request.form.to_dict())
 
     try:
-        response = call(
-            'get_query',
-            data={
-                'query': request.form['query_name'],
-                'category': request.form['query_category']
-            }
-        )
+        accts = get_query(request.form['query_name'], category=request.form['query_category'])
     except Exception as e:
         msg = 'Failed to retrieve query "%s". Details: %s' % (request.form['query_name'], str(e))
-        log.error(msg)
+        log.exception(msg)
         raise EtapError(msg)
-    else:
-        log.debug('returned %s accounts', response['count'])
 
     evnt_id = events.add(
         g.group,
         request.form['event_name'] or request.form['query_name'],
         parse(request.form['event_date']),
-        'recorded_announcement'
-    )
+        'recorded_announcement')
 
     trig_id = triggers.add(
         evnt_id,
         'voice_sms',
         parse(request.form['notific_date']).date(),
-        parse(request.form['notific_time']).time()
-    )
-
-    accts = response['data']
+        parse(request.form['notific_time']).time())
 
     event_date = parse(request.form['event_date']).date()
 
@@ -56,8 +42,7 @@ def add_event():
             agency,
             evnt_id,
             accts[i]['name'],
-            phone = get_prim_phone(accts[i])
-        )
+            phone = get_prim_phone(accts[i]))
 
         sms.add(
             evnt_id,
@@ -72,10 +57,7 @@ def add_event():
              'func': 'on_interact'}
         )
 
-    log.info(
-        '%s sms_announce event successfully created %s',
-        c.GRN, c.ENDC)
-
+    log.info('SMS announce event created')
     return evnt_id
 
 #-------------------------------------------------------------------------------

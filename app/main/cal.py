@@ -5,6 +5,7 @@ from datetime import datetime, date, time, timedelta
 from app import get_keys
 from .parser import get_block, block_to_rmv
 from app.lib import gcal
+from app.main.donors import cache_accts
 from . import etap
 from logging import getLogger
 log = getLogger(__name__)
@@ -74,13 +75,11 @@ def get_accounts(cal_id, delta_days=None):
 
     for block in blocks:
         try:
-            a = etap.call('get_query', data={'query':block, 'category':category})
+            accts = get_query(block, category=category)
         except Exception as e:
-            log.error('Error retrieving accounts for query %s', block)
+            log.exception('Error retrieving accounts for query %s', block)
+        else:
+            accounts += accts
 
-        if 'count' in a and a['count'] > 0:
-            accounts = accounts + a['data']
-
-    log.debug('found %d accounts in blocks %s', len(accounts), blocks)
-
+    log.debug('%s accounts retrieved from queries [%s]', len(accounts), blocks)
     return accounts

@@ -65,6 +65,10 @@ def block_size(category, query):
 #-------------------------------------------------------------------------------
 def route_size(category, query, date_):
     '''Called from API. g.user available'''
+
+    from app.main.donors import cache_accts
+    pass
+
     try:
         rv = call('get_route_size', data={'query':query, 'category':category, 'date':date_})
     except EtapError as e:
@@ -73,7 +77,7 @@ def route_size(category, query, date_):
         return rv
 
 #-------------------------------------------------------------------------------
-def get_query(block, category=None):
+def get_query(block, category=None, cache=True):
     try:
         rv = call('get_query',
             data={
@@ -82,7 +86,12 @@ def get_query(block, category=None):
             })
     except EtapError as e:
         raise
-    return rv['data']
+    else:
+        if type(rv['data']) == list and len(rv['data']) > 0:
+            if 'id' in rv['data'][0]:
+                from app.main.donors import cache_accts
+                cache_accts(rv['data'])
+        return rv['data']
 
 #-------------------------------------------------------------------------------
 def mod_acct(acct_id, udf=None, persona=[], exc=False):

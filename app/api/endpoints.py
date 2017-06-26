@@ -309,9 +309,8 @@ def _carrier_lookup():
 @api.route('/query/get', methods=['POST'])
 @login_required
 def _get_query():
-    from app.main.etap import call
-    return func_call(call, 'get_query',
-        data={'query':var('name'), 'category':var('category')})
+    from app.main.etap import get_query
+    return func_call(get_query, var('name'), category=var('category'))
 
 @api.route('/query/block_size', methods=['POST'])
 @login_required

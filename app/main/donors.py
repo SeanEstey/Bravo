@@ -14,14 +14,33 @@ log = getLogger(__name__)
 #-------------------------------------------------------------------------------
 def cache_accts(accts):
 
-    for acct in accts:
-        g.db['accts_cache'].update_one(
-            {'group':g.group, 'account.id':acct['id']},
-            {'$set':{'group':g.group, 'account':acct}},
-            upsert=True
-        )
+    n_mod = 0
+    n_upsert = 0
 
-    pass
+    for acct in accts:
+        if not 'id' in acct:
+            continue
+
+        try:
+            acct['accountCreatedDate'] = parse(acct['accountCreatedDate'])
+            acct['accountLastModifiedDate'] = parse(acct['accountLastModifiedDate']) if acct['accountLastModifiedDate'] else None
+        except Exception as e:
+            log.exception('Error parsing Acct ID %s dates', acct['id'])
+            continue
+        else:
+            rv = g.db['accts_cache'].update_one(
+                {
+                    'group':g.group,
+                    'account.id':acct['id'],
+                    'account.accountLastModifiedDate': None or {'$lte':acct['accountLastModifiedDate']}
+                },
+                {'$set':{'group':g.group, 'account':acct}},
+                upsert=True)
+
+            n_mod += rv.modified_count
+            n_upsert += 1 if rv.upserted_id else 0
+
+    log.debug('Modified %s cached accounts, upserted %s', n_mod, n_upsert)
 
 #-------------------------------------------------------------------------------
 def get(acct_id):

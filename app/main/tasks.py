@@ -58,12 +58,13 @@ def wipe_sessions(self, **rest):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def find_accts_within_map(self, map_title=None, blocks=None, **rest):
+    '''Called from API via client user.'''
 
     from app.main.etap import get_query
     from app.main.maps import geocode, in_map
     from app.main.socketio import smart_emit
 
-    log.warning('Searching acct matches from Blocks %s in Map %s', blocks, map_title)
+    log.info('Task: Searching acct matches from Blocks %s in Map %s', blocks, map_title)
 
     target_map = None
 
@@ -86,7 +87,7 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
         try:
             accts = get_query(block)
         except Exception as e:
-            log.debug('Error retrieving %s. Skipping', block)
+            log.exception('Error retrieving %s. Skipping', block)
             continue
 
         for acct in accts:

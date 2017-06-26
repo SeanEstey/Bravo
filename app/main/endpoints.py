@@ -10,6 +10,12 @@ from .tasks import create_rfu
 from logging import getLogger
 log = getLogger(__name__)
 
+@login_required
+@main.route('/test_cache', methods=['GET'])
+def _test_cache():
+    from app.main.etap import get_query
+    get_query('R8B')
+    return 'ok'
 
 @login_required
 @main.route('/update_calendar', methods=['GET'])

@@ -33,8 +33,7 @@ def submit_job(route_id):
     orders = []
 
     route = g.db.routes.find_one({"_id":ObjectId(route_id)})
-    category = get_keys('etapestry')['query_category']
-    accts = get_query(route['block'], category=category)
+    accts = get_query(route['block'])
 
     # Build the orders for Routific
     for acct in accts:
@@ -123,6 +122,8 @@ def create_order(acct, warnings, api_key, shift_start, shift_end, stop_time):
       -requests.RequestException on geocode service error
       -EtapError on missing or invalid account data
       -GeocodeError on unable to resolve address'''
+
+    # TODO Jun-27-2017: Use db['accts_cache'] instead of geolocating again
 
     if not acct.get('address') or not acct.get('city'):
         msg = \

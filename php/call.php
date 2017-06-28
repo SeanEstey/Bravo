@@ -53,11 +53,14 @@
             case 'donor_history':
                 $rv = journal_entries($data['acct_ref'], $data['start'], $data['end'], [1,5]);
                 break;
+            case 'get_gifts':
+                $rv = journal_entries($data['ref'], $data['startDate'], $data['endDate'], [5]);
+                break;
 			case 'get_upload_status':
 				$rv = get_upload_status($data['request_id'], $data['from_row']);
 				break;
 			case 'get_query':
-				$rv = get_query($data['query'], $data['category']);
+				$rv = get_query($data['query'], $data['category'], arr_get($data, 'start', null), arr_get($data, 'count', null));
 				break;
 			case 'get_num_active_processes':
 				$rv = num_php_fpms();

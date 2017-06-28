@@ -102,6 +102,11 @@ function default_value($var, $default) {
 }
 
 //-----------------------------------------------------------------------
+function arr_get($array, $key, $default = null){
+    return isset($array[$key]) ? $array[$key] : $default;
+}
+
+//-----------------------------------------------------------------------
 function add_if_key_exists($dest, $key, $arr) {
     if(array_key_exists($key, $arr))
       $dest[$key] = $arr[$key];

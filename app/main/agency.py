@@ -11,7 +11,7 @@ def get_admin_prop():
     #TODO 'n_emails_sent': aggregate all 'type':'email' linked with agcy events
 
     return {
-        'n_alice_convos': g.db['alice_chats'].find({'group':g.user.agency}).count(),
+        'n_alice_convos': g.db['chatlogs'].find({'group':g.user.agency}).count(),
         'n_maps_indexed': len(g.db.maps.find_one({'agency':g.user.agency})['features']),
         'n_notific_events': g.db.events.find({'agency':g.user.agency}).count(),
         'n_leaderboard_accts': g.db['accts_cache'].find({'group':g.group}).count(),

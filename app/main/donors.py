@@ -1,66 +1,14 @@
 '''app.main.donors'''
 import json, logging, math
-from pymongo import ReturnDocument
 from datetime import date, timedelta
 from dateutil.parser import parse
 from flask import g, request
 from app import get_keys
 from app.lib import html, mailgun
 from app.main.etap import EtapError, mod_acct, get_udf, call
-from app.main.maps import geocode
 from app.lib.dt import ddmmyyyy_to_date as to_date
 from logging import getLogger
 log = getLogger(__name__)
-
-#-------------------------------------------------------------------------------
-def cache_accts(accts):
-    '''Cache eTapestry Account objects along with their geolocation data'''
-
-    if not 'id' in accts[0]: return # Verify Account objects
-
-    date_fields = [
-      'personaCreatedDate',
-      'personaLastModifiedDate',
-      'accountCreatedDate',
-      'accountLastModifiedDate'
-    ]
-    n_geolocate = 0
-    n_upsert = 0
-    n_mod = 0
-
-    api_key = get_keys('google')['geocode']['api_key']
-
-    for acct in accts:
-        for field in date_fields:
-            acct[field] = parse(acct[field]) if acct[field] else None
-
-        doc = g.db['accts_cache'].find_one_and_update(
-          {'group':g.group, 'account.id':acct['id']},
-          {'$set': {'group':g.group, 'account':acct}},
-          upsert=True)
-
-        if g.group != 'vec': continue
-
-        if doc:
-            n_mod += 1
-            c_acct = doc['account']
-            cache_addr = [c_acct.get('address', ''), c_acct.get('city',''), c_acct.get('state','')]
-            acct_addr = [acct.get('address',''), acct.get('city',''), acct.get('state','')]
-            if 'geolocation' in doc and cache_addr == acct_addr: continue
-        else:
-            n_upsert += 1
-
-        try:
-            rv = geocode(", ".join(acct_addr), api_key)[0]
-        except Exception as e:
-            log.exception('Geo lookup failed for %s', acct['address'])
-            continue
-        else:
-            g.db['accts_cache'].update_one({'_id':doc['_id']},{'$set':{'geolocation':rv}})
-            n_geolocate +=1
-
-    log.debug('Cache Accts: inserted %s, modified %s, geolocated %s',
-        n_upsert, n_mod, n_geolocate)
 
 #-------------------------------------------------------------------------------
 def get(acct_id):

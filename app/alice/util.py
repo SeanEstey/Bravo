@@ -20,27 +20,26 @@ def lookup_acct(mobile, agcy):
     return acct
 
 #-------------------------------------------------------------------------------
-def get_chatlogs(start_dt=None, collection='alice_chats', serialize=True):
+def get_chatlogs(start_dt=None, serialize=True):
 
     view_days = get_keys('alice')['chatlog_view_days']
 
     if not start_dt:
         start_dt = datetime.utcnow() - timedelta(days=view_days)
 
-    if collection == 'alice_chats':
-        chats = g.db['alice_chats'].find(
-            {
-                'group':g.group,
-                'last_message': {'$gt': start_dt}
-            },
-            {
-                'group':0, '_id':0
-            }
-        ).sort('last_message',-1)
+    chats = g.db['chatlogs'].find(
+        {
+            'group':g.group,
+            'last_message': {'$gt': start_dt}
+        },
+        {
+            'group':0, '_id':0
+        }
+    ).sort('last_message',-1)
 
-        log.debug('%s new alice_chats retrieved.', chats.count())
+    log.debug('%s new chatlogs retrieved.', chats.count())
 
-        chats = list(chats)
+    chats = list(chats)
 
     if serialize:
         from app.lib.utils import format_bson

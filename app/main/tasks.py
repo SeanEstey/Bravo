@@ -77,7 +77,6 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
         log.error('map not found')
         return 'failed'
 
-
     api_key = get_keys('google')['geocode']['api_key']
     matches = []
 
@@ -91,20 +90,17 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
             continue
 
         for acct in accts:
-            address = acct['address'] + ', ' + acct['city'] + ', AB'
+            geolocation = g.db['cachedAccounts'].find_one(
+                {'group':g.group, 'account.id':acct['id']}
+            ).get('geolocation')
 
-            try:
-                geo_rv = geocode(address, api_key)
-            except Exception as e:
+            if not geolocation:
                 continue
-            else:
-                if len(geo_rv) == 0:
-                    continue
 
-            pt = geo_rv[0]['geometry']['location']
+            pt = geolocation['geometry']['location']
 
             if in_map(pt, target_map):
-                log.debug('Found match! Acct %s', acct['id'])
+                #log.debug('Found match! Acct %s', acct['id'])
                 matches.append(acct)
                 smart_emit('analyze_results', {
                     'status':'match',

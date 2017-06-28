@@ -51,12 +51,18 @@ function get_accts($acct_ids=NULL, $acct_refs=NULL) {
 }
 
 //-----------------------------------------------------------------------
-function get_query($query, $category) {
+function get_query($query, $category, $start=NULL, $count=NULL) {
 
 	global $nsc;
+
+    if($start === NULL)
+        $start = 0;
+    if($count === NULL)
+        $count = 500;
+
     $rv = $nsc->call("getExistingQueryResults", [[
-        'start' => 0,
-        'count' => 500,
+        'start' => $start,
+        'count' => $count,
         'query' => "$category::$query"
       ]]
     );

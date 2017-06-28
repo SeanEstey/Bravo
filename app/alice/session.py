@@ -97,13 +97,13 @@ def save_msg(text, mobile=None, direction=None):
 
     number = mobile or session.get('from')
     acct = session.get('account', None)
-    chatlog = g.db['alice_chats'].find_one({'mobile':number})
+    chatlog = g.db['chatlogs'].find_one({'mobile':number})
 
     if not chatlog:
         if not acct:
             log.debug('no account to insert')
 
-        g.db['alice_chats'].insert_one({
+        g.db['chatlogs'].insert_one({
             'group':g.group,
             'mobile': number,
             'account': acct,
@@ -115,7 +115,7 @@ def save_msg(text, mobile=None, direction=None):
             'last_message': datetime.utcnow()
         })
     else:
-        g.db['alice_chats'].update_one(
+        g.db['chatlogs'].update_one(
             {'mobile': number},
             {
                 '$push': {
@@ -131,7 +131,7 @@ def save_msg(text, mobile=None, direction=None):
            True)
 
         if not chatlog['account'] and acct:
-            g.db['alice_chats'].update_one(
+            g.db['chatlogs'].update_one(
                 {'mobile': number},
                 {'$set': {'account':acct}}
             )

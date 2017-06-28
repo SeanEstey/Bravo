@@ -153,7 +153,7 @@ def _compose():
 @login_required
 def _get_chatlogs():
     from app.alice.util import get_chatlogs
-    return func_call(get_chatlogs, collection='alice_chats', serialize=True)
+    return func_call(get_chatlogs, serialize=True)
 
 @api.route('/booker/create', methods=['POST'])
 @login_required

@@ -11,11 +11,39 @@ from logging import getLogger
 log = getLogger(__name__)
 
 @login_required
-@main.route('/test_cache', methods=['GET'])
-def _test_cache():
+@main.route('/test_cache_accts', methods=['GET'])
+def _test_cache_accts():
+
     from app.main.etap import get_query
-    get_query('R8B')
-    return 'ok'
+    query = request.args.get('q')
+    if not query:
+        return 'INVALID QUERY'
+    else:
+        get_query(query, start=0, count=5)
+        return 'OK'
+
+@login_required
+@main.route('/test_cache_gifts', methods=['GET'])
+def _test_cache_gifts():
+
+    from app.main.etap import get_gifts, get_query, cache_gifts
+    from datetime import date, timedelta
+    from json import dumps
+
+    MAX = 2500
+    count = 0
+
+    while count < MAX:
+        results = get_query(
+            "Gift Entries [YTD]",
+            category="BPU: Stats",
+            start=count,
+            count=500)
+        cache_gifts(results)
+        log.debug("n results=%s", len(results))
+        count += 500
+
+    return 'OK'
 
 @login_required
 @main.route('/update_calendar', methods=['GET'])

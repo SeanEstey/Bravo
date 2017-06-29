@@ -10,6 +10,10 @@ task_time_limit = 3000
 worker_concurrency = 5
 
 beat_schedule = {
+    'cache_gifts': {
+        'task': 'app.main.tasks.cache_gifts',
+        'schedule': crontab(hour=0, minute=30, day_of_week='*')
+    },
     'backup_mongo': {
         'task': 'app.main.tasks.backup_mongo',
         'schedule': crontab(hour=1, minute=0, day_of_week='*')

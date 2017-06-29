@@ -21,6 +21,12 @@ def _get_next_pickup():
     g.group = var('agcy')
     return func_call(donors.get_next_pickup, var('email'))
 
+@api.route('/cache/gifts', methods=['GET', 'POST'])
+@login_required
+def _api_cache_gifts():
+    from app.main.tasks import cache_gifts
+    return task_call(cache_gifts)
+
 @api.route('/accounts/estimate_trend', methods=['POST'])
 @login_required
 def _est_trend():

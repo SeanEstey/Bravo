@@ -60,8 +60,12 @@
 				$rv = get_upload_status($data['request_id'], $data['from_row']);
 				break;
 			case 'get_query':
-				$rv = get_query($data['query'], $data['category'], arr_get($data, 'start', null), arr_get($data, 'count', null));
+				$rv = get_query($data['query'], $data['category'],
+                    arr_get($data, 'start', null), arr_get($data, 'count', null));
 				break;
+            case 'getQueryResultStats':
+                $rv = getQueryResultStats($data['queryName'], $data['queryCategory']);
+                break;
 			case 'get_num_active_processes':
 				$rv = num_php_fpms();
 				break;

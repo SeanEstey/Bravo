@@ -1,10 +1,9 @@
 '''app.main.tasks'''
-import json
+import json, logging
 from datetime import datetime, date, time, timedelta as delta
 from dateutil.parser import parse
 from flask import current_app, g, request
-from flask_login import current_user
-from app import celery, get_keys, colors as c
+from app import celery, get_keys
 from app.lib.dt import d_to_dt, ddmmyyyy_to_mmddyyyy as swap_dd_mm
 from app.lib.gsheets import gauth, write_rows, append_row, get_row, to_range,\
 get_values, update_cell
@@ -12,12 +11,46 @@ from app.lib.gcal import gauth as gcal_auth, color_ids, get_events, evnt_date_to
 from app.lib.timer import Timer
 from .parser import get_block, is_block, is_res, is_bus, get_area, is_route_size
 from .cal import get_blocks, get_accounts
-from .etap import call, get_udf, mod_acct
+from .etap import call, get_udf, mod_acct, get_query
 from . import donors
 from .receipts import generate, get_ytd_gifts
 from .leaderboard import update_accts, update_gifts
-from logging import getLogger
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def wipe_sessions(self, **rest):
+    pass
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def cache_gifts(self, **rest):
+    '''Cache Journal Entry Gifts
+    TODO: Create query for WSF'''
+
+    MAX_GIFTS = 5000
+    count = DEF_COUNT = 500
+    g.group = 'vec'
+    query = 'Gift Entries [YTD]'
+    category = 'BPU: Stats'
+    idx = 0
+
+    timer = Timer()
+    rv = call('getQueryResultStats',
+        data={'queryName':query, 'queryCategory':category})
+    query_size = rv['journalEntryCount']
+
+    log.info('Task: Caching gifts [Total: %s]...', query_size)
+
+    while idx < query_size:
+        if idx + count > query_size:
+            count = (idx + count) - query_size
+
+        results = get_query(query, category=category,
+            start=idx, count=count, cache=True)
+        idx += DEF_COUNT
+
+    log.info('Task: Completed [%s]', timer.clock())
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -52,11 +85,6 @@ def health_check(self, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def wipe_sessions(self, **rest):
-    pass
-
-#-------------------------------------------------------------------------------
-@celery.task(bind=True)
 def find_accts_within_map(self, map_title=None, blocks=None, **rest):
     '''Called from API via client user.'''
 
@@ -64,8 +92,10 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
     from app.main.maps import geocode, in_map
     from app.main.socketio import smart_emit
 
-    log.info('Task: Searching acct matches from Blocks %s in Map %s', blocks, map_title)
+    log.info('Task: Searching zone matches...',
+        extra={'blocks':blocks, 'map':map_title})
 
+    timer = Timer()
     target_map = None
 
     for m in g.db.maps.find_one({'agency':g.group})['features']:
@@ -100,18 +130,11 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
             pt = geolocation['geometry']['location']
 
             if in_map(pt, target_map):
-                #log.debug('Found match! Acct %s', acct['id'])
                 matches.append(acct)
-                smart_emit('analyze_results', {
-                    'status':'match',
-                    'acct_id':acct['id'],
-                    'coords':pt,
-                    'n_matches':len(matches)
-                })
+                smart_emit('analyze_results',
+                    {'status':'match','acct_id':acct['id'],'coords':pt,'n_matches':len(matches)})
 
-    log.warning('Found %s matches', len(matches))
-
-    smart_emit('analyze_results', {'status':'completed', 'n_matches':len(matches)})
+    smart_emit('analyze_results', {'status':'completed','n_matches':len(matches)})
 
     # Write accounts to Bravo Sheets->Updater
 
@@ -121,17 +144,10 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
 
     for acct in matches:
         values.append([
-            map_title,
-            acct['id'],
-            acct['address'],
-            acct['name'],
-            get_udf('Block', acct),
-            get_udf('Neighborhood', acct),
-            get_udf('Status', acct),
-            get_udf('Signup Date', acct),
-            get_udf('Next Pickup Date', acct),
-            get_udf('Driver Notes', acct),
-            get_udf('Office Notes', acct)
+            map_title, acct['id'], acct['address'], acct['name'],
+            get_udf('Block',acct), get_udf('Neighborhood',acct), get_udf('Status',acct),
+            get_udf('Signup Date',acct), get_udf('Next Pickup Date',acct),
+            get_udf('Driver Notes',acct), get_udf('Office Notes',acct)
         ])
 
     rg = '%s:%s' %(to_range(2, 2), to_range(len(matches)+1, 12))
@@ -141,6 +157,7 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
     except Exception as e:
         log.exception('Error writing to Sheet')
 
+    log.info('Task completed. %s zone matches found. [%s]', len(matches), timer.clock())
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -185,14 +202,15 @@ def update_leaderboard_accts(self, agcy=None, **rest):
 @celery.task(bind=True)
 def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
 
+    from json import dumps
     timer = Timer()
     ss_row = int(float(ss_row))
     route_d = parse(date_str).date()
     diff = 0
     n_repeat = 0
-    g.group = current_user.agency
 
-    log.warning('Analyzing estimate trend...', extra={'n_accts': len(donations)})
+    log.info('Task: Analyzing estimate trend...',
+        extra={'n_accts':len(donations), 'donations':dumps(donations,indent=2)})
 
     for donation in donations:
         if not donation['amount']:
@@ -230,8 +248,7 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
         to_range(ss_row, headers.index('Estmt Trend')+1),
         diff/n_repeat)
 
-    log.warning('Estimate trend is $%.2f', diff/n_repeat,
-        extra={'duration': timer.clock()})
+    log.info('Task completed. Trend=$%.2f. [%s]', diff/n_repeat, timer.clock())
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -246,7 +263,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
     CHECKMK = u'\u2714'
     SUCCESS = [u'Processed', u'Updated']
 
-    log.warning('Processing %s account entries...', len(entries))
+    log.info('Task: Processing %s account entries...', len(entries))
 
     timer = Timer()
     chks = [entries[i:i + CHK_SIZE] for i in xrange(0, len(entries), CHK_SIZE)]
@@ -282,8 +299,8 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
             log.debug('Chunk %s/%s uploaded/written to Sheets.', n+1, len(chks),
                 extra={'n_success':r['n_success'], 'n_errs':r['n_errs']})
 
-    log.warning('Processed account entries.', extra={'n_errs':n_errs,'duration':timer.clock()})
-
+    log.info('Task completed. %s entries processed. [%s]',
+        len(entries), timer.clock(), extra={'n_errs':n_errs})
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -300,7 +317,7 @@ def send_receipts(self, entries, **rest):
     entries = json.loads(entries)
     wks = 'Donations'
     CHECKMK = u'\u2714'
-    log.warning('Processing %s receipts...', len(entries))
+    log.info('Task: Processing %s receipts...', len(entries))
 
     try:
         # list indexes match @entries
@@ -368,16 +385,9 @@ def send_receipts(self, entries, **rest):
             log.debug('Chunk %s/%s receipts generated/written to Sheets',
                 i+1, len(chks))
 
-    log.warning('Receipts delivered.', extra={
-        'gifts': g.track['gifts'],
-        'zeros': g.track['zeros'],
-        'post_drops': g.track['drops'],
-        'cancels': g.track['cancels'],
-        'no_email': g.track['no_email'],
-        'duration': timer.clock()
-        })
-
-    chks = acct_data = accts = None
+    log.info('Task completed. %s receipts delivered. [%s]', len(entries), timer.clock(),
+        extra={'gifts':g.track['gifts'], 'zeros':g.track['zeros'], 'post_drops':g.track['drops'],
+               'cancels':g.track['cancels'], 'no_email':g.track['no_email']})
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -391,7 +401,7 @@ def create_accounts(self, accts_json, agcy=None, **rest):
     timer = Timer()
     g.group = agcy
     accts = json.loads(accts_json)
-    log.warning('Creating %s accounts...', len(accts))
+    log.info('Task: Creating %s accounts...', len(accts))
     # Break accts into chunks for gsheets batch updating
     ch_size = 10
     chks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
@@ -444,15 +454,13 @@ def create_accounts(self, accts_json, agcy=None, **rest):
     log_rec['duration'] = timer.clock()
 
     if log_rec['n_errs'] > 0:
-        log.error('Created %s/%s accounts. See Bravo Sheets for details.',
-            log_rec['n_success'], log_rec['n_success'] + log_rec['n_errs'],
+        log.error('Task completed. %s/%s accounts created. See Bravo Sheets for details.',
+            log_rec['n_success'], log_rec['n_success']+log_rec['n_errs'],
             extra=log_rec)
     else:
-        log.info('Created %s/%s accounts',
-            log_rec['n_success'], log_rec['n_success'] + log_rec['n_errs'],
+        log.info('Task completed. %s/%s accounts created. [%s]',
+            log_rec['n_success'], log_rec['n_success'] + log_rec['n_errs'], timer.clock(),
             extra=log_rec)
-
-    chks = accts = None
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -476,7 +484,6 @@ def create_rfu(self, agcy, note, options=None, **rest):
 
     append_row(srvc, ss_id, 'Issues', rfu)
     log.debug('Creating RFU=%s', rfu)
-
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -608,8 +615,8 @@ def update_accts_sms(self, agcy=None, in_days=None, **rest):
 
         r = sms.enable(agency['name'], accts)
 
-        log.info('%supdated %s accounts for SMS. discovered %s mobile numbers%s',
-            c.GRN, r['n_sms'], r['n_mobile'], c.ENDC)
+        log.info('Updated %s accounts for SMS. Discovered %s mobile numbers.',
+            r['n_sms'], r['n_mobile'])
 
     return 'success'
 

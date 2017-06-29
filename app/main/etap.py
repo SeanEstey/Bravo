@@ -1,4 +1,5 @@
 '''app.main.etap'''
+import copy
 from flask import g
 from datetime import datetime
 import json, logging, os, subprocess
@@ -22,85 +23,105 @@ NAME_FORMAT = {
 
 #-------------------------------------------------------------------------------
 def call(func, data=None, silence_exc=False):
+    '''Call eTapestry API function from PHP script.
+    Returns:
+        response['result'] where response={'result':DATA, 'status':STR, 'description':ERROR_MSG}
+    '''
 
-    sandbox = 'true' if os.environ['BRV_SANDBOX'] == 'True' else 'false'
-    conf = get_keys('etapestry')
+    auth = get_keys('etapestry')
     cmds = [
         'php', '/root/bravo/php/call.php',
-        g.group, conf['user'], conf['pw'], conf['wsdl_url'],
+        g.group,
+        auth['user'], auth['pw'], auth['wsdl_url'],
         func,
-        sandbox,
-        json.dumps(data)]
+        'false',
+        json.dumps(data)
+    ]
 
     try:
-        response = subprocess.check_output(cmds)
+        # 'status': ['SUCCESS', 'FAILED']
+        resp = json.loads(subprocess.check_output(cmds))
     except Exception as e:
         log.exception('Error calling "%s"', func)
         raise EtapError(e)
 
-    try:
-        response = json.loads(response)
-    except Exception as e:
-        log.error('not json serializable, rv=%s', response)
-        raise EtapError(response)
-
-    # Success: {'status':'SUCCESS', 'result':'<data>'}
-    # Fail: {'status':'FAILED', 'description':'<str>', 'result':'<optional>'}
-
-    if response['status'] == 'FAILED':
-        #log.error('status=%s, func="%s", description="%s", result="%s"',
-        #    response['status'], func, response['description'], response.get('result'))
-        raise EtapError(response)
+    if resp['status'] == 'FAILED':
+        raise EtapError(resp)
     else:
-        return response['result']
+        return resp['result']
 
 #-------------------------------------------------------------------------------
-def cache_gifts(_gifts):
+def pythonify(obj):
+    '''@obj: eTapestry query result obj. Either: Account or Journal Entry subtype
+    '''
 
-    import copy
-    gifts = copy.deepcopy(_gifts)
+    # Account
+    if 'id' in obj:
+        for field in ['personaCreatedDate', 'personaLastModifiedDate', 'accountCreatedDate', 'accountLastModifiedDate']:
+            obj[field] = parse(obj[field]) if obj[field] else None
+        return obj
 
-    #bulk = g.db['cachedAccounts'].initialize_ordered_bulk_op()
+    # Journal Entry
+
+    if obj['type'] == 1: # Note
+        return obj
+    elif obj['type'] == 5: # Gift
+        for field in ['createdDate', 'lastModifiedDate']:
+            obj[field] = parse(obj[field]) if obj[field] else None
+        dt = parse(obj['date'])
+        obj['date'] = datetime(dt.year, dt.month, dt.day)
+        return obj
+    else:
+        return obj
+
+#-------------------------------------------------------------------------------
+def db_cache(results):
+
+    log.debug('cache() type(results)=%s', type(results))
+
+    if 'type' in results[0]:
+        _cache_gifts(results)
+    elif 'id' in results[0]:
+        _cache_accts(results)
+
+#-------------------------------------------------------------------------------
+def _cache_gifts(gifts):
+
+    timer = Timer()
+    bulk = g.db['cachedGifts'].initialize_ordered_bulk_op()
+    n_ops = 0
 
     for gift in gifts:
-        for field in ['createdDate', 'lastModifiedDate']:
-            gift[field] = parse(gift[field]) if gift[field] else None
+        cached = g.db['cachedGifts'].find_one({'group':g.group, 'gift.ref':gift['ref']})
 
-        dt = parse(gift['date'])
-        gift['date'] = datetime(dt.year, dt.month, dt.day)
+        if not cached:
+            bulk.insert({'group':g.group, 'gift':pythonify(gift)})
+            n_ops += 1
+            continue
 
-        result = g.db['cachedGifts'].update_one(
-            {'group':g.group, 'gift.ref':gift['ref']},
-            {'$set':{'gift':gift}},
-            upsert=True)
+        gift = pythonify(gift)
 
-    log.debug('Cached %s gifts', len(gifts))
+        if cached['gift'].get('lastModifiedDate',None) != gift.get('lastModifiedDate',None):
+            bulk.find({'_id':cached['_id']}).update_one({'$set':{'gift':gift}})
+            n_ops += 1
+
+    if n_ops > 0:
+        bulk.execute()
+
+    log.debug('Cached %s/%s gifts [%s]', n_ops, len(gifts), timer.clock())
 
 #-------------------------------------------------------------------------------
-def cache_accts(accts):
+def _cache_accts(accts):
     '''Cache eTapestry Account objects along with their geolocation data'''
 
     if g.group == 'wsf':
         return
 
-    timer = Timer()
-    timer.start()
-
     log.debug('Caching Accounts...')
-
-    if not 'id' in accts[0]: return # Verify Account objects
-
-    date_fields = [
-      'personaCreatedDate',
-      'personaLastModifiedDate',
-      'accountCreatedDate',
-      'accountLastModifiedDate'
-    ]
+    timer = Timer()
     n_geolocations = 0
     n_ops = 0
-
     api_key = get_keys('google')['geocode']['api_key']
-
     bulk = g.db['cachedAccounts'].initialize_ordered_bulk_op()
 
     for acct in accts:
@@ -114,15 +135,12 @@ def cache_accts(accts):
         if geolocation:
             c_acct = doc['account']
             cache_addr = [c_acct.get('address', ''), c_acct.get('city',''), c_acct.get('state','')]
-            # Address change?
+
             if cache_addr != acct_addr:
-                log.debug('Acct ID %s address change (%s to %s). Updating geolocation.',
-                    acct['id'], c_acct.get('address',''), acct.get('address',''))
+                log.debug('Updating geolocation (address change).')
                 geo_lookup = True
 
         if geo_lookup:
-            #log.debug('Geolocating Acct ID %s', acct['id'])
-
             try:
                 geolocation = geocode(", ".join(acct_addr), api_key)[0]
             except Exception as e:
@@ -130,16 +148,13 @@ def cache_accts(accts):
             else:
                 n_geolocations += 1
 
-        for field in date_fields:
-            acct[field] = parse(acct[field]) if acct[field] else None
+        acct = pythonify(acct)
 
         # Skip if already up to date
         if doc and not geo_lookup and \
            doc['account']['accountLastModifiedDate'] == acct['accountLastModifiedDate'] and \
            doc['account']['personaLastModifiedDate'] == acct['personaLastModifiedDate']:
             continue
-
-        #log.debug('Updating Cached Account ID %s', acct['id'])
 
         bulk.find(
           {'group':g.group, 'account.id':acct['id']}).upsert().update(
@@ -148,14 +163,39 @@ def cache_accts(accts):
 
     if n_ops > 0:
         results = bulk.execute()
-        log.debug("Results: n_upserted=%s, n_Modified=%s, n_geolocations=%s [%s]",
-            results['nUpserted'], results['nModified'], n_geolocations, timer.clock())
-    else:
-        log.debug('Already up to date. n_geolocations=%s [%s]',
-            n_geolocations, timer.clock())
+
+    log.debug("Cached %s/%s accounts, geolocated %s. [%s]",
+        n_ops, len(accts), n_geolocations, timer.clock())
+
+#-------------------------------------------------------------------------------
+def get_acct(acct_id):
+
+    acct = g.db['cachedAccounts'].find_one({'account.id':int(acct_id)})
+    return acct if acct else call('get_acct', data={'acct_id':int(acct_id)})
+
+#-------------------------------------------------------------------------------
+def get_query(name, category=None, start=None, count=None, cache=True):
+
+    try:
+        rv = call('get_query',
+          data={
+            'query':name,
+            'category':category or get_keys('etapestry')['query_category'],
+            'start':start,
+            'count':count
+          })
+    except EtapError as e:
+        raise
+
+    if not cache or type(rv['data']) != list or len(rv['data']) == 0:
+        return rv['data']
+
+    db_cache(rv['data'])
+    return rv['data']
 
 #-------------------------------------------------------------------------------
 def get_gifts(ref, start_date, end_date):
+    # TODO: replace with get_query
 
     try:
         gifts = call(
@@ -170,32 +210,12 @@ def get_gifts(ref, start_date, end_date):
         raise
     else:
         log.debug('Retrieved %s gifts', len(gifts))
-        cache_gifts(gifts)
+        _cache_gifts(gifts)
         return gifts
 
 #-------------------------------------------------------------------------------
-def get_query(block, category=None, start=None, count=None, cache=True):
-
-    try:
-        rv = call(
-          'get_query',
-          data={
-            'query':block,
-            'category':category or get_keys('etapestry')['query_category'],
-            'start':start,
-            'count':count
-          })
-    except EtapError as e:
-        raise
-    else:
-        # Cache if query returned Account objects
-        if type(rv['data']) == list and len(rv['data']) > 0:
-            if 'id' in rv['data'][0]:
-                cache_accts(rv['data'])
-        return rv['data']
-
-#-------------------------------------------------------------------------------
 def mod_acct(acct_id, udf=None, persona=[], exc=False):
+
     try:
         call('modify_acct', data={
             'acct_id':acct_id, 'udf':udf, 'persona': persona})

@@ -170,6 +170,21 @@ function get_route_size($category, $query, $date) {
 }
 
 //-----------------------------------------------------------------------
+function getQueryResultStats($queryName, $queryCategory) {
+    /* Returns QueryResultStats Object:
+    https://www.blackbaudhq.com/files/etapestry/api3/objects/QueryResultStats.html
+    */
+
+    global $nsc;
+    $response = $nsc->call("getQueryResultStats", array($queryCategory, $queryName));
+
+    if(is_error($nsc))
+        throw new Exception(get_error($nsc, $log=true));
+
+    return $response;
+}
+
+//-----------------------------------------------------------------------
 function get_block_size($query_category, $query) {
 	/* Return number of accounts in given query
 	 */

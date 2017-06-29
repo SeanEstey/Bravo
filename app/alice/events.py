@@ -17,7 +17,7 @@ def request_support():
     acct = session.get('account')
 
     create_rfu.delay(
-        session.get('agcy'),
+        session.get('group'),
         'SMS help request: "%s"\n%s' %(
             str(request.form['Body']),
             session.get('from')),
@@ -118,7 +118,7 @@ def skip_pickup():
 #-------------------------------------------------------------------------------
 def update_mobile():
     create_rfu.delay(
-        session.get('agcy'),
+        session.get('group'),
         'SMS update account for following address '\
         'with mobile number:' + str(request.form['Body']),
         options = {
@@ -145,7 +145,7 @@ def is_unsub():
         #    'twilio.sms.number':request.form['To']})
 
         create_rfu.delay(
-            session.get('agcy'),
+            session.get('group'),
             'Contributor has replied "%s" and opted out of SMS '\
             'notifications.' % request.form['Body'],
             options = {'ID': account['id']})
@@ -157,7 +157,7 @@ def is_unsub():
 def request_pickup():
 
     address = request.form['Body']
-    g.group = session.get('agcy')
+    g.group = session.get('group')
     conf = session.get('conf')
 
     # Msg reply should contain address

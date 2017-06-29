@@ -77,12 +77,10 @@ def find_map(agcy, pt):
 def get_nearby_blocks(pt, radius, maps, events):
     '''Return list of scheduled Blocks within given radius of lat/lng, up
     to end_date, sorted by date. Block Object defined in Config.
-
     @pt: {'lng':float, 'lat':float}
     @radius: km
     @maps: geo_json object with lat/lng coords
     @events: gcal event
-
     Returns:
         list of {'event': gcal_obj, 'distance': float, 'name': str,
         'booked':int}
@@ -166,100 +164,57 @@ def distance(pt1, pt2):
 
 #-------------------------------------------------------------------------------
 def geocode(address, api_key, postal=None, raise_exceptions=False):
-    '''Finds best result from Google geocoder given address
-    API Reference: https://developers.google.com/maps/documentation/geocoding
-    @address: string with address + city + province. Should NOT include postal code.
-    @postal: optional arg. Used to identify correct location when multiple
-    results found
-    Returns:
-      -Success: single element list containing result (dict)
-      -Empty list [] no result
+    '''Google geocoder wrapper. API Ref: https://developers.google.com/maps/documentation/geocoding
+    @address: formatted_address
+    @postal: helps narrow multiple results (optional)
+    Returns: [geolocation_result] on success, [] on fail
     Exceptions:
       -Raises requests.RequestException on connection error'''
 
     try:
-        response = requests.get(
-          'https://maps.googleapis.com/maps/api/geocode/json',
-          params = {
-            'address': address,
-            'key': api_key
-          })
+        response = json.loads(requests.get(
+            'https://maps.googleapis.com/maps/api/geocode/json',
+            params={'address':address,'key':api_key}
+        ).text)
     except requests.RequestException as e:
         log.error(str(e))
         raise
 
-    #log.debug(response.text)
-
-    response = json.loads(response.text)
-
-    if response['status'] == 'ZERO_RESULTS':
-        e = 'No geocode result for ' + address
-        log.error(e)
-        return []
-    elif response['status'] == 'INVALID_REQUEST':
-        e = 'Invalid request for ' + address
-        log.error(e)
-        return []
-    elif response['status'] != 'OK':
+    if response['status'] != 'OK':
         log.error('Error geocoding %s', address, extra={'response':response})
         return []
 
+    results = response['results']
+
     # Single result
 
-    if len(response['results']) == 1:
-        if 'partial_match' in response['results'][0]:
-            warning = \
-              'Partial match for <strong>%s</strong>. <br>'\
-              'Using <strong>%s</strong>.' %(
-              address, response['results'][0]['formatted_address'])
-
-            response['results'][0]['warning'] = warning
-            log.debug(warning)
-        else:
-            return [response['results'][0]]
+    if len(results) == 1 and 'partial_match' in results[0]:
+        results[0]['warning'] = 'Partial match for %s. Using %s.' % (address, results[0]['formatted_address'])
+    if len(results) == 1:
+        return [results[0]]
 
     # Multiple results
 
-    if postal is None:
-        # No way to identify best match. Return 1st result (best guess)
-        response['results'][0]['warning'] = \
-          'Multiple results for <strong>%s</strong>. <br>'\
-          'No postal code. <br>'\
-          'Using 1st result <strong>%s</strong>.' % (
-          address, response['results'][0]['formatted_address'])
+    msg = 'Multiple results for %s. Using %s'
 
-        log.debug(response['results'][0]['warning'])
-
-        return [response['results'][0]]
-    else:
-        # Let's use the Postal Code to find the best match
-        for idx, result in enumerate(response['results']):
+    if len(results) > 1 and postal is None:
+        results[0]['warning'] = msg % (address, results[0]['formatted_address'])
+        return [results[0]]
+    elif len(results) > 1 and postal:
+        # Narrow results w/ Postal Code
+        for idx, result in enumerate(results):
             if not get_postal(result):
                 continue
 
             if get_postal(result)[0:3] == postal[0:3]:
-                result['warning'] = \
-                  'Multiple results for <strong>%s</strong>.<br>'\
-                  'First half of Postal Code <strong>%s</strong> matched in '\
-                  'result[%s]: <strong>%s</strong>.<br>'\
-                  'Using as best match.' % (
-                  address, get_postal(result), str(idx), result['formatted_address'])
-
+                result['warning'] = msg % (address, result['formatted_address'])
                 log.debug(result['warning'])
-
                 return [result]
 
-            # Last result and still no Postal match.
-            if idx == len(response['results']) -1:
-                response['results'][0]['warning'] = \
-                  'Multiple results for <strong>%s</strong>.<br>'\
-                  'No postal code match. <br>'\
-                  'Using <strong>%s</strong> as best guess.' % (
-                  address, response['results'][0]['formatted_address'])
+        results[0]['warning'] = msg % (address, results[0]['formatted_address'])
+        log.error(results[0]['warning'])
 
-                log.error(response['results'][0]['warning'])
-
-    return [response['results'][0]]
+    return [results[0]]
 
 #-------------------------------------------------------------------------------
 def get_postal(geo_result):

@@ -17,125 +17,98 @@ log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def has_session():
-    if session.get('type') == 'alice_chat':
-        return True
+    return True if session.get('type') == 'alice_chat' else False
 
 #-------------------------------------------------------------------------------
 def create_session():
     '''Init session vars after receiving incoming SMS msg'''
 
-    from_ = str(request.form['From'])
+    mobile = str(request.form['From'])
     msg = request.form['Body']
-    life_duration = current_app.config['PERMANENT_SESSION_LIFETIME']
     conf = g.db['groups'].find_one({'twilio.sms.number':request.form['To']})
-
-    # Init session data
-
+    g.group = conf['name']
     session.permanent = True
-    session['type'] = 'alice_chat'
-    session['from'] = from_
-    session['date'] = date.today().isoformat()
-    session['messages'] = [msg]
-    session['agcy'] = g.group = conf['name']
-    session['conf'] = conf
-    session['self_name'] = conf['alice']['name']
-    session['last_msg_dt'] = to_local(dt=datetime.now())
-    session['expiry_dt'] = datetime.now() + life_duration
+    session.update({
+        'type': 'alice_chat',
+        'from': mobile,
+        'date': date.today().isoformat(),
+        'group': g.group,
+        'conf': conf,
+        'self_name': conf['alice']['name'],
+        'last_msg_dt': to_local(dt=datetime.now()),
+        'expiry_dt': datetime.now() + current_app.config['PERMANENT_SESSION_LIFETIME']
+    })
 
     try:
-        acct = lookup_acct(from_, session.get('agcy'))
-    except EtapError as e:
-        sys.exc_clear()
-        acct = None
-
-    if not acct:
-        # Unregistered user
-        session['anon_id'] = anon_id = str(ObjectId())
-        session['valid_kws'] = keywords.anon.keys()
-
-        create_rfu.delay(
-            session.get('agcy'),
-            'No eTap acct linked to this mobile number.\nMessage: "%s"' % msg,
-            options = {
-                'Account': 'Mobile: %s' % from_})
-
+        acct = lookup_acct(mobile)
+    except Exception as e:
         log.debug('Uregistered user')
-    else:
-        # Registered user
-        session['account'] = acct
-        session['valid_kws'] = keywords.user.keys()
+        sys.exc_clear()
+        session.update({
+            'anon_id':  str(ObjectId()),
+            'valid_kws': keywords.anon.keys()
+        })
+        save_msg(msg, direction="in")
+        return
 
-        notific = related_notific(log_error=False)
+    log.debug('Registered user %s', acct.get('name'))
 
-        # Is there a notification user might be replying to?
-        if notific:
-            g.db['notifics'].update_one({'_id':notific['_id']},{'$set':{'tracking.reply':msg}})
+    session.update({
+        'account':acct,
+        'valid_kws': keywords.user.keys()
+    })
 
-            session['notific_id'] = notific['_id']
-            session['messages'].insert(0, notific['tracking']['body'])
-            session['valid_notific_reply'] = not event_begun(notific)
+    # Replying to notification?
+    notific = related_notific(log_error=False)
+    if notific:
+        g.db['notifics'].update_one({'_id':notific['_id']},{'$set':{'tracking.reply':msg}})
+        session.update({
+            'notific_id': notific['_id'],
+            'valid_notific_reply': not event_begun(notific)
+        })
 
-            #log.debug('Reply linked to notific_id=%s. valid=%s',
-            #    notific['_id'], session.get('valid_notific_reply'))
-
-        log.debug('Registered user %s', acct.get('name'))
-
-        if not is_active(acct):
-            log.error("Acct inactive (etap_id=%s)", acct['id'])
-            raise EtapError(dialog['error']['etap']['inactive'])
+    if not is_active(acct):
+        log.error("Acct inactive (etap_id=%s)", acct['id'])
+        raise EtapError(dialog['error']['etap']['inactive'])
 
     save_msg(msg, direction="in")
 
 #-------------------------------------------------------------------------------
-def update_session():
-
-    session['messages'].append(request.form['Body'])
-    session['last_msg_dt'] = to_local(dt=datetime.now())
-
-#-------------------------------------------------------------------------------
 def save_msg(text, mobile=None, direction=None):
+    '''@mobile: if sending msg outside of session'''
 
-    number = mobile or session.get('from')
-    acct = session.get('account', None)
-    chatlog = g.db['chatlogs'].find_one({'mobile':number})
+    phone = session.get('from', mobile)
+    acct = session.get('account', {})
 
-    if not chatlog:
-        if not acct:
-            log.debug('no account to insert')
+    # TODO: should be able to do upsert here. condense these queries
 
+    if not g.db['chatlogs'].find_one({'mobile':phone}):
         g.db['chatlogs'].insert_one({
             'group':g.group,
-            'mobile': number,
-            'account': acct,
+            'mobile': phone,
+            'acct_id': acct.get('id', None),
+            'last_message': datetime.utcnow(),
             'messages': [{
                 'timestamp': datetime.utcnow(),
                 'message': text,
                 'direction': direction
-            }],
-            'last_message': datetime.utcnow()
+            }]
         })
     else:
         g.db['chatlogs'].update_one(
-            {'mobile': number},
-            {
-                '$push': {
-                    'messages': {
-                        'timestamp': datetime.utcnow(),
-                        'message': text,
-                        'direction': direction
-                    }},
-                '$set': {
-                    'group':g.group,
-                    'last_message':datetime.utcnow()}
+            {'mobile': phone},
+            {'$push': {'messages': {
+                'timestamp': datetime.utcnow(),
+                'message': text,
+                'direction': direction
+             }},
+             '$set': {
+                'acct_id': acct.get('id', None),
+                'group':g.group,
+                'last_message':datetime.utcnow()
+              }
            },
            True)
-
-        if not chatlog['account'] and acct:
-            g.db['chatlogs'].update_one(
-                {'mobile': number},
-                {'$set': {'account':acct}}
-            )
-            log.debug('Added account to chatlog record')
 
 #-------------------------------------------------------------------------------
 def dump_session(key=None, to_dict=False):

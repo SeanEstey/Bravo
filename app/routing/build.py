@@ -1,4 +1,7 @@
-'''app.routing.build'''
+'''app.routing.build
+Methods can either be called from client user or celery task. Task sets g.group var
+'''
+
 import json, requests
 from datetime import datetime, time, date
 from bson import ObjectId
@@ -11,9 +14,6 @@ from .geo import GeocodeError, geocode, get_gmaps_url
 from . import routific, sheet
 from logging import getLogger
 log = getLogger(__name__)
-
-'''Methods can either be called from client user or celery task. Task
-sets g.group var'''
 
 #-------------------------------------------------------------------------------
 def submit_job(route_id):
@@ -30,6 +30,7 @@ def submit_job(route_id):
     warnings = []
     errors = []
     orders = []
+    api_key = get_keys('google')['geocode']['api_key']
 
     route = g.db.routes.find_one({"_id":ObjectId(route_id)})
     accts = get_query(route['block'], cache=True)
@@ -44,7 +45,7 @@ def submit_job(route_id):
             order = create_order(
                 acct,
                 warnings,
-                get_keys('google')['geocode']['api_key'],
+                api_key,
                 route['driver']['shift_start'],
                 '19:00',
                 get_udf('Service Time', acct) or MIN_PER_STOP)
@@ -68,14 +69,10 @@ def submit_job(route_id):
     depot = route['depot']
 
     try:
-        office_coords = geocode(
-            office['formatted_address'],
-            get_keys('google')['geocode']['api_key'])[0]
-        depot_coords = geocode(
-            depot['formatted_address'],
-            get_keys('google')['geocode']['api_key'])[0]
+        office_coords = geocode(office['formatted_address'], api_key)[0]
+        depot_coords = geocode(depot['formatted_address'], api_key)[0]
     except GeocodeError as e:
-        log.exception('Error geocoding Start/End points.', extra={'response':e.response})
+        log.exception('Geocode error', extra={'response':e.response})
         raise
 
     job_id = routific.submit_vrp_task(
@@ -117,12 +114,15 @@ def create_order(acct, warnings, api_key, shift_start, shift_end, stop_time):
         {'group':g.group, 'account.id':acct['id']})
 
     if not cached.get('geolocation'):
-        msg = "Unable to resolve address <b>%s, %s</b>." %
-            (acct['address'], acct['city'])
-        log.error(msg)
-        raise GeocodeError(msg)
+        cached['geolocation'] = geocode(
+            "%s, %s, AB" % (cached['account']['address'],cached['account']['city']),
+            get_keys('google')['geocode']['api_key']
+        )[0]
 
     geolocation = cached['geolocation']
+
+    if 'warning' in geolocation:
+        warnings.append(geolocation['warning'])
 
     return routific.order(
         acct,
@@ -133,7 +133,7 @@ def create_order(acct, warnings, api_key, shift_start, shift_end, stop_time):
         stop_time)
 
 #-------------------------------------------------------------------------------
-def get_solution_orders(job_id, api_key):
+def get_solution(job_id, api_key):
     '''Retrieve async task solution once ready.
     @job_id: routific task_id
     Returns: list of orders from task['output']['solution']['driver'] on
@@ -189,7 +189,6 @@ def get_solution_orders(job_id, api_key):
 
     office = get_keys('routing')['locations']['office']
 
-    # TODO: Add travel time from depot to office
     orders.append({
         "location_id":"office",
         "location_name": office['formatted_address'],

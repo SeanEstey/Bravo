@@ -13,17 +13,14 @@ from app.lib.timer import Timer
 from app.main import parser
 from app.main.etap import EtapError, get_udf
 from .main import add_metadata
-from .build import submit_job, get_solution_orders
+from .build import submit_job, get_solution
 from . import depots, sheet, routific
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def discover_routes(self, agcy, within_days=5, **rest):
-    '''Celery task
-    Scans schedule for blocks, adds metadata to db, sends socketio signal
-    to client
-    '''
+    '''Scans schedule for blocks, adds metadata to db'''
 
     from app.main.socketio import smart_emit
     sleep(3)
@@ -142,12 +139,11 @@ def build_route(self, route_id, job_id=None, **rest):
     while orders == "processing":
         log.debug('No solution yet...')
         sleep(5)
-        orders = get_solution_orders(job_id, api_key)
+        orders = get_solution(job_id, api_key)
 
     title = '%s: %s (%s)' %(route['date'].strftime('%b %-d'), route['block'], route['driver']['name'])
     ss = sheet.build(gdrive.gauth(oauth), title)
     route = g.db['routes'].find_one_and_update({'_id':oid(route_id)}, {'$set':{'ss':ss}})
-
     wks_name = get_keys('routing')['gdrive']['template_orders_wks_name']
 
     try:

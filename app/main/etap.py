@@ -62,7 +62,7 @@ def get_query(name, category=None, start=None, count=None, cache=True):
     return rv['data']
 
 #-------------------------------------------------------------------------------
-def call(func, data=None, silence_exc=False):
+def call(func, data=None, cache=False):
     '''Call eTapestry API function from PHP script.
     Returns:
         response['result'] where response={'result':DATA, 'status':STR, 'description':ERROR_MSG}
@@ -79,16 +79,20 @@ def call(func, data=None, silence_exc=False):
     ]
 
     try:
-        # 'status': ['SUCCESS', 'FAILED']
-        resp = json.loads(subprocess.check_output(cmds))
+        response = json.loads(subprocess.check_output(cmds))
     except Exception as e:
         log.exception('Error calling "%s"', func)
         raise EtapError(e)
-
-    if resp['status'] == 'FAILED':
-        raise EtapError(resp)
     else:
-        return resp['result']
+        if response['status'] == 'FAILED':
+            raise EtapError(response)
+
+    results = response['result']
+
+    if cache:
+        db_cache(results if type(results) is list else [results])
+
+    return results
 
 #-------------------------------------------------------------------------------
 def pythonify(obj):
@@ -201,28 +205,6 @@ def _cache_accts(accts):
 
     log.debug("Cached %s/%s accounts, geolocated %s. [%s]",
         n_ops, len(accts), n_geolocations, timer.clock())
-
-
-
-#-------------------------------------------------------------------------------
-def get_gifts(ref, start_date, end_date):
-    # TODO: replace with get_query
-
-    try:
-        gifts = call(
-          'get_gifts',
-          data={
-            'ref':ref,
-            'startDate': start_date.strftime('%d/%m/%Y'),
-            'endDate': end_date.strftime('%d/%m/%Y')
-          })
-    except Exception as e:
-        log.exception('Failed to get gifts')
-        raise
-    else:
-        log.debug('Retrieved %s gifts', len(gifts))
-        _cache_gifts(gifts)
-        return gifts
 
 #-------------------------------------------------------------------------------
 def mod_acct(acct_id, udf=None, persona=[], exc=False):

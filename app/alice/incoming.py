@@ -28,13 +28,11 @@ def receive():
         except EtapError as e:
             return make_reply(str(e))
     else:
-        update_session()
+        session['last_msg_dt'] = to_local(dt=datetime.now())
         save_msg(request.form['Body'], direction="in")
-
 
     inc_msg_count()
     log_msg()
-
     kws = find_kw_matches(get_msg(), session.get('valid_kws'))
 
     if kws:
@@ -179,19 +177,15 @@ def make_reply(dialog_, on_complete=None):
     self = session.get('self_name')
     name = get_name()
     greet = tod_greeting()
-    context = '' # '%s: '% session.get('self_name') if session.get('self_name') else ''
+    context = ''
 
-    if get_msg_count() == 1:
+    if msg_count() == 1:
         context += '%s, %s. ' % (greet, name) if name else '%s. ' % (greet)
-    else:
-        if name:
-            context += name + ', '
-            dialog_ = dialog_[0].lower() + dialog_[1:]
+    elif msg_count() > 1 and name:
+        context += name + ', '
+        dialog_ = dialog_[0].lower() + dialog_[1:]
 
-    reply = '%s: %s' %(self, context + dialog_)
-
-    save_msg(reply, direction='out')
-    session['messages'].append(reply)
+    save_msg('%s: %s' % (self, context + dialog_), direction='out')
 
     from twilio.twiml.messaging_response import MessagingResponse
     m_response = MessagingResponse()
@@ -260,10 +254,10 @@ def get_msg(upper=False, rmv_punctn=False):
 def log_msg():
     log.info('%s to %s: "%s"',
         session['from'][2:], session['self_name'], request.form['Body'],
-        extra={'n_convo_messages': get_msg_count(), 'tag':'sms_msg'})
+        extra={'n_convo_messages': msg_count(), 'tag':'sms_msg'})
 
 #-------------------------------------------------------------------------------
-def get_msg_count():
+def msg_count():
     return session.get('messagecount')
 
 #-------------------------------------------------------------------------------

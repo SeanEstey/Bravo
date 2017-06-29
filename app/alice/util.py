@@ -10,14 +10,14 @@ from logging import getLogger
 log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def lookup_acct(mobile, agcy):
+def lookup_acct(mobile):
+
     try:
-        # Very slow (~750ms-2200ms)
-        acct = call('find_acct_by_phone', data={'phone': mobile})
+        acct = call('find_acct_by_phone', data={'phone': mobile}, cache=True)
     except Exception as e:
         raise EtapError(dialog['error']['etap']['lookup'])
-
-    return acct
+    else:
+        return acct
 
 #-------------------------------------------------------------------------------
 def get_chatlogs(start_dt=None, serialize=True):
@@ -28,18 +28,24 @@ def get_chatlogs(start_dt=None, serialize=True):
         start_dt = datetime.utcnow() - timedelta(days=view_days)
 
     chats = g.db['chatlogs'].find(
-        {
-            'group':g.group,
-            'last_message': {'$gt': start_dt}
-        },
-        {
-            'group':0, '_id':0
-        }
-    ).sort('last_message',-1)
+        {'group':g.group, 'last_message': {'$gt': start_dt}},
+        {'group':0, '_id':0}
+    ).limit(50).sort('last_message',-1)
 
-    log.debug('%s new chatlogs retrieved.', chats.count())
+    log.debug('%s chatlogs retrieved.', chats.count())
 
     chats = list(chats)
+
+    for chat in chats:
+        # New format has 'acct_id' and lookup cachedAccount instead of 'account'
+        # Delete this check on July-7-2017 after 7-day chatlogs are all converted
+        if not chat.get('account'):
+            cached = g.db['cachedAccounts'].find_one(
+                {'account.id':chat.get('acct_id')})
+            if cached:
+                chat['account'] = cached['account']
+            else:
+                chat['account'] = None
 
     if serialize:
         from app.lib.utils import format_bson

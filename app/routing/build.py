@@ -32,7 +32,7 @@ def submit_job(route_id):
     orders = []
 
     route = g.db.routes.find_one({"_id":ObjectId(route_id)})
-    accts = get_query(route['block'])
+    accts = get_query(route['block'], cache=True)
 
     # Build the orders for Routific
     for acct in accts:
@@ -71,7 +71,6 @@ def submit_job(route_id):
         office_coords = geocode(
             office['formatted_address'],
             get_keys('google')['geocode']['api_key'])[0]
-
         depot_coords = geocode(
             depot['formatted_address'],
             get_keys('google')['geocode']['api_key'])[0]
@@ -105,101 +104,60 @@ def submit_job(route_id):
 
     if len(errors) > 0:
         log.error('Failed to resolve %s addresses on Route %s',
-            len(errors), route['block'],
-            extra={'errors':errors})
+            len(errors), route['block'], extra={'errors':errors})
     else:
         log.debug('Submitted %s orders to Routific', len(orders),
             extra={'orders':len(orders), 'skips':n_skips, 'warnings':len(warnings)})
-
     return job_id
 
 #-------------------------------------------------------------------------------
 def create_order(acct, warnings, api_key, shift_start, shift_end, stop_time):
-    '''Returns:
-      -Dict order on success
-    Exceptions:
-      -requests.RequestException on geocode service error
-      -EtapError on missing or invalid account data
-      -GeocodeError on unable to resolve address'''
 
-    # TODO Jun-27-2017: Use db['accts_cache'] instead of geolocating again
+    cached = g.db['cachedAccounts'].find_one(
+        {'group':g.group, 'account.id':acct['id']})
 
-    if not acct.get('address') or not acct.get('city'):
-        msg = \
-          "Routing error: account <strong>%s</strong> missing address/city." % acct['id']
-
-        log.error(msg)
-        raise EtapError(msg)
-    else:
-        formatted_address = acct['address'] + ', ' + acct['city'] + ', AB'
-
-    try:
-        geo_result = geocode(
-            formatted_address,
-            api_key,
-            postal=acct['postalCode'])
-    except requests.RequestException as e:
-        log.exception('Error requesting Google Geocodeder')
-        raise
-    except GeocodeError as e:
-        raise
-
-    if len(geo_result) == 0:
-        msg = \
-            "Unable to resolve address <strong>%s, %s</strong>." %(
-            acct['address'],acct['city'])
+    if not cached.get('geolocation'):
+        msg = "Unable to resolve address <b>%s, %s</b>." %
+            (acct['address'], acct['city'])
         log.error(msg)
         raise GeocodeError(msg)
 
-    geo_result = geo_result[0]
-
-    if 'warning' in geo_result:
-        warnings.append(geo_result['warning'])
+    geolocation = cached['geolocation']
 
     return routific.order(
         acct,
-        formatted_address,
-        geo_result,
+        geolocation['formatted_address'],
+        geolocation,
         shift_start,
         shift_end,
         stop_time)
 
 #-------------------------------------------------------------------------------
 def get_solution_orders(job_id, api_key):
-    '''Check Routific for status of asynchronous long-running task
-    Job statuses: ['pending', 'processing', 'finished']
-    Solution statuses: ['success', ??]
-    @job_id: routific id (str)
-    @api_key: google geocode api key
-    Returns:
-      -List of orders from task['output']['solution']['driver'] on
-      task['status'] == 'finished'
-      -String task['status'] on incomplete
-    Exceptions:
-      -Raises requests.RequestException on Routific endpoint error'''
+    '''Retrieve async task solution once ready.
+    @job_id: routific task_id
+    Returns: list of orders from task['output']['solution']['driver'] on
+    complete, string on pending status
+    Exceptions: requests.RequestException on Routific endpoint error'''
 
     try:
-        r = requests.get('https://api.routific.com/jobs/' + job_id)
+        task = json.loads(
+            requests.get('https://api.routific.com/jobs/'+job_id).text)
     except requests.RequestException as e:
         log.exception('Error retrieving Routific solution')
         raise
+    else:
+        if task['status'] != 'finished':
+            return task['status']
+        log.debug('Got solution')
 
-    task = json.loads(r.text)
-
-    if task['status'] != 'finished':
-        return task['status']
-
-    route_info = g.db.routes.find_one({'job_id':job_id})
-
+    doc = g.db['routes'].find_one({'job_id':job_id})
     output = task['output']
-    orders = task['output']['solution'].get(route_info['driver']['name']) or\
+    orders = task['output']['solution'].get(doc['driver']['name']) or\
         task['output']['solution']['default']
+    length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
 
-    log.debug('retrieved solution. route_length=%smin', output['total_travel_time'])
-
-    route_length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
-
-    g.db.routes.update_one({'job_id':job_id},
+    g.db['routes'].update_one({'job_id':job_id},
       {'$set': {
           'status':'finished',
           'orders': task['visits'],
@@ -208,46 +166,29 @@ def get_solution_orders(job_id, api_key):
           'routific': {
               'input': task['input']['visits'],
               'solution': task['output']['solution']},
-          'duration': route_length.seconds/60}})
+          'duration': length.seconds/60}})
 
-    if not route_info:
+    if not doc:
         log.error("No mongo record for job_id '%s'", job_id)
         return False
 
-    # Routific doesn't include custom fields in the solution object.
-    # Copy them over manually.
-    # Also create Google Maps url
-
+    # Add custom fields in solution obj
     for order in orders:
         if order['location_id'] == 'office':
             continue
         elif order['location_id'] == 'depot':
-            # TODO: Add proper depot name, phone number, hours, and unload duration
-
-            location = geocode(
-                route_info['end_address'], api_key
-            )[0]['geometry']['location']
-
-            order['customNotes'] = {
-                'id': 'depot',
-                'name': 'Depot'}
+            location = geocode(doc['end_address'],api_key)[0]['geometry']['location']
+            order['customNotes'] = {'id':'depot', 'name':'Depot'}
             order['gmaps_url'] = get_gmaps_url(
-                order['location_name'],
-                location['lat'],
-                location['lng'])
-        # Regular order
+                order['location_name'], location['lat'], location['lng'])
         else:
             input_ = task['input']['visits'][order['location_id']]
             order['customNotes'] = input_['customNotes']
-
             order['gmaps_url'] = get_gmaps_url(
-                input_['location']['name'],
-                input_['location']['lat'],
-                input_['location']['lng'])
+                input_['location']['name'], input_['location']['lat'], input_['location']['lng'])
 
     office = get_keys('routing')['locations']['office']
 
-    # Add office stop
     # TODO: Add travel time from depot to office
     orders.append({
         "location_id":"office",
@@ -258,5 +199,4 @@ def get_solution_orders(job_id, api_key):
         "customNotes": {
             "id": "office",
             "name": office['name']}})
-
     return orders

@@ -226,7 +226,6 @@ function batch_journal_entries($refs, $start, $end, $types) {
         }
 
         if(is_error($nsc)) {
-
             reset_error($nsc);
         }
     }

@@ -10,18 +10,18 @@ from .tasks import create_rfu
 from logging import getLogger
 log = getLogger(__name__)
 
+#-------------------------------------------------------------------------------
 @login_required
-@main.route('/test_cache_accts', methods=['GET'])
-def _test_cache_accts():
+@main.route('/test_sync', methods=['GET'])
+def _test_sync():
 
-    from app.main.etap import get_query
-    query = request.args.get('q')
-    if not query:
-        return 'INVALID QUERY'
-    else:
-        get_query(query, start=0, count=5)
-        return 'OK'
+    from app.main.donors import get
+    ref = "550.0.62768186"
+    aid = 2043
+    acct = get(aid, ref=ref, sync_ytd_gifts=True)
+    return acct['name']
 
+#-------------------------------------------------------------------------------
 @login_required
 @main.route('/test_cache_gifts', methods=['GET'])
 def _test_cache_gifts():
@@ -45,6 +45,7 @@ def _test_cache_gifts():
 
     return 'OK'
 
+#-------------------------------------------------------------------------------
 @login_required
 @main.route('/update_calendar', methods=['GET'])
 def update_cal():

@@ -1,15 +1,15 @@
 '''app.main.etap'''
 import copy
 from flask import g
+from flask_login import current_user
 from datetime import datetime
 import json, logging, os, subprocess
 from dateutil.parser import parse
 from datetime import datetime, date
-from app import get_keys
+from app import celery, get_keys
 from app.lib.timer import Timer
 from app.main.maps import geocode
-from logging import getLogger
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 class EtapError(Exception):
     pass
@@ -20,6 +20,46 @@ NAME_FORMAT = {
     'FAMILY': 2,
     'BUSINESS': 3
 }
+
+#-------------------------------------------------------------------------------
+def get_acct(aid, cached=True):
+
+    acct = None if cached == False else g.db['cachedAccounts'].find_one(
+        {'group':g.group, 'account.id':int(aid)})
+    return acct['account'] if acct else call('get_acct', data={'acct_id':int(aid)})
+
+#-------------------------------------------------------------------------------
+def get_gifts(ref, start_date, end_date, cache=True):
+
+    gifts = call('get_gifts', data={
+      'ref':ref,
+      'startDate': start_date.strftime("%d/%m/%Y"),
+      'endDate': end_date.strftime("%d/%m/%Y")
+    })
+
+    if cache:
+        db_cache(gifts)
+    return gifts
+
+#-------------------------------------------------------------------------------
+def get_query(name, category=None, start=None, count=None, cache=True):
+
+    try:
+        rv = call('get_query',
+          data={
+            'query':name,
+            'category':category or get_keys('etapestry')['query_category'],
+            'start':start,
+            'count':count
+          })
+    except EtapError as e:
+        raise
+
+    if not cache or type(rv['data']) != list or len(rv['data']) == 0:
+        return rv['data']
+
+    db_cache(rv['data'])
+    return rv['data']
 
 #-------------------------------------------------------------------------------
 def call(func, data=None, silence_exc=False):
@@ -77,8 +117,6 @@ def pythonify(obj):
 #-------------------------------------------------------------------------------
 def db_cache(results):
 
-    log.debug('cache() type(results)=%s', type(results))
-
     if 'type' in results[0]:
         _cache_gifts(results)
     elif 'id' in results[0]:
@@ -113,9 +151,6 @@ def _cache_gifts(gifts):
 #-------------------------------------------------------------------------------
 def _cache_accts(accts):
     '''Cache eTapestry Account objects along with their geolocation data'''
-
-    if g.group == 'wsf':
-        return
 
     log.debug('Caching Accounts...')
     timer = Timer()
@@ -167,31 +202,7 @@ def _cache_accts(accts):
     log.debug("Cached %s/%s accounts, geolocated %s. [%s]",
         n_ops, len(accts), n_geolocations, timer.clock())
 
-#-------------------------------------------------------------------------------
-def get_acct(acct_id):
 
-    acct = g.db['cachedAccounts'].find_one({'account.id':int(acct_id)})
-    return acct if acct else call('get_acct', data={'acct_id':int(acct_id)})
-
-#-------------------------------------------------------------------------------
-def get_query(name, category=None, start=None, count=None, cache=True):
-
-    try:
-        rv = call('get_query',
-          data={
-            'query':name,
-            'category':category or get_keys('etapestry')['query_category'],
-            'start':start,
-            'count':count
-          })
-    except EtapError as e:
-        raise
-
-    if not cache or type(rv['data']) != list or len(rv['data']) == 0:
-        return rv['data']
-
-    db_cache(rv['data'])
-    return rv['data']
 
 #-------------------------------------------------------------------------------
 def get_gifts(ref, start_date, end_date):

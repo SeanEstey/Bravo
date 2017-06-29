@@ -5,14 +5,20 @@ from dateutil.parser import parse
 from flask import g, request
 from app import get_keys
 from app.lib import html, mailgun
-from app.main.etap import EtapError, mod_acct, get_udf, call
+from app.main.etap import EtapError, mod_acct, get_acct, get_udf, call
 from app.lib.dt import ddmmyyyy_to_date as to_date
 from logging import getLogger
 log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def get(acct_id):
-    return call('get_acct', data={'acct_id':int(acct_id)})
+def get(aid, ref=None, sync_ytd_gifts=False):
+
+    if sync_ytd_gifts and ref:
+        from app.main.tasks import _get_gifts
+        now = date.today()
+        rv = _get_gifts.delay(ref, date(now.year,1,1), date(now.year,12,31))
+
+    return get_acct(aid)
 
 #-------------------------------------------------------------------------------
 def get_acct_by_ref(ref):

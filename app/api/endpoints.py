@@ -21,6 +21,12 @@ def _get_next_pickup():
     g.group = var('agcy')
     return func_call(donors.get_next_pickup, var('email'))
 
+@api.route('/db/backup', methods=['GET', 'POST'])
+@login_required
+def _backup_db():
+    from app.main.tasks import backup_mongo
+    return task_call(backup_mongo)
+
 @api.route('/cache/gifts', methods=['GET', 'POST'])
 @login_required
 def _api_cache_gifts():

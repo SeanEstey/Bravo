@@ -19,6 +19,13 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
+def _get_gifts(self, ref, start_date, end_date, cache=True, **rest):
+    from app.main.etap import get_gifts
+    log.debug('main.tasks._get_gifts')
+    get_gifts(ref, parse(start_date), parse(end_date))
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
 def wipe_sessions(self, **rest):
     pass
 

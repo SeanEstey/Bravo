@@ -140,9 +140,7 @@ def is_unsub():
             request.form['From'], request.form['To'])
 
         # FIXME
-
         #account = get_identity(make_response())
-
         #agency = g.db['groups'].find_one({
         #    'twilio.sms.number':request.form['To']})
 
@@ -151,7 +149,6 @@ def is_unsub():
             'Contributor has replied "%s" and opted out of SMS '\
             'notifications.' % request.form['Body'],
             options = {'ID': account['id']})
-
         return True
 
     return False

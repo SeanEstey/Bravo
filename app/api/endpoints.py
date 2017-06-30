@@ -122,11 +122,10 @@ def _preview_receipt():
 
 @api.route('/accounts/find_within_map', methods=['POST'])
 @login_required
-def _find_accts_within_map():
-    from app.main.tasks import find_accts_within_map
-    return task_call(find_accts_within_map,
-        map_title=var('map_title'),
-        blocks=loads(var('blocks')))
+def _find_zone_accts():
+    from app.main.tasks import find_zone_accounts
+    return task_call(find_zone_accounts,
+        zone=var('map_title'), blocks=loads(var('blocks')))
 
 @api.route('/agency/conf/get', methods=['POST'])
 @login_required

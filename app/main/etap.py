@@ -1,4 +1,10 @@
-'''app.main.etap'''
+# app.main.etap
+
+"""Interface for talking with eTapestry API.
+
+Uses subprocess module to run Bravo/php/call.php script w/ arguments.
+"""
+
 import copy
 from flask import g
 from flask_login import current_user
@@ -42,7 +48,7 @@ def get_gifts(ref, start_date, end_date, cache=True):
     return gifts
 
 #-------------------------------------------------------------------------------
-def get_query(name, category=None, start=None, count=None, cache=True):
+def get_query(name, category=None, start=None, count=None, cache=True, timeout=45):
 
     try:
         rv = call('get_query',
@@ -51,7 +57,8 @@ def get_query(name, category=None, start=None, count=None, cache=True):
             'category':category or get_keys('etapestry')['query_category'],
             'start':start,
             'count':count
-          })
+          },
+          timeout=timeout)
     except EtapError as e:
         raise
 
@@ -62,7 +69,7 @@ def get_query(name, category=None, start=None, count=None, cache=True):
     return rv['data']
 
 #-------------------------------------------------------------------------------
-def call(func, data=None, cache=False):
+def call(func, data=None, batch=False, cache=False, timeout=45):
     '''Call eTapestry API function from PHP script.
     Returns:
         response['result'] where response={'result':DATA, 'status':STR, 'description':ERROR_MSG}
@@ -75,6 +82,7 @@ def call(func, data=None, cache=False):
         auth['user'], auth['pw'], auth['wsdl_url'],
         func,
         'false',
+        str(timeout),
         json.dumps(data)
     ]
 

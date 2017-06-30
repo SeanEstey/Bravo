@@ -176,6 +176,11 @@ function getQueryResultStats($queryName, $queryCategory) {
     */
 
     global $nsc;
+	ini_set('max_execution_time', 120000); 
+    //curl_setopt($ch, CURLOPT_CONNECTTIMEOUT ,0); 
+    //curl_setopt($ch, CURLOPT_TIMEOUT, 400); //timeout in seconds
+    set_time_limit(0);
+
     $response = $nsc->call("getQueryResultStats", array($queryCategory, $queryName));
 
     if(is_error($nsc))

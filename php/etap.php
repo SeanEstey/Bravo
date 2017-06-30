@@ -40,9 +40,11 @@ function reset_error($nsc) {
 }
 
 //-----------------------------------------------------------------------
-function get_endpoint($user, $pass, $wsdl_url) {
+function get_endpoint($user, $pass, $wsdl_url, $timeout) {
 
-	$nsc = new nusoap_client($wsdl_url, true);
+	$nsc = new nusoap_client($wsdl_url, true, false, false, false, false, 0, $timeout);
+
+    debug_log("curl timeout=" . (string)$timeout . "s");
 
 	if(is_error($nsc))
 		return get_error($nsc, $log=True);
@@ -53,9 +55,9 @@ function get_endpoint($user, $pass, $wsdl_url) {
 		return get_error($nsc, $log=True);
 
 	if($newEndpoint != "") {
-		debug_log("couldn't acquire endpoint. using '" . $newEndpoint . "'");
+		debug_log("Trying new endpoint");
 
-		$nsc = new nusoap_client($newEndpoint, true);
+		$nsc = new nusoap_client($newEndpoint, true, false, false, false, false, 0, $timeout);
 
 	    if(is_error($nsc))
 			return get_error($nsc, $log=True);

@@ -32,30 +32,45 @@ def wipe_sessions(self, **rest):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def cache_gifts(self, **rest):
-    '''Cache Journal Entry Gifts
-    TODO: Create query for WSF'''
+    """Cache Journal Entry Gifts
+    TODO: Create query for WSF
+    """
 
-    MAX_GIFTS = 5000
-    count = DEF_COUNT = 500
-    g.group = 'vec'
-    query = 'Gift Entries [YTD]'
-    category = 'BPU: Stats'
-    idx = 0
+    BATCH_SIZE = 500
 
-    timer = Timer()
-    rv = call('getQueryResultStats',
-        data={'queryName':query, 'queryCategory':category})
-    query_size = rv['journalEntryCount']
+    series = [
+        {'name':'vec', 'category':'BPU: Stats', 'query':'Gift Entries [YTD]'},
+        {'name':'wsf', 'category':'ETW: Stats', 'query':'Gift Entries [YTD]'}
+    ]
 
-    log.info('Task: Caching gifts [Total: %s]...', query_size)
+    for group in series:
+        g.group = group['name']
+        timer = Timer()
+        start = 0
+        count = BATCH_SIZE
+        n_total = call(
+            'getQueryResultStats',
+            data={'queryName':group['query'], 'queryCategory':group['category']},
+            timeout=0
+        )['journalEntryCount']
 
-    while idx < query_size:
-        if idx + count > query_size:
-            count = (idx + count) - query_size
+        log.info('Task: Caching gifts [Total: %s]...', n_total)
 
-        results = get_query(query, category=category,
-            start=idx, count=count, cache=True)
-        idx += DEF_COUNT
+        while start < n_total:
+            results = get_query(
+                group['query'],
+                category=group['category'],
+                start=start,
+                count=count,
+                cache=True,
+                timeout=60)
+
+            log.debug('Retrieved %s/%s gifts', start+count, n_total)
+
+            start += BATCH_SIZE
+
+            if start + count > n_total:
+                count = start + count - n_total
 
     log.info('Task: Completed [%s]', timer.clock())
 
@@ -92,7 +107,7 @@ def health_check(self, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def find_accts_within_map(self, map_title=None, blocks=None, **rest):
+def find_zone_accounts(self, zone=None, blocks=None, **rest):
     '''Called from API via client user.'''
 
     from app.main.etap import get_query
@@ -100,13 +115,13 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
     from app.main.socketio import smart_emit
 
     log.info('Task: Searching zone matches...',
-        extra={'blocks':blocks, 'map':map_title})
+        extra={'blocks':blocks, 'map':zone})
 
     timer = Timer()
     target_map = None
 
     for m in g.db.maps.find_one({'agency':g.group})['features']:
-        if map_title == m['properties']['name']:
+        if zone == m['properties']['name']:
             target_map = m
             break
 
@@ -151,7 +166,7 @@ def find_accts_within_map(self, map_title=None, blocks=None, **rest):
 
     for acct in matches:
         values.append([
-            map_title, acct['id'], acct['address'], acct['name'],
+            zone, acct['id'], acct['address'], acct['name'],
             get_udf('Block',acct), get_udf('Neighborhood',acct), get_udf('Status',acct),
             get_udf('Signup Date',acct), get_udf('Next Pickup Date',acct),
             get_udf('Driver Notes',acct), get_udf('Office Notes',acct)
@@ -306,6 +321,11 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
             log.debug('Chunk %s/%s uploaded/written to Sheets.', n+1, len(chks),
                 extra={'n_success':r['n_success'], 'n_errs':r['n_errs']})
 
+    # Now update cachedAccounts
+    for entry in entries:
+        cached = g.db['cachedAccounts'].find_one({'account.id':entry['acct_id']})
+        # entry['udf']: {'Status':VAL, 'Next Pickup Date':VAL}
+
     log.info('Task completed. %s entries processed. [%s]',
         len(entries), timer.clock(), extra={'n_errs':n_errs})
     return 'success'
@@ -365,36 +385,40 @@ def send_receipts(self, entries, **rest):
     for i in range(0, len(chks)):
         rv = []
         chk = chks[i]
+
         for acct_data in chk:
-            rv.append(generate(
+            result = generate(
                 acct_data['acct'],
                 acct_data['entry'],
-                ytd_gifts=acct_data['ytd_gifts']))
+                ytd_gifts=acct_data['ytd_gifts'])
+
+            rv.append(result)
 
         range_ = '%s:%s' %(
             to_range(chk[0]['entry']['ss_row'], status_col),
             to_range(chk[-1]['entry']['ss_row'], status_col))
 
-        values = [[rv[idx]['status']] for idx in range(len(rv))]
-        wks_values = get_values(service, g.ss_id, wks, range_)
+        w_values = [[rv[idx]['status'].upper()] for idx in range(len(rv))]
 
-        for idx in range(0, len(wks_values)):
-            if wks_values[idx][0] == CHECKMK:
-                values[idx][0] = CHECKMK
-            elif wks_values[idx][0] == u'No Email':
-                values[idx][0] = 'No Email'
+        #r_values = get_values(service, g.ss_id, wks, range_)
+        #for idx in range(0, len(wks_values)):
+        #    if r_values[idx][0] == CHECKMK:
+        #        w_values[idx][0] = CHECKMK
+        #    elif r_values[idx][0] == u'No Email':
+        #        w_values[idx][0] = 'No Email'
 
         try:
-            write_rows(service, g.ss_id, wks, range_, values)
+            write_rows(service, g.ss_id, wks, range_, w_values)
         except Exception as e:
             log.exception('Error writing chunk %s to Sheets', i+1)
         else:
-            log.debug('Chunk %s/%s receipts generated/written to Sheets',
-                i+1, len(chks))
+            log.debug('Chunk %s/%s written', i+1, len(chks))
 
-    log.info('Task completed. %s receipts delivered. [%s]', len(entries), timer.clock(),
-        extra={'gifts':g.track['gifts'], 'zeros':g.track['zeros'], 'post_drops':g.track['drops'],
-               'cancels':g.track['cancels'], 'no_email':g.track['no_email']})
+    # TODO: Batch eTap "add_note" requests together
+
+    log.info('Task completed. %s receipts sent. [%s]',
+        len(entries), timer.clock(), extra={'results':g.track})
+
     return 'success'
 
 #-------------------------------------------------------------------------------

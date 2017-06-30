@@ -1,13 +1,13 @@
 '''app.main.receipts'''
 import gc, json
-from datetime import date
+from datetime import datetime, date
 from dateutil.parser import parse
 from flask import g, render_template, request
 from app import get_keys
 from . import donors
 from app.lib import html, mailgun
 from app.main.parser import title_case
-from app.lib.gsheets import update_cell, to_range, gauth, get_row
+from app.lib.gsheets import get_headers, update_cell, write_cell, to_range, gauth, get_row
 from app.lib.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
 from .etap import call, get_udf
 from logging import getLogger
@@ -26,8 +26,6 @@ def generate(acct, entry, ytd_gifts=None):
         log.debug('skipping acct w/o email')
         g.track['no_email'] +=1
         return {'mid':None, 'status': 'No Email'}
-
-    #log.debug('generate for entry=%s', entry)
 
     gift_date = parse(entry['date']).date()
     acct_status = get_udf('Status', acct)
@@ -55,35 +53,36 @@ def generate(acct, entry, ytd_gifts=None):
         path = "receipts/%s/collection_receipt.html" % g.user.agency
         subject = "Thanks for your Donation"
         g.track['gifts'] +=1
-
-    r_title = path.split('/')[-1]
+    else:
+        raise Exception('Unknown receipt category')
 
     try:
-        mid = deliver(acct['email'], path, subject,
+        mid = deliver(
+            acct['email'], path, subject,
             acct=acct, entry=entry, ytd_gifts=ytd_gifts)
     except Exception as e:
-        log.error('receipt error on row %s', entry['ss_row'])
-        mid = None
-        status = 'Error: %s' % str(e)
+        result = {'status':'ERROR', 'desc':str(e)}
+        log.exception('Row %s receipt error.',
+            entry['ss_row'], extra={'result':result})
     else:
-        status = 'Queued'
-        log.debug('Queued receipt to %s', acct['email'],
-            extra={
-                'row':entry['ss_row'],
-                'template': r_title,
-                'n_ytd_gifts':len(ytd_gifts) if ytd_gifts else 0,
-                'mid':mid[0:mid.find('.')]})
+        result = {'status':'QUEUED', 'mid':mid}
+        log.debug('Queued receipt to %s',
+            acct['email'], extra={'result':result})
 
-    return {'mid':mid, 'status': '%s "%s"...' %(status, title_case(r_title[0:-5]))}
+    return result
 
 #-------------------------------------------------------------------------------
 def render_body(path, acct, entry=None, ytd_gifts=None):
     '''Convert all dates in data to long format strings, render into html'''
 
-    # Bravo php returned gift histories as ISOFormat
+    history = []
+
     if ytd_gifts:
-        for je in ytd_gifts:
-            je['date'] = parse(je['date']).strftime('%B %-d, %Y')
+        for gift in ytd_gifts:
+            history.append({
+                'date':gift['gift']['date'].strftime('%B %-d, %Y'),
+                'amount': gift['gift']['amount']
+            })
 
     # Entry dates are in ISOFormat string. Convert to long format
     if entry:
@@ -99,7 +98,8 @@ def render_body(path, acct, entry=None, ytd_gifts=None):
             to= acct['email'],
             account= acct,
             entry= entry,
-            history= ytd_gifts)
+            history=history
+        )
     except Exception as e:
         log.error('render receipt template: %s', str(e))
         return False
@@ -142,8 +142,6 @@ def deliver(to, template, subject, acct, entry=None, ytd_gifts=None):
     Adds an eTapestry journal note with the content.
     '''
 
-    #log.debug('%s %s', str(data['account']['id']), template)
-
     body = render_body(template, acct, entry=entry, ytd_gifts=ytd_gifts)
 
     if body == False:
@@ -151,12 +149,11 @@ def deliver(to, template, subject, acct, entry=None, ytd_gifts=None):
         return False
 
     # Add Journal note
-    call(
-        'add_note',
-        data={
-            'acct_id': acct['id'],
-            'body': 'Receipt:\n' + html.clean_whitespace(body),
-            'date': dt_to_ddmmyyyy(parse(entry['date']))})
+    call('add_note', data={
+        'acct_id': acct['id'],
+        'body': 'Receipt:\n' + html.clean_whitespace(body),
+        'date': dt_to_ddmmyyyy(parse(entry['date']))
+    })
 
     mid = mailgun.send(to, subject, body, get_keys('mailgun'),
         v={'ss_row':entry['ss_row'], 'agcy':g.user.agency, 'type':'receipt'})
@@ -173,63 +170,61 @@ def get_ytd_gifts(acct_ref, year):
     if not acct_ref:
         return []
 
-    try:
-        je_list = call(
-            'get_gift_histories',
-            data={
-                "acct_refs": [acct_ref],
-                "start": "01/01/" + str(year),
-                "end": "31/12/" + str(year)})
+    gifts = g.db['cachedGifts'].find(
+        {'gift.accountRef':acct_ref, 'gift.date': {'$gte':datetime(year, 1, 1)}})
+
+    if not gifts:
+        return []
+    else:
+        gifts = list(gifts)
+        log.debug('Found %s cached gifts', len(gifts))
+        return gifts
+
+    """try:
+        je_list = call('get_gift_histories', data={
+            "acct_refs": [acct_ref],
+            "start": "01/01/" + str(year),
+            "end": "31/12/" + str(year)
+        })
     except Exception as e:
         log.exception('Error retrieving donation history')
         return []
     else:
         return je_list[0]
+    """
 
 #-------------------------------------------------------------------------------
 def on_delivered(agcy):
     '''Mailgun webhook called from view. Has request context'''
 
     g.group = agcy
-    log.debug('Receipt delivered to %s', request.form['recipient'])
-    row = request.form['ss_row']
-    ss_id = get_keys('google')['ss_id']
-    status = "=char(10004)" if request.form['event'] == 'delivered' else request.form['event']
+    form = request.form
+    keys = get_keys('google')
+    log.debug('Receipt delivered to %s', form['recipient'])
 
     try:
-        service = gauth(get_keys('google')['oauth'])
-        headers = get_row(service, ss_id, 'Donations', 1)
-        col = headers.index('Receipt')+1
-        update_cell(service, ss_id, 'Donations', to_range(row,col), status)
-        service = None
-        gc.collect()
+        write_cell(keys['oauth'], keys['ss_id'], 'Donations', form['ss_row'], 'Receipt', form['event'].upper())
     except Exception as e:
-        log.exception('Error updating Sheet')
+        log.error('Failed to update receipt status')
+    finally:
         service = None
-        gc.collect()
 
 #-------------------------------------------------------------------------------
 def on_dropped(agcy):
     '''Mailgun webhook called from view. Has request context'''
-    from app.main.tasks import create_rfu
 
     g.group = agcy
-    row = request.form['ss_row']
-    msg = 'Receipt to %s dropped. %s. %s' %(
-        request.form['recipient'],
-        request.form['reason'],
-        request.form.get('description'))
-
+    form = request.form
+    msg = 'Receipt to %s dropped. %s. %s' % (form['recipient'], form['reason'], form.get('description'))
+    keys = get_keys('google')
     log.info(msg)
 
-    ss_id = get_keys('google')['ss_id']
-
     try:
-        service = gauth(get_keys('google')['oauth'])
-        headers = get_row(service, ss_id, 'Donations', 1)
-        col = headers.index('Receipt')+1
-        update_cell(service, ss_id, 'Donations', to_range(row,col), request.form['event'])
+        write_cell(keys['oauth'], keys['ss_id'], 'Donations', form['ss_row'], 'Receipt', form['event'].upper())
     except Exception as e:
-        log.error('error updating sheet')
+        log.error('Failed to update receipt status')
+    finally:
+        service = None
 
+    from app.main.tasks import create_rfu
     create_rfu.delay(g.group, msg)

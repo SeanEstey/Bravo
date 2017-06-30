@@ -4,9 +4,9 @@
 	 */
 
 	require('util.php');
+	ini_set('log_errors', 1);
 	require('etap.php');
 	require('main.php');
-	ini_set('log_errors', 1);
 	ini_set('error_log', $ERROR_LOG);
 
     $t1 = start_timer();
@@ -16,9 +16,10 @@
     $wsdl_url = $argv[4];
 	$func = $argv[5];
 	$sandbox = $argv[6] === 'true'? true: false;
-	$data = json_decode($argv[7], true);
+    $timeout = (int)$argv[7];
+	$data = json_decode($argv[8], true);
 
-	$nsc = get_endpoint($username, $password, $wsdl_url);
+	$nsc = get_endpoint($username, $password, $wsdl_url, $timeout);
 	$rv = NULL;
 
 	try {

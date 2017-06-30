@@ -1,4 +1,13 @@
-'''app.lib.gservice_acct'''
+# app.lib.gservice_acct
+
+"""Authenticates Google API client libraries (Sheets/Calendar/Drive).
+
+Client libraries reference:
+    https://developers.google.com/api-client-library/python/reference/pydoc
+PyDocs for googleapiclient:
+    https://google.github.io/google-api-python-client/docs/epy/googleapiclient-module.html
+"""
+
 import logging
 import httplib2
 from oauth2client.service_account import ServiceAccountCredentials

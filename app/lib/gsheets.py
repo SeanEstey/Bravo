@@ -1,10 +1,23 @@
-'''app.lib.gsheets'''
+# app.lib.gsheets
+
+"""Library for working with Google Sheets API v4.
+
+Sheets v4 docs:
+    https://goo.gl/y5pysQ
+spreadsheets pydocs:
+    https://goo.gl/iZbKk5
+apiclient docs:
+    https://goo.gl/UyURda
+"""
+
 import logging
-from urllib2 import HTTPError
+from apiclient.errors import HttpError
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def gauth(keyfile_dict):
+    '''Returns 'spreadsheets' Resource object (documentation: goo.gl/Jy2cwP)
+    '''
 
     from .gservice_acct import auth
     return auth(
@@ -48,6 +61,15 @@ def get_headers(service, ss_id, wks):
 def get_values(service, ss_id, wks, range_):
 
     return _ss_values_get(service, ss_id, wks, range_)['values']
+
+#-------------------------------------------------------------------------------
+def write_cell(oauth, ss_id, wks, row, col_name, value):
+    '''Create service and write cell from column name'''
+
+    service = gauth(oauth)
+    hdr = get_headers(service, ss_id, wks)
+    range_ = to_range(row, hdr.index(col_name)+1)
+    _ss_values_update(service, ss_id, wks, range_, [[value]])
 
 #-------------------------------------------------------------------------------
 def update_cell(service, ss_id, wks, range_, value):
@@ -249,26 +271,29 @@ def _ss_values_get(service, ss_id, wks, range_):
 
 #-------------------------------------------------------------------------------
 def _ss_values_update(service, ss_id, wks, range_, values):
-    '''https://developers.google.com/resources/api-libraries/documentation/\
-    sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#update
+    '''
+    (shift-select url w/ mouse, right-click copy)
+    https://developers.google.com/resources/api-libraries/documentation/sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#update
+    update() returns a HTTPRequest. execute() runs it
     '''
 
     try:
-        service.spreadsheets().values().update(
-            spreadsheetId= ss_id,
-            valueInputOption= 'USER_ENTERED',
-            range= '%s!%s' % (wks, range_),
-            body = {
+        request = service.spreadsheets().values().update(
+            spreadsheetId=ss_id,
+            valueInputOption='USER_ENTERED',
+            range='%s!%s' % (wks, range_),
+            body={
                 "values": values,
                 "majorDimension": "ROWS"
             }
-        ).execute()
-    except HTTPError as e:
-        log.exception('Error updating %s worksheet: %s', str(e.reason),
-            extra={'code':e.code, 'reason':str(e.reason)})
+        )
+        request.execute(num_retries=3)
+    except HttpError as e:
+        log.exception('Error updating %s sheet. Invalid data.', wks,
+            extra={'request':request.to_json(), 'exc_msg':e.message, 'exc_args':e.args})
         raise
     except Exception as e:
-        log.exception('Error updating %s worksheet: %s', wks, e.message)
+        log.exception('Exception updating %s sheet', wks, extra={'dump':vars(e)})
         raise
 
 #-------------------------------------------------------------------------------

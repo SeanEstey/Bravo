@@ -75,6 +75,8 @@ def get_group():
         elif has_request_context():
             if session.get('agcy'):
                 return session['agcy']
+            elif session.get('group'):
+                return session['group']
 
     return 'sys'
 

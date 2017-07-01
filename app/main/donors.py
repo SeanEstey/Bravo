@@ -1,6 +1,6 @@
 '''app.main.donors'''
 import json, logging, math
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from dateutil.parser import parse
 from flask import g, request
 from app import get_keys
@@ -19,6 +19,21 @@ def get(aid, ref=None, sync_ytd_gifts=False):
         rv = _get_gifts.delay(ref, date(now.year,1,1), date(now.year,12,31))
 
     return get_acct(aid)
+
+#-------------------------------------------------------------------------------
+def ytd_gifts(ref, year):
+
+    jan_1 = datetime(year,1,1)
+    dec_31 = datetime(year,12,31)
+
+    gifts = g.db['cachedGifts'].find({
+        'group':g.group,
+        'gift.accountRef':ref,
+        'gift.date': {'$gte':jan_1, '$lte':dec_31}
+    })
+
+    log.debug('Retrieved %s cached Gifts', gifts.count())
+    return list(gifts)
 
 #-------------------------------------------------------------------------------
 def get_acct_by_ref(ref):

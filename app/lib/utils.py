@@ -4,6 +4,12 @@ from datetime import datetime, time, date
 from .dt import to_local, local_tz, convert_obj
 
 #-------------------------------------------------------------------------------
+def split_list(data, sub_len=None):
+    """Split list into equal sized sublists of sub_len size
+    """
+    return [data[i:i+sub_len] for i in xrange(0, len(data), sub_len)]
+
+#-------------------------------------------------------------------------------
 def global_vars(deep=False):
 
     if deep:

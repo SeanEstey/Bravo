@@ -65,7 +65,7 @@ def send(notific, twilio_conf):
         from_ = twilio_conf['sms']['number']
         log.debug('Queued SMS notific to %s', notific['to'])
 
-    body = html.clean_whitespace(body)
+    body = html.no_ws(body)
     http_host = env['BRV_HTTP_HOST']
     http_host = http_host.replace('https','http') if http_host.find('https') == 0 else http_host
     callback = '%s/notify/sms/status' % http_host

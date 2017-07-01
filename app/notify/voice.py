@@ -109,7 +109,7 @@ def get_speak(notific, template_path, timeout=False):
         log.exception('Error retrieving voice dialog')
         return 'Error'
 
-    speak = html.clean_whitespace(speak)
+    speak = html.no_ws(speak)
     return speak
 
 #-------------------------------------------------------------------------------

@@ -1,13 +1,13 @@
 # app.lib.gsheets
 
-"""Library for working with Google Sheets API v4.
+"""Wrapper methods for working with Google Sheets API v4.
 
 Sheets v4 docs:
     https://goo.gl/y5pysQ
 spreadsheets pydocs:
     https://goo.gl/iZbKk5
 apiclient docs:
-    https://goo.gl/UyURda
+    https://google.github.io/google-api-python-client/docs/epy/googleapiclient-module.html
 """
 
 import logging
@@ -58,6 +58,15 @@ def get_headers(service, ss_id, wks):
     return get_row(service, ss_id, wks, 1)
 
 #-------------------------------------------------------------------------------
+def get_header_column(oauth, ss_id, wks, col_name):
+
+    service = gauth(oauth)
+    hdr = get_headers(service, ss_id, wks)
+    col = hdr.index(col_name)+1
+    service = None
+    return col
+
+#-------------------------------------------------------------------------------
 def get_values(service, ss_id, wks, range_):
 
     return _ss_values_get(service, ss_id, wks, range_)['values']
@@ -70,6 +79,7 @@ def write_cell(oauth, ss_id, wks, row, col_name, value):
     hdr = get_headers(service, ss_id, wks)
     range_ = to_range(row, hdr.index(col_name)+1)
     _ss_values_update(service, ss_id, wks, range_, [[value]])
+    service = None
 
 #-------------------------------------------------------------------------------
 def update_cell(service, ss_id, wks, range_, value):
@@ -323,7 +333,7 @@ def _execute(service, ss_id, actions):
             spreadsheetId = ss_id,
             body = {
                 "requests": actions
-            }).execute()
+            }).execute(num_retries=3)
     except Exception as e:
         log.exception('Error executing batch update: %s', e.message, extra={'requests':actions})
         raise
@@ -367,7 +377,7 @@ def _ss_batch_update(service, ss_id, request, range_=None, cell=None, fields=Non
         service.spreadsheets().batchUpdate(
             spreadsheetId = ss_id,
             body = {"requests": actions}
-        ).execute()
+        ).execute(num_retries=3)
     except HTTPError as e:
         log.exception('Error batch updating %s worksheet: %s', str(e.reason),
             extra={'code':e.code, 'reason':str(e.reason)})

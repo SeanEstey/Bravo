@@ -11,9 +11,8 @@ from app.lib.gcal import gauth as gcal_auth, color_ids, get_events, evnt_date_to
 from app.lib.timer import Timer
 from .parser import get_block, is_block, is_res, is_bus, get_area, is_route_size
 from .cal import get_blocks, get_accounts
-from .etap import call, get_udf, mod_acct, get_query
+from .etap import call, get_acct, get_udf, mod_acct, get_query
 from . import donors
-from .receipts import generate, get_ytd_gifts
 from .leaderboard import update_accts, update_gifts
 log = logging.getLogger(__name__)
 
@@ -332,92 +331,112 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def send_receipts(self, entries, **rest):
-    '''Email receipts to recipients and update email status on Bravo Sheets.
-    Sheets->Routes worksheet.
-    @entries: list of dicts: {
-        'acct_id':'<int>', 'date':'dd/mm/yyyy', 'amount':'<float>',
-        'next_pickup':'dd/mm/yyyy', 'status':'<str>', 'ss_row':'<int>' }
-    '''
+def send_receipts(self, ss_gifts, **rest):
+    """Email receipts from Bravo Sheets inputs.
+
+    @ss_gifts: input list with format {acct_id:INT, date:DD/MM/YYYY, amount:FLOAT,
+    next_pickup:DD/MM/YYYY, status:STR, ss_row:INT}
+    """
+
+    from app.lib.html import no_ws
+    from app.lib.dt import dt_to_ddmmyyyy
+    from app.lib.utils import split_list
+    from app.lib.gsheets import get_header_column
+    from app.main.donors import ytd_gifts
+    from app.main.receipts import get_template, deliver
 
     timer = Timer()
-    entries = json.loads(entries)
+    ss_gifts = json.loads(ss_gifts)
+
+    log.info('Task: Processing %s receipts...', len(ss_gifts))
+
+    receipts = [] # Master list holding receipting data
+
+    for ss_gift in ss_gifts:
+        receipt = {
+            'account': get_acct(ss_gift['acct_id']),
+            'ss_gift': ss_gift
+        }
+        if receipt['account']['email']:
+            template = get_template(receipt['account'], ss_gift)
+            year = parse(ss_gift['date']).date().year
+
+            receipt.update({
+                'path': template['path'],
+                'subject': template['subject'],
+                'ytd_gifts': ytd_gifts(receipt['account']['ref'], year)
+            })
+        receipts.append(receipt)
+
+    oauth = get_keys('google')['oauth']
+    ss_id = get_keys('google')['ss_id']
     wks = 'Donations'
-    CHECKMK = u'\u2714'
-    log.info('Task: Processing %s receipts...', len(entries))
+    status_col = get_header_column(oauth, ss_id, wks, 'Receipt')
+    n_queued = 0
+    sublists = split_list(receipts, sub_len=10) # Break-up for batch updating Sheet
 
-    try:
-        # list indexes match @entries
-        accts = call(
-            'get_accts',
-            {"acct_ids": [i['acct_id'] for i in entries]})
-    except Exception as e:
-        log.exception('Error retrieving accounts from eTapestry.')
-        raise
+    # Deliver receipts in batches
 
-    log.debug('Retrieved %s accounts', len(accts))
+    for i in xrange(0, len(sublists)):
+        sublist = sublists[i]
+        log.debug('sublist len=%s', len(sublist))
 
-    accts_data = [{
-        'acct':accts[i],
-        'entry':entries[i],
-        'ytd_gifts':get_ytd_gifts(
-            accts[i].get('ref'),
-            parse(entries[i].get('date')).year)
-    } for i in range(0,len(accts))]
+        for receipt in sublist:
+            account = receipt['account']
 
-    g.track = {
-        'zeros': 0,
-        'drops': 0,
-        'cancels': 0,
-        'no_email': 0,
-        'gifts': 0
-    }
-    g.ss_id = get_keys('google')['ss_id']
-    service = gauth(get_keys('google')['oauth'])
-    g.headers = get_row(service, g.ss_id, wks, 1)
-    status_col = g.headers.index('Receipt') +1
+            if not account.get('email'):
+                receipt['result'] = {'status':'NO EMAIL'}
+                continue
 
-    # Break entries into equally sized lists for batch updating google sheet
+            try:
+                result = deliver(account, receipt['ss_gift'], receipt['ytd_gifts'])
+            except Exception as e:
+                log.exception('Failed to send receipt to %s', account['email'])
+                receipt['result'] = {
+                    'status':'ERROR',
+                    'desc':e.message,
+                    'ss_gift':receipt['ss_gift']
+                }
+            else:
+                receipt['result'] = result
+                n_queued += 1
 
-    ch_size = 10
-    chks = [accts_data[i:i + ch_size] for i in xrange(0, len(accts_data), ch_size)]
+        # Update "Receipt" Sheet column values
 
-    for i in range(0, len(chks)):
-        rv = []
-        chk = chks[i]
-
-        for acct_data in chk:
-            result = generate(
-                acct_data['acct'],
-                acct_data['entry'],
-                ytd_gifts=acct_data['ytd_gifts'])
-
-            rv.append(result)
-
-        range_ = '%s:%s' %(
-            to_range(chk[0]['entry']['ss_row'], status_col),
-            to_range(chk[-1]['entry']['ss_row'], status_col))
-
-        w_values = [[rv[idx]['status'].upper()] for idx in range(len(rv))]
-
-        #r_values = get_values(service, g.ss_id, wks, range_)
-        #for idx in range(0, len(wks_values)):
-        #    if r_values[idx][0] == CHECKMK:
-        #        w_values[idx][0] = CHECKMK
-        #    elif r_values[idx][0] == u'No Email':
-        #        w_values[idx][0] = 'No Email'
-
+        a1_start = to_range(sublist[0]['ss_gift']['ss_row'], status_col)
+        a1_end = to_range(sublist[-1]['ss_gift']['ss_row'], status_col)
         try:
-            write_rows(service, g.ss_id, wks, range_, w_values)
+            write_rows(
+                gauth(oauth), ss_id, wks,
+                '%s:%s' % (a1_start, a1_end),
+                [[r['result']['status']] for r in sublist]
+            )
         except Exception as e:
-            log.exception('Error writing chunk %s to Sheets', i+1)
+            log.exception('Error updating receipt values')
         else:
-            log.debug('Chunk %s/%s written', i+1, len(chks))
+            log.debug('Updated Donations->Receipt column')
 
-    # TODO: Batch eTap "add_note" requests together
+    errs = [r['result'] for r in receipts if r['result']['status'] == 'ERROR']
 
-    log.info('Task completed. %s receipts sent. [%s]',
-        len(entries), timer.clock(), extra={'results':g.track})
+    log.info('Receipts queued=%s. Errors=%s [%s]',
+        n_queued, len(errs), timer.clock(stop=False))
+
+    # Add Journal Contact Notes
+
+    for receipt in receipts:
+        if receipt['result']['status'] != 'QUEUED':
+            continue
+
+        date_str = dt_to_ddmmyyyy(parse(receipt['ss_gift']['date']))
+        body = 'Receipt:\n%s' % no_ws(receipt['result']['body'])
+        call('add_note', data={
+            'acct_id': receipt['account']['id'],
+            'body': body,
+            'date': date_str
+        })
+
+    log.info('Task completed. Journal Contacts added. [%s]',
+        timer.clock(), extra={'errors':errs})
 
     return 'success'
 

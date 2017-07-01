@@ -32,7 +32,10 @@ def get_acct(aid, cached=True):
 
     acct = None if cached == False else g.db['cachedAccounts'].find_one(
         {'group':g.group, 'account.id':int(aid)})
-    return acct['account'] if acct else call('get_acct', data={'acct_id':int(aid)})
+    if acct:
+        return acct['account']
+
+    return call('get_acct', data={'acct_id':int(aid)}, cache=True)
 
 #-------------------------------------------------------------------------------
 def get_gifts(ref, start_date, end_date, cache=True):

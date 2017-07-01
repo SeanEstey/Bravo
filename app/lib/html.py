@@ -78,7 +78,7 @@ def to_div(k, v, depth=None):
     return p
 
 #-------------------------------------------------------------------------------
-def clean_whitespace(raw_html):
+def no_ws(raw_html):
     '''Strips out all HTML tags, line breaks, and extra whitespace from string'''
 
     no_lines = re.sub(r'\r|\n', '', raw_html)

@@ -126,7 +126,7 @@ def create_order(acct, warnings, api_key, shift_start, shift_end, stop_time):
 
     return routific.order(
         acct,
-        geolocation['formatted_address'],
+        "%s, %s, AB" % (acct.get('address'), acct.get('city')),
         geolocation,
         shift_start,
         shift_end,

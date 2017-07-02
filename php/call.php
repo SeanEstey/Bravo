@@ -3,23 +3,27 @@
 	 * On fail, returns {'status':'FAILED', 'description':'<str>', 'result':'<optional>'}
 	 */
 
-	require('util.php');
+    $DEBUG_LOG = '/root/bravo/logs/debug.log';
+    $INFO_LOG = '/root/bravo/logs/events.log';
+    $ERROR_LOG = '/root/bravo/logs/events.log';
 	ini_set('log_errors', 1);
+	ini_set('error_log', $ERROR_LOG);
+
+	require('util.php');
 	require('etap.php');
 	require('main.php');
-	ini_set('error_log', $ERROR_LOG);
 
     $t1 = start_timer();
 	$agcy = $argv[1];
 	$username = $argv[2];
 	$password = $argv[3];
-    $wsdl_url = $argv[4];
+    $wsdl_path = $argv[4];
 	$func = $argv[5];
 	$sandbox = $argv[6] === 'true'? true: false;
     $timeout = (int)$argv[7];
 	$data = json_decode($argv[8], true);
 
-	$nsc = get_endpoint($username, $password, $wsdl_url, $timeout);
+	$nsc = login($username, $password, $wsdl_path, $timeout);
 	$rv = NULL;
 
 	try {
@@ -111,7 +115,6 @@
 	} 
 	catch(Exception $e) {
 		$msg = 'status=EXCEPTION, func="' . $func . '"';
-		//err_log($msg);
 		debug_log($msg . ', desc="' . $e->getMessage() . '"');
 
 		echo json_encode([

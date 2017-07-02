@@ -281,7 +281,6 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
     '''
 
     CHK_SIZE = 10
-    CHECKMK = u'\u2714'
     SUCCESS = [u'Processed', u'Updated']
 
     log.info('Task: Processing %s account entries...', len(entries))
@@ -307,10 +306,11 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
             range_ = '%s:%s' %(
                 to_range(results[0]['row'], rv_col),
                 to_range(results[-1]['row'], rv_col))
-            values = [[results[i]['status']] for i in range(len(results))]
+            values = [[results[i]['status']].upper() for i in range(len(results))]
 
-            for i in range(len(values)):
-                values[i][0] = CHECKMK if values[i][0] in SUCCESS else results[i].get('description','')
+            #for i in range(len(values)):
+            #    value = values[i][0]
+            #    values[i][0] = value.upper() if value in SUCCESS else results[i].get('description','')
 
         try:
             write_rows(srvc, ss_id, wks, range_, values)
@@ -379,7 +379,6 @@ def send_receipts(self, ss_gifts, **rest):
 
     for i in xrange(0, len(sublists)):
         sublist = sublists[i]
-        log.debug('sublist len=%s', len(sublist))
 
         for receipt in sublist:
             account = receipt['account']

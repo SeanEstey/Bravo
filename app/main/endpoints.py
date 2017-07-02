@@ -23,25 +23,17 @@ def _test_sync():
 
 #-------------------------------------------------------------------------------
 @login_required
-@main.route('/test_cache_gifts', methods=['GET'])
-def _test_cache_gifts():
+@main.route('/test_fire_event', methods=['GET'])
+def _test_fire_event():
 
-    from app.main.etap import get_gifts, get_query, cache_gifts
-    from datetime import date, timedelta
-    from json import dumps
+    from bson import ObjectId as oid
+    from app.notify.tasks import fire_trigger
 
-    MAX = 2500
-    count = 0
+    evnt_id = request.args.get('eid')
+    triggers = g.db['triggers'].find({'evnt_id':oid(evnt_id)})
 
-    while count < MAX:
-        results = get_query(
-            "Gift Entries [YTD]",
-            category="BPU: Stats",
-            start=count,
-            count=500)
-        cache_gifts(results)
-        log.debug("n results=%s", len(results))
-        count += 500
+    for trigger in triggers:
+        fire_trigger.delay(_id=str(trigger['_id']))
 
     return 'OK'
 

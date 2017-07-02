@@ -16,14 +16,14 @@ log = getLogger(__name__)
 @login_required
 def view_event_list():
 
-    user_msg = ""
-
-    '''if request.args.get('status') == 'logged_in':
+    """
+    user_msg=''
+    if request.args.get('status') == 'logged_in':
         user_msg = \
             "Welcome, <b>%s</b>."+\
             "There are <b>%s pending events</b> at the moment."%\
             (g.user.name, events.n_pending())
-   '''
+    """
 
     return render_template(
         'views/event_list.html',

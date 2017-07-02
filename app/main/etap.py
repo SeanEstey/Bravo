@@ -2,13 +2,10 @@
 
 """Interface for talking with eTapestry API.
 
-Uses subprocess module to run Bravo/php/call.php script w/ arguments.
+Wrapper library is in bravo/php/. Uses subprocess module to run Bravo/php/call.php script w/ arguments.
 """
 
-import copy
 from flask import g
-from flask_login import current_user
-from datetime import datetime
 import json, logging, os, subprocess
 from dateutil.parser import parse
 from datetime import datetime, date
@@ -28,50 +25,6 @@ NAME_FORMAT = {
 }
 
 #-------------------------------------------------------------------------------
-def get_acct(aid, cached=True):
-
-    acct = None if cached == False else g.db['cachedAccounts'].find_one(
-        {'group':g.group, 'account.id':int(aid)})
-    if acct:
-        return acct['account']
-
-    return call('get_acct', data={'acct_id':int(aid)}, cache=True)
-
-#-------------------------------------------------------------------------------
-def get_gifts(ref, start_date, end_date, cache=True):
-
-    gifts = call('get_gifts', data={
-      'ref':ref,
-      'startDate': start_date.strftime("%d/%m/%Y"),
-      'endDate': end_date.strftime("%d/%m/%Y")
-    })
-
-    if cache:
-        db_cache(gifts)
-    return gifts
-
-#-------------------------------------------------------------------------------
-def get_query(name, category=None, start=None, count=None, cache=True, timeout=45):
-
-    try:
-        rv = call('get_query',
-          data={
-            'query':name,
-            'category':category or get_keys('etapestry')['query_category'],
-            'start':start,
-            'count':count
-          },
-          timeout=timeout)
-    except EtapError as e:
-        raise
-
-    if not cache or type(rv['data']) != list or len(rv['data']) == 0:
-        return rv['data']
-
-    db_cache(rv['data'])
-    return rv['data']
-
-#-------------------------------------------------------------------------------
 def call(func, data=None, batch=False, cache=False, timeout=45):
     '''Call eTapestry API function from PHP script.
     Returns:
@@ -82,7 +35,8 @@ def call(func, data=None, batch=False, cache=False, timeout=45):
     cmds = [
         'php', '/root/bravo/php/call.php',
         g.group,
-        auth['user'], auth['pw'], auth['wsdl_url'],
+        auth['user'], auth['pw'],
+        auth['wsdl_path'],
         func,
         'false',
         str(timeout),
@@ -106,9 +60,10 @@ def call(func, data=None, batch=False, cache=False, timeout=45):
     return results
 
 #-------------------------------------------------------------------------------
-def pythonify(obj):
-    '''@obj: eTapestry query result obj. Either: Account or Journal Entry subtype
-    '''
+def to_datetime(obj):
+    """Convert API Object Date strings to python datetime (Account and Gift
+    supported atm).
+    """
 
     # Account
     if 'id' in obj:
@@ -148,11 +103,11 @@ def _cache_gifts(gifts):
         cached = g.db['cachedGifts'].find_one({'group':g.group, 'gift.ref':gift['ref']})
 
         if not cached:
-            bulk.insert({'group':g.group, 'gift':pythonify(gift)})
+            bulk.insert({'group':g.group, 'gift':to_datetime(gift)})
             n_ops += 1
             continue
 
-        gift = pythonify(gift)
+        gift = to_datetime(gift)
 
         if cached['gift'].get('lastModifiedDate',None) != gift.get('lastModifiedDate',None):
             bulk.find({'_id':cached['_id']}).update_one({'$set':{'gift':gift}})
@@ -198,7 +153,7 @@ def _cache_accts(accts):
             else:
                 n_geolocations += 1
 
-        acct = pythonify(acct)
+        acct = to_datetime(acct)
 
         # Skip if already up to date
         if doc and not geo_lookup and \
@@ -216,6 +171,54 @@ def _cache_accts(accts):
 
     log.debug("Cached %s/%s accounts, geolocated %s. [%s]",
         n_ops, len(accts), n_geolocations, timer.clock())
+
+###### Convenience methods #######
+
+#-------------------------------------------------------------------------------
+def get_acct(aid, cached=True):
+
+    acct = None if cached == False else g.db['cachedAccounts'].find_one(
+        {'group':g.group, 'account.id':int(aid)})
+    if acct:
+        return acct['account']
+
+    return call('get_acct', data={'acct_id':int(aid)}, cache=True)
+
+#-------------------------------------------------------------------------------
+def get_gifts(ref, start_date, end_date, cache=True):
+
+    gifts = call('get_gifts', data={
+      'ref':ref,
+      'startDate': start_date.strftime("%d/%m/%Y"),
+      'endDate': end_date.strftime("%d/%m/%Y")
+    })
+
+    if cache:
+        db_cache(gifts)
+    return gifts
+
+#-------------------------------------------------------------------------------
+def get_query(name, category=None, start=None, count=None, cache=True, timeout=45):
+
+    try:
+        rv = call('get_query',
+          data={
+            'query':name,
+            'category':category or get_keys('etapestry')['query_category'],
+            'start':start,
+            'count':count
+          },
+          timeout=timeout)
+    except EtapError as e:
+        raise
+
+    if not cache or type(rv['data']) != list or len(rv['data']) == 0:
+        return rv['data']
+
+    db_cache(rv['data'])
+    return rv['data']
+
+
 
 #-------------------------------------------------------------------------------
 def mod_acct(acct_id, udf=None, persona=[], exc=False):

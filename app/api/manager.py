@@ -87,7 +87,8 @@ def build_resp(rv=None, exc=None, name=None, timer=None):
 def var(k):
 
     if request.method != 'POST':
-        raise Exception("Only POST requests allowed with API")
+        return request.args.get(k,None)
+        #raise Exception("Only POST requests allowed with API")
 
     if request.headers["Content-Type"] == "application/json":
         from json import loads

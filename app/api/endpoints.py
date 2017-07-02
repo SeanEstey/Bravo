@@ -317,7 +317,7 @@ def _email_preview():
 def _carrier_lookup():
     return func_call(lookup_carrier, var('phone'))
 
-@api.route('/query/get', methods=['POST'])
+@api.route('/query/get', methods=['GET','POST'])
 @login_required
 def _get_query():
     from app.main.etap import get_query

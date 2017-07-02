@@ -11,6 +11,7 @@ apiclient docs:
 """
 
 import logging
+import gc
 from apiclient.errors import HttpError
 log = logging.getLogger(__name__)
 
@@ -64,6 +65,7 @@ def get_header_column(oauth, ss_id, wks, col_name):
     hdr = get_headers(service, ss_id, wks)
     col = hdr.index(col_name)+1
     service = None
+    gc.collect()
     return col
 
 #-------------------------------------------------------------------------------
@@ -80,6 +82,7 @@ def write_cell(oauth, ss_id, wks, row, col_name, value):
     range_ = to_range(row, hdr.index(col_name)+1)
     _ss_values_update(service, ss_id, wks, range_, [[value]])
     service = None
+    gc.collect()
 
 #-------------------------------------------------------------------------------
 def update_cell(service, ss_id, wks, range_, value):

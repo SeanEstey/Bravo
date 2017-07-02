@@ -1,8 +1,6 @@
 <?php
 
-$DEBUG_LOG = '/root/bravo/logs/debug.log';
-$INFO_LOG = '/root/bravo/logs/events.log';
-$ERROR_LOG = '/root/bravo/logs/events.log';
+
 $COLORS = array(
 	// styles
 	// italic and blink may not work depending of your terminal

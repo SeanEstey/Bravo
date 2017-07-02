@@ -1,5 +1,6 @@
 '''app.tasks'''
 import logging, os
+import gc
 from flask import g
 from flask_login import current_user
 from celery.task.control import revoke
@@ -106,8 +107,10 @@ def task_done(signal=None, sender=None, task_id=None, task=None, retval=None, st
                 handler._connect()
             handler.flush_to_mongo()
 
-    name = sender.name.split('.')[-1]
-    print 'COMPLETED TASK %s' % name
+    gc.collect()
+
+    task_name = sender.name.split('.')[-1]
+    print 'COMPLETED TASK %s' % task_name
 
 @task_failure.connect
 def task_failed(signal=None, sender=None, task_id=None, exception=None, traceback=None, einfo=None, *args, **kwargs):
@@ -127,6 +130,9 @@ def task_killed(sender=None, task_id=None, request=None, terminated=None, signum
     terminated. A new child worker will spawn, causing Mongo fork warnings.'''
 
     from app.lib.utils import obj_vars
+
+    gc.collect()
+
     str_req = obj_vars(request)
     name = sender.name.split('.')[-1]
     app.logger.warning('Task %s revoked', name, extra={'request':str_req})

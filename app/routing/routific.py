@@ -34,7 +34,6 @@ def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key)
         }
       },
       "options": {
-        # 'traffic': ['faster' (default), 'fast', 'normal', 'slow', 'very slow']
         "traffic": "slow",
         "shortest_distance": True
       }
@@ -64,11 +63,11 @@ def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key)
     return json.loads(r.text)['job_id']
 
 #-------------------------------------------------------------------------------
-def order(acct, formatted_address, geo, shift_start, shift_end, min_per_stop):
+def order(acct, loc_name, geo, shift_start, shift_end, min_per_stop):
     return {
       "gmaps_url": "",
       "location": {
-        "name": formatted_address,
+        "name": loc_name,
         "lat": geo.get('geometry',{}).get('location',{}).get('lat',{}),
         "lng": geo.get('geometry',{}).get('location',{}).get('lng',{})
       },

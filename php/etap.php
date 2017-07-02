@@ -1,6 +1,40 @@
 <?php
 
 require("/root/bravo/php/lib/nusoap.php");
+require("/root/bravo/php/lib/nusoap_wsdlcache.php");
+
+//-----------------------------------------------------------------------
+function login($user, $pass, $wsdl_path, $timeout) {
+    /* Acquire SOAP endpoint from WSDL file and login w/ user credentials.
+    */
+
+    $wsdl_location = realpath($wsdl_path);
+    $wsdl_cache = new nusoap_wsdlcache("/tmp"); // for caching purposes
+    $wsdl_obj = $wsdl_cache->get($wsdl_location);
+
+    if (empty($wsdl_obj)) {
+      $wsdl_obj=new wsdl($wsdl_location);
+      $wsdl_cache->put($wsdl_obj);
+    }
+
+    $nsc = new nusoap_client($wsdl_obj,true,false,false,false,false,0,$timeout);
+
+	if(is_error($nsc))
+		return get_error($nsc, $log=True);
+
+	$wsdl_url = $nsc->call('login', array($user, $pass));
+
+	if($wsdl_url != "") {
+		debug_log("Redirected to new WSDL url");
+		$nsc = new nusoap_client($wsdl_url,true,false,false,false,false,0,$timeout);
+		$nsc->call("login", array($user, $pass));
+        return $nsc;
+	}
+    else
+        return $nsc;
+
+	//$nsc = new nusoap_client($wsdl_url, true, false, false, false, false, 0, $timeout);
+}
 
 //-----------------------------------------------------------------------
 function is_error($nsc) {
@@ -40,37 +74,6 @@ function reset_error($nsc) {
 }
 
 //-----------------------------------------------------------------------
-function get_endpoint($user, $pass, $wsdl_url, $timeout) {
-
-	$nsc = new nusoap_client($wsdl_url, true, false, false, false, false, 0, $timeout);
-
-    debug_log("curl timeout=" . (string)$timeout . "s");
-
-	if(is_error($nsc))
-		return get_error($nsc, $log=True);
-
-	$newEndpoint = $nsc->call('login', array($user, $pass));
-
-	if(is_error($nsc))
-		return get_error($nsc, $log=True);
-
-	if($newEndpoint != "") {
-		debug_log("Trying new endpoint");
-
-		$nsc = new nusoap_client($newEndpoint, true, false, false, false, false, 0, $timeout);
-
-	    if(is_error($nsc))
-			return get_error($nsc, $log=True);
-
-		$nsc->call("login", array($user, $pass));
-
-	    if(is_error($nsc))
-			return get_error($nsc, $log=True);
-	}
-	return $nsc;
-}
-
-//-----------------------------------------------------------------------
 function get_udf($acct, $field) {
     /* Return list of values for matching DefinedValue object(s), false if
        none found
@@ -88,11 +91,6 @@ function get_udf($acct, $field) {
         return $values;
     else
         return false;
-}
-
-//-----------------------------------------------------------------------
-function sandbox_err($func) {
-    return 'sandbox mode blocked func="' . $func . '" to prevent write(s) to eTap';
 }
 
 //-----------------------------------------------------------------------
@@ -115,6 +113,11 @@ function format_date($dateStr) {
     	return date(DATE_ATOM, mktime(0, 0, 0, $month, $day, $year));
     else
     	return "[Invalid Date: $dateStr]";
+}
+
+//-----------------------------------------------------------------------
+function sandbox_err($func) {
+    return 'sandbox mode blocked func="' . $func . '" to prevent write(s) to eTap';
 }
 
 ?>

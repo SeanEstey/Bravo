@@ -1,13 +1,12 @@
 # app.lib.gsheets_cls
 
-import logging
-import re
+import gc, logging, re
 from app import get_keys
-import gc
-from apiclient.errors import HttpError
-log = logging.getLogger(__name__)
+from .timer import Timer
 from .gsheets import gauth, to_range, _ss_get, _ss_values_get, _ss_values_update
 from .gsheets import _ss_values_append, _execute, _ss_batch_update
+log = logging.getLogger(__name__)
+
 
 #-------------------------------------------------------------------------------
 class SS():
@@ -45,19 +44,16 @@ class SS():
 	"""
 
     def wks(self, name):
-
         for sheet in self.ssObj['sheets']:
             if sheet['properties']['title'] == name:
                 return Wks(self.service, self.ss_id, sheet)
                 break
 
     def __init__(self, oauth, ss_id):
-
         self.service = gauth(oauth)
         self.ss_id = ss_id
         self.ssObj = _ss_get(self.service, self.ss_id)
         self.propObj = self.ssObj['properties']
-
         log.debug('Opened "%s" ss.', self.propObj['title'])
 
 
@@ -67,7 +63,9 @@ class Wks():
     service = None
     ss_id = None
     title = None
+    headerValues = None # Cached
     sheetObj = None # Sheet resource:
+
     """
           "properties": {
               object(SheetProperties)
@@ -113,12 +111,10 @@ class Wks():
     """
 
     def _refresh(self):
-
         self.sheetObj = _ss_get(self.service, self.ss_id)
         self.propObj = self.sheetObj['properties']
 
     def _getLastRow(self):
-
         start = to_range(1,1)
         end = to_range(self.numRows(), self.numColumns())
         val_rng = _ss_values_get(
@@ -136,26 +132,38 @@ class Wks():
         return lastDataRow
 
     def numColumns(self):
-
         return self.propObj['gridProperties']['columnCount']
 
     def numRows(self):
-
         return self.propObj['gridProperties']['rowCount']
 
     def getRow(self, row):
-
         a1 = '%s:%s' % (str(row),str(row))
         return _ss_values_get(
             self.service, self.ss_id, self.title, a1)['values'][0]
 
-    def getRows(self, a1):
-
+    def getValues(self, a1):
         return _ss_values_get(
             self.service, self.ss_id, self.title, a1)['values']
 
-    def appendRows(self, values):
+    def updateCell(self, value, row=None, col=None, col_name=None):
+        if not col_name:
+            _ss_values_update(
+                self.service, self.ss_id, self.title, to_range(row,col), [[value]])
+        else:
+            hdr = self.get_row(1)
+            a1 = to_range(row, hdr.index(col_name)+1)
+            _ss_values_update(
+                self.service, self.ss_id, self.title, a1, [[value]])
 
+        self._refresh()
+
+    def updateRange(self, a1, values):
+        _ss_values_update(
+            self.service, self.ss_id, self.title, a1, values)
+        self._refresh()
+
+    def appendRows(self, values):
         lastRow = self._getLastRow()
         a1_start = to_range(lastRow + 1,1)
         a1_end = to_range(lastRow + 1 + len(values), self.numColumns())
@@ -170,21 +178,7 @@ class Wks():
 
         self._refresh()
 
-    def updateCell(self, value, row=None, col=None, col_name=None):
-
-        if not col_name:
-            _ss_values_update(
-                self.service, self.ss_id, self.title, to_range(row,col), [[value]])
-        else:
-            hdr = self.get_row(1)
-            a1 = to_range(row, hdr.index(col_name)+1)
-            _ss_values_update(
-                self.service, self.ss_id, self.title, a1, [[value]])
-
-        self._refresh()
-
     def __init__(self, service, ss_id, sheetObj):
-
         self.service = service
         self.sheetObj = sheetObj
         self.ss_id = ss_id

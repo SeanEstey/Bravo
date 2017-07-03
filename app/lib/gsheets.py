@@ -12,7 +12,7 @@ apiclient docs:
 
 import logging
 import gc
-from apiclient.errors import HttpError
+from googleapiclient.errors import HttpError
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

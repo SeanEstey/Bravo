@@ -1,5 +1,5 @@
 '''app.main.endpoints'''
-import json, time
+import json, logging, time
 from flask import g, jsonify, request
 from flask_login import login_required
 from app import colors as c
@@ -7,8 +7,7 @@ from app.lib.mailgun import dump
 from app.booker import book
 from . import donors, main, receipts, signups
 from .tasks import create_rfu
-from logging import getLogger
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 @login_required
 @main.route('/test_ss', methods=['GET'])
@@ -21,25 +20,9 @@ def _test_ss():
     oauth = get_keys('google')['oauth']
 
     ss = SS(oauth, ss_id)
-    wks = ss.wks("Donations")
-    wks.appendRows([
-        ['a',1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-        ['BBB',1,1,1,1,1,1,15,'',None,1,1,1,1,1]
-    ])
-
+    wks = ss.wks("Donations").updateRange("G2:G4", [["ok"],["yes"],["maybe"]])
 
     return 'ok'
-
-#-------------------------------------------------------------------------------
-@login_required
-@main.route('/test_sync', methods=['GET'])
-def _test_sync():
-
-    from app.main.donors import get
-    ref = "550.0.62768186"
-    aid = 2043
-    acct = get(aid, ref=ref, sync_ytd_gifts=True)
-    return acct['name']
 
 #-------------------------------------------------------------------------------
 @login_required
@@ -61,8 +44,8 @@ def _test_fire_event():
 @login_required
 @main.route('/update_calendar', methods=['GET'])
 def update_cal():
-    from app.main.tasks import update_calendar_blocks
-    update_calendar_blocks.delay(agcy=g.user.agency)
+    from app.main.tasks import update_calendar
+    update_calendar.delay(agcy=g.user.agency)
     return 'success'
 
 #-------------------------------------------------------------------------------

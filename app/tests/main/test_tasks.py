@@ -69,7 +69,7 @@ class MainTasksTests(unittest.TestCase):
 
     def _test_update_cal_routes(self):
         try:
-            tasks.update_calendar_blocks(
+            tasks.update_calendar(
                 from_=date(2017,4,24),
                 to=date(2017,4,28))
         except Exception as e:

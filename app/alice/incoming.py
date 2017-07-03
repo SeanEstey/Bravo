@@ -51,7 +51,7 @@ def find_kw_matches(message, kws):
     words = message.upper().translate(
         None,
         string.punctuation
-    ).split(' ')
+    ).split()
 
     matches = []
 

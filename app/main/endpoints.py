@@ -10,6 +10,25 @@ from .tasks import create_rfu
 from logging import getLogger
 log = getLogger(__name__)
 
+@login_required
+@main.route('/test_ss', methods=['GET'])
+def _test_ss():
+
+    from app import get_keys
+    from app.lib.gsheets_cls import SS, Wks
+
+    ss_id = get_keys('google')['ss_id']
+
+    ss = SS(ss_id)
+    wks = ss.wks("Donations")
+    wks.appendRows([
+        ['a',1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        ['BBB',1,1,1,1,1,1,15,'',None,1,1,1,1,1]
+    ])
+
+
+    return 'ok'
+
 #-------------------------------------------------------------------------------
 @login_required
 @main.route('/test_sync', methods=['GET'])

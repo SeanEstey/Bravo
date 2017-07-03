@@ -96,7 +96,8 @@ def append_row(service, ss_id, wks_title, values):
     _ss_values_append(
         service,
         ss_id,
-        '%s!%s:%s' % (wks_title, n_rows+1, n_rows+1),
+        wks_title,
+        '%s:%s' % (n_rows+1, n_rows+1),
         [values]
     )
 
@@ -267,8 +268,8 @@ def _ss_values_get(service, ss_id, wks, range_):
         ],
     }
 
-    pydocs: https://developers.google.com/resources/api-libraries/documentation/\
-    sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#get
+    pydocs:
+    https://developers.google.com/resources/api-libraries/documentation/sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#get
     '''
 
     try:
@@ -310,7 +311,7 @@ def _ss_values_update(service, ss_id, wks, range_, values):
         raise
 
 #-------------------------------------------------------------------------------
-def _ss_values_append(service, ss_id, range_, values):
+def _ss_values_append(service, ss_id, wks, range_, values):
     '''https://developers.google.com/resources/api-libraries/documentation/\
     sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#append
     '''
@@ -319,7 +320,7 @@ def _ss_values_append(service, ss_id, range_, values):
         service.spreadsheets().values().append(
             spreadsheetId= ss_id,
             valueInputOption= 'USER_ENTERED',
-            range= range_,
+            range= '%s!%s' % (wks, range_),
             body = {
                 "values": values,
                 "majorDimension": "ROWS"

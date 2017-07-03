@@ -9,8 +9,6 @@ log = logging.getLogger(__name__)
 from .gsheets import gauth, to_range, _ss_get, _ss_values_get, _ss_values_update
 from .gsheets import _ss_values_append, _execute, _ss_batch_update
 
-oauth = get_keys('google')['oauth']
-
 #-------------------------------------------------------------------------------
 class SS():
 
@@ -47,18 +45,20 @@ class SS():
 	"""
 
     def wks(self, name):
+
         for sheet in self.ssObj['sheets']:
             if sheet['properties']['title'] == name:
                 return Wks(self.service, self.ss_id, sheet)
                 break
 
-    def __init__(self, ss_id):
-        self.ss_id = ss_id
+    def __init__(self, oauth, ss_id):
+
         self.service = gauth(oauth)
+        self.ss_id = ss_id
         self.ssObj = _ss_get(self.service, self.ss_id)
         self.propObj = self.ssObj['properties']
 
-        log.debug('Opened SS')
+        log.debug('Opened "%s" ss.', self.propObj['title'])
 
 
 #-------------------------------------------------------------------------------
@@ -191,5 +191,5 @@ class Wks():
         self.propObj = sheetObj['properties']
         self.title = sheetObj['properties']['title']
 
-        log.debug('Opened %s wks', self.title)
+        log.debug('Opened "%s" wks.', self.title)
 

@@ -15,11 +15,12 @@ log = getLogger(__name__)
 def _test_ss():
 
     from app import get_keys
-    from app.lib.gsheets_cls import SS, Wks
+    from app.lib.gsheets_cls import SS
 
     ss_id = get_keys('google')['ss_id']
+    oauth = get_keys('google')['oauth']
 
-    ss = SS(ss_id)
+    ss = SS(oauth, ss_id)
     wks = ss.wks("Donations")
     wks.appendRows([
         ['a',1,1,1,1,1,1,1,1,1,1,1,1,1,1],

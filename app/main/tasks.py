@@ -109,6 +109,7 @@ def health_check(self, **rest):
 def find_zone_accounts(self, zone=None, blocks=None, **rest):
     '''Called from API via client user.'''
 
+    from app.lib.gsheets_cls import SS
     from app.main.etap import get_query
     from app.main.maps import geocode, in_map
     from app.main.socketio import smart_emit
@@ -159,22 +160,20 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
 
     # Write accounts to Bravo Sheets->Updater
 
-    ss_id = get_keys('google')['ss_id']
-    srvc = gauth(get_keys('google')['oauth'])
     values = []
 
     for acct in matches:
         values.append([
-            zone, acct['id'], acct['address'], acct['name'],
+            '', zone, acct['id'], acct['address'], acct['name'],
             get_udf('Block',acct), get_udf('Neighborhood',acct), get_udf('Status',acct),
             get_udf('Signup Date',acct), get_udf('Next Pickup Date',acct),
             get_udf('Driver Notes',acct), get_udf('Office Notes',acct)
         ])
 
-    rg = '%s:%s' %(to_range(2, 2), to_range(len(matches)+1, 12))
-
     try:
-        write_rows(srvc, ss_id, 'Accounts', rg, values)
+        ss = SS(get_keys('google')['oauth'], get_keys('google')['ss_id'])
+        wks = ss.wks("Accounts")
+        wks.appendRows(values)
     except Exception as e:
         log.exception('Error writing to Sheet')
 

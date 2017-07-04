@@ -39,8 +39,8 @@ beat_schedule = {
         'schedule': crontab(hour=7, minute=0, day_of_week='*')
     },
     'health_check': {
-        'task': 'app.main.tasks.health_check',
-        'schedule': crontab(hour='*', minute=10, day_of_week='*')
+        'task': 'app.main.tasks.sys_health_check',
+        'schedule': crontab(minute='*/10')
     },
 	'monitor_triggers': {
 		'task': 'app.notify.tasks.monitor_triggers',

@@ -35,12 +35,10 @@ def auth(keyfile_dict, name=None, scopes=None, version=None):
         raise
 
     try:
-        service = build(name, version, http=http, cache_discovery=True)
+        return build(name, version, http=http, cache_discovery=True)
     except Exception as e:
         log.exception('Error acquiring %s service: %s', name, e.message)
         raise
-    else:
-        return service
 
 #-------------------------------------------------------------------------------
 def _google_auth(json_cred):

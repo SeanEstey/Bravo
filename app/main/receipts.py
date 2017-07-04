@@ -5,9 +5,11 @@ from dateutil.parser import parse
 from flask import g, render_template, request
 from app import get_keys
 from . import donors
+from app.lib.utils import mem_check
 from app.lib import html, mailgun
 from app.main.parser import title_case
 from app.lib.gsheets import get_headers, update_cell, write_cell, to_range, gauth, get_row
+from app.lib.gsheets_cls import SS
 from app.lib.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
 from .donors import ytd_gifts
 from .etap import call, get_udf
@@ -153,11 +155,14 @@ def on_delivered(group):
     log.debug('Receipt delivered to %s', form['recipient'])
 
     try:
-        write_cell(keys['oauth'], keys['ss_id'], 'Donations', form['ss_row'], 'Receipt', form['event'].upper())
+        ss = SS(keys['oauth'], keys['ss_id'])
+        wks = ss.wks('Donations')
+        wks.updateCell(form['event'].upper(), row=form['ss_row'], col_name='Receipt')
     except Exception as e:
-        log.error('Failed to update receipt status')
+        log.exception('Failed to update receipt status')
     finally:
-        service = None
+        wks.service = None
+        ss.service = None
 
 #-------------------------------------------------------------------------------
 def on_dropped(group):
@@ -170,11 +175,14 @@ def on_dropped(group):
     log.info(msg)
 
     try:
-        write_cell(keys['oauth'], keys['ss_id'], 'Donations', form['ss_row'], 'Receipt', form['event'].upper())
+        ss = SS(keys['oauth'], keys['ss_id'])
+        wks = ss.wks('Donations')
+        wks.updateCell(form['event'].upper(), row=form['ss_row'], col_name='Receipt')
     except Exception as e:
-        log.error('Failed to update receipt status')
+        log.exception('Failed to update receipt status')
     finally:
-        service = None
+        ss.service = None
+        wks.service = None
 
     from app.main.tasks import create_rfu
     create_rfu.delay(g.group, msg)

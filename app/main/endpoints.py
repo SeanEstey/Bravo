@@ -9,35 +9,11 @@ from . import donors, main, receipts, signups
 from .tasks import create_rfu
 log = logging.getLogger(__name__)
 
-@login_required
-@main.route('/test_ss', methods=['GET'])
-def _test_ss():
-
-    from app import get_keys
-    from app.lib.gsheets_cls import SS
-
-    ss_id = get_keys('google')['ss_id']
-    oauth = get_keys('google')['oauth']
-
-    ss = SS(oauth, ss_id)
-    wks = ss.wks("Donations").updateRange("G2:G4", [["ok"],["yes"],["maybe"]])
-
-    return 'ok'
-
 #-------------------------------------------------------------------------------
-@login_required
-@main.route('/test_fire_event', methods=['GET'])
-def _test_fire_event():
-
-    from bson import ObjectId as oid
-    from app.notify.tasks import fire_trigger
-
-    evnt_id = request.args.get('eid')
-    triggers = g.db['triggers'].find({'evnt_id':oid(evnt_id)})
-
-    for trigger in triggers:
-        fire_trigger.delay(_id=str(trigger['_id']))
-
+@main.route('/health_check', methods=['POST'])
+def _health_chk():
+    from app.main.tasks import health_check
+    health_check()
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -71,7 +47,6 @@ def on_delivered():
     if not webhook:
         log.debug('%swebhook "type" not set. cannot route to handler%s',
             c.RED,c.ENDC)
-        #log.debug(request.form.to_dict())
         return 'failed'
     if webhook == 'receipt':
         receipts.on_delivered(g.group)

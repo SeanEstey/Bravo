@@ -79,6 +79,15 @@ def backup_mongo(self, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
+def sys_health_check(self, **rest):
+    """Check free mem on main Flask process
+    """
+
+    import requests
+    r = requests.post("https://bravoweb.ca/health_check")
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
 def health_check(self, **rest):
 
     from app.lib.utils import mem_check
@@ -376,6 +385,8 @@ def send_receipts(self, ss_gifts, **rest):
 
     log.info('Receipts queued=%s. Errors=%s [%s]',
         n_queued, len(errs), timer.clock(stop=False))
+
+    health_check()
 
     # Add Journal Contact Notes
 

@@ -9,3 +9,5 @@ main = Blueprint(
     template_folder='templates')
 
 from . import views
+from . import endpoints
+from . import test_endpoints

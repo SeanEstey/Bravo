@@ -91,7 +91,7 @@ def _do_receipts():
 @api.route('/account/update', methods=['POST'])
 @login_required
 def _update_acct():
-    from app.main.etap import call
+    from app.main.etapestry import call
     return func_call(call, 'modify_acct', var('acct_id'), var('udf'), var('persona'))
 
 @api.route('/accounts/update', methods=['POST'])
@@ -310,19 +310,19 @@ def _carrier_lookup():
 @api.route('/query/get', methods=['GET','POST'])
 @login_required
 def _get_query():
-    from app.main.etap import get_query
+    from app.main.etapestry import get_query
     return func_call(get_query, var('name'), category=var('category'))
 
 @api.route('/query/block_size', methods=['POST'])
 @login_required
 def _block_size():
-    from app.main.etap import block_size
+    from app.main.etapestry import block_size
     return func_call(block_size, var('category'), var('query'))
 
 @api.route('/query/route_size', methods=['POST'])
 @login_required
 def _route_size():
-    from app.main.etap import route_size
+    from app.main.etapestry import route_size
     return func_call(route_size, var('category'), var('query'), var('date'))
 
 @api.route('/routing/build', methods=['POST'])

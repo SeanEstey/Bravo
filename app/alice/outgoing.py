@@ -4,7 +4,7 @@ from datetime import datetime
 from twilio.rest import Client
 from flask import g, request, current_app
 from app import get_keys
-from app.main import etap
+from app.main import etapestry
 from app.lib.dt import to_local
 from .dialog import dialog
 from .session import save_msg
@@ -18,14 +18,14 @@ def send_welcome(etap_id):
 
     try:
         # Very slow (~750ms-2200ms)
-        acct = etap.call('get_acct', data={'acct_id': int(etap_id)})
+        acct = etapestry.call('get_acct', data={'acct_id': int(etap_id)})
     except Exception as e:
         pass
 
     if not acct:
         raise Exception('No account id %s' % etap_id)
 
-    if not etap.has_mobile(acct):
+    if not etapestry.has_mobile(acct):
         raise Exception('No mobile number for acct id %s' % etap_id)
 
     from_ = get_keys(k='twilio')['sms']['number']
@@ -44,7 +44,7 @@ def send_welcome(etap_id):
 
     msg = 'Hi %s, %s' % (name, dialog['user']['welcome'])
 
-    r = compose(msg, etap.get_phone('Mobile', acct))
+    r = compose(msg, etapestry.get_phone('Mobile', acct))
 
     return r.status
 

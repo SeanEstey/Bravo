@@ -3,8 +3,8 @@ import json
 from flask import g
 from datetime import datetime, date, timedelta
 from app import get_keys
-from .cal import get_blocks
-from .etap import call, get_query, get_udf
+from .schedule import get_blocks
+from .etapestry import call, get_query, get_udf
 from logging import getLogger
 log = getLogger(__name__)
 

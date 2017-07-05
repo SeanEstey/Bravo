@@ -8,7 +8,7 @@ from .. import get_keys, colors as c
 from app.lib import mailgun
 from app.lib.dt import to_utc, ddmmyyyy_to_dt
 from app.main.donors import get
-from app.main.etap import get_udf, NAME_FORMAT
+from app.main.etapestry import get_udf, NAME_FORMAT
 from .utils import simple_dict
 from logging import getLogger
 log = getLogger(__name__)

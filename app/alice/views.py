@@ -15,7 +15,7 @@ def show_chatlogs():
     return render_template('views/alice.html', admin=True)
 
 #-------------------------------------------------------------------------------
-@alice.route('/<groupy>/receive', methods=['POST'])
+@alice.route('/<group>/receive', methods=['POST'])
 def sms_received(group):
 
     session['group'] = group

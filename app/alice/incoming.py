@@ -7,7 +7,7 @@ import string
 from datetime import datetime, date, time, timedelta
 from flask import request, make_response, g, session
 from app import colors as c
-from app.main.etap import EtapError
+from app.main.etapestry import EtapError
 from . import keywords
 from .dialog import *
 from .phrases import *

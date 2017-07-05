@@ -3,7 +3,7 @@ import os
 from flask import g, request
 from dateutil.parser import parse
 from .. import get_keys
-from app.main.etap import get_prim_phone, EtapError, get_query, get_acct
+from app.main.etapestry import get_prim_phone, EtapError, get_query, get_acct
 from . import events, email, sms, voice, triggers, accounts
 from logging import getLogger
 log = getLogger(__name__)

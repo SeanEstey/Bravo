@@ -7,14 +7,14 @@ from flask import current_app, g, request
 from app import celery, get_keys
 from app.lib.gsheets import to_range
 from app.lib.timer import Timer
-from .etap import call, get_acct, get_udf
+from .etapestry import call, get_acct, get_udf
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def _get_gifts(self, ref, start_date, end_date, cache=True, **rest):
 
-    from app.main.etap import get_gifts
+    from app.main.etapestry import get_gifts
     log.debug('main.tasks._get_gifts')
     get_gifts(ref, parse(start_date), parse(end_date))
 
@@ -29,7 +29,7 @@ def cache_gifts(self, **rest):
     """Cache Journal Entry Gifts
     """
 
-    from .etap import get_query
+    from .etapestry import get_query
 
     BATCH_SIZE = 500
     series = [
@@ -114,7 +114,7 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
     '''Called from API via client user.'''
 
     from app.lib.gsheets_cls import SS
-    from app.main.etap import get_query
+    from app.main.etapestry import get_query
     from app.main.maps import geocode, in_map
     from app.main.socketio import smart_emit
 
@@ -408,6 +408,8 @@ def create_accounts(self, accts_json, group=None, **rest):
     @accts_json: JSON list of form data
     '''
 
+    from app.lib.gsheets_cls import SS
+
     timer = Timer()
     g.group = group
     accts = json.loads(accts_json)
@@ -515,16 +517,12 @@ def update_calendar(self, from_=date.today(), group=None, **rest):
     for group_ in groups:
         g.group = group_['name']
         end_dt = d_to_dt(today + delta(days=get_keys('main')['cal_block_delta_days']))
-        etap_conf = get_keys('etapestry')
-        oauth = get_keys('google')['oauth']
-        srvc = gauth(oauth)
-
-        log.warning('Updating calendar events...',
-            extra={'start': start_dt.strftime(d_str), 'end': end_dt.strftime(d_str)
-        })
-
+        srvc = gauth(get_keys('google')['oauth'])
         cal_ids = get_keys('cal_ids')
         n_updated = n_errs = n_warnings = 0
+
+        log.warning('Updating calendar events...',
+            extra={'start': start_dt.strftime(d_str), 'end': end_dt.strftime(d_str)})
 
         for id_ in cal_ids:
             events = get_events(srvc, cal_ids[id_], start_dt, end_dt)
@@ -541,7 +539,7 @@ def update_calendar(self, from_=date.today(), group=None, **rest):
 
                 try:
                     rv = call('get_route_size', data={
-                        'category': etap_conf['query_category'],
+                        'category': get_keys('etapestry')['query_category'],
                         'query': block,
                         'date':dt.strftime('%d/%m/%Y')})
                 except Exception as e:
@@ -613,9 +611,9 @@ def find_inactive_donors(self, group=None, in_days=5, period_=None, **rest):
     '''
 
     from app.lib.dt import ddmmyyyy_to_mmddyyyy as swap_dd_mm
-    from .cal import get_accounts
+    from .schedule import get_accounts
     from .donors import is_inactive
-    from .etap import mod_acct
+    from .etapestry import mod_acct
 
     groups = [get_keys(group=group)] if group else g.db['groups'].find()
     n_task_inactive = 0
@@ -693,7 +691,7 @@ def find_inactive_donors(self, group=None, in_days=5, period_=None, **rest):
 @celery.task(bind=True)
 def update_leaderboard_accts(self, group=None, **rest):
 
-    from .cal import get_blocks
+    from .schedule import get_blocks
     from .leaderboard import update_accts, update_gifts
 
     g.group=group

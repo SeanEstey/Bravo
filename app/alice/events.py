@@ -3,7 +3,7 @@ from flask import g, request, session
 from datetime import datetime, date, time, timedelta
 from app.lib.dt import to_local, ddmmyyyy_to_dt
 from app.lib.utils import obj_vars
-from app.main.etap import call, get_udf, EtapError
+from app.main.etapestry import call, get_udf, EtapError
 from app.booker import geo, search, book
 from .dialog import dialog
 from .util import related_notific, event_begun, set_notific_reply

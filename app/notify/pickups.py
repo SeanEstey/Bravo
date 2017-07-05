@@ -8,7 +8,7 @@ from app import get_keys, colors as c
 from app.lib import gcal
 from app.lib.dt import ddmmyyyy_to_local_dt as to_dt, to_local
 from app.main import parser
-from app.main.etap import EtapError, get_query, get_udf, get_phone, get_prim_phone
+from app.main.etapestry import EtapError, get_query, get_udf, get_phone, get_prim_phone
 from . import events, email, sms, voice, triggers, accounts
 from logging import getLogger
 log = getLogger(__name__)

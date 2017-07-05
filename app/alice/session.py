@@ -5,7 +5,7 @@ from flask_kvsession import SessionID
 from bson.objectid import ObjectId
 import cPickle as pickle
 from datetime import datetime, date, timedelta
-from app.main.etap import is_active, EtapError
+from app.main.etapestry import is_active, EtapError
 from app.main.tasks import create_rfu
 from app.lib.dt import to_local
 from app.lib.utils import obj_vars

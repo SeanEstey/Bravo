@@ -5,7 +5,7 @@ from dateutil.parser import parse
 from bson.objectid import ObjectId as oid
 from flask import g, request, jsonify, url_for
 from app import get_keys
-from app.main import cal, parser
+from app.main import schedule, parser
 from app.main.parser import is_res, is_bus
 from app.lib.utils import format_bson
 from app.lib.dt import to_utc, to_local
@@ -45,7 +45,7 @@ def create_event():
             cal_id = get_keys('cal_ids').get('res') or get_keys('cal_ids').get('routes')
 
         oauth = get_keys('google')['oauth']
-        date_ = cal.get_next_block_date(cal_id, block, oauth)
+        date_ = schedule.get_next_block_date(cal_id, block, oauth)
 
         try:
             evnt_id = create_reminder(g.group, block, date_)

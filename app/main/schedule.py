@@ -1,11 +1,12 @@
-'''app.main.cal'''
+# app.main.schedule
+
 import logging
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 from app import get_keys
 from .parser import get_block, block_to_rmv
 from app.lib import gcal
-from . import etap
+from . import etapestry
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -42,8 +43,8 @@ def get_blocks(cal_id, start_dt, end_dt, oauth):
         service = gcal.gauth(oauth)
         events = gcal.get_events(service, cal_id, start_dt, end_dt)
     except Exception as e:
-        log.error('Could not access Res calendar: %s', str(e))
-        return False
+        log.exception('Failed to retrieve Calendar events.')
+        raise
 
     for item in events:
         if get_block(item['summary']):
@@ -74,7 +75,7 @@ def get_accounts(cal_id, delta_days=None):
 
     for block in blocks:
         try:
-            accts = etap.get_query(block, category=category)
+            accts = etapestry.get_query(block, category=category)
         except Exception as e:
             log.exception('Error retrieving accounts for query %s', block)
         else:

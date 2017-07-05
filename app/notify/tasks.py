@@ -8,9 +8,9 @@ from flask import g, render_template
 from app import get_keys, celery #, smart_emit
 from app.lib.dt import to_local
 from app.lib import mailgun
-from app.main import cal
+from app.main import schedule
 from app.main.parser import is_bus
-from app.main.etap import call, EtapError
+from app.main.etapestry import call, EtapError
 from . import email, events, sms, voice, pickups, triggers
 from logging import getLogger
 log = getLogger(__name__)
@@ -136,7 +136,7 @@ def schedule_reminders(self, group=None, for_date=None, **rest):
         blocks = []
 
         for key in group_['cal_ids']:
-            blocks += cal.get_blocks(
+            blocks += schedule.get_blocks(
                 group_['cal_ids'][key],
                 datetime.combine(on_date,time(8,0)),
                 datetime.combine(on_date,time(9,0)),

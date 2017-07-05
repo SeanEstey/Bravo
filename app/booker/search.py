@@ -4,7 +4,7 @@ import re
 from flask import g
 from app import get_keys
 from app.main import parser
-from app.main.etap import call, EtapError
+from app.main.etapestry import call, EtapError
 from app.lib import gcal
 from . import geo
 from logging import getLogger

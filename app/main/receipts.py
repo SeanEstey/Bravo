@@ -12,7 +12,7 @@ from app.lib.gsheets import get_headers, update_cell, write_cell, to_range, gaut
 from app.lib.gsheets_cls import SS
 from app.lib.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
 from .donors import ytd_gifts
-from .etap import call, get_udf
+from .etapestry import call, get_udf
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -157,7 +157,7 @@ def on_delivered(group):
     try:
         ss = SS(keys['oauth'], keys['ss_id'])
         wks = ss.wks('Donations')
-        wks.updateCell(form['event'].upper(), row=form['ss_row'], col_name='Receipt')
+        wks.updateCell(form['event'].upper(), row=form['ss_row'], col=3)
     except Exception as e:
         log.exception('Failed to update receipt status')
     finally:
@@ -177,7 +177,7 @@ def on_dropped(group):
     try:
         ss = SS(keys['oauth'], keys['ss_id'])
         wks = ss.wks('Donations')
-        wks.updateCell(form['event'].upper(), row=form['ss_row'], col_name='Receipt')
+        wks.updateCell(form['event'].upper(), row=form['ss_row'], col=3)
     except Exception as e:
         log.exception('Failed to update receipt status')
     finally:

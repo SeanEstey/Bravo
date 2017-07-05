@@ -106,8 +106,8 @@ def send_welcome():
     '''
 
     from app.lib.dt import ddmmyyyy_to_date
-    from app.main.donors import get_acct_by_ref
-    acct = get_acct_by_ref(request.form.get('ref'))
+    from app.main.etapestry import get_acct
+    acct = get_acct(None, ref=request.form.get('ref'))
 
     udf = acct['accountDefinedValues']
     acct['accountDefinedValues'] = {

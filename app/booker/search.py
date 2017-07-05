@@ -14,7 +14,7 @@ log = getLogger(__name__)
 def get_acct_geo(acct_id):
 
     try:
-        acct = call('get_acct', data={'acct_id': re.search(r'\d{1,6}',acct_id).group(0)})
+        acct = call('get_account', data={'acct_id': re.search(r'\d{1,6}',acct_id).group(0)})
     except EtapError as e:
         log.error('Acct %s not found', acct_id)
         raise
@@ -67,7 +67,7 @@ def search(query, radius=None, weeks=None, group=None):
 
     if parser.is_account_id(query):
         try:
-            acct = call('get_acct', data={'acct_id': re.search(r'\d{1,6}',query).group(0)})
+            acct = call('get_account', data={'acct_id': re.search(r'\d{1,6}',query).group(0)})
         except EtapError as e:
             log.error('no account id %s', query)
 

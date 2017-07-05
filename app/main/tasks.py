@@ -320,7 +320,7 @@ def send_receipts(self, ss_gifts, **rest):
             'account': get_acct(ss_gift['acct_id']),
             'ss_gift': ss_gift
         }
-        if receipt['account']['email']:
+        if receipt['account'].get('email'):
             template = get_template(receipt['account'], ss_gift)
             year = parse(ss_gift['date']).date().year
 
@@ -351,7 +351,7 @@ def send_receipts(self, ss_gifts, **rest):
             try:
                 result = deliver(account, receipt['ss_gift'], receipt['ytd_gifts'])
             except Exception as e:
-                log.exception('Failed to send receipt to %s', account['email'])
+                log.exception('Failed to send receipt to %s', account.get('email'))
                 receipt['result'] = {
                     'status':'ERROR',
                     'desc':e.message,

@@ -179,15 +179,20 @@ def get_acct(aid, ref=None, cached=True):
 
     acct = None
 
-    if aid and cached == True:
+    if cached == True and aid:
         acct = g.db['cachedAccounts'].find_one({'group':g.group, 'account.id':int(aid)})
-    elif ref and cached == True:
-        acct = g.db['cachedAccounts'].find_one({'group':g.group, 'account.ref':int(ref)})
+    elif cached == True and ref:
+        acct = g.db['cachedAccounts'].find_one({'group':g.group, 'account.ref':str(ref)})
 
     if acct:
         return acct['account']
 
-    return call('get_acct', data={'acct_id':int(aid)}, cache=True)
+    if aid:
+        return call('get_account', data={'acct_id':int(aid)}, cache=True)
+    elif ref:
+        return call('get_account', data={'ref':ref}, cache=True)
+
+    raise Exception('Account not found.', extra={'aid':aid or None, 'ref':ref})
 
 #-------------------------------------------------------------------------------
 def get_gifts(ref, start_date, end_date, cache=True):

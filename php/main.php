@@ -24,33 +24,6 @@ function get_acct($id=NULL, $ref=NULL) {
 }
 
 //-----------------------------------------------------------------------
-function get_accts($acct_ids=NULL, $acct_refs=NULL) {
-
-	ini_set('max_execution_time', 30000); // IMPORTANT: To prevent fatal error timeout
-	global $nsc;
-    $list = NULL;
-    $accts = [];
-
-    if(!is_null($acct_ids))
-        $list = $acct_ids;
-    else if(!is_null($acct_refs))
-        $list = $acct_refs;
-
-    for($i=0; $i< count($list); $i++) {
-        try {
-            if(!is_null($acct_ids))
-                $accts[] = get_acct($id=$list[$i], NULL);
-            else if(!is_null($acct_refs))
-                $accts[] = get_acct(NULL, $ref=$list[$i]);
-        } catch (Exception $e) {
-            $accts[] = ["ref"=>null, "message"=>(string)$e];
-            reset_error($nsc);
-        }
-    }
-    return $accts;
-}
-
-//-----------------------------------------------------------------------
 function get_query($query, $category, $start=NULL, $count=NULL) {
 
 	global $nsc;

@@ -18,7 +18,7 @@ def send_welcome(etap_id):
 
     try:
         # Very slow (~750ms-2200ms)
-        acct = etapestry.call('get_acct', data={'acct_id': int(etap_id)})
+        acct = etapestry.call('get_account', data={'acct_id': int(etap_id)})
     except Exception as e:
         pass
 

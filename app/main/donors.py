@@ -36,10 +36,6 @@ def ytd_gifts(ref, year):
     return list(gifts)
 
 #-------------------------------------------------------------------------------
-def get_acct_by_ref(ref):
-    return call('get_acct_by_ref', data={'ref':ref})
-
-#-------------------------------------------------------------------------------
 def get_next_pickup(email):
     return call('get_next_pickup', data={'email':email})
 

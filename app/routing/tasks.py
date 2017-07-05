@@ -1,4 +1,5 @@
-'''app.routing.tasks'''
+# app.routing.tasks
+
 import logging, json, re, pytz
 from time import sleep
 from bson import ObjectId as oid
@@ -26,7 +27,6 @@ def discover_routes(self, group, within_days=5, **rest):
     g.group = group
 
     from app.main.socketio import smart_emit
-
 
     sleep(3)
 

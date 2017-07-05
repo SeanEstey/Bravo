@@ -90,7 +90,7 @@ def append_to(route):
         request.form['block'], request.form['date'])
     log.debug('appending to ss_id "%s"', route['ss']['id'])
 
-    acct = call('get_acct', data={'acct_id': request.form['aid']})
+    acct = call('get_account', data={'acct_id': request.form['aid']})
 
     service = gsheets.gauth(get_keys('google')['oauth'])
 

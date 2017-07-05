@@ -28,6 +28,16 @@
 
 	try {
 		switch($func) {
+			case 'get_query':
+				$rv = get_query($data['query'], $data['category'],
+                    arr_get($data, 'start', null), arr_get($data, 'count', null));
+				break;
+			case 'get_account':
+				$rv = get_acct($id=arr_get($data,'acct_id'), $ref=arr_get($data,'ref'));
+                break;
+            case 'get_gifts':
+                $rv = journal_entries($data['ref'], $data['startDate'], $data['endDate'], [5]);
+                break;
 			case 'get_block_size':
 				$rv = get_block_size($data['category'], $data['query']);
 				break;
@@ -37,40 +47,15 @@
 			case 'get_next_pickup':
 				$rv = get_next_pickup($data['email']);
 				break;
-			case 'get_acct':
-				$rv = get_acct($id=$data['acct_id']);
-				break;
-			case 'get_acct_by_ref':
-				$rv = get_acct($id=NULL, $ref=$data['ref']);
-				break;
-			case 'get_accts_by_ref':
-				$rv = get_accts($acct_ids=NULL, $acct_refs=$data['acct_refs']);
-				break;
-			case 'get_accts':
-				$rv = get_accts($acct_ids=$data['acct_ids'], $acct_refs=NULL);
-				break;
 			case 'find_acct_by_phone':
 				$rv = find_acct_by_phone($data['phone']);
 				break;
             case 'donor_history':
                 $rv = journal_entries($data['ref'], $data['startDate'], $data['endDate'], [1,5]);
                 break;
-            case 'get_gifts':
-                $rv = journal_entries($data['ref'], $data['startDate'], $data['endDate'], [5]);
-                break;
-			case 'get_upload_status':
-				$rv = get_upload_status($data['request_id'], $data['from_row']);
-				break;
-			case 'get_query':
-				$rv = get_query($data['query'], $data['category'],
-                    arr_get($data, 'start', null), arr_get($data, 'count', null));
-				break;
             case 'getQueryResultStats':
                 $rv = getQueryResultStats($data['queryName'], $data['queryCategory']);
                 break;
-			case 'get_num_active_processes':
-				$rv = num_php_fpms();
-				break;
 			case 'check_duplicates':
 				$rv = check_duplicates($data);
 				break;

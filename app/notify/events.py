@@ -176,7 +176,7 @@ def get_list(group, local_time=True, max=20):
     return sorted_events
 
 #-------------------------------------------------------------------------------
-def recent(n_skip=0, n_max=20, triggers=True):
+def recent(n_skip=0, n_max=25, triggers=True):
     '''Returns list of db['events']. 
     @triggers: include list of g.db['triggers'] in each event element
     '''
@@ -192,7 +192,7 @@ def recent(n_skip=0, n_max=20, triggers=True):
     return events
 
 #-------------------------------------------------------------------------------
-def get_recent(n_skip=0, n_max=20, triggers=True, no_bson=True):
+def get_recent(n_skip=0, n_max=25, triggers=True, no_bson=True):
     '''Returns list of db['events']. 
     @triggers: include list of g.db['triggers'] in each event element
     '''

@@ -81,11 +81,11 @@ def submit_from(form, file):
           'msg':'could not upload file'
         }
 
-    agency = db['users'].find_one({'user': current_user.user_id})['agency']
+    group = db['users'].find_one({'user': current_user.user_id})['group']
 
     # B. Get schema definitions from json file
     try:
-        with open('app/templates/schemas/'+agency+'.json') as json_file:
+        with open('app/templates/schemas/'+group+'.json') as json_file:
           schemas = json.load(json_file)['reminders']
     except Exception as e:
         log.error(str(e))
@@ -141,7 +141,7 @@ def submit_from(form, file):
     # D. Create mongo 'job' and 'reminder' records
     job = {
         'name': job_name,
-        'agency': agency,
+        'agency': group,
         'schema': schema,
         #'event_dt':
         'voice': {
@@ -182,7 +182,7 @@ def submit_from(form, file):
 
         db['reminders'].insert(reminders)
 
-        log.info('[%s] Job "%s" Created [ID %s]', agency, job_name, str(job_id))
+        log.info('[%s] Job "%s" Created [ID %s]', group, job_name, str(job_id))
 
         # Special case
         #if form['template_name'] == 'etw':

@@ -46,7 +46,7 @@ def nis():
     from app.main.tasks import create_rfu
     record = request.get_json()
     create_rfu.delay(
-        g.user.agency,
+        g.group,
         '%s not in service' % record['custom']['to'],
         options={
             'ID': record['account_id'],

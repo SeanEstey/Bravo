@@ -190,7 +190,7 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
 
     from json import dumps
     from app.main.donors import get_donations
-    from app.lib.gsheets import gauth, get_row, update_cell
+    from app.lib.gsheets_cls import SS
 
     timer = Timer()
     ss_row = int(float(ss_row))
@@ -227,17 +227,11 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
 
     trend = diff / n_repeat
 
-    service = gauth(get_keys('google')['oauth'])
-    headers = get_row(service, ss_id, 'Daily', 1)
+    oauth = get_keys('google')['oauth']
+    wks = SS(oauth, ss_id).wks('Daily')
+    wks.updateCell(trend, row=ss_row, col_name='Estmt Trend')
 
-    update_cell(
-        service,
-        ss_id,
-        'Daily',
-        to_range(ss_row, headers.index('Estmt Trend')+1),
-        diff/n_repeat)
-
-    log.info('Task completed. Trend=$%.2f. [%s]', diff/n_repeat, timer.clock())
+    log.info('Task completed. Trend=$%.2f. [%s]', trend, timer.clock())
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -409,18 +403,16 @@ def send_receipts(self, ss_gifts, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def create_accounts(self, accts_json, agcy=None, **rest):
+def create_accounts(self, accts_json, group=None, **rest):
     '''Upload accounts + send welcome email, send status to Bravo Sheets
     @accts_json: JSON list of form data
     '''
 
-    from app.lib.gsheets import gauth, write_rows, get_row
-
-    CHECKMK = u'\u2714'
     timer = Timer()
-    g.group = agcy
+    g.group = group
     accts = json.loads(accts_json)
     log.info('Task: Creating %s accounts...', len(accts))
+
     # Break accts into chunks for gsheets batch updating
     ch_size = 10
     chks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
@@ -429,9 +421,9 @@ def create_accounts(self, accts_json, agcy=None, **rest):
         'n_errs': 0,
         'errors':[]}
 
-    ss_id = get_keys('google')['ss_id']
-    service = gauth(get_keys('google')['oauth'])
-    headers = get_row(service, ss_id, 'Signups', 1)
+    ss = SS(get_keys('google')['oauth'], get_keys('google')['ss_id'])
+    wks = ss.wks('Signups')
+    headers = wks.getRow(1)
 
     for i in range(0, len(chks)):
         rv = []
@@ -459,12 +451,8 @@ def create_accounts(self, accts_json, agcy=None, **rest):
             for idx in range(0, len(rv['results']))
         ]
 
-        #for j in range(len(values)):
-        #    if values[j][2] == u'Uploaded':
-        #        values[j][2] = 'COMPLETED' #CHECKMK
-
         try:
-            write_rows(service, ss_id, 'Signups', range_, values)
+            wks.updateRange(range_, values)
         except Exception as e:
             log.exception('Error writing to Bravo Sheets.')
         else:
@@ -484,14 +472,14 @@ def create_accounts(self, accts_json, agcy=None, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def create_rfu(self, agcy, note, options=None, **rest):
+def create_rfu(self, group, note, options=None, **rest):
 
-    from app.lib.gsheets import gauth, append_row, get_row
+    from app.lib.gsheets_cls import SS
 
-    g.group = agcy
-    srvc = gauth(get_keys('google')['oauth'])
-    ss_id = get_keys('google')['ss_id']
-    headers = get_row(srvc, ss_id, 'Issues', 1)
+    g.group = group
+    ss = SS(get_keys('google')['oauth'], get_keys('google')['ss_id'])
+    wks = ss.wks('Issues')
+    headers = wks.getRow(1)
 
     rfu = [''] * len(headers)
     rfu[headers.index('Description')] = note
@@ -503,13 +491,13 @@ def create_rfu(self, agcy, note, options=None, **rest):
         if options and field in options:
             rfu[headers.index(field)] = options[field]
 
-    append_row(srvc, ss_id, 'Issues', rfu)
+    wks.appendRows([rfu])
     log.debug('Creating RFU=%s', rfu)
     return 'success'
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def update_calendar(self, from_=date.today(), agcy=None, **rest):
+def update_calendar(self, from_=date.today(), group=None, **rest):
     '''Update all calendar blocks in date period with booking size/color codes.
     @from_, to_: datetime.date
     '''
@@ -518,14 +506,14 @@ def update_calendar(self, from_=date.today(), agcy=None, **rest):
     from app.lib.gcal import gauth, color_ids, get_events, evnt_date_to_dt, update_event
     from app.lib.dt import d_to_dt
 
-    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db['groups'].find()
+    groups = [get_keys(group=group)] if group else g.db['groups'].find()
     start_dt = d_to_dt(from_)
     today = date.today()
     timer = Timer()
     d_str = '%m-%d-%Y'
 
-    for agency in agcy_list:
-        g.group = agency['name']
+    for group_ in groups:
+        g.group = group_['name']
         end_dt = d_to_dt(today + delta(days=get_keys('main')['cal_block_delta_days']))
         etap_conf = get_keys('etapestry')
         oauth = get_keys('google')['oauth']
@@ -620,7 +608,7 @@ def update_calendar(self, from_=date.today(), agcy=None, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
+def find_inactive_donors(self, group=None, in_days=5, period_=None, **rest):
     '''Create RFU's for all non-participants on scheduled dates
     '''
 
@@ -629,20 +617,20 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
     from .donors import is_inactive
     from .etap import mod_acct
 
-    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db['groups'].find()
+    groups = [get_keys(group=group)] if group else g.db['groups'].find()
     n_task_inactive = 0
     timer = Timer()
 
-    for agency in agcy_list:
+    for group_ in groups:
         accts = []
         acct_matches = []
         n_inactive = 0
-        g.group = agency['name']
+        g.group = group_['name']
 
         log.warning('Identifying inactive donors...')
 
-        cal_ids = agency['cal_ids']
-        period = period_ if period_ else agency['donors']['inactive_period']
+        cal_ids = group_['cal_ids']
+        period = period_ if period_ else group_['donors']['inactive_period']
         on_date = date.today() + delta(days=in_days)
 
         log.info('Analyzing inactive donors on %s routes...', on_date.strftime('%m-%d'),
@@ -703,31 +691,31 @@ def find_inactive_donors(self, agcy=None, in_days=5, period_=None, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def update_leaderboard_accts(self, agcy=None, **rest):
+def update_leaderboard_accts(self, group=None, **rest):
 
     from .cal import get_blocks
     from .leaderboard import update_accts, update_gifts
 
-    g.group=agcy
+    g.group=group
     log.warning('Updating leaderboards...')
-    agcy_list = [get_keys(agcy=agcy)] if agcy else g.db['groups'].find()
+    groups = [get_keys(group=group)] if group else g.db['groups'].find()
     timer = Timer()
 
-    for agency in agcy_list:
-        g.group = agency['name']
+    for group_ in groups:
+        g.group = group_['name']
 
         # Get list of all scheduled blocks from calendar
         blocks = get_blocks(
-            get_keys('cal_ids',agcy=g.group)['routes'], # FIXME. only works for VEC
+            get_keys('cal_ids')['routes'], # FIXME. only works for VEC
             datetime.now(),
             datetime.now() + delta(weeks=10),
-            get_keys('google',agcy=g.group)['oauth'])
+            get_keys('google')['oauth'])
 
         for query in blocks:
             update_accts(query, g.group)
 
         # Now update gifts
-        accts = list(g.db['accts_cache'].find({'agcy':g.group}))
+        accts = list(g.db['accts_cache'].find({'group':g.group}))
         ch_size = 100
         chks = [accts[i:i + ch_size] for i in xrange(0, len(accts), ch_size)]
 

@@ -23,21 +23,16 @@ def smart_emit(event, data, room=None):
     Can be called from celery task if part of a request (will be cancelled
     otherwise).
     '''
-    #log.debug('smart_emit data=%s', data)
 
     if room:
-        #print 'smart_emit: sending to requested room=%s, event=%s' %(room,event)
         sio_client.emit(event, data, room=room)
     else:
         if current_user and current_user.is_authenticated:
-            #print 'smart_emit: sending to discovered room=%s'% current_user.agency
-            sio_client.emit(event, data, room=current_user.agency)
+            sio_client.emit(event, data, room=current_user.group)
         else:
             if not has_request_context():
                 pass
-                #print 'smart_emit: no listeners, saving energy'
             else:
-                #print 'smart_emit: broadcasting to all clients'
                 sio_client.emit(event, data)
 
 #-------------------------------------------------------------------------------
@@ -53,15 +48,13 @@ def sio_connect():
 
     if current_user.is_authenticated:
         user_id = current_user.user_id
-        room = current_user.agency
+        room = current_user.group
 
         if room not in rooms():
             join_room(room)
-            #log.debug('%s connected. room=%s', user_id, room)
             emit('joined', 'connected to room=%s' % room, room=room)
     else:
         pass
-        #print '<%s> connected' % current_user.user_id
 
 #-------------------------------------------------------------------------------
 @sio_server.on('disconnect')
@@ -70,20 +63,8 @@ def sio_disconnect():
 
     if current_user.is_authenticated:
         user_id = current_user.user_id
-        room = current_user.agency
+        room = current_user.group
         leave_room(room)
-        #print '%s leaving room=%s'%(user_id,room)
-        #print '<%s> disconnected' % (current_user.user_id)
-
-#-------------------------------------------------------------------------------
-@sio_server.on('analyze_routes')
-def do_analyze_routes():
-    log.debug('received analyze_routes req')
-    from app.routing.tasks import discover_routes
-    try:
-        discover_routes.delay(current_user.agency)
-    except Exception as e:
-        log.debug('', exc_info=True)
 
 #-------------------------------------------------------------------------------
 def dump():

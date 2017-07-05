@@ -10,7 +10,7 @@ from logging import getLogger
 log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def find_block(agcy, address, api_key):
+def find_block(group, address, api_key):
 
     r = geocode(address, api_key)
 
@@ -18,7 +18,7 @@ def find_block(agcy, address, api_key):
         log.error('couldnt geocode %s', address)
         return False
 
-    map_name = find_map(agcy, r[0]['geometry']['location'])
+    map_name = find_map(group, r[0]['geometry']['location'])
 
     if map_name:
         return map_name[0:map_name.find(' [')]
@@ -26,9 +26,9 @@ def find_block(agcy, address, api_key):
     return False
 
 #-------------------------------------------------------------------------------
-def get_maps(agcy=None):
+def get_maps(group=None):
 
-    g.group = agcy if agcy else g.user.agency
+    g.group = group if group else g.group
     maps = g.db.maps.find_one({'agency':g.group})
     return format_bson(maps, loc_time=True)
 
@@ -49,12 +49,12 @@ def in_map(pt, a_map):
         return False
 
 #-------------------------------------------------------------------------------
-def find_map(agcy, pt):
+def find_map(group, pt):
     '''@pt: {'lng':float, 'lat':float}'''
 
     log.info('find_map in pt %s', pt)
 
-    maps = g.db.maps.find_one({'agency':agcy})['features']
+    maps = g.db.maps.find_one({'agency':group})['features']
 
     for map_ in maps:
         coords = map_['geometry']['coordinates'][0]

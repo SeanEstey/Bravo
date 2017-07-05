@@ -42,7 +42,7 @@ def make():
     route = g.db.routes.find_one({
         'date': event_dt,
         'block': request.form['block'],
-        'agency': g.user.agency})
+        'group': g.group})
 
     append = True if route and route.get('ss') else False
 
@@ -107,7 +107,7 @@ def append_to(route):
         order['location']['lat'],
         order['location']['lng'])
 
-    wks = get_keys('routing',agcy=route['agency'])['gdrive']['template_orders_wks_name']
+    wks = get_keys('routing',group=route['agency'])['gdrive']['template_orders_wks_name']
 
     append_order(
         service,
@@ -121,7 +121,7 @@ def append_to(route):
 def send_confirm():
     try:
         body = render_template(
-            'email/%s/confirmation.html' % g.user.agency,
+            'email/%s/confirmation.html' % g.group,
             to = request.form['email'],
             name = request.form['first_name'],
             date_str = ddmmyyyy_to_dt(request.form['date']).strftime('%B %-d %Y'))
@@ -135,7 +135,7 @@ def send_confirm():
         'Pickup Confirmation',
         body,
         get_keys('mailgun'),
-        v={'agcy':g.user.agency, 'type':'booking'})
+        v={'group':g.group, 'type':'booking'})
 
     if mid == False:
         log.error('failed to queue email to %s', request.form['email'])
@@ -143,7 +143,7 @@ def send_confirm():
         log.debug('queued confirmation email to %s', request.form['email'])
 
 #-------------------------------------------------------------------------------
-def on_delivered(agcy=None):
+def on_delivered(group=None):
     '''Mailgun webhook called from view. Has request context'''
 
     log.debug('confirmation delivered to %s', request.form['recipient'])

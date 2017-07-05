@@ -56,7 +56,7 @@ def preview(template, state):
         name_fmt = NAME_FORMAT['INDIVIDUAL']
 
     acct = g.db.accounts.find_one({
-        'agency':g.user.agency,
+        'agency':g.group,
         'nameFormat': name_fmt,
         'udf.status': status})
 
@@ -67,7 +67,7 @@ def preview(template, state):
     path = ''
 
     if template == 'reminder':
-        path = "email/%s/reminder.html" % g.user.agency
+        path = "email/%s/reminder.html" % g.group
 
     try:
         body = render_template(path,

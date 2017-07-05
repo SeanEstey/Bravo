@@ -1,8 +1,9 @@
-'''app.main.views'''
+# app.main.views
+
 from flask import g, render_template, redirect, url_for
 from flask_login import login_required
 from app import get_keys
-from . import main
+from . import main # Blueprint
 
 @main.route('/')
 @login_required

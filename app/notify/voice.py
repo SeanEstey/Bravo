@@ -224,9 +224,8 @@ def on_complete():
     if form['CallStatus'] == 'failed':
         sleep(5)
         desc = form.get('description')
-        agency = g.db['groups'].find_one({'twilio.api.sid': form['AccountSid']})
-        keys = agency['twilio']['api']
-        client = Client(keys['sid'], keys['auth_id'])
+        g.group = g.db['groups'].find_one({'twilio.api.sid':form['AccountSid']})['name']
+        client = Client(get_keys('twilio')['api']['sid'], get_keys('twilio')['api']['auth_id'])
         call_sid = form['CallSid']
 
         for n in client.notifications.list():
@@ -241,7 +240,7 @@ def on_complete():
 
         from app.main.tasks import create_rfu
         create_rfu.delay(
-            evnt['agency'],
+            g.group,
             'Error calling %s\n. %s' %(notific['to'], desc),
             options={
                 'ID': acct['udf'].get('etap_id'),

@@ -19,7 +19,7 @@ def update_agency_conf():
 
     try:
         r = g.db['groups'].update_one(
-            {'name':g.user.agency},
+            {'name':g.group},
             {'$set':{request.form['field']:request.form['value']}}
         )
     except Exception as e:

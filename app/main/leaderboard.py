@@ -19,7 +19,7 @@ def update_accts(query):
             {'$set': {
                 'acct_id': acct['id'],
                 'ref': acct['ref'],
-                'agcy': g.group,
+                'group': g.group,
                 'name_format': acct.get('nameFormat'),
                 'neighborhood': get_udf('Neighborhood', acct)}},
             upsert=True)
@@ -58,18 +58,18 @@ def update_gifts(accts):
 
         if len(je_hist) > 0:
             g.db['accts_cache'].update_one(
-                {'ref':je_hist[0]['ref'], 'agcy':agcy},
+                {'ref':je_hist[0]['ref'], 'group':g.group},
                 {'$set': {'year':date.today().year, 'ytd': acct_total}})
 
     log.debug('updated gifts for %s accts', len(accts))
 
 #-------------------------------------------------------------------------------
-def get_all_rankings(agcy=None):
+def get_all_rankings(group=None):
 
-    g.group = agcy if agcy else g.user.agency
+    g.group = group if group else g.group
 
     rankings = g.db['accts_cache'].aggregate([
-        {'$match': {'agcy':g.group}},
+        {'$match': {'group':g.group}},
         {'$group': {
             '_id': '$neighborhood',
             'ytd': { '$sum': '$ytd'}}},
@@ -79,9 +79,9 @@ def get_all_rankings(agcy=None):
     return rankings
 
 #-------------------------------------------------------------------------------
-def get_ranking(neighborhood, agcy=None):
+def get_ranking(neighborhood, group=None):
 
-    rankings = get_all_rankings(agcy=agcy if agcy else g.user.agency)
+    rankings = get_all_rankings(group=group if group else g.group)
 
     idx = 0
     for rank in rankings:

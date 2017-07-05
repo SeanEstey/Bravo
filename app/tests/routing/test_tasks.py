@@ -29,13 +29,13 @@ class RoutingTasksTests(unittest.TestCase):
 
     def test_build_scheduled_routes(self):
         try:
-            tasks.build_scheduled_routes.delay(agcy='vec')
+            tasks.build_scheduled_routes.delay(group='vec')
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 
     def _test_build_scheduled_routes_celery(self):
         try:
-            tasks.build_scheduled_routes.delay(agcy='vec')
+            tasks.build_scheduled_routes.delay(group='vec')
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 

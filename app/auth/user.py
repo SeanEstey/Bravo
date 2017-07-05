@@ -8,7 +8,7 @@ class User():
 
     _id = ''
     user_id = ''
-    agency = ''
+    group = ''
     admin = False
     developer = False
     email = ''
@@ -69,13 +69,13 @@ class User():
             return db_user
 
     #---------------------------------------------------------------------------
-    def __init__(self, user_id, name=None, _id=None, agency=None, admin=False):
+    def __init__(self, user_id, name=None, _id=None, group=None, admin=False):
 
         self._id = _id
         self.user_id = user_id
         self.email = user_id
         self.name = name
-        self.agency = agency
+        self.group = group
         self.admin = admin
 
 class Anonymous(AnonymousUserMixin):
@@ -85,4 +85,4 @@ class Anonymous(AnonymousUserMixin):
 
         self.user_id = 'anon'
         self._id = None
-        self.agency = 'anon'
+        self.group = 'anon'

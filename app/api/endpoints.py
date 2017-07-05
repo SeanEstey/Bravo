@@ -65,7 +65,7 @@ def _save_rfu():
 @login_required
 def _create_accts():
     from app.main.tasks import create_accounts
-    return task_call(create_accounts, var('accts'), agcy=var('agcy'))
+    return task_call(create_accounts, var('accts'), group=var('agcy'))
 
 @api.route('/accounts/find', methods=['POST'])
 @login_required
@@ -205,13 +205,13 @@ def _get_maps():
 @login_required
 def _update_maps():
     from app.booker.tasks import update_maps
-    return task_call(update_maps, agcy=g.group)
+    return task_call(update_maps, group=g.group)
 
 @api.route('/booker/maps/update', methods=['POST'])
 @login_required
 def _update_booker_maps():
     from app.booker.tasks import update_maps
-    return task_call(update_maps, agcy=g.user.agency)
+    return task_call(update_maps, group=g.user.group)
 
 @api.route('/leaderboard/get', methods=['POST'])
 @login_required

@@ -38,7 +38,7 @@ def add_event():
 
     for i in range(len(accts)):
         acct_id = accounts.add(
-            g.user.agency,
+            g.group,
             evnt_id,
             accts[i]['name'],
             phone = get_prim_phone(accts[i]))

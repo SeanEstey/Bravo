@@ -1,5 +1,6 @@
 # app.main.test_endpoints
 
+from flask import g, request
 from flask_login import login_required
 from . import main
 

@@ -46,7 +46,7 @@ def get_metadata():
     '''
 
     docs = g.db.routes.find({
-        'agency': g.user.agency,
+        'agency': g.group,
         'date': {'$gte':datetime.combine(date.today(),time())}
     }).sort('date', 1)
 

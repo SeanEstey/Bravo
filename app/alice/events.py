@@ -141,7 +141,7 @@ def is_unsub():
 
         # FIXME
         #account = get_identity(make_response())
-        #agency = g.db['groups'].find_one({
+        #group = g.db['groups'].find_one({
         #    'twilio.sms.number':request.form['To']})
 
         create_rfu.delay(
@@ -178,7 +178,7 @@ def request_pickup():
 
     #set_cookie(response, 'status', None)
 
-    r = search.search(block, radius=None, weeks=None, agcy=g.group)
+    r = search.search(block, radius=None, weeks=None, group=g.group)
 
     #log.info(r['results'][0])
 
@@ -188,7 +188,6 @@ def request_pickup():
     #    r['results'][0]['name'],
     #    r['results'][0]['event']['start']['date'])
 
-    #book.make(agcy, aid, block, date_str, driver_notes, name, email, confirmation):
     from json import dumps
 
     create_rfu.delay(

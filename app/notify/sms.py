@@ -94,7 +94,7 @@ def preview(acct_id=None):
     if not acct:
         # Find one from one of the reminder events
         try:
-            evnt = g.db.events.find_one({'type':'bpu', 'agency':g.user.agency})
+            evnt = g.db.events.find_one({'type':'bpu', 'agency':g.group})
             acct = g.db.accounts.find_one({'evnt_id':evnt['_id']})
         except Exception as e:
             log.exception('Invalid event/acct for SMS preview')
@@ -102,7 +102,7 @@ def preview(acct_id=None):
 
     try:
         body = render_template(
-            'sms/%s/reminder.html' % g.user.agency,
+            'sms/%s/reminder.html' % g.group,
             account = simple_dict(acct))
     except Exception as e:
         log.exception('Error rendering SMS body. %s')

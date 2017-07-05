@@ -15,16 +15,21 @@ from app.main.etap import EtapError, get_udf
 from .main import add_metadata
 from .build import submit_job, get_solution
 from . import depots, sheet, routific
+
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def discover_routes(self, agcy, within_days=5, **rest):
+def discover_routes(self, group, within_days=5, **rest):
     '''Scans schedule for blocks, adds metadata to db'''
 
+    g.group = group
+
     from app.main.socketio import smart_emit
+
+
     sleep(3)
-    g.group = agcy
+
     smart_emit('discover_routes', {'status':'in-progress'})
     log.debug('Discovering routes...')
     n_found = 0
@@ -70,20 +75,21 @@ def discover_routes(self, agcy, within_days=5, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def build_scheduled_routes(self, agcy=None, **rest):
+def build_scheduled_routes(self, group=None, **rest):
     '''Route orders for today's Blocks and build Sheets
     '''
 
-    g.group = agcy
-    agcy_list = [get_keys()] if agcy else g.db['groups'].find()
+    groups = [get_keys(group=group)] if group else g.db['groups'].find()
 
-    for agency in agcy_list:
+    for group_ in groups:
+        g.group = group_['name']
         n_fails = n_success = 0
-        g.group = agency['name']
+
         log.info("Task: Building scheduled routes...")
 
         routes = g.db.routes.find(
             {'agency':g.group, 'date':to_local(d=date.today(),t=time(8,0))})
+
         discover_routes(g.group)
 
         for route in routes:

@@ -39,7 +39,7 @@ class NotifyTasksTests(unittest.TestCase):
     def test_schedule_reminders(self):
         try:
             #r1z_date = date(2017,4,2)
-            id_ = schedule_reminders.delay(agcy='vec') #, for_date=r1z_date)[0]
+            id_ = schedule_reminders.delay(group='vec') #, for_date=r1z_date)[0]
             evnt_ids.append(id_)
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)

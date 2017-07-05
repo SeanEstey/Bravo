@@ -14,12 +14,12 @@ from logging import getLogger
 log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def create_reminder(agcy, block, date_):
+def create_reminder(group, block, date_):
     '''Setup upcoming reminder jobs for accounts for all Blocks on schedule
     Returns: evnt_id (ObjectID) on succcess, False otherwise
     '''
 
-    g.group = agcy
+    g.group = group
 
     try:
         accts = get_query(block)
@@ -31,7 +31,7 @@ def create_reminder(agcy, block, date_):
 
     # Create event + triggers
 
-    evnt_id = events.add(agcy, block, date_, 'bpu')
+    evnt_id = events.add(group, block, date_, 'bpu')
     conf = get_keys('notify')['triggers']
     email_trig_id = triggers.add(
         evnt_id,
@@ -62,7 +62,7 @@ def create_reminder(agcy, block, date_):
                 continue
 
         acct_id = accounts.add(
-            agcy,
+            group,
             evnt_id,
             acct['name'],
             phone = get_prim_phone(acct),
@@ -82,7 +82,7 @@ def create_reminder(agcy, block, date_):
             if get_phone('Mobile', acct):
                 on_send = {
                     'source': 'template',
-                    'template': 'sms/%s/reminder.html' % agcy}
+                    'template': 'sms/%s/reminder.html' % group}
 
                 sms.add(
                     evnt_id,
@@ -95,7 +95,7 @@ def create_reminder(agcy, block, date_):
             elif get_phone('Voice', acct):
                 on_answer = {
                     'source': 'template',
-                    'template': 'voice/%s/reminder.html' % agcy}
+                    'template': 'voice/%s/reminder.html' % group}
 
                 on_interact = {
                     'module': 'app.notify.pickups',
@@ -114,7 +114,7 @@ def create_reminder(agcy, block, date_):
 
         if acct.get('email'):
             on_send = {
-                'template': 'email/%s/reminder.html' % agcy,
+                'template': 'email/%s/reminder.html' % group,
                 'subject': subject}
 
             email.add(

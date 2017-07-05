@@ -32,14 +32,14 @@ def get_acct_geo(acct_id):
     }
 
 #-------------------------------------------------------------------------------
-def search(query, radius=None, weeks=None, agcy=None):
+def search(query, radius=None, weeks=None, group=None):
     '''Search query invoked from Booker client
     @query: either Account Number, Postal Code, Address, or Block
     Returns JSON object: {'search_type': str, 'status': str, 'description': str,
     'results': array }
     '''
 
-    g.group = agcy if agcy else g.user.agency
+    g.group = group if group else g.group
 
     maps = g.db.maps.find_one({'agency':g.group})['features']
 

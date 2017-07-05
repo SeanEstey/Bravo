@@ -160,7 +160,7 @@ def is_inactive(acct, days=270):
         log.debug('accountCreatedDate=%s', acct['accountCreatedDate'])
         #acct_date = parse(acct['accountCreatedDate']).strftime("%d/%m/%Y")
         #signup_date = acct_date.split('/')
-        #mod_acct(acct['id'], get_keys('etapestry',agcy=agcy),
+        #mod_acct(acct['id'], get_keys('etapestry',group=group),
         #    udf={'Dropoff Date':signup_date, 'Signup Date':signup_date})
         return
 
@@ -195,11 +195,11 @@ def is_inactive(acct, days=270):
         return True
 
 #-------------------------------------------------------------------------------
-def unsubscribe(agcy):
+def unsubscribe(group):
     if not request.args.get('email'):
         raise Exception('no email included in unsub')
 
-    g.group = agcy
+    g.group = group
     log.debug('unsub email=%s', request.args['email'])
     conf = get_keys('mailgun')
 

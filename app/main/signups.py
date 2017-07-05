@@ -131,7 +131,7 @@ def send_welcome():
     row = int(float(request.form['row']))
     try:
         mid = mailgun.send(acct['email'], 'Welcome!', html, get_keys('mailgun'),
-            v={'agcy':g.group, 'type':'signup', 'from_row':row})
+            v={'group':g.group, 'type':'signup', 'from_row':row})
     except Exception as e:
         from app.main.tasks import create_rfu
         log.exception('Failed to send Sign-up Welcome to %s', acct['email'],
@@ -144,10 +144,10 @@ def send_welcome():
     return mid
 
 #-------------------------------------------------------------------------------
-def on_delivered(agcy):
+def on_delivered(group):
     '''Mailgun webhook called from view. Has request context'''
 
-    g.group = agcy
+    g.group = group
     log.debug('Welcome delivered to %s', request.form['recipient'])
     row = request.form['from_row']
     ss_id = get_keys('google')['ss_id']
@@ -163,10 +163,10 @@ def on_delivered(agcy):
         log.exception('Error updating Sheet')
 
 #-------------------------------------------------------------------------------
-def on_dropped(agcy):
+def on_dropped(group):
 
     from app.api.manager import dump_headers
-    g.group = agcy
+    g.group = group
     log.warning('Welcome dropped to %s', request.form['recipient'],
         extra={'headers':dump_headers(request.headers)})
     row = request.form['from_row']

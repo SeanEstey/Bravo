@@ -13,8 +13,7 @@ def do_setup():
     session.permanent = True
     g.db = current_app.db_client['bravo']
     g.user = current_user
-    # Remove session.get('agency') legacy code soon
-    g.group = session.get('agency') or session.get('group') or g.user.agency
+    g.group = session.get('group') or g.user.group
 
 #-------------------------------------------------------------------------------
 @app.after_request

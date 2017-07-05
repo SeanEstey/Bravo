@@ -15,10 +15,10 @@ def show_chatlogs():
     return render_template('views/alice.html', admin=True)
 
 #-------------------------------------------------------------------------------
-@alice.route('/<agency>/receive', methods=['POST'])
-def sms_received(agency):
+@alice.route('/<groupy>/receive', methods=['POST'])
+def sms_received(group):
 
-    session['agency'] = agency
+    session['group'] = group
 
     try:
         response = incoming.receive()

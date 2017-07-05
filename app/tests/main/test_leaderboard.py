@@ -28,13 +28,13 @@ class LeaderboardTests(unittest.TestCase):
 
     def _test_update_accts(self):
         query = 'foo'
-        agcy = 'foo'
-        leaderboard.update_accts(query, agcy)
+        group = 'vec'
+        leaderboard.update_accts(query, group)
 
     def _test_update_leaderboard_task(self):
         from app.main import tasks
         try:
-            tasks.update_leaderboard_accts.delay(agcy='vec')
+            tasks.update_leaderboard_accts.delay(group='vec')
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 

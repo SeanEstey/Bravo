@@ -8,17 +8,17 @@ log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @celery.task
-def update_maps(agcy=None, **rest):
-    '''TODO: if agcy != None, called from API. send socketio emit on complete
+def update_maps(group=None, **rest):
+    '''TODO: if group != None, called from API. send socketio emit on complete
     '''
 
-    if agcy:
-        agencies = [g.db['groups'].find_one({'name':agcy})]
+    if group:
+        groups = [g.db['groups'].find_one({'name':group})]
     else:
-        agencies = list(g.db['groups'].find({}))
+        groups = list(g.db['groups'].find({}))
 
-    for agency in agencies:
-        g.group = agency['name']
+    for group_ in groups:
+        g.group = group_['name']
         status = desc = None
         conf = g.db.maps.find_one({'agency':g.group})
 
@@ -61,7 +61,7 @@ def update_maps(agcy=None, **rest):
 
             log.warning(desc, extra={'map_id':maps['mid']})
 
-        if agcy:
+        if group:
             pass
             #smart_emit('update_maps',{
             #    'status': status,

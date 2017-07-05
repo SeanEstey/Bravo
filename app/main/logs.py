@@ -9,7 +9,7 @@ def get_logs(start=None, end=None, user=None, groups=None, tag=None, levels=None
     '''Send log entries to client app.
     @start, end: naive datetime
     @show_levels: subset of ['debug', 'info', 'warning', 'error']
-    @groups: subset of [g.user.agency, 'sys']
+    @groups: subset of [g.group, 'sys']
     '''
 
     levels = []
@@ -22,7 +22,7 @@ def get_logs(start=None, end=None, user=None, groups=None, tag=None, levels=None
         levels.append('ERROR') if lvl['name'] == 'err_lvl' else None
 
     for grp in loads(request.form['groups']):
-        groups.append(g.user.agency) if grp['name'] == 'usr_grp' else None
+        groups.append(g.group) if grp['name'] == 'usr_grp' else None
         groups.append('sys') if grp['name'] == 'sys_grp' else None
         groups.append('anon') if grp['name'] == 'anon_grp' else None
 

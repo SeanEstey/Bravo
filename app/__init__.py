@@ -36,20 +36,20 @@ class colors:
 # METHODS
 
 #-------------------------------------------------------------------------------
-def get_keys(k=None, agcy=None):
+def get_keys(k=None, group=None):
     '''Find user group configuration document
     @k: sub-document key
-    @agcy: user group name'''
+    @group: user group name'''
 
     name = None
 
-    if agcy is not None:
-        name = agcy
+    if group is not None:
+        name = group
     else:
         if g.get('group'):
             name = g.group
         elif g.get('user') and g.user.is_authenticated:
-            name = g.user.agency
+            name = g.group
 
     if name is None:
         raise Exception('no user group found in get_keys')
@@ -71,11 +71,9 @@ def get_group():
         if g.get('group'):
             return g.get('group')
         elif g.get('user'):
-            return g.get('user').agency
+            return g.get('user').group
         elif has_request_context():
-            if session.get('agcy'):
-                return session['agcy']
-            elif session.get('group'):
+            if session.get('group'):
                 return session['group']
 
     return 'sys'

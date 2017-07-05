@@ -17,13 +17,13 @@ class MainTasksTests(unittest.TestCase):
 
     def test_find_inactive_delay(self):
         try:
-            tasks.find_inactive_donors.delay(agcy='vec', in_days=2, period=270)
+            tasks.find_inactive_donors.delay(group='vec', in_days=2, period=270)
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 
     def _test_send_receipts(self):
         entry = {
-            'agcy': 'vec',
+            'group': 'vec',
             'acct_id': 269,
             'date': '1/23/2017',
             'amount': 6.00,
@@ -57,13 +57,6 @@ class MainTasksTests(unittest.TestCase):
                     'Block': 'R6A',
                     'Driver Notes': 'foo',
                     'Office Notes': 'bar'})
-        except Exception as e:
-            log.debug('exc=%s', str(e), exc_info=True)
-
-    def _test_update_accts_sms(self):
-        try:
-            print 'WRITE ME'
-            #tasks.update_accts_sms(agcy='vec')
         except Exception as e:
             log.debug('exc=%s', str(e), exc_info=True)
 

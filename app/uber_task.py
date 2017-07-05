@@ -143,7 +143,7 @@ class UberTask(Task):
                 db_user['user'],
                 name=db_user['name'],
                 _id=db_user['_id'],
-                agency=db_user['agency'],
+                group=db_user['group'],
                 admin=db_user['admin']))
             g.user = current_user
-            g.group = current_user.agency
+            g.group = current_user.group

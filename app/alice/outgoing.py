@@ -111,5 +111,5 @@ def compose(body, to, callback=None, find_session=False, event_log=True):
     return msg.status
 
 #-------------------------------------------------------------------------------
-def get_self_name(agency):
-    return g.db['groups'].find_one({'name':agency})['alice']['name']
+def get_self_name(group_name):
+    return g.db['groups'].find_one({'name':group_name})['alice']['name']

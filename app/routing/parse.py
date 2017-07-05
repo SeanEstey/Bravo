@@ -6,10 +6,10 @@ from logging import getLogger
 log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def to_dict(agency, ss_id):
+def to_dict(group, ss_id):
 
-    g.group = agency
-    conf = g.db['groups'].find_one({'name':agency})
+    g.group = group
+    conf = g.db['groups'].find_one({'name':group})
     service = gsheets.gauth(conf['google']['oauth'])
 
     # get col A-B

@@ -39,7 +39,7 @@ def add_event():
 
     for i in range(len(accts)):
         acct_id = accounts.add(
-            agency,
+            g.group,
             evnt_id,
             accts[i]['name'],
             phone = get_prim_phone(accts[i]))
@@ -51,7 +51,7 @@ def add_event():
             acct_id,
             get_prim_phone(accts[i]),
             {'source': 'template',
-             'template': 'sms/%s/announce.html' % agency}
+             'template': 'sms/%s/announce.html' % g.group}
              'url': request.form['audio_url']},
             {'module': 'app.notify.voice_announce',
              'func': 'on_interact'}

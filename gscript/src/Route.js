@@ -1,12 +1,12 @@
 function Route(){}
 
 //---------------------------------------------------------------------
-function Route(agcy, ss_id) {
+function Route(group, ss_id) {
   /* Object containing data and properties from a route SS
 
   */
   
-  this.agcy = agcy;
+  this.group = group;
   this.ss_id = ss_id;
   this.ss = SpreadsheetApp.openById(ss_id);
   this.getOrders();

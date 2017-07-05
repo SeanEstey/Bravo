@@ -1,21 +1,21 @@
 '''app.api.dms'''
 
 #-------------------------------------------------------------------------------
-def query(agency, body):
+def query(group, body):
     return True
 
 #-------------------------------------------------------------------------------
-def add_acct(agency, acct):
+def add_acct(group, acct):
     return True
 
 #-------------------------------------------------------------------------------
-def rmv_acct(agency, a_id):
+def rmv_acct(group, a_id):
     return True
 
 #-------------------------------------------------------------------------------
-def get_acct(agency, a_id):
+def get_acct(group, a_id):
     return True
 
 #-------------------------------------------------------------------------------
-def update_acct(agency, a_id, values):
+def update_acct(group, a_id, values):
     return True

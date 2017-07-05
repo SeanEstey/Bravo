@@ -35,7 +35,7 @@ def deliver(account, ss_gift, je_gifts):
 
     mid = mailgun.send(
         account['email'], subject, body, get_keys('mailgun'),
-        v={'ss_row':ss_gift['ss_row'], 'agcy':g.group, 'type':'receipt'})
+        v={'ss_row':ss_gift['ss_row'], 'group':g.group, 'type':'receipt'})
 
     return {'mid':mid, 'body':body, 'status':'QUEUED'}
 

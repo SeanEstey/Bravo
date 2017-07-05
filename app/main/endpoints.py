@@ -1,19 +1,43 @@
 '''app.main.endpoints'''
-import json, logging, time
-from flask import g, jsonify, request
+import gc, json, logging, time, os
+from flask import g, request
 from flask_login import login_required
 from app import colors as c
-from app.lib.mailgun import dump
 from app.booker import book
-from . import donors, main, receipts, signups
+from . import main # Blueprint
+from . import donors, receipts, signups
 from .tasks import create_rfu
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @main.route('/health_check', methods=['POST'])
 def _health_chk():
-    from app.main.tasks import health_check
-    health_check()
+
+    from app.lib.utils import mem_check
+
+    g.group = 'vec'
+    mem = mem_check()
+
+    if mem['free'] < 350:
+        log.debug('Low memory. %s/%s. Running garbage collection...',
+            mem['free'], mem['total'])
+
+        # Return mem back to OS for celery child processes
+        gc.collect()
+
+        # Clear cache
+        os.system('sudo sysctl -w vm.drop_caches=3')
+        os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
+
+        mem2 = mem_check()
+        log.debug('Freed %s mb', mem2['free'] - mem['free'])
+
+        if mem2['free'] < 350:
+            log.warning('Warning: low memory! 250mb recommended (%s/%s)',
+                mem2['free'], mem['total'])
+    else:
+        log.debug('Health OK. Free=%s', mem['free'])
+
     return 'OK'
 
 #-------------------------------------------------------------------------------
@@ -21,7 +45,7 @@ def _health_chk():
 @main.route('/update_calendar', methods=['GET'])
 def update_cal():
     from app.main.tasks import update_calendar
-    update_calendar.delay(agcy=g.user.agency)
+    update_calendar.delay(group=g.group)
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -42,7 +66,7 @@ def on_delivered():
     '''
 
     webhook = request.form.get('type')
-    g.group = request.form.get('agcy')
+    g.group = request.form.get('group') or request.form.get('agcy')
 
     if not webhook:
         log.debug('%swebhook "type" not set. cannot route to handler%s',
@@ -69,7 +93,7 @@ def on_dropped():
     '''
 
     webhook = request.form.get('type')
-    g.group = request.form.get('agcy')
+    g.group = request.form.get('group')
 
     if not webhook:
         log.debug('%swebhook "type" not set. cannot route to handler%s', c.RED, c.ENDC)
@@ -85,17 +109,17 @@ def on_dropped():
     return 'OK'
 
 #-------------------------------------------------------------------------------
-@main.route('/email/<agcy>/unsub', methods=['GET','POST'])
-def on_unsub(agcy):
+@main.route('/email/<group>/unsub', methods=['GET','POST'])
+def on_unsub(group):
     # Mailgun webhook
-    return donors.unsubscribe(agcy)
+    return donors.unsubscribe(group)
 
 #-------------------------------------------------------------------------------
 @main.route('/email/spam', methods=['POST'])
 def on_spam():
     # Mailgun webhook
-    agcy = 'vec' if request.form['domain'] == 'recycle.vecova.ca' else 'wsf'
-    create_rfu.delay(agcy, "%s sent spam complaint" % request.form['recipient'])
+    group = 'vec' if request.form['domain'] == 'recycle.vecova.ca' else 'wsf'
+    create_rfu.delay(group, "%s sent spam complaint" % request.form['recipient'])
     return 'OK'
 
 #-------------------------------------------------------------------------------

@@ -48,7 +48,7 @@ def create_event():
         date_ = cal.get_next_block_date(cal_id, block, oauth)
 
         try:
-            evnt_id = create_reminder(g.user.agency, block, date_)
+            evnt_id = create_reminder(g.group, block, date_)
         except Exception as e:
             log.exception('Error creating pick-up event')
             raise
@@ -136,7 +136,7 @@ def reset_event(evnt_id=None):
     log.debug('%s notifics reset', n['nModified'])
 
 #-------------------------------------------------------------------------------
-def add(agency, name, event_date, _type):
+def add(group, name, event_date, _type):
     '''Creates a new job and adds to DB
     @conf: g.db['groups']['reminders']
     Returns:
@@ -145,7 +145,7 @@ def add(agency, name, event_date, _type):
 
     return g.db.events.insert_one({
         'name': name,
-        'agency': agency,
+        'agency': group,
         'event_dt': to_utc(d=event_date, t=time(8,0)),
         'type': _type,
         'status': 'pending',
@@ -164,12 +164,12 @@ def get(evnt_id, local_time=True, triggers=True):
     return event
 
 #-------------------------------------------------------------------------------
-def get_list(agency, local_time=True, max=20):
+def get_list(group, local_time=True, max=20):
     '''Return list of all events for agency
     '''
 
     sorted_events = list(g.db.events.find(
-        {'agency':agency}).sort('event_dt',-1).limit(max))
+        {'agency':group}).sort('event_dt',-1).limit(max))
     if local_time == True:
         for event in sorted_events:
             event = to_local(obj=event)

@@ -117,27 +117,27 @@ def fire_trigger(self, _id=None, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def schedule_reminders(self, agcy=None, for_date=None, **rest):
+def schedule_reminders(self, group=None, for_date=None, **rest):
 
     if for_date:
         for_date = parse(for_date).date()
 
-    agencies = [g.db['groups'].find_one({'name':agcy})] if agcy else g.db['groups'].find()
+    groups = [g.db['groups'].find_one({'name':group})] if group else g.db['groups'].find()
     evnt_ids = []
 
-    for agency in agencies:
+    for group_ in groups:
         n_success = n_fails = 0
-        g.group = agency['name']
+        g.group = group_['name']
         log.warning('Scheduling notification events...')
 
-        days_ahead = int(agency['notify']['sched_delta_days'])
+        days_ahead = int(group_['notify']['sched_delta_days'])
         on_date = date.today() + timedelta(days=days_ahead) if not for_date else for_date
         date_str = on_date.strftime('%m-%d-%Y')
         blocks = []
 
-        for key in agency['cal_ids']:
+        for key in group_['cal_ids']:
             blocks += cal.get_blocks(
-                agency['cal_ids'][key],
+                group_['cal_ids'][key],
                 datetime.combine(on_date,time(8,0)),
                 datetime.combine(on_date,time(9,0)),
                 get_keys('google')['oauth'])
@@ -150,7 +150,7 @@ def schedule_reminders(self, agcy=None, for_date=None, **rest):
                 len(blocks), date_str, ", ".join(blocks))
 
         for block in blocks:
-            if is_bus(block) and agency['notify']['sched_business'] == False:
+            if is_bus(block) and group_['notify']['sched_business'] == False:
                 continue
 
             try:
@@ -227,6 +227,6 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
             'Thanks for Opting Out',
             body,
             get_keys('mailgun'),
-            v={'type':'opt_out', 'agcy':g.group})
+            v={'type':'opt_out', 'group':g.group})
 
     return 'success'

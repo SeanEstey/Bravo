@@ -22,7 +22,7 @@ def login(username, pw):
             db_user['user'],
             name = db_user['name'],
             _id = db_user['_id'],
-            agency = db_user['agency'],
+            group = db_user['group'],
             admin = db_user['admin']))
 
     log.debug('%s logged in', username)
@@ -48,7 +48,7 @@ def load_user(user_id):
         user_id,
         name=db_user['name'],
         _id=db_user['_id'],
-        agency=db_user['agency'],
+        group=db_user['group'],
         admin=db_user['admin'])
 
 #-------------------------------------------------------------------------------
@@ -74,12 +74,12 @@ def load_api_user(request):
     user = db.users.find_one({'api_key':str(api_key)})
 
     if user:
-        #print 'loaded api_user %s, group %s' %(user['name'], user['agency'])
+        #print 'loaded api_user %s, group %s' %(user['name'], user['group'])
         return User(
             user['user'],
             name = user['name'],
             _id = user['_id'],
-            agency = user['agency'],
+            group = user['group'],
             admin = user['admin'])
     else:
         return None

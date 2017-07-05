@@ -9,11 +9,11 @@ from logging import getLogger
 log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def add(agency, evnt_id, name, phone=None, email=None, udf=None, nameFormat=None):
+def add(group, evnt_id, name, phone=None, email=None, udf=None, nameFormat=None):
 
     return g.db.accounts.insert_one({
         'evnt_id': evnt_id,
-        'agency': agency,
+        'agency': group,
         'name': name,
         'phone': phone,
         'email': email,

@@ -84,7 +84,6 @@ function find_acct_by_phone($phone) {
 	 */
 
 	global $nsc;
-	//debug_log('finding account for ' . $phone);
 
 	$dv = ['fieldName'=>'SMS', 'value'=> $phone];
 	$acct = $nsc->call('getAccountByUniqueDefinedValue', array($dv));
@@ -95,7 +94,6 @@ function find_acct_by_phone($phone) {
 	if(!$acct)
 		throw new Exception('no acct found with SMS field="' . $phone . '"');
 
-	//debug_log('found acct_id=' . $acct['id'] . ' matching ' . $phone);
 	return utf8_converter($acct);
 }
 
@@ -177,8 +175,6 @@ function getQueryResultStats($queryName, $queryCategory) {
 
     global $nsc;
 	ini_set('max_execution_time', 120000); 
-    //curl_setopt($ch, CURLOPT_CONNECTTIMEOUT ,0); 
-    //curl_setopt($ch, CURLOPT_TIMEOUT, 400); //timeout in seconds
     set_time_limit(0);
 
     $response = $nsc->call("getQueryResultStats", array($queryCategory, $queryName));
@@ -210,33 +206,6 @@ function get_block_size($query_category, $query) {
 }
 
 //-----------------------------------------------------------------------
-function batch_journal_entries($refs, $start, $end, $types) {
-
-	global $nsc;
-	ini_set('max_execution_time', 30000); // IMPORTANT: prevents timeout err
-    $rv = [];
-
-    for($i=0; $i<$count($refs); $i++) {
-        try {
-            $rv[] = [
-                'status'=>'success',
-                'je'=>journal_entries($refs[$i], $start, $end, $types)
-            ];
-        }
-        catch(Exception $e) {
-            $rv[] = [
-                'status'=>'failed',
-                'description'=>(string)$e
-            ];
-        }
-
-        if(is_error($nsc)) {
-            reset_error($nsc);
-        }
-    }
-}
-
-//-----------------------------------------------------------------------
 function journal_entries($ref, $start, $end, $types) {
 	/* @ref: acct ref
      * @start, @end: filter date str's in dd/mm/yyyy
@@ -261,63 +230,6 @@ function journal_entries($ref, $start, $end, $types) {
 		return get_error($nsc, $log=true);
     
     return $response['data'];
-}
-
-//-----------------------------------------------------------------------
-function get_receipts($acct_ref, $start, $end) {
-
-	global $nsc;
-
-    $entries = journal_entries($acct_ref, $start, $end, [5]);
-
-	if(is_error($nsc))
-		return get_error($nsc, $log=true);
-
-    $receipt_entries = null;
-
-    for($i=0; $i<count($entries); $i++) {
-		if(array_key_exists('receipt', $entries[$i])) {
-            $receipt_entries[] = $entries[$i];
-        }
-    }
-
-    debug_log(count($receipt_entries) . ' receiptable gifts retrieved.');
-
-    return $receipt_entries;
-}
-
-//-----------------------------------------------------------------------
-function gift_histories($acct_refs, $start, $end) {
-    /* For each acct ref, retrieves Gift Objects between dates, returns
-     * "date" and "amount" fields where amount > $0.00
-     */
-
-    set_time_limit(600);
-	ini_set('max_execution_time', 30000); // Prevents timeout err
-	global $nsc;
-    $accts_je = [];
-
-    for($i=0; $i<count($acct_refs); $i++) {
-        $entries = journal_entries($acct_refs[$i], $start, $end, [5]);
-        $pos_gifts = [];
-
-        for($j=0; $j<count($entries); $j++) {
-            $entry = $entries[$j];
-
-            if($entry['amount'] > 0) {
-                $pos_gifts[] = [
-                    'ref' => $acct_refs[$i],
-                    'amount' => floatval($entry['amount']),
-                    'date' => $entry['date']];
-            }
-        }
-
-        $accts_je[] = $pos_gifts;
-    }
-
-    debug_log(count($accts_je) . ' gift histories retrieved.');
-
-    return $accts_je;
 }
 
 //-----------------------------------------------------------------------
@@ -354,9 +266,7 @@ function process_entries($entries) {
             continue;
         }
 
-        //if(!empty($entry['gift']['date']))
         remove_udf($acct, $entry['udf']);
-
         apply_udf($acct, $entry['udf']);
 
 		if(is_error($nsc)) {
@@ -469,7 +379,6 @@ function add_note($acct_id, $date, $body) {
     if(is_error($nsc))
         return get_error($nsc, $log=True);
     
-    //debug_log('note added (acct_id=' . $acct_id . ')');
     return ["ref"=>$ref];
 }
 
@@ -498,7 +407,6 @@ function add_accts($entries) {
 
 	global $nsc, $agcy;
     $entries = json_decode(json_encode($entries), true); // stdclass->array
-	//$entries = json_decode($entries, true);
     $n_errs = $n_success = 0;
     $rv = [];
 	debug_log('adding ' . count($entries) . ' accounts...');
@@ -609,7 +517,6 @@ function modify_acct($id, $udf, $persona) {
     if(is_error($nsc))
         return get_error($nsc, $log=True);
 
-    //debug_log('updated acct_id=' . $id);
     return 'Success';
 }
 
@@ -636,7 +543,6 @@ function skip_pickup($acct_id, $date, $next_pickup) {
 		false
 	]);
 	
-	//debug_log('skipping pickup, acct_id=' . $acct_id);
 	return json_encode(["No Pickup request received. Thanks"]);
 }
 

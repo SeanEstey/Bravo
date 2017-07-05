@@ -65,9 +65,10 @@ def get_donations(acct_id, start_d=None, end_d=None):
         je_list = call(
             'donor_history',
             data={
-                "acct_ref": acct['ref'],
-                "start": start.strftime("%d/%m/%Y"),
-                "end": end.strftime("%d/%m/%Y")})
+                "ref": acct['ref'],
+                "startDate": start.strftime("%d/%m/%Y"),
+                "endDate": end.strftime("%d/%m/%Y")},
+            cache=True)
     except Exception as e:
         log.exception('Failed to get donations for Acct #%s.', acct['id'],
             extra={'exception':str(e)})
@@ -158,10 +159,6 @@ def is_inactive(acct, days=270):
 
     if not drop_date:
         log.debug('accountCreatedDate=%s', acct['accountCreatedDate'])
-        #acct_date = parse(acct['accountCreatedDate']).strftime("%d/%m/%Y")
-        #signup_date = acct_date.split('/')
-        #mod_acct(acct['id'], get_keys('etapestry',group=group),
-        #    udf={'Dropoff Date':signup_date, 'Signup Date':signup_date})
         return
 
     # Must have been dropped off > @days
@@ -176,22 +173,23 @@ def is_inactive(acct, days=270):
     # Retrieve journal entries from cutoff, see if donations made in period
 
     try:
-        je = call(
-            'get_gift_histories',
+        gifts = call(
+            'get_gifts',
             data={
-                "acct_refs": [acct['ref']],
-                "start": cutoff_date.strftime('%d/%m/%Y'),
-                "end": date.today().strftime('%d/%m/%Y')
-            })[0]
+                "ref": acct['ref'],
+                "startDate": cutoff_date.strftime('%d/%m/%Y'),
+                "endDate": date.today().strftime('%d/%m/%Y')
+            },
+            cache=True
+        )
     except EtapError as e:
-        log.error('get_gift_histories error for acct_id=%s. desc=%s',
-            acct['id'], str(e))
+        log.exception('Failed to retrieve gifts for Account #%s.', acct['id'])
         raise
 
-    if len(je) > 0:
+    if len(gifts) > 0:
         return False
     else:
-        log.debug('found inactive donor, acct_id="%s"', acct['id'])
+        log.debug('Inactive donor: Account #%s', acct['id'])
         return True
 
 #-------------------------------------------------------------------------------

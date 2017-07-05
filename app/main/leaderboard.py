@@ -31,15 +31,16 @@ def update_gifts(accts):
     '''accts: list of results from db.etap_accts
     '''
 
-    try:
-        accts_je_hist = call(
-            'get_gift_histories',
-            data={
-                "acct_refs": [x['ref'] for x in accts],
-                "start": "01/01/" + str(date.today().year),
-                "end": "31/12/" + str(date.today().year)})
-    except Exception as e:
-        raise
+    for acct in accts:
+        try:
+            accts_je_hist = call(
+                'get_gifts',
+                data={
+                    "ref": acct['ref'],
+                    "startDate": "01/01/" + str(date.today().year),
+                    "endDate": "31/12/" + str(date.today().year)})
+        except Exception as e:
+            raise
 
     log.debug('retrieved %s acct je histories', len(accts_je_hist))
 

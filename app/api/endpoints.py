@@ -44,16 +44,6 @@ def _est_trend():
         var('ss_id'),
         var('ss_row'))
 
-@api.route('/accounts/get_donations', methods=['POST'])
-@login_required
-def _get_donations():
-    from dateutil.parser import parse
-    return func_call(
-        donors.get_donations,
-        var('acct_id'),
-        parse(var('start_d')).date(),
-        parse(var('end_d')).date())
-
 @api.route('/accounts/save_rfu', methods=['POST'])
 @login_required
 def _save_rfu():

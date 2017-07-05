@@ -52,11 +52,8 @@
 			case 'find_acct_by_phone':
 				$rv = find_acct_by_phone($data['phone']);
 				break;
-			case 'get_gift_histories':
-				$rv = gift_histories($data['acct_refs'], $data['start'], $data['end']);
-				break;
             case 'donor_history':
-                $rv = journal_entries($data['acct_ref'], $data['start'], $data['end'], [1,5]);
+                $rv = journal_entries($data['ref'], $data['startDate'], $data['endDate'], [1,5]);
                 break;
             case 'get_gifts':
                 $rv = journal_entries($data['ref'], $data['startDate'], $data['endDate'], [5]);

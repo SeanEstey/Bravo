@@ -175,10 +175,15 @@ def _cache_accts(accts):
 ###### Convenience methods #######
 
 #-------------------------------------------------------------------------------
-def get_acct(aid, cached=True):
+def get_acct(aid, ref=None, cached=True):
 
-    acct = None if cached == False else g.db['cachedAccounts'].find_one(
-        {'group':g.group, 'account.id':int(aid)})
+    acct = None
+
+    if aid and cached == True:
+        acct = g.db['cachedAccounts'].find_one({'group':g.group, 'account.id':int(aid)})
+    elif ref and cached == True:
+        acct = g.db['cachedAccounts'].find_one({'group':g.group, 'account.ref':int(ref)})
+
     if acct:
         return acct['account']
 

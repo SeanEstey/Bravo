@@ -3,7 +3,7 @@ import os
 from flask import g, request
 from dateutil.parser import parse
 from .. import get_keys
-from app.main.etap import call, get_prim_phone, EtapError, get_query
+from app.main.etap import get_prim_phone, EtapError, get_query, get_acct
 from . import events, email, sms, voice, triggers, accounts
 from logging import getLogger
 log = getLogger(__name__)
@@ -11,59 +11,34 @@ log = getLogger(__name__)
 #-------------------------------------------------------------------------------
 def add_event():
 
-    try:
-        je_list = get_query(request.form['query_name'], category='GG: Invoices')
-    except Exception as e:
-        log.exception('Failed to retrieve query %s', request.form['query_name'])
-        raise EtapError(e.message)
-
-    evnt_id = events.add(
-        g.group,
-        request.form['event_name'] or request.form['query_name'],
-        parse(request.form['event_date']),
-        'green_goods')
-
-    trig_id = triggers.add(
-        evnt_id,
-        'voice_sms',
-        parse(request.form['notific_date']).date(),
-        parse(request.form['notific_time']).time())
-
-    refs = []
-    for entry in je_list:
-        refs.append(entry['accountRef'])
+    query = request.form['query_name']
+    name = request.form['event_name'] or query
+    event_dt = parse(request.form['event_date'])
+    notific_d = parse(request.form['notific_date']).date()
+    notific_t = parse(request.form['notific_time']).time()
 
     try:
-        accts = call('get_accts_by_ref', data={'acct_refs':refs})
+        orders = get_query(query, category='GG: Invoices', cache=True)
     except Exception as e:
-        msg = 'Failed to retrieve accts. %s' % str(e)
-        #log.error(msg)
-        raise EtapError(msg)
+        log.exception('Failed to retrieve GG invoice query="%s".', query)
+        raise
 
-    # both je and accts lists should be same length, point to same account
+    event_id = events.add(g.group, name, event_dt, 'green_goods')
+    trig_id = triggers.add(event_id, 'voice_sms', notific_d, notific_t)
+    delivery_d = event_dt.date()
 
-    delivery_date = parse(request.form['event_date']).date()
-
-    for i in range(len(je_list)):
-        acct_id = accounts.add(
-            g.group,
-            evnt_id,
-            je_list[i]['accountName'],
-            phone = get_prim_phone(accts[i]),
-            udf = {'amount': je_list[i]['amount']})
-
+    for i in range(0, len(orders)):
+        acct = get_acct(None, ref=orders[i]['accountRef'])
+        evnt_db_acct_id = accounts.add(
+            g.group, event_id, orders[i]['accountName'],
+            phone = get_prim_phone(acct),
+            udf = {'amount': orders[i]['amount']})
         voice.add(
-            evnt_id,
-            delivery_date,
-            trig_id,
-            acct_id,
-            get_prim_phone(accts[i]),
-            {'source': 'template',
-             'template': 'voice/wsf/green_goods.html'},
-            {'module': 'app.notify.gg',
-             'func': 'on_call_interact'})
+            event_id, delivery_d, trig_id, evnt_db_acct_id, get_prim_phone(acct),
+            {'source': 'template', 'template': 'voice/wsf/green_goods.html'},
+            {'module': 'app.notify.gg', 'func': 'on_call_interact'})
 
-    return evnt_id
+    return event_id
 
 #-------------------------------------------------------------------------------
 def on_call_interact(notific):

@@ -3,7 +3,7 @@ from datetime import datetime, date, time, timedelta
 from flask import g, request, jsonify, render_template
 from flask_login import login_required
 from app import get_keys
-from . import booker, geo
+from . import booker
 from logging import getLogger
 log = getLogger(__name__)
 

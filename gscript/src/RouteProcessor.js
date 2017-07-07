@@ -10,7 +10,7 @@ function RouteManager(conf) {
   this.don_hdr = this.don_wks.getRange(1,1,1,this.don_wks.getMaxColumns()).getValues()[0];
   this.iss_wks = this.bravo_ss.getSheetByName("Issues");
   this.maps = API(
-    '/booker/maps/get',
+    '/maps/get',
     conf);
   
   this.events = Schedule.getEventsBetween(

@@ -98,18 +98,18 @@ function searchAcct(acct_id) {
     search(acct_id);
 
     api_call(
-        'booker/get_acct_geo',
+        'accounts/get/location',
         data={'acct_id': acct_id},
         function(response){
             console.log(response['status']);
 
-            acct = response['data']['acct'];
+            var geolocation = response['data']['geometry']['location'];
 
             if(current_marker)
                 current_marker.setMap(null);
 
             addMarker("Office", HOME_COORDS, HOME_ICON);
-            current_marker = addMarker(acct['name'], response['data']['coords']);
+            current_marker = addMarker('ADD_ME', geolocation);
         });
 }
 

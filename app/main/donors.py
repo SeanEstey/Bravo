@@ -1,14 +1,15 @@
-'''app.main.donors'''
-import json, logging, math
+# app.main.donors
+
+import json, logging, math, re
 from datetime import date, timedelta, datetime
 from dateutil.parser import parse
 from flask import g, request
 from app import get_keys
 from app.lib import html, mailgun
-from app.main.etapestry import EtapError, mod_acct, get_acct, get_udf, call
 from app.lib.dt import ddmmyyyy_to_date as to_date
-from logging import getLogger
-log = getLogger(__name__)
+from app.main.etapestry import EtapError, mod_acct, get_acct, get_udf, call
+from app.main.maps import geocode
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def get(aid, ref=None, sync_ytd_gifts=False):
@@ -19,6 +20,51 @@ def get(aid, ref=None, sync_ytd_gifts=False):
         rv = _get_gifts.delay(ref, date(now.year,1,1), date(now.year,12,31))
 
     return get_acct(aid)
+
+#-------------------------------------------------------------------------------
+def get_location(acct_id=None):
+
+    if not acct_id or not re.search(r'\d{1,7}', acct_id):
+        raise Exception('Invalid Account.id "%s" for acquiring location.', acct_id)
+
+    cached_doc = g.db['cachedAccounts'].find_one({'group':g.group,'account.id':int(acct_id)})
+
+    if cached_doc:
+        if cached_doc.get('geolocation'):
+            log.debug('Returning geolocation of cached account.')
+            return cached_doc['geolocation']
+        else:
+            acct = cached_doc['account']
+    else:
+        # Pull Account from etapestry (will raise Exception if ID invalid)
+        acct = get_acct(acct_id, cached=False)
+
+    # We have Account (cached or otherwise) but missing geolocation.
+    # Acquire it, cache it, return it.
+
+    try:
+        geolocation = geocode(
+            ", ".join([acct.get('address',''), acct.get('city',''), acct.get('state','')]),
+            get_keys('google')['geocode']['api_key']
+        )[0]
+    except Exception as e:
+        log.exception('Failed to geolocate Account #%s at "%s".', acct_id, acct['address'])
+        raise
+    else:
+        from app.main.etapestry import to_datetime
+
+        # Cache it.
+        g.db['cachedAccounts'].update_one(
+          {'group':g.group, 'account.id':acct['id']},
+          {'$set': {'group':g.group, 'account':to_datetime(acct), 'geolocation':geolocation}},
+          upsert=True)
+
+        log.debug('Geolocated and cached account.')
+        return geolocation
+
+#-------------------------------------------------------------------------------
+def get_next_pickup(email):
+    return call('get_next_pickup', data={'email':email})
 
 #-------------------------------------------------------------------------------
 def ytd_gifts(ref, year):
@@ -34,10 +80,6 @@ def ytd_gifts(ref, year):
 
     log.debug('Retrieved %s cached Gifts', gifts.count())
     return list(gifts)
-
-#-------------------------------------------------------------------------------
-def get_next_pickup(email):
-    return call('get_next_pickup', data={'email':email})
 
 #-------------------------------------------------------------------------------
 def get_donations(acct_id, start_d=None, end_d=None):

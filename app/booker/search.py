@@ -1,35 +1,15 @@
-'''app.booker.search'''
+# app.booker.search
+
+import logging, re
 from datetime import datetime, timedelta
-import re
 from flask import g
 from app import get_keys
+from app.lib import gcal
 from app.main import parser
 from app.main.etapestry import call, EtapError
-from app.lib import gcal
-from . import geo
-from logging import getLogger
-log = getLogger(__name__)
+from app.main.maps import geocode
 
-#-------------------------------------------------------------------------------
-def get_acct_geo(acct_id):
-
-    try:
-        acct = call('get_account', data={'acct_id': re.search(r'\d{1,6}',acct_id).group(0)})
-    except EtapError as e:
-        log.error('Acct %s not found', acct_id)
-        raise
-
-    # Get coords
-    from app.main.maps import geocode
-
-    coords = geocode(
-        '%s, %s, AB' % (acct['address'], acct['city']),
-        get_keys('google')['geocode']['api_key'])
-
-    return {
-        'acct': acct,
-        'coords': coords[0]['geometry']['location']
-    }
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def search(query, radius=None, weeks=None, group=None):
@@ -82,13 +62,13 @@ def search(query, radius=None, weeks=None, group=None):
                     'Account <b>%s</b> is missing address or city. '\
                     'Check the account in etapestry.'% acct['name']}
 
-        geo_results = geo.geocode(
+        geo_results = geocode(
             acct['address'] + ', ' + acct['city'] + ', AB',
             get_keys('google')['geocode']['api_key'])
 
         # Individual account (Residential donor)
         if acct['nameFormat'] <= 2:
-            results = geo.get_nearby_blocks(
+            results = get_nearby_blocks(
                 geo_results[0]['geometry']['location'],
                 SEARCH_RADIUS,
                 maps,
@@ -144,7 +124,7 @@ def search(query, radius=None, weeks=None, group=None):
         }
     # must be address?
     else:
-        geo_results = geo.geocode(
+        geo_results = geocode(
             query,
             get_keys('google')['geocode']['api_key']
         )
@@ -158,7 +138,7 @@ def search(query, radius=None, weeks=None, group=None):
                     query)
             }
 
-        results = geo.get_nearby_blocks(
+        results = get_nearby_blocks(
             geo_results[0]['geometry']['location'],
             SEARCH_RADIUS,
             maps,
@@ -180,6 +160,64 @@ def search(query, radius=None, weeks=None, group=None):
         }
 
 #-------------------------------------------------------------------------------
+def get_nearby_blocks(pt, radius, maps, events):
+    '''Return list of scheduled Blocks within given radius of lat/lng, up
+    to end_date, sorted by date. Block Object defined in Config.
+    @pt: {'lng':float, 'lat':float}
+    @radius: km
+    @maps: geo_json object with lat/lng coords
+    @events: gcal event
+    Returns:
+        list of {'event': gcal_obj, 'distance': float, 'name': str,
+        'booked':int}
+    Returns empty array if none found .
+    Returns Error exception on error (invalid KML data).
+    '''
+
+    from app.main.maps import distance, center_pt
+
+    results = []
+
+    for i in range(len(maps)):
+        title = maps[i]['properties']['name']
+        map_block = parser.get_block(title)
+        block = None
+
+        # Find the first event matching map block
+        for event in events:
+            if parser.get_block(event['summary']) == map_block:
+                block = {
+                    'name': parser.get_block(event['summary']),
+                    'event':event}
+
+                break
+
+        if not block:
+            continue
+
+        if maps[i]['geometry']['type'] != 'Polygon':
+            log.error('map index %s is not a polygon', i)
+            continue
+
+        # Take the first lat/lon vertex in the rectangle and calculate distance
+        dist = distance(
+            pt,
+            center_pt(maps[i]['geometry']['coordinates'][0]))
+
+        if dist < radius:
+            block['distance'] = str(round(dist,2)) + 'km'
+            block['area'] = parser.get_area(event['summary']) or '---'
+            block['booked'] = parser.route_size(event['summary']) or '---'
+            results.append(block)
+
+    results = sorted(results,
+        key=lambda k: k['event']['start'].get('dateTime',k['event']['start'].get('date')))
+
+    log.debug('Found %s Blocks within %s radius', len(results), radius)
+
+    return results
+
+#-------------------------------------------------------------------------------
 def search_by_radius(coords, radius, maps, events):
     '''Find a list of Blocks within the smallest radius of given coordinates.
     Constraints: must be within provided radius, schedule date, and block size.
@@ -196,7 +234,7 @@ def search_by_radius(coords, radius, maps, events):
         if radius > rules['max_block_radius']:
             break
 
-        results = geo.get_nearby_blocks(coords, radius, maps, events)
+        results = get_nearby_blocks(coords, radius, maps, events)
 
         if len(bookings) > 0:
             found = true

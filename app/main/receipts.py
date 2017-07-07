@@ -71,6 +71,8 @@ def preview(acct_id=None, type_=None):
 #-------------------------------------------------------------------------------
 def get_template(acct, ss_gift):
 
+    from app.lib.dt import ddmmyyyy_to_date
+
     if not acct or not acct.get('ref'):
         raise Exception('Invalid account')
 
@@ -79,7 +81,7 @@ def get_template(acct, ss_gift):
         return {}
 
     gift_d = parse(ss_gift['date']).date()
-    drop_d = parse(get_udf('Dropoff Date',acct)).date()
+    drop_d = ddmmyyyy_to_date(get_udf('Dropoff Date',acct))
     nf = acct['nameFormat']
 
     if ss_gift['status'] == 'Cancelled':
@@ -149,6 +151,9 @@ def render_body(path, acct, ss_gift=None, je_gifts=None):
 def on_delivered(group):
     '''Mailgun webhook called from view. Has request context'''
 
+    # TODO: Make this into a celery process to isolate memory leaks
+    # away from python MainProcess
+
     g.group = group
     form = request.form
     keys = get_keys('google')
@@ -160,9 +165,11 @@ def on_delivered(group):
         wks.updateCell(form['event'].upper(), row=form['ss_row'], col=3)
     except Exception as e:
         log.exception('Failed to update receipt status')
-    finally:
+    else:
         wks.service = None
+        wks.sheetObj = None
         ss.service = None
+        ss.ssObj = None
 
 #-------------------------------------------------------------------------------
 def on_dropped(group):

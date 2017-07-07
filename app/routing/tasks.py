@@ -123,7 +123,7 @@ def build_route(self, route_id, job_id=None, **rest):
     Returns: db.routes dict on success, False on error
     '''
 
-    from app.routing.geo import GeocodeError
+    from app.main.maps import GeocodeError
 
     timer = Timer()
     orders = "processing"

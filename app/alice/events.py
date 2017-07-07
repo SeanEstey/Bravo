@@ -4,7 +4,8 @@ from datetime import datetime, date, time, timedelta
 from app.lib.dt import to_local, ddmmyyyy_to_dt
 from app.lib.utils import obj_vars
 from app.main.etapestry import call, get_udf, EtapError
-from app.booker import geo, search, book
+from app.main.maps import find_block, geocode
+from app.booker import search, book
 from .dialog import dialog
 from .util import related_notific, event_begun, set_notific_reply
 from app.main.tasks import create_rfu
@@ -163,7 +164,7 @@ def request_pickup():
     # Msg reply should contain address
     log.info('pickup request at \"%s\" (SMS: %s)', address, request.form['From'])
 
-    block = geo.find_block(g.group, address, conf['google']['geocode']['api_key'])
+    block = find_block(g.group, address, conf['google']['geocode']['api_key'])
 
     if not block:
         log.error('could not find map for address %s', address)
@@ -202,7 +203,7 @@ def request_pickup():
 def add_acct(address, phone, block, pu_date_str):
     conf = session.get('conf')
 
-    geo_result = geo.geocode(
+    geo_result = geocode(
         address,
         conf['google']['geocode']['api_key']
     )[0]

@@ -72,6 +72,12 @@ def _find_acct():
 def _get_accts():
     return func_call(donors.get, var('acct_id'))
 
+@api.route('/accounts/get/location', methods=['POST'])
+@login_required
+def _get_location():
+    from app.main.donors import get_location
+    return func_call(get_location, var('acct_id'))
+
 @api.route('/accounts/gifts', methods=['POST'])
 @login_required
 def _do_gifts():
@@ -162,13 +168,7 @@ def _book_acct():
     from app.booker.book import make
     return func_call(make)
 
-@api.route('/booker/get_acct_geo', methods=['POST'])
-@login_required
-def _get_acct_geo():
-    from app.booker.search import get_acct_geo
-    return func_call(
-        get_acct_geo,
-        var('acct_id'))
+
 
 @api.route('/booker/search', methods=['POST'])
 @login_required
@@ -178,12 +178,6 @@ def _search_bookings():
         search, var('query'),
         radius=var('radius'),
         weeks=var('weeks'))
-
-@api.route('/booker/maps/get', methods=['POST'])
-@login_required
-def _get_booker_maps():
-    from app.booker.geo import get_maps
-    return func_call(get_maps)
 
 @api.route('/maps/get', methods=['POST'])
 @login_required
@@ -196,12 +190,6 @@ def _get_maps():
 def _update_maps():
     from app.booker.tasks import update_maps
     return task_call(update_maps, group=g.group)
-
-@api.route('/booker/maps/update', methods=['POST'])
-@login_required
-def _update_booker_maps():
-    from app.booker.tasks import update_maps
-    return task_call(update_maps, group=g.user.group)
 
 @api.route('/leaderboard/get', methods=['POST'])
 @login_required

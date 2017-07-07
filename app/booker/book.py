@@ -8,7 +8,7 @@ from app.lib.dt import to_local, to_utc, ddmmyyyy_to_dt
 from app.main.etapestry import EtapError, call, get_udf
 from app.routing.build import create_order
 from app.routing.sheet import append_order
-from app.routing.geo import get_gmaps_url
+from app.main.maps import build_url
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -102,7 +102,7 @@ def append_to(route):
         '19:00',
         get_udf('Service Time', acct) or 3)
 
-    order['gmaps_url'] = get_gmaps_url(
+    order['gmaps_url'] = build_url(
         order['location']['name'],
         order['location']['lat'],
         order['location']['lng'])

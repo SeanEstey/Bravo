@@ -13,6 +13,11 @@
         {{ account['postal'] }}.
       </td>
     </tr>
+    {% if entry['amount'] > 0 %}
+    <tr>
+      <td>Your donation was estimated at ${{entry['amount']}}.</td>
+    </tr>
+    {% endif %}
     <tr>
       <td>
         You should be all set! Let us know if you have any questions.

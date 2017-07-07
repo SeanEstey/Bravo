@@ -10,7 +10,7 @@ from flask import g
 from app import get_keys
 from app.main.etapestry import call, get_udf, EtapError, get_query
 from .main import is_scheduled
-from .geo import GeocodeError, geocode, get_gmaps_url
+from app.main.maps import GeocodeError, geocode, build_url
 from . import routific, sheet
 from logging import getLogger
 log = getLogger(__name__)
@@ -179,12 +179,12 @@ def get_solution(job_id, api_key):
         elif order['location_id'] == 'depot':
             location = geocode(doc['end_address'],api_key)[0]['geometry']['location']
             order['customNotes'] = {'id':'depot', 'name':'Depot'}
-            order['gmaps_url'] = get_gmaps_url(
+            order['gmaps_url'] = build_url(
                 order['location_name'], location['lat'], location['lng'])
         else:
             input_ = task['input']['visits'][order['location_id']]
             order['customNotes'] = input_['customNotes']
-            order['gmaps_url'] = get_gmaps_url(
+            order['gmaps_url'] = build_url(
                 input_['location']['name'], input_['location']['lat'], input_['location']['lng'])
 
     office = get_keys('routing')['locations']['office']
@@ -199,3 +199,4 @@ def get_solution(job_id, api_key):
             "id": "office",
             "name": office['name']}})
     return orders
+

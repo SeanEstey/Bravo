@@ -1,8 +1,18 @@
 # app.main.test_endpoints
 
+import logging
 from flask import g, request
 from flask_login import login_required
+log = logging.getLogger(__name__)
 from . import main
+
+#-------------------------------------------------------------------------------
+@login_required
+@main.route('/test_get_loc', methods=['GET'])
+def _test_get_loc():
+    from app.main.donors import get_location
+    loc = get_location(acct_id=5075)
+    return str(loc)
 
 #-------------------------------------------------------------------------------
 @login_required

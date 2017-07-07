@@ -68,6 +68,8 @@ def to_datetime(obj):
     # Account
     if 'id' in obj:
         for field in ['personaCreatedDate', 'personaLastModifiedDate', 'accountCreatedDate', 'accountLastModifiedDate']:
+            if obj[field] and type(obj[field]) != str:
+                continue
             obj[field] = parse(obj[field]) if obj[field] else None
         return obj
 
@@ -77,6 +79,8 @@ def to_datetime(obj):
         return obj
     elif obj['type'] == 5: # Gift
         for field in ['createdDate', 'lastModifiedDate']:
+            if obj[field] and type(obj[field]) != str:
+                continue
             obj[field] = parse(obj[field]) if obj[field] else None
         dt = parse(obj['date'])
         obj['date'] = datetime(dt.year, dt.month, dt.day)

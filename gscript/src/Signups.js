@@ -9,7 +9,7 @@ function Signups(conf) {
   var data_rng = this.wks.getDataRange();
   this.wks_values = data_rng.getValues().slice(1);
   this.wks_fmlas = data_rng.getFormulas().slice(1);
-  this.maps = API('/booker/maps/get', conf, null);
+  this.maps = API('/maps/get', conf, null);
   this.events = Schedule.getEventsBetween(
     conf['CAL_IDS']['RES'],
     new Date(Date.now() + DAY_MS),

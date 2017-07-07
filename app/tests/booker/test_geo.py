@@ -7,7 +7,6 @@ from flask import Flask, Blueprint, request, url_for
 from datetime import datetime, date, time, timedelta
 
 from app import create_app
-from app.booker import geo
 from app import gcal
 
 

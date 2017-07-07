@@ -1,9 +1,7 @@
   {% extends "receipts/vec/base.html" %}
   {% block content %}  
     <tr>
-      <td>
-        Hi {{ account['name'] }},
-      </td>
+      <td>Hi {{ account['name'] }},</td>
     </tr>
     <tr>
       <td>
@@ -13,10 +11,13 @@
         {{ account['postal'] }}.
       </td>
     </tr>
+    {% if entry['amount'] > 0 %}
     <tr>
-      <td>
-        You should be all set! Let us know if you have any questions.
-      </td>
+      <td>Your donation was estimated at ${{entry['amount']}}.</td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td>You should be all set! Let us know if you have any questions.</td>
     </tr>
     <tr>
       <td>

@@ -186,10 +186,13 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
+def estimate_trend(self, date_str, ss_gifts, ss_id, ss_row, **rest):
+    """@ss_gifts: list of orders from Bravo Sheets
+    @ss_row: Route row on Stats SS to write result to.
+    """
 
     from json import dumps
-    from app.main.donors import get_donations
+    from app.main.etapestry import get_journal_entries
     from app.lib.gsheets_cls import SS
 
     timer = Timer()
@@ -199,25 +202,34 @@ def estimate_trend(self, date_str, donations, ss_id, ss_row, **rest):
     n_repeat = 0
 
     log.info('Task: Analyzing estimate trend...',
-        extra={'n_accts':len(donations), 'donations':dumps(donations,indent=2)})
+        extra={'n_accts':len(ss_gifts), 'donations':dumps(ss_gifts,indent=2)})
 
-    for donation in donations:
-        if not donation['amount']:
+    for ss_gift in ss_gifts:
+        if not ss_gift['amount']:
             continue
 
         try:
-            je_hist = get_donations(
-                donation['acct_id'],
-                start_d = route_d - delta(weeks=12),
-                end_d = route_d)
+            je_list = get_journal_entries(
+                acct_id=ss_gift['acct_id'],
+                start_d=route_d-delta(weeks=12),
+                end_d=route_d,
+                types=['Gift','Note'],
+                cached=False)
         except Exception as e:
             continue
 
-        if len(je_hist) < 1:
-            #log.debug('skipping acct w/ je len < 1')
+        if len(je_list) < 1:
             continue
 
-        diff += float(donation['amount']) - je_hist[0]['amount']
+        last_gift = 0.0
+
+        for je in je_list:
+            if je['type'] == 5:
+                last_gift = float(je['amount'])
+            elif je['type'] == 1 and je['note'] == 'No Pickup':
+                last_gift = 0.0
+
+        diff += float(ss_gift['amount']) - last_gift
         n_repeat += 1
 
     log.debug('n_repeat=%s, diff=%s', n_repeat, diff)

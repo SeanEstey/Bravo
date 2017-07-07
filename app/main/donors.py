@@ -82,63 +82,6 @@ def ytd_gifts(ref, year):
     return list(gifts)
 
 #-------------------------------------------------------------------------------
-def get_donations(acct_id, start_d=None, end_d=None):
-    '''Pulls all Notes and Gifts in given period
-    @before, @after: datetime.date
-    '''
-
-    JE_NOTE = 1
-    JE_GIFT = 5
-
-    try:
-        acct = get(int(acct_id))
-    except Exception as e:
-        log.exception('couldnt find acct_id=%s', acct_id)
-        raise
-
-    start = start_d if start_d else (date.today() - timedelta(weeks=12))
-    end = end_d if end_d else date.today()
-
-    try:
-        je_list = call(
-            'donor_history',
-            data={
-                "ref": acct['ref'],
-                "startDate": start.strftime("%d/%m/%Y"),
-                "endDate": end.strftime("%d/%m/%Y")},
-            cache=True)
-    except Exception as e:
-        log.exception('Failed to get donations for Acct #%s.', acct['id'],
-            extra={'exception':str(e)})
-        raise
-
-    # Remove non-"No Pickup" notes
-
-    gift_list = [x for x in je_list if x['type'] == JE_GIFT or (x['type'] == JE_NOTE and x['note'] == 'No Pickup')]
-
-    # Convert "No Pickup" Notes to zero gift
-    # Strip all fields except Date, Amount, Type, and Note
-
-    for i in range(len(gift_list)):
-        je = gift_list[i]
-
-        if je['type'] == JE_NOTE and je['note'] == 'No Pickup':
-            gift_list[i] = {
-                'id': acct['id'],
-                'date': je['date'],
-                'amount': 0.0,
-                'note': 'No Pickup'
-            }
-        elif je['type'] == JE_GIFT:
-            gift_list[i] = {
-                'id': acct['id'],
-                'date': je['date'],
-                'amount': float(je['amount'])
-            }
-
-    return gift_list
-
-#-------------------------------------------------------------------------------
 def save_rfu(acct_id, body, date=False, ref=False, fields=False):
     '''Add or update RFU Journal Note for acct, update any necessary User
     Defined Fields

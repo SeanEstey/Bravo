@@ -35,6 +35,9 @@
 			case 'get_account':
 				$rv = get_acct($id=arr_get($data,'acct_id'), $ref=arr_get($data,'ref'));
                 break;
+            case 'get_journal_entries':
+                $rv = journal_entries($data['ref'], $data['startDate'], $data['endDate'], $data['types']);
+                break;
             case 'get_gifts':
                 $rv = journal_entries($data['ref'], $data['startDate'], $data['endDate'], [5]);
                 break;

@@ -91,6 +91,9 @@ def to_datetime(obj):
 #-------------------------------------------------------------------------------
 def db_cache(results):
 
+    if len(results) < 1:
+        return
+
     if 'type' in results[0]:
         _cache_gifts(results)
     elif 'id' in results[0]:
@@ -98,12 +101,17 @@ def db_cache(results):
 
 #-------------------------------------------------------------------------------
 def _cache_gifts(gifts):
+    """Cache Gift objects (type=1)
+    """
 
     timer = Timer()
     bulk = g.db['cachedGifts'].initialize_ordered_bulk_op()
     n_ops = 0
 
     for gift in gifts:
+        if gift['type'] != 5:
+            continue
+
         cached = g.db['cachedGifts'].find_one({'group':g.group, 'gift.ref':gift['ref']})
 
         if not cached:
@@ -197,6 +205,53 @@ def get_acct(aid, ref=None, cached=True):
         return call('get_account', data={'ref':ref}, cache=True)
 
     raise Exception('Account not found.', extra={'aid':aid or None, 'ref':ref})
+
+#-------------------------------------------------------------------------------
+def get_journal_entries(acct_id=None, ref=None, start_d=None, end_d=None, types=None, cached=False):
+    """@start_d, @end_d: datetime.date
+    """
+
+    if acct_id:
+        # Try getting ref from cached account
+        cached = g.db['cachedAccounts'].find_one(
+            {'group':g.group, 'account.id':acct_id})
+
+        if cached:
+            ref = cached['account']['ref']
+        else:
+            # Pull from eTapestry
+            acct = get_acct(int(acct_id))
+            ref = acct['ref']
+
+    if cached:
+        # Pull from cache...
+        TODO = 'Write this'
+        return TODO
+
+    je_map = {'Gift': 5, 'Note': 1}
+    je_types = []
+
+    for t in types:
+        if t in je_map:
+            je_types.append(je_map[t])
+
+    # Retrieve Journal Entries and cache Gifts
+    try:
+        je_list = call(
+            'get_journal_entries',
+            data={
+                "ref": ref,
+                "startDate": start_d.strftime("%d/%m/%Y"),
+                "endDate": end_d.strftime("%d/%m/%Y"),
+                "types": je_types
+            },
+            cache=True)
+    except Exception as e:
+        log.exception('Failed to get donations for Acct #%s.', acct_id or ref,
+            extra={'exception':str(e)})
+        raise
+    else:
+        return je_list
 
 #-------------------------------------------------------------------------------
 def get_gifts(ref, start_date, end_date, cache=True):

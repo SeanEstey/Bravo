@@ -168,8 +168,6 @@ def _book_acct():
     from app.booker.book import make
     return func_call(make)
 
-
-
 @api.route('/booker/search', methods=['POST'])
 @login_required
 def _search_bookings():

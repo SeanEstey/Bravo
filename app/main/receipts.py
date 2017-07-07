@@ -166,10 +166,7 @@ def on_delivered(group):
     except Exception as e:
         log.exception('Failed to update receipt status')
     else:
-        wks.service = None
-        wks.sheetObj = None
-        ss.service = None
-        ss.ssObj = None
+        gc.collect()
 
 #-------------------------------------------------------------------------------
 def on_dropped(group):

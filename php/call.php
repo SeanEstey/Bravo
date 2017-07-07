@@ -78,9 +78,9 @@
 				if($sandbox) {$rv = sandbox_err($func); break;}
 				$rv = update_note($data['acct_id'], $data['ref'], $data['body']);
 				break;
-			case 'process_entries':
+			case 'add_gifts':
 				if($sandbox) {$rv = sandbox_err($func); break;}
-				$rv = process_entries($data['entries']);
+				$rv = add_gifts($data['entries']);
 				break;
             case 'get_next_pickup':
                 $rv = get_next_pickup($data['email']);

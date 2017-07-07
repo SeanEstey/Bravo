@@ -206,7 +206,7 @@ function journal_entries($ref, $start, $end, $types) {
 }
 
 //-----------------------------------------------------------------------
-function process_entries($entries) {
+function add_gifts($entries) {
 	/* Updates UDF's and upload gifts for given accts
 	@entries: 2d array: [
         "acct_id":"int>",
@@ -222,7 +222,7 @@ function process_entries($entries) {
     $n_errs = $n_success = 0;
     $n_entries = count($entries);
     $rv = [];
-    debug_log('processing entries for ' . (string)$n_entries . ' accts (agcy=' . $agcy . ')...');
+    debug_log('Adding gifts for ' . (string)$n_entries . ' accts (agcy=' . $agcy . ')...');
 
     for($i=0; $i<$n_entries; $i++) {
         reset_error($nsc);
@@ -232,10 +232,7 @@ function process_entries($entries) {
         try {
             $acct = get_acct($id=$entry['acct_id']);
         } catch(Exception $e) {
-            $status = 'no acct found for ID="' . $entry['acct_id'] . '"';
-            $rv[] = ['row'=>$row, 'status'=>'Failed', 'description'=>$status];
-            debug_log($status);
-            $n_errs++;
+            $rv[] = ['row'=>$row, 'status'=>'Failed', 'description'=>'Account not found.'];
             continue;
         }
 
@@ -243,13 +240,7 @@ function process_entries($entries) {
         apply_udf($acct, $entry['udf']);
 
 		if(is_error($nsc)) {
-            $rv[] = [
-                'row'=>$row,
-                'status'=>'Failed',
-                'description'=>'Update error: ' . get_error($nsc)
-            ];
-            $n_errs++;
-            debug_log(print_r(end($rv),true));
+            $rv[] = ['row'=>$row, 'status'=>'Failed', 'description'=>'Update error: ' . get_error($nsc)];
 			continue;
 		}
 
@@ -259,46 +250,26 @@ function process_entries($entries) {
 		}
 
 		try {
-			$ref = upload_gift($entry, $acct);
+			$ref = add_gift($entry, $acct);
 		} catch (Exception $e) {
-			$rv[] = [
-				'row'=>$row,
-				'status'=>'Failed',
-				'description'=>get_error($nsc)];
-            $n_errs++;
-            debug_log(print_r(end($rv),true));
+			$rv[] = ['row'=>$row, 'status'=>'Failed', 'description'=>get_error($nsc)];
 			continue;
 		}
 
-        if(is_error($nsc)) {
-            $rv[] = [
-				'row'=>$row,
-				'status'=>'Failed',
-				'description'=>get_error($nsc)];
-            $n_errs++;
-            debug_log(print_r(end($rv),true));
-        }
-        else {
-            if(floatval($ref) == 0)
-                debug_log('invalid db ref="' . $ref . '"');
-
-            debug_log(json_encode(['row'=>$row, 'ref'=>$ref]));
-            $rv[] = ['row'=>$row, 'status'=>'Processed'];
-            $n_success++;
-        }
+        if(is_error($nsc))
+            $rv[] = ['row'=>$row, 'status'=>'Failed', 'description'=>get_error($nsc)];
+        else
+            $rv[] = ['row'=>$row, 'status'=>'Processed', 'ref'=>$ref];
     }
 
-    debug_log($n_entries . ' entries processed. n_success=' . $n_success . ', n_errors=' . $n_errs);
+    debug_log('Add Gifts completed.');
     reset_error($nsc);
 
-	return [
-		'n_success'=>$n_success,
-		'n_errs'=>$n_errs,
-		'results'=>$rv];
+	return $rv;
 }
 
 //-----------------------------------------------------------------------
-function upload_gift($entry, $acct) {
+function add_gift($entry, $acct) {
 
 	global $nsc, $agcy;
 

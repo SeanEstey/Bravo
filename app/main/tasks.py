@@ -258,12 +258,12 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
 
     timer = Timer()
     CHK_SIZE = 10
-    SUCCESS = [u'Processed', u'Updated']
     oauth = get_keys('google')['oauth']
     ss_id = get_keys('google')['ss_id']
-    n_errs = 0
     ss = SS(oauth, ss_id)
-    status_col = ss.wks('Donations').getRow(1).index(col)+1
+    headers = ss.wks('Donations').getRow(1)
+    ref_col = headers.index('Ref')+1
+    upload_col = headers.index('Upload')+1
 
     log.info('Task: Processing %s account entries...', len(entries))
 
@@ -272,25 +272,25 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
     for n in range(0,len(chks)):
         chk = chks[n]
         try:
-            r = call('process_entries', data={'entries':chk})
+            results = call('add_gifts', data={'entries':chk})
         except Exception as e:
             log.error('error in chunk #%s. continuing...', n+1)
             continue
         else:
-            results = r['results']
-            n_errs += r['n_errs']
             range_ = '%s:%s' %(
-                to_range(results[0]['row'], status_col),
-                to_range(results[-1]['row'], status_col))
-            values = [[results[i]['status'].upper()] for i in range(len(results))]
+                to_range(results[0]['row'], ref_col),
+                to_range(results[-1]['row'], upload_col))
+            values = [[
+                results[i].get('ref',''),
+                results[i]['status'].upper()
+            ] for i in range(len(results))]
 
         try:
             ss.wks("Donations").updateRange(range_, values)
         except Exception as e:
             log.exception('Error writing chunk %s', n+1)
         else:
-            log.debug('Chunk %s/%s uploaded/written to Sheets.', n+1, len(chks),
-                extra={'n_success':r['n_success'], 'n_errs':r['n_errs']})
+            log.debug('Chunk %s/%s uploaded/written to Sheets.', n+1, len(chks))
 
     """
     # TODO: update cachedAccounts
@@ -299,8 +299,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
         # entry['udf']: {'Status':VAL, 'Next Pickup Date':VAL}
     """
 
-    log.info('Task completed. %s entries processed. [%s]',
-        len(entries), timer.clock(), extra={'n_errs':n_errs})
+    log.info('Task completed. %s entries processed. [%s]', len(entries), timer.clock())
     return 'success'
 
 #-------------------------------------------------------------------------------

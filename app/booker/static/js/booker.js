@@ -27,11 +27,14 @@ function bookerInit() {
     addSocketIOHandlers();
 
     $('#find_acct').click(function() {
-       searchAcct($('#acct_input').val());
+       var acct_id = $('#acct_input').val();
+       getAcct(acct_id);
+       getBookOptions(acct_id);
+       getLocation(acct_id);
     });
 
     $('#find_block').click(function() {
-       search($('#block_input').val());
+       getBookOptions($('#block_input').val());
     });
 
     $('#book_btn').click(showConfirmModal);
@@ -81,22 +84,19 @@ function addSocketIOHandlers() {
 }
 
 //---------------------------------------------------------------------
-function validateSearch(form) {
+function getAcct(acct_id) {
 
-    var query = form.elements['search_box'].value;
-    form.elements['search_box'].value = '';
-    if(!query) {
-      return false;
-    }
-
-    search(query);
+    api_call(
+        'accounts/get',
+        data={'acct_id':acct_id},
+        function(response) {
+            acct = response['data'];
+        });
 }
 
 //---------------------------------------------------------------------
-function searchAcct(acct_id) {
+function getLocation(acct_id) {
     
-    search(acct_id);
-
     api_call(
         'accounts/get/location',
         data={'acct_id': acct_id},
@@ -107,14 +107,13 @@ function searchAcct(acct_id) {
 
             if(current_marker)
                 current_marker.setMap(null);
-
             addMarker("Office", HOME_COORDS, HOME_ICON);
             current_marker = addMarker('ADD_ME', geolocation);
         });
 }
 
 //---------------------------------------------------------------------
-function search(query, radius, weeks) {
+function getBookOptions(query, radius, weeks) {
 
     console.log(
       'submitting search: "' + query + '", radius: '+ radius +', weeks: '+ weeks);
@@ -384,7 +383,7 @@ function showExpandRadiusModal() {
 
     $('#mymodal .btn-primary').click(function() {
         $('#mymodal').modal('hide');
-        search(
+        getBookOptions(
           $('.br-alert').data('query'),
           radius + 2.0
         );

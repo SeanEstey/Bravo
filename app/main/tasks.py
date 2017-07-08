@@ -39,28 +39,16 @@ def receipt_handler(self, form, group, **rest):
     log.debug('Receipt delivered to %s', form['recipient'])
 
     try:
-        ss = None
         ss = SS(keys['oauth'], keys['ss_id'])
     except Exception as e:
-        log.error('Failed to update Row %s.',
-            form['ss_row'], extra={'desc':str(e)})
+        log.error('Failed to update Row %s.', form['ss_row'], extra={'desc':str(e)})
         gc.collect()
         self.update_state(state=states.FAILURE, meta=str(e))
         raise Ignore()
-    except HttpError as e:
-        if e.resp.status in [403,500,503,429]:
-            log.debug('Retrying...')
-            ss = SS(keys['oauth'], keys['ss_id'])
-
-        if not ss:
-            log.error('Failed to update row %s.', form['ss_row'])
-            gc.collect()
-            self.update_state(state=states.FAILURE, meta=str(e))
-            raise Ignore()
-
-    wks = ss.wks('Donations')
-    wks.updateCell(form['event'].upper(), row=form['ss_row'], col=3)
-    gc.collect()
+    else:
+        wks = ss.wks('Donations')
+        wks.updateCell(form['event'].upper(), row=form['ss_row'], col=3)
+        gc.collect()
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

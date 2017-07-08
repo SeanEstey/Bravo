@@ -4,8 +4,10 @@ import gc, logging, re
 from app import get_keys
 from .timer import Timer
 from .gsheets import to_range, _ss_get, _ss_values_get, _ss_values_update
-from .gsheets import _ss_values_append, _execute, _ss_batch_update
+from .gsheets import handleHttpError, _ss_values_append, _execute, _ss_batch_update
 from .gservice_acct import auth
+from googleapiclient.errors import HttpError
+
 log = logging.getLogger(__name__)
 
 
@@ -44,22 +46,46 @@ class SS():
           "rightToLeft": boolean,
 	"""
 
+    #---------------------------------------------------------------
     def wks(self, name):
+
         for sheet in self.ssObj['sheets']:
             if sheet['properties']['title'] == name:
                 return Wks(self.service, self.ss_id, sheet)
                 break
 
+    #---------------------------------------------------------------
+    def _get_resource(self, n=0):
+
+        max_retries = 3
+
+        if n >= max_retries:
+            log.error('Exceeded max attempts to acquire SS resource.')
+            raise Exception('Failed to acquire SS resource.')
+
+        log.debug('Acquiring SS resource. n=%s', n)
+
+        try:
+            self.ssObj = self.service.spreadsheets().get(
+                spreadsheetId=self.ss_id).execute(num_retries=3)
+        except HttpError as e:
+            handleHttpError(e)
+            self._get_resource(n=n+1)
+        else:
+            self.propObj = self.ssObj['properties']
+            log.debug('Opened "%s" ss.', self.propObj['title'])
+
+    #---------------------------------------------------------------
     def __init__(self, oauth, ss_id):
+
         self.service = auth(
             oauth,
             name='sheets',
             scopes=['https://www.googleapis.com/auth/spreadsheets'],
             version='v4')
         self.ss_id = ss_id
-        self.ssObj = _ss_get(self.service, self.ss_id)
-        self.propObj = self.ssObj['properties']
-        log.debug('Opened "%s" ss.', self.propObj['title'])
+        self._get_resource()
+
 
 #-------------------------------------------------------------------------------
 class Wks():

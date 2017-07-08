@@ -1,4 +1,5 @@
-'''app.main.receipts'''
+# app.main.receipts
+
 import gc, json
 from datetime import datetime, date
 from dateutil.parser import parse
@@ -151,27 +152,11 @@ def render_body(path, acct, ss_gift=None, je_gifts=None):
 def on_delivered(group):
     '''Mailgun webhook called from view. Has request context'''
 
-    # TODO: Make this into a celery process to isolate memory leaks
-    # away from python MainProcess
     from app.main.tasks import receipt_handler
 
     g.group = group
     receipt_handler.delay(request.form, g.group)
     return 'OK'
-
-
-    form = request.form
-    keys = get_keys('google')
-    log.debug('Receipt delivered to %s', form['recipient'])
-
-    try:
-        ss = SS(keys['oauth'], keys['ss_id'])
-        wks = ss.wks('Donations')
-        wks.updateCell(form['event'].upper(), row=form['ss_row'], col=3)
-    except Exception as e:
-        log.exception('Failed to update receipt status')
-    else:
-        gc.collect()
 
 #-------------------------------------------------------------------------------
 def on_dropped(group):

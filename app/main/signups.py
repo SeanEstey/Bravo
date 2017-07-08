@@ -4,7 +4,7 @@ from datetime import date, datetime
 from flask import g, request, render_template
 from app import get_keys
 from app.lib import mailgun
-from app.lib.gsheets import gauth, get_row, get_headers, append_row, update_cell, to_range
+from app.lib.gsheets import gauth, get_headers, update_cell, to_range
 from app.main.etapestry import call, get_udf
 from logging import getLogger
 log = getLogger(__name__)
@@ -55,8 +55,13 @@ def add_etw_to_gsheets(signup):
     if 'referrer' in signup:
         form_data['Referrer'] = signup['referrer']
 
+    from app.lib.gsheets_cls import SS
+
     ss_id = get_keys('google')['ss_id']
-    headers = get_row(service, ss_id, 'Signups', 1)
+    ss = SS(get_keys('google')['oauth'], get_keys('google')['ss_id'])
+    wks = ss.wks('Signups')
+    headers = wks.getRow(1)
+
     row = []
 
     for field in headers:
@@ -66,11 +71,10 @@ def add_etw_to_gsheets(signup):
             row.append('')
 
     try:
-        append_row(service, ss_id, 'Signups', row)
+        wks.appendRows([row])
     except Exception, e:
-        log.error('couldnt add signup="%s". desc="%s"',
+        log.exception('couldnt add signup="%s". desc="%s"',
             json.dumps(signup), str(e))
-        log.debug(str(e))
         return 'There was an error handling your request'
 
     return 'success'

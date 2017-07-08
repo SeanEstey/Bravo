@@ -7,7 +7,7 @@ task_serializer = 'json'
 result_serializer = 'json'
 timezone = 'Canada/Mountain'
 task_time_limit = 3000
-worker_concurrency = 5
+worker_concurrency = 3
 
 beat_schedule = {
     'cache_gifts': {

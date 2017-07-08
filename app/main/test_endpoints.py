@@ -23,7 +23,27 @@ def _test_ss():
     from app.lib.gsheets_cls import SS
     ss_id = get_keys('google')['ss_id']
     oauth = get_keys('google')['oauth']
-    ss = SS(oauth, ss_id)
+
+    for x in range(0, 200):
+        ss = SS(oauth, ss_id)
+        wks = ss.wks('Signups')
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        hdr = wks.getRow(1)
+        print "x=%s" % x
+
     return 'ok'
 
 #-------------------------------------------------------------------------------

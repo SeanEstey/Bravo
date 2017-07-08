@@ -24,6 +24,20 @@ NAME_FORMAT = {
     'BUSINESS': 3
 }
 
+"""
+class Account:
+    obj = None
+
+    def __getattr__(self, attr):
+        # Access obj properties and UDF's through dict notation
+        # 
+        # i.e. blocks = acct['Block']
+         return self[attr]
+
+    def __init__(self):
+        pass
+"""
+
 #-------------------------------------------------------------------------------
 def call(func, data=None, batch=False, cache=False, timeout=45):
     '''Call eTapestry API function from PHP script.
@@ -68,7 +82,7 @@ def to_datetime(obj):
     # Account
     if 'id' in obj:
         for field in ['personaCreatedDate', 'personaLastModifiedDate', 'accountCreatedDate', 'accountLastModifiedDate']:
-            if obj[field] and type(obj[field]) != str:
+            if obj[field] and type(obj[field]) != str and type(obj[field]) != unicode:
                 continue
             obj[field] = parse(obj[field]) if obj[field] else None
         return obj
@@ -79,7 +93,7 @@ def to_datetime(obj):
         return obj
     elif obj['type'] == 5: # Gift
         for field in ['createdDate', 'lastModifiedDate']:
-            if obj[field] and type(obj[field]) != str:
+            if obj[field] and type(obj[field]) != str and type(obj[field]) != unicode:
                 continue
             obj[field] = parse(obj[field]) if obj[field] else None
         dt = parse(obj['date'])
@@ -106,7 +120,8 @@ def _cache_gifts(gifts):
 
     timer = Timer()
     bulk = g.db['cachedGifts'].initialize_ordered_bulk_op()
-    n_ops = 0
+    n_inserted = 0
+    n_updated = 0
 
     for gift in gifts:
         if gift['type'] != 5:
@@ -116,19 +131,20 @@ def _cache_gifts(gifts):
 
         if not cached:
             bulk.insert({'group':g.group, 'gift':to_datetime(gift)})
-            n_ops += 1
+            n_inserted += 1
             continue
 
         gift = to_datetime(gift)
 
         if cached['gift'].get('lastModifiedDate',None) != gift.get('lastModifiedDate',None):
             bulk.find({'_id':cached['_id']}).update_one({'$set':{'gift':gift}})
-            n_ops += 1
+            n_updated +=1
 
-    if n_ops > 0:
+    if n_inserted > 0 or n_updated > 0:
         bulk.execute()
 
-    log.debug('Cached %s/%s gifts [%s]', n_ops, len(gifts), timer.clock())
+    log.debug('Cached gifts. n_inserted=%s. n_updated=%s. [%s]',
+        n_inserted, n_updated, timer.clock())
 
 #-------------------------------------------------------------------------------
 def _cache_accts(accts):
@@ -181,8 +197,8 @@ def _cache_accts(accts):
     if n_ops > 0:
         results = bulk.execute()
 
-    log.debug("Cached %s/%s accounts, geolocated %s. [%s]",
-        n_ops, len(accts), n_geolocations, timer.clock())
+        log.debug("Cached Accounts. nInserted=%s. nModified=%s. nUpserted=%s. nGeolocated=%s. [%s]",
+            results['nInserted'], results['nModified'], results['nUpserted'], n_geolocations, timer.clock())
 
 ###### Convenience methods #######
 
@@ -286,8 +302,6 @@ def get_query(name, category=None, start=None, count=None, cache=True, timeout=4
 
     db_cache(rv['data'])
     return rv['data']
-
-
 
 #-------------------------------------------------------------------------------
 def mod_acct(acct_id, udf=None, persona=[], exc=False):

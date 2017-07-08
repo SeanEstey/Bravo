@@ -213,6 +213,30 @@ def col_idx_to_a1(idx):
         return False
 
 
+#-------------------------------------------------------------------------------
+def handleHttpError(e):
+
+    import json, time
+
+    if e.resp.get('content-type', '').startswith('application/json'):
+        reason = json.loads(e.content)
+        #log.error('HttpError. Reason=%s', reason)
+
+    #log.error('HttpError code=%s', e.resp.status)
+
+    if e.resp.status in [403, 500, 503]:
+        log.error('HttpError: Sheets service unavailable. Sleeping 5s...')
+        time.sleep(5)
+        raise
+    elif e.resp.status == 429:
+        log.error('HttpError: Insufficient tokens for quota. Sleeping 75s...')
+        time.sleep(75)
+        raise
+    else:
+        log.error('HttpError code=%s. Raising...', e.resp.status)
+        raise
+
+
 '''API Calls'''
 
 #-------------------------------------------------------------------------------
@@ -244,11 +268,12 @@ def _ss_get(service, ss_id, wks_title=None):
       }
     }'''
 
+    ss = None
+
     try:
-        ss = service.spreadsheets().get(spreadsheetId=ss_id).execute()
-    except Exception as e:
-        log.exception('Error getting SS properties')
-        raise
+        ss = service.spreadsheets().get(spreadsheetId=ss_id).execute(num_retries=3)
+    except HttpError as e:
+        handleHttpError(e)
 
     if not wks_title:
         return ss
@@ -276,9 +301,9 @@ def _ss_values_get(service, ss_id, wks, range_):
         result = service.spreadsheets().values().get(
           spreadsheetId= ss_id,
           range='%s!%s'%(wks,range_)
-        ).execute()
+        ).execute(num_retries=3)
     except Exception as e:
-        log.exception('Error getting SS values from %s', wks)
+        log.error('Error getting SS values from %s', wks)
         raise
 
     return result
@@ -303,7 +328,7 @@ def _ss_values_update(service, ss_id, wks, range_, values):
         )
         request.execute(num_retries=3)
     except HttpError as e:
-        log.exception('Error updating %s sheet. Invalid data.', wks,
+        log.error('Error updating %s sheet. Invalid data.', wks,
             extra={'request':request.to_json(), 'exc_msg':e.message, 'exc_args':e.args})
         raise
     except Exception as e:
@@ -325,9 +350,9 @@ def _ss_values_append(service, ss_id, wks, range_, values):
                 "values": values,
                 "majorDimension": "ROWS"
             }
-        ).execute()
+        ).execute(num_retries=3)
     except Exception as e:
-        log.exception('Error appending to sheet: %s', e.message)
+        log.error('Error appending to sheet: %s', e.message)
         raise
 
 #-------------------------------------------------------------------------------
@@ -339,7 +364,7 @@ def _execute(service, ss_id, actions):
                 "requests": actions
             }).execute(num_retries=3)
     except Exception as e:
-        log.exception('Error executing batch update: %s', e.message, extra={'requests':actions})
+        log.error('Error executing batch update: %s', e.message, extra={'requests':actions})
         raise
 
 #-------------------------------------------------------------------------------
@@ -383,11 +408,11 @@ def _ss_batch_update(service, ss_id, request, range_=None, cell=None, fields=Non
             body = {"requests": actions}
         ).execute(num_retries=3)
     except HTTPError as e:
-        log.exception('Error batch updating %s worksheet: %s', str(e.reason),
+        log.error('Error batch updating %s worksheet: %s', str(e.reason),
             extra={'code':e.code, 'reason':str(e.reason)})
         raise
     except Exception as e:
-        log.exception('Error performing batch update: %s', e.message, extra={'requests':actions})
+        log.error('Error performing batch update: %s', e.message, extra={'requests':actions})
         raise
 
     '''Requests resource: {

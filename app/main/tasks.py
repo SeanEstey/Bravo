@@ -5,6 +5,8 @@ from datetime import datetime, date, time, timedelta as delta
 from dateutil.parser import parse
 from flask import current_app, g, request
 from app import celery, get_keys
+from celery import states
+from celery.exceptions import Ignore
 from app.lib.gsheets import to_range
 from app.lib.timer import Timer
 from .etapestry import call, get_acct, get_udf
@@ -22,6 +24,43 @@ def _get_gifts(self, ref, start_date, end_date, cache=True, **rest):
 @celery.task(bind=True)
 def wipe_sessions(self, **rest):
     pass
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def receipt_handler(self, form, group, **rest):
+
+    from googleapiclient.errors import HttpError
+    from app.lib.gsheets_cls import SS
+    from time import sleep
+    import gc
+
+    g.group = group
+    keys = get_keys('google')
+    log.debug('Receipt delivered to %s', form['recipient'])
+
+    try:
+        ss = None
+        ss = SS(keys['oauth'], keys['ss_id'])
+    except Exception as e:
+        log.error('Failed to update Row %s.',
+            form['ss_row'], extra={'desc':str(e)})
+        gc.collect()
+        self.update_state(state=states.FAILURE, meta=str(e))
+        raise Ignore()
+    except HttpError as e:
+        if e.resp.status in [403,500,503,429]:
+            log.debug('Retrying...')
+            ss = SS(keys['oauth'], keys['ss_id'])
+
+        if not ss:
+            log.error('Failed to update row %s.', form['ss_row'])
+            gc.collect()
+            self.update_state(state=states.FAILURE, meta=str(e))
+            raise Ignore()
+
+    wks = ss.wks('Donations')
+    wks.updateCell(form['event'].upper(), row=form['ss_row'], col=3)
+    gc.collect()
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

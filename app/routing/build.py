@@ -49,14 +49,8 @@ def submit_job(route_id):
                 route['driver']['shift_start'],
                 '19:00',
                 get_udf('Service Time', acct) or MIN_PER_STOP)
-        except EtapError as e:
-            errors.append({'acct':acct, 'desc':str(e)})
-            continue
-        except GeocodeError as e:
-            log.exception(e.message, extra={'response':e.message})
-            errors.append({'acct':acct, 'desc':str(e)})
-            continue
-        except requests.RequestException as e:
+        except Exception as e:
+            log.exception(e.message)
             errors.append({'acct':acct, 'desc':str(e)})
             continue
 

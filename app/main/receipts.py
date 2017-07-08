@@ -153,8 +153,13 @@ def on_delivered(group):
 
     # TODO: Make this into a celery process to isolate memory leaks
     # away from python MainProcess
+    from app.main.tasks import receipt_handler
 
     g.group = group
+    receipt_handler.delay(request.form, g.group)
+    return 'OK'
+
+
     form = request.form
     keys = get_keys('google')
     log.debug('Receipt delivered to %s', form['recipient'])

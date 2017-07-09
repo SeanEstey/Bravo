@@ -10,41 +10,13 @@ from googleapiclient.errors import HttpError
 
 log = logging.getLogger(__name__)
 
-
 #-------------------------------------------------------------------------------
 class SS():
 
     service = None
     ss_id = None
-    ssObj = None # Spreadsheet Resource:
-    """
-          "spreadsheetId": string,
-          "properties": {
-            object(SpreadsheetProperties)
-          },
-          "sheets": [{
-            object(Sheet)
-          }],
-          "namedRanges": [{
-            object(NamedRange)
-          }],
-          "spreadsheetUrl": string
-	"""
-    propObj = None # SpreadsheetProperties Resource:
-    """
-          "sheetId": number,
-          "title": string,
-          "index": number,
-          "sheetType": enum(SheetType),
-          "gridProperties": {
-            object(GridProperties)
-          },
-          "hidden": boolean,
-          "tabColor": {
-            object(Color)
-          },
-          "rightToLeft": boolean,
-	"""
+    ssObj = None # Spreadsheet
+    propObj = None # SpreadsheetProperties
 
     #---------------------------------------------------------------
     def wks(self, name):
@@ -86,7 +58,6 @@ class SS():
         self.ss_id = ss_id
         self._get_resource()
 
-
 #-------------------------------------------------------------------------------
 class Wks():
 
@@ -94,9 +65,122 @@ class Wks():
     ss_id = None
     title = None
     headerValues = None # Cached
-    sheetObj = None # Sheet resource:
+    sheetObj = None # Sheet resource
+    propObj = None # SheetProperties resource
+
+    #---------------------------------------------------------------
+    def _refresh(self):
+        self.sheetObj = _ss_get(self.service, self.ss_id)
+        self.propObj = self.sheetObj['properties']
+
+    #---------------------------------------------------------------
+    def _getLastRow(self):
+        start = to_range(1,1)
+        end = to_range(self.numRows(), self.numColumns())
+        val_rng = _ss_values_get(
+            self.service, self.ss_id, self.title, "%s:%s"%(start,end))
+
+        lastDataRow = 1
+        r = re.compile('[a-zA-Z0-9]')
+
+        for i in range(0, len(val_rng['values'])):
+            row = val_rng['values'][i]
+
+            if len(filter(r.match, row)) > 0:
+                lastDataRow = i+1
+        return lastDataRow
+
+    #---------------------------------------------------------------
+    def numColumns(self):
+        return self.propObj['gridProperties']['columnCount']
+
+    #---------------------------------------------------------------
+    def numRows(self):
+        return self.propObj['gridProperties']['rowCount']
+
+    #---------------------------------------------------------------
+    def getRow(self, row):
+        a1 = '%s:%s' % (str(row),str(row))
+        return _ss_values_get(
+            self.service, self.ss_id, self.title, a1)['values'][0]
+
+    #---------------------------------------------------------------
+    def getValues(self, a1):
+        return _ss_values_get(
+            self.service, self.ss_id, self.title, a1)['values']
+
+    #---------------------------------------------------------------
+    def updateCell(self, value, row=None, col=None, col_name=None):
+        if not col_name:
+            _ss_values_update(
+                self.service, self.ss_id, self.title, to_range(row,col), [[value]])
+        else:
+            hdr = self.getRow(1)
+            a1 = to_range(row, hdr.index(col_name)+1)
+            _ss_values_update(
+                self.service, self.ss_id, self.title, a1, [[value]])
+        self._refresh()
+
+    #---------------------------------------------------------------
+    def updateRange(self, a1, values):
+        _ss_values_update(
+            self.service, self.ss_id, self.title, a1, values)
+        self._refresh()
+
+    #---------------------------------------------------------------
+    def appendRows(self, values):
+        lastRow = self._getLastRow()
+        a1_start = to_range(lastRow + 1,1)
+        a1_end = to_range(lastRow + 1 + len(values), self.numColumns())
+        a1 = '%s:%s' % (a1_start, a1_end)
+
+        log.debug('Appending %s rows to row %s', len(values), lastRow+1)
+
+        if lastRow + 1 + len(values) > self.numRows():
+            _ss_values_append(self.service, self.ss_id, self.title, a1, values)
+        else:
+            _ss_values_update(self.service, self.ss_id, self.title, a1, values)
+        self._refresh()
+
+    #---------------------------------------------------------------
+    def __init__(self, service, ss_id, sheetObj):
+        self.service = service
+        self.sheetObj = sheetObj
+        self.ss_id = ss_id
+        self.propObj = sheetObj['properties']
+        self.title = sheetObj['properties']['title']
+
+        log.debug('Opened "%s" wks.', self.title)
 
     """
+    # Spreadsheet Resource:
+          "spreadsheetId": string,
+          "properties": {
+            object(SpreadsheetProperties)
+          },
+          "sheets": [{
+            object(Sheet)
+          }],
+          "namedRanges": [{
+            object(NamedRange)
+          }],
+          "spreadsheetUrl": string
+
+    # SpreadsheetProperties Resource:
+          "sheetId": number,
+          "title": string,
+          "index": number,
+          "sheetType": enum(SheetType),
+          "gridProperties": {
+            object(GridProperties)
+          },
+          "hidden": boolean,
+          "tabColor": {
+            object(Color)
+          },
+          "rightToLeft": boolean,
+
+    # Sheet Resource:
           "properties": {
               object(SheetProperties)
           },
@@ -123,9 +207,8 @@ class Wks():
           "bandedRanges": [{
               object(BandedRange)
           }],
-    """
-    propObj = None # SheetProperties resource:
-    """
+
+    # SheetProperties Resource:
           "sheetId": number,
           "title": string,
           "index": number,
@@ -139,81 +222,3 @@ class Wks():
           },
           "rightToLeft": boolean,
     """
-
-    def _refresh(self):
-        self.sheetObj = _ss_get(self.service, self.ss_id)
-        self.propObj = self.sheetObj['properties']
-
-    def _getLastRow(self):
-        start = to_range(1,1)
-        end = to_range(self.numRows(), self.numColumns())
-        val_rng = _ss_values_get(
-            self.service, self.ss_id, self.title, "%s:%s"%(start,end))
-
-        lastDataRow = 1
-        r = re.compile('[a-zA-Z0-9]')
-
-        for i in range(0, len(val_rng['values'])):
-            row = val_rng['values'][i]
-
-            if len(filter(r.match, row)) > 0:
-                lastDataRow = i+1
-
-        return lastDataRow
-
-    def numColumns(self):
-        return self.propObj['gridProperties']['columnCount']
-
-    def numRows(self):
-        return self.propObj['gridProperties']['rowCount']
-
-    def getRow(self, row):
-        a1 = '%s:%s' % (str(row),str(row))
-        return _ss_values_get(
-            self.service, self.ss_id, self.title, a1)['values'][0]
-
-    def getValues(self, a1):
-        return _ss_values_get(
-            self.service, self.ss_id, self.title, a1)['values']
-
-    def updateCell(self, value, row=None, col=None, col_name=None):
-        if not col_name:
-            _ss_values_update(
-                self.service, self.ss_id, self.title, to_range(row,col), [[value]])
-        else:
-            hdr = self.getRow(1)
-            a1 = to_range(row, hdr.index(col_name)+1)
-            _ss_values_update(
-                self.service, self.ss_id, self.title, a1, [[value]])
-
-        self._refresh()
-
-    def updateRange(self, a1, values):
-        _ss_values_update(
-            self.service, self.ss_id, self.title, a1, values)
-        self._refresh()
-
-    def appendRows(self, values):
-        lastRow = self._getLastRow()
-        a1_start = to_range(lastRow + 1,1)
-        a1_end = to_range(lastRow + 1 + len(values), self.numColumns())
-        a1 = '%s:%s' % (a1_start, a1_end)
-
-        log.debug('Appending %s rows to row %s', len(values), lastRow+1)
-
-        if lastRow + 1 + len(values) > self.numRows():
-            _ss_values_append(self.service, self.ss_id, self.title, a1, values)
-        else:
-            _ss_values_update(self.service, self.ss_id, self.title, a1, values)
-
-        self._refresh()
-
-    def __init__(self, service, ss_id, sheetObj):
-        self.service = service
-        self.sheetObj = sheetObj
-        self.ss_id = ss_id
-        self.propObj = sheetObj['properties']
-        self.title = sheetObj['properties']['title']
-
-        log.debug('Opened "%s" wks.', self.title)
-

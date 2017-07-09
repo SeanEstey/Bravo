@@ -3,7 +3,7 @@ import logging
 from flask_login import login_required, current_user
 from flask import g, jsonify, render_template, session
 from . import alice, incoming
-from .session import dump_session, dump_sessions, wipe_sessions
+from .session import dump_session, wipe_sessions
 from .incoming import make_reply
 from .dialog import dialog
 log = logging.getLogger(__name__)
@@ -35,8 +35,3 @@ def _wipe_sessions():
     n = wipe_sessions()
     return jsonify('%s sessions wiped' % n)
 
-#-------------------------------------------------------------------------------
-@alice.route('/dump_sessions', methods=['POST'])
-@login_required
-def _dump_sessions():
-    return jsonify(dump_sessions())

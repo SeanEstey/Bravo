@@ -1,4 +1,4 @@
-# app.main.etap
+# app.main.etapestry
 
 """Interface for talking with eTapestry API.
 

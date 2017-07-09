@@ -135,41 +135,6 @@ def dump_session(key=None, to_dict=False):
         return 'session dump (id=%s):\n%s' % (key, obj_vars(sess))
 
 #-------------------------------------------------------------------------------
-def dump_sessions():
-    '''
-    '''
-
-    lifetime = current_app.config['PERMANENT_SESSION_LIFETIME']
-    n_sess = len(current_app.kv_store.keys())
-    n_chats = 0
-    n_chats_expired = 0
-    n_chats_active = 0
-    now = datetime.utcnow()
-    dumps = []
-
-    for key in current_app.kv_store.keys():
-        sess = pickle.loads(current_app.kv_store.get(key))
-
-        if sess.get('type') == 'alice_chat':
-            n_chats += 1
-            sid = SessionID.unserialize(key)
-
-            if sid.has_expired(lifetime, now):
-                n_chats_expired += 1
-            else:
-                n_chats_active += 1
-
-            dumps.append(dump_session(key, to_dict=True))
-
-    return {
-        'sessions': n_sess,
-        'chats': n_chats,
-        'active_chats': n_chats_active,
-        'expired_chats': n_chats_expired,
-        'dumps': dumps
-    }
-
-#-------------------------------------------------------------------------------
 def del_expired_session(key, force=False):
     m = current_app.kv_ext.key_regex.match(key)
 
@@ -203,5 +168,3 @@ def wipe_sessions():
     log.debug('wiped sessions, start=%s, end=%s', n_start, n_end)
 
     return n_start
-
-

@@ -35,7 +35,7 @@ class Timer():
 
         return self.clock(stop=False)
 
-    def clock(self, stop=True):
+    def clock(self, t='s', stop=True):
         '''Return str duration in sec w/ stop option'''
 
         if self.counting and stop:
@@ -46,7 +46,10 @@ class Timer():
         elif not self.counting:
             diff = self.stop_dt - self.start_dt
 
-        return '%s.%ss' % (diff.seconds, str(diff.microseconds/1000))
+        if t == 's':
+            return '%s.%ss' % (diff.seconds, str(diff.microseconds/1000))
+        elif t == 'ms':
+            return '%sms' % str(diff.microseconds/100)
 
     def __init__(self, start=True):
 

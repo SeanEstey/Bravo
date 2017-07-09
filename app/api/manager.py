@@ -1,4 +1,5 @@
-'''app.api.manager'''
+# app.api.manager
+
 from json import dumps, loads
 from flask import g, Response, request, jsonify
 from flask_login import current_user
@@ -53,6 +54,8 @@ def build_resp(rv=None, exc=None, name=None, timer=None):
     '''Returns JSON obj: {"status": <str>, "desc": <failure str>, "data": <str/dict/list>}
     '''
 
+    timer = Timer()
+
     if exc:
         return Response(
             response=dumps({'status':'failed','desc':str(exc)}),
@@ -64,7 +67,6 @@ def build_resp(rv=None, exc=None, name=None, timer=None):
             status=200, mimetype='application/json')
 
     # Success
-
     try:
         json_rv = format_bson({'status':'success', 'data':rv}, to_json=True)
     except Exception as e:
@@ -74,13 +76,12 @@ def build_resp(rv=None, exc=None, name=None, timer=None):
     resp = Response(response=json_rv, status=200,mimetype='application/json')
 
     if "logger" not in request.path:
-        log.debug('%s success', request.path,
+        log.debug('%s success [%s]', request.path, timer.clock(t='ms'),
             extra={
                 'request':dump_request(),
                 'duration': timer.clock(),
                 'function':name,
                 'response': dump_response(resp)})
-
     return resp
 
 #-------------------------------------------------------------------------------

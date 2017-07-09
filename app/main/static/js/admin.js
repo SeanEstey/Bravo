@@ -1,10 +1,10 @@
+/* main/static/js/admin.js */
 
 var serv_pane_init = false;
 var prop_pane_init = false;
 var user_pane_init = false;
 var alice_pane_init = false;
 var recnt_pane_init = false;
-
 
 //------------------------------------------------------------------------------
 function init() {
@@ -88,7 +88,7 @@ function initServicesPane() {
     $('#linked_cal').tooltip();
 
     api_call(
-      'agency/conf/get',
+      'group/conf/get',
       null,
       function(response){
           console.log(response['status']);
@@ -105,7 +105,6 @@ function initServicesPane() {
           $("#email_fire_hour").val(conf['notify']['triggers']['email']['fire_hour']);
           $("#voice_sms_fire_days_delta").val(conf['notify']['triggers']['voice_sms']['fire_days_delta']);
           $("#voice_sms_fire_hour").val(conf['notify']['triggers']['voice_sms']['fire_hour']);
-
           serv_pane_init = true;
       });
 }
@@ -114,7 +113,6 @@ function initServicesPane() {
 function initPreviewerPane() {
 
     // Button handlers
-
     $('#receipt_btn').click(function(e){
         showModal(
           'mymodal',
@@ -218,7 +216,7 @@ function initPropertiesPane() {
     if(prop_pane_init)
         return;
 
-    api_call('agency/properties/get', null, function(response){
+    api_call('group/properties/get', null, function(response){
         console.log(response['status']);
         var prop = response['data'];
 
@@ -228,6 +226,8 @@ function initPropertiesPane() {
         $("#n_leaderboard_accts").text(prop['n_leaderboard_accts']);
         $("#n_users").text(prop['n_users']);
         $("#n_sessions").text(prop['n_sessions']);
+        $("#n_cached_accounts").text(prop['n_cached_accounts']);
+        $("#n_cached_gifts").text(prop['n_cached_gifts']);
 
         prop_pane_init = true;
     });
@@ -237,7 +237,7 @@ function initPropertiesPane() {
 function saveFieldEdit(field, value) {
 
     api_call(
-        'agency/conf/update',
+        'group/conf/update',
         {'field':field, 'value':value},
         function(response) {
             if(response['status'] != 'success')

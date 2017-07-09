@@ -3,8 +3,9 @@ import logging
 from datetime import date, datetime, timedelta
 from flask import g, request, session
 from app import get_keys
-from app.main.etapestry import call, EtapError
+from app.main.etapestry import call, get_acct, EtapError
 from app.lib.dt import to_local
+from app.lib.timer import Timer
 from .dialog import *
 from logging import getLogger
 log = getLogger(__name__)
@@ -22,30 +23,27 @@ def lookup_acct(mobile):
 #-------------------------------------------------------------------------------
 def get_chatlogs(start_dt=None, serialize=True):
 
+    timer = Timer()
     view_days = get_keys('alice')['chatlog_view_days']
 
     if not start_dt:
         start_dt = datetime.utcnow() - timedelta(days=view_days)
 
     chats = g.db['chatlogs'].find(
-        {'group':g.group, 'last_message': {'$gt': start_dt}},
+        {
+            'group': g.group,
+            'last_message': {'$gt': start_dt},
+            'messages.1': {'$exists': True}
+        },
         {'group':0, '_id':0}
     ).limit(50).sort('last_message',-1)
 
-    log.debug('%s chatlogs retrieved.', chats.count())
+    log.debug('%s chatlogs retrieved. [%s]', chats.count(), timer.clock(t='ms'))
 
     chats = list(chats)
 
     for chat in chats:
-        # New format has 'acct_id' and lookup cachedAccount instead of 'account'
-        # Delete this check on July-7-2017 after 7-day chatlogs are all converted
-        if not chat.get('account'):
-            cached = g.db['cachedAccounts'].find_one(
-                {'account.id':chat.get('acct_id')})
-            if cached:
-                chat['account'] = cached['account']
-            else:
-                chat['account'] = None
+        chat['account'] = get_acct(chat['acct_id']) if chat.get('acct_id') else None
 
     if serialize:
         from app.lib.utils import format_bson

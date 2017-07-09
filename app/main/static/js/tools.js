@@ -271,7 +271,7 @@ function runAnalyzer() {
     $('#n_matches').text("None");
 
     api_call(
-      'accounts/find_within_map',
+      'tasks/analyze_zone',
       data={
         'map_title': current_map['properties']['name'],
         'blocks': JSON.stringify(overlap_blocks)},

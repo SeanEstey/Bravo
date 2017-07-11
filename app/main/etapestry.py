@@ -24,20 +24,6 @@ NAME_FORMAT = {
     'BUSINESS': 3
 }
 
-"""
-class Account:
-    obj = None
-
-    def __getattr__(self, attr):
-        # Access obj properties and UDF's through dict notation
-        # 
-        # i.e. blocks = acct['Block']
-         return self[attr]
-
-    def __init__(self):
-        pass
-"""
-
 #-------------------------------------------------------------------------------
 def call(func, data=None, batch=False, cache=False, timeout=45):
     '''Call eTapestry API function from PHP script.
@@ -85,6 +71,13 @@ def to_datetime(obj):
             if obj[field] and type(obj[field]) != str and type(obj[field]) != unicode:
                 continue
             obj[field] = parse(obj[field]) if obj[field] else None
+
+        # TODO: Iterate though accountDefinedValues, convert 'datatype' == 1 to
+        # datetime obj. Go through receipting code to change any references
+        # to Dropoff Date, Next Pickup Date, Signup Date from str comparison to
+        # datetime comparison. Go through any other code referencing
+        # cachedAccount Next Pickup Date to use datetime comparison
+
         return obj
 
     # Journal Entry
@@ -205,6 +198,7 @@ def _cache_accts(accts):
 #-------------------------------------------------------------------------------
 def get_acct(aid, ref=None, cached=True):
 
+    timer = Timer()
     acct = None
 
     if cached == True and aid:
@@ -213,6 +207,7 @@ def get_acct(aid, ref=None, cached=True):
         acct = g.db['cachedAccounts'].find_one({'group':g.group, 'account.ref':str(ref)})
 
     if acct:
+        #print 'get cachedAccount [%s]' % timer.clock(t='ms')
         return acct['account']
 
     if aid:

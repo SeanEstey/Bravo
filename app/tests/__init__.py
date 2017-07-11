@@ -4,7 +4,7 @@ import celery.result
 from datetime import datetime, date, time, timedelta
 from flask import g, url_for
 from flask_login import current_user, login_user
-from app import create_app, init_celery
+from app import create_app
 from app.auth import load_user
 from app.lib.mongo import create_client
 import config
@@ -23,13 +23,14 @@ def get_db():
 
 #-------------------------------------------------------------------------------
 def init(self):
-    self.app = create_app('app', testing=True)
-    self.celery = init_celery(self.app)
+    self.app = create_app('app')
+    #self.celery = init_celery(self.app)
     self.user_id = 'sestey@vecova.ca'
     self.client = self.app.test_client()
     self._ctx = self.app.test_request_context()
     self._ctx.push()
-    self.db = g.db = get_db()
+    g.db = self.db = self.app.db_client['bravo']
+    g.group = 'vec'
     for k in ENVIRONS:
         os.environ[k] = ENVIRONS[k]
 
@@ -42,15 +43,15 @@ def login_self(self):
 #-------------------------------------------------------------------------------
 def login_client(client):
     client.post(
-        url_for('auth.authenticate'),
+        url_for('api._login_user'),
         data = dict(
             username='sestey@vecova.ca',
-            password='vec'))
+            password='Snookiecat@1'))
 
 #-------------------------------------------------------------------------------
 def logout(client):
     return client.post(
-        url_for('auth.logout'))
+        url_for('api._logout_user'))
         #follow_redirects=True)
 
 #-------------------------------------------------------------------------------

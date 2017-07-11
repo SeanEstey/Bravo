@@ -173,3 +173,9 @@ Restart nginx:
 service nginx restart
 
 It should now be accessible and secured via http://bravoweb.ca/flower
+
+# Notes
+
+To free memory not released by abberant python/celery processes:
+
+$ sync && echo 3 | sudo tee /proc/sys/vm/drop_caches

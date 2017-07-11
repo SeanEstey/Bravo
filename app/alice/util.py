@@ -1,4 +1,5 @@
-'''app.alice.util'''
+# app.alice.util
+
 import logging
 from datetime import date, datetime, timedelta
 from flask import g, request, session
@@ -7,8 +8,7 @@ from app.main.etapestry import call, get_acct, EtapError
 from app.lib.dt import to_local
 from app.lib.timer import Timer
 from .dialog import *
-from logging import getLogger
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def lookup_acct(mobile):

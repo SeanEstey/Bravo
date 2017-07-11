@@ -216,6 +216,12 @@ function add_gifts($entries) {
         "row"=>"<int>", "status"=>"<str>", "description"=>"<err_str>"]
 	*/
 
+    // TODO: Pass in each cached account from the process_entries task
+    // so not being fetched again here. Each gift is making 4 API calls
+    // now: (addDefinedValues, removeDefinedValues, getAccount, addGift)
+    // Takes ~8sec w/ WSF endpoint
+
+
     ini_set('max_execution_time', 30000); // For timeout error
     global $nsc, $agcy;
     $entries = json_decode(json_encode($entries), true); // stdclass->array

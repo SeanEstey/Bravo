@@ -161,7 +161,27 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
         return 'failed'
 
     api_key = get_keys('google')['geocode']['api_key']
-    matches = []
+    matches = {}
+
+    n_no_geo = 0
+    for cache in g.db['cachedAccounts'].find({'group':g.group}):
+        acct = cache['account']
+        geolocation = cache.get('geolocation')
+
+        if not geolocation:
+            n_no_geo +=1
+            continue
+
+        if in_map(geolocation['geometry']['location'], target_map):
+            if acct['id'] not in matches:
+                matches[acct['id']] = acct
+                smart_emit('analyze_results',
+                    {'status':'match',
+                    'acct_id':acct['id'],
+                    'coords':geolocation['geometry']['location'],
+                    'n_matches':len(matches)})
+
+    log.debug('Skipped %s cached accounts w/ no geolocation', n_no_geo)
 
     for block in blocks:
         log.debug('Searching Block %s', block)
@@ -178,22 +198,23 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
             ).get('geolocation')
 
             if not geolocation:
+                log.debug('Skipping query acct w/o geolocation')
                 continue
 
             pt = geolocation['geometry']['location']
 
             if in_map(pt, target_map):
-                matches.append(acct)
+                # Might replace existing account from cache
+                matches[acct['id']] = acct
                 smart_emit('analyze_results',
                     {'status':'match','acct_id':acct['id'],'coords':pt,'n_matches':len(matches)})
 
     smart_emit('analyze_results', {'status':'completed','n_matches':len(matches)})
 
     # Write accounts to Bravo Sheets->Updater
-
     values = []
-
-    for acct in matches:
+    for acct_id in matches:
+        acct = matches[acct_id]
         values.append([
             '', zone, acct['id'], acct['address'], acct['name'],
             get_udf('Block',acct), get_udf('Neighborhood',acct), get_udf('Status',acct),
@@ -295,22 +316,36 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
     log.info('Task: Processing %s account entries...', len(entries))
 
     chks = [entries[i:i + CHK_SIZE] for i in xrange(0, len(entries), CHK_SIZE)]
+    task_start = datetime.utcnow()
+    results = None
 
     for n in range(0,len(chks)):
         chk = chks[n]
         try:
             results = call('add_gifts', data={'entries':chk})
         except Exception as e:
-            log.error('error in chunk #%s. continuing...', n+1)
+            log.error('error in chunk #%s. continuing...', n+1, extra={'description':e.message})
+            results = "Failed to add gifts. Description: %s" % e.message
             continue
         else:
             range_ = '%s:%s' %(
                 to_range(results[0]['row'], ref_col),
                 to_range(results[-1]['row'], upload_col))
             values = [[
-                results[i].get('ref',''),
+                results[i].get('ref' ,results[i].get('description')),
                 results[i]['status'].upper()
             ] for i in range(len(results))]
+        finally:
+            g.db['taskResults'].update_one(
+                {'group':g.group, 'task':'process_entries', 'started': task_start},
+                {'$set':{'results':{'$push':{
+                    'chunk': '%s/%s' % (n+1, len(chks)),
+                    'results': results,
+                    'n_entries':len(results) if type(results) is list else "N/A",
+                    'completed':datetime.utcnow(),
+                    'duration':timer.clock(stop=False)
+                }}}},
+                upsert=True)
 
         try:
             ss.wks("Donations").updateRange(range_, values)

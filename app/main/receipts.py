@@ -82,7 +82,10 @@ def get_template(acct, ss_gift):
         return {}
 
     gift_d = parse(ss_gift['date']).date()
-    drop_d = ddmmyyyy_to_date(get_udf('Dropoff Date',acct))
+    if get_udf('Dropoff Date', acct):
+        drop_d = ddmmyyyy_to_date(get_udf('Dropoff Date',acct))
+    else:
+        drop_d = None
     nf = acct['nameFormat']
 
     if ss_gift['status'] == 'Cancelled':

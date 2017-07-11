@@ -125,6 +125,7 @@
 		exit;
 	}
 	else {
+        //debug_log(sprintf("func=%s, status=SUCCESS [%f]", $func, end_timer($t1));
 		debug_log('status=SUCCESS, func="' . $func . '" [' . end_timer($t1) . 's]');
 
 		echo json_encode([

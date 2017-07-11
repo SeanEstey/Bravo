@@ -125,6 +125,8 @@ def send_welcome():
         log.debug('Acct has no email to send Welcome')
         return 'No Email'
 
+    acct['email'] = acct['email'].encode('ascii', 'ignore')
+
     try:
         html = render_template('signups/%s/welcome.html' % g.group,
             acct=acct, to=acct['email'])

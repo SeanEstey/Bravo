@@ -16,7 +16,7 @@ def add_etw_to_gsheets(signup):
 
     g.group = 'wsf'
 
-    log.info('New signup received: %s %s',
+    log.debug('New signup received: %s %s',
       signup.get('first_name'),
       signup.get('last_name'))
 

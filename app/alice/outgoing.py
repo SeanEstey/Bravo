@@ -1,13 +1,13 @@
-'''app.alice.outgoing'''
-import cPickle as pickle
+# app.alice.outgoing
+
 from datetime import datetime
 from twilio.rest import Client
 from flask import g, request, current_app
 from app import get_keys
-from app.main import etapestry
 from app.lib.dt import to_local
+from app.main import etapestry
 from .dialog import dialog
-from .session import save_msg
+from . import conversation
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -49,7 +49,7 @@ def send_welcome(etap_id):
     return r.status
 
 #-------------------------------------------------------------------------------
-def compose(body, to, callback=None, find_session=False, event_log=True):
+def compose(body, to, callback=None, event_log=True):
     '''Compose SMS message to recipient
     Can be called from outside blueprint. No access to flask session
     Returns twilio message object (not json serializable)
@@ -79,36 +79,11 @@ def compose(body, to, callback=None, find_session=False, event_log=True):
         log.exception('Error sending SMS message: %s', e.message)
         raise
 
-    save_msg(body, mobile=to, direction='out')
+    conversation.save_msg(body, mobile=to, direction='out')
 
     log.info(body, extra={'tag':'sms_msg'}) if event_log else log.debug(body, extra={'tag':'sms_msg'})
 
-    # TODO Delete this code once Alice chat view is complete
-
-    if not find_session:
-        return msg
-
-    # Store the new message in the user's session
-
-    chats = g.db.chatlogs.find({'from':to}).sort('last_msg_dt',-1).limit(1)
-
-    if chats.count() == 0:
-        return msg.status
-
-    chat = chats.next()
-
-    try:
-        sess = pickle.loads(current_app.kv_store.get(chat['sess_id']))
-    except Exception as e:
-        sess = None
-    else:
-        sess['messages'].append(body)
-        sess['last_msg_dt'] = to_local(datetime.now())
-        current_app.kv_store.put(chat['sess_id'], pickle.dumps(sess))
-        log.debug('updated sess_id=%s with outgoing msg', chat['sess_id'])
-
-    log.debug('msg.status=%s', msg.status)
-    return msg.status
+    return msg
 
 #-------------------------------------------------------------------------------
 def get_self_name(group_name):

@@ -1,9 +1,11 @@
-'''app.alice.incoming
+"""app.alice.incoming
+
 Uses KVSession in place of flask session to store data server-side in MongoDB
 Session expiry set in app.config.py, currently set to 60 min
 Conversations permanently saved to MongoDB in bravo.alice
-'''
-import string
+"""
+
+import logging, string
 from datetime import datetime, date, time, timedelta
 from flask import request, make_response, g, session
 from app import colors as c
@@ -12,9 +14,8 @@ from . import keywords
 from .dialog import *
 from .phrases import *
 from .replies import *
-from .session import *
-from logging import getLogger
-log = getLogger(__name__)
+from . import conversation
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def receive():
@@ -22,18 +23,17 @@ def receive():
     Return Twiml response
     '''
 
-    if not has_session():
+    if not conversation.exists():
         try:
-            create_session()
+            conversation.new()
         except EtapError as e:
             return make_reply(str(e))
     else:
-        session['last_msg_dt'] = to_local(dt=datetime.now())
-        save_msg(request.form['Body'], direction="in")
+        conversation.save_msg(request.form['Body'], direction="in")
 
     inc_msg_count()
     log_msg()
-    kws = find_kw_matches(get_msg(), session.get('valid_kws'))
+    kws = find_kw_matches(get_msg(), session.get('VALID_KWS'))
 
     if kws:
         return handle_keyword(kws[0])
@@ -76,7 +76,7 @@ def handle_keyword(kw, handler=None):
 
     if handler:
         _handler = handler
-    elif session.get('account'):
+    elif session.get('ACCOUNT'):
         _handler = keywords.user[kw]
     else:
         _handler = keywords.anon[kw]
@@ -104,7 +104,7 @@ def handle_answer():
     '''Received expected reply. Call event handler for listener key
     '''
 
-    do = session.get('on_complete')
+    do = session.get('ON_COMPLETE')
 
     if do['action'] == 'dialog':
         reply = do['dialog']
@@ -130,13 +130,11 @@ def handle_unknown():
     '''
 
     # Try to identify non-command keys/phrases
-
     if guess_intent():
         return make_reply(guess_intent())
 
     # Cannot parse message. Send default response
-
-    if session.get('account'):
+    if session.get('ACCOUNT'):
         return make_reply(dialog['user']['options'])
     else:
         return make_reply(dialog['anon']['options'])
@@ -173,8 +171,8 @@ def make_reply(dialog_, on_complete=None):
     any keywords contained in it
     '''
 
-    session['on_complete'] = on_complete
-    self = session.get('self_name')
+    session['ON_COMPLETE'] = on_complete
+    self = session.get('SELF_NAME')
     name = get_name()
     greet = tod_greeting()
     context = ''
@@ -185,13 +183,13 @@ def make_reply(dialog_, on_complete=None):
         context += name + ', '
         dialog_ = dialog_[0].lower() + dialog_[1:]
 
-    save_msg('%s: %s' % (self, context + dialog_), direction='out')
+    conversation.save_msg('%s: %s' % (self, context + dialog_), direction='out')
 
     from twilio.twiml.messaging_response import MessagingResponse
     m_response = MessagingResponse()
     m_response.message(context + dialog_)
 
-    log.info('%s to %s: "%s"', self, session['from'][2:], context + dialog_,
+    log.info('%s to %s: "%s"', self, session['FROM'][2:], context + dialog_,
         extra={'tag':'sms_msg'})
 
     response = make_response()
@@ -221,11 +219,10 @@ def get_name():
     '''Returns account 'name' or 'firstName' for registered users,
     None for unregistered users'''
 
-    if not session.get('account'):
+    if not session.get('ACCOUNT'):
         return False
 
-    account = session.get('account')
-
+    account = session.get('ACCOUNT')
     nf = account['nameFormat']
 
     # Formats: None (0), Family (2), Business (2)
@@ -233,7 +230,6 @@ def get_name():
         return account['name']
 
     # Format: Individual (1)
-
     if account['firstName']:
         return account['firstName']
     else:
@@ -241,7 +237,7 @@ def get_name():
 
 #-------------------------------------------------------------------------------
 def expecting_answer():
-    return session.get('on_complete')
+    return session.get('ON_COMPLETE')
 
 #-------------------------------------------------------------------------------
 def get_msg(upper=False, rmv_punctn=False):
@@ -253,15 +249,15 @@ def get_msg(upper=False, rmv_punctn=False):
 #-------------------------------------------------------------------------------
 def log_msg():
     log.info('%s to %s: "%s"',
-        session['from'][2:], session['self_name'], request.form['Body'],
+        session['FROM'][2:], session['SELF_NAME'], request.form['Body'],
         extra={'n_convo_messages': msg_count(), 'tag':'sms_msg'})
 
 #-------------------------------------------------------------------------------
 def msg_count():
-    return session.get('messagecount')
+    return session.get('MESSAGECOUNT')
 
 #-------------------------------------------------------------------------------
 def inc_msg_count():
     '''Track number of received messages in conversation'''
 
-    session['messagecount'] = session.get('messagecount', 0) + 1
+    session['MESSAGECONT'] = session.get('MESSAGECONT', 0) + 1

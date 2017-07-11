@@ -218,3 +218,38 @@ def file_handler(level, file_path,
 
     handler.setFormatter(formatter)
     return handler
+
+#-------------------------------------------------------------------------------
+def clear_sessions():
+    """Destroy all sessions from Key-Value store in MongoDB. This will erase
+    any logged in users, Alice sessions, etc.
+    """
+
+    from datetime import datetime
+    from flask import current_app
+    from flask_kvsession import SessionID
+    from app.lib.timer import Timer
+
+    timer = Timer()
+    n_start = len(current_app.kv_store.keys())
+
+    for key in current_app.kv_store.keys():
+        m = current_app.kv_ext.key_regex.match(key)
+        if not m: continue
+
+        sid = SessionID.unserialize(key)
+        now = datetime.utcnow()
+        lifetime = current_app.config['PERMANENT_SESSION_LIFETIME']
+
+        # Delete session even if not expired
+        # To test for expiry, add:
+        #    if sid.has_expired(lifetime, now):
+        #       current_app.kv_store.delete(key)
+        current_app.kv_store.delete(key)
+
+    n_end = len(current_app.kv_store.keys())
+
+    current_app.logger.debug('Cleared sessions from n=%s to n=%s. [%s]',
+        n_start, n_end, timer.clock())
+
+    return 'Cleared %s sessions' % n_start

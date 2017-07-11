@@ -1,4 +1,5 @@
-'''app.alice.events'''
+# app.alice.events
+
 from flask import g, request, session
 from datetime import datetime, date, time, timedelta
 from app.lib.dt import to_local, ddmmyyyy_to_dt
@@ -7,7 +8,7 @@ from app.main.etapestry import call, get_udf, EtapError
 from app.main.maps import find_block, geocode
 from app.booker import search, book
 from .dialog import dialog
-from .util import related_notific, event_begun, set_notific_reply
+from .conversation import related_notific, event_begun, set_notific_reply
 from app.main.tasks import create_rfu
 from app.notify.tasks import skip_pickup as skip_pickup_task
 from logging import getLogger
@@ -15,13 +16,14 @@ log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def request_support():
-    acct = session.get('account')
+
+    acct = session.get('ACCOUNT')
 
     create_rfu.delay(
-        session.get('group'),
+        session.get('GROUP'),
         'SMS help request: "%s"\n%s' %(
             str(request.form['Body']),
-            session.get('from')),
+            session.get('FROM')),
         options={
             'ID': acct['id'],
             'Account': acct['name']})
@@ -30,7 +32,8 @@ def request_support():
 
 #-------------------------------------------------------------------------------
 def reply_schedule():
-    next_pu = get_udf('Next Pickup Date', session.get('account'))
+
+    next_pu = get_udf('Next Pickup Date', session.get('ACCOUNT'))
 
     if not next_pu:
         return dialog['error']['internal']['lookup']
@@ -40,12 +43,11 @@ def reply_schedule():
 
 #-------------------------------------------------------------------------------
 def prompt_instructions():
-    if not session.get('notific_id'):
+
+    if not session.get('NOTIFIC_ID'):
         return dialog['skip']['no_evnt']
 
-    #log.debug('is_notific_reply=%s', session.get('valid_notific_reply'))
-
-    if session.get('valid_notific_reply') == False:
+    if session.get('VALID_NOTIFIC_REPLY') == False:
         return dialog['skip']['too_late']
 
     # Did user include instruction details along w/ INSTRUCTION keyword?
@@ -55,18 +57,19 @@ def prompt_instructions():
     words = msg.split(' ')
 
     if len(words) > 1:
-        session['on_complete'] = None
+        session['ON_COMPLETE'] = None
         return add_instructions()
     else:
         return dialog['instruct']['prompt']
 
 #-------------------------------------------------------------------------------
 def add_instructions():
+
     # We've already verified user reply is valid for a notific event
     set_notific_reply()
 
     instruct = request.form['Body']
-    acct = session.get('account')
+    acct = session.get('ACCOUNT')
     old_notes = get_udf('Driver Notes', acct)
 
     call('modify_acct',
@@ -81,9 +84,10 @@ def add_instructions():
 
 #-------------------------------------------------------------------------------
 def skip_pickup():
-    acct = session.get('account')
 
-    if not session.get('notific_id'):
+    acct = session.get('ACCOUNT')
+
+    if not session.get('NOTIFIC_ID'):
         msg = dialog['skip']['no_evnt']
         npu = get_udf('Next Pickup Date', acct)
 
@@ -94,10 +98,10 @@ def skip_pickup():
         return msg + dialog['schedule']['next'] %(
             to_local(dt=ddmmyyyy_to_dt(npu)).strftime('%B %-d, %Y'))
 
-    if session.get('valid_notific_reply') == False:
+    if session.get('VALID_NOTIFIC_REPLY') == False:
         return dialog['skip']['too_late']
 
-    notific = g.db.notifics.find_one({'_id':session.get('notific_id')})
+    notific = g.db.notifics.find_one({'_id':session.get('NOTIFIC_ID')})
 
     try:
         result = skip_pickup_task.delay(
@@ -118,8 +122,9 @@ def skip_pickup():
 
 #-------------------------------------------------------------------------------
 def update_mobile():
+
     create_rfu.delay(
-        session.get('group'),
+        session.get('GROUP'),
         'SMS update account for following address '\
         'with mobile number:' + str(request.form['Body']),
         options = {
@@ -131,6 +136,7 @@ def update_mobile():
 
 #-------------------------------------------------------------------------------
 def is_unsub():
+
     '''User has unsubscribed all messages from SMS number'''
 
     from phrases import unsubscribe
@@ -146,7 +152,7 @@ def is_unsub():
         #    'twilio.sms.number':request.form['To']})
 
         create_rfu.delay(
-            session.get('group'),
+            session.get('GROUP'),
             'Contributor has replied "%s" and opted out of SMS '\
             'notifications.' % request.form['Body'],
             options = {'ID': account['id']})
@@ -158,8 +164,8 @@ def is_unsub():
 def request_pickup():
 
     address = request.form['Body']
-    g.group = session.get('group')
-    conf = session.get('conf')
+    g.group = session.get('GROUP')
+    conf = session.get('CONF')
 
     # Msg reply should contain address
     log.info('pickup request at \"%s\" (SMS: %s)', address, request.form['From'])
@@ -201,7 +207,8 @@ def request_pickup():
 
 #-------------------------------------------------------------------------------
 def add_acct(address, phone, block, pu_date_str):
-    conf = session.get('conf')
+
+    conf = session.get('CONF')
 
     geo_result = geocode(
         address,

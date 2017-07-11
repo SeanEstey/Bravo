@@ -338,13 +338,13 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
         finally:
             g.db['taskResults'].update_one(
                 {'group':g.group, 'task':'process_entries', 'started': task_start},
-                {'$set':{'results':{'$push':{
+                {'$push': {'results':{
                     'chunk': '%s/%s' % (n+1, len(chks)),
                     'results': results,
                     'n_entries':len(results) if type(results) is list else "N/A",
                     'completed':datetime.utcnow(),
                     'duration':timer.clock(stop=False)
-                }}}},
+                }}},
                 upsert=True)
 
         try:
@@ -806,7 +806,6 @@ def update_leaderboard_accts(self, group=None, **rest):
 def add_form_signup(self, data, **rest):
 
     g.group = 'wsf'
-    log.debug('received ETW form submission. data=%s', data)
     from app.main.signups import add_etw_to_gsheets
 
     try:

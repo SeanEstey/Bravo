@@ -1,27 +1,28 @@
 """app.api.endpoints
 
-API interface.
-
-Paths with @login_required must be called either from logged-in client or provide API key
-in request headers. Paths without @login_required can be called anonymously.
+API interface. Paths with @login_required must be called either from logged-in
+client or provide API key in request headers. Paths without @login_required can
+be called anonymously.
 """
 
 import json, logging
-from flask import g, request, Response
+from flask import g,request,Response
 from flask_login import login_required
 from . import api
-from app.api.manager import var, func_call, task_call
+from app.api.manager import var,func_call,task_call
+
 log = logging.getLogger(__name__)
 
-# TODO: Update URL to /signups/submit on emptiestowinn.com
+
+
+
 @api.route('/accounts/submit_form', methods=['POST'])
-#@login_required
 def _submit_form_signup():
+    # TODO: Update URL to /signups/submit on emptiestowinn.com
     from app.main.tasks import add_form_signup
     return task_call(add_form_signup, data=request.form.to_dict())
 
 @api.route('/accounts/get_pickup', methods=['POST'])
-#@login_required
 def _get_next_pickup():
     from app.main.donors import get_next_pickup
     g.group = var('agcy')
@@ -114,13 +115,19 @@ def _send_welcome():
 @login_required
 def _compose():
     from app.alice.outgoing import compose
-    return func_call(compose, var('body'), var('to'), find_session=True)
+    return func_call(compose, var('body'), var('to'))
 
 @api.route('/alice/chatlogs', methods=['POST'])
 @login_required
 def _get_chatlogs():
-    from app.alice.util import get_chatlogs
-    return func_call(get_chatlogs, serialize=True)
+    from app.alice.conversation import get_messagse
+    return func_call(get_messages, serialize=True)
+
+@api.route('/bravo/sessions/clear', methods=['GET', 'POST'])
+@login_required
+def _clear_sessions():
+    from app import clear_sessions
+    return func_call(clear_sessions)
 
 @api.route('/booker/create', methods=['POST'])
 @login_required
@@ -367,3 +374,5 @@ def _logout_user():
 @login_required
 def _get_user_info():
     return func_call(g.user.to_dict)
+
+

@@ -115,7 +115,8 @@ def _send_welcome():
 @login_required
 def _compose():
     from app.alice.outgoing import compose
-    return func_call(compose, var('body'), var('to'), mute=json.loads(var('mute')))
+    return func_call(compose, var('body'), var('to'),
+        mute=json.loads(var('mute')), acct_id=var('acct_id'))
 
 @api.route('/alice/chatlogs', methods=['POST'])
 @login_required

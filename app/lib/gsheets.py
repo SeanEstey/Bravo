@@ -525,6 +525,26 @@ def to_range(row, col):
     return '%s%s' % (letter,str(row))
 
 #-------------------------------------------------------------------------------
+def cell(row, col):
+
+    return '%s%s' % (col_str(col), str(row))
+
+#-------------------------------------------------------------------------------
+def a1_range(row1, col1, row2, col2, wks=None):
+    """Build A1 range string (i.e. C2:D4)
+    """
+
+    if wks:
+        return '%s!%s:%s' % (wks, cell(row1, col1), cell(row2, col2))
+    else:
+        return '%s:%s' % (cell(row1, col1), cell(row2, col2))
+
+#-------------------------------------------------------------------------------
+def col_str(column):
+
+    return col_idx_to_a1(column-1)
+
+#-------------------------------------------------------------------------------
 def col_idx_to_a1(idx):
 
     alphabet = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']

@@ -64,7 +64,11 @@ def get_location(acct_id=None):
 
 #-------------------------------------------------------------------------------
 def get_next_pickup(email):
-    return call('get_next_pickup', data={'email':email})
+
+    try:
+        return call('get_next_pickup', data={'email':email})
+    except EtapError as e:
+        return e.message
 
 #-------------------------------------------------------------------------------
 def ytd_gifts(ref, year):

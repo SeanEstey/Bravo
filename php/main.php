@@ -378,12 +378,12 @@ function add_accts($entries) {
                 $entry['persona']);
 
             if($status != 'Success') {
-                $rv[] = ['row'=>$row, 'status'=>$status];
+                $rv[] = ['ss_row'=>$row, 'status'=>$status];
                 $n_errs += 1;
                 reset_error($nsc);
             }
             else {
-                $rv[] = ['row'=>$row, 'status'=>$status];
+                $rv[] = ['ss_row'=>$row, 'status'=>$status];
                 $n_success += 1;
             }
           continue;
@@ -413,13 +413,13 @@ function add_accts($entries) {
         if(is_error($nsc)) {
             $n_errs += 1;
             $desc = get_error($nsc, $log=false);
-            $rv[] = ['row'=>$entry['ss_row'], 'status'=>$desc];
+            $rv[] = ['ss_row'=>$entry['ss_row'], 'status'=>$desc];
             debug_log('error adding account ' . $acct['name'] . '. desc: ' . $desc);
             reset_error($nsc);
         }
         else {
             $n_success += 1;
-            $rv[] = ['row'=>$entry['ss_row'], 'status'=>'COMPLETED', 'ref'=>$status];
+            $rv[] = ['ss_row'=>$entry['ss_row'], 'status'=>'COMPLETED', 'ref'=>$status];
             debug_log('added account ' . $acct['name']);
         }
 	}

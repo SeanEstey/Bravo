@@ -303,6 +303,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
     '''
 
     from app.lib.gsheets_cls import SS
+    from app.lib.gsheets import a1_range
 
     timer = Timer()
     CHK_SIZE = 10
@@ -321,20 +322,33 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
 
     for n in range(0,len(chks)):
         chk = chks[n]
+
         try:
             results = call('add_gifts', data={'entries':chk})
         except Exception as e:
-            log.error('error in chunk #%s. continuing...', n+1, extra={'description':e.message})
+            log.error('Error in chunk #%s. continuing...', n+1, extra={'description':e.message})
             results = "Failed to add gifts. Description: %s" % e.message
             continue
         else:
-            range_ = '%s:%s' %(
-                to_range(results[0]['row'], ref_col),
-                to_range(results[-1]['row'], upload_col))
-            values = [[
-                results[i].get('ref' ,results[i].get('description')),
-                results[i]['status'].upper()
-            ] for i in range(len(results))]
+            # Build range/value for [REF, STATUS] pair
+            ranges = []
+            values = []
+            for i in xrange(len(results)):
+                ranges.append(
+                    a1_range(results[i]['row'], ref_col, results[i]['row'], upload_col),
+                    wks='Donations')
+                values.append([[
+                    results[i].get('ref', results[i].get('description')),
+                    results[i]['status'].upper()]])
+
+            log.debug('Updating Sheet. Ranges=%s, values=%s', ranges, values)
+
+            try:
+                ss.wks("Donations").updateRanges(ranges, values)
+            except Exception as e:
+                log.exception('Error writing chunk %s', n+1)
+            else:
+                log.debug('Chunk %s/%s uploaded/written to Sheets.', n+1, len(chks))
         finally:
             g.db['taskResults'].update_one(
                 {'group':g.group, 'task':'process_entries', 'started': task_start},
@@ -347,13 +361,6 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
                 }}},
                 upsert=True)
 
-        try:
-            ss.wks("Donations").updateRange(range_, values)
-        except Exception as e:
-            log.exception('Error writing chunk %s', n+1)
-        else:
-            log.debug('Chunk %s/%s uploaded/written to Sheets.', n+1, len(chks))
-
     """
     # TODO: update cachedAccounts
     for entry in entries:
@@ -362,6 +369,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
     """
 
     log.info('Task completed. %s entries processed. [%s]', len(entries), timer.clock())
+
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -377,6 +385,7 @@ def send_receipts(self, ss_gifts, **rest):
     from app.lib.dt import dt_to_ddmmyyyy
     from app.lib.utils import split_list
     from app.lib.gsheets_cls import SS
+    from app.lib.gsheets import a1_range
     from app.main.donors import ytd_gifts
     from app.main.receipts import get_template, deliver
 
@@ -413,6 +422,8 @@ def send_receipts(self, ss_gifts, **rest):
 
     for i in xrange(0, len(sublists)):
         sublist = sublists[i]
+        ranges = []
+        values = []
 
         for receipt in sublist:
             account = receipt['account']
@@ -434,15 +445,16 @@ def send_receipts(self, ss_gifts, **rest):
                 receipt['result'] = result
                 n_queued += 1
 
-        # Update "Receipt" Sheet column values
+            # Build range/value for each cell in case rows are discontinuous
+            row = receipt['ss_gift']['ss_row']
+            ranges.append(a1_range(row,status_col,row,status_col), wks='Donations')
+            values.append([[receipt['result']['status']]])
 
-        a1_start = to_range(sublist[0]['ss_gift']['ss_row'], status_col)
-        a1_end = to_range(sublist[-1]['ss_gift']['ss_row'], status_col)
+        log.debug('Updating Sheet. Ranges=%s, Values=%s', ranges, values)
 
+        # Update 'Receipt' column with status
         try:
-            ss.wks('Donations').updateRange(
-                '%s:%s' % (a1_start, a1_end),
-                [[r['result']['status']] for r in sublist])
+            ss.wks('Donations').updateRanges(ranges, values)
         except Exception as e:
             log.exception('Error updating receipt values')
         else:
@@ -482,6 +494,7 @@ def create_accounts(self, accts_json, group=None, **rest):
     '''
 
     from app.lib.gsheets_cls import SS
+    from app.lib.gsheets import a1_range
 
     timer = Timer()
     g.group = group
@@ -499,6 +512,8 @@ def create_accounts(self, accts_json, group=None, **rest):
     ss = SS(get_keys('google')['oauth'], get_keys('google')['ss_id'])
     wks = ss.wks('Signups')
     headers = wks.getRow(1)
+    ref_col = headers.index('Ref')+1
+    upload_col = headers.index('Upload')+1
 
     for i in range(0, len(chks)):
         rv = []
@@ -510,6 +525,23 @@ def create_accounts(self, accts_json, group=None, **rest):
             log.exception('Error adding accounts')
             log_rec['errors'].append(e)
 
+        # Build range/value for [REF, STATUS] pair
+        ranges = []
+        values = []
+        res = rv['results']
+        for n in xrange(len(res)):
+            ranges.append(a1_range(res[n]['ss_row'], ref_col, res[n]['ss_row'], upload_col, wks='Signups'))
+            values.append([[res[n].get('ref',''), res[n]['status'].upper()]])
+
+        log.debug('Updating Sheet. Ranges=%s, values=%s', ranges, values)
+
+        try:
+            wks.updateRanges(ranges, values)
+        except Exception as e:
+            log.exception('Error writing to Bravo Sheets.')
+        else:
+            log.debug('Chunk %s/%s written to Sheets', i+1, len(chks))
+
         # rv = {'n_success':<int>, 'n_errs':<int>, 'results':[ {'row':<int>, 'status':<str>}, ... ]
         log.debug('rv=%s', rv)
         log_rec['n_success'] += int(rv['n_success'])
@@ -517,21 +549,6 @@ def create_accounts(self, accts_json, group=None, **rest):
         if int(rv['n_errs']) > 0:
             log_rec['n_errs'] += int(rv['n_errs'])
             log_rec['errors'].append(rv['results'])
-
-        range_ = '%s:%s' %(
-            to_range(chk[0]['ss_row'], headers.index('Ref')+1),
-            to_range(chk[-1]['ss_row'], headers.index('Upload')+1))
-
-        values = [[rv['results'][idx].get('ref'), rv['results'][idx]['status']]
-            for idx in range(0, len(rv['results']))
-        ]
-
-        try:
-            wks.updateRange(range_, values)
-        except Exception as e:
-            log.exception('Error writing to Bravo Sheets.')
-        else:
-            log.debug('Chunk %s/%s written to Sheets', i+1, len(chks))
 
     log_rec['duration'] = timer.clock()
 

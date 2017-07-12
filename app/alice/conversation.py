@@ -36,6 +36,7 @@ def new():
         'FROM': mobile,
         'GROUP': g.group,
         'CONF': conf,
+        'MESSAGECOUNT': 0,
         'SELF_NAME': conf['alice']['name']
     })
 
@@ -73,6 +74,10 @@ def new():
 
     save_msg(msg, direction="in")
 
+    log.info('%s to %s: "%s"',
+        session['FROM'][2:], session['SELF_NAME'], request.form['Body'],
+        extra={'n_messages': session['MESSAGECOUNT'], 'tag':'sms_msg'})
+
 #-------------------------------------------------------------------------------
 def update():
     """MESSAGECOUNT increments only on incoming message.
@@ -100,11 +105,12 @@ def mute(mobile=None, minutes=5):
     print session['MUTE_UNTIL']
 
 #-------------------------------------------------------------------------------
-def save_msg(text, mobile=None, direction=None):
+def save_msg(text, mobile=None, acct_id=None, direction=None):
     '''@mobile: if sending msg outside of session'''
 
     phone = session.get('FROM', mobile)
     acct = session.get('ACCOUNT', {})
+    log.debug('save_msg acct_id=%s', acct_id)
 
     # TODO: should be able to do upsert here. condense these queries
 
@@ -112,7 +118,7 @@ def save_msg(text, mobile=None, direction=None):
         g.db['chatlogs'].insert_one({
             'group':g.group,
             'mobile': phone,
-            'acct_id': acct.get('id', None),
+            'acct_id': acct.get('id', acct_id),
             'last_message': datetime.utcnow(),
             'messages': [{
                 'timestamp': datetime.utcnow(),
@@ -129,7 +135,7 @@ def save_msg(text, mobile=None, direction=None):
                 'direction': direction
              }},
              '$set': {
-                'acct_id': acct.get('id', None),
+                'acct_id': acct.get('id', acct_id),
                 'group':g.group,
                 'last_message':datetime.utcnow()
               }
@@ -164,13 +170,17 @@ def get_messages(start_dt=None, serialize=True):
         else:
             try:
                 chat['account'] = call('find_acct_by_phone', data={'phone':chat['mobile']}, cache=True)
+                log.debug('No chatlog Acct ID. Lookup match name=%s for mobile=%s.',
+                    chat['account']['name'], chat['mobile'])
             except Exception as e:
+                log.debug('Error doing Mobile Lookup')
                 pass
             else:
-                g.db['chatlogs'].update_one(
-                    {'mobile': chat['mobile']},
-                    {'$set':{'acct_id':chat['account']['id']}})
-                session['ACCOUNT'] = chat['account']
+                #g.db['chatlogs'].update_one(
+                #    {'mobile': chat['mobile']},
+                #    {'$set':{'acct_id':chat['account']['id']}})
+                #session['ACCOUNT'] = chat['account']
+                pass
 
     if serialize:
         from app.lib.utils import format_bson

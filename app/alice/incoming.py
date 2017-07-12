@@ -185,7 +185,7 @@ def make_reply(dialog_, on_complete=None):
     greet = tod_greeting()
     context = ''
 
-    if session['MESSAGECOUNT'] == 1:
+    if session['MESSAGECOUNT'] <= 1:
         context += '%s, %s. ' % (greet, name) if name else '%s. ' % (greet)
     elif session['MESSAGECOUNT'] > 1 and name:
         context += name + ', '

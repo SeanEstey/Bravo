@@ -128,6 +128,37 @@ class Wks():
         self._refresh()
 
     #---------------------------------------------------------------
+    def updateRanges(self, ranges, values):
+        """Update values for discontinuous rows.
+        given non-continuous ranges (i.e. need to
+        skip over updating certain rows).
+        @ranges: list of range strings. Same length as values.
+        @values: list of row values for each range. Same length as ranges.
+        """
+
+        if len(ranges) != len(values):
+            raise Exception('Failed to updateRanges. Ranges/Values lists diferent lengths')
+
+        data = []
+        for i in xrange(0, len(ranges)):
+            data.append({
+                "majorDimension": "ROWS",
+                'range': ranges[i],
+                'values': values[i]
+            })
+
+        try:
+			self.service.spreadsheets().values().batchUpdate(
+				spreadsheetId = self.ss_id,
+				body = {
+                    "valueInputOption": 'USER_ENTERED',
+                    "data": data
+                }
+			).execute(num_retries=3)
+        except HttpError as e:
+			handleHttpError(e)
+
+    #---------------------------------------------------------------
     def appendRows(self, values):
         lastRow = self._getLastRow()
         a1_start = to_range(lastRow + 1,1)

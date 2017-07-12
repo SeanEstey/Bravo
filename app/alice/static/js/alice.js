@@ -16,7 +16,8 @@ function sendMessage(e) {
         data = {
             'body': $modal.find('input[name="msg"]').val(),
             'to': $modal.data('mobile'),
-            'mute': $modal.find('input[name="mute"]').prop('checked')
+            'mute': $modal.find('input[name="mute"]').prop('checked'),
+            'acct_id': $modal.data('acct_id')
         },
 
         function(response) {
@@ -101,6 +102,10 @@ function showChatModal(e) {
     e.preventDefault();
     var chat = $(this).data('details');
     var name = chat['account'] ? chat['account']['name'] : 'Unregistered User';
+    if(chat['account'])
+        var acct_id = chat['account']['id'];
+    else
+        var acct_id = "";
 
     $chatlog = $('#chatlog');
     $chatlog.empty();
@@ -118,8 +123,10 @@ function showChatModal(e) {
         $('#chatlog').scrollTop($('#chatlog')[0].scrollHeight);
     })
     $modal.data('mobile', chat['mobile']);
+    $modal.data('acct_id', acct_id);
     $modal.find('.modal-title').text(name+ ' (' +chat['mobile']+ ')');
     $modal.find('.modal-footer .btn-primary').unbind('click');
     $modal.find('.modal-footer .btn-primary').off('click');
+    $modal.find('#f_acct_id').html("Acct ID " + acct_id);
     $modal.modal('show');
 }

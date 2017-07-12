@@ -14,9 +14,11 @@ function sendMessage(e) {
     api_call(
         'alice/compose',
         data = {
-            'body': $modal.find('input').val(),
-            'to': $modal.data('mobile')
+            'body': $modal.find('input[name="msg"]').val(),
+            'to': $modal.data('mobile'),
+            'mute': $modal.find('input[name="mute"]').prop('checked')
         },
+
         function(response) {
             console.log('response: ' + JSON.stringify(response));
 

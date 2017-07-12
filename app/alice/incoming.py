@@ -29,11 +29,19 @@ def receive():
         except EtapError as e:
             return make_reply(str(e))
     else:
-        conversation.save_msg(request.form['Body'], direction="in")
+        conversation.update()
 
-    inc_msg_count()
-    log_msg()
-    kws = find_kw_matches(get_msg(), session.get('VALID_KWS'))
+    if parse_msg() == 'mute':
+        conversation.mute()
+        return 'OK'
+
+    if session.get('MUTE_UNTIL'):
+        if datetime.now() >= session['MUTE_UNTIL']:
+            del session['MUTE_UNTIL']
+        else:
+            return 'OK'
+
+    kws = find_kw_matches(parse_msg(), session.get('VALID_KWS'))
 
     if kws:
         return handle_keyword(kws[0])
@@ -65,7 +73,7 @@ def find_kw_matches(message, kws):
 def find_phrase_match(phrases):
     '''@phrases: list of >= 1 word strings
     '''
-    message = get_msg().upper().translate(None, string.punctuation)
+    message = parse_msg().upper().translate(None, string.punctuation)
     return message in phrases
 
 #-------------------------------------------------------------------------------
@@ -150,14 +158,14 @@ def guess_intent():
 
     # Lookup general keyword replies
 
-    kw = find_kw_matches(get_msg(), replies.keys())
+    kw = find_kw_matches(parse_msg(), replies.keys())
 
     if kw:
         return replies[kw[0]]
 
     # No keywords or phrases indentified. Is user asking a question?
 
-    if '?' in get_msg():
+    if '?' in parse_msg():
         return '%s %s' %(
             dialog['error']['parse']['question'],
             dialog['user']['options'])
@@ -177,9 +185,9 @@ def make_reply(dialog_, on_complete=None):
     greet = tod_greeting()
     context = ''
 
-    if msg_count() == 1:
+    if session['MESSAGECOUNT'] == 1:
         context += '%s, %s. ' % (greet, name) if name else '%s. ' % (greet)
-    elif msg_count() > 1 and name:
+    elif session['MESSAGECOUNT'] > 1 and name:
         context += name + ', '
         dialog_ = dialog_[0].lower() + dialog_[1:]
 
@@ -240,24 +248,8 @@ def expecting_answer():
     return session.get('ON_COMPLETE')
 
 #-------------------------------------------------------------------------------
-def get_msg(upper=False, rmv_punctn=False):
+def parse_msg(upper=False, rmv_punctn=False):
     '''Convert to str, strip spaces
     '''
 
     return str(request.form['Body'].encode('ascii', 'ignore')).strip()
-
-#-------------------------------------------------------------------------------
-def log_msg():
-    log.info('%s to %s: "%s"',
-        session['FROM'][2:], session['SELF_NAME'], request.form['Body'],
-        extra={'n_convo_messages': msg_count(), 'tag':'sms_msg'})
-
-#-------------------------------------------------------------------------------
-def msg_count():
-    return session.get('MESSAGECOUNT')
-
-#-------------------------------------------------------------------------------
-def inc_msg_count():
-    '''Track number of received messages in conversation'''
-
-    session['MESSAGECONT'] = session.get('MESSAGECONT', 0) + 1

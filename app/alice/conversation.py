@@ -35,10 +35,8 @@ def new():
         'TYPE': 'alice_chat',
         'FROM': mobile,
         'GROUP': g.group,
-        'PAUSE_REPLIES_UNTIL': None,
         'CONF': conf,
-        'SELF_NAME': conf['alice']['name'],
-        'EXPIRY_DT': datetime.now() + current_app.config['PERMANENT_SESSION_LIFETIME']
+        'SELF_NAME': conf['alice']['name']
     })
 
     try:
@@ -74,6 +72,32 @@ def new():
         raise EtapError(dialog['error']['etap']['inactive'])
 
     save_msg(msg, direction="in")
+
+#-------------------------------------------------------------------------------
+def update():
+    """MESSAGECOUNT increments only on incoming message.
+    """
+
+    save_msg(request.form['Body'], direction="in")
+    session['MESSAGECOUNT'] = session.get('MESSAGECOUNT', 0) + 1
+    log.info('%s to %s: "%s"',
+        session['FROM'][2:], session['SELF_NAME'], request.form['Body'],
+        extra={'n_messages': session['MESSAGECOUNT'], 'tag':'sms_msg'})
+
+#-------------------------------------------------------------------------------
+def mute(mobile=None, minutes=5):
+
+    until = datetime.now() + timedelta(minutes=minutes)
+
+    if mobile:
+        #from flask_kvsession import SessionID
+        # Find session matching mobile num
+        pass
+    else:
+        session['MUTE_UNTIL'] = until
+
+    log.debug('Muting session user for %s minutes', minutes)
+    print session['MUTE_UNTIL']
 
 #-------------------------------------------------------------------------------
 def save_msg(text, mobile=None, direction=None):
@@ -135,7 +159,18 @@ def get_messages(start_dt=None, serialize=True):
     chats = list(chats)
 
     for chat in chats:
-        chat['account'] = get_acct(chat['acct_id']) if chat.get('acct_id') else None
+        if chat.get('acct_id'):
+            chat['account'] = get_acct(chat['acct_id'])
+        else:
+            try:
+                chat['account'] = call('find_acct_by_phone', data={'phone':chat['mobile']}, cache=True)
+            except Exception as e:
+                pass
+            else:
+                g.db['chatlogs'].update_one(
+                    {'mobile': chat['mobile']},
+                    {'$set':{'acct_id':chat['account']['id']}})
+                session['ACCOUNT'] = chat['account']
 
     if serialize:
         from app.lib.utils import format_bson

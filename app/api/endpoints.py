@@ -115,12 +115,12 @@ def _send_welcome():
 @login_required
 def _compose():
     from app.alice.outgoing import compose
-    return func_call(compose, var('body'), var('to'))
+    return func_call(compose, var('body'), var('to'), mute=json.loads(var('mute')))
 
 @api.route('/alice/chatlogs', methods=['POST'])
 @login_required
 def _get_chatlogs():
-    from app.alice.conversation import get_messagse
+    from app.alice.conversation import get_messages
     return func_call(get_messages, serialize=True)
 
 @api.route('/bravo/sessions/clear', methods=['GET', 'POST'])

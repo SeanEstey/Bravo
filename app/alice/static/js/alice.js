@@ -6,6 +6,23 @@ function initAlicePane() {
 
     $('#chat_modal').find('#send_sms').click(sendMessage);
     api_call('alice/chatlogs', data={}, renderChatCards);
+
+    $modal = $('#chat_modal');
+    $modal.find('input[name="mute"]').click(function() {
+        
+        console.log('clicked!');
+        console.log($(this).prop('checked'));
+        api_call(
+            'alice/toggle_reply_mute',
+            data = {
+                'mobile': $modal.data('mobile'),
+                'enabled': JSON.parse($(this).prop('checked'))
+            },
+            function(response) {
+                console.log(response['data']);
+            });
+    });
+
 }
 
 //------------------------------------------------------------------------------

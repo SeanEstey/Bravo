@@ -107,7 +107,7 @@ def append_to(route):
         order['location']['lat'],
         order['location']['lng'])
 
-    wks = get_keys('routing',group=route['agency'])['gdrive']['template_orders_wks_name']
+    wks = get_keys('routing',group=route['group'])['gdrive']['template_orders_wks_name']
 
     append_order(
         service,

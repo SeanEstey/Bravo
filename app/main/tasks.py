@@ -335,13 +335,12 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
             values = []
             for i in xrange(len(results)):
                 ranges.append(
-                    a1_range(results[i]['row'], ref_col, results[i]['row'], upload_col),
-                    wks='Donations')
+                    a1_range(results[i]['row'], ref_col, results[i]['row'], upload_col, wks='Donations'))
                 values.append([[
                     results[i].get('ref', results[i].get('description')),
                     results[i]['status'].upper()]])
 
-            log.debug('Updating Sheet. Ranges=%s, values=%s', ranges, values)
+            #log.debug('Updating Sheet. Ranges=%s, values=%s', ranges, values)
 
             try:
                 ss.wks("Donations").updateRanges(ranges, values)
@@ -430,27 +429,26 @@ def send_receipts(self, ss_gifts, **rest):
 
             if not account.get('email'):
                 receipt['result'] = {'status':'NO EMAIL'}
-                continue
-
-            try:
-                result = deliver(account, receipt['ss_gift'], receipt['ytd_gifts'])
-            except Exception as e:
-                log.exception('Failed to send receipt to %s', account.get('email'))
-                receipt['result'] = {
-                    'status':'ERROR',
-                    'desc':e.message,
-                    'ss_gift':receipt['ss_gift']
-                }
             else:
-                receipt['result'] = result
-                n_queued += 1
+                try:
+                    result = deliver(account, receipt['ss_gift'], receipt['ytd_gifts'])
+                except Exception as e:
+                    log.exception('Failed to send receipt to %s', account.get('email'))
+                    receipt['result'] = {
+                        'status':'ERROR',
+                        'desc':e.message,
+                        'ss_gift':receipt['ss_gift']
+                    }
+                else:
+                    receipt['result'] = result
+                    n_queued += 1
 
             # Build range/value for each cell in case rows are discontinuous
             row = receipt['ss_gift']['ss_row']
-            ranges.append(a1_range(row,status_col,row,status_col), wks='Donations')
+            ranges.append(a1_range(row,status_col,row,status_col, wks='Donations'))
             values.append([[receipt['result']['status']]])
 
-        log.debug('Updating Sheet. Ranges=%s, Values=%s', ranges, values)
+        #log.debug('Updating Sheet. Ranges=%s, Values=%s', ranges, values)
 
         # Update 'Receipt' column with status
         try:
@@ -533,7 +531,7 @@ def create_accounts(self, accts_json, group=None, **rest):
             ranges.append(a1_range(res[n]['ss_row'], ref_col, res[n]['ss_row'], upload_col, wks='Signups'))
             values.append([[res[n].get('ref',''), res[n]['status'].upper()]])
 
-        log.debug('Updating Sheet. Ranges=%s, values=%s', ranges, values)
+        #log.debug('Updating Sheet. Ranges=%s, values=%s', ranges, values)
 
         try:
             wks.updateRanges(ranges, values)

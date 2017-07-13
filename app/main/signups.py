@@ -174,7 +174,7 @@ def on_dropped(group):
     from app.api.manager import dump_headers
     g.group = group
     log.warning('Welcome dropped to %s', request.form['recipient'],
-        extra={'headers':dump_headers(request.headers)})
+        extra={'data':request.get_data(), 'headers':dump_headers(request.headers)})
     row = request.form['from_row']
     ss_id = get_keys('google')['ss_id']
 

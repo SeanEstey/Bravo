@@ -55,7 +55,7 @@ def discover_routes(self, group, within_days=5, **rest):
         if not block:
             continue
         if not g.db.routes.find_one(
-            {'date':event_dt.astimezone(pytz.utc), 'block': block, 'agency':g.group}
+            {'date':event_dt.astimezone(pytz.utc), 'block': block, 'group':g.group}
         ):
             try:
                 meta = add_metadata(block, event_dt, event)
@@ -88,7 +88,7 @@ def build_scheduled_routes(self, group=None, **rest):
         log.info("Task: Building scheduled routes...")
 
         routes = g.db.routes.find(
-            {'agency':g.group, 'date':to_local(d=date.today(),t=time(8,0))})
+            {'group':g.group, 'date':to_local(d=date.today(),t=time(8,0))})
 
         discover_routes(g.group)
 
@@ -128,7 +128,7 @@ def build_route(self, route_id, job_id=None, **rest):
     timer = Timer()
     orders = "processing"
     route = g.db.routes.find_one({"_id":oid(route_id)})
-    g.group = route['agency']
+    g.group = route['group']
     oauth = get_keys('google')['oauth']
     api_key = get_keys('google')['geocode']['api_key']
 

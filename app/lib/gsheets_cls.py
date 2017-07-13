@@ -35,7 +35,7 @@ class SS():
             log.error('Exceeded max attempts to acquire SS resource.')
             raise Exception('Failed to acquire SS resource.')
 
-        log.debug('Acquiring SS resource. n=%s', n)
+        #log.debug('Acquiring SS resource. n=%s', n)
 
         try:
             self.ssObj = self.service.spreadsheets().get(
@@ -45,7 +45,7 @@ class SS():
             self._get_resource(n=n+1)
         else:
             self.propObj = self.ssObj['properties']
-            log.debug('Opened "%s" ss.', self.propObj['title'])
+            #log.debug('Opened "%s" ss.', self.propObj['title'])
 
     #---------------------------------------------------------------
     def __init__(self, oauth, ss_id):
@@ -112,20 +112,26 @@ class Wks():
     #---------------------------------------------------------------
     def updateCell(self, value, row=None, col=None, col_name=None):
         if not col_name:
+            cell = to_rane(row,col)
             _ss_values_update(
-                self.service, self.ss_id, self.title, to_range(row,col), [[value]])
+                self.service, self.ss_id, self.title, cell, [[value]])
         else:
             hdr = self.getRow(1)
-            a1 = to_range(row, hdr.index(col_name)+1)
+            cell = to_range(row, hdr.index(col_name)+1)
             _ss_values_update(
-                self.service, self.ss_id, self.title, a1, [[value]])
+                self.service, self.ss_id, self.title, cell, [[value]])
         self._refresh()
+
+        log.debug('Updated cell %s', cell)
 
     #---------------------------------------------------------------
     def updateRange(self, a1, values):
+
         _ss_values_update(
             self.service, self.ss_id, self.title, a1, values)
         self._refresh()
+
+        log.debug('Updated range %s', a1)
 
     #---------------------------------------------------------------
     def updateRanges(self, ranges, values):
@@ -181,75 +187,4 @@ class Wks():
         self.propObj = sheetObj['properties']
         self.title = sheetObj['properties']['title']
 
-        log.debug('Opened "%s" wks.', self.title)
-
-    """
-    # Spreadsheet Resource:
-          "spreadsheetId": string,
-          "properties": {
-            object(SpreadsheetProperties)
-          },
-          "sheets": [{
-            object(Sheet)
-          }],
-          "namedRanges": [{
-            object(NamedRange)
-          }],
-          "spreadsheetUrl": string
-
-    # SpreadsheetProperties Resource:
-          "sheetId": number,
-          "title": string,
-          "index": number,
-          "sheetType": enum(SheetType),
-          "gridProperties": {
-            object(GridProperties)
-          },
-          "hidden": boolean,
-          "tabColor": {
-            object(Color)
-          },
-          "rightToLeft": boolean,
-
-    # Sheet Resource:
-          "properties": {
-              object(SheetProperties)
-          },
-          "data": [{
-              object(GridData)
-          }],
-          "merges": [{
-              object(GridRange)
-          }],
-          "conditionalFormats": [{
-              object(ConditionalFormatRule)
-          }],
-          "filterViews": [{
-              object(FilterView)
-          }],
-          "protectedRanges": [{
-              object(ProtectedRange)
-          }],
-          "basicFilter": {object(BasicFilter)
-          },
-          "charts": [{
-              object(EmbeddedChart)
-          }],
-          "bandedRanges": [{
-              object(BandedRange)
-          }],
-
-    # SheetProperties Resource:
-          "sheetId": number,
-          "title": string,
-          "index": number,
-          "sheetType": enum(SheetType),
-          "gridProperties": {
-            object(GridProperties)
-          },
-          "hidden": boolean,
-          "tabColor": {
-            object(Color)
-          },
-          "rightToLeft": boolean,
-    """
+        #log.debug('Opened "%s" wks.', self.title)

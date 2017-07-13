@@ -19,4 +19,4 @@ def show_routing():
         depots = get_keys('routing')['locations']['depots'],
         drivers = get_keys('routing')['drivers'],
         admin=g.user.admin,
-        agency=g.group)
+        group=g.group)

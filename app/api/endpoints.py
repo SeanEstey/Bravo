@@ -14,8 +14,6 @@ from app.api.manager import var,func_call,task_call
 log = logging.getLogger(__name__)
 
 
-
-
 @api.route('/accounts/submit_form', methods=['POST'])
 def _submit_form_signup():
     # TODO: Update URL to /signups/submit on emptiestowinn.com
@@ -123,6 +121,13 @@ def _compose():
 def _get_chatlogs():
     from app.alice.conversation import get_messages
     return func_call(get_messages, serialize=True)
+
+@api.route('/alice/toggle_reply_mute', methods=['POST'])
+@login_required
+def _toggle_mute():
+    from app.alice.conversation import toggle_reply_mute
+    log.debug('type(enabled)=%s', type(var('enabled')))
+    return func_call(toggle_reply_mute, var('mobile'), json.loads(var('enabled')))
 
 @api.route('/bravo/sessions/clear', methods=['GET', 'POST'])
 @login_required

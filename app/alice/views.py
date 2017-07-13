@@ -4,7 +4,7 @@ import logging
 from flask_login import login_required, current_user
 from flask import g, jsonify, render_template, session
 from . import alice, incoming
-from .incoming import make_reply
+from .outgoing import reply
 from .dialog import dialog
 log = logging.getLogger(__name__)
 
@@ -24,6 +24,6 @@ def sms_received(group):
         response = incoming.receive()
     except Exception as e:
         log.exception('Error receiving SMS')
-        return make_reply(dialog['error']['unknown'])
+        return reply(dialog['error']['unknown'])
 
     return response

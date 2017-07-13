@@ -93,19 +93,40 @@ def update():
         extra={'n_messages': session['MESSAGECOUNT'], 'tag':'sms_msg'})
 
 #-------------------------------------------------------------------------------
-def mute(mobile=None, minutes=5):
+def toggle_reply_mute(mobile, enabled, minutes=5):
 
-    until = datetime.now() + timedelta(minutes=minutes)
-
-    if mobile:
-        #from flask_kvsession import SessionID
-        # Find session matching mobile num
-        pass
+    if enabled:
+        until = datetime.utcnow() + timedelta(minutes=minutes)
+        g.db['chatlogs'].update_one(
+            {'mobile':mobile},
+            {'$set':{'mute_replies_until':until}})
+        log.debug('Muting replies to %s for %s minutes.', mobile, minutes)
+        return 'Muted'
     else:
-        session['MUTE_UNTIL'] = until
+        g.db['chatlogs'].update_one(
+            {'mobile':mobile},
+            {'$unset':{'mute_replies_until':1}})
+        log.debug('Unmuting replies to %s', mobile)
+        return 'Unmuted'
 
-    log.debug('Muting session user for %s minutes', minutes)
-    print session['MUTE_UNTIL']
+#-------------------------------------------------------------------------------
+def is_muted():
+
+    from app.lib.dt import to_local, local_tz
+
+    doc = g.db['chatlogs'].find_one({'mobile':session['FROM']})
+
+    if doc.get('mute_replies_until'):
+        muted_until = to_local(doc['mute_replies_until']).replace(tzinfo = None)
+
+        if datetime.now() < muted_until:
+            log.debug('Replies muted until %s.', muted_until.strftime('%H:%M'))
+            return True
+        else:
+            log.debug('Reply mute expired')
+            return False
+    else:
+        return False
 
 #-------------------------------------------------------------------------------
 def save_msg(text, mobile=None, acct_id=None, user_session=False, direction=None):

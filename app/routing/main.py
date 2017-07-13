@@ -46,7 +46,7 @@ def get_metadata():
     '''
 
     docs = g.db.routes.find({
-        'agency': g.group,
+        'group': g.group,
         'date': {'$gte':datetime.combine(date.today(),time())}
     }).sort('date', 1)
 
@@ -95,7 +95,7 @@ def add_metadata(block, event_dt, event):
     meta = {
       'block': block,
       'date': event_dt.astimezone(pytz.utc),
-      'agency': g.group,
+      'group': g.group,
       'status': 'pending',
       'postal': postal,
       'depot': depot,

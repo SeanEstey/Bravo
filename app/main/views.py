@@ -10,6 +10,11 @@ from . import main # Blueprint
 def landing_page():
     return redirect(url_for('notify.view_event_list'))
 
+@main.route('/accounts')
+@login_required
+def view_accounts():
+    return render_template('views/accounts.html')
+
 @main.route('/recent')
 @login_required
 def view_recent():

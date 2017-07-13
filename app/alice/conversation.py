@@ -49,12 +49,13 @@ def new():
             'ANON_ID':  str(ObjectId()),
             'VALID_KWS': keywords.anon.keys()
         })
-        save_msg(msg, direction="in")
+        save_msg(msg, direction="in", user_session=True)
         return
 
     log.debug('Registered user %s', acct.get('name'))
 
     session.update({
+        'ACCT_ID': acct['id'],
         'ACCOUNT':acct,
         'VALID_KWS': keywords.user.keys()
     })
@@ -72,7 +73,7 @@ def new():
         log.error("Acct inactive (etap_id=%s)", acct['id'])
         raise EtapError(dialog['error']['etap']['inactive'])
 
-    save_msg(msg, direction="in")
+    save_msg(msg, direction="in", user_session=True)
 
     log.info('%s to %s: "%s"',
         session['FROM'][2:], session['SELF_NAME'], request.form['Body'],
@@ -83,7 +84,9 @@ def update():
     """MESSAGECOUNT increments only on incoming message.
     """
 
-    save_msg(request.form['Body'], direction="in")
+    # See if there's a more recent eTapestry Account
+
+    save_msg(request.form['Body'], direction="in", user_session=True)
     session['MESSAGECOUNT'] = session.get('MESSAGECOUNT', 0) + 1
     log.info('%s to %s: "%s"',
         session['FROM'][2:], session['SELF_NAME'], request.form['Body'],
@@ -105,11 +108,16 @@ def mute(mobile=None, minutes=5):
     print session['MUTE_UNTIL']
 
 #-------------------------------------------------------------------------------
-def save_msg(text, mobile=None, acct_id=None, direction=None):
+def save_msg(text, mobile=None, acct_id=None, user_session=False, direction=None):
     '''@mobile: if sending msg outside of session'''
 
-    phone = session.get('FROM', mobile)
-    acct = session.get('ACCOUNT', {})
+    if user_session:
+        phone = session['FROM']
+        acct_id = session.get('ACCT_ID',None)
+    else:
+        phone = mobile
+        acct_id = acct_id
+
     log.debug('save_msg acct_id=%s', acct_id)
 
     # TODO: should be able to do upsert here. condense these queries
@@ -118,7 +126,7 @@ def save_msg(text, mobile=None, acct_id=None, direction=None):
         g.db['chatlogs'].insert_one({
             'group':g.group,
             'mobile': phone,
-            'acct_id': acct.get('id', acct_id),
+            'acct_id': acct_id,
             'last_message': datetime.utcnow(),
             'messages': [{
                 'timestamp': datetime.utcnow(),
@@ -135,7 +143,7 @@ def save_msg(text, mobile=None, acct_id=None, direction=None):
                 'direction': direction
              }},
              '$set': {
-                'acct_id': acct.get('id', acct_id),
+                'acct_id': acct_id,
                 'group':g.group,
                 'last_message':datetime.utcnow()
               }

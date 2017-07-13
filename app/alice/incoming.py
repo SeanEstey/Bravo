@@ -191,7 +191,7 @@ def make_reply(dialog_, on_complete=None):
         context += name + ', '
         dialog_ = dialog_[0].lower() + dialog_[1:]
 
-    conversation.save_msg('%s: %s' % (self, context + dialog_), direction='out')
+    conversation.save_msg('%s: %s' % (self, context + dialog_), user_session=True, direction='out')
 
     from twilio.twiml.messaging_response import MessagingResponse
     m_response = MessagingResponse()

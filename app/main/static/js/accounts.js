@@ -50,33 +50,84 @@ function getAcct(acct_id) {
 //---------------------------------------------------------------------
 function display(acct) {
 
-    var ignore = [
-        'userRoleRef', 'donorRoleRef', 'envelopeSalutation', 'shortSalutation',
-        'longSalutation', 'primaryPersona', 'country', 'firstName', 'lastName', 'name'
+    $contact = $('.card-block[name="contact"]');
+    $contact.empty();
+    $custom = $('.card-block[name="custom"]');
+    $custom.empty();
+    $internal = $('.card-block[name="internal"]');
+    $internal.empty();
+
+    $('#prop_container').prop('hidden', false);
+
+    var contact_fields = [
+        'name', 'address', 'city', 'state', 'postalCode', 'email'
     ];
 
-    // Simple fields
-    for(var k in acct) {
-        if(typeof(acct[k]) != "object" && ignore.indexOf(k) == -1)
-            appendField(k, acct[k]);
+    var internal_fields = [
+        'ref', 'id', 
+        //'userRoleRef', 'donorRoleRef',
+        'primaryPersona', 
+        'nameFormat', 'accountCreatedDate', 'accountLastModifiedDate',
+        'personaCreatedDate', 'personaLastModifiedDate'
+    ];
+
+    $('#acct_name').html("Account: " + acct['name']);
+
+    // Contact Info fields
+
+    for(var i=0; i<contact_fields.length; i++) {
+        var field = contact_fields[i];
+
+        if(!acct.hasOwnProperty(field))
+            continue;
+
+        if(field == 'phones') {
+            for(var i=0; i<acct['phones'].length; i++) {
+                var phone = acct['phones'][i];
+                appendField(phone['type'], phone['number'], $contact);
+            }
+        }
+        else {
+            appendField(field, acct[field], $contact);
+        }
     }
 
-    for(var i=0; i<acct['phones'].length; i++) {
-        var phone = acct['phones'][i];
-        appendField(phone['type'], phone['number']);
-    }
-
+    // Custom fields
     for(var i=0; i<acct['accountDefinedValues'].length; i++) {
         var udf = acct['accountDefinedValues'][i];
-        appendField(udf['fieldName'], udf['value']);
+        appendField(udf['fieldName'], udf['value'], $custom);
     }
 
-    $('#acct_name').html(acct['name']);
-    
+    // Properties
+    // n_journal_entries, n_gifts, avg_gift, cumulative_gift
+
+    var custom_fields = [
+        "Status",
+        "Signup Date",
+        "Dropoff Date",
+        "Next Pickup Date",
+        "Neighborhood",
+        "Block",
+        ""
+    ];
+
+    // Internal fields
+    for(var i=0; i<internal_fields.length; i++) {
+        var field = internal_fields[i];
+
+        if(field.indexOf('Date') > -1) {
+            var date = new Date(acct[field]['$date']).strftime('%b %d, %Y @ %H:%M');//.replace("Mountain Daylight Time", "");
+            appendField(field, date, $internal);
+        }
+        else {
+            appendField(field, acct[field], $internal);
+        }
+    }
+    // WRITE_ME
 }
 
 //------------------------------------------------------------------------------
-function appendField(field, value) {
+function appendField(field, value, $element) {
 
     if(!value)
         return;
@@ -89,10 +140,12 @@ function appendField(field, value) {
                 JSON.stringify(value, null, 2).replace(/\\n/g, "<BR>") +
             '</div>' +
           '</DIV>';
+    else if(typeof(value) == "string")
+        div += value.replace(/\\n/g, "<br>") + '</DIV>';
     else
         div += value + '</DIV>';
 
-    $('#properties').append(div);
+    $element.append(div);
 }
 
 //---------------------------------------------------------------------

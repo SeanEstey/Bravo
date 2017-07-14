@@ -17,8 +17,8 @@
       </div>
       <div class="card-block">
         <div id="acct_row" class="row">
-          <input id="acct_input" class="form-control col-9 ml-2 mr-2" name="acct" type="text" placeholder="Enter Account ID"
-          onkeydown="searchKeyPress(event)" autocomplete="off" autofocus>
+          <input id="acct_input" class="form-control col-9 ml-2 mr-2" name="acct" type="text" 
+          placeholder="Enter Account ID" onkeydown="searchKeyPress(event)" autocomplete="off" autofocus>
           <button class="btn btn-secondary" type="button" id="find_acct">Go</button>
         </div>
       </div>
@@ -26,11 +26,31 @@
     <!--PROPERTIES-->
     <div class="card ml-0"> <!--style="width:1000px; height:800px">-->
       <div class="card-header blue">
-        <label id="acct_name" style="font-weight:400; font-size:1.5rem" class="">Properties</label>
+        <label id="acct_name" style="font-weight:400; font-size:1.5rem" class="">Account</label>
       </div>
-      <div class="card-block">
-        <div id="properties"></div>
+
+      <div id="prop_container" hidden>
+        <div class="text-left card-block pb-0 mb-0">
+          <h3 style="color:gray">Contact Info</h3>
+        </div>
+        <div name="contact" class="card-block"></div>
+
+        <div class="text-left card-block pb-0 mb-0">
+          <h3 style="color:gray">Custom Fields</h3>
+        </div>
+        <div name="custom" class="card-block"></div>
+
+        <div class="text-left card-block pb-0 mb-0" hidden>
+          <h3 style="color:gray">Analytics</h3>
+        </div>
+        <div name="properties" class="card-block" hidden></div>
+
+        <div class="text-left card-block pb-0 mb-0">
+          <h3 style="color:gray">Internal</h3>
+        </div>
+        <div name="internal" class="card-block"></div>
       </div>
+
     </div>
   </div>
 </div>

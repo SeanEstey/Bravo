@@ -3,7 +3,7 @@ import json, os
 from os import environ as env
 from flask import current_app, g, render_template, request
 from datetime import datetime, date, time
-from .. import get_keys, colors as c
+from .. import get_keys
 from app.lib import html
 from app.lib.dt import to_utc, to_local
 from app.alice.outgoing import compose

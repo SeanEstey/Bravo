@@ -1,17 +1,15 @@
 '''app.notify.voice_announce'''
-import os
 from os import environ as env
-import twilio
+import logging, twilio
 from flask import g, request, current_app
 from flask_login import current_user
 from datetime import datetime,date,time,timedelta
 from dateutil.parser import parse
 from pymongo.collection import ReturnDocument
-from app import get_keys, colors as c
+from app import get_keys
 from app.main.etapestry import call, get_prim_phone, EtapError, get_query
 from . import events, accounts, triggers, voice
-from logging import getLogger
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def add_event():
@@ -60,6 +58,7 @@ def add_event():
 
 #-------------------------------------------------------------------------------
 def on_interact():
+
     if request.form.get('Digits') == '1':
         notific = g.db['notifics'].find_one_and_update({
               'tracking.sid': request.form['CallSid'],

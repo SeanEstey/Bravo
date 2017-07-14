@@ -10,8 +10,6 @@ function initAlicePane() {
     $modal = $('#chat_modal');
     $modal.find('input[name="mute"]').click(function() {
         
-        console.log('clicked!');
-        console.log($(this).prop('checked'));
         api_call(
             'alice/toggle_reply_mute',
             data = {
@@ -144,6 +142,7 @@ function showChatModal(e) {
     $modal.find('.modal-title').text(name+ ' (' +chat['mobile']+ ')');
     $modal.find('.modal-footer .btn-primary').unbind('click');
     $modal.find('.modal-footer .btn-primary').off('click');
+    $modal.find('input[name="mute"]').prop('checked', false);
     $modal.find('#f_acct_id').html("Acct ID " + acct_id);
     $modal.modal('show');
 }

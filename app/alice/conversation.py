@@ -101,13 +101,13 @@ def toggle_reply_mute(mobile, enabled, minutes=5):
             {'mobile':mobile},
             {'$set':{'mute_replies_until':until}})
         log.debug('Muting replies to %s for %s minutes.', mobile, minutes)
-        return 'Muted'
+        return 'Auto-reply muted for 5 minutes.'
     else:
         g.db['chatlogs'].update_one(
             {'mobile':mobile},
             {'$unset':{'mute_replies_until':1}})
         log.debug('Unmuting replies to %s', mobile)
-        return 'Unmuted'
+        return 'Auto-reply unmuted.'
 
 #-------------------------------------------------------------------------------
 def is_muted():

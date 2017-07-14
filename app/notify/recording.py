@@ -42,8 +42,8 @@ def dial_recording():
             fallback_url = '%s/notify/voice/fallback' % host,
             fallback_method = 'POST',
             status_callback = '%s/notify/record/complete' % host,
-            status_events = ["completed"],
-            status_method = 'POST')
+            status_callback_event = "completed",
+            status_callback_method = 'POST')
     except Exception as e:
         log.error('call to %s failed. %s', request.form['To'], str(e))
         return {'status':'failed', 'description': 'Invalid phone number'}
@@ -73,7 +73,8 @@ def on_answer():
     if host.find('https') == 0:
         host = host.replace('https', 'http')
     # Record voice message
-    voice = twiml.Response()
+    from twilio.twiml.voice_response import VoiceResponse
+    voice = VoiceResponse()
     voice.say('Record your message after the beep. Press pound when complete.',
       voice='alice'
     )
@@ -99,7 +100,7 @@ def on_interact():
         record = g.db.audio.find_one({'sid': request.form['CallSid']})
         g.group = record['agency']
 
-        '''log.info('recording done. duration: %ss', request.form['RecordingDuration'])
+        log.info('recording done. duration: %ss', request.form['RecordingDuration'])
 
         # Reminder job has not been created yet so save in 'audio' for now
 
@@ -111,11 +112,13 @@ def on_interact():
               'status': 'recorded'
         }})
 
+        from app.main.socketio import smart_emit
         smart_emit('record_audio', {
             'status': 'recorded',
-            'audio_url': request.form['RecordingUrl']})'''
+            'audio_url': request.form['RecordingUrl']})
 
-        voice = twiml.Response()
+        from twilio.twiml.voice_response import VoiceResponse
+        voice = VoiceResponse()
         voice.say('Message recorded. Goodbye.', voice='alice')
         voice.hangup()
 

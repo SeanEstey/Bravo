@@ -109,12 +109,12 @@ def handle_answer():
     do = session.get('ON_COMPLETE')
 
     if do['action'] == 'dialog':
-        reply = do['dialog']
+        body = do['dialog']
     elif do['action'] == 'event':
         try:
             mod = __import__(do['handler']['module'], fromlist='.')
             func = getattr(mod, do['handler']['func'])
-            reply = func()
+            body = func()
         except Exception as e:
             log.error(\
                 'event %s.%s failed: %s',
@@ -124,7 +124,7 @@ def handle_answer():
 
             return reply(dialog['error']['unknown'])
 
-    return reply(reply)
+    return reply(body)
 
 #-------------------------------------------------------------------------------
 def handle_unknown():

@@ -8,56 +8,130 @@
   jQuery(function($){ accountsInit(); $("body").css("display","block"); });
 </script>
 
-<div class="container-fluid pl-0 pr-0" id="search_ctnr" style="text-align:center">
-  <div class="card-deck mt-0">
-    <!--SEARCH-->
-    <div class="card mt-0 mr-1" style="max-width:350px;">
-      <div class="card-header blue">
-        <label style="font-weight:400; font-size:1.5rem" class="">Search Options</label>
-      </div>
-      <div class="card-block">
-        <div id="acct_row" class="row">
-          <input id="acct_input" class="form-control col-9 ml-2 mr-2" name="acct" type="text" 
-          placeholder="Enter Account ID" onkeydown="searchKeyPress(event)" autocomplete="off" autofocus>
-          <button class="btn btn-secondary" type="button" id="find_acct">Go</button>
+  <!--Search & Account Summary-->
+  <div class="row mb-4">
+    <div class="col-2">
+      <div class="card" id="srch">
+        <div class="card-header blue">
+          <label>Search</label>
+        </div>
+        <div class="card-block">
+          <div id="acct_row" class="row">
+            <input id="acct_input" class="form-control col-9 ml-2 mr-2" name="acct" type="text" 
+            placeholder="Enter Account ID" onkeydown="searchKeyPress(event)" autocomplete="off" autofocus>
+            <button class="btn btn-secondary" type="button" id="find_acct">Go</button>
+          </div>
         </div>
       </div>
     </div>
-    <!--PROPERTIES-->
-    <div class="card ml-0"> <!--style="width:1000px; height:800px">-->
-      <div class="card-header blue">
-        <label id="acct_name" style="font-weight:400; font-size:1.5rem" class="">Account</label>
+    <div class="col">
+      <div class="card" id="acct_hdr">
+        <div class="card-header blue">
+          <label id="acct_name">Account Summary</label>
+        </div>
+        <div class="card-block">
+          <div class="row">
+            <div class="col text-left">
+              <i class="fa fa-id-badge fa-3x mr-3"></i><label>James Henrickson</label>
+            </div>
+          </div>
+          <div class="row offset-3">
+            <div class="col-4 text-center">
+              <i class="fa fa-gi3ft fa-3x mr-3">x</i>
+              <p>Achievements</p>
+            </div>
+            <div class="col-3 text-center">
+              <i class="fa fa-gift fa-3x mr-3"></i><p>Lifetime Contributer</p>
+            </div>
+            <div class="col-3 text-center">
+              <i class="fa fa-recycle fa-3x mr-3"></i><p>Recycling Hero</p>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div id="prop_container" hidden>
-        <div class="text-left card-block pb-0 mb-0">
-          <h3 style="color:gray">Contact Info</h3>
-        </div>
-        <div name="contact" class="card-block"></div>
-
-        <div class="text-left card-block pb-0 mb-0">
-          <h3 style="color:gray">Custom Fields</h3>
-        </div>
-        <div name="custom" class="card-block"></div>
-
-        <div class="text-left card-block pb-0 mb-0" hidden>
-          <h3 style="color:gray">Analytics</h3>
-        </div>
-        <div name="properties" class="card-block" hidden></div>
-
-        <div class="text-left card-block pb-0 mb-0">
-          <h3 style="color:gray">Internal</h3>
-        </div>
-        <div name="internal" class="card-block"></div>
-      </div>
-
     </div>
   </div>
-</div>
+
+<div class="" id="acctv">
+
+  <!--ROW 2 FIELDS-->
+  <div class="row offset-2">
+    <div class="col mb-5">
+      <div class="card">
+        <div class="card-header"><h4>Contact Info</h4></div>
+        <div class="card-block" id="contact">
+          <div class="row">
+            <div class="col">
+              <p class="field">City: Calgary</p>
+              <p class="field">Address: 6348 33 Ave NW, Calgary, AB</p>
+              <p class="field">Province: AB</p>
+              <p class="field">Postal: T8E 1K3</p>
+            </div>
+            <div class="col">
+              <p class="field">Email: estese@gmail.com</p>
+              <p class="field">Landline: ---</p>
+              <p class="field">Mobile: +1(780)863-5715</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--ROW 3 FIELDS-->
+  <div class="row offset-2">
+    <div class="col mb-5">
+      <div class="card">
+        <div class="card-header"><h4>Custom Fields</h4></div>
+        <div class="card-block" id="custom"></div>
+      </div>
+    </div>
+  </div>
+
+  <!--ROW 4 FIELDS-->
+  <div class="row offset-2">
+    <div class="col mb-5">
+      <div class="card">
+        <div class="card-header"><h4>Internal</h4></div>
+        <div class="card-block" id="internal"></div>
+      </div>
+    </div>
+  </div>
+
+  <!--ROW 5 FIELDS-->
+  <div class="row offset-2" hidden>
+    <div class="col mb-5">
+        <div class="card">
+          <div class="card-header"><h4>Analytics</h4></div>
+          <div class="card-block" id="analytics"></div>
+        </div>
+    </div>
+  </div>
 
 <!-- Modal -->
 <div id="accts_options" style="display:none">
 </div>
+
+
+<style>
+  #acctv h4 {
+    text-align:left;
+    color:gray;
+  };
+
+  #acctv p  {
+    text-align:left;
+    margin-top: 2em;
+    margin-bottom: 2em;
+  }
+
+  #srch label, #acct_hdr label {
+    font-weight:400;
+    font-size:1.5rem;
+  }
+
+
+</style>
 
 
 {% endblock %}

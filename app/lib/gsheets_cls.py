@@ -112,7 +112,7 @@ class Wks():
     #---------------------------------------------------------------
     def updateCell(self, value, row=None, col=None, col_name=None):
         if not col_name:
-            cell = to_rane(row,col)
+            cell = to_range(row,col)
             _ss_values_update(
                 self.service, self.ss_id, self.title, cell, [[value]])
         else:

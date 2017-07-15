@@ -10,6 +10,7 @@ function accountsInit() {
     alertMsg('Enter search terms below', 'info', -1);
 
     $('#search_ctnr').prepend($('.br-alert'));
+    $('.br-alert').prop('hidden', true);
     addSocketIOHandlers();
 
     $('#find_acct').click(function() {
@@ -50,14 +51,14 @@ function getAcct(acct_id) {
 //---------------------------------------------------------------------
 function display(acct) {
 
-    $contact = $('.card-block[name="contact"]');
+    $contact = $('#contact');
     $contact.empty();
-    $custom = $('.card-block[name="custom"]');
+    $custom = $('#custom');
     $custom.empty();
-    $internal = $('.card-block[name="internal"]');
+    $internal = $('#internal');
     $internal.empty();
 
-    $('#prop_container').prop('hidden', false);
+    //$('#prop_container').prop('hidden', false);
 
     var contact_fields = [
         'name', 'address', 'city', 'state', 'postalCode', 'email'

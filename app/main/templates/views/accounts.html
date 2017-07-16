@@ -9,104 +9,129 @@
 </script>
 
   <!--Search & Account Summary-->
-  <div class="row mb-4">
-    <div class="col-2">
-      <div class="card" id="srch">
-        <div class="card-header blue">
-          <label>Search</label>
+  <div class="row">
+    <div class="col-3">
+      <div class="hpanel">
+        <div class="panel-heading">
+          Search for accounts
         </div>
-        <div class="card-block">
-          <div id="acct_row" class="row">
+        <div class="panel-body">
+          <div class="row">
             <input id="acct_input" class="form-control col-9 ml-2 mr-2" name="acct" type="text" 
             placeholder="Enter Account ID" onkeydown="searchKeyPress(event)" autocomplete="off" autofocus>
             <button class="btn btn-secondary" type="button" id="find_acct">Go</button>
           </div>
         </div>
+        <div class="panel-footer">
+          <span class="pull-right">
+          </span>
+        </div>
       </div>
     </div>
     <div class="col">
-      <div class="card" id="acct_hdr">
-        <div class="card-header blue">
-          <label id="acct_name">Account Summary</label>
+      <div class="hpanel">
+        <div class="panel-heading">
+          Dashboard information and statistics
         </div>
-        <div class="card-block">
+        <div class="panel-body">
           <div class="row">
-            <div class="col text-left">
-              <i class="fa fa-id-badge fa-3x mr-3"></i><label>James Henrickson</label>
+            <div class="col-md-3 text-center">
+              <div class="small">
+                <i class="fa fa-bolt"></i> Total Gifts
+              </div>
+              <div>
+                <h1 class="font-extra-bold mt-3">$229.00</h1>
+                <small>Donations since sign-up</small>
+              </div>
+              <div class="small mt-5">
+                <i class="fa fa-clock-o"></i> Data from January
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="text-center small">
+                <i class="fa fa-laptop"></i> Average Gift
+              </div>
+              <h1 class="font-extra-bold text-center mt-3">$15.43</h1>
+              <div class="text-center"><small class="text-center">Per pick-up</small></div>
+            </div>
+            <div class="col-md-3 text-center">
+              <div class="small">
+                <i class="fa fa-clock-o"></i> Active duration
+              </div>
+              <div>
+                <h1 class="font-extra-bold mt-3">10 Months</h1>
+                <small>And four weeks</small>
+              </div>
+              <div class="small mt-5">
+                <i class="fa fa-clock-o"></i> Last active in 12.10.2015
+              </div>
             </div>
           </div>
-          <div class="row offset-3">
-            <div class="col-4 text-center">
-              <i class="fa fa-gi3ft fa-3x mr-3">x</i>
-              <p>Achievements</p>
-            </div>
-            <div class="col-3 text-center">
-              <i class="fa fa-gift fa-3x mr-3"></i><p>Lifetime Contributer</p>
-            </div>
-            <div class="col-3 text-center">
-              <i class="fa fa-recycle fa-3x mr-3"></i><p>Recycling Hero</p>
-            </div>
-          </div>
+        </div>
+        <div class="panel-footer">
+          <span class="pull-right">
+          You have two new messages from <a href="http://webapplayers.com/homer_admin-v2.0/light-shadow/">Monica Bolt</a>
+          </span>
+          Last update: 21.05.2015
         </div>
       </div>
     </div>
   </div>
-
-<div class="" id="acctv">
-
   <!--ROW 2 FIELDS-->
-  <div class="row offset-2">
-    <div class="col mb-5">
-      <div class="card">
-        <div class="card-header"><h4>Contact Info</h4></div>
-        <div class="card-block" id="contact">
+  <div class="row offset-3">
+    <div class="col">
+      <div class="hpanel">
+        <div class="panel-heading">Contact Info</div>
+        <div class="panel-body" id="contact">
           <div class="row">
             <div class="col">
-              <p class="field">City: Calgary</p>
-              <p class="field">Address: 6348 33 Ave NW, Calgary, AB</p>
-              <p class="field">Province: AB</p>
-              <p class="field">Postal: T8E 1K3</p>
             </div>
             <div class="col">
-              <p class="field">Email: estese@gmail.com</p>
-              <p class="field">Landline: ---</p>
-              <p class="field">Mobile: +1(780)863-5715</p>
             </div>
           </div>
+        </div>
+        <div class="panel-footer">
+          <span class="pull-right">
+          You have two new messages from <a href="http://webapplayers.com/homer_admin-v2.0/light-shadow/">Monica Bolt</a>
+          </span>
+          Last update: 21.05.2015
         </div>
       </div>
     </div>
   </div>
 
   <!--ROW 3 FIELDS-->
-  <div class="row offset-2">
-    <div class="col mb-5">
-      <div class="card">
-        <div class="card-header"><h4>Custom Fields</h4></div>
-        <div class="card-block" id="custom"></div>
+  <div class="row offset-3">
+    <div class="col">
+      <div class="hpanel">
+        <div class="panel-heading">Custom Fields</div>
+        <div class="panel-body" id="custom"></div>
+        <div class="panel-footer">
+          <span class="pull-right">
+          You have two new messages from <a href="http://webapplayers.com/homer_admin-v2.0/light-shadow/">Monica Bolt</a>
+          </span>
+          Last update: 21.05.2015
+        </div>
       </div>
     </div>
   </div>
 
   <!--ROW 4 FIELDS-->
-  <div class="row offset-2">
-    <div class="col mb-5">
-      <div class="card">
-        <div class="card-header"><h4>Internal</h4></div>
-        <div class="card-block" id="internal"></div>
+  <div class="row offset-3" hidden>
+    <div class="col">
+      <div class="hpanel">
+        <div class="panel-heading">Internal</div>
+        <div class="panel-body" id="internal"></div>
+        <div class="panel-footer">
+          <span class="pull-right">
+          You have two new messages from <a href="http://webapplayers.com/homer_admin-v2.0/light-shadow/">Monica Bolt</a>
+          </span>
+          Last update: 21.05.2015
+        </div>
       </div>
     </div>
   </div>
 
-  <!--ROW 5 FIELDS-->
-  <div class="row offset-2" hidden>
-    <div class="col mb-5">
-        <div class="card">
-          <div class="card-header"><h4>Analytics</h4></div>
-          <div class="card-block" id="analytics"></div>
-        </div>
-    </div>
-  </div>
 
 <!-- Modal -->
 <div id="accts_options" style="display:none">

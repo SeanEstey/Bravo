@@ -25,6 +25,13 @@ def get(aid, ref=None, sync_ytd_gifts=False):
 #-------------------------------------------------------------------------------
 def get_summary_stats(ref):
 
+    query_gifts = call(
+        'get_journal_entries',
+        data={'ref':ref,'startDate':'01/01/2001', 'endDate':'18/07/2017','types':[5]},
+        cache=True)
+
+    log.debug('Queried %s gifts', len(query_gifts))
+
     gifts = g.db['cachedGifts'].find({'gift.accountRef':str(ref)})
 
     total = 0

@@ -8,35 +8,34 @@
   jQuery(function($){ accountsInit(); $("body").css("display","block"); });
 </script>
 
-  <!--Search & Account Summary-->
+  <!--Search-->
   <div class="row">
-    <div class="col-3">
+    <div class="col-12">
       <div class="hpanel">
-        <div class="panel-heading">
-          Search for accounts
-        </div>
-        <div class="panel-body">
+        <div class="panel-body p-3">
           <div class="row">
-            <input id="acct_input" class="form-control col-9 ml-2 mr-2" name="acct" type="text" 
-            placeholder="Enter Account ID" onkeydown="searchKeyPress(event)" autocomplete="off" autofocus>
-            <button class="btn btn-secondary" type="button" id="find_acct">Go</button>
+              <div class="input-group ml-2">
+                <input id="acct_input" class="form-control col-6 ml-2" name="acct" type="text" 
+                placeholder="Search accounts..." onkeydown="searchKeyPress(event)" autocomplete="off" autofocus>
+                <div class="input-group-btn">
+                  <button class="btn btn-secondary" type="button" id="find_acct">
+                    <i class="fa fa-search"></i>
+                  </button>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="panel-footer">
-          <span class="pull-right">
-          </span>
         </div>
       </div>
     </div>
-    <div class="col">
-      <div class="hpanel" id='sum_panel' hidden>
-        <div class="panel-heading">
-          Account Summary
-        </div>
-        <div class="panel-body">
-          <div class="row">
+  </div>
 
-            <!--profile name-->
+  <!--Account Summary-->
+  <div class="row">
+    <div class="col-8">
+      <div class="hpanel" id='sum_panel' hidden>
+        <div class="panel-body">
+          <div class="row m-0">
+            <!--User Name-->
             <div class="col-md-3 text-left pr-0">
               <i class="fa fa-user-circle-o fa-5x profile_icon mt-1"></i>
               <h2 class="mt-4 profile" id="acct_name"></h2>
@@ -69,7 +68,7 @@
               </div>
             </div>
 
-            <div class="col-md-3 pl-5">
+            <div class="col-md-3">
               <div class="text-center small">
                 <i class="fa fa-gift gift"></i> YTD Average
               </div>
@@ -80,15 +79,17 @@
               </div>
             </div>
           </div>
+          <!--End Row-->
         </div>
+        <!--End Panel Body-->
       </div>
+      <!--End Panel-->
     </div>
-  </div>
-  <!--ROW 2 FIELDS-->
-  <div class="row offset-3">
-    <div class="col">
-      <div class="hpanel" id='contact_panel' hidden>
-        <div class="panel-heading">Personal Details</div>
+
+    <!--Persona-->
+    <div class="col-6">
+      <div class="hpanel mb-0" id='contact_panel' hidden>
+        <div class="panel-heading pt-0">Personal Details</div>
         <div class="panel-body" id="contact">
           <div class="row">
           </div>
@@ -101,13 +102,11 @@
         </div>
       </div>
     </div>
-  </div>
 
-  <!--ROW 3 FIELDS-->
-  <div class="row offset-3">
+    <!--Pickup Service-->
     <div class="col">
       <div class="hpanel" id='custom_panel' hidden>
-        <div class="panel-heading">Pick-up Service</div>
+        <div class="panel-heading pt-0">Pick-up Service</div>
         <div class="panel-body" id="custom">
           <div class="row">
           </div>
@@ -121,6 +120,7 @@
       </div>
     </div>
   </div>
+
 
   <!--ROW 4 FIELDS-->
   <div class="row offset-3">
@@ -144,6 +144,23 @@
 
 
 <style>
+  body {
+    color: #6a6c6f;
+  }
+
+  input::-webkit-input-placeholder {
+    color: green;
+  }
+
+  input::placeholder {
+    color: green;
+  }
+
+  .src_hdr  {
+    font-family: "Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-weight:200;
+    color: #6a6c6f;
+  } 
 
   .val {
     color: #6a6c6f!important;
@@ -171,7 +188,7 @@
   }
 
   .status {
-    font-weight:400;
+    font-weight:200;
     color: #62cb31;
   }
 

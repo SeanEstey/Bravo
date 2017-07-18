@@ -9,6 +9,11 @@ function accountsInit() {
 
     alertMsg('Enter search terms below', 'info', -1);
 
+    if(location.href.indexOf('?') > -1) {
+        var args = location.href.substring(location.href.indexOf('?')+1, location.length);
+        getAcct(args.substring(args.indexOf('=')+1, args.length));
+    }
+
     $('#search_ctnr').prepend($('.br-alert'));
     $('.br-alert').prop('hidden', true);
     addSocketIOHandlers();
@@ -72,7 +77,6 @@ function display(acct) {
     $summary.prop('hidden',false);
     $('#contact_panel').prop('hidden',false);
     $('#custom_panel').prop('hidden',false);
-    //$('#internal_panel').prop('hidden',false);
 
     $('#acct_name').html(acct['name']);
 
@@ -82,15 +86,13 @@ function display(acct) {
 
     // Contact Info fields
 
-    
-
     for(var i=0; i<contact_fields.length; i++) {
         var field = contact_fields[i];
 
         if(!acct.hasOwnProperty(field))
             continue;
 
-        if(field == 'phones') {
+        if(field == 'phones' && acct['phones']) {
             for(var j=0; j<acct['phones'].length; j++) {
                 var phone = acct['phones'][j];
                 appendField(phone['type'], phone['number'], $contact);
@@ -103,32 +105,33 @@ function display(acct) {
 
     // Custom fields
     var custom_fields = [
-        "Status",
         "Signup Date",
         "Dropoff Date",
+        "Status",
         "Next Pickup Date",
         "Neighborhood",
         "Block",
-        "Referrer",
         "Reason Joined",
+        "Referrer",
         "Date Cancelled",
-        ""
+        "Driver Notes",
+        "Office Notes"
     ];
     var ignore = [ 'Data Source', 'Beverage Container Customer' ];
-    for(var i=0; i<acct['accountDefinedValues'].length; i++) {
 
-        var udf = acct['accountDefinedValues'][i];
-        if(ignore.indexOf(udf['fieldName']) > -1)
-            continue;
+    for(var j=0; j<custom_fields.length; j++) {
+        for(var i=0; i<acct['accountDefinedValues'].length; i++) {
+            var field = acct['accountDefinedValues'][i];
 
-        appendField(udf['fieldName'], udf['value'], $custom);
+            if(custom_fields[j] != field['fieldName'])
+                continue;
 
-        if(udf['fieldName'] == "Status")
-            $('#status').html(udf['value']);
+            appendField(field['fieldName'], field['value'], $custom);
+
+            if(field['fieldName'] == "Status")
+                $('#status').html(field['value']);
+        }
     }
-
-
-
 
     // Internal fields
     for(var i=0; i<internal_fields.length; i++) {

@@ -143,6 +143,6 @@ function showChatModal(e) {
     $modal.find('.modal-footer .btn-primary').unbind('click');
     $modal.find('.modal-footer .btn-primary').off('click');
     $modal.find('input[name="mute"]').prop('checked', false);
-    $modal.find('#f_acct_id').html("Acct ID " + acct_id);
+    $modal.find('#f_acct_id').html("<a href="+window.location.origin+"/accounts?aid="+acct_id+">Acct ID " + acct_id+"</a>");
     $modal.modal('show');
 }

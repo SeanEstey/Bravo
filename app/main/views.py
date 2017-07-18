@@ -10,11 +10,6 @@ from . import main # Blueprint
 def landing_page():
     return redirect(url_for('notify.view_event_list'))
 
-@main.route('/karmanta')
-@login_required
-def karmanta():
-    return render_template('views/karmanta.html')
-
 @main.route('/accounts')
 @login_required
 def view_accounts():

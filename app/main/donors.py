@@ -21,6 +21,29 @@ def get(aid, ref=None, sync_ytd_gifts=False):
 
     return get_acct(aid)
 
+
+#-------------------------------------------------------------------------------
+def get_summary_stats(ref):
+
+    gifts = g.db['cachedGifts'].find({'gift.accountRef':str(ref)})
+
+    total = 0
+    n_gifts = 0
+    for gift in gifts:
+        if gift['gift'].get('amount'):
+            if gift['gift']['amount'] > 0:
+                n_gifts +=1
+            total += gift['gift']['amount']
+
+    if n_gifts > 0:
+        avg = total/n_gifts
+    else:
+        avg = 0
+
+    log.debug('%s gifts cached for ref=%s. total=%s.', n_gifts, ref, total)
+
+    return {'total':total, 'average':avg, 'n_gifts':n_gifts}
+
 #-------------------------------------------------------------------------------
 def get_location(acct_id=None):
 

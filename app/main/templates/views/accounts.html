@@ -29,50 +29,56 @@
       </div>
     </div>
     <div class="col">
-      <div class="hpanel">
+      <div class="hpanel" id='sum_panel' hidden>
         <div class="panel-heading">
-          Dashboard information and statistics
+          Account Summary
         </div>
         <div class="panel-body">
           <div class="row">
+
+            <!--profile name-->
+            <div class="col-md-3 text-center">
+              <i class="fa fa-user-circle-o fa-5x profile"></i>
+              <h1 class="font-extra-bold text-center mt-3" id="acct_name"></h1>
+            </div>
+
             <div class="col-md-3 text-center">
               <div class="small">
-                <i class="fa fa-bolt"></i> Total Gifts
+                <i class="fa fa-gift gift"></i> Gift Count
               </div>
               <div>
-                <h1 class="font-extra-bold mt-3">$229.00</h1>
-                <small>Donations since sign-up</small>
+                <h1 class="font-extra-bold mt-3" id="n_gifts"></h1>
+                <small>since sign-up</small>
               </div>
               <div class="small mt-5">
-                <i class="fa fa-clock-o"></i> Data from January
+                <i class="fa fa-clock-o"></i> Data from journal
               </div>
             </div>
-            <div class="col-md-6">
+
+            <div class="col-md-3 text-center">
+              <div class="small">
+                <i class="fa fa-gift gift"></i> Gift Total
+              </div>
+              <div>
+                <h1 class="font-extra-bold mt-3" id="total"></h1>
+                <small>since sign-up</small>
+              </div>
+              <div class="small mt-5">
+                <i class="fa fa-clock-o"></i> Data from journal
+              </div>
+            </div>
+
+            <div class="col-md-3">
               <div class="text-center small">
-                <i class="fa fa-laptop"></i> Average Gift
+                <i class="fa fa-gift gift"></i> Gift Average
               </div>
-              <h1 class="font-extra-bold text-center mt-3">$15.43</h1>
-              <div class="text-center"><small class="text-center">Per pick-up</small></div>
-            </div>
-            <div class="col-md-3 text-center">
-              <div class="small">
-                <i class="fa fa-clock-o"></i> Active duration
-              </div>
-              <div>
-                <h1 class="font-extra-bold mt-3">10 Months</h1>
-                <small>And four weeks</small>
-              </div>
-              <div class="small mt-5">
-                <i class="fa fa-clock-o"></i> Last active in 12.10.2015
+              <h1 class="font-extra-bold text-center mt-3" id="avg"></h1>
+              <div class="text-center"><small class="text-center">per pick-up</small></div>
+              <div class="small mt-5 text-center">
+                <i class="fa fa-clock-o"></i> Data from journal
               </div>
             </div>
           </div>
-        </div>
-        <div class="panel-footer">
-          <span class="pull-right">
-          You have two new messages from <a href="http://webapplayers.com/homer_admin-v2.0/light-shadow/">Monica Bolt</a>
-          </span>
-          Last update: 21.05.2015
         </div>
       </div>
     </div>
@@ -80,21 +86,18 @@
   <!--ROW 2 FIELDS-->
   <div class="row offset-3">
     <div class="col">
-      <div class="hpanel">
-        <div class="panel-heading">Contact Info</div>
+      <div class="hpanel" id='contact_panel' hidden>
+        <div class="panel-heading">Contact</div>
         <div class="panel-body" id="contact">
           <div class="row">
-            <div class="col">
-            </div>
-            <div class="col">
-            </div>
           </div>
         </div>
         <div class="panel-footer">
+          Created: <label id="personaCreatedDate"></label>
           <span class="pull-right">
-          You have two new messages from <a href="http://webapplayers.com/homer_admin-v2.0/light-shadow/">Monica Bolt</a>
+          Last updated: <label id="personaLastModifiedDate"></label>
           </span>
-          Last update: 21.05.2015
+
         </div>
       </div>
     </div>
@@ -103,30 +106,32 @@
   <!--ROW 3 FIELDS-->
   <div class="row offset-3">
     <div class="col">
-      <div class="hpanel">
-        <div class="panel-heading">Custom Fields</div>
-        <div class="panel-body" id="custom"></div>
+      <div class="hpanel" id='custom_panel' hidden>
+        <div class="panel-heading">Custom</div>
+        <div class="panel-body" id="custom">
+          <div class="row">
+          </div>
+        </div>
         <div class="panel-footer">
+          Created: <label id="accountCreatedDate"></label>
           <span class="pull-right">
-          You have two new messages from <a href="http://webapplayers.com/homer_admin-v2.0/light-shadow/">Monica Bolt</a>
+          Last updated: <label id="accountLastModifiedDate"></label>
           </span>
-          Last update: 21.05.2015
         </div>
       </div>
     </div>
   </div>
 
   <!--ROW 4 FIELDS-->
-  <div class="row offset-3" hidden>
+  <div class="row offset-3">
     <div class="col">
-      <div class="hpanel">
+      <div class="hpanel" id='internal_panel' hidden>
         <div class="panel-heading">Internal</div>
-        <div class="panel-body" id="internal"></div>
+        <div class="panel-body" id="internal">
+          <div class="row">
+          </div>
+        </div>
         <div class="panel-footer">
-          <span class="pull-right">
-          You have two new messages from <a href="http://webapplayers.com/homer_admin-v2.0/light-shadow/">Monica Bolt</a>
-          </span>
-          Last update: 21.05.2015
         </div>
       </div>
     </div>
@@ -139,6 +144,20 @@
 
 
 <style>
+
+  .fa {
+    color: #6a6c6f;
+  }
+
+  .profile {
+    color: #517ba3;
+  }
+
+  .gift {
+    color: #517ba3;
+  }
+
+
   #acctv h4 {
     text-align:left;
     color:gray;

@@ -26,6 +26,12 @@ def _get_next_pickup():
     g.group = var('agcy')
     return func_call(get_next_pickup, var('email'))
 
+@api.route('/accounts/summary_stats', methods=['GET','POST'])
+@login_required
+def _get_sum_stats():
+    from app.main.donors import get_summary_stats
+    return func_call(get_summary_stats, var('ref'))
+
 @api.route('/accounts/estimate_trend', methods=['POST'])
 @login_required
 def _trend():

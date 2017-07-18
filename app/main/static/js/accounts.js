@@ -16,7 +16,6 @@ function accountsInit() {
     $('#find_acct').click(function() {
        var acct_id = $('#acct_input').val();
        getAcct(acct_id);
-       //getBookOptions(acct_id);
     });
 
 }
@@ -45,36 +44,44 @@ function getAcct(acct_id) {
             acct = response['data'];
             console.log(acct);
             display(acct);
+
+            api_call(
+                'accounts/summary_stats',
+                data={'ref':acct['ref']},
+                function(response) {
+                    console.log(response['data']);
+                    var data = response['data'];
+                    $('#avg').html('$'+data['average'].toFixed(2));
+                    $('#total').html('$'+data['total'].toFixed(2));
+                    $('#n_gifts').html(data['n_gifts']+ ' Gifts');
+                });
         });
 }
 
 //---------------------------------------------------------------------
 function display(acct) {
 
-    $contact = $('#contact');
+    $contact = $('#contact .row');
     $contact.empty();
-    $custom = $('#custom');
+    $custom = $('#custom .row');
     $custom.empty();
-    $internal = $('#internal');
+    $internal = $('#internal .row');
     $internal.empty();
 
-    //$('#prop_container').prop('hidden', false);
+    $summary = $('#sum_panel');
+    $summary.prop('hidden',false);
+    $('#contact_panel').prop('hidden',false);
+    $('#custom_panel').prop('hidden',false);
+    $('#internal_panel').prop('hidden',false);
 
-    var contact_fields = [
-        'name', 'address', 'city', 'state', 'postalCode', 'email'
-    ];
+    $('#acct_name').html(acct['name']);
 
-    var internal_fields = [
-        'ref', 'id', 
-        //'userRoleRef', 'donorRoleRef',
-        'primaryPersona', 
-        'nameFormat', 'accountCreatedDate', 'accountLastModifiedDate',
-        'personaCreatedDate', 'personaLastModifiedDate'
-    ];
-
-    $('#acct_name').html("Account: " + acct['name']);
+    var contact_fields = ['name', 'address', 'city', 'state', 'postalCode', 'email'];
+    var internal_fields = ['ref', 'id', 'primaryPersona', 'nameFormat'];
 
     // Contact Info fields
+
+    
 
     for(var i=0; i<contact_fields.length; i++) {
         var field = contact_fields[i];
@@ -99,9 +106,6 @@ function display(acct) {
         appendField(udf['fieldName'], udf['value'], $custom);
     }
 
-    // Properties
-    // n_journal_entries, n_gifts, avg_gift, cumulative_gift
-
     var custom_fields = [
         "Status",
         "Signup Date",
@@ -117,14 +121,25 @@ function display(acct) {
         var field = internal_fields[i];
 
         if(field.indexOf('Date') > -1) {
-            var date = new Date(acct[field]['$date']).strftime('%b %d, %Y @ %H:%M');//.replace("Mountain Daylight Time", "");
+            if(acct[field]) {
+                var date = new Date(acct[field]['$date']).strftime('%b %d, %Y @ %H:%M');
+            }
+            else
+                var date = 'None';
             appendField(field, date, $internal);
         }
         else {
             appendField(field, acct[field], $internal);
         }
     }
-    // WRITE_ME
+
+    $('#personaCreatedDate').html(new Date(acct['personaCreatedDate']['$date']).strftime('%b %d, %Y @ %H:%M'));
+    if(acct['personaLastModifiedDate'])
+        $('#personaLastModifiedDate').html(new Date(acct['personaLastModifiedDate']['$date']).strftime('%b %d, %Y @ %H:%M'));
+    $('#accountCreatedDate').html(new Date(acct['personaCreatedDate']['$date']).strftime('%b %d, %Y @ %H:%M'));
+    if(acct['accountLastModifiedDate'])
+        $('#accountLastModifiedDate').html(new Date(acct['accountLastModifiedDate']['$date']).strftime('%b %d, %Y @ %H:%M'));
+
 }
 
 //------------------------------------------------------------------------------
@@ -133,7 +148,7 @@ function appendField(field, value, $element) {
     if(!value)
         return;
 
-    var div = "<DIV class='text-left'><B>" + field + "</B>: ";
+    var div = "<DIV class='col-6 text-left'><label class='font-extra-bold'>" + field + "</label>: ";
 
     if(typeof value === 'object')
         div += 

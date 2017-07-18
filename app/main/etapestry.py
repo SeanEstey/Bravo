@@ -143,7 +143,7 @@ def _cache_gifts(gifts):
 def _cache_accts(accts):
     '''Cache eTapestry Account objects along with their geolocation data'''
 
-    log.debug('Caching Accounts...')
+    #log.debug('Caching Accounts...')
     timer = Timer()
     n_geolocations = 0
     n_ops = 0

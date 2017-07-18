@@ -141,7 +141,7 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
     '''Called from API via client user.'''
 
     from app.lib.gsheets_cls import SS
-    from app.main.etapestry import get_query
+    from app.main.etapestry import get_query, get_udf
     from app.main.maps import geocode, in_map
     from app.main.socketio import smart_emit
 
@@ -161,8 +161,10 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
         return 'failed'
 
     api_key = get_keys('google')['geocode']['api_key']
-    matches = {}
 
+    # Search through cachedAccounts for geolocation matches.
+    # Build list of Block queries to update cachedAccounts.
+    queries = blocks
     n_no_geo = 0
     for cache in g.db['cachedAccounts'].find({'group':g.group}):
         acct = cache['account']
@@ -173,23 +175,26 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
             continue
 
         if in_map(geolocation['geometry']['location'], target_map):
-            if acct['id'] not in matches:
-                matches[acct['id']] = acct
-                smart_emit('analyze_results',
-                    {'status':'match',
-                    'acct_id':acct['id'],
-                    'coords':geolocation['geometry']['location'],
-                    'n_matches':len(matches)})
+            b = get_udf('Block', acct)
+            if b:
+                c = b.split(', ')
+                for block in c:
+                    if block not in queries:
+                        queries.append(block)
+                        log.debug('Added Block=%s', block)
 
-    log.debug('Skipped %s cached accounts w/ no geolocation', n_no_geo)
+    log.debug('Queries=%s', queries)
 
-    for block in blocks:
-        log.debug('Searching Block %s', block)
+    matches = {}
+    acct_list = []
+
+    for query in queries:
+        log.debug('Searching Query %s', query)
 
         try:
-            accts = get_query(block)
+            accts = get_query(query)
         except Exception as e:
-            log.exception('Error retrieving %s. Skipping', block)
+            log.exception('Error retrieving %s. Skipping', query)
             continue
 
         for acct in accts:
@@ -204,10 +209,10 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
             pt = geolocation['geometry']['location']
 
             if in_map(pt, target_map):
-                # Might replace existing account from cache
-                matches[acct['id']] = acct
-                smart_emit('analyze_results',
-                    {'status':'match','acct_id':acct['id'],'coords':pt,'n_matches':len(matches)})
+                if acct['id'] not in matches:
+                    matches[acct['id']] = acct
+                    smart_emit('analyze_results',
+                        {'status':'match','acct_id':acct['id'],'coords':pt,'n_matches':len(matches)})
 
     smart_emit('analyze_results', {'status':'completed','n_matches':len(matches)})
 
@@ -216,7 +221,7 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
     for acct_id in matches:
         acct = matches[acct_id]
         values.append([
-            '', zone, acct['id'], acct['address'], acct['name'],
+            '', '', zone, acct['id'], acct['address'], acct['name'],
             get_udf('Block',acct), get_udf('Neighborhood',acct), get_udf('Status',acct),
             get_udf('Signup Date',acct), get_udf('Next Pickup Date',acct),
             get_udf('Driver Notes',acct), get_udf('Office Notes',acct)
@@ -310,9 +315,9 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
     oauth = get_keys('google')['oauth']
     ss_id = get_keys('google')['ss_id']
     ss = SS(oauth, ss_id)
-    headers = ss.wks('Donations').getRow(1)
+    headers = ss.wks(wks).getRow(1)
     ref_col = headers.index('Ref')+1
-    upload_col = headers.index('Upload')+1
+    upload_col = headers.index(col)+1
 
     log.info('Task: Processing %s account entries...', len(entries))
 
@@ -335,7 +340,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
             values = []
             for i in xrange(len(results)):
                 ranges.append(
-                    a1_range(results[i]['row'], ref_col, results[i]['row'], upload_col, wks='Donations'))
+                    a1_range(results[i]['row'], ref_col, results[i]['row'], upload_col, wks=wks))
                 values.append([[
                     results[i].get('ref', results[i].get('description')),
                     results[i]['status'].upper()]])
@@ -343,7 +348,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
             #log.debug('Updating Sheet. Ranges=%s, values=%s', ranges, values)
 
             try:
-                ss.wks("Donations").updateRanges(ranges, values)
+                ss.wks(wks).updateRanges(ranges, values)
             except Exception as e:
                 log.exception('Error writing chunk %s', n+1)
             else:

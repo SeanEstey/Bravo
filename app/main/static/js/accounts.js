@@ -72,11 +72,12 @@ function display(acct) {
     $summary.prop('hidden',false);
     $('#contact_panel').prop('hidden',false);
     $('#custom_panel').prop('hidden',false);
-    $('#internal_panel').prop('hidden',false);
+    //$('#internal_panel').prop('hidden',false);
 
     $('#acct_name').html(acct['name']);
 
-    var contact_fields = ['name', 'address', 'city', 'state', 'postalCode', 'email'];
+
+    var contact_fields = ['name', 'address', 'city', 'state', 'postalCode', 'email', 'phones'];
     var internal_fields = ['ref', 'id', 'primaryPersona', 'nameFormat'];
 
     // Contact Info fields
@@ -90,22 +91,17 @@ function display(acct) {
             continue;
 
         if(field == 'phones') {
-            for(var i=0; i<acct['phones'].length; i++) {
-                var phone = acct['phones'][i];
+            for(var j=0; j<acct['phones'].length; j++) {
+                var phone = acct['phones'][j];
                 appendField(phone['type'], phone['number'], $contact);
             }
         }
         else {
-            appendField(field, acct[field], $contact);
+            appendField(field.toTitleCase(), acct[field], $contact);
         }
     }
 
     // Custom fields
-    for(var i=0; i<acct['accountDefinedValues'].length; i++) {
-        var udf = acct['accountDefinedValues'][i];
-        appendField(udf['fieldName'], udf['value'], $custom);
-    }
-
     var custom_fields = [
         "Status",
         "Signup Date",
@@ -113,8 +109,26 @@ function display(acct) {
         "Next Pickup Date",
         "Neighborhood",
         "Block",
+        "Referrer",
+        "Reason Joined",
+        "Date Cancelled",
         ""
     ];
+    var ignore = [ 'Data Source', 'Beverage Container Customer' ];
+    for(var i=0; i<acct['accountDefinedValues'].length; i++) {
+
+        var udf = acct['accountDefinedValues'][i];
+        if(ignore.indexOf(udf['fieldName']) > -1)
+            continue;
+
+        appendField(udf['fieldName'], udf['value'], $custom);
+
+        if(udf['fieldName'] == "Status")
+            $('#status').html(udf['value']);
+    }
+
+
+
 
     // Internal fields
     for(var i=0; i<internal_fields.length; i++) {
@@ -133,12 +147,24 @@ function display(acct) {
         }
     }
 
-    $('#personaCreatedDate').html(new Date(acct['personaCreatedDate']['$date']).strftime('%b %d, %Y @ %H:%M'));
-    if(acct['personaLastModifiedDate'])
-        $('#personaLastModifiedDate').html(new Date(acct['personaLastModifiedDate']['$date']).strftime('%b %d, %Y @ %H:%M'));
-    $('#accountCreatedDate').html(new Date(acct['personaCreatedDate']['$date']).strftime('%b %d, %Y @ %H:%M'));
-    if(acct['accountLastModifiedDate'])
-        $('#accountLastModifiedDate').html(new Date(acct['accountLastModifiedDate']['$date']).strftime('%b %d, %Y @ %H:%M'));
+    var date = new Date(acct['personaCreatedDate']['$date']);
+    $('#personaCreatedDate').html(
+        date.strftime('%b %d, %Y ') + '<i class="fa fa-clock-o"></i>' + date.strftime(' %I:%M %p'));
+
+    if(acct['personaLastModifiedDate']) {
+        var date = new Date(acct['personaLastModifiedDate']['$date']);
+        $('#personaLastModifiedDate').html(
+            date.strftime("%b %d, %Y ") + '<i class="fa fa-clock-o"></i>' + date.strftime(" %I:%M %p"));
+    }
+
+    var date = new Date(acct['personaCreatedDate']['$date']);
+    $('#accountCreatedDate').html(date.strftime('%b %d, %Y ') + '<i class="fa fa-clock-o"></i>' + date.strftime(' %I:%M %p'));
+
+    if(acct['accountLastModifiedDate']) {
+        var date = new Date(acct['accountLastModifiedDate']['$date']);
+        $('#accountLastModifiedDate').html(
+            date.strftime("%b %d, %Y ") + '<i class="fa fa-clock-o"></i>' + date.strftime(" %I:%M %p"));
+    }
 
 }
 
@@ -148,7 +174,7 @@ function appendField(field, value, $element) {
     if(!value)
         return;
 
-    var div = "<DIV class='col-6 text-left'><label class='font-extra-bold'>" + field + "</label>: ";
+    var div = "<DIV class='col-6 text-left'><label class='field align-top'>" + field + "</label>: ";
 
     if(typeof value === 'object')
         div += 
@@ -157,9 +183,9 @@ function appendField(field, value, $element) {
             '</div>' +
           '</DIV>';
     else if(typeof(value) == "string")
-        div += value.replace(/\\n/g, "<br>") + '</DIV>';
+        div += '<label class="val align-top">' + value.replace(/\\n/g, "") + '</label></DIV>';
     else
-        div += value + '</DIV>';
+        div += '<label class="val align-top">'+ value + '</label></DIV>';
 
     $element.append(div);
 }

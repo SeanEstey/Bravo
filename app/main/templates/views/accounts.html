@@ -37,18 +37,19 @@
           <div class="row">
 
             <!--profile name-->
-            <div class="col-md-3 text-center">
-              <i class="fa fa-user-circle-o fa-5x profile"></i>
-              <h1 class="font-extra-bold text-center mt-3" id="acct_name"></h1>
+            <div class="col-md-3 text-left pr-0">
+              <i class="fa fa-user-circle-o fa-5x profile_icon mt-1"></i>
+              <h2 class="mt-4 profile" id="acct_name"></h2>
+              <h4 class="status mb-0" id="status"></h4>
             </div>
 
             <div class="col-md-3 text-center">
               <div class="small">
-                <i class="fa fa-gift gift"></i> Gift Count
+                <i class="fa fa-gift gift"></i> YTD Count
               </div>
               <div>
-                <h1 class="font-extra-bold mt-3" id="n_gifts"></h1>
-                <small>since sign-up</small>
+                <h1 class="font-extra-bold sum_total mt-3" id="n_gifts"></h1>
+                <small>Since January 1</small>
               </div>
               <div class="small mt-5">
                 <i class="fa fa-clock-o"></i> Data from journal
@@ -57,23 +58,23 @@
 
             <div class="col-md-3 text-center">
               <div class="small">
-                <i class="fa fa-gift gift"></i> Gift Total
+                <i class="fa fa-gift gift"></i> YTD Total
               </div>
               <div>
-                <h1 class="font-extra-bold mt-3" id="total"></h1>
-                <small>since sign-up</small>
+                <h1 class="font-extra-bold mt-3 sum_total" id="total"></h1>
+                <small>Total Revenue</small>
               </div>
               <div class="small mt-5">
                 <i class="fa fa-clock-o"></i> Data from journal
               </div>
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-3 pl-5">
               <div class="text-center small">
-                <i class="fa fa-gift gift"></i> Gift Average
+                <i class="fa fa-gift gift"></i> YTD Average
               </div>
-              <h1 class="font-extra-bold text-center mt-3" id="avg"></h1>
-              <div class="text-center"><small class="text-center">per pick-up</small></div>
+              <h1 class="font-extra-bold text-center mt-3 sum_total" id="avg"></h1>
+              <div class="text-center"><small class="text-center">Revenue/Pick-up</small></div>
               <div class="small mt-5 text-center">
                 <i class="fa fa-clock-o"></i> Data from journal
               </div>
@@ -87,7 +88,7 @@
   <div class="row offset-3">
     <div class="col">
       <div class="hpanel" id='contact_panel' hidden>
-        <div class="panel-heading">Contact</div>
+        <div class="panel-heading">Personal Details</div>
         <div class="panel-body" id="contact">
           <div class="row">
           </div>
@@ -97,7 +98,6 @@
           <span class="pull-right">
           Last updated: <label id="personaLastModifiedDate"></label>
           </span>
-
         </div>
       </div>
     </div>
@@ -107,7 +107,7 @@
   <div class="row offset-3">
     <div class="col">
       <div class="hpanel" id='custom_panel' hidden>
-        <div class="panel-heading">Custom</div>
+        <div class="panel-heading">Pick-up Service</div>
         <div class="panel-body" id="custom">
           <div class="row">
           </div>
@@ -145,12 +145,38 @@
 
 <style>
 
+  .val {
+    color: #6a6c6f!important;
+    font-weight:200;
+  }
+
+  .field {
+    font-weight:400;
+    color: #6a6c6f!important;
+  }
+
   .fa {
     color: #6a6c6f;
   }
 
-  .profile {
+  .profile_icon {
+
     color: #517ba3;
+  }
+
+  .profile {
+    font-weight:200;
+    color: #6a6c6f;
+    /*font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;*/
+  }
+
+  .status {
+    font-weight:400;
+    color: #62cb31;
+  }
+
+  .sum_total {
+    color: #62cb31;
   }
 
   .gift {

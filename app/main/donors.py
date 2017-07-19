@@ -27,6 +27,7 @@ def get_matches(query):
     """
 
     matches = g.db['cachedAccounts'].find({
+      'group':g.group,
       '$or': [
          {'account.name':{'$regex':query}},
          {'account.email':{'$regex':query}}

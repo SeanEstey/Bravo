@@ -152,6 +152,7 @@ function display(acct) {
     $summary.prop('hidden',false);
     $('#contact_panel').prop('hidden',false);
     $('#custom_panel').prop('hidden',false);
+    $('#internal_panel').prop('hidden',false);
 
     $('#acct_name').html(acct['name']);
 

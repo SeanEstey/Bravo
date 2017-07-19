@@ -21,6 +21,21 @@ def get(aid, ref=None, sync_ytd_gifts=False):
 
     return get_acct(aid)
 
+#-------------------------------------------------------------------------------
+def get_matches(query):
+    """Find cache matches for query string. Checks indexed fields.
+    """
+
+    matches = g.db['cachedAccounts'].find({
+      '$or': [
+         {'account.name':{'$regex':query}},
+         {'account.email':{'$regex':query}}
+      ]
+    }).limit(10)
+
+    log.debug('Found %s matches for query string "%s"', matches.count(), query)
+
+    return list(matches)
 
 #-------------------------------------------------------------------------------
 def get_summary_stats(ref):

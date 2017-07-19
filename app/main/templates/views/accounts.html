@@ -1,29 +1,45 @@
 {% extends "views/base.html" %}
 {% block content %}
 
+<head>
+  <link href="{{url_for("static", filename="main/css/autocomplete.css")}}" rel="stylesheet" type="text/css">
+</head>
 <script src="{{url_for('main.static', filename='js/strftime.js')}}"></script>
-<script type="text/javascript" src="{{url_for('main.static', filename='js/accounts.js')}}"></script>
+<script src="{{url_for('main.static', filename='js/accounts.js')}}"></script>
+<script src="{{url_for('main.static', filename='js/autocomplete.js')}}"></script>
 <script> 
   document.write("<style type='text/css'> body{display:none}</style>");
-  jQuery(function($){ accountsInit(); $("body").css("display","block"); });
+  jQuery(function($){
+    accountsInit();
+    initAuto();
+    $("body").css("display","block");
+  });
 </script>
 
-  <!--Search-->
   <div class="row">
     <div class="col-12">
       <div class="hpanel">
         <div class="panel-body p-3">
           <div class="row">
-              <div class="input-group ml-2">
-                <input id="acct_input" class="form-control col-6 ml-2" name="acct" type="text" 
-                placeholder="Search accounts..." onkeydown="searchKeyPress(event)" autocomplete="off" autofocus>
-                <div class="input-group-btn">
-                  <button class="btn btn-secondary" type="button" id="find_acct">
-                    <i class="fa fa-search"></i>
-                  </button>
+            <!--Search-->
+            <div class="col-6">
+              <div class="dropdown">
+                <div class="input-group ml-2">
+                  <input id="acct_input" class="form-control col-6 ml-2 dropdown-toggle" name="acct" type="text" 
+                  data-toggle="dropdown" placeholder="Search accounts..." autocomplete="off" autofocus>
+                  <!--Dropdown-->
+                  <div class="dropdown-menu ml-2">
+                  </div>
+                  <div class="input-group-btn">
+                    <button class="btn btn-secondary" type="button" id="find_acct">
+                      <i class="fa fa-search"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+          <!--End row-->
         </div>
       </div>
     </div>

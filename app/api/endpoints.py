@@ -68,6 +68,12 @@ def _get_accts():
     from app.main import donors
     return func_call(donors.get, var('acct_id'))
 
+@api.route('/accounts/get/autocomplete', methods=['POST'])
+@login_required
+def _get_autocomplete():
+    from app.main.donors import get_matches
+    return func_call(get_matches, var('query'))
+
 @api.route('/accounts/get/location', methods=['POST'])
 @login_required
 def _get_location():

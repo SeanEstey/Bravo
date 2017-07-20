@@ -1,17 +1,11 @@
 /* accounts.js */
 
 acct = null;
-dropdown = false;
-dd_matches = [];
 
 function parse_block(title) { return title.slice(0, title.indexOf(' ')); }
 
 //---------------------------------------------------------------------
 function accountsInit() {
-
-    alertMsg('Enter search terms below', 'info', -1);
-
-    $('.dropdown-menu').width($('#acct_input').width());
 
     if(location.href.indexOf('?') > -1) {
         var args = location.href.substring(location.href.indexOf('?')+1, location.length);
@@ -21,83 +15,6 @@ function accountsInit() {
     $('#search_ctnr').prepend($('.br-alert'));
     $('.br-alert').prop('hidden', true);
     addSocketIOHandlers();
-
-    $('#acct_input').keypress(function (e) {
-        if (e.which == 13) {
-            console.log('Submitting search for "'+$(this).val()+'"');
-            getAcct($(this).val());
-            return false;
-        }
-    });
-
-    $('#acct_input').keyup(function(e){
-        showAutocompleteMatches($(this).val());
-    });
-
-    $('#find_acct').click(function() {
-       var acct_id = $('#acct_input').val();
-       getAcct(acct_id);
-    });
-
-}
-
-//------------------------------------------------------------------------------
-function showAutocompleteMatches(query) {
-    
-    $input = $('#acct_input');
-
-    if(dropdown==false) {
-        dropdown=true;
-        $('#acct_input').trigger('click');
-    }
-
-    api_call(
-        'accounts/get/autocomplete',
-        data={'query':query},
-        function(response) {
-
-            dd_matches = response['data'];
-
-            if(!Array.isArray(dd_matches)) {
-                console.log('No results returned');
-                return;
-            }
-            if(Array.isArray(dd_matches) && dd_matches.length == 0) {
-                console.log('Zero results');
-                return;
-            }
-
-            console.log('Found ' + dd_matches.length + ' matches.');
-
-            $('.dropdown-menu').empty();
-
-            for(var i=0; i<dd_matches.length; i++) {
-                var account = dd_matches[i]['account'];
-
-                var $a = $('<a class="dropdown-item" id="'+i+'" href="#">'+account['name']+'</a>');
-
-                $a.click(function() {
-                    var idx = Number($(this).prop('id'));
-                    var account = dd_matches[idx]['account'];
-                    console.log('Displaying Acct id='+account['id']);
-
-                    display(account);
-
-                    api_call(
-                        'accounts/summary_stats',
-                        data={'ref':account['ref']},
-                        function(response) {
-                            console.log(response['data']);
-                            var data = response['data'];
-                            $('#avg').html('$'+data['average'].toFixed(2));
-                            $('#total').html('$'+data['total'].toFixed(2));
-                            $('#n_gifts').html(data['n_gifts']+ ' Gifts');
-                        });
-                });
-
-                $('.dropdown-menu').append($a);
-            }
-        });
 }
 
 //------------------------------------------------------------------------------
@@ -107,10 +24,6 @@ function addSocketIOHandlers() {
     var socket = io.connect(socketio_url);
     socket.on('connect', function(data){
         console.log('Socket.IO connected.');
-    });
-    socket.on('update_maps', function(data) {
-        console.log(data['description']);
-        alertMsg(data['description'], 'success');
     });
 }
 
@@ -129,13 +42,28 @@ function getAcct(acct_id) {
                 'accounts/summary_stats',
                 data={'ref':acct['ref']},
                 function(response) {
-                    console.log(response['data']);
+                    //console.log(response['data']);
                     var data = response['data'];
-                    $('#avg').html('$'+data['average'].toFixed(2));
-                    $('#total').html('$'+data['total'].toFixed(2));
-                    $('#n_gifts').html(data['n_gifts']+ ' Gifts');
-                });
-        });
+
+                    $('.showcase .spinner').hide();
+                    $('.showcase .content').show();
+
+                    $('#n_gifts').html(data['n_gifts']);
+                    $('#n_gifts').parent().prop('hidden', false);
+
+                    var avg = data['average'].toFixed(2);
+                    $('#avg label').html('$'+ avg.split(".")[0] +'.');
+                    $('#avg span').html( avg.split(".")[1]);
+                    $('#avg').parent().prop('hidden', false);
+
+                    var total = data['total'].toFixed(2);
+                    $('#total label').html('$' + total.split(".")[0] + '.');
+                    $('#total span').html( total.split(".")[1]);
+                    $('#total').parent().prop('hidden', false);
+                }
+            );
+        }
+    );
 }
 
 //---------------------------------------------------------------------
@@ -153,6 +81,7 @@ function display(acct) {
     $('#contact_panel').prop('hidden',false);
     $('#custom_panel').prop('hidden',false);
     $('#internal_panel').prop('hidden',false);
+    $('#action_panel').prop('hidden',false);
 
     $('#acct_name').html(acct['name']);
 

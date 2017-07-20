@@ -602,7 +602,8 @@ function make_booking($acct_id, $udf, $type) {
 		$udf = get_object_vars($udf);
 	}
 
-	$udf['Driver Notes'] = get_udf($acct, 'Driver Notes') . '\\n' . $udf['Driver Notes'];
+	$udf['Driver Notes'] = $udf['Driver Notes'] . '\n' . get_udf($acct,'Driver Notes');
+
 	$off_notes = get_udf($acct, 'Office Notes');
 	$blocks = get_udf($acct, 'Block');
 
@@ -613,7 +614,7 @@ function make_booking($acct_id, $udf, $type) {
 	if(in_array($udf['Block'], $blocks))
 		$udf['Office Notes'] = $off_notes;
 	else
-		$udf['Office Notes'] =  $off_notes . '\\n' . $udf['Office Notes'];
+		$udf['Office Notes'] =  $udf['Office Notes'] . '\n' . $off_notes;
 
 	if($agcy == 'wsf' && $type == 'delivery') {
 		$status = get_udf($acct, 'Status');

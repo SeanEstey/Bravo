@@ -93,7 +93,7 @@ def update():
         extra={'n_messages': session['MESSAGECOUNT'], 'tag':'sms_msg'})
 
 #-------------------------------------------------------------------------------
-def toggle_reply_mute(mobile, enabled, minutes=5):
+def toggle_reply_mute(mobile, enabled, minutes=30):
 
     if enabled:
         until = datetime.utcnow() + timedelta(minutes=minutes)

@@ -34,7 +34,7 @@ def get_matches(query):
       ]
     }).limit(10)
 
-    log.debug('Found %s matches for query string "%s"', matches.count(), query)
+    print 'Query str="%s", matches=%s' % (query, matches.count())
 
     return list(matches)
 

@@ -487,3 +487,14 @@ a.hover:visited {
         margin: 1.0em 2em;
     }
 }
+        
+
+@media (max-width:992px) {
+    .navbar-nav {
+       flex-direction:row; 
+    }
+    .container {
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }

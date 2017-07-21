@@ -1,264 +1,197 @@
-{% extends "views/base.html" %}
-{% block content %}
+  {% extends "views/base.html" %}
+  {% block content %}
 
-<head>
-  <link href="{{url_for("static", filename="main/css/autocomplete.css")}}" rel="stylesheet" type="text/css">
-</head>
-<script src="{{url_for('main.static', filename='js/strftime.js')}}"></script>
-<script src="{{url_for('main.static', filename='js/accounts.js')}}"></script>
-<script src="{{url_for('main.static', filename='js/autocomplete.js')}}"></script>
-<script> 
-  document.write("<style type='text/css'> body{display:none}</style>");
-  jQuery(function($){
-    accountsInit();
-    initAuto();
-    $("body").css("display","block");
-  });
-</script>
+  <head>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
+    <script src="{{url_for('main.static', filename='js/morris.min.js')}}"></script>
+    <script src="{{url_for('main.static', filename='js/strftime.js')}}"></script>
+    <script src="{{url_for('main.static', filename='js/accounts.js')}}"></script>
+    <script src="{{url_for('main.static', filename='js/autocomplete.js')}}"></script>
+    <script src="{{url_for('main.static', filename='js/charts.js')}}"></script>
+
+    <link href="{{url_for('static', filename='main/css/charts.css')}}" rel= "stylesheet" type= "text/css">
+    <link href="{{url_for('static', filename='main/css/autocomplete.css')}}" rel= "stylesheet" type= "text/css">
+    <link href="{{url_for('static', filename='main/css/circle.css')}}" rel= "stylesheet" type= "text/css">
+    <link href="{{url_for('static', filename='main/css/morris.css')}}" rel= "stylesheet" type= "text/css">
+  </head>
+
+  <script> 
+    document.write("<style type='text/css'> body{display:none}</style>");
+    jQuery(function($){
+      accountsInit();
+      initAuto();
+      initCharts();
+      $("body").css("display","block");
+    });
+  </script>
 
   <div class="row">
-    <!--Account Overview Panel-->
-    <div class="col-12 col-xl-6">
-      <div class="hpanel" id='sum_panel' hidden>
-        <div class="panel-heading text-left pt-5 pb-1 pl-4"
-          style="background:url('https://bravoweb.ca/static/main/images/Ridley-Blue-BG.jpg');">
-          <div class="row justify-content-md-left">
-            <div class="col-1 mr-3">
-              <i class="fa fa-user-circle-o fa-4x profile_icon mt-2"></i>
-            </div>
-            <div class="col ml-3">
-              <h2 class="profile" id="acct_name"></h2>
-              <h4 class="status"><span class="badge badge-info status" id="status"></span></h4>
-            </div>
-          </div>
-          <div class="row mt-5 mb-1">
-            <div class="col mb-0" style="color: #dcd5d5;">
-              <small style="color:#abaaaa">JOINED </small>
-              <small style="color:#62cb31">JAN 2014</small>
-            </div>
-            <div class="col text-right" style="color:#dcd5d5">
-              <small style="color:#abaaaa">LAST DONATED </small>
-              <small style="color:#62cb31">JUL 2017</small>
-            </div>
-          </div>
-        </div>
-        <div class="panel-body p-0">
-          <div class="row m-0 justify-content-md-center" style="height:120px">
-            <div class="col-md-4 mx-auto showcase my-auto text-center">
-              <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
-              <div class="content" hidden>
-                <h1 class="big-number mt-1 mb-0 text-center" id="n_gifts"></h1>
-                <div class="text-center">Donations</div>
+    <div class="col-12 col-xl-7 LEFT-COLUMN">
+      
+      <!--Profile Panel-->
+      <div class="col-md-12">
+          <div class="profile hpanel" id='sum_panel' hidden>
+            <!--Banner-->
+            <div class="banner panel-heading text-left pt-5 pb-1 pl-4">
+              <div class="row justify-content-md-left">
+                <div class="col-1 mr-3">
+                  <i class="fa fa-user-circle-o fa-4x head-ico mt-2"></i>
+                </div>
+                <div class="col ml-3">
+                  <h2 class="" id="acct_name"></h2>
+                  <h4 class="status"><span class="badge badge-info status" id="status"></span></h4>
+                </div>
+              </div>
+              <div class="row mt-5 mb-1">
+                <div class="col mb-0" style="color: #dcd5d5;">
+                  <small style="color:#d8d5d5; font-size:70%;">JOINED </small>
+                  <small style="color:#62cb31">JAN 2014</small>
+                </div>
+                <div class="col text-right" style="color:#dcd5d5">
+                  <small style="color:#d8d5d5; font-size:70%">LAST DONATED </small>
+                  <small style="color:#62cb31">JUL 2017</small>
+                </div>
               </div>
             </div>
-            <div class="col-md-4 showcase my-auto text-center">
-              <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
-              <div class="content" hidden>
-                <h1 class="big-number mt-1 mb-0 text-center" id="total">
-                  <label class="ml-4 mb-0"></label>  <span class="decimals"></span>
-                </h1>
-                <div class="text-center">Received Total</div>
+            <!--Donation Summary-->
+            <div class="panel-body p-0">
+              <div class="row m-0 justify-content-md-center" style="height:120px">
+                <div class="col-md-4 mx-auto showcase my-auto text-center">
+                  <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
+                  <div class="content" hidden>
+                    <h1 class="sum-num mt-1 mb-0 text-center" id="n_gifts"></h1>
+                    <div class="text-center">Donations</div>
+                  </div>
+                </div>
+                <div class="col-md-4 showcase my-auto text-center">
+                  <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
+                  <div class="content" hidden>
+                    <h1 class="sum-num mt-1 mb-0 text-center" id="total">
+                      <label class="ml-4 mb-0"></label>  <span class="sum-num-dec"></span>
+                    </h1>
+                    <div class="text-center">Received Total</div>
+                  </div>
+                </div>
+                <div class="col-md-4 mx-auto showcase my-auto text-center">
+                  <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
+                  <div class="content" hidden>
+                    <h1 class="sum-num mt-1 mb-0 text-center" id="avg">
+                      <label class="ml-4 mb-0 text-center"></label>  <span class="sum-num-dec"></span>
+                    </h1>
+                    <div class="text-center">Per Donation</div>
+                  </div>
+                </div>
               </div>
+              <!--End Row-->
             </div>
-            <div class="col-md-4 mx-auto showcase my-auto text-center">
-              <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
-              <div class="content" hidden>
-                <h1 class="big-number mt-1 mb-0 text-center" id="avg">
-                  <label class="ml-4 mb-0 text-center"></label>  <span class="decimals"></span>
-                </h1>
-                <div class="text-center">Per Donation</div>
-              </div>
-            </div>
+            <!--End Panel Body-->
           </div>
-          <!--End Row-->
-        </div>
-        <!--End Panel Body-->
+          <!--End Panel-->
       </div>
-      <!--End Panel-->
-    </div>
-    <!--Actions Panel-->
-    <div class="col-4">
-      <div class="hpanel" id="action_panel" hidden>
-        <div class="panel-heading">
-          Actions
-          <span class="pull-right"><i class="fa fa-star" style="color:#4ea5e0"></i></span>
+
+      <!--Persona Panel-->
+      <div class="col-md-12">
+          <div class="hpanel " id='contact_panel' hidden>
+            <div class="panel-heading" style="">
+              Personal Details
+              <span class="pull-right"><i class="fa fa-address-card-o" style="color:#4ea5e0"></i></span>
+            </div>
+            <div class="panel-body" id="contact">
+              <div class="row"></div>
+            </div>
+            <div class="panel-footer">
+              <small>Created: <label id="personaCreatedDate"></label></small>
+              <span class="pull-right"><small>Last updated: <label id="personaLastModifiedDate"></label></small></span>
+            </div>
+          </div>
+      </div>
+
+      <!--Pickup Service-->
+      <div class="col-md-12">
+          <div class="hpanel" id='custom_panel' hidden>
+            <div class="panel-heading" style="">
+              Pick-up Service
+              <span class="pull-right"><i class="fa fa-recycle" style="color:#4ea5e0"></i></span>
+            </div>
+            <div class="panel-body" id="custom">
+              <div class="row">
+              </div>
+            </div>
+            <div class="panel-footer">
+              <small>Created: <label id="accountCreatedDate"></label></small>
+              <span class="pull-right"><small>Last updated: <label id="accountLastModifiedDate"></label></small></span>
+            </div>
+          </div>
+      </div>
+
+    </div><!--End LEFT-COLUMN-->
+    <div class="col-12 col-xl-5 RIGHT-COLUMN">
+
+        <!--Chart Panel-->
+        <div class="col-md-12">
+            <div class="hpanel" id="chart_panel" >
+              <div class="panel-heading">Donation History
+                <span class="pull-right"><i class="fa fa-history" style="color:#4ea5e0"></i></span></div>
+              <div class="panel-body pt-4 pb-0">
+                <div id="don_chart" class="col mx-auto"></div>
+              </div>
+              <div class="panel-footer" style="height:20px"></div>
+            </div>
         </div>
-        <div class="panel-body text-center">
-					<div class="row justify-content-md-center">
-						<div class="col-12 text-left mb-3">
-				      <i class="fa fa-truck fa-2x mr-2" style="color: #ea6557;"></i>
-							<a href="#" style="color:#ea6557;">Book Pickup</a>
-						</div>
-						<div class="col-12 text-left" style="color:#4ea5e0;">
-						  <i class="fa fa-whatsapp fa-2x mr-2" style="color:#4ea5e0;"></i>
-              <a href="#" style="color:#4ea5e0;">Send SMS (Alice)</a>
+
+        <!--Participation Panel-->
+        <div class="col-md-12" hidden>
+          <div class="hpanel" id="stats_panel">
+            <div class="panel-heading">Statistics<span class="pull-right"><i class="fa fa-percent" style="color:#4ea5e0"></i></span></div>
+            <div class="panel-body p-3">
+              <div class="partic progress-radial progress-80 setsize mx-auto">
+                <div class="overlay setsize"><p>80%</p></div>
+                <div class="clear"></div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="panel-footer"></div>
+
+        <!--Actions Panel-->
+        <div class="col-md-12">
+            <div class="hpanel" id="action_panel" hidden>
+              <div class="panel-heading">
+                Actions
+                <span class="pull-right"><i class="fa fa-star" style="color:#4ea5e0"></i></span>
+              </div>
+              <div class="panel-body text-center">
+                <div class="row justify-content-md-center">
+                  <div class="col-12 text-left mb-3">
+                    <i class="fa fa-truck fa-2x mr-2" style="color: #ea6557;"></i>
+                    <a href="#" style="color:#ea6557;">Book Pickup</a>
+                  </div>
+                  <div class="col-12 text-left" style="color:#4ea5e0;">
+                    <i class="fa fa-whatsapp fa-2x mr-2" style="color:#4ea5e0;"></i>
+                    <a href="#" style="color:#4ea5e0;">Send SMS (Alice)</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+
+    </div><!--End RIGHT-COLUMN-->
+  </div><!--End row-->
+
+  <!--Internal-->
+  <div class="col-4" hidden>
+    <div class="hpanel" id='internal_panel' hidden>
+      <div class="panel-heading">Internal</div>
+      <div class="panel-body" id="internal">
+        <div class="row">
+        </div>
+      </div>
+      <div class="panel-footer">
       </div>
     </div>
   </div>
-  <!--End row-->
-  <div class="row">
-    <!--Persona Panel-->
-    <div class="col-6">
-      <div class="hpanel " id='contact_panel' hidden>
-        <div class="panel-heading" style="">
-          Personal Details
-          <span class="pull-right"><i class="fa fa-address-card-o" style="color:#4ea5e0"></i></span>
-        </div>
-        <div class="panel-body" id="contact">
-          <div class="row"></div>
-        </div>
-        <div class="panel-footer">
-          <small>Created: <label id="personaCreatedDate"></label></small>
-          <span class="pull-right"><small>Last updated: <label id="personaLastModifiedDate"></label></small></span>
-        </div>
-      </div>
-    </div>
+
+  <!-- Modal -->
+  <div id="accts_options" style="display:none">
   </div>
-  <div class="row">
-    <!--Pickup Service-->
-    <div class="col-6">
-      <div class="hpanel" id='custom_panel' hidden>
-        <div class="panel-heading" style="">
-          Pick-up Service
-          <span class="pull-right"><i class="fa fa-recycle" style="color:#4ea5e0"></i></span>
-        </div>
-        <div class="panel-body" id="custom">
-          <div class="row">
-          </div>
-        </div>
-        <div class="panel-footer">
-          <small>Created: <label id="accountCreatedDate"></label></small>
-          <span class="pull-right"><small>Last updated: <label id="accountLastModifiedDate"></label></small></span>
-        </div>
-      </div>
-    </div>
-    <!--Internal-->
-    <div class="col-4" hidden>
-      <div class="hpanel" id='internal_panel' hidden>
-        <div class="panel-heading">Internal</div>
-        <div class="panel-body" id="internal">
-          <div class="row">
-          </div>
-        </div>
-        <div class="panel-footer">
-        </div>
-      </div>
-    </div>
 
-<!-- Modal -->
-<div id="accts_options" style="display:none">
-</div>
-
-<style>
-  body {
-    color: #6a6c6f;
-  }
-
-  .showcase {
-    border-right: 1px solid #eaeaea;
-    /*height:120px;*/
-  }
-
-  .showcase .spinner-par {
-    padding:1.0rem;
-    text-align: center!important;
-  }
-
-  .showcase .spinner {
-    color: #dfdfdf!important;
-  }
-
-  .showcase .content {
-    padding:0.25rem;
-
-  }
-
-  input::-webkit-input-placeholder {
-    color: green;
-  }
-
-  input::placeholder {
-    color: green;
-  }
-
-  .src_hdr  {
-    font-family: 'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif;
-    font-weight:200;
-    color: #6a6c6f;
-  } 
-
-  .val {
-    color: #6a6c6f;
-    font-weight:200;
-  }
-
-  .field {
-    font-weight:400;
-    color: #6a6c6f!important;
-  }
-
-  .fa {
-    color: #6a6c6f;
-  }
-
-  .profile_icon {
-    color: white;
-  }
-
-  .profile {
-    font-weight:200;
-    color: white;
-    /*font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;*/
-  }
-
-  .status {
-    font-family: 'Proxima Nova',sans-serif; 
-    font-weight:200;
-    color: white;
-  }
-
-  .big-number {
-    font-family: 'Proxima Nova',sans-serif;
-    font-weight: normal;
-    font-size: 3.0rem;
-    color: #62cb31;
-  }
-
-  .gift {
-    color: #517ba3;
-  }
-
-
-  #acctv h4 {
-    text-align:left;
-    color:gray;
-  };
-
-  #acctv p  {
-    text-align:left;
-    margin-top: 2em;
-    margin-bottom: 2em;
-  }
-
-  #srch label, #acct_hdr label {
-    font-weight:400;
-    font-size:1.5rem;
-  }
-
-  .decimals {
-      font-size: 0.4em;
-      font-weight: normal;
-      vertical-align: baseline;
-      top: -1.0em;
-      left: -0.8em;
-      position: relative;
-  }
-
-</style>
-
-
-{% endblock %}
+  {% endblock %}

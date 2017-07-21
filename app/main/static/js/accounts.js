@@ -6,6 +6,16 @@ function parse_block(title) { return title.slice(0, title.indexOf(' ')); }
 
 //---------------------------------------------------------------------
 function accountsInit() {
+    $( document ).ready(function() {
+        $(".setsize").each(function() {
+            $(this).height($(this).width());
+        });
+    });
+    $(window).on('resize', function(){
+        $(".setsize").each(function() {
+            $(this).height($(this).width());
+        });
+    });
 
     if(location.href.indexOf('?') > -1) {
         var args = location.href.substring(location.href.indexOf('?')+1, location.length);

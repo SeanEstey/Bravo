@@ -1,0 +1,125 @@
+/* charts.css */
+
+body {
+    color: #6a6c6f;
+}
+
+.profile {
+    font-weight:200;
+    color: white!important;
+    /*font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;*/
+}
+    .profile .banner {
+        background: url('https://bravoweb.ca/static/main/images/Ridley-Blue-BG.jpg');
+    }
+    .profile h2 {
+        font-family: 'Proxima Nova', sans-serif;
+        color:white;
+    }
+    .profile .head-ico {
+        color: white;
+    }
+    .profile .status {
+        font-family: 'Proxima Nova',sans-serif;
+        font-weight: 200;
+        color: white;
+    }
+    .profile .showcase {
+        color: #6a6c6f;
+        border-right: 1px solid #eaeaea;
+        font-family: 'Proxima Nova',sans-serif;
+    }
+    .profile .showcase .sum-num {
+        font-family: 'Proxima Nova',sans-serif;
+        font-weight: normal;
+        font-size: 3.0rem;
+        color: #62cb31;
+    }
+    .profile .showcase .sum-num-dec {
+        font-size: 0.4em;
+        font-weight: normal;
+        vertical-align: baseline;
+        top: -1.0em;
+        left: -0.8em;
+        position: relative;
+    }
+    .profile .showcase .spinner-par {
+        padding:1.0rem;
+        text-align: center!important;
+    }
+    .profile .showcase .spinner {
+        color: #dfdfdf!important;
+    }
+    .profile .showcase .content {
+        padding:0.25rem;
+
+    }
+    .profile .gift {
+        color: #517ba3;
+    }
+
+.partic {
+    float:none!important;
+    width:125px;
+    height:125px;
+    background-image:linear-gradient(18deg, #5bc0de 50%, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0)),linear-gradient(270deg, #5bc0de 50%, #f0f0f0 50%, #f0f0f0);
+}
+
+#don_chart {
+    height:150px;
+    width:100%;
+    /*border-bottom:1px solid #5bc0e3;*/
+}
+
+#don_chart svg {
+    top: 1px;
+}
+
+
+/* FOR SEARCHBAR. MOVE TO STYLE.CSS */
+
+input::-webkit-input-placeholder {
+    color: green;
+}
+
+input::placeholder {
+    color: green;
+}
+
+.src_hdr  {
+    font-family: 'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif;
+    font-weight:200;
+    color: #6a6c6f;
+}
+
+.val {
+    color: #6a6c6f;
+    font-weight:200;
+}
+
+.field {
+    font-weight:400;
+    color: #6a6c6f!important;
+}
+
+/*.fa {
+    color: #6a6c6f;
+}*/
+
+#acctv h4 {
+    text-align:left;
+    color:gray;
+};
+
+#acctv p  {
+    text-align:left;
+    margin-top: 2em;
+    margin-bottom: 2em;
+}
+
+#srch label, #acct_hdr label {
+    font-weight:400;
+    font-size:1.5rem;
+}
+
+

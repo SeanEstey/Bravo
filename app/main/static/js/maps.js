@@ -39,10 +39,10 @@ function loadMapData() {
       function(response){
           if(response['status'] == 'success') {
               console.log('Map data loaded');
-              
+
               map_data = response['data'];
               var block = $('#coord_data').data()['block'];
-            
+
               for(var i=0; i<map_data['features'].length; i++) {
                   var feature = map_data['features'][i];
                   if(parse_block(feature['properties']['name']) == block) {

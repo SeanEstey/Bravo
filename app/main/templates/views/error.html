@@ -1,7 +1,21 @@
   {% extends "views/base.html" %}
+
   {% block content %}  
+
+<head>
+  <link href="{{url_for("static", filename="main/css/autocomplete.css")}}" rel="stylesheet" type="text/css">
+  <link href="{{url_for("static", filename="main/css/circle.css")}}" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/morris.js/0.5.1/morris.css">
+  <script src="{{url_for('main.static', filename='js/strftime.js')}}"></script>
+  <script src="{{url_for('main.static', filename='js/accounts.js')}}"></script>
+  <script src="{{url_for('main.static', filename='js/autocomplete.js')}}"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/morris.js/0.5.1/morris.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
+</head>
+
   <div class="h1">There Was an Error</div>
     <div class="box">
       {{ msg|safe }}
     </div>
+
   {% endblock %}

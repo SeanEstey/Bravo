@@ -32,7 +32,7 @@
       <div class="col-md-12">
           <div class="profile hpanel" id='sum_panel' hidden>
             <!--Banner-->
-            <div class="banner panel-heading text-left pt-5 pb-1 pl-4">
+            <div class="banner panel-heading text-left pt-5 pb-5 pl-4">
               <div class="row justify-content-md-left">
                 <div class="col-1 mr-3">
                   <i class="fa fa-user-circle-o fa-4x head-ico mt-2"></i>
@@ -40,16 +40,6 @@
                 <div class="col ml-3">
                   <h2 class="" id="acct_name"></h2>
                   <h4 class="status"><span class="badge badge-info status" id="status"></span></h4>
-                </div>
-              </div>
-              <div class="row mt-5 mb-1">
-                <div class="col mb-0" style="color: #dcd5d5;">
-                  <small style="color:#d8d5d5; font-size:70%;">JOINED </small>
-                  <small style="color:#62cb31">JAN 2014</small>
-                </div>
-                <div class="col text-right" style="color:#dcd5d5">
-                  <small style="color:#d8d5d5; font-size:70%">LAST DONATED </small>
-                  <small style="color:#62cb31">JUL 2017</small>
                 </div>
               </div>
             </div>
@@ -76,7 +66,7 @@
                   <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
                   <div class="content" hidden>
                     <h1 class="sum-num mt-1 mb-0 text-center" id="avg">
-                      <label class="ml-4 mb-0 text-center"></label>  <span class="sum-num-dec"></span>
+                      <label class="sum-num ml-4 mb-0 text-center"></label>  <span class="sum-num-dec"></span>
                     </h1>
                     <div class="text-center">Per Donation</div>
                   </div>
@@ -131,11 +121,21 @@
         <div class="col-md-12">
             <div class="hpanel" id="chart_panel" >
               <div class="panel-heading">Donation History
-                <span class="pull-right"><i class="fa fa-history" style="color:#4ea5e0"></i></span></div>
+                <span class="pull-right"><i class="fa fa-history" style="color:#ec8380;"></i></span></div>
               <div class="panel-body pt-4 pb-0">
-                <div id="don_chart" class="col mx-auto"></div>
+                <div class="row justify-content-center align-self-center" id="chart-load">
+                    <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
+                </div>
+                <div id="don_chart" class="col" hidden></div>
               </div>
-              <div class="panel-footer" style="height:20px"></div>
+							<div class="panel-footer" style="">
+								<div class="row" id='timeline' hidden>
+							    <div class="col mx-auto text-center">
+									  <small class="gray" hidden>FROM </small><small class="green" id="joined-d"></small>
+										- <small class="green" id="last-gave-d"></small>
+									</div>
+								</div>
+							</div>
             </div>
         </div>
 
@@ -162,8 +162,8 @@
               <div class="panel-body text-center">
                 <div class="row justify-content-md-center">
                   <div class="col-12 text-left mb-3">
-                    <i class="fa fa-truck fa-2x mr-2" style="color: #ea6557;"></i>
-                    <a href="#" style="color:#ea6557;">Book Pickup</a>
+                    <i class="fa fa-truck fa-2x mr-2" style="color:#4ea5e0;"></i>
+                    <a href="#" style="color:#4ea5e0;">Book Pickup</a>
                   </div>
                   <div class="col-12 text-left" style="color:#4ea5e0;">
                     <i class="fa fa-whatsapp fa-2x mr-2" style="color:#4ea5e0;"></i>

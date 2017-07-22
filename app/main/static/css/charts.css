@@ -4,6 +4,8 @@ body {
     color: #6a6c6f;
 }
 
+
+
 .profile {
     font-weight:200;
     color: white!important;
@@ -43,10 +45,6 @@ body {
         left: -0.8em;
         position: relative;
     }
-    .profile .showcase .spinner-par {
-        padding:1.0rem;
-        text-align: center!important;
-    }
     .profile .showcase .spinner {
         color: #dfdfdf!important;
     }
@@ -68,11 +66,29 @@ body {
 #don_chart {
     height:150px;
     width:100%;
-    /*border-bottom:1px solid #5bc0e3;*/
+    border-bottom: 2px solid #fed6d5;
 }
 
 #don_chart svg {
+
     top: 1px;
+}
+
+#chart_panel .panel-footer .green {
+    color: #a7a8a9;
+    font-size: 80%;
+    font-weight: 600;
+    letter-spacing: 0em;
+}
+
+#chart_panel .panel-footer .gray {
+    color: #a7a8a9;
+    font-size: 80%;
+    font-weight: 600;
+}
+
+#chart_panel .spinner {
+    color: #dfdfdf!important;
 }
 
 

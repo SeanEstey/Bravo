@@ -6,6 +6,7 @@ from dateutil.parser import parse
 from flask import g, request
 from app import get_keys
 from app.lib import html, mailgun
+from app.lib.timer import Timer
 from app.lib.dt import ddmmyyyy_to_date as to_date
 from app.main.etapestry import EtapError, mod_acct, get_acct, get_udf, call
 from app.main.maps import geocode
@@ -41,22 +42,33 @@ def get_matches(query):
 #-------------------------------------------------------------------------------
 def get_summary_stats(ref):
 
-    query_gifts = call(
+    t = Timer()
+
+    gifts = call(
         'get_journal_entries',
         data={'ref':ref,'startDate':'01/01/2001', 'endDate':'18/07/2017','types':[5]},
         cache=True)
 
-    log.debug('Queried %s gifts', len(query_gifts))
+    # 'date' will be in dd/mm/yyyy format
+    rv = []
+    for gift in gifts:
+        rv.append({
+            'date': gift['date'],
+            'amount': gift['amount']
+        })
 
+    log.debug('Queried %s gifts [%s]', len(gifts), t.clock(t='ms'))
+
+    # Can handle empty journal history result???
+
+    return rv
+
+    """
     gifts = g.db['cachedGifts'].find({'gift.accountRef':str(ref)})
 
     total = 0
     n_gifts = 0
-    for gift in gifts:
-        if gift['gift'].get('amount'):
-            if gift['gift']['amount'] > 0:
-                n_gifts +=1
-            total += gift['gift']['amount']
+
 
     if n_gifts > 0:
         avg = total/n_gifts
@@ -66,6 +78,7 @@ def get_summary_stats(ref):
     log.debug('%s gifts cached for ref=%s. total=%s.', n_gifts, ref, total)
 
     return {'total':total, 'average':avg, 'n_gifts':n_gifts}
+    """
 
 #-------------------------------------------------------------------------------
 def get_location(acct_id=None):

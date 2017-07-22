@@ -22,6 +22,7 @@ test_data= [
 x_key='date';
 y_keys=['value'];
 top_lbl='$';
+bDrawTopLabel = true;
 
 //-------------------------------------------------------------------------------
 function initCharts() {
@@ -31,13 +32,11 @@ function initCharts() {
         MyMorris = Object.create(Morris);
         initLabelTopExt();
         console.log('Morris initialized w/ LabelTop');
-
-        drawChart('don_chart', test_data, x_key, y_keys);
     });
 }
 
 //-------------------------------------------------------------------------------
-function drawChart(id, data, xkey, ykeys) {
+function drawMorrisChart(id, data, xkey, ykeys) {
     /*
     @data: list of {}'s with x_axis labels and y-values
     @labels: labels for the ykeys -- will be displayed when you hover over the chart
@@ -55,9 +54,7 @@ function drawChart(id, data, xkey, ykeys) {
         axes: [],
         grid: false,
         hideHover: 'auto',
-        //barColors: ['#0b62a4', '#7a92a3', '#4da74d', '#afd8f8', '#edc240', '#cb4b4b', '#9440ed'],
         barColors: ['#ec8380'],
-        //barColors: ['#5bc0e3'],
         gridTextColor: ['#6a6c6f'],
         gridTextSize: 14,
         gridTextWeight: 300,
@@ -100,6 +97,17 @@ function initLabelTopExt() {
 
         if (this.options.barSize) {
             barWidth = Math.min(barWidth, this.options.barSize);
+        }
+
+        // Create test top label. See if width too large to fit.
+        var lblWidth = this.raphael.text(-10000,-10000,'$111').getBBox()['width'].toFixed(2);
+        if(Number(lblWidth) > Number(barWidth).toFixed(2)){
+            bDrawTopLabel = false;
+            console.log('Hiding top labels. labelWidth > barWidth');
+        }
+        else {
+            console.log('Showing top labels. labelWidth='+lblWidth+', barWidth='+barWidth.toFixed(2));
+            console.log('typeof(barWidth)='+typeof(barWidth)+', typeof(lblWidth)='+typeof(lblWidth));
         }
 
         spaceLeft = groupWidth - barWidth * numBars - this.options.barGap * (numBars - 1);
@@ -174,7 +182,7 @@ function initLabelTopExt() {
 
                             _results1.push(lastTop += size);
 
-                            if (this.options.labelTop && !this.options.stacked) {
+                            if (this.options.labelTop && !this.options.stacked && bDrawTopLabel) {
                                 label = this.drawLabelTop(
                                     (left + (barWidth / 2)),
                                     top - 10,

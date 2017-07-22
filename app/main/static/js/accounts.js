@@ -47,33 +47,70 @@ function getAcct(acct_id) {
             acct = response['data'];
             console.log(acct);
             display(acct);
-
+        
+            // Need acct first to get ref for querying gift history
             api_call(
                 'accounts/summary_stats',
                 data={'ref':acct['ref']},
-                function(response) {
-                    //console.log(response['data']);
-                    var data = response['data'];
-
-                    $('.showcase .spinner').hide();
-                    $('.showcase .content').show();
-
-                    $('#n_gifts').html(data['n_gifts']);
-                    $('#n_gifts').parent().prop('hidden', false);
-
-                    var avg = data['average'].toFixed(2);
-                    $('#avg label').html('$'+ avg.split(".")[0] +'.');
-                    $('#avg span').html( avg.split(".")[1]);
-                    $('#avg').parent().prop('hidden', false);
-
-                    var total = data['total'].toFixed(2);
-                    $('#total label').html('$' + total.split(".")[0] + '.');
-                    $('#total span').html( total.split(".")[1]);
-                    $('#total').parent().prop('hidden', false);
-                }
-            );
+                drawGiftHistoryStats);
         }
     );
+}
+
+//------------------------------------------------------------------------------
+function drawGiftHistoryStats(response) {
+    /*Draw morris.js bar graph. 
+    @gifts: list of simpliedifed eTapestry Gift objects w/ fields 'amount',
+    'date', where 'date':{'$date':TIMESTAMP}. Sorted by descending date.
+    */
+
+    console.log(response['data']);
+    var gifts = response['data'];
+
+    // Analyze gift stats, build chart data
+
+    var n_gifts = gifts.length;
+    var total = 0;
+    var chart_data = [];
+
+    for(var i=n_gifts-1; i>=0; i--) {
+        // to date format: yyyy-mm-dd
+        chart_data.push({
+            'date': new Date(gifts[i]['date']['$date']).strftime('%Y-%m-%d'),
+            'value': gifts[i]['amount'],
+            'count': gifts[i]['amount']
+        });
+
+        total += gifts[i]['amount'];
+    }
+
+    total = total.toFixed(2);
+    var avg_gift = (total/n_gifts).toFixed(2);
+
+    // Render summary info
+
+
+
+    $('#n_gifts').html(n_gifts);
+    $('#n_gifts').parent().prop('hidden', false);
+
+    $('#avg label').html('$'+ avg_gift.split(".")[0] +'.');
+    $('#avg span').html( avg_gift.split(".")[1]);
+    $('#avg').parent().prop('hidden', false);
+
+    $('#total label').html('$' + total.split(".")[0] + '.');
+    $('#total span').html( total.split(".")[1]);
+    $('#total').parent().prop('hidden', false);
+
+    $('.showcase .spinner').hide();
+    $('.showcase .content').show();
+
+    $('#chart-load').hide();
+    $('#don_chart').prop('hidden',false);
+    drawMorrisChart('don_chart', chart_data, 'date', ['value']);
+
+    $('#last-gave-d').html(new Date(gifts[0]['date']['$date']).strftime('%b %Y').toUpperCase());
+    $('#timeline').prop('hidden',false);
 }
 
 //---------------------------------------------------------------------
@@ -94,7 +131,6 @@ function display(acct) {
     $('#action_panel').prop('hidden',false);
 
     $('#acct_name').html(acct['name']);
-
 
     var contact_fields = ['name', 'address', 'city', 'state', 'postalCode', 'email', 'phones'];
     var internal_fields = ['ref', 'id', 'primaryPersona', 'nameFormat'];
@@ -145,6 +181,12 @@ function display(acct) {
 
             if(field['fieldName'] == "Status")
                 $('#status').html(field['value']);
+
+            if(field['fieldName'] == 'Signup Date') {
+                var d_comps = field['value'].split('/');
+                var date = new Date(d_comps[1]+'/'+d_comps[0]+'/'+d_comps[2]);
+                $('#joined-d').html(date.strftime("%b %Y").toUpperCase());
+            }
         }
     }
 
@@ -207,3 +249,5 @@ function appendField(field, value, $element) {
 
     $element.append(div);
 }
+
+

@@ -13,7 +13,16 @@ def landing_page():
 @main.route('/accounts')
 @login_required
 def view_accounts():
-    return render_template('views/accounts.html')
+
+    from json import dumps
+    city_coords = dumps(get_keys('routing')['locations']['city']['coords'])
+    home_coords = dumps(get_keys('routing')['locations']['office']['coords'])
+
+    return render_template(
+        'views/accounts.html',
+        api_key=get_keys('google')['maps_api_key'],
+        city_coords = city_coords,
+        home_coords = home_coords)
 
 @main.route('/recent')
 @login_required

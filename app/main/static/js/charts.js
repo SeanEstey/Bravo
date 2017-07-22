@@ -31,7 +31,7 @@ function initCharts() {
         MyMorris = window.MyMorris = {};
         MyMorris = Object.create(Morris);
         initLabelTopExt();
-        console.log('Morris initialized w/ LabelTop');
+        console.log('morris.js initialized.');
     });
 }
 
@@ -103,11 +103,11 @@ function initLabelTopExt() {
         var lblWidth = this.raphael.text(-10000,-10000,'$111').getBBox()['width'].toFixed(2);
         if(Number(lblWidth) > Number(barWidth).toFixed(2)){
             bDrawTopLabel = false;
-            console.log('Hiding top labels. labelWidth > barWidth');
+            //console.log('Hiding top labels. labelWidth > barWidth');
         }
         else {
-            console.log('Showing top labels. labelWidth='+lblWidth+', barWidth='+barWidth.toFixed(2));
-            console.log('typeof(barWidth)='+typeof(barWidth)+', typeof(lblWidth)='+typeof(lblWidth));
+            //console.log('Showing top labels. labelWidth='+lblWidth+', barWidth='+barWidth.toFixed(2));
+            //console.log('typeof(barWidth)='+typeof(barWidth)+', typeof(lblWidth)='+typeof(lblWidth));
         }
 
         spaceLeft = groupWidth - barWidth * numBars - this.options.barGap * (numBars - 1);

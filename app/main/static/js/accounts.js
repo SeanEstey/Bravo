@@ -6,6 +6,7 @@ function parse_block(title) { return title.slice(0, title.indexOf(' ')); }
 
 //---------------------------------------------------------------------
 function accountsInit() {
+
     $( document ).ready(function() {
         $(".setsize").each(function() {
             $(this).height($(this).width());
@@ -24,7 +25,6 @@ function accountsInit() {
 
     $('#search_ctnr').prepend($('.br-alert'));
     $('.br-alert').prop('hidden', true);
-    addSocketIOHandlers();
 }
 
 //------------------------------------------------------------------------------
@@ -41,30 +41,39 @@ function addSocketIOHandlers() {
 function getAcct(acct_id) {
 
     api_call(
+        'accounts/get/location',
+        data={'acct_id':acct_id},
+        function(response) {
+            var data = response['data'];
+            console.log(data);
+            initGoogleMap(data['geometry']['location'], 12);
+            addMarker("Home", data['geometry']['location'], HOME_ICON);
+        });
+
+    api_call(
         'accounts/get',
         data={'acct_id':acct_id},
         function(response) {
             acct = response['data'];
-            console.log(acct);
-            display(acct);
+            displayAcctData(acct);
         
             // Need acct first to get ref for querying gift history
             api_call(
                 'accounts/summary_stats',
                 data={'ref':acct['ref']},
-                drawGiftHistoryStats);
+                displayDonationData);
         }
     );
 }
 
 //------------------------------------------------------------------------------
-function drawGiftHistoryStats(response) {
+function displayDonationData(response) {
     /*Draw morris.js bar graph. 
     @gifts: list of simpliedifed eTapestry Gift objects w/ fields 'amount',
     'date', where 'date':{'$date':TIMESTAMP}. Sorted by descending date.
     */
 
-    console.log(response['data']);
+    //console.log(response['data']);
     var gifts = response['data'];
 
     // Analyze gift stats, build chart data
@@ -89,8 +98,6 @@ function drawGiftHistoryStats(response) {
 
     // Render summary info
 
-
-
     $('#n_gifts').html(n_gifts);
     $('#n_gifts').parent().prop('hidden', false);
 
@@ -114,7 +121,7 @@ function drawGiftHistoryStats(response) {
 }
 
 //---------------------------------------------------------------------
-function display(acct) {
+function displayAcctData(acct) {
 
     $contact = $('#contact .row');
     $contact.empty();
@@ -131,6 +138,7 @@ function display(acct) {
     $('#action_panel').prop('hidden',false);
 
     $('#acct_name').html(acct['name']);
+    $('#acct_id').html("Account<br>#"+acct['id']);
 
     var contact_fields = ['name', 'address', 'city', 'state', 'postalCode', 'email', 'phones'];
     var internal_fields = ['ref', 'id', 'primaryPersona', 'nameFormat'];
@@ -142,15 +150,8 @@ function display(acct) {
 
         if(!acct.hasOwnProperty(field))
             continue;
-
-        if(field == 'phones' && acct['phones']) {
-            for(var j=0; j<acct['phones'].length; j++) {
-                var phone = acct['phones'][j];
-                appendField(phone['type'], phone['number'], $contact);
-            }
-        }
         else {
-            appendField(field.toTitleCase(), acct[field], $contact);
+            appendField(field, acct[field], $contact);
         }
     }
 
@@ -161,14 +162,17 @@ function display(acct) {
         "Status",
         "Next Pickup Date",
         "Neighborhood",
-        "Block",
         "Reason Joined",
         "Referrer",
         "Date Cancelled",
         "Driver Notes",
-        "Office Notes"
+        "Office Notes",
+        "Block"
     ];
     var ignore = [ 'Data Source', 'Beverage Container Customer' ];
+
+    var multi_selects = {};
+    var text_areas = [];
 
     for(var j=0; j<custom_fields.length; j++) {
         for(var i=0; i<acct['accountDefinedValues'].length; i++) {
@@ -177,7 +181,20 @@ function display(acct) {
             if(custom_fields[j] != field['fieldName'])
                 continue;
 
-            appendField(field['fieldName'], field['value'], $custom);
+            if(field['displayType'] == 2) {
+                if(multi_selects.hasOwnProperty(field['fieldName']))
+                    multi_selects[field['fieldName']].push(field);
+                else
+                    multi_selects[field['fieldName']] = [field];
+
+                continue;
+            }
+            else if(field['displayType'] == 3) {
+                text_areas.push(field);
+                continue;
+            }
+
+            appendUDF(field, $custom);
 
             if(field['fieldName'] == "Status")
                 $('#status').html(field['value']);
@@ -188,6 +205,22 @@ function display(acct) {
                 $('#joined-d').html(date.strftime("%b %Y").toUpperCase());
             }
         }
+    }
+
+    for(var key in multi_selects) {
+        var fields = multi_selects[key];
+        var values = [];
+
+        for(var i=0; i<fields.length; i++) {
+            values.push(fields[i]['value']);
+        }
+
+        appendField(key, values.join(", "), $custom);
+    }
+
+    for(var i=0; i<text_areas.length; i++) {
+        text_areas[i]['value'] = text_areas[i]['value'].trim();
+        appendUDF(text_areas[i], $custom);
     }
 
     // Internal fields
@@ -229,12 +262,67 @@ function display(acct) {
 }
 
 //------------------------------------------------------------------------------
-function appendField(field, value, $element) {
+function appendUDF(field, $container) {
+
+    var $lblDiv = $("<div class='pr-0 text-left'><label class='field align-top'></label></div>");
+    var $valDiv = $("<div class='text-left'><label class='val align-top'></label></div>");
+
+    // Text Area
+    if(field['displayType'] == 3) {
+
+        var $smallContainer = $("<div class='col-12 pt-3'></div>");
+        $container.append($smallContainer);
+        // @container now points to new sub-container
+        $container = $smallContainer;
+
+        $lblDiv.addClass('col-2').addClass('pl-0');
+        $valDiv.addClass('col-12');
+    }
+
+    else {
+        $lblDiv.addClass('col-2');
+        $valDiv.addClass('col-4');
+    }
+
+    $lblDiv.find('label').html(field['fieldName']);
+
+    var val = '';
+
+    if(field['dataType'] == 1) { // Date
+        var parts = field['value'].split('/');
+        var date = new Date(parts[1]+'/'+parts[0]+'/'+parts[2]);
+        val = date.strftime('%b %d, %Y');
+    }
+    else {
+        if(field['value'])
+            val = field['value'].replace(/\\n/g, '  ').replace(/\*/g, '');
+    }
+
+    $valDiv.find('label').html(val);
+
+    $container.append($lblDiv).append($valDiv);
+}
+
+//------------------------------------------------------------------------------
+function appendField(name, value, $element) {
+    /*@field: str, int, or Phone object
+    */
 
     if(!value)
         return;
 
-    var div = "<DIV class='col-6 text-left'><label class='field align-top'>" + field + "</label>: ";
+    var fieldWidth = 2;
+    var valWidth = 4;
+
+    var div = "<DIV class='col-2 text-left'><label class='field align-top'>" + name.toTitleCase() + ": </label></div>";
+
+    if(name == 'phones' && value) {
+        for(var j=0; j<value.length; j++) {
+            var phone = value[j];
+            appendField(phone['type'], phone['number'], $contact);
+        }
+        return;
+    }
 
     if(typeof value === 'object')
         div += 
@@ -243,7 +331,7 @@ function appendField(field, value, $element) {
             '</div>' +
           '</DIV>';
     else if(typeof(value) == "string")
-        div += '<label class="val align-top">' + value.replace(/\\n/g, "") + '</label></DIV>';
+        div += "<div class='col-"+valWidth+"'><label class='val align-top'>" + value.replace(/\\n/g, "") + "</label></DIV>";
     else
         div += '<label class="val align-top">'+ value + '</label></DIV>';
 

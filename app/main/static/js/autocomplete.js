@@ -1,7 +1,7 @@
 
 
 function initAuto() {
-    console.log("autocomplete loading...");
+    //console.log("autocomplete loading...");
 
     $.widget("ui.autocomplete", $.ui.autocomplete, {
 

@@ -1,7 +1,11 @@
   {% extends "views/base.html" %}
   {% block content %}
 
+  <meta id="coord_data" data-city="{{city_coords}}" data-home="{{home_coords}}">
+
   <head>
+    <script src="{{url_for('main.static', filename='js/maps.js')}}"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}" async defer></script> 
     <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
     <script src="{{url_for('main.static', filename='js/morris.min.js')}}"></script>
     <script src="{{url_for('main.static', filename='js/strftime.js')}}"></script>
@@ -16,12 +20,10 @@
   </head>
 
   <script> 
-    document.write("<style type='text/css'> body{display:none}</style>");
     jQuery(function($){
       accountsInit();
       initAuto();
       initCharts();
-      $("body").css("display","block");
     });
   </script>
 
@@ -29,10 +31,10 @@
     <div class="col-12 col-xl-7 LEFT-COLUMN">
       
       <!--Profile Panel-->
-      <div class="col-md-12">
-          <div class="profile hpanel" id='sum_panel' hidden>
+      <div class="col-md-12 p-0">
+          <div class="profile hpanel" id='sum_panel'>
             <!--Banner-->
-            <div class="banner panel-heading text-left pt-5 pb-5 pl-4">
+            <div class="banner panel-heading text-left p-4">
               <div class="row justify-content-md-left">
                 <div class="col-1 mr-3">
                   <i class="fa fa-user-circle-o fa-4x head-ico mt-2"></i>
@@ -41,10 +43,15 @@
                   <h2 class="" id="acct_name"></h2>
                   <h4 class="status"><span class="badge badge-info status" id="status"></span></h4>
                 </div>
+                <div class="col text-right">
+                <p id="acct_id" style="color:white" class="m-0"></p>
+                </div>
               </div>
             </div>
-            <!--Donation Summary-->
             <div class="panel-body p-0">
+              <!--Map-->
+              <div style="height:250px; border:1px solid #eaeaea;" id="map"></div>
+              <!--Donation Summary-->
               <div class="row m-0 justify-content-md-center" style="height:120px">
                 <div class="col-md-4 mx-auto showcase my-auto text-center">
                   <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
@@ -80,11 +87,14 @@
       </div>
 
       <!--Persona Panel-->
-      <div class="col-md-12">
+      <div class="col-md-12 p-0">
           <div class="hpanel " id='contact_panel' hidden>
             <div class="panel-heading" style="">
               Personal Details
-              <span class="pull-right"><i class="fa fa-address-card-o" style="color:#4ea5e0"></i></span>
+              <span class="pull-right">
+                <button type="button" class="close fa fa-address-card-o dropdown-toggle pt-1" style="color:#4ea5e0; background-color:inherit; opacity:1">
+                </button>
+              </span>
             </div>
             <div class="panel-body" id="contact">
               <div class="row"></div>
@@ -97,11 +107,19 @@
       </div>
 
       <!--Pickup Service-->
-      <div class="col-md-12">
+      <div class="col-md-12 p-0">
           <div class="hpanel" id='custom_panel' hidden>
             <div class="panel-heading" style="">
               Pick-up Service
-              <span class="pull-right"><i class="fa fa-recycle" style="color:#4ea5e0"></i></span>
+              <span class="pull-right">
+                <div class="btn-group" role="group">
+                  <button type="button" class="close fa fa-recycle dropdown-toggle pt-1" style="color:#4ea5e0; background-color:inherit; opacity:1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="editPersona">
+                  </button>
+                  <div class="dropdown-menu" aria-labelledby="editPersona" style="max-width:70px!important;">
+                    <a class="dropdown-item" href="#">Edit</a>
+                  </div>
+                </div>
+              </span>
             </div>
             <div class="panel-body" id="custom">
               <div class="row">
@@ -118,11 +136,11 @@
     <div class="col-12 col-xl-5 RIGHT-COLUMN">
 
         <!--Chart Panel-->
-        <div class="col-md-12">
+        <div class="col-md-12 p-0">
             <div class="hpanel" id="chart_panel" >
               <div class="panel-heading">Donation History
                 <span class="pull-right"><i class="fa fa-history" style="color:#ec8380;"></i></span></div>
-              <div class="panel-body pt-4 pb-0">
+              <div class="panel-body pt-4 pb-0" style="height:175px">
                 <div class="row justify-content-center align-self-center" id="chart-load">
                     <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
                 </div>
@@ -140,7 +158,7 @@
         </div>
 
         <!--Participation Panel-->
-        <div class="col-md-12" hidden>
+        <div class="col-md-12 p-0" hidden>
           <div class="hpanel" id="stats_panel">
             <div class="panel-heading">Statistics<span class="pull-right"><i class="fa fa-percent" style="color:#4ea5e0"></i></span></div>
             <div class="panel-body p-3">
@@ -153,7 +171,7 @@
         </div>
 
         <!--Actions Panel-->
-        <div class="col-md-12">
+        <div class="col-md-12 p-0">
             <div class="hpanel" id="action_panel" hidden>
               <div class="panel-heading">
                 Actions

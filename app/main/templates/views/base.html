@@ -17,7 +17,7 @@
     <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
   </head>
 
-  <body style="display:none">
+  <body style="">
     <script src="{{url_for("static", filename="main/js/globals.js")}}"></script>
     <script src="{{url_for("static", filename="main/js/admin_panel.js")}}"></script>
     <script src="{{url_for("static", filename="main/js/utils.js")}}"></script>
@@ -29,7 +29,7 @@
     <script src="{{url_for("static", filename="main/js/search_bar.js")}}"></script>
     <script>
       window.onload = function() {
-        $("body").show();
+        //$("body").show();
         initSearchBar();
       }
     </script>

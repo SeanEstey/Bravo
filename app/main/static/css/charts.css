@@ -64,6 +64,8 @@ body {
 }
 
 #don_chart {
+    padding-left:0;
+    padding-right:0;
     height:150px;
     width:100%;
     border-bottom: 2px solid #fed6d5;

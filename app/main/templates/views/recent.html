@@ -1,7 +1,6 @@
 {% extends "views/base.html" %}
 {% block content %}
 
-<script type="text/javascript" src="{{url_for("main.static", filename="js/strftime.js")}}"></script>
 <script type="text/javascript" src="{{url_for("main.static", filename="js/recent.js")}}"></script>
 <script>
   document.write("<style type='text/css'> body{display:none}</style>");
@@ -13,7 +12,7 @@
     <div class="card-header blue">
       <label style="font-weight:400; font-size:1.5rem">Event History</label>
     </div>
-    <div class="card-header" style="border-bottom:0px">
+    <div class="card-header" style="border-bottom:0px; background-color:white">
       <div class="row">
         <div class="col-2"></div>
         <form id='filtr_lvls' class="form-inline col-4">

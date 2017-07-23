@@ -20,7 +20,7 @@ HOME_COORDS = $('#coord_data').data()['home'];
 function parse_block(title) { return title.slice(0, title.indexOf(' ')); }
 
 //------------------------------------------------------------------------------
-function initGoogleMap(coords, zoom_lvl) {
+function initGoogleMap(coords, zoom_lvl, styles) {
 
     var center_ = CITY_COORDS;
     if(coords)
@@ -32,7 +32,7 @@ function initGoogleMap(coords, zoom_lvl) {
         
     gmaps = new google.maps.Map(
         $('#map')[0],
-        {mapTypeId:'roadmap', center:center_, zoom:zoom_}
+        {mapTypeId:'roadmap', center:center_, zoom:zoom_, styles:styles}
 
     );
 }

@@ -4,49 +4,41 @@
   <meta id="coord_data" data-city="{{city_coords}}" data-home="{{home_coords}}">
 
   <head>
-    <script src="{{url_for('main.static', filename='js/maps.js')}}"></script>
+    <script src="{{url_for("main.static", filename="js/lib/morris.min.js")}}"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}" async defer></script> 
     <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
-    <script src="{{url_for('main.static', filename='js/morris.min.js')}}"></script>
-    <script src="{{url_for('main.static', filename='js/strftime.js')}}"></script>
-    <script src="{{url_for('main.static', filename='js/accounts.js')}}"></script>
-    <script src="{{url_for('main.static', filename='js/autocomplete.js')}}"></script>
-    <script src="{{url_for('main.static', filename='js/charts.js')}}"></script>
 
-    <link href="{{url_for('static', filename='main/css/charts.css')}}" rel= "stylesheet" type= "text/css">
-    <link href="{{url_for('static', filename='main/css/autocomplete.css')}}" rel= "stylesheet" type= "text/css">
-    <link href="{{url_for('static', filename='main/css/circle.css')}}" rel= "stylesheet" type= "text/css">
-    <link href="{{url_for('static', filename='main/css/morris.css')}}" rel= "stylesheet" type= "text/css">
+    <script src="{{url_for("main.static", filename="js/maps.js")}}"></script>
+    <script src="{{url_for("main.static", filename="js/accounts.js")}}"></script>
+    <script src="{{url_for("main.static", filename="js/charts.js")}}"></script>
+    <link href="{{url_for("static", filename="main/css/lib/morris.css")}}" rel= "stylesheet" type= "text/css">
+    <link href="{{url_for("static", filename="main/css/account.css")}}" rel= "stylesheet" type= "text/css">
   </head>
 
   <script> 
     jQuery(function($){
       accountsInit();
-      initAuto();
       initCharts();
     });
   </script>
 
   <div class="row">
     <div class="col-12 col-xl-7 LEFT-COLUMN">
-      
       <!--Profile Panel-->
       <div class="col-md-12 p-0">
-          <div class="profile hpanel" id='sum_panel'>
+          <div class="hpanel profile" id='sum_panel'>
             <!--Banner-->
-            <div class="banner panel-heading text-left p-4">
-              <div class="row justify-content-md-left">
-                <div class="col-1 mr-3">
-                  <i class="fa fa-user-circle-o fa-4x head-ico mt-2"></i>
+            <div class="banner panel-heading text-left p-3">
+							<div class="row">
+								<div class="col-8 my-auto" style="display:flex">
+                  <h2 class="m-0 pr-3" id="acct_name"></h2>
+                  <h4 class="status m-0"><span class="badge badge-info status" id="status"></span></h4>
                 </div>
-                <div class="col ml-3">
-                  <h2 class="" id="acct_name"></h2>
-                  <h4 class="status"><span class="badge badge-info status" id="status"></span></h4>
-                </div>
-                <div class="col text-right">
-                <p id="acct_id" style="color:white" class="m-0"></p>
-                </div>
-              </div>
+								<div class="col my-auto text-right">
+									<label id="acct_id" class="m-0" style="color:white"></label>
+									<i class="fa fa-user-circle-o fa-2x icon"></i>
+								</div>
+							</div>
             </div>
             <div class="panel-body p-0">
               <!--Map-->

@@ -1,0 +1,134 @@
+/* account.css */
+
+.hpanel {
+    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 10px, rgba(0, 0, 0, 0.1) 0px 1px 2px;
+    background-color: none;
+    border: 0;
+    margin-bottom: 25px;
+}
+
+.hpanel .panel-heading {
+    background-color:white;
+    border-bottom: solid 1px #eaeaea;
+    color: #6a6c6f;
+    font-weight: 400;
+    padding: 13px 20px 13px 20px;
+    transition: all .3s;
+}
+
+.hpanel .panel-body {
+    background: #fff;
+    padding: 20px;
+    position: relative
+}
+
+.hpanel .panel-footer {
+    color: inherit;
+    background-color: white;
+    border: 0; /*1px solid #eaeaea;*/
+    border-top: 0;
+    font-size: 90%;
+    padding: 5px 20px;
+}
+
+.font-extra-bold {
+    font-weight: 700;
+    color: #6a6c6f;
+}
+
+/* Profile Panel */
+
+.profile {
+    font-weight:200;
+    color: white!important;
+}
+.profile .banner {
+    background-color: #20a8d8;
+}
+.profile h2 {
+    font-family: 'Proxima Nova', sans-serif;
+    color:white;
+}
+.profile .icon {
+    color: white;
+}
+.profile .status {
+    font-family: 'Proxima Nova',sans-serif;
+    font-weight: 200;
+    color: white;
+}
+.profile .showcase {
+    color: #6a6c6f;
+    border-right: 1px solid #eaeaea;
+    font-family: 'Proxima Nova',sans-serif;
+}
+.profile .showcase .sum-num {
+    font-family: 'Proxima Nova',sans-serif;
+    font-weight: normal;
+    font-size: 3.0rem;
+    color: #62cb31;
+}
+.profile .showcase .sum-num-dec {
+    font-size: 0.4em;
+    font-weight: normal;
+    vertical-align: baseline;
+    top: -1.0em;
+    left: -0.8em;
+    position: relative;
+}
+.profile .showcase .spinner {
+    color: #dfdfdf!important;
+}
+.profile .showcase .content {
+    padding:0.25rem;
+
+}
+.profile .gift {
+    color: #517ba3;
+}
+
+.partic {
+    float:none!important;
+    width:125px;
+    height:125px;
+    background-image:linear-gradient(18deg, #5bc0de 50%, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0)),linear-gradient(270deg, #5bc0de 50%, #f0f0f0 50%, #f0f0f0);
+}
+
+/* Personal Details & Pick-up Service Panels */
+
+.val {
+    color: #6a6c6f;
+    font-weight:200;
+}
+
+.field {
+    font-weight:400;
+    color: #6a6c6f!important;
+}
+
+/* Morris.js Bar Chart Panel */
+
+#chart_panel .panel-body {
+    background-color: #fff3f3;
+}
+#chart_panel .panel-footer {
+    background-color: #fff3f3;
+    color: #a7a8a9;
+    font-size: 80%;
+    font-weight: 600;
+    letter-spacing: 0em;
+}
+#chart_panel .spinner {
+    color: #dfdfdf!important;
+}
+
+#chart_panel #don_chart {
+    padding-left:0;
+    padding-right:0;
+    height:150px;
+    width:100%;
+    border-bottom: 2px solid #fed6d5;
+}
+#chart_panel #don_chart svg {
+    top: 1px;
+}

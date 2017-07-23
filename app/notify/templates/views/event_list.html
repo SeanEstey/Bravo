@@ -1,7 +1,6 @@
 {% extends "views/base.html" %}
 {% block content %}  
 
-<script src="{{url_for("static", filename="main/js/strftime.js")}}"></script>
 <script src="{{url_for("notify.static", filename="js/event_list.js")}}"></script>
 <script> 
   jQuery(function($) { initEventList(); alertMsg("{{msg|safe}}", "info", 15000); }); 

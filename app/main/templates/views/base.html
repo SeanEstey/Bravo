@@ -8,9 +8,9 @@
 		<link href="{{url_for("static", filename="main/images/favicon.ico")}}" rel="shortcut icon">
     <link href="https://fonts.googleapis.com/css?family=Port+Lligat+Sans|Kavoon|Inconsolata" rel="stylesheet">
     <link href="https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css" rel="stylesheet">
+    <link href="{{url_for("static", filename="main/css/autocomplete.css")}}" rel= "stylesheet" type= "text/css">
     <link href="{{url_for("static", filename="main/css/new_event.css")}}" rel="stylesheet" type="text/css">
     <link href="{{url_for("static", filename="main/css/style.css")}}" rel="stylesheet" type="text/css">
-    <link href="{{url_for("static", filename="main/css/hpanel.css")}}" rel="stylesheet" type="text/css">
 
     <script type=text/javascript>var $URL_ROOT={{request.url_root|tojson|safe}}</script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
@@ -18,6 +18,8 @@
   </head>
 
   <body style="">
+    <script src="{{url_for("static", filename="main/js/lib/date.js")}}"></script>
+    <script src="{{url_for("static", filename="main/js/lib/strftime.js")}}"></script>
     <script src="{{url_for("static", filename="main/js/globals.js")}}"></script>
     <script src="{{url_for("static", filename="main/js/admin_panel.js")}}"></script>
     <script src="{{url_for("static", filename="main/js/utils.js")}}"></script>
@@ -25,7 +27,6 @@
     <script src="{{url_for("static", filename="main/js/alerts.js")}}"></script>
     <script src="{{url_for("static", filename="main/js/modal.js")}}"></script>
     <script src="{{url_for("static", filename="main/js/app.js")}}"></script>
-    <script src="{{url_for("static", filename="main/js/date.js")}}"></script>
     <script src="{{url_for("static", filename="main/js/search_bar.js")}}"></script>
     <script>
       window.onload = function() {

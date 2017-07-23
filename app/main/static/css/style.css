@@ -7,6 +7,10 @@
  *   #808080    Gray       Secondary (table headers, card titles)
  */
 
+body {
+    color: #6a6c6f;
+    background-color: #f8f9fb;
+}
 
 .body {
     max-width:1600px;
@@ -46,6 +50,7 @@
 }
 
 /*BRAVO COMMON*/
+
 .modal-wide {
     min-width:600px;
     max-width:1000px;

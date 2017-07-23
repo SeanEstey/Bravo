@@ -1,24 +1,6 @@
 /* charts.js */
 
 MyMorris = null;
-
-test_data= [
-  { date: '2012-02-24', value: 20, count: 20 },
-  { date: '2012-05-24', value: 10, count: 10 },
-  { date: '2012-06-03', value: 55, count: 55 },
-  { date: '2012-06-04', value: 6, count: 6 },
-  { date: '2012-06-07', value: 0, count: 0 },
-  { date: '2012-06-13', value: 19, count: 19 },
-  { date: '2012-06-14', value: 0, count: 0 },
-  { date: '2012-06-21', value: 15, count: 15 },
-  { date: '2012-06-22', value: 8, count: 8 },
-  { date: '2012-06-22', value: 75, count: 75 },
-  { date: '2012-07-26', value: 32, count: 32 },
-  { date: '2012-08-24', value: 64, count: 64 },
-  { date: '2012-08-31', value: 32, count: 32 },
-  { date: '2012-09-24', value: 48, count: 48 },
-  { date: '2012-11-24', value: 15, count: 15 }
-];
 x_key='date';
 y_keys=['value'];
 top_lbl='$';

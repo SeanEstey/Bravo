@@ -12,7 +12,7 @@ worker_concurrency = 3
 beat_schedule = {
     'update_cache': {
         'task': 'app.main.tasks.update_cache',
-        'schedule': crontab(minute='*/5')
+        'schedule': crontab(hour='*/1')
     },
     'cache_gifts': {
         'task': 'app.main.tasks.cache_gifts',

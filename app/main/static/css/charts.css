@@ -4,15 +4,12 @@ body {
     color: #6a6c6f;
 }
 
-
-
 .profile {
     font-weight:200;
     color: white!important;
-    /*font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;*/
 }
     .profile .banner {
-        background: url('https://bravoweb.ca/static/main/images/Ridley-Blue-BG.jpg');
+        background-color: #20a8d8;
     }
     .profile h2 {
         font-family: 'Proxima Nova', sans-serif;
@@ -76,18 +73,18 @@ body {
     top: 1px;
 }
 
-#chart_panel .panel-footer .green {
+#chart_panel .panel-body {
+    background-color: #fff3f3;
+}
+
+#chart_panel .panel-footer {
+    background-color: #fff3f3;
     color: #a7a8a9;
     font-size: 80%;
     font-weight: 600;
     letter-spacing: 0em;
 }
 
-#chart_panel .panel-footer .gray {
-    color: #a7a8a9;
-    font-size: 80%;
-    font-weight: 600;
-}
 
 #chart_panel .spinner {
     color: #dfdfdf!important;
@@ -119,10 +116,6 @@ input::placeholder {
     font-weight:400;
     color: #6a6c6f!important;
 }
-
-/*.fa {
-    color: #6a6c6f;
-}*/
 
 #acctv h4 {
     text-align:left;

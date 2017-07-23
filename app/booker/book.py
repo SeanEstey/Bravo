@@ -80,6 +80,10 @@ def update_dms():
     except Exception as e:
         raise
 
+
+    from app.main.tasks import update_cache
+    update_cache.delay()
+
     return True
 
 #-------------------------------------------------------------------------------

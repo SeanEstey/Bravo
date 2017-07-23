@@ -10,6 +10,10 @@ task_time_limit = 3000
 worker_concurrency = 3
 
 beat_schedule = {
+    'update_cache': {
+        'task': 'app.main.tasks.update_cache',
+        'schedule': crontab(minute='*/5')
+    },
     'cache_gifts': {
         'task': 'app.main.tasks.cache_gifts',
         'schedule': crontab(hour=0, minute=0, day_of_week='*')

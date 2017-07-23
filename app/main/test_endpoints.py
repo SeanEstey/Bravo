@@ -16,34 +16,12 @@ def _test_get_loc():
 
 #-------------------------------------------------------------------------------
 @login_required
-@main.route('/test_ss', methods=['GET'])
+@main.route('/test_recent', methods=['GET'])
 def _test_ss():
 
     from app import get_keys
-    from app.lib.gsheets_cls import SS
-    ss_id = get_keys('google')['ss_id']
-    oauth = get_keys('google')['oauth']
-
-    for x in range(0, 200):
-        ss = SS(oauth, ss_id)
-        wks = ss.wks('Signups')
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        hdr = wks.getRow(1)
-        print "x=%s" % x
-
+    from app.main.tasks import update_cache
+    update_cache.delay()
     return 'ok'
 
 #-------------------------------------------------------------------------------

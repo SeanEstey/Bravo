@@ -52,6 +52,43 @@ def receipt_handler(self, form, group, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
+def update_cache(self, **rest):
+
+    from .etapestry import get_query
+
+    BATCH_SIZE = 500
+    series = [
+        {'name':'vec', 'category':'BPU: Stats', 'query':'Recent Gifts', 'statsCount':'journalEntryCount'},
+        {'name':'vec', 'category':'BPU: Stats', 'query':'Recent Accounts'}
+    ]
+
+    for group in series:
+        g.group = group['name']
+        timer = Timer()
+        start = 0
+        count = BATCH_SIZE
+        queryEnd = False
+
+        log.debug('Task: Caching Recent...')
+
+        while queryEnd != True:
+            results = get_query(
+                group['query'],
+                category=group['category'],
+                start=start,
+                count=count,
+                cache=True,
+                timeout=75)
+
+            if len(results) == 0:
+                queryEnd = True
+
+            start += BATCH_SIZE
+
+    log.debug('Task: Completed [%s]', timer.clock())
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
 def cache_gifts(self, **rest):
     """Cache Journal Entry Gifts
     """
@@ -60,8 +97,9 @@ def cache_gifts(self, **rest):
 
     BATCH_SIZE = 500
     series = [
-        {'name':'vec', 'category':'BPU: Stats', 'query':'Gift Entries [YTD]'},
-        {'name':'wsf', 'category':'ETW: Stats', 'query':'Gift Entries [YTD]'}
+        {'name':'vec', 'category':'BPU: Stats', 'query':'Recent Gifts', 'statsCount':'journalEntryCount'},
+        {'name':'vec', 'category':'BPU: Stats', 'query':'Recent Accounts'}
+        #{'name':'wsf', 'category':'ETW: Stats', 'query':'Gift Entries [YTD]'}
     ]
 
     for group in series:
@@ -86,12 +124,16 @@ def cache_gifts(self, **rest):
                 cache=True,
                 timeout=75)
 
+            if len(results) == 0:
+                break
+
             log.debug('Retrieved %s/%s gifts', start+count, n_total)
 
             start += BATCH_SIZE
 
             if start + count > n_total:
                 count = start + count - n_total
+
 
     log.info('Task: Completed [%s]', timer.clock())
 
@@ -365,6 +407,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
                 }}},
                 upsert=True)
 
+    update_cache.delay()
     """
     # TODO: update cachedAccounts
     for entry in entries:
@@ -563,6 +606,10 @@ def create_accounts(self, accts_json, group=None, **rest):
         log.info('Task completed. %s/%s accounts created. [%s]',
             log_rec['n_success'], log_rec['n_success'] + log_rec['n_errs'], timer.clock(),
             extra=log_rec)
+
+
+    update_cache.delay()
+
     return 'success'
 
 #-------------------------------------------------------------------------------

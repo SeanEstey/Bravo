@@ -82,7 +82,7 @@ function displayDonationData(response) {
     var total = 0;
     var chart_data = [];
 
-    for(var i=n_gifts-1; i>=0; i--) {
+    for(var i=gifts.length-1; i>=0; i--) {
         // to date format: yyyy-mm-dd
         chart_data.push({
             'date': new Date(gifts[i]['date']['$date']).strftime('%Y-%m-%d'),
@@ -90,11 +90,18 @@ function displayDonationData(response) {
             'count': gifts[i]['amount']
         });
 
-        total += gifts[i]['amount'];
+        if(gifts[i]['amount'] > 0)
+            total += gifts[i]['amount'];
+        else
+            n_gifts--;
     }
 
     total = total.toFixed(2);
-    var avg_gift = (total/n_gifts).toFixed(2);
+
+    if(n_gifts > 0)
+        var avg_gift = (total/n_gifts).toFixed(2);
+    else
+        var avg_gift = "--";
 
     // Render summary info
 

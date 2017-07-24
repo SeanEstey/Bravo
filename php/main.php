@@ -43,7 +43,7 @@ function get_query($query, $category, $start=NULL, $count=NULL) {
     if(is_error($nsc))
 		return 'query ' . $query . ', category ' . $category;
 
-    debug_log($rv['count'] . ' accounts in query ' . $query);
+    //debug_log($rv['count'] . ' accounts in query ' . $query);
     return utf8_converter($rv);
 }
 

@@ -552,6 +552,12 @@ function formatColumns() {
         text: false
     })
 
+    $('[name="name"]').each(function() {
+        var name = $(this).text();
+        var aid = $(this).prop('id');
+        $(this).html("<a href='"+$URL_ROOT+'/accounts?aid='+aid+"'>"+name+"</a>");
+    });
+
     $('[name="email"]').each(function() {
         if($(this).text() == '<hr>')
             $(this).html("<hr>");

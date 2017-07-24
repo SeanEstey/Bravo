@@ -82,7 +82,7 @@ def update_dms():
 
 
     from app.main.tasks import update_cache
-    update_cache.delay()
+    update_cache.delay(group=g.group)
 
     return True
 

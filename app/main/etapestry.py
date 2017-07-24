@@ -134,16 +134,19 @@ def _cache_gifts(gifts):
             n_updated +=1
 
     if n_inserted > 0 or n_updated > 0:
-        bulk.execute()
-
-    log.debug('Cached gifts. n_inserted=%s. n_updated=%s. [%s]',
-        n_inserted, n_updated, timer.clock())
+        results = bulk.execute()
+        str_res = ''
+        for key in ['nModified', 'nUpserted', 'nInserted']:
+            str_res += '%s=%s/%s' % (key, results[key], len(gifts)) if results[key] > 0 else ''
+        log.debug('Cache gifts: %s [%s]', str_res, timer.clock())
+    else:
+        log.debug('Cache gifts: %s/%s up-to-date.', len(gifts), len(gifts))
 
 #-------------------------------------------------------------------------------
 def _cache_accts(accts):
     '''Cache eTapestry Account objects along with their geolocation data'''
 
-    #log.debug('Caching Accounts...')
+    #log.debug('Caching Accounts. Len=%s', len(accts))
     timer = Timer()
     n_geolocations = 0
     n_ops = 0
@@ -189,9 +192,13 @@ def _cache_accts(accts):
 
     if n_ops > 0:
         results = bulk.execute()
+        str_res = 'nGeolocated=%s' % n_geolocations if n_geolocations > 0 else ''
+        for key in ['nModified', 'nUpserted', 'nInserted']:
+            str_res += '%s=%s/%s' % (key, results[key], len(accts)) if results[key] > 0 else ''
 
-        log.debug("Cached Accounts. nInserted=%s. nModified=%s. nUpserted=%s. nGeolocated=%s. [%s]",
-            results['nInserted'], results['nModified'], results['nUpserted'], n_geolocations, timer.clock())
+        log.debug("Cache Accounts: %s [%s]", str_res, timer.clock())
+    else:
+        log.debug('Cache Accounts: %s/%s up-to-date.', len(accts), len(accts))
 
 ###### Convenience methods #######
 
@@ -278,7 +285,7 @@ def get_gifts(ref, start_date, end_date, cache=True):
     return gifts
 
 #-------------------------------------------------------------------------------
-def get_query(name, category=None, start=None, count=None, cache=True, timeout=45):
+def get_query(name, category=None, start=None, count=None, cache=True, with_meta=False, timeout=45):
 
     try:
         rv = call('get_query',
@@ -292,11 +299,13 @@ def get_query(name, category=None, start=None, count=None, cache=True, timeout=4
     except EtapError as e:
         raise
 
-    if not cache or type(rv['data']) != list or len(rv['data']) == 0:
-        return rv['data']
+    if cache and type(rv['data']) is list and len(rv['data']) > 0:
+        db_cache(rv['data'])
 
-    db_cache(rv['data'])
-    return rv['data']
+    if with_meta:
+        return rv
+    else:
+        return rv['data']
 
 #-------------------------------------------------------------------------------
 def mod_acct(acct_id, udf=None, persona=[], exc=False):

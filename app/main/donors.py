@@ -43,10 +43,11 @@ def get_matches(query):
 def get_summary_stats(ref):
 
     t = Timer()
+    now = datetime.now().strftime('%d/%m/%Y')
 
     gifts = call(
         'get_journal_entries',
-        data={'ref':ref,'startDate':'01/01/2001', 'endDate':'18/07/2017','types':[5]},
+        data={'ref':ref,'startDate':'01/01/2001', 'endDate':now,'types':[5]},
         cache=True)
 
     # 'date' will be in dd/mm/yyyy format

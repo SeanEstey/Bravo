@@ -52,90 +52,45 @@ def receipt_handler(self, form, group, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def update_cache(self, **rest):
+def update_cache(self, group=None, **rest):
 
     from .etapestry import get_query
-
     BATCH_SIZE = 500
-    series = [
-        {'name':'vec', 'category':'BPU: Stats', 'query':'Recent Gifts', 'statsCount':'journalEntryCount'},
-        {'name':'vec', 'category':'BPU: Stats', 'query':'Recent Accounts'}
+    queries = [
+        {'category':'Bravo', 'query':'Recent Gifts'},
+        {'category':'Bravo', 'query':'Recent Accounts'}
     ]
 
-    for group in series:
-        g.group = group['name']
-        timer = Timer()
-        start = 0
-        count = BATCH_SIZE
-        queryEnd = False
+    for org in g.db['groups'].find({'name':group} if group else {}):
+        g.group = org['name']
 
-        log.debug('Task: Caching Recent...')
+        for query in queries:
+            timer = Timer()
+            start = 0
+            count = BATCH_SIZE
+            queryEnd = False
 
-        while queryEnd != True:
-            results = get_query(
-                group['query'],
-                category=group['category'],
-                start=start,
-                count=count,
-                cache=True,
-                timeout=75)
+            while queryEnd != True:
+                results = get_query(
+                    query['query'],
+                    category=query['category'],
+                    start=start,
+                    count=count,
+                    cache=True,
+                    with_meta=True,
+                    timeout=75)
 
-            if len(results) == 0:
-                queryEnd = True
+                data = results['data']
 
-            start += BATCH_SIZE
+                if len(results) == 0:
+                    queryEnd = True
 
-    log.debug('Task: Completed [%s]', timer.clock())
+                start += BATCH_SIZE
 
-#-------------------------------------------------------------------------------
-@celery.task(bind=True)
-def cache_gifts(self, **rest):
-    """Cache Journal Entry Gifts
-    """
+                if start > results['total']:
+                    break
 
-    from .etapestry import get_query
-
-    BATCH_SIZE = 500
-    series = [
-        {'name':'vec', 'category':'BPU: Stats', 'query':'Recent Gifts', 'statsCount':'journalEntryCount'},
-        {'name':'vec', 'category':'BPU: Stats', 'query':'Recent Accounts'}
-        #{'name':'wsf', 'category':'ETW: Stats', 'query':'Gift Entries [YTD]'}
-    ]
-
-    for group in series:
-        g.group = group['name']
-        timer = Timer()
-        start = 0
-        count = BATCH_SIZE
-        n_total = call(
-            'getQueryResultStats',
-            data={'queryName':group['query'], 'queryCategory':group['category']},
-            timeout=0
-        )['journalEntryCount']
-
-        log.info('Task: Caching gifts [Total: %s]...', n_total)
-
-        while start < n_total:
-            results = get_query(
-                group['query'],
-                category=group['category'],
-                start=start,
-                count=count,
-                cache=True,
-                timeout=75)
-
-            if len(results) == 0:
-                break
-
-            log.debug('Retrieved %s/%s gifts', start+count, n_total)
-
-            start += BATCH_SIZE
-
-            if start + count > n_total:
-                count = start + count - n_total
-
-
-    log.info('Task: Completed [%s]', timer.clock())
+    log.debug('Updated Cache [%s]', timer.clock())
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -407,7 +362,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
                 }}},
                 upsert=True)
 
-    update_cache.delay()
+    update_cache.delay(group=g.group)
     """
     # TODO: update cachedAccounts
     for entry in entries:
@@ -608,7 +563,7 @@ def create_accounts(self, accts_json, group=None, **rest):
             extra=log_rec)
 
 
-    update_cache.delay()
+    update_cache.delay(group=g.group)
 
     return 'success'
 

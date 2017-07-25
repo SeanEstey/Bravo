@@ -132,7 +132,8 @@ def _compose():
 @login_required
 def _get_chatlogs():
     from app.alice.conversation import get_messages
-    return func_call(get_messages, serialize=True)
+    return func_call(get_messages, mobile=var('mobile'), serialize=True)
+
 
 @api.route('/alice/toggle_reply_mute', methods=['POST'])
 @login_required

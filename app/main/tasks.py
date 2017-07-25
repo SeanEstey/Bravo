@@ -55,7 +55,6 @@ def receipt_handler(self, form, group, **rest):
 def update_cache(self, group=None, **rest):
 
     from .etapestry import get_query
-    BATCH_SIZE = 500
     queries = [
         {'category':'Bravo', 'query':'Recent Gifts'},
         {'category':'Bravo', 'query':'Recent Accounts'}
@@ -67,7 +66,7 @@ def update_cache(self, group=None, **rest):
         for query in queries:
             timer = Timer()
             start = 0
-            count = BATCH_SIZE
+            count = 500
             queryEnd = False
 
             while queryEnd != True:
@@ -78,17 +77,14 @@ def update_cache(self, group=None, **rest):
                     count=count,
                     cache=True,
                     with_meta=True,
-                    timeout=75)
+                    timeout=30)
 
-                data = results['data']
-
-                if len(results) == 0:
-                    queryEnd = True
-
-                start += BATCH_SIZE
-
+                start += 500
                 if start > results['total']:
-                    break
+                    queryEnd = True
+                if not results.get('total'):
+                    queryEnd = True
+                    log.error('Cannot determine query size. Breaking loop')
 
     log.debug('Updated Cache [%s]', timer.clock())
 

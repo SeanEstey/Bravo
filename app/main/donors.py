@@ -8,7 +8,7 @@ from app import get_keys
 from app.lib import html, mailgun
 from app.lib.timer import Timer
 from app.lib.dt import ddmmyyyy_to_date as to_date
-from app.main.etapestry import EtapError, mod_acct, get_acct, get_udf, call
+from app.main.etapestry import EtapError, to_datetime, mod_acct, get_acct, get_udf, call
 from app.main.maps import geocode
 log = logging.getLogger(__name__)
 
@@ -109,17 +109,14 @@ def get_location(acct_id=None):
         )[0]
     except Exception as e:
         log.exception('Failed to geolocate Account #%s at "%s".', acct_id, acct['address'])
-        raise
-    else:
-        from app.main.etapestry import to_datetime
-
-        # Cache it.
+        geolocation = {'Desc':'Geolocation not found for %s.' % acct['address']}
+    finally:
         g.db['cachedAccounts'].update_one(
           {'group':g.group, 'account.id':acct['id']},
           {'$set': {'group':g.group, 'account':to_datetime(acct), 'geolocation':geolocation}},
           upsert=True)
 
-        log.debug('Geolocated and cached account.')
+        #log.debug('Geolocated and cached account.')
         return geolocation
 
 #-------------------------------------------------------------------------------

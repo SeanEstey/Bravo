@@ -174,6 +174,7 @@ def _cache_accts(accts):
                 geolocation = geocode(", ".join(acct_addr), api_key)[0]
             except Exception as e:
                 log.exception('Geo lookup failed for %s', acct['address'])
+                geolocation = {'Desc':'Geolocation not found for %s.' % acct['address']}
             else:
                 n_geolocations += 1
 
@@ -192,9 +193,9 @@ def _cache_accts(accts):
 
     if n_ops > 0:
         results = bulk.execute()
-        str_res = 'nGeolocated=%s' % n_geolocations if n_geolocations > 0 else ''
+        str_res = 'nGeolocated=%s ' % n_geolocations if n_geolocations > 0 else ''
         for key in ['nModified', 'nUpserted', 'nInserted']:
-            str_res += '%s=%s/%s' % (key, results[key], len(accts)) if results[key] > 0 else ''
+            str_res += '%s=%s/%s ' % (key, results[key], len(accts)) if results[key] > 0 else ''
 
         log.debug("Cache Accounts: %s [%s]", str_res, timer.clock())
     else:

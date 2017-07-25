@@ -172,22 +172,27 @@ def save_msg(text, mobile=None, acct_id=None, user_session=False, direction=None
            True)
 
 #-------------------------------------------------------------------------------
-def get_messages(start_dt=None, serialize=True):
+def get_messages(mobile=None, start_dt=None, serialize=True):
 
+    td = timedelta
     timer = Timer()
     view_days = get_keys('alice')['chatlog_view_days']
 
-    if not start_dt:
-        start_dt = datetime.utcnow() - timedelta(days=view_days)
-
-    chats = g.db['chatlogs'].find(
-        {
+    if mobile:
+        query = {
             'group': g.group,
-            'last_message': {'$gt': start_dt},
+            'mobile': mobile
+        }
+    else:
+        query = {
+            'group': g.group,
+            'last_message': {
+                '$gt': start_dt if start_dt else datetime.utcnow()-td(days=view_days)
+            },
             'messages.1': {'$exists': True}
-        },
-        {'group':0, '_id':0}
-    ).limit(50).sort('last_message',-1)
+        }
+
+    chats = g.db['chatlogs'].find(query, {'group':0, '_id':0}).limit(50).sort('last_message',-1)
 
     log.debug('%s chatlogs retrieved. [%s]', chats.count(), timer.clock(t='ms'))
 

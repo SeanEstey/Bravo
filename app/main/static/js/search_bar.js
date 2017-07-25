@@ -12,6 +12,8 @@ function initSearchBar() {
     $('#search_input').keypress(function (e) {
         if (e.which == 13) {
             var acct_id = $('#search_input').val();
+            if(!acct_id)
+                return;
             console.log('Submitting search for "'+acct_id+'"');
             window.location = location.origin + '/accounts?aid='+acct_id;
             return false;
@@ -20,6 +22,8 @@ function initSearchBar() {
 
     $('#search').click(function() {
        var acct_id = $('#search_input').val();
+       if(!acct_id)
+          return;
        window.location = location.origin + '/accounts?aid='+acct_id;
     });
 

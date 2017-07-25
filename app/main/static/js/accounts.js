@@ -1,8 +1,7 @@
 /* accounts.js */
 
-acct = null;
-
-function parse_block(title) { return title.slice(0, title.indexOf(' ')); }
+ACCT_ID = null;
+MOBILE = null;
 
 //---------------------------------------------------------------------
 function accountsInit() {
@@ -14,7 +13,8 @@ function accountsInit() {
 
         if(location.href.indexOf('?') > -1) {
             var args = location.href.substring(location.href.indexOf('?')+1, location.length);
-            getAcct(args.substring(args.indexOf('=')+1, args.length));
+            ACCT_ID = args.substring(args.indexOf('=')+1, args.length);
+            getAcct(ACCT_ID);
         }
     });
     $(window).on('resize', function(){
@@ -39,31 +39,61 @@ function addSocketIOHandlers() {
 
 //---------------------------------------------------------------------
 function getAcct(acct_id) {
+    /* Get account data, geolocation, and gift history.
+       Split into 3 API calls to render cached data while querying the 
+       rest from eTapestry.
+    */
 
     api_call(
         'accounts/get/location',
         data={'acct_id':acct_id},
-        function(response) {
-            var data = response['data'];
-            console.log(data);
-            initGoogleMap(data['geometry']['location'], 12, map_style);
-            addMarker("Home", data['geometry']['location'], HOME_ICON);
-        });
+        displayMap);
 
     api_call(
         'accounts/get',
         data={'acct_id':acct_id},
         function(response) {
-            acct = response['data'];
-            displayAcctData(acct);
-        
-            // Need acct first to get ref for querying gift history
+            if(response['status'] != 'success')
+                return displayError('Account ID "'+acct_id+'" not found.', response);
+
             api_call(
                 'accounts/summary_stats',
-                data={'ref':acct['ref']},
+                data={'ref':response['data']['ref']},
                 displayDonationData);
+
+            displayAcctData(response['data']);
         }
     );
+}
+
+//------------------------------------------------------------------------------
+function displayError(msg, response) {
+
+    $('#main').prop('hidden', true);
+    $('#error').prop('hidden', false);
+    $('#err_alert').prop('hidden', false);
+    alertMsg(msg, 'danger', id="err_alert");
+    return;                
+}
+
+//------------------------------------------------------------------------------
+function displayMap(response) {
+
+    if(response['status'] != 'success')
+        return;
+    else
+        $('#main').prop('hidden', false);
+
+    var data = response['data'];
+    var center = data['geometry'] ? data['geometry']['location'] : CITY_COORDS; 
+
+    initGoogleMap(center, 12, map_style);
+    console.log('Google Maps initialized');
+    
+    if(!data['geometry'])
+        return;
+
+    addMarker("Home", data['geometry']['location'], HOME_ICON);
 }
 
 //------------------------------------------------------------------------------
@@ -73,7 +103,13 @@ function displayDonationData(response) {
     'date', where 'date':{'$date':TIMESTAMP}. Sorted by descending date.
     */
 
-    //console.log(response['data']);
+    if(response['status'] != 'success' || ! response['data'] instanceof Array) {
+        $('#chart_panel .panel-body').addClass("text-center").html("NO DONATION DATA FOUND");
+        return;
+    }
+
+    console.log(format('Retrieved %s gifts', response['data'].length));
+
     var gifts = response['data'];
 
     // Analyze gift stats, build chart data
@@ -123,229 +159,148 @@ function displayDonationData(response) {
     $('#don_chart').prop('hidden',false);
     drawMorrisChart('don_chart', chart_data, 'date', ['value']);
 
-    $('#last-gave-d').html(new Date(gifts[0]['date']['$date']).strftime('%b %Y').toUpperCase());
+    if(gifts.length > 0)
+        $('#last-gave-d').html(new Date(gifts[0]['date']['$date']).strftime('%b %Y').toUpperCase());
+
     $('#timeline').prop('hidden',false);
 }
 
 //---------------------------------------------------------------------
 function displayAcctData(acct) {
 
-    $contact = $('#contact .row');
-    $contact.empty();
-    $custom = $('#custom .row');
-    $custom.empty();
-    $internal = $('#internal .row');
-    $internal.empty();
+    if(!acct['accountDefinedValues'])
+        return displayError('Invalid account type.', acct);
 
+    $('#main').prop('hidden', false);
+
+    /* PROFILE PANEL */
     $summary = $('#sum_panel');
     $summary.prop('hidden',false);
-    $('#contact_panel').prop('hidden',false);
-    $('#custom_panel').prop('hidden',false);
-    $('#internal_panel').prop('hidden',false);
-    $('#action_panel').prop('hidden',false);
-
     $('#acct_name').html(acct['name']);
     $('#acct_id').html("#"+acct['id']);
 
-    var contact_fields = ['name', 'address', 'city', 'state', 'postalCode', 'email', 'phones'];
-    var internal_fields = ['ref', 'id', 'primaryPersona', 'nameFormat'];
-
-    // Contact Info fields
-
-    for(var i=0; i<contact_fields.length; i++) {
-        var field = contact_fields[i];
-
-        if(!acct.hasOwnProperty(field))
-            continue;
-        else {
-            appendField(field, acct[field], $contact);
-        }
+    /* PERSONAL DETAILS PANEL */
+    $contact = $('#contact .row');
+    $contact.empty();
+    $('#contact_panel').prop('hidden',false);
+    var details_flds = ['name', 'address', 'city', 'state', 'postalCode', 'email', 'phones'];
+    for(var i in details_flds) {
+        var f = details_flds[i];
+        if(acct.hasOwnProperty(f))
+            addField(f.toTitleCase(), acct[f], $contact);
+    }
+    var fa_clock = '<i class="fa fa-clock-o"></i>';
+    var pcd = new Date(acct['personaCreatedDate']['$date']);
+    $('#personaCreatedDate').html(
+        format("%s %s %s", pcd.strftime('%b %d, %Y '), fa_clock, pcd.strftime(' %I:%M %p')));
+    if(acct['personaLastModifiedDate']) {
+        var pmd = new Date(acct['personaLastModifiedDate']['$date']);
+        $('#personaLastModifiedDate').html(
+            format("%s %s %s", pmd.strftime("%b %d, %Y "), fa_clock, pmd.strftime(" %I:%M %p")));
     }
 
-    // Custom fields
-    var custom_fields = [
-        "Signup Date",
-        "Dropoff Date",
-        "Status",
-        "Next Pickup Date",
-        "Frequency",
-        "Neighborhood",
-        "Reason Joined",
-        "Referrer",
-        "Date Cancelled",
-        "Driver Notes",
-        "Office Notes",
-        "Block"
-    ];
-    var ignore = [ 'Data Source', 'Beverage Container Customer' ];
-
-    var multi_selects = {};
-    var text_areas = [];
-
-    for(var j=0; j<custom_fields.length; j++) {
-        for(var i=0; i<acct['accountDefinedValues'].length; i++) {
-            var field = acct['accountDefinedValues'][i];
-
-            if(custom_fields[j] != field['fieldName'])
-                continue;
-
-            if(field['displayType'] == 2) {
-                if(multi_selects.hasOwnProperty(field['fieldName']))
-                    multi_selects[field['fieldName']].push(field);
-                else
-                    multi_selects[field['fieldName']] = [field];
-
-                continue;
-            }
-            else if(field['displayType'] == 3) {
-                text_areas.push(field);
-                continue;
-            }
-
-            appendUDF(field, $custom);
-
-            if(field['fieldName'] == "Status")
-                $('#status').html(field['value']);
-
-            if(field['fieldName'] == 'Signup Date') {
-                var d_comps = field['value'].split('/');
-                var date = new Date(d_comps[1]+'/'+d_comps[0]+'/'+d_comps[2]);
-                $('#joined-d').html(date.strftime("%b %Y").toUpperCase());
-            }
-        }
+    /* PICK-UP SERVICE PANEL */
+    $custom = $('#custom .row');
+    $custom.empty();
+    $('#custom_panel').prop('hidden',false);
+    var dv_status = getDV('Status', acct);
+    if(dv_status)
+        $('#status').html(dv_status['value']);
+    var sm_dvs = [
+        "Signup Date","Dropoff Date","Status","Next Pickup Date","Frequency", 
+        "Neighborhood", "Reason Joined","Referrer","Date Cancelled","Block"];
+    for(var i=0; i<sm_dvs.length; i++) {
+        var dv = getDV(sm_dvs[i], acct);
+        if(dv) addField(sm_dvs[i], dv, $custom);
+    }
+    var lg_dvs = ["Driver Notes", "Office Notes"];
+    for(var i=0; i<lg_dvs.length; i++) {
+        var dv = getDV(lg_dvs[i], acct);
+        if(dv) addField(lg_dvs[i], dv, $custom, fullWidth=true);
+    }
+    var acd = new Date(acct['accountCreatedDate']['$date']);
+    $('#accountCreatedDate').html(acd.strftime('%b %d, %Y ') + fa_clock + acd.strftime(' %I:%M %p'));
+    if(acct['accountLastModifiedDate']) {
+        var amd = new Date(acct['accountLastModifiedDate']['$date']);
+        $('#accountLastModifiedDate').html(
+            amd.strftime("%b %d, %Y ") + fa_clock + amd.strftime(" %I:%M %p"));
     }
 
-    for(var key in multi_selects) {
-        var fields = multi_selects[key];
-        var values = [];
+    /* CHART PANEL */
+    var dv_signup = getDV('Signup Date', acct);
+    if(dv_signup)
+        $('#joined-d').html(dv_signup.strftime("%b %Y").toUpperCase());
 
-        for(var i=0; i<fields.length; i++) {
-            values.push(fields[i]['value']);
-        }
-
-        appendField(key, values.join(", "), $custom);
+    /* ACTIONS PANEL */
+    $('#action_panel').prop('hidden',false);
+    var dv_sms = getDV('SMS', acct);
+    if(dv_sms) {
+        $('#send_sms').prop('hidden',false);
+        var $a = $('#send_sms a');
+        $a.html($a.html() + ' ('+dv_sms+')'); 
+        $a.click(function(e) {
+            api_call(
+                'alice/chatlogs',
+                data={'mobile':dv_sms},
+                function(response){
+                    console.log(response['data']);
+                });
+        });
     }
 
-    for(var i=0; i<text_areas.length; i++) {
-        text_areas[i]['value'] = text_areas[i]['value'].trim();
-        appendUDF(text_areas[i], $custom);
-    }
-
-    // Internal fields
+    /* INTERNAL PANEL */
+    /*$internal = $('#internal .row');
+    $internal.empty();
+    $('#internal_panel').prop('hidden',false);
+    var internal_flds = ['ref', 'id', 'primaryPersona', 'nameFormat'];
     for(var i=0; i<internal_fields.length; i++) {
         var field = internal_fields[i];
-
         if(field.indexOf('Date') > -1) {
             if(acct[field]) {
                 var date = new Date(acct[field]['$date']).strftime('%b %d, %Y @ %H:%M');
             }
             else
                 var date = 'None';
-            appendField(field, date, $internal);
+            addField(field, date, $internal);
         }
         else {
-            appendField(field, acct[field], $internal);
+            addField(field, acct[field], $internal);
         }
-    }
-
-    var date = new Date(acct['personaCreatedDate']['$date']);
-    $('#personaCreatedDate').html(
-        date.strftime('%b %d, %Y ') + '<i class="fa fa-clock-o"></i>' + date.strftime(' %I:%M %p'));
-
-    if(acct['personaLastModifiedDate']) {
-        var date = new Date(acct['personaLastModifiedDate']['$date']);
-        $('#personaLastModifiedDate').html(
-            date.strftime("%b %d, %Y ") + '<i class="fa fa-clock-o"></i>' + date.strftime(" %I:%M %p"));
-    }
-
-    var date = new Date(acct['personaCreatedDate']['$date']);
-    $('#accountCreatedDate').html(date.strftime('%b %d, %Y ') + '<i class="fa fa-clock-o"></i>' + date.strftime(' %I:%M %p'));
-
-    if(acct['accountLastModifiedDate']) {
-        var date = new Date(acct['accountLastModifiedDate']['$date']);
-        $('#accountLastModifiedDate').html(
-            date.strftime("%b %d, %Y ") + '<i class="fa fa-clock-o"></i>' + date.strftime(" %I:%M %p"));
-    }
-
+    }*/
 }
 
 //------------------------------------------------------------------------------
-function appendUDF(field, $container) {
+function addField(name, value, $container, fullWidth=false) {
 
     var $lblDiv = $("<div class='pr-0 text-left'><label class='field align-top'></label></div>");
     var $valDiv = $("<div class='text-left'><label class='val align-top'></label></div>");
 
-    // Text Area
-    if(field['displayType'] == 3) {
-
+    if(fullWidth) {
         var $smallContainer = $("<div class='col-12 pt-3'></div>");
         $container.append($smallContainer);
         // @container now points to new sub-container
         $container = $smallContainer;
-
         $lblDiv.addClass('col-2').addClass('pl-0');
         $valDiv.addClass('col-12');
     }
-
     else {
         $lblDiv.addClass('col-2');
         $valDiv.addClass('col-4');
     }
 
-    $lblDiv.find('label').html(field['fieldName']);
+    $lblDiv.find('label').html(name);
 
-    var val = '';
-
-    if(field['dataType'] == 1) { // Date
-        var parts = field['value'].split('/');
-        var date = new Date(parts[1]+'/'+parts[0]+'/'+parts[2]);
-        val = date.strftime('%b %d, %Y');
-    }
-    else {
-        if(field['value'])
-            val = field['value'].replace(/\\n/g, '  ').replace(/\*/g, '');
-    }
-
-    $valDiv.find('label').html(val);
+    if(typeof value == "string")
+        $valDiv.find('label').html(value.replace(/\\n/g, '  ').replace(/\*/g, ''));
+    else if(value instanceof Date)
+        $valDiv.find('label').html(value.strftime("%b %d, %Y"));
+    else
+        $valDiv.find('label').html(value);
 
     $container.append($lblDiv).append($valDiv);
 }
 
-//------------------------------------------------------------------------------
-function appendField(name, value, $element) {
-    /*@field: str, int, or Phone object
-    */
-
-    if(!value)
-        return;
-
-    var fieldWidth = 2;
-    var valWidth = 4;
-
-    var div = "<DIV class='col-2 text-left'><label class='field align-top'>" + name.toTitleCase() + ": </label></div>";
-
-    if(name == 'phones' && value) {
-        for(var j=0; j<value.length; j++) {
-            var phone = value[j];
-            appendField(phone['type'], phone['number'], $contact);
-        }
-        return;
-    }
-
-    if(typeof value === 'object')
-        div += 
-            '<div class="text-left" style="">' + 
-                JSON.stringify(value, null, 2).replace(/\\n/g, "<BR>") +
-            '</div>' +
-          '</DIV>';
-    else if(typeof(value) == "string")
-        div += "<div class='col-"+valWidth+"'><label class='val align-top'>" + value.replace(/\\n/g, "") + "</label></DIV>";
-    else
-        div += '<label class="val align-top">'+ value + '</label></DIV>';
-
-    $element.append(div);
-}
-
+/* Google Maps Styling */
 
 map_style = [
   {

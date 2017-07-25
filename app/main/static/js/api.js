@@ -8,7 +8,7 @@ function api_call(path, data, on_done) {
      * }
      */
     
-    console.log('API call "%s", data=%s', path, JSON.stringify(data));
+    //console.log('API call "%s", data=%s', path, JSON.stringify(data));
 
 	$.ajax({
 		type: 'POST',

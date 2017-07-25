@@ -13,7 +13,7 @@ function initCharts() {
         MyMorris = window.MyMorris = {};
         MyMorris = Object.create(Morris);
         initLabelTopExt();
-        console.log('morris.js initialized.');
+        console.log('morris.js initialized');
     });
 }
 

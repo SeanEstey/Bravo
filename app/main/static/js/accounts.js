@@ -1,7 +1,8 @@
 /* accounts.js */
 
-ACCT_ID = null;
-MOBILE = null;
+gAcct = null;
+gGeolocation = null;
+gMobile = null;
 
 //---------------------------------------------------------------------
 function accountsInit() {
@@ -13,8 +14,8 @@ function accountsInit() {
 
         if(location.href.indexOf('?') > -1) {
             var args = location.href.substring(location.href.indexOf('?')+1, location.length);
-            ACCT_ID = args.substring(args.indexOf('=')+1, args.length);
-            getAcct(ACCT_ID);
+            var acct_id = args.substring(args.indexOf('=')+1, args.length);
+            getAcct(acct_id);
         }
     });
     $(window).on('resize', function(){
@@ -25,16 +26,6 @@ function accountsInit() {
 
     $('#search_ctnr').prepend($('.br-alert'));
     $('.br-alert').prop('hidden', true);
-}
-
-//------------------------------------------------------------------------------
-function addSocketIOHandlers() {
-
-    var socketio_url = 'https://' + document.domain + ':' + location.port;
-    var socket = io.connect(socketio_url);
-    socket.on('connect', function(data){
-        console.log('Socket.IO connected.');
-    });
 }
 
 //---------------------------------------------------------------------
@@ -55,13 +46,12 @@ function getAcct(acct_id) {
         function(response) {
             if(response['status'] != 'success')
                 return displayError('Account ID "'+acct_id+'" not found.', response);
-
+            gAcct = response['data'];
             api_call(
                 'accounts/summary_stats',
-                data={'ref':response['data']['ref']},
+                data={'ref':gAcct['ref']},
                 displayDonationData);
-
-            displayAcctData(response['data']);
+            displayAcctData(gAcct);
         }
     );
 }
@@ -244,10 +234,10 @@ function displayAcctData(acct) {
             'alice/chatlogs',
             data={'mobile':dv_sms},
             function(response){
-                console.log(response['data'][0]);
-
+                console.log(response['data']);
+                response['data']['account'] = gAcct;
                 var $a = $('#sms a');
-                $a.data('details', response['data'][0]);
+                $a.data('details', response['data']);
             });
 
     }
@@ -467,3 +457,13 @@ map_style = [
     ]
   }
 ];
+
+//------------------------------------------------------------------------------
+function addSocketIOHandlers() {
+
+    var socketio_url = 'https://' + document.domain + ':' + location.port;
+    var socket = io.connect(socketio_url);
+    socket.on('connect', function(data){
+        console.log('Socket.IO connected.');
+    });
+}

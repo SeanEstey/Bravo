@@ -174,28 +174,35 @@ def save_msg(text, mobile=None, acct_id=None, user_session=False, direction=None
 #-------------------------------------------------------------------------------
 def get_messages(mobile=None, start_dt=None, serialize=True):
 
+    if serialize:
+        from app.lib.utils import format_bson
+
     td = timedelta
     timer = Timer()
     view_days = get_keys('alice')['chatlog_view_days']
 
+    # Single user chat history
     if mobile:
-        query = {
-            'group': g.group,
-            'mobile': mobile
-        }
-    else:
-        query = {
-            'group': g.group,
-            'last_message': {
-                '$gt': start_dt if start_dt else datetime.utcnow()-td(days=view_days)
-            },
-            'messages.1': {'$exists': True}
-        }
+        chat = g.db['chatlogs'].find_one(
+            {'group':g.group, 'mobile':mobile},
+            {'group':0, '_id':0})
 
+        if chat:
+            return format_bson(chat, loc_time=True)
+        else:
+            return {'mobile':mobile, 'messages':[]}
+
+    # All chat histories in time period
+
+    query = {
+        'group': g.group,
+        'last_message': {
+            '$gt': start_dt if start_dt else datetime.utcnow()-td(days=view_days)
+        },
+        'messages.1': {'$exists': True}
+    }
     chats = g.db['chatlogs'].find(query, {'group':0, '_id':0}).limit(50).sort('last_message',-1)
-
     log.debug('%s chatlogs retrieved. [%s]', chats.count(), timer.clock(t='ms'))
-
     chats = list(chats)
 
     for chat in chats:
@@ -210,14 +217,9 @@ def get_messages(mobile=None, start_dt=None, serialize=True):
                 log.debug('Error doing Mobile Lookup')
                 pass
             else:
-                #g.db['chatlogs'].update_one(
-                #    {'mobile': chat['mobile']},
-                #    {'$set':{'acct_id':chat['account']['id']}})
-                #session['ACCOUNT'] = chat['account']
                 pass
 
     if serialize:
-        from app.lib.utils import format_bson
         return format_bson(chats, loc_time=True)
     else:
         return chats

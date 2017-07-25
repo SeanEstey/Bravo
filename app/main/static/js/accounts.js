@@ -235,17 +235,21 @@ function displayAcctData(acct) {
     $('#action_panel').prop('hidden',false);
     var dv_sms = getDV('SMS', acct);
     if(dv_sms) {
-        $('#send_sms').prop('hidden',false);
-        var $a = $('#send_sms a');
+        $('#sms').prop('hidden',false);
+        var $a = $('#sms a');
         $a.html($a.html() + ' ('+dv_sms+')'); 
-        $a.click(function(e) {
-            api_call(
-                'alice/chatlogs',
-                data={'mobile':dv_sms},
-                function(response){
-                    console.log(response['data']);
-                });
-        });
+        $a.click(showChatModal);
+        $('#chat_modal').find('#send_sms').click(sendMessage);
+        api_call(
+            'alice/chatlogs',
+            data={'mobile':dv_sms},
+            function(response){
+                console.log(response['data'][0]);
+
+                var $a = $('#sms a');
+                $a.data('details', response['data'][0]);
+            });
+
     }
 
     /* INTERNAL PANEL */

@@ -9,6 +9,7 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
 
     <script src="{{url_for("main.static", filename="js/etapestry.js")}}"></script>
+    <script src="{{url_for("alice.static", filename="js/alice.js")}}"></script>
     <script src="{{url_for("main.static", filename="js/maps.js")}}"></script>
     <script src="{{url_for("main.static", filename="js/accounts.js")}}"></script>
     <script src="{{url_for("main.static", filename="js/charts.js")}}"></script>
@@ -176,7 +177,7 @@
                     <i class="fa fa-truck fa-2x mr-2" style="color:#4ea5e0;"></i>
                     <a href="#" style="color:#4ea5e0;">Book Pickup</a>
                   </div>
-                  <div class="col-12 text-left" id="send_sms" style="color:#4ea5e0;" hidden>
+                  <div class="col-12 text-left" id="sms" style="color:#4ea5e0;" hidden>
                     <i class="fa fa-whatsapp fa-2x mr-2" style="color:#4ea5e0;"></i>
                     <a href="#" style="color:#4ea5e0;">Send SMS</a>
                   </div>
@@ -207,8 +208,7 @@
       <div class="alert br-alert" id="err_alert"></div>
     </div>
   </div>
-  <!-- Modal -->
-  <div id="accts_options" style="display:none">
-  </div>
+
+  {% include "views/chat.html" %}
 
   {% endblock %}

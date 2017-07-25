@@ -65,7 +65,7 @@ function find_acct_by_phone($phone) {
 		return get_error($nsc, $log=true);
 
 	if(!$acct)
-		throw new Exception('no acct found with SMS field="' . $phone . '"');
+		throw new Exception('No match for SMS="' . $phone . '"');
 
 	return utf8_converter($acct);
 }

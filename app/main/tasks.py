@@ -77,7 +77,7 @@ def update_cache(self, group=None, **rest):
                     count=count,
                     cache=True,
                     with_meta=True,
-                    timeout=30)
+                    timeout=75)
 
                 start += 500
                 if start > results['total']:

@@ -20,8 +20,6 @@ function parse_block(title) { return title.slice(0, title.indexOf(' ')); }
 //---------------------------------------------------------------------
 function bookerInit() {
 
-    alertMsg('Enter search terms below', 'info', -1);
-
     $('#search_ctnr').prepend($('.br-alert'));
     loadMapData();
     addSocketIOHandlers();
@@ -38,6 +36,17 @@ function bookerInit() {
     });
 
     $('#book_btn').click(showConfirmModal);
+
+    if(location.href.indexOf('?') > -1) {
+        var args = location.href.substring(location.href.indexOf('?')+1, location.length);
+        var acct_id = args.substring(args.indexOf('=')+1, args.length);
+        $('#acct_input').val(acct_id);
+        getAcct(acct_id);
+        getBookOptions(acct_id);
+        getLocation(acct_id);
+    }
+    else
+        alertMsg('Enter search terms below', 'info', -1);
 }
 
 //------------------------------------------------------------------------------

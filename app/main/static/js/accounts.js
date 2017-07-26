@@ -1,5 +1,6 @@
 /* accounts.js */
 
+gAcctId = null;
 gAcct = null;
 gGeolocation = null;
 gMobile = null;
@@ -14,7 +15,7 @@ function accountsInit() {
 
         if(location.href.indexOf('?') > -1) {
             var args = location.href.substring(location.href.indexOf('?')+1, location.length);
-            var acct_id = args.substring(args.indexOf('=')+1, args.length);
+            var acct_id = gAcctId = args.substring(args.indexOf('=')+1, args.length);
             getAcct(acct_id);
         }
     });
@@ -26,6 +27,10 @@ function accountsInit() {
 
     $('#search_ctnr').prepend($('.br-alert'));
     $('.br-alert').prop('hidden', true);
+
+    $('.book-btn').click(function(){
+       window.location = location.origin + '/booker?aid='+ gAcctId; 
+    });
 }
 
 //---------------------------------------------------------------------
@@ -94,16 +99,14 @@ function displayDonationData(response) {
     */
 
     if(response['status'] != 'success' || ! response['data'] instanceof Array) {
-        $('#chart_panel .panel-body').addClass("text-center").html("NO DONATION DATA FOUND");
+        $('.chart-panel .panel-body').addClass("text-center").html("NO DONATION DATA FOUND");
         return;
     }
 
     console.log(format('Retrieved %s gifts', response['data'].length));
-
     var gifts = response['data'];
 
     // Analyze gift stats, build chart data
-
     var n_gifts = gifts.length;
     var total = 0;
     var chart_data = [];
@@ -115,7 +118,6 @@ function displayDonationData(response) {
             'value': gifts[i]['amount'],
             'count': gifts[i]['amount']
         });
-
         if(gifts[i]['amount'] > 0)
             total += gifts[i]['amount'];
         else
@@ -123,35 +125,28 @@ function displayDonationData(response) {
     }
 
     total = total.toFixed(2);
-
     if(n_gifts > 0)
         var avg_gift = (total/n_gifts).toFixed(2);
     else
         var avg_gift = "--";
 
     // Render summary info
-
     $('#n_gifts').html(n_gifts);
     $('#n_gifts').parent().prop('hidden', false);
-
     $('#avg label').html('$'+ avg_gift.split(".")[0] +'.');
     $('#avg span').html( avg_gift.split(".")[1]);
     $('#avg').parent().prop('hidden', false);
-
     $('#total label').html('$' + total.split(".")[0] + '.');
     $('#total span').html( total.split(".")[1]);
     $('#total').parent().prop('hidden', false);
-
-    $('.showcase .spinner').hide();
-    $('.showcase .content').show();
-
-    $('#chart-load').hide();
-    $('#don_chart').prop('hidden',false);
-    drawMorrisChart('don_chart', chart_data, 'date', ['value']);
-
+    $('.stat-box .loading').hide();
+    $('.stat-box h1').prop('hidden',false);
+    $('.stat-box div').prop('hidden',false);
+    $('.chart-panel .loading').hide();
+    $('.chart').prop('hidden',false);
+    drawMorrisChart('chart', chart_data, 'date', ['value']);
     if(gifts.length > 0)
         $('#last-gave-d').html(new Date(gifts[0]['date']['$date']).strftime('%b %Y').toUpperCase());
-
     $('#timeline').prop('hidden',false);
 }
 
@@ -168,34 +163,42 @@ function displayAcctData(acct) {
     $summary.prop('hidden',false);
     $('#acct_name').html(acct['name']);
     $('#acct_id').html("#"+acct['id']);
+    $('#status').html(getDV('Status', acct));
 
     /* PERSONAL DETAILS PANEL */
     $contact = $('#contact .row');
     $contact.empty();
     $('#contact_panel').prop('hidden',false);
-    var details_flds = ['name', 'address', 'city', 'state', 'postalCode', 'email', 'phones'];
+    var details_flds = ['name', 'address', 'city', 'state', 'postalCode', 'email'];
     for(var i in details_flds) {
         var f = details_flds[i];
         if(acct.hasOwnProperty(f))
             addField(f.toTitleCase(), acct[f], $contact);
     }
+    if(getPhone('Voice',acct))
+        addField('Landline', getPhone('Voice',acct), $contact);
+    if(getPhone('Mobile', acct))
+        addField('Mobile', getPhone('Mobile',acct), $contact);
+
     var fa_clock = '<i class="fa fa-clock-o"></i>';
     var pcd = new Date(acct['personaCreatedDate']['$date']);
     $('#personaCreatedDate').html(
-        format("%s %s %s", pcd.strftime('%b %d, %Y '), fa_clock, pcd.strftime(' %I:%M %p')));
+        toRelativeDateStr(pcd));
+        //format("%s %s %s", pcd.strftime('%b %d, %Y '), fa_clock, pcd.strftime(' %I:%M %p')));
     if(acct['personaLastModifiedDate']) {
         var pmd = new Date(acct['personaLastModifiedDate']['$date']);
         $('#personaLastModifiedDate').html(
-            format("%s %s %s", pmd.strftime("%b %d, %Y "), fa_clock, pmd.strftime(" %I:%M %p")));
+            toRelativeDateStr(pmd));
+            //format("%s %s %s", pmd.strftime("%b %d, %Y "), fa_clock, pmd.strftime(" %I:%M %p")));
     }
+    else
+        $('#personaLastModifiedDate').html('Never');
 
     /* PICK-UP SERVICE PANEL */
     $custom = $('#custom .row');
     $custom.empty();
     $('#custom_panel').prop('hidden',false);
-    var dv_status = getDV('Status', acct);
-    if(dv_status)
-        $('#status').html(dv_status['value']);
+
     var sm_dvs = [
         "Signup Date","Dropoff Date","Status","Next Pickup Date","Frequency", 
         "Neighborhood", "Reason Joined","Referrer","Date Cancelled","Block"];
@@ -209,12 +212,17 @@ function displayAcctData(acct) {
         if(dv) addField(lg_dvs[i], dv, $custom, fullWidth=true);
     }
     var acd = new Date(acct['accountCreatedDate']['$date']);
-    $('#accountCreatedDate').html(acd.strftime('%b %d, %Y ') + fa_clock + acd.strftime(' %I:%M %p'));
+    $('#accountCreatedDate').html(
+        toRelativeDateStr(acd));
+        //acd.strftime('%b %d, %Y ') + fa_clock + acd.strftime(' %I:%M %p'));
     if(acct['accountLastModifiedDate']) {
         var amd = new Date(acct['accountLastModifiedDate']['$date']);
         $('#accountLastModifiedDate').html(
-            amd.strftime("%b %d, %Y ") + fa_clock + amd.strftime(" %I:%M %p"));
+            toRelativeDateStr(amd));
+            //amd.strftime("%b %d, %Y ") + fa_clock + amd.strftime(" %I:%M %p"));
     }
+    else
+        $('#accountLastModifiedDate').html('Never');
 
     /* CHART PANEL */
     var dv_signup = getDV('Signup Date', acct);
@@ -222,13 +230,13 @@ function displayAcctData(acct) {
         $('#joined-d').html(dv_signup.strftime("%b %Y").toUpperCase());
 
     /* ACTIONS PANEL */
-    $('#action_panel').prop('hidden',false);
+    $('.act-panel').prop('hidden',false);
     var dv_sms = getDV('SMS', acct);
-    if(dv_sms) {
-        $('#sms').prop('hidden',false);
-        var $a = $('#sms a');
-        $a.html($a.html() + ' ('+dv_sms+')'); 
-        $a.click(showChatModal);
+    if(!dv_sms)
+        $('.chat-btn').addClass('disabled');
+    else if(dv_sms) {
+        var $chat_btn = $('.chat-btn');
+        $chat_btn.click(showChatModal);
         $('#chat_modal').find('#send_sms').click(sendMessage);
         api_call(
             'alice/chatlogs',
@@ -236,8 +244,8 @@ function displayAcctData(acct) {
             function(response){
                 console.log(response['data']);
                 response['data']['account'] = gAcct;
-                var $a = $('#sms a');
-                $a.data('details', response['data']);
+                var $chat_btn = $('.chat-btn');
+                $chat_btn.data('details', response['data']);
             });
 
     }
@@ -282,7 +290,7 @@ function addField(name, value, $container, fullWidth=false) {
         $valDiv.addClass('col-4');
     }
 
-    $lblDiv.find('label').html(name);
+    $lblDiv.find('label').html(name+': ');
 
     if(typeof value == "string")
         $valDiv.find('label').html(value.replace(/\\n/g, '  ').replace(/\*/g, ''));
@@ -466,4 +474,58 @@ function addSocketIOHandlers() {
     socket.on('connect', function(data){
         console.log('Socket.IO connected.');
     });
+}
+
+//------------------------------------------------------------------------------
+function toRelativeDateStr(date) {
+
+    var now = new Date();
+    var diff_ms = now.getTime() - date.getTime();
+    
+    var min_ms = 1000 * 60;
+    var hour_ms = 1000 * 3600;
+    var day_ms = hour_ms * 24;
+    var week_ms = day_ms * 7;
+    var month_ms = day_ms * 30;
+    var year_ms = day_ms * 365;
+
+    if(diff_ms >= year_ms) {
+        // Year(s) span
+        var nYears = Number((diff_ms/year_ms).toFixed(0));
+        return format("%s year%s ago", nYears, nYears > 1 ? 's' : '');
+    }
+
+    if(diff_ms >= month_ms) {
+        // Month(s) span
+        var nMonths = Number((diff_ms/month_ms).toFixed(0));
+        return format("%s month%s ago", nMonths, nMonths > 1 ? 's' : '');
+    }
+
+    if(diff_ms >= week_ms) {
+        // Week(s) span
+        var nWeeks = Number((diff_ms/week_ms).toFixed(0));
+        return format("%s week%s ago", nWeeks, nWeeks > 1 ? 's' : '');
+    }
+    
+    if(diff_ms >= day_ms) {
+        // Day(s) span
+        var nDays = Number((diff_ms/day_ms).toFixed(0));
+        return format("%s day%s ago", nDays, nDays > 1 ? 's' : '');
+    }
+
+    if(diff_ms >= hour_ms) {
+        // Hour(s) span
+        var nHours = Number((diff_ms/hour_ms).toFixed(0));
+        return format("%s hour%s ago", nHours, nHours > 1 ? 's' : '');
+    }
+
+    if(diff_ms >= min_ms) {
+        // Minute(s) span
+        var nMin = Number((diff_ms/min_ms).toFixed(0));
+        return format("%s minute%s ago", nMin, nMin > 1 ? 's' : '');
+    }
+
+    // Second(s) span
+    var nSec = Number((diff_ms/1000).toFixed(0));
+    return format("%s second%s ago", nSec, nSec > 1 ? 's' : '');
 }

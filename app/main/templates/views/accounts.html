@@ -2,12 +2,10 @@
   {% block content %}
 
   <meta id="coord_data" data-city="{{city_coords}}" data-home="{{home_coords}}">
-
   <head>
     <script src="{{url_for("main.static", filename="js/lib/morris.min.js")}}"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}" async defer></script> 
+    <script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}"></script> 
     <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
-
     <script src="{{url_for("main.static", filename="js/etapestry.js")}}"></script>
     <script src="{{url_for("alice.static", filename="js/alice.js")}}"></script>
     <script src="{{url_for("main.static", filename="js/maps.js")}}"></script>
@@ -16,7 +14,6 @@
     <link href="{{url_for("static", filename="main/css/lib/morris.css")}}" rel= "stylesheet" type= "text/css">
     <link href="{{url_for("static", filename="main/css/account.css")}}" rel= "stylesheet" type= "text/css">
   </head>
-
   <script> 
     jQuery(function($){
       accountsInit();
@@ -25,10 +22,10 @@
   </script>
 
   <div class="row" id="main" hidden>
-    <div class="col-12 col-xl-7 LEFT-COLUMN">
+    <div class="col-12 col-xl-7">
       <!--Profile Panel-->
       <div class="col-md-12 p-0">
-          <div class="hpanel profile" id='sum_panel'>
+          <div class="profile hpanel" id='sum_panel'>
             <!--Banner-->
             <div class="banner panel-heading text-left p-3">
 							<div class="row">
@@ -37,39 +34,35 @@
                   <h4 class="status m-0"><span class="badge badge-info status" id="status"></span></h4>
                 </div>
 								<div class="col my-auto text-right">
-									<label id="acct_id" class="m-0" style="color:white"></label>
+									<label id="acct_id" class="m-0" ></label>
 									<i class="fa fa-user-circle-o fa-2x icon"></i>
 								</div>
 							</div>
             </div>
             <div class="panel-body p-0">
               <!--Map-->
-              <div style="height:250px; border:1px solid #eaeaea;" id="map"></div>
-              <!--Donation Summary-->
-              <div class="row m-0 justify-content-md-center" style="height:120px">
-                <div class="col-md-4 mx-auto showcase my-auto text-center">
-                  <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
-                  <div class="content" hidden>
-                    <h1 class="sum-num mt-1 mb-0 text-center" id="n_gifts"></h1>
-                    <div class="text-center">Donations</div>
+              <div id="map"></div>
+              <!--Gift Stats-->
+              <div class="row stats-row">
+                <div class="col-md-4 centered divider">
+                  <div class="stat-box">
+                    <i class="loading fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
+                    <h1 class="h1-stat" id="n_gifts" hidden></h1>
+                    <div hidden>Donations</div>
                   </div>
                 </div>
-                <div class="col-md-4 showcase my-auto text-center">
-                  <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
-                  <div class="content" hidden>
-                    <h1 class="sum-num mt-1 mb-0 text-center" id="total">
-                      <label class="ml-4 mb-0"></label>  <span class="sum-num-dec"></span>
-                    </h1>
-                    <div class="text-center">Received Total</div>
+                <div class="col-md-4 centered divider">
+                  <div class="stat-box">
+                    <i class="loading fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
+                    <h1 class="h1-stat" id="total" hidden><label class="float"></label><span class="decimal"></span></h1>
+                    <div hidden>Received Total</div>
                   </div>
                 </div>
-                <div class="col-md-4 mx-auto showcase my-auto text-center">
-                  <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
-                  <div class="content" hidden>
-                    <h1 class="sum-num mt-1 mb-0 text-center" id="avg">
-                      <label class="sum-num ml-4 mb-0 text-center"></label>  <span class="sum-num-dec"></span>
-                    </h1>
-                    <div class="text-center">Per Donation</div>
+                <div class="col-md-4 centered">
+                  <div class="stat-box">
+                    <i class="loading fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
+                    <h1 class="h1-stat" id="avg" hidden><label class="float"></label><span class="decimal"></span></h1>
+                    <div hidden>Per Donation</div>
                   </div>
                 </div>
               </div>
@@ -83,10 +76,10 @@
       <!--Persona Panel-->
       <div class="col-md-12 p-0">
           <div class="hpanel " id='contact_panel' hidden>
-            <div class="panel-heading" style="">
+            <div class="panel-heading">
               Personal Details
               <span class="pull-right">
-                <button type="button" class="close fa fa-address-card-o dropdown-toggle pt-1" style="color:#4ea5e0; background-color:inherit; opacity:1">
+                <button type="button" class="close fa fa-address-card-o dropdown-toggle pt-1">
                 </button>
               </span>
             </div>
@@ -94,8 +87,8 @@
               <div class="row"></div>
             </div>
             <div class="panel-footer">
-              <small>Created: <label id="personaCreatedDate"></label></small>
-              <span class="pull-right"><small>Last updated: <label id="personaLastModifiedDate"></label></small></span>
+              <small class='small-time'>Created <label id="personaCreatedDate"></label></small>
+              <span class="pull-right"><small class='small-time'>Updated <label id="personaLastModifiedDate"></label></small></span>
             </div>
           </div>
       </div>
@@ -107,9 +100,10 @@
               Pick-up Service
               <span class="pull-right">
                 <div class="btn-group" role="group">
-                  <button type="button" class="close fa fa-recycle dropdown-toggle pt-1" style="color:#4ea5e0; background-color:inherit; opacity:1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="editPersona">
+                  <button type="button" class="close fa fa-recycle dropdown-toggle pt-1" 
+                  data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="editPersona">
                   </button>
-                  <div class="dropdown-menu" aria-labelledby="editPersona" style="max-width:70px!important;">
+                  <div class="dropdown-menu" aria-labelledby="editPersona">
                     <a class="dropdown-item" href="#">Edit</a>
                   </div>
                 </div>
@@ -120,66 +114,54 @@
               </div>
             </div>
             <div class="panel-footer">
-              <small>Created: <label id="accountCreatedDate"></label></small>
-              <span class="pull-right"><small>Last updated: <label id="accountLastModifiedDate"></label></small></span>
+              <small class='small-time'>Created <label id="accountCreatedDate"></label></small>
+              <span class="pull-right"><small class='small-time'>Updated <label id="accountLastModifiedDate"></label></small></span>
             </div>
           </div>
       </div>
 
     </div><!--End LEFT-COLUMN-->
-    <div class="col-12 col-xl-5 RIGHT-COLUMN">
+    <div class="col-12 col-xl-5">
 
         <!--Chart Panel-->
         <div class="col-md-12 p-0">
-            <div class="hpanel" id="chart_panel" >
+            <div class="hpanel chart-panel">
               <div class="panel-heading">Donation History
                 <span class="pull-right"><i class="fa fa-history" style="color:#ec8380;"></i></span></div>
-              <div class="panel-body pt-4 pb-0" style="height:175px">
-                <div class="row justify-content-center align-self-center" id="chart-load">
-                    <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
-                </div>
-                <div id="don_chart" class="col" hidden></div>
+              <div class="panel-body pt-4 pb-0">
+                <div class="row loading"><i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i></div>
+                <div class="col chart" id="chart" hidden></div>
               </div>
-							<div class="panel-footer" style="">
+							<div class="panel-footer">
 								<div class="row" id='timeline' hidden>
-							    <div class="col mx-auto text-center">
-									  <small class="gray" hidden>FROM </small><small class="green" id="joined-d"></small>
-										- <small class="green" id="last-gave-d"></small>
+							    <div class="col text-center">
+									  <small hidden>FROM </small><small id="joined-d"></small> - <small id="last-gave-d"></small>
 									</div>
 								</div>
 							</div>
             </div>
         </div>
 
-        <!--Participation Panel-->
-        <div class="col-md-12 p-0" hidden>
-          <div class="hpanel" id="stats_panel">
-            <div class="panel-heading">Statistics<span class="pull-right"><i class="fa fa-percent" style="color:#4ea5e0"></i></span></div>
-            <div class="panel-body p-3">
-              <div class="partic progress-radial progress-80 setsize mx-auto">
-                <div class="overlay setsize"><p>80%</p></div>
-                <div class="clear"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!--Actions Panel-->
         <div class="col-md-12 p-0">
-            <div class="hpanel" id="action_panel" hidden>
+            <div class="hpanel act-panel" hidden>
               <div class="panel-heading">
                 Actions
-                <span class="pull-right"><i class="fa fa-star" style="color:#4ea5e0"></i></span>
+                <span class="pull-right"><i class="fa fa-star"></i></span>
               </div>
               <div class="panel-body text-center">
                 <div class="row justify-content-md-center">
-                  <div class="col-12 text-left mb-3">
-                    <i class="fa fa-truck fa-2x mr-2" style="color:#4ea5e0;"></i>
-                    <a href="#" style="color:#4ea5e0;">Book Pickup</a>
+                  <div class="col-6 text-center">
+                    <button type="button" class="btn btn-success btn-lg book-btn">
+                      <i class="fa fa-truck"></i>
+                      &nbsp;Book Pickup
+                    </button>
                   </div>
-                  <div class="col-12 text-left" id="sms" style="color:#4ea5e0;" hidden>
-                    <i class="fa fa-whatsapp fa-2x mr-2" style="color:#4ea5e0;"></i>
-                    <a href="#" style="color:#4ea5e0;">Send SMS</a>
+                  <div class="col-6 text-center">
+                    <button type="button" class="btn btn-success btn-lg chat-btn">
+                      <i class="fa fa-whatsapp"></i>
+                      &nbsp;Send SMS
+                    </button>
                   </div>
                 </div>
               </div>
@@ -198,6 +180,18 @@
         </div>
       </div>
       <div class="panel-footer">
+      </div>
+    </div>
+  </div>
+  <!--Participation Panel-->
+  <div class="col-md-12 p-0" hidden>
+    <div class="hpanel" id="stats_panel">
+      <div class="panel-heading">Statistics<span class="pull-right"><i class="fa fa-percent" style="color:#4ea5e0"></i></span></div>
+      <div class="panel-body p-3">
+        <div class="partic progress-radial progress-80 setsize mx-auto">
+          <div class="overlay setsize"><p>80%</p></div>
+          <div class="clear"></div>
+        </div>
       </div>
     </div>
   </div>

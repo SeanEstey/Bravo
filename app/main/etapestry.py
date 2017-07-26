@@ -201,6 +201,84 @@ def _cache_accts(accts):
     else:
         log.debug('Cache Accounts: %s/%s up-to-date.', len(accts), len(accts))
 
+#-------------------------------------------------------------------------------
+def cache_recent():
+    """Pull recent Accounts/Gifts from query and merge w/ cached records
+    """
+
+    queries = [
+        {'category':'Bravo', 'query':'Recent Gifts'},
+        {'category':'Bravo', 'query':'Recent Accounts'}
+    ]
+
+    for query in queries:
+        timer = Timer()
+        start = 0
+        count = 500
+        queryEnd = False
+
+        while queryEnd != True:
+            results = get_query(
+                query['query'],
+                category=query['category'],
+                start=start,
+                count=count,
+                cache=True,
+                with_meta=True,
+                timeout=75)
+
+            start += 500
+            if start > results['total']:
+                queryEnd = True
+            if 'total' not in results:
+                queryEnd = True
+                log.error('Cannot determine query size. Breaking loop')
+
+    log.debug('Updated Cache [%s]', timer.clock())
+
+#-------------------------------------------------------------------------------
+def cache_all_gifts():
+    """Cache all Journal Entry Gifts
+    """
+
+    BATCH_SIZE = 500
+    query = {'name':'vec', 'category':'Bravo', 'query':'All Gift Entries'}
+    g.group = query['name']
+
+    #g.group = group['name']
+    timer = Timer()
+    start = 0
+    count = BATCH_SIZE
+    n_total = call(
+        'getQueryResultStats',
+        data={'queryName':query['query'], 'queryCategory':query['category']},
+        timeout=0
+    )['journalEntryCount']
+
+    log.info('Task: Caching gifts [Total: %s]...', n_total)
+
+    while start < n_total:
+        results = get_query(
+            query['query'],
+            category=query['category'],
+            start=start,
+            count=count,
+            cache=True,
+            timeout=75)
+
+        if len(results) == 0:
+            break
+
+        log.debug('Retrieved %s/%s gifts', start+count, n_total)
+
+        start += BATCH_SIZE
+
+        if start + count > n_total:
+            count = start + count - n_total
+
+    log.info('Task: Completed [%s]', timer.clock())
+
+
 ###### Convenience methods #######
 
 #-------------------------------------------------------------------------------

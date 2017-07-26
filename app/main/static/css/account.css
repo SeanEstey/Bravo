@@ -6,7 +6,6 @@
     border: 0;
     margin-bottom: 25px;
 }
-
 .hpanel .panel-heading {
     background-color:white;
     border-bottom: solid 1px #eaeaea;
@@ -15,13 +14,18 @@
     padding: 13px 20px 13px 20px;
     transition: all .3s;
 }
-
+.hpanel .panel-heading .button {
+    background-color: inherit;
+    opacity: 1;
+}
+.hpanel .panel-heading .dropdown-menu {
+    max-width:70px!important;
+}
 .hpanel .panel-body {
     background: #fff;
     padding: 20px;
     position: relative
 }
-
 .hpanel .panel-footer {
     color: inherit;
     background-color: white;
@@ -30,71 +34,78 @@
     font-size: 90%;
     padding: 5px 20px;
 }
+.hpanel .panel-footer .small-time {
+    color: #9f9fa0;
+}
 
 .font-extra-bold {
     font-weight: 700;
     color: #6a6c6f;
 }
 
-/* Profile Panel */
+/* Profile Panel 
+   Primary Color: #20a8d8 (Sky blue)
+   Secondary Color: white 
+*/
 
 .profile {
+    font-family: 'Proxima Nova',sans-serif;
     font-weight:200;
     color: white!important;
 }
 .profile .banner {
     background-color: #20a8d8;
+    color: white;
 }
 .profile h2 {
-    font-family: 'Proxima Nova', sans-serif;
     color:white;
 }
-.profile .icon {
-    color: white;
+.profile #map{
+    height: 250px;
+    border: 1px solid #eaeeea;
 }
-.profile .status {
-    font-family: 'Proxima Nova',sans-serif;
-    font-weight: 200;
-    color: white;
-}
-.profile .showcase {
+.profile .stats-row {
+    height:120px;
     color: #6a6c6f;
+    margin: 0;
+}
+.profile .col-md-4 .centered {
+    margin: auto auto auto auto;
+    text-align: center;
+    padding:0.25rem;
+}
+.profile .divider {
     border-right: 1px solid #eaeaea;
-    font-family: 'Proxima Nova',sans-serif;
 }
-.profile .showcase .sum-num {
-    font-family: 'Proxima Nova',sans-serif;
-    font-weight: normal;
-    font-size: 3.0rem;
-    color: #62cb31;
+.profile .stat-box {
+    padding: 0.25rem;
+    text-align: center;
+    margin: auto auto auto auto;
 }
-.profile .showcase .sum-num-dec {
-    font-size: 0.4em;
-    font-weight: normal;
-    vertical-align: baseline;
-    top: -1.0em;
-    left: -0.8em;
-    position: relative;
-}
-.profile .showcase .spinner {
+.profile .stat-box .loading {
     color: #dfdfdf!important;
 }
-.profile .showcase .content {
-    padding:0.25rem;
-
+.profile .h1-stat {
+    font-weight: normal;
+    font-size: 3.0rem;
+    color: #20a8d8;
+    margin-top: 1rem;
+    margin-bottom: 0rem;
+    text-align:center;
 }
-.profile .gift {
-    color: #517ba3;
+.profile .h1-stat .float {
+    margin-left: 1rem;
+    margin-bottom: 0;
+}
+.profile .h1-stat .decimal {
+    font-size: 0.4em;
+    vertical-align: baseline;
+    top: -1.0em;
+    left: -0.2em;
+    position: relative;
 }
 
-.partic {
-    float:none!important;
-    width:125px;
-    height:125px;
-    background-image:linear-gradient(18deg, #5bc0de 50%, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0)),linear-gradient(270deg, #5bc0de 50%, #f0f0f0 50%, #f0f0f0);
-}
-
-/* Personal Details & Pick-up Service Panels */
+/* Persona/PUS Panels */
 
 .val {
     color: #6a6c6f;
@@ -106,29 +117,72 @@
     color: #6a6c6f!important;
 }
 
-/* Morris.js Bar Chart Panel */
+/* Morris.js Bar Chart Panel 
+   Primary Color: #ec8380 (Cherry)
+   Secondary Color: #fff3f3 (Light pink)
+*/
 
-#chart_panel .panel-body {
+.chart-panel .panel-body {
+    height: 175px;
     background-color: #fff3f3;
 }
-#chart_panel .panel-footer {
+.chart-panel .panel-footer {
     background-color: #fff3f3;
-    color: #a7a8a9;
     font-size: 80%;
     font-weight: 600;
     letter-spacing: 0em;
 }
-#chart_panel .spinner {
+.chart-panel .spinner {
     color: #dfdfdf!important;
 }
-
-#chart_panel #don_chart {
+.chart-panel .chart {
     padding-left:0;
     padding-right:0;
     height:150px;
     width:100%;
     border-bottom: 2px solid #fed6d5;
 }
-#chart_panel #don_chart svg {
+.chart-panel .chart svg {
     top: 1px;
 }
+.chart-panel .loading {
+    -webkit-box-pack: center!important;
+    -webkit-justify-content: center!important;
+    -ms-flex-pack: center!important;
+    justify-content: center!important;
+}
+
+
+/* Actions Panel 
+    
+   Primary Color: #4dbd74 (Apple green)
+
+*/
+
+.act-panel .panel-heading i {
+    color: #f8cb00;
+}
+.book-btn {
+    cursor: pointer;
+    background-color: #4dbd74;
+    color: white;
+    width: 100%;
+}
+.chat-btn {
+    cursor: pointer;
+    background-color: #63c2de;
+
+    border-color:#63c2de; /*#f8cb00;*/
+    color: white;
+    width: 100%;
+}
+.chat-btn:hover {
+    background-color: #299fc1;
+    border-color: #2283a0;
+    width: 100%;
+}
+.chat-btn.disabled {
+    background-color: #c6c1c1;
+    border-color: #c6c1c1;
+}
+

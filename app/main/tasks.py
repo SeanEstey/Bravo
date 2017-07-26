@@ -52,41 +52,48 @@ def receipt_handler(self, form, group, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def update_cache(self, group=None, **rest):
+def account_analytics(self, **rest):
 
-    from .etapestry import get_query
-    queries = [
-        {'category':'Bravo', 'query':'Recent Gifts'},
-        {'category':'Bravo', 'query':'Recent Accounts'}
-    ]
+    log.debug('Task: Acccount Analytics...')
 
+    for org in g.db['groups'].find({'name':'vec'}):
+        g.group = org['name']
+        bulk = g.db['cachedAccounts'].initialize_ordered_bulk_op()
+
+        for acct in g.db['cachedAccounts'].find({'group':g.group}):
+            total = 0
+            n_gifts = 0
+            gifts = g.db['cachedGifts'].find({'gift.accountRef':acct['account']['ref']})
+
+            for gift in gifts:
+                total+= gift['gift'].get('amount',0)
+                n_gifts += 1 if gift['gift']['type'] == 5 else 0
+
+            avg = total/n_gifts if n_gifts > 0 else 0
+
+            bulk.find({'_id':acct['_id']}).upsert().update(
+                {'$set':{'stats':{'total':total, 'nGifts':n_gifts, 'avg':avg}}}
+            )
+
+        results = bulk.execute()
+        log.debug('Task completed')
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def build_gift_cache(self, group=None, **rest):
+
+    from .etapestry import cache_all_gifts
+    g.group = 'vec'
+    cache_all_gifts()
+
+#-------------------------------------------------------------------------------
+@celery.task(bind=True)
+def update_recent_cache(self, group=None, **rest):
+
+    from .etapestry import cache_recent
     for org in g.db['groups'].find({'name':group} if group else {}):
         g.group = org['name']
-
-        for query in queries:
-            timer = Timer()
-            start = 0
-            count = 500
-            queryEnd = False
-
-            while queryEnd != True:
-                results = get_query(
-                    query['query'],
-                    category=query['category'],
-                    start=start,
-                    count=count,
-                    cache=True,
-                    with_meta=True,
-                    timeout=75)
-
-                start += 500
-                if start > results['total']:
-                    queryEnd = True
-                if not results.get('total'):
-                    queryEnd = True
-                    log.error('Cannot determine query size. Breaking loop')
-
-    log.debug('Updated Cache [%s]', timer.clock())
+        cache_recent()
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

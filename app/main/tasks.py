@@ -89,11 +89,28 @@ def build_gift_cache(self, group=None, **rest):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def update_recent_cache(self, group=None, **rest):
+    """Store recently created/updated accounts & gifts.
+    Get/update account geolocation as necessary.
+    """
 
-    from .etapestry import cache_recent
+    from app.main.cache import query_and_store
+    from app.main.donors import update_geolocation
+
+    queries = [
+        {'category':'Bravo', 'name':'Recent Gifts', 'type':'gift'},
+        {'category':'Bravo', 'name':'Recent Accounts', 'type':'account'}
+    ]
+
     for org in g.db['groups'].find({'name':group} if group else {}):
         g.group = org['name']
-        cache_recent()
+
+        for q in queries:
+            results = query_and_store(
+                query=q['name'], category=q['category'], obj_type=q['type'])
+
+            if q['type'] == 'account':
+                for acct in results:
+                    update_geolocation(acct)
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -365,7 +382,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
                 }}},
                 upsert=True)
 
-    update_cache.delay(group=g.group)
+    update_recent_cache.delay(group=g.group)
     """
     # TODO: update cachedAccounts
     for entry in entries:
@@ -566,7 +583,7 @@ def create_accounts(self, accts_json, group=None, **rest):
             extra=log_rec)
 
 
-    update_cache.delay(group=g.group)
+    update_recent_cache.delay(group=g.group)
 
     return 'success'
 

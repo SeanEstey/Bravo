@@ -305,7 +305,11 @@ def get_acct(aid, ref=None, cached=True):
 
 #-------------------------------------------------------------------------------
 def get_journal_entries(acct_id=None, ref=None, start_d=None, end_d=None, types=None, cached=False):
-    """@start_d, @end_d: datetime.date
+    """Journal Entries for single account.
+    eTapestry limits the number of journal entries you can retrieve for a single
+    account to 100/request. The method getNextJournalEntries can be used to
+    retrieve subsequent journal entries for the given account.
+    @start_d, @end_d: datetime.date
     """
 
     if acct_id:

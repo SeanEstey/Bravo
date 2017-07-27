@@ -42,9 +42,12 @@ def get_matches(query):
 #-------------------------------------------------------------------------------
 def get_summary_stats(ref):
 
-    t = Timer()
-    now = datetime.now().strftime('%d/%m/%Y')
+    documents = g.db['cachedGifts'].find({'gift.accountRef':str(ref)})
+    return [doc['gift'] for doc in documents]
 
+    """
+
+    now = datetime.now().strftime('%d/%m/%Y')
     gifts = call(
         'get_journal_entries',
         data={'ref':ref,'startDate':'01/01/2001', 'endDate':now,'types':[5]},
@@ -64,9 +67,6 @@ def get_summary_stats(ref):
 
     return rv
 
-    """
-    gifts = g.db['cachedGifts'].find({'gift.accountRef':str(ref)})
-
     total = 0
     n_gifts = 0
 
@@ -82,7 +82,27 @@ def get_summary_stats(ref):
     """
 
 #-------------------------------------------------------------------------------
-def get_location(acct_id=None):
+def update_geolocation(account):
+    """Store geolocation if not present and update on address change.
+    """
+
+    # TODO: Test if personaLastModifiedDate is instanceof datetime
+
+    document = g.db['cachedAccounts'].find_one(
+        {'group':g.group, 'account.id':account['id']})
+
+    if not document.get('geolocation'):
+        get_location(acct_id=account['id'])
+    else:
+        # formatted_address: "6348 33 Ave NW, Calgary, AB T3B 1K7, Canada"
+        stored_formt_addr = "WRITE ME"
+        acct_formt_addr = "WRITE ME"
+        if stored_formt_addr != acct_formt_addr:
+            # Address change. Update stored geolocation.
+            get_location(acct_id=account['id'])
+
+#-------------------------------------------------------------------------------
+def get_location(acct_id=None, cache=True):
 
     if not acct_id or not re.search(r'\d{1,7}', acct_id):
         raise Exception('Invalid Account.id "%s" for acquiring location.', acct_id)

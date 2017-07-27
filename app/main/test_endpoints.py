@@ -7,6 +7,29 @@ log = logging.getLogger(__name__)
 from . import main
 
 @login_required
+@main.route('/test_store', methods=['GET'])
+def ljksdf():
+    from datetime import datetime, timedelta
+    from app.main.etapestry import get_query, get_gifts
+    from app.main import cache
+
+    #accts = get_query('R1Z',category='BPU: Runs', cache=False)
+    #cache.bulk_store(accts, obj_type='account')
+
+    """
+    gifts = get_gifts(
+        "1353.0.317432159", # Acct #7396
+        datetime.now()-timedelta(days=100),
+        datetime.now(),
+        cache=False)
+    cache.bulk_store(gifts, obj_type='gift')
+    """
+
+    cache.query_and_store(query='R1Z', category='BPU: Runs', obj_type='account')
+
+    return 'ok'
+
+@login_required
 @main.route('/test_analytics', methods=['GET'])
 def _test_analytics():
     from app.main.tasks import account_analytics
@@ -38,6 +61,6 @@ def _test_leaders():
 @main.route('/test_recent', methods=['GET'])
 def _test_ss():
     from app import get_keys
-    from app.main.tasks import update_cache
-    update_cache.delay()
+    from app.main.tasks import update_recent_cache
+    update_recent_cache.delay()
     return 'ok'

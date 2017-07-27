@@ -13,7 +13,6 @@ from app.api.manager import var,func_call,task_call
 
 log = logging.getLogger(__name__)
 
-
 @api.route('/accounts/submit_form', methods=['POST'])
 def _submit_form_signup():
     # TODO: Update URL to /signups/submit on emptiestowinn.com

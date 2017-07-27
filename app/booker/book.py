@@ -81,8 +81,8 @@ def update_dms():
         raise
 
 
-    from app.main.tasks import update_cache
-    update_cache.delay(group=g.group)
+    from app.main.tasks import update_recent_cache
+    update_recent_cache.delay(group=g.group)
 
     return True
 

@@ -11,7 +11,7 @@ worker_concurrency = 3
 
 beat_schedule = {
     'update_cache': {
-        'task': 'app.main.tasks.update_cache',
+        'task': 'app.main.tasks.update_recent_cache',
         'schedule': crontab(minute=0, hour='*/1')
     },
     'backup_mongo': {

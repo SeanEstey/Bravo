@@ -26,10 +26,12 @@ def bulk_store(objects, obj_type=None):
     if len(objects) < 1:
         return
 
-    if(obj_type not in ['gift', 'account']):
-        msg = 'No object type specified in bulk_store'
-        log.error(msg)
-        raise Exception(msg)
+    if obj_type not in ['gift', 'account']:
+        if 'id' in objects[0]:
+            obj_type = 'account'
+        elif 'type' in objects[0]:
+            obj_type = 'gift'
+        log.warning('No obj_type set. Assuming %s from 1st list item.', obj_type)
 
     timer = Timer()
     n_ops = 0
@@ -59,8 +61,7 @@ def bulk_store(objects, obj_type=None):
             n_ops += 1
 
     if n_ops == 0:
-        log.debug('Done. All %s %ss up-to-date [%s]',
-            len(objects), obj_type, timer.clock())
+        log.debug('%s/%s %ss up to date [%s]', len(objects), len(objects), obj_type, timer.clock())
         return
 
     try:

@@ -12,6 +12,7 @@ from datetime import datetime, date
 from app import celery, get_keys
 from app.lib.timer import Timer
 from app.main.maps import geocode
+from app.main.cache import bulk_store
 log = logging.getLogger(__name__)
 
 class EtapError(Exception):
@@ -27,8 +28,7 @@ NAME_FORMAT = {
 #-------------------------------------------------------------------------------
 def call(func, data=None, batch=False, cache=False, timeout=45):
     '''Call eTapestry API function from PHP script.
-    Returns:
-        response['result'] where response={'result':DATA, 'status':STR, 'description':ERROR_MSG}
+    Returns: response['result'] where response={'result':DATA, 'status':STR, 'description':ERROR_MSG}
     '''
 
     auth = get_keys('etapestry')
@@ -55,7 +55,7 @@ def call(func, data=None, batch=False, cache=False, timeout=45):
     results = response['result']
 
     if cache:
-        db_cache(results if type(results) is list else [results])
+        bulk_store(results if type(results) is list else [results])
 
     return results
 
@@ -364,7 +364,7 @@ def get_gifts(ref, start_date, end_date, cache=True):
     })
 
     if cache:
-        db_cache(gifts)
+        bulk_store(gifts, obj_type='gift')
     return gifts
 
 #-------------------------------------------------------------------------------
@@ -383,7 +383,7 @@ def get_query(name, category=None, start=None, count=None, cache=True, with_meta
         raise
 
     if cache and type(rv['data']) is list and len(rv['data']) > 0:
-        db_cache(rv['data'])
+        bulk_store(rv['data'])
 
     if with_meta:
         return rv

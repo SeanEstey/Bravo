@@ -53,7 +53,7 @@ function getAcct(acct_id) {
                 return displayError('Account ID "'+acct_id+'" not found.', response);
             gAcct = response['data'];
             api_call(
-                'accounts/summary_stats',
+                'accounts/gift_history',
                 data={'ref':gAcct['ref']},
                 displayDonationData);
             displayAcctData(gAcct);

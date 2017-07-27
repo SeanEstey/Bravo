@@ -82,9 +82,8 @@ def account_analytics(self, **rest):
 @celery.task(bind=True)
 def build_gift_cache(self, group=None, **rest):
 
-    from .etapestry import cache_all_gifts
-    g.group = 'vec'
-    cache_all_gifts()
+    pass
+
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -187,7 +186,7 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
         acct = cache['account']
         geolocation = cache.get('geolocation')
 
-        if not geolocation:
+        if not geolocation or not geolocation.get('geometry'):
             n_no_geo +=1
             continue
 

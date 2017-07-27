@@ -12,10 +12,8 @@ def ljksdf():
     from datetime import datetime, timedelta
     from app.main.etapestry import get_query, get_gifts
     from app.main import cache
-
     #accts = get_query('R1Z',category='BPU: Runs', cache=False)
     #cache.bulk_store(accts, obj_type='account')
-
     """
     gifts = get_gifts(
         "1353.0.317432159", # Acct #7396
@@ -24,10 +22,29 @@ def ljksdf():
         cache=False)
     cache.bulk_store(gifts, obj_type='gift')
     """
-
     cache.query_and_store(query='R1Z', category='BPU: Runs', obj_type='account')
-
     return 'ok'
+
+@login_required
+@main.route('/test_update_recent_cache', methods=['GET'])
+def lsjdfljkd():
+    from app.main.tasks import update_recent_cache
+    update_recent_cache.delay(group=g.group)
+    return 'ok'
+
+@login_required
+@main.route('/test_fix_loc', methods=['GET'])
+def jlkdiw():
+    documents = g.db['cachedAccounts'].find(
+        {'group':'vec', 'geolocation':{'$exists':True}})
+
+    for doc in documents:
+        if not doc['geolocation']:
+            continue
+        g.db['cachedAccounts'].update_one(
+            {'_id':doc['_id']},
+            {'$set':{'geolocation.acct_address':doc['account']['address']}})
+        print 'updated'
 
 @login_required
 @main.route('/test_analytics', methods=['GET'])

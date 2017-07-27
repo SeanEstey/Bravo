@@ -40,46 +40,12 @@ def get_matches(query):
     return list(matches)
 
 #-------------------------------------------------------------------------------
-def get_summary_stats(ref):
+def gift_history(ref):
 
-    documents = g.db['cachedGifts'].find({'gift.accountRef':str(ref)})
+    documents = g.db['cachedGifts'].find(
+        {'group':g.group, 'gift.accountRef':str(ref), 'gift.type':5}
+    ).sort('gift.date',-1)
     return [doc['gift'] for doc in documents]
-
-    """
-
-    now = datetime.now().strftime('%d/%m/%Y')
-    gifts = call(
-        'get_journal_entries',
-        data={'ref':ref,'startDate':'01/01/2001', 'endDate':now,'types':[5]},
-        cache=True)
-
-    # 'date' will be in dd/mm/yyyy format
-    rv = []
-    for gift in gifts:
-        rv.append({
-            'date': gift['date'],
-            'amount': gift['amount']
-        })
-
-    log.debug('Queried %s gifts [%s]', len(gifts), t.clock(t='ms'))
-
-    # Can handle empty journal history result???
-
-    return rv
-
-    total = 0
-    n_gifts = 0
-
-
-    if n_gifts > 0:
-        avg = total/n_gifts
-    else:
-        avg = 0
-
-    log.debug('%s gifts cached for ref=%s. total=%s.', n_gifts, ref, total)
-
-    return {'total':total, 'average':avg, 'n_gifts':n_gifts}
-    """
 
 #-------------------------------------------------------------------------------
 def update_geolocation(account):
@@ -91,15 +57,38 @@ def update_geolocation(account):
     document = g.db['cachedAccounts'].find_one(
         {'group':g.group, 'account.id':account['id']})
 
+    update = False
+
     if not document.get('geolocation'):
-        get_location(acct_id=account['id'])
+        update = True
     else:
-        # formatted_address: "6348 33 Ave NW, Calgary, AB T3B 1K7, Canada"
-        stored_formt_addr = "WRITE ME"
-        acct_formt_addr = "WRITE ME"
-        if stored_formt_addr != acct_formt_addr:
-            # Address change. Update stored geolocation.
-            get_location(acct_id=account['id'])
+        geo_addr = document['geolocation'].get('acct_address')
+        if geo_addr != account['address']:
+            log.debug('Address change. Geo addr=%s, Acct addr=%s',
+                geo_addr, account['address'])
+            update = True
+
+    if not update:
+        return
+
+    faddr = ", ".join([account.get('address',''), account.get('city',''), account.get('state','')])
+
+    try:
+        geolocation = geocode(faddr, get_keys('google')['geocode']['api_key'])[0]
+    except Exception as e:
+        log.exception('Failed to geolocate Account #%s at "%s".', account['id'], account['address'])
+        geolocation = {'Desc':'Geolocation not found for %s.' % account['address']}
+    else:
+        geolocation['acct_address'] = account.get('address')
+
+        g.db['cachedAccounts'].update_one(
+          {'group':g.group, 'account.id':account['id']},
+          {'$set': {'group':g.group, 'account':to_datetime(account), 'geolocation':geolocation}},
+          upsert=True)
+
+        log.debug('Geolocated Acct #%s', account['id'])
+
+        return geolocation
 
 #-------------------------------------------------------------------------------
 def get_location(acct_id=None, cache=True):
@@ -107,37 +96,17 @@ def get_location(acct_id=None, cache=True):
     if not acct_id or not re.search(r'\d{1,7}', acct_id):
         raise Exception('Invalid Account.id "%s" for acquiring location.', acct_id)
 
-    cached_doc = g.db['cachedAccounts'].find_one({'group':g.group,'account.id':int(acct_id)})
+    document = g.db['cachedAccounts'].find_one({'group':g.group,'account.id':int(acct_id)})
 
-    if cached_doc:
-        if cached_doc.get('geolocation'):
-            log.debug('Returning geolocation of cached account.')
-            return cached_doc['geolocation']
-        else:
-            acct = cached_doc['account']
+    if document and document.get('geolocation'):
+        return document['geolocation']
+
+    if document and document.get('account'):
+        acct = document['account']
     else:
-        # Pull Account from etapestry (will raise Exception if ID invalid)
         acct = get_acct(acct_id, cached=False)
 
-    # We have Account (cached or otherwise) but missing geolocation.
-    # Acquire it, cache it, return it.
-
-    try:
-        geolocation = geocode(
-            ", ".join([acct.get('address',''), acct.get('city',''), acct.get('state','')]),
-            get_keys('google')['geocode']['api_key']
-        )[0]
-    except Exception as e:
-        log.exception('Failed to geolocate Account #%s at "%s".', acct_id, acct['address'])
-        geolocation = {'Desc':'Geolocation not found for %s.' % acct['address']}
-    finally:
-        g.db['cachedAccounts'].update_one(
-          {'group':g.group, 'account.id':acct['id']},
-          {'$set': {'group':g.group, 'account':to_datetime(acct), 'geolocation':geolocation}},
-          upsert=True)
-
-        #log.debug('Geolocated and cached account.')
-        return geolocation
+    return update_geolocation(acct)
 
 #-------------------------------------------------------------------------------
 def get_next_pickup(email):

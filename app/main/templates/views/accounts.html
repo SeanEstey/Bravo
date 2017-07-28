@@ -79,8 +79,7 @@
             <div class="panel-heading">
               Personal Details
               <span class="pull-right">
-                <button type="button" class="close fa fa-address-card-o dropdown-toggle pt-1">
-                </button>
+                <button type="button" class="btn btn-outline-secondary fa fa-edit" id="info-edit"></button>
               </span>
             </div>
             <div class="panel-body" id="contact">
@@ -89,6 +88,11 @@
             <div class="panel-footer">
               <small class='small-time'>Created <label id="personaCreatedDate"></label></small>
               <span class="pull-right"><small class='small-time'>Updated <label id="personaLastModifiedDate"></label></small></span>
+              <div class="col offset-md-10 pb-3" id="save" hidden>
+                <button type="button" class="btn btn-primary">
+                  <i class="fa fa-floppy-o mr-2"></i>Save
+                </button>
+              </div>
             </div>
           </div>
       </div>
@@ -99,14 +103,7 @@
             <div class="panel-heading" style="">
               Pick-up Service
               <span class="pull-right">
-                <div class="btn-group" role="group">
-                  <button type="button" class="close fa fa-recycle dropdown-toggle pt-1" 
-                  data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="editPersona">
-                  </button>
-                  <div class="dropdown-menu" aria-labelledby="editPersona">
-                    <a class="dropdown-item" href="#">Edit</a>
-                  </div>
-                </div>
+                <button type="button" class="btn btn-outline-secondary fa fa-edit" id="pus-edit">
               </span>
             </div>
             <div class="panel-body" id="custom">
@@ -119,6 +116,11 @@
                 <small class='small-time'>Updated <label id="accountLastModifiedDate"></label></small>
                 <button type="button" class="btn btn-outline-secondary btn-sm fa fa-refresh refresh-btn"></button>
               </span>
+              <div class="col offset-md-10 pb-3" id="save" hidden>
+                <button type="button" class="btn btn-primary">
+                  <i class="fa fa-floppy-o mr-2"></i>Save
+                </button>
+              </div>
             </div>
           </div>
       </div>

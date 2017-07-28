@@ -31,15 +31,40 @@ function accountsInit() {
     $('.book-btn').click(function(){
        window.location = location.origin + '/booker?aid='+ gAcctId; 
     });
+
+    $('#pus-edit').click(editMode);
+    $('#info-edit').click(editMode);
 }
 
+//---------------------------------------------------------------------
+function editMode(e) {
+
+    if($(this).prop('id') == 'pus-edit')
+        var $pbody = $('#custom');
+    else if($(this).prop('id') == 'info-edit')
+        var $pbody = $('#contact');
+
+    $pbody.find('label.val').each(function() {
+        var $par_div = $(this).parent();
+        var text = $(this).text();
+        var width = $(this).width()*.90;
+        $par_div.empty();
+        $par_div.append("<input type='text' class='form-control' value='" + text + "'>");
+    });
+
+    $pbody.parent().find('.panel-footer').children().each(function(){
+        console.log($(this));
+        $(this).prop('hidden',true)
+    });
+    $pbody.parent().find('#save').prop('hidden',false);
+}
 
 //---------------------------------------------------------------------
 function displaySchedule(response) {
 
     var dates = response['data'];
 
-    for d in dates {
+    for(d in dates) {
         // Dates are in UTC. Build Date obj using UTC values
         var date = new Date(
             d.getUTCFullYear(),

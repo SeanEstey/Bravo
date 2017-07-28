@@ -6,6 +6,24 @@ from flask_login import login_required
 log = logging.getLogger(__name__)
 from . import main
 
+
+@login_required
+@main.route('/test_sched', methods=['GET'])
+def _djkf39():
+    import json
+    from app.main.donors import get, schedule_dates
+    from app.lib.dt import to_utc
+    acct = get(5075)
+    dates = schedule_dates(acct)
+    utc = to_utc(obj=dates)
+
+    g.db['cachedAccounts'].update_one({'account.id':5075},{'$set':{'schedule':utc}})
+
+    stored = g.db['cachedAccounts'].find_one({'account.id':5075})['schedule']
+
+    from bson.json_util import dumps
+    return dumps(stored)
+
 @login_required
 @main.route('/test_store', methods=['GET'])
 def ljksdf():

@@ -100,6 +100,9 @@ def update_recent_cache(self, group=None, **rest):
         {'category':'Bravo', 'name':'Recent Accounts', 'type':'account'}
     ]
 
+    timer = Timer()
+    log.debug('Task: caching recent changes...')
+
     for org in g.db['groups'].find({'name':group} if group else {}):
         g.group = org['name']
 
@@ -110,6 +113,8 @@ def update_recent_cache(self, group=None, **rest):
             if q['type'] == 'account':
                 for acct in results:
                     update_geolocation(acct)
+
+    log.debug('Task: completed [%s]', timer.clock())
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

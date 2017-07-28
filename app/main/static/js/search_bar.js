@@ -7,7 +7,7 @@ query_val = "";
 //------------------------------------------------------------------------------
 function initSearchBar() {
 
-    $('.dropdown-menu').width($('#search_input').width());
+    //    $('.dropdown-menu').width($('#search_input').width());
 
     $('#search_input').keypress(function (e) {
         if (e.which == 13) {
@@ -68,10 +68,25 @@ function showAutocompleteMatches(query) {
             $('.dropdown-menu').empty();
 
             for(var i=0; i<dd_matches.length; i++) {
-                var account = dd_matches[i]['account'];
-                var href = location.origin + '/accounts?aid='+account['id'];
-                var $a = $('<a class="dropdown-item" id="'+i+'" href="'+href+'">'+account['name']+'</a>');
-                $('.dropdown-menu').append($a);
+                var acct = dd_matches[i]['account'];
+                var email = acct['email'] ? format("<%s>",acct['email']) : '';
+                var state = getDV('Status', acct);
+
+                var $result = $('#search-item').clone()
+                    .prop('id',String(i))
+                    .prop('href', format('%s/accounts?aid=%s', location.origin, acct['id']))
+                    .prop('hidden',false);
+
+                $result.find('#sr-name').text(acct['name']);
+                $result.find('#sr-email').text(email);
+                $result.find('#sr-addr').text(acct['address'] || '');
+
+                if(!state || state == 'Cancelled')
+                    $result.find('#sr-status').addClass('text-danger');
+                else
+                    $result.find('#sr-status').addClass('text-success');
+                
+                $('.dropdown-menu').append($result);
             }
         }
     );

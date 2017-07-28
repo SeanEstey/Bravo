@@ -154,9 +154,7 @@
 
 
 /* Actions Panel 
-    
    Primary Color: #4dbd74 (Apple green)
-
 */
 
 .act-panel .panel-heading i {
@@ -171,7 +169,6 @@
 .chat-btn {
     cursor: pointer;
     background-color: #63c2de;
-
     border-color:#63c2de; /*#f8cb00;*/
     color: white;
     width: 100%;
@@ -186,3 +183,10 @@
     border-color: #c6c1c1;
 }
 
+
+/* Misc */
+
+.refresh-btn {
+    color: #6a6c6f;
+    border: none;
+}

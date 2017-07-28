@@ -65,7 +65,8 @@ def _find_acct():
 @login_required
 def _get_accts():
     from app.main import donors
-    return func_call(donors.get, var('acct_id'))
+    log.debug('cached=%s', var('cached'))
+    return func_call(donors.get, var('acct_id'), cached=var('cached'))
 
 @api.route('/accounts/get/autocomplete', methods=['POST'])
 @login_required

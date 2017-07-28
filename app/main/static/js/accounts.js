@@ -33,6 +33,26 @@ function accountsInit() {
     });
 }
 
+
+//---------------------------------------------------------------------
+function displaySchedule(response) {
+
+    var dates = response['data'];
+
+    for d in dates {
+        // Dates are in UTC. Build Date obj using UTC values
+        var date = new Date(
+            d.getUTCFullYear(),
+            d.getUTCMonth(),
+            d.getUTCDate(),
+            d.getUTCHours(),
+            d.getUTCMinutes(),
+            d.getUTCSeconds()
+        );
+        console.log(date);
+    }
+}
+
 //---------------------------------------------------------------------
 function getAcct(acct_id) {
     /* Get account data, geolocation, and gift history.
@@ -40,6 +60,22 @@ function getAcct(acct_id) {
        rest from eTapestry.
     */
 
+    $('.refresh-btn').click(function() {
+
+        api_call(
+            'accounts/get',
+            data={'acct_id':gAcctId,'cached':false},
+            function(response) {
+                displayAcctData(response['data']);
+            }
+        );
+    });
+
+    /*api_call(
+        'accounts/get/schedule',
+        data={'acct_id':acct_id},
+        displaySchedule);
+    */
     api_call(
         'accounts/get/location',
         data={'acct_id':acct_id},
@@ -52,11 +88,15 @@ function getAcct(acct_id) {
             if(response['status'] != 'success')
                 return displayError('Account ID "'+acct_id+'" not found.', response);
             gAcct = response['data'];
+
             api_call(
                 'accounts/gift_history',
                 data={'ref':gAcct['ref']},
                 displayDonationData);
+
+
             displayAcctData(gAcct);
+
         }
     );
 }

@@ -31,7 +31,7 @@ def bulk_store(objects, obj_type=None):
             obj_type = 'account'
         elif 'type' in objects[0]:
             obj_type = 'gift'
-        log.warning('No obj_type set. Assuming %s from 1st list item.', obj_type)
+        print 'No obj_type set. Assuming %s from 1st list item.' % obj_type
 
     timer = Timer()
     n_ops = 0
@@ -48,7 +48,6 @@ def bulk_store(objects, obj_type=None):
         index = 'gift.ref'
 
     bulk = g.db[collection].initialize_ordered_bulk_op()
-    log.debug('bulk_store objects=%s', len(objects))
 
     for obj in objects:
         obj = to_datetime(obj)

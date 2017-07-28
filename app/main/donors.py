@@ -1,26 +1,27 @@
 # app.main.donors
 
 import json, logging, math, re
-from datetime import date, timedelta, datetime
+from datetime import date, time, timedelta, datetime
 from dateutil.parser import parse
 from flask import g, request
 from app import get_keys
-from app.lib import html, mailgun
+from app.lib import html, mailgun, gcal
 from app.lib.timer import Timer
 from app.lib.dt import ddmmyyyy_to_date as to_date
-from app.main.etapestry import EtapError, to_datetime, mod_acct, get_acct, get_udf, call
+from app.main.etapestry import EtapError, mod_acct, get_acct, get_udf, call
+from app.main.cache import to_datetime
 from app.main.maps import geocode
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-def get(aid, ref=None, sync_ytd_gifts=False):
+def get(aid, ref=None, sync_ytd_gifts=False, cached=True):
 
     if sync_ytd_gifts and ref:
         from app.main.tasks import _get_gifts
         now = date.today()
         rv = _get_gifts.delay(ref, date(now.year,1,1), date(now.year,12,31))
 
-    return get_acct(aid)
+    return get_acct(aid, cached=cached)
 
 #-------------------------------------------------------------------------------
 def get_matches(query):
@@ -40,6 +41,30 @@ def get_matches(query):
     return list(matches)
 
 #-------------------------------------------------------------------------------
+def schedule_dates(acct):
+
+    from app.main.parser import get_block
+
+    service = gcal.gauth(get_keys('google')['oauth'])
+    dates = []
+    blocks = get_udf('Block', acct).split(", ")
+
+    for cal_id in get_keys('cal_ids').values():
+        events = gcal.get_events(
+            service,
+            cal_id,
+            datetime.combine(date.today(),time()),
+            datetime.combine(date.today()+timedelta(weeks=52),time()))
+
+        for item in events:
+            if get_block(item['summary']) in blocks:
+                parts = item['start']['date'].split('-')
+                dt = datetime(int(parts[0]),int(parts[1]),int(parts[2]))
+                dates.append(dt)
+
+    return dates
+
+#-------------------------------------------------------------------------------
 def gift_history(ref):
 
     documents = g.db['cachedGifts'].find(
@@ -48,47 +73,46 @@ def gift_history(ref):
     return [doc['gift'] for doc in documents]
 
 #-------------------------------------------------------------------------------
-def update_geolocation(account):
+def update_geolocation(acct):
     """Store geolocation if not present and update on address change.
     """
 
-    # TODO: Test if personaLastModifiedDate is instanceof datetime
-
-    document = g.db['cachedAccounts'].find_one(
-        {'group':g.group, 'account.id':account['id']})
-
     update = False
+    query = {'group':g.group, 'account.id':acct['id']}
+    document = g.db['cachedAccounts'].find_one(query)
 
     if not document.get('geolocation'):
         update = True
     else:
         geo_addr = document['geolocation'].get('acct_address')
-        if geo_addr != account['address']:
+
+        if not geo_addr:
+            return
+
+        if geo_addr != acct['address']:
             log.debug('Address change. Geo addr=%s, Acct addr=%s',
-                geo_addr, account['address'])
+                geo_addr, acct['address'])
             update = True
 
     if not update:
         return
 
-    faddr = ", ".join([account.get('address',''), account.get('city',''), account.get('state','')])
+    faddr = ", ".join([acct.get('address',''), acct.get('city',''), acct.get('state','')])
 
     try:
-        geolocation = geocode(faddr, get_keys('google')['geocode']['api_key'])[0]
+        geoloc = geocode(faddr, get_keys('google')['geocode']['api_key'])[0]
     except Exception as e:
-        log.exception('Failed to geolocate Account #%s at "%s".', account['id'], account['address'])
-        geolocation = {'Desc':'Geolocation not found for %s.' % account['address']}
+        log.exception('Geolocate failed. Addr=%s, Acct=%s', acct['address'], acct['id'])
+        geoloc = {
+            'description': 'Geolocation not found',
+            'address': acct.get('address')}
     else:
-        geolocation['acct_address'] = account.get('address')
+        geoloc['acct_address'] = acct.get('address')
 
-        g.db['cachedAccounts'].update_one(
-          {'group':g.group, 'account.id':account['id']},
-          {'$set': {'group':g.group, 'account':to_datetime(account), 'geolocation':geolocation}},
-          upsert=True)
+    g.db['cachedAccounts'].update_one(query, {'$set':{'geolocation':geoloc}},
+      upsert=True)
 
-        log.debug('Geolocated Acct #%s', account['id'])
-
-        return geolocation
+    return geoloc
 
 #-------------------------------------------------------------------------------
 def get_location(acct_id=None, cache=True):

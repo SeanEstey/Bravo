@@ -94,20 +94,28 @@ def _do_receipts():
     from app.main.tasks import send_receipts
     return task_call(send_receipts, var('entries'))
 
-@api.route('/account/update', methods=['POST'])
+@api.route('/accounts/update', methods=['POST'])
 @login_required
 def _update_acct():
-    """Called from BPU site (members action)"""
-    from app.main.etapestry import call
-    return func_call(call, 'modify_acct', var('acct_id'), var('udf'), var('persona'))
+    from app.main.etapestry import mod_acct
+    from json import loads
+    acct_id = var('acct_id')
+    persona = loads(var('persona')) if var('persona') else {}
+    udf = loads(var('udf')) if var('udf') else {}
 
-@api.route('/accounts/update', methods=['POST'])
+    log.debug('acct_id=%s, udf=%s, persona=%s', acct_id, udf, persona)
+
+    return func_call(mod_acct, acct_id, udf=udf, persona=persona)
+
+
+"""@api.route('/accounts/update', methods=['POST'])
 @login_required
 def _update_accts():
     from app.main.tasks import process_entries
     return task_call(
         process_entries,
         json.loads(var('accts')), wks=var('wks'), col=var('col'))
+"""
 
 @api.route('/accounts/preview_receipt', methods=['POST'])
 @login_required

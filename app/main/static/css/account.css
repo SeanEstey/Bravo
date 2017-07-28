@@ -115,25 +115,24 @@
 #contact_panel .panel-heading, #custom_panel .panel-heading {
     color: #20a8d8!important;
 }
-
+#edit-confirm button {
+    cursor: pointer;
+}
 .panel-heading button {
     color: #20a8d8!important;
     border: none;
     cursor: pointer;
     background-color: white;
 }
-
 .panel-heading button:hover {
     /*color:#4dbd74!important;*/
     background-color:white;
     font-weight: 700;
 }
-
 .val {
     color: #6a6c6f;
     font-weight:200;
 }
-
 .field {
     font-weight:400;
     color: #6a6c6f!important;

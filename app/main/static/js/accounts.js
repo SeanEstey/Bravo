@@ -34,29 +34,61 @@ function accountsInit() {
 
     $('#pus-edit').click(editMode);
     $('#info-edit').click(editMode);
+    $('#edit-confirm button.btn-success').click(submitEdits);
 }
 
 //---------------------------------------------------------------------
-function editMode(e) {
+function submitEdits() {
+    
+    var $form = $(this).closest('form');
+    var values = {};
+
+    $.each($form.serializeArray(), function(_, kv) {
+      values[kv.name] = kv.value;
+    }); 
+
+    var data = {
+        'acct_id':Number(gAcctId)
+    };
+
+    if($form.closest('.hpanel').prop('id') == 'custom_panel')
+        data['udf'] = JSON.stringify(values);
+    else
+        data['persona'] = JSON.stringify(values);
+
+    console.log(data);
+
+    api_call(
+        'accounts/update',
+        data=data,
+        function(response) {
+            if(response['status'] == 'success')
+                window.location = window.location;
+        });
+}
+
+
+//---------------------------------------------------------------------
+function editMode() {
 
     if($(this).prop('id') == 'pus-edit')
-        var $pbody = $('#custom');
+        var $panel = $('#custom_panel');
     else if($(this).prop('id') == 'info-edit')
-        var $pbody = $('#contact');
+        var $panel = $('#contact_panel');
 
-    $pbody.find('label.val').each(function() {
+    $panel.find('.panel-footer').prop('hidden', true);
+    $panel.find('#edit-confirm div').prop('hidden',false);
+
+    $panel.find('.panel-body label.val').each(function() {
         var $par_div = $(this).parent();
         var text = $(this).text();
         var width = $(this).width()*.90;
+        var id = $(this).prop('id');
         $par_div.empty();
-        $par_div.append("<input type='text' class='form-control' value='" + text + "'>");
+        $par_div.append(
+            format("<input type='text' name='%s' class='form-control mt-1 mb-1' value='%s'>", id, text)
+        ); 
     });
-
-    $pbody.parent().find('.panel-footer').children().each(function(){
-        console.log($(this));
-        $(this).prop('hidden',true)
-    });
-    $pbody.parent().find('#save').prop('hidden',false);
 }
 
 //---------------------------------------------------------------------
@@ -119,9 +151,7 @@ function getAcct(acct_id) {
                 data={'ref':gAcct['ref']},
                 displayDonationData);
 
-
             displayAcctData(gAcct);
-
         }
     );
 }
@@ -238,7 +268,7 @@ function displayAcctData(acct) {
     for(var i in details_flds) {
         var f = details_flds[i];
         if(acct.hasOwnProperty(f))
-            addField(f.toTitleCase(), acct[f], $contact);
+            addField(f, acct[f], $contact);
     }
     if(getPhone('Voice',acct))
         addField('Landline', getPhone('Voice',acct), $contact);
@@ -340,7 +370,7 @@ function displayAcctData(acct) {
 function addField(name, value, $container, fullWidth=false) {
 
     var $lblDiv = $("<div class='pr-0 text-left'><label class='field align-top'></label></div>");
-    var $valDiv = $("<div class='text-left'><label class='val align-top'></label></div>");
+    var $valDiv = $("<div class='text-left'><label class='val align-top' id='"+name+"'></label></div>");
 
     if(fullWidth) {
         var $smallContainer = $("<div class='col-12 pt-3'></div>");
@@ -355,16 +385,72 @@ function addField(name, value, $container, fullWidth=false) {
         $valDiv.addClass('col-4');
     }
 
-    $lblDiv.find('label').html(name+': ');
+    $lblDiv.find('label').html(name.toTitleCase()+': ');
 
-    if(typeof value == "string")
-        $valDiv.find('label').html(value.replace(/\\n/g, '  ').replace(/\*/g, ''));
-    else if(value instanceof Date)
-        $valDiv.find('label').html(value.strftime("%b %d, %Y"));
+    //if(typeof value == "string")
+    //    $valDiv.find('label').html(value.replace(/\\n/g, '  ').replace(/\*/g, ''));
+    //else if(value instanceof Date)
+    //    $valDiv.find('label').html(value.strftime("%b %d, %Y"));
+    if(value instanceof Date)
+        $valDiv.find('label').html(value.strftime("%d/%m/%Y"));
     else
         $valDiv.find('label').html(value);
 
     $container.append($lblDiv).append($valDiv);
+}
+
+//------------------------------------------------------------------------------
+function toRelativeDateStr(date) {
+
+    var now = new Date();
+    var diff_ms = now.getTime() - date.getTime();
+    
+    var min_ms = 1000 * 60;
+    var hour_ms = 1000 * 3600;
+    var day_ms = hour_ms * 24;
+    var week_ms = day_ms * 7;
+    var month_ms = day_ms * 30;
+    var year_ms = day_ms * 365;
+
+    if(diff_ms >= year_ms) {
+        // Year(s) span
+        var nYears = Number((diff_ms/year_ms).toFixed(0));
+        return format("%s year%s ago", nYears, nYears > 1 ? 's' : '');
+    }
+
+    if(diff_ms >= month_ms) {
+        // Month(s) span
+        var nMonths = Number((diff_ms/month_ms).toFixed(0));
+        return format("%s month%s ago", nMonths, nMonths > 1 ? 's' : '');
+    }
+
+    if(diff_ms >= week_ms) {
+        // Week(s) span
+        var nWeeks = Number((diff_ms/week_ms).toFixed(0));
+        return format("%s week%s ago", nWeeks, nWeeks > 1 ? 's' : '');
+    }
+    
+    if(diff_ms >= day_ms) {
+        // Day(s) span
+        var nDays = Number((diff_ms/day_ms).toFixed(0));
+        return format("%s day%s ago", nDays, nDays > 1 ? 's' : '');
+    }
+
+    if(diff_ms >= hour_ms) {
+        // Hour(s) span
+        var nHours = Number((diff_ms/hour_ms).toFixed(0));
+        return format("%s hour%s ago", nHours, nHours > 1 ? 's' : '');
+    }
+
+    if(diff_ms >= min_ms) {
+        // Minute(s) span
+        var nMin = Number((diff_ms/min_ms).toFixed(0));
+        return format("%s minute%s ago", nMin, nMin > 1 ? 's' : '');
+    }
+
+    // Second(s) span
+    var nSec = Number((diff_ms/1000).toFixed(0));
+    return format("%s second%s ago", nSec, nSec > 1 ? 's' : '');
 }
 
 /* Google Maps Styling */
@@ -531,66 +617,4 @@ map_style = [
   }
 ];
 
-//------------------------------------------------------------------------------
-function addSocketIOHandlers() {
 
-    var socketio_url = 'https://' + document.domain + ':' + location.port;
-    var socket = io.connect(socketio_url);
-    socket.on('connect', function(data){
-        console.log('Socket.IO connected.');
-    });
-}
-
-//------------------------------------------------------------------------------
-function toRelativeDateStr(date) {
-
-    var now = new Date();
-    var diff_ms = now.getTime() - date.getTime();
-    
-    var min_ms = 1000 * 60;
-    var hour_ms = 1000 * 3600;
-    var day_ms = hour_ms * 24;
-    var week_ms = day_ms * 7;
-    var month_ms = day_ms * 30;
-    var year_ms = day_ms * 365;
-
-    if(diff_ms >= year_ms) {
-        // Year(s) span
-        var nYears = Number((diff_ms/year_ms).toFixed(0));
-        return format("%s year%s ago", nYears, nYears > 1 ? 's' : '');
-    }
-
-    if(diff_ms >= month_ms) {
-        // Month(s) span
-        var nMonths = Number((diff_ms/month_ms).toFixed(0));
-        return format("%s month%s ago", nMonths, nMonths > 1 ? 's' : '');
-    }
-
-    if(diff_ms >= week_ms) {
-        // Week(s) span
-        var nWeeks = Number((diff_ms/week_ms).toFixed(0));
-        return format("%s week%s ago", nWeeks, nWeeks > 1 ? 's' : '');
-    }
-    
-    if(diff_ms >= day_ms) {
-        // Day(s) span
-        var nDays = Number((diff_ms/day_ms).toFixed(0));
-        return format("%s day%s ago", nDays, nDays > 1 ? 's' : '');
-    }
-
-    if(diff_ms >= hour_ms) {
-        // Hour(s) span
-        var nHours = Number((diff_ms/hour_ms).toFixed(0));
-        return format("%s hour%s ago", nHours, nHours > 1 ? 's' : '');
-    }
-
-    if(diff_ms >= min_ms) {
-        // Minute(s) span
-        var nMin = Number((diff_ms/min_ms).toFixed(0));
-        return format("%s minute%s ago", nMin, nMin > 1 ? 's' : '');
-    }
-
-    // Second(s) span
-    var nSec = Number((diff_ms/1000).toFixed(0));
-    return format("%s second%s ago", nSec, nSec > 1 ? 's' : '');
-}

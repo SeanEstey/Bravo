@@ -148,9 +148,10 @@ def ytd_gifts(ref, year):
 
     gifts = g.db['cachedGifts'].find({
         'group':g.group,
+        'gift.type': 5,
         'gift.accountRef':ref,
         'gift.date': {'$gte':jan_1, '$lte':dec_31}
-    })
+    }).sort('gift.date',-1).limit(10)
 
     log.debug('Retrieved %s cached Gifts', gifts.count())
     return list(gifts)

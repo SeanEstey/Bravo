@@ -1,15 +1,20 @@
 /* alice.js */
 
+chatData = null;
+
 //------------------------------------------------------------------------------
 function initAlicePane() {
     /* Setup event handlers and pull chatlog data */
 
     $('#chat_modal').find('#send_sms').click(sendMessage);
-    api_call('alice/chatlogs', data={}, renderChatCards);
+
+    api_call('alice/chatlogs', data={}, function(response) {
+        chatData = response['data'];
+        renderChatCards(chatData);
+    });
 
     $modal = $('#chat_modal');
     $modal.find('input[name="mute"]').click(function() {
-        
         api_call(
             'alice/toggle_reply_mute',
             data = {
@@ -21,6 +26,36 @@ function initAlicePane() {
             });
     });
 
+    $('#fltr-all').click(function() {
+        renderChatCards(filterData('all'));
+    });
+
+    $('#fltr-unreg').click(function() {
+        renderChatCards(filterData('unregistered'));
+    });
+
+    $('#fltr-unread').click(function() {
+        renderChatCards(filterData('unread'));
+    });
+}
+
+//------------------------------------------------------------------------------
+function filterData(view) {
+
+    console.log('chatData.length='+chatData.length);
+    var data = [];
+
+    for(var i=0; i<chatData.length; i++) {
+        var chat = chatData[i];
+
+        if(view == 'unregistered') {
+            if(chat['account'])
+                continue;
+        }
+
+        data.push(chat);
+    }
+    return data;
 }
 
 //------------------------------------------------------------------------------
@@ -50,43 +85,57 @@ function sendMessage(e) {
 }
 
 //------------------------------------------------------------------------------
-function renderChatCards(resp){
+function renderChatCards(data){
     /* Render list-items displaying abbreviated user chat data.
      * Clicking on list-items shows a Modal dialog with full chat data.
      */
 
-    console.log("%s chats (%s)", resp['data'].length, resp['status']);
     alice_pane_init = true;
     $('#convo_list').empty();
+    var n_cols = 3;
 
-    for(var i=0; i<resp['data'].length; i++) {
-        var chat = resp['data'][i];
-        if(chat['messages'].length < 2)
-            continue;
+    console.log("%s chats", data.length);
 
-        var title = chat['account'] ? chat['account']['name'] : 'Unregistered User (' + chat['mobile'] + ')';
-        var id = "item_" + String(i);
-        var last_msg_text = '';
-        var last_msg_date = '';
+    for(var i=0; i<data.length; i+=n_cols) {
+        var $row = $('<div class="row mx-auto my-4"></div>');
+        var $col = $('<div class="col-md-12 p-0"></div>'); 
+        var $deck = $('<div class="card-deck"></div>');
 
-        for(var j=chat['messages'].length-1; j>=0; j--) {
-            if(chat['messages'][j]['direction'] == 'in') {
-                last_msg_text = chat['messages'][j]['message'];
-                last_msg_date = new Date(chat['messages'][j]['timestamp']['$date'])
-                    .strftime("%b %d at %I:%M%p");
+        for(var j=0; j<n_cols; j++) {
+            if(i+j >= data.length)
                 break;
+
+            var chat = data[i+j];
+            if(chat['messages'].length < 2)
+                continue;
+
+            var title = chat['account'] ? chat['account']['name'] : chat['mobile'];
+            var id = "item_" + String(i);
+            var msg = '';
+            var msg_dt = new Date();
+
+            for(var m=chat['messages'].length-1; m>=0; m--) {
+                if(chat['messages'][m]['direction'] == 'in') {
+                    msg = chat['messages'][m]['message'];
+                    msg_dt = new Date(chat['messages'][m]['timestamp']['$date']);
+                    break;
+                }
             }
+
+            var $card = $('#chat-item').clone().prop('id', 'item_'+String(i+j));
+            $card.find('.chat-title').html(title);
+            $card.find('#last_msg').html(msg);
+            $card.find('#msg_date').html(toRelativeDateStr(msg_dt));
+            $card.find('#n_msg').html(chat['messages'].length);
+            $card.prop('hidden', false);
+            $card.click(showChatModal);
+            $card.data("details", chat);
+            $deck.append($card);
         }
 
-        $chat_item = $('#chat_item').clone().prop('id', 'item_'+String(i));
-        $chat_item.find('.card-title').html(title);
-        $chat_item.find('#last_msg').html(last_msg_text);
-        $chat_item.find('#msg_date').html(last_msg_date);
-        $chat_item.find('#n_msg').html(chat['messages'].length);
-        $chat_item.prop('hidden', false);
-        $chat_item.click(showChatModal);
-        $chat_item.data("details", chat);
-        $('#convo_list').append($chat_item);
+        $col.append($deck);
+        $row.append($col); 
+        $('#convo_list').append($row);
     }
 }
 

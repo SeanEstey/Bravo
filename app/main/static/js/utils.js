@@ -24,6 +24,60 @@ String.prototype.toTitleCase = function(n) {
 }
 
 //------------------------------------------------------------------------------
+function toRelativeDateStr(date) {
+
+    var now = new Date();
+    var diff_ms = now.getTime() - date.getTime();
+    
+    var min_ms = 1000 * 60;
+    var hour_ms = 1000 * 3600;
+    var day_ms = hour_ms * 24;
+    var week_ms = day_ms * 7;
+    var month_ms = day_ms * 30;
+    var year_ms = day_ms * 365;
+
+    if(diff_ms >= year_ms) {
+        // Year(s) span
+        var nYears = Number((diff_ms/year_ms).toFixed(0));
+        return format("%s year%s ago", nYears, nYears > 1 ? 's' : '');
+    }
+
+    if(diff_ms >= month_ms) {
+        // Month(s) span
+        var nMonths = Number((diff_ms/month_ms).toFixed(0));
+        return format("%s month%s ago", nMonths, nMonths > 1 ? 's' : '');
+    }
+
+    if(diff_ms >= week_ms) {
+        // Week(s) span
+        var nWeeks = Number((diff_ms/week_ms).toFixed(0));
+        return format("%s week%s ago", nWeeks, nWeeks > 1 ? 's' : '');
+    }
+    
+    if(diff_ms >= day_ms) {
+        // Day(s) span
+        var nDays = Number((diff_ms/day_ms).toFixed(0));
+        return format("%s day%s ago", nDays, nDays > 1 ? 's' : '');
+    }
+
+    if(diff_ms >= hour_ms) {
+        // Hour(s) span
+        var nHours = Number((diff_ms/hour_ms).toFixed(0));
+        return format("%s hour%s ago", nHours, nHours > 1 ? 's' : '');
+    }
+
+    if(diff_ms >= min_ms) {
+        // Minute(s) span
+        var nMin = Number((diff_ms/min_ms).toFixed(0));
+        return format("%s minute%s ago", nMin, nMin > 1 ? 's' : '');
+    }
+
+    // Second(s) span
+    var nSec = Number((diff_ms/1000).toFixed(0));
+    return format("%s second%s ago", nSec, nSec > 1 ? 's' : '');
+}
+
+//------------------------------------------------------------------------------
 function HTMLEncode(str) {
   // Returns decimal code for special HTML characters
 

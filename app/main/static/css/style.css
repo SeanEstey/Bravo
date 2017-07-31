@@ -407,19 +407,26 @@ a.hover:visited {
 }
 
 /*ALICE VIEW*/
-.chat-item {
-    margin:0.1em;
-}
+
 .chat-card:hover {
     cursor:pointer;
-    background-color:white;
-    text-decoration:none;
-    border-color: #b7d3f3;
-    color: rgb(0,116,172); 
+    border: 1px solid rgba(0,0,0,.25);
+    box-shadow:
+        rgba(0, 0, 0, 0.05) 0px 1px 10px,
+        rgba(0, 0, 0, 0.1) 8px 8px 5px;
 }
 .chat-card {
-    width:100%;
-    color:gray;
+    color: white;
+    background-color:#20a8d8;
+}
+.chat-card .time {
+    color: white;
+    border-top: none!important;
+}
+.chat-card .card-block .message {
+    height: 50px;
+    font-style: italic;
+    overflow: hidden;
 }
 .chatlog-dt {
     padding:0;
@@ -435,10 +442,6 @@ a.hover:visited {
 
 /*Mobile Phones*/
 @media (max-width: 480px) { 
-    /*.container {
-        padding:0;
-        margin:0;
-    }*/
     .container {
         position: relative;
         left:0;
@@ -480,11 +483,6 @@ a.hover:visited {
 }
 @media (min-width: 1200px) {
     .container {
-        /*position: relative;
-        top: 0;
-        left: 0;
-        right: 0;
-        padding: 0;*/
         width:100%;
         margin: 0em auto;
     }
@@ -492,8 +490,6 @@ a.hover:visited {
         margin: 1.0em 2em;
     }
 }
-        
-
 @media (max-width:992px) {
     .navbar-nav {
        flex-direction:row; 

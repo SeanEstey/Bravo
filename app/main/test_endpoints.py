@@ -6,7 +6,6 @@ from flask_login import login_required
 log = logging.getLogger(__name__)
 from . import main
 
-
 @login_required
 @main.route('/test_sched', methods=['GET'])
 def _djkf39():
@@ -16,66 +15,16 @@ def _djkf39():
     acct = get(5075)
     dates = schedule_dates(acct)
     utc = to_utc(obj=dates)
-
     g.db['cachedAccounts'].update_one({'account.id':5075},{'$set':{'schedule':utc}})
-
     stored = g.db['cachedAccounts'].find_one({'account.id':5075})['schedule']
-
     from bson.json_util import dumps
     return dumps(stored)
-
-@login_required
-@main.route('/test_store', methods=['GET'])
-def ljksdf():
-    from datetime import datetime, timedelta
-    from app.main.etapestry import get_query, get_gifts
-    from app.main import cache
-    #accts = get_query('R1Z',category='BPU: Runs', cache=False)
-    #cache.bulk_store(accts, obj_type='account')
-    """
-    gifts = get_gifts(
-        "1353.0.317432159", # Acct #7396
-        datetime.now()-timedelta(days=100),
-        datetime.now(),
-        cache=False)
-    cache.bulk_store(gifts, obj_type='gift')
-    """
-    cache.query_and_store(query='R1Z', category='BPU: Runs', obj_type='account')
-    return 'ok'
-
-@login_required
-@main.route('/test_update_recent_cache', methods=['GET'])
-def lsjdfljkd():
-    from app.main.tasks import update_recent_cache
-    update_recent_cache.delay(group=g.group)
-    return 'ok'
-
-@login_required
-@main.route('/test_fix_loc', methods=['GET'])
-def jlkdiw():
-    documents = g.db['cachedAccounts'].find(
-        {'group':'vec', 'geolocation':{'$exists':True}})
-
-    for doc in documents:
-        if not doc['geolocation']:
-            continue
-        g.db['cachedAccounts'].update_one(
-            {'_id':doc['_id']},
-            {'$set':{'geolocation.acct_address':doc['account']['address']}})
-        print 'updated'
 
 @login_required
 @main.route('/test_analytics', methods=['GET'])
 def _test_analytics():
     from app.main.tasks import account_analytics
     account_analytics.delay()
-    return 'ok'
-
-@login_required
-@main.route('/test_cache_all', methods=['GET'])
-def _test_cache_all_gifts():
-    from app.main.tasks import build_gift_cache
-    build_gift_cache.delay()
     return 'ok'
 
 @login_required
@@ -92,9 +41,18 @@ def _test_leaders():
         rows.append("%s   %s&nbsp;&nbsp;&nbsp;  $%s" %(leader['account']['id'], leader['account']['name'], leader['stats']['total']))
     return "<br>".join(rows)
 
+#----------------------WORKING---------------------
+
+@login_required
+@main.route('/test_cache_ytd', methods=['GET'])
+def _test_cache_ytd():
+    from app.main.tasks import build_gift_cache
+    build_gift_cache.delay()
+    return 'ok'
+
 @login_required
 @main.route('/test_recent', methods=['GET'])
-def _test_ss():
+def _test_recent():
     from app import get_keys
     from app.main.tasks import update_recent_cache
     update_recent_cache.delay()

@@ -1,82 +1,85 @@
+
 <!--NAVBAR-->
 <div class="container br-nav">
-  <!--<div class="container-fluid pl-0 pr-0">-->
-    <nav class="navbar navbar-toggleable-md navbar-light p-0" style="text-align:center;">
-      <a id="logo_a" class="navbar-brand" style="height:60px" href="/notify/">
-        <span class="align-middle"><img id="logo_img" class="logo-img-sm d-inline-block .m-x-auto"></span>
-      </a>
-
-      <!--SearchBar-->
-      <div class="col-6">
-        <div class="dropdown">
-          <div class="input-group ml-2">
-            <input id="search_input" class="form-control col-6 ml-2 dropdown-toggle" name="acct" type="text" 
-            data-toggle="dropdown" placeholder="Search accounts..." autocomplete="off" autofocus>
-            <!--Dropdown-->
-            <div class="dropdown-menu ml-2"></div>
-            <div class="input-group-btn">
-              <button class="btn btn-secondary" type="button" id="search">
-                <i class="fa fa-search"></i>
-              </button>
-            </div>
+  <nav class="navbar navbar-toggleable-md navbar-light p-0" style="text-align:center;">
+    <a id="logo_a" class="navbar-brand" style="height:60px" href="/notify/">
+      <span class="align-middle"><img id="logo_img" class="logo-img-sm d-inline-block .m-x-auto"></span>
+    </a>
+    <!--SearchBar-->
+    <div class="col-6">
+      <div class="dropdown">
+        <div class="input-group ml-2">
+          <input id="search_input" class="form-control col-6 ml-2 dropdown-toggle"
+          name="acct" type="text" data-toggle="dropdown"
+          placeholder="Search accounts..." autocomplete="off" autofocus>
+          <!--Dropdown-->
+          <div class="dropdown-menu ml-2"></div>
+          <div class="input-group-btn">
+            <button class="btn btn-secondary" type="button" id="search">
+              <i class="fa fa-search"></i>
+            </button>
           </div>
-          <!--SearchResult-->
-          <a class="dropdown-item" id="search-item"  href="" hidden>
-            <div>
-              <span><i class="fa fa-circle fa-1 mr-1" id="sr-status" style="font-size:0.75em"></i></span>
-              <span id="sr-name"></span>
-              <small id="sr-email"></small>
-            </div>
-            <div>
-              <small id="sr-addr" class="ml-3"></small>
-            </div>
-          </a>
         </div>
+        <!--SearchResult-->
+        <a class="dropdown-item" id="search-item"  href="" hidden>
+          <div>
+            <span>
+              <i class="fa fa-circle fa-1 mr-1" id="sr-status"
+              style="font-size:0.75em"></i>
+            </span>
+            <span id="sr-name"></span>
+            <small id="sr-email"></small>
+          </div>
+          <div>
+            <small id="sr-addr" class="ml-3"></small>
+          </div>
+        </a>
       </div>
-
-      <ul id="main_menu" class="nav navbar-nav ml-auto">
-        <li class="nav-item br-nav-item">
-          <a class="nav-link" href="{{url_for("notify.view_event_list")}}">
-             <i class="fa fa-calendar-check-o fa-2x br-nav-icon"></i>
-             <p class="br-nav-a">Notify</p>
-          </a>
-        </li>
-        <li class="nav-item br-nav-item">
-          <a class="nav-link" href="{{url_for("routing.show_routing")}}">
-            <i class="fa fa-road fa-2x br-nav-icon"></i>
-            <p class="br-nav-a">Routing</p>
-          </a>
-        </li>
-        <li class="nav-item br-nav-item">
-          <a class="nav-link" href="{{url_for("booker.show_home")}}">
-            <i class="fa fa-book fa-2x br-nav-icon"></i>
-            <p class="br-nav-a">Booker</p>
-          </a>
-        </li>
-        <li class="nav-item br-nav-item">
-          <a class="nav-link" href="{{url_for("alice.show_chatlogs")}}">
-            <i class="fa fa-weixin fa-2x br-nav-icon"></i>
-            <p class="br-nav-a">Alice</p>
-          </a>
-        </li>
-        <li class="nav-item br-nav-item">
-          <a class="nav-link" href="{{url_for("main.view_recent")}}">
-            <i class="fa fa-history fa-2x br-nav-icon"></i>
-            <p class="br-nav-a">Recent</p>
-          </a>
-        </li>
-        <li class="nav-item br-nav-item">
-          <a class="nav-link" href="{{url_for("main.view_tools")}}">
-            <i class="fa fa-wrench fa-2x br-nav-icon"></i>
-            <p class="br-nav-a">Tools</p>
-          </a>
-        </li>
-        <li class="nav-item br-nav-item">
-          <a class="nav-link" href="{{url_for("main.view_admin")}}">
-            <i class="fa fa-cogs fa-2x br-nav-icon"></i>
-            <p class="br-nav-a">Admin</p>
-          </a>
-        </li>
-      </ul>
-    </nav>
-  </div>
+    </div>
+    <!--Menus-->
+    <ul id="main_menu" class="nav navbar-nav ml-auto">
+      <li class="nav-item br-nav-item">
+        <a class="nav-link" href="{{url_for("notify.view_event_list")}}">
+           <i class="fa fa-calendar-check-o fa-2x br-nav-icon"></i>
+           <p class="br-nav-a">Notify</p>
+        </a>
+      </li>
+      <li class="nav-item br-nav-item">
+        <a class="nav-link" href="{{url_for("routing.show_routing")}}">
+          <i class="fa fa-road fa-2x br-nav-icon"></i>
+          <p class="br-nav-a">Routing</p>
+        </a>
+      </li>
+      <li class="nav-item br-nav-item">
+        <a class="nav-link" href="{{url_for("booker.show_home")}}">
+          <i class="fa fa-book fa-2x br-nav-icon"></i>
+          <p class="br-nav-a">Booker</p>
+        </a>
+      </li>
+      <li class="nav-item br-nav-item">
+        <a class="nav-link" href="{{url_for("alice.show_chatlogs")}}">
+          <i class="fa fa-weixin fa-2x br-nav-icon"></i>
+          <p class="br-nav-a">Alice</p>
+        </a>
+      </li>
+      <li class="nav-item br-nav-item">
+        <a class="nav-link" href="{{url_for("main.view_recent")}}">
+          <i class="fa fa-history fa-2x br-nav-icon"></i>
+          <p class="br-nav-a">Recent</p>
+        </a>
+      </li>
+      <li class="nav-item br-nav-item">
+        <a class="nav-link" href="{{url_for("main.view_tools")}}">
+          <i class="fa fa-wrench fa-2x br-nav-icon"></i>
+          <p class="br-nav-a">Tools</p>
+        </a>
+      </li>
+      <li class="nav-item br-nav-item">
+        <a class="nav-link" href="{{url_for("main.view_admin")}}">
+          <i class="fa fa-cogs fa-2x br-nav-icon"></i>
+          <p class="br-nav-a">Admin</p>
+        </a>
+      </li>
+    </ul>
+  </nav>
+</div>

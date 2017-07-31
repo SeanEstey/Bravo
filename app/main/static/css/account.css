@@ -1,7 +1,9 @@
 /* account.css */
 
 .hpanel {
-    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 10px, rgba(0, 0, 0, 0.1) 0px 1px 2px;
+    box-shadow:
+        rgba(0, 0, 0, 0.05) 0px 1px 10px,
+        rgba(0, 0, 0, 0.1) 0px 1px 2px;
     background-color: none;
     border: 0;
     margin-bottom: 25px;
@@ -83,6 +85,7 @@
     margin: auto auto auto auto;
 }
 .profile .stat-box .loading {
+    margin-top: 1em;
     color: #dfdfdf!important;
 }
 .profile .h1-stat {
@@ -105,14 +108,13 @@
     position: relative;
 }
 
-/* Persona/PUS Panels */
-
-/*
+/* Persona/PUS Panels 
     Field name: #A0A0A2!important; (light gray)
     Field value: #6a6c6f!important; (dark gra)
 */
 
-#contact_panel .panel-heading, #custom_panel .panel-heading {
+#contact_panel .panel-heading, 
+#custom_panel .panel-heading {
     color: #20a8d8!important;
 }
 #edit-confirm button {
@@ -125,7 +127,6 @@
     background-color: white;
 }
 .panel-heading button:hover {
-    /*color:#4dbd74!important;*/
     background-color:white;
     font-weight: 700;
 }
@@ -140,8 +141,7 @@
 
 /* Morris.js Bar Chart Panel 
    Primary Color: #ec8380 (Cherry)
-   Secondary Color: #fff3f3 (Light pink)
-*/
+   Secondary Color: #fff3f3 (Light pink) */
 
 .chart-panel .panel-body {
     height: 175px;
@@ -175,8 +175,7 @@
 
 
 /* Actions Panel 
-   Primary Color: #4dbd74 (Apple green)
-*/
+   Primary Color: #4dbd74 (Apple green) */
 
 .act-panel .panel-heading i {
     color: #f8cb00;
@@ -203,7 +202,6 @@
     background-color: #c6c1c1;
     border-color: #c6c1c1;
 }
-
 
 /* Misc */
 

@@ -5,7 +5,7 @@ gAcct = null;
 gGeolocation = null;
 gMobile = null;
 
-//---------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 function accountsInit() {
 
     $(document).ready(function() {
@@ -14,8 +14,10 @@ function accountsInit() {
         });
 
         if(location.href.indexOf('?') > -1) {
-            var args = location.href.substring(location.href.indexOf('?')+1, location.length);
-            var acct_id = gAcctId = args.substring(args.indexOf('=')+1, args.length);
+            var args = location.href.substring(
+                location.href.indexOf('?')+1, location.length);
+            var acct_id = gAcctId = args.substring(
+                args.indexOf('=')+1, args.length);
             getAcct(acct_id);
         }
     });
@@ -37,7 +39,7 @@ function accountsInit() {
     $('#edit-confirm button.btn-success').click(submitEdits);
 }
 
-//---------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 function submitEdits() {
     
     var $form = $(this).closest('form');
@@ -128,11 +130,13 @@ function getAcct(acct_id) {
         );
     });
 
-    /*api_call(
+    /*
+    api_call(
         'accounts/get/schedule',
         data={'acct_id':acct_id},
         displaySchedule);
     */
+
     api_call(
         'accounts/get/location',
         data={'acct_id':acct_id},
@@ -241,11 +245,12 @@ function displayDonationData(response) {
     $('.chart').prop('hidden',false);
     drawMorrisChart('chart', chart_data, 'date', ['value']);
     if(gifts.length > 0)
-        $('#last-gave-d').html(new Date(gifts[0]['date']['$date']).strftime('%b %Y').toUpperCase());
+        $('#last-gave-d').html(new Date(gifts[0]['date']['$date'])
+            .strftime('%b %Y').toUpperCase());
     $('#timeline').prop('hidden',false);
 }
 
-//---------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 function displayAcctData(acct) {
 
     if(!acct['accountDefinedValues'])
@@ -277,14 +282,10 @@ function displayAcctData(acct) {
 
     var fa_clock = '<i class="fa fa-clock-o"></i>';
     var pcd = new Date(acct['personaCreatedDate']['$date']);
-    $('#personaCreatedDate').html(
-        toRelativeDateStr(pcd));
-        //format("%s %s %s", pcd.strftime('%b %d, %Y '), fa_clock, pcd.strftime(' %I:%M %p')));
+    $('#personaCreatedDate').html(toRelativeDateStr(pcd));
     if(acct['personaLastModifiedDate']) {
         var pmd = new Date(acct['personaLastModifiedDate']['$date']);
-        $('#personaLastModifiedDate').html(
-            toRelativeDateStr(pmd));
-            //format("%s %s %s", pmd.strftime("%b %d, %Y "), fa_clock, pmd.strftime(" %I:%M %p")));
+        $('#personaLastModifiedDate').html(toRelativeDateStr(pmd));
     }
     else
         $('#personaLastModifiedDate').html('Never');
@@ -307,14 +308,10 @@ function displayAcctData(acct) {
         if(dv) addField(lg_dvs[i], dv, $custom, fullWidth=true);
     }
     var acd = new Date(acct['accountCreatedDate']['$date']);
-    $('#accountCreatedDate').html(
-        toRelativeDateStr(acd));
-        //acd.strftime('%b %d, %Y ') + fa_clock + acd.strftime(' %I:%M %p'));
+    $('#accountCreatedDate').html(toRelativeDateStr(acd));
     if(acct['accountLastModifiedDate']) {
         var amd = new Date(acct['accountLastModifiedDate']['$date']);
-        $('#accountLastModifiedDate').html(
-            toRelativeDateStr(amd));
-            //amd.strftime("%b %d, %Y ") + fa_clock + amd.strftime(" %I:%M %p"));
+        $('#accountLastModifiedDate').html(toRelativeDateStr(amd));
     }
     else
         $('#accountLastModifiedDate').html('Never');
@@ -366,8 +363,14 @@ function displayAcctData(acct) {
     }*/
 }
 
-//------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 function addField(name, value, $container, fullWidth=false) {
+
+    // TODO: update to include field instead of name/value pair.
+    // For simple persona fields, field will be {'name':'Sean'}
+    // For persona Phones field, will be {'phones':[{'type':TYPE,'number':NUM}, ...]
+    // For DV, will be {'fieldName':NAME, 'value':VAL, 'displayType':TYPE, ... }
+    // Store this field in the parent container
 
     var $lblDiv = $("<div class='pr-0 text-left'><label class='field align-top'></label></div>");
     var $valDiv = $("<div class='text-left'><label class='val align-top' id='"+name+"'></label></div>");
@@ -399,59 +402,6 @@ function addField(name, value, $container, fullWidth=false) {
     $container.append($lblDiv).append($valDiv);
 }
 
-//------------------------------------------------------------------------------
-function toRelativeDateStr(date) {
-
-    var now = new Date();
-    var diff_ms = now.getTime() - date.getTime();
-    
-    var min_ms = 1000 * 60;
-    var hour_ms = 1000 * 3600;
-    var day_ms = hour_ms * 24;
-    var week_ms = day_ms * 7;
-    var month_ms = day_ms * 30;
-    var year_ms = day_ms * 365;
-
-    if(diff_ms >= year_ms) {
-        // Year(s) span
-        var nYears = Number((diff_ms/year_ms).toFixed(0));
-        return format("%s year%s ago", nYears, nYears > 1 ? 's' : '');
-    }
-
-    if(diff_ms >= month_ms) {
-        // Month(s) span
-        var nMonths = Number((diff_ms/month_ms).toFixed(0));
-        return format("%s month%s ago", nMonths, nMonths > 1 ? 's' : '');
-    }
-
-    if(diff_ms >= week_ms) {
-        // Week(s) span
-        var nWeeks = Number((diff_ms/week_ms).toFixed(0));
-        return format("%s week%s ago", nWeeks, nWeeks > 1 ? 's' : '');
-    }
-    
-    if(diff_ms >= day_ms) {
-        // Day(s) span
-        var nDays = Number((diff_ms/day_ms).toFixed(0));
-        return format("%s day%s ago", nDays, nDays > 1 ? 's' : '');
-    }
-
-    if(diff_ms >= hour_ms) {
-        // Hour(s) span
-        var nHours = Number((diff_ms/hour_ms).toFixed(0));
-        return format("%s hour%s ago", nHours, nHours > 1 ? 's' : '');
-    }
-
-    if(diff_ms >= min_ms) {
-        // Minute(s) span
-        var nMin = Number((diff_ms/min_ms).toFixed(0));
-        return format("%s minute%s ago", nMin, nMin > 1 ? 's' : '');
-    }
-
-    // Second(s) span
-    var nSec = Number((diff_ms/1000).toFixed(0));
-    return format("%s second%s ago", nSec, nSec > 1 ? 's' : '');
-}
 
 /* Google Maps Styling */
 
@@ -616,5 +566,3 @@ map_style = [
     ]
   }
 ];
-
-

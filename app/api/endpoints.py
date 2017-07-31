@@ -107,7 +107,6 @@ def _update_acct():
 
     return func_call(mod_acct, acct_id, udf=udf, persona=persona)
 
-
 """@api.route('/accounts/update', methods=['POST'])
 @login_required
 def _update_accts():
@@ -142,6 +141,11 @@ def _get_chatlogs():
     from app.alice.conversation import get_messages
     return func_call(get_messages, mobile=var('mobile'), serialize=True)
 
+@api.route('/alice/identify', methods=['POST'])
+@login_required
+def _identify():
+    from app.alice.conversation import identify
+    return func_call(identify, var('mobile'))
 
 @api.route('/alice/toggle_reply_mute', methods=['POST'])
 @login_required

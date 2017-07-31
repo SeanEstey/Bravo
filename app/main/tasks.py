@@ -82,8 +82,21 @@ def account_analytics(self, **rest):
 @celery.task(bind=True)
 def build_gift_cache(self, group=None, **rest):
 
-    pass
+    from app.main.cache import query_and_store
 
+    queries = [
+        {'category':'Bravo', 'name':'YTD Gift Entries', 'type':'gift'}
+    ]
+
+    timer = Timer()
+    log.debug('Task: caching recent changes...')
+
+    for org in g.db['groups'].find({'name':group} if group else {}):
+        g.group = org['name']
+
+        for q in queries:
+            results = query_and_store(
+                query=q['name'], category=q['category'], obj_type=q['type'])
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -113,6 +126,16 @@ def update_recent_cache(self, group=None, **rest):
             if q['type'] == 'account':
                 for acct in results:
                     update_geolocation(acct)
+
+    # Identify unregistered users in Alice chat history
+    from app.alice.conversation import get_messages, identify
+    for org in g.db['groups'].find():
+        g.group = org['name']
+        chats = get_messages(serialize=False)
+
+        for chat in chats:
+            if not chat.get('account'):
+                identify(chat['mobile'])
 
     log.debug('Task: completed [%s]', timer.clock())
 

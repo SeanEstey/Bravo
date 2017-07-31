@@ -213,7 +213,8 @@ def file_handler(level, file_path,
         handler.addFilter(WarningFilter())
 
     formatter = logging.Formatter(
-        colors.BLUE + (fmt or '[%(asctime)s %(name)s %(processName)s]: ' + colors.ENDC + color + '%(message)s') + colors.ENDC,
+        colors.BLUE + (fmt or '[%(asctime)s %(name)s]: ' + colors.ENDC + color + '%(message)s') + colors.ENDC,
+        #colors.BLUE + (fmt or '[%(asctime)s %(name)s %(processName)s]: ' + colors.ENDC + color + '%(message)s') + colors.ENDC,
         (datefmt or '%m-%d %H:%M'))
 
     handler.setFormatter(formatter)

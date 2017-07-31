@@ -63,7 +63,8 @@ def new():
     # Replying to notification?
     notific = related_notific(log_error=False)
     if notific:
-        g.db['notifics'].update_one({'_id':notific['_id']},{'$set':{'tracking.reply':msg}})
+        g.db['notifics'].update_one(
+            {'_id':notific['_id']},{'$set':{'tracking.reply':msg}})
         session.update({
             'NOTIFIC_ID': notific['_id'],
             'VALID_NOTIFIC_REPLY': not event_begun(notific)
@@ -181,7 +182,8 @@ def get_messages(mobile=None, start_dt=None, serialize=True):
     timer = Timer()
     view_days = get_keys('alice')['chatlog_view_days']
 
-    # Single user chat history
+    # From single user
+
     if mobile:
         chat = g.db['chatlogs'].find_one(
             {'group':g.group, 'mobile':mobile},
@@ -192,37 +194,51 @@ def get_messages(mobile=None, start_dt=None, serialize=True):
         else:
             return {'mobile':mobile, 'messages':[]}
 
-    # All chat histories in time period
+    # From all users
 
+    now = datetime.utcnow()
     query = {
         'group': g.group,
-        'last_message': {
-            '$gt': start_dt if start_dt else datetime.utcnow()-td(days=view_days)
+        'last_message':{
+            '$gt': start_dt if start_dt else now-td(days=view_days)
         },
         'messages.1': {'$exists': True}
     }
-    chats = g.db['chatlogs'].find(query, {'group':0, '_id':0}).limit(50).sort('last_message',-1)
-    log.debug('%s chatlogs retrieved. [%s]', chats.count(), timer.clock(t='ms'))
+    chats = g.db['chatlogs'].find(query, {'group':0, '_id':0}
+        ).limit(50).sort('last_message',-1)
+
+    log.debug('%s chatlogs retrieved. [%s]',
+        chats.count(), timer.clock(t='ms'))
+
     chats = list(chats)
 
     for chat in chats:
-        if chat.get('acct_id'):
-            chat['account'] = get_acct(chat['acct_id'])
-        else:
-            try:
-                chat['account'] = call('find_acct_by_phone', data={'phone':chat['mobile']}, cache=True)
-                log.debug('No chatlog Acct ID. Lookup match name=%s for mobile=%s.',
-                    chat['account']['name'], chat['mobile'])
-            except Exception as e:
-                log.debug('Error doing Mobile Lookup')
-                pass
-            else:
-                pass
+        if not chat.get('acct_id'):
+            continue
+        acct = g.db['cachedAccounts'].find_one({'group':g.group, 'account.id':chat.get('acct_id')})
+        if acct:
+            chat['account'] = acct['account']
 
     if serialize:
         return format_bson(chats, loc_time=True)
     else:
         return chats
+
+#-------------------------------------------------------------------------------
+def identify(mobile):
+
+    try:
+        acct = call(
+            'find_acct_by_phone',
+            data={'phone':mobile}, cache=True)
+    except Exception as e:
+        log.debug('Still no account match for %s', mobile)
+    else:
+        g.db['chatlogs'].update_one(
+            {'mobile':mobile},
+            {'$set':{'acct_id':acct['id']}})
+
+        log.debug('Discovered account match. Acct=%s', acct['id'])
 
 #-------------------------------------------------------------------------------
 def lookup_acct(mobile):

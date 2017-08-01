@@ -133,7 +133,8 @@ function renderChatCards(data){
             for(var m=chat['messages'].length-1; m>=0; m--) {
                 if(chat['messages'][m]['direction'] == 'in') {
                     last_user_msg = '\"' + chat['messages'][m]['message'] + '\"';
-                    last_user_msg_dt = new Date(chat['messages'][m]['timestamp']['$date']);
+                    last_user_msg_dt = new Date(
+                        chat['messages'][m]['timestamp']['$date']);
                     break;
                 }
             }
@@ -187,11 +188,14 @@ function showChatModal(e) {
 
     e.preventDefault();
     var chat = $(this).data('details');
-    var name = chat['account'] ? chat['account']['name'] : 'Unregistered User';
+    var name = chat['account'] ? chat['account']['name'] : '';
+
     if(chat['account'])
         var acct_id = chat['account']['id'];
     else
         var acct_id = "";
+
+    var url = format("%s/accounts?aid=%s", window.location.origin, acct_id);
 
     $chatlog = $('#chatlog');
     $chatlog.empty();
@@ -210,11 +214,14 @@ function showChatModal(e) {
     })
     $modal.data('mobile', chat['mobile']);
     $modal.data('acct_id', acct_id);
-    $modal.find('.modal-title').text(name+ ' (' +chat['mobile']+ ')');
+    $modal.find('.modal-title').html(
+        format("<a style='color:white' href=%s>%s (%s)</a>",
+            url, name, chat['mobile']));
     $modal.find('.modal-footer .btn-primary').unbind('click');
     $modal.find('.modal-footer .btn-primary').off('click');
     $modal.find('input[name="mute"]').prop('checked', false);
-    $modal.find('#f_acct_id').html("<a href="+window.location.origin+"/accounts?aid="+acct_id+">Acct ID " + acct_id+"</a>");
+    $modal.find('#f_acct_id').html(
+        format("<a href=%s>Acct ID %s</a>", url, acct_id));
     $modal.modal('show');
 
     api_call(

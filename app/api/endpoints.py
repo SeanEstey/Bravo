@@ -59,13 +59,13 @@ def _find_acct():
     from app.main.signups import check_duplicates
     return func_call(
         check_duplicates,
-        name=var("name"), email=var("email"), address=var("address"), phone=var("phone"))
+        name=var("name"), email=var("email"),
+        address=var("address"), phone=var("phone"))
 
 @api.route('/accounts/get', methods=['POST'])
 @login_required
 def _get_accts():
     from app.main import donors
-    log.debug('cached=%s', var('cached'))
     return func_call(donors.get, var('acct_id'), cached=var('cached'))
 
 @api.route('/accounts/get/autocomplete', methods=['POST'])
@@ -157,7 +157,8 @@ def _identify():
 @login_required
 def _toggle_mute():
     from app.alice.conversation import toggle_reply_mute
-    return func_call(toggle_reply_mute, var('mobile'), json.loads(var('enabled')))
+    return func_call(toggle_reply_mute,
+        var('mobile'), json.loads(var('enabled')))
 
 @api.route('/bravo/sessions/clear', methods=['GET', 'POST'])
 @login_required
@@ -175,7 +176,8 @@ def _book_acct():
 @login_required
 def _search_bookings():
     from app.booker.search import search
-    return func_call(search, var('query'), radius=var('radius'), weeks=var('weeks'))
+    return func_call(search,
+        var('query'), radius=var('radius'), weeks=var('weeks'))
 
 @api.route('/cache/gifts', methods=['GET', 'POST'])
 @login_required
@@ -410,5 +412,3 @@ def _logout_user():
 @login_required
 def _get_user_info():
     return func_call(g.user.to_dict)
-
-

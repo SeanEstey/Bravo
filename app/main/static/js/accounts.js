@@ -117,7 +117,6 @@ function toggleEditMode() {
 
         if($replace.is('label')) {
             $par_div.append($replace.clone().prop('id', id).text(value));
-
         }
         else if($replace.is('input')) {
             $par_div.append($replace.clone().prop('id', id).prop('name',id).val(value));
@@ -336,7 +335,6 @@ function displayAcctData(acct) {
     var lg_dvs = ["Driver Notes", "Office Notes"];
     for(var i=0; i<lg_dvs.length; i++) {
         var dv = getDV(lg_dvs[i], acct) || '';
-        //if(dv) 
         addField(lg_dvs[i], dv, $custom, fullWidth=true);
     }
     var acd = new Date(acct['accountCreatedDate']['$date']);
@@ -397,12 +395,6 @@ function displayAcctData(acct) {
 
 //-----------------------------------------------------------------------------
 function addField(name, value, $container, fullWidth=false) {
-
-    // TODO: update to include field instead of name/value pair.
-    // For simple persona fields, field will be {'name':'Sean'}
-    // For persona Phones field, will be {'phones':[{'type':TYPE,'number':NUM}, ...]
-    // For DV, will be {'fieldName':NAME, 'value':VAL, 'displayType':TYPE, ... }
-    // Store this field in the parent container
 
     var $lblDiv = $("<div class='pr-0 text-left'><label class='field align-top'></label></div>");
     var $valDiv = $("<div class='text-left'><label class='val align-top' id='"+name+"'></label></div>");

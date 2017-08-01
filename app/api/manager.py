@@ -40,6 +40,7 @@ def func_call(function, *args, **kwargs):
 
 #-------------------------------------------------------------------------------
 def task_call(function, *args, **kwargs):
+
     try:
         rv = function.delay(*args, **kwargs)
     except Exception as e:
@@ -51,8 +52,9 @@ def task_call(function, *args, **kwargs):
 
 #-------------------------------------------------------------------------------
 def build_resp(rv=None, exc=None, name=None, timer=None):
-    '''Returns JSON obj: {"status": <str>, "desc": <failure str>, "data": <str/dict/list>}
-    '''
+    """Returns JSON obj:
+        {"status": <str>, "desc": <failure str>, "data": <str/dict/list>}
+    """
 
     timer = Timer()
 
@@ -71,12 +73,14 @@ def build_resp(rv=None, exc=None, name=None, timer=None):
         json_rv = format_bson({'status':'success', 'data':rv}, to_json=True)
     except Exception as e:
         log.exception('Return value is not serializable.')
-        json_rv = dumps({'status':'success', 'data':'return value not serializable'})
+        json_rv = dumps({
+            'status':'success',
+            'data':'return value not serializable'})
 
     resp = Response(response=json_rv, status=200,mimetype='application/json')
 
     if "logger" not in request.path:
-        log.info('%s success [%s]', request.path, timer.clock(t='ms'),
+        log.info('%s [%s]', request.path, timer.clock(t='ms'),
             extra={
                 'request':dump_request(),
                 'duration': timer.clock(),

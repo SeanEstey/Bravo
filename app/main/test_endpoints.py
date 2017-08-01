@@ -44,6 +44,13 @@ def _test_leaders():
 #----------------------WORKING---------------------
 
 @login_required
+@main.route('/test_wipe_sessions', methods=['GET'])
+def _test_wipe_sessions():
+    from app import clear_sessions
+    clear_sessions()
+    return 'ok'
+
+@login_required
 @main.route('/test_cache_ytd', methods=['GET'])
 def _test_cache_ytd():
     from app.main.tasks import build_gift_cache

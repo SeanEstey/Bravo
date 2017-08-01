@@ -456,7 +456,9 @@ function modify_acct($id, $udf, $persona) {
       }
     }
 
-    $nsc->call("updateAccount", [$acct, false]);
+    $ref = $nsc->call("updateAccount", [$acct, false]);
+    
+    debug_log('updateAccount ref='. $ref);
 
     if(is_error($nsc))
         return get_error($nsc, $log=True);

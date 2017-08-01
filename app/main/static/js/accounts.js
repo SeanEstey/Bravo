@@ -34,8 +34,9 @@ function accountsInit() {
        window.location = location.origin + '/booker?aid='+ gAcctId; 
     });
 
-    $('#pus-edit').click(editMode);
-    $('#info-edit').click(editMode);
+    $('#pus-edit').click(toggleEditMode);
+    $('#info-edit').click(toggleEditMode);
+    $('#edit-confirm button.btn-danger').click(toggleEditMode);
     $('#edit-confirm button.btn-success').click(submitEdits);
 }
 
@@ -53,16 +54,23 @@ function submitEdits() {
         'acct_id':Number(gAcctId)
     };
 
+    // DV's
     if($form.closest('.hpanel').prop('id') == 'custom_panel') {
+        if(values.hasOwnProperty('Block'))
+            values['Block'] = values['Block'].replace(/\s/g,'');
         data['udf'] = JSON.stringify(values);
 
     }
+    // Persona
     else {
-        if(data['Mobile'] || data['Voice'])
-            data['phones'] = [
-                {'type':'Mobile','value':data['Mobile'] || ''},
-                {'type':'Voice', 'value':data['Voice'] || ''}
+        if(values['Mobile'] || values['Voice']) {
+            values['phones'] = [
+                {'type':'Mobile','number':values['Mobile'] || ''},
+                {'type':'Voice', 'number':values['Voice'] || ''}
             ];
+            delete values['Mobile'];
+            delete values['Voice'];
+        }
 
         data['persona'] = JSON.stringify(values);
     }
@@ -80,25 +88,41 @@ function submitEdits() {
 
 
 //---------------------------------------------------------------------
-function editMode() {
+function toggleEditMode() {
 
-    if($(this).prop('id') == 'pus-edit')
-        var $panel = $('#custom_panel');
-    else if($(this).prop('id') == 'info-edit')
-        var $panel = $('#contact_panel');
+    var $panel = $(this).closest('.hpanel');
 
-    $panel.find('.panel-footer').prop('hidden', true);
-    $panel.find('#edit-confirm div').prop('hidden',false);
+    // Turn Edit mode ON
+    if($panel.find('form input').length == 0) {
+        $panel.find('.panel-footer').prop('hidden', true);
+        $panel.find('#edit-confirm div').prop('hidden',false);
+        var $each = $panel.find('.panel-body label.val');
+        var $replace = $('<input type="text" class="form-control my-1"></input>');
+        $panel.find('form div:hidden').prop('hidden',false);
+    }
+    // Turn Edit mode OFF
+    else {
+        $panel.find('.panel-footer').prop('hidden', false);
+        $panel.find('#edit-confirm div').prop('hidden', true);
+        var $each = $panel.find('.panel-body input');
+        var $replace = $('<label class="val"></label>');
+    }
 
-    $panel.find('.panel-body label.val').each(function() {
+    $each.each(function() {
         var $par_div = $(this).parent();
-        var text = $(this).text();
+        var value = $replace.is('label') ? $(this).val() : $(this).text();
         var width = $(this).width()*.90;
         var id = $(this).prop('id');
         $par_div.empty();
-        $par_div.append(
-            format("<input type='text' name='%s' class='form-control mt-1 mb-1' value='%s'>", id, text)
-        ); 
+
+        if($replace.is('label')) {
+            $par_div.append($replace.clone().prop('id', id).text(value));
+
+        }
+        else if($replace.is('input')) {
+            $par_div.append($replace.clone().prop('id', id).prop('name',id).val(value));
+            $par_div.prop('hidden', false);
+        }
     });
 }
 
@@ -284,10 +308,8 @@ function displayAcctData(acct) {
         if(acct.hasOwnProperty(f))
             addField(f, acct[f], $contact);
     }
-    if(getPhone('Voice',acct))
-        addField('Voice', getPhone('Voice',acct), $contact);
-    if(getPhone('Mobile', acct))
-        addField('Mobile', getPhone('Mobile',acct), $contact);
+    addField('Voice', getPhone('Voice',acct) || '', $contact);
+    addField('Mobile', getPhone('Mobile',acct || ''), $contact);
 
     var fa_clock = '<i class="fa fa-clock-o"></i>';
     var pcd = new Date(acct['personaCreatedDate']['$date']);
@@ -308,13 +330,14 @@ function displayAcctData(acct) {
         "Signup Date","Dropoff Date","Status","Next Pickup Date","Frequency", 
         "Neighborhood", "Reason Joined","Referrer","Date Cancelled","Block"];
     for(var i=0; i<sm_dvs.length; i++) {
-        var dv = getDV(sm_dvs[i], acct);
-        if(dv) addField(sm_dvs[i], dv, $custom);
+        var dv = getDV(sm_dvs[i], acct) || '';
+        addField(sm_dvs[i], dv, $custom);
     }
     var lg_dvs = ["Driver Notes", "Office Notes"];
     for(var i=0; i<lg_dvs.length; i++) {
-        var dv = getDV(lg_dvs[i], acct);
-        if(dv) addField(lg_dvs[i], dv, $custom, fullWidth=true);
+        var dv = getDV(lg_dvs[i], acct) || '';
+        //if(dv) 
+        addField(lg_dvs[i], dv, $custom, fullWidth=true);
     }
     var acd = new Date(acct['accountCreatedDate']['$date']);
     $('#accountCreatedDate').html(toRelativeDateStr(acd));
@@ -408,6 +431,10 @@ function addField(name, value, $container, fullWidth=false) {
     else
         $valDiv.find('label').html(value);
 
+    if(!value) {
+        $lblDiv.prop('hidden', true);
+        $valDiv.prop('hidden', true);
+    }
     $container.append($lblDiv).append($valDiv);
 }
 

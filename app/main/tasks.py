@@ -636,7 +636,7 @@ def create_rfu(self, group, note, options=None, **rest):
             rfu[headers.index(field)] = options[field]
 
     wks.appendRows([rfu])
-    log.debug('Creating RFU=%s', rfu)
+    #log.debug('Creating RFU=%s', rfu)
     return 'success'
 
 #-------------------------------------------------------------------------------

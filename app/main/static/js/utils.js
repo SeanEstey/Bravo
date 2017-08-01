@@ -69,7 +69,7 @@ function toRelativeDateStr(date) {
     if(diff_ms >= min_ms) {
         // Minute(s) span
         var nMin = Number((diff_ms/min_ms).toFixed(0));
-        return format("%s minute%s ago", nMin, nMin > 1 ? 's' : '');
+        return format("%s min ago", nMin);
     }
 
     // Second(s) span

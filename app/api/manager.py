@@ -7,7 +7,7 @@ import celery.result
 from app.lib.utils import format_bson
 from app.lib.timer import Timer
 from logging import getLogger
-log = getLogger(__name__)
+log = getLogger('api.manager')
 
 headers = [
     "Content-Length",
@@ -76,7 +76,7 @@ def build_resp(rv=None, exc=None, name=None, timer=None):
     resp = Response(response=json_rv, status=200,mimetype='application/json')
 
     if "logger" not in request.path:
-        log.debug('%s success [%s]', request.path, timer.clock(t='ms'),
+        log.info('%s success [%s]', request.path, timer.clock(t='ms'),
             extra={
                 'request':dump_request(),
                 'duration': timer.clock(),

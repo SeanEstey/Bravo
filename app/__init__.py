@@ -153,16 +153,30 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
 
     app.logger.addHandler(file_handler(DEBUG,
         '%sdebug.log'%path,
+        filtr=DEBUG,
         color=colors.WHITE))
     app.logger.addHandler(file_handler(INFO,
         '%sevents.log'%path,
+        filtr=INFO,
         color=colors.GRN))
     app.logger.addHandler(file_handler(WARNING,
         '%sevents.log'%path,
+        filtr=WARNING,
         color=colors.YLLW))
     app.logger.addHandler(file_handler(ERROR,
         '%sevents.log'%path,
+        filtr=ERROR,
         color=colors.RED))
+
+    # New hierarchy: 'api.child' vs 'app.child'
+    api_log = logging.getLogger('api')
+    api_log.setLevel(DEBUG)
+    if mongo_client:
+        api_log.addHandler(mongo_handler)
+    api_log.addHandler(file_handler(
+        DEBUG,
+        '%sapi.log'%path,
+        color=colors.GRN))
 
     # Flask-Login ext.
 
@@ -195,7 +209,9 @@ def create_app(pkg_name, kv_sess=True, mongo_client=True):
 
 #---------------------------------------------------------------------------
 def file_handler(level, file_path,
-                 fmt=None, datefmt=None, color=None, name=None):
+                 filtr=None, fmt=None, datefmt=None, color=None, name=None):
+
+    from logging import DEBUG
 
     handler = logging.FileHandler(file_path)
     handler.setLevel(level)
@@ -203,18 +219,17 @@ def file_handler(level, file_path,
     if name is not None:
         handler.name = name
     else:
-        handler.name = 'lvl_%s_file_handler' % str(level)
+        handler.name = 'lvl_%s_file_handler' % str(level or '')
 
-    if level == logging.DEBUG:
+    if filtr == logging.DEBUG:
         handler.addFilter(DebugFilter())
-    elif level == logging.INFO:
+    elif filtr == logging.INFO:
         handler.addFilter(InfoFilter())
-    elif level == logging.WARNING:
+    elif filtr == logging.WARNING:
         handler.addFilter(WarningFilter())
 
     formatter = logging.Formatter(
         colors.BLUE + (fmt or '[%(asctime)s %(name)s]: ' + colors.ENDC + color + '%(message)s') + colors.ENDC,
-        #colors.BLUE + (fmt or '[%(asctime)s %(name)s %(processName)s]: ' + colors.ENDC + color + '%(message)s') + colors.ENDC,
         (datefmt or '%m-%d %H:%M'))
 
     handler.setFormatter(formatter)

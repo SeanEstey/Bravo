@@ -140,6 +140,9 @@ def save_msg(text, mobile=None, acct_id=None, user_session=False, direction=None
         phone = mobile
         acct_id = acct_id
 
+    if acct_id:
+        acct_id = int(acct_id)
+
     log.debug('save_msg acct_id=%s', acct_id)
 
     # TODO: should be able to do upsert here. condense these queries
@@ -150,6 +153,7 @@ def save_msg(text, mobile=None, acct_id=None, user_session=False, direction=None
             'mobile': phone,
             'acct_id': acct_id,
             'last_message': datetime.utcnow(),
+            'unread': True,
             'messages': [{
                 'timestamp': datetime.utcnow(),
                 'message': text,
@@ -157,6 +161,17 @@ def save_msg(text, mobile=None, acct_id=None, user_session=False, direction=None
             }]
         })
     else:
+        values = {
+            'group':g.group,
+            'last_message':datetime.utcnow(),
+            'unread': True
+        }
+        if direction == 'in':
+            values['unread'] = True
+
+        if acct_id:
+            values['acct_id'] = acct_id
+
         g.db['chatlogs'].update_one(
             {'mobile': phone},
             {'$push': {'messages': {
@@ -164,13 +179,16 @@ def save_msg(text, mobile=None, acct_id=None, user_session=False, direction=None
                 'message': text,
                 'direction': direction
              }},
-             '$set': {
-                'acct_id': acct_id,
-                'group':g.group,
-                'last_message':datetime.utcnow()
-              }
+             '$set': values
            },
            True)
+
+#-------------------------------------------------------------------------------
+def no_unread(mobile):
+
+    g.db['chatlogs'].update_one(
+        {'mobile': mobile},
+        {'$set': {'unread': False}})
 
 #-------------------------------------------------------------------------------
 def get_messages(mobile=None, start_dt=None, serialize=True):
@@ -202,7 +220,7 @@ def get_messages(mobile=None, start_dt=None, serialize=True):
         'last_message':{
             '$gt': start_dt if start_dt else now-td(days=view_days)
         },
-        'messages.1': {'$exists': True}
+        'messages.direction': {'$in':['in']}
     }
     chats = g.db['chatlogs'].find(query, {'group':0, '_id':0}
         ).limit(50).sort('last_message',-1)
@@ -236,7 +254,7 @@ def identify(mobile):
     else:
         g.db['chatlogs'].update_one(
             {'mobile':mobile},
-            {'$set':{'acct_id':acct['id']}})
+            {'$set':{'acct_id':int(acct['id'])}})
 
         log.debug('Discovered account match. Acct=%s', acct['id'])
 

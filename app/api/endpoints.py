@@ -11,7 +11,7 @@ from flask_login import login_required
 from . import api
 from app.api.manager import var,func_call,task_call
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('api.endpoints')
 
 @api.route('/accounts/submit_form', methods=['POST'])
 def _submit_form_signup():
@@ -135,6 +135,12 @@ def _compose():
     return func_call(compose, var('body'), var('to'),
         mute=json.loads(var('mute')), acct_id=var('acct_id'))
 
+@api.route('/alice/no_unread', methods=['POST'])
+@login_required
+def _no_unread():
+    from app.alice.conversation import no_unread
+    return func_call(no_unread, var('mobile'))
+
 @api.route('/alice/chatlogs', methods=['POST'])
 @login_required
 def _get_chatlogs():
@@ -151,7 +157,6 @@ def _identify():
 @login_required
 def _toggle_mute():
     from app.alice.conversation import toggle_reply_mute
-    log.debug('type(enabled)=%s', type(var('enabled')))
     return func_call(toggle_reply_mute, var('mobile'), json.loads(var('enabled')))
 
 @api.route('/bravo/sessions/clear', methods=['GET', 'POST'])

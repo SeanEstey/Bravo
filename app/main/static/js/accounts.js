@@ -53,10 +53,19 @@ function submitEdits() {
         'acct_id':Number(gAcctId)
     };
 
-    if($form.closest('.hpanel').prop('id') == 'custom_panel')
+    if($form.closest('.hpanel').prop('id') == 'custom_panel') {
         data['udf'] = JSON.stringify(values);
-    else
+
+    }
+    else {
+        if(data['Mobile'] || data['Voice'])
+            data['phones'] = [
+                {'type':'Mobile','value':data['Mobile'] || ''},
+                {'type':'Voice', 'value':data['Voice'] || ''}
+            ];
+
         data['persona'] = JSON.stringify(values);
+    }
 
     console.log(data);
 
@@ -276,7 +285,7 @@ function displayAcctData(acct) {
             addField(f, acct[f], $contact);
     }
     if(getPhone('Voice',acct))
-        addField('Landline', getPhone('Voice',acct), $contact);
+        addField('Voice', getPhone('Voice',acct), $contact);
     if(getPhone('Mobile', acct))
         addField('Mobile', getPhone('Mobile',acct), $contact);
 

@@ -17,13 +17,15 @@
     <div class="col text-right my-auto">
       <!--Filter menu-->
       <div class="dropdown">
+        <span id="filterLbl">Showing All</span>
         <button type="button" id="filterBtn" style="border:none; color:#6a6c6f" 
         class="btn btn-outline-secondary dropdown-toggle btn-sm fa fa-filter" 
         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="filterBtn">
           <a class="dropdown-item" id="fltr-all" href="#">All</a>
-          <a class="dropdown-item" id="fltr-unreg" href="#">Unregistered</a>
+          <a class="dropdown-item" id="fltr-read" href="#">Read</a>
           <a class="dropdown-item" id="fltr-unread" href="#">Unread</a>
+          <a class="dropdown-item" id="fltr-unreg" href="#">Unregistered</a>
         </div>
       </div>
     </div>
@@ -58,23 +60,27 @@
         <h5 style="margin:0" class="chat-title"></h5>
       </div>
       <div class="col-2 text-right my-auto">
-        <span id="" class="badge badge-info pull-right"
+        <span id="unread" class="badge badge-info pull-right"
         style="color:white; font-weight:500;">UNREAD</span>
       </div>
     </div>
   </div>
   <div class="card-block">
-    <div class="message my-3" id="last_msg"></div>
+    <div class="message my-3" id="last_user_msg"></div>
+  </div>
+  <div class="card-footer">
     <div class="row">
-      <div class="col-10">
+      <div class="col-6">
         <div class="time">
           <i class="fa fa-clock-o mr-1"></i>
-          <small id="msg_date" class="card-text" style="color:white"></small>
+          <small id="last_msg_dt" class="card-text" style="color:white"></small>
         </div>
       </div>
-      <div class="col-2 my-auto">
-        <span id="n_msg" class="badge badge-default badge-pill pull-right"
-        style="color:white; background-color:rgba(0,0,0,.125);"></span>
+      <div class="col-6">
+        <div class="time text-right">
+          <i class="fa fa-clock-o mr-1"></i>
+          <small id="last_user_msg_dt" class="card-text" style="color:white"></small>
+        </div>
       </div>
     </div>
   </div>

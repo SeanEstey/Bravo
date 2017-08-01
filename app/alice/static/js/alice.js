@@ -34,6 +34,10 @@ function initAlicePane() {
         renderChatCards(filterData('unregistered'));
     });
 
+    $('#fltr-read').click(function() {
+        renderChatCards(filterData('read'));
+    });
+
     $('#fltr-unread').click(function() {
         renderChatCards(filterData('unread'));
     });
@@ -52,9 +56,20 @@ function filterData(view) {
             if(chat['account'])
                 continue;
         }
+        else if(view == 'unread') {
+            if(chat.hasOwnProperty('unread') && chat['unread'] == false)
+                continue;
+        }
+        else if(view == 'read') {
+            if(!chat.hasOwnProperty('unread') || chat['unread'] == true)
+                continue;
+        }
 
         data.push(chat);
     }
+
+    $('#filterLbl').html('Showing ' + view.toTitleCase());
+
     return data;
 }
 
@@ -111,21 +126,28 @@ function renderChatCards(data){
 
             var title = chat['account'] ? chat['account']['name'] : chat['mobile'];
             var id = "item_" + String(i);
-            var msg = '';
-            var msg_dt = new Date();
+            var last_user_msg = null;
+            var last_msg_dt = new Date(chat['last_message']['$date']);
+            var last_user_msg_dt = new Date();
 
             for(var m=chat['messages'].length-1; m>=0; m--) {
                 if(chat['messages'][m]['direction'] == 'in') {
-                    msg = chat['messages'][m]['message'];
-                    msg_dt = new Date(chat['messages'][m]['timestamp']['$date']);
+                    last_user_msg = '\"' + chat['messages'][m]['message'] + '\"';
+                    last_user_msg_dt = new Date(chat['messages'][m]['timestamp']['$date']);
                     break;
                 }
             }
 
+            if(!last_user_msg)
+                continue;
+
             var $card = $('#chat-item').clone().prop('id', 'item_'+String(i+j));
+            if(chat.hasOwnProperty('unread') && chat['unread'] == false)
+                $card.find('#unread').prop('hidden', true);
             $card.find('.chat-title').html(title);
-            $card.find('#last_msg').html(msg);
-            $card.find('#msg_date').html(toRelativeDateStr(msg_dt));
+            $card.find('#last_user_msg').html(last_user_msg);
+            $card.find('#last_user_msg_dt').html('Received ' + toRelativeDateStr(last_user_msg_dt));
+            $card.find('#last_msg_dt').html('Replied ' + toRelativeDateStr(last_msg_dt));
             $card.find('#n_msg').html(chat['messages'].length);
             $card.prop('hidden', false);
             $card.click(showChatModal);
@@ -194,4 +216,11 @@ function showChatModal(e) {
     $modal.find('input[name="mute"]').prop('checked', false);
     $modal.find('#f_acct_id').html("<a href="+window.location.origin+"/accounts?aid="+acct_id+">Acct ID " + acct_id+"</a>");
     $modal.modal('show');
+
+    api_call(
+        'alice/no_unread',
+        data={'mobile':chat['mobile']},
+        function(response) {
+            console.log(response['status']);
+        });
 }

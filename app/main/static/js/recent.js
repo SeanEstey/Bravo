@@ -94,8 +94,6 @@ function showLogEntryDetailsModal(e) {
             appendLogField(field, log_record[field], container);
     }
 
-    //container.append('<div><br></div>');
-
     for(var i=1; i<std_fields.length; i++){
         var field = std_fields[i];
 
@@ -126,6 +124,9 @@ function appendLogField(field, value, container) {
                     .replace(/\\n/g, "<BR>") +
             '</PRE>' +
           '</DIV>';
+    else if(typeof value === 'string') {
+        div += value.replace(/\n/g, '<br>').replace(/\s\s\s\s/g, '&nbsp&nbsp&nbsp&nbsp') + '</DIV>';
+    }
     else
         div += value + '</DIV>';
 

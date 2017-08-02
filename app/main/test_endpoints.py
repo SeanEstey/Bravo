@@ -46,6 +46,7 @@ def _test_leaders():
 @login_required
 @main.route('/test_wipe_sessions', methods=['GET'])
 def _test_wipe_sessions():
+
     from app import clear_sessions
     clear_sessions()
     return 'ok'

@@ -24,6 +24,8 @@ class UberTask(Task):
     flsk_app = None
     db_client=None
     buf_mongo_hndlr = None
+    user = None
+    group = None
 
     #---------------------------------------------------------------------------
     def __call__(self, *args, **kwargs):
@@ -88,6 +90,22 @@ class UberTask(Task):
         return super(UberTask, self).apply_async(args, kwargs, **rest)
 
     #---------------------------------------------------------------------------
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        '''Called by worker on task fail
+        '''
+
+        task_name = self.name.split('.')[-1]
+
+        if self.group:
+            with self.flsk_app.app_context():
+                g.group = self.group
+                log.exception('Task %s failed: %s.',
+                    task_name, exc, extra={'trace':einfo.traceback})
+        else:
+            log.exception('Task %s failed: %s',
+                task_name, exc, extra={'trace':einfo.traceback})
+
+    #---------------------------------------------------------------------------
     def _push_contexts(self, kwargs):
         '''Pass flask request/app context + flask.g vars into kwargs for worker task.
         '''
@@ -136,6 +154,7 @@ class UberTask(Task):
         g.db = self.db_client['bravo']
 
         user_oid = kwargs.pop(self.USERID_KW, None)
+        print 'user_oid=%s' % user_oid
 
         if user_oid:
             db_user = g.db.users.find_one({'_id':ObjectId(str(user_oid))})
@@ -145,5 +164,5 @@ class UberTask(Task):
                 _id=db_user['_id'],
                 group=db_user['group'],
                 admin=db_user['admin']))
-            g.user = current_user
-            g.group = current_user.group
+            g.user = self.user = current_user
+            g.group = self.group = current_user.group

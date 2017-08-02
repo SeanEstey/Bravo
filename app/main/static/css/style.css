@@ -16,6 +16,9 @@ body {
     max-width:1600px;
 }
 
+
+
+
 /*NAV MENU*/
 .container-fluid.br-nav {
 	margin-left: auto;
@@ -499,3 +502,19 @@ a.hover:visited {
         margin-left: 0;
         margin-right: 0;
     }
+
+.form-control::-webkit-input-placeholder {
+    color: red; /*#cfc8c8;*/
+}
+*:-moz-placeholder {
+    /* FF 4-18 */
+    color: red;
+}
+*::-moz-placeholder {
+    /* FF 19+ */
+    color: red;
+}
+*:-ms-input-placeholder {
+    /* IE 10+ */
+    color: red;
+}

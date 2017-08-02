@@ -31,8 +31,9 @@ def get_matches(query):
     matches = g.db['cachedAccounts'].find({
       'group':g.group,
       '$or': [
-         {'account.name':{'$regex':query}},
-         {'account.email':{'$regex':query}}
+         {'account.name':{'$regex':query, '$options':'i'}},
+         {'account.email':{'$regex':query, '$options':'i'}},
+         {'account.address':{'$regex':query, '$options':'i'}}
       ]
     }).limit(10)
 

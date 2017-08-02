@@ -1,17 +1,17 @@
 /* alice.js */
 
 chatData = null;
+activeCard = null;
 
 //------------------------------------------------------------------------------
 function initAlicePane() {
     /* Setup event handlers and pull chatlog data */
 
-    $('#chat_modal').find('#send_sms').click(sendMessage);
 
-    api_call('alice/chatlogs', data={}, function(response) {
-        chatData = response['data'];
-        renderChatCards(chatData);
-    });
+    loadChats();
+    initSocketIO();
+
+    $('#chat_modal').find('#send_sms').click(sendMessage);
 
     $modal = $('#chat_modal');
     $modal.find('input[name="mute"]').click(function() {
@@ -22,6 +22,7 @@ function initAlicePane() {
                 'enabled': JSON.parse($(this).prop('checked'))
             },
             function(response) {
+                $('#status').html('Auto-replies muted for 30 min.');
                 console.log(response['data']);
             });
     });
@@ -40,6 +41,44 @@ function initAlicePane() {
 
     $('#fltr-unread').click(function() {
         renderChatCards(filterData('unread'));
+    });
+}
+
+//------------------------------------------------------------------------------
+function loadChats() {
+    api_call('alice/chatlogs', data={}, function(response) {
+        chatData = response['data'];
+        renderChatCards(chatData);
+    });
+}
+
+//------------------------------------------------------------------------------
+function initSocketIO() {
+
+    socket = io.connect('https://' + document.domain + ':' + location.port);
+
+    socket.on('connect', function(){
+        console.log('socket.io connected!');
+        socket.on('joined', function(response) {
+            console.log(response);
+        });
+    });
+
+    socket.on('new_message', function(data) {
+        console.log('New message!');
+        var $modal = $('#chat_modal');
+
+        if($modal.hasClass('show')) {
+            console.log('Modal active');
+
+            if(data['mobile'] == $modal.data('mobile')) {
+                $('#status').html('Message received.');
+                appendMsgRow(data['message'], new Date(), 'in');
+            }
+        }
+
+        // Refresh chat cards
+        loadChats();
     });
 }
 
@@ -71,6 +110,7 @@ function filterData(view) {
     $('#filterLbl').html('Showing ' + view.toTitleCase());
 
     return data;
+
 }
 
 //------------------------------------------------------------------------------
@@ -89,6 +129,7 @@ function sendMessage(e) {
             console.log('response: ' + JSON.stringify(response));
 
             if(response['status'] == 'success') {
+                $('#status').html('Message delivered.');
                 appendMsgRow(
                     $('#chat_modal input').val(),
                     new Date(),
@@ -186,6 +227,8 @@ function appendMsgRow(body, date, direction) {
 //------------------------------------------------------------------------------
 function showChatModal(e) {
 
+    activeCard = $(this);
+
     e.preventDefault();
     var chat = $(this).data('details');
     var name = chat['account'] ? chat['account']['name'] : '';
@@ -212,6 +255,7 @@ function showChatModal(e) {
     $modal.on('shown.bs.modal', function() {
         $('#chatlog').scrollTop($('#chatlog')[0].scrollHeight);
     })
+    $modal.find('#status').html('');
     $modal.data('mobile', chat['mobile']);
     $modal.data('acct_id', acct_id);
     $modal.find('.modal-title').html(
@@ -224,10 +268,14 @@ function showChatModal(e) {
         format("<a href=%s>Acct ID %s</a>", url, acct_id));
     $modal.modal('show');
 
-    api_call(
-        'alice/no_unread',
-        data={'mobile':chat['mobile']},
-        function(response) {
-            console.log(response['status']);
-        });
+    if(chat.hasOwnProperty('unread') && chat['unread'] == true) {
+        api_call(
+            'alice/no_unread',
+            data={'mobile':chat['mobile']},
+            function(response) {
+                $('#status').html('Messages marked as read.');
+                activeCard.find('#unread').prop('hidden', true);
+                console.log(response['status']);
+            });
+    }
 }

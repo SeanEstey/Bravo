@@ -115,7 +115,8 @@ def task_done(signal=None, sender=None, task_id=None, task=None, retval=None, st
 @task_failure.connect
 def task_failed(signal=None, sender=None, task_id=None, exception=None, traceback=None, einfo=None, *args, **kwargs):
 
-    name = sender.name.split('.')[-1]
+    pass
+    """name = sender.name.split('.')[-1]
     print 'TASK_FAILURE. NAME %s' % name
     app.logger.error('Task %s failed. Click for more info.', name,
         extra={
@@ -123,6 +124,7 @@ def task_failed(signal=None, sender=None, task_id=None, exception=None, tracebac
             'traceback': str(traceback) if traceback else None,
             'task_args': args,
             'task_kwargs': kwargs})
+    """
 
 @task_revoked.connect
 def task_killed(sender=None, task_id=None, request=None, terminated=None, signum=None, expired=None, *args, **kwargs):

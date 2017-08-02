@@ -64,6 +64,15 @@ function submitEdits() {
     // Persona
     else {
         if(values['Mobile'] || values['Voice']) {
+            // Update 'SMS' DV with Mobile number in international
+            // format so Alice can identify the account when
+            // receiving 
+            if(values['Mobile') {
+                var numeric = /\s|\-|\(|\)|[a-zA-Z]/g;
+                data['udf']['SMS'] = format(
+                    '+1%s', values['Mobile'].replace(numeric,''));
+
+            }
             values['phones'] = [
                 {'type':'Mobile','number':values['Mobile'] || ''},
                 {'type':'Voice', 'number':values['Voice'] || ''}

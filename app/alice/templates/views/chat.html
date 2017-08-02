@@ -5,39 +5,40 @@
  role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-wide">
     <div class="modal-content" style="min-width:1000px; max-width:1000px;">
-      <div class="modal-header rounded-header text-white"
-      style="background-color:#1c93bd">
-        <h3 class="modal-title">Modal title</h3>
+      <div class="modal-header p-3 text-white"
+      style="background-color:#1c93bd; border-top-left-radius:.25rem; border-top-right-radius:.25rem">
+        <h4 class="modal-title">Modal title</h4>
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body pb-4">
         <div>
           <table id="chatlog" class="table table-responsive table-sm" style="max-height:300px">
           </table>
-          <div>
+          <form>
             <div class="form-inline">
-              <input class="form-control col-10 mr-sm-4" name="msg" type="text" value="">
-              <button id="send_sms" type="button" class="btn btn-secondary">Send SMS</button>
+              <input class="form-control col-10" name="msg" type="text">
+              <button id="send_sms" type="button"
+              class="btn btn-secondary col ml-4">
+                Send SMS
+              </button>
             </div>
-          </div>
+          </form>
+        </div>
+      </div><!--End modal body--> 
+      <div class="modal-footer mt-4 p-2"
+           style="background-color: whitesmoke;
+                  border-bottom-left-radius:.25rem; 
+                  border-bottom-right-radius:.25rem;">
+        <div class="form-check col align-self-start m-0">
+          <label class="form-check-label">
+          <input class="form-check-input mr-1" type="checkbox" name="mute" 
+          nchecked="">Live Chat Mode
+          </label>
+        </div>
+        <div id="status" class="col-3 align-self-end text-right"
+             style="font-family:monospace">
         </div>
       </div>
-        <p class="text-center">
-          <a class="collapsed" data-toggle="collapse" href="#collapseExample"
-          aria-expanded="false" aria-controls="collapseExample">
-            Advanced Mode
-          </a>
-        </p>
-        <div class="collapse" id="collapseExample" aria-expanded="false">
-        <div class="card card-block" style="border:none">
-          <div style="" id="f_acct_id" class="mr-4 text-right"></div>
-            <div class="mt-2 mr-4" style="text-align:right">
-              <label class="form-check-label">
-              <input class="form-check-input" type="checkbox" name="mute" value="" unchecked="">Toggle Human Mode (no auto reply)
-              </label>
-            </div>
-          </div>
-        </div>
     </div>
   </div>
 </div>

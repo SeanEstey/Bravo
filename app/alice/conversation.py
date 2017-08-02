@@ -76,6 +76,10 @@ def new():
 
     save_msg(msg, direction="in", user_session=True)
 
+    from app.main.socketio import smart_emit
+    smart_emit('new_message',
+        {'mobile':session['FROM'], 'message':msg}, room=g.get('group'))
+
     log.info('%s to %s: "%s"',
         session['FROM'][2:], session['SELF_NAME'], request.form['Body'],
         extra={'n_messages': session['MESSAGECOUNT'], 'tag':'sms_msg'})
@@ -86,11 +90,17 @@ def update():
     """
 
     # See if there's a more recent eTapestry Account
+    msg = request.form['Body']
 
-    save_msg(request.form['Body'], direction="in", user_session=True)
+    save_msg(msg, direction="in", user_session=True)
     session['MESSAGECOUNT'] = session.get('MESSAGECOUNT', 0) + 1
+
+    from app.main.socketio import smart_emit
+    smart_emit('new_message',
+        {'mobile':session['FROM'], 'message':msg}, room=g.get('group'))
+
     log.info('%s to %s: "%s"',
-        session['FROM'][2:], session['SELF_NAME'], request.form['Body'],
+        session['FROM'][2:], session['SELF_NAME'], msg,
         extra={'n_messages': session['MESSAGECOUNT'], 'tag':'sms_msg'})
 
 #-------------------------------------------------------------------------------

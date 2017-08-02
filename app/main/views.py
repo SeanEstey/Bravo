@@ -27,7 +27,10 @@ def view_accounts():
 @main.route('/recent')
 @login_required
 def view_recent():
-    return render_template('views/recent.html')
+    return render_template(
+        'views/recent.html',
+        org_name = g.group
+    )
 
 @main.route('/admin')
 @login_required

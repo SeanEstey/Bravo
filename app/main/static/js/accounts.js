@@ -67,7 +67,7 @@ function submitEdits() {
             // Update 'SMS' DV with Mobile number in international
             // format so Alice can identify the account when
             // receiving 
-            if(values['Mobile') {
+            if(values['Mobile']) {
                 var numeric = /\s|\-|\(|\)|[a-zA-Z]/g;
                 data['udf']['SMS'] = format(
                     '+1%s', values['Mobile'].replace(numeric,''));

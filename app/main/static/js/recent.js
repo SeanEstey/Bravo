@@ -7,30 +7,29 @@ var list_item_styles = {
     'ERROR': 'list-group-item-danger'
 };
 
-var grp_ids = ['grp-user','grp-sys','grp-other'];
-var grp_keys = {'grp-user':'grp-user', 'grp-sys':'sys', 'grp-other':'anon'};
-var lvl_ids = ['lvl-debug', 'lvl-info', 'lvl-warn', 'lvl-err'];
-var lvl_keys = {'lvl-debug':'DEBUG', 'lvl-info':'INFO', 'lvl-warn':'WARNING', 'lvl-err':'ERROR'};
-var tag_ids = ['tag-api'];
-var tag_keys = {'tag-api':'api'};
+grp_keys = {
+    'grp-org': 'org_name',
+    'grp-sys': 'sys',
+    'grp-other':'anon'
+};
+lvl_keys = {
+    'lvl-debug':'DEBUG',
+    'lvl-info':'INFO',
+    'lvl-warn':'WARNING',
+    'lvl-err':'ERROR'
+};
+tag_keys = {
+    'tag-api':'api',
+    'tag-task':'task'
+};
 
 //------------------------------------------------------------------------------
 function initRecent() {
 
-	$('#filtr_lvls input').change(function() {
-        console.log('%s=%s', $(this).prop('name'), $(this).prop('checked'));	
-        requestLogEntries();
-	});
-
-	$('#filtr_grps input').change(function() {
-        console.log('%s=%s', $(this).prop('name'), $(this).prop('checked'));	
-        requestLogEntries();
-	});
-
     requestLogEntries();
 
-    $('#filterMenu .dropdown-item').click(toggleFilter).find('.dropdown-menu').show();
-    //$('#filterMenu .dropdown-menu').show();
+    $('#filterMenu .dropdown-item').click(toggleFilter)
+        .find('.dropdown-menu').show();
 }
 
 //------------------------------------------------------------------------------
@@ -42,13 +41,13 @@ function toggleFilter(e) {
     $a = $(this);
 
     if($a.prop('id') == 'grp-all') {
-        for(var idx in grp_ids) {
-            $('#'+grp_ids[idx] + ' i').addClass('fa-check');
+        for(var k in grp_keys) {
+            $('#'+k+ ' i').addClass('fa-check');
         }
     }
     else if($a.prop('id') == 'lvl-all') {
-        for(var idx in lvl_ids) {
-            $('#'+lvl_ids[idx] + ' i').addClass('fa-check');
+        for(var k in lvl_keys) {
+            $('#'+k+ ' i').addClass('fa-check');
         }
     }
     else if($a.find('i').hasClass('fa-check'))
@@ -58,54 +57,49 @@ function toggleFilter(e) {
 
     $('#filterMenu .dropdown-menu').show();
     $('#filterMenu .dropdown-menu').prop('display', 'block');
+
+    requestLogEntries();
 }
 
 //------------------------------------------------------------------------------
 function requestLogEntries() {
 
-    // Build list of active filters
+    // Get list of checked filter ID's
+    var checked = [];
+    $('#filterMenu .dropdown-menu i.fa-check').parent().each(function(){
+        checked.push($(this).prop('id'));
+    });
 
-    var grp_filters = [];
-    for(var idx in grp_ids) {
-        var _id=grp_ids[idx];
-        if($('#'+_id + ' i').hasClass('fa-check'))
-            grp_filters.push(grp_keys[_id]);
+    var data = {
+        'levels':[],
+        'groups':[],
+        'tags':[]
+    };
+
+    // Translate date, call API to retrieve logs
+
+    for(var k in grp_keys) {
+        if(checked.indexOf(k) > -1)
+            data['groups'].push(grp_keys[k]);
     }
 
-    var lvl_filters = [];
-    for(var idx in lvl_ids) {
-        var _id=lvl_ids[idx];
-        if($('#'+_id + ' i').hasClass('fa-check'))
-            lvl_filters.push(lvl_keys[_id]);
+    for(var k in lvl_keys) {
+        if(checked.indexOf(k) > -1)
+            data['levels'].push(lvl_keys[k]);
     }
 
-    var tag_filters = [];
-    for(var idx in tag_ids) {
-        if($(format('#%s i', tag_ids[idx])).hasClass('fa-check'))
-            tag_filters.push(tag_keys[tag_ids[idx]]);
+    for(var k in tag_keys) {
+        if(checked.indexOf(k) > -1)
+            data['tags'].push(tag_keys[k]);
     }
 
-    /*
-    console.log('filters=['+grp_filters+'], ['+lvl_filters+'], ['+tag_filters+']');
-    api_call(
-        'logger/new_get',
-        data={
-            'levels':JSON.stringify(lvl_filters),
-            'groups':JSON.stringify(grp_filters),
-            'tags':JSON.stringify(tag_filtesr)
-        },
-        renderLogEntries
-    );
-    */
+    data['levels'] = JSON.stringify(data['levels']);
+    data['groups'] = JSON.stringify(data['groups']);
+    data['tags'] = JSON.stringify(data['tags']);
 
-    api_call(
-        'logger/get',
-        data = {
-            'levels': JSON.stringify($('#filtr_lvls').serializeArray()),
-            'groups': JSON.stringify($('#filtr_grps').serializeArray())
-        },
-        renderLogEntries
-    );
+    //console.log('data='+JSON.stringify(data));
+
+    api_call('logger/new_get', data=data, renderLogEntries);
 }
 
 //------------------------------------------------------------------------------

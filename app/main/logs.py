@@ -1,12 +1,40 @@
 '''app.main.logs'''
+import logging, re
 from json import loads
 from flask import g, request
 from datetime import datetime, timedelta
 from app.lib.utils import format_bson
+log = logging.getLogger(__name__)
 
+#---------------------------------------------------------------------------
+def new_get_logs(groups=None, tags=None, levels=None, n_skip=0):
 
-def new_get_logs(groups=None, tags=None, levels=None):
-    pass
+    query = {}
+
+    #log.debug('groups=%s, tags=%s, levels=%s', groups, tags, levels)
+
+    if 'task' in tags:
+        query['processName'] = {'$regex': 'PoolWorker'}
+    else:
+        query['processName'] = {'$regex': "^(?:(?!PoolWorker).)*$"}
+
+    if 'api' in tags:
+        query['loggerName'] = {'$regex': 'api'}
+    else:
+        query['loggerName'] = {'$regex': "^(?:(?!api).)*$"}
+
+    if groups:
+        if 'org_name' in groups:
+            groups[groups.index('org_name')] = g.group
+        query['group'] = {'$in':groups}
+
+    if levels:
+        query['level'] = {'$in': levels}
+
+    print 'query=%s' % query
+
+    logs = g.db.logs.find(query).limit(50).sort('timestamp', -1).skip(n_skip)
+    return format_bson(list(logs))
 
 #---------------------------------------------------------------------------
 def get_logs(start=None, end=None, user=None, groups=None, tag=None, levels=None):

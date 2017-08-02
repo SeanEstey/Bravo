@@ -42,7 +42,8 @@ def receipt_handler(self, form, group, **rest):
     try:
         ss = SS(keys['oauth'], keys['ss_id'])
     except Exception as e:
-        log.error('Failed to update Row %s.', form['ss_row'], extra={'desc':str(e)})
+        log.error('Failed to update Row %s.', form['ss_row'],
+            extra={'tag':'task','desc':str(e)})
         gc.collect()
         self.update_state(state=states.FAILURE, meta=str(e))
         raise Ignore()
@@ -55,7 +56,7 @@ def receipt_handler(self, form, group, **rest):
 @celery.task(bind=True)
 def account_analytics(self, **rest):
 
-    log.debug('Task: Acccount Analytics...')
+    log.debug('Task: Acccount Analytics...', extra={'tag':'task'})
 
     for org in g.db['groups'].find({'name':'vec'}):
         g.group = org['name']
@@ -90,7 +91,7 @@ def build_gift_cache(self, group=None, **rest):
     ]
 
     timer = Timer()
-    log.debug('Task: caching recent changes...')
+    log.debug('Task: caching recent changes...', extra={'tag':'task'})
 
     for org in g.db['groups'].find({'name':group} if group else {}):
         g.group = org['name']
@@ -115,7 +116,7 @@ def update_recent_cache(self, group=None, **rest):
     ]
 
     timer = Timer()
-    log.debug('Task: caching recent changes...')
+    log.debug('Task: caching recent changes...', extra={'tag':'task'})
 
     for org in g.db['groups'].find({'name':group} if group else {}):
         g.group = org['name']
@@ -138,7 +139,7 @@ def update_recent_cache(self, group=None, **rest):
             if not chat.get('account'):
                 identify(chat['mobile'])
 
-    log.debug('Task: completed [%s]', timer.clock())
+    log.debug('Task: completed [%s]', timer.clock(), extra={'tag':'task'})
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -147,7 +148,7 @@ def backup_mongo(self, **rest):
     from db_auth import user, password
     import os
     os.system("mongodump -u %s -p %s -o ~/Dropbox/mongo" %(user,password))
-    log.warning('MongoDB backup created')
+    log.warning('MongoDB backup created', extra={'tag':'task'})
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -178,7 +179,7 @@ def health_check(self, **rest):
 
         if mem2['free'] < 350:
             log.warning('Warning: low memory! 250mb recommended (%s/%s)',
-                mem2['free'], mem['total'])
+                mem2['free'], mem['total'], extra={'tag':'task'})
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -191,7 +192,7 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
     from app.main.socketio import smart_emit
 
     log.info('Task: Searching zone matches...',
-        extra={'blocks':blocks, 'map':zone})
+        extra={'blocks':blocks, 'map':zone, 'tag':'task'})
 
     timer = Timer()
     target_map = None
@@ -228,18 +229,19 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
                         queries.append(block)
                         log.debug('Added Block=%s', block)
 
-    log.debug('Queries=%s', queries)
+    #log.debug('Queries=%s', queries)
 
     matches = {}
     acct_list = []
 
     for query in queries:
-        log.debug('Searching Query %s', query)
+        #log.debug('Searching Query %s', query)
 
         try:
             accts = get_query(query)
         except Exception as e:
-            log.exception('Error retrieving %s. Skipping', query)
+            log.exception('Error retrieving %s. Skipping', query,
+                extra={'tag':'task'})
             continue
 
         for acct in accts:
@@ -277,9 +279,10 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
         wks = ss.wks("Accounts")
         wks.appendRows(values)
     except Exception as e:
-        log.exception('Error writing to Sheet')
+        log.exception('Error writing to Sheet', extra={'tag':'task'})
 
-    log.info('Task completed. %s zone matches found. [%s]', len(matches), timer.clock())
+    log.info('Task completed. %s zone matches found. [%s]',
+        len(matches), timer.clock(), extra={'tag':'task'})
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -300,7 +303,7 @@ def estimate_trend(self, date_str, ss_gifts, ss_id, ss_row, **rest):
     n_repeat = 0
 
     log.info('Task: Analyzing estimate trend...',
-        extra={'n_accts':len(ss_gifts), 'donations':dumps(ss_gifts,indent=2)})
+        extra={'n_accts':len(ss_gifts), 'donations':dumps(ss_gifts,indent=2), 'tag':'task'})
 
     for ss_gift in ss_gifts:
         if not ss_gift['amount']:
@@ -341,7 +344,8 @@ def estimate_trend(self, date_str, ss_gifts, ss_id, ss_row, **rest):
     wks = SS(oauth, ss_id).wks('Daily')
     wks.updateCell(trend, row=ss_row, col_name='Estmt Trend')
 
-    log.info('Task completed. Trend=$%.2f. [%s]', trend, timer.clock())
+    log.info('Task completed. Trend=$%.2f. [%s]', trend, timer.clock(),
+        extra={'tag':'task'})
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -364,7 +368,8 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
     ref_col = headers.index('Ref')+1
     upload_col = headers.index(col)+1
 
-    log.info('Task: Processing %s account entries...', len(entries))
+    log.info('Task: Processing %s account entries...', len(entries),
+        extra={'tag':'task'})
 
     chks = [entries[i:i + CHK_SIZE] for i in xrange(0, len(entries), CHK_SIZE)]
     task_start = datetime.utcnow()
@@ -376,7 +381,8 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
         try:
             results = call('add_gifts', data={'entries':chk})
         except Exception as e:
-            log.error('Error in chunk #%s. continuing...', n+1, extra={'description':e.message})
+            log.error('Error in chunk #%s. continuing...', n+1,
+                extra={'description':e.message, 'tag':'task'})
             results = "Failed to add gifts. Description: %s" % e.message
             continue
         else:
@@ -395,7 +401,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
             try:
                 ss.wks(wks).updateRanges(ranges, values)
             except Exception as e:
-                log.exception('Error writing chunk %s', n+1)
+                log.exception('Error writing chunk %s', n+1, extra={'tag':'task'})
             else:
                 log.debug('Chunk %s/%s uploaded/written to Sheets.', n+1, len(chks))
         finally:
@@ -418,7 +424,8 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
         # entry['udf']: {'Status':VAL, 'Next Pickup Date':VAL}
     """
 
-    log.info('Task completed. %s entries processed. [%s]', len(entries), timer.clock())
+    log.info('Task completed. %s entries processed. [%s]', len(entries),
+        timer.clock(), extra={'tag':'task'})
 
     return 'success'
 
@@ -445,7 +452,8 @@ def send_receipts(self, ss_gifts, **rest):
     receipts = [] # Master list holding receipting data
     ss_gifts = json.loads(ss_gifts)
 
-    log.info('Task: Processing %s receipts...', len(ss_gifts))
+    log.info('Task: Processing %s receipts...', len(ss_gifts),
+        extra={'tag':'task'})
 
     for ss_gift in ss_gifts:
         receipt = {
@@ -512,7 +520,7 @@ def send_receipts(self, ss_gifts, **rest):
     errs = [r['result'] for r in receipts if r['result']['status'] == 'ERROR']
 
     log.info('Receipts queued=%s. Errors=%s [%s]',
-        n_queued, len(errs), timer.clock(stop=False))
+        n_queued, len(errs), timer.clock(stop=False), extra={'tag':'task'})
 
     health_check()
 
@@ -531,7 +539,7 @@ def send_receipts(self, ss_gifts, **rest):
         })
 
     log.info('Task completed. Journal Contacts added. [%s]',
-        timer.clock(), extra={'errors':errs})
+        timer.clock(), extra={'errors':errs, 'tag':'task'})
 
     return 'success'
 
@@ -548,7 +556,7 @@ def create_accounts(self, accts_json, group=None, **rest):
     timer = Timer()
     g.group = group
     accts = json.loads(accts_json)
-    log.info('Task: Creating %s accounts...', len(accts))
+    log.info('Task: Creating %s accounts...', len(accts), extra={'tag':'task'})
 
     # Break accts into chunks for gsheets batch updating
     ch_size = 10
@@ -587,12 +595,11 @@ def create_accounts(self, accts_json, group=None, **rest):
         try:
             wks.updateRanges(ranges, values)
         except Exception as e:
-            log.exception('Error writing to Bravo Sheets.')
+            log.exception('Error writing to Bravo Sheets.', extra={'tag':'task'})
         else:
-            log.debug('Chunk %s/%s written to Sheets', i+1, len(chks))
+            log.debug('Chunk %s/%s written to Sheets', i+1, len(chks), extra={'tag':'task'})
 
         # rv = {'n_success':<int>, 'n_errs':<int>, 'results':[ {'row':<int>, 'status':<str>}, ... ]
-        log.debug('rv=%s', rv)
         log_rec['n_success'] += int(rv['n_success'])
 
         if int(rv['n_errs']) > 0:
@@ -600,6 +607,7 @@ def create_accounts(self, accts_json, group=None, **rest):
             log_rec['errors'].append(rv['results'])
 
     log_rec['duration'] = timer.clock()
+    log_rec['tag'] = 'task'
 
     if log_rec['n_errs'] > 0:
         log.error('Task completed. %s/%s accounts created. See Bravo Sheets for details.',
@@ -665,7 +673,8 @@ def update_calendar(self, from_=date.today(), group=None, **rest):
         n_updated = n_errs = n_warnings = 0
 
         log.warning('Updating calendar events...',
-            extra={'start': start_dt.strftime(d_str), 'end': end_dt.strftime(d_str)})
+            extra={'start': start_dt.strftime(d_str),
+                   'end': end_dt.strftime(d_str), 'tag':'task'})
 
         for id_ in cal_ids:
             events = get_events(srvc, cal_ids[id_], start_dt, end_dt)
@@ -725,11 +734,12 @@ def update_calendar(self, from_=date.today(), group=None, **rest):
                 try:
                     update_event(srvc, evnt, title=new_title, color_id=color_id)
                 except Exception as e:
-                    log.exception(str(e))
+                    log.exception(str(e), extra={'tag':'task'})
                     n_errs+=1
                 else:
                     n_updated+=1
         extra= {
+            'tag': 'task',
             'n_events': n_updated,
             'n_errs': n_errs,
             'n_warnings': n_warnings,
@@ -743,9 +753,6 @@ def update_calendar(self, from_=date.today(), group=None, **rest):
         timer.restart()
 
     g.group = None
-    return 'success'
-
-
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -768,14 +775,14 @@ def find_inactive_donors(self, group=None, in_days=5, period_=None, **rest):
         n_inactive = 0
         g.group = group_['name']
 
-        log.warning('Identifying inactive donors...')
+        log.warning('Identifying inactive donors...', extra={'tag':'task'})
 
         cal_ids = group_['cal_ids']
         period = period_ if period_ else group_['donors']['inactive_period']
         on_date = date.today() + delta(days=in_days)
 
         log.info('Analyzing inactive donors on %s routes...', on_date.strftime('%m-%d'),
-            extra={'inactive_period (days)': period})
+            extra={'inactive_period (days)': period, 'tag':'task'})
 
         for _id in cal_ids:
             accts += get_accounts(cal_ids[_id], delta_days=in_days)
@@ -827,8 +834,8 @@ def find_inactive_donors(self, group=None, in_days=5, period_=None, **rest):
         timer.restart()
 
     g.group = None
-    log.warning('Inactive Donors task completed. %s accounts found.', n_task_inactive)
-    return 'success'
+    log.warning('Inactive Donors task completed. %s accounts found.',
+        n_task_inactive, extra={'tag':'task'})
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -838,7 +845,7 @@ def update_leaderboard_accts(self, group=None, **rest):
     from .leaderboard import update_accts, update_gifts
 
     g.group=group
-    log.warning('Updating leaderboards...')
+    log.warning('Updating leaderboards...', extra={'tag':'task'})
     groups = [get_keys(group=group)] if group else g.db['groups'].find()
     timer = Timer()
 

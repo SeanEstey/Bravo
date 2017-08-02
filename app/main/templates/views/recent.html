@@ -7,12 +7,72 @@
   jQuery(function($){ initRecent(); $("body").css("display","block"); });
 </script>
 
+<head>
+  <style>
+    #filterBtn {
+      border:none;
+      color:#6a6c6f;
+    }
+  </style>
+</head>
+
 <div class="container">
-  <div class="card">
-    <div class="card-header blue">
-      <label style="font-weight:400; font-size:1.5rem">Event History</label>
-    </div>
-    <div class="card-header" style="border-bottom:0px; background-color:white">
+  <div class="card" style='background-color:inherit; border:none;'>
+    <div class="card-header" style='background-color:inherit; border:none;'>
+      <div class="row">
+        <div class="col">
+          <label style="font-weight:400; font-size:1.5rem">Event History</label>
+        </div>
+        <div class="col text-right my-auto">
+          <div id='filterMenu' class="dropdown">
+            <span id="actFiltrs">Filters</span>
+            <button type="button" id="filterBtn"
+            class="btn btn-outline-secondary dropdown-toggle btn-sm fa fa-filter"
+            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="filterBtn">
+              <h6 class="dropdown-header">Groups</h6>
+                <a class="dropdown-item" id="grp-all" href="#">All</a>
+                <a class="dropdown-item" id="grp-org" href="#">
+                  <i class="fa fa-check mr-1"></i>Organization
+                </a>
+                <a class="dropdown-item" id="grp-sys" href="#">
+                  <i class="fa fa-check mr-1"></i>System
+                </a>
+                <a class="dropdown-item" id="grp-other" href="#">
+                  <i class="fa fa-check mr-1"></i>Other
+                </a>
+              <!---->
+              <div class="dropdown-divider"></div>
+                <h6 class="dropdown-header">Level</h6> 
+                  <a class="dropdown-item" id="lvl-all" href="#">All</a>
+                  <a class="dropdown-item" id="lvl-debug" href="#">
+                    <i class="fa fa-check mr-1"></i>Debug
+                  </a>
+                  <a class="dropdown-item" id="lvl-info" href="#">
+                    <i class="fa fa-check mr-1"></i>Info
+                  </a>
+                  <a class="dropdown-item" id="lvl-warn" href="#">
+                    <i class="fa fa-check mr-1"></i>Warning
+                  </a>
+                  <a class="dropdown-item" id="lvl-err" href="#">
+                    <i class="fa fa-check mr-1"></i>Error
+                  </a>
+                <!---->
+              <!---->
+              <div class="dropdown-divider"></div>
+                <h6 class="dropdown-header">Tag</h6>
+                  <a class="dropdown-item" id="tag-api" href="#">
+                    <i class="fa fa-check mr-1"></i>API
+                  </a>
+                <!---->
+              <!---->
+            </div>
+          </div>
+        </div>
+      </div><!--end header row-->
+    </div><!--end card-header-->
+
+    <div class="card-header" style="border-bottom:0px; background-color:white" hidden>
       <div class="row">
         <div class="col-2"></div>
         <form id='filtr_lvls' class="form-inline col-4">
@@ -62,7 +122,8 @@
         </form>
         <div class="col-2"></div>
       </div>
-    </div>
+    </div><!--End old filter header-->
+
     <div id='recnt_list' class="list-group"></div>
   </div>
 

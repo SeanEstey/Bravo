@@ -7,6 +7,13 @@ var list_item_styles = {
     'ERROR': 'list-group-item-danger'
 };
 
+var grp_ids = ['grp-user','grp-sys','grp-other'];
+var grp_keys = {'grp-user':'grp-user', 'grp-sys':'sys', 'grp-other':'anon'};
+var lvl_ids = ['lvl-debug', 'lvl-info', 'lvl-warn', 'lvl-err'];
+var lvl_keys = {'lvl-debug':'DEBUG', 'lvl-info':'INFO', 'lvl-warn':'WARNING', 'lvl-err':'ERROR'};
+var tag_ids = ['tag-api'];
+var tag_keys = {'tag-api':'api'};
+
 //------------------------------------------------------------------------------
 function initRecent() {
 
@@ -21,10 +28,75 @@ function initRecent() {
 	});
 
     requestLogEntries();
+
+    $('#filterMenu .dropdown-item').click(toggleFilter).find('.dropdown-menu').show();
+    //$('#filterMenu .dropdown-menu').show();
+}
+
+//------------------------------------------------------------------------------
+function toggleFilter(e) {
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    $a = $(this);
+
+    if($a.prop('id') == 'grp-all') {
+        for(var idx in grp_ids) {
+            $('#'+grp_ids[idx] + ' i').addClass('fa-check');
+        }
+    }
+    else if($a.prop('id') == 'lvl-all') {
+        for(var idx in lvl_ids) {
+            $('#'+lvl_ids[idx] + ' i').addClass('fa-check');
+        }
+    }
+    else if($a.find('i').hasClass('fa-check'))
+        $a.find('i').removeClass('fa-check');
+    else
+        $a.find('i').addClass('fa-check');
+
+    $('#filterMenu .dropdown-menu').show();
+    $('#filterMenu .dropdown-menu').prop('display', 'block');
 }
 
 //------------------------------------------------------------------------------
 function requestLogEntries() {
+
+    // Build list of active filters
+
+    var grp_filters = [];
+    for(var idx in grp_ids) {
+        var _id=grp_ids[idx];
+        if($('#'+_id + ' i').hasClass('fa-check'))
+            grp_filters.push(grp_keys[_id]);
+    }
+
+    var lvl_filters = [];
+    for(var idx in lvl_ids) {
+        var _id=lvl_ids[idx];
+        if($('#'+_id + ' i').hasClass('fa-check'))
+            lvl_filters.push(lvl_keys[_id]);
+    }
+
+    var tag_filters = [];
+    for(var idx in tag_ids) {
+        if($(format('#%s i', tag_ids[idx])).hasClass('fa-check'))
+            tag_filters.push(tag_keys[tag_ids[idx]]);
+    }
+
+    /*
+    console.log('filters=['+grp_filters+'], ['+lvl_filters+'], ['+tag_filters+']');
+    api_call(
+        'logger/new_get',
+        data={
+            'levels':JSON.stringify(lvl_filters),
+            'groups':JSON.stringify(grp_filters),
+            'tags':JSON.stringify(tag_filtesr)
+        },
+        renderLogEntries
+    );
+    */
 
     api_call(
         'logger/get',

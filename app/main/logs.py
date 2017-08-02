@@ -4,6 +4,10 @@ from flask import g, request
 from datetime import datetime, timedelta
 from app.lib.utils import format_bson
 
+
+def new_get_logs(groups=None, tags=None, levels=None):
+    pass
+
 #---------------------------------------------------------------------------
 def get_logs(start=None, end=None, user=None, groups=None, tag=None, levels=None):
     '''Send log entries to client app.

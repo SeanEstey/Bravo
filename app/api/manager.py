@@ -33,7 +33,7 @@ def func_call(function, *args, **kwargs):
         rv = function(*args, **kwargs)
     except Exception as e:
         log.exception('API function "%s" failed', function.__name__,
-            extra={'request':dump_request()})
+            extra={'request':dump_request(), 'tag':'api'})
         return build_resp(exc=e)
 
     return build_resp(rv=rv, name=function.__name__, timer=timer)
@@ -45,7 +45,7 @@ def task_call(function, *args, **kwargs):
         rv = function.delay(*args, **kwargs)
     except Exception as e:
         log.exception('API task "%s" failed', function.__name__,
-            extra={'request':dump_request()})
+            extra={'request':dump_request(), 'tag':'api'})
         return build_resp(exc=e)
 
     return build_resp(rv=rv)
@@ -72,7 +72,7 @@ def build_resp(rv=None, exc=None, name=None, timer=None):
     try:
         json_rv = format_bson({'status':'success', 'data':rv}, to_json=True)
     except Exception as e:
-        log.exception('Return value is not serializable.')
+        log.exception('Return value is not serializable.', extra={'tag':'api'})
         json_rv = dumps({
             'status':'success',
             'data':'return value not serializable'})
@@ -82,6 +82,7 @@ def build_resp(rv=None, exc=None, name=None, timer=None):
     if "logger" not in request.path:
         log.info('%s [%s]', request.path, timer.clock(t='ms'),
             extra={
+                'tag':'api',
                 'request':dump_request(),
                 'duration': timer.clock(),
                 'function':name,

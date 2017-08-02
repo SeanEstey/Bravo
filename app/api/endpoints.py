@@ -103,7 +103,8 @@ def _update_acct():
     persona = loads(var('persona')) if var('persona') else {}
     udf = loads(var('udf')) if var('udf') else {}
 
-    log.debug('acct_id=%s, udf=%s, persona=%s', acct_id, udf, persona)
+    log.debug('acct_id=%s, udf=%s, persona=%s', acct_id, udf, persona,
+        extra={'tag':'api'})
 
     return func_call(mod_acct, acct_id, udf=udf, persona=persona)
 
@@ -383,6 +384,12 @@ def _write_log():
 def _get_logs():
     from app.main.logs import get_logs
     return func_call(get_logs)
+
+@api.route('/logger/new_get', methods=['POST'])
+@login_required
+def _new_get_logs():
+    from app.main.logs import new_get_logs
+    return func_call(new_get_logs)
 
 @api.route('/tasks/backup_db', methods=['GET', 'POST'])
 @login_required

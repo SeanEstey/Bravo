@@ -395,17 +395,18 @@ a.hover:visited {
 
 /*RECENT VIEW*/
 .recent-event-item {
-    border-left:0px;
+    background-color:white;
+    /*border-left:0px;
     border-right:0px;
     border-bottom: 1px solid rgba(0,0,0,.125);
-    border-top: 1px solid rgba(0,0,0,.125);
+    border-top: 1px solid rgba(0,0,0,.125);*/
 }
-.recent-event-item:hover {
+.recent-event-item:hover, .recent-event-item:focus {
     background-color:white;
-    border-left: 1px solid #b7d3f3;
+    /*border-left: 1px solid #b7d3f3;
     border-right: 1px solid #b7d3f3;
     border-top: 1px solid #b7d3f3;
-    border-bottom: 2px solid #b7d3f3;
+    border-bottom: 2px solid #b7d3f3;*/
     color: rgb(0,116,172); 
 }
 

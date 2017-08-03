@@ -152,6 +152,7 @@ class UberTask(Task):
                 os.environ[k] = env_vars[k]
 
         g.db = self.db_client['bravo']
+        g.tag = 'task'
 
         user_oid = kwargs.pop(self.USERID_KW, None)
         print 'user_oid=%s' % user_oid

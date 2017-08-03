@@ -7,18 +7,18 @@ var list_item_styles = {
     'ERROR': 'list-group-item-danger'
 };
 
-grp_keys = {
+var grp_keys = {
     'grp-org': 'org_name',
     'grp-sys': 'sys',
     'grp-other':'anon'
 };
-lvl_keys = {
+var lvl_keys = {
     'lvl-debug':'DEBUG',
     'lvl-info':'INFO',
     'lvl-warn':'WARNING',
     'lvl-err':'ERROR'
 };
-tag_keys = {
+var tag_keys = {
     'tag-api':'api',
     'tag-task':'task'
 };
@@ -26,6 +26,7 @@ tag_keys = {
 //------------------------------------------------------------------------------
 function initRecent() {
 
+    $('.br-alert').prop('hidden', true);
     requestLogEntries();
 
     $('#filterMenu .dropdown-item').click(toggleFilter)
@@ -42,18 +43,21 @@ function toggleFilter(e) {
 
     if($a.prop('id') == 'grp-all') {
         for(var k in grp_keys) {
-            $('#'+k+ ' i').addClass('fa-check');
+            $('#'+k+ ' i').removeClass('fa-square-o').addClass('fa-check-square-o');
         }
     }
     else if($a.prop('id') == 'lvl-all') {
         for(var k in lvl_keys) {
-            $('#'+k+ ' i').addClass('fa-check');
+            $('#'+k+ ' i').removeClass('fa-square-o').addClass('fa-check-square-o');
         }
     }
-    else if($a.find('i').hasClass('fa-check'))
-        $a.find('i').removeClass('fa-check');
+    else if($a.find('i').hasClass('fa-check-square-o')) {
+        $a.find('i')
+            .removeClass('fa-check-square-o')
+            .addClass('fa-square-o');
+    }
     else
-        $a.find('i').addClass('fa-check');
+        $a.find('i').removeClass('fa-square-o').addClass('fa-check-square-o');
 
     $('#filterMenu .dropdown-menu').show();
     $('#filterMenu .dropdown-menu').prop('display', 'block');
@@ -66,7 +70,7 @@ function requestLogEntries() {
 
     // Get list of checked filter ID's
     var checked = [];
-    $('#filterMenu .dropdown-menu i.fa-check').parent().each(function(){
+    $('#filterMenu .dropdown-menu i.fa-check-square-o').parent().each(function(){
         checked.push($(this).prop('id'));
     });
 
@@ -99,7 +103,7 @@ function requestLogEntries() {
 
     //console.log('data='+JSON.stringify(data));
 
-    api_call('logger/new_get', data=data, renderLogEntries);
+    api_call('logger/get', data=data, renderLogEntries);
 }
 
 //------------------------------------------------------------------------------
@@ -122,18 +126,31 @@ function renderLogEntries(resp) {
         if(logs[i]['tag'] && filter_tags.indexOf(logs[i]['tag']) > -1)
                 continue;
 
-        $evnt_item = $('#event_item').clone().prop('id', 'list_grp_'+String(i));
-        $evnt_item.find('#event_msg').html(logs[i]['message']);
-        $evnt_item.find('#event_dt').html(
-            new Date(logs[i]['timestamp']['$date'])
-                .strftime('%b %d at %I:%M%p'));
-        $evnt_item.click(showLogEntryDetailsModal);
-        $evnt_item.prop('hidden', false);
-        $evnt_item.find('.badge').addClass(badges[logs[i]['level']]['class']);
-        $evnt_item.find('.badge').html(badges[logs[i]['level']]['text']);
-        $('#recnt_list').append($evnt_item);
+        $item = $('#event_item').clone().prop('id', 'list_grp_'+String(i));
+        $item.find('#event_msg').html(logs[i]['message']);
+        $item.find('#event_dt').html(new Date(
+            logs[i]['timestamp']['$date']).strftime('%b %d at %I:%M%p'));
 
-        $evnt_item.data("details", logs[i]); // Save for viewing in Modal
+        //$item.click(showLogEntryDetailsModal);
+
+        $item.prop('hidden', false);
+        $item.find('.badge').addClass(badges[logs[i]['level']]['class']);
+        $item.find('.badge').html(badges[logs[i]['level']]['text']);
+
+        // Store ExceptionInfo
+        var $json = $('#json-container')
+            .clone()
+            .prop('id', 'json-container-'+String(i))
+            .prop('hidden', false);
+        $json.jsonview(logs[i]);
+
+        $item.prop('href', '#'+$json.prop('id'));
+        $item.attr('aria-controls', $json.prop('id'));
+
+        $('#recnt_list').append($item);
+        $('#recnt_list').append($json);
+
+        $item.data("details", logs[i]); // Save for viewing in Modal
         logs[i]['timestamp'] = new Date(logs[i]['timestamp']['$date']).strftime('%b %d at %I:%M %p');
         delete logs[i]['asctime'];
     }
@@ -149,6 +166,8 @@ function showLogEntryDetailsModal(e) {
     ];
 
     e.preventDefault();
+
+    $('#json-container').jsonview($(this).data('details'));
 
     var log_record = $(this).data('details');
     var container = $('<div></div>');

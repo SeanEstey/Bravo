@@ -27,8 +27,6 @@ def WRITE_ME(msg=None):
 #-------------------------------------------------------------------------------
 def func_call(function, *args, **kwargs):
 
-    timer = Timer()
-
     try:
         rv = function(*args, **kwargs)
     except Exception as e:
@@ -36,7 +34,7 @@ def func_call(function, *args, **kwargs):
             extra={'request':dump_request(), 'tag':'api'})
         return build_resp(exc=e)
 
-    return build_resp(rv=rv, name=function.__name__, timer=timer)
+    return build_resp(rv=rv, name=function.__name__)
 
 #-------------------------------------------------------------------------------
 def task_call(function, *args, **kwargs):
@@ -51,12 +49,10 @@ def task_call(function, *args, **kwargs):
     return build_resp(rv=rv)
 
 #-------------------------------------------------------------------------------
-def build_resp(rv=None, exc=None, name=None, timer=None):
+def build_resp(rv=None, exc=None, name=None, _timer=None):
     """Returns JSON obj:
         {"status": <str>, "desc": <failure str>, "data": <str/dict/list>}
     """
-
-    timer = Timer()
 
     if exc:
         return Response(
@@ -72,21 +68,19 @@ def build_resp(rv=None, exc=None, name=None, timer=None):
     try:
         json_rv = format_bson({'status':'success', 'data':rv}, to_json=True)
     except Exception as e:
-        log.exception('Return value is not serializable.', extra={'tag':'api'})
+        log.exception('Return value is not serializable.')
         json_rv = dumps({
             'status':'success',
             'data':'return value not serializable'})
 
     resp = Response(response=json_rv, status=200,mimetype='application/json')
 
-    if "logger" not in request.path:
-        log.info('%s [%s]', request.path, timer.clock(t='ms'),
-            extra={
-                'tag':'api',
-                'request':dump_request(),
-                'duration': timer.clock(),
-                'function':name,
-                'response': dump_response(resp)})
+    #if "logger" not in request.path:
+    log.info('%s [%s]', request.path, g.timer.clock(t='ms',stop=False),
+        extra={
+            'request':dump_request(),
+            'function':name,
+            'response': dump_response(resp)})
     return resp
 
 #-------------------------------------------------------------------------------

@@ -2,6 +2,7 @@ import logging
 import traceback
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from datetime import datetime
+from flask import g, has_app_context
 from pymongo.collection import Collection
 from pymongo.errors import OperationFailure, PyMongoError, ConnectionFailure
 from pymongo import MongoClient
@@ -21,16 +22,15 @@ class MongoFormatter(logging.Formatter):
 
     def format(self, record):
         """Formats LogRecord into python dictionary."""
+
         # Standard document
         document = {
-            'group': get_group(),
-            'user': get_username(),
             'timestamp': datetime.utcnow(),
             'level': record.levelname,
             'message': record.getMessage(),
-            'loggerName': record.name,
             'process': record.process,
             'processName': record.processName,
+            'loggerName': record.name,
             'thread': record.thread,
             'threadName': record.threadName,
             'fileName': record.pathname,
@@ -38,6 +38,7 @@ class MongoFormatter(logging.Formatter):
             'method': record.funcName,
             'lineNumber': record.lineno
         }
+
         # Standard document decorated with exception info
         if record.exc_info is not None:
             document.update({
@@ -47,6 +48,7 @@ class MongoFormatter(logging.Formatter):
                     'stackTrace': self.formatException(record.exc_info)
                 }
             })
+
         # Standard document decorated with extra contextual information
         if len(self.DEFAULT_PROPERTIES) != len(record.__dict__):
             contextual_extra = set(record.__dict__).difference(
@@ -54,6 +56,18 @@ class MongoFormatter(logging.Formatter):
             if contextual_extra:
                 for key in contextual_extra:
                     document[key] = record.__dict__[key]
+
+        # More Flask context in g
+        if has_app_context():
+            document['group'] = get_group()
+            document['user'] = get_username()
+
+            if g.get('timer'):
+                document['elapsed'] = g.timer.clock(t='ms',stop=False)
+
+            if g.get('tag'):
+                document['tag'] = g.tag
+
         return document
 
 #-------------------------------------------------------------------------------

@@ -148,7 +148,7 @@ def backup_mongo(self, **rest):
     from db_auth import user, password
     import os
     os.system("mongodump -u %s -p %s -o ~/Dropbox/mongo" %(user,password))
-    log.warning('MongoDB backup created', extra={'tag':'task'})
+    log.info('MongoDB backup created', extra={'tag':'task'})
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -672,7 +672,7 @@ def update_calendar(self, from_=date.today(), group=None, **rest):
         cal_ids = get_keys('cal_ids')
         n_updated = n_errs = n_warnings = 0
 
-        log.warning('Updating calendar events...',
+        log.info('Updating calendar events...',
             extra={'start': start_dt.strftime(d_str),
                    'end': end_dt.strftime(d_str), 'tag':'task'})
 
@@ -748,7 +748,7 @@ def update_calendar(self, from_=date.today(), group=None, **rest):
         if n_errs > 0:
             log.error('Calendar events updated. %s errors.', n_errs, extra=extra)
         else:
-            log.warning('Calendar events updated.', extra=extra)
+            log.info('Calendar events updated.', extra=extra)
 
         timer.restart()
 
@@ -775,7 +775,7 @@ def find_inactive_donors(self, group=None, in_days=5, period_=None, **rest):
         n_inactive = 0
         g.group = group_['name']
 
-        log.warning('Identifying inactive donors...', extra={'tag':'task'})
+        log.info('Identifying inactive donors...', extra={'tag':'task'})
 
         cal_ids = group_['cal_ids']
         period = period_ if period_ else group_['donors']['inactive_period']
@@ -834,7 +834,7 @@ def find_inactive_donors(self, group=None, in_days=5, period_=None, **rest):
         timer.restart()
 
     g.group = None
-    log.warning('Inactive Donors task completed. %s accounts found.',
+    log.info('Inactive Donors task completed. %s accounts found.',
         n_task_inactive, extra={'tag':'task'})
 
 #-------------------------------------------------------------------------------
@@ -845,7 +845,7 @@ def update_leaderboard_accts(self, group=None, **rest):
     from .leaderboard import update_accts, update_gifts
 
     g.group=group
-    log.warning('Updating leaderboards...', extra={'tag':'task'})
+    log.info('Updating leaderboards...', extra={'tag':'task'})
     groups = [get_keys(group=group)] if group else g.db['groups'].find()
     timer = Timer()
 
@@ -871,7 +871,7 @@ def update_leaderboard_accts(self, group=None, **rest):
             chk = chks[n]
             update_gifts(chk, g.group)
 
-        log.warning('Updated leaderboards', extra={'duration':timer.clock()})
+        log.info('Updated leaderboards', extra={'duration':timer.clock()})
 
         timer.restart()
 

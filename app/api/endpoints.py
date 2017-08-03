@@ -8,10 +8,18 @@ be called anonymously.
 import json, logging
 from flask import g,request,Response
 from flask_login import login_required
+from app.lib.timer import Timer
 from . import api
 from app.api.manager import var,func_call,task_call
 
 log = logging.getLogger('api.endpoints')
+
+#-------------------------------------------------------------------------------
+@api.before_request
+def _api_setup():
+    print 'api.before_req'
+    g.tag = 'api'
+    g.timer = Timer()
 
 @api.route('/accounts/submit_form', methods=['POST'])
 def _submit_form_signup():
@@ -382,15 +390,9 @@ def _write_log():
 @api.route('/logger/get', methods=['POST'])
 @login_required
 def _get_logs():
-    from app.main.logs import get_logs
-    return func_call(get_logs)
-
-@api.route('/logger/new_get', methods=['POST'])
-@login_required
-def _new_get_logs():
     from json import loads
-    from app.main.logs import new_get_logs
-    return func_call(new_get_logs,
+    from app.main.logs import get_logs
+    return func_call(get_logs,
         groups=loads(var('groups')), levels=loads(var('levels')), tags=loads(var('tags')))
 
 @api.route('/tasks/backup_db', methods=['GET', 'POST'])

@@ -3,6 +3,7 @@
 //------------------------------------------------------------------------------
 function init_login() {
 
+    $('#searchbar').prop('hidden',true);
     $('#logo_a').addClass('logo-a-center');
     $('#logo_img').addClass('logo-img-lg');
     $('#logo_img').removeClass('logo-img-sm');

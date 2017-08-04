@@ -11,8 +11,8 @@
     jQuery(function($){ initRecent(); $("body").css("display","block"); });
   </script>
 </head>
-<div class="container">
-  <div class="row">
+<div class="container mt-5">
+  <div class="row mx-auto" style="max-width:800px">
     <div class="col">
       <label style="font-weight:400; font-size:2.0rem">Event History</label>
     </div>
@@ -46,50 +46,45 @@
     </div>
   </div>
   <!--List Item Data-->
-  <div id='recnt_list' class="list-group"></div>
+  <div id='recnt_list' class="list-group mx-auto" style="max-width:800px;"></div>
   <div class="mt-5 mb-5"></div>
 </div><!--End Container-->
 
-<!--Event Modal Template-->
-<div id="log_modal" class="modal fade bd-example-modal-lg" tabindex="-1"
- role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-wide">
-    <div class="modal-content" style="min-width:1000px; max-width:1000px;">
-      <div class="modal-header rounded-header text-white" style="background-color:#517ba3">
-        <h3 class="modal-title">Modal title</h3>
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-      </div>
-      <div class="modal-body">
-        <p></p>
-      </div>
-      <div class="modal-footer">
-        <button id="btn-default" type="button" class="btn btn-secondary"
-         data-dismiss="modal">Ok</button>
-      </div>
+<!--Event List Item [template]-->
+<div id="event_item" 
+class="list-group-item list-group-item-action recent-event-item" hidden>
+  <div class="row m-0" style="width:100%">
+    <div class="col-sm-10 p-0 text-left">
+      <span class="" id="event_msg"></span>
+    </div>
+    <div class="col-sm-2 p-0 text-right">
+      <button id="badge" role="button" aria-disabled="true" class="btn btn-sm mb-0" href="#"
+      style="font-size:.6rem;">LABEL</button>
     </div>
   </div>
-</div>
-
-<!--Event List Item [template]-->
-<a href="#ADD_HREF" id="event_item" 
-class="list-group-item list-group-item-action recent-event-item"
-aria-expanded="false" data-toggle="collapse" aria-controls="ADD_ID" hidden>
-  <div class="col-11">
-    <div style="width:100%" class="row">
-      <span id="event_msg" class="col-12 pl-0"></span>
-      <span class="col-4 pl-0">
-        <small id="event_dt"></small>
+  <div id="log-data" class="row pt-2 m-0" style="width:100%" hidden>
+    <div class="col-sm-12">
+      <!--JSON Viewer-->
+      <div id="json-container"></div>
+    </div>
+  </div>
+  <div class="row m-0 mt-2" style="width:100%">
+    <div class="col-sm-2 p-0">
+      <div style="color:lightslategray">
+        <i class="fa fa-clock-o mr-1" style="font-size:.7rem;"></i>
+        <small id="event_dt" style="font-size:70%"></small>
+      </div>
+    </div>
+    <div class="col-sm-8 p-0">
+    </div>
+    <div class="col-sm-2 p-0 text-right">
+      <span class="small p-0" style="font-size: 70%; font-family: inherit; color:lightslategray">
+        <i class="fa fa-clock-o"></i>
+        <span id="elapsed">ms</span>
       </span>
     </div>
   </div>
-  <div class="col-1 text-right pr-0">
-    <h6 class="mb-0 text-center">
-      <span class="badge" style="padding:.45em .4em">BADGE</span>
-    </h6>
-  </div>
-</a>
-<!--JSON Viewer [template]-->
-<div class="collapse" id="json-container"></div>
+</div>
 
 <!-- DATA TABLE PROTOTYPE -->
 <table class="table table-hover" style="background-color: white;" hidden>

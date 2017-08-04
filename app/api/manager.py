@@ -76,7 +76,7 @@ def build_resp(rv=None, exc=None, name=None, _timer=None):
     resp = Response(response=json_rv, status=200,mimetype='application/json')
 
     #if "logger" not in request.path:
-    log.info('%s [%s]', request.path, g.timer.clock(t='ms',stop=False),
+    log.info('%s', request.path,
         extra={
             'request':dump_request(),
             'function':name,

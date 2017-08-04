@@ -101,8 +101,6 @@ function requestLogEntries() {
     data['groups'] = JSON.stringify(data['groups']);
     data['tags'] = JSON.stringify(data['tags']);
 
-    //console.log('data='+JSON.stringify(data));
-
     api_call('logger/get', data=data, renderLogEntries);
 }
 
@@ -111,11 +109,11 @@ function renderLogEntries(resp) {
 
     var filter_tags = ['sms_msg'];
     var badges = {
-        'DEBUG': {'class': 'badge-default', 'text':'Debug'},
-        'INFO': {'class': 'badge-info', 'text':'Info'},
-        'WARNING': {'class': 'badge-warning', 'text':'Warning'},
-        'ERROR': {'class': 'badge-danger', 'text':'Error'},
-        'EXCEPTION': {'class':'badge-danger', 'text':'Exception'}
+        'DEBUG': {'class': 'btn-outline-secondary', 'text':'DEBUG'},
+        'INFO': {'class': 'btn-outline-primary', 'text':'&nbsp;&nbsp;INFO&nbsp;&nbsp;'},
+        'WARNING': {'class': 'btn-outline-warning', 'text':'WARNING'},
+        'ERROR': {'class': 'btn-outline-danger', 'text':'ERROR'},
+        'EXCEPTION': {'class':'btn-outline-danger', 'text':'EXCEPTION'}
     };
 
     console.log("%s. %s events returned", resp['status'], resp['data'].length);
@@ -126,94 +124,53 @@ function renderLogEntries(resp) {
         if(logs[i]['tag'] && filter_tags.indexOf(logs[i]['tag']) > -1)
                 continue;
 
-        $item = $('#event_item').clone().prop('id', 'list_grp_'+String(i));
+        $item = $('#event_item').clone();//.prop('id', 'list_grp_'+String(i));
         $item.find('#event_msg').html(logs[i]['message']);
-        $item.find('#event_dt').html(new Date(
-            logs[i]['timestamp']['$date']).strftime('%b %d at %I:%M%p'));
-
-        //$item.click(showLogEntryDetailsModal);
+        $item.find('#event_dt').html(toRelativeDateStr(new Date(
+            logs[i]['timestamp']['$date'])));
 
         $item.prop('hidden', false);
-        $item.find('.badge').addClass(badges[logs[i]['level']]['class']);
-        $item.find('.badge').html(badges[logs[i]['level']]['text']);
 
-        // Store ExceptionInfo
-        var $json = $('#json-container')
-            .clone()
-            .prop('id', 'json-container-'+String(i))
-            .prop('hidden', false);
+        if(logs[i]['duration'])
+            $item.find('#elapsed').html(logs[i]['duration']);
+        else if(logs[i]['elapsed'])
+            $item.find('#elapsed').html(logs[i]['elapsed']);
+        else
+            $item.find('#elapsed').html('None');
+
+        logs[i]['timestamp'] = new Date(logs[i]['timestamp']['$date'])
+            .strftime('%b %d at %I:%M %p');
+        delete logs[i]['asctime'];
+
+        var $json = $item.find('#json-container');
+        // Write log data to collapsible JSON widget
         $json.jsonview(logs[i]);
 
-        $item.prop('href', '#'+$json.prop('id'));
-        $item.attr('aria-controls', $json.prop('id'));
+        var $badge = $item.find('#badge');
+        $badge.addClass(badges[logs[i]['level']]['class']);
+        $badge.html(badges[logs[i]['level']]['text']);
 
         $('#recnt_list').append($item);
-        $('#recnt_list').append($json);
 
-        $item.data("details", logs[i]); // Save for viewing in Modal
-        logs[i]['timestamp'] = new Date(logs[i]['timestamp']['$date']).strftime('%b %d at %I:%M %p');
-        delete logs[i]['asctime'];
+        $badge.click(function(e){ 
+            var $par = $(this).closest('#event_item');
+            var $row = $par.find('#log-data');
+            if($row.prop('hidden') == true) {
+                $row.prop('hidden', false);
+                $row.find('.expanded.collapsed:first').trigger('click');
+            }
+            else {
+                $row.find('.expanded:first').trigger('click');
+                setTimeout(function() {
+                    $row.prop('hidden', true);
+                },
+                150);
+            }
+        });
+
+        // Collapse everything 
+        $json.find('.expanded').trigger('click'); //slice(1).trigger('click');
+
+
     }
-}
-
-//------------------------------------------------------------------------------
-function showLogEntryDetailsModal(e) {
-
-    var std_fields = [
-        "message",
-        "user", "group", "level", "process", "processName", "thread", "threadName",
-        "loggerName", "module", "fileName", "method", "lineNumber", "exception", "timestamp"
-    ];
-
-    e.preventDefault();
-
-    $('#json-container').jsonview($(this).data('details'));
-
-    var log_record = $(this).data('details');
-    var container = $('<div></div>');
-
-    appendLogField('message', log_record['message'], container);
-
-    for(var field in log_record) {
-        if(std_fields.indexOf(field) == -1)
-            appendLogField(field, log_record[field], container);
-    }
-
-    for(var i=1; i<std_fields.length; i++){
-        var field = std_fields[i];
-
-        if(log_record.hasOwnProperty(field))
-            appendLogField(field, log_record[field], container);
-    }
-
-    showModal(
-      'log_modal',
-      'Event Details',
-      container,
-      null,
-      'Ok');
-}
-
-//------------------------------------------------------------------------------
-function appendLogField(field, value, container) {
-
-    if(!value)
-        return;
-
-    var div = "<DIV><B>" + field + "</B>: ";
-
-    if(typeof value === 'object')
-        div += 
-            '<PRE style="white-space:pre-wrap">' + 
-                JSON.stringify(value, null, 2)
-                    .replace(/\\n/g, "<BR>") +
-            '</PRE>' +
-          '</DIV>';
-    else if(typeof value === 'string') {
-        div += value.replace(/\n/g, '<br>').replace(/\s\s\s\s/g, '&nbsp&nbsp&nbsp&nbsp') + '</DIV>';
-    }
-    else
-        div += value + '</DIV>';
-
-    container.append(div);
 }

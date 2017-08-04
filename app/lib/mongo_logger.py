@@ -25,23 +25,26 @@ class MongoFormatter(logging.Formatter):
 
         # Standard document
         document = {
-            'timestamp': datetime.utcnow(),
-            'level': record.levelname,
-            'message': record.getMessage(),
-            'process': record.process,
-            'processName': record.processName,
-            'loggerName': record.name,
-            'thread': record.thread,
-            'threadName': record.threadName,
-            'fileName': record.pathname,
-            'module': record.module,
-            'method': record.funcName,
-            'lineNumber': record.lineno
+            'extra': {},
+            'standard': {
+                'timestamp': datetime.utcnow(),
+                'level': record.levelname,
+                'message': record.getMessage(),
+                'process': record.process,
+                'processName': record.processName,
+                'loggerName': record.name,
+                'thread': record.thread,
+                'threadName': record.threadName,
+                'fileName': record.pathname,
+                'module': record.module,
+                'method': record.funcName,
+                'lineNumber': record.lineno
+            }
         }
 
         # Standard document decorated with exception info
         if record.exc_info is not None:
-            document.update({
+            document['standard'].update({
                 'exception': {
                     'message': str(record.exc_info[1]),
                     'code': 0,
@@ -55,18 +58,20 @@ class MongoFormatter(logging.Formatter):
                 set(self.DEFAULT_PROPERTIES))
             if contextual_extra:
                 for key in contextual_extra:
-                    document[key] = record.__dict__[key]
+                    if key == 'asctime' or key == 'message':
+                        continue
+                    document['extra'][key] = record.__dict__[key]
 
         # More Flask context in g
         if has_app_context():
-            document['group'] = get_group()
-            document['user'] = get_username()
+            document['standard']['group'] = get_group()
+            document['standard']['user'] = get_username()
 
             if g.get('timer'):
-                document['elapsed'] = g.timer.clock(t='ms',stop=False)
+                document['standard']['elapsed'] = g.timer.clock(t='ms',stop=False)
 
             if g.get('tag'):
-                document['tag'] = g.tag
+                document['standard']['tag'] = g.tag
 
         return document
 

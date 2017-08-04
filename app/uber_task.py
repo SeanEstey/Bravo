@@ -7,6 +7,7 @@ make_response, request, current_app
 from flask_login import login_user, current_user
 from bson.objectid import ObjectId
 from auth import user
+from app.lib.timer import Timer
 
 log = getLogger(__name__)
 
@@ -26,6 +27,7 @@ class UberTask(Task):
     buf_mongo_hndlr = None
     user = None
     group = None
+    timer = None
 
     #---------------------------------------------------------------------------
     def __call__(self, *args, **kwargs):
@@ -153,6 +155,7 @@ class UberTask(Task):
 
         g.db = self.db_client['bravo']
         g.tag = 'task'
+        g.timer = Timer()
 
         user_oid = kwargs.pop(self.USERID_KW, None)
         print 'user_oid=%s' % user_oid

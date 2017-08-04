@@ -43,7 +43,7 @@ def receipt_handler(self, form, group, **rest):
         ss = SS(keys['oauth'], keys['ss_id'])
     except Exception as e:
         log.error('Failed to update Row %s.', form['ss_row'],
-            extra={'tag':'task','desc':str(e)})
+            extra={'desc':str(e)})
         gc.collect()
         self.update_state(state=states.FAILURE, meta=str(e))
         raise Ignore()
@@ -56,7 +56,7 @@ def receipt_handler(self, form, group, **rest):
 @celery.task(bind=True)
 def account_analytics(self, **rest):
 
-    log.debug('Task: Acccount Analytics...', extra={'tag':'task'})
+    log.debug('Task: Acccount Analytics...')
 
     for org in g.db['groups'].find({'name':'vec'}):
         g.group = org['name']
@@ -91,7 +91,7 @@ def build_gift_cache(self, group=None, **rest):
     ]
 
     timer = Timer()
-    log.debug('Task: caching recent changes...', extra={'tag':'task'})
+    log.debug('Task: caching recent changes...')
 
     for org in g.db['groups'].find({'name':group} if group else {}):
         g.group = org['name']
@@ -116,7 +116,7 @@ def update_recent_cache(self, group=None, **rest):
     ]
 
     timer = Timer()
-    log.debug('Task: caching recent changes...', extra={'tag':'task'})
+    log.debug('Task: caching recent changes...')
 
     for org in g.db['groups'].find({'name':group} if group else {}):
         g.group = org['name']
@@ -139,7 +139,7 @@ def update_recent_cache(self, group=None, **rest):
             if not chat.get('account'):
                 identify(chat['mobile'])
 
-    log.debug('Task: completed [%s]', timer.clock(), extra={'tag':'task'})
+    log.info('Recent cache updated')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -148,7 +148,7 @@ def backup_mongo(self, **rest):
     from db_auth import user, password
     import os
     os.system("mongodump -u %s -p %s -o ~/Dropbox/mongo" %(user,password))
-    log.info('MongoDB backup created', extra={'tag':'task'})
+    log.info('MongoDB backup created')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -191,10 +191,9 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
     from app.main.maps import geocode, in_map
     from app.main.socketio import smart_emit
 
-    log.info('Task: Searching zone matches...',
-        extra={'blocks':blocks, 'map':zone, 'tag':'task'})
+    log.debug('Searching zone matches...',
+        extra={'blocks':blocks, 'map':zone})
 
-    timer = Timer()
     target_map = None
 
     for m in g.db.maps.find_one({'agency':g.group})['features']:
@@ -214,6 +213,9 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
     n_no_geo = 0
     for cache in g.db['cachedAccounts'].find({'group':g.group}):
         acct = cache['account']
+        if not acct:
+            continue
+
         geolocation = cache.get('geolocation')
 
         if not geolocation or not geolocation.get('geometry'):
@@ -221,6 +223,9 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
             continue
 
         if in_map(geolocation['geometry']['location'], target_map):
+            if not acct.get('accountDefinedValues'):
+                continue
+
             b = get_udf('Block', acct)
             if b:
                 c = b.split(', ')
@@ -240,8 +245,7 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
         try:
             accts = get_query(query)
         except Exception as e:
-            log.exception('Error retrieving %s. Skipping', query,
-                extra={'tag':'task'})
+            log.exception('Error retrieving %s. Skipping', query)
             continue
 
         for acct in accts:
@@ -249,7 +253,7 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
                 {'group':g.group, 'account.id':acct['id']}
             ).get('geolocation')
 
-            if not geolocation:
+            if not geolocation or not geolocation.get('geometry'):
                 log.debug('Skipping query acct w/o geolocation')
                 continue
 
@@ -279,10 +283,9 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
         wks = ss.wks("Accounts")
         wks.appendRows(values)
     except Exception as e:
-        log.exception('Error writing to Sheet', extra={'tag':'task'})
+        log.exception('Error writing to Sheet')
 
-    log.info('Task completed. %s zone matches found. [%s]',
-        len(matches), timer.clock(), extra={'tag':'task'})
+    log.info('%s zone matches found', len(matches))
     return 'success'
 
 #-------------------------------------------------------------------------------
@@ -368,8 +371,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
     ref_col = headers.index('Ref')+1
     upload_col = headers.index(col)+1
 
-    log.info('Task: Processing %s account entries...', len(entries),
-        extra={'tag':'task'})
+    log.info('Task: Processing %s account entries...', len(entries))
 
     chks = [entries[i:i + CHK_SIZE] for i in xrange(0, len(entries), CHK_SIZE)]
     task_start = datetime.utcnow()
@@ -401,7 +403,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
             try:
                 ss.wks(wks).updateRanges(ranges, values)
             except Exception as e:
-                log.exception('Error writing chunk %s', n+1, extra={'tag':'task'})
+                log.exception('Error writing chunk %s', n+1)
             else:
                 log.debug('Chunk %s/%s uploaded/written to Sheets.', n+1, len(chks))
         finally:
@@ -424,8 +426,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
         # entry['udf']: {'Status':VAL, 'Next Pickup Date':VAL}
     """
 
-    log.info('Task completed. %s entries processed. [%s]', len(entries),
-        timer.clock(), extra={'tag':'task'})
+    log.info('%s entries processed.', len(entries))
 
     return 'success'
 
@@ -672,7 +673,7 @@ def update_calendar(self, from_=date.today(), group=None, **rest):
         cal_ids = get_keys('cal_ids')
         n_updated = n_errs = n_warnings = 0
 
-        log.info('Updating calendar events...',
+        log.debug('Updating calendar events',
             extra={'start': start_dt.strftime(d_str),
                    'end': end_dt.strftime(d_str), 'tag':'task'})
 
@@ -739,11 +740,9 @@ def update_calendar(self, from_=date.today(), group=None, **rest):
                 else:
                     n_updated+=1
         extra= {
-            'tag': 'task',
             'n_events': n_updated,
             'n_errs': n_errs,
-            'n_warnings': n_warnings,
-            'duration': timer.clock()
+            'n_warnings': n_warnings
         }
         if n_errs > 0:
             log.error('Calendar events updated. %s errors.', n_errs, extra=extra)

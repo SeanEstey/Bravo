@@ -1,5 +1,6 @@
 '''app.lib.timer'''
 import logging
+import time
 from datetime import datetime
 
 class Timer():
@@ -7,6 +8,7 @@ class Timer():
     start_dt = None
     stop_dt = None
     counting = False
+    _id = None
 
     def start(self):
 
@@ -43,15 +45,21 @@ class Timer():
             diff = self.stop_dt - self.start_dt
         elif self.counting and not stop:
             diff = datetime.now() - self.start_dt
+            print 'timer id=%s, diff=%s' %(self._id,diff.microseconds/1000)
         elif not self.counting:
             diff = self.stop_dt - self.start_dt
 
         if t == 's':
-            return '%s.%ss' % (diff.seconds, str(diff.microseconds/1000))
+            return round(diff.seconds + diff.microseconds/1000, 1)
         elif t == 'ms':
-            return '%sms' % str(diff.microseconds/100)
+            return diff.seconds*1000 + diff.microseconds/1000
+            #return int(diff.microseconds/100)
 
     def __init__(self, start=True):
 
+        self._id = int(time.time())
+        print 'new timer. _id=%s' % self._id
+
         if start:
+
             self.start()

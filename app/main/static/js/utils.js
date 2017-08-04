@@ -23,6 +23,18 @@ String.prototype.toTitleCase = function(n) {
    return s.replace(/\b[a-z]/g,function(f){return f.toUpperCase()});
 }
 
+
+//------------------------------------------------------------------------------
+function toElapsedStr(ms) {
+
+    if(ms < 1000)
+        return format("%s ms", ms);
+    else if(ms >= 1000 && ms < 60000)
+        return format('%s sec', (ms/1000).toFixed(1));
+    else if(ms >= 60000)
+        return format('%s min', (ms/60000).toFixed(1));
+}
+
 //------------------------------------------------------------------------------
 function toRelativeDateStr(date) {
 

@@ -121,34 +121,33 @@ function renderLogEntries(resp) {
     $('#recnt_list').empty();
 
     for(var i=0; i<logs.length; i++) {
-        if(logs[i]['tag'] && filter_tags.indexOf(logs[i]['tag']) > -1)
+        if(logs[i]['standard']['tag'] && filter_tags.indexOf(logs[i]['standard']['tag']) > -1)
                 continue;
 
         $item = $('#event_item').clone();//.prop('id', 'list_grp_'+String(i));
-        $item.find('#event_msg').html(logs[i]['message']);
+        $item.find('#event_msg').html(logs[i]['standard']['message']);
         $item.find('#event_dt').html(toRelativeDateStr(new Date(
-            logs[i]['timestamp']['$date'])));
+            logs[i]['standard']['timestamp']['$date'])));
 
         $item.prop('hidden', false);
 
-        if(logs[i]['duration'])
-            $item.find('#elapsed').html(logs[i]['duration']);
-        else if(logs[i]['elapsed'])
-            $item.find('#elapsed').html(logs[i]['elapsed']);
+        if(logs[i]['standard']['duration'])
+            $item.find('#elapsed').html(toElapsedStr(logs[i]['standard']['duration']));
+        else if(logs[i]['standard']['elapsed'])
+            $item.find('#elapsed').html(toElapsedStr(logs[i]['standard']['elapsed']));
         else
             $item.find('#elapsed').html('None');
 
-        logs[i]['timestamp'] = new Date(logs[i]['timestamp']['$date'])
+        logs[i]['standard']['timestamp'] = new Date(logs[i]['standard']['timestamp']['$date'])
             .strftime('%b %d at %I:%M %p');
-        delete logs[i]['asctime'];
 
         var $json = $item.find('#json-container');
         // Write log data to collapsible JSON widget
         $json.jsonview(logs[i]);
 
         var $badge = $item.find('#badge');
-        $badge.addClass(badges[logs[i]['level']]['class']);
-        $badge.html(badges[logs[i]['level']]['text']);
+        $badge.addClass(badges[logs[i]['standard']['level']]['class']);
+        $badge.html(badges[logs[i]['standard']['level']]['text']);
 
         $('#recnt_list').append($item);
 
@@ -169,8 +168,6 @@ function renderLogEntries(resp) {
         });
 
         // Collapse everything 
-        $json.find('.expanded').trigger('click'); //slice(1).trigger('click');
-
-
+        $json.find('.expanded').trigger('click'); 
     }
 }

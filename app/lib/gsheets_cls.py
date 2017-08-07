@@ -165,7 +165,67 @@ class Wks():
 			handleHttpError(e)
 
     #---------------------------------------------------------------
+    def textFormat(self, text_format, ranges):
+        """
+        @text_format: TextFormat Object:{
+          "foregroundColor": {
+              object(Color)
+            },
+            "fontFamily": string,
+            "fontSize": number,
+            "bold": boolean,
+            "italic": boolean,
+            "strikethrough": boolean,
+            "underline": boolean,
+        }
+        @ranges: list of [row,col] cell values
+
+        Examples:
+        text_format = {'foregroundColor': {'red': 0.5,'green': 0.5,'blue': 1.0,'alpha': 1.0}}
+        text_format = {'bold':True}
+
+        RepeatCell request:
+        https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/request#RepeatCellRequest
+        CellFormat Object (userEnteredFormat value):
+        https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets#CellFormat
+        """
+
+        print 'properties=%s' % self.propObj
+
+        requests = []
+
+        for r in ranges:
+            requests.append({
+                'repeatCell': {
+                    'fields': 'userEnteredFormat(textFormat)',
+                    'range': {
+                        "sheetId": self.propObj.get('sheetId',0),
+                        "startRowIndex": r[0]-1, # inclusive
+                        "endRowIndex": r[0], # exclusive
+                        "startColumnIndex": r[1]-1, # inclusive
+                        "endColumnIndex": r[1] # exclusive
+                    },
+                    'cell': {
+                        'userEnteredFormat': {
+                            'textFormat': text_format
+                        }
+                    }
+                }
+            })
+
+        try:
+			result = self.service.spreadsheets().batchUpdate(
+                spreadsheetId = self.ss_id,
+                body = {"requests": requests}
+			).execute(num_retries=3)
+        except HttpError as e:
+			handleHttpError(e)
+        else:
+            log.debug('result=%s', result)
+
+    #---------------------------------------------------------------
     def appendRows(self, values):
+
         lastRow = self._getLastRow()
         a1_start = to_range(lastRow + 1,1)
         a1_end = to_range(lastRow + 1 + len(values), self.numColumns())
@@ -181,10 +241,11 @@ class Wks():
 
     #---------------------------------------------------------------
     def __init__(self, service, ss_id, sheetObj):
+
         self.service = service
         self.sheetObj = sheetObj
         self.ss_id = ss_id
         self.propObj = sheetObj['properties']
         self.title = sheetObj['properties']['title']
 
-        #log.debug('Opened "%s" wks.', self.title)
+        log.debug('Opened "%s" wks.', self.title)

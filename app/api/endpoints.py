@@ -17,7 +17,6 @@ log = logging.getLogger('api.endpoints')
 #-------------------------------------------------------------------------------
 @api.before_request
 def _api_setup():
-    print 'api.before_req'
     g.tag = 'api'
     g.timer = Timer()
 

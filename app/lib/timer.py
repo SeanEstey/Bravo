@@ -45,7 +45,6 @@ class Timer():
             diff = self.stop_dt - self.start_dt
         elif self.counting and not stop:
             diff = datetime.now() - self.start_dt
-            print 'timer id=%s, diff=%s' %(self._id,diff.microseconds/1000)
         elif not self.counting:
             diff = self.stop_dt - self.start_dt
 
@@ -58,7 +57,6 @@ class Timer():
     def __init__(self, start=True):
 
         self._id = int(time.time())
-        print 'new timer. _id=%s' % self._id
 
         if start:
 

@@ -496,7 +496,8 @@ def bold_cells(service, ss_id, wks_id, cells):
     for cell in cells:
         actions.append(
             _ss_batch_update(
-                service, ss_id, 'repeatCell',
+                service, ss_id,
+                'repeatCell',
                 range_= {
                     "sheetId": wks_id,
                     "startRowIndex": cell[0]-1,

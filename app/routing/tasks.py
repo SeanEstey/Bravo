@@ -7,7 +7,7 @@ from flask import g
 from dateutil.parser import parse
 from datetime import datetime, date, time, timedelta
 from app import celery, get_keys, get_group
-from app.lib import gcal, gdrive, gsheets, timer
+from app.lib import gcal, gdrive, timer
 from app.lib.utils import format_bson
 from app.lib.dt import to_local, ddmmyyyy_to_date
 from app.lib.timer import Timer
@@ -123,6 +123,7 @@ def build_route(self, route_id, job_id=None, **rest):
     Returns: db.routes dict on success, False on error
     '''
 
+    from app.lib.gsheets_cls import SS
     from app.main.maps import GeocodeError
 
     timer = Timer()
@@ -153,14 +154,16 @@ def build_route(self, route_id, job_id=None, **rest):
     wks_name = get_keys('routing')['gdrive']['template_orders_wks_name']
 
     try:
-        service = gsheets.gauth(oauth)
-        sheet.write_orders(service, ss['id'], wks_name, orders)
-        sheet.write_prop(service, ss['id'], route)
+        route_ss = SS(get_keys('google')['oauth'], ss['id'])
+        orders_wks = route_ss.wks('Orders')
+        sheet.write_orders(orders_wks, orders)
+        info_wks = route_ss.wks('Info')
+        sheet.write_prop(info_wks, route)
 
+        # Append orders w/o geolocation
         for e in route['errors']:
-            # Append any non-geocodable orders
             order = routific.order(e['acct'], e['acct']['address'], {}, '', '',0)
-            sheet.append_order(service, ss['id'], wks_name, order)
+            sheet.append_order(orders_wks, order)
     except Exception as e:
         log.exception('Error writing to Sheets')
         raise

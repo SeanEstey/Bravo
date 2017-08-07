@@ -69,8 +69,9 @@ function submitEdits() {
             // receiving 
             if(values['Mobile']) {
                 var numeric = /\s|\-|\(|\)|[a-zA-Z]/g;
-                data['udf']['SMS'] = format(
-                    '+1%s', values['Mobile'].replace(numeric,''));
+                data['udf'] = {
+                    'SMS': format('+1%s', values['Mobile'].replace(numeric,''))
+                };
 
             }
             values['phones'] = [
@@ -283,11 +284,21 @@ function displayDonationData(response) {
     $('.stat-box h1').prop('hidden',false);
     $('.stat-box div').prop('hidden',false);
     $('.chart-panel .loading').hide();
-    $('.chart').prop('hidden',false);
-    drawMorrisChart('chart', chart_data, 'date', ['value']);
-    if(gifts.length > 0)
+
+    if(gifts.length > 0) {
+        $('.chart').prop('hidden',false);
+        drawMorrisChart('chart', chart_data, 'date', ['value']);
         $('#last-gave-d').html(new Date(gifts[0]['date']['$date'])
             .strftime('%b %Y').toUpperCase());
+    }
+    else {
+        $('.chart').prop('hidden',false);
+        $('.chart').addClass('d-flex');
+        $('.chart').css('align-items', 'center');
+        var $no_gifts = $('<h4 class="mx-auto">No Gifts</h4>');
+        $('.chart').append($no_gifts);
+    }
+
     $('#timeline').prop('hidden',false);
 }
 
@@ -336,7 +347,7 @@ function displayAcctData(acct) {
 
     var sm_dvs = [
         "Signup Date","Dropoff Date","Status","Next Pickup Date","Frequency", 
-        "Neighborhood", "Reason Joined","Referrer","Date Cancelled","Block"];
+        "Neighborhood", "Reason Joined","Referrer","Date Cancelled","Block", "SMS"];
     for(var i=0; i<sm_dvs.length; i++) {
         var dv = getDV(sm_dvs[i], acct) || '';
         addField(sm_dvs[i], dv, $custom);

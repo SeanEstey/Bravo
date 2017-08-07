@@ -3,6 +3,7 @@
 import logging
 from flask import g, request
 from flask_login import login_required
+from app import get_keys
 log = logging.getLogger(__name__)
 from . import main
 
@@ -19,6 +20,17 @@ def _djkf39():
     stored = g.db['cachedAccounts'].find_one({'account.id':5075})['schedule']
     from bson.json_util import dumps
     return dumps(stored)
+
+@login_required
+@main.route('/test_color', methods=['GET'])
+def _jkldsfkdfsjks():
+
+    from app.lib.gsheets_cls import SS
+    ss = SS(get_keys('google')['oauth'], '1ANLJ1h9K95YlTv0QKDF283q2AsRY29kuHluI2-v4T7Y')
+    orders = ss.wks('Orders')
+    print orders.propObj
+
+    return 'ok'
 
 @login_required
 @main.route('/test_analytics', methods=['GET'])

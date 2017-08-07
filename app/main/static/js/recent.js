@@ -107,50 +107,61 @@ function requestLogEntries() {
 //------------------------------------------------------------------------------
 function renderLogEntries(resp) {
 
-    var filter_tags = ['sms_msg'];
+    var ignore_tags = ['sms_msg'];
     var badges = {
-        'DEBUG': {'class': 'btn-outline-secondary', 'text':'DEBUG'},
-        'INFO': {'class': 'btn-outline-primary', 'text':'&nbsp;&nbsp;INFO&nbsp;&nbsp;'},
-        'WARNING': {'class': 'btn-outline-warning', 'text':'WARNING'},
-        'ERROR': {'class': 'btn-outline-danger', 'text':'ERROR'},
-        'EXCEPTION': {'class':'btn-outline-danger', 'text':'EXCEPTION'}
+        'DEBUG': {
+            'head-icon':'fa fa-bug',
+            'icon-color':'#5bc0de',
+            'head-color':'#5bc0de', //FIXME
+            'btn-class':'btn-outline-info',
+            'btn-text':'DETAILS'
+        },
+        'INFO': {
+            'head-icon':'fa fa-envira',
+            'icon-color':'rgba(2, 117, 216, 0.7)',
+            'head-color':'#0275d8',
+            'btn-class':'btn-outline-primary',
+            'btn-text':'DETAILS'
+        },
+        'WARNING': {
+            'head-icon':'fa fa-exclamation-triangle',
+            'icon-color':'#f0ad4e',
+            'head-color':'#8a6d3b',
+            'btn-class':'btn-outline-warning',
+            'btn-text':'DETAILS'
+        },
+        'ERROR': {
+            'head-icon': 'fa fa-fire',
+            'icon-color':'#d9534f',
+            'head-color':'red', //FIXME
+            'btn-class':'btn-outline-danger',
+            'btn-text':'DETAILS'
+        }
     };
 
-    console.log("%s. %s events returned", resp['status'], resp['data'].length);
     var logs = resp['data'];
     $('#recnt_list').empty();
 
+    console.log("%s. %s events returned", resp['status'], resp['data'].length);
+
     for(var i=0; i<logs.length; i++) {
-        if(logs[i]['standard']['tag'] && filter_tags.indexOf(logs[i]['standard']['tag']) > -1)
-                continue;
+        var std = logs[i]['standard'];
+        var extra = logs[i]['extra'];
+        
+        if(std['tag'] && ignore_tags.indexOf(std['tag']) > -1)
+            continue;
+        if(extra['function'] == 'get_logs')
+            continue;
 
-        $item = $('#event_item').clone();//.prop('id', 'list_grp_'+String(i));
-        $item.find('#event_msg').html(logs[i]['standard']['message']);
-        $item.find('#event_dt').html(toRelativeDateStr(new Date(
-            logs[i]['standard']['timestamp']['$date'])));
-
-        $item.prop('hidden', false);
-
-        if(logs[i]['standard']['duration'])
-            $item.find('#elapsed').html(toElapsedStr(logs[i]['standard']['duration']));
-        else if(logs[i]['standard']['elapsed'])
-            $item.find('#elapsed').html(toElapsedStr(logs[i]['standard']['elapsed']));
-        else
-            $item.find('#elapsed').html('None');
-
-        logs[i]['standard']['timestamp'] = new Date(logs[i]['standard']['timestamp']['$date'])
-            .strftime('%b %d at %I:%M %p');
-
-        var $json = $item.find('#json-container');
-        // Write log data to collapsible JSON widget
-        $json.jsonview(logs[i]);
+        $item = $('#event_item_template').clone().prop('id', 'event_item');
+        $item.find('#head-icon').addClass(badges[std['level']]['head-icon']);
+        $item.find('#head-icon').css('color', badges[std['level']]['icon-color']);
+        $item.find('#head-msg').html(std['message']);
+        $item.find('#head-msg').css('color', '#6a6c6f');
 
         var $badge = $item.find('#badge');
-        $badge.addClass(badges[logs[i]['standard']['level']]['class']);
-        $badge.html(badges[logs[i]['standard']['level']]['text']);
-
-        $('#recnt_list').append($item);
-
+        $badge.addClass(badges[std['level']]['btn-class']);
+        $badge.html(badges[std['level']]['btn-text']);
         $badge.click(function(e){ 
             var $par = $(this).closest('#event_item');
             var $row = $par.find('#log-data');
@@ -167,7 +178,25 @@ function renderLogEntries(resp) {
             }
         });
 
-        // Collapse everything 
+        //$item.find('#time-spn').css('color', badges[std['level']]['color']);
+        //$item.find('#elapse-spn').css('color', badges[std['level']]['color']);
+        $item.find('#event_dt').html(
+            toRelativeDateStr(new Date(std['timestamp']['$date'])));
+        if(std['elapsed'])
+            $item.find('#elapsed').html(toElapsedStr(std['elapsed']));
+        else
+            $item.find('#elapsed').html('None');
+        $item.prop('hidden', false);
+
+        // Store data in collapsible JSON widget (json-viewer lib)
+        std['timestamp'] = new Date(std['timestamp']['$date'])
+            .strftime('%b %d at %I:%M %p');
+        var $json = $item.find('#json-container');
+        $json.jsonview(logs[i]);
+
+        $('#recnt_list').append($item);
+
+        // Collapse JSON tree 
         $json.find('.expanded').trigger('click'); 
     }
 }

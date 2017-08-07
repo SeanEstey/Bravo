@@ -60,7 +60,7 @@ def bulk_store(objects, obj_type=None):
             n_ops += 1
 
     if n_ops == 0:
-        log.debug('%s/%s %ss up to date [%s]', len(objects), len(objects), obj_type, timer.clock())
+        log.debug('%s/%s %ss up to date.', len(objects), len(objects), obj_type)
         return
 
     try:
@@ -69,7 +69,7 @@ def bulk_store(objects, obj_type=None):
         log.exception(bwe.details)
     else:
         log_res = {k:results[k] for k in ('nModified','nUpserted','nInserted') if results[k]>0}
-        log.debug("bulk_store %ss results: %s [%s]", obj_type, log_res, timer.clock())
+        log.debug("bulk_store %ss results: %s", obj_type, log_res)
 
 #-------------------------------------------------------------------------------
 def query_and_store(query=None, category=None, obj_type=None, get_meta=False, timeout=75):

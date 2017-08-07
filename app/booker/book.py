@@ -3,7 +3,7 @@ import os
 from flask import g, render_template, request
 from datetime import datetime, time
 from .. import get_keys
-from app.lib import gsheets, mailgun
+from app.lib import mailgun
 from app.lib.dt import to_local, to_utc, ddmmyyyy_to_dt
 from app.main.etapestry import EtapError, call, get_udf
 from app.routing.build import create_order
@@ -80,7 +80,6 @@ def update_dms():
     except Exception as e:
         raise
 
-
     from app.main.tasks import update_recent_cache
     update_recent_cache.delay(group=g.group)
 
@@ -95,8 +94,6 @@ def append_to(route):
     log.debug('appending to ss_id "%s"', route['ss']['id'])
 
     acct = call('get_account', data={'acct_id': request.form['aid']})
-
-    service = gsheets.gauth(get_keys('google')['oauth'])
 
     order = create_order(
         acct,
@@ -113,11 +110,10 @@ def append_to(route):
 
     wks = get_keys('routing',group=route['group'])['gdrive']['template_orders_wks_name']
 
-    append_order(
-        service,
-        route['ss']['id'],
-        wks,
-        order)
+    from app.lib.gsheets_cls import SS
+    ss = SS(get_keys('google')['oauth'], route['ss']['id'])
+    wks = ss.wks('Orders')
+    append_order(wks, order)
 
     return True
 

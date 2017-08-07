@@ -2,8 +2,8 @@
 import re, time
 from flask import g
 from .. import get_keys
-from app.lib import gdrive, gsheets
-from app.lib.gsheets import get_values, update_cell, to_range
+from app.lib import gdrive
+from app.lib.gsheets_cls import SS
 from app.main.parser import has_postal
 from logging import getLogger
 log = getLogger(__name__)
@@ -48,13 +48,13 @@ def build(drive_api, title):
     return _file
 
 #-------------------------------------------------------------------------------
-def write_orders(api, ss_id, wks, orders):
+def write_orders(wks, orders):
     '''Write formatted orders to route sheet.'''
 
     log.debug('writing %s orders', len(orders))
 
     rows = []
-    bold_rng = []
+    blue = []
     orders = orders[1:] # Chop off office start_address
 
     for idx in range(len(orders)):
@@ -73,10 +73,13 @@ def write_orders(api, ss_id, wks, orders):
             summary += '\nArrive: ' + order['arrival_time']
         else:
             if notes.get('driver notes'):
-                bold_rng.append([idx+1+1, 4])
                 summary += 'NOTE: ' + notes['driver notes'] +'\n\n'
                 if notes['driver notes'].find('***') > -1:
                     summary = summary.replace("***", "")
+
+            if notes.get('status') == 'Dropoff':
+                blue.append([idx+1+1, 4])
+
             summary += 'Name: ' + notes['name'] + '\n'
             if notes.get('neighborhood'):
               summary += 'Neighborhood: ' + notes['neighborhood'] + '\n'
@@ -106,15 +109,14 @@ def write_orders(api, ss_id, wks, orders):
     range_ = "A2:J" + str(len(orders)+1)
 
     try:
-        gsheets.write_rows(api, ss_id, wks, range_, rows)
-        gsheets.vert_align_cells(api, ss_id, 0, 2, len(orders)+1, 1,1)
-        gsheets.bold_cells(api, ss_id, 0, bold_rng)
+        wks.appendRows(rows)
+        wks.textFormat({'foregroundColor':{'red':0.5,'green':0.5,'blue':1.0,'alpha':1.0}}, blue)
     except Exception as e:
         log.exception('Error writing orders: %s', e.message)
         raise
 
 #-------------------------------------------------------------------------------
-def write_order(api, ss_id, wks, order, row):
+def write_order(wks, order, row):
     '''Write single order to empty row on Sheet
     TODO: doesn't add Bold formatting yet.'''
 
@@ -136,59 +138,45 @@ def write_order(api, ss_id, wks, order, row):
       summary += '\nEmail: ' + notes['email']
 
     log.debug('Writing order to Route Sheet', extra={
-        'ss_id': ss_id,
         'account_id': notes['id'],
         'order_summary': summary,
         'address': order['location']['name']})
 
-    gsheets.write_rows(
-        api,
-        ss_id,
-        wks,
-        '%s:%s' %(str(row),str(row)),
-        [[
-            '=HYPERLINK("%s","%s")' %(
-                order['gmaps_url'],order['location']['name']),
-            '',
-            '',
-            summary,
-            notes['id'],
-            notes['driver notes'],
-            notes['block'],
-            notes['neighborhood'],
-            notes['status'],
-            notes['office notes']
-        ]])
+    values = [[
+        '=HYPERLINK("%s","%s")' %(
+            order['gmaps_url'],order['location']['name']),
+        '',
+        '',
+        summary,
+        notes['id'],
+        notes['driver notes'],
+        notes['block'],
+        notes['neighborhood'],
+        notes['status'],
+        notes['office notes']
+    ]]
+
+    wks.appendRows(values)
 
 #-------------------------------------------------------------------------------
-def write_prop(api, ss_id, route):
+def write_prop(wks, route_doc):
 
-    fields = get_values(api, ss_id, 'Info', 'A:A')
-
-    update_cell(api, ss_id, 'Info',
-        to_range(fields.index(['Date'])+1, 2),
-        str(route['date'].date()))
-    update_cell(api, ss_id, 'Info',
-        to_range(fields.index(['Block'])+1, 2),
-        route['block'])
-    update_cell(api, ss_id, 'Info',
-        to_range(fields.index(['Skips'])+1, 2),
-        route['no_pickups'])
-    update_cell(api, ss_id, 'Info',
-        to_range(fields.index(['Trip Sched'])+1, 2),
-        route['duration'])
+    fields = wks.getValues('A:A')
+    wks.updateCell(route_doc['date'].strftime('%A, %B %d, %Y'), row=fields.index(['Date'])+1, col=2)
+    wks.updateCell(route_doc['block'], row=fields.index(['Block'])+1, col=2)
+    wks.updateCell(route_doc['no_pickups'], row=fields.index(['Skips'])+1, col=2)
+    wks.updateCell(route_doc['duration'], row=fields.index(['Trip Sched'])+1, col=2)
 
 #-------------------------------------------------------------------------------
-def append_order(api, ss_id, wks, order):
+def append_order(wks, order):
     '''@order: dict returned from routific.order():
     '''
 
-    values = get_values(api, ss_id, wks, "E1:E")
-    insert_idx = None
+    #values = get_values(api, ss_id, wks, "E1:E")
+    #insert_idx = None
 
-    for i in range(0, len(values)):
-        if values[i][0] == 'depot':
-            insert_idx = i
+    #for i in range(0, len(values)):
+    #    if values[i][0] == 'depot':
+    #        insert_idx = i
 
-    gsheets.insert_rows_above(api, ss_id, 0, insert_idx+1, 1)
-    write_order(api, ss_id, wks, order, insert_idx+1)
+    write_order(wks, order, 999) # FIXME

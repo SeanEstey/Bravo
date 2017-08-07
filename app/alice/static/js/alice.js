@@ -258,9 +258,8 @@ function showChatModal(e) {
     $modal.find('#status').html('');
     $modal.data('mobile', chat['mobile']);
     $modal.data('acct_id', acct_id);
-    $modal.find('.modal-title').html(
-        format("<a style='color:white' href=%s>%s (%s)</a>",
-            url, name, chat['mobile']));
+    var $acct_url = $(format("<a style='color:#31b0d5' href=%s>%s</a>", url, name) + format("  <span>(%s)</span>", chat['mobile']));
+    $modal.find('.modal-title').html($acct_url);
     $modal.find('.modal-footer .btn-primary').unbind('click');
     $modal.find('.modal-footer .btn-primary').off('click');
     $modal.find('input[name="mute"]').prop('checked', false);

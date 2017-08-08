@@ -28,13 +28,20 @@ def get_matches(query):
     """Find cache matches for query string. Checks indexed fields.
     """
 
+    criteria = [
+        {'account.name':{'$regex':query, '$options':'i'}},
+        {'account.email':{'$regex':query, '$options':'i'}},
+        {'account.address':{'$regex':query, '$options':'i'}}
+    ]
+
+    digits = ''.join(re.findall(r'\d', query))
+    if len(digits) == 10:
+        # Search match for last 4 digits of phone number
+        criteria.append({'account.phones.number': {'$regex':digits[6:]}})
+
     matches = g.db['cachedAccounts'].find({
       'group':g.group,
-      '$or': [
-         {'account.name':{'$regex':query, '$options':'i'}},
-         {'account.email':{'$regex':query, '$options':'i'}},
-         {'account.address':{'$regex':query, '$options':'i'}}
-      ]
+      '$or': criteria
     }).limit(10)
 
     print 'Query str="%s", matches=%s' % (query, matches.count())

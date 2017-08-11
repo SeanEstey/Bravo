@@ -9,8 +9,7 @@ def process_entries(entries, wks='Donations', col='upload'):
     @col: result column name
     '''
 
-    from app.lib.gsheets_cls import SS
-    from app.lib.gsheets import a1_range
+    from app.lib.gsheets_cls import SS, a1_range
 
     timer = Timer()
     CHK_SIZE = 10
@@ -90,8 +89,7 @@ def send_receipts(ss_gifts):
     from app.lib.html import no_ws
     from app.lib.dt import dt_to_ddmmyyyy
     from app.lib.utils import split_list
-    from app.lib.gsheets_cls import SS
-    from app.lib.gsheets import a1_range
+    from app.lib.gsheets_cls import SS, a1_range
     from app.main.donors import ytd_gifts
     from app.main.receipts import get_template, deliver
 

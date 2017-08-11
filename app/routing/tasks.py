@@ -171,8 +171,8 @@ def build_route(self, route_id, job_id=None, **rest):
     #smart_emit('route_status',{
     #    'status':'completed', 'ss_id':ss['id'], 'warnings':route['warnings']})
 
-    log.info('Built route %s [%s]', route['block'], timer.clock(),
+    log.info('Built route %s [Orders=%s]', route['block'], len(orders),
         extra={'n_orders':len(orders), 'n_unserved': route['num_unserved'],
-               'n_warnings': len(route['warnings']), 'n`_errors': len(route['errors'])})
+               'n_warnings': len(route['warnings']), 'n_errors': len(route['errors'])})
 
     return json.dumps({'status':'success', 'route_id':str(route['_id'])})

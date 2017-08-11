@@ -110,7 +110,8 @@ def write_orders(wks, orders):
 
     try:
         wks.appendRows(rows)
-        wks.textFormat({'foregroundColor':{'red':0.5,'green':0.5,'blue':1.0,'alpha':1.0}}, blue)
+        if len(blue) > 0:
+            wks.textFormat({'foregroundColor':{'red':0.5,'green':0.5,'blue':1.0,'alpha':1.0}}, blue)
     except Exception as e:
         log.exception('Error writing orders: %s', e.message)
         raise

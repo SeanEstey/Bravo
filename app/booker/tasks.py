@@ -22,7 +22,7 @@ def update_maps(group=None, **rest):
         status = desc = None
         conf = g.db.maps.find_one({'agency':g.group})
 
-        log.warning('Task: updating maps...')
+        log.info('Task: updating maps...')
 
         # download KML file
         os.system(
@@ -59,7 +59,7 @@ def update_maps(group=None, **rest):
 
             desc = 'Updated %s maps successfully' % len(data['features'])
 
-            log.warning(desc, extra={'map_id':maps['mid']})
+            log.info(desc, extra={'map_id':maps['mid']})
 
         if group:
             pass

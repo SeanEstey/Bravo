@@ -141,57 +141,39 @@ def is_muted():
 
 #-------------------------------------------------------------------------------
 def save_msg(text, mobile=None, acct_id=None, user_session=False, direction=None):
-    '''@mobile: if sending msg outside of session'''
+    """If saving an outbound msg sent by client, must pass in @mobile
+    """
 
-    if user_session:
+    values = {
+        'group':g.group,
+        'last_message':datetime.utcnow(),
+        'mobile': session['FROM'] if user_session else mobile,
+        'acct_id': int(session.get('ACCT_ID')) if user_session else int(acct_id)
+    }
+
+    if direction == 'in':
+        values['unread'] = True
+
+    r = g.db['chatlogs'].update_one(
+        {'mobile': values['mobile']},
+        {'$push': {'messages': {
+            'timestamp': datetime.utcnow(),
+            'message': text,
+            'direction': direction
+         }},
+         '$set': values
+       },
+       upsert=True)
+
+    log.debug('save_msg res=%s', r)
+
+    """if user_session:
         phone = session['FROM']
         acct_id = session.get('ACCT_ID',None)
     else:
         phone = mobile
         acct_id = acct_id
-
-    if acct_id:
-        acct_id = int(acct_id)
-
-    log.debug('save_msg acct_id=%s', acct_id)
-
-    # TODO: should be able to do upsert here. condense these queries
-
-    if not g.db['chatlogs'].find_one({'mobile':phone}):
-        g.db['chatlogs'].insert_one({
-            'group':g.group,
-            'mobile': phone,
-            'acct_id': acct_id,
-            'last_message': datetime.utcnow(),
-            'unread': True,
-            'messages': [{
-                'timestamp': datetime.utcnow(),
-                'message': text,
-                'direction': direction
-            }]
-        })
-    else:
-        values = {
-            'group':g.group,
-            'last_message':datetime.utcnow(),
-            'unread': True
-        }
-        if direction == 'in':
-            values['unread'] = True
-
-        if acct_id:
-            values['acct_id'] = acct_id
-
-        g.db['chatlogs'].update_one(
-            {'mobile': phone},
-            {'$push': {'messages': {
-                'timestamp': datetime.utcnow(),
-                'message': text,
-                'direction': direction
-             }},
-             '$set': values
-           },
-           True)
+    """
 
 #-------------------------------------------------------------------------------
 def no_unread(mobile):

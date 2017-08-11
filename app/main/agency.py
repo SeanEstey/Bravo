@@ -15,7 +15,7 @@ def get_admin_prop():
         'n_maps_indexed': len(g.db.maps.find_one({'agency':g.group})['features']),
         'n_notific_events': g.db.events.find({'agency':g.group}).count(),
         'n_leaderboard_accts': g.db['accts_cache'].find({'group':g.group}).count(),
-        'n_users': g.db.users.find({'agency':g.group}).count(),
+        'n_users': g.db.users.find({'group':g.group}).count(),
         'n_sessions': g.db.command("collstats", "sessions")['count'],
         'n_cached_accounts': g.db['cachedAccounts'].find({'group':g.group}).count(),
         'n_cached_gifts': g.db['cachedGifts'].find({'group':g.group}).count()

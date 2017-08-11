@@ -5,7 +5,6 @@ from datetime import datetime, time, date
 from flask import g, request
 from bson import ObjectId as oid
 from app import get_keys
-from app.lib import gsheets
 from app.lib.utils import format_bson
 from app.lib.dt import ddmmyyyy_to_date
 from app.main.etapestry import EtapError, get_udf, get_query

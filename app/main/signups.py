@@ -4,7 +4,7 @@ from datetime import date, datetime
 from flask import g, request, render_template
 from app import get_keys
 from app.lib import mailgun
-from app.lib.gsheets import gauth, get_headers, update_cell, to_range
+from app.lib.gsheets_cls import SS
 from app.main.etapestry import call, get_udf
 from logging import getLogger
 log = getLogger(__name__)
@@ -19,12 +19,6 @@ def add_etw_to_gsheets(signup):
     log.debug('New signup received: %s %s',
       signup.get('first_name'),
       signup.get('last_name'))
-
-    try:
-        service = gauth(get_keys('google')['oauth'])
-    except Exception as e:
-        log.error('couldnt authenticate sheets. desc=%s', str(e))
-        raise Exception('auth error. desc=%s' % str(e))
 
     form_data = {
         'Date': datetime.now().strftime('%-m/%-d/%Y'),
@@ -54,8 +48,6 @@ def add_etw_to_gsheets(signup):
 
     if 'referrer' in signup:
         form_data['Referrer'] = signup['referrer']
-
-    from app.lib.gsheets_cls import SS
 
     ss_id = get_keys('google')['ss_id']
     ss = SS(get_keys('google')['oauth'], get_keys('google')['ss_id'])
@@ -156,15 +148,12 @@ def on_delivered(group):
     g.group = group
     log.debug('Welcome delivered to %s', request.form['recipient'])
     row = request.form['from_row']
-    ss_id = get_keys('google')['ss_id']
 
     try:
-        service = gauth(get_keys('google')['oauth'])
-        hdr = get_headers(service, ss_id, 'Signups')
-        update_cell(service, ss_id, 'Signups',
-            to_range(row, hdr.index('Welcome')+1),
-            'SENT')
-            #request.form['event'])
+        ss = SS(get_keys('google')['oauth'], get_keys('google')['ss_id'])
+        wks = ss.wks('Signups')
+        headers = wks.getRow(1)
+        wks.updateCell('SENT', row=row, col=headers.index('Welcome')+1)
     except Exception as e:
         log.exception('Error updating Sheet')
 
@@ -176,15 +165,12 @@ def on_dropped(group):
     log.warning('Welcome dropped to %s', request.form['recipient'],
         extra={'data':request.get_data(), 'headers':dump_headers(request.headers)})
     row = request.form['from_row']
-    ss_id = get_keys('google')['ss_id']
 
     try:
-        service = gauth(get_keys('google')['oauth'])
-        hdr = get_headers(service, ss_id, 'Signups')
-        update_cell(service, ss_id, 'Signups',
-            to_range(row, hdr.index('Welcome')+1),
-            'DROPPED')
-            #request.form['event'])
+        ss = SS(get_keys('google')['oauth'], get_keys('google')['ss_id'])
+        wks = ss.wks('Signups')
+        headers = wks.getRow(1)
+        wks.updateCell('DROPPED', row=row, col=headers.index('Welcome')+1)
     except Exception as e:
         log.exception('Error updating Sheet')
 

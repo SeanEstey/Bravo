@@ -48,7 +48,7 @@ def prompt_instructions():
         return dialog['skip']['no_evnt']
 
     if session.get('VALID_NOTIFIC_REPLY') == False:
-        return dialog['skip']['too_late']
+        return dialog['instruct']['too_late']
 
     # Did user include instruction details along w/ INSTRUCTION keyword?
     # Otherwise, if only INSTRUCTIONS keyword provided, prompt user for details

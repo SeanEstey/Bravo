@@ -72,14 +72,14 @@ def fire_trigger(self, _id=None, **rest):
         {'trig_id':oid(_id), 'tracking.status':'pending'})
     count = ready.count()
 
-    log.warning('Sending notifications for event %s...', event['name'],
+    log.info('Sending notifications for event %s...', event['name'],
         extra={'type':trig['type'], 'n_total':count})
 
     #smart_emit('trigger_status',{
     #    'trig_id': str(_id), 'status': 'in-progress'})
 
     if env['BRV_SANDBOX'] == 'True':
-        log.warning('sandbox: simulating voice/sms, rerouting emails')
+        log.info('sandbox: simulating voice/sms, rerouting emails')
 
     for n in ready:
         try:
@@ -110,7 +110,7 @@ def fire_trigger(self, _id=None, **rest):
         'sent': count - n_errors,
         'errors': n_errors})'''
 
-    log.warning('%s/%s notifications sent for event %s', count - n_errors, count, event['name'],
+    log.info('%s/%s notifications sent for event %s', count - n_errors, count, event['name'],
         extra={'type':trig['type'], 'n_total':count, 'n_errors':n_errors})
 
     return 'success'
@@ -128,7 +128,7 @@ def schedule_reminders(self, group=None, for_date=None, **rest):
     for group_ in groups:
         n_success = n_fails = 0
         g.group = group_['name']
-        log.warning('Scheduling notification events...')
+        log.info('Scheduling notification events...')
 
         days_ahead = int(group_['notify']['sched_delta_days'])
         on_date = date.today() + timedelta(days=days_ahead) if not for_date else for_date
@@ -164,7 +164,7 @@ def schedule_reminders(self, group=None, for_date=None, **rest):
                 evnt_ids.append(str(evnt_id))
                 log.info('Created notification event %s', block)
 
-        log.warning('Created %s/%s scheduled notification events',
+        log.info('Created %s/%s scheduled notification events',
             n_success, n_success + n_fails)
 
     return json.dumps(evnt_ids)

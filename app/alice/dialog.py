@@ -41,6 +41,8 @@ dialog = {
             "Tell me what you'd like instructions to pass along to our driver",
         'thanks':\
             "Thank you. I'll pass along the note to our driver.",
+        'too_late':\
+            "I'm sorry, the route has already been dispatched to our driver. ",
         'no_evnt':\
             "I can't find an upcoming event to add your note onto. "
     },

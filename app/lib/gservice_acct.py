@@ -35,7 +35,7 @@ def auth(keyfile_dict, name=None, scopes=None, version=None):
         raise
 
     try:
-        return build(name, version, http=http, cache_discovery=True)
+        return build(name, version, http=http) #, cache_discovery=True)
     except Exception as e:
         log.exception('Error acquiring %s service: %s', name, e.message)
         raise
@@ -65,7 +65,7 @@ def _google_auth(json_cred):
     authed_http = AuthorizedHttp(scoped_creds)
 
     try:
-        service = build('sheets', 'v4', http=authed_http, cache_discovery=False)
+        service = build('sheets', 'v4', http=authed_http) #, cache_discovery=False)
     except Exception as e:
         log.exception('Failed to acquire Sheets client.')
         raise

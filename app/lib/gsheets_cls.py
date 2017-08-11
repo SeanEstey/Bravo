@@ -3,11 +3,8 @@
 import gc, logging, re
 from app import get_keys
 from .timer import Timer
-from .gsheets import to_range, _ss_get, _ss_values_get, _ss_values_update
-from .gsheets import handleHttpError, _ss_values_append, _execute, _ss_batch_update
 from .gservice_acct import auth
 from googleapiclient.errors import HttpError
-
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -249,3 +246,178 @@ class Wks():
         self.title = sheetObj['properties']['title']
 
         log.debug('Opened "%s" wks.', self.title)
+
+
+
+#-------------------------------------------------------------------------------
+def handleHttpError(e):
+
+    import json, time
+
+    reason = None
+    code = e.resp.status
+
+    if e.resp.get('content-type', '').startswith('application/json'):
+        reason = json.loads(e.content)
+
+    if e.resp.status in [403, 500, 503]:
+        log.error('HttpError: Sheets service unavailable. Sleeping 5s...',
+            extra={'description':reason, 'code':code})
+        time.sleep(5)
+        raise
+    elif e.resp.status == 429:
+        log.error('HttpError: Insufficient tokens for quota. Sleeping 75s...',
+            extra={'description':reason, 'code':code})
+        time.sleep(75)
+        raise
+    else:
+        log.error('HttpError code=%s. Raising...', e.resp.status,
+            extra={'description':reason, 'code':code})
+        raise
+
+#-------------------------------------------------------------------------------
+def _ss_get(service, ss_id, wks_title=None):
+    '''Returns <Spreadsheet> dict (does not contain values)
+
+    Spreadsheet = {
+      "spreadsheetId": string,
+      "properties": {
+        <SpreadsheetProperties>
+	   },
+	   "sheets": [
+         <Sheet>
+	  ],
+	  "namedRanges": [
+        <NamedRange>
+	  ],
+      ...
+	}
+
+    Sheet = {
+      "properties": {
+        "title": <str>,
+        "gridProperties": {
+            "columnCount": <int>,
+            "rowCount": <int>,
+        },
+        ...
+      }
+    }'''
+
+    ss = None
+
+    try:
+        ss = service.spreadsheets().get(spreadsheetId=ss_id).execute(num_retries=3)
+    except HttpError as e:
+        handleHttpError(e)
+    else:
+        return ss
+
+#-------------------------------------------------------------------------------
+def _ss_values_get(service, ss_id, wks, range_):
+    '''Returns <ValuesRange>:
+	{
+      "range": string,
+      "majorDimension": enum(Dimension),
+        "values": [
+          array
+        ],
+    }
+
+    pydocs:
+    https://developers.google.com/resources/api-libraries/documentation/sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#get
+    '''
+
+    try:
+        result = service.spreadsheets().values().get(
+          spreadsheetId= ss_id,
+          range='%s!%s'%(wks,range_)
+        ).execute(num_retries=3)
+    except HttpError as e:
+        handleHttpError(e)
+
+    return result
+
+#-------------------------------------------------------------------------------
+def _ss_values_update(service, ss_id, wks, range_, values):
+    '''
+    (shift-select url w/ mouse, right-click copy)
+    https://developers.google.com/resources/api-libraries/documentation/sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#update
+    update() returns a HTTPRequest. execute() runs it
+    '''
+
+    try:
+        request = service.spreadsheets().values().update(
+            spreadsheetId=ss_id,
+            valueInputOption='USER_ENTERED',
+            range='%s!%s' % (wks, range_),
+            body={
+                "values": values,
+                "majorDimension": "ROWS"
+            }
+        )
+        request.execute(num_retries=3)
+    except HttpError as e:
+        handleHttpError(e)
+    except Exception as e:
+        log.exception('Exception updating %s sheet', wks, extra={'dump':vars(e)})
+        raise
+
+#-------------------------------------------------------------------------------
+def _ss_values_append(service, ss_id, wks, range_, values):
+    '''https://developers.google.com/resources/api-libraries/documentation/\
+    sheets/v4/python/latest/sheets_v4.spreadsheets.values.html#append
+    '''
+
+    try:
+        service.spreadsheets().values().append(
+            spreadsheetId= ss_id,
+            valueInputOption= 'USER_ENTERED',
+            range= '%s!%s' % (wks, range_),
+            body = {
+                "values": values,
+                "majorDimension": "ROWS"
+            }
+        ).execute(num_retries=3)
+    except Exception as e:
+        handleHttpError(e)
+
+#-------------------------------------------------------------------------------
+def to_range(row, col):
+
+    letter = col_idx_to_a1(col-1)
+    return '%s%s' % (letter,str(row))
+
+#-------------------------------------------------------------------------------
+def a1_range(row1, col1, row2, col2, wks=None):
+    """Build A1 range string (i.e. C2:D4)
+    """
+
+    if wks:
+        return '%s!%s:%s' % (wks, cell(row1, col1), cell(row2, col2))
+    else:
+        return '%s:%s' % (cell(row1, col1), cell(row2, col2))
+
+#-------------------------------------------------------------------------------
+def cell(row, col):
+
+    return '%s%s' % (col_str(col), str(row))
+
+#-------------------------------------------------------------------------------
+def col_str(column):
+
+    return col_idx_to_a1(column-1)
+
+#-------------------------------------------------------------------------------
+def col_idx_to_a1(idx):
+
+    alphabet = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
+
+    if idx < len(alphabet):
+        return alphabet[idx]
+    elif idx < len(alphabet)*2:
+        # AA, AB, AC, etc
+        return "A%s" % alphabet[idx - len(alphabet)]
+    else:
+        log.error('not implemented converting to range for wide idx of %s', idx)
+        return False

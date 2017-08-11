@@ -9,7 +9,6 @@ from . import donors
 from app.lib.utils import mem_check
 from app.lib import html, mailgun
 from app.main.parser import title_case
-from app.lib.gsheets import get_headers, update_cell, write_cell, to_range, gauth, get_row
 from app.lib.gsheets_cls import SS
 from app.lib.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
 from .donors import ytd_gifts

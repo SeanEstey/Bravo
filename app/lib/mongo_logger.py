@@ -278,7 +278,7 @@ class BufferedMongoHandler(MongoHandler):
                 self.empty_buf()
             except Exception as e:
                 from bson.json_util import dumps
-                print 'Mongo error: %s\nBuf length: %s\nBuf: %s'%(
+                print 'Mongo error: %s. Buf: %s'%(
                     e.message, len(self.buf), dumps(self.buf))
 
                 self.empty_buf()

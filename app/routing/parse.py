@@ -1,7 +1,6 @@
 '''app.routing.parse'''
 import re, time
 from flask import g
-from app.lib import gsheets
 from logging import getLogger
 log = getLogger(__name__)
 

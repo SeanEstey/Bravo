@@ -74,8 +74,8 @@ def update_event(srvc, item, title=None, location=None, desc=None, color_id=None
             extra={'name':rv['summary'], 'date':rv['start']['date']})
         raise
 
-    log.debug('Updated event %s...', rv['summary'][0:4],
-        extra={'event':dump_bson(dump_event(rv))})
+    #log.debug('Updated event %s...', rv['summary'][0:4],
+    #    extra={'event':dump_bson(dump_event(rv))})
 
 #-------------------------------------------------------------------------------
 def get_colors(srvc):

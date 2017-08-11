@@ -158,7 +158,6 @@ class UberTask(Task):
         g.timer = Timer()
 
         user_oid = kwargs.pop(self.USERID_KW, None)
-        print 'user_oid=%s' % user_oid
 
         if user_oid:
             db_user = g.db.users.find_one({'_id':ObjectId(str(user_oid))})

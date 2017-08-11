@@ -7,7 +7,6 @@ from flask import current_app, g, request
 from app import celery, get_keys
 from celery import states
 from celery.exceptions import Ignore
-from app.lib.gsheets import to_range
 from app.lib.timer import Timer
 from .etapestry import call, get_acct, get_udf
 log = logging.getLogger(__name__)
@@ -359,8 +358,7 @@ def process_entries(self, entries, wks='Donations', col='Upload', **rest):
     @col: result column name
     '''
 
-    from app.lib.gsheets_cls import SS
-    from app.lib.gsheets import a1_range
+    from app.lib.gsheets_cls import SS, a1_range
 
     timer = Timer()
     CHK_SIZE = 10
@@ -442,8 +440,7 @@ def send_receipts(self, ss_gifts, **rest):
     from app.lib.html import no_ws
     from app.lib.dt import dt_to_ddmmyyyy
     from app.lib.utils import split_list
-    from app.lib.gsheets_cls import SS
-    from app.lib.gsheets import a1_range
+    from app.lib.gsheets_cls import SS, a1_range
     from app.main.donors import ytd_gifts
     from app.main.receipts import get_template, deliver
 
@@ -551,8 +548,7 @@ def create_accounts(self, accts_json, group=None, **rest):
     @accts_json: JSON list of form data
     '''
 
-    from app.lib.gsheets_cls import SS
-    from app.lib.gsheets import a1_range
+    from app.lib.gsheets_cls import SS, a1_range
 
     timer = Timer()
     g.group = group
@@ -615,9 +611,8 @@ def create_accounts(self, accts_json, group=None, **rest):
             log_rec['n_success'], log_rec['n_success']+log_rec['n_errs'],
             extra=log_rec)
     else:
-        log.info('Task completed. %s/%s accounts created. [%s]',
-            log_rec['n_success'], log_rec['n_success'] + log_rec['n_errs'], timer.clock(),
-            extra=log_rec)
+        log.info('Task completed. %s/%s accounts created.',
+            log_rec['n_success'], log_rec['n_success'] + log_rec['n_errs'], extra=log_rec)
 
 
     update_recent_cache.delay(group=g.group)

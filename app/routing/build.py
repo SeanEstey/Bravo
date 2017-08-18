@@ -107,7 +107,7 @@ def create_order(acct, warnings, api_key, shift_start, shift_end, stop_time):
     cached = g.db['cachedAccounts'].find_one(
         {'group':g.group, 'account.id':acct['id']})
 
-    if not cached.get('geolocation'):
+    if not cached.get('geolocation') or not cached.get('geolocation').get('geometry'):
         cached['geolocation'] = geocode(
             "%s, %s, AB" % (cached['account']['address'],cached['account']['city']),
             get_keys('google')['geocode']['api_key']

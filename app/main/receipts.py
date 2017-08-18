@@ -12,7 +12,7 @@ from app.main.parser import title_case
 from app.lib.gsheets_cls import SS
 from app.lib.dt import ddmmyyyy_to_date as to_date, dt_to_ddmmyyyy
 from .donors import ytd_gifts
-from .etapestry import call, get_udf
+from .etapestry import call, get_udf, mod_acct
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -179,6 +179,13 @@ def on_dropped(group):
     finally:
         ss.service = None
         wks.service = None
+
+    try:
+        acct = g.db['cachedAccounts'].find_one({'account.email':form['recipient']})['account']
+        office_notes = msg + get_udf('Office Notes', acct)
+        mod_acct(acct['id'], udf={'Office Notes':office_notes})
+    except Exception as e:
+        log.exception('Failed to update account on dropped receipt')
 
     from app.main.tasks import create_rfu
     create_rfu.delay(g.group, msg)

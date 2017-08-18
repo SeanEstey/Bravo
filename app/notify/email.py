@@ -159,5 +159,10 @@ def on_dropped():
     msg = 'Notification to %s dropped. %s.' %(
         request.form.get('recipient'), request.form.get('reason'))
 
+    acct = g.db['accounts'].find_one({'_id':notific['acct_id']})
+    office_notes = msg + acct['udf'].get('Office Notes','')
+    from app.main.etapestry import mod_acct
+    mod_acct(acct['udf']['etap_id'], udf={'Office Notes':office_notes})
+
     from app.main.tasks import create_rfu
     create_rfu.delay(g.group, msg + request.form.get('description',''))

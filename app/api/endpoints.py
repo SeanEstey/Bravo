@@ -6,6 +6,7 @@ be called anonymously.
 """
 
 import json, logging
+from json import loads
 from flask import g,request,Response
 from flask_login import login_required
 from app.lib.timer import Timer
@@ -14,11 +15,12 @@ from app.api.manager import var,func_call,task_call
 
 log = logging.getLogger('api.endpoints')
 
-#-------------------------------------------------------------------------------
 @api.before_request
 def _api_setup():
     g.tag = 'api'
     g.timer = Timer()
+
+##### API CALLS #####
 
 @api.route('/accounts/submit_form', methods=['POST'])
 def _submit_form_signup():
@@ -42,17 +44,13 @@ def _get_sum_stats():
 @login_required
 def _trend():
     from app.main.tasks import estimate_trend
-    return task_call(
-        estimate_trend,
-        var('date'), json.loads(var('donations')), var('ss_id'), var('ss_row'))
+    return task_call(estimate_trend, var('date'), loads(var('donations')), var('ss_id'), var('ss_row'))
 
 @api.route('/accounts/save_rfu', methods=['POST'])
 @login_required
 def _save_rfu():
     from app.main.donors import save_rfu
-    return func_call(
-        save_rfu,
-        var('acct_id'), var('body'), var('date'), var('ref'), var('fields'))
+    return func_call(save_rfu, var('acct_id'), var('body'), var('date'), var('ref'), var('fields'))
 
 @api.route('/accounts/create', methods=['POST'])
 @login_required
@@ -64,10 +62,7 @@ def _create_accts():
 @login_required
 def _find_acct():
     from app.main.signups import check_duplicates
-    return func_call(
-        check_duplicates,
-        name=var("name"), email=var("email"),
-        address=var("address"), phone=var("phone"))
+    return func_call(check_duplicates, name=var("name"), email=var("email"), address=var("address"), phone=var("phone"))
 
 @api.route('/accounts/get', methods=['POST'])
 @login_required
@@ -91,9 +86,7 @@ def _get_location():
 @login_required
 def _do_gifts():
     from app.main.tasks import process_entries
-    return task_call(
-        process_entries,
-        json.loads(var('entries')), wks=var('wks'), col=var('col'))
+    return task_call(process_entries, loads(var('entries')), wks=var('wks'), col=var('col'))
 
 @api.route('/accounts/receipts', methods=['POST'])
 @login_required
@@ -105,30 +98,24 @@ def _do_receipts():
 @login_required
 def _update_acct():
     from app.main.etapestry import mod_acct
-    from json import loads
+
     acct_id = var('acct_id')
     persona = loads(var('persona')) if var('persona') else {}
     udf = loads(var('udf')) if var('udf') else {}
-
-    log.debug('acct_id=%s, udf=%s, persona=%s', acct_id, udf, persona,
-        extra={'tag':'api'})
-
+    log.debug('acct_id=%s, udf=%s, persona=%s', acct_id, udf, persona)
     return func_call(mod_acct, acct_id, udf=udf, persona=persona)
-
-"""@api.route('/accounts/update', methods=['POST'])
-@login_required
-def _update_accts():
-    from app.main.tasks import process_entries
-    return task_call(
-        process_entries,
-        json.loads(var('accts')), wks=var('wks'), col=var('col'))
-"""
 
 @api.route('/accounts/preview_receipt', methods=['POST'])
 @login_required
 def _preview_receipt():
     from app.main.receipts import preview
     return func_call(preview, var('acct_id'), var('type_'))
+
+@api.route('/admin/sessions/clear', methods=['GET','POST'])
+@login_required
+def clear_sessions():
+    from app import clear_sessions
+    return func_call(clear_sessions)
 
 @api.route('/alice/welcome', methods=['POST'])
 @login_required
@@ -140,8 +127,7 @@ def _send_welcome():
 @login_required
 def _compose():
     from app.alice.outgoing import compose
-    return func_call(compose, var('body'), var('to'),
-        mute=json.loads(var('mute')), acct_id=var('acct_id'))
+    return func_call(compose, var('body'), var('to'), mute=loads(var('mute')), acct_id=var('acct_id'))
 
 @api.route('/alice/no_unread', methods=['POST'])
 @login_required
@@ -165,8 +151,7 @@ def _identify():
 @login_required
 def _toggle_mute():
     from app.alice.conversation import toggle_reply_mute
-    return func_call(toggle_reply_mute,
-        var('mobile'), json.loads(var('enabled')))
+    return func_call(toggle_reply_mute, var('mobile'), loads(var('enabled')))
 
 @api.route('/bravo/sessions/clear', methods=['GET', 'POST'])
 @login_required
@@ -184,8 +169,7 @@ def _book_acct():
 @login_required
 def _search_bookings():
     from app.booker.search import search
-    return func_call(search,
-        var('query'), radius=var('radius'), weeks=var('weeks'))
+    return func_call(search, var('query'), radius=var('radius'), weeks=var('weeks'))
 
 @api.route('/cache/gifts', methods=['GET', 'POST'])
 @login_required
@@ -275,7 +259,7 @@ def _record_voice():
 @login_required
 def _edit_acct_fields():
     from app.notify.accounts import edit_fields
-    return func_call(edit_fields, str(var('acct_id')), json.loads(var('fields')))
+    return func_call(edit_fields, str(var('acct_id')), loads(var('fields')))
 
 @api.route('/notify/accts/remove', methods=['POST'])
 @login_required
@@ -389,7 +373,6 @@ def _write_log():
 @api.route('/logger/get', methods=['POST'])
 @login_required
 def _get_logs():
-    from json import loads
     from app.main.logs import get_logs
     return func_call(get_logs,
         groups=loads(var('groups')), levels=loads(var('levels')), tags=loads(var('tags')))
@@ -405,7 +388,7 @@ def _backup_db():
 def _find_zone_accts():
     from app.main.tasks import find_zone_accounts
     return task_call(find_zone_accounts,
-        zone=var('map_title'), blocks=json.loads(var('blocks')))
+        zone=var('map_title'), blocks=loads(var('blocks')))
 
 @api.route('/user/login', methods=['POST'])
 def _login_user():

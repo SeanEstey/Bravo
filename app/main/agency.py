@@ -10,8 +10,20 @@ def get_admin_prop():
     #TODO 'n_alice_received': do aggregate of 'messages' field
     #TODO 'n_emails_sent': aggregate all 'type':'email' linked with agcy events
 
+    conversations = g.db['chatlogs'].find({'group':g.group})
+    n_convos = conversations.count()
+    n_msg = 0
+
+    for convo in conversations:
+        for msg in convo['messages']:
+            if msg['direction'] == 'in':
+                n_msg+=1
+
+    log.debug('m_msg=%s', n_msg)
+
     return {
-        'n_alice_convos': g.db['chatlogs'].find({'group':g.group}).count(),
+        'n_alice_convos': n_convos,
+        'n_alice_incoming': n_msg,
         'n_maps_indexed': len(g.db.maps.find_one({'agency':g.group})['features']),
         'n_notific_events': g.db.events.find({'agency':g.group}).count(),
         'n_leaderboard_accts': g.db['accts_cache'].find({'group':g.group}).count(),

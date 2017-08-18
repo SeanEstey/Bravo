@@ -177,13 +177,10 @@ def mod_acct(acct_id, udf=None, persona=[], exc=False):
     try:
         call('modify_acct', data={
             'acct_id':acct_id, 'udf':udf, 'persona': persona})
-    except EtapError as e:
+    except Exception as e:
         log.error('Error modifying account %s: %s', acct_id, str(e))
-
-        if not exc:
-            return str(e)
-        else:
-            raise
+        desc = str(e)
+        raise Exception(desc[desc.index("u'description'")+18:desc.index("u'result'")-3])
 
 #-------------------------------------------------------------------------------
 def get_udf(field_name, acct):

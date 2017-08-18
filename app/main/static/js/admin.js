@@ -38,6 +38,9 @@ function init() {
         else if(id == '#recent') {
             initRecentPane();
         }
+        else if(id == "#map_analyzer") {
+            window.location = "https://bravoweb.ca/tools";
+        }
 
         $(this).tab('show');
     })
@@ -221,6 +224,7 @@ function initPropertiesPane() {
         var prop = response['data'];
 
         $("#n_alice_convos").text(prop['n_alice_convos']);
+        $("#n_alice_incoming").text(prop['n_alice_incoming']);
         $("#n_maps_indexed").text(prop['n_maps_indexed']);
         $("#n_notific_events").text(prop['n_notific_events']);
         $("#n_leaderboard_accts").text(prop['n_leaderboard_accts']);

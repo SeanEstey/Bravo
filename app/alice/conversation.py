@@ -148,7 +148,7 @@ def save_msg(text, mobile=None, acct_id=None, user_session=False, direction=None
         'group':g.group,
         'last_message':datetime.utcnow(),
         'mobile': session['FROM'] if user_session else mobile,
-        'acct_id': int(session.get('ACCT_ID')) if user_session else int(acct_id)
+        'acct_id': int(session.get('ACCT_ID',0)) if user_session else int(acct_id)
     }
 
     if direction == 'in':

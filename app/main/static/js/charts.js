@@ -44,7 +44,13 @@ function drawMorrisChart(id, data, xkey, ykeys) {
         labelTop: true,
         barSizeRatio: .80,
         barWidth: 25,
-        resize: true
+        resize: true,
+        hoverCallback: function(index, options, content) {
+            var data = options.data[index];
+            $(".morris-hover").html('<div>Custom label: ' + data.label + '</div>');
+            var label = data['date'] + '<br>$' + data.value + '<br>' + data.label;
+            return label;
+        }
     });
 
     $('svg').css('overflow','visible');

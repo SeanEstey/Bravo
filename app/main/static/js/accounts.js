@@ -28,7 +28,8 @@ function accountsInit() {
     });
 
     $('#search_ctnr').prepend($('.br-alert'));
-    $('.br-alert').prop('hidden', true);
+    //$('.br-alert').prop('hidden', true);
+    $('.br-alert').first().prop('id','top-alert');
 
     $('.book-btn').click(function(){
        window.location = location.origin + '/booker?aid='+ gAcctId; 
@@ -91,16 +92,30 @@ function submitEdits() {
         'accounts/update',
         data=data,
         function(response) {
-            if(response['status'] == 'success')
-                window.location = window.location;
+            console.log(response);
+            //var response = response['responseJSON']; 
+
+            if(response['status'] == 'success') {
+                $('#top-alert').prop('hidden', false);
+                alertMsg("Account updated successfully.", "success");
+                toggleEditMode(null, panel=$form.closest('.hpanel'));
+                //window.location = window.location;
+            }
+            else {
+                $('#top-alert').prop('hidden', false);
+                alertMsg("Account update failed (" + response['desc'] + ")", "danger", id='top-alert');
+            }
         });
 }
 
 
 //---------------------------------------------------------------------
-function toggleEditMode() {
+function toggleEditMode(e, panel=null) {
 
-    var $panel = $(this).closest('.hpanel');
+    if(panel)
+        var $panel = panel;
+    else
+        var $panel = $(this).closest('.hpanel');
 
     // Turn Edit mode ON
     if($panel.find('form input').length == 0) {
@@ -129,7 +144,12 @@ function toggleEditMode() {
             $par_div.append($replace.clone().prop('id', id).text(value));
         }
         else if($replace.is('input')) {
-            $par_div.append($replace.clone().prop('id', id).prop('name',id).val(value));
+            var $input = $replace.clone()
+                .prop('id',id)
+                .val(value)
+                .prop('name', id)
+                .data('orig_val', value);
+            $par_div.append($input);
             $par_div.prop('hidden', false);
         }
     });
@@ -257,8 +277,9 @@ function displayDonationData(response) {
         chart_data.push({
             'date': new Date(gifts[i]['date']['$date']).strftime('%Y-%m-%d'),
             'value': gifts[i]['amount'],
-            'count': gifts[i]['amount']
+            'label': gifts[i]['note']
         });
+
         if(gifts[i]['amount'] > 0)
             total += gifts[i]['amount'];
         else
@@ -287,7 +308,9 @@ function displayDonationData(response) {
 
     if(gifts.length > 0) {
         $('.chart').prop('hidden',false);
+
         drawMorrisChart('chart', chart_data, 'date', ['value']);
+
         $('#last-gave-d').html(new Date(gifts[0]['date']['$date'])
             .strftime('%b %Y').toUpperCase());
     }

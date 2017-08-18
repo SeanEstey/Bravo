@@ -32,8 +32,6 @@ class SS():
             log.error('Exceeded max attempts to acquire SS resource.')
             raise Exception('Failed to acquire SS resource.')
 
-        #log.debug('Acquiring SS resource. n=%s', n)
-
         try:
             self.ssObj = self.service.spreadsheets().get(
                 spreadsheetId=self.ss_id).execute(num_retries=3)

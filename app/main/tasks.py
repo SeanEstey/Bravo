@@ -22,8 +22,8 @@ def _get_gifts(self, ref, start_date, end_date, cache=True, **rest):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def wipe_sessions(self, **rest):
-    from app import clear_sessions
-    clear_sessions()
+    import requests
+    r = requests.post("https://bravoweb.ca/api/admin/sessions/clear")
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

@@ -8,6 +8,11 @@ gMobile = null;
 //-----------------------------------------------------------------------------
 function accountsInit() {
 
+    // Initialize tooltips
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip();
+    })
+
     $(document).ready(function() {
         $(".setsize").each(function() {
             $(this).height($(this).width());

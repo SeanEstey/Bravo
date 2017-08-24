@@ -31,7 +31,7 @@ def bulk_store(objects, obj_type=None):
             obj_type = 'account'
         elif 'type' in objects[0]:
             obj_type = 'gift'
-        print 'No obj_type set. Assuming %s from 1st list item.' % obj_type
+        #print 'No obj_type set. Assuming %s from 1st list item.' % obj_type
 
     timer = Timer()
     n_ops = 0

@@ -11,27 +11,27 @@
 <div class="container">
 	<ul style="margin-bottom:0em" class="nav nav-tabs" role="tablist">
 		<li class="nav-item">
-			<a class="nav-link active" data-toggle="tab" href="#me" role="tab">Me</a>
+			<a class="nav-link active" data-toggle="tab" href="#stats" role="tab">Stats</a>
 		</li>
 		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#services" role="tab">3rd Party Services</a>
+			<a class="nav-link" data-toggle="tab" href="#me" role="tab">Me</a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link" data-toggle="tab" href="#services" role="tab">Services</a>
 		</li>
 		<li class="nav-item">
 			<a class="nav-link" data-toggle="tab" href="#previewer" role="tab">Previewer</a>
 		</li>
-		<li class="nav-item">
+		<li class="nav-item" hidden>
 			<a class="nav-link" data-toggle="tab" href="#leaderboard" role="tab">Leaderboard</a>
 		</li>
-		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#properties" role="tab">Properties</a>
-		</li>
-		<li class="nav-item">
+		<LI class="nav-item">
 			<a class="nav-link" data-toggle="tab" href="#map_analyzer" role="tab">Map Analyzer</a>
 		</li>
 	</ul>
 	<div class="tab-content">
     <!-- Me Pane -->
-		<div class="tab-pane active" id="me" style='margin-bottom:7em' role="tabpanel">
+		<div class="tab-pane" id="me" style='margin-bottom:7em' role="tabpanel">
       <form id="user_form">
         <fieldset style="max-width:600px" class="form-fieldset new_event">
           <legend class="new_event">My Settings</legend>
@@ -225,13 +225,13 @@
         </fieldset>
     </div>
     <!-- Leaderboard Pane -->
-		<div class="tab-pane" id="leaderboard" style='margin-bottom:7em' role="tabpanel">
+		<div class="tab-pane" id="leaderboard" style='margin-bottom:7em' role="tabpanel" hidden>
     </div>
     <!-- Properties Pane -->
-		<div class="tab-pane" id="properties" style='margin-bottom:7em' role="tabpanel">
-      <form>
-        <fieldset style="max-width:600px" class="form-fieldset new_event">
-          <legend class="new_event">Statistics</legend>
+		<div class="tab-pane active" id="stats" style='margin-bottom:7em' role="tabpanel">
+      <div style="display:inline-flex">
+        <fieldset class="new_event py-3 px-5">
+          <legend class="new_event">Activity</legend>
             <div class='form-label'>Alice Conversations: 
               <b><label id="n_alice_convos"></label></b>
             </div>
@@ -247,23 +247,37 @@
             <div class='form-label' hidden>Emails Sent:
               <b><label id='n_emails_sent'></label></b>
             </div>
-            <div class='form-label'>Leaderboard Accounts Tracked:
+            <div class='form-label'>Leaderboard Accounts:
               <b><label id='n_leaderboard_accts'></label></b>
             </div>
             <div class='form-label'>Users Registered:
               <b><label id='n_users'></label></b>
             </div>
-            <div class='form-label'>Sessions Active:
+        </fieldset>
+      </div>
+      <div style="display:inline-flex">
+        <fieldset class="new_event py-3 px-5">
+          <legend class="new_event">System</legend>
+            <div class='form-label'>Memory (mb):
+              <b><label id='sys_mem'></label></b>
+            </div>
+            <div class='form-label'>DB Size (mb):
+              <b><label id='db_size'></label></b>
+            </div>
+            <div class='form-label'>Stored Sessions:
               <b><label id='n_sessions'></label></b>
             </div>
             <div class='form-label'>Cached Accounts:
               <b><label id='n_cached_accounts'></label></b>
             </div>
+            <div class='form-label'>Cached Geolocations:
+              <b><label id='n_cached_geolocations'></label></b>
+            </div>
             <div class='form-label'>Cached Gifts:
               <b><label id='n_cached_gifts'></label></b>
             </div>
         </fieldset>
-      </form>
+      </div>
     </div>
 	</div> <!--END TAB_CONTENT-->
 	<!-- Loader-->

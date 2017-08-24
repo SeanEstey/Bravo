@@ -182,6 +182,18 @@ def mod_acct(acct_id, udf=None, persona=[], exc=False):
         desc = str(e)
         raise Exception(desc[desc.index("u'description'")+18:desc.index("u'result'")-3])
 
+    from flask_login import current_user
+    if current_user:
+        mod_by = current_user.user_id
+    else:
+        mod_by = 'bravo'
+
+    r = g.db['cachedAccounts'].update_one(
+        {'group':g.group,'account.id':int(acct_id)},
+        {'$set':{'lastModifiedBy':mod_by}})
+    #log.debug('lastModifiedBy: %s. matched=%s, n_mod=%s', mod_by,
+    #r.matched_count, r.modified_count)
+
 #-------------------------------------------------------------------------------
 def get_udf(field_name, acct):
     '''Extract User Defined Fields from eTap Account object. Allows

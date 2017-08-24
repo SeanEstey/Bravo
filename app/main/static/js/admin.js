@@ -12,7 +12,9 @@ function init() {
     $('.br-alert').hide();
 
     // Init default pane
-    initUserPane();
+    
+    initPropertiesPane();
+    //initUserPane();
     initPreviewerPane();
 
     $('.nav-tabs a').click(function (e){
@@ -26,7 +28,7 @@ function init() {
         else if(id == '#leaderboard') {
             initLeaderboardPane();
         }
-        else if(id == '#properties') {
+        else if(id == '#stats') {
             initPropertiesPane();
         }
         else if(id == '#me') {
@@ -229,8 +231,15 @@ function initPropertiesPane() {
         $("#n_notific_events").text(prop['n_notific_events']);
         $("#n_leaderboard_accts").text(prop['n_leaderboard_accts']);
         $("#n_users").text(prop['n_users']);
+
+        var free = prop['sys_mem']['free'];
+        var total = prop['sys_mem']['total'];
+        var perc = ((free/total)*100).toFixed(0);
+        $("#sys_mem").text(format("%s/%s (%s)", free, total, perc+"%"));
+        $("#db_size").text((prop['db_stats']['dataSize']/1000000).toFixed(1));
         $("#n_sessions").text(prop['n_sessions']);
         $("#n_cached_accounts").text(prop['n_cached_accounts']);
+        $("#n_cached_geolocations").text(prop['n_geolocations']);
         $("#n_cached_gifts").text(prop['n_cached_gifts']);
 
         prop_pane_init = true;

@@ -35,7 +35,7 @@ def auth(keyfile_dict, name=None, scopes=None, version=None):
         raise
 
     try:
-        return build(name, version, http=http) #, cache_discovery=True)
+        return build(name, version, http=http, cache_discovery=False)
     except Exception as e:
         log.exception('Error acquiring %s service: %s', name, e.message)
         raise

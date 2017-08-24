@@ -167,9 +167,16 @@ def health_check(self, **rest):
     mem = mem_check()
 
     if mem['free'] < 350:
-        import gc, os
-        log.debug('Low memory. %s/%s. forcing gc/clearing cache...',
-            mem['free'], mem['total'])
+        import gc, os, time
+
+        log.debug('Low memory. %s/%s.', mem['free'], mem['total'])
+
+        log.debug('Restarting Dropbox daemon...')
+        os.system('python /root/dropbox.py stop')
+        time.sleep(.5)
+        os.system('python /root/dropbox.py start')
+
+        log.debug('Forcing GC & clearing cache...')
         os.system('sudo sysctl -w vm.drop_caches=3')
         os.system('sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches')
         gc.collect()

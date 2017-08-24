@@ -81,8 +81,8 @@ class User():
 class Anonymous(AnonymousUserMixin):
 
     #---------------------------------------------------------------------------
-    def __init__(self):
+    def __init__(self, user_id=None):
 
-        self.user_id = 'anon'
+        self.user_id = user_id or 'anon'
         self._id = None
         self.group = 'anon'

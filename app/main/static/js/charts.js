@@ -18,7 +18,8 @@ function initCharts() {
 }
 
 //-------------------------------------------------------------------------------
-function drawMorrisChart(id, data, xkey, ykeys) {
+function drawMorrisChart(id, data, xkey, ykeys,
+    label_top=null, grid=null, axes=null, padding=null, hover_callback=null) {
     /*
     @data: list of {}'s with x_axis labels and y-values
     @labels: labels for the ykeys -- will be displayed when you hover over the chart
@@ -27,34 +28,36 @@ function drawMorrisChart(id, data, xkey, ykeys) {
     @lineColors: ['#5bc0de', '#5bc0de', '#5bc0de'],
     */
 
-    new Morris.Bar({
+    var options = {
         element: id,
         data: data,
         xkey: xkey, 
         ykeys: ykeys,
         labels: ['$'], 
-        axes: [],
-        grid: false,
+        axes: axes != null? axes : [],
+        grid: grid? grid : false,
         hideHover: 'auto',
         barColors: ['#ec8380'],
         gridTextColor: ['#6a6c6f'],
         gridTextSize: 14,
         gridTextWeight: 300,
-        padding: 1,
-        labelTop: true,
+        padding: padding ? padding : 15,
         barSizeRatio: .80,
         barWidth: 25,
-        resize: true,
-        hoverCallback: function(index, options, content) {
-            var data = options.data[index];
-            $(".morris-hover").html('<div>Custom label: ' + data.label + '</div>');
-            var label = data['date'] + '<br>$' + data.value + '<br>' + data.label;
-            return label;
-        }
-    });
+        resize: true
+    };
+
+    if(label_top != null)
+        options['labelTop'] = label_top;
+
+    if(hover_callback != null) {
+        options['hoverCallback'] = hover_callback;
+    }
+
+    new Morris.Bar(options);
 
     $('svg').css('overflow','visible');
-    $('svg').css('top', '1px');
+    //$('svg').css('top', '1px');
 }
 
 //-------------------------------------------------------------------------------
@@ -170,7 +173,8 @@ function initLabelTopExt() {
 
                             _results1.push(lastTop += size);
 
-                            if (this.options.labelTop && !this.options.stacked && bDrawTopLabel) {
+                            if (this.options.labelTop == true && !this.options.stacked && bDrawTopLabel) {
+                                console.log('labelTop=true');
                                 label = this.drawLabelTop(
                                     (left + (barWidth / 2)),
                                     top - 10,

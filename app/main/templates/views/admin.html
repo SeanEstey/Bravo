@@ -25,8 +25,17 @@
 		<li class="nav-item" hidden>
 			<a class="nav-link" data-toggle="tab" href="#leaderboard" role="tab">Leaderboard</a>
 		</li>
-		<LI class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#map_analyzer" role="tab">Map Analyzer</a>
+		<li class="nav-item">
+			<a class="nav-link" data-toggle="tab" href="#analytics" role="tab">
+        <i class="fa fa-bar-chart pr-1"></i>
+        <span>Analytics</span>
+      </a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link" data-toggle="tab" href="#map_analyzer" role="tab">
+        <i class="fa fa-map-marker pr-1"></i>
+        <span>Map Analyzer</span>
+      </a>
 		</li>
 	</ul>
 	<div class="tab-content">
@@ -232,6 +241,9 @@
       <div style="display:inline-flex">
         <fieldset class="new_event py-3 px-5">
           <legend class="new_event">Activity</legend>
+            <div class='form-label'>Active Donors: 
+              <b><label id="n_donors"></label></b>
+            </div>
             <div class='form-label'>Alice Conversations: 
               <b><label id="n_alice_convos"></label></b>
             </div>
@@ -267,13 +279,18 @@
             <div class='form-label'>Stored Sessions:
               <b><label id='n_sessions'></label></b>
             </div>
-            <div class='form-label'>Cached Accounts:
+        </fieldset>
+      </div>
+      <div style="display:inline-flex">
+        <fieldset class="new_event py-3 px-5">
+          <legend class="new_event">Cache</legend>
+            <div class='form-label'>Accounts:
               <b><label id='n_cached_accounts'></label></b>
             </div>
-            <div class='form-label'>Cached Geolocations:
+            <div class='form-label'>Geolocations:
               <b><label id='n_cached_geolocations'></label></b>
             </div>
-            <div class='form-label'>Cached Gifts:
+            <div class='form-label'>Gifts:
               <b><label id='n_cached_gifts'></label></b>
             </div>
         </fieldset>

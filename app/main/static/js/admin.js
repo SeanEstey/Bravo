@@ -225,6 +225,7 @@ function initPropertiesPane() {
         console.log(response['status']);
         var prop = response['data'];
 
+        $("#n_donors").text(prop['n_donors']);
         $("#n_alice_convos").text(prop['n_alice_convos']);
         $("#n_alice_incoming").text(prop['n_alice_incoming']);
         $("#n_maps_indexed").text(prop['n_maps_indexed']);

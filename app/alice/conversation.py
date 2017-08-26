@@ -141,15 +141,20 @@ def is_muted():
 
 #-------------------------------------------------------------------------------
 def save_msg(text, mobile=None, acct_id=None, user_session=False, direction=None):
-    """If saving an outbound msg sent by client, must pass in @mobile
+    """@user_session: session only present if conversation is user-initiated
+    If saving an outbound msg sent by client, must pass in @mobile
     """
 
     values = {
         'group':g.group,
         'last_message':datetime.utcnow(),
-        'mobile': session['FROM'] if user_session else mobile,
-        'acct_id': int(session.get('ACCT_ID',0)) if user_session else int(acct_id)
+        'mobile': session['FROM'] if user_session else mobile
     }
+
+    if user_session and session.get('ACCT_ID'):
+        values['acct_id'] =  int(session['ACCT_ID'])
+    else:
+        values['acct_id'] = acct_id
 
     if direction == 'in':
         values['unread'] = True
@@ -165,7 +170,7 @@ def save_msg(text, mobile=None, acct_id=None, user_session=False, direction=None
        },
        upsert=True)
 
-    log.debug('save_msg res=%s', r)
+    #log.debug('save_msg res=%s', r)
 
     """if user_session:
         phone = session['FROM']

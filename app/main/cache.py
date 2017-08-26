@@ -5,7 +5,7 @@ prevents excessive write operations to avoid deadlocks.
 
 import json, logging
 from flask import g
-from datetime import datetime
+from datetime import datetime, time, date
 from dateutil.parser import parse
 from pymongo.errors import BulkWriteError
 from app import get_keys
@@ -196,6 +196,31 @@ def analyze_gifts():
 
         results = bulk.execute()
         log.debug('Task completed')
+
+#-------------------------------------------------------------------------------
+def get_gifts(start=None, end=None):
+    """@start, @end: datetime.date
+    """
+
+    log.debug('get_gifts')
+
+    start_dt = datetime.combine(start, time())
+    end_dt = datetime.combine(end, time())
+
+    criteria = g.db['groups'].find_one({'name':g.group})['etapestry']['gifts']
+
+    gifts = g.db['cachedGifts'].find({
+        'group':g.group,
+        'gift.fund': criteria['fund'],
+        'gift.approach': criteria['approach'],
+        'gift.campaign': criteria['campaign'],
+        'gift.type': 5,
+        'gift.date':{'$gte':start_dt, '$lte':end_dt}
+    })
+
+    log.debug('%s gifts between %s and %s', gifts.count(), start_dt, end_dt)
+
+    return [doc['gift'] for doc in gifts]
 
 #-------------------------------------------------------------------------------
 def to_datetime(obj):

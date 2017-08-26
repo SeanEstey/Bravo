@@ -7,6 +7,9 @@ log = getLogger(__name__)
 #-------------------------------------------------------------------------------
 def get_admin_prop():
 
+    from app.lib.utils import mem_check
+    from app.main.etapestry import get_udf
+
     #TODO 'n_alice_received': do aggregate of 'messages' field
     #TODO 'n_emails_sent': aggregate all 'type':'email' linked with agcy events
 
@@ -21,13 +24,22 @@ def get_admin_prop():
 
     n_geolocations = g.db['cachedAccounts'].find({'group':g.group,'geolocation':{'$exists':True}}).count()
 
-    log.debug('m_msg=%s', n_msg)
+    donors = g.db['cachedAccounts'].find({'group':g.group})
+    n_donors = 0
 
-    from app.lib.utils import mem_check
+    for donor in donors:
+        if not donor['account'].get('accountDefinedValues'):
+            continue
+        status =  get_udf('Status', donor['account'])
+        if status and status in ['Active','Dropoff','Cancelling','Call-in','Brings In']:
+            n_donors +=1
+
+    log.debug('m_msg=%s', n_msg)
 
     return {
         'db_stats': g.db.command("dbstats"),
         'sys_mem': mem_check(),
+        'n_donors': n_donors,
         'n_alice_convos': n_convos,
         'n_alice_incoming': n_msg,
         'n_maps_indexed': len(g.db.maps.find_one({'agency':g.group})['features']),

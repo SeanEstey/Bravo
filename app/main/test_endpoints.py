@@ -35,9 +35,13 @@ def _jkldsfkdfsjks():
 @login_required
 @main.route('/test_analytics', methods=['GET'])
 def _test_analytics():
-    from app.main.tasks import account_analytics
-    account_analytics.delay()
-    return 'ok'
+    #from app.main.tasks import account_analytics
+    #account_analytics.delay()
+    from app.main.cache import get_gifts
+    from datetime import date, timedelta
+    gifts = get_gifts(start=date.today()-timedelta(days=30), end=date.today())
+    from bson.json_util import dumps
+    return dumps(gifts)
 
 @login_required
 @main.route('/test_leaders', methods=['GET'])

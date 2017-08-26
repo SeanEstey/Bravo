@@ -177,6 +177,17 @@ def _api_cache_gifts():
     from app.main.tasks import cache_gifts
     return task_call(cache_gifts)
 
+@api.route('/gifts/get', methods=['POST'])
+@login_required
+def _get_gifts():
+    from app.main.cache import get_gifts
+    from datetime import time, date
+    print 'start=%s (type=%s), end=%s (type=%s)' %(var('start'),type(var('start')), var('end'), type(var('end')))
+    return func_call(
+        get_gifts,
+        date.fromtimestamp(int(var('start'))),
+        date.fromtimestamp(int(var('end'))))
+
 @api.route('/group/conf/get', methods=['POST'])
 @login_required
 def _get_group_conf():

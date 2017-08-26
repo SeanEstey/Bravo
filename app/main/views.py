@@ -54,6 +54,13 @@ def view_tools():
         api_key=get_keys('google')['maps_api_key'])
 
 #-------------------------------------------------------------------------------
+@main.route('/analytics')
+@login_required
+def view_analytics():
+
+    return render_template('views/analytics.html')
+
+#-------------------------------------------------------------------------------
 @main.route('/map/<block>')
 @login_required
 def view_map(block):

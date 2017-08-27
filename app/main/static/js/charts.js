@@ -54,10 +54,12 @@ function drawMorrisChart(id, data, xkey, ykeys,
         options['hoverCallback'] = hover_callback;
     }
 
-    new Morris.Bar(options);
+    var bChart = new Morris.Bar(options);
 
     $('svg').css('overflow','visible');
     //$('svg').css('top', '1px');
+
+    return bChart;
 }
 
 //-------------------------------------------------------------------------------
@@ -174,7 +176,6 @@ function initLabelTopExt() {
                             _results1.push(lastTop += size);
 
                             if (this.options.labelTop == true && !this.options.stacked && bDrawTopLabel) {
-                                console.log('labelTop=true');
                                 label = this.drawLabelTop(
                                     (left + (barWidth / 2)),
                                     top - 10,

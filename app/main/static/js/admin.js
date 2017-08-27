@@ -10,9 +10,7 @@ var recnt_pane_init = false;
 function init() {
 
     $('.br-alert').hide();
-
     // Init default pane
-    
     initPropertiesPane();
     //initUserPane();
     initPreviewerPane();
@@ -34,11 +32,8 @@ function init() {
         else if(id == '#me') {
             initUserPane();
         }
-        else if(id == '#alice') {
-            initAlicePane();
-        }
-        else if(id == '#recent') {
-            initRecentPane();
+        else if(id == '#analytics') {
+            window.location = "https://bravoweb.ca/analytics";
         }
         else if(id == "#map_analyzer") {
             window.location = "https://bravoweb.ca/tools";

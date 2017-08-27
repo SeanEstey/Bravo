@@ -2,6 +2,11 @@
    String-related utility functions.
 */
 
+function getElapsedTime(t1) {
+    var d = new Date();
+    return new Date().getTime() - t1.getTime();
+}
+
 //---------------------------------------------------------------------
 function format(str) {
   /* str: "Hello %s, my name is %s" 

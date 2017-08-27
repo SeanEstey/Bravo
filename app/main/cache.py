@@ -3,7 +3,8 @@ Interface for retrieving/storing eTapestry objects to MongoDB. Bulk store
 prevents excessive write operations to avoid deadlocks.
 """
 
-import json, logging
+
+import json, logging, pytz
 from flask import g
 from datetime import datetime, time, date
 from dateutil.parser import parse
@@ -199,28 +200,53 @@ def analyze_gifts():
 
 #-------------------------------------------------------------------------------
 def get_gifts(start=None, end=None):
-    """@start, @end: datetime.date
+    """Query all gifts in date period, stream to client in batches via socket.io connection.
+    @start, @end: datetime.date
     """
 
-    log.debug('get_gifts')
+    from app.main.socketio import smart_emit
 
-    start_dt = datetime.combine(start, time())
-    end_dt = datetime.combine(end, time())
-
+    t1 = Timer()
+    epoch = datetime(1970,1,1, tzinfo=pytz.utc)
     criteria = g.db['groups'].find_one({'name':g.group})['etapestry']['gifts']
-
-    gifts = g.db['cachedGifts'].find({
+    query = {
         'group':g.group,
         'gift.fund': criteria['fund'],
         'gift.approach': criteria['approach'],
         'gift.campaign': criteria['campaign'],
         'gift.type': 5,
-        'gift.date':{'$gte':start_dt, '$lte':end_dt}
-    })
+        'gift.date':{
+            '$gte':datetime.combine(start, time()),
+            '$lte':datetime.combine(end, time())
+        }
+    }
 
-    log.debug('%s gifts between %s and %s', gifts.count(), start_dt, end_dt)
+    gifts = None
+    pos = 0
+    i=1
+    n_batches = 5
+    batch_size = g.db['cachedGifts'].find(query).count()/n_batches
+    print 'streaming data in %s chunks w/ %s gifts each' %(n_batches,batch_size)
 
-    return [doc['gift'] for doc in gifts]
+    while gifts is None or len(gifts) > 0:
+        cursor = g.db['cachedGifts'].find(query)[pos:pos+batch_size]
+
+        gifts = [{
+            'afloat': 13.25,
+            'amount':n['gift']['amount'],
+            'timestamp':(n['gift']['date']-epoch).total_seconds()*1000
+        } for n in cursor]
+
+        smart_emit('gift_data', gifts)
+
+        if len(gifts) > 0:
+            print 'socketio: dataset %s/%s sent [%sms]' %(i, n_batches, t1.clock(t='ms'))
+            t1.restart()
+
+        pos+=batch_size
+        i+=1
+
+    return True
 
 #-------------------------------------------------------------------------------
 def to_datetime(obj):

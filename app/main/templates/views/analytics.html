@@ -1,6 +1,5 @@
   {% extends "views/base.html" %}
   {% block content %}
-
   <head>
     <script src="{{url_for("main.static", filename="js/lib/morris.min.js")}}"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
@@ -16,57 +15,61 @@
       initCharts();
     });
   </script>
-  <div class="row" id="main">
+  <div class="row my-4" id="main">
     <!--Chart Panel-->
     <div class="col-md-12 p-0">
         <div class="hpanel chart-panel mb-3">
           <div class="panel-heading">
-            <div class="d-flex justify-content-between">
-              <h5 id='title'>Gifts this Month</h5>
-              <!--Filter Menu Dropdown-->
-              <div class="dropdown">
-                <span id="filterLbl">Showing All</span>
-                <button type="button" id="filterBtn" style="border:none; color:#6a6c6f" 
-                class="btn btn-outline-secondary dropdown-toggle btn-sm fa fa-filter" 
-                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="filterBtn">
-                  <a class="dropdown-item" id="fltr-all" href="#">Last 7 Days</a>
-                  <a class="dropdown-item" id="fltr-read" href="#">This Month</a>
-                  <a class="dropdown-item" id="fltr-unread" href="#">Last 3 Months</a>
-                  <a class="dropdown-item" id="fltr-unreg" href="#">This Year</a>
-                </div>
+            <div class="col-12 text-center">
+              <h5 class="my-0" style="color:#aaaaaa" id="summary">Days: 70, Total: $51944, Average: $742</h5>
+            </div>
+            <!--Filter Menu Dropdown-->
+            <div class="dropdown" hidden>
+              <span id="filterLbl">Showing All</span>
+              <button type="button" id="filterBtn" style="border:none; color:#6a6c6f" 
+              class="btn btn-outline-secondary dropdown-toggle btn-sm fa fa-filter" 
+              data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="filterBtn">
+                <a class="dropdown-item" id="fltr-all" href="#">Last 7 Days</a>
+                <a class="dropdown-item" id="fltr-read" href="#">This Month</a>
+                <a class="dropdown-item" id="fltr-unread" href="#">Last 3 Months</a>
+                <a class="dropdown-item" id="fltr-unreg" href="#">This Year</a>
               </div>
             </div>
           </div>
           <!--Panel Body-->
-          <div class="panel-body pt-0 pb-0" style="height:625px">
+          <div class="panel-body pt-0 pb-0" style="height:625px; background-color:white;">
             <div style="height:25px"></div>
-            <div class="row loading" style="height:600px">
+            <div class="row loading" style="height:600px" hidden>
               <div class="mx-auto my-auto">
                 <i class="spinner fa fa-circle-o-notch fa-spin fa-5x fa-fw"></i>
               </div>
             </div>
             <div class="col chart" id="chart" style="height:600px; border-bottom:none" hidden></div>
           </div>
-          <div class="panel-footer">
-            <div class="row" id='timeline'>
-              <div class="col text-center">
-                <small hidden>FROM </small>
-                <small id="end-date"></small>
-              </div>
-            </div>
-          </div>
+          <div class="panel-footer" style="background-color:white"></div>
         </div>
         <div class="row">
           <div class="col-12 text-center">
-            <h3 style="color:gray" id="sum"></h3>
-          </div>
-          <div class="col-12 text-center">
-            <h3 style="color:gray" id="avg"></h3>
+            <h5 style="color:#aaaaaa" id="summary"></h5>
           </div>
         </div>
     </div>
-  </div><!--End row-->
+  </div>
+  <!--Date Pickers-->
+  <div class="d-flex justify-content-center">
+    <div class="col-6 my-auto">
+      <div class="input-daterange input-group date">
+        <input id="start-date" name="start" type="text" class="form-control" placeholder="FROM">
+        <div id="start-btn" class="input-group-addon fa fa-calendar"></div>
+        <input id="end-date" name="end" type="text" class="form-control" placeholder="UNTIL">
+        <div id="end-btn" class="input-group-addon fa fa-calendar"></div>
+      </div>
+    </div>
+    <div class="col-2 my-auto">
+      <button type="button" id="analyze" class="btn btn-primary" disabled>Analyze Gifts</button>
+    </div>
+  </div>
   <!--Error-->
   <div class="row" id="error" style="height:150px" hidden>
     <div class="col-6 mx-auto my-auto">

@@ -1,8 +1,6 @@
 /* charts.js */
 
 MyMorris = null;
-x_key='date';
-y_keys=['value'];
 top_lbl='$';
 bDrawTopLabel = true;
 
@@ -18,48 +16,45 @@ function initCharts() {
 }
 
 //-------------------------------------------------------------------------------
-function drawMorrisChart(id, data, xkey, ykeys,
-    label_top=null, grid=null, axes=null, padding=null, hover_callback=null) {
-    /*
-    @data: list of {}'s with x_axis labels and y-values
-    @labels: labels for the ykeys -- will be displayed when you hover over the chart
-    @xkey, @ykeys: name of data record attribute containing x/y-values
-    @element: id attr of selector graph drawn in 
-    @lineColors: ['#5bc0de', '#5bc0de', '#5bc0de'],
+function drawMorrisBarChart(id, data, xkey, ykeys, options, ext_options=null) {
+    /* Wrapper for morris.js bar chart w/ default stylings.
     */
 
-    var options = {
-        element: id,
-        data: data,
-        xkey: xkey, 
-        ykeys: ykeys,
-        labels: ['$'], 
-        axes: axes != null? axes : [],
-        grid: grid? grid : false,
+    // Defaults
+    var _options = {
+        element: id, // graph container selector id
+        data: data, // series data
+        xkey: xkey, // key for x-axis data
+        ykeys: ykeys, // keys (list) for y-axis data
+        labels: ['$'], // labels for ykeys -- will be displayed when you hover over the chart
+        labelTop: true, // custom extension
+        axes: true, // false for none, 'x' for x-axis, 'y' for y-axis
+        grid: false,
         hideHover: 'auto',
-        barColors: ['#ec8380'],
+        hoverCallback: null, // replace w/ custom function
+        barColors: ['#ec8380'], // cherry red
         gridTextColor: ['#6a6c6f'],
         gridTextSize: 14,
         gridTextWeight: 300,
-        padding: padding ? padding : 15,
+        padding: 15,
         barSizeRatio: .80,
         barWidth: 25,
         resize: true
     };
 
-    if(label_top != null)
-        options['labelTop'] = label_top;
-
-    if(hover_callback != null) {
-        options['hoverCallback'] = hover_callback;
+    // Override defaults
+    for(var k in options) {
+        if(_options.hasOwnProperty(k))
+            _options[k] = options[k];
+        else
+            console.log(format("unknown option '%s':'%s'",k,options[k]));
     }
 
-    var bChart = new Morris.Bar(options);
+    var barChart = new Morris.Bar(_options);
 
     $('svg').css('overflow','visible');
-    //$('svg').css('top', '1px');
 
-    return bChart;
+    return barChart;
 }
 
 //-------------------------------------------------------------------------------
@@ -100,7 +95,6 @@ function initLabelTopExt() {
         }
         else {
             //console.log('Showing top labels. labelWidth='+lblWidth+', barWidth='+barWidth.toFixed(2));
-            //console.log('typeof(barWidth)='+typeof(barWidth)+', typeof(lblWidth)='+typeof(lblWidth));
         }
 
         spaceLeft = groupWidth - barWidth * numBars - this.options.barGap * (numBars - 1);
@@ -179,7 +173,7 @@ function initLabelTopExt() {
                                 label = this.drawLabelTop(
                                     (left + (barWidth / 2)),
                                     top - 10,
-                                    row.y[sidx]
+                                    Sugar.Number.abbr(row.y[sidx], 1)
                                 );
 
                                 textBox = label.getBBox();

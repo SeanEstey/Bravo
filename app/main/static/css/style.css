@@ -465,6 +465,58 @@ a.hover:visited {
     padding:0;
 }
 
+/*ANALYTICS*/
+
+.analy-panel {
+    height:600px;
+    background-color:white;
+}
+.analy-panel .chart {
+    top:25px;
+    height:100%;
+    width:100%;
+    border-bottom:none;
+}
+.panel-body #summary {
+    position: absolute;
+    color: #636c72;
+    background-color: rgba(236, 238, 239, 0.83);
+    top:20px;
+    left:20px;
+    z-index:100;
+}
+.analy-title {
+    font-family: sans-serif;
+    color: #aaaaaa!important;
+    font-weight: 300;
+}
+.chart-logo {
+    background-image: url("https://marketplace.canva.com/MACQ3DGRZ9I/1/thumbnail_large/canva-sketch-icon-of-bar-chart-MACQ3DGRZ9I.png");
+    background-repeat: no-repeat;
+    background-size: 400px 250px;
+    width: 400px;
+    height: 250px;
+    text-align:center;
+    color:rgba(1, 1, 1, 0.1);
+    opacity:0.25;
+}
+.chart-logo-title {
+    color: #ccc;
+    letter-spacing: 8px;
+    font-family: cursive;
+}
+.chart-instr {
+    color: #ccc;
+    letter-spacing: 0px;
+    font-family: monospace;
+}
+.datepicker-days .table-condensed {
+    width:325px;
+}
+
+
+
+
 /*BREAKPOINTS*/
 
 /*Mobile Phones*/

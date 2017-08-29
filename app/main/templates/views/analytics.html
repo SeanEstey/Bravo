@@ -15,20 +15,27 @@
       initCharts();
     });
   </script>
-  <div class="row my-4" id="main">
+  <div class="row mt-4 mb-2" id="main">
+
     <!--Chart Panel-->
     <div class="col-md-12 p-0">
-        <div class="hpanel chart-panel mb-3">
-          <div class="panel-heading">
+        <div class="hpanel mb-3">
+          <!--Panel Heading-->
+          <div class="panel-heading" hidden>
             <div class="col-12 text-center">
-              <h5 class="my-0" style="color:#aaaaaa" id="summary">Days: 70, Total: $51944, Average: $742</h5>
+              <h5 class="analy-title text-center mb-0">
+                <span id="grp_type"></span> Gift Estimates, 
+                <span id="title_start_d"></span>&ndash;
+                <span id="title_end_d"></span>
+              </h5>
             </div>
-            <!--Filter Menu Dropdown-->
+            <!--Filter-->
             <div class="dropdown" hidden>
               <span id="filterLbl">Showing All</span>
-              <button type="button" id="filterBtn" style="border:none; color:#6a6c6f" 
+              <button type="button" id="filterBtn"
               class="btn btn-outline-secondary dropdown-toggle btn-sm fa fa-filter" 
-              data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+              style="border:none; color:#6a6c6f" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              </button>
               <div class="dropdown-menu dropdown-menu-right" aria-labelledby="filterBtn">
                 <a class="dropdown-item" id="fltr-all" href="#">Last 7 Days</a>
                 <a class="dropdown-item" id="fltr-read" href="#">This Month</a>
@@ -38,43 +45,53 @@
             </div>
           </div>
           <!--Panel Body-->
-          <div class="panel-body pt-0 pb-0" style="height:625px; background-color:white;">
-            <div style="height:25px"></div>
-            <div class="row loading" style="height:600px" hidden>
-              <div class="mx-auto my-auto">
+          <div class="analy-panel panel-body p-3">
+            <!--Summary-->
+            <div id="summary" class="p-3" hidden>
+              <div><b><span id="n_groups"></span></b> Series Groups</div>
+              <div><b><span id="total"></span></b> Total</div>
+              <div><b><span id="avg"></span></b> Average</div>
+            </div>
+            <!--Graph Logo-->
+            <div class="row loading" style="height:600px">
+              <div class="col-12 text-center my-auto">
+                <div class="chart-logo mx-auto"></div>
+                <h1 class="chart-logo-title mt-4">
+                  Gift Graph
+                </h1>
+                <h4 class="chart-instr mt-5">
+                  Build a graph by entering a timeline below.
+                </h4>
+              </div>
+              <div class="mx-auto my-auto" hidden>
                 <i class="spinner fa fa-circle-o-notch fa-spin fa-5x fa-fw"></i>
               </div>
             </div>
-            <div class="col chart" id="chart" style="height:600px; border-bottom:none" hidden></div>
+            <!--Chart-->
+            <div class="col chart mx-auto" id="chart" hidden></div>
           </div>
-          <div class="panel-footer" style="background-color:white"></div>
-        </div>
-        <div class="row">
-          <div class="col-12 text-center">
-            <h5 style="color:#aaaaaa" id="summary"></h5>
+          <div class="panel-footer"
+          style="background-color:white">
           </div>
         </div>
+        <!--End Panel-->
+      </div>
+      <!--End Col-->
     </div>
-  </div>
-  <!--Date Pickers-->
-  <div class="d-flex justify-content-center">
-    <div class="col-6 my-auto">
-      <div class="input-daterange input-group date">
+    <!--End Row-->
+    <!--Datepicker-->
+    <div class="d-flex justify-content-center">
+      <div class="col-6 input-daterange input-group">
         <input id="start-date" name="start" type="text" class="form-control" placeholder="FROM">
         <div id="start-btn" class="input-group-addon fa fa-calendar"></div>
         <input id="end-date" name="end" type="text" class="form-control" placeholder="UNTIL">
         <div id="end-btn" class="input-group-addon fa fa-calendar"></div>
       </div>
-    </div>
-    <div class="col-2 my-auto">
-      <button type="button" id="analyze" class="btn btn-primary" disabled>Analyze Gifts</button>
-    </div>
-  </div>
-  <!--Error-->
-  <div class="row" id="error" style="height:150px" hidden>
-    <div class="col-6 mx-auto my-auto">
-      <div class="alert br-alert" id="err_alert"></div>
+      <button type="button" id="analyze" class="btn btn-primary" disabled>
+        Analyze Gifts
+      </button>
+      </div>
     </div>
   </div>
-
+  <!--End Row-->
   {% endblock %}

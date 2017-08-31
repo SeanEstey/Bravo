@@ -386,7 +386,7 @@ def _write_log():
 def _get_logs():
     from app.main.logs import get_logs
     return func_call(get_logs,
-        groups=loads(var('groups')), levels=loads(var('levels')), tags=loads(var('tags')))
+        groups=loads(var('groups')), levels=loads(var('levels')), tags=loads(var('tags')), page=var('page'))
 
 @api.route('/tasks/backup_db', methods=['GET', 'POST'])
 @login_required

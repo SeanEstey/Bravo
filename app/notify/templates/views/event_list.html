@@ -1,6 +1,9 @@
 {% extends "views/base.html" %}
 {% block content %}  
 
+<head>
+  <link href="{{url_for("static", filename="main/css/new_event.css")}}" rel="stylesheet" type="text/css">
+</head>
 <script src="{{url_for("notify.static", filename="js/event_list.js")}}"></script>
 <script> 
   jQuery(function($) { initEventList(); alertMsg("{{msg|safe}}", "info", 15000); }); 

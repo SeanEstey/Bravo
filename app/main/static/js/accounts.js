@@ -314,15 +314,15 @@ function displayDonationData(response) {
     if(gifts.length > 0) {
         $('.chart').prop('hidden',false);
 
-        drawMorrisChart(
-            'chart', chart_data, 'date', ['value'],
-            true, false, false, 1, 
-            function(index,options,content) {
+        drawMorrisBarChart(
+            'chart', chart_data, 'date', ['value'], options=
+            {'labelTop':true, 'axes':false,
+             'hoverCallback': function(index,options,content) {
                 var data=options.data[index];
                 $(".morris-hover").html('<div>Custom label: '+data.label+'</div>');
                 var label = data['date']+'<br>$'+data.value+'<br>'+data.label;
                 return label;
-        });
+            }});
 
         $('#last-gave-d').html(new Date(gifts[0]['date']['$date'])
             .strftime('%b %Y').toUpperCase());

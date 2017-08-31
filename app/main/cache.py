@@ -6,7 +6,7 @@ prevents excessive write operations to avoid deadlocks.
 
 import json, logging, pytz
 from flask import g
-from datetime import datetime, time, date
+from datetime import datetime, time, date, timedelta
 from dateutil.parser import parse
 from pymongo.errors import BulkWriteError
 from app import get_keys
@@ -32,7 +32,6 @@ def bulk_store(objects, obj_type=None):
             obj_type = 'account'
         elif 'type' in objects[0]:
             obj_type = 'gift'
-        #print 'No obj_type set. Assuming %s from 1st list item.' % obj_type
 
     timer = Timer()
     n_ops = 0
@@ -73,14 +72,13 @@ def bulk_store(objects, obj_type=None):
         log.debug("bulk_store %ss results: %s", obj_type, log_res)
 
 #-------------------------------------------------------------------------------
-def query_and_store(query=None, category=None, obj_type=None, get_meta=False, timeout=75):
+def query_and_store(query=None, category=None, obj_type=None, get_meta=False, start=0, timeout=75):
     """Pull recent Accounts/Gifts from query and merge w/ cached records
     """
 
     from app.main.etapestry import call, get_query
 
     timer = Timer()
-    start = 0
     count = 500
     queryEnd = False
 
@@ -93,14 +91,22 @@ def query_and_store(query=None, category=None, obj_type=None, get_meta=False, ti
     all_data = []
 
     while queryEnd != True:
-        results = get_query(
-            query,
-            category=category,
-            start=start,
-            count=count,
-            cache=False,
-            with_meta=True,
-            timeout=timeout)
+        log.debug('Querying results %s/%s...', start, start+count)
+
+        try:
+            results = get_query(
+                query,
+                category=category,
+                start=start,
+                count=count,
+                cache=False,
+                with_meta=True,
+                timeout=timeout)
+        except Exception as e:
+            log.exception('Failed to get query batch')
+            start+=500
+            continue
+
         start += 500
 
         if start > results['total']:
@@ -209,6 +215,7 @@ def get_gifts(start=None, end=None):
     t1 = Timer()
     epoch = datetime(1970,1,1, tzinfo=pytz.utc)
     criteria = g.db['groups'].find_one({'name':g.group})['etapestry']['gifts']
+
     query = {
         'group':g.group,
         'gift.fund': criteria['fund'],
@@ -216,8 +223,8 @@ def get_gifts(start=None, end=None):
         'gift.campaign': criteria['campaign'],
         'gift.type': 5,
         'gift.date':{
-            '$gte':datetime.combine(start, time()),
-            '$lte':datetime.combine(end, time())
+            '$gte':datetime.combine(start,time()).replace(tzinfo=pytz.utc),
+            '$lte':datetime.combine(end,time()).replace(tzinfo=pytz.utc)
         }
     }
 

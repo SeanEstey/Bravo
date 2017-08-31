@@ -1,7 +1,7 @@
 
 //------------------------------------------------------------------------------
 function init() {
-		buildAdminPanel();
+//		buildAdminPanel();
     addSocketIOHandlers();
     addEventHandlers();
     prettyFormatting();

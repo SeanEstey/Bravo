@@ -7,7 +7,13 @@ from app.lib.utils import format_bson
 log = logging.getLogger(__name__)
 
 #---------------------------------------------------------------------------
-def get_logs(groups=None, tags=None, levels=None, n_skip=0):
+def get_logs(groups=None, tags=None, levels=None, page=0):
+
+    log.debug('page=%s', page)
+    if page:
+        n_skip = 50 * int(page)
+    else:
+        n_skip = 0
 
     query = {
         'standard.level': {'$in':levels}
@@ -24,5 +30,5 @@ def get_logs(groups=None, tags=None, levels=None, n_skip=0):
     #log.debug('groups=%s, tags=%s, levels=%s', groups, tags, levels)
     #print 'query=%s' % query
 
-    logs = g.db.logs.find(query,{'_id':0}).limit(50).sort('standard.timestamp', -1).skip(n_skip)
+    logs = g.db.logs.find(query,{'_id':0}).sort('standard.timestamp', -1).skip(n_skip).limit(50)
     return format_bson(list(logs))

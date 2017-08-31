@@ -10,9 +10,6 @@ def get_admin_prop():
     from app.lib.utils import mem_check
     from app.main.etapestry import get_udf
 
-    #TODO 'n_alice_received': do aggregate of 'messages' field
-    #TODO 'n_emails_sent': aggregate all 'type':'email' linked with agcy events
-
     conversations = g.db['chatlogs'].find({'group':g.group})
     n_convos = conversations.count()
     n_msg = 0
@@ -33,8 +30,6 @@ def get_admin_prop():
         status =  get_udf('Status', donor['account'])
         if status and status in ['Active','Dropoff','Cancelling','Call-in','Brings In']:
             n_donors +=1
-
-    log.debug('m_msg=%s', n_msg)
 
     return {
         'db_stats': g.db.command("dbstats"),

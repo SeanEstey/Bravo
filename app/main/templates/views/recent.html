@@ -2,97 +2,84 @@
 {% block content %}
 
 <meta id="data" data-user-organization="{{group_name}}">
-<head>
-  <script type="text/javascript" src="{{url_for("main.static", filename="js/recent.js")}}"></script>
-  <script type="text/javascript" src="{{url_for("main.static", filename="js/lib/json-viewer.js")}}"></script>
-  <link href="{{url_for("static", filename="main/css/lib/json-viewer.css")}}" rel= "stylesheet" type= "text/css">
-  <script>
-    document.write("<style type='text/css'> body{display:none}</style>");
-    jQuery(function($){ initRecent(); $("body").css("display","block"); });
-  </script>
-</head>
-<div class="container mt-5">
-  <div class="row mx-auto" style="max-width:800px">
-    <div class="col">
-      <label style="font-weight:400; font-size:2.0rem">Event History</label>
-    </div>
-    <div class="col text-right my-auto">
-      <!--Filter Menu-->
-      <div id='filterMenu' class="dropdown">
-        <span id="actFiltrs">Filters</span>
-        <button type="button" id="filterBtn"
-        class="btn btn-outline-secondary dropdown-toggle btn-sm fa fa-filter"
-        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="filterBtn">
-        <h6 class="dropdown-header">Groups</h6>
-        <a class="dropdown-item" id="grp-all" href="#"><i class="fa fa-plus-square-o mr-2"></i>All</a>
-        <a class="dropdown-item" id="grp-org" href="#"><i class="fa fa-check-square-o mr-2"></i>Organization</a>
-        <a class="dropdown-item" id="grp-sys" href="#"><i class="fa fa-square-o mr-2"></i>System</a>
-        <a class="dropdown-item" id="grp-other" href="#"><i class="fa fa-square-o mr-2"></i>Other</a>
-        <div class="dropdown-divider"></div>
-        <h6 class="dropdown-header">Level</h6> 
-        <a class="dropdown-item" id="lvl-all" href="#"><i class="fa fa-plus-square-o mr-2"></i>All</a>
-        <a class="dropdown-item" id="lvl-debug" href="#"><i class="fa fa-square-o mr-2"></i>Debug</a>
-        <a class="dropdown-item" id="lvl-info" href="#"><i class="fa fa-check-square-o mr-2"></i>Info</a>
-        <a class="dropdown-item" id="lvl-warn" href="#"><i class="fa fa-check-square-o mr-2"></i>Warning</a>
-        <a class="dropdown-item" id="lvl-err" href="#"><i class="fa fa-check-square-o mr-2"></i>Error</a>
-        <div class="dropdown-divider"></div>
-        <h6 class="dropdown-header">Tag</h6>
-        <a class="dropdown-item" id="tag-api" href="#"><i class="fa fa-square-o mr-2"></i>API</a>
-        <a class="dropdown-item" id="tag-task" href="#"><i class="fa fa-check-square-o mr-2"></i>Task</a>
-        </div>
-      </div>
-      <!--End FilterMenu-->
-    </div>
+<script type="text/javascript" src="{{url_for("main.static", filename="js/recent.js")}}"></script>
+<script type="text/javascript" src="{{url_for("main.static", filename="js/lib/json-viewer.js")}}"></script>
+<link href="{{url_for("static", filename="main/css/lib/json-viewer.css")}}" rel= "stylesheet" type= "text/css">
+<script> jQuery(function($){initRecent();}); </script>
+
+<div class="d-flex justify-content-between mx-auto mt-3 mb-3" style="max-width:800px">
+  <div class="col-2 pl-0 my-auto">
+    <button id="prev" type="text" class="btn btn-secondary fa fa-angle-left"></button>
   </div>
-  <!--List Item Data-->
-  <div id='recnt_list' class="list-group mx-auto" style="max-width:800px;"></div>
-  <div class="mt-5 mb-5"></div>
-</div><!--End Container-->
+  <div class="col-2 my-auto">
+    <!--Filter Menu-->
+    <div id='filterMenu' class="dropdown">
+      <button type="button" id="filterBtn" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown">
+        Filter by
+      </button>
+      <div class="dropdown-menu dropdown-menu-right" aria-labelledby="filterBtn">
+      <h6 class="dropdown-header">Groups</h6>
+      <a class="dropdown-item" id="grp-all" href="#"><i class="fa fa-plus-square-o mr-2"></i>All</a>
+      <a class="dropdown-item" id="grp-org" href="#"><i class="fa fa-check-square-o mr-2"></i>Organization</a>
+      <a class="dropdown-item" id="grp-sys" href="#"><i class="fa fa-square-o mr-2"></i>System</a>
+      <a class="dropdown-item" id="grp-other" href="#"><i class="fa fa-square-o mr-2"></i>Other</a>
+      <div class="dropdown-divider"></div>
+      <h6 class="dropdown-header">Level</h6> 
+      <a class="dropdown-item" id="lvl-all" href="#"><i class="fa fa-plus-square-o mr-2"></i>All</a>
+      <a class="dropdown-item" id="lvl-debug" href="#"><i class="fa fa-square-o mr-2"></i>Debug</a>
+      <a class="dropdown-item" id="lvl-info" href="#"><i class="fa fa-check-square-o mr-2"></i>Info</a>
+      <a class="dropdown-item" id="lvl-warn" href="#"><i class="fa fa-check-square-o mr-2"></i>Warning</a>
+      <a class="dropdown-item" id="lvl-err" href="#"><i class="fa fa-check-square-o mr-2"></i>Error</a>
+      <div class="dropdown-divider"></div>
+      <h6 class="dropdown-header">Tag</h6>
+      <a class="dropdown-item" id="tag-api" href="#"><i class="fa fa-square-o mr-2"></i>API</a>
+      <a class="dropdown-item" id="tag-task" href="#"><i class="fa fa-check-square-o mr-2"></i>Task</a>
+      </div>
+    </div>
+    <!--End FilterMenu-->
+  </div>
+  <div class="col-2 pr-0 text-right my-auto">
+    <button id="next" type="text" class="btn btn-secondary fa fa-angle-right"></button>
+  </div>
+</div>
+<!--List Item Data-->
+<div id='recnt_list' class="list-group mx-auto mb-5" style="max-width:800px;"></div>
 
 <!--Event List Item [template]-->
 <div id="event_item_template"
- style="color:#0074ac; padding:15px"
- class="list-group-item list-group-item-action recent-event-item" hidden>
-  <div class="row m-0" style="width:100%">
-    <div class="col-sm-10 p-0 text-left">
-      <i id="head-icon" class="mr-1"></i>
-      <span id="head-msg"></span>
-    </div>
-    <div class="col-sm-2 p-0 text-right">
-      <button id="badge" role="button" aria-disabled="true" class="btn btn-sm mb-0" href="#"
-      style="font-size:.6rem;">BTN-LABEL</button>
-    </div>
+style="color:#0074ac; padding:15px"
+class="list-group-item list-group-item-action recent-event-item" hidden>
+<div class="row m-0" style="width:100%">
+  <div class="col-sm-10 p-0 text-left">
+    <i id="head-icon" class="mr-1"></i>
+    <span id="head-msg"></span>
   </div>
-  <div id="log-data" class="row pt-2 m-0" style="width:100%" hidden>
-    <div class="col-sm-12">
-      <!--JSON Viewer-->
-      <div id="json-container"></div>
-    </div>
-  </div>
-  <div class="row m-0 mt-2" style="width:100%">
-    <div class="col-sm-2 p-0">
-      <span id="time-spn" style="font-size:.8rem; color:rgba(70, 74, 76, 0.73);">
-        <i class="fa fa-clock-o"></i>
-        <small id="event_dt" style="">TIME</small>
-      </span>
-    </div>
-    <div class="col-sm-8 p-0">
-    </div>
-    <div class="col-sm-2 p-0 text-right">
-      <span id="elapse-spn" style="font-size:.8rem; color:rgba(70, 74, 76, 0.73); font-family:inherit;">
-        <i class="fa fa-clock-o"></i>
-        <small id="elapsed" style="">ELAPSED</small>
-      </span>
-    </div>
+  <div class="col-sm-2 p-0 text-right">
+    <button id="badge" role="button" aria-disabled="true" class="btn btn-sm mb-0" href="#"
+    style="font-size:.6rem;">BTN-LABEL</button>
   </div>
 </div>
-
-<style>
-  #filterBtn {
-    border:none;
-    color:#6a6c6f;
-  }
-</style>
+<div id="log-data" class="row pt-2 m-0" style="width:100%" hidden>
+  <div class="col-sm-12">
+    <!--JSON Viewer-->
+    <div id="json-container"></div>
+  </div>
+</div>
+<div class="row m-0 mt-2" style="width:100%">
+  <div class="col-sm-2 p-0">
+    <span id="time-spn" style="font-size:.8rem; color:rgba(70, 74, 76, 0.73);">
+      <i class="fa fa-clock-o"></i>
+      <small id="event_dt" style="">TIME</small>
+    </span>
+  </div>
+  <div class="col-sm-8 p-0">
+  </div>
+  <div class="col-sm-2 p-0 text-right">
+    <span id="elapse-spn" style="font-size:.8rem; color:rgba(70, 74, 76, 0.73); font-family:inherit;">
+      <i class="fa fa-clock-o"></i>
+      <small id="elapsed" style="">ELAPSED</small>
+    </span>
+  </div>
+</div>
 
 {% endblock %}

@@ -1,5 +1,8 @@
 /* recent.js */
 
+page = 0;
+
+
 var list_item_styles = {
     'DEBUG': '',
     'INFO': 'list-group-item-info',
@@ -31,6 +34,18 @@ function initRecent() {
 
     $('#filterMenu .dropdown-item').click(toggleFilter)
         .find('.dropdown-menu').show();
+
+    $('#prev').click(function() {
+        if(page > 0) {
+            page--;
+            requestLogEntries();
+        }
+    });
+
+    $('#next').click(function() {
+        page++;
+        requestLogEntries();
+    });
 }
 
 //------------------------------------------------------------------------------
@@ -62,6 +77,7 @@ function toggleFilter(e) {
     $('#filterMenu .dropdown-menu').show();
     $('#filterMenu .dropdown-menu').prop('display', 'block');
 
+    page = 0;
     requestLogEntries();
 }
 
@@ -100,6 +116,10 @@ function requestLogEntries() {
     data['levels'] = JSON.stringify(data['levels']);
     data['groups'] = JSON.stringify(data['groups']);
     data['tags'] = JSON.stringify(data['tags']);
+    data['page'] = page;
+    //var url = new URL(window.location.href);
+    //data['page'] = Number(url.searchParams.get('p'));
+    //console.log('page='+data['page']);
 
     api_call('logger/get', data=data, renderLogEntries);
 }

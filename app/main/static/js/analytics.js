@@ -13,7 +13,7 @@ t1 = new Date();
 function analyticsInit() {
 
     $('.input-daterange input').each(function() {
-        $(this).datepicker({
+        $(this).bDatepicker({
             format: 'mm/dd/yyyy',
             clearBtn: true,
             autoclose: true,
@@ -51,7 +51,7 @@ function toggleDatePicker(e) {
     // Clicked on input-group-addon
     if($(this).prop('id') == 'start-btn' || $(this).prop('id') == 'end-btn') {
         var $input = $(this).prev();
-        $('.datepicker').length == 0 ? $input.datepicker('show') : $input.datepicker('hide');
+        $('.datepicker').length == 0 ? $input.bDatepicker('show') : $input.bDatepicker('hide');
     }
 }
 
@@ -66,8 +66,9 @@ function initGiftAnalysis(start_str, end_str) {
     seriesData = {};
     chartData = [];
     giftSum = 0;
-    var start_dt = new Date(start_str);
-    var end_dt = new Date(end_str);
+    var tz_diff = 1000 * 3600 * 6;
+    var start_dt = new Date(new Date(start_str).getTime());
+    var end_dt = new Date(new Date(end_str).getTime());
     var period_ms = end_dt.getTime()-start_dt.getTime();
 
     if(period_ms <= month_ms) {
@@ -82,11 +83,12 @@ function initGiftAnalysis(start_str, end_str) {
         groupBy = 'year';
     */
 
+
     api_call(
         'gifts/get',
         data={
             'start':Number((start_dt.getTime()/1000).toFixed(0)),
-            'end':Number((end_dt.getTime()/1000).toFixed(0))
+            'end':Number(((end_dt.getTime()+tz_diff*2)/1000).toFixed(0))
         },
         function(response) {
             if(response['status'] == 'success') {
@@ -108,6 +110,7 @@ function initGiftAnalysis(start_str, end_str) {
 
 //------------------------------------------------------------------------------
 function updateSeries(gifts) {
+    /* seriesData stores timestamps in UTC */
     
     if(gifts.length == 0) {
         var msg = format('%s gifts analyzed successfully.', giftData.length);
@@ -118,6 +121,8 @@ function updateSeries(gifts) {
         return;
     }
 
+    var tz_diff = 1000 * 3600 * 6;
+
     giftData = giftData.concat(gifts);
 
     // Update dataset
@@ -126,11 +131,12 @@ function updateSeries(gifts) {
         var date_lbl = null;
         var lbl = null;
         var gift = gifts[i];
-        var dt = new Date(gift['timestamp']);
+        var dt = new Date(gift['timestamp']+tz_diff);
 
         if(groupBy == 'day') {
             // Use start of day timestamp as grouping key
             grp_key = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
+            
             date_lbl = lbl = dt.strftime("%b %d `%y");
         }
         else if(groupBy == 'month') {

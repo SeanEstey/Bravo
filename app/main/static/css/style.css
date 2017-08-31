@@ -7,19 +7,25 @@
  *   #808080    Gray       Secondary (table headers, card titles)
  */
 
+/* GENERAL */
 body {
     color: #6a6c6f;
     background-color:#f7f7f7; 
-
-/*#f0f0f0;  #f8f9fb;*/
 }
-
+.nav-bg {
+    background-color: white;
+    width:100%;
+    position:absolute;
+    top:0;
+    left:0;
+    height:60px;
+    border-bottom:1px solid #c8c9ca;
+}
 .body {
     max-width:1600px;
 }
 
-
-/*NAV MENU*/
+/* NAV MENU */
 .container-fluid.br-nav {
 	margin-left: auto;
 	margin-right: auto;
@@ -486,29 +492,31 @@ a.hover:visited {
     z-index:100;
 }
 .analy-title {
-    font-family: sans-serif;
-    color: #aaaaaa!important;
+    font-family: proxima-nova,sans-serif;
+    color: #464a4c!important;
     font-weight: 300;
 }
 .chart-logo {
     background-image: url("https://marketplace.canva.com/MACQ3DGRZ9I/1/thumbnail_large/canva-sketch-icon-of-bar-chart-MACQ3DGRZ9I.png");
     background-repeat: no-repeat;
-    background-size: 400px 250px;
-    width: 400px;
+    background-size: 250px 250px;
+    width: 250px;
     height: 250px;
     text-align:center;
     color:rgba(1, 1, 1, 0.1);
-    opacity:0.25;
+    opacity:0.55;
 }
 .chart-logo-title {
-    color: #ccc;
-    letter-spacing: 8px;
-    font-family: cursive;
+    color: #6a6c6f;
+    letter-spacing: 5px;
+    font-family: proxima-nova, sans-serif;
 }
 .chart-instr {
-    color: #ccc;
-    letter-spacing: 0px;
-    font-family: monospace;
+    color: #6a6c6f;
+    font-family: proxima-nova, sans-serif;
+    font-style: normal;
+    font-weight: 100;
+    font-size: 18pt;
 }
 .datepicker-days .table-condensed {
     width:325px;

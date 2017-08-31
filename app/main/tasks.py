@@ -81,23 +81,12 @@ def account_analytics(self, **rest):
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
-def build_gift_cache(self, group=None, **rest):
+def build_gift_cache(self, query=None, group=None, start=0, **rest):
 
     from app.main.cache import query_and_store
-
-    queries = [
-        {'category':'Bravo', 'name':'YTD Gift Entries', 'type':'gift'}
-    ]
-
-    timer = Timer()
-    log.debug('Task: caching recent changes...')
-
-    for org in g.db['groups'].find({'name':group} if group else {}):
-        g.group = org['name']
-
-        for q in queries:
-            results = query_and_store(
-                query=q['name'], category=q['category'], obj_type=q['type'])
+    log.debug('Task: caching gifts...')
+    query_and_store(query=query, category='Bravo', obj_type='gift', get_meta=False, start=start, timeout=300)
+    log.debug('Task: done building gift cache')
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)

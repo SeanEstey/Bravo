@@ -84,14 +84,38 @@ body {
     background-color:white;
     border-bottom: 1px solid #ddd;
 }
+#admin-nav .nav-link.active {
+    background-color: rgba(49, 112, 143, 0.73);
+}
+.admin-card {
+    width: 200px;
+    height: 150px;
+    margin:.5em .5em;
+}
 .admin-nav-a {
     color:#279bbe;
 }
-.admin-card-header {
-    background-color: #279bbe;
+.admin-hdr {
+    background-color:white;
 }
-.admin-card-title {
-    color:#eceeef;
+.admin-stat {
+    font-family:'Montserrat', sans-serif;
+    font-size:1.5rem;
+    font-weight:700;
+    letter-spacing:1px;
+    color:#5cb85c;
+    /*line-height: 1.5rem;*/
+}
+.admin-lbl {
+    font-family:'Montserrat', sans-serif;
+    font-size:1.0rem;
+    font-weight:400;
+    /*color:#5cb85c;*/
+}
+.admin-title {
+    color:#878e92;
+    font-family:nova-proxima,sans-serif!important;
+    text-align:center!important;
 }
 
 /*BRAVO COMMON*/

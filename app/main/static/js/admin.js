@@ -223,9 +223,9 @@ function initPropertiesPane() {
         console.log(response['status']);
         var prop = response['data'];
 
-        $("#n_donors").text(prop['n_donors']);
-        $("#n_alice_convos").text(prop['n_alice_convos']);
-        $("#n_alice_incoming").text(prop['n_alice_incoming']);
+        $("#n_donors").text(Sugar.Number.format(prop['n_donors']));
+        $("#n_alice_convos").text(Sugar.Number.format(prop['n_alice_convos']));
+        $("#n_alice_incoming").text(Sugar.Number.format(prop['n_alice_incoming']));
         $("#n_maps_indexed").text(prop['n_maps_indexed']);
         $("#n_notific_events").text(prop['n_notific_events']);
         $("#n_leaderboard_accts").text(prop['n_leaderboard_accts']);
@@ -233,10 +233,10 @@ function initPropertiesPane() {
 
         var free = prop['sys_mem']['free'];
         var total = prop['sys_mem']['total'];
-        var perc = ((free/total)*100).toFixed(0);
-        $("#sys_mem").text(format("%s/%s (%s)", free, total, perc+"%"));
-        $("#db_size").text((prop['db_stats']['dataSize']/1000000).toFixed(1)+'mb');
-        $("#n_sessions").text(prop['n_sessions']);
+        var perc = (100-((free/total)*100)).toFixed(0);
+        $("#sys_mem").text(format("%s%", perc)); //free, total));
+        $("#db_size").text((prop['db_stats']['dataSize']/1000000).toFixed(0)+' MB');
+        $("#n_sessions").text(Sugar.Number.format(prop['n_sessions']));
         $("#n_cached_accounts").text(Sugar.Number.format(prop['n_cached_accounts']));
         $("#n_cached_geolocations").text(Sugar.Number.format(prop['n_geolocations']));
         $("#n_cached_gifts").text(Sugar.Number.format(prop['n_cached_gifts']));

@@ -39,27 +39,31 @@
     </div>
     <!-- Services Pane -->
 		<div class="tab-pane" id="services" style='margin-bottom:7em' role="tabpanel">
-      <div class="d-flex justify-content-center flex-wrap mt-4">
-        <div class="card m-3">
-          <div class="card-header admin-card-header"><h4 class="admin-card-title">CRM</h4></div>
-          <div class="card-block px-5"><fieldset style="" class="form-fieldset new_event">
+      <div class="row mx-auto justify-content-center m-3" style="max-width:1000px;">
+
+        <div class="card" style="width:350px; margin:.5em .5em; font-family:'Montserrat', sans-serif;">
+          <div class="card-block px-5">
+            <h4 class="admin-card-title">CRM</h4>
+            <hr>
             <div class="form-label">Service: <b>eTapestry v7.2.9</b></div>
             <div class="form-label">Organization: 
-            <b><label id="crm_org_name">Vecova</label></b>
+            <b><span id="crm_org_name">Vecova</span></b>
             </div>
             <div class="form-label">Account ID: 
-            <b><label id="crm_acct_id">bpu_api</label></b>
+            <b><span id="crm_acct_id">bpu_api</span></b>
             </div>
             <div class="form-label">API: <b>v3</b></div>
           </div>
         </div>
-        <div class="card m-3">
-          <div class="card-header admin-card-header"><h4 class="admin-card-title">Google</h4></div>
+
+        <div class="card" style="width:350px; margin:.5em .5em; font-family:'Montserrat', sans-serif;">
           <div class="card-block px-5">
+            <h4 class="admin-card-title">Google</h4>
+            <hr>
             <div class="form-label">Service Account ID: 
-            <label id="service_acct" data-toggle="tooltip" data-placement="right" title="" data-original-title=""><b>bravo-738</b>
+            <span id="service_acct" data-toggle="tooltip" data-placement="right" title="" data-original-title=""><b>bravo-738</b>
             <i class="fa fa-question-circle-o"></i>
-            </label>
+            </span>
             </div>
             <div class="form-label">Linked Calendars: 
             <a id="linked_cal" data-toggle="tooltip" data-placement="right" title="" href="" data-original-title="">routes</a>
@@ -69,31 +73,35 @@
             </div>
           </div>
         </div>
-        <div class="card m-3">
-          <div class="card-header admin-card-header"><h4 class="admin-card-title">Notify</h4></div>
+
+        <div class="card" style="width:350px; margin:.5em .5em; font-family:'Montserrat', sans-serif;">
           <div class="card-block px-5">
+            <h4 class="admin-card-title">Notify</h4>
+            <hr>
             <div class="form-label">Voice/SMS Service: <b>Twilio</b></div>
             <div class="form-label">Account ID: 
-              <b><label id="twilio_acct_id">estese@gmail.com</label></b>
+              <b><span id="twilio_acct_id">estese@gmail.com</span></b>
             </div>
             <div class="form-label">API: <b>v5.7.0</b></div>
             <div class="form-label">Phone Number: 
-              <b><label id="phone_number">+15874012267</label></b>
+              <b><span id="phone_number">+15874012267</span></b>
             </div>
             <div class="form-label">Email Service: <b>Mailgun</b></div>
             <div class="form-label">Account ID: 
-              <b><label id="mailgun_acct_id">estese@gmail.com</label></b>
+              <b><span id="mailgun_acct_id">estese@gmail.com</span></b>
             </div>
             <div class="form-label">API: <b>v3</b></div>
           </div>
         </div>
-        <div class="card m-3">
-          <div class="card-header admin-card-header"><h4 class="admin-card-title">Routing</h4></div>
+
+        <div class="card" style="width:350px; margin:.5em .5em; font-family:'Montserrat', sans-serif;">
           <div class="card-block px-5">
+            <h4 class="admin-card-title">Routing</h4>
+            <hr>
             <form>
               <div class="form-label">Routing Service: <b>Routific</b></div>
               <div class="form-label">Account ID: 
-              <b><label id="routing_acct_id">recycle@vecova.ca</label></b>
+              <b><span id="routing_acct_id">recycle@vecova.ca</span></b>
               </div>
               <div class="form-label">API: <b>v1.5.0</b></div>
             </form>
@@ -102,90 +110,6 @@
 
       </div>
     </div>
-
-        <form hidden>
-          <fieldset style="max-width:600px" class="form-fieldset new_event">
-            <legend class="new_event">CRM</legend>
-              <div class='form-label'>Service: <b>eTapestry v7.2.9</b></div>
-              <div class='form-label'>Organization: 
-                <b><label id="crm_org_name"></b></label>
-              </div>
-              <div class='form-label'>Account ID: 
-                <b><label id="crm_acct_id"></label></b>
-              </div>
-              <div class='form-label'>API: <b>v3</b></div>
-          </fieldset>
-          <fieldset style="max-width:600px" class="form-fieldset new_event">
-            <legend class="new_event">Google</legend>
-              <div class='form-label'>Service Account ID: 
-                <label id='service_acct' data-toggle="tooltip" data-placement="right" 
-                       title=""><b>bravo-738</b>
-                  <i class="fa fa-question-circle-o"></i>
-                </label>
-              </div>
-              <div class='form-label'>Linked Calendars: 
-                <a id="linked_cal" data-toggle="tooltip" data-placement="right" 
-                   title="" href="">routes</a>
-              </div>
-              <div class='form-label'>Linked Sheets:
-                <a href="">Bravo Sheets</a>
-              </div>
-          </fieldset>
-          <fieldset style="max-width:600px" class="form-fieldset new_event">
-            <legend class="new_event">Notify</legend>
-              <div class='form-label'>Voice/SMS Service: <b>Twilio</b></div>
-              <div class='form-label'>Account ID: 
-                <b><label id="twilio_acct_id"></label></b>
-              </div>
-              <div class='form-label'>API: <b>v5.7.0</b></div>
-              <div class='form-label'>Phone Number: 
-                <b><label id="phone_number"></label></b>
-              </div>
-              <div class='form-label'>Email Service: <b>Mailgun</b></div>
-              <div class='form-label'>Account ID: 
-                <b><label id="mailgun_acct_id"></b></label>
-              </div>
-              <div class='form-label'>API: <b>v3</b></div>
-              <div style="margin-top:1em" class='form-label'>
-                <label style="border-bottom:1px solid white; padding-bottom:3px; letter-spacing:1px;">SETTINGS</label>
-              </div>
-              <div class='form-label'>Pre-schedule Days <i class="fa fa-question-circle-o"></i></div>
-              <input id="sched_delta_days" class="input">
-              <div class='form-label'>Days in Advance to Send Emails</div>
-              <input id="email_fire_days_delta" class="input">
-              <div class='form-label'>Time to Send Emails</div>
-              <input id="email_fire_hour" class="input">
-              <div class='form-label'>Days in Advance to Send Voice/SMS</div>
-              <input id="voice_sms_fire_days_delta" class="input">
-              <div class='form-label'>Time to Send Voice/SMS</div>
-              <input id="voice_sms_fire_hour" class="input">
-              <div style="margin:1.5em 0em">
-                <button style="float:right" type="button" class="btn btn-primary">Save Changes</button>
-              </div>
-          </fieldset>
-          <fieldset style="max-width:600px" class="form-fieldset new_event">
-            <legend class="new_event">Routing</legend>
-              <div class='form-label'>Routing Service: <b>Routific</b></div>
-              <div class='form-label'>Account ID: 
-                <b><label id="routing_acct_id"></b></label>
-              </div>
-              <div class='form-label'>API: <b>v1.5.0</b></div>
-              <div style="margin-top:1em" class='form-label'>
-                <label style="border-bottom:1px solid white; padding-bottom:3px; letter-spacing:1px;">SETTINGS</label>
-              </div>
-              <div class='form-label'>Build Routes Time</div>
-              <input class="input">
-              <div class='form-label'>Depots</div>
-              <select name="type_" class="form-control">
-                <option>Depot A</option>
-                <option>Depot B</option>
-                <option>Depot C</option>
-              </select>
-              <div style="margin:1.5em 0em">
-                <button style="float:right" type="button" class="btn btn-primary">Save Changes</button>
-              </div>
-          </fieldset>
-        </form>
     <!-- Previewer Pane -->
 		<div class="tab-pane" id="previewer" style='margin-bottom:5em' role="tabpanel">
       <div class="d-flex justify-content-center mt-4">
@@ -282,64 +206,81 @@
     </div>
     <!-- Statistics Pane -->
 		<div class="tab-pane active" id="stats" style='margin-bottom:7em' role="tabpanel">
-      <div class="d-flex justify-content-center flex-wrap mt-4">
-        <div class="card m-3">
-          <div class="card-header admin-card-header"><h4 class="admin-card-title">Activity</h4></div>
-          <div class="card-block px-5">
-            <div class='form-label'>Active Donors: 
-              <b><label id="n_donors"></label></b>
-            </div>
-            <div class='form-label'>Alice Conversations: 
-              <b><label id="n_alice_convos"></label></b>
-            </div>
-            <div class='form-label'>Alice SMS Received: 
-              <b><label id="n_alice_incoming"></label></b>
-            </div>
-            <div class='form-label'>Zone Maps:
-              <b><label id='n_maps_indexed'></label></b>
-            </div>
-            <div class='form-label'>Notification Events:
-              <b><label id='n_notific_events'></label></b>
-            </div>
-            <div class='form-label' hidden>Emails Sent:
-              <b><label id='n_emails_sent'></label></b>
-            </div>
-            <div class='form-label' hidden>Leaderboard Accounts:
-              <b><label id='n_leaderboard_accts'></label></b>
-            </div>
-            <div class='form-label'>Users Registered:
-              <b><label id='n_users'></label></b>
-            </div>
+      <div class="row mx-auto justify-content-center m-3" style="max-width:1000px;">
+
+        <div class="card admin-card text-center">
+          <div class="my-auto p-4">
+            <div class="admin-stat" id="n_cached_accounts"></div>
+            <div class="admin-lbl">Accounts Cached</div>
           </div>
         </div>
-        <div class="card m-3">
-          <div class="card-header admin-card-header"><h4 class="admin-card-title">System</h4></div>
-          <div class="card-block px-5">
-            <div class='form-label'>Mem:
-              <b><label id='sys_mem'></label></b>
-            </div>
-            <div class='form-label'>DB:
-              <b><label id='db_size'></label></b>
-            </div>
-            <div class='form-label'>Stored Sessions:
-              <b><label id='n_sessions'></label></b>
-            </div>
+        <div class="card admin-card text-center">
+          <div class="my-auto p-4">
+            <div class="admin-stat" id="n_cached_geolocations"></div>
+            <div class="admin-lbl">Geolocations Cached</div>
           </div>
         </div>
-        <div class="card m-3">
-          <div class="card-header admin-card-header"><h4 class="admin-card-title">Cache</h4></div>
-          <div class="card-block px-5">
-            <div class='form-label'>Accounts:
-              <b><label id='n_cached_accounts'></label></b>
-            </div>
-            <div class='form-label'>Geolocations:
-              <b><label id='n_cached_geolocations'></label></b>
-            </div>
-            <div class='form-label'>Gifts:
-              <b><label id='n_cached_gifts'></label></b>
-            </div>
+        <div class="card admin-card text-center">
+          <div class="my-auto p-4">
+            <div class="admin-stat" id="n_cached_gifts"></div>
+            <div class="admin-lbl">Gifts Cached</div>
           </div>
         </div>
+        <div class="card admin-card text-center">
+          <div class="my-auto p-4">
+            <div class="admin-stat" id="n_donors"></div>
+            <div class="admin-lbl">Active Donors</div>
+          </div>
+        </div>
+        <div class="card admin-card text-center">
+          <div class="my-auto p-4">
+            <div class="admin-stat" id="n_alice_convos"></div>
+            <div class="admin-lbl">Alice Convos</div>
+          </div>
+        </div>
+        <div class="card admin-card text-center">
+          <div class="my-auto p-4">
+            <div class="admin-stat" id="n_alice_incoming"></div>
+            <div class="admin-lbl">Alice Replies</div>
+          </div>
+        </div>
+        <div class="card admin-card text-center">
+          <div class="my-auto p-4">
+            <div class="admin-stat" id="n_maps_indexed"></div>
+            <div class="admin-lbl">Zone Maps</div>
+          </div>
+        </div>
+        <div class="card admin-card text-center">
+          <div class="my-auto p-4">
+            <div class="admin-stat" id="n_notific_events"></div>
+            <div class="admin-lbl">Notify Events</div>
+          </div>
+        </div>
+        <div class="card admin-card text-center">
+          <div class="my-auto p-4">
+            <div class="admin-stat" id="n_users"></div>
+            <div class="admin-lbl">Bravo Users</div>
+          </div>
+        </div>
+        <div class="card admin-card text-center">
+          <div class="my-auto p-4">
+            <div class="admin-stat" id="sys_mem"></div>
+            <div class="admin-lbl">Mem Usage</div>
+          </div>
+        </div>
+        <div class="card admin-card text-center">
+          <div class="my-auto p-4">
+            <div class="admin-stat" id="db_size"></div>
+            <div class="admin-lbl">DB Size</div>
+          </div>
+        </div>
+        <div class="card admin-card text-center">
+          <div class="my-auto p-4">
+            <div class="admin-stat" id="n_sessions"></div>
+            <div class="admin-lbl">Sessions</div>
+          </div>
+        </div>
+
       </div>
     </div>
 	</div> <!--END TAB_CONTENT-->

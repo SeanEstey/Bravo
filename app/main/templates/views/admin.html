@@ -2,245 +2,290 @@
 {% block content %}
 
 <script type="text/javascript" src="{{url_for("main.static", filename="js/admin.js")}}"></script>
-<script>
-  document.write("<style type='text/css'> body{display:none}</style>");
-  jQuery(function($){ init(); $("body").css("display","block"); });
-</script>
+<script>jQuery(function($){init();});</script>
 
-<div name="settings_data" hidden>{{ agency_config|safe }}</div>
-<div class="container">
-	<ul style="margin-bottom:0em" class="nav nav-tabs" role="tablist">
-		<li class="nav-item">
-			<a class="nav-link active" data-toggle="tab" href="#stats" role="tab">Stats</a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#me" role="tab">Me</a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#services" role="tab">Services</a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#previewer" role="tab">Previewer</a>
-		</li>
-		<li class="nav-item" hidden>
-			<a class="nav-link" data-toggle="tab" href="#leaderboard" role="tab">Leaderboard</a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#analytics" role="tab">
-        <i class="fa fa-bar-chart pr-1"></i>
-        <span>Analytics</span>
-      </a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" data-toggle="tab" href="#map_analyzer" role="tab">
-        <i class="fa fa-map-marker pr-1"></i>
-        <span>Map Analyzer</span>
-      </a>
-		</li>
-	</ul>
+<div class="container" style="max-width:1600px">
 	<div class="tab-content">
     <!-- Me Pane -->
 		<div class="tab-pane" id="me" style='margin-bottom:7em' role="tabpanel">
-      <form id="user_form">
-        <fieldset style="max-width:600px" class="form-fieldset new_event">
-          <legend class="new_event">My Settings</legend>
-            <div class='form-label'>Name: 
-              <b><label id="first_name"></label></b>
-            </div>
-            <div class='form-label'>Username: 
-              <b><label id="user_name"></label></b>
-            </div>
-            <div class='form-label'>Administrator: 
-              <b><label id="is_admin"></label></b>
-            </div>
-            <div style="margin:1.5em 0em">
-              <button id='logout' style="float:right" type="button" class="btn btn-primary">Logout</button>
-            </div>
-        </fieldset>
-        <fieldset style="max-width:600px" class="form-fieldset new_event">
-          <legend class="new_event">Admin</legend>
-            <div class='form-label'>Admin Panel: 
-              <input type="checkbox" name="adm_panl_check" checked>
-            </div>
-        </fieldset>
-      </form>
+      <div class="d-flex justify-content-center">
+        <div class="card m-3" style="width:1000px;">
+          <div class="card-header admin-card-header"><h4 class="admin-card-title">My Settings</h4></div>
+          <div class="card-block px-5">
+            <form id="user_form">
+              <div class="form-label">
+                Name: 
+                <b><label id="first_name">Sean</label></b>
+              </div>
+              <div class="form-label">
+                Username: 
+                <b><label id="user_name">sestey@vecova.ca</label></b>
+              </div>
+              <div class="form-label">
+                Administrator: 
+                <b><label id="is_admin">true</label></b>
+              </div>
+              <div class="form-label">
+                Admin Panel: 
+                <input type="checkbox" name="adm_panl_check" checked="">
+              </div>
+              <div style="margin:1.5em 0em">
+                <button id="logout" style="" type="button" class="btn btn-secondary">Logout</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
     <!-- Services Pane -->
 		<div class="tab-pane" id="services" style='margin-bottom:7em' role="tabpanel">
-      <form>
-        <fieldset style="max-width:600px" class="form-fieldset new_event">
-          <legend class="new_event">CRM</legend>
-            <div class='form-label'>Service: <b>eTapestry v7.2.9</b></div>
-            <div class='form-label'>Organization: 
-              <b><label id="crm_org_name"></b></label>
+      <div class="d-flex justify-content-center flex-wrap mt-4">
+        <div class="card m-3">
+          <div class="card-header admin-card-header"><h4 class="admin-card-title">CRM</h4></div>
+          <div class="card-block px-5"><fieldset style="" class="form-fieldset new_event">
+            <div class="form-label">Service: <b>eTapestry v7.2.9</b></div>
+            <div class="form-label">Organization: 
+            <b><label id="crm_org_name">Vecova</label></b>
             </div>
-            <div class='form-label'>Account ID: 
-              <b><label id="crm_acct_id"></label></b>
+            <div class="form-label">Account ID: 
+            <b><label id="crm_acct_id">bpu_api</label></b>
             </div>
-            <div class='form-label'>API: <b>v3</b></div>
-        </fieldset>
-        <fieldset style="max-width:600px" class="form-fieldset new_event">
-          <legend class="new_event">Google</legend>
-            <div class='form-label'>Service Account ID: 
-              <label id='service_acct' data-toggle="tooltip" data-placement="right" 
-                     title=""><b>bravo-738</b>
-                <i class="fa fa-question-circle-o"></i>
-              </label>
+            <div class="form-label">API: <b>v3</b></div>
+          </div>
+        </div>
+        <div class="card m-3">
+          <div class="card-header admin-card-header"><h4 class="admin-card-title">Google</h4></div>
+          <div class="card-block px-5">
+            <div class="form-label">Service Account ID: 
+            <label id="service_acct" data-toggle="tooltip" data-placement="right" title="" data-original-title=""><b>bravo-738</b>
+            <i class="fa fa-question-circle-o"></i>
+            </label>
             </div>
-            <div class='form-label'>Linked Calendars: 
-              <a id="linked_cal" data-toggle="tooltip" data-placement="right" 
-                 title="" href="">routes</a>
+            <div class="form-label">Linked Calendars: 
+            <a id="linked_cal" data-toggle="tooltip" data-placement="right" title="" href="" data-original-title="">routes</a>
             </div>
-            <div class='form-label'>Linked Sheets:
-              <a href="">Bravo Sheets</a>
+            <div class="form-label">Linked Sheets:
+            <a href="">Bravo Sheets</a>
             </div>
-        </fieldset>
-        <fieldset style="max-width:600px" class="form-fieldset new_event">
-          <legend class="new_event">Notify</legend>
-            <div class='form-label'>Voice/SMS Service: <b>Twilio</b></div>
-            <div class='form-label'>Account ID: 
-              <b><label id="twilio_acct_id"></label></b>
+          </div>
+        </div>
+        <div class="card m-3">
+          <div class="card-header admin-card-header"><h4 class="admin-card-title">Notify</h4></div>
+          <div class="card-block px-5">
+            <div class="form-label">Voice/SMS Service: <b>Twilio</b></div>
+            <div class="form-label">Account ID: 
+              <b><label id="twilio_acct_id">estese@gmail.com</label></b>
             </div>
-            <div class='form-label'>API: <b>v5.7.0</b></div>
-            <div class='form-label'>Phone Number: 
-              <b><label id="phone_number"></label></b>
+            <div class="form-label">API: <b>v5.7.0</b></div>
+            <div class="form-label">Phone Number: 
+              <b><label id="phone_number">+15874012267</label></b>
             </div>
-            <div class='form-label'>Email Service: <b>Mailgun</b></div>
-            <div class='form-label'>Account ID: 
-              <b><label id="mailgun_acct_id"></b></label>
+            <div class="form-label">Email Service: <b>Mailgun</b></div>
+            <div class="form-label">Account ID: 
+              <b><label id="mailgun_acct_id">estese@gmail.com</label></b>
             </div>
-            <div class='form-label'>API: <b>v3</b></div>
-            <div style="margin-top:1em" class='form-label'>
-              <label style="border-bottom:1px solid white; padding-bottom:3px; letter-spacing:1px;">SETTINGS</label>
-            </div>
-            <div class='form-label'>Pre-schedule Days <i class="fa fa-question-circle-o"></i></div>
-            <input id="sched_delta_days" class="input">
-            <div class='form-label'>Days in Advance to Send Emails</div>
-            <input id="email_fire_days_delta" class="input">
-            <div class='form-label'>Time to Send Emails</div>
-            <input id="email_fire_hour" class="input">
-            <div class='form-label'>Days in Advance to Send Voice/SMS</div>
-            <input id="voice_sms_fire_days_delta" class="input">
-            <div class='form-label'>Time to Send Voice/SMS</div>
-            <input id="voice_sms_fire_hour" class="input">
-            <div style="margin:1.5em 0em">
-              <button style="float:right" type="button" class="btn btn-primary">Save Changes</button>
-            </div>
-        </fieldset>
-        <fieldset style="max-width:600px" class="form-fieldset new_event">
-          <legend class="new_event">Routing</legend>
-            <div class='form-label'>Routing Service: <b>Routific</b></div>
-            <div class='form-label'>Account ID: 
-              <b><label id="routing_acct_id"></b></label>
-            </div>
-            <div class='form-label'>API: <b>v1.5.0</b></div>
-            <div style="margin-top:1em" class='form-label'>
-              <label style="border-bottom:1px solid white; padding-bottom:3px; letter-spacing:1px;">SETTINGS</label>
-            </div>
-            <div class='form-label'>Build Routes Time</div>
-            <input class="input">
-            <div class='form-label'>Depots</div>
-            <select name="type_" class="form-control">
-              <option>Depot A</option>
-              <option>Depot B</option>
-              <option>Depot C</option>
-            </select>
-            <div style="margin:1.5em 0em">
-              <button style="float:right" type="button" class="btn btn-primary">Save Changes</button>
-            </div>
-        </fieldset>
-      </form>
+            <div class="form-label">API: <b>v3</b></div>
+          </div>
+        </div>
+        <div class="card m-3">
+          <div class="card-header admin-card-header"><h4 class="admin-card-title">Routing</h4></div>
+          <div class="card-block px-5">
+            <form>
+              <div class="form-label">Routing Service: <b>Routific</b></div>
+              <div class="form-label">Account ID: 
+              <b><label id="routing_acct_id">recycle@vecova.ca</label></b>
+              </div>
+              <div class="form-label">API: <b>v1.5.0</b></div>
+            </form>
+          </div>
+        </div>
+
+      </div>
     </div>
+
+        <form hidden>
+          <fieldset style="max-width:600px" class="form-fieldset new_event">
+            <legend class="new_event">CRM</legend>
+              <div class='form-label'>Service: <b>eTapestry v7.2.9</b></div>
+              <div class='form-label'>Organization: 
+                <b><label id="crm_org_name"></b></label>
+              </div>
+              <div class='form-label'>Account ID: 
+                <b><label id="crm_acct_id"></label></b>
+              </div>
+              <div class='form-label'>API: <b>v3</b></div>
+          </fieldset>
+          <fieldset style="max-width:600px" class="form-fieldset new_event">
+            <legend class="new_event">Google</legend>
+              <div class='form-label'>Service Account ID: 
+                <label id='service_acct' data-toggle="tooltip" data-placement="right" 
+                       title=""><b>bravo-738</b>
+                  <i class="fa fa-question-circle-o"></i>
+                </label>
+              </div>
+              <div class='form-label'>Linked Calendars: 
+                <a id="linked_cal" data-toggle="tooltip" data-placement="right" 
+                   title="" href="">routes</a>
+              </div>
+              <div class='form-label'>Linked Sheets:
+                <a href="">Bravo Sheets</a>
+              </div>
+          </fieldset>
+          <fieldset style="max-width:600px" class="form-fieldset new_event">
+            <legend class="new_event">Notify</legend>
+              <div class='form-label'>Voice/SMS Service: <b>Twilio</b></div>
+              <div class='form-label'>Account ID: 
+                <b><label id="twilio_acct_id"></label></b>
+              </div>
+              <div class='form-label'>API: <b>v5.7.0</b></div>
+              <div class='form-label'>Phone Number: 
+                <b><label id="phone_number"></label></b>
+              </div>
+              <div class='form-label'>Email Service: <b>Mailgun</b></div>
+              <div class='form-label'>Account ID: 
+                <b><label id="mailgun_acct_id"></b></label>
+              </div>
+              <div class='form-label'>API: <b>v3</b></div>
+              <div style="margin-top:1em" class='form-label'>
+                <label style="border-bottom:1px solid white; padding-bottom:3px; letter-spacing:1px;">SETTINGS</label>
+              </div>
+              <div class='form-label'>Pre-schedule Days <i class="fa fa-question-circle-o"></i></div>
+              <input id="sched_delta_days" class="input">
+              <div class='form-label'>Days in Advance to Send Emails</div>
+              <input id="email_fire_days_delta" class="input">
+              <div class='form-label'>Time to Send Emails</div>
+              <input id="email_fire_hour" class="input">
+              <div class='form-label'>Days in Advance to Send Voice/SMS</div>
+              <input id="voice_sms_fire_days_delta" class="input">
+              <div class='form-label'>Time to Send Voice/SMS</div>
+              <input id="voice_sms_fire_hour" class="input">
+              <div style="margin:1.5em 0em">
+                <button style="float:right" type="button" class="btn btn-primary">Save Changes</button>
+              </div>
+          </fieldset>
+          <fieldset style="max-width:600px" class="form-fieldset new_event">
+            <legend class="new_event">Routing</legend>
+              <div class='form-label'>Routing Service: <b>Routific</b></div>
+              <div class='form-label'>Account ID: 
+                <b><label id="routing_acct_id"></b></label>
+              </div>
+              <div class='form-label'>API: <b>v1.5.0</b></div>
+              <div style="margin-top:1em" class='form-label'>
+                <label style="border-bottom:1px solid white; padding-bottom:3px; letter-spacing:1px;">SETTINGS</label>
+              </div>
+              <div class='form-label'>Build Routes Time</div>
+              <input class="input">
+              <div class='form-label'>Depots</div>
+              <select name="type_" class="form-control">
+                <option>Depot A</option>
+                <option>Depot B</option>
+                <option>Depot C</option>
+              </select>
+              <div style="margin:1.5em 0em">
+                <button style="float:right" type="button" class="btn btn-primary">Save Changes</button>
+              </div>
+          </fieldset>
+        </form>
     <!-- Previewer Pane -->
 		<div class="tab-pane" id="previewer" style='margin-bottom:5em' role="tabpanel">
-        <fieldset style='margin-top:4em' class="form-fieldset">
-          <legend>Email Receipts</legend>
-          <table border="0" cellpadding="5" cellspacing="10">
-            <form id='receipt_form' style='margin-top:4em'>
-              <tr>
-                <td>
-                  <select name="type_" class="form-control">
-                    <option value="donation">Donation</option>
-                    <option value="no_donation">No Donation</option>
-                    <option value="zero_donation">$0 Donation</option>
-                    <option value="post_drop">Post Dropoff</option>
-                    <option value="cancelled">Cancellation</option>
-                  </select>
-                </td>
-                <td>
-                  <button id="receipt_btn" class="btn btn-info">Preview</button>
-                </td>
+      <div class="d-flex justify-content-center mt-4">
+        <div class="card m-3">
+          <div class="card-header admin-card-header"><h4 class="admin-card-title">Email Previewer</h4></div>
+          <div class="card-block px-5">
+            <div class="mb-3">
+              <h5>Email Receipts</h5>
+              <table border="0" cellpadding="5" cellspacing="10">
+                <form id="receipt_form" style="margin-top:4em"></form>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <select name="type_" class="form-control">
+                          <option value="donation">Donation</option>
+                          <option value="no_donation">No Donation</option>
+                          <option value="zero_donation">$0 Donation</option>
+                          <option value="post_drop">Post Dropoff</option>
+                          <option value="cancelled">Cancellation</option>
+                        </select>
+                      </td>
+                      <td>
+                        <button id="receipt_btn" class="btn btn-info">Preview</button>
+                      </td>
+                    </tr>
+                  </tbody>
+              </table>
+            </div>
+            <div class="mb-3">
+              <h5>Email Notifications</h5>
+              <table border="0" cellpadding="5" cellspacing="10">
+              <form id="email_notific_form" style="margin-top:2em" disabled=""></form>
+              <tbody><tr>
+              <td>
+              <input name="template" value="reminder" hidden="">
+              <select name="state" class="form-control">
+              <option value="res_pickup">Residential Pickup</option>
+              <option value="res_drop">Residential Dropoff</option>
+              <option value="res_cancel">Residential Cancelling</option>
+              <option value="bus_pickup">Business Pickup</option>
+              </select>
+              </td>
+              <td>
+              <button id="email_notific_btn" class="btn btn-info">Preview</button>
+              </td>
               </tr>
-            </form>
-          </table>
-        </fieldset>
-        <fieldset style='margin-top:2em' class="form-fieldset">
-          <legend>Email Notifications</legend>
-          <table border="0" cellpadding="5" cellspacing="10">
-            <form id='email_notific_form' style='margin-top:2em' disabled>
-            <tr>
+              </tbody>
+              </table>
+            </div>
+            <div class="mb-3">
+              <h5>Voice Notifications</h5>
+              <table border="0" cellpadding="5" cellspacing="10">
+              <form id="voice_notific_form" style="margin-top:2em" disabled=""></form>
+              <tbody><tr>
               <td>
-                <input name="template" value="reminder" hidden></input>
-                <select name="state" class="form-control">
-                  <option value="res_pickup">Residential Pickup</option>
-                  <option value="res_drop">Residential Dropoff</option>
-                  <option value="res_cancel">Residential Cancelling</option>
-                  <option value="bus_pickup">Business Pickup</option>
-                </select>
+              <select name="type_" class="form-control" disabled="">
+              <option value="res_pickup">Residential Pickup</option>
+              <option value="res_drop">Residential Dropoff</option>
+              <option value="res_cancel">Residential Cancelling</option>
+              <option value="bus_pickup">Business Pickup</option>
+              </select>
               </td>
               <td>
-                <button id="email_notific_btn" class="btn btn-info">Preview</button>
+              <button id="notific_btn" class="btn btn-info" disabled="">Preview</button>
               </td>
-            </tr>
-            </form>
-          </table>
-        </fieldset>
-        <fieldset style='margin-top:2em' class="form-fieldset">
-          <legend>Voice Notifications</legend>
-          <table border="0" cellpadding="5" cellspacing="10">
-            <form id='voice_notific_form' style='margin-top:2em' disabled>
-            <tr>
-              <td>
-                <select name="type_" class="form-control" disabled>
-                  <option value="res_pickup">Residential Pickup</option>
-                  <option value="res_drop">Residential Dropoff</option>
-                  <option value="res_cancel">Residential Cancelling</option>
-                  <option value="bus_pickup">Business Pickup</option>
-                </select>
-              </td>
-              <td>
-                <button id="notific_btn" class="btn btn-info" disabled>Preview</button>
-              </td>
-            </tr>
-            </form>
-          </table>
-        </fieldset>
-        <fieldset style='margin-top:2em' class="form-fieldset">
-          <legend>SMS Notifications</legend>
-          <table border="0" cellpadding="5" cellspacing="10">
-            <form id='sms_notific_form' style='margin-top:2em'>
-            <tr>
-              <td>
-                <select name="type_" class="form-control">
-                  <option value="res_pickup">Residential Pickup</option>
-                </select>
-              </td>
-              <td>
-                <button id="sms_btn" class="btn btn-info">Preview</button>
-              </td>
-            </tr>
-            </form>
-          </table>
-        </fieldset>
+              </tr>
+              </tbody>
+              </table>
+            </div>
+            <div class="mb-3">
+              <h5>SMS Notifications</h5>
+              <table border="0" cellpadding="5" cellspacing="10">
+                <form id="sms_notific_form" style="margin-top:2em"></form>
+                <tbody>
+                  <tr>
+                    <td>
+                      <select name="type_" class="form-control">
+                      <option value="res_pickup">Residential Pickup</option>
+                      </select>
+                    </td>
+                    <td>
+                      <button id="sms_btn" class="btn btn-info">Preview</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <!-- Leaderboard Pane -->
 		<div class="tab-pane" id="leaderboard" style='margin-bottom:7em' role="tabpanel" hidden>
     </div>
-    <!-- Properties Pane -->
+    <!-- Statistics Pane -->
 		<div class="tab-pane active" id="stats" style='margin-bottom:7em' role="tabpanel">
-      <div style="display:inline-flex">
-        <fieldset class="new_event py-3 px-5">
-          <legend class="new_event">Activity</legend>
+      <div class="d-flex justify-content-center flex-wrap mt-4">
+        <div class="card m-3">
+          <div class="card-header admin-card-header"><h4 class="admin-card-title">Activity</h4></div>
+          <div class="card-block px-5">
             <div class='form-label'>Active Donors: 
               <b><label id="n_donors"></label></b>
             </div>
@@ -259,31 +304,31 @@
             <div class='form-label' hidden>Emails Sent:
               <b><label id='n_emails_sent'></label></b>
             </div>
-            <div class='form-label'>Leaderboard Accounts:
+            <div class='form-label' hidden>Leaderboard Accounts:
               <b><label id='n_leaderboard_accts'></label></b>
             </div>
             <div class='form-label'>Users Registered:
               <b><label id='n_users'></label></b>
             </div>
-        </fieldset>
-      </div>
-      <div style="display:inline-flex">
-        <fieldset class="new_event py-3 px-5">
-          <legend class="new_event">System</legend>
-            <div class='form-label'>Memory (mb):
+          </div>
+        </div>
+        <div class="card m-3">
+          <div class="card-header admin-card-header"><h4 class="admin-card-title">System</h4></div>
+          <div class="card-block px-5">
+            <div class='form-label'>Mem:
               <b><label id='sys_mem'></label></b>
             </div>
-            <div class='form-label'>DB Size (mb):
+            <div class='form-label'>DB:
               <b><label id='db_size'></label></b>
             </div>
             <div class='form-label'>Stored Sessions:
               <b><label id='n_sessions'></label></b>
             </div>
-        </fieldset>
-      </div>
-      <div style="display:inline-flex">
-        <fieldset class="new_event py-3 px-5">
-          <legend class="new_event">Cache</legend>
+          </div>
+        </div>
+        <div class="card m-3">
+          <div class="card-header admin-card-header"><h4 class="admin-card-title">Cache</h4></div>
+          <div class="card-block px-5">
             <div class='form-label'>Accounts:
               <b><label id='n_cached_accounts'></label></b>
             </div>
@@ -293,7 +338,8 @@
             <div class='form-label'>Gifts:
               <b><label id='n_cached_gifts'></label></b>
             </div>
-        </fieldset>
+          </div>
+        </div>
       </div>
     </div>
 	</div> <!--END TAB_CONTENT-->

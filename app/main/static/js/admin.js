@@ -9,13 +9,13 @@ var recnt_pane_init = false;
 //------------------------------------------------------------------------------
 function init() {
 
+    $('#admin-nav').prop('hidden',false);
     $('.br-alert').hide();
-    // Init default pane
+
     initPropertiesPane();
-    //initUserPane();
     initPreviewerPane();
 
-    $('.nav-tabs a').click(function (e){
+    $('.nav-pills a').click(function (e){
         e.preventDefault();
         console.log('active tab %s', $(this).prop('hash'));
         var id = $(this).prop('hash');
@@ -31,6 +31,9 @@ function init() {
         }
         else if(id == '#me') {
             initUserPane();
+        }
+        else if(id == '#recent') {
+            window.location = "https://bravoweb.ca/recent";
         }
         else if(id == '#analytics') {
             window.location = "https://bravoweb.ca/analytics";
@@ -232,11 +235,11 @@ function initPropertiesPane() {
         var total = prop['sys_mem']['total'];
         var perc = ((free/total)*100).toFixed(0);
         $("#sys_mem").text(format("%s/%s (%s)", free, total, perc+"%"));
-        $("#db_size").text((prop['db_stats']['dataSize']/1000000).toFixed(1));
+        $("#db_size").text((prop['db_stats']['dataSize']/1000000).toFixed(1)+'mb');
         $("#n_sessions").text(prop['n_sessions']);
-        $("#n_cached_accounts").text(prop['n_cached_accounts']);
-        $("#n_cached_geolocations").text(prop['n_geolocations']);
-        $("#n_cached_gifts").text(prop['n_cached_gifts']);
+        $("#n_cached_accounts").text(Sugar.Number.format(prop['n_cached_accounts']));
+        $("#n_cached_geolocations").text(Sugar.Number.format(prop['n_geolocations']));
+        $("#n_cached_gifts").text(Sugar.Number.format(prop['n_cached_gifts']));
 
         prop_pane_init = true;
     });

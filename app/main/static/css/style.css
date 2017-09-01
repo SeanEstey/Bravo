@@ -26,6 +26,10 @@ body {
 }
 
 /* NAV MENU */
+#main-nav {
+    background-color:white;
+    border-bottom: 1px solid #ddd;
+}
 .container-fluid.br-nav {
 	margin-left: auto;
 	margin-right: auto;
@@ -75,6 +79,19 @@ body {
     width: 200px;
     height: 117px;
     content: url("/static/main/images/bravo_logo_barbell.png");
+}
+#admin-nav {
+    background-color:white;
+    border-bottom: 1px solid #ddd;
+}
+.admin-nav-a {
+    color:#279bbe;
+}
+.admin-card-header {
+    background-color: #279bbe;
+}
+.admin-card-title {
+    color:#eceeef;
 }
 
 /*BRAVO COMMON*/

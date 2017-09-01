@@ -1,6 +1,6 @@
 
-<!--NAVBAR-->
-<div class="row justify-content-center">
+<!--Main Navbar-->
+<div id="main-nav" class="row justify-content-center" style="background-color:white">
   <nav class="navbar navbar-toggleable-md navbar-light p-0" style="text-align:center;">
     <a id="logo_a" class="navbar-brand" style="height:60px" href="/notify/">
       <span class="align-middle"><img id="logo_img" class="logo-img-sm d-inline-block .m-x-auto"></span>
@@ -62,19 +62,7 @@
            <span class="my-auto">Alice</span>
         </a>
       </li>
-      <li class="nav-item br-nav-item">
-        <a class="nav-link d-flex" href="{{url_for("main.view_recent")}}">
-          <i class="fa fa-history fa-2x br-nav-icon mr-1"></i>
-           <span class="my-auto">Recent</span>
-        </a>
-      </li>
-      <!--
-      <li class="nav-item br-nav-item">
-        <a class="nav-link" href="{{url_for("main.view_tools")}}">
-          <i class="fa fa-wrench fa-2x br-nav-icon"></i>
-          Tools
-        </a>
-      </li>-->
+
       <li class="nav-item br-nav-item">
         <a class="nav-link d-flex" href="{{url_for("main.view_admin")}}">
           <i class="fa fa-cogs fa-2x br-nav-icon mr-1"></i>
@@ -83,4 +71,51 @@
       </li>
     </ul>
   </nav>
+</div>
+<!--Admin Navbar-->
+<div id="admin-nav" class="p-2" hidden>
+	<ul class="nav nav-pills justify-content-center" role="tablist">
+		<li class="nav-item">
+			<a class="nav-link active" data-toggle="tab" href="#stats" role="tab">
+        <i class="fa fa-percent pr-1"></i>
+        <span>Statistics</span>
+      </a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link admin-nav-a" data-toggle="tab" href="#me" role="tab">
+        <i class="fa fa-user-plus pr-1"></i>
+        <span>Me</span>
+      </a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link admin-nav-a" data-toggle="tab" href="#services" role="tab">
+        <i class="fa fa-plug pr-1"></i>
+        <span>Services</span>
+      </a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link admin-nav-a" data-toggle="tab" href="#previewer" role="tab">
+        <i class="fa fa-envelope-open pr-1"></i>
+        <span>Email Previewer</span>
+      </a>
+		</li>
+    <li class="nav-item">
+      <a class="nav-link admin-nav-a" data-toggle="tab" href="#recent">
+        <i class="fa fa-history pr-1"></i>
+        <span>Recent</span>
+      </a>
+    </li>
+		<li class="nav-item">
+			<a class="nav-link admin-nav-a" data-toggle="tab" href="#analytics" role="tab">
+        <i class="fa fa-bar-chart pr-1"></i>
+        <span>Analytics</span>
+      </a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link admin-nav-a" data-toggle="tab" href="#map_analyzer" role="tab">
+        <i class="fa fa-map-marker pr-1"></i>
+        <span>Map Analyzer</span>
+      </a>
+		</li>
+	</ul>
 </div>

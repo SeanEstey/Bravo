@@ -21,7 +21,7 @@ def _test_wipe_sessions():
 @main.route('/test_cache_gifts', methods=['GET'])
 def _test_cache_ytd():
     from app.main.tasks import build_gift_cache
-    build_gift_cache.delay(query="All Gifts", group='wsf', start=90500)
+    build_gift_cache.delay(query="All Gifts", group='wsf', start=92000)
     return 'ok'
 
 #-------------------EXPERIMENTAL------------------
@@ -47,26 +47,6 @@ def _djkf39():
     stored = g.db['cachedAccounts'].find_one({'account.id':5075})['schedule']
     from bson.json_util import dumps
     return dumps(stored)
-
-@login_required
-@main.route('/test_color', methods=['GET'])
-def _jkldsfkdfsjks():
-    from app.lib.gsheets_cls import SS
-    ss = SS(get_keys('google')['oauth'], '1ANLJ1h9K95YlTv0QKDF283q2AsRY29kuHluI2-v4T7Y')
-    orders = ss.wks('Orders')
-    print orders.propObj
-    return 'ok'
-
-@login_required
-@main.route('/test_analytics', methods=['GET'])
-def _test_analytics():
-    #from app.main.tasks import account_analytics
-    #account_analytics.delay()
-    from app.main.cache import get_gifts
-    from datetime import date, timedelta
-    gifts = get_gifts(start=date.today()-timedelta(days=30), end=date.today())
-    from bson.json_util import dumps
-    return dumps(gifts)
 
 @login_required
 @main.route('/test_leaders', methods=['GET'])

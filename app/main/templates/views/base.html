@@ -16,29 +16,29 @@
     <script>try{Typekit.load({async:false});}catch(e){}</script>
   </head>
   <body>
-    <div class="nav-bg"></div>
-    <div class="container-fluid" style="max-width:1600px">
+    <div class="container-fluid p-0" id="navs">
       {% include "views/navbar.html" %}
+    </div>
+    <div class="container-fluid" style="max-width:1600px">
       <div class="alert br-alert"></div>
       {% block content %}{% endblock %}
       {% include "views/dialog.html" %}
     </div>
-    <!--Libraries-->
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/js/bootstrap-datepicker.min.js"></script>
-    <!--Bravo Scripts-->
-    <script type=text/javascript>var $URL_ROOT={{request.url_root|tojson|safe}}</script>
-    <script src="{{url_for("static", filename="main/js/lib/sugar.min.js")}}"></script>
-    <script src="{{url_for("static", filename="main/js/lib/date.js")}}"></script>
-    <script src="{{url_for("static", filename="main/js/lib/strftime.js")}}"></script>
-    <script src="{{url_for("static", filename="main/js/utils.js")}}"></script>
-    <script src="{{url_for("static", filename="main/js/app.js")}}"></script>
-    <script>
-      // Fix name conflicts
-      $.fn.bDatepicker = $.fn.datepicker;
-      initSearchBar();
-    </script>
+    <div id="libs">
+      <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"></script>
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/js/bootstrap-datepicker.min.js"></script>
+      <script type=text/javascript>var $URL_ROOT={{request.url_root|tojson|safe}}</script>
+      <script src="{{url_for("static", filename="main/js/lib/sugar.min.js")}}"></script>
+      <script src="{{url_for("static", filename="main/js/lib/date.js")}}"></script>
+      <script src="{{url_for("static", filename="main/js/lib/strftime.js")}}"></script>
+      <script src="{{url_for("static", filename="main/js/utils.js")}}"></script>
+      <script src="{{url_for("static", filename="main/js/app.js")}}"></script>
+      <script>
+        $.fn.bDatepicker = $.fn.datepicker; // Name conflicts
+        initSearchBar();
+      </script>
+    </div>
   </body>
 </html>

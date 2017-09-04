@@ -1,89 +1,87 @@
 {% extends "views/base.html" %}
+
+{% block head %}
+  <meta id="coord_data" data-city="{{city_coords}}" data-home="{{home_coords}}">
+  <script type="text/javascript" src="{{url_for("booker.static", filename="js/booker.js")}}"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}&callback=initGoogleMap" async defer></script> 
+  <script> jQuery(function($){ bookerInit();}); </script>
+{% endblock %}
+
 {% block content %} 
-
-<meta id="coord_data" data-city="{{city_coords}}" data-home="{{home_coords}}">
-
-<script type="text/javascript" src="{{url_for("booker.static", filename="js/booker.js")}}"></script>
-<script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}&callback=initGoogleMap" async defer></script> 
-<script> 
-  document.write("<style type='text/css'> body{display:none}</style>");
-  jQuery(function($){ bookerInit(); $("body").css("display","block"); });
-</script>
-
-<div class="container-fluid pl-0 pr-0" id="search_ctnr" style="text-align:center">
-  <div class="card-deck mt-0">
-    <!--SEARCH-->
-    <div class="card mt-0 mr-1" style="max-width:350px;">
-      <div class="card-header" style="background-color:white">
-        <label style="font-weight:400; font-size:1.5rem" class="">Search Options</label>
-      </div>
-      <div class="card-block">
-        <div id="acct_row" class="row">
-          <input id="acct_input" class="form-control col-9 ml-2 mr-2" name="acct" type="text" placeholder="Enter Account ID"
-          onkeydown="searchKeyPress(event)" style="background-color:whitesmoke" autocomplete="off" autofocus> 
-          <button class="btn btn-secondary" type="button" id="find_acct">Go</button>
+  <div class="alert br-alert"></div>
+  <div class="mt-2" id="search_ctnr" style="text-align:center">
+    <div class="card-deck mt-0">
+      <!--SEARCH-->
+      <div class="card mt-0 mr-1" style="max-width:350px;">
+        <div class="card-header" style="background-color:white">
+          <label style="font-weight:400; font-size:1.5rem" class="">Search Options</label>
         </div>
-        <div id="or" class="row ml-3 pt-1 pb-1">
-          <span>On</span>
+        <div class="card-block">
+          <div id="acct_row" class="row">
+            <input id="acct_input" class="form-control col-9 ml-2 mr-2" name="acct" type="text" placeholder="Enter Account ID"
+            onkeydown="searchKeyPress(event)" style="background-color:whitesmoke" autocomplete="off" autofocus> 
+            <button class="btn btn-secondary" type="button" id="find_acct">Go</button>
+          </div>
+          <div id="or" class="row ml-3 pt-1 pb-1">
+            <span>On</span>
+          </div>
+          <div id="block_row" class="row">
+            <input id="block_input" class="form-control col-9 ml-2 mr-2" name="block" type="text" placeholder="Enter Block"
+            onkeydown="searchKeyPress(event)" style="background-color:whitesmoke" autocomplete="off" autofocus> 
+            <button class="btn btn-secondary" type="button" id="find_block">Go</button>
+          </div>
+          <div class="row mt-4">
+            <table id="results2" class="table table-hover table-colored ml-1 mr-1" hidden>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
-        <div id="block_row" class="row">
-          <input id="block_input" class="form-control col-9 ml-2 mr-2" name="block" type="text" placeholder="Enter Block"
-          onkeydown="searchKeyPress(event)" style="background-color:whitesmoke" autocomplete="off" autofocus> 
-          <button class="btn btn-secondary" type="button" id="find_block">Go</button>
-        </div>
-        <div class="row mt-4">
-          <table id="results2" class="table table-hover table-colored ml-1 mr-1" hidden>
-            <tbody></tbody>
-          </table>
+        <div class="mb-3 mr-4">
+          <div class="row ml-0">
+            <div class="col-7"></div>
+            <button class="btn btn-secondary" id="book_btn" type="submit">Make Booking</button>
+          </div>
         </div>
       </div>
-      <div class="mb-3 mr-4">
-        <div class="row ml-0">
-          <div class="col-7"></div>
-          <button class="btn btn-secondary" id="book_btn" type="submit">Make Booking</button>
+      <!--MAP-->
+      <div class="card ml-0" style="">
+        <div class="">
+          <div style="height:600px" id="map"></div>
         </div>
-      </div>
-    </div>
-    <!--MAP-->
-    <div class="card ml-0" style="">
-      <div class="">
-        <div style="height:600px" id="map"></div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Booking Confirmation Modal -->
-<div id="booking_options" style="display:none"> 
-  <form class="form-check" style="text-align:left" id="booking_form">
-    <div id="append_route" style="display:none">
-      <label>This Block has already been routed. Booking an account will add
-      it onto the route.</label>
-    </div>
-    <div id="enter_aid" style="display:none">
-      <label for="aid">Account number</label>
-      <input id="aid" name="aid" class="input" type="text">
-    </div>
-    <div id="acct_info" style="margin:0; padding:0">
-      <div id="routed_warning" style="display:none" class="alert alert-warning" role="alert">
+  <!-- Booking Confirmation Modal -->
+  <div id="booking_options" style="display:none"> 
+    <form class="form-check" style="text-align:left" id="booking_form">
+      <div id="append_route" style="display:none">
+        <label>This Block has already been routed. Booking an account will add
+        it onto the route.</label>
       </div>
-      <div><label name="name"></label></div>
-      <div><label name="email"></label></div>
-      <div><label name="block"></label></div>
-      <div><label name="date"></label></div>
-      <hr></hr>
-      <div class="form-group">
-        <label for="driver_notes">Enter any driver instructions:</label>
-        <textarea class="form-control" id="driver_notes" rows="5"></textarea>
+      <div id="enter_aid" style="display:none">
+        <label for="aid">Account number</label>
+        <input id="aid" name="aid" class="input" type="text">
       </div>
-      <div style="text-align:right">
-        <label class="form-check-label">
-          <input class="form-check-input" type="checkbox" id="send_email_cb" value="option1" checked
-          >Send email confirmation
-        </label>
+      <div id="acct_info" style="margin:0; padding:0">
+        <div id="routed_warning" style="display:none" class="alert alert-warning" role="alert">
+        </div>
+        <div><label name="name"></label></div>
+        <div><label name="email"></label></div>
+        <div><label name="block"></label></div>
+        <div><label name="date"></label></div>
+        <hr></hr>
+        <div class="form-group">
+          <label for="driver_notes">Enter any driver instructions:</label>
+          <textarea class="form-control" id="driver_notes" rows="5"></textarea>
+        </div>
+        <div style="text-align:right">
+          <label class="form-check-label">
+            <input class="form-check-input" type="checkbox" id="send_email_cb" value="option1" checked
+            >Send email confirmation
+          </label>
+        </div>
       </div>
-    </div>
-  </form>
-</div>
-
+    </form>
+  </div>
 {% endblock %}

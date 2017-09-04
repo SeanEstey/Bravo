@@ -7,33 +7,39 @@
  *   #808080    Gray       Secondary (table headers, card titles)
  */
 
-/* GENERAL */
 body {
     color: #6a6c6f;
     background-color:#f7f7f7; 
 }
-.nav-bg {
-    background-color: white;
-    width:100%;
-    position:absolute;
-    top:0;
-    left:0;
-    height:60px;
-    border-bottom:1px solid #c8c9ca;
+#content {
+    margin-left:.5rem;
+    margin-right:.5rem;
+    padding: 0em;
+    max-width: 1200px;
 }
-.body {
-    max-width:1600px;
-}
+
+
 
 /* NAV MENU */
 #main-nav {
+    padding: 0rem;
     background-color:white;
     border-bottom: 1px solid #ddd;
+}
+#main-menu {
+    flex-direction:row;
+    margin-top: 1rem;
+    margin-bottom: 1rem
 }
 .container-fluid.br-nav {
 	margin-left: auto;
 	margin-right: auto;
 	padding: 0;
+}
+#searchbar {
+    width:350px;
+    margin-left: auto;
+    margin-right: auto;
 }
 #searchbar #search_input {
     font-size: 0.75rem;
@@ -80,17 +86,29 @@ body {
     height: 117px;
     content: url("/static/main/images/bravo_logo_barbell.png");
 }
+
+/* ADMIN SECTION */
+
 #admin-nav {
+    padding-left: 1rem;
+    padding-right: 1rem;
     background-color:white;
     border-bottom: 1px solid #ddd;
+}
+#admin-nav .navbar-nav {
+   flex-direction:column; 
 }
 #admin-nav .nav-link.active {
     background-color: rgba(49, 112, 143, 0.73);
 }
 .admin-card {
-    width: 200px;
+    width: 175px;
     height: 150px;
     margin:.5em .5em;
+}
+.admin-card:hover {
+    background-color: rgba(255, 255, 255, 0.36);
+    cursor:pointer;
 }
 .admin-nav-a {
     color:#279bbe;
@@ -99,18 +117,16 @@ body {
     background-color:white;
 }
 .admin-stat {
-    font-family:'Montserrat', sans-serif;
-    font-size:1.5rem;
-    font-weight:700;
+    font-family: "Open Sans", sans-serif;
+    font-size:2.0rem;
+    font-weight:400;
     letter-spacing:1px;
     color:#5cb85c;
-    /*line-height: 1.5rem;*/
 }
 .admin-lbl {
     font-family:'Montserrat', sans-serif;
-    font-size:1.0rem;
+    font-size:0.75rem;
     font-weight:400;
-    /*color:#5cb85c;*/
 }
 .admin-title {
     color:#878e92;
@@ -515,7 +531,7 @@ a.hover:visited {
 /*ANALYTICS*/
 
 .analy-panel {
-    height:600px;
+    height:400px;
     background-color:white;
 }
 .analy-panel .chart {
@@ -525,12 +541,15 @@ a.hover:visited {
     border-bottom:none;
 }
 .panel-body #summary {
+    font-family:nova-proxima,sans-serif;
+    font-size:14pt;
     position: absolute;
     color: #636c72;
     background-color: rgba(236, 238, 239, 0.83);
     top:20px;
     left:20px;
     z-index:100;
+    -webkit-border-radius:5px;
 }
 .analy-title {
     font-family: proxima-nova,sans-serif;
@@ -540,9 +559,9 @@ a.hover:visited {
 .chart-logo {
     background-image: url("https://marketplace.canva.com/MACQ3DGRZ9I/1/thumbnail_large/canva-sketch-icon-of-bar-chart-MACQ3DGRZ9I.png");
     background-repeat: no-repeat;
-    background-size: 250px 250px;
-    width: 250px;
-    height: 250px;
+    background-size: 200px 200px;
+    width: 200px;
+    height: 200px;
     text-align:center;
     color:rgba(1, 1, 1, 0.1);
     opacity:0.55;
@@ -568,21 +587,24 @@ a.hover:visited {
 
 /*BREAKPOINTS*/
 
-/*Mobile Phones*/
-@media (max-width: 480px) { 
-    .container {
-        position: relative;
-        left:0;
-        right:0;
-        top: 0;
-        padding:0;
-        margin: 0em auto;
+@media (min-width: 576px) { 
+    #content {
+        margin-left:0rem;
+        margin-right:0rem;
+    }
+    #admin-nav {
+        padding-left:0rem;
+        padding-right:0rem;
+    }
+    #admin-nav .navbar-nav {
+       flex-direction:row; 
+    }
+    #main-menu {
+        margin-top:0rem;
+        margin-bottom:0rem;
     }
     .alert-banner {
         margin: 0.1em;
-    }
-    body {
-        padding:0;
     }
     .navbar-fixed-top, .navbar-fixed-bottom, .navbar-static-top {
         margin-left: 0;
@@ -595,10 +617,6 @@ a.hover:visited {
     .admin-panel-div {
         display: none;
     }
-    #searchbar {
-        max-width: 100%!important;
-        width: 100%!important;
-    }
     .modal-wide {
         min-width:300px;
         max-width:480px;
@@ -609,6 +627,10 @@ a.hover:visited {
     }
 }
 @media (min-width: 992px) {
+    #searchbar {
+        margin-left:0;
+        margin-right:1rem;
+    }
     .container {
         position: relative;
         top: 0;
@@ -619,10 +641,6 @@ a.hover:visited {
     }
     .alert-banner {
         margin: 1.0em auto;
-    }
-    #searchbar {
-        max-width: 100%!important;
-        width: 100%!important;
     }
 }
 @media (min-width: 1200px) {
@@ -637,16 +655,11 @@ a.hover:visited {
         min-width:1000px;
         max-width:1000px;
     }
-    #searchbar {
-        max-width:50%;
+    #content {
+        max-width:1200px;
+    }
+    .modal-wide {
+        min-width:600px;
+        max-width:1000px;
     }
 }
-@media (max-width:992px) {
-    .navbar-nav {
-       flex-direction:row; 
-    }
-    .container {
-        width: 100%;
-        margin-left: 0;
-        margin-right: 0;
-    }

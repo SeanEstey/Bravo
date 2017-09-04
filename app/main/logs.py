@@ -9,7 +9,6 @@ log = logging.getLogger(__name__)
 #---------------------------------------------------------------------------
 def get_logs(groups=None, tags=None, levels=None, page=0):
 
-    log.debug('page=%s', page)
     if page:
         n_skip = 50 * int(page)
     else:

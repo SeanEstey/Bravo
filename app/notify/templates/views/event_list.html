@@ -1,17 +1,17 @@
 {% extends "views/base.html" %}
-{% block content %}  
 
-<head>
+{% block head %}
   <link href="{{url_for("static", filename="main/css/new_event.css")}}" rel="stylesheet" type="text/css">
-</head>
-<script src="{{url_for("notify.static", filename="js/event_list.js")}}"></script>
-<script> 
-  jQuery(function($) { initEventList(); alertMsg("{{msg|safe}}", "info", 15000); }); 
-</script>
+  <script src="{{url_for("notify.static", filename="js/event_list.js")}}"></script>
+  <script> 
+    jQuery(function($) { initEventList(); alertMsg("{{msg|safe}}", "info", 15000); }); 
+  </script>
+{% endblock %}
 
-<!--CONTAINER-->
-<div style="margin-bottom:10em; max-width:1200px;" class="container-fluid pl-0 pr-0">
-    <div class="">
+{% block content %}  
+  <div class="alert br-alert"></div>
+  <div class="px-0 my-5">
+    <div>
       <label style="font-weight:400; font-size:1.5rem">
         <a class="hover" style=""
            href="{{ url_for("notify.view_event_list") }}">Notification Events</a> / 
@@ -37,85 +37,83 @@
       </li>
     </ul>
   </nav>
-</div>
+  <!--Page End-->
 
-<!--EVENT ITEM-->
-<a href="#" id="event_item" class="list-group-item list-group-item-action recent-event-item" hidden>
-  <div class="col-1 pl-0">
-    <div class="event-item-mon" id="evnt_mon"></div>
-    <div class="event-item-day" id="evnt_day"></div>
-  </div>
-  <div class="col-1 pl-0">
-    <div id="event_name"></div>
-  </div>
-  <div class="col-2">
-    <h6 class="mb-0">
-      <span id="category"></span>
-    </h6>
-  </div>
-  <div class="col-2">
-    <div id="inbox_icon" class="d-inline-block align-middle mr-2">
-      <div style="text-align:center">
-        <i class="fa fa-inbox fa-2x" aria-hidden="true"></i>
+  <!--EVENT ITEM-->
+  <a href="#" id="event_item" class="list-group-item list-group-item-action recent-event-item" hidden>
+    <div class="col-1 pl-0">
+      <div class="event-item-mon" id="evnt_mon"></div>
+      <div class="event-item-day" id="evnt_day"></div>
+    </div>
+    <div class="col-1 pl-0">
+      <div id="event_name"></div>
+    </div>
+    <div class="col-2">
+      <h6 class="mb-0">
+        <span id="category"></span>
+      </h6>
+    </div>
+    <div class="col-2">
+      <div id="inbox_icon" class="d-inline-block align-middle mr-2">
+        <div style="text-align:center">
+          <i class="fa fa-inbox fa-2x" aria-hidden="true"></i>
+        </div>
+        <h5 id="n_email" style="text-align:center; color:#4E5C6E;" class="mb-0"></h5>
       </div>
-      <h5 id="n_email" style="text-align:center; color:#4E5C6E;" class="mb-0"></h5>
-    </div>
-    <div class="d-inline-block align-middle">
-      <h5 class="mb-0" style="font-weight:400; color:#517ba3" id="email_status"></h5>
-      <small class="card-text text-muted" id="email_dt"></small>
-    </div>
-  </div>
-  <div class="col-2">
-    <div id="phone_icon" class="d-inline-block align-middle mr-2">
-      <div style="text-align:center">
-        <i class="fa fa-phone fa-2x" aria-hidden="true"></i>
-      </div>
-      <h5 id="n_voice" style="text-align:center; color:#4E5C6E;" class="mb-0"></h5>
-    </div>
-    <div class="d-inline-block align-middle">
-      <h5 class="mb-0" style="font-weight:400; color:#517ba3" id="voice_status"></h5>
-      <small class="card-text text-muted" id="voice_dt"></small>
-    </div>
-  </div>
-  <div class="col-2">
-    <div id="mobile_icon" class="d-inline-block align-middle mr-2">
-      <div style="text-align:center">
-        <i class="fa fa-mobile fa-3x" aria-hidden="true"></i>
-      </div>
-      <h5 id="n_sms" style="text-align:center; color:#4E5C6E;" class="mb-0"></h5>
-    </div>
-    <div class="d-inline-block align-middle">
-      <h5 class="mb-0" style="font-weight:400; color:#517ba3" id="sms_status"></h5>
-      <small class="card-text text-muted" id="sms_dt"></small>
-    </div>
-  </div>
-  <div class="col-2 text-right">
-    <button 
-      data-toggle="tooltip"	class="btn btn-secondary btn-outline btn-sm delete-btn"
-      type="button" title="Delete this event" name="delete-btn">
-      <i class="fa fa-trash-o"></i>
-    </button>
-  </div>
-</a>
-
-<!--CREATE EVENT MODAL-->
-<div id="new_event_modal" class="modal fade">
-  <div class="modal-dialog modal-lg">
-    <div style="width:1200px" class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h4 class="modal-title">Schedule a New Event</h4>
-      </div>
-      <div class="modal-body">
-        {% include "views/new_event.html" %} 
-      </div>
-      <div class="modal-footer">
-        <button id="btn-default" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        <button id="submit_btn" type="button" class="btn
-        btn-primary">Schedule</button>
+      <div class="d-inline-block align-middle">
+        <h5 class="mb-0" style="font-weight:400; color:#517ba3" id="email_status"></h5>
+        <small class="card-text text-muted" id="email_dt"></small>
       </div>
     </div>
+    <div class="col-2">
+      <div id="phone_icon" class="d-inline-block align-middle mr-2">
+        <div style="text-align:center">
+          <i class="fa fa-phone fa-2x" aria-hidden="true"></i>
+        </div>
+        <h5 id="n_voice" style="text-align:center; color:#4E5C6E;" class="mb-0"></h5>
+      </div>
+      <div class="d-inline-block align-middle">
+        <h5 class="mb-0" style="font-weight:400; color:#517ba3" id="voice_status"></h5>
+        <small class="card-text text-muted" id="voice_dt"></small>
+      </div>
+    </div>
+    <div class="col-2">
+      <div id="mobile_icon" class="d-inline-block align-middle mr-2">
+        <div style="text-align:center">
+          <i class="fa fa-mobile fa-3x" aria-hidden="true"></i>
+        </div>
+        <h5 id="n_sms" style="text-align:center; color:#4E5C6E;" class="mb-0"></h5>
+      </div>
+      <div class="d-inline-block align-middle">
+        <h5 class="mb-0" style="font-weight:400; color:#517ba3" id="sms_status"></h5>
+        <small class="card-text text-muted" id="sms_dt"></small>
+      </div>
+    </div>
+    <div class="col-2 text-right">
+      <button 
+        data-toggle="tooltip"	class="btn btn-secondary btn-outline btn-sm delete-btn"
+        type="button" title="Delete this event" name="delete-btn">
+        <i class="fa fa-trash-o"></i>
+      </button>
+    </div>
+  </a>
+  <!--CREATE EVENT MODAL-->
+  <div id="new_event_modal" class="modal fade">
+    <div class="modal-dialog modal-lg">
+      <div style="width:1200px" class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+          <h4 class="modal-title">Schedule a New Event</h4>
+        </div>
+        <div class="modal-body">
+          {% include "views/new_event.html" %} 
+        </div>
+        <div class="modal-footer">
+          <button id="btn-default" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button id="submit_btn" type="button" class="btn
+          btn-primary">Schedule</button>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
-
 {% endblock %}

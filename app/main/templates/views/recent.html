@@ -1,85 +1,113 @@
 {% extends "views/base.html" %}
+
+{% block head %}
+  <meta id="data" data-user-organization="{{group_name}}">
+  <link href="{{url_for("static", filename="main/css/lib/json-viewer.css")}}" rel= "stylesheet" type= "text/css">
+  <script type="text/javascript" src="{{url_for("main.static", filename="js/recent.js")}}"></script>
+  <script type="text/javascript" src="{{url_for("main.static", filename="js/lib/json-viewer.js")}}"></script>
+  <script> jQuery(function($){initRecent();}); </script>
+{% endblock %}
+
 {% block content %}
-
-<meta id="data" data-user-organization="{{group_name}}">
-<script type="text/javascript" src="{{url_for("main.static", filename="js/recent.js")}}"></script>
-<script type="text/javascript" src="{{url_for("main.static", filename="js/lib/json-viewer.js")}}"></script>
-<link href="{{url_for("static", filename="main/css/lib/json-viewer.css")}}" rel= "stylesheet" type= "text/css">
-<script> jQuery(function($){initRecent();}); </script>
-
-<div class="d-flex justify-content-between mx-auto mt-3 mb-3" style="max-width:800px">
-  <div class="col-2 pl-0 my-auto">
-    <button id="prev" type="text" class="btn btn-secondary fa fa-angle-left"></button>
-  </div>
-  <div class="col-2 my-auto">
-    <!--Filter Menu-->
-    <div id='filterMenu' class="dropdown">
-      <button type="button" id="filterBtn" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown">
-        Filter by
-      </button>
-      <div class="dropdown-menu dropdown-menu-right" aria-labelledby="filterBtn">
-      <h6 class="dropdown-header">Groups</h6>
-      <a class="dropdown-item" id="grp-all" href="#"><i class="fa fa-plus-square-o mr-2"></i>All</a>
-      <a class="dropdown-item" id="grp-org" href="#"><i class="fa fa-check-square-o mr-2"></i>Organization</a>
-      <a class="dropdown-item" id="grp-sys" href="#"><i class="fa fa-square-o mr-2"></i>System</a>
-      <a class="dropdown-item" id="grp-other" href="#"><i class="fa fa-square-o mr-2"></i>Other</a>
-      <div class="dropdown-divider"></div>
-      <h6 class="dropdown-header">Level</h6> 
-      <a class="dropdown-item" id="lvl-all" href="#"><i class="fa fa-plus-square-o mr-2"></i>All</a>
-      <a class="dropdown-item" id="lvl-debug" href="#"><i class="fa fa-square-o mr-2"></i>Debug</a>
-      <a class="dropdown-item" id="lvl-info" href="#"><i class="fa fa-check-square-o mr-2"></i>Info</a>
-      <a class="dropdown-item" id="lvl-warn" href="#"><i class="fa fa-check-square-o mr-2"></i>Warning</a>
-      <a class="dropdown-item" id="lvl-err" href="#"><i class="fa fa-check-square-o mr-2"></i>Error</a>
-      <div class="dropdown-divider"></div>
-      <h6 class="dropdown-header">Tag</h6>
-      <a class="dropdown-item" id="tag-api" href="#"><i class="fa fa-square-o mr-2"></i>API</a>
-      <a class="dropdown-item" id="tag-task" href="#"><i class="fa fa-check-square-o mr-2"></i>Task</a>
+  <div class="mx-auto mt-5" style="max-width:800px; text-center">
+    <div class="d-flex justify-content-between mt-3 mb-3">
+      <span>
+        <button type="button" class="btn btn-secondary mr-1" style="background-color:inherit; border:none;">
+        <i class="fa fa-history"></i>
+        &nbsp;Results 1-50
+        </button><button type="button" class="btn btn-secondary mr-3" style="background-color:inherit; border:none;">
+        <i class="fa fa-calendar"></i>
+        &nbsp;09/02/2017-09/01/2017
+        </button>
+      </span>
+      <div class="d-flex">
+        <div id="filterMenu" class="dropdown mr-2">
+          <button type="button" id="filterBtn" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown">
+            Filter by
+          </button>
+          <div class="dropdown-menu dropdown-menu-right" aria-labelledby="filterBtn">
+            <h6 class="dropdown-header">Groups</h6>
+            <a class="dropdown-item" id="grp-all" href="#">
+              <i class="fa fa-plus-square-o mr-2"></i>All
+            </a>
+            <a class="dropdown-item" id="grp-org" href="#">
+              <i class="fa fa-check-square-o mr-2"></i>Organization
+            </a>
+            <a class="dropdown-item" id="grp-sys" href="#">
+              <i class="fa mr-2 fa-check-square-o"></i>System
+            </a>
+            <a class="dropdown-item" id="grp-other" href="#">
+              <i class="fa mr-2 fa-check-square-o"></i>Other
+            </a>
+            <div class="dropdown-divider"></div>
+            <h6 class="dropdown-header">Level</h6> 
+            <a class="dropdown-item" id="lvl-all" href="#">
+              <i class="fa fa-plus-square-o mr-2"></i>All
+            </a>
+            <a class="dropdown-item" id="lvl-debug" href="#">
+              <i class="fa mr-2 fa-check-square-o"></i>Debug
+            </a>
+            <a class="dropdown-item" id="lvl-info" href="#">
+              <i class="fa mr-2 fa-square-o"></i>Info
+            </a>
+            <a class="dropdown-item" id="lvl-warn" href="#">
+              <i class="fa mr-2 fa-square-o"></i>Warning
+            </a>
+            <a class="dropdown-item" id="lvl-err" href="#">
+              <i class="fa mr-2 fa-square-o"></i>Error
+            </a>
+            <div class="dropdown-divider"></div>
+            <h6 class="dropdown-header">Tag</h6>
+            <a class="dropdown-item" id="tag-api" href="#">
+              <i class="fa fa-square-o mr-2"></i>API
+            </a>
+            <a class="dropdown-item" id="tag-task" href="#">
+              <i class="fa mr-2 fa-square-o"></i>Task
+            </a>
+          </div>
+        </div>
+        <button id="prev" type="text" class="btn btn-secondary fa fa-angle-left mr-2"></button>
+        <button id="next" type="text" class="btn btn-secondary fa fa-angle-right"></button>
       </div>
     </div>
-    <!--End FilterMenu-->
   </div>
-  <div class="col-2 pr-0 text-right my-auto">
-    <button id="next" type="text" class="btn btn-secondary fa fa-angle-right"></button>
-  </div>
-</div>
-<!--List Item Data-->
-<div id='recnt_list' class="list-group mx-auto mb-5" style="max-width:800px;"></div>
+  <!--List Item Data-->
+  <div id='recnt_list' class="list-group mx-auto mb-5" style="max-width:800px;"></div>
 
-<!--Event List Item [template]-->
-<div id="event_item_template"
-style="color:#0074ac; padding:15px"
-class="list-group-item list-group-item-action recent-event-item" hidden>
-<div class="row m-0" style="width:100%">
-  <div class="col-sm-10 p-0 text-left">
-    <i id="head-icon" class="mr-1"></i>
-    <span id="head-msg"></span>
+  <!--Event List Item [template]-->
+  <div id="event_item_template"
+  style="color:#0074ac; padding:15px"
+  class="list-group-item list-group-item-action recent-event-item" hidden>
+  <div class="row m-0" style="width:100%">
+    <div class="col-sm-10 p-0 text-left">
+      <i id="head-icon" class="mr-1"></i>
+      <span id="head-msg"></span>
+    </div>
+    <div class="col-sm-2 p-0 text-right">
+      <button id="badge" role="button" aria-disabled="true" class="btn btn-sm mb-0" href="#"
+      style="font-size:.6rem;">BTN-LABEL</button>
+    </div>
   </div>
-  <div class="col-sm-2 p-0 text-right">
-    <button id="badge" role="button" aria-disabled="true" class="btn btn-sm mb-0" href="#"
-    style="font-size:.6rem;">BTN-LABEL</button>
+  <div id="log-data" class="row pt-2 m-0" style="width:100%" hidden>
+    <div class="col-sm-12">
+      <!--JSON Viewer-->
+      <div id="json-container"></div>
+    </div>
   </div>
-</div>
-<div id="log-data" class="row pt-2 m-0" style="width:100%" hidden>
-  <div class="col-sm-12">
-    <!--JSON Viewer-->
-    <div id="json-container"></div>
+  <div class="row m-0 mt-2" style="width:100%">
+    <div class="col-sm-2 p-0">
+      <span id="time-spn" style="font-size:.8rem; color:rgba(70, 74, 76, 0.73);">
+        <i class="fa fa-clock-o"></i>
+        <small id="event_dt" style="">TIME</small>
+      </span>
+    </div>
+    <div class="col-sm-8 p-0">
+    </div>
+    <div class="col-sm-2 p-0 text-right">
+      <span id="elapse-spn" style="font-size:.8rem; color:rgba(70, 74, 76, 0.73); font-family:inherit;">
+        <i class="fa fa-clock-o"></i>
+        <small id="elapsed" style="">ELAPSED</small>
+      </span>
+    </div>
   </div>
-</div>
-<div class="row m-0 mt-2" style="width:100%">
-  <div class="col-sm-2 p-0">
-    <span id="time-spn" style="font-size:.8rem; color:rgba(70, 74, 76, 0.73);">
-      <i class="fa fa-clock-o"></i>
-      <small id="event_dt" style="">TIME</small>
-    </span>
-  </div>
-  <div class="col-sm-8 p-0">
-  </div>
-  <div class="col-sm-2 p-0 text-right">
-    <span id="elapse-spn" style="font-size:.8rem; color:rgba(70, 74, 76, 0.73); font-family:inherit;">
-      <i class="fa fa-clock-o"></i>
-      <small id="elapsed" style="">ELAPSED</small>
-    </span>
-  </div>
-</div>
-
 {% endblock %}

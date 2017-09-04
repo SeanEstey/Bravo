@@ -91,7 +91,7 @@ def query_and_store(query=None, category=None, obj_type=None, get_meta=False, st
     all_data = []
 
     while queryEnd != True:
-        log.debug('Querying results %s/%s...', start, start+count)
+        log.debug('Querying results %s-%s...', start, start+count)
 
         try:
             results = get_query(
@@ -239,7 +239,6 @@ def get_gifts(start=None, end=None):
         cursor = g.db['cachedGifts'].find(query)[pos:pos+batch_size]
 
         gifts = [{
-            'afloat': 13.25,
             'amount':n['gift']['amount'],
             'timestamp':(n['gift']['date']-epoch).total_seconds()*1000
         } for n in cursor]

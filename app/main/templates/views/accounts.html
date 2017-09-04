@@ -1,74 +1,70 @@
-  {% extends "views/base.html" %}
-  {% block content %}
-
+{% extends "views/base.html" %}
+{% block head %}
+  <link href="{{url_for("static", filename="main/css/lib/morris.css")}}" rel= "stylesheet" type= "text/css">
+  <link href="{{url_for("static", filename="main/css/account.css")}}" rel= "stylesheet" type= "text/css">
   <meta id="coord_data" data-city="{{city_coords}}" data-home="{{home_coords}}">
-  <head>
-    <script src="{{url_for("main.static", filename="js/lib/morris.min.js")}}"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}"></script> 
-    <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
-    <script src="{{url_for("alice.static", filename="js/alice.js")}}"></script>
-    <script src="{{url_for("main.static", filename="js/maps.js")}}"></script>
-    <script src="{{url_for("main.static", filename="js/accounts.js")}}"></script>
-    <script src="{{url_for("main.static", filename="js/charts.js")}}"></script>
-    <link href="{{url_for("static", filename="main/css/lib/morris.css")}}" rel= "stylesheet" type= "text/css">
-    <link href="{{url_for("static", filename="main/css/account.css")}}" rel= "stylesheet" type= "text/css">
-  </head>
-  <script> 
-    jQuery(function($){
-      accountsInit();
-      initCharts();
-    });
-  </script>
+  <script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}"></script> 
+  <script src="{{url_for("main.static", filename="js/maps.js")}}"></script>
+{% endblock %}
+
+{% block postlibs %}
+  <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
+  <script src="{{url_for("main.static", filename="js/lib/morris.min.js")}}"></script>
+  <script src="{{url_for("main.static", filename="js/charts.js")}}"></script>
+  <script src="{{url_for("main.static", filename="js/accounts.js")}}"></script>
+  <script src="{{url_for("alice.static", filename="js/alice.js")}}"></script>
+  <script> jQuery(function($){accountsInit(); initCharts();}); </script>
+{% endblock %}
+
+{% block content %}
+  <div class="alert br-alert"></div>
   <div class="row" id="main" hidden>
-    <div class="col-12 col-xl-7">
+    <!--Left Column-->
+    <div class="col-12 col-xl-7 pl-0 pr-3">
       <!--Profile Panel-->
       <div class="col-md-12 p-0">
-          <div class="profile hpanel" id='sum_panel'>
-            <!--Banner-->
-            <div class="banner panel-heading text-left p-3">
-							<div class="row">
-								<div class="col-8 my-auto" style="display:flex">
-                  <h2 class="m-0 pr-3" id="acct_name"></h2>
-                  <h4 class="status m-0">
+          <div class="profile hpanel mb-3" id='sum_panel'>
+            <div class="panel-heading banner p-3">
+              <div class="d-flex justify-content-between">
+                <div class="d-flex">
+                  <h4 class="m-0 pr-3" id="acct_name"></h4>
+                  <h4 class="m-0">
                     <span class="badge badge-info status" id="status"></span>
                   </h4>
                 </div>
-								<div class="col my-auto text-right">
-									<label id="acct_id" class="m-0" ></label>
-									<i class="fa fa-user-circle-o fa-2x icon"></i>
-								</div>
-							</div>
+                <span class="my-auto" id="acct_id"></span>
+              </div>
             </div>
             <div class="panel-body p-0">
               <!--Map-->
               <div id="map"></div>
               <!--Gift Stats-->
               <div class="row stats-row">
-                <div class="col-md-4 centered divider">
-                  <div class="stat-box">
-                    <i class="loading fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
-                    <h1 class="h1-stat" id="n_gifts" hidden></h1>
-                    <div hidden>Donations</div>
+                <div class="col-md-4 text-center divider">
+                  <div class="my-auto py-2">
+                    <i class="loading fa fa-circle-o-notch fa-spin fa-2x fa-fw mt-3"></i>
+                    <h1 class="stats-val" id="n_gifts" hidden></h1>
+                    <div class="stats-lbl" hidden>Donations</div>
                   </div>
                 </div>
-                <div class="col-md-4 centered divider">
-                  <div class="stat-box">
-                    <i class="loading fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
-                    <h1 class="h1-stat" id="total" hidden>
-                      <label class="float"></label>
+                <div class="col-md-4 text-center divider">
+                  <div class="my-auto py-2">
+                    <i class="loading fa fa-circle-o-notch fa-spin fa-2x fa-fw mt-3"></i>
+                    <h1 class="stats-val" id="total" hidden>
+                      <span class="float"></span>
                       <span class="decimal"></span>
                     </h1>
-                    <div hidden>Received Total</div>
+                    <div class="stats-lbl" hidden>Received Total</div>
                   </div>
                 </div>
-                <div class="col-md-4 centered">
-                  <div class="stat-box">
-                    <i class="loading fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
-                    <h1 class="h1-stat" id="avg" hidden>
-                      <label class="float"></label>
+                <div class="col-md-4 text-center">
+                  <div class="my-auto py-2">
+                    <i class="loading fa fa-circle-o-notch fa-spin fa-2x fa-fw mt-3"></i>
+                    <h1 class="stats-val" id="avg" hidden>
+                      <span class="float"></span>
                       <span class="decimal"></span>
                     </h1>
-                    <div hidden>Per Donation</div>
+                    <div class="stats-lbl" hidden>Per Donation</div>
                   </div>
                 </div>
               </div>
@@ -80,7 +76,7 @@
       </div>
       <!--Persona Panel-->
       <div class="col-md-12 p-0">
-          <div class="hpanel " id='contact_panel' hidden>
+          <div class="hpanel mb-3" id='contact_panel'>
             <div class="panel-heading">
               Personal Details
               <span class="pull-right">
@@ -118,7 +114,7 @@
       </div>
       <!--Pickup Service-->
       <div class="col-md-12 p-0">
-          <div class="hpanel" id='custom_panel' hidden>
+          <div class="hpanel" id='custom_panel'>
             <div class="panel-heading" style="">
               Pick-up Service
               <span class="pull-right">
@@ -153,11 +149,13 @@
             </div>
           </div>
       </div>
-    </div><!--End LEFT-COLUMN-->
-    <div class="col-12 col-xl-5">
+    </div>
+    <!--End Left Column-->
+    <!--Right Column-->
+    <div class="col-12 col-xl-5 p-0">
         <!--Chart Panel-->
         <div class="col-md-12 p-0">
-            <div class="hpanel chart-panel">
+            <div class="hpanel chart-panel mb-3">
               <div class="panel-heading">Donation History
                 <span class="pull-right">
                   <i class="fa fa-history" style="color:#ec8380;"></i>
@@ -169,54 +167,38 @@
                 </div>
                 <div class="col chart" id="chart" hidden></div>
               </div>
-							<div class="panel-footer">
-								<div class="row" id='timeline' hidden>
-							    <div class="col text-center">
-									  <small hidden>FROM </small>
+              <div class="panel-footer">
+                <div class="row" id='timeline' hidden>
+                  <div class="col text-center">
+                    <small hidden>FROM </small>
                     <small id="joined-d"></small> - 
                     <small id="last-gave-d"></small>
-									</div>
-								</div>
-							</div>
-            </div>
-        </div>
-        <!--Actions Panel-->
-        <div class="col-md-12 p-0">
-            <div class="hpanel act-panel" hidden>
-              <div class="panel-heading">
-                Actions
-                <span class="pull-right"><i class="fa fa-star"></i></span>
-              </div>
-              <div class="panel-body text-center">
-                <div class="row justify-content-md-center">
-                  <div class="col-6 text-center">
-                    <button type="button" class="btn btn-success btn-lg book-btn">
-                      <i class="fa fa-truck"></i>
-                      &nbsp;Book Pickup
-                    </button>
-                  </div>
-                  <div class="col-6 text-center">
-                    <button type="button" class="btn btn-success btn-lg chat-btn">
-                      <i class="fa fa-whatsapp"></i>
-                      &nbsp;Send SMS
-                    </button>
                   </div>
                 </div>
               </div>
             </div>
         </div>
-    </div><!--End RIGHT-COLUMN-->
-  </div><!--End row-->
-  <!--Internal-->
-  <div class="col-4" hidden>
-    <div class="hpanel" id='internal_panel' hidden>
-      <div class="panel-heading">Internal</div>
-      <div class="panel-body" id="internal">
-        <div class="row">
+        <!--Actions Panel-->
+        <div class="col-md-12 p-0">
+            <div class="hpanel act-panel">
+              <div class="panel-heading">
+                Actions
+                <span class="pull-right"><i class="fa fa-star"></i></span>
+              </div>
+              <div class="panel-body text-center">
+                <div class="d-flex justify-content-between px-3">
+                    <button type="button" class="btn btn-success btn-lg book-btn mr-3">
+                      <i class="fa fa-truck"></i>
+                      &nbsp;Book Pickup
+                    </button>
+                    <button type="button" class="btn btn-success btn-lg chat-btn">
+                      <i class="fa fa-whatsapp"></i>
+                      &nbsp;Send SMS
+                    </button>
+                </div>
+              </div>
+            </div>
         </div>
-      </div>
-      <div class="panel-footer">
-      </div>
     </div>
   </div>
   <!--Participation Panel-->
@@ -241,4 +223,4 @@
   </div>
 
   {% include "views/chat.html" %}
-  {% endblock %}
+{% endblock %}

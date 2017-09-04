@@ -1,6 +1,6 @@
 {% extends "views/base.html" %}
-{% block content %}
-  <!--Page Styles/Scripts-->
+
+{% block head %}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.standalone.min.css">
   <script src="{{url_for("main.static", filename="js/lib/morris.min.js")}}"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
@@ -10,65 +10,56 @@
   <link href="{{url_for("static", filename="main/css/lib/morris.css")}}" rel="stylesheet" type="text/css">
   <link href="{{url_for("static", filename="main/css/account.css")}}" rel="stylesheet" type="text/css">
   <script> jQuery(function($){analyticsInit(); initCharts();}); </script>
+{% endblock %}
 
-  <div class="row mt-4 mb-2" id="main">
-    <div class="col-md-12 p-0">
-      <!--Chart Panel-->
-      <div class="hpanel mb-3">
-        <div class="panel-heading" hidden>
-          <div class="col-12 text-center">
-            <h5 class="analy-title text-center mb-0">
-              <span id="grp_type"></span> Gift Estimates, 
-              <span id="title_start_d"></span>&ndash;
-              <span id="title_end_d"></span>
-            </h5>
-          </div>
-        </div>
-        <div class="analy-panel panel-body p-3">
-          <!--Chart Summary-->
-          <div id="summary" class="p-3" style="font-family:nova-proxima,sans-serif; font-size:14pt; background-color:white" hidden>
-            <div><span id="total"></span> Total</div>
-            <div><span id="avg"></span> Average</div>
-          </div>
-          <!--Logo-->
-          <div class="row loading" style="height:600px">
-            <div class="col-12 text-center my-auto">
-              <div class="chart-logo mx-auto"></div>
-              <h1 class="chart-logo-title mt-4">
-                Gift Graph
-              </h1>
-              <p class="chart-instr mt-3">
-                Analyze your gift data by selecting a date range below.
-              </p>
-            </div>
-            <div class="mx-auto my-auto" hidden>
-              <i class="spinner fa fa-circle-o-notch fa-spin fa-5x fa-fw"></i>
-            </div>
-          </div>
-          <!--Morris Chart-->
-          <div class="col chart mx-auto" id="chart" hidden></div>
-        </div>
-        <div class="panel-footer" style="background-color:white"></div>
+{% block content %}
+  <div class="hpanel mt-5 mb-3"><!--Chart Panel-->
+    <div class="panel-heading" hidden>
+      <div class="col-12 text-center">
+        <h5 class="analy-title text-center mb-0">
+          <span id="grp_type"></span> Gift Estimates, 
+          <span id="title_start_d"></span>&ndash;
+          <span id="title_end_d"></span>
+        </h5>
       </div>
     </div>
+    <div class="analy-panel panel-body p-3">
+      <div id="summary" class="p-3"  hidden><!--Chart Summary-->
+        <div><span id="total"></span> Total</div>
+        <div><span id="avg"></span> Average</div>
+      </div>
+      <div class="row loading" style="height:400px">
+        <div class="col-12 text-center my-auto">
+          <div class="chart-logo mx-auto"></div>
+          <h1 class="chart-logo-title mt-4" hidden>
+            Gift Graph
+          </h1>
+          <p class="chart-instr mt-3">
+            Visualize your data with the options below.
+          </p>
+        </div>
+        <div class="mx-auto my-auto" hidden>
+          <i class="spinner fa fa-circle-o-notch fa-spin fa-5x fa-fw"></i>
+        </div>
+      </div>
+      <div class="col chart mx-auto" id="chart" hidden></div><!--Morris Chart-->
+    </div>
+    <div class="panel-footer" style="background-color:white"></div>
   </div>
-  <!--Chart Controls-->
-  <div class="d-flex justify-content-center">
-    <div class="col-5 input-daterange input-group">
+  <div class="d-flex justify-content-center flex-wrap"><!--Chart Controls-->
+    <div class="col-12 col-sm-6 input-daterange input-group">
       <input id="start-date" name="start" type="text" class="form-control" placeholder="FROM (mm/dd/yyyy)">
       <div id="start-btn" class="input-group-addon fa fa-calendar"></div>
       <input id="end-date" name="end" type="text" class="form-control" placeholder="UNTIL (mm/dd/yyyy)">
       <div id="end-btn" class="input-group-addon fa fa-calendar"></div>
     </div>
     <div class="dropdown">
-      <button type="button" class="btn btn-secondary dropdown-toggle" style="" data-toggle="dropdown">Preset Periods</button>
+      <button type="button" class="btn btn-secondary dropdown-toggle" style="" data-toggle="dropdown">Select Dataset</button>
       <div class="dropdown-menu dropdown-menu-right" aria-labelledby="filterBtn">
-        <a class="dropdown-item" id="fltr-all" href="#">Last 7 Days</a>
-        <a class="dropdown-item" id="fltr-read" href="#">This Month</a>
-        <a class="dropdown-item" id="fltr-unread" href="#">Last 3 Months</a>
-        <a class="dropdown-item" id="fltr-unreg" href="#">This Year</a>
+        <a class="dropdown-item" id="fltr-all" href="#">Gift Revenue</a>
+        <a class="dropdown-item" id="fltr-read" href="#">Donor Growth/Attrition</a>
       </div>
     </div>
-    <button type="button" id="analyze" class="btn btn-primary ml-3" disabled>Analyze Gifts</button>
+    <button type="button" id="analyze" class="btn btn-primary ml-3" disabled>Visualize</button>
   </div>
 {% endblock %}

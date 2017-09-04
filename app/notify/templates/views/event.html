@@ -1,14 +1,14 @@
-  {% extends "views/base.html" %}
-  {% block content %} 
-	<script type="text/javascript"
-					src="//media.twiliocdn.com/sdk/js/client/v1.3/twilio.min.js">
-	</script>
-	<script type="text/javascript" 
-					src="{{url_for("notify.static", filename="js/event.js")}}">
-	</script>
+{% extends "views/base.html" %}
+
+{% block head %}
+  <script type="text/javascript" src="//media.twiliocdn.com/sdk/js/client/v1.3/twilio.min.js"></script>
+  <script type="text/javascript" src="{{url_for("notify.static", filename="js/event.js")}}"></script>
   <script> $(function() {init();}); </script>
+{% endblock %}
   
-  <div style="margin-bottom:15em; max-width:1600px" class="container-fluid p-0">
+{% block content %} 
+  <div class="alert br-alert"></div>
+  <div class="my-5">
     <div class="card"> 
       <div class="card-header blue">
         <label style="font-weight:400; font-size:1.5rem">
@@ -145,6 +145,6 @@
       </tbody>
       </table>
     </div>
-</div>
+  </div>
 	<div style="margin-bottom:15em"></div>
-  {% endblock %}
+{% endblock %}

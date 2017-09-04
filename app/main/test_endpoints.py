@@ -21,7 +21,15 @@ def _test_wipe_sessions():
 @main.route('/test_cache_gifts', methods=['GET'])
 def _test_cache_ytd():
     from app.main.tasks import build_gift_cache
-    build_gift_cache.delay(query="All Gifts", group='wsf', start=103500)
+    build_gift_cache.delay(query="All Gifts", group='wsf', start=230500)
+    return 'ok'
+
+@login_required
+@main.route('/test_net', methods=['GET'])
+def _test_cancels():
+    from datetime import date
+    from app.main.analytics import net_accounts
+    net_accounts(start=date(2017,1,1),end=date.today())
     return 'ok'
 
 #-------------------EXPERIMENTAL------------------

@@ -1,15 +1,12 @@
 /* recent.js */
 
 page = 0;
-
-
 var list_item_styles = {
     'DEBUG': '',
     'INFO': 'list-group-item-info',
     'WARNING': 'list-group-item-warning',
     'ERROR': 'list-group-item-danger'
 };
-
 var grp_keys = {
     'grp-org': 'org_name',
     'grp-sys': 'sys',
@@ -117,9 +114,6 @@ function requestLogEntries() {
     data['groups'] = JSON.stringify(data['groups']);
     data['tags'] = JSON.stringify(data['tags']);
     data['page'] = page;
-    //var url = new URL(window.location.href);
-    //data['page'] = Number(url.searchParams.get('p'));
-    //console.log('page='+data['page']);
 
     api_call('logger/get', data=data, renderLogEntries);
 }
@@ -163,6 +157,10 @@ function renderLogEntries(resp) {
     $('#recnt_list').empty();
 
     console.log("%s. %s events returned", resp['status'], resp['data'].length);
+
+    $('#start-date').val(new Date(logs[0]['standard']['timestamp']['$date']).strftime("%m/%d/%Y"));
+    $('#end-date').val(new Date(logs[logs.length-1]['standard']['timestamp']['$date']).strftime("%m/%d/%Y"));
+
 
     for(var i=0; i<logs.length; i++) {
         var std = logs[i]['standard'];

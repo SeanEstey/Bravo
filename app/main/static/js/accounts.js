@@ -33,7 +33,6 @@ function accountsInit() {
     });
 
     $('#search_ctnr').prepend($('.br-alert'));
-    //$('.br-alert').prop('hidden', true);
     $('.br-alert').first().prop('id','top-alert');
 
     $('.book-btn').click(function(){
@@ -291,24 +290,20 @@ function displayDonationData(response) {
             n_gifts--;
     }
 
-    total = total.toFixed(2);
+    //total = total.toFixed(2);
     if(n_gifts > 0)
-        var avg_gift = (total/n_gifts).toFixed(2);
+        var avg_gift = (total/n_gifts); 
     else
-        var avg_gift = "--";
+        var avg_gift = 0.0;
 
     // Render summary info
     $('#n_gifts').html(n_gifts);
-    $('#n_gifts').parent().prop('hidden', false);
-    $('#avg label').html('$'+ avg_gift.split(".")[0] +'.');
-    $('#avg span').html( avg_gift.split(".")[1]);
-    $('#avg').parent().prop('hidden', false);
-    $('#total label').html('$' + total.split(".")[0] + '.');
-    $('#total span').html( total.split(".")[1]);
-    $('#total').parent().prop('hidden', false);
-    $('.stat-box .loading').hide();
-    $('.stat-box h1').prop('hidden',false);
-    $('.stat-box div').prop('hidden',false);
+    $('#avg .float').html('$'+ Sugar.Number.abbr(avg_gift,0));
+    $('#total .float').html('$' + Sugar.Number.abbr(total,2));
+
+    $('.stats-row .loading').hide();
+    $('.stats-row .stats-val').prop('hidden',false).show();
+    $('.stats-row .stats-lbl').prop('hidden',false).show();
     $('.chart-panel .loading').hide();
 
     if(gifts.length > 0) {
@@ -420,7 +415,7 @@ function displayAcctData(acct) {
             'alice/chatlogs',
             data={'mobile':dv_sms},
             function(response){
-                console.log(response['data']);
+                //console.log(response['data']);
                 response['data']['account'] = gAcct;
                 var $chat_btn = $('.chat-btn');
                 $chat_btn.data('details', response['data']);

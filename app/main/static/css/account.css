@@ -63,48 +63,41 @@
     color:white;
 }
 .profile #map{
-    height: 250px;
+    height: 200px;
     border: 1px solid #eaeeea;
 }
 .profile .stats-row {
-    height:120px;
     color: #6a6c6f;
     margin: 0;
-}
-.profile .col-md-4 .centered {
-    margin: auto auto auto auto;
-    text-align: center;
-    padding:0.25rem;
 }
 .profile .divider {
     border-right: 1px solid #eaeaea;
 }
-.profile .stat-box {
-    padding: 0.25rem;
-    text-align: center;
-    margin: auto auto auto auto;
-}
-.profile .stat-box .loading {
+.profile .loading {
     margin-top: 1em;
     color: #dfdfdf!important;
 }
-.profile .h1-stat {
-    font-weight: normal;
-    font-size: 3.0rem;
+.stats-val {
+    font-family: "Open Sans", sans-serif;
+    font-size: 2.5rem;
+    font-weight: 400;
+    letter-spacing: 1px;
     color: #20a8d8;
-    margin-top: 1rem;
-    margin-bottom: 0rem;
-    text-align:center;
+    margin-bottom:0;
+}
+.stats-lbl {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
 }
 .profile .h1-stat .float {
     margin-left: 1rem;
     margin-bottom: 0;
 }
-.profile .h1-stat .decimal {
+.decimal {
     font-size: 0.4em;
     vertical-align: baseline;
     top: -1.0em;
-    left: -0.2em;
+    left: -0.75em;
     position: relative;
 }
 
@@ -112,6 +105,16 @@
     Field name: #A0A0A2!important; (light gray)
     Field value: #6a6c6f!important; (dark gra)
 */
+
+#contact_panel .panel-body {
+    min-height:150px;
+}
+#custom_panel .panel-body {
+    min-height:250px;
+}
+#act-panel .panel-body {
+    min-height:120px;
+}
 
 #contact_panel .panel-heading, 
 #custom_panel .panel-heading {

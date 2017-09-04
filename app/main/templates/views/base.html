@@ -3,42 +3,45 @@
 	<head>
 		<meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1">
     <title>Bravo</title>
-    <!--Styling-->
+    <script>a = new Date();</script>
+    <script src="{{url_for("static", filename="main/js/lib/sugar.min.js")}}"></script>
     <link href="https://fonts.googleapis.com/css?family=Montserrat|Open+Sans:400,700" rel="stylesheet">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css">
 		<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
 		<link href="{{url_for("static", filename="main/images/favicon.ico")}}" rel="shortcut icon">
     <link href="{{url_for("static", filename="main/css/style.css")}}" rel="stylesheet" type="text/css">
-    <!--Libraries-->
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
-    <!--Typekit Fonts-->
     <script src="https://use.typekit.net/hzp0zhz.js"></script>
     <script>try{Typekit.load({async:false});}catch(e){}</script>
+    {% block head %}
+    {% endblock %}
   </head>
   <body>
-    <div class="container-fluid p-0" id="navs">
+    <div id="navs" class="container-fluid p-0">
       {% include "views/navbar.html" %}
     </div>
-    <div class="container-fluid" style="max-width:1600px">
-      <div class="alert br-alert"></div>
-      {% block content %}{% endblock %}
-      {% include "views/dialog.html" %}
+    <div id="content" class="container-fluid mx-auto">
+      {% block content %}
+      {% endblock %}
     </div>
-    <div id="libs">
+    <div id="post-libs">
+      <!--Deferred libraries to reduce page load time-->
       <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"></script>
       <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/js/bootstrap-datepicker.min.js"></script>
       <script type=text/javascript>var $URL_ROOT={{request.url_root|tojson|safe}}</script>
-      <script src="{{url_for("static", filename="main/js/lib/sugar.min.js")}}"></script>
       <script src="{{url_for("static", filename="main/js/lib/date.js")}}"></script>
       <script src="{{url_for("static", filename="main/js/lib/strftime.js")}}"></script>
       <script src="{{url_for("static", filename="main/js/utils.js")}}"></script>
       <script src="{{url_for("static", filename="main/js/app.js")}}"></script>
+      {% block postlibs %}
+      {% endblock %}
       <script>
         $.fn.bDatepicker = $.fn.datepicker; // Name conflicts
         initSearchBar();
+        console.log('Page drawn in ' + Sugar.Date.millisecondsAgo(a) + 'ms.');
       </script>
     </div>
   </body>

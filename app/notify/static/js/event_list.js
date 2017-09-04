@@ -8,7 +8,6 @@ function initEventList() {
 
     getEventData();
 	loadTooltip();
-	//buildAdminPanel();
 	addDeleteBtnHandlers();
 	addSocketIOHandlers();
 	addPageNavHandlers();
@@ -25,8 +24,6 @@ function getEventData() {
         'notify/events/get_recent', 
         data=null,
         function(response){
-            console.log(response['data']);
-
             event_data = response['data']
 
             for(var i=0; i<event_data.length; i++) {
@@ -166,15 +163,11 @@ function addSocketIOHandlers() {
 
     socket = io.connect('https://' + document.domain + ':' + location.port);
     socket.on('connect', function(){
-        console.log('socket.io connected!');
+        console.log('socket.io connected.');
 
         socket.on('joined', function(response) {
             console.log(response);
         });
-    });
-
-    socket.on('test', function(data){
-        console.log('test! data='+data);
     });
 
     socket.on('update_event', function(data) {

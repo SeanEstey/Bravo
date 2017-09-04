@@ -1,17 +1,19 @@
 {% extends "views/base.html" %}
+
+{% block postlibs %}
+  <script type="text/javascript" src="{{url_for("main.static", filename="js/admin.js")}}"></script>
+  <script>jQuery(function($){init();});</script>
+{% endblock %}
+
 {% block content %}
-
-<script type="text/javascript" src="{{url_for("main.static", filename="js/admin.js")}}"></script>
-<script>jQuery(function($){init();});</script>
-
-<div class="container" style="max-width:1600px">
 	<div class="tab-content">
     <!-- Me Pane -->
 		<div class="tab-pane" id="me" style='margin-bottom:7em' role="tabpanel">
-      <div class="d-flex justify-content-center">
-        <div class="card m-3" style="width:1000px;">
-          <div class="card-header admin-card-header"><h4 class="admin-card-title">My Settings</h4></div>
+      <div class="d-flex justify-content-center mt-5">
+        <div class="card" style="width:800px; margin:.5em .5em; font-family:'Open Sans', sans-serif;">
           <div class="card-block px-5">
+            <h4 class="admin-card-title">My Settings</h4>
+            <hr>
             <form id="user_form">
               <div class="form-label">
                 Name: 
@@ -39,163 +41,141 @@
     </div>
     <!-- Services Pane -->
 		<div class="tab-pane" id="services" style='margin-bottom:7em' role="tabpanel">
-      <div class="row mx-auto justify-content-center m-3" style="max-width:1000px;">
-
-        <div class="card" style="width:350px; margin:.5em .5em; font-family:'Montserrat', sans-serif;">
+      <div class="row mx-auto justify-content-center m-3 mt-5" style="max-width:1000px;">
+        <div class="card" style="width:400px; margin:.5em .5em; font-family:'Open Sans', sans-serif;">
           <div class="card-block px-5">
             <h4 class="admin-card-title">CRM</h4>
             <hr>
-            <div class="form-label">Service: <b>eTapestry v7.2.9</b></div>
+            <div class="form-label">Service: 
+              <span>eTapestry v7.2.9</span>
+            </div>
             <div class="form-label">Organization: 
-            <b><span id="crm_org_name">Vecova</span></b>
+              <span id="crm_org_name">Vecova</span>
             </div>
             <div class="form-label">Account ID: 
-            <b><span id="crm_acct_id">bpu_api</span></b>
+              <span id="crm_acct_id">bpu_api</span>
             </div>
-            <div class="form-label">API: <b>v3</b></div>
+            <div class="form-label">API: 
+              <span>v3</span>
+            </div>
           </div>
         </div>
-
-        <div class="card" style="width:350px; margin:.5em .5em; font-family:'Montserrat', sans-serif;">
+        <div class="card" style="width:400px; margin:.5em .5em; font-family:'Open Sans', sans-serif;">
           <div class="card-block px-5">
             <h4 class="admin-card-title">Google</h4>
             <hr>
             <div class="form-label">Service Account ID: 
-            <span id="service_acct" data-toggle="tooltip" data-placement="right" title="" data-original-title=""><b>bravo-738</b>
-            <i class="fa fa-question-circle-o"></i>
-            </span>
+              <span id="service_acct" data-toggle="tooltip" data-placement="right" title="" data-original-title="">
+                <span>bravo-738</span>
+                <i class="fa fa-question-circle-o"></i>
+              </span>
             </div>
             <div class="form-label">Linked Calendars: 
-            <a id="linked_cal" data-toggle="tooltip" data-placement="right" title="" href="" data-original-title="">routes</a>
+              <a id="linked_cal" data-toggle="tooltip" data-placement="right" title="" href="" data-original-title="">routes</a>
             </div>
             <div class="form-label">Linked Sheets:
-            <a href="">Bravo Sheets</a>
+              <a href="">Bravo Sheets</a>
             </div>
           </div>
         </div>
-
-        <div class="card" style="width:350px; margin:.5em .5em; font-family:'Montserrat', sans-serif;">
+        <div class="card" style="width:400px; margin:.5em .5em; font-family:'Open Sans', sans-serif;">
           <div class="card-block px-5">
             <h4 class="admin-card-title">Notify</h4>
             <hr>
-            <div class="form-label">Voice/SMS Service: <b>Twilio</b></div>
-            <div class="form-label">Account ID: 
-              <b><span id="twilio_acct_id">estese@gmail.com</span></b>
+            <div class="form-label">Voice/SMS Service: 
+              <span>Twilio</span>
             </div>
-            <div class="form-label">API: <b>v5.7.0</b></div>
+            <div class="form-label">Account ID: 
+              <span id="twilio_acct_id">estese@gmail.com</span>
+            </div>
+            <div class="form-label">API: 
+              <span>v5.7.0</span>
+            </div>
             <div class="form-label">Phone Number: 
-              <b><span id="phone_number">+15874012267</span></b>
+              <span id="phone_number">+15874012267</span>
             </div>
-            <div class="form-label">Email Service: <b>Mailgun</b></div>
+            <div class="form-label">Email Service: 
+              <span>Mailgun</span>
+            </div>
             <div class="form-label">Account ID: 
-              <b><span id="mailgun_acct_id">estese@gmail.com</span></b>
+              <span id="mailgun_acct_id">estese@gmail.com</span>
             </div>
-            <div class="form-label">API: <b>v3</b></div>
+            <div class="form-label">API: 
+              <span>v3</span>
+            </div>
           </div>
         </div>
-
-        <div class="card" style="width:350px; margin:.5em .5em; font-family:'Montserrat', sans-serif;">
+        <div class="card" style="width:400px; margin:.5em .5em; font-family:'Montserrat', sans-serif;">
           <div class="card-block px-5">
             <h4 class="admin-card-title">Routing</h4>
             <hr>
             <form>
-              <div class="form-label">Routing Service: <b>Routific</b></div>
-              <div class="form-label">Account ID: 
-              <b><span id="routing_acct_id">recycle@vecova.ca</span></b>
+              <div class="form-label">Routing Service: 
+                <span>Routific</span>
               </div>
-              <div class="form-label">API: <b>v1.5.0</b></div>
+              <div class="form-label">Account ID: 
+                <span id="routing_acct_id">recycle@vecova.ca</span>
+              </div>
+              <div class="form-label">API: 
+                <span>v1.5.0</span>
+              </div>
             </form>
           </div>
         </div>
-
       </div>
     </div>
     <!-- Previewer Pane -->
 		<div class="tab-pane" id="previewer" style='margin-bottom:5em' role="tabpanel">
-      <div class="d-flex justify-content-center mt-4">
-        <div class="card m-3">
-          <div class="card-header admin-card-header"><h4 class="admin-card-title">Email Previewer</h4></div>
+      <div class="d-flex justify-content-center mt-5">
+        <div class="card m-3" style="width:800px; font-family: 'Open Sans', sans-serif;">
           <div class="card-block px-5">
-            <div class="mb-3">
-              <h5>Email Receipts</h5>
-              <table border="0" cellpadding="5" cellspacing="10">
-                <form id="receipt_form" style="margin-top:4em"></form>
-                  <tbody>
-                    <tr>
-                      <td>
-                        <select name="type_" class="form-control">
-                          <option value="donation">Donation</option>
-                          <option value="no_donation">No Donation</option>
-                          <option value="zero_donation">$0 Donation</option>
-                          <option value="post_drop">Post Dropoff</option>
-                          <option value="cancelled">Cancellation</option>
-                        </select>
-                      </td>
-                      <td>
-                        <button id="receipt_btn" class="btn btn-info">Preview</button>
-                      </td>
-                    </tr>
-                  </tbody>
-              </table>
+            <h4 class="admin-card-title mb-5">Notification Preview</h4>
+            <hr class="mb-4">
+            <div>    
+              <h5 style="font-weight:400;">Receipts</h5>
+              <div class="d-flex justify-content-between my-3">
+                  <select name="type_" class="form-control mr-5">
+                    <option value="donation">Donation</option>
+                    <option value="no_donation">No Donation</option>
+                    <option value="zero_donation">$0 Donation</option>
+                    <option value="post_drop">Post Dropoff</option>
+                    <option value="cancelled">Cancellation</option>
+                  </select>
+                <button id="receipt_btn" class="btn btn-info">View</button>   
+              </div>
             </div>
-            <div class="mb-3">
-              <h5>Email Notifications</h5>
-              <table border="0" cellpadding="5" cellspacing="10">
-              <form id="email_notific_form" style="margin-top:2em" disabled=""></form>
-              <tbody><tr>
-              <td>
-              <input name="template" value="reminder" hidden="">
-              <select name="state" class="form-control">
-              <option value="res_pickup">Residential Pickup</option>
-              <option value="res_drop">Residential Dropoff</option>
-              <option value="res_cancel">Residential Cancelling</option>
-              <option value="bus_pickup">Business Pickup</option>
-              </select>
-              </td>
-              <td>
-              <button id="email_notific_btn" class="btn btn-info">Preview</button>
-              </td>
-              </tr>
-              </tbody>
-              </table>
+            <div>    
+              <h5 style="font-weight:400;">Email</h5>
+              <div class="d-flex justify-content-between my-3">
+                  <select name="state" class="form-control mr-5">
+                    <option value="res_pickup">Residential Pickup</option>
+                    <option value="res_drop">Residential Dropoff</option>
+                    <option value="res_cancel">Residential Cancelling</option>
+                    <option value="bus_pickup">Business Pickup</option>
+                  </select>
+                <button id="receipt_btn" class="btn btn-info">View</button>   
+              </div>
             </div>
-            <div class="mb-3">
-              <h5>Voice Notifications</h5>
-              <table border="0" cellpadding="5" cellspacing="10">
-              <form id="voice_notific_form" style="margin-top:2em" disabled=""></form>
-              <tbody><tr>
-              <td>
-              <select name="type_" class="form-control" disabled="">
-              <option value="res_pickup">Residential Pickup</option>
-              <option value="res_drop">Residential Dropoff</option>
-              <option value="res_cancel">Residential Cancelling</option>
-              <option value="bus_pickup">Business Pickup</option>
-              </select>
-              </td>
-              <td>
-              <button id="notific_btn" class="btn btn-info" disabled="">Preview</button>
-              </td>
-              </tr>
-              </tbody>
-              </table>
+            <div>    
+              <h5 style="font-weight:400;">SMS</h5>
+              <div class="d-flex justify-content-between my-3">
+                  <select name="type_" class="form-control mr-5">
+                    <option value="res_pickup">Residential Pickup</option>
+                  </select>
+                <button id="receipt_btn" class="btn btn-info">View</button>   
+              </div>
             </div>
-            <div class="mb-3">
-              <h5>SMS Notifications</h5>
-              <table border="0" cellpadding="5" cellspacing="10">
-                <form id="sms_notific_form" style="margin-top:2em"></form>
-                <tbody>
-                  <tr>
-                    <td>
-                      <select name="type_" class="form-control">
-                      <option value="res_pickup">Residential Pickup</option>
-                      </select>
-                    </td>
-                    <td>
-                      <button id="sms_btn" class="btn btn-info">Preview</button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div>    
+              <h5 style="font-weight:400;">Voice</h5>
+              <div class="d-flex justify-content-between my-3">
+                <select name="type_" class="form-control mr-5">
+                  <option value="res_pickup">Residential Pickup</option>
+                  <option value="res_drop">Residential Dropoff</option>
+                  <option value="res_cancel">Residential Cancelling</option>
+                  <option value="bus_pickup">Business Pickup</option>
+                </select>
+                <button id="receipt_btn" class="btn btn-info">View</button>   
+              </div>
             </div>
           </div>
         </div>
@@ -206,78 +186,125 @@
     </div>
     <!-- Statistics Pane -->
 		<div class="tab-pane active" id="stats" style='margin-bottom:7em' role="tabpanel">
-      <div class="row mx-auto justify-content-center m-3" style="max-width:1000px;">
-
-        <div class="card admin-card text-center">
-          <div class="my-auto p-4">
-            <div class="admin-stat" id="n_cached_accounts"></div>
-            <div class="admin-lbl">Accounts Cached</div>
+      <div class="row mx-auto justify-content-center m-3 mt-5" style="max-width:1200px;">
+        <!--Organization-->
+        <div class="col-12" style="max-width:1000px;">
+          <h4 class="mb-0" style="color:rgba(99, 108, 114, 0.68); letter-spacing:1px; font-weight:400; margin:0;">Donors</h4>
+        </div>
+        <div class="d-flex p-0 pl-3 my-2 align-content-center flex-wrap">
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="n_donors"></div>
+              <div class="admin-lbl">Active Donors</div>
+            </div>
+          </div>
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="">64%</div>
+              <div class="admin-lbl">Collection Rate</div>
+            </div>
+          </div>
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="">$854</div>
+              <div class="admin-lbl">Avg Revenue/Day</div>
+            </div>
+          </div>
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="">$8.7k</div>
+              <div class="admin-lbl">MTD Revenue</div>
+            </div>
+          </div>
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="">$19.8k</div>
+              <div class="admin-lbl">Revenue/Month</div>
+            </div>
           </div>
         </div>
-        <div class="card admin-card text-center">
-          <div class="my-auto p-4">
-            <div class="admin-stat" id="n_cached_geolocations"></div>
-            <div class="admin-lbl">Geolocations Cached</div>
+        <!--Activity-->
+        <div class="col-12" style="max-width:1000px;">
+          <h4 class="mb-0" style="color:rgba(99, 108, 114, 0.68); letter-spacing:1px; font-weight:400; margin:0;">Activity</h4>
+        </div>
+        <div class="d-flex p-0 pl-3 my-2 align-content-center flex-wrap">
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="">16.2k</div>
+              <div class="admin-lbl">Emails Sent/Month</div>
+            </div>
+          </div>
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="n_alice_convos"></div>
+              <div class="admin-lbl">Alice Convos</div>
+            </div>
+          </div>
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="n_alice_incoming"></div>
+              <div class="admin-lbl">Alice Replies</div>
+            </div>
+          </div>
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="n_notific_events"></div>
+              <div class="admin-lbl">Notify Events</div>
+            </div>
+          </div>
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="n_users"></div>
+              <div class="admin-lbl">Bravo Users</div>
+            </div>
           </div>
         </div>
-        <div class="card admin-card text-center">
-          <div class="my-auto p-4">
-            <div class="admin-stat" id="n_cached_gifts"></div>
-            <div class="admin-lbl">Gifts Cached</div>
-          </div>
+        <!--System Usage Stats-->
+        <div class="col-12" style="max-width:1000px;">
+          <h4 class="mb-0" style="color:rgba(99, 108, 114, 0.68); letter-spacing:1px; font-weight:400; margin:0;">Usage</h4>
         </div>
-        <div class="card admin-card text-center">
-          <div class="my-auto p-4">
-            <div class="admin-stat" id="n_donors"></div>
-            <div class="admin-lbl">Active Donors</div>
+        <div class="d-flex p-0 pl-3 my-2 align-content-center flex-wrap">
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="n_cached_accounts"></div>
+              <div class="admin-lbl">Stored Accounts</div>
+            </div>
           </div>
-        </div>
-        <div class="card admin-card text-center">
-          <div class="my-auto p-4">
-            <div class="admin-stat" id="n_alice_convos"></div>
-            <div class="admin-lbl">Alice Convos</div>
+          <div class="card admin-card text-center" hidden>
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="n_cached_geolocations"></div>
+              <div class="admin-lbl">Stored Geolocations</div>
+            </div>
           </div>
-        </div>
-        <div class="card admin-card text-center">
-          <div class="my-auto p-4">
-            <div class="admin-stat" id="n_alice_incoming"></div>
-            <div class="admin-lbl">Alice Replies</div>
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="n_cached_gifts"></div>
+              <div class="admin-lbl">Stored Gifts</div>
+            </div>
           </div>
-        </div>
-        <div class="card admin-card text-center">
-          <div class="my-auto p-4">
-            <div class="admin-stat" id="n_maps_indexed"></div>
-            <div class="admin-lbl">Zone Maps</div>
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="n_maps_indexed"></div>
+              <div class="admin-lbl">Stored Maps</div>
+            </div>
           </div>
-        </div>
-        <div class="card admin-card text-center">
-          <div class="my-auto p-4">
-            <div class="admin-stat" id="n_notific_events"></div>
-            <div class="admin-lbl">Notify Events</div>
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="db_size"></div>
+              <div class="admin-lbl">Database Size (MB)</div>
+            </div>
           </div>
-        </div>
-        <div class="card admin-card text-center">
-          <div class="my-auto p-4">
-            <div class="admin-stat" id="n_users"></div>
-            <div class="admin-lbl">Bravo Users</div>
+          <div class="card admin-card text-center">
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="sys_mem"></div>
+              <div class="admin-lbl">Mem Usage</div>
+            </div>
           </div>
-        </div>
-        <div class="card admin-card text-center">
-          <div class="my-auto p-4">
-            <div class="admin-stat" id="sys_mem"></div>
-            <div class="admin-lbl">Mem Usage</div>
-          </div>
-        </div>
-        <div class="card admin-card text-center">
-          <div class="my-auto p-4">
-            <div class="admin-stat" id="db_size"></div>
-            <div class="admin-lbl">DB Size</div>
-          </div>
-        </div>
-        <div class="card admin-card text-center">
-          <div class="my-auto p-4">
-            <div class="admin-stat" id="n_sessions"></div>
-            <div class="admin-lbl">Sessions</div>
+          <div class="card admin-card text-center" hidden>
+            <div class="my-auto p-4">
+              <div class="admin-stat" id="n_sessions"></div>
+              <div class="admin-lbl">Sessions</div>
+            </div>
           </div>
         </div>
 
@@ -293,5 +320,4 @@
       </button>
     </div>
   </div>
-</div>
 {% endblock %}

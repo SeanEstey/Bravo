@@ -32,13 +32,14 @@ function drawMorrisBarChart(id, data, xkey, ykeys, options, ext_options=null) {
         grid: false,
         hideHover: 'auto',
         hoverCallback: null, // replace w/ custom function
-        barColors: ['#ec8380'], // cherry red
+        barColors: ['#ec8380','#279bbe'], // red, blue
         gridTextColor: ['#6a6c6f'],
         gridTextSize: 14,
         gridTextWeight: 300,
         padding: 15,
         barSizeRatio: .80,
         barWidth: 25,
+        stacked:false,
         resize: true
     };
 

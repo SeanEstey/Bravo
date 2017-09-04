@@ -12,6 +12,7 @@
     background-color:white;
     border-bottom: solid 1px #eaeaea;
     color: #6a6c6f;
+    letter-spacing:1px;
     font-weight: 400;
     padding: 13px 20px 13px 20px;
     transition: all .3s;
@@ -79,7 +80,7 @@
 }
 .stats-val {
     font-family: "Open Sans", sans-serif;
-    font-size: 2.5rem;
+    font-size: 2.0rem;
     font-weight: 400;
     letter-spacing: 1px;
     color: #20a8d8;
@@ -118,7 +119,7 @@
 
 #contact_panel .panel-heading, 
 #custom_panel .panel-heading {
-    color: #20a8d8!important;
+    /*color: #20a8d8!important;*/
 }
 #edit-confirm button {
     cursor: pointer;

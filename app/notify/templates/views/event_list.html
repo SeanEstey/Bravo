@@ -9,8 +9,8 @@
 {% endblock %}
 
 {% block content %}  
-  <div class="alert br-alert"></div>
-  <div class="px-0 my-5">
+  <div class="alert br-alert" style="display:none"></div>
+  <div class="px-0 mb-5">
     <div>
       <label style="font-weight:400; font-size:1.5rem">
         <a class="hover" style=""
@@ -40,20 +40,20 @@
   <!--Page End-->
 
   <!--EVENT ITEM-->
-  <a href="#" id="event_item" class="list-group-item list-group-item-action recent-event-item" hidden>
-    <div class="col-1 pl-0">
+  <a href="#" id="event_item" class="justify-content-between flex-wrap list-group-item list-group-item-action recent-event-item text-left" hidden>
+    <div id="evnt-d" class="col-4 col-sm-1">
       <div class="event-item-mon" id="evnt_mon"></div>
       <div class="event-item-day" id="evnt_day"></div>
     </div>
-    <div class="col-1 pl-0">
+    <div id="evnt-name" class="col-4 col-sm-1">
       <div id="event_name"></div>
     </div>
-    <div class="col-2">
+    <div id="evnt-cat" class="col-4 col-sm-2">
       <h6 class="mb-0">
         <span id="category"></span>
       </h6>
     </div>
-    <div class="col-2">
+    <div class="col-4 col-sm-2">
       <div id="inbox_icon" class="d-inline-block align-middle mr-2">
         <div style="text-align:center">
           <i class="fa fa-inbox fa-2x" aria-hidden="true"></i>
@@ -65,7 +65,7 @@
         <small class="card-text text-muted" id="email_dt"></small>
       </div>
     </div>
-    <div class="col-2">
+    <div class="col-4 col-sm-2">
       <div id="phone_icon" class="d-inline-block align-middle mr-2">
         <div style="text-align:center">
           <i class="fa fa-phone fa-2x" aria-hidden="true"></i>
@@ -77,7 +77,7 @@
         <small class="card-text text-muted" id="voice_dt"></small>
       </div>
     </div>
-    <div class="col-2">
+    <div class="col-4 col-sm-2">
       <div id="mobile_icon" class="d-inline-block align-middle mr-2">
         <div style="text-align:center">
           <i class="fa fa-mobile fa-3x" aria-hidden="true"></i>
@@ -89,7 +89,7 @@
         <small class="card-text text-muted" id="sms_dt"></small>
       </div>
     </div>
-    <div class="col-2 text-right">
+    <div class="col-12 col-sm-2">
       <button 
         data-toggle="tooltip"	class="btn btn-secondary btn-outline btn-sm delete-btn"
         type="button" title="Delete this event" name="delete-btn">

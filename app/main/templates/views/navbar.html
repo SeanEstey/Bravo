@@ -1,119 +1,126 @@
 
-<!--Main Navbar-->
-<nav id="main-nav" class="navbar navbar-toggleable-md navbar-light justify-content-center">
-  <!--Logo 1/3-->
-  <a id="logo_a" class="navbar-brand text-center" style="height:60px" href="/notify/">
-    <span class="align-middle"><img id="logo_img" class="logo-img-sm d-inline-block .m-x-auto"></span>
-  </a>
-  <!--SearchBar 2/3-->
-  <div id="searchbar">
-    <div class="dropdown">
-      <div class="input-group ml-2">
-        <input id="search_input" class="form-control col-sm-10 ml-2 dropdown-toggle"
-        name="acct" type="text" data-toggle="dropdown" style="background-color:whitesmoke"
-        placeholder="Search accounts..." autocomplete="off" autofocus>
-        <!--Dropdown-->
-        <div class="dropdown-menu ml-2"></div>
-        <div class="input-group-btn">
-          <button class="btn btn-secondary px-2 py-1" type="button" id="search">
-            <i class="fa fa-search"></i>
-          </button>
+<div id="navs" class="container-fluid p-0 mb-5">
+  <nav id="main-nav" class="navbar navbar-toggleable-md navbar-light justify-content-center" style="display:flex; padding:.5em 0em">
+    <button id="menu-toggle-btn" class="navbar-toggler collapsed" style="display:none" type="button" data-toggle="collapse" data-target="#invisi-nav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <a id="logo_a" class="navbar-brand text-center" style="" href="/notify/">
+      <img id="logo_img" class="logo-img-sm d-inline-block .m-x-auto">
+    </a>
+    <div id="searchbar" style="display:block">
+      <div class="dropdown">
+        <div class="input-group ml-2">
+          <input id="search_input" class="form-control col-sm-10 ml-2 dropdown-toggle"
+          name="acct" type="text" data-toggle="dropdown" style="background-color:whitesmoke"
+          placeholder="Search accounts..." autocomplete="off" autofocus>
+          <!--Dropdown-->
+          <div class="dropdown-menu ml-2"></div>
+          <div class="input-group-btn">
+            <button class="btn btn-secondary px-2 py-1" type="button" id="search">
+              <i class="fa fa-search"></i>
+            </button>
+          </div>
         </div>
+        <!--SearchResult-->
+        <a class="dropdown-item" id="search-item"  href="" hidden>
+          <div>
+            <span>
+              <i class="fa fa-circle fa-1 mr-1" id="sr-status"
+              style="font-size:0.75em"></i>
+            </span>
+            <span id="sr-name"></span>
+            <small id="sr-email"></small>
+          </div>
+          <div>
+            <small id="sr-addr" class="ml-3"></small>
+          </div>
+        </a>
       </div>
-      <!--SearchResult-->
-      <a class="dropdown-item" id="search-item"  href="" hidden>
-        <div>
-          <span>
-            <i class="fa fa-circle fa-1 mr-1" id="sr-status"
-            style="font-size:0.75em"></i>
-          </span>
-          <span id="sr-name"></span>
-          <small id="sr-email"></small>
-        </div>
-        <div>
-          <small id="sr-addr" class="ml-3"></small>
-        </div>
-      </a>
     </div>
-  </div>
-  <!--Menus 3/3-->
-  <ul id="main-menu" class="navbar-nav justify-content-center">
-    <li class="nav-item br-nav-item">
-      <a class="nav-link d-flex" href="{{url_for("notify.view_event_list")}}">
-         <i class="fa fa-calendar-check-o fa-2x br-nav-icon mr-1"></i>
-         <span class="my-auto">Notify</span>
-      </a>
-    </li>
-    <li class="nav-item br-nav-item">
-      <a class="nav-link d-flex" href="{{url_for("routing.show_routing")}}">
+    <ul id="main-menu" class="navbar-nav justify-content-center" style="flex-direction:row; margin:0rem .5rem;">
+      <li class="nav-item br-nav-item">
+        <a class="nav-link d-flex" href="/notify/">
+        <i class="fa fa-calendar-check-o fa-2x br-nav-icon mr-1"></i>
+        <span class="my-auto">Notify</span>
+        </a>
+      </li>
+      <li class="nav-item br-nav-item">
+        <a class="nav-link d-flex" href="/routing">
         <i class="fa fa-road fa-2x br-nav-icon mr-1"></i>
-         <span class="my-auto">Routing</span>
-      </a>
-    </li>
-    <li class="nav-item br-nav-item">
-      <a class="nav-link d-flex" href="{{url_for("booker.show_home")}}">
+        <span class="my-auto">Routing</span>
+        </a>
+      </li>
+      <li class="nav-item br-nav-item">
+        <a class="nav-link d-flex" href="/booker/">
         <i class="fa fa-book fa-2x br-nav-icon mr-1"></i>
-         <span class="my-auto">Booker</span>
-      </a>
-    </li>
-    <li class="nav-item br-nav-item">
-      <a class="nav-link d-flex" href="{{url_for("alice.show_chatlogs")}}">
+        <span class="my-auto">Booker</span>
+        </a>
+      </li>
+      <li class="nav-item br-nav-item">
+        <a class="nav-link d-flex" href="/alice/">
         <i class="fa fa-weixin fa-2x br-nav-icon mr-1"></i>
-         <span class="my-auto">Alice</span>
-      </a>
-    </li>
-    <li class="nav-item br-nav-item">
-      <a class="nav-link d-flex" href="{{url_for("main.view_admin")}}">
+        <span class="my-auto">Alice</span>
+        </a>
+      </li>
+      <li class="nav-item br-nav-item">
+        <a class="nav-link d-flex" href="/admin">
         <i class="fa fa-cogs fa-2x br-nav-icon mr-1"></i>
-         <span class="my-auto">Admin</span>
-      </a>
-    </li>
-  </ul>
-</nav>
-<!--Admin Navbar-->
-<nav id="admin-nav" class="navbar navbar-toggleable-md py-2" hidden>
-	<ul class="navbar-nav nav-pills mx-auto text-center" role="tablist">
-		<li class="nav-item">
-			<a class="nav-link active" data-toggle="tab" href="#stats" role="tab">
-        <i class="fa fa-percent pr-1"></i>
-        <span>Statistics</span>
-      </a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link admin-nav-a" data-toggle="tab" href="#services" role="tab">
-        <i class="fa fa-plug pr-1"></i>
-        <span>Integration</span>
-      </a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link admin-nav-a" data-toggle="tab" href="#me" role="tab">
-        <i class="fa fa-user-plus pr-1"></i>
-        <span>Me</span>
-      </a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link admin-nav-a" data-toggle="tab" href="#previewer" role="tab">
-        <i class="fa fa-envelope-open pr-1"></i>
-        <span>Previewer</span>
-      </a>
-		</li>
-    <li class="nav-item">
-      <a class="nav-link admin-nav-a" data-toggle="tab" href="#recent">
-        <i class="fa fa-history pr-1"></i>
-        <span>Recent</span>
-      </a>
-    </li>
-		<li class="nav-item">
-			<a class="nav-link admin-nav-a" data-toggle="tab" href="#analytics" role="tab">
-        <i class="fa fa-bar-chart pr-1"></i>
-        <span>Analytics</span>
-      </a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link admin-nav-a" data-toggle="tab" href="#map_analyzer" role="tab">
-        <i class="fa fa-map-marker pr-1"></i>
-        <span>Map Analyzer</span>
-      </a>
-		</li>
-	</ul>
+        <span class="my-auto">Admin</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+  <div class="collapse" id="invisi-nav" style="background-color:white;">
+  </div>
+  <!--Admin Navbar-->
+  <nav id="admin-nav" class="navbar navbar-toggleable-md justify-content-center py-2" hidden>
+    <ul class="navbar-nav nav-pills" role="tablist">
+      <li class="nav-item">
+        <a class="nav-link active" data-toggle="tab" href="#stats" role="tab">
+          <i class="fa fa-percent pr-1"></i>
+          <span>Statistics</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link admin-nav-a" data-toggle="tab" href="#services" role="tab">
+          <i class="fa fa-plug pr-1"></i>
+          <span>Integration</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link admin-nav-a" data-toggle="tab" href="#me" role="tab">
+          <i class="fa fa-user-plus pr-1"></i>
+          <span>Me</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link admin-nav-a" data-toggle="tab" href="#previewer" role="tab">
+          <i class="fa fa-envelope-open pr-1"></i>
+          <span>Previewer</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link admin-nav-a" data-toggle="tab" href="#recent">
+          <i class="fa fa-history pr-1"></i>
+          <span>Recent</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link admin-nav-a" data-toggle="tab" href="#analytics" role="tab">
+          <i class="fa fa-bar-chart pr-1"></i>
+          <span>Analytics</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link admin-nav-a" data-toggle="tab" href="#map_analyzer" role="tab">
+          <i class="fa fa-map-marker pr-1"></i>
+          <span>Map Analyzer</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
 </div>
+
+
+
+

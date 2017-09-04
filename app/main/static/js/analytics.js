@@ -1,5 +1,6 @@
 /* analytics.js */
 
+dataSets = ['gift-revenue', 'n-donor-trend'];
 giftData = [];  // Raw gift data (large dataset)
 seriesData = {}; // Ordered, totalled dataset (keys==date)
 chartData = [];
@@ -11,6 +12,12 @@ t1 = new Date();
 
 //-----------------------------------------------------------------------------
 function analyticsInit() {
+
+    $('#dataset-dd .dropdown-item').click(function() {
+        console.log($(this).html());
+        $('#dataset-btn').text($(this).html());
+        console.log('dropdown clicked');
+    });
 
     $('.input-daterange input').each(function() {
         $(this).bDatepicker({
@@ -111,7 +118,7 @@ function initGiftAnalysis(start_str, end_str) {
 //------------------------------------------------------------------------------
 function updateSeries(gifts) {
     /* seriesData stores timestamps in UTC */
-    
+
     if(gifts.length == 0) {
         var msg = format('%s gifts analyzed successfully.', giftData.length);
         alertMsg(msg, "success", 30000);
@@ -136,7 +143,7 @@ function updateSeries(gifts) {
         if(groupBy == 'day') {
             // Use start of day timestamp as grouping key
             grp_key = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
-            
+
             date_lbl = lbl = dt.strftime("%b %d `%y");
         }
         else if(groupBy == 'month') {

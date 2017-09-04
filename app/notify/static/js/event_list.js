@@ -30,6 +30,7 @@ function getEventData() {
                 var _event = event_data[i];
 
                 $item = $('#event_item').clone().prop('id', 'list_item_'+String(i));
+                $item.addClass('d-flex');
 
                        
                 if(_event['type'] == 'bpu') {
@@ -100,11 +101,22 @@ function getEventData() {
 
                 $item.prop('href', _event['_id']['$oid']);
                 $item.prop('hidden', false);
+
                 $('#event_list').append($item);
+            } // end for loop
+
+            if(mobileNavOn){
+                $('.list-group-item i').hide()
+                $('.delete-btn').hide();
+                $('#evnt-d').addClass('mb-3');
+                $('#evnt-name').addClass('mb-3');
+                $('#evnt-cat').addClass('mb-3');
             }
 
            $('#page_nav').prop('hidden', false); 
         }
+
+
     );
 }
 

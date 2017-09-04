@@ -15,6 +15,79 @@ var globalTimeoutId = false; // for alertMsg
 dropdown = false;
 dd_matches = [];
 query_val = "";
+mobileNavOn = false;
+
+//------------------------------------------------------------------------------
+function checkNavbar() {
+
+    if(window.outerWidth > 414)
+        loadFullNavbar();
+    else
+        loadMobileNavbar();
+}
+
+//------------------------------------------------------------------------------
+function loadMobileNavbar() {
+
+    if($('#menu-toggle-btn').css('display') != 'none') {
+        return;
+    }
+
+    var width = $(window).width();
+    console.log('Loading mobile navbar');
+
+    $('#menu-toggle-btn').show();
+    var $nav = $('#main-nav');
+    $nav.removeClass('justify-content-center');
+    $nav.css('padding', '.5rem .5rem');
+    $('#searchbar').hide();
+    var $logo = $('#main-nav .navbar-brand');
+    $logo.css('position', 'absolute');
+    $logo.css('left', 100);
+    var $main_menu = $('#main-menu');
+    $main_menu.css('flex-direction', 'column');
+    // Place menu into collapse div
+    $('#invisi-nav').append($main_menu);
+    $('#main-nav').prop('hidden',false);
+    $('#navs').removeClass('mb-5');
+    mobileNavOn = true;
+    $('.br-alert').hide();
+}
+
+//------------------------------------------------------------------------------
+function loadFullNavbar() {
+
+    var width = window.outerWidth;
+    var sb = document.getElementById('searchbar');
+    var main_menu = document.getElementById('main-menu');
+    var nav = document.getElementById('main-nav');
+    var toggle_btn = document.getElementById('menu-toggle-btn');
+    var logo = document.getElementsByClassName('navbar-brand')[0];
+    var navs = document.getElementById('navs');
+
+    if(sb.style.display != 'none') {
+        if(navs.className.indexOf('mb-5') == -1)
+            navs.className += ' mb-5';
+        nav.style.display = "flex";
+        return;
+    }
+    else
+        console.log('Loading full-width navbar');
+
+    toggle_btn.style.display = 'none';
+    if(nav.className.indexOf('justify-content-center') == -1)
+        nav.className += ' justify-content-center';
+    nav.style.padding = ".5em 0em";
+    sb.style.display = 'block';
+    logo.style.position = 'relative';
+    logo.style.left = '0px';
+    main_menu.style.flexDirection = 'row';
+    nav.append(main_menu);
+    nav.style.display = "flex";
+    navs.className += ' mb-5';
+    mobileNavOn = false;
+    //$('.br-alert').show();
+}
 
 //------------------------------------------------------------------------------
 function initSearchBar() {

@@ -9,7 +9,8 @@ var recnt_pane_init = false;
 //------------------------------------------------------------------------------
 function init() {
 
-    $('#admin-nav').prop('hidden',false);
+    //$('#admin-nav').prop('hidden',false);
+    $('#admin-nav').addClass('d-flex');
     $('#admin-nav').show();
     $('.br-alert').hide();
 

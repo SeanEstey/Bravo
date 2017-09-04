@@ -20,6 +20,9 @@ function parse_block(title) { return title.slice(0, title.indexOf(' ')); }
 //---------------------------------------------------------------------
 function bookerInit() {
 
+
+    initGoogleMap();
+
     $('#search_ctnr').prepend($('.br-alert'));
     loadMapData();
     addSocketIOHandlers();

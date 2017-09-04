@@ -1,31 +1,24 @@
 {% extends "views/base.html" %}
+
+{% block head %}
+  <script src='{{url_for("auth.static", filename="js/login.js")}}'></script>
+  <script> jQuery(function($){init_login(); alertMsg("{{msg}}", 'info');}); </script>
+{% endblock %}
+
 {% block content %}  
-
-<script src='{{url_for("auth.static", filename="js/login.js")}}'></script>
-
-<script>
-  jQuery(function($){
-    init_login();
-    alertMsg("{{msg}}", 'info');
-  });
-</script>
-  <div class="container">
-    <div class='login-outer'>
-      <div class='login-inner'>
-        <!-- FORM -->
-        <form id='myform' method=post>
-          <div class='form-group' style='margin-bottom:2em'>
-            <input style='padding:1.0em' class='form-control input-lg' 
-                   type='text' id='' placeholder='Username'  name='username' required>
-          </div>
-          <div class='form-group' style='margin:3em 0em'>
-            <input style='padding:1.0em' class='form-control input-lg'
-                   title='' placeholder='Password' type='password' name='password' required>
-          </div>
-          <button class='btn btn-primary login-btn' type="button" id="submit_btn">Sign In</button>
-        </form>
-        <!-- END FORM -->
-      </div>
+  <div class='login-outer'>
+    <div class='login-inner'>
+      <form id='myform' method=post>
+        <div class='form-group' style='margin-bottom:2em'>
+          <input style='padding:1.0em' class='form-control input-lg' 
+           type='text' id='' placeholder='Username'  name='username' required>
+        </div>
+        <div class='form-group' style='margin:3em 0em'>
+          <input style='padding:1.0em' class='form-control input-lg'
+          placeholder='Password' type='password' name='password' required>
+        </div>
+        <button class='btn btn-primary login-btn' type="button" id="submit_btn">Sign In</button>
+      </form>
     </div>
   </div>
 {% endblock %}

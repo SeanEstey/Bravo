@@ -1,32 +1,25 @@
 {% extends "views/base.html" %}
-{% block content %}  
+
+{% block head %}
   <script src="{{url_for("notify.static", filename="js/opt_out.js")}}"></script>
-  <script> 
-    jQuery(function($) {
-      opt_out_init();
-      
-    }); 
-  </script>
-  <div class="container" style="max-width:400px; padding:0">
-    <div style="margin-top:3em" class="row">
-      <div style="text-align:center" class="col">
-        <p>
-          <label style="font-size:16pt" id="user_msg">
-            Hi {{acct['name']}}, please confirm your request to opt out of your upcoming pick-up.
-          </label>
-        </p>
-        <p>
-          <form>
-            <input name="evnt_id" value="{{evnt_id}}" hidden></input>
-            <input name="acct_id" value="{{acct_id}}" hidden></input>
-            <input name="valid" value="{{valid}}" hidden></input>
-            <button type="button" class="btn btn-primary btn-lg">
-              Confirm Cancellation
-            </button>
-          </form>
-        </p>
-      </div>
-    </div>
+  <script> jQuery(function($) {opt_out_init();}); </script>
+{% endblock %}
+
+{% block content %}  
+  <div class="p-5 mt-5 mx-auto text-center">
+    <p>
+      <label style="font-size:16pt" id="user_msg">
+        Hi {{acct['name']}}, please confirm your request to opt out of your upcoming pick-up.
+      </label>
+    </p>
+    <form>
+      <input name="evnt_id" value="{{evnt_id}}" hidden></input>
+      <input name="acct_id" value="{{acct_id}}" hidden></input>
+      <input name="valid" value="{{valid}}" hidden></input>
+      <button id="opt-out-btn" type="button" class="btn btn-primary btn-lg">
+        Confirm Cancellation
+      </button>
+    </form>
   </div>
 {% endblock %}
 

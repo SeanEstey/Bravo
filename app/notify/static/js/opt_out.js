@@ -2,6 +2,8 @@
 
 function opt_out_init() {
 
+    $('#main-menu').hide();
+    $('#searchbar').hide();
     $('#logo_a').addClass('logo-a-center');
     $('#logo_img').addClass('logo-img-lg');
     $('#logo_img').removeClass('logo-img-sm');
@@ -14,9 +16,8 @@ function opt_out_init() {
         return;
     }
 
-    $('button').click(function(e) {
+    $('#opt-out-btn').click(function(e) {
         e.preventDefault(); // Firefox browsers
-
         api_call(
             'notify/accts/optout',
             data=$('form').serialize(),

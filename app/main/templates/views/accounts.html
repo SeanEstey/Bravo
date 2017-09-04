@@ -24,15 +24,13 @@
       <!--Profile Panel-->
       <div class="col-md-12 p-0">
           <div class="profile hpanel mb-3" id='sum_panel'>
-            <div class="panel-heading banner p-3">
+            <div class="panel-heading">
               <div class="d-flex justify-content-between">
-                <div class="d-flex">
-                  <h4 class="m-0 pr-3" id="acct_name"></h4>
-                  <h4 class="m-0">
-                    <span class="badge badge-info status" id="status"></span>
-                  </h4>
-                </div>
-                <span class="my-auto" id="acct_id"></span>
+                <span data-toggle="tooltip" class="my-auto" id="acct_name"
+                style="color: gray; font-family: 'Montserrat', sans-serif;"></span>
+                <h5 class="m-0" style="color: gray;">
+                  <span class="badge badge-info status" id="status"></span>
+                </h5>
               </div>
             </div>
             <div class="panel-body p-0">
@@ -161,7 +159,7 @@
                   <i class="fa fa-history" style="color:#ec8380;"></i>
                 </span>
               </div>
-              <div class="panel-body pt-4 pb-0">
+              <div class="panel-body pt-4 px-1 pb-0">
                 <div class="row loading">
                   <i class="spinner fa fa-circle-o-notch fa-spin fa-2x fa-fw"></i>
                 </div>

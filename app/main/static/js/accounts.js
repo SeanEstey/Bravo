@@ -10,7 +10,7 @@ function accountsInit() {
 
     // Initialize tooltips
     $(function () {
-      $('[data-toggle="tooltip"]').tooltip();
+    //  $('[data-toggle="tooltip"]').tooltip();
     })
 
     $(document).ready(function() {
@@ -23,6 +23,7 @@ function accountsInit() {
                 location.href.indexOf('?')+1, location.length);
             var acct_id = gAcctId = args.substring(
                 args.indexOf('=')+1, args.length);
+            $('#acct_name').tooltip({'title': "Account ID: "+acct_id});
             getAcct(acct_id);
         }
     });

@@ -8,24 +8,21 @@ gMobile = null;
 //-----------------------------------------------------------------------------
 function accountsInit() {
 
-    // Initialize tooltips
-    $(function () {
-    //  $('[data-toggle="tooltip"]').tooltip();
-    })
+    if(location.href.indexOf('?') > -1) {
+        var args = location.href.substring(
+            location.href.indexOf('?')+1, location.length);
+        var acct_id = gAcctId = args.substring(
+            args.indexOf('=')+1, args.length);
+        $('#acct_name').tooltip({'title': "Account ID: "+acct_id});
+        getAcct(acct_id);
+    }
 
     $(document).ready(function() {
         $(".setsize").each(function() {
             $(this).height($(this).width());
         });
 
-        if(location.href.indexOf('?') > -1) {
-            var args = location.href.substring(
-                location.href.indexOf('?')+1, location.length);
-            var acct_id = gAcctId = args.substring(
-                args.indexOf('=')+1, args.length);
-            $('#acct_name').tooltip({'title': "Account ID: "+acct_id});
-            getAcct(acct_id);
-        }
+
     });
     $(window).on('resize', function(){
         $(".setsize").each(function() {
@@ -187,7 +184,6 @@ function getAcct(acct_id) {
     */
 
     $('.refresh-btn').click(function() {
-
         api_call(
             'accounts/get',
             data={'acct_id':gAcctId,'cached':false},
@@ -249,7 +245,7 @@ function displayMap(response) {
     var center = data['geometry'] ? data['geometry']['location'] : CITY_COORDS; 
 
     initGoogleMap(center, 12, map_style);
-    console.log('Google Maps initialized');
+    console.log(format('Map initialized, t=%sms', Sugar.Date.millisecondsAgo(a)));
     
     if(!data['geometry'])
         return;
@@ -269,7 +265,7 @@ function displayDonationData(response) {
         return;
     }
 
-    console.log(format('Retrieved %s gifts', response['data'].length));
+    console.log(format('%s gifts retrieved, t=%sms', response['data'].length, Sugar.Date.millisecondsAgo(a)));
     var gifts = response['data'];
 
     // Analyze gift stats, build chart data
@@ -322,6 +318,8 @@ function displayDonationData(response) {
 
         $('#last-gave-d').html(new Date(gifts[0]['date']['$date'])
             .strftime('%b %Y').toUpperCase());
+
+        console.log(format('Chart rendered, t=%sms', Sugar.Date.millisecondsAgo(a)));
     }
     else {
         $('.chart').prop('hidden',false);

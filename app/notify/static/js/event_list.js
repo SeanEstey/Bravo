@@ -11,7 +11,6 @@ function initEventList() {
 	addDeleteBtnHandlers();
 	addSocketIOHandlers();
 	addPageNavHandlers();
-
     $('#new_event').click(function() {
         $('#new_event_modal').modal('show');
     });
@@ -32,7 +31,6 @@ function getEventData() {
                 $item = $('#event_item').clone().prop('id', 'list_item_'+String(i));
                 $item.addClass('d-flex');
 
-                       
                 if(_event['type'] == 'bpu') {
                     $item.find('#event_name').html(
                         '<a href="/map/'+_event['name']+'">'+_event['name']+'</a>')
@@ -106,17 +104,15 @@ function getEventData() {
             } // end for loop
 
             if(mobileNavOn){
+                $('#notific-hdr').hide();
                 $('.list-group-item i').hide()
                 $('.delete-btn').hide();
                 $('#evnt-d').addClass('mb-3');
                 $('#evnt-name').addClass('mb-3');
                 $('#evnt-cat').addClass('mb-3');
             }
-
-           $('#page_nav').prop('hidden', false); 
+           //$('#page_nav').prop('hidden', false); 
         }
-
-
     );
 }
 

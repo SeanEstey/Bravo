@@ -16,10 +16,13 @@ dropdown = false;
 dd_matches = [];
 query_val = "";
 mobileNavOn = false;
+disableNavbar = false;
 
 //------------------------------------------------------------------------------
 function checkNavbar() {
 
+    if(disableNavbar)
+        return;
     if(window.outerWidth > 414)
         loadFullNavbar();
     else
@@ -27,9 +30,26 @@ function checkNavbar() {
 }
 
 //------------------------------------------------------------------------------
+function hideNavs(disable=false) {
+
+    $('#main-nav').hide();
+    $('#logo_a').hide();
+    $('#searchbar').hide();
+    $('#main-menu').hide();
+    $('#menu-toggle-btn').hide();
+    $('#admin-nav').hide();
+    $('#navs').removeClass('mb-5');
+    if(disable) {
+        disableNavbar = true;
+        console.log('Navbars hidden and disabled.');
+    }
+}
+
+//------------------------------------------------------------------------------
 function loadMobileNavbar() {
 
     if($('#menu-toggle-btn').css('display') != 'none') {
+        $('#navs').removeClass('mb-5');
         return;
     }
 

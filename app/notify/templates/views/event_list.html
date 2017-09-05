@@ -3,29 +3,21 @@
 {% block head %}
   <link href="{{url_for("static", filename="main/css/new_event.css")}}" rel="stylesheet" type="text/css">
   <script src="{{url_for("notify.static", filename="js/event_list.js")}}"></script>
-  <script> 
-    jQuery(function($) { initEventList(); alertMsg("{{msg|safe}}", "info", 15000); }); 
-  </script>
+  <script> jQuery(function($) {initEventList(); alertMsg("{{msg|safe}}","info",15000);});</script>
 {% endblock %}
 
 {% block content %}  
   <div class="alert br-alert" style="display:none"></div>
-  <div class="px-0 mb-5">
-    <div>
-      <label style="font-weight:400; font-size:1.5rem">
-        <a class="hover" style=""
-           href="{{ url_for("notify.view_event_list") }}">Notification Events</a> / 
-        <a id="new_event"
-           style="font-weight:bold; text-decoration:none;" 
-           title="Schedule a new event" 
-           href="#">+</a>
-      </label>
-    </div>
-    <div id="event_list"></div>
-    <div class="loader-div">
-      <button class="btn btn-info loader">
-        <span class="fa fa-refresh loader-animate"></span>  Creating Event...</button>
-    </div>
+  <div id="notific-hdr">
+    <label style="font-weight:400; font-size:1.5rem">
+      <a class="hover" href="{{ url_for("notify.view_event_list") }}">Notification Events</a> / 
+      <a id="new_event" style="font-weight:bold; text-decoration:none;" title="Schedule a new event" href="#">+</a>
+    </label>
+  </div>
+  <div id="event_list"></div>
+  <div class="loader-div">
+    <button class="btn btn-info loader">
+    <span class="fa fa-refresh loader-animate"></span>  Creating Event...</button>
   </div>
   <nav id="page_nav" class="mt-4" aria-label="..." hidden>
     <ul class="pagination mx-auto" style="width:225px">
@@ -39,8 +31,39 @@
   </nav>
   <!--Page End-->
 
+  <!--Experimental Mobile List Item-->
+  <div id="mobile-list-item" class="d-flex justify-content-between p-3"
+  style="font-family:'Montserrat',sans-serif; line-height:0.75rem; background-color:white; display:none!important;" hidden>
+    <div class="col-3 px-1 my-auto" style="line-height:1.25rem;">
+      <div id="evnt-d">Sep 07</div>
+      <div id="event_name" style="font-size: 0.75rem;">
+        <a href="/map/R8F">R8F</a>
+      </div>
+      <div id="category" style="font-size: 0.75rem;">BPU</div>
+    </div>
+    <div class="col-3 px-0 text-center" style="font-size: 0.75rem;line-height: 1.0rem;">
+      <div id="n_email">55 Emails</div>
+      <div id="email_status" class="mb-2">Pending</div>
+      <div id="email_d">Sep-05</div>
+      <div id="email_t">12:00PM</div>
+    </div>
+    <div id="evnt-name" class="col-3 px-1 text-center" style="font-size: 0.75rem;line-height: 1.0rem;">
+      <div id="n_voice">52 Calls</div>
+      <div id="voice_status" class="mb-2">Pending</div>
+      <div id="voice_d">Sep-06</div>
+      <div id="voice_t">07:00PM</div>
+    </div>
+    <div id="evnt-cat" class="col-3 px-1 text-center" style="font-size: 0.75rem;line-height: 1.0rem;">
+      <div id="n_sms">52 SMS</div>
+      <div id="sms_status" class="mb-2">Pending</div>
+      <div id="sms_d">Sep-06</div>
+      <div id="sms_t">07:00PM</div>
+    </div>
+  </div>
+
   <!--EVENT ITEM-->
-  <a href="#" id="event_item" class="justify-content-between flex-wrap list-group-item list-group-item-action recent-event-item text-left" hidden>
+  <a href="#" id="event_item"
+  class="justify-content-between flex-wrap list-group-item list-group-item-action recent-event-item text-left" hidden>
     <div id="evnt-d" class="col-4 col-sm-1">
       <div class="event-item-mon" id="evnt_mon"></div>
       <div class="event-item-day" id="evnt_day"></div>

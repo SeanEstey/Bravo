@@ -1,125 +1,109 @@
-  {% extends "views/base.html" %}
-  {% block content %}  
+{% extends "views/base.html" %}
+
+{% block head %}  
 	<script type="text/javascript" src="{{url_for("routing.static", filename="js/routing.js")}}"></script>
   <script>$(function() {init();});</script>
+{% endblock %}
   
-  <div class="alert br-alert"></div>
-  <div class="my-5">
-    <div class="card">
-      <div class="card-header blue">
-        <label style="font-weight:400; font-size:1.5rem">Route Schedule</label>
-      </div>
-      <table id="routing-tbl" class="table table-hover table-colored">
-        <thead>
-          <tr style="color:grey;">
-            <th width="10%">Date</th>
-            <th width="5%">Block</th>
-            <th width="4%">Orders</th>
-            <th width="4%">Size</th>
-            <th width="4%">New</th>
-            <th width="10%">Depot</td>
-            <th width="8%">Driver</th>
-            <th width="5%">Status</th>
-            <th width="5%">Length</th>
-            <th width="5%">Command</th>
-            <th width="4%">Sheet</th>
-            <th width="5%">Geocoding</th>
-            <th style="display:none"></th>
-          </tr>
-        </thead>
-        <tbody>
-        <!-- Invisible template row for copying Depots and Drivers -->
-        <tr style="display:none">
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td name="depots">
+{% block content %}
+  <table id="routing-tbl" class="table table-responsive" style="background-color:white">
+    <thead>
+      <tr style="color:grey;">
+        <th width="10%">Date</th>
+        <th width="5%">Block</th>
+        <th width="4%">Orders</th>
+        <th width="4%">Size</th>
+        <th width="4%">New</th>
+        <th width="10%">Depot</td>
+        <th width="8%">Driver</th>
+        <th width="5%">Status</th>
+        <th width="5%">Length</th>
+        <th width="5%">Command</th>
+        <th width="5%">Geocoding</th>
+        <th style="display:none"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="display:none"><!--Invisible template row for copying Depots and Drivers-->
+        <td></td><td></td><td></td><td></td><td></td>
+        <td name="depots">
+          <select name="depots" class="form-control">
+            {% for depot in depots %}
+              <option selected="selected">{{depot.name}}</option>
+              <option>{{depot.name}}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td name="drivers">
+          <select name="drivers" class="form-control">
+            {% for driver in drivers %}
+            <option value="{{ driver.name }}">{{ driver.name }}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td></td><td></td><td></td><td></td><td></td>
+      </tr>
+      {% for route in routes %}
+        <tr id="{{route["_id"]["$oid"]|string}}">
+          <td>{{ route.date }}</td>
+          <td><a href="{{url_for('main.view_map',
+          block=route.block)}}">{{route.block}}</a></td>
+          <td>{{ route.orders }}</td>
+          <td>{{ route.block_size }}</td>
+          <td>{{ route.dropoffs }}</td>
+          <td>
             <select name="depots" class="form-control">
               {% for depot in depots %}
-                <option selected="selected">{{depot.name}}</option>
-                <option>{{depot.name}}</option>
+                {% if depot.name == route.depot.name %}
+                  <option selected="selected">{{depot.name}}</option>
+                {% else %}
+                  <option>{{depot.name}}</option>
+                {% endif %}
               {% endfor %}
             </select>
           </td>
-          <td name="drivers">
+          <td>
             <select name="drivers" class="form-control">
               {% for driver in drivers %}
-              <option value="{{ driver.name }}">{{ driver.name }}</option>
+                {% if driver.name == route.driver.name %}
+                  <option selected="selected" value="{{ driver.name }}">{{ driver.name }}</option>
+                {% else %}
+                  <option value="{{ driver.name }}">{{ driver.name }}</option>
+                {% endif %}
               {% endfor %}
             </select>
           </td>
-          <td></td><td></td><td></td><td></td><td></td>
+          <td name="status">{{ route.status }}</td>
+          <td>
+            {% if route.duration is defined and route.duration %}
+              {{ (route.duration/60)|round(0,"floor")|int }} hrs {{ route.duration % 60 }} min
+            {% else %}
+              -- : --
+            {% endif %}
+          </td>
+          <td>
+            <button name="route_btn" href="" data-route="{{route["json"]}}" class="btn btn-outline-primary"
+              >Route
+            </button>
+          </td>
+          <!--<td>
+            <hr></hr>
+            <button style="display:none" name="view_btn" class="btn btn-outline-primary"
+            href="https://docs.google.com/spreadsheets/d/{{route.ss_id}}">View
+            </button>
+          </td>-->
+          <td name="warnings">
+            <hr></hr>
+            <button style="display:none" name="warnings_btn" class="btn btn-outline-primary"
+              >N/A
+            </button>
+          </td>
         </tr>
-        {% for route in routes %}
-          <tr id="{{route["_id"]["$oid"]|string}}">
-            <td>{{ route.date }}</td>
-            <td><a href="{{url_for('main.view_map',
-            block=route.block)}}">{{route.block}}</a></td>
-            <td>{{ route.orders }}</td>
-            <td>{{ route.block_size }}</td>
-            <td>{{ route.dropoffs }}</td>
-            <td>
-              <select name="depots" class="form-control">
-                {% for depot in depots %}
-                  {% if depot.name == route.depot.name %}
-                    <option selected="selected">{{depot.name}}</option>
-                  {% else %}
-                    <option>{{depot.name}}</option>
-                  {% endif %}
-                {% endfor %}
-              </select>
-            </td>
-            <td>
-              <select name="drivers" class="form-control">
-                {% for driver in drivers %}
-                  {% if driver.name == route.driver.name %}
-                    <option selected="selected" value="{{ driver.name }}">{{ driver.name }}</option>
-                  {% else %}
-                    <option value="{{ driver.name }}">{{ driver.name }}</option>
-                  {% endif %}
-                {% endfor %}
-              </select>
-            </td>
-            <td name="status">{{ route.status }}</td>
-            <td>
-              {% if route.duration is defined and route.duration %}
-                {{ (route.duration/60)|round(0,"floor")|int }} hrs {{ route.duration % 60 }} min
-              {% else %}
-                -- : --
-              {% endif %}
-            </td>
-            <td>
-              <button name="route_btn" href="" data-route="{{route["json"]}}" class="btn btn-outline-primary"
-                >Route
-              </button>
-            </td>
-            <td>
-              <hr></hr>
-              <button style="display:none" name="view_btn" class="btn btn-outline-primary"
-              href="https://docs.google.com/spreadsheets/d/{{route.ss_id}}">View
-              </button>
-            </td>
-            <td name="warnings">
-              <hr></hr>
-              <button style="display:none" name="warnings_btn" class="btn btn-outline-primary"
-                >N/A
-              </button>
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-      <div class="loader-div">
-        <button class="btn btn-info loader">
-          <span class="fa fa-refresh loader-animate"></span>
-          <label style="margin-bottom:0; margin-left:5px">Analyzing Routes...</label>
-        </button>
-      </div>
-    </div>
-  </div>
-
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="my-5"></div>
+  <div class="alert br-alert"></div>
   <!-- Geocode Warnings Dialog -->
   <div style="margin-top:15em" id="warnings_modal" class="modal fade">
     <div class="modal-dialog modal-lg">
@@ -134,5 +118,4 @@
       </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->
   </div><!-- /.modal -->
-
-  {% endblock %}
+{% endblock %}

@@ -1,5 +1,6 @@
 /* recent.js */
 
+querytime = null;
 page = 0;
 var list_item_styles = {
     'DEBUG': '',
@@ -23,10 +24,20 @@ var tag_keys = {
     'tag-task':'task'
 };
 
+
+//------------------------------------------------------------------------------
+function clearEntries() {
+
+    $('#recnt_list').empty();
+    $('#recnt_list').append($('#spinner').clone().prop('id','spin'));
+    $('#spin i').show();
+}
+
 //------------------------------------------------------------------------------
 function initRecent() {
 
     $('.br-alert').prop('hidden', true);
+    clearEntries();
     requestLogEntries();
 
     $('#filterMenu .dropdown-item').click(toggleFilter)
@@ -35,12 +46,14 @@ function initRecent() {
     $('#prev').click(function() {
         if(page > 0) {
             page--;
+            clearEntries();
             requestLogEntries();
         }
     });
 
     $('#next').click(function() {
         page++;
+        clearEntries();
         requestLogEntries();
     });
 }
@@ -115,6 +128,8 @@ function requestLogEntries() {
     data['tags'] = JSON.stringify(data['tags']);
     data['page'] = page;
 
+    querytime = new Date(); 
+
     api_call('logger/get', data=data, renderLogEntries);
 }
 
@@ -156,7 +171,7 @@ function renderLogEntries(resp) {
     var logs = resp['data'];
     $('#recnt_list').empty();
 
-    console.log("%s. %s events returned", resp['status'], resp['data'].length);
+    console.log(format("%s events returned, t=%sms", resp['data'].length, Sugar.Date.millisecondsAgo(querytime)));
 
     $('#start-date').val(new Date(logs[0]['standard']['timestamp']['$date']).strftime("%m/%d/%Y"));
     $('#end-date').val(new Date(logs[logs.length-1]['standard']['timestamp']['$date']).strftime("%m/%d/%Y"));

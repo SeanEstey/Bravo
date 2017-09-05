@@ -3,10 +3,10 @@
 {% block head %}
   <meta id="coord_data" data-city="{{city_coords}}" data-home="{{home_coords}}">
   <script type="text/javascript" src="{{url_for("booker.static", filename="js/booker.js")}}"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}"></script> 
 {% endblock %}
 
 {% block postlibs %}
+  <script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}"></script> 
   <script> jQuery(function($){ bookerInit();}); </script>
 {% endblock %}
 
@@ -47,13 +47,12 @@
         </div>
       </div>
       <!--MAP-->
-      <div class="card ml-0" style="">
-        <div class="">
-          <div style="height:600px" id="map"></div>
-        </div>
+      <div class="card ml-0">
+        <div><div style="height:600px" id="map"></div></div>
       </div>
     </div>
   </div>
+  {% include "views/dialog.html" %}
 
   <!-- Booking Confirmation Modal -->
   <div id="booking_options" style="display:none"> 
@@ -73,9 +72,8 @@
         <div><label name="email"></label></div>
         <div><label name="block"></label></div>
         <div><label name="date"></label></div>
-        <hr></hr>
         <div class="form-group">
-          <label for="driver_notes">Enter any driver instructions:</label>
+          <label for="driver_notes" hidden>Enter any driver instructions:</label>
           <textarea class="form-control" id="driver_notes" rows="5"></textarea>
         </div>
         <div style="text-align:right">

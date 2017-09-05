@@ -3,17 +3,17 @@
   <link href="{{url_for("static", filename="main/css/lib/morris.css")}}" rel= "stylesheet" type= "text/css">
   <link href="{{url_for("static", filename="main/css/account.css")}}" rel= "stylesheet" type= "text/css">
   <meta id="coord_data" data-city="{{city_coords}}" data-home="{{home_coords}}">
-  <script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}"></script> 
   <script src="{{url_for("main.static", filename="js/maps.js")}}"></script>
 {% endblock %}
 
 {% block postlibs %}
+  <script src="https://maps.googleapis.com/maps/api/js?key={{api_key}}"></script> 
   <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
   <script src="{{url_for("main.static", filename="js/lib/morris.min.js")}}"></script>
   <script src="{{url_for("main.static", filename="js/charts.js")}}"></script>
   <script src="{{url_for("main.static", filename="js/accounts.js")}}"></script>
-  <script src="{{url_for("alice.static", filename="js/alice.js")}}"></script>
   <script> jQuery(function($){accountsInit(); initCharts();}); </script>
+  <script src="{{url_for("alice.static", filename="js/alice.js")}}"></script>
 {% endblock %}
 
 {% block content %}

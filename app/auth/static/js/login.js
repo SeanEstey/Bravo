@@ -3,13 +3,8 @@
 //------------------------------------------------------------------------------
 function init_login() {
 
-    $('#searchbar').hide();
-    $('#main-menu').hide();
-    $('#logo_img').addClass('logo-img-lg');
-    $('#logo_img').removeClass('logo-img-sm');
-    $('.br-alert').css('margin-top', '3em'); 
-    $('.br-alert').css('max-width', '400px');
-    $('#logo_a').height(150)
+    hideNavs(true);
+
     $('#submit_btn').click(function(e) {
         e.preventDefault(); // Firefox browsers
 

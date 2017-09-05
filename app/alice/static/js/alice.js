@@ -7,7 +7,6 @@ activeCard = null;
 function initAlicePane() {
     /* Setup event handlers and pull chatlog data */
 
-
     loadChats();
     initSocketIO();
 
@@ -150,7 +149,7 @@ function renderChatCards(data){
     $('#convo_list').empty();
     var n_cols = 3;
 
-    console.log("%s chats", data.length);
+    console.log(format("%s chatlogs received, t=%sms", data.length, Sugar.Date.millisecondsAgo(a)));
 
     for(var i=0; i<data.length; i+=n_cols) {
         var $row = $('<div class="row mx-auto my-4"></div>');
@@ -201,6 +200,8 @@ function renderChatCards(data){
         $row.append($col); 
         $('#convo_list').append($row);
     }
+
+    console.log(format("Loaded in t=%sms.", Sugar.Date.millisecondsAgo(a)));
 }
 
 //------------------------------------------------------------------------------

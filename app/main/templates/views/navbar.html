@@ -1,18 +1,17 @@
 
-<div id="navs" class="container-fluid p-0 mb-5">
-  <nav id="main-nav" class="navbar navbar-toggleable-md navbar-light justify-content-center" style="display:flex; padding:.5em 0em">
-    <button id="menu-toggle-btn" class="navbar-toggler collapsed" style="display:none" type="button" data-toggle="collapse" data-target="#invisi-nav">
+<div id="navs" class="container-fluid p-0">
+  <nav id="main-nav" class="navbar navbar-toggleable-md navbar-light justify-content-center pt-2" style="display:flex;">
+    <button id="menu-toggle-btn" class="navbar-toggler collapsed" style="display:none;" type="button"
+    data-toggle="collapse" data-target="#invisi-nav">
       <span class="navbar-toggler-icon"></span>
     </button>
-    <a id="logo_a" class="navbar-brand text-center" style="" href="/notify/">
-      <img id="logo_img" class="logo-img-sm d-inline-block .m-x-auto">
+    <a id="logo_a" class="navbar-brand text-center pb-2 pt-0" style="position:relative; left:0px;" href="/notify/">
+      <img id="logo_img" class="logo-img-sm">
     </a>
-    <div id="searchbar" style="display:block">
+    <div id="searchbar" class="pb-2" style="display: block;">
       <div class="dropdown">
         <div class="input-group ml-2">
-          <input id="search_input" class="form-control col-sm-10 ml-2 dropdown-toggle"
-          name="acct" type="text" data-toggle="dropdown" style="background-color:whitesmoke"
-          placeholder="Search accounts..." autocomplete="off" autofocus>
+          <input id="search_input" class="form-control col-sm-10 ml-2 dropdown-toggle" name="acct" type="text" data-toggle="dropdown" style="background-color:whitesmoke" placeholder="Search accounts..." autocomplete="off" autofocus="">
           <!--Dropdown-->
           <div class="dropdown-menu ml-2"></div>
           <div class="input-group-btn">
@@ -22,11 +21,10 @@
           </div>
         </div>
         <!--SearchResult-->
-        <a class="dropdown-item" id="search-item"  href="" hidden>
+        <a class="dropdown-item" id="search-item" href="" hidden="">
           <div>
             <span>
-              <i class="fa fa-circle fa-1 mr-1" id="sr-status"
-              style="font-size:0.75em"></i>
+              <i class="fa fa-circle fa-1 mr-1" id="sr-status" style="font-size:0.75em"></i>
             </span>
             <span id="sr-name"></span>
             <small id="sr-email"></small>
@@ -37,9 +35,9 @@
         </a>
       </div>
     </div>
-    <ul id="main-menu" class="navbar-nav justify-content-center" style="flex-direction:row; margin:0rem .5rem;">
-      <li class="nav-item br-nav-item">
-        <a class="nav-link d-flex" href="/notify/">
+    <ul id="main-menu" class="navbar-nav justify-content-center" style="flex-direction: row; margin: 0rem 0.5rem;">
+      <li class="d-flex nav-item br-nav-item">
+        <a class="nav-link d-flex pb-2" href="/notify/">
         <i class="fa fa-calendar-check-o fa-2x br-nav-icon mr-1"></i>
         <span class="my-auto">Notify</span>
         </a>
@@ -50,7 +48,7 @@
         <span class="my-auto">Routing</span>
         </a>
       </li>
-      <li class="nav-item br-nav-item">
+      <li class="nav-item br-nav-item pb-2" style="border-bottom: 1px solid #279bbe;">
         <a class="nav-link d-flex" href="/booker/">
         <i class="fa fa-book fa-2x br-nav-icon mr-1"></i>
         <span class="my-auto">Booker</span>
@@ -70,6 +68,7 @@
       </li>
     </ul>
   </nav>
+
   <div class="collapse" id="invisi-nav" style="background-color:white;">
   </div>
   <!--Admin Navbar-->
@@ -77,7 +76,7 @@
     <ul class="navbar-nav nav-pills" role="tablist">
       <li class="nav-item">
         <a class="nav-link active" data-toggle="tab" href="#stats" role="tab">
-          <i class="fa fa-percent pr-1"></i>
+          <i class="fa fa-flask pr-1"></i>
           <span>Statistics</span>
         </a>
       </li>

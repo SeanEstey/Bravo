@@ -49,6 +49,8 @@ function bookerInit() {
     }
     else
         alertMsg('Enter search terms below', 'info', -1);
+
+
 }
 
 //------------------------------------------------------------------------------
@@ -75,6 +77,7 @@ function loadMapData() {
           if(response['status'] == 'success') {
               console.log('Map data loaded');
               map_data = response['data'];
+              console.log(format('Page loaded, t=%sms', Sugar.Date.millisecondsAgo(a)));
           }
       }
     );

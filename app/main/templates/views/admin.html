@@ -187,126 +187,33 @@
     <!-- Statistics Pane -->
 		<div class="tab-pane active" id="stats" style='margin-bottom:7em' role="tabpanel">
       <div class="row mx-auto justify-content-center m-3 mt-5" style="max-width:1200px;">
-        <!--Organization-->
-        <div class="col-12" style="max-width:1000px;">
-          <h4 class="mb-0" style="color:rgba(99, 108, 114, 0.68); letter-spacing:1px; font-weight:400; margin:0;">Donors</h4>
+
+        <div class="d-flex justify-content-center">
+          <hr style="width:150px; border-top:1px solid rgba(0, 0, 0, 0.15);">
+          <div class="px-3">
+            <h4 class="admin-stat-h4 mb-0">Usage</h4>
+          </div>
+          <hr style="width:150px; border-top:1px solid rgba(0, 0, 0, 0.15);">
         </div>
-        <div class="d-flex p-0 pl-3 my-2 align-content-center flex-wrap">
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="n_donors"></div>
-              <div class="admin-lbl">Active Donors</div>
-            </div>
+        <div id="usage-contnr" class="d-flex p-0 pl-3 my-2 align-content-center flex-wrap"></div>
+
+        <div class="d-flex justify-content-center">
+          <hr style="width:150px; border-top:1px solid rgba(0, 0, 0, 0.15);">
+          <div class="px-3">
+            <h4 class="admin-stat-h4 mb-0">Donors</h4>
           </div>
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="">64%</div>
-              <div class="admin-lbl">Collection Rate</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="">$854</div>
-              <div class="admin-lbl">Avg Revenue/Day</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="">$8.7k</div>
-              <div class="admin-lbl">MTD Revenue</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="">$19.8k</div>
-              <div class="admin-lbl">Revenue/Month</div>
-            </div>
-          </div>
+          <hr style="width:150px; border-top:1px solid rgba(0, 0, 0, 0.15);">
         </div>
-        <!--Activity-->
-        <div class="col-12" style="max-width:1000px;">
-          <h4 class="mb-0" style="color:rgba(99, 108, 114, 0.68); letter-spacing:1px; font-weight:400; margin:0;">Activity</h4>
+        <div id="donor-contnr" class="d-flex p-0 pl-3 my-2 align-content-center flex-wrap"></div>
+
+        <div class="d-flex justify-content-center">
+          <hr style="width:150px; border-top:1px solid rgba(0, 0, 0, 0.15);">
+          <div class="px-3">
+            <h4 class="admin-stat-h4 mb-0">Activity</h4>
+          </div>
+          <hr style="width:150px; border-top:1px solid rgba(0, 0, 0, 0.15);">
         </div>
-        <div class="d-flex p-0 pl-3 my-2 align-content-center flex-wrap">
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="">16.2k</div>
-              <div class="admin-lbl">Emails Sent/Month</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="n_alice_convos"></div>
-              <div class="admin-lbl">Alice Convos</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="n_alice_incoming"></div>
-              <div class="admin-lbl">Alice Replies</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="n_notific_events"></div>
-              <div class="admin-lbl">Notify Events</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="n_users"></div>
-              <div class="admin-lbl">Bravo Users</div>
-            </div>
-          </div>
-        </div>
-        <!--System Usage Stats-->
-        <div class="col-12" style="max-width:1000px;">
-          <h4 class="mb-0" style="color:rgba(99, 108, 114, 0.68); letter-spacing:1px; font-weight:400; margin:0;">Usage</h4>
-        </div>
-        <div class="d-flex p-0 pl-3 my-2 align-content-center flex-wrap">
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="n_cached_accounts"></div>
-              <div class="admin-lbl">Stored Accounts</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center" hidden>
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="n_cached_geolocations"></div>
-              <div class="admin-lbl">Stored Geolocations</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="n_cached_gifts"></div>
-              <div class="admin-lbl">Stored Gifts</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="n_maps_indexed"></div>
-              <div class="admin-lbl">Stored Maps</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="db_size"></div>
-              <div class="admin-lbl">Database Size (MB)</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center">
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="sys_mem"></div>
-              <div class="admin-lbl">Mem Usage</div>
-            </div>
-          </div>
-          <div class="card admin-card text-center" hidden>
-            <div class="my-auto p-4">
-              <div class="admin-stat" id="n_sessions"></div>
-              <div class="admin-lbl">Sessions</div>
-            </div>
-          </div>
-        </div>
+        <div id="stats-contnr" class="d-flex p-0 pl-3 my-2 align-content-center flex-wrap"></div>
 
       </div>
     </div>
@@ -318,6 +225,15 @@
         <span class="fa fa-refresh loader-animate"></span>
         <label style="margin-bottom:0; margin-left:5px">Loading...</label>
       </button>
+    </div>
+  </div>
+
+  <!--TEMPLATES-->
+
+  <div id="stat-card" class="card admin-card text-center" style="display:none">
+    <div class="my-auto p-4">
+      <div class="admin-stat"></div>
+      <div class="admin-lbl"></div>
     </div>
   </div>
 {% endblock %}

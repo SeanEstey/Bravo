@@ -38,7 +38,7 @@ function hideNavs(disable=false) {
     $('#main-menu').hide();
     $('#menu-toggle-btn').hide();
     $('#admin-nav').hide();
-    $('#navs').removeClass('mb-5');
+    $('#navs').removeClass('mb-3');
     if(disable) {
         disableNavbar = true;
         console.log('Navbars hidden and disabled.');
@@ -49,7 +49,7 @@ function hideNavs(disable=false) {
 function loadMobileNavbar() {
 
     if($('#menu-toggle-btn').css('display') != 'none') {
-        $('#navs').removeClass('mb-5');
+        $('#navs').removeClass('mb-3');
         return;
     }
 
@@ -69,7 +69,7 @@ function loadMobileNavbar() {
     // Place menu into collapse div
     $('#invisi-nav').append($main_menu);
     $('#main-nav').prop('hidden',false);
-    $('#navs').removeClass('mb-5');
+    $('#navs').removeClass('mb-3');
     mobileNavOn = true;
     $('.br-alert').hide();
 }
@@ -86,8 +86,8 @@ function loadFullNavbar() {
     var navs = document.getElementById('navs');
 
     if(sb.style.display != 'none') {
-        if(navs.className.indexOf('mb-5') == -1)
-            navs.className += ' mb-5';
+        if(navs.className.indexOf('mb-3') == -1)
+            navs.className += ' mb-3';
         nav.style.display = "flex";
         return;
     }
@@ -104,7 +104,7 @@ function loadFullNavbar() {
     main_menu.style.flexDirection = 'row';
     nav.append(main_menu);
     nav.style.display = "flex";
-    navs.className += ' mb-5';
+    navs.className += ' mb-3';
     mobileNavOn = false;
     //$('.br-alert').show();
 }

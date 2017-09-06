@@ -23,6 +23,7 @@ def get_admin_prop():
 
     donors = g.db['cachedAccounts'].find({'group':g.group})
     n_donors = 0
+    n_mobile = 0
 
     for donor in donors:
         if not donor['account'].get('accountDefinedValues'):
@@ -31,10 +32,15 @@ def get_admin_prop():
         if status and status in ['Active','Dropoff','Cancelling','Call-in','Brings In']:
             n_donors +=1
 
+            if get_udf('SMS', donor['account']):
+                n_mobile +=1
+
+
     return {
         'db_stats': g.db.command("dbstats"),
         'sys_mem': mem_check(),
         'n_donors': n_donors,
+        'n_mobile': n_mobile,
         'n_alice_convos': n_convos,
         'n_alice_incoming': n_msg,
         'n_maps_indexed': len(g.db.maps.find_one({'agency':g.group})['features']),

@@ -50,6 +50,12 @@ function analyticsInit() {
     $('#analyze').click(function() {
         initGiftAnalysis($('#start-date').val(), $('#end-date').val());
     });
+
+    $('.loading').show();
+    $('.chart').hide();
+    $('#ctrl-panel').collapse('show');
+    $('#chart-panel').collapse('show');
+    $('#res-panel').collapse('hide');
 }
 
 //-----------------------------------------------------------------------------
@@ -90,28 +96,29 @@ function initGiftAnalysis(start_str, end_str) {
         groupBy = 'year';
     */
 
+    $('#ctrl-panel').collapse('toggle');
+    $('.loading').hide();
+    $('.chart').show();
 
-    api_call(
-        'gifts/get',
-        data={
-            'start':Number((start_dt.getTime()/1000).toFixed(0)),
-            'end':Number(((end_dt.getTime()+tz_diff*2)/1000).toFixed(0))
-        },
-        function(response) {
-            if(response['status'] == 'success') {
-                console.log('gifts/get completed');
-            }
-            else {
-                alertMsg("Error retrieving gift data!", "danger");
-            }
-    });
+    setTimeout(function() {
+        api_call(
+            'gifts/get',
+            data={
+                'start':Number((start_dt.getTime()/1000).toFixed(0)),
+                'end':Number(((end_dt.getTime()+tz_diff*2)/1000).toFixed(0))
+            },
+            function(response) {
+                if(response['status'] == 'success') {
+                    console.log('gifts/get completed');
+                }
+                else {
+                    alertMsg("Error retrieving gift data!", "danger");
+                }
+        });
+        //$('.loading').prop('hidden',false);
+    },
+    500);
 
-    $('.panel-heading').prop('hidden',true);
-    $('#summary').prop('hidden',true);
-    $('.chart').prop('hidden',true);
-    $('.loading').prop('hidden',false);
-
-    //alertMsg("Analyzing gift data...", "success");
     console.log(format("Series being grouped by %s.", groupBy));
 }
 
@@ -180,6 +187,7 @@ function renderSummary() {
     var startd = new Date(Number((datestamps[0])));
     var endd = new Date(Number(datestamps[datestamps.length-1]));
 
+    // Display chart title
     var to_str = null;
     if(groupBy == 'day')
         to_str = '%b %d %Y';
@@ -189,15 +197,15 @@ function renderSummary() {
         to_str = '%Y';
     $('#title_start_d').html(startd.strftime(to_str));
     $('#title_end_d').html(endd.strftime(to_str));
+    $('.analy-title').show();
 
-    $('.panel-heading').prop('hidden',false);
-
+    // Show results panel
     var n_groups = Object.keys(seriesData).length;
-    $('#n_groups').html(format('%s', Object.keys(seriesData).length));
-    $('#total').html(format('$%s', Sugar.Number.abbr(giftSum,1)));
-    $('#avg').html(format('$%s', Sugar.Number.abbr(giftSum/n_groups,0)));
-    $('#summary').prop('hidden',false);
-    $('#summary').css('z-index',100);
+    $('#total-card').show();
+    $('#total-card .admin-stat').html(format('$%s', Sugar.Number.abbr(giftSum,1)));
+    $('#avg-card').show();
+    $('#avg-card .admin-stat').html(format('$%s', Sugar.Number.abbr(giftSum/n_groups,0)));
+    $('#res-panel').collapse('toggle');
 }
 
 //------------------------------------------------------------------------------
@@ -213,8 +221,8 @@ function renderBarChart() {
         return;
     }
 
-    $('.loading').prop('hidden',true);
-    $('.chart').prop('hidden',false);
+    //$('.loading').prop('hidden',true);
+    //$('.chart').prop('hidden',false);
 
     var plotKeys = Object.keys(seriesData).sort();
 
@@ -229,7 +237,7 @@ function renderBarChart() {
     if(!barChart) {
         barChart = drawMorrisBarChart(
             'chart', chartData, 'date', ['value'], options=
-            {'labelTop':true, 'axes':'x', 'padding':25, 'barColors':['#279bbe']}
+            {'labelTop':true, /*'axes':'x',*/ 'padding':25, 'barColors':['#279bbe']}
         );
 
         console.log(format('Chart drawn [%sms]', getElapsedTime(tDraw)));

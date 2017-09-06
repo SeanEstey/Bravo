@@ -13,27 +13,26 @@
 {% endblock %}
 
 {% block content %}
-  <div class="hpanel mb-3"><!--Chart Panel-->
-    <div class="panel-heading" hidden>
-      <div class="col-12 text-center">
-        <h5 class="analy-title text-center mb-0">
+  <!--Control/Result Panel-->
+  <div class="hpanel mt-5"
+  style="max-width: 1200px;-webkit-border-radius: 3px;border: 1px solid rgba(106, 108, 111, 0.19)!important;">
+    <!--Chart Panel-->
+    <div class="panel-heading text-left py-2 px-3" data-toggle="collapse" data-target="#chart-panel" aria-expanded="true"
+    style="background-color: #eceeef; border-bottom: 1px solid rgba(106, 108, 111, 0.19)!important;">
+      <span class="analy-title text-center mb-0" style="font-size:1.25rem">Chart</span>
+      <span class="pull-right"><i class="fa fa-window-maximize text-right"></i></span>
+    </div>
+    <div id="chart-panel" class="collapse show" style="height:500px">   <!--analy-panel panel-body px-3 pb-3 pt-0-->
+      <div class="panel-heading" style="height:50px">
+        <h5 class="analy-title text-center mb-0" style="display:none">
           <span id="grp_type"></span> Gift Estimates, 
           <span id="title_start_d"></span>&ndash;
           <span id="title_end_d"></span>
         </h5>
       </div>
-    </div>
-    <div class="analy-panel panel-body p-3">
-      <div id="summary" class="p-3"  hidden><!--Chart Summary-->
-        <div><span id="total"></span> Total</div>
-        <div><span id="avg"></span> Average</div>
-      </div>
-      <div class="row loading" style="height:400px">
+      <div class="row loading" style="height:450px">
         <div class="col-12 text-center my-auto">
           <div class="chart-logo mx-auto"></div>
-          <h1 class="chart-logo-title mt-4" hidden>
-            Gift Graph
-          </h1>
           <p class="chart-instr mt-3">
             Visualize your data with the options below.
           </p>
@@ -42,26 +41,78 @@
           <i class="spinner fa fa-circle-o-notch fa-spin fa-5x fa-fw"></i>
         </div>
       </div>
-      <div class="col chart mx-auto" id="chart" hidden></div><!--Morris Chart-->
+      <div class="chart" style="height:450px; display:none" id="chart"></div><!--Morris Chart-->
     </div>
-    <div class="panel-footer" style="background-color:white"></div>
-  </div>
-  <div class="d-flex justify-content-center flex-wrap"><!--Chart Controls-->
-    <div class="col-12 col-sm-7 input-daterange input-group mb-2">
-      <input id="start-date" name="start" type="text" class="form-control" placeholder="FROM (mm/dd/yyyy)">
-      <div id="start-btn" class="input-group-addon fa fa-calendar"></div>
-      <input id="end-date" name="end" type="text" class="form-control" placeholder="UNTIL (mm/dd/yyyy)">
-      <div id="end-btn" class="input-group-addon fa fa-calendar"></div>
+    <!--Results Panel-->
+    <div class="panel-heading text-left py-2 px-3" data-toggle="collapse" data-target="#res-panel" aria-expanded="true"
+    style="background-color: #eceeef; border-bottom:1px solid rgba(106, 108, 111, 0.19)!important; border-top: 1px solid rgba(106, 108, 111, 0.19)!important;">
+      <span class="analy-title text-center mb-0" style="font-size:1.25rem">Results</span>
+      <span class="pull-right"><i class="fa fa-window-maximize text-right"></i></span>
     </div>
-    <div class="dropdown col-12 col-sm-3 mb-2">
-      <button id="dataset-btn" type="button" class="btn btn-secondary dropdown-toggle col-12" data-toggle="dropdown">Gift Revenue</button>
-      <div id="dataset-dd" class="dropdown-menu dropdown-menu-right" aria-labelledby="dataset-btn">
-        <a class="dropdown-item" id="gift-revenue" href="#">Gift Revenue</a>
-        <a class="dropdown-item" id="n-donor-trend" href="#">Donor Growth/Attrition</a>
+    <div id="res-panel" class="collapse" style="background-color: rgb(255, 255, 255);" aria-expanded="true">
+      <div class="d-flex justify-content-center py-3">
+        <div id="total-card" class="card admin-card text-center" style="display:none">
+          <div class="my-auto p-4">
+            <div class="admin-stat"></div>
+            <div class="admin-lbl">Total</div>
+          </div>
+        </div>
+        <div id="avg-card" class="card admin-card text-center" style="display:none">
+          <div class="my-auto p-4">
+            <div class="admin-stat"></div>
+            <div class="admin-lbl">Average</div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="col-12 col-sm-2 mb-2">
-      <button type="button" id="analyze" class="btn btn-primary col-12" disabled="">Visualize</button>
+    <!--Control-->
+    <div class="panel-heading text-left py-2 px-3" data-toggle="collapse" data-target="#ctrl-panel" aria-expanded="false"
+    style="background-color: #eceeef;border-bottom: 1px solid rgba(106, 108, 111, 0.19)!important;border-top: 1px solid rgba(106, 108, 111, 0.19)!important;">
+      <span class="analy-title text-center mb-0" style="font-size:1.25rem">Control Panel</span>
+      <span class="pull-right"><i class="fa fa-window-maximize text-right"></i></span>
+    </div>
+    <div id="ctrl-panel" class="collapse show" aria-expanded="true" style="background-color:white;">
+      <div class="d-flex justify-content-around py-5">
+        <div class="col-lg-3">
+          <h5 style="font-weight:300; font-family:proxima-nova,sans-serif;" class="text-center mb-3">Select Dataset</h5>
+          <div class="dropup" id="dataset">
+            <button id="dataset-btn" type="button" class="btn btn-secondary dropdown-toggle col-12"
+            data-toggle="dropdown" aria-expanded="false">Gift Revenue</button>
+            <div id="dataset-dd" class="dropdown-menu dropdown-menu-right mr-3 col-10" aria-labelledby="dataset-btn">
+              <a class="dropdown-item" id="gift-revenue" href="#">Gift Revenue</a>
+              <a class="dropdown-item" id="n-donor-trend" href="#">Donor Growth/Attrition</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <h5 style="font-weight:300; font-family:proxima-nova,sans-serif;" class="text-center mb-3">Select Date Range</h5>
+          <div class="input-daterange input-group mb-2">
+            <input id="start-date" name="start" type="text" class="form-control" placeholder="mm/dd/yyyy">
+            <div id="start-btn" class="input-group-addon fa fa-calendar"></div>
+            <input id="end-date" name="end" type="text" class="form-control" placeholder="mm/dd/yyyy">
+            <div id="end-btn" class="input-group-addon fa fa-calendar"></div>
+          </div>
+        </div>
+        <div class="col-lg-3">
+          <h5 style="font-weight:300; font-family:proxima-nova,sans-serif;" class="text-center mb-3">Graph Data</h5>
+          <div class="text-center">
+            <button type="button" id="analyze" class="btn btn-primary col-12">Analyze</button>
+          </div>
+        </div> 
+      </div>
+    </div>
+    <div class="panel-footer py-2 text-center" style="border-top: solid 1px #eaeaea;">
+      <small>41,384 gifts graphed.</small>
     </div>
   </div>
+
+  <div class="col-12 mt-5" hidden>
+    -Add filter to be able to measure data subsets:<br>
+      -Acquisit. Campaign for Donor Growth/Attrition to compare campaign results<br>
+      -Acquisit. Campaign for Gift Revenue to compare long-term Avg Gift/Participation<br>
+      -Persona Type for Gift Revenue (stacked bar chart)<br>
+      -Add line graph when visualizing multiple non-related datasets (on-going participation/revenue/attrition from 1 or more campaigns)
+  </div>
+
+
 {% endblock %}

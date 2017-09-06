@@ -11,47 +11,46 @@
 {% endblock %}
 
 {% block content %} 
-  <div class="alert br-alert"></div>
-  <div class="mt-2" id="search_ctnr" style="text-align:center">
-    <div class="card-deck mt-0">
-      <!--SEARCH-->
-      <div class="card mt-0 mr-1" style="max-width:350px;">
-        <div class="card-header" style="background-color:white">
-          <label style="font-weight:400; font-size:1.5rem" class="">Search Options</label>
+  <div class="row">
+    <div class="col-12 col-xl-4 card p-0">
+      <div class="card-header" style="background-color:white">
+        <label style="font-weight:400; font-size:1.5rem" class="">Search Options</label>
+      </div>
+      <div class="card-block">
+        <div id="acct_row" class="row">
+          <input id="acct_input" class="form-control col-9 ml-2 mr-2" name="acct" type="text" placeholder="Enter Account ID"
+          onkeydown="searchKeyPress(event)" style="background-color:whitesmoke" autocomplete="off" autofocus> 
+          <button class="btn btn-secondary" type="button" id="find_acct">Go</button>
         </div>
-        <div class="card-block">
-          <div id="acct_row" class="row">
-            <input id="acct_input" class="form-control col-9 ml-2 mr-2" name="acct" type="text" placeholder="Enter Account ID"
-            onkeydown="searchKeyPress(event)" style="background-color:whitesmoke" autocomplete="off" autofocus> 
-            <button class="btn btn-secondary" type="button" id="find_acct">Go</button>
-          </div>
-          <div id="or" class="row ml-3 pt-1 pb-1">
-            <span>On</span>
-          </div>
-          <div id="block_row" class="row">
-            <input id="block_input" class="form-control col-9 ml-2 mr-2" name="block" type="text" placeholder="Enter Block"
-            onkeydown="searchKeyPress(event)" style="background-color:whitesmoke" autocomplete="off" autofocus> 
-            <button class="btn btn-secondary" type="button" id="find_block">Go</button>
-          </div>
-          <div class="row mt-4">
-            <table id="results2" class="table table-hover table-colored ml-1 mr-1" hidden>
-              <tbody></tbody>
-            </table>
-          </div>
+        <div id="or" class="row ml-3 pt-1 pb-1">
+          <span>On</span>
         </div>
-        <div class="mb-3 mr-4">
-          <div class="row ml-0">
-            <div class="col-7"></div>
-            <button class="btn btn-secondary" id="book_btn" type="submit">Make Booking</button>
-          </div>
+        <div id="block_row" class="row">
+          <input id="block_input" class="form-control col-9 ml-2 mr-2" name="block" type="text" placeholder="Enter Block"
+          onkeydown="searchKeyPress(event)" style="background-color:whitesmoke" autocomplete="off" autofocus> 
+          <button class="btn btn-secondary" type="button" id="find_block">Go</button>
+        </div>
+        <div class="row mt-4">
+          <table id="results2" class="table table-hover table-colored ml-1 mr-1" hidden>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
-      <!--MAP-->
-      <div class="card ml-0">
-        <div><div style="height:600px" id="map"></div></div>
+      <div class="mb-3 mr-4">
+        <div class="row ml-0">
+          <div class="col-7"></div>
+          <button class="btn btn-secondary" id="book_btn" type="submit">Make Booking</button>
+        </div>
       </div>
     </div>
+    <div class="col-12 col-xl-8 card p-0">
+      <div style="height:600px" id="map"></div>
+    </div>
   </div>
+  <div class="row mt-3" hidden>
+    <div class="col-12 alert br-alert alert-info px-0 mx-0" style=""><span>Enter search terms below</span></div>
+  </div>
+
   {% include "views/dialog.html" %}
 
   <!-- Booking Confirmation Modal -->

@@ -21,7 +21,7 @@
   <body>
     {% include "views/navbar.html" %}
     <script> checkNavbar(); </script>
-    <div id="content" class="container-fluid mx-auto mb-5">
+    <div id="content" class="container-fluid mx-auto my-5">
       {% block content %}
       {% endblock %}
     </div>
@@ -37,13 +37,7 @@
       <script src="{{url_for("static", filename="main/js/utils.js")}}"></script>
       {% block postlibs %}
       {% endblock %}
-      <script>
-        jQuery(function($){
-          $(window).resize(function() {
-            checkNavbar();
-          });
-        });
-      </script>
+      <script> jQuery(function($){$(window).resize(function() {checkNavbar();});});</script>
       <script>
         $.fn.bDatepicker = $.fn.datepicker; // Name conflicts
         initSearchBar();

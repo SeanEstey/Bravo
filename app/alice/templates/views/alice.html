@@ -1,55 +1,46 @@
 {% extends "views/base.html" %}
 
-{% block head %}
+{% block postlibs %}
   <script type="text/javascript" src="{{url_for("alice.static",filename="js/alice.js")}}"></script>
   <script> jQuery(function($){ initAlicePane();}); </script>
 {% endblock %}
 
 {% block content %}
-  <div class="my-5">
-    <div class="row" style="background-color:inherit">
-      <div class="col">
-        <label class="m-0" style="font-weight:400;font-size: 2.0rem;">
-          Recent Alice Messages
-        </label>
-      </div>
-      <div class="col text-right my-auto">
-        <!--Filter menu-->
-        <div class="dropdown">
-          <span id="filterLbl">Showing All</span>
-          <button type="button" id="filterBtn" style="border:none; color:#6a6c6f" 
-          class="btn btn-outline-secondary dropdown-toggle btn-sm fa fa-filter" 
-          data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-          <div class="dropdown-menu dropdown-menu-right" aria-labelledby="filterBtn">
-            <a class="dropdown-item" id="fltr-all" href="#">All</a>
-            <a class="dropdown-item" id="fltr-read" href="#">Read</a>
-            <a class="dropdown-item" id="fltr-unread" href="#">Unread</a>
-            <a class="dropdown-item" id="fltr-unreg" href="#">Unregistered</a>
-          </div>
+  <div class="row" style="background-color:inherit">
+    <div class="col text-right my-auto">
+      <!--Filter menu-->
+      <div class="dropdown">
+        <span id="filterLbl">Showing All</span>
+        <button type="button" id="filterBtn" class="btn btn-outline-secondary dropdown-toggle btn-sm fa fa-filter" data-toggle="dropdown"
+        style="border:none; color:#6a6c6f"></button>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="filterBtn">
+          <a class="dropdown-item" id="fltr-all" href="#">All</a>
+          <a class="dropdown-item" id="fltr-read" href="#">Read</a>
+          <a class="dropdown-item" id="fltr-unread" href="#">Unread</a>
+          <a class="dropdown-item" id="fltr-unreg" href="#">Unregistered</a>
         </div>
       </div>
     </div>
-    <!--Content-->
-    <div id="convo_list"></div>
-    <!--Page Nav-->
-    <div class="mt-2" hidden>
-      <nav aria-label="...">
-        <ul class="pagination">
-          <li class="page-item disabled">
-            <a class="page-link" href="#" tabindex="-1">Previous</a>
-          </li>
-          <li class="page-item"><a class="page-link" href="#">1</a></li>
-          <li class="page-item active">
-            <a class="page-link" href="#">2 <span class="sr-only">(current)</span></a>
-          </li>
-          <li class="page-item"><a class="page-link" href="#">3</a></li>
-          <li class="page-item">
-            <a class="page-link" href="#">Next</a>
-          </li>
-        </ul>
-      </nav>
-    </div>
-  </div><!--End Container-->
+  </div>
+  <div id="convo_list" style="height:2500px"></div>
+  <!--Page Navigation-->
+  <div class="mt-2" hidden>
+    <nav aria-label="...">
+      <ul class="pagination">
+        <li class="page-item disabled">
+          <a class="page-link" href="#" tabindex="-1">Previous</a>
+        </li>
+        <li class="page-item"><a class="page-link" href="#">1</a></li>
+        <li class="page-item active">
+          <a class="page-link" href="#">2 <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="page-item"><a class="page-link" href="#">3</a></li>
+        <li class="page-item">
+          <a class="page-link" href="#">Next</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
 
   <!-- Chat List Item -->
   <div id="chat-item" class="card card-inverse card-info chat-card" hidden>
@@ -84,6 +75,6 @@
       </div>
     </div>
   </div>
-
-  {% include "views/chat.html" %}
+{% include "views/chat.html" %}
 {% endblock %}
+

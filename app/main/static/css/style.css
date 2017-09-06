@@ -113,6 +113,12 @@ body {
 .admin-hdr {
     background-color:white;
 }
+.admin-stat-h4 {
+    color:rgba(99,108,114,0.68);
+    letter-spacing:1px;
+    font-weight:400;
+    margin:0;
+}
 .admin-stat {
     font-family: "Open Sans", sans-serif;
     font-size:2.0rem;
@@ -528,24 +534,26 @@ a.hover:visited {
 /*ANALYTICS*/
 
 .analy-panel {
-    height:400px;
+    height:500px;
     background-color:white;
 }
 .analy-panel .chart {
-    top:25px;
+    top:15px;
     height:100%;
     width:100%;
     border-bottom:none;
 }
 .panel-body #summary {
+    width: 150px;
+    height:90px;
     font-family:nova-proxima,sans-serif;
     font-size:14pt;
-    position: absolute;
+    /*position: absolute;*/
     color: #636c72;
     background-color: rgba(236, 238, 239, 0.83);
-    top:20px;
+    /*top:20px;
     left:20px;
-    z-index:100;
+    z-index:100;*/
     -webkit-border-radius:5px;
 }
 .analy-title {

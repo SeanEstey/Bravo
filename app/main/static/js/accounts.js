@@ -17,6 +17,9 @@ function accountsInit() {
         getAcct(acct_id);
     }
 
+    $('#info-edit').tooltip({'title':'Edit Persona Details'});
+    $('#pus-edit').tooltip({'title':'Edit Defined Fields'});
+
     $(document).ready(function() {
         $(".setsize").each(function() {
             $(this).height($(this).width());
@@ -212,6 +215,8 @@ function getAcct(acct_id) {
             if(response['status'] != 'success')
                 return displayError('Account ID "'+acct_id+'" not found.', response);
             gAcct = response['data'];
+
+            console.log(gAcct);
 
             api_call(
                 'accounts/gift_history',

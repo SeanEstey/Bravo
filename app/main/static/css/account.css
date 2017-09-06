@@ -52,9 +52,9 @@
 */
 
 .profile {
-    font-family: 'Proxima Nova',sans-serif;
+    /*font-family: 'Proxima Nova',sans-serif;
     font-weight:200;
-    color: white!important;
+    color: white!important;*/
 }
 .profile .banner {
     background-color: #20a8d8;
@@ -136,10 +136,10 @@
 }
 .val {
     color: #6a6c6f;
-    font-weight:200;
+    font-weight:400;
 }
 .field {
-    font-weight:400;
+    font-weight:200;
     color: #6a6c6f!important;
 }
 

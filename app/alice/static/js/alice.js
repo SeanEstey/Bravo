@@ -11,7 +11,6 @@ function initAlicePane() {
     initSocketIO();
 
     $('#chat_modal').find('#send_sms').click(sendMessage);
-
     $modal = $('#chat_modal');
     $modal.find('input[name="mute"]').click(function() {
         api_call(
@@ -29,15 +28,12 @@ function initAlicePane() {
     $('#fltr-all').click(function() {
         renderChatCards(filterData('all'));
     });
-
     $('#fltr-unreg').click(function() {
         renderChatCards(filterData('unregistered'));
     });
-
     $('#fltr-read').click(function() {
         renderChatCards(filterData('read'));
     });
-
     $('#fltr-unread').click(function() {
         renderChatCards(filterData('unread'));
     });
@@ -45,6 +41,7 @@ function initAlicePane() {
 
 //------------------------------------------------------------------------------
 function loadChats() {
+
     api_call('alice/chatlogs', data={}, function(response) {
         chatData = response['data'];
         renderChatCards(chatData);
@@ -55,27 +52,22 @@ function loadChats() {
 function initSocketIO() {
 
     socket = io.connect('https://' + document.domain + ':' + location.port);
-
     socket.on('connect', function(){
         console.log('socket.io connected!');
         socket.on('joined', function(response) {
             console.log(response);
         });
     });
-
     socket.on('new_message', function(data) {
         console.log('New message!');
         var $modal = $('#chat_modal');
-
         if($modal.hasClass('show')) {
             console.log('Modal active');
-
             if(data['mobile'] == $modal.data('mobile')) {
                 $('#status').html('Message received.');
                 appendMsgRow(data['message'], new Date(), 'in');
             }
         }
-
         // Refresh chat cards
         loadChats();
     });
@@ -102,14 +94,11 @@ function filterData(view) {
             if(!chat.hasOwnProperty('unread') || chat['unread'] == true)
                 continue;
         }
-
         data.push(chat);
     }
 
     $('#filterLbl').html('Showing ' + view.toTitleCase());
-
     return data;
-
 }
 
 //------------------------------------------------------------------------------
@@ -118,25 +107,20 @@ function sendMessage(e) {
     api_call(
         'alice/compose',
         data = {
-            'body': $modal.find('input[name="msg"]').val(),
-            'to': $modal.data('mobile'),
-            'mute': $modal.find('input[name="mute"]').prop('checked'),
-            'acct_id': $modal.data('acct_id')
+          'body': $modal.find('input[name="msg"]').val(),
+          'to': $modal.data('mobile'),
+          'mute': $modal.find('input[name="mute"]').prop('checked'),
+          'acct_id': $modal.data('acct_id')
         },
-
         function(response) {
             console.log('response: ' + JSON.stringify(response));
 
             if(response['status'] == 'success') {
                 $('#status').html('Message delivered.');
-                appendMsgRow(
-                    $('#chat_modal input').val(),
-                    new Date(),
-                    'out');
+                appendMsgRow($('#chat_modal input').val(),new Date(),'out');
                 $('#chat_modal input').val('');
             }
-        }
-    );
+    });
 }
 
 //------------------------------------------------------------------------------
@@ -200,7 +184,6 @@ function renderChatCards(data){
         $row.append($col); 
         $('#convo_list').append($row);
     }
-
     console.log(format("Loaded in t=%sms.", Sugar.Date.millisecondsAgo(a)));
 }
 

@@ -221,27 +221,70 @@ function initPropertiesPane() {
     if(prop_pane_init)
         return;
 
+    var act_stats = {
+        'n_mobile': 'Mobile Numbers',
+        'n_alice_convos': 'Alice Convos',
+        'n_alice_incoming': 'Alice Replies',
+        'n_notific_events': 'Notify Events',
+        'n_users': 'Bravo Users'
+    };
+    var use_stats = {
+        'n_cached_accounts': 'Stored Accounts',
+        'n_cached_geolocations': 'Stored Geolocations',
+        'n_cached_gifts': 'Stored Gifts',
+        'n_maps_indexed': 'Stored Maps',
+        'db_size': 'Database Size (MB)',
+        'sys_mem': 'Mem Usage'
+    };
+    var donor_stats = {
+        'n_donors': 'Active Donors',
+        'coll_rate': 'Collection Rate',
+        'rev_per_day': 'Avg Revenue/Day',
+        'mtd_rev': 'MTD Revenue',
+        'monthly_rev': 'Revenue/Month'
+    };
+
+    for(var k in act_stats) {
+        var $card = $('#stat-card').clone().prop('id',k).show();
+        $card.find('.admin-lbl').text(act_stats[k]);
+        $('#stats-contnr').append($card);
+    }
+    for(var k in use_stats) {
+        var $card = $('#stat-card').clone().prop('id',k).show();
+        $card.find('.admin-lbl').text(use_stats[k]);
+        $('#usage-contnr').append($card);
+    }
+    for(var k in donor_stats) {
+        var $card = $('#stat-card').clone().prop('id',k).show();
+        $card.find('.admin-lbl').text(donor_stats[k]);
+        $('#donor-contnr').append($card);
+    }
+
     api_call('group/properties/get', null, function(response){
         console.log('Received stats data');
         var prop = response['data'];
 
-        $("#n_donors").text(Sugar.Number.abbr(prop['n_donors'],1));
-        $("#n_alice_convos").text(Sugar.Number.abbr(prop['n_alice_convos'],1));
-        $("#n_alice_incoming").text(Sugar.Number.abbr(prop['n_alice_incoming'],1));
-        $("#n_maps_indexed").text(prop['n_maps_indexed']);
-        $("#n_notific_events").text(prop['n_notific_events']);
-        $("#n_leaderboard_accts").text(prop['n_leaderboard_accts']);
-        $("#n_users").text(prop['n_users']);
+        $('#n_mobile .admin-stat').text(Sugar.Number.abbr(prop['n_mobile'],1));
+        $("#n_alice_convos .admin-stat").text(Sugar.Number.abbr(prop['n_alice_convos'],1));
+        $("#n_alice_incoming .admin-stat").text(Sugar.Number.abbr(prop['n_alice_incoming'],1));
+        $("#n_notific_events .admin-stat").text(prop['n_notific_events']);
+        $("#n_users .admin-stat").text(prop['n_users']);
 
+        $("#n_cached_accounts .admin-stat").text(Sugar.Number.abbr(prop['n_cached_accounts'],1));
+        $("#n_cached_geolocations .admin-stat").text(Sugar.Number.abbr(prop['n_geolocations'],1));
+        $("#n_cached_gifts .admin-stat").text(Sugar.Number.abbr(prop['n_cached_gifts'],1));
+        $("#n_maps_indexed .admin-stat").text(prop['n_maps_indexed']);
+        $("#db_size .admin-stat").text((prop['db_stats']['dataSize']/1000000).toFixed(0)+'m');
         var free = prop['sys_mem']['free'];
         var total = prop['sys_mem']['total'];
         var perc = (100-((free/total)*100)).toFixed(0);
-        $("#sys_mem").text(format("%s%", perc)); //free, total));
-        $("#db_size").text((prop['db_stats']['dataSize']/1000000).toFixed(0)+'m');
-        $("#n_sessions").text(Sugar.Number.abbr(prop['n_sessions'],1));
-        $("#n_cached_accounts").text(Sugar.Number.abbr(prop['n_cached_accounts'],1));
-        $("#n_cached_geolocations").text(Sugar.Number.abbr(prop['n_geolocations'],1));
-        $("#n_cached_gifts").text(Sugar.Number.abbr(prop['n_cached_gifts'],1));
+        $("#sys_mem .admin-stat").text(format("%s%", perc));
+
+        $("#n_donors .admin-stat").text(Sugar.Number.abbr(prop['n_donors'],1));
+        $("#coll_rate .admin-stat").text('?');
+        $("#rev_per_day .admin-stat").text('?');
+        $("#mtd_rev .admin-stat").text('?');
+        $("#monthly_rev .admin-stat").text('?');
 
         prop_pane_init = true;
     });

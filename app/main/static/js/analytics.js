@@ -16,7 +16,6 @@ function analyticsInit() {
     $('#dataset-dd .dropdown-item').click(function() {
         console.log($(this).html());
         $('#dataset-btn').text($(this).html());
-        console.log('dropdown clicked');
     });
 
     $('.input-daterange input').each(function() {
@@ -51,11 +50,29 @@ function analyticsInit() {
         initGiftAnalysis($('#start-date').val(), $('#end-date').val());
     });
 
-    $('.loading').show();
+    $('#load-logo').show();
     $('.chart').hide();
     $('#ctrl-panel').collapse('show');
     $('#chart-panel').collapse('show');
     $('#res-panel').collapse('hide');
+
+    $('div').on('shown.bs.collapse', function() {
+        var id = $(this).prop('id');
+        if(['chart-panel','res-panel','ctrl-panel'].indexOf(id) > -1) {
+            console.log(format('%s expanded', $(this).prop('id')));
+            $(this).prev().find('.fa-window-maximize').removeClass('fa-window-maximize').addClass('fa-window-minimize');
+            $(this).next().css('border-top','1px solid rgba(106,108,111,0.23)');
+        }
+    });
+
+    $('div').on('hidden.bs.collapse', function() {
+        var id = $(this).prop('id');
+        if(['chart-panel','res-panel','ctrl-panel'].indexOf(id) > -1) {
+            console.log(format('%s collapsed.', $(this).prop('id')));
+            $(this).prev().find('.fa-window-minimize').removeClass('fa-window-minimize').addClass('fa-window-maximize');
+            $(this).next().css('border-top','none');
+        }
+    });
 }
 
 //-----------------------------------------------------------------------------
@@ -72,18 +89,29 @@ function toggleDatePicker(e) {
 function initGiftAnalysis(start_str, end_str) {
     /* Socket.io connection established. Now stream gift data for processing. */
 
-    var day_ms = 86400000;
-    var month_ms = day_ms * 31;
-    var year_ms = day_ms * 365;
     giftData = [];
     seriesData = {};
     chartData = [];
     giftSum = 0;
+    if(barChart != null) {
+        $('.chart').empty();
+        barChart=null;
+    }
+
+    // Reset DOM
+    $('#ctrl-panel').collapse('toggle');
+    $('#load-logo').hide();
+    $('.loading').hide();
+    $('.chart').hide();
+    $('#load-spinner').prop('hidden',false).show();
+
+    var day_ms = 86400000;
+    var month_ms = day_ms * 31;
+    var year_ms = day_ms * 365;
     var tz_diff = 1000 * 3600 * 6;
     var start_dt = new Date(new Date(start_str).getTime());
     var end_dt = new Date(new Date(end_str).getTime());
     var period_ms = end_dt.getTime()-start_dt.getTime();
-
     if(period_ms <= month_ms) {
         groupBy ='day';
         $('#grp_type').html('Daily');
@@ -96,9 +124,7 @@ function initGiftAnalysis(start_str, end_str) {
         groupBy = 'year';
     */
 
-    $('#ctrl-panel').collapse('toggle');
-    $('.loading').hide();
-    $('.chart').show();
+    $('#foot-status').text('Requesting data from server');
 
     setTimeout(function() {
         api_call(
@@ -109,17 +135,18 @@ function initGiftAnalysis(start_str, end_str) {
             },
             function(response) {
                 if(response['status'] == 'success') {
-                    console.log('gifts/get completed');
+                    console.log('api gifts/get complete.');
+                    $('#foot-status').text(format('Done. Rendered %s datapoints in %s seconds.',
+                        Sugar.Number.abbr(giftData.length,1), Sugar.Number.abbr(getElapsedTime(t1)/1000,1)));
                 }
                 else {
                     alertMsg("Error retrieving gift data!", "danger");
                 }
         });
-        //$('.loading').prop('hidden',false);
     },
     500);
 
-    console.log(format("Series being grouped by %s.", groupBy));
+    //console.log(format("Series being grouped by %s.", groupBy));
 }
 
 //------------------------------------------------------------------------------
@@ -130,6 +157,8 @@ function updateSeries(gifts) {
         var msg = format('%s gifts analyzed successfully.', giftData.length);
         alertMsg(msg, "success", 30000);
         console.log(format('%s [%sms]', msg, getElapsedTime(t1)));
+        $('#foot-status').text(format('Done. Rendered %s datapoints in %s seconds.',
+            Sugar.Number.abbr(giftData.length,1), Sugar.Number.abbr(getElapsedTime(t1)/1000,1)));
         renderBarChart();
         renderSummary();
         return;
@@ -177,7 +206,8 @@ function updateSeries(gifts) {
     }
 
     renderBarChart();
-    console.log(format('+%s series data', gifts.length));
+    //console.log(format('+%s series data', gifts.length));
+    $('#foot-status').text(format('%s datapoints received.', Sugar.Number.abbr(giftData.length,1)));
 }
 
 //------------------------------------------------------------------------------
@@ -221,9 +251,6 @@ function renderBarChart() {
         return;
     }
 
-    //$('.loading').prop('hidden',true);
-    //$('.chart').prop('hidden',false);
-
     var plotKeys = Object.keys(seriesData).sort();
 
     for(var i=0; i<plotKeys.length; i++) {
@@ -235,6 +262,10 @@ function renderBarChart() {
 
     // Initial render
     if(!barChart) {
+        $('.loading').hide();
+        $('#load-spinner').prop('hidden',true).hide();
+        $('.chart').show();
+
         barChart = drawMorrisBarChart(
             'chart', chartData, 'date', ['value'], options=
             {'labelTop':true, /*'axes':'x',*/ 'padding':25, 'barColors':['#279bbe']}

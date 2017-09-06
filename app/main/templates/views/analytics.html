@@ -15,14 +15,16 @@
 {% block content %}
   <!--Control/Result Panel-->
   <div class="hpanel mt-5"
-  style="max-width: 1200px;-webkit-border-radius: 3px;border: 1px solid rgba(106, 108, 111, 0.19)!important;">
+  style="max-width:1200px; -webkit-border-radius:3px; box-shadow:none; border:1px solid rgba(106, 108, 111, 0.23)!important;">
     <!--Chart Panel-->
-    <div class="panel-heading text-left py-2 px-3" data-toggle="collapse" data-target="#chart-panel" aria-expanded="true"
-    style="background-color: #eceeef; border-bottom: 1px solid rgba(106, 108, 111, 0.19)!important;">
-      <span class="analy-title text-center mb-0" style="font-size:1.25rem">Chart</span>
-      <span class="pull-right"><i class="fa fa-window-maximize text-right"></i></span>
+    <div class="hdr panel-heading text-left py-2 px-3" data-toggle="collapse" data-target="#chart-panel" aria-expanded="false"
+    style="background-color: rgba(39, 155, 190, 0.13);border-bottom: 1px solid rgba(106, 108, 111, 0.23)">
+      <span class="text-center mb-0" style="font-size:1.25rem;font-weight: 400;color: #279bbe!important;">Data Visualization</span>
+      <span class="pull-right" style="color: #279bbe;">
+        <i class="fa fa-window-minimize text-right"></i>
+      </span>
     </div>
-    <div id="chart-panel" class="collapse show" style="height:500px">   <!--analy-panel panel-body px-3 pb-3 pt-0-->
+    <div id="chart-panel" class="collapse show" style="height:500px; background-color:white;">
       <div class="panel-heading" style="height:50px">
         <h5 class="analy-title text-center mb-0" style="display:none">
           <span id="grp_type"></span> Gift Estimates, 
@@ -30,49 +32,29 @@
           <span id="title_end_d"></span>
         </h5>
       </div>
+      <div id="load-spinner" style="position:relative; left:600px; top:150px; z-index:0; display:none;">
+        <i class="spinner fa fa-circle-o-notch fa-spin fa-3x fa-fw" style="color:#b3b3b3"></i>
+      </div>
       <div class="row loading" style="height:450px">
-        <div class="col-12 text-center my-auto">
+        <div id="load-logo" class="col-12 text-center my-auto">
           <div class="chart-logo mx-auto"></div>
           <p class="chart-instr mt-3">
             Visualize your data with the options below.
           </p>
         </div>
-        <div class="mx-auto my-auto" hidden>
-          <i class="spinner fa fa-circle-o-notch fa-spin fa-5x fa-fw"></i>
-        </div>
       </div>
       <div class="chart" style="height:450px; display:none" id="chart"></div><!--Morris Chart-->
     </div>
-    <!--Results Panel-->
-    <div class="panel-heading text-left py-2 px-3" data-toggle="collapse" data-target="#res-panel" aria-expanded="true"
-    style="background-color: #eceeef; border-bottom:1px solid rgba(106, 108, 111, 0.19)!important; border-top: 1px solid rgba(106, 108, 111, 0.19)!important;">
-      <span class="analy-title text-center mb-0" style="font-size:1.25rem">Results</span>
-      <span class="pull-right"><i class="fa fa-window-maximize text-right"></i></span>
-    </div>
-    <div id="res-panel" class="collapse" style="background-color: rgb(255, 255, 255);" aria-expanded="true">
-      <div class="d-flex justify-content-center py-3">
-        <div id="total-card" class="card admin-card text-center" style="display:none">
-          <div class="my-auto p-4">
-            <div class="admin-stat"></div>
-            <div class="admin-lbl">Total</div>
-          </div>
-        </div>
-        <div id="avg-card" class="card admin-card text-center" style="display:none">
-          <div class="my-auto p-4">
-            <div class="admin-stat"></div>
-            <div class="admin-lbl">Average</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!--Control-->
-    <div class="panel-heading text-left py-2 px-3" data-toggle="collapse" data-target="#ctrl-panel" aria-expanded="false"
-    style="background-color: #eceeef;border-bottom: 1px solid rgba(106, 108, 111, 0.19)!important;border-top: 1px solid rgba(106, 108, 111, 0.19)!important;">
-      <span class="analy-title text-center mb-0" style="font-size:1.25rem">Control Panel</span>
-      <span class="pull-right"><i class="fa fa-window-maximize text-right"></i></span>
+    <!--Control Panel-->
+    <div class="hdr panel-heading text-left py-2 px-3" data-toggle="collapse" data-target="#ctrl-panel" aria-expanded="false"
+    style="background-color: rgba(39, 155, 190, 0.13);border-bottom: 1px solid rgba(106, 108, 111, 0.23)">
+      <span class="text-center mb-0" style="font-size:1.25rem;font-weight: 400;color: #279bbe!important;">Options</span>
+      <span class="pull-right" style="color: #279bbe;">
+        <i class="fa fa-window-minimize text-right"></i>
+      </span>
     </div>
     <div id="ctrl-panel" class="collapse show" aria-expanded="true" style="background-color:white;">
-      <div class="d-flex justify-content-around py-5">
+      <div class="d-flex justify-content-around py-3">
         <div class="col-lg-3">
           <h5 style="font-weight:300; font-family:proxima-nova,sans-serif;" class="text-center mb-3">Select Dataset</h5>
           <div class="dropup" id="dataset">
@@ -101,8 +83,33 @@
         </div> 
       </div>
     </div>
-    <div class="panel-footer py-2 text-center" style="border-top: solid 1px #eaeaea;">
-      <small>41,384 gifts graphed.</small>
+    <!--Results Panel-->
+    <div class="hdr panel-heading text-left py-2 px-3" data-toggle="collapse" data-target="#res-panel" aria-expanded="false"
+    style="background-color: rgba(39, 155, 190, 0.13);border-bottom: 1px solid rgba(106, 108, 111, 0.23);">
+      <span class="text-center mb-0" style="font-size:1.25rem;font-weight: 400;color: #279bbe!important;">Summary</span>
+      <span class="pull-right" style="color: #279bbe;">
+        <i class="fa fa-window-maximize text-right"></i>
+      </span>
+    </div>
+    <div id="res-panel" class="collapse" style="background-color: rgb(255, 255, 255);" aria-expanded="true">
+      <div class="d-flex justify-content-start p-3">
+        <div id="total-card" class="card admin-card text-center" style="width:150px; height:100px; border-radius:10px; display:none">
+          <div class="my-auto p-3">
+            <div class="admin-stat"></div>
+            <div class="admin-lbl">Total</div>
+          </div>
+        </div>
+        <div id="avg-card" class="card admin-card text-center" style="width:150px; height:100px; border-radius:10px; display:none">
+          <div class="my-auto p-3">
+            <div class="admin-stat"></div>
+            <div class="admin-lbl">Average</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hdr panel-footer pb-2 text-center" style="background-color: #eceeef; border-top: 1px solid rgba(106, 108, 111, 0.23);">
+      <small id="foot-status" style="font-family: 'Montserrat',sans-serif;">Ready.
+      </small>
     </div>
   </div>
 

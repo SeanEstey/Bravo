@@ -7,12 +7,20 @@
  *   #808080    Gray       Secondary (table headers, card titles)
  */
 
+
+
+/*------------------------- BASE.HTML ----------------------------*/
 body {
     color: #6a6c6f;
     background-color:#f7f7f7; 
 }
-
-/* NAVBAR SECTION */
+#content {
+    margin-left:.5rem;
+    margin-right:.5rem;
+    padding: 0em;
+    max-width: 1200px;
+}
+/*--------------------------NAVBAR.HTML ---------------------------*/
 #main-nav {
     padding: 0rem;
     background-color:white;
@@ -74,17 +82,7 @@ body {
     content: url("/static/main/images/bravo_logo_barbell.png");
 }
 
-/* CONTENT SECTION */
-#content {
-    margin-left:.5rem;
-    margin-right:.5rem;
-    padding: 0em;
-    max-width: 1200px;
-}
-
-
-
-/* ADMIN PAGE */
+/*----------------------ADMIN.HTML-------------------------*/
 
 #admin-nav {
     padding-left: 1rem;
@@ -137,152 +135,15 @@ body {
     text-align:center!important;
 }
 
-/*BRAVO COMMON*/
+/*----------------------EVENT.HTML-------------------------*/
 
-.modal-wide {
-    min-width:600px;
-    max-width:1000px;
-    min-height: calc(100vh - 60px);
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    overflow: auto; 
-    @media(max-width: 768px) { min-height: calc(100vh - 20px);}
-}
-.rounded-header {
-    -webkit-border-top-left-radius:5px;
-    -webkit-border-top-right-radius:5px;
-    -moz-border-radius-topleft:5px;
-    -moz-border-radius-topright:5px;
-    border-top-left-radius:5px;
-    border-top-right-radius:5px;
-    background-color: #517ba3;
-    padding:10px;
-}
-.br-alert {
-    visibility: visible;
-    opacity: 0;
-    margin:1em 2em;
-    -webkit-border-radius:7px 7px 7px 7px; 
-    padding:0.5em; 
-    text-align:center;
-}
-.admin-panel-container {
-    display: table;
-    position: fixed; 
-    bottom:-2.5em;
-    right:0; 
-    right:50%;
-    background: rgba(255,255,255,1.0); 
-    text-align: center; 
-    width: 600px;
-    margin-right: -300px;
-    padding: 0;
-}
-.admin-panel-outer {
-    position: relative;
-    visibility: visible;
-    display: inline-block;
-    width: 100%;
-    margin: 0;
-    text-align: center;
-    border: 1px solid black;
-    -moz-border-radius: 7px;
-    -webkit-border-radius: 7px;
-    -moz-box-sizing: border-box;
-    -webkit-box-sizing: border-box;
-    box-sizing: border-box;
-    padding-left:0em;
-    padding-right:0em; 
-    padding-bottom: 2.5em;
-}
-.btn_resize {
-    position:absolute;
-    top:5px;
-    right:25px;
-}
-.btn_close {
-	position:absolute;
-    top:5px;
-    right:5px;
-}
-.admin-panel-body {
-    display: inline-block;
-}
-.admin-pane {
-    display: inline-block;
-    vertical-align:top;
-    height: 100%;
-    border: 1px solid black;
-    padding: 1.0em;
-    width: auto;
-    margin-left: 0.5em;
-    margin-right: 0.5em;
-    margin-bottom: 0.25em;
-}
-span.admin-outer {
-	border-bottom:1px solid black;
-}
-legend.admin-outer {
-    font-size: 1.0rem;
-    padding: 0.5em;
-    background-color: rgba(71, 59, 59, 0.075);
-    margin:auto;
-    border-bottom:1px solid black;
-    width:100%;
-}
-.admin-status {
-	border-radius:7px; 
-	width: 500px;
-	padding: 0.25em;
-	margin: 0.5em auto;
-	background-color:white;
-}
-legend.admin-border {
-    width:auto;
-    padding: 0.25em 0.5em 0em 0.25em;
-    margin:0px 0px 0px 0px;
-    border-bottom:none;
-    font-size: 18px;
-}
-.btn.admin {
-    margin-left: 0.25em;
-    margin-right: 0.25em;
-}
-.loader-div {
-	display: none;
-	background-color:#f7f7f7;
-	text-align:center;
-	padding:1em;
-}
-.btn.loader {
-	opacity: 0;
-	pointer-events: none;
-	cursor: default;
-}
-.loader-animate {
-    -animation: loader_spin .7s infinite linear;
-    -webkit-animation: loader_spin2 .7s infinite linear;
-}
-@-webkit-keyframes loader_spin2 {
-    from { -webkit-transform: rotate(0deg);}
-    to { -webkit-transform: rotate(360deg);}
-}
-@keyframes loader_spin {
-    from { transform: scale(1) rotate(0deg);}
-    to { transform: scale(1) rotate(360deg);}
-}
-
-/*NOTIFY EVENT*/
 .event-item-mon {
-    font-family: "Avenir Next",-apple-system, BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
     font-size:14px;
     color:#4E5C6E;
     font-weight:600;
     letter-spacing:1px;
 }
 .event-item-day {
-    font-family: "Avenir Next",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
     font-size: 22px;
     letter-spacing: 1px;
     color: #9BA6B2;
@@ -291,9 +152,6 @@ legend.admin-border {
     font-size: 16px;
 }
 .delete-btn {
-    /*font-size: 0.75em;
-    width: 24px;
-    height: 24px;*/
 }
 .form-label {
     padding-bottom:0.3em; 
@@ -343,7 +201,8 @@ legend.admin-border {
     top: auto;
 }
 
-/*BOOKER VIEW*/
+/*----------------------BOOKER.HTML-------------------------*/
+
 .input.booker {
     font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue",
     Helvetica, Arial, "Lucida Grande", sans-serif;
@@ -360,13 +219,210 @@ legend.admin-border {
     -webkit-border-radius: 10px;
 }
 
-/*BOOTSTRAP SUBCLASSES*/
+/*----------------------LOGIN.HTML-------------------------*/
+
+.login-outer {
+    max-width: 400px;
+    border: 1px solid #bbbbbb;
+    border-radius: 7px;
+	-webkit-border-radius: 7px 7px 7px 7px;
+    padding: 0;
+    margin-top: 7.5em;
+    margin-left: auto;
+    margin-right: auto;
+}
+.login-inner {
+	border-radius:7px;
+    background-color: white;
+    padding:3.0em;
+}
+.login-btn {
+	font-size: 20px;
+    width:100%;
+    padding:0.5em;
+}
+
+/*----------------------RECENT.HTML-------------------------*/
+
+.recent-event-item {
+    line-height: 1;
+    background-color:white;
+    margin-bottom: .25rem;
+}
+.recent-event-item:hover, .recent-event-item:focus {
+    background-color:white;
+    /*box-shadow:
+        rgba(0, 0, 0, 0.05) 0px 1px 0px 0px,
+        rgba(0, 0, 0, 0.1) 4px 4px 5px 0px;
+    */
+    color: rgb(0,116,172); 
+}
+.json-container {
+    padding-left: 0px!important;
+    margin-left: 0px!important;
+    margin-bottom: 0px!important;
+}
+
+/*----------------------ALICE.HTML-------------------------*/
+
+.chat-card:hover {
+    cursor:pointer;
+    border: 1px solid rgba(0,0,0,.25);
+    box-shadow:
+        rgba(0, 0, 0, 0.05) 0px 1px 10px,
+        rgba(0, 0, 0, 0.1) 8px 8px 5px;
+}
+.chat-card {
+    color: white;
+    background-color:#20a8d8;
+}
+.chat-card .time {
+    color: white;
+    border-top: none!important;
+}
+.chat-card .card-block .message {
+    height: 50px;
+    font-style: italic;
+    overflow: hidden;
+}
+.chatlog-dt {
+    padding:0;
+    padding-right:0.25em;
+    border:none;
+}
+.chatlog-msg {
+    border:none;
+    padding:0;
+}
+
+/*----------------------ANALYTICS.HTML-------------------------*/
+
+.analy-hdr {
+    background-color: rgba(39, 155, 190, 0.13);
+    border-bottom: 1px solid rgba(106, 108, 111, 0.23);
+}
+.analy-hdr-title {
+    font-size:1.25rem;
+    font-weight:400;
+    color:#279bbe!important;
+}
+.analy-panel {
+    background-color:white;
+    max-width:1200px;
+    -webkit-border-radius:3px;
+    box-shadow:none;
+    border:1px solid rgba(106, 108, 111, 0.23)!important;
+}
+.analy-panel .chart {
+    top:15px;
+    height:100%;
+    width:100%;
+    border-bottom:none;
+}
+.analy-ctrl-sel {
+    font-weight:300;
+    font-family:proxima-nova,sans-serif;
+}
+.analy-title {
+    height: 50px;
+    font-size: 1.25em;
+    font-family: proxima-nova,sans-serif;
+    color: #464a4c!important;
+    font-weight: 300;
+    border-bottom: 1px solid rgba(106, 108, 111, 0.23);
+}
+.res-card {
+    width:150px;
+    height:100px;
+    border-radius:10px;
+    display:none;
+}
+.chart-instr {
+    color: #6a6c6f;
+    font-family: proxima-nova, sans-serif;
+    font-style: normal;
+    font-weight: 100;
+    font-size: 18pt;
+}
+.datepicker-days .table-condensed {
+    width:325px;
+}
+
+/*----------------------COMMON-------------------------*/
+
+.modal-wide {
+    min-width:600px;
+    max-width:1000px;
+    min-height: calc(100vh - 60px);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    overflow: auto; 
+    @media(max-width: 768px) { min-height: calc(100vh - 20px);}
+}
+.rounded-header {
+    -webkit-border-top-left-radius:5px;
+    -webkit-border-top-right-radius:5px;
+    -moz-border-radius-topleft:5px;
+    -moz-border-radius-topright:5px;
+    border-top-left-radius:5px;
+    border-top-right-radius:5px;
+    background-color: #517ba3;
+    padding:10px;
+}
+.br-alert {
+    visibility: visible;
+    opacity: 0;
+    margin:1em 2em;
+    -webkit-border-radius:7px 7px 7px 7px; 
+    padding:0.5em; 
+    text-align:center;
+}
+.btn_resize {
+    position:absolute;
+    top:5px;
+    right:25px;
+}
+.btn_close {
+	position:absolute;
+    top:5px;
+    right:5px;
+}
+.btn.admin {
+    margin-left: 0.25em;
+    margin-right: 0.25em;
+}
+.loader-div {
+	display: none;
+	background-color:#f7f7f7;
+	text-align:center;
+	padding:1em;
+}
+.btn.loader {
+	opacity: 0;
+	pointer-events: none;
+	cursor: default;
+}
+.loader-animate {
+    -animation: loader_spin .7s infinite linear;
+    -webkit-animation: loader_spin2 .7s infinite linear;
+}
+@-webkit-keyframes loader_spin2 {
+    from { -webkit-transform: rotate(0deg);}
+    to { -webkit-transform: rotate(360deg);}
+}
+@keyframes loader_spin {
+    from { transform: scale(1) rotate(0deg);}
+    to { transform: scale(1) rotate(360deg);}
+}
+
+
+/*----------------------BOOTSTRAP-------------------------*/
+
 .card-header.blue {
     background-color:#517ba3;
     color:white;
 }
-
-/*BOOTSTRAP OVERRIDE*/
 
 a.hover {
     text-decoration: none;
@@ -456,141 +512,8 @@ a.hover:visited {
 	width: 25px;
 }
 
-/*LOGIN VIEW*/
-.login-outer {
-    max-width: 400px;
-    border: 1px solid #bbbbbb;
-    border-radius: 7px;
-	-webkit-border-radius: 7px 7px 7px 7px;
-    padding: 0;
-    margin-top: 7.5em;
-    margin-left: auto;
-    margin-right: auto;
-}
-.login-inner {
-	border-radius:7px;
-    background-color: white;
-    padding:3.0em;
-}
-.login-btn {
-	font-size: 20px;
-    width:100%;
-    padding:0.5em;
-}
 
-/*RECENT VIEW*/
-
-.recent-event-item {
-    line-height: 1;
-    background-color:white;
-    margin-bottom: .25rem;
-}
-.recent-event-item:hover, .recent-event-item:focus {
-    background-color:white;
-    /*box-shadow:
-        rgba(0, 0, 0, 0.05) 0px 1px 0px 0px,
-        rgba(0, 0, 0, 0.1) 4px 4px 5px 0px;
-    */
-    color: rgb(0,116,172); 
-}
-.json-container {
-    padding-left: 0px!important;
-    margin-left: 0px!important;
-    margin-bottom: 0px!important;
-}
-
-/*ALICE VIEW*/
-
-.chat-card:hover {
-    cursor:pointer;
-    border: 1px solid rgba(0,0,0,.25);
-    box-shadow:
-        rgba(0, 0, 0, 0.05) 0px 1px 10px,
-        rgba(0, 0, 0, 0.1) 8px 8px 5px;
-}
-.chat-card {
-    color: white;
-    background-color:#20a8d8;
-}
-.chat-card .time {
-    color: white;
-    border-top: none!important;
-}
-.chat-card .card-block .message {
-    height: 50px;
-    font-style: italic;
-    overflow: hidden;
-}
-.chatlog-dt {
-    padding:0;
-    padding-right:0.25em;
-    border:none;
-}
-.chatlog-msg {
-    border:none;
-    padding:0;
-}
-
-/*ANALYTICS*/
-
-.analy-panel {
-    height:500px;
-    background-color:white;
-}
-.analy-panel .chart {
-    top:15px;
-    height:100%;
-    width:100%;
-    border-bottom:none;
-}
-.panel-body #summary {
-    width: 150px;
-    height:90px;
-    font-family:nova-proxima,sans-serif;
-    font-size:14pt;
-    /*position: absolute;*/
-    color: #636c72;
-    background-color: rgba(236, 238, 239, 0.83);
-    /*top:20px;
-    left:20px;
-    z-index:100;*/
-    -webkit-border-radius:5px;
-}
-.analy-title {
-    font-family: proxima-nova,sans-serif;
-    color: #464a4c!important;
-    font-weight: 300;
-}
-.chart-logo {
-    background-image: url("https://marketplace.canva.com/MACQ3DGRZ9I/1/thumbnail_large/canva-sketch-icon-of-bar-chart-MACQ3DGRZ9I.png");
-    background-repeat: no-repeat;
-    background-size: 200px 200px;
-    width: 200px;
-    height: 200px;
-    text-align:center;
-    color:rgba(1, 1, 1, 0.1);
-    opacity:0.55;
-}
-.chart-logo-title {
-    color: #6a6c6f;
-    letter-spacing: 5px;
-    font-family: proxima-nova, sans-serif;
-}
-.chart-instr {
-    color: #6a6c6f;
-    font-family: proxima-nova, sans-serif;
-    font-style: normal;
-    font-weight: 100;
-    font-size: 18pt;
-}
-.datepicker-days .table-condensed {
-    width:325px;
-}
-
-
-
-
-/*BREAKPOINTS*/
+/*----------------------BREAKPOINTS-------------------------*/
 
 @media (min-width: 576px) { 
     #content {

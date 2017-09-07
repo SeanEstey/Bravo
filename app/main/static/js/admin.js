@@ -281,6 +281,7 @@ function initPropertiesPane() {
         $("#sys_mem .admin-stat").text(format("%s%", perc));
 
         $("#n_donors .admin-stat").text(Sugar.Number.abbr(prop['n_donors'],1));
+        $('#n_donors').tooltip({'title':Sugar.Number.format(prop['n_donors'],0)});
         $("#coll_rate .admin-stat").text('?');
         $("#rev_per_day .admin-stat").text('?');
         $("#mtd_rev .admin-stat").text('?');

@@ -4,6 +4,8 @@ dataSets = ['gift-revenue', 'n-donor-trend'];
 giftData = [];  // Raw gift data (large dataset)
 seriesData = {}; // Ordered, totalled dataset (keys==date)
 chartData = [];
+start_dt = null;
+end_dt = null;
 giftSum = 0;
 seriesGroupings = ['day', 'month', 'year'];
 groupBy = 'day'; // default
@@ -25,31 +27,6 @@ function initCanvas() {
     $cv.width(canvas.width);
     $cv.height(canvas.height);
 
-    // Create 'bg' layer
-    $cv.addLayer({
-      name:'bg',
-      type:'image',
-      opacity: 0.5,
-      source:'https://bravoweb.ca/static/main/images/chart_logo.png',
-      x:(canvas.width/2)-100,
-      y:(canvas.height/2)-100,
-      width:200,
-      height:200,
-      fromCenter: false
-    });
-
-    $cv.drawText({
-      layer: true,
-      name: 'title',
-      fillStyle: '#6a6c6f',
-      strokeWidth: 2,
-      x:canvas.width/2,
-      y:(canvas.height/2)+150,
-      fontSize: '14pt',
-      fontFamily: 'proxima-nova, sans-serif',
-      text: 'Visualize your data with the options below.'
-    });
-
     // Create 'loader' layer
     $cv.drawPolygon({
       layer:true,
@@ -62,8 +39,7 @@ function initCanvas() {
       concavity: 0.5
     });
 
-    $cv.getLayer('loader').visible = false;
-    loopLoaderAnim();
+    $cv.getLayer('loader').visible = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -153,9 +129,9 @@ function analyticsInit() {
         initGiftAnalysis($('#start-date').val(), $('#end-date').val());
     });
 
+    $('.analy-title').hide();
     $('#ctrl-panel').collapse('show');
     $('#chart-panel').collapse('show');
-    //$('#res-panel').collapse('hide');
 
     $('div').on('shown.bs.collapse', function() {
         var id = $(this).prop('id');
@@ -190,60 +166,53 @@ function toggleDatePicker(e) {
 function initGiftAnalysis(start_str, end_str) {
     /* Socket.io connection established. Now stream gift data for processing. */
 
+    barChart=null;
     giftData = [];
     seriesData = {};
     chartData = [];
     giftSum = 0;
-    $('.chart svg').remove();
-    $('.chart .morris-hover').remove();
-    barChart=null;
 
-    //$('#ctrl-panel').collapse('toggle');
-    $('#cv').getLayer('bg').visible = false;
-    $('#cv').getLayer('title').visible = false;
-    $('#cv').getLayer('loader').visible = true;
-    $('#cv').show();
+    start_dt = new Date(new Date(start_str).getTime());
+    end_dt = new Date(new Date(end_str).getTime());
 
     var day_ms = 86400000;
     var month_ms = day_ms * 31;
     var year_ms = day_ms * 365;
     var tz_diff = 1000 * 3600 * 6;
-    var start_dt = new Date(new Date(start_str).getTime());
-    var end_dt = new Date(new Date(end_str).getTime());
     var period_ms = end_dt.getTime()-start_dt.getTime();
-    if(period_ms <= month_ms) {
+    var period_str = '';
+
+    if(period_ms <= month_ms)
         groupBy ='day';
-        $('#grp_type').html('Daily');
-    }
-    else if(period_ms > month_ms) { /* && period_ms <= year_ms)*/
+    else if(period_ms > month_ms)
         groupBy = 'month';
-        $('#grp_type').html('Monthly');
-    }
-    /*else if(period_ms > year_ms)
-        groupBy = 'year';
-    */
 
+    $('.chart svg').remove();
+    $('.chart .morris-hover').remove();
     $('#foot-status').text('Requesting data from server');
+    $('.analy-title').hide();
+    $('#cv').getLayer('loader').visible = true;
+    $('#cv').show();
+    loopLoaderAnim();
 
-    setTimeout(function() {
-        api_call(
-            'gifts/get',
-            data={
-                'start':Number((start_dt.getTime()/1000).toFixed(0)),
-                'end':Number(((end_dt.getTime()+tz_diff*2)/1000).toFixed(0))
-            },
-            function(response) {
-                if(response['status'] == 'success') {
-                    console.log('api gifts/get complete.');
-                    $('#foot-status').text(format('Done. Rendered %s datapoints in %s seconds.',
-                        Sugar.Number.abbr(giftData.length,1), Sugar.Number.abbr(getElapsedTime(t1)/1000,1)));
-                }
-                else {
-                    alertMsg("Error retrieving gift data!", "danger");
-                }
-        });
-    },
-    500);
+    var tz_diff = 1000 * 3600 * 6;
+
+    api_call(
+        'gifts/get',
+        data={
+            'start':Number((start_dt.getTime()/1000).toFixed(0)),
+            'end':Number(((end_dt.getTime()+tz_diff*2)/1000).toFixed(0))
+        },
+        function(response) {
+            if(response['status'] == 'success') {
+                console.log('api gifts/get complete.');
+                $('#foot-status').text(format('Done. Rendered %s datapoints in %s seconds.',
+                    Sugar.Number.abbr(giftData.length,1), Sugar.Number.abbr(getElapsedTime(t1)/1000,1)));
+            }
+            else {
+                alertMsg("Error retrieving gift data!", "danger");
+            }
+    });
 }
 
 //------------------------------------------------------------------------------
@@ -276,7 +245,6 @@ function updateSeries(gifts) {
         if(groupBy == 'day') {
             // Use start of day timestamp as grouping key
             grp_key = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
-
             date_lbl = lbl = dt.strftime("%b %d `%y");
         }
         else if(groupBy == 'month') {
@@ -302,8 +270,8 @@ function updateSeries(gifts) {
         giftSum += gift['amount'];
     }
 
-    renderBarChart();
-    $('#foot-status').text(format('%s datapoints received.', Sugar.Number.abbr(giftData.length,1)));
+    $('.analy-title').show();
+    $('.analy-title').text(format('%s donations analyzed.', Sugar.Number.abbr(giftData.length,1)));
 }
 
 //------------------------------------------------------------------------------
@@ -313,25 +281,37 @@ function renderSummary() {
     var startd = new Date(Number((datestamps[0])));
     var endd = new Date(Number(datestamps[datestamps.length-1]));
 
-    // Display chart title
-    var to_str = null;
-    if(groupBy == 'day')
-        to_str = '%b %d %Y';
-    else if(groupBy == 'month')
-        to_str = '%b %Y';
-    else if(groupBy == 'year')
-        to_str = '%Y';
-    $('#title_start_d').html(startd.strftime(to_str));
-    $('#title_end_d').html(endd.strftime(to_str));
     $('.analy-title').show();
+    $('.analy-title').text("Analysis & rendering completed");
+
+    // Display chart title
+    setTimeout(function(){
+        var to_str = null;
+        var period_str = '';
+
+        if(groupBy == 'day') {
+            period_str = 'Daily';
+            to_str = '%b %d %Y';
+        }
+        else if(groupBy == 'month') {
+            period_str = 'Monthly';
+            to_str = '%b %Y';
+        }
+        else if(groupBy == 'year') {
+            to_str = '%Y';
+        }
+        $('.analy-title').text(format("%s Gift Estimates, %s–%s",  
+            period_str, startd.strftime(to_str), endd.strftime(to_str)));
+    }, 3000);
 
     // Show results panel
     var n_groups = Object.keys(seriesData).length;
     $('#total-card').show();
     $('#total-card .admin-stat').html(format('$%s', Sugar.Number.abbr(giftSum,1)));
     $('#avg-card').show();
-    $('#avg-card .admin-stat').html(format('$%s', Sugar.Number.abbr(giftSum/n_groups,0)));
-    //$('#res-panel').collapse('toggle');
+    $('#avg-card .admin-stat').html(format('$%s', Sugar.Number.abbr(giftSum/n_groups,1)));
+    $('#datapoints-card').show();
+    $('#datapoints-card .admin-stat').html(format('%s', Sugar.Number.abbr(giftData.length,1)));
 }
 
 //------------------------------------------------------------------------------

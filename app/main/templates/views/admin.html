@@ -7,7 +7,8 @@
 
 {% block content %}
 	<div class="tab-content">
-    <!-- Me Pane -->
+
+    <!-- User Pane -->
 		<div class="tab-pane" id="me" style='margin-bottom:7em' role="tabpanel">
       <div class="d-flex justify-content-center mt-5">
         <div class="card" style="width:800px; margin:.5em .5em; font-family:'Open Sans', sans-serif;">
@@ -39,7 +40,8 @@
         </div>
       </div>
     </div>
-    <!-- Services Pane -->
+
+    <!-- Integration Pane -->
 		<div class="tab-pane" id="services" style='margin-bottom:7em' role="tabpanel">
       <div class="row mx-auto justify-content-center m-3 mt-5" style="max-width:1000px;">
         <div class="card" style="width:400px; margin:.5em .5em; font-family:'Open Sans', sans-serif;">
@@ -124,6 +126,7 @@
         </div>
       </div>
     </div>
+
     <!-- Previewer Pane -->
 		<div class="tab-pane" id="previewer" style='margin-bottom:5em' role="tabpanel">
       <div class="d-flex justify-content-center mt-5">
@@ -181,11 +184,9 @@
         </div>
       </div>
     </div>
-    <!-- Leaderboard Pane -->
-		<div class="tab-pane" id="leaderboard" style='margin-bottom:7em' role="tabpanel" hidden>
-    </div>
+
     <!-- Statistics Pane -->
-		<div class="tab-pane active" id="stats" style='margin-bottom:7em' role="tabpanel">
+    <div class="tab-pane active" id="stats" style='margin-bottom:7em' role="tabpanel">
       <div class="row mx-auto justify-content-center m-3 mt-5" style="max-width:1200px;">
 
         <div class="d-flex justify-content-center">
@@ -195,6 +196,7 @@
           </div>
           <hr style="width:150px; border-top:1px solid rgba(0, 0, 0, 0.15);">
         </div>
+
         <div id="usage-contnr" class="d-flex p-0 pl-3 my-2 align-content-center flex-wrap"></div>
 
         <div class="d-flex justify-content-center">
@@ -204,6 +206,7 @@
           </div>
           <hr style="width:150px; border-top:1px solid rgba(0, 0, 0, 0.15);">
         </div>
+
         <div id="donor-contnr" class="d-flex p-0 pl-3 my-2 align-content-center flex-wrap"></div>
 
         <div class="d-flex justify-content-center">
@@ -213,10 +216,12 @@
           </div>
           <hr style="width:150px; border-top:1px solid rgba(0, 0, 0, 0.15);">
         </div>
+        
         <div id="stats-contnr" class="d-flex p-0 pl-3 my-2 align-content-center flex-wrap"></div>
-
+        
       </div>
     </div>
+
 	</div> <!--END TAB_CONTENT-->
 	<!-- Loader-->
   <div>
@@ -229,8 +234,7 @@
   </div>
 
   <!--TEMPLATES-->
-
-  <div id="stat-card" class="card admin-card text-center" style="display:none">
+  <div id="stat-card" class="card admin-card text-center" data-toggle="tooltip" style="display:none">
     <div class="my-auto p-4">
       <div class="admin-stat"></div>
       <div class="admin-lbl"></div>

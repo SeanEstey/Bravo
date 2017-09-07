@@ -220,7 +220,7 @@ def get_messages(mobile=None, start_dt=None, serialize=True):
         'messages.direction': {'$in':['in']}
     }
     chats = g.db['chatlogs'].find(query, {'group':0, '_id':0}
-        ).limit(50).sort('last_message',-1)
+        ).limit(150).sort('last_message',-1)
 
     log.debug('%s chatlogs retrieved. [%s]',
         chats.count(), timer.clock(t='ms'))

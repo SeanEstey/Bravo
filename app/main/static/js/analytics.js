@@ -9,9 +9,112 @@ seriesGroupings = ['day', 'month', 'year'];
 groupBy = 'day'; // default
 barChart = null;
 t1 = new Date();
+chartWidth = null;
+angle = 360;
+
+
+//-----------------------------------------------------------------------------
+function initCanvas() {
+
+    $cv = $('#cv');
+    var canvas = document.getElementById('cv');
+
+    // Make canvas coord dimensions match DOM dimensions
+    canvas.width = $('.chart').width();
+    canvas.height = $('.chart').height();
+    $cv.width(canvas.width);
+    $cv.height(canvas.height);
+
+    // Create 'bg' layer
+    $cv.addLayer({
+      name:'bg',
+      type:'image',
+      opacity: 0.5,
+      source:'https://bravoweb.ca/static/main/images/chart_logo.png',
+      x:(canvas.width/2)-100,
+      y:(canvas.height/2)-100,
+      width:200,
+      height:200,
+      fromCenter: false
+    });
+
+    $cv.drawText({
+      layer: true,
+      name: 'title',
+      fillStyle: '#6a6c6f',
+      strokeWidth: 2,
+      x:canvas.width/2,
+      y:(canvas.height/2)+150,
+      fontSize: '14pt',
+      fontFamily: 'proxima-nova, sans-serif',
+      text: 'Visualize your data with the options below.'
+    });
+
+    // Create 'loader' layer
+    $cv.drawPolygon({
+      layer:true,
+      name:'loader',
+      fillStyle:'rgba(39, 155, 190, 0.5)',
+      x:canvas.width/2,
+      y:canvas.height/2,
+      radius: 50,
+      sides: 5,
+      concavity: 0.5
+    });
+
+    $cv.getLayer('loader').visible = false;
+    loopLoaderAnim();
+}
+
+//-----------------------------------------------------------------------------
+function loopLoaderAnim(){
+
+    var loopDuration = 3000;
+    angle = angle *-1;
+    var p = $('#cv').getLayer('loader');
+    $('#cv').animateLayer(
+        'loader',
+        {rotate:angle},
+        loopDuration,
+        loopLoaderAnim
+    );
+}
+
+//-----------------------------------------------------------------------------
+function resizeCanvas() {
+
+    chartWidth = $('.chart').width();
+
+    // Resize canvas coordinate dimensions
+    var canvas = document.getElementById('cv');
+    canvas.width = chartWidth;
+
+    // Resize DOM canvas dimensions
+    $('#cv').width(canvas.width);
+    $('#cv').height(canvas.height);
+
+    // Adjust layer positions
+    var layers = $('#cv').getLayers();
+    for(var i=0; i<layers.length; i++) {
+        var layer = layers[i];
+        layer.x = canvas.width/2 - layer.width/2;
+        if(layer.name == 'title')
+            continue;
+    }
+
+    $('#cv').drawLayers();
+}
 
 //-----------------------------------------------------------------------------
 function analyticsInit() {
+
+    chartWidth = $('.chart').width();
+    initCanvas();
+    $(window).resize(function(e) {
+        if($('.chart').width() != chartWidth) {
+            resizeCanvas();
+        }
+    });
 
     $('#dataset-dd .dropdown-item').click(function() {
         console.log($(this).html());
@@ -50,11 +153,9 @@ function analyticsInit() {
         initGiftAnalysis($('#start-date').val(), $('#end-date').val());
     });
 
-    $('#load-logo').show();
-    $('.chart').hide();
     $('#ctrl-panel').collapse('show');
     $('#chart-panel').collapse('show');
-    $('#res-panel').collapse('hide');
+    //$('#res-panel').collapse('hide');
 
     $('div').on('shown.bs.collapse', function() {
         var id = $(this).prop('id');
@@ -93,17 +194,15 @@ function initGiftAnalysis(start_str, end_str) {
     seriesData = {};
     chartData = [];
     giftSum = 0;
-    if(barChart != null) {
-        $('.chart').empty();
-        barChart=null;
-    }
+    $('.chart svg').remove();
+    $('.chart .morris-hover').remove();
+    barChart=null;
 
-    // Reset DOM
-    $('#ctrl-panel').collapse('toggle');
-    $('#load-logo').hide();
-    $('.loading').hide();
-    $('.chart').hide();
-    $('#load-spinner').prop('hidden',false).show();
+    //$('#ctrl-panel').collapse('toggle');
+    $('#cv').getLayer('bg').visible = false;
+    $('#cv').getLayer('title').visible = false;
+    $('#cv').getLayer('loader').visible = true;
+    $('#cv').show();
 
     var day_ms = 86400000;
     var month_ms = day_ms * 31;
@@ -145,8 +244,6 @@ function initGiftAnalysis(start_str, end_str) {
         });
     },
     500);
-
-    //console.log(format("Series being grouped by %s.", groupBy));
 }
 
 //------------------------------------------------------------------------------
@@ -206,7 +303,6 @@ function updateSeries(gifts) {
     }
 
     renderBarChart();
-    //console.log(format('+%s series data', gifts.length));
     $('#foot-status').text(format('%s datapoints received.', Sugar.Number.abbr(giftData.length,1)));
 }
 
@@ -235,7 +331,7 @@ function renderSummary() {
     $('#total-card .admin-stat').html(format('$%s', Sugar.Number.abbr(giftSum,1)));
     $('#avg-card').show();
     $('#avg-card .admin-stat').html(format('$%s', Sugar.Number.abbr(giftSum/n_groups,0)));
-    $('#res-panel').collapse('toggle');
+    //$('#res-panel').collapse('toggle');
 }
 
 //------------------------------------------------------------------------------
@@ -260,12 +356,12 @@ function renderBarChart() {
         chartData.push(seriesData[k]);
     }
 
+    $('#cv').getLayer('loader').visible = false;
+    $('#cv').hide();
+    $('.chart svg').show();
+
     // Initial render
     if(!barChart) {
-        $('.loading').hide();
-        $('#load-spinner').prop('hidden',true).hide();
-        $('.chart').show();
-
         barChart = drawMorrisBarChart(
             'chart', chartData, 'date', ['value'], options=
             {'labelTop':true, /*'axes':'x',*/ 'padding':25, 'barColors':['#279bbe']}

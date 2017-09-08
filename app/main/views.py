@@ -50,7 +50,7 @@ def view_admin():
 def view_tools():
 
     return render_template(
-        'views/tools.html',
+        'views/map_analyzer.html',
         api_key=get_keys('google')['maps_api_key'])
 
 #-------------------------------------------------------------------------------

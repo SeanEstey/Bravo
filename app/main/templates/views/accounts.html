@@ -1,7 +1,6 @@
 {% extends "views/base.html" %}
 {% block head %}
   <link href="{{url_for("static", filename="main/css/lib/morris.css")}}" rel= "stylesheet" type= "text/css">
-  <link href="{{url_for("static", filename="main/css/account.css")}}" rel= "stylesheet" type= "text/css">
   <meta id="coord_data" data-city="{{city_coords}}" data-home="{{home_coords}}">
   <script src="{{url_for("main.static", filename="js/maps.js")}}"></script>
 {% endblock %}

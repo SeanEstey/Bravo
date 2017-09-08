@@ -82,6 +82,189 @@ body {
     content: url("/static/main/images/bravo_logo_barbell.png");
 }
 
+/*--------------------------ACCOUNTS.HTML ---------------------------*/
+
+.hpanel {
+    box-shadow:rgba(0, 0, 0, 0.05) 0px 1px 10px,rgba(0, 0, 0, 0.1) 0px 1px 2px;
+    background-color: none;
+    border: 0;
+    margin-bottom: 25px;
+}
+.hpanel .panel-heading {
+    background-color:white;
+    border-bottom: solid 1px #eaeaea;
+    color: #6a6c6f;
+    letter-spacing:1px;
+    font-weight: 400;
+    padding: 13px 20px 13px 20px;
+    transition: all .3s;
+}
+.hpanel .panel-heading .button {
+    background-color: inherit;
+    opacity: 1;
+}
+.hpanel .panel-heading .dropdown-menu {
+    max-width:70px!important;
+}
+.hpanel .panel-body {
+    background: #fff;
+    padding: 20px;
+    position: relative
+}
+.hpanel .panel-footer {
+    color: inherit;
+    background-color: white;
+    border: 0; /*1px solid #eaeaea;*/
+    border-top: 0;
+    font-size: 90%;
+    padding: 5px 20px;
+}
+.hpanel .panel-footer .small-time {
+    color: #9f9fa0;
+}
+.font-extra-bold {
+    font-weight: 700;
+    color: #6a6c6f;
+}
+.profile {
+}
+.profile .banner {
+    background-color: #20a8d8;
+    color: white;
+}
+.profile h2 {
+    color:white;
+}
+.profile #map{
+    height: 200px;
+    border: 1px solid #eaeeea;
+}
+.profile .stats-row {
+    color: #6a6c6f;
+    margin: 0;
+}
+.profile .divider {
+    border-right: 1px solid #eaeaea;
+}
+.profile .loading {
+    margin-top: 1em;
+    color: #dfdfdf!important;
+}
+.stats-val {
+    font-family: "Open Sans", sans-serif;
+    font-size: 2.0rem;
+    font-weight: 400;
+    letter-spacing: 1px;
+    color: #20a8d8;
+    margin-bottom:0;
+}
+.stats-lbl {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+}
+.profile .h1-stat .float {
+    margin-left: 1rem;
+    margin-bottom: 0;
+}
+.decimal {
+    font-size: 0.4em;
+    vertical-align: baseline;
+    top: -1.0em;
+    left: -0.75em;
+    position: relative;
+}
+#contact_panel .panel-body {
+    min-height:150px;
+}
+#custom_panel .panel-body {
+    min-height:250px;
+}
+#act-panel .panel-body {
+    min-height:120px;
+}
+#contact_panel .panel-heading, #custom_panel .panel-heading {
+    /*color: #20a8d8!important;*/
+}
+#edit-confirm button {
+    cursor: pointer;
+}
+.panel-heading button {
+    color: #20a8d8!important;
+    border: none;
+    cursor: pointer;
+    background-color: white;
+}
+.panel-heading button:hover {
+    background-color:white;
+    font-weight: 700;
+}
+.val {
+    color: #6a6c6f;
+    font-weight:400;
+}
+.field {
+    font-weight:200;
+    color: #6a6c6f!important;
+}
+.chart-panel .panel-body {
+    height: 175px;
+    background-color: #fff3f3;
+}
+.chart-panel .panel-footer {
+    background-color: #fff3f3;
+    font-size: 80%;
+    font-weight: 600;
+    letter-spacing: 0em;
+}
+.chart-panel .spinner {
+    color: #dfdfdf!important;
+}
+.chart-panel .chart {
+    padding-left:0;
+    padding-right:0;
+    height:150px;
+    width:100%;
+    border-bottom: 2px solid #fed6d5;
+}
+.chart-panel .chart svg {
+    top: 1px;
+}
+.chart-panel .loading {
+    -webkit-box-pack: center!important;
+    -webkit-justify-content: center!important;
+    -ms-flex-pack: center!important;
+    justify-content: center!important;
+}
+.act-panel .panel-heading i {
+    color: #f8cb00;
+}
+.book-btn {
+    cursor: pointer;
+    background-color: #4dbd74;
+    color: white;
+    width: 100%;
+}
+.chat-btn {
+    cursor: pointer;
+    background-color: #63c2de;
+    border-color:#63c2de;
+    color: white;
+    width: 100%;
+}
+.chat-btn:hover {
+    background-color: #299fc1;
+    border-color: #2283a0;
+    width: 100%;
+}
+.chat-btn.disabled {
+    background-color: #c6c1c1;
+    border-color: #c6c1c1;
+}
+.refresh-btn {
+    color: #6a6c6f;
+    border: none;
+}
+
 /*----------------------ADMIN.HTML-------------------------*/
 
 #admin-nav {

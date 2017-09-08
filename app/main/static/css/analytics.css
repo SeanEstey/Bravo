@@ -1,0 +1,54 @@
+
+/* ANALYTICS.HTML */
+
+.analy-hdr {
+    background-color: rgba(39, 155, 190, 0.13);
+    border-bottom: 1px solid rgba(106, 108, 111, 0.23);
+}
+.analy-hdr-title {
+    font-size:1.25rem;
+    font-weight:400;
+    color:#279bbe!important;
+}
+.analy-panel {
+    background-color:white;
+    max-width:1200px;
+    -webkit-border-radius:3px;
+    box-shadow:none;
+    border:1px solid rgba(106, 108, 111, 0.23)!important;
+}
+.analy-panel .chart {
+    top:15px;
+    height:100%;
+    width:100%;
+    border-bottom:none;
+}
+.analy-ctrl-sel {
+    font-weight:300;
+    font-family:proxima-nova,sans-serif;
+}
+.analy-title {
+    height: 50px;
+    font-size: 1.25em;
+    font-family: proxima-nova,sans-serif;
+    color: #464a4c!important;
+    font-weight: 300;
+    border-bottom: 1px solid rgba(106, 108, 111, 0.23);
+}
+.res-card {
+    width:150px;
+    height:100px;
+    border-radius:10px;
+    display:none;
+}
+.chart-instr {
+    color: #6a6c6f;
+    font-family: proxima-nova, sans-serif;
+    font-style: normal;
+    font-weight: 100;
+    font-size: 18pt;
+}
+.datepicker-days .table-condensed {
+    width:325px;
+}
+

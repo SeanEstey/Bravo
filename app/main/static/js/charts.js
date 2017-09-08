@@ -1,24 +1,19 @@
 /* charts.js */
 
-MyMorris = null;
+morris = null;
 top_lbl='$';
 bDrawTopLabel = true;
-
-//-------------------------------------------------------------------------------
-function initCharts() {
-
-    $(function() {
-        MyMorris = window.MyMorris = {};
-        MyMorris = Object.create(Morris);
-        initLabelTopExt();
-        //console.log('morris.js initialized');
-    });
-}
 
 //-------------------------------------------------------------------------------
 function drawMorrisBarChart(id, data, xkey, ykeys, options, ext_options=null) {
     /* Wrapper for morris.js bar chart w/ default stylings.
     */
+
+    if(!morris) {
+        morris = window.morris = {};
+        morris = Object.create(Morris);
+        initLabelTopExt();
+    };
 
     // Defaults
     var _options = {
@@ -26,13 +21,13 @@ function drawMorrisBarChart(id, data, xkey, ykeys, options, ext_options=null) {
         data: data, // series data
         xkey: xkey, // key for x-axis data
         ykeys: ykeys, // keys (list) for y-axis data
-        labels: ['$'], // labels for ykeys -- will be displayed when you hover over the chart
+        labels: ['Residential', 'Business'], // labels for ykeys -- will be displayed when you hover over the chart
         labelTop: true, // custom extension
         axes: true, // false for none, 'x' for x-axis, 'y' for y-axis
         grid: false,
         hideHover: 'auto',
         hoverCallback: null, // replace w/ custom function
-        barColors: ['#ec8380','#279bbe'], // red, blue
+        barColors: ['#279bbe', '#ec8380'], // red, blue
         gridTextColor: ['#6a6c6f'],
         gridTextSize: 14,
         gridTextWeight: 300,
@@ -54,6 +49,7 @@ function drawMorrisBarChart(id, data, xkey, ykeys, options, ext_options=null) {
     var barChart = new Morris.Bar(_options);
 
     $('svg').css('overflow','visible');
+    $('svg').css('top','-20px');
 
     return barChart;
 }
@@ -63,10 +59,10 @@ function initLabelTopExt() {
     /* Morris.js extension allowing for y-axis value on bar graphs to display
     */
 
-    MyMorris.Bar.prototype.defaults["labelTop"] = false;
+    morris.Bar.prototype.defaults["labelTop"] = false;
 
     // Label render
-    MyMorris.Bar.prototype.drawLabelTop = function(xPos, yPos, text){
+    morris.Bar.prototype.drawLabelTop = function(xPos, yPos, text){
         var label;
         text = top_lbl + text;
         return label = this.raphael.text(xPos, yPos, text)
@@ -76,7 +72,7 @@ function initLabelTopExt() {
             .attr('fill', this.options.gridTextColor);
     };
 
-    MyMorris.Bar.prototype.drawSeries = function() {
+    morris.Bar.prototype.drawSeries = function() {
 
         var barWidth, bottom, groupWidth, idx, lastTop, left, leftPadding, numBars,
             row, sidx, size, spaceLeft, top, ypos, zeroPos;

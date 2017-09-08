@@ -1,4 +1,4 @@
-/* analytics.js */
+/r* analytics.js */
 
 dataSets = ['gift-revenue', 'n-donor-trend'];
 giftData = [];  // Raw gift data (large dataset)
@@ -129,7 +129,7 @@ function analyticsInit() {
         initGiftAnalysis($('#start-date').val(), $('#end-date').val());
     });
 
-    $('.analy-title').hide();
+    //$('.analy-title').hide();
     $('#ctrl-panel').collapse('show');
     $('#chart-panel').collapse('show');
 
@@ -166,6 +166,7 @@ function toggleDatePicker(e) {
 function initGiftAnalysis(start_str, end_str) {
     /* Socket.io connection established. Now stream gift data for processing. */
 
+    t1 = new Date();
     barChart=null;
     giftData = [];
     seriesData = {};
@@ -190,7 +191,7 @@ function initGiftAnalysis(start_str, end_str) {
     $('.chart svg').remove();
     $('.chart .morris-hover').remove();
     $('#foot-status').text('Requesting data from server');
-    $('.analy-title').hide();
+    //$('.analy-title').hide();
     $('#cv').getLayer('loader').visible = true;
     $('#cv').show();
     loopLoaderAnim();
@@ -245,12 +246,12 @@ function updateSeries(gifts) {
         if(groupBy == 'day') {
             // Use start of day timestamp as grouping key
             grp_key = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
-            date_lbl = lbl = dt.strftime("%b %d `%y");
+            date_lbl = lbl = dt.strftime("%b %d '%y");
         }
         else if(groupBy == 'month') {
             // Use start of month timestamp as grouping key
             grp_key = new Date(dt.getFullYear(), dt.getMonth(), 1).getTime();
-            date_lbl = lbl = dt.strftime("%b `%y");
+            date_lbl = lbl = dt.strftime("%b '%y");
         }
         else if(groupBy == 'year') {
             console.log('YEAR GROUPING NOT SUPPORTED YET');
@@ -258,13 +259,26 @@ function updateSeries(gifts) {
         }
 
         if(seriesData.hasOwnProperty(grp_key)) {
-            seriesData[grp_key]['value'] += gift['amount'];
+            if(gift['personaType'] == 'Personal')
+                seriesData[grp_key]['res'] += gift['amount'];
+            else if(gift['personaType'] == 'Business')
+                seriesData[grp_key]['bus'] += gift['amount'];
         }
         else {
+
             seriesData[grp_key] = {
                 'date': date_lbl,
-                'label': lbl,
-                'value': gift['amount']
+                'personaType': gift['personaType'],
+                'label': lbl
+            }
+
+            if(gift['personaType'] == 'Personal') {
+                seriesData[grp_key]['res'] = gift['amount'];
+                seriesData[grp_key]['bus'] = 0;
+            }
+            else if(gift['personaType'] == 'Business') {
+                seriesData[grp_key]['bus'] = gift['amount'];
+                seriesData[grp_key]['res'] = 0;
             }
         }
         giftSum += gift['amount'];
@@ -332,7 +346,8 @@ function renderBarChart() {
     for(var i=0; i<plotKeys.length; i++) {
         // No decimals
         var k = plotKeys[i];
-        seriesData[k]['value'] = Number(seriesData[k]['value'].toFixed(0));
+        seriesData[k]['res'] = Number(seriesData[k]['res'].toFixed(0));
+        seriesData[k]['bus'] = Number(seriesData[k]['bus'].toFixed(0));
         chartData.push(seriesData[k]);
     }
 
@@ -343,8 +358,11 @@ function renderBarChart() {
     // Initial render
     if(!barChart) {
         barChart = drawMorrisBarChart(
-            'chart', chartData, 'date', ['value'], options=
-            {'labelTop':true, /*'axes':'x',*/ 'padding':25, 'barColors':['#279bbe']}
+            'chart',
+            chartData,
+            'date',
+            ['res','bus'],
+            options={'labelTop':true, 'stacked':true, 'padding':25} //'barColors':['#279bbe','red']}
         );
 
         console.log(format('Chart drawn [%sms]', getElapsedTime(tDraw)));
@@ -355,8 +373,6 @@ function renderBarChart() {
         barChart.redraw();
         console.log(format('Chart updated [%sms]', getElapsedTime(tDraw)));
     }
-
-    $('rect').css('fill','#279bbe');
 }
 
 //------------------------------------------------------------------------------

@@ -2,13 +2,14 @@
 
 {% block head %}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.standalone.min.css">
+  <link href="{{url_for("static", filename="main/css/lib/morris.css")}}" rel="stylesheet" type="text/css">
+  <link href="{{url_for("static", filename="main/css/analytics.css")}}" rel="stylesheet" type="text/css">
   <script src="{{url_for("main.static", filename="js/lib/morris.min.js")}}"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
   <script src="{{url_for("main.static", filename="js/utils.js")}}"></script>
   <script src="{{url_for("main.static", filename="js/analytics.js")}}"></script>
   <script src="{{url_for("main.static", filename="js/charts.js")}}"></script>
-  <link href="{{url_for("static", filename="main/css/lib/morris.css")}}" rel="stylesheet" type="text/css">
-  <script> jQuery(function($){analyticsInit(); initCharts();}); </script>
+  <script> jQuery(function($){analyticsInit();}); </script>
 {% endblock %}
 
 {% block postlibs %}
@@ -26,10 +27,10 @@
       </span>
     </div>
     <div id="chart-panel" class="collapse show" style="height:500px;">
-      <div class="analy-title text-center py-2"></div>
+      <div class="analy-title py-2 text-center"></div>
       <div class="chart" style="height:450px;" id="chart">
         <canvas id="cv" style="width:1198px; height:450px;"></canvas>
-        <!--morris.js chart inserted here when created-->
+        <!--morris.js chart here-->
       </div>
     </div>
     <!--Control Pane-->

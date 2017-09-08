@@ -180,11 +180,11 @@ def _api_cache_gifts():
 @api.route('/gifts/get', methods=['POST'])
 @login_required
 def _get_gifts():
-    from app.main.cache import get_gifts
+    from app.main.analytics import gifts_dataset
     from datetime import time, date
-    print 'start=%s (type=%s), end=%s (type=%s)' %(var('start'),type(var('start')), var('end'), type(var('end')))
+    #print 'start=%s (type=%s), end=%s (type=%s)' %(var('start'),type(var('start')), var('end'), type(var('end')))
     return func_call(
-        get_gifts,
+        gifts_dataset,
         date.fromtimestamp(int(var('start'))),
         date.fromtimestamp(int(var('end'))))
 

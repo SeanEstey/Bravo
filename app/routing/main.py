@@ -1,7 +1,7 @@
 '''app.routing.main'''
 import json, re, pytz
 from dateutil.parser import parse
-from datetime import datetime, time, date
+from datetime import datetime, time, date, timedelta
 from flask import g, request
 from bson import ObjectId as oid
 from app import get_keys
@@ -46,7 +46,7 @@ def get_metadata():
 
     docs = g.db.routes.find({
         'group': g.group,
-        'date': {'$gte':datetime.combine(date.today(),time())}
+        'date': {'$gte':datetime.combine(date.today()-timedelta(days=3),time())}
     }).sort('date', 1)
 
     docs = format_bson(list(docs), loc_time=True, dt_str="%A %b %d")

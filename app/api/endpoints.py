@@ -177,6 +177,12 @@ def _api_cache_gifts():
     from app.main.tasks import cache_gifts
     return task_call(cache_gifts)
 
+@api.route('/datatable/get', methods=['GET', 'POST'])
+@login_required
+def _api_datatable():
+    from app.main.datatable import get_data
+    return func_call(get_data)
+
 @api.route('/gifts/get', methods=['POST'])
 @login_required
 def _get_gifts():

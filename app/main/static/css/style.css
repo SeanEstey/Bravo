@@ -12,7 +12,8 @@
 /*------------------------- BASE.HTML ----------------------------*/
 body {
     color: #6a6c6f;
-    background-color:#f7f7f7; 
+    /*background-color:#f7f7f7; */
+    background-color: #eceeef;
 }
 #content {
     margin-left:.5rem;
@@ -91,13 +92,13 @@ body {
     margin-bottom: 25px;
 }
 .hpanel .panel-heading {
-    background-color:white;
-    border-bottom: solid 1px #eaeaea;
+    padding: .75rem 1.25rem;
+    background-color: white;
     color: #6a6c6f;
-    letter-spacing:1px;
-    font-weight: 400;
-    padding: 13px 20px 13px 20px;
+    letter-spacing: 1px;
+    font-weight: 500;
     transition: all .3s;
+    border-bottom: 1px solid rgba(0,0,0,.125);
 }
 .hpanel .panel-heading .button {
     background-color: inherit;
@@ -112,12 +113,11 @@ body {
     position: relative
 }
 .hpanel .panel-footer {
+    background-color: rgba(255, 255, 255, 0.75);
+    border-top: 1px solid #eceeef;
     color: inherit;
-    background-color: white;
-    border: 0; /*1px solid #eaeaea;*/
-    border-top: 0;
     font-size: 90%;
-    padding: 5px 20px;
+    padding: .75rem 1.25rem;
 }
 .hpanel .panel-footer .small-time {
     color: #9f9fa0;
@@ -136,7 +136,7 @@ body {
     color:white;
 }
 .profile #map{
-    height: 200px;
+    height: 225px;
     border: 1px solid #eaeeea;
 }
 .profile .stats-row {
@@ -177,7 +177,7 @@ body {
     min-height:150px;
 }
 #custom_panel .panel-body {
-    min-height:250px;
+    min-height:200px;
 }
 #act-panel .panel-body {
     min-height:120px;
@@ -207,11 +207,11 @@ body {
     color: #6a6c6f!important;
 }
 .chart-panel .panel-body {
-    height: 175px;
+    height: 250px;
     background-color: #fff3f3;
 }
 .chart-panel .panel-footer {
-    background-color: #fff3f3;
+    /*background-color: #fff3f3;*/
     font-size: 80%;
     font-weight: 600;
     letter-spacing: 0em;
@@ -220,11 +220,12 @@ body {
     color: #dfdfdf!important;
 }
 .chart-panel .chart {
+    top: 15px;
     padding-left:0;
     padding-right:0;
-    height:150px;
+    height:250px;
     width:100%;
-    border-bottom: 2px solid #fed6d5;
+    /*border-bottom: 2px solid #fed6d5;*/
 }
 .chart-panel .chart svg {
     top: 1px;
@@ -713,5 +714,11 @@ a.hover:visited {
     .modal-wide {
         min-width:600px;
         max-width:1000px;
+    }
+}
+
+@media (min-width: 1600px) {
+    #content {
+        max-width:1600px;
     }
 }

@@ -104,8 +104,9 @@ def query_and_store(query=None, category=None, obj_type=None, get_meta=False, st
                 timeout=timeout)
         except Exception as e:
             log.exception('Failed to get query batch')
-            start+=500
-            continue
+            break
+            #start+=500
+            #continue
 
         start += 500
 

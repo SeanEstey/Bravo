@@ -48,8 +48,8 @@ function drawMorrisBarChart(id, data, xkey, ykeys, options, ext_options=null) {
 
     var barChart = new Morris.Bar(_options);
 
-    $('svg').css('overflow','visible');
-    $('svg').css('top','-20px');
+    $('svg').css('overflow','hidden');
+    //$('svg').css('top','-20px');
 
     return barChart;
 }

@@ -61,6 +61,13 @@ def view_analytics():
     return render_template('views/analytics.html')
 
 #-------------------------------------------------------------------------------
+@main.route('/datatable')
+@login_required
+def view_datatable():
+
+    return render_template('views/datatable.html')
+
+#-------------------------------------------------------------------------------
 @main.route('/map/<block>')
 @login_required
 def view_map(block):

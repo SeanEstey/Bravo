@@ -14,7 +14,6 @@ def gifts_dataset(start=None, end=None, persona=True):
     """
 
     from pprint import pprint
-    from app.main.socketio import smart_emit
 
     t1 = Timer()
     epoch = datetime(1970,1,1, tzinfo=pytz.utc)
@@ -22,9 +21,9 @@ def gifts_dataset(start=None, end=None, persona=True):
     aggregate = g.db['cachedGifts'].aggregate([
         {'$match': {
             'group':g.group,
-            'gift.fund': criteria['fund'],
             'gift.approach': criteria['approach'],
-            'gift.campaign': criteria['campaign'],
+            #'gift.fund': criteria['fund'],
+            #'gift.campaign': criteria['campaign'],
             'gift.type': 5,
             'gift.date':{
                 '$gte':datetime.combine(start,time()).replace(tzinfo=pytz.utc),
@@ -51,58 +50,14 @@ def gifts_dataset(start=None, end=None, persona=True):
         'timestamp':(d['gift']['date']-epoch).total_seconds()*1000
         } for d in aggregate
     ]
+
     print '%s datapoints formatted for client. [%sms]' %(len(data), t1.clock(t='ms'))
+
+    from app.main.socketio import smart_emit
     smart_emit('gift_data', data)
     smart_emit('gift_data', [])
-    return True
-
-    """
-    data = None
-    pos = 0
-    i=1
-    n_batches = 5
-    batch_size = g.db['cachedGifts'].find(query).count()/n_batches +1
-
-    # Stream data back via socket.io connection
-    while data is None or len(data) > 0:
-
-        data=[]
-        giftsCurs = g.db['cachedGifts'].find(query)[pos:pos+batch_size]
-        acct_refs = [n['gift']['accountRef'] for n in giftsCurs]
-        acctsCurs = list(g.db['cachedAccounts'].find({'account.ref':{'$in':acct_refs}}))
-        giftsCurs.rewind()
-        n_persona = 0
-
-        for doc in giftsCurs:
-            gift = doc['gift']
-            datapoint = {
-                'amount': gift['amount'],
-                'timestamp':(gift['date']-epoch).total_seconds()*1000
-            }
-            ref = gift['accountRef']
-
-            for n in range(0,len(acctsCurs)):
-                acct = acctsCurs[n]['account']
-
-                if acct['ref'] == ref:
-                    datapoint['personaType'] = acct['personaType']
-                    n_persona +=1
-                    break
-
-            data.append(datapoint)
-
-        # Send over socket
-        smart_emit('gift_data', data)
-
-        if len(data) > 0:
-            print '[%s/%s] socketio: %s datapoints sent [%sms]' %(i, n_batches, len(data), t1.clock(t='ms'))
-            t1.restart()
-
-        pos+=batch_size
-        i+=1
 
     return True
-    """
 
 #-------------------------------------------------------------------------------
 def net_accounts(start=None, end=None):

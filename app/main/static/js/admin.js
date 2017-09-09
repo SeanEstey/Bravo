@@ -43,6 +43,9 @@ function init() {
         else if(id == "#map_analyzer") {
             window.location = "https://bravoweb.ca/tools";
         }
+        else if(id == "#datatable") {
+            window.location = "https://bravoweb.ca/datatable";
+        }
 
         $(this).tab('show');
     })

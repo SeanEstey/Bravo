@@ -280,12 +280,17 @@ function updateSeries(gifts) {
                 seriesData[grp_key]['bus'] = gift['amount'];
                 seriesData[grp_key]['res'] = 0;
             }
+            else {
+                console.log('no personatype. asuming res');
+                seriesData[grp_key]['res'] = gift['amount'];
+                seriesData[grp_key]['bus'] = 0;
+            }
         }
         giftSum += gift['amount'];
     }
 
-    $('.analy-title').show();
-    $('.analy-title').text(format('%s donations analyzed.', Sugar.Number.abbr(giftData.length,1)));
+    //$('.analy-title').show();
+    $('#chart-title').text(format('%s donations analyzed.', Sugar.Number.abbr(giftData.length,1)));
 }
 
 //------------------------------------------------------------------------------
@@ -295,8 +300,8 @@ function renderSummary() {
     var startd = new Date(Number((datestamps[0])));
     var endd = new Date(Number(datestamps[datestamps.length-1]));
 
-    $('.analy-title').show();
-    $('.analy-title').text("Analysis & rendering completed");
+    //$('.analy-title').show();
+    $('#chart-title').text("Analysis & rendering completed");
 
     // Display chart title
     setTimeout(function(){
@@ -314,7 +319,7 @@ function renderSummary() {
         else if(groupBy == 'year') {
             to_str = '%Y';
         }
-        $('.analy-title').text(format("%s Gift Estimates, %s–%s",  
+        $('#chart-title').text(format("%s Gift Estimates, %s–%s",  
             period_str, startd.strftime(to_str), endd.strftime(to_str)));
     }, 3000);
 
@@ -382,4 +387,27 @@ function displayError(msg, response) {
     $('#error').prop('hidden', false);
     $('#err_alert').prop('hidden', false);
     alertMsg(msg, 'danger', id="err_alert");
+}
+
+
+//------------------------------------------------------------------------------
+function gsheetsToJSON() {
+
+     // ID of the Google Spreadsheet
+     var spreadsheetID = "SPREADSHEET KEY";
+
+     // Make sure it is public or set to Anyone with link can view 
+     var url = "https://spreadsheets.google.com/feeds/list/" + spreadsheetID + "/od6/public/values?alt=json";
+
+     $.getJSON(url, function(data) {
+
+      var entry = data.feed.entry;
+
+      $(entry).each(function(){
+        // Column names are name, age, etc.
+        $('.results').prepend('<h2>'+this.gsx$name.$t+'</h2><p>'+this.gsx$age.$t+'</p>');
+      });
+
+     });
+
 }

@@ -2,26 +2,25 @@
 /* ANALYTICS.HTML */
 
 .analy-hdr {
-    background-color: rgba(39, 155, 190, 0.13);
-    border-bottom: 1px solid rgba(106, 108, 111, 0.23);
+    background-color: blanchedalmond;
+    border-bottom: 1px solid rgba(106, 108, 111, 0.4);
+    cursor: pointer;
 }
 .analy-hdr-title {
+    color:#74480a;
     font-size:1.25rem;
     font-weight:400;
-    color:#279bbe!important;
 }
 .analy-panel {
-    background-color:white;
-    max-width:1200px;
-    -webkit-border-radius:3px;
-    box-shadow:none;
-    border:1px solid rgba(106, 108, 111, 0.23)!important;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: rgba(0, 0, 0, 0.05) 1px 1px 13px 1px;
+    /*max-width:1200px;*/
 }
 .analy-panel .chart {
-    top:15px;
+    /*top:15px;
     height:100%;
     width:100%;
-    border-bottom:none;
+    border-bottom:none;*/
 }
 .analy-ctrl-sel {
     font-weight:300;

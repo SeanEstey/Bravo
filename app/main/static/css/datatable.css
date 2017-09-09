@@ -1,0 +1,17 @@
+
+
+table.dataTable {
+    border-collapse: collapse!important;
+    background-color:white;
+    border:1px solid rgba(0, 0, 0, 0.15);  
+}
+
+td select.form-control {
+    padding: 0;
+}
+
+thead tr th {
+    font-weight:normal;
+    border-bottom:none!important;
+    border-top:none!important;
+}

@@ -1,18 +1,23 @@
 
 //------------------------------------------------------------------------------
-function init() {
-//		buildAdminPanel();
+function initRouting() {
+
     addSocketIOHandlers();
     addEventHandlers();
     prettyFormatting();
-		//alertMsg('Click on Warnings for each route to view any conflicts 
-		//resolving addresses', 'info', 15000);
+
+    $('#routing-tbl').DataTable({
+        responsive:true,
+        select:true
+    });
+
+    $('#routing-tbl').show();
 }
 
 //------------------------------------------------------------------------------
 function prettyFormatting() {
+
   $('td[name="status"]').each(function() {
-      //console.log($(this).text());
 
       if($(this).text() == 'pending') {
           $(this).css('color', window.colors['IN_PROGRESS']);
@@ -27,6 +32,7 @@ function prettyFormatting() {
 
 //------------------------------------------------------------------------------
 function addEventHandlers() {
+
     $('select[name="depots"]').change(function() {
         $.ajax({
             type:'POST',
@@ -223,48 +229,4 @@ function addRouteRow(route) {
 
     $('#routing-tbl tbody').append($row);
     $('#routing-tbl tbody tr:last').fadeIn('slow');
-}
-
-//------------------------------------------------------------------------------
-function buildAdminPanel() {
-    // dev_mode pane buttons
-    $('#admin_pane').hide();
-
-    show_debug_info_btn = addAdminPanelBtn(
-      'dev_pane',
-      'debug_info_btn',
-      'Debug Mode',
-      'btn-outline-primary');
-
-		// Prints Routific job_id to console
-    show_debug_info_btn.click(function() {
-				$(this).prop('disabled', 'true');
-
-				$('#routing-tbl th:last').after('<th width="5%">Debug</th>');
-
-				$('tr[id]').each(function() {
-            if(! $(this).attr('id'))
-                return;
-
-						var $debug_btn = 
-							'<button name="debug-btn" ' +
-                      'id="' + $(this).attr('id') + '"' +
-											'class="btn btn-outline-warning">Print</button>';
-
-						$(this).append('<td>'+$debug_btn+'</td>');
-
-						$(this).find('button[name="debug-btn"]').click(function() {
-								$route_btn = $(this).parent().parent().find('button[name="route_btn"]');
-
-								console.log(JSON.parse($route_btn.attr('data-route')));
-
-								alertMsg('Debug data printed to console. ' +
-												 'To view console in chrome, type <b>Ctrl+Shift+I</b>.', 
-												 'warning', 15000);
-						});
-				});
-
-				alertMsg('Debug mode enabled. ' +
-								 'Clicking <b>Print Metadata</b> buttons prints notification info to console.', 'info');
-    });
 }

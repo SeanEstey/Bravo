@@ -17,33 +17,32 @@
 {% endblock %}
 
 {% block content %}
+
   <!--Analytics Panel-->
-  <div class="analy-panel mt-5">
+  <div class="analy-panel text-center mt-4">
     <!--Chart Pane-->
     <div class="analy-hdr text-left py-2 px-3" data-toggle="collapse" data-target="#chart-panel">
-      <span class="analy-hdr-title text-center mb-0">Data Visualization</span>
-      <span class="pull-right" style="color: #279bbe;">
+      <span id="chart-title" class="analy-hdr-title text-center mb-0">Data Visualization</span>
+      <span class="pull-right" style="color:#74480a">
         <i class="fa fa-window-minimize text-right"></i>
       </span>
     </div>
-    <div id="chart-panel" class="collapse show" style="height:500px;">
-      <div class="analy-title py-2 text-center"></div>
-      <div class="chart" style="height:450px;" id="chart">
-        <canvas id="cv" style="width:1198px; height:450px;"></canvas>
+    <div id="chart-panel" class="p-0 collapse show" style="background-color:white; height:500px;">
+      <div class="chart p-0" style="height:500px;" id="chart">
+        <canvas id="cv" style="width:1198px; height:500px;"></canvas>
         <!--morris.js chart here-->
       </div>
     </div>
     <!--Control Pane-->
     <div class="analy-hdr text-left py-2 px-3" data-toggle="collapse" data-target="#ctrl-panel">
       <span class="analy-hdr-title text-center mb-0">Options</span>
-      <span class="pull-right" style="color: #279bbe;">
+      <span class="pull-right" style="color:#74480a">
         <i class="fa fa-window-minimize text-right"></i>
       </span>
     </div>
-    <div id="ctrl-panel" class="collapse show" aria-expanded="true">
-      <div class="d-flex justify-content-around p-5">
-        <div class="col-lg-3">
-          <h5 class="analy-ctrl-sel text-center mb-3">Select Dataset</h5>
+    <div id="ctrl-panel" class="collapse show" style="background-color:white;"  aria-expanded="true">
+      <div class="d-flex justify-content-center flex-wrap p-3">
+        <div class="col-12 col-lg-2 my-2">
           <div class="dropup" id="dataset">
             <button id="dataset-btn" type="button" class="btn btn-secondary dropdown-toggle col-12"
             data-toggle="dropdown" aria-expanded="false">Gift Revenue</button>
@@ -53,17 +52,15 @@
             </div>
           </div>
         </div>
-        <div class="col-lg-5">
-          <h5 class="analy-ctrl-sel text-center mb-3">Select Date Range</h5>
-          <div class="input-daterange input-group mb-2">
+        <div class="col-12 col-lg-4 my-2">
+          <div class="input-daterange input-group">
             <input id="start-date" name="start" type="text" class="form-control" placeholder="mm/dd/yyyy">
             <div id="start-btn" class="input-group-addon fa fa-calendar"></div>
             <input id="end-date" name="end" type="text" class="form-control" placeholder="mm/dd/yyyy">
             <div id="end-btn" class="input-group-addon fa fa-calendar"></div>
           </div>
         </div>
-        <div class="col-lg-3">
-          <h5 class="analy-ctrl-sel text-center mb-3">Graph Data</h5>
+        <div class="col-12 col-lg-2 my-2">
           <div class="text-center">
             <button type="button" id="analyze" class="btn btn-primary col-12">Analyze</button>
           </div>
@@ -73,11 +70,11 @@
     <!--Results Pane-->
     <div class="analy-hdr text-left py-2 px-3" data-toggle="collapse" data-target="#res-panel">
       <span class="text-center analy-hdr-title mb-0">Summary</span>
-      <span class="pull-right" style="color:#279bbe;">
+      <span class="pull-right" style="color:#74480a">
         <i class="fa fa-window-maximize text-right"></i>
       </span>
     </div>
-    <div id="res-panel" class="collapse">
+    <div id="res-panel" class="collapse" style="background-color:white">
       <div class="d-flex justify-content-start p-5">
         <div id="total-card" class="card admin-card res-card text-center">
           <div class="my-auto p-3">

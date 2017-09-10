@@ -1,13 +1,9 @@
-
+/* datatable.js */
 
 data = null;
 
-
 //------------------------------------------------------------------------------
 function initDatatable() {
-
-
-
     getData();
 }
 
@@ -19,70 +15,63 @@ function getData() {
       data=null,
       function(response){
           console.log(format('%s datapoints received.', response['data'].length));
-
           data=response['data'];
-          showData();
+          showData(data);
       });
 }
 
 //------------------------------------------------------------------------------
-function showData() {
+function showData(resp_data) {
 
-    var $dt = $('#datatable');
-    $dt.find('thead').empty();
-    $dt.find('tbody').empty();
-
-    var headers = Object.keys(data[0]);
-
-    headers.splice(headers.indexOf('routeNotes'),1);
-    headers.splice(headers.indexOf('_id'),1);
-    headers.splice(headers.indexOf('inspection'),1);
-    headers.splice(headers.indexOf('date'),1);
-    headers = ['date'].concat(headers);
-
-    $dt.find('thead').append('<tr></tr>');
-
-    for(var i=0; i<headers.length; i++) {
-        var hdr = headers[i];
-        $dt.find('thead tr').append('<th>'+hdr+'</th>');
+    var data_hdr = ["date", "block", "skips", "orders", "zeros", "donors", "estmt", "receipt", "collectRate", "estmtMargin", "estmtTrend", "invoice", "tripSched", "mileage", "vehicle", "driver", "tripActual", "driverHrs", "cages"];
+    var tbl_rows = [];
+    var tbl_columns = [{title:'timestamp'}];
+    for(var i=0; i<data_hdr.length; i++) {
+        tbl_columns.push({title:Sugar.String.titleize(data_hdr[i])});
     }
 
-    for(var i=0; i<data.length; i++) {
-        var row_data = data[i];
-        var $row = $('<tr></tr>');
-
-        for(var k=0; k<headers.length; k++) {
-            var hdr = headers[k];
-
-            if(row_data.hasOwnProperty(hdr)) {
-                var $td = $('<td></td>');
-                var val = row_data[hdr];
-
-                if(hdr == 'date') {
-                    val = new Date(val['$date']);
-                    val = val.strftime('%b %d %Y');
-                    $td.css('min-width', '100px');
-                }
-                else if(typeof(val) == 'number') {
-                    val = Sugar.Number.abbr(val,1);
-                }
-
-                $td.append(val);
-                $row.append($td);
-            }
-            else {
-                $row.append('<td>N/A</td>');
-            }
+    for(var i=0; i<resp_data.length; i++) {
+        var fields = resp_data[i];
+        var tbl_row = [fields['date']['$date']];
+        for(var j=0; j<data_hdr.length; j++) {
+            tbl_row.push(fields[data_hdr[j]] || ''); 
         }
-
-        $dt.find('tbody').append($row);
+        tbl_rows.push(tbl_row);
     }
 
-    $('#datatable').DataTable({
+    var table = $('#datatable').DataTable({
+        data: tbl_rows,
+        columns: tbl_columns,
+        order: [[0,'desc']],
+        columnDefs: [
+            {
+                "targets":0, // Timestamp
+                "visible":false,
+                "searchable":false
+            },
+            {
+                "targets":data_hdr.indexOf('date')+1,
+                "render": function(data, type, row) {return new Date(data['$date']).strftime('%b %d %Y');}
+            },
+            {
+                "targets":[data_hdr.indexOf('receipt')+1, data_hdr.indexOf('estmt')+1],
+                "render": function(data, type, row) { return data ? '$'+Sugar.Number.format(data,2) : '';}
+            },
+            {
+                'targets':[data_hdr.indexOf('collectRate')+1, data_hdr.indexOf('estmtMargin')+1],
+                'render':function(data,type,row){ return typeof(data)=='number' ? Sugar.Number.format(data*100,1)+'%' : '';}
+            },
+            {
+                'targets':data_hdr.indexOf('estmtTrend')+1,
+                'render':function(data,type,row){ return data ? '$'+Sugar.Number.format(data,2) : '';}
+            },
+            {
+                'targets':data_hdr.indexOf('tripSched')+1,
+                'render':function(data,type,row){ return data ? Sugar.Number.format(data,2) : '';}
+            }
+        ],
         responsive:true,
-        select:true,
-        "lengthMenu": [[100, 250,-1], [100, 250, "All"]]
+        select:false,
+        lengthMenu: [[10, 50, 100,-1], [10, 50, 100, "All"]]
     });
-
-    $('#datatable').show();
 }

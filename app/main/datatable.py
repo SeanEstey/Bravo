@@ -15,7 +15,7 @@ def get_data(start=None, end=None):
 
     t1 = Timer()
     g.db = current_app.db_client['test']
-    data = g.db['gsheets'].find({}).limit(100)
+    data = g.db['gsheets'].find({}).sort('date',1)#.limit(100)
     data = list(data)
 
     return loads(dumps(data))

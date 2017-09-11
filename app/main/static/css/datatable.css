@@ -1,6 +1,7 @@
 
 
 table.dataTable {
+    max-width:100%!important;
     border-collapse: collapse!important;
     background-color:white;
     border:1px solid rgba(0, 0, 0, 0.15);  

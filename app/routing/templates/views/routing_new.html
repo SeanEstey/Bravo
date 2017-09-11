@@ -1,0 +1,132 @@
+{% extends "views/base.html" %}
+
+{% block head %}  
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/select/1.2.2/css/select.bootstrap.min.css"/>
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.16/css/dataTables.bootstrap4.min.css"/>
+  <link rel="stylesheet" type="text/css" href="{{url_for("routing.static", filename="css/routing.css")}}"/>
+  <script type="text/javascript" src="{{url_for("routing.static", filename="js/routing_new.js")}}"></script>
+{% endblock %}
+
+{% block postlibs %}
+  <script type="text/javascript" src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+  <script type="text/javascript" src="https://cdn.datatables.net/1.10.16/js/dataTables.bootstrap4.min.js"></script>
+  <script type="text/javascript" src="https://cdn.datatables.net/rowreorder/1.2.2/js/dataTables.rowReorder.min.js"></script>
+  <script type="text/javascript" src="https://cdn.datatables.net/select/1.2.2/js/dataTables.select.min.js"></script>
+  <script>$(function() {initRouting();});</script>
+{% endblock %}
+  
+{% block content %}
+    <table id="routing-tbl" class="table table-responsive">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Block</th>
+          <th>Orders</th>
+          <th>Size</th>
+          <th>New</th>
+          <th>Depot</td>
+          <th>Driver</th>
+          <th>Status</th>
+          <th>Length</th>
+          <th>Command</th>
+          <th>Geocoding</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="display:none"><!--Invisible template row for copying Depots and Drivers-->
+          <td>a</td><td>b</td><td>c</td><td>d</td><td>e</td>
+          <td name="depots">
+            <select name="depots" class="form-control">
+              {% for depot in depots %}
+                <option selected="selected">{{depot.name}}</option>
+                <option>{{depot.name}}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td name="drivers">
+            <select name="drivers" class="form-control">
+              {% for driver in drivers %}
+              <option value="{{ driver.name }}">{{ driver.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td></td><td></td><td></td><td></td><td></td>
+        </tr>
+        {% for route in routes %}
+          <tr id="{{route["_id"]["$oid"]|string}}">
+            <td>{{ route.date }}</td>
+            <td><a href="{{url_for('main.view_map',
+            block=route.block)}}">{{route.block}}</a></td>
+            <td>{{ route.routific.nOrders }}</td>
+            <td>{{ route.stats.nBlockAccounts }}</td>
+            <td>{{ route.stats.nDropoffs }}</td>
+            <td>
+              <select name="depots" class="form-control">
+                {% for depot in depots %}
+                  {% if depot.name == route.routific.depot.name %}
+                    <option selected="selected">{{depot.name}}</option>
+                  {% else %}
+                    <option>{{depot.name}}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <select name="drivers" class="form-control">
+                {% for driver in drivers %}
+                  {% if driver.name == route.routific.driver.name %}
+                    <option selected="selected" value="{{ driver.name }}">{{ driver.name }}</option>
+                  {% else %}
+                    <option value="{{ driver.name }}">{{ driver.name }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </td>
+            <td name="status">{{ route.routific.status }}</td>
+            <td>
+              {% if route.routific.totalDuration is defined and route.routific.totalDuration %}
+                {{ (route.routific.totalDuration/60)|round(0,"floor")|int }} hrs {{ route.routific.totalDuration % 60 }} min
+              {% else %}
+                -- : --
+              {% endif %}
+            </td>
+            <td>
+              <button name="route_btn" href="" data-route="{{route["json"]}}" class="btn btn-outline-primary"
+                >Route
+              </button>
+            </td>
+            <!--<td>
+              <hr></hr>
+              <button style="display:none" name="view_btn" class="btn btn-outline-primary"
+              href="https://docs.google.com/spreadsheets/d/">View
+              </button>
+            </td>-->
+            <td name="warnings">
+              <button style="display:none" name="warnings_btn" class="btn btn-outline-primary"
+                >N/A
+              </button>
+            </td>
+            <td></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  <div class="alert br-alert" hidden></div>
+
+  <!-- Geocode Warnings Dialog -->
+  <div style="margin-top:15em" id="warnings_modal" class="modal fade">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+          <h4 class="modal-title">Geocode Warnings/Errors</h4>
+        </div>
+        <div class="modal-body">
+          <p></p>
+        </div>
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </div><!-- /.modal -->
+{% endblock %}

@@ -46,7 +46,7 @@ def submit_job(route_id):
                 acct,
                 warnings,
                 api_key,
-                route['driver']['shift_start'],
+                route['routific']['driver']['shift_start'],
                 '19:00',
                 get_udf('Service Time', acct) or MIN_PER_STOP)
         except Exception as e:
@@ -60,7 +60,7 @@ def submit_job(route_id):
             orders.append(order)
 
     office = get_keys('routing')['locations']['office']
-    depot = route['depot']
+    depot = route['routific']['depot']
 
     try:
         office_coords = geocode(office['formatted_address'], api_key)[0]
@@ -71,10 +71,10 @@ def submit_job(route_id):
 
     job_id = routific.submit_vrp_task(
         orders,
-        route['driver']['name'],
+        route['routific']['driver']['name'],
         office_coords,
         depot_coords,
-        route['driver']['shift_start'],
+        route['routific']['driver']['shift_start'],
         SHIFT_END,
         get_keys('routing')['routific']['api_key'])
 
@@ -83,15 +83,16 @@ def submit_job(route_id):
     g.db.routes.update_one(
         {'_id': route['_id']},
         {'$set': {
-            'job_id': job_id,
-            'status': 'processing',
-            'block_size': len(accts),
-            'orders': len(orders),
-            'no_pickups': n_skips,
-            'start_address': office['formatted_address'],
-            'end_address': depot['formatted_address'],
-            'warnings': warnings,
-            'errors': errors}})
+            'routific.jobID': job_id,
+            'routific.status': 'processing',
+            'routific.startAddress': office['formatted_address'],
+            'routific.endAddress': depot['formatted_address'],
+            'routific.warnings': warnings,
+            'routific.errors': errors,
+            'stats.nBlockAccounts': len(accts),
+            'stats.nOrders': len(orders),
+            'stats.nSkips': n_skips
+        }})
 
     if len(errors) > 0:
         log.error('Failed to resolve %s addresses on Route %s',
@@ -145,33 +146,21 @@ def get_solution(job_id, api_key):
             return task['status']
         log.debug('Got solution')
 
-    doc = g.db['routes'].find_one({'job_id':job_id})
-    output = task['output']
-    orders = task['output']['solution'].get(doc['driver']['name']) or\
-        task['output']['solution']['default']
-    length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
-
-    g.db['routes'].update_one({'job_id':job_id},
-      {'$set': {
-          'status':'finished',
-          'orders': task['visits'],
-          'total_travel_time': output['total_travel_time'],
-          'num_unserved': output['num_unserved'],
-          'routific': {
-              'input': task['input']['visits'],
-              'solution': task['output']['solution']},
-          'duration': length.seconds/60}})
-
+    doc = g.db['routes'].find_one({'routific.jobID':job_id})
     if not doc:
         log.error("No mongo record for job_id '%s'", job_id)
         return False
+
+    output = task['output']
+    orders = task['output']['solution'].get(doc['routific']['driver']['name'])
+    length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
 
     # Add custom fields in solution obj
     for order in orders:
         if order['location_id'] == 'office':
             continue
         elif order['location_id'] == 'depot':
-            location = geocode(doc['end_address'],api_key)[0]['geometry']['location']
+            location = geocode(doc['routific']['endAddress'],api_key)[0]['geometry']['location']
             order['customNotes'] = {'id':'depot', 'name':'Depot'}
             order['gmaps_url'] = build_url(
                 order['location_name'], location['lat'], location['lng'])
@@ -192,5 +181,18 @@ def get_solution(job_id, api_key):
         "customNotes": {
             "id": "office",
             "name": office['name']}})
+
+    g.db['routes'].update_one(
+        {'routific.jobID':job_id},
+        {'$set': {
+          'stats.nOrders': task['visits'],
+          'routific.status':'finished',
+          'routific.nOrders': task['visits'],
+          'routific.nUnserved': output['num_unserved'],
+          'routific.travelDuration': output['total_travel_time'],
+          'routific.totalDuration': length.seconds/60,
+          'routific.orders': orders
+      }})
+
     return orders
 

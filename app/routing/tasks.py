@@ -148,7 +148,7 @@ def build_route(self, route_id, job_id=None, **rest):
         sleep(5)
         orders = get_solution(job_id, api_key)
 
-    title = '%s: %s (%s)' %(route['date'].strftime('%b %-d'), route['block'], route['driver']['name'])
+    title = '%s: %s (%s)' %(route['date'].strftime('%b %-d'), route['block'], route['routific']['driver']['name'])
     ss = sheet.build(gdrive.gauth(oauth), title)
     route = g.db['routes'].find_one_and_update({'_id':oid(route_id)}, {'$set':{'ss':ss}})
     wks_name = get_keys('routing')['gdrive']['template_orders_wks_name']
@@ -161,7 +161,7 @@ def build_route(self, route_id, job_id=None, **rest):
         sheet.write_prop(info_wks, route)
 
         # Append orders w/o geolocation
-        for e in route['errors']:
+        for e in route['routific']['errors']:
             order = routific.order(e['acct'], e['acct']['address'], {}, '', '',0)
             sheet.append_order(orders_wks, order)
     except Exception as e:
@@ -172,7 +172,7 @@ def build_route(self, route_id, job_id=None, **rest):
     #    'status':'completed', 'ss_id':ss['id'], 'warnings':route['warnings']})
 
     log.info('Built route %s [Orders=%s]', route['block'], len(orders),
-        extra={'n_orders':len(orders), 'n_unserved': route['num_unserved'],
-               'n_warnings': len(route['warnings']), 'n_errors': len(route['errors'])})
+        extra={'n_orders':len(orders), 'n_unserved': route['routific']['nUnserved'],
+               'n_warnings': len(route['routific']['warnings']), 'n_errors': len(route['routific']['errors'])})
 
     return json.dumps({'status':'success', 'route_id':str(route['_id'])})

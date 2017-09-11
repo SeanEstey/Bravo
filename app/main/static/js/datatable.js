@@ -70,8 +70,18 @@ function showData(resp_data) {
                 'render':function(data,type,row){ return data ? Sugar.Number.format(data,2) : '';}
             }
         ],
-        responsive:true,
+        responsive:false,
         select:false,
         lengthMenu: [[10, 50, 100,-1], [10, 50, 100, "All"]]
     });
+
+
+    $('#datatable_wrapper').css('background-color', 'whitesmoke');
+    $('#datatable_wrapper').css('border-top-right-radius', '5px');
+    $('#datatable_wrapper .row').first().css('padding', '15px');
+    $('#datatable_wrapper .row').first().css('border-bottom', '1px solid rgba(0,0,0,0.12)');
+    $('#datatable_wrapper .row').last().css('padding', '15px');
+    $('#datatable').parent().css('background-color','white');
+    $('#datatable').css('border','none');
+    
 }

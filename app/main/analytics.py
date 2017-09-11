@@ -22,8 +22,6 @@ def gifts_dataset(start=None, end=None, persona=True):
         {'$match': {
             'group':g.group,
             'gift.approach': criteria['approach'],
-            #'gift.fund': criteria['fund'],
-            #'gift.campaign': criteria['campaign'],
             'gift.type': 5,
             'gift.date':{
                 '$gte':datetime.combine(start,time()).replace(tzinfo=pytz.utc),

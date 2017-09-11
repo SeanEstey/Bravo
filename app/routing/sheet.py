@@ -165,8 +165,8 @@ def write_prop(wks, route_doc):
     fields = wks.getValues('A:A')
     wks.updateCell(route_doc['date'].strftime('%A, %B %d, %Y'), row=fields.index(['Date'])+1, col=2)
     wks.updateCell(route_doc['block'], row=fields.index(['Block'])+1, col=2)
-    wks.updateCell(route_doc['no_pickups'], row=fields.index(['Skips'])+1, col=2)
-    wks.updateCell(route_doc['duration'], row=fields.index(['Trip Sched'])+1, col=2)
+    wks.updateCell(route_doc['stats']['nSkips'], row=fields.index(['Skips'])+1, col=2)
+    wks.updateCell(route_doc['routific']['totalDuration'], row=fields.index(['Trip Sched'])+1, col=2)
 
 #-------------------------------------------------------------------------------
 def append_order(wks, order):

@@ -34,6 +34,17 @@ def _test_cancels():
 
 #-------------------EXPERIMENTAL------------------
 
+
+@login_required
+@main.route('/test_solution', methods=['GET'])
+def _test_get_solution():
+    from app import get_keys
+    from app.routing.build import get_solution
+
+    api_key = get_keys('google')['geocode']['api_key']
+    get_solution("j7fhm8f9837", api_key)
+    return 'ok'
+
 @login_required
 @main.route('/test_recent', methods=['GET'])
 def _test_recent():

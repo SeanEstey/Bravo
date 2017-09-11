@@ -1,4 +1,4 @@
-/r* analytics.js */
+/* analytics.js */
 
 dataSets = ['gift-revenue', 'n-donor-trend'];
 giftData = [];  // Raw gift data (large dataset)
@@ -14,78 +14,21 @@ t1 = new Date();
 chartWidth = null;
 angle = 360;
 
-
 //-----------------------------------------------------------------------------
-function initCanvas() {
-
-    $cv = $('#cv');
-    var canvas = document.getElementById('cv');
-
-    // Make canvas coord dimensions match DOM dimensions
-    canvas.width = $('.chart').width();
-    canvas.height = $('.chart').height();
-    $cv.width(canvas.width);
-    $cv.height(canvas.height);
-
-    // Create 'loader' layer
-    $cv.drawPolygon({
-      layer:true,
-      name:'loader',
-      fillStyle:'rgba(39, 155, 190, 0.5)',
-      x:canvas.width/2,
-      y:canvas.height/2,
-      radius: 50,
-      sides: 5,
-      concavity: 0.5
-    });
-
-    $cv.getLayer('loader').visible = true;
-}
-
-//-----------------------------------------------------------------------------
-function loopLoaderAnim(){
-
-    var loopDuration = 3000;
-    angle = angle *-1;
-    var p = $('#cv').getLayer('loader');
-    $('#cv').animateLayer(
-        'loader',
-        {rotate:angle},
-        loopDuration,
-        loopLoaderAnim
-    );
-}
-
-//-----------------------------------------------------------------------------
-function resizeCanvas() {
-
-    chartWidth = $('.chart').width();
-
-    // Resize canvas coordinate dimensions
-    var canvas = document.getElementById('cv');
-    canvas.width = chartWidth;
-
-    // Resize DOM canvas dimensions
-    $('#cv').width(canvas.width);
-    $('#cv').height(canvas.height);
-
-    // Adjust layer positions
-    var layers = $('#cv').getLayers();
-    for(var i=0; i<layers.length; i++) {
-        var layer = layers[i];
-        layer.x = canvas.width/2 - layer.width/2;
-        if(layer.name == 'title')
-            continue;
-    }
-
-    $('#cv').drawLayers();
-}
-
-//-----------------------------------------------------------------------------
-function analyticsInit() {
+function initAnalytics() {
 
     chartWidth = $('.chart').width();
     initCanvas();
+    $('#ctrl-panel').collapse('show');
+    $('.br-alert').first().remove();
+    $('#title').html(new Date().strftime("%B %Y Gifts"));
+
+    // Event handlers
+
+    socket = io.connect('https://' + document.domain + ':' + location.port);
+    socket.on('gift_data', updateSeries);
+    socket.on('connect', function(){console.log('socket.io connection live.');});
+
     $(window).resize(function(e) {
         if($('.chart').width() != chartWidth) {
             resizeCanvas();
@@ -93,7 +36,6 @@ function analyticsInit() {
     });
 
     $('#dataset-dd .dropdown-item').click(function() {
-        console.log($(this).html());
         $('#dataset-btn').text($(this).html());
     });
 
@@ -104,34 +46,18 @@ function analyticsInit() {
             autoclose: true,
             todayHighlight: true,
         });
-    });
-
-    $('.input-daterange input').change(function() {
+    }).change(function() {
         if($('#end-date').val() && $('#start-date').val())
             $('#analyze').prop('disabled',false);
         else
             $('#analyze').prop('disabled',true);
-    });
+    }).click(toggleDatePicker);
 
-    $('.input-daterange input').click(toggleDatePicker);
     $('.input-daterange .input-group-addon').click(toggleDatePicker);
 
-    $('.br-alert').first().remove();
-    $('#title').html(new Date().strftime("%B %Y Gifts"));
-
-    socket = io.connect('https://' + document.domain + ':' + location.port);
-    socket.on('gift_data', updateSeries);
-    socket.on('connect', function(){
-        console.log('socket.io connection live.');
-    });
-
     $('#analyze').click(function() {
-        initGiftAnalysis($('#start-date').val(), $('#end-date').val());
+        doGiftAnalysis($('#start-date').val(), $('#end-date').val());
     });
-
-    //$('.analy-title').hide();
-    $('#ctrl-panel').collapse('show');
-    $('#chart-panel').collapse('show');
 
     $('div').on('shown.bs.collapse', function() {
         var id = $(this).prop('id');
@@ -140,9 +66,7 @@ function analyticsInit() {
             $(this).prev().find('.fa-window-maximize').removeClass('fa-window-maximize').addClass('fa-window-minimize');
             $(this).next().css('border-top','1px solid rgba(106,108,111,0.23)');
         }
-    });
-
-    $('div').on('hidden.bs.collapse', function() {
+    }).on('hidden.bs.collapse', function() {
         var id = $(this).prop('id');
         if(['chart-panel','res-panel','ctrl-panel'].indexOf(id) > -1) {
             console.log(format('%s collapsed.', $(this).prop('id')));
@@ -163,7 +87,7 @@ function toggleDatePicker(e) {
 }
 
 //-----------------------------------------------------------------------------
-function initGiftAnalysis(start_str, end_str) {
+function doGiftAnalysis(start_str, end_str) {
     /* Socket.io connection established. Now stream gift data for processing. */
 
     t1 = new Date();
@@ -188,10 +112,10 @@ function initGiftAnalysis(start_str, end_str) {
     else if(period_ms > month_ms)
         groupBy = 'month';
 
+    $('#chart-panel').collapse('show');
     $('.chart svg').remove();
     $('.chart .morris-hover').remove();
     $('#foot-status').text('Requesting data from server');
-    //$('.analy-title').hide();
     $('#cv').getLayer('loader').visible = true;
     $('#cv').show();
     loopLoaderAnim();
@@ -221,6 +145,7 @@ function updateSeries(gifts) {
     /* seriesData stores timestamps in UTC */
 
     if(gifts.length == 0) {
+        $('#chart-panel').collapse('show');
         var msg = format('%s gifts analyzed successfully.', giftData.length);
         alertMsg(msg, "success", 30000);
         console.log(format('%s [%sms]', msg, getElapsedTime(t1)));
@@ -389,25 +314,69 @@ function displayError(msg, response) {
     alertMsg(msg, 'danger', id="err_alert");
 }
 
+//-----------------------------------------------------------------------------
+function initCanvas() {
 
-//------------------------------------------------------------------------------
-function gsheetsToJSON() {
+    $cv = $('#cv');
+    var canvas = document.getElementById('cv');
+    console.log($('.chart').width());
 
-     // ID of the Google Spreadsheet
-     var spreadsheetID = "SPREADSHEET KEY";
+    // Make canvas coord dimensions match DOM dimensions
+    canvas.width = $('.chart').width();
+    canvas.height = $('.chart').height();
+    $cv.width(canvas.width);
+    $cv.height(canvas.height);
 
-     // Make sure it is public or set to Anyone with link can view 
-     var url = "https://spreadsheets.google.com/feeds/list/" + spreadsheetID + "/od6/public/values?alt=json";
+    // Create 'loader' layer
+    $cv.drawPolygon({
+      layer:true,
+      name:'loader',
+      fillStyle:'rgba(39, 155, 190, 0.5)',
+      x:canvas.width/2,
+      y:canvas.height/2,
+      radius: 50,
+      sides: 5,
+      concavity: 0.5
+    });
 
-     $.getJSON(url, function(data) {
+    $cv.getLayer('loader').visible = true;
+}
 
-      var entry = data.feed.entry;
+//-----------------------------------------------------------------------------
+function loopLoaderAnim(){
 
-      $(entry).each(function(){
-        // Column names are name, age, etc.
-        $('.results').prepend('<h2>'+this.gsx$name.$t+'</h2><p>'+this.gsx$age.$t+'</p>');
-      });
+    var loopDuration = 3000;
+    angle = angle *-1;
+    var p = $('#cv').getLayer('loader');
+    $('#cv').animateLayer(
+        'loader',
+        {rotate:angle},
+        loopDuration,
+        loopLoaderAnim
+    );
+}
 
-     });
+//-----------------------------------------------------------------------------
+function resizeCanvas() {
 
+    chartWidth = $('.chart').width();
+
+    // Resize canvas coordinate dimensions
+    var canvas = document.getElementById('cv');
+    canvas.width = chartWidth;
+
+    // Resize DOM canvas dimensions
+    $('#cv').width(canvas.width);
+    $('#cv').height(canvas.height);
+
+    // Adjust layer positions
+    var layers = $('#cv').getLayers();
+    for(var i=0; i<layers.length; i++) {
+        var layer = layers[i];
+        layer.x = canvas.width/2 - layer.width/2;
+        if(layer.name == 'title')
+            continue;
+    }
+
+    $('#cv').drawLayers();
 }

@@ -5,6 +5,8 @@ from .. import get_keys
 from . import routing
 from .main import get_metadata
 from .tasks import discover_routes
+from logging import getLogger
+log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 @routing.route('', methods=['GET'])
@@ -14,7 +16,7 @@ def show_routing():
     discover_routes.delay(g.group)
 
     return render_template(
-        'views/routing.html',
+        'views/routing_new.html',
         routes = get_metadata(),
         depots = get_keys('routing')['locations']['depots'],
         drivers = get_keys('routing')['drivers'],

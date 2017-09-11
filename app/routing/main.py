@@ -91,17 +91,55 @@ def add_metadata(block, event_dt, event):
     else:
         depot = get_keys('routing')['locations']['depots'][0]
 
+    # Secondary key group: ['date', 'block', 'group']
     meta = {
-      'block': block,
-      'date': event_dt.astimezone(pytz.utc),
-      'group': g.group,
-      'status': 'pending',
-      'postal': postal,
-      'depot': depot,
-      'driver': get_keys('routing')['drivers'][0], # default driver
-      'orders': n_booked,
-      'block_size': len(accts),
-      'dropoffs': n_drops}
+      	"date": event_dt.astimezone(pytz.utc),
+      	"block": block,
+      	"group": g.group,
+        "driverInput": {
+            "vehicle": None,
+            "vehicleInspection": None,
+            "mileage": None,
+            "driverName": None,
+            "driverHrs": None,
+            "raName": None,
+            "raHrs": None,
+            "invoiceNumber": None,
+            "nCages": None,
+            "notes": None
+        },
+        "stats" : {
+            "nBlockAccounts": len(accts), # Can change by time of routing
+            "nOrders": n_booked, # Can change
+            "nDropoffs": n_drops, # Can change
+            "nSkips": None, # Will change
+            "nDonations": None,
+            "nZeros": None,
+            "collectionRate": None,
+            "estimateTotal": None,
+            "estimateAvg": None,
+            "receiptTotal": None,
+            "receiptAvg": None,
+            "estimateMargin": None,
+            "estimateTrend": None
+        },
+        "routific": {
+            "jobID": None,
+            "status": "pending",
+            "nOrders": None,
+            "nUnserved": None,
+            "travelDuration": None,
+            "totalDuration": None,
+            "startAddress": None,
+            "endAddress": None,
+            "depot": depot,
+            "driver": get_keys('routing')['drivers'][0], # default driver
+            "postal": postal,
+            "warnings": [],
+            "errors": [],
+            "orders": []
+        }
+    }
 
     g.db.routes.insert_one(meta)
 
@@ -119,14 +157,14 @@ def edit_field(route_id, field, value):
             if depot['name'] == value:
                 g.db.routes.update_one(
                     {'_id':oid(route_id)},
-                    {'$set': {'depot':depot}})
+                    {'$set': {'routific.depot':depot}})
                 return 'success'
     elif field == 'driver':
         for driver in get_keys('routing')['drivers']:
             if driver['name'] == value:
                 g.db.routes.update_one(
                     {'_id':oid(route_id)},
-                    {'$set': {'driver':driver}})
+                    {'$set': {'routific.driver':driver}})
                 return 'success'
 
     log.error('couldnt find value in db for %s:%s', field, value)

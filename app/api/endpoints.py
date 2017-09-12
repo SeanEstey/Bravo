@@ -181,7 +181,7 @@ def _api_cache_gifts():
 @login_required
 def _api_datatable():
     from app.main.datatable import get_data
-    return func_call(get_data)
+    return func_call(get_data, tag=var('tag'))
 
 @api.route('/gifts/get', methods=['POST'])
 @login_required

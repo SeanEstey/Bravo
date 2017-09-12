@@ -1,29 +1,41 @@
 {% extends "views/base.html" %}
 
 {% block head %}  
-  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/select/1.2.2/css/select.bootstrap.min.css"/>
   <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.16/css/dataTables.bootstrap4.min.css"/>
   <link rel="stylesheet" type="text/css" href="{{url_for("main.static", filename="css/datatable.css")}}"/>
-  <script type="text/javascript" src="{{url_for("main.static", filename="js/datatable.js")}}"></script>
+  <script type="text/javascript" src="{{url_for("main.static", filename="js/datatable.js")}}?v=0.11"></script>
+  <!--TODO: MOVE TO .CSS-->
+  <style>
+    #home .nav-link {
+      background-color: transparent;
+      color: #6a6c6f;
+    }
+    #home .nav-tabs .nav-item.show .nav-link, .nav-tabs .nav-link.active {
+        color: #464a4c;
+        border-bottom: 1px solid whitesmoke;
+        background-color: whitesmoke!important;
+    }
+    #datatable_length label {
+      margin-bottom:0;
+    }
+    #datatable_filter label {
+      margin-bottom:0;
+    }
+  </style>
 {% endblock %}
 
 {% block postlibs %}
   <script type="text/javascript" src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
   <script type="text/javascript" src="https://cdn.datatables.net/1.10.16/js/dataTables.bootstrap4.min.js"></script>
   <script type="text/javascript" src="https://cdn.datatables.net/rowreorder/1.2.2/js/dataTables.rowReorder.min.js"></script>
-  <script type="text/javascript" src="https://cdn.datatables.net/select/1.2.2/js/dataTables.select.min.js"></script>
   <script>$(function() {initDatatable();});</script>
 {% endblock %}
-  
+
 {% block content %}
   <div class="tab-pane active" id="home" role="tabpanel" aria-expanded="true">
     <ul class="nav nav-tabs" role="tablist" style="border:none">
-      <li class="nav-item" style="
-        border-top-left-radius: 5px;
-        border-top-right-radius: 5px;
-        border: 1px solid rgba(0, 0, 0, 0.14);
-        border-bottom: 1px solid whitesmoke;">
-        <a class="nav-link active" data-toggle="tab" href="#home" role="tab" aria-expanded="true" style="border:none; background-color: whitesmoke;">Upcoming</a>
+      <li class="nav-item">
+        <a class="nav-link active" data-toggle="tab" href="#home" role="tab" aria-expanded="true">Upcoming</a>
       </li>
       <li class="nav-item">
         <a class="nav-link" data-toggle="tab" href="#profile" role="tab" aria-expanded="false">Historic</a>
@@ -34,34 +46,3 @@
     <table id="datatable" class="table table-responsive"></table>
   </div>
 {% endblock %}
-
-
-<div id="datatable_wrapper" class="dataTables_wrapper container-fluid dt-bootstrap4 no-footer"
-style="background-color: whitesmoke; border-top-right-radius: 5px;">
-  <!--N_ENTRIES & SEARCHBAR ROW-->
-  <div class="row pt-3 pb-1 px-2" style="border-bottom: 1px solid rgba(0, 0, 0, 0.12);">
-    <div class="col-sm-12 col-md-6">
-      <div class="dataTables_length" id="datatable_length">
-        <label>Show <select name="datatable_length" aria-controls="datatable" class="form-control form-control-sm">
-          <option value="10">10</option>
-          <option value="50">50</option><option value="100">100</option>
-          <option value="-1">All</option></select> entries
-        </label>
-      </div>
-    </div>
-    <div class="col-sm-12 col-md-6">
-      <div id="datatable_filter" class="dataTables_filter">
-        <label>Search:<input type="search" class="form-control form-control-sm" placeholder="" aria-controls="datatable"></label>
-      </div>
-    </div>
-  </div>
-  <!--TABLE ROW-->
-  <div class="row">
-    <div class="col-sm-12 px-4" style="background-color: white;">
-      <!--DATATABLE GOES HERE-->
-    </div>
-  </div>
-  <!--NAV ROW-->
-  <div class="row p-2"><div class="col-sm-12 col-md-5">
-  </div>
-</div>

@@ -62,14 +62,12 @@ function initAnalytics() {
     $('div').on('shown.bs.collapse', function() {
         var id = $(this).prop('id');
         if(['chart-panel','res-panel','ctrl-panel'].indexOf(id) > -1) {
-            console.log(format('%s expanded', $(this).prop('id')));
             $(this).prev().find('.fa-window-maximize').removeClass('fa-window-maximize').addClass('fa-window-minimize');
             $(this).next().css('border-top','1px solid rgba(106,108,111,0.23)');
         }
     }).on('hidden.bs.collapse', function() {
         var id = $(this).prop('id');
         if(['chart-panel','res-panel','ctrl-panel'].indexOf(id) > -1) {
-            console.log(format('%s collapsed.', $(this).prop('id')));
             $(this).prev().find('.fa-window-minimize').removeClass('fa-window-minimize').addClass('fa-window-maximize');
             $(this).next().css('border-top','none');
         }
@@ -157,6 +155,7 @@ function updateSeries(gifts) {
     }
 
     var tz_diff = 1000 * 3600 * 6;
+    var n_missing_cached_accts = 0;
 
     giftData = giftData.concat(gifts);
 
@@ -206,7 +205,8 @@ function updateSeries(gifts) {
                 seriesData[grp_key]['res'] = 0;
             }
             else {
-                console.log('no personatype. asuming res');
+                n_missing_cached_accts++;
+
                 seriesData[grp_key]['res'] = gift['amount'];
                 seriesData[grp_key]['bus'] = 0;
             }
@@ -214,7 +214,9 @@ function updateSeries(gifts) {
         giftSum += gift['amount'];
     }
 
-    //$('.analy-title').show();
+    if(n_missing_cached_accts > 0)
+        console.log(format('%s missing cached accounts for dataset.', n_missing_cached_accts));
+
     $('#chart-title').text(format('%s donations analyzed.', Sugar.Number.abbr(giftData.length,1)));
 }
 

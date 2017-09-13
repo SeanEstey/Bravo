@@ -2,40 +2,168 @@
 v0.11
 */
 
-data_tag = 'routes_new';
-tbl_id = 'datatable';
-tbl_columns = [
-    {title:'Timestamp', key:'date', subkey:'$date'},
-    {title:'Date', key:'date', subkey:'$date', value:function(v){ return new Date(v).strftime('%b %d %Y') }},
-    {title:'Block', key:'block', subkey:false},
-    {title:'Size', key:'stats', subkey:'nBlockAccounts'},
-    {title:'Skips', key:'stats', subkey:'nSkips'},
-    {title:'Orders', key:'stats', subkey:'nOrders'},
-    {title:'Zeros', key:'stats', subkey:'nZeros'},
-    {title:'Donations', key:'stats', subkey:'nDonations'},
-    {title:'Estimate', key:'stats', subkey:'estimateTotal'},
-    {title:'Receipt', key:'stats', subkey:'receiptTotal'},
-    {title:'Estimate Avg', key:'stats', subkey:'estimateAvg'},
-    {title:'Estimate Trend', key:'stats', subkey:'estimateTrend'},
-    {title:'Estimate Margin', key:'stats', subkey:'estimateMargin'},
-    {title:'Receipt', key:'stats', subkey:'receiptTotal'},
-    {title:'Status', key:'routific', subkey:'status'},
-    {title:'Unserved', key:'routific', subkey:'nUnserved'},
-    {title:'Warnings', key:'routific', subkey:'warnings', value:function(v){ return v.length}},
-    {title:'Errors', key:'routific', subkey:'errors', value:function(v){return v.length}},
-    {title:'Depot', key:'routific', subkey:'depot', value:function(v){return v.name}},
-    {title:'Driver', key:'routific', subkey:'driver', value:function(v){return v.name}},
-    {title:'Invoice', key:'driverInput', subkey:'invoiceNumber'},
-    {title:'Mileage', key:'driverInput', subkey:'mileage'},
-    {title:'RA', key:'driverInput', subkey:'raName'},
-    {title:'Vehicle', key:'driverInput', subkey:'vehicle'},
-    {title:'RA Hrs', key:'driverInput', subkey:'raHrs'},
-    {title:'Driver Hrs', key:'driverInput', subkey:'driverHrs'},
-    {title:'Vehicle Inspection', key:'driverInput', subkey:'vehicleInspection'},
-    {title:'Notes', key:'driverInput', subkey:'notes'},
-    {title:'Cages', key:'driverInput', subkey:'nCages'},
+fields = [
+    {
+        column:     { title:'Timestamp' },
+        data:       { k:'date', sub_k:'$date' },
+        columnDef:  { targets:0, visible:false, searchable:false }
+    },
+    {
+        column:     { title:'Date'+
+                            '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
+                      width:"15%" },
+        data:       { k:'date', sub_k:'$date', value:function(v){ return new Date(v).strftime('%b %d %Y') } },
+        columnDef:  { targets:1, width:"15%" }
+    },
+    {
+        column:     { title:'Block' },
+        data:       { k:'block', sub_k:false },
+        columnDef:  false
+    },
+    {
+        column:     { title:'Size' },
+        data:       { k:'stats', sub_k:'nBlockAccounts' },
+        columnDef:  false
+    },
+    {
+        column:     { title:'Skips' },
+        data:       { k:'stats', sub_k:'nSkips' },
+        columnDef:  false
+    },
+    {
+        column:     { title:'Orders' },
+        data:       { k:'stats', sub_k:'nOrders' },
+        columnDef:  false
+    },
+    {
+        column:     { title:'Zeros' },
+        data:       { k:'stats', sub_k:'nZeros' },
+        columnDef:  false
+    },
+    {
+        column:     { title:'Donations' },
+        data:       { k:'stats', sub_k:'nDonations' },
+        columnDef:  false
+    },
+    {
+        column:     { title:'Collect. Rate' },
+        data:       { k:'stats', sub_k:'collectionRate',
+                      value:function(v){ return typeof(v)=='number' ? Sugar.Number.format(v*100,1)+'%' : '' } },
+        columnDef:  false
+    },
+    {
+        column:     { title:'Estimate' },
+        data:       { k:'stats', sub_k:'estimateTotal' },
+        columnDef:  { targets:9, render:function(data,type,row){ return data ? '$'+Sugar.Number.format(data,2) : ''; } }
+    },
+    {
+        column:     { title:'Receipt' },
+        data:       { k:'stats', sub_k:'receiptTotal' },
+        columnDef:  { targets:10, render:function(data,type,row){ return data ? '$'+Sugar.Number.format(data,2) : ''; } }
+    },
+    {
+        column:     { title:'Estimate Avg' },
+        data:       { k:'stats', sub_k:'estimateAvg' },
+        columnDef:  { targets:11, render:function(data,type,row){ return data ? '$'+Sugar.Number.format(data,2) : ''; } }
+    },
+    {
+        column:     { title:'Estimate Trend' },
+        data:       { k:'stats', sub_k:'estimateTrend',
+                      value:function(v){ return '$'+Sugar.Number.format(v,2); } },
+        columnDef:  false
+    },
+    {
+        column:     { title:'Estimate Margin' },
+        data:       { k:'stats', sub_k:'estimateMargin',
+                      value:function(v){ return typeof(v)=='number' ? Sugar.Number.format(v*100,1)+'%' : '' } },
+        columnDef:  false
+    },
+    {
+        column:     { title:'Status' },
+        data:       { k:'routific', sub_k:'status'},
+        columnDef:  false
+    },
+    {
+        column:     { title:'Unserved' },
+        data:       { k:'routific', sub_k:'nUnserved'},
+        columnDef:  false
+    },
+    {
+        column:     { title:'Warnings' },
+        data:       { k:'routific', sub_k:'warnings', value:function(v){ return v.length}},
+        columnDef:  false
+    },
+    {
+        column:     { title:'Errors' },
+        data:       { k:'routific', sub_k:'errors', value:function(v){return v.length}},
+        columnDef:  false
+    },
+    {
+        column:     { title:'Depot' },
+        data:       { k:'routific', sub_k:'depot', value:function(v){ return v.name? v.name : '' }},
+        columnDef:  false
+    },
+    {
+        column:     { title:'Driver' },
+        data:       { k:'routific', sub_k:'driver', value:function(v){ return v.name? v.name : '' }},
+        columnDef:  false
+    },
+    {
+        column:     { title:'Invoice' },
+        data:       { k:'driverInput', sub_k:'invoiceNumber'},
+        columnDef:  false
+    },
+    {
+        column:     { title:'Mileage' },
+        data:       { k:'driverInput', sub_k:'mileage'},
+        columnDef:  false
+    },
+    {
+        column:     { title:'RA' },
+        data:       { k:'driverInput', sub_k:'raName'},
+        columnDef:  false
+    },
+    {
+        column:     { title:'Vehicle' },
+        data:       { k:'driverInput', sub_k:'vehicle' },
+        columnDef:  false
+    },
+    {
+        column:     { title:'RA Hrs' },
+        data:       { k:'driverInput', sub_k:'raHrs'},
+        columnDef:  false
+    },
+    {
+        column:     { title:'Driver Hrs' },
+        data:       { k:'driverInput', sub_k:'driverHrs'},
+        columnDef:  false
+    },
+    {
+        column:     { title:'Vehicle Inspection' },
+        data:       { k:'driverInput', sub_k:'vehicleInspection'},
+        columnDef:  { targets:26, visible:false }
+    },
+    {
+        column:     { title:'Notes' },
+        data:       { k:'driverInput', sub_k:'notes'},
+        columnDef:  { targets:27, visible:false }
+    },
+    {
+        column:     { title:'Cages' },
+        data:       { k:'driverInput', sub_k:'nCages'},
+        columnDef:  false
+    },
+    {
+        column:     { title:'Total Duration' },
+        data:       { k:'routific', sub_k:'totalDuration', value:function(x){ return Sugar.Number.format(x/60,2) } },
+        columnDef:  false
+    }
 ];
+
+tbl_id = 'datatable';
 tbl_data = [];
+data_tag = 'routes_new';
+datatable = null;
 
 //------------------------------------------------------------------------------
 function initDatatable() {
@@ -46,9 +174,10 @@ function initDatatable() {
       function(response){
           console.log(format('%s routes received.',
             response['data'].length));
+
           buildDataTable(
             tbl_id,
-            tbl_columns.map(function(x){ return {title:x.title}}),
+            fields.map(function(x){ return x.column }),
             formatDataNew(response['data'])
           );
 
@@ -67,6 +196,23 @@ function initDatatable() {
 }
 
 //------------------------------------------------------------------------------
+function buildDataTable(id, columns, data ) {
+
+    datatable = $('#'+id).removeAttr('width').DataTable({
+        data: data,
+        columns: columns,
+        order: [[0,'desc']],
+        columnDefs: fields.map(function(x){ return x.columnDef ? x.columnDef : false; }),
+        fixedColumns: true,
+        responsive:false,
+        select:false,
+        lengthMenu: [[10, 50, 100,-1], [10, 50, 100, "All"]]
+    });
+
+    datatable.columns.adjust().draw();
+}
+
+//------------------------------------------------------------------------------
 function formatDataNew(data) {
 
     var get = Sugar.Object.get;
@@ -76,9 +222,9 @@ function formatDataNew(data) {
         var route = data[i];
         var tbl_row = [];
 
-        for(var j=0; j<tbl_columns.length; j++) {
-            var k = tbl_columns[j]['key'];
-            var sub_k = tbl_columns[j]['subkey'];
+        for(var j=0; j<fields.length; j++) {
+            var k = fields[j]['data']['k'];
+            var sub_k = fields[j]['data']['sub_k'];
             var val = '';
 
             if(!sub_k && get(route, k))
@@ -86,8 +232,8 @@ function formatDataNew(data) {
             else if(sub_k && get(route[k], sub_k))
                 val = route[k][sub_k];
 
-            if(tbl_columns[j].hasOwnProperty('value'))
-                val = tbl_columns[j]['value'](val);
+            if(fields[j]['data'].hasOwnProperty('value'))
+                val = fields[j]['data']['value'](val);
 
             tbl_row.push(val);
         }
@@ -98,46 +244,7 @@ function formatDataNew(data) {
     return tbl_data;
 }
 
-//------------------------------------------------------------------------------
-function buildDataTable(id, columns, data ) {
 
-    var table = $('#'+id).removeAttr('width').DataTable({
-        data: data,
-        columns: columns,
-        order: [[0,'desc']],
-        columnDefs: [
-            {
-                "targets":0, // Timestamp
-                "visible":false,
-                "searchable":false
-            },
-            {
-                "targets":columns.indexOf('Date')+1,
-                "width":100
-            },
-            {
-                "targets":[columns.indexOf('Receipt')+1, columns.indexOf('Estimate')+1],
-                "render": function(data, type, row) { return data ? '$'+Sugar.Number.format(data,2) : '';}
-            },
-            /*{
-                'targets':[columns.indexOf('Collection Rate')+1, columns.indexOf('Estimate Margin')+1],
-                'render':function(data,type,row){ return typeof(data)=='number' ? Sugar.Number.format(data*100,1)+'%' : '';}
-            },
-            {
-                'targets':columns.indexOf('Estimate Trend')+1,
-                'render':function(data,type,row){ return data ? '$'+Sugar.Number.format(data,2) : '';}
-            },
-            {
-                'targets':columns.indexOf('Trip Scheduled')+1,
-                'render':function(data,type,row){ return data ? Sugar.Number.format(data,2) : '';}
-            }*/
-        ],
-        fixedColumns: true,
-        responsive:false,
-        select:false,
-        lengthMenu: [[10, 50, 100,-1], [10, 50, 100, "All"]]
-    });
-}
 
 //------------------------------------------------------------------------------
 function formatDataOld(resp_data) {

@@ -20,8 +20,8 @@ def get_data(start=None, end=None, tag=None):
     if tag and tag == 'routes_new':
         g.db = current_app.db_client['bravo']
 
-        data = g.db['routes'].find(
-            {'group':'vec', 'date':{'$gte':parse("Sep 7 2017 00:00:00Z")}}
+        data = g.db['new_routes'].find(
+            {'group':'vec'} #, 'date':{'$gte':parse("Sep 7 2017 00:00:00Z")}}
         ).sort('date',-1).limit(limit)
 
     elif tag and tag == 'test_gsheets':

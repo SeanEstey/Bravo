@@ -15,7 +15,7 @@
         {% elif account['udf']['status'] == "Active" or account['udf']['status'] == "Call-in" or
         account['udf']['status'] == "One-time" %}
           <p>
-            Your upcoming Bottle Service pickup is 
+            Your upcoming pick-up is on 
             <b>{{ account['udf']['pickup_dt'] }}</b>.
           </p>
 			{% if account['nameFormat'] != 3 %}

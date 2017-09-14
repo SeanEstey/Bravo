@@ -44,7 +44,10 @@ def get_metadata():
     '''Get metadata for routes today and onward
     '''
 
-    docs = g.db.routes.find({
+    # REMOVE ME
+    coll = 'new_routes' if g.group == 'vec' else 'routes'
+
+    docs = g.db[coll].find({
         'group': g.group,
         'date': {'$gte':datetime.combine(date.today()-timedelta(days=3),time())}
     }).sort('date', 1)
@@ -141,7 +144,10 @@ def add_metadata(block, event_dt, event):
         }
     }
 
-    g.db.routes.insert_one(meta)
+    # REMOVE ME
+    coll = 'new_routes' if g.group == 'vec' else 'routes'
+
+    g.db[coll].insert_one(meta)
 
     return meta
 
@@ -152,17 +158,20 @@ def edit_field(route_id, field, value):
 
     value_type = None
 
+    # REMOVE ME
+    coll = 'new_routes' if g.group == 'vec' else 'routes'
+
     if field == 'depot':
         for depot in get_keys('routing')['locations']['depots']:
             if depot['name'] == value:
-                g.db.routes.update_one(
+                g.db[coll].update_one(
                     {'_id':oid(route_id)},
                     {'$set': {'routific.depot':depot}})
                 return 'success'
     elif field == 'driver':
         for driver in get_keys('routing')['drivers']:
             if driver['name'] == value:
-                g.db.routes.update_one(
+                g.db[coll].update_one(
                     {'_id':oid(route_id)},
                     {'$set': {'routific.driver':driver}})
                 return 'success'

@@ -8,6 +8,53 @@ from app.lib.timer import Timer
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
+def update_route(data):
+
+    from pprint import pprint
+    pprint(data)
+
+    try:
+        data['date'] = parse(data['date']) + timedelta(hours=8)
+
+        r = g.db['new_routes'].update_one(
+            {'group':g.group, 'date':data['date'], 'block':data['block']},
+            {'$set': {
+                'stats.nOrders':                data.get("orders",None),
+                'stats.nSkips':                 data.get("skips",None),
+                'stats.nDonations':             data.get("donors",None),
+                'stats.nZeros':                 data.get("zeros",None),
+                'stats.estimateTotal':          data.get("estmt",None),
+                'stats.receiptTotal':           data.get("receipt",None),
+                'stats.estimateAvg':            data.get("donAvg",None),
+                'stats.collectionRate':         data.get("collectRate",None),
+                'stats.estimateMargin':         data.get("estmtMargin",None),
+                'stats.estimateTrend':          data.get("estmtTrend",None),
+                'driverInput.invoiceNumber':    data.get("invoice",None),
+                'driverInput.mileage':          data.get('mileage',None),
+                'driverInput.raName':           data.get('ra',None),
+                'driverInput.driverName':       data.get('driver',None),
+                'driverInput.driverTripHrs':    data.get('tripHrs',None),
+                'driverInput.driverHrs':        data.get('driverHrs',None),
+                'driverInput.vehicle':          data.get('vehicle',None),
+                'driverInput.raHrs':            data.get('raHrs', None),
+                'driverInput.vehicleInspection': data.get('inspection',None),
+                'driverInput.notes':            data.get('routeNotes', None),
+                'driverInput.nCages':           data.get("cages",None)
+            }}
+        )
+    except Exception as e:
+        log.exception('Error updating route data: %s', str(e))
+    else:
+        if r.modified_count > 0:
+            log.debug('Updated %s route data for %s', data['block'],
+                data['date'].strftime('%b %d'))
+        else:
+            log.error('No matching route to update. Block=%s, date=%s',
+                data['block'], data['date'].strftime('%b %d'))
+
+    return True
+
+#-------------------------------------------------------------------------------
 def gifts_dataset(start=None, end=None, persona=True):
     """Query all gifts in date period, stream to client in batches via socket.io connection.
     @start, @end: datetime.date

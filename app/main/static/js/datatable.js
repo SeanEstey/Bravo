@@ -5,6 +5,7 @@ v0.11
 num_format = Sugar.Number.format;
 
 data_tag = 'routes_new';
+raw_data = null;
 tbl_id = 'datatable';
 tbl_data = [];
 datatable = null;
@@ -26,25 +27,27 @@ fields = [
       columnDef:{ targets:10, render:function(data, type, row){ return data? '$'+num_format(data,2) :'' } } },
     { column:{ title:'Estimate Avg' }, data:{ k:'stats', sub_k:'estimateAvg' },
       columnDef:{ targets:11, render:function(data,type,row){ return data? '$'+num_format(data,2) :'' } } },
-    { column:{ title:'Estimate Trend' }, columnDef:false, data:{ k:'stats', sub_k:'estimateTrend', value:function(v){ return '$'+num_format(v,2) } } },
+    { column:{ title:'Estimate Trend' }, columnDef:false,
+      data:{ k:'stats', sub_k:'estimateTrend', value:function(v){ return v? '$'+num_format(v,2) :'' } } },
     { column:{ title:'Estimate Margin' }, columnDef:false,
       data:{ k:'stats', sub_k:'estimateMargin', value:function(v){ return typeof(v)=='number'? num_format(v*100,1)+'%' :'' } } },
     { column:{ title:'Status' }, columnDef:false, data:{ k:'routific', sub_k:'status'} },
     { column:{ title:'Unserved' }, columnDef:false, data:{ k:'routific', sub_k:'nUnserved'} },
-    { column:{ title:'Warnings' }, columnDef:false, data:{ k:'routific', sub_k:'warnings', value:function(v){ return v.length }} },
-    { column:{ title:'Errors' }, columnDef:false, data:{ k:'routific', sub_k:'errors', value:function(v){ return v.length } } },
+    { column:{ title:'Warnings' }, columnDef:false, data:{ k:'routific', sub_k:'warnings', value:function(v){ return typeof(v) == 'object'? v.length : '' }} },
+    { column:{ title:'Errors' }, columnDef:false, data:{ k:'routific', sub_k:'errors', value:function(v){ return typeof(v) == "object"? v.length : '' } } },
     { column:{ title:'Depot' }, columnDef:false, data:{ k:'routific', sub_k:'depot', value:function(v){ return v.name? v.name : ''} } },
-    { column:{ title:'Driver' }, columnDef:false, data:{ k:'routific', sub_k:'driver', value:function(v){ return v.name? v.name : ''} } },
+    { column:{ title:'Driver' }, columnDef:false, data:{ k:'driverInput', sub_k:'driverName', value:function(v){ return v? v : ''} } },
     { column:{ title:'Invoice' }, columnDef:false, data:{ k:'driverInput', sub_k:'invoiceNumber'} },
     { column:{ title:'Mileage' }, columnDef:false, data:{ k:'driverInput', sub_k:'mileage'} },
     { column:{ title:'RA' }, columnDef:false, data:{ k:'driverInput', sub_k:'raName'}, },
     { column:{ title:'Vehicle' }, columnDef:false, data:{ k:'driverInput', sub_k:'vehicle' } },
     { column:{ title:'RA Hrs' }, columnDef:false, data:{ k:'driverInput', sub_k:'raHrs'} },
+    { column:{ title:'Trip Hrs' }, columnDef:false, data:{ k:'driverInput', sub_k:'driverTripHrs'} },
     { column:{ title:'Driver Hrs' }, columnDef:false, data:{ k:'driverInput', sub_k:'driverHrs'} },
-    { column:{ title:'Vehicle Inspection' }, columnDef:{ targets:26, visible:false }, data:{ k:'driverInput', sub_k:'vehicleInspection'} },
-    { column:{ title:'Notes' }, columnDef:{ targets:27, visible:false }, data:{ k:'driverInput', sub_k:'notes'} },
+    { column:{ title:'Vehicle Inspection' }, columnDef:{ targets:27, visible:false }, data:{ k:'driverInput', sub_k:'vehicleInspection'} },
+    { column:{ title:'Notes' }, columnDef:{ targets:28, visible:false }, data:{ k:'driverInput', sub_k:'notes'} },
     { column:{ title:'Cages' }, columnDef:false, data:{ k:'driverInput', sub_k:'nCages'} },
-    { column:{ title:'Total Duration' }, columnDef:false, data:{ k:'routific', sub_k:'totalDuration', value:function(x){ return num_format(x/60,2) } } }
+    { column:{ title:'Total Duration' }, columnDef:false, data:{ k:'routific', sub_k:'totalDuration', value:function(x){ return x? num_format(x/60,2) : '' } } }
 ];
 
 //------------------------------------------------------------------------------
@@ -57,10 +60,12 @@ function initDatatable() {
           console.log(format('%s routes received.',
             response['data'].length));
 
+          raw_data = response['data'];
+
           buildDataTable(
             tbl_id,
             fields.map(function(x){ return x.column }),
-            formatDataNew(response['data'])
+            formatData(filterDates(new Date().clearTime(), null))
           );
 
           // Fix stylings
@@ -75,7 +80,61 @@ function initDatatable() {
 
           console.log(format('Page loaded in %sms.', Sugar.Date.millisecondsAgo(a)));
       });
+
+    // Event handlers
+
+    $('.nav-tabs a').click(function (e){
+        e.preventDefault();
+        console.log('active tab %s', $(this).prop('hash'));
+        var id = $(this).prop('hash');
+
+        if(id == '#upcoming') {
+            // Flter dates >= today
+            var today = new Date().clearTime();
+            var filtData = filterDates(today, null);
+            tbl_data = [];
+            datatable.clear();
+            datatable.rows.add(formatData(filtData));
+            datatable.draw();
+        }
+        else if(id == '#historic') {
+            // Filter dates < today
+            tbl_data = [];
+            datatable.clear();
+            datatable.rows.add(
+                formatData(
+                    filterDates(null, new Date().clearTime())));
+            datatable.draw();
+        }
+    });
 }
+
+//------------------------------------------------------------------------------
+function filterDates(start, end) {
+
+    var filtered = [];
+
+    for(var i=0; i<raw_data.length; i++) {
+        var route = raw_data[i];
+        var date = new Date(route['date']['$date']);
+
+        if(start && date < start)
+            continue;
+
+        if(end && date > end)
+            continue;
+
+        filtered.push(route);
+    }
+
+    console.log(format('%s routes filtered between %s to %s',
+        filtered.length,
+        start ? start.strftime('%b-%d-%Y') : 'anytime',
+        end ? end.strftime('%b-%d-%Y') : 'anytime'));
+
+    return filtered;
+}
+
 
 //------------------------------------------------------------------------------
 function buildDataTable(id, columns, data ) {
@@ -95,7 +154,7 @@ function buildDataTable(id, columns, data ) {
 }
 
 //------------------------------------------------------------------------------
-function formatDataNew(data) {
+function formatData(data) {
 
     var get = Sugar.Object.get;
 

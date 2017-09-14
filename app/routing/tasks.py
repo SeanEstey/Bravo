@@ -26,6 +26,9 @@ def discover_routes(self, group, within_days=5, **rest):
 
     g.group = group
 
+    # REMOVE ME
+    coll = 'new_routes' if g.group == 'vec' else 'routes'
+
     from app.main.socketio import smart_emit
 
     sleep(3)
@@ -54,7 +57,7 @@ def discover_routes(self, group, within_days=5, **rest):
 
         if not block:
             continue
-        if not g.db.routes.find_one(
+        if not g.db[coll].find_one(
             {'date':event_dt.astimezone(pytz.utc), 'block': block, 'group':g.group}
         ):
             try:
@@ -87,7 +90,10 @@ def build_scheduled_routes(self, group=None, **rest):
 
         log.info("Task: Building scheduled routes...")
 
-        routes = g.db.routes.find(
+        # REMOVE ME
+        coll = 'new_routes' if g.group == 'vec' else 'routes'
+
+        routes = g.db[coll].find(
             {'group':g.group, 'date':to_local(d=date.today(),t=time(8,0))})
 
         discover_routes(g.group)
@@ -126,9 +132,12 @@ def build_route(self, route_id, job_id=None, **rest):
     from app.lib.gsheets_cls import SS
     from app.main.maps import GeocodeError
 
+    # REMOVE ME
+    coll = 'new_routes' if g.group == 'vec' else 'routes'
+
     timer = Timer()
     orders = "processing"
-    route = g.db.routes.find_one({"_id":oid(route_id)})
+    route = g.db[coll].find_one({"_id":oid(route_id)})
     g.group = route['group']
     oauth = get_keys('google')['oauth']
     api_key = get_keys('google')['geocode']['api_key']
@@ -150,7 +159,7 @@ def build_route(self, route_id, job_id=None, **rest):
 
     title = '%s: %s (%s)' %(route['date'].strftime('%b %-d'), route['block'], route['routific']['driver']['name'])
     ss = sheet.build(gdrive.gauth(oauth), title)
-    route = g.db['routes'].find_one_and_update({'_id':oid(route_id)}, {'$set':{'ss':ss}})
+    route = g.db[coll].find_one_and_update({'_id':oid(route_id)}, {'$set':{'ss':ss}})
     wks_name = get_keys('routing')['gdrive']['template_orders_wks_name']
 
     try:

@@ -350,6 +350,12 @@ def _route_size():
     from app.main.etapestry import route_size
     return func_call(route_size, var('category'), var('query'), var('date'))
 
+@api.route('/route/update', methods=['POST'])
+@login_required
+def _update_route_data():
+    from app.main.analytics import update_route
+    return func_call(update_route, loads(var('data')))
+
 @api.route('/routing/build', methods=['POST'])
 @login_required
 def _build_route():

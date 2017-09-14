@@ -32,7 +32,10 @@ def submit_job(route_id):
     orders = []
     api_key = get_keys('google')['geocode']['api_key']
 
-    route = g.db.routes.find_one({"_id":ObjectId(route_id)})
+    # REMOVE ME
+    coll = 'new_routes' if g.group == 'vec' else 'routes'
+
+    route = g.db[coll].find_one({"_id":ObjectId(route_id)})
     accts = get_query(route['block'], cache=True)
 
     # Build the orders for Routific
@@ -80,7 +83,7 @@ def submit_job(route_id):
 
     log.debug('routific job_id=%s', job_id)
 
-    g.db.routes.update_one(
+    g.db[coll].update_one(
         {'_id': route['_id']},
         {'$set': {
             'routific.jobID': job_id,
@@ -146,7 +149,10 @@ def get_solution(job_id, api_key):
             return task['status']
         log.debug('Got solution')
 
-    doc = g.db['routes'].find_one({'routific.jobID':job_id})
+    # REMOVE ME
+    coll = 'new_routes' if g.group == 'vec' else 'routes'
+
+    doc = g.db[coll].find_one({'routific.jobID':job_id})
     if not doc:
         log.error("No mongo record for job_id '%s'", job_id)
         return False
@@ -182,7 +188,7 @@ def get_solution(job_id, api_key):
             "id": "office",
             "name": office['name']}})
 
-    g.db['routes'].update_one(
+    g.db[coll].update_one(
         {'routific.jobID':job_id},
         {'$set': {
           'stats.nOrders': task['visits'],

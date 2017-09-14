@@ -10,12 +10,12 @@ from bson.json_util import dumps
 from pprint import pprint
 from dateutil.parser import parse
 from datetime import timedelta, datetime, time, date
-from mongo import create_client
+from app.lib.mongo import create_client
 
 #-------------------------------------------------------------------------------
-def import_json_stats():
+def import_json_stats(path):
 
-    with open('stats.json') as data_file:
+    with open(path) as data_file:
         data = json.load(data_file)
         print 'file loaded. %s entries' % len(data)
 
@@ -30,13 +30,13 @@ def import_json_stats():
         print 'inserted all entries'
 
 #-------------------------------------------------------------------------------
-def upgrade_routes():
+def upgrade_routes(group):
     # Copy documents in db['routes'] to db['new_routes'] collection and upgrade
     # to new format.
 
     client = create_client()
     db = client['bravo']
-    routes = db['routes'].find({'group':'vec'}).sort('date',1)
+    routes = db['routes'].find({'group':group}).sort('date',1)
     routes = list(routes)
     print '\nQueried %s routes to rebuild.' % len(routes)
     print 'Rebuilding...'
@@ -49,7 +49,7 @@ def upgrade_routes():
             res = db['new_routes'].insert_one({
                 "date": route.get('date',None),
                 "block": route.get('block',None),
-                "group":'vec',
+                "group":group,
                 "stats": {
                     "nBlockAccounts" :    route.get('block_size',None),
                     "nOrders" :           route.get('orders',None),
@@ -86,9 +86,10 @@ def upgrade_routes():
                     "mileage" :     None,
                     "raName" :      None,
                     "driverName" :  None,
+                    "driverTripHrs": None,
+                    "driverHrs" :   None,
                     "vehicle" :     None,
                     "raHrs" :       None,
-                    "driverHrs" :   None,
                     "vehicleInspection": None,
                     "notes" :       None,
                     "nCages" :      None
@@ -106,7 +107,7 @@ def upgrade_routes():
     print 'Done.\nInserted %s out of %s documents.\n' %(n_inserts, len(routes))
 
 #-------------------------------------------------------------------------------
-def add_stats():
+def add_stats(group):
     # Add stat and driver input data to db['new_routes']
     # Data source test.db['gsheets'] (imported from Google Sheets JSON dump)
 
@@ -132,7 +133,7 @@ def add_stats():
         doc['date'] += timedelta(hours=8)
 
         route = db['new_routes'].find_one(
-            {'group':'vec', 'date':doc['date'], 'block':doc['block']})
+            {'group':group, 'date':doc['date'], 'block':doc['block']})
 
         if not route:
             nMatchFails+=1
@@ -154,9 +155,10 @@ def add_stats():
                     'driverInput.mileage':          doc.get('mileage',None),
                     'driverInput.raName':           doc.get('ra',None),
                     'driverInput.driverName':       doc.get('driver',None),
+                    'driverInput.driverTripHrs':    doc.get('tripActual',None),
+                    'driverInput.driverHrs':        doc.get('driverHrs',None),
                     'driverInput.vehicle':          doc.get('vehicle',None),
                     'driverInput.raHrs':            doc.get('raHrs', None),
-                    'driverInput.driverHrs':        doc.get('driverHrs',None),
                     'driverInput.vehicleInspection': doc.get('inspection',None),
                     'driverInput.notes':            doc.get('routeNotes', None),
                     'driverInput.nCages':           doc.get("cages",None),
@@ -174,13 +176,21 @@ def add_stats():
     print 'Done. nUpdatedDocs=%s, nUpdateErrors=%s, nMatchFails=%s, nMissingKeys=%s' %(
         nUpdatedDocs, nUpdateErrors, nMatchFails, nMissingKeys)
 
+#-------------------------------------------------------------------------------
+def fix_errors_warnings(group):
+
+    db_client = create_client()
+    db = db_client['bravo']
+    return
 
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":
 
-    pass
+    group = 'vec'
+    path = '/root/test/stats.json'
 
-
+    import_json_stats(path)
+    add_stats(group)
 
 #-------------------------------------------------------------------------------
 """MongoDB document formats
@@ -294,6 +304,7 @@ if __name__ == "__main__":
         "driverName" : null,
         "vehicle" : null,
         "raHrs" : null,
+        "driverTripHrs": null,
         "driverHrs" : null,
         "vehicleInspection" : null,
         "notes" : null,

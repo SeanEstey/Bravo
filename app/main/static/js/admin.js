@@ -241,10 +241,12 @@ function initPropertiesPane() {
     };
     var donor_stats = {
         'n_donors': 'Active Donors',
+        'n_new_donors': 'Growth (30 Day)',
+        'n_donor_attrition': 'Attrition (30 Day)',
         'coll_rate': 'Collection Rate',
         'rev_per_day': 'Avg Revenue/Day',
-        'mtd_rev': 'MTD Revenue',
-        'monthly_rev': 'Revenue/Month'
+        //'mtd_rev': 'MTD Revenue',
+        //'monthly_rev': 'Revenue/Month'
     };
 
     for(var k in act_stats) {
@@ -268,14 +270,19 @@ function initPropertiesPane() {
         var prop = response['data'];
 
         $('#n_mobile .admin-stat').text(Sugar.Number.abbr(prop['n_mobile'],1));
+        $('#n_mobile').tooltip({'title':Sugar.Number.format(prop['n_mobile'],0)});
         $("#n_alice_convos .admin-stat").text(Sugar.Number.abbr(prop['n_alice_convos'],1));
+        $('#n_alice_convos').tooltip({'title':Sugar.Number.format(prop['n_alice_convos'],0)});
         $("#n_alice_incoming .admin-stat").text(Sugar.Number.abbr(prop['n_alice_incoming'],1));
+        $('#n_alice_incoming').tooltip({'title':Sugar.Number.format(prop['n_alice_incoming'],0)});
         $("#n_notific_events .admin-stat").text(prop['n_notific_events']);
         $("#n_users .admin-stat").text(prop['n_users']);
 
         $("#n_cached_accounts .admin-stat").text(Sugar.Number.abbr(prop['n_cached_accounts'],1));
+        $('#n_cached_accounts').tooltip({'title':Sugar.Number.format(prop['n_cached_accounts'],0)});
         $("#n_cached_geolocations .admin-stat").text(Sugar.Number.abbr(prop['n_geolocations'],1));
         $("#n_cached_gifts .admin-stat").text(Sugar.Number.abbr(prop['n_cached_gifts'],1));
+        $('#n_cached_gifts').tooltip({'title':Sugar.Number.format(prop['n_cached_gifts'],0)});
         $("#n_maps_indexed .admin-stat").text(prop['n_maps_indexed']);
         $("#db_size .admin-stat").text((prop['db_stats']['dataSize']/1000000).toFixed(0)+'m');
         var free = prop['sys_mem']['free'];
@@ -292,6 +299,32 @@ function initPropertiesPane() {
 
         prop_pane_init = true;
     });
+
+    // Account growth/attrition
+    api_call('analytics/accounts/growth',
+        data={
+          'start':Number((Sugar.Date.create("a month ago").getTime()/1000).toFixed(0)),
+          'end':Number((Sugar.Date.create("today").getTime()/1000).toFixed(0))
+        },
+        function(response) {
+            var r = response['data'];
+
+            var n_new_donors = 0;
+            for(var k in r['growth']) {
+                n_new_donors += r['growth'][k];
+            }
+
+            var n_attrition = 0;
+            for(var k in r['attrition']) {
+                n_attrition += r['attrition'][k];
+            }
+
+            $("#n_new_donors .admin-stat").text(Sugar.Number.abbr(n_new_donors,1));
+            $('#n_new_donors').tooltip({'title':Sugar.Number.format(n_new_donors,0)});
+            $("#n_donor_attrition .admin-stat").text(Sugar.Number.abbr(n_attrition,1));
+            $('#n_donor_attrition').tooltip({'title':Sugar.Number.format(n_attrition,0)});
+        }
+    );
 }
 
 //------------------------------------------------------------------------------

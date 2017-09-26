@@ -115,6 +115,8 @@ def net_accounts(start=None, end=None):
     results = {}
     t1 = Timer()
 
+    log.debug('net_accounts analytics from %s to %s', start, end)
+
     # Query Growth
     growth_res = {}
     start_dt = datetime.combine(start,time())
@@ -136,9 +138,9 @@ def net_accounts(start=None, end=None):
         else:
             growth_res[k] +=1
 
-    log.debug('Grouped by month [%sms].', t1.clock(t='ms'))
+    #log.debug('Grouped by month [%sms].', t1.clock(t='ms'))
     t1.restart()
-    log.debug(growth_res)
+    log.debug('New donors: %s', growth_res)
 
     g.db['analytics'].update_one(
         {'group':g.group},
@@ -153,27 +155,35 @@ def net_accounts(start=None, end=None):
             '$elemMatch':{'fieldName':'Status','value':'Cancelled'}
         }
     })
-    log.debug('Queried %s Cancelled accounts [%sms].', cursor.count(), t1.clock(t='ms'))
+    #log.debug('Queried %s Cancelled accounts [%sms].', cursor.count(), t1.clock(t='ms'))
     t1.restart()
+
+    attrition = {}
 
     for doc in cursor:
         acct = doc['account']
         cancel_d = ddmmyyyy_to_date(get_udf('Date Cancelled', acct))
 
-        if cancel_d.year < start.year or cancel_d.year > end.year:
+        #if cancel_d.year < start.year or cancel_d.year > end.year:
+        if cancel_d < start or cancel_d > end:
             continue
 
         k = cancel_d.strftime('%b-%Y')
 
-        if k not in results:
-            results[k] = 1
+        if k not in attrition:
+            attrition[k] = 1
         else:
-            results[k] +=1
+            attrition[k] +=1
 
-    log.debug('Grouped by month [%sms].', t1.clock(t='ms'))
-    log.debug(results)
+    log.debug('Attrition: %s [%sms].', attrition, t1.clock(t='ms'))
+    #log.debug('%s cancels within date period. results=%s', len(results)
 
     g.db['analytics'].update_one(
         {'group':g.group},
-        {'$set':{'attrition':results}},
+        {'$set':{'attrition':attrition}},
         upsert=True)
+
+    results['growth'] = growth_res
+    results['attrition'] = attrition
+
+    return results

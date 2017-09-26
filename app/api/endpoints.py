@@ -94,6 +94,12 @@ def _do_receipts():
     from app.main.tasks import send_receipts
     return task_call(send_receipts, var('entries'))
 
+@api.route('/accounts/mass_update', methods=['POST'])
+@login_required
+def _mass_acct_update():
+    from app.main.tasks import process_entries
+    return task_call(process_entries, loads(var('accts')), wks=var('wks'), col=var('col'))
+
 @api.route('/accounts/update', methods=['POST'])
 @login_required
 def _update_acct():
@@ -153,6 +159,17 @@ def _toggle_mute():
     from app.alice.conversation import toggle_reply_mute
     return func_call(toggle_reply_mute, var('mobile'), loads(var('enabled')))
 
+@api.route('/analytics/accounts/growth', methods=['POST'])
+@login_required
+def _net_accounts():
+    """:start, end: date timestamps
+    """
+    from app.main.analytics import net_accounts
+    from datetime import time, date
+    return func_call(net_accounts,
+        start=date.fromtimestamp(int(var('start'))),
+        end=date.fromtimestamp(int(var('end'))))
+
 @api.route('/bravo/sessions/clear', methods=['GET', 'POST'])
 @login_required
 def _clear_sessions():
@@ -188,7 +205,6 @@ def _api_datatable():
 def _get_gifts():
     from app.main.analytics import gifts_dataset
     from datetime import time, date
-    #print 'start=%s (type=%s), end=%s (type=%s)' %(var('start'),type(var('start')), var('end'), type(var('end')))
     return func_call(
         gifts_dataset,
         date.fromtimestamp(int(var('start'))),

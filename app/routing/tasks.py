@@ -132,13 +132,18 @@ def build_route(self, route_id, job_id=None, **rest):
     from app.lib.gsheets_cls import SS
     from app.main.maps import GeocodeError
 
-    # REMOVE ME
-    coll = 'new_routes' if g.group == 'vec' else 'routes'
-
     timer = Timer()
     orders = "processing"
-    route = g.db[coll].find_one({"_id":oid(route_id)})
+
+    route = g.db['routes'].find_one({"_id":oid(route_id)})
+    if route:
+        coll = 'routes'
+    if not route:
+        route = g.db['new_routes'].find_one({"_id":oid(route_id)})
+        coll = 'new_routes'
+
     g.group = route['group']
+
     oauth = get_keys('google')['oauth']
     api_key = get_keys('google')['geocode']['api_key']
 

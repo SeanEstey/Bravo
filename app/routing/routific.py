@@ -29,8 +29,8 @@ def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key)
             "lng": end_loc['lng'],
             "name": end['formatted_address']
           },
-          "shift_start": shift_start,
-          "shift_end": shift_end
+          "shift_start": shift_start #,
+          #"shift_end": shift_end
         }
       },
       "options": {
@@ -72,7 +72,7 @@ def order(acct, loc_name, geo, shift_start, shift_end, min_per_stop):
         "lng": geo.get('geometry',{}).get('location',{}).get('lng',{})
       },
       "start": shift_start,
-      "end": shift_end,
+      #"end": shift_end,
       "duration": int(min_per_stop),
       "customNotes": {
         "id": acct['id'],

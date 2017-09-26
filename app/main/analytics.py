@@ -9,10 +9,8 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def update_route(data):
-
     from pprint import pprint
     pprint(data)
-
     try:
         data['date'] = parse(data['date']) + timedelta(hours=8)
 
@@ -51,7 +49,6 @@ def update_route(data):
         else:
             log.error('No matching route to update. Block=%s, date=%s',
                 data['block'], data['date'].strftime('%b %d'))
-
     return True
 
 #-------------------------------------------------------------------------------
@@ -59,9 +56,7 @@ def gifts_dataset(start=None, end=None, persona=True):
     """Query all gifts in date period, stream to client in batches via socket.io connection.
     @start, @end: datetime.date
     """
-
     from pprint import pprint
-
     t1 = Timer()
     epoch = datetime(1970,1,1, tzinfo=pytz.utc)
     criteria = g.db['groups'].find_one({'name':g.group})['etapestry']['gifts']
@@ -85,39 +80,51 @@ def gifts_dataset(start=None, end=None, persona=True):
             'gift.amount':1, 'gift.date':1, 'account.account.personaType':1
         }}
     ])
-
     print 'Aggregate query completed. [%sms]' %(t1.clock(t='ms'))
     t1.restart()
-
     data = [{
         'personaType': d['account'][0]['account']['personaType'] if len(d['account']) > 0 else None,
         'amount': d['gift']['amount'],
         'timestamp':(d['gift']['date']-epoch).total_seconds()*1000
         } for d in aggregate
     ]
-
-    print '%s datapoints formatted for client. [%sms]' %(len(data), t1.clock(t='ms'))
-
     from app.main.socketio import smart_emit
     smart_emit('gift_data', data)
     smart_emit('gift_data', [])
-
     return True
 
 #-------------------------------------------------------------------------------
-def net_accounts(start=None, end=None):
+def route_analysis(start, end, field, op, **options):
+    """Run aggregate analysis on a route field over given date range.
+
+    :field: field name in 'stats' dict
+    :op: group operator ('sum','avg')
+    """
+    start_dt = datetime.combine(start,time())
+    end_dt = datetime.combine(end,time())
+    match = {
+        'group':g.group,
+        'date': {'$gte':start_dt, '$lte':end_dt}
+    }
+    for k in options:
+        if k == 'prefix':
+            match['block'] = {'$regex': r'%s\w+' % options[k]}
+    res = g.db['new_routes'].aggregate([
+        {'$match':match},
+        {'$group':{'_id':'', 'result':{'$%s' % op: '$stats.%s' % field}}},
+        {'$project':{'_id':0, 'result':1}}
+    ])
+    return list(res)[0]
+
+#-------------------------------------------------------------------------------
+def net_accounts(start, end):
     """Query new/cancelled accounts in given date range.
     @date, @end: datetime.date
     """
-
     from app.lib.dt import ddmmyyyy_to_date
     from app.main.etapestry import get_udf
     results = {}
     t1 = Timer()
-
-    log.debug('net_accounts analytics from %s to %s', start, end)
-
-    # Query Growth
     growth_res = {}
     start_dt = datetime.combine(start,time())
     end_dt = datetime.combine(end,time())
@@ -127,9 +134,6 @@ def net_accounts(start=None, end=None):
             '$elemMatch':{'fieldName':'Status'}
         },
         'account.accountCreatedDate':{'$gte':start_dt, '$lte':end_dt}})
-    log.debug('Queried %s Created accounts [%sms].', cursor.count(), t1.clock(t='ms'))
-    t1.restart()
-
     for doc in cursor:
         acct = doc['account']
         k = acct['accountCreatedDate'].strftime('%b-%Y')
@@ -137,17 +141,11 @@ def net_accounts(start=None, end=None):
             growth_res[k] = 1
         else:
             growth_res[k] +=1
-
-    #log.debug('Grouped by month [%sms].', t1.clock(t='ms'))
-    t1.restart()
-    log.debug('New donors: %s', growth_res)
-
     g.db['analytics'].update_one(
         {'group':g.group},
         {'$set':{'growth':growth_res}},
         upsert=True)
 
-    # Query Attrition
     cursor = g.db['cachedAccounts'].find({
         'group':g.group,
         'account.accountDefinedValues':{
@@ -155,35 +153,57 @@ def net_accounts(start=None, end=None):
             '$elemMatch':{'fieldName':'Status','value':'Cancelled'}
         }
     })
-    #log.debug('Queried %s Cancelled accounts [%sms].', cursor.count(), t1.clock(t='ms'))
-    t1.restart()
-
     attrition = {}
-
     for doc in cursor:
         acct = doc['account']
         cancel_d = ddmmyyyy_to_date(get_udf('Date Cancelled', acct))
-
-        #if cancel_d.year < start.year or cancel_d.year > end.year:
         if cancel_d < start or cancel_d > end:
             continue
-
         k = cancel_d.strftime('%b-%Y')
-
         if k not in attrition:
             attrition[k] = 1
         else:
             attrition[k] +=1
-
-    log.debug('Attrition: %s [%sms].', attrition, t1.clock(t='ms'))
-    #log.debug('%s cancels within date period. results=%s', len(results)
-
     g.db['analytics'].update_one(
         {'group':g.group},
         {'$set':{'attrition':attrition}},
         upsert=True)
-
     results['growth'] = growth_res
     results['attrition'] = attrition
-
     return results
+
+#-------------------------------------------------------------------------------
+def summary_stats():
+    from app.lib.utils import mem_check
+    from app.main.etapestry import get_udf
+    conversations = g.db['chatlogs'].find({'group':g.group})
+    n_convos = conversations.count()
+    n_msg = 0
+    for convo in conversations:
+        for msg in convo['messages']:
+            if msg['direction'] == 'in':
+                n_msg+=1
+    n_geolocations = g.db['cachedAccounts'].find({'group':g.group,'geolocation':{'$exists':True}}).count()
+    donors = g.db['cachedAccounts'].find({'group':g.group})
+    n_donors = 0
+    n_mobile = 0
+    for donor in donors:
+        if not donor['account'].get('accountDefinedValues'):
+            continue
+        status =  get_udf('Status', donor['account'])
+        if status and status in ['Active','Dropoff','Cancelling','Call-in','Brings In']:
+            n_donors +=1
+            if get_udf('SMS', donor['account']):
+                n_mobile +=1
+    return {
+        'dbStats': g.db.command("dbstats"),
+        'sysMem': mem_check(),
+        'nDonors': n_donors,
+        'nMobile': n_mobile,
+        'nConvos': n_convos,
+        'nIncSMS': n_msg,
+        'nDbMaps': len(g.db.maps.find_one({'agency':g.group})['features']),
+        'nDbAccts': g.db['cachedAccounts'].find({'group':g.group}).count(),
+        'nDbGeoloc': n_geolocations,
+        'nDbGifts': g.db['cachedGifts'].find({'group':g.group}).count()
+    }

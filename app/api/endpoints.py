@@ -4,23 +4,19 @@ API interface. Paths with @login_required must be called either from logged-in
 client or provide API key in request headers. Paths without @login_required can
 be called anonymously.
 """
-
-import json, logging
-from json import loads
+import logging
+from json import dumps, loads
 from flask import g,request,Response
 from flask_login import login_required
 from app.lib.timer import Timer
 from . import api
-from app.api.manager import var,func_call,task_call
-
+from app.api.manager import var, func_call, task_call, ts_to_date
 log = logging.getLogger('api.endpoints')
 
 @api.before_request
 def _api_setup():
     g.tag = 'api'
     g.timer = Timer()
-
-##### API CALLS #####
 
 @api.route('/accounts/submit_form', methods=['POST'])
 def _submit_form_signup():
@@ -104,7 +100,6 @@ def _mass_acct_update():
 @login_required
 def _update_acct():
     from app.main.etapestry import mod_acct
-
     acct_id = var('acct_id')
     persona = loads(var('persona')) if var('persona') else {}
     udf = loads(var('udf')) if var('udf') else {}
@@ -159,16 +154,28 @@ def _toggle_mute():
     from app.alice.conversation import toggle_reply_mute
     return func_call(toggle_reply_mute, var('mobile'), loads(var('enabled')))
 
-@api.route('/analytics/accounts/growth', methods=['POST'])
+@api.route('/analytics/summary', methods=['POST'])
+@login_required
+def _summary_stats():
+    from app.main.analytics import summary_stats
+    return func_call(summary_stats)
+
+@api.route('/analytics/growth', methods=['POST'])
 @login_required
 def _net_accounts():
-    """:start, end: date timestamps
-    """
+    """start,end: timestamps"""
     from app.main.analytics import net_accounts
-    from datetime import time, date
-    return func_call(net_accounts,
-        start=date.fromtimestamp(int(var('start'))),
-        end=date.fromtimestamp(int(var('end'))))
+    return func_call(net_accounts, ts_to_date(var('start')), ts_to_date(var('end')))
+
+@api.route('/analytics/aggregate', methods=['POST'])
+@login_required
+def _route_analysis():
+    """start,end: date timestamps"""
+    from app.main.analytics import route_analysis
+    return func_call(
+        route_analysis,
+        ts_to_date(var('start')), ts_to_date(var('end')),
+        var('field'), var('op'), **loads(var('options') or "{}"))
 
 @api.route('/bravo/sessions/clear', methods=['GET', 'POST'])
 @login_required
@@ -204,11 +211,7 @@ def _api_datatable():
 @login_required
 def _get_gifts():
     from app.main.analytics import gifts_dataset
-    from datetime import time, date
-    return func_call(
-        gifts_dataset,
-        date.fromtimestamp(int(var('start'))),
-        date.fromtimestamp(int(var('end'))))
+    return func_call(gifts_dataset, ts_to_date(var('start')), ts_to_date(var('end')))
 
 @api.route('/group/conf/get', methods=['POST'])
 @login_required
@@ -222,11 +225,7 @@ def _update_group_conf():
     from app.main import agency
     return func_call(agency.update_conf, var('data'))
 
-@api.route('/group/properties/get', methods=['POST'])
-@login_required
-def _get_admin_prop():
-    from app.main.agency import get_admin_prop
-    return func_call(get_admin_prop)
+
 
 @api.route('/maps/get', methods=['POST'])
 @login_required
@@ -307,9 +306,7 @@ def _optout_pickup():
 
     evnt_id = var('evnt_id')
     acct_id = var('acct_id')
-
     if not is_valid(evnt_id, acct_id):
-        from json import dumps
         return Response(
             response=dumps({
                 'status':'failed',

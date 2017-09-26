@@ -8,12 +8,9 @@ var recnt_pane_init = false;
 
 //------------------------------------------------------------------------------
 function init() {
-
-    //$('#admin-nav').prop('hidden',false);
     $('#admin-nav').addClass('d-flex');
     $('#admin-nav').show();
     $('.br-alert').hide();
-
     initPropertiesPane();
     initPreviewerPane();
 
@@ -21,43 +18,30 @@ function init() {
         e.preventDefault();
         console.log('active tab %s', $(this).prop('hash'));
         var id = $(this).prop('hash');
-
-        if(id == '#services') {
+        if(id == '#services')
             initServicesPane();
-        }
-        else if(id == '#leaderboard') {
+        else if(id == '#leaderboard')
             initLeaderboardPane();
-        }
-        else if(id == '#stats') {
+        else if(id == '#stats')
             initPropertiesPane();
-        }
-        else if(id == '#me') {
+        else if(id == '#me')
             initUserPane();
-        }
-        else if(id == '#recent') {
+        else if(id == '#recent')
             window.location = "https://bravoweb.ca/recent";
-        }
-        else if(id == '#analytics') {
+        else if(id == '#analytics')
             window.location = "https://bravoweb.ca/analytics";
-        }
-        else if(id == "#map_analyzer") {
+        else if(id == "#map_analyzer")
             window.location = "https://bravoweb.ca/tools";
-        }
-        else if(id == "#datatable") {
+        else if(id == "#datatable")
             window.location = "https://bravoweb.ca/datatable";
-        }
-
         $(this).tab('show');
     })
 }
 
 //------------------------------------------------------------------------------
 function initUserPane() {
-
     if(user_pane_init)
         return;
-
-    //$("[name='adm_panl_check']").bootstrapSwitch();
 
     api_call(
       'user/get',
@@ -69,7 +53,6 @@ function initUserPane() {
           $("#user_form [id='user_name']").text(user['user_id']);
           $("#user_form [id='is_admin']").text(user['admin']);
       });
-
     $('#logout').click(function(e){
         e.preventDefault();
         api_call(
@@ -82,16 +65,13 @@ function initUserPane() {
             }
         );
     });
-
     user_pane_init = true;
 }
 
 //------------------------------------------------------------------------------
 function initServicesPane() {
-
     if(serv_pane_init)
         return;
-
     $('#service_acct').tooltip();
     $('#linked_cal').tooltip();
 
@@ -99,9 +79,7 @@ function initServicesPane() {
       'group/conf/get',
       null,
       function(response){
-          //console.log(response['status']);
           var conf = response['data'];
-
           $("#crm_org_name").text(conf['etapestry']['org_name']);
           $("#crm_acct_id").text(conf['etapestry']['user']);
           $("#routing_acct_id").text(conf['routing']['routific']['acct_id']);
@@ -119,7 +97,6 @@ function initServicesPane() {
 
 //------------------------------------------------------------------------------
 function initPreviewerPane() {
-
     // Button handlers
     $('#receipt_btn').click(function(e){
         showModal(
@@ -144,7 +121,6 @@ function initPreviewerPane() {
               $('#mymodal .modal-body').html(response['data']);
           });
     });
-
     $('#sms_btn').click(function(e){
         showModal(
           'mymodal',
@@ -169,7 +145,6 @@ function initPreviewerPane() {
           }
         );
     });
-
     $('#email_notific_btn').click(function(e){
         showModal(
           'mymodal',
@@ -198,7 +173,6 @@ function initPreviewerPane() {
 
 //------------------------------------------------------------------------------
 function initLeaderboardPane() {
-
     if($('#leaderboard').children().length > 0)
         return;
 
@@ -220,116 +194,130 @@ function initLeaderboardPane() {
 
 //------------------------------------------------------------------------------
 function initPropertiesPane() {
-
     if(prop_pane_init)
         return;
+    var abbr = Sugar.Number.abbr;
+    var num_frmt = Sugar.Number.format;
 
-    var act_stats = {
-        'n_mobile': 'Mobile Numbers',
-        'n_alice_convos': 'Alice Convos',
-        'n_alice_incoming': 'Alice Replies',
-        'n_notific_events': 'Notify Events',
-        'n_users': 'Bravo Users'
-    };
-    var use_stats = {
-        'n_cached_accounts': 'Stored Accounts',
-        'n_cached_geolocations': 'Stored Geolocations',
-        'n_cached_gifts': 'Stored Gifts',
-        'n_maps_indexed': 'Stored Maps',
-        'db_size': 'Database Size (MB)',
-        'sys_mem': 'Mem Usage'
-    };
-    var donor_stats = {
-        'n_donors': 'Active Donors',
-        'n_new_donors': 'Growth (30 Day)',
-        'n_donor_attrition': 'Attrition (30 Day)',
-        'coll_rate': 'Collection Rate',
-        'rev_per_day': 'Avg Revenue/Day',
-        //'mtd_rev': 'MTD Revenue',
-        //'monthly_rev': 'Revenue/Month'
-    };
-
-    for(var k in act_stats) {
-        var $card = $('#stat-card').clone().prop('id',k).show();
-        $card.find('.admin-lbl').text(act_stats[k]);
-        $('#stats-contnr').append($card);
-    }
-    for(var k in use_stats) {
-        var $card = $('#stat-card').clone().prop('id',k).show();
-        $card.find('.admin-lbl').text(use_stats[k]);
-        $('#usage-contnr').append($card);
-    }
-    for(var k in donor_stats) {
-        var $card = $('#stat-card').clone().prop('id',k).show();
-        $card.find('.admin-lbl').text(donor_stats[k]);
-        $('#donor-contnr').append($card);
-    }
-
-    api_call('group/properties/get', null, function(response){
-        console.log('Received stats data');
-        var prop = response['data'];
-
-        $('#n_mobile .admin-stat').text(Sugar.Number.abbr(prop['n_mobile'],1));
-        $('#n_mobile').tooltip({'title':Sugar.Number.format(prop['n_mobile'],0)});
-        $("#n_alice_convos .admin-stat").text(Sugar.Number.abbr(prop['n_alice_convos'],1));
-        $('#n_alice_convos').tooltip({'title':Sugar.Number.format(prop['n_alice_convos'],0)});
-        $("#n_alice_incoming .admin-stat").text(Sugar.Number.abbr(prop['n_alice_incoming'],1));
-        $('#n_alice_incoming').tooltip({'title':Sugar.Number.format(prop['n_alice_incoming'],0)});
-        $("#n_notific_events .admin-stat").text(prop['n_notific_events']);
-        $("#n_users .admin-stat").text(prop['n_users']);
-
-        $("#n_cached_accounts .admin-stat").text(Sugar.Number.abbr(prop['n_cached_accounts'],1));
-        $('#n_cached_accounts').tooltip({'title':Sugar.Number.format(prop['n_cached_accounts'],0)});
-        $("#n_cached_geolocations .admin-stat").text(Sugar.Number.abbr(prop['n_geolocations'],1));
-        $("#n_cached_gifts .admin-stat").text(Sugar.Number.abbr(prop['n_cached_gifts'],1));
-        $('#n_cached_gifts').tooltip({'title':Sugar.Number.format(prop['n_cached_gifts'],0)});
-        $("#n_maps_indexed .admin-stat").text(prop['n_maps_indexed']);
-        $("#db_size .admin-stat").text((prop['db_stats']['dataSize']/1000000).toFixed(0)+'m');
-        var free = prop['sys_mem']['free'];
-        var total = prop['sys_mem']['total'];
-        var perc = (100-((free/total)*100)).toFixed(0);
-        $("#sys_mem .admin-stat").text(format("%s%", perc));
-
-        $("#n_donors .admin-stat").text(Sugar.Number.abbr(prop['n_donors'],1));
-        $('#n_donors').tooltip({'title':Sugar.Number.format(prop['n_donors'],0)});
-        $("#coll_rate .admin-stat").text('?');
-        $("#rev_per_day .admin-stat").text('?');
-        $("#mtd_rev .admin-stat").text('?');
-        $("#monthly_rev .admin-stat").text('?');
-
-        prop_pane_init = true;
-    });
-
-    // Account growth/attrition
-    api_call('analytics/accounts/growth',
-        data={
-          'start':Number((Sugar.Date.create("a month ago").getTime()/1000).toFixed(0)),
-          'end':Number((Sugar.Date.create("today").getTime()/1000).toFixed(0))
+    var sections = [
+        {
+            'parent_id':'recent-contnr',
+            'fields': {
+                'nGifts': 'Gifts',
+                'revenue': 'Gift Value',
+                'collRate': 'Collection Rate',
+                'nNewDonors': 'New Accounts',
+                'nDonorLoss': 'Lost Accounts'
+            }
         },
+        {
+            'parent_id':'overall-contnr',
+            'fields':{
+                'nDonors': 'Active Donors',
+                'nMobile':'Mobile Numbers',
+                'nConvos':'Alice Convos',
+                'nIncSMS':'Alice Replies',
+            },
+        },
+        {
+            'parent_id':'indexed-contnr',
+            'fields': {
+                'nDbAccts': 'Accounts',
+                'nDbGeoloc': 'Geolocations',
+                'nDbGifts': 'Gifts',
+                'nDbMaps': 'Maps',
+            }
+        },
+
+        {
+            'parent_id':'sysmon-contnr',
+            'fields': {
+                'DbSize': 'Database Size (MB)',
+                'sysMem': 'Mem Usage'
+            }
+        }
+    ]
+
+    // Insert Stat cards into DOM
+    for(var i=0; i<sections.length;i++) {
+        for(var k in sections[i]['fields']) {
+            var $card = $('#stat-card').clone().prop('id',k).show();
+            $card.find('.admin-lbl').text(sections[i]['fields'][k]);
+            $('#'+sections[i]['parent_id']).append($card);
+        }
+    }
+
+    var mth_time = Number((Sugar.Date.create("a month ago").getTime()/1000).toFixed(0));
+    var now_time = Number((Sugar.Date.create("today").getTime()/1000).toFixed(0));
+
+    // Query analytics API and populate data
+    api_call(
+        'analytics/summary',
+        null, 
+        function(response){
+            prop_pane_init = true;
+            var r = response['data'];
+            var free = r['sysMem']['free'];
+            var total = r['sysMem']['total'];
+            var perc = (100-((free/total)*100)).toFixed(0);
+
+            $("#nDonors .admin-stat").text(abbr(r['nDonors'],1));
+            $('#nDonors').tooltip({'title':num_frmt(r['nDonors'],0)});
+            $('#nMobile .admin-stat').text(abbr(r['nMobile'],1));
+            $('#nMobile').tooltip({'title':num_frmt(r['nMobile'],0)});
+            $("#nConvos .admin-stat").text(abbr(r['nConvos'],1));
+            $('#nConvos').tooltip({'title':num_frmt(r['nConvos'],0)});
+            $("#nIncSMS .admin-stat").text(abbr(r['nIncSMS'],1));
+            $('#nIncSMS').tooltip({'title':num_frmt(r['nIncSMS'],0)});
+            $("#nDbAccts .admin-stat").text(abbr(r['nDbAccts'],1));
+            $('#nDbAccts').tooltip({'title':num_frmt(r['nDbAccts'],0)});
+            $("#nDbGeoloc .admin-stat").text(abbr(r['nDbGeoloc'],1));
+            $("#nDbGifts .admin-stat").text(abbr(r['nDbGifts'],1));
+            $('#nDbGifts').tooltip({'title':num_frmt(r['nDbGifts'],0)});
+            $("#DbSize .admin-stat").text((r['dbStats']['dataSize']/1000000).toFixed(0)+'m');
+            $("#nDbMaps .admin-stat").text(r['nDbMaps']);
+            $("#sysMem .admin-stat").text(format("%s%", perc));
+    });
+    api_call(
+        'analytics/growth',
+        data={'start':mth_time, 'end':now_time},
         function(response) {
             var r = response['data'];
-
-            var n_new_donors = 0;
-            for(var k in r['growth']) {
-                n_new_donors += r['growth'][k];
-            }
-
-            var n_attrition = 0;
-            for(var k in r['attrition']) {
-                n_attrition += r['attrition'][k];
-            }
-
-            $("#n_new_donors .admin-stat").text(Sugar.Number.abbr(n_new_donors,1));
-            $('#n_new_donors').tooltip({'title':Sugar.Number.format(n_new_donors,0)});
-            $("#n_donor_attrition .admin-stat").text(Sugar.Number.abbr(n_attrition,1));
-            $('#n_donor_attrition').tooltip({'title':Sugar.Number.format(n_attrition,0)});
+            var n_lost=0, n_new = 0;
+            for(var k in r['growth'])
+                n_new += r['growth'][k];
+            for(var k in r['attrition'])
+                n_lost += r['attrition'][k];
+            $("#nNewDonors .admin-stat").text(abbr(n_new,1));
+            $('#nNewDonors').tooltip({'title':num_frmt(n_new,0)});
+            $("#nDonorLoss .admin-stat").text(abbr(n_lost,1));
+            $('#nDonorLoss').tooltip({'title':num_frmt(n_lost,0)});
         }
     );
+    api_call(
+        'analytics/aggregate',
+        data={start:mth_time, end:now_time, field:'collectionRate', op:'avg', options:{'prefix':'R'}},
+        function(r) {
+            $("#collRate .admin-stat").text(num_frmt(r['data']['result']*100,0)+'%');
+    });
+    api_call(
+        'analytics/aggregate',
+        data={start:mth_time, end:now_time, field:'estimateTotal', op:'sum'},
+        function(r) {
+            $("#revenue .admin-stat").text('$'+abbr(r['data']['result'],1));
+            $("#revenue").tooltip({'title':num_frmt(r['data']['result'],0)});
+    });
+    api_call(
+        'analytics/aggregate',
+        data={start:mth_time, end:now_time, field:'nDonations', op:'sum'},
+        function(r) {
+            $("#nGifts .admin-stat").text(abbr(r['data']['result'],1));
+            $("#nGifts").tooltip({'title':num_frmt(r['data']['result'],0)});
+    });
 }
 
 //------------------------------------------------------------------------------
 function saveFieldEdit(field, value) {
-
     api_call(
         'group/conf/update',
         {'field':field, 'value':value},

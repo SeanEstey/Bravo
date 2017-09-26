@@ -1,5 +1,6 @@
 # app.api.manager
 
+from datetime import date
 from json import dumps, loads
 from flask import g, Response, request, jsonify
 from flask_login import current_user
@@ -82,6 +83,10 @@ def build_resp(rv=None, exc=None, name=None, _timer=None):
             'function':name,
             'response': dump_response(resp)})
     return resp
+
+#-------------------------------------------------------------------------------
+def ts_to_date(timestamp):
+    return date.fromtimestamp(int(timestamp))
 
 #-------------------------------------------------------------------------------
 def var(k):

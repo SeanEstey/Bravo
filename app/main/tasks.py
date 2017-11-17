@@ -22,8 +22,9 @@ def _get_gifts(self, ref, start_date, end_date, cache=True, **rest):
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
 def wipe_sessions(self, **rest):
-    import requests
-    r = requests.post("https://bravoweb.ca/api/admin/sessions/clear")
+    #import requests
+    #r = requests.post("https://bravoweb.ca/api/admin/sessions/clear")
+    pass
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -144,8 +145,9 @@ def sys_health_check(self, **rest):
     """Check free mem on main Flask process
     """
 
-    import requests
-    r = requests.post("https://bravoweb.ca/health_check")
+    #import requests
+    #r = requests.post("https://bravoweb.ca/health_check")
+    pass
 
 #-------------------------------------------------------------------------------
 @celery.task(bind=True)
@@ -217,22 +219,31 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
             n_no_geo +=1
             continue
 
-        if in_map(geolocation['geometry']['location'], target_map):
-            if not acct.get('accountDefinedValues'):
+        try:
+            is_in_map = in_map(geolocation['geometry']['location'], target_map)
+        except Exception as e:
+            continue
+        else:
+            if not is_in_map:
                 continue
 
-            b = get_udf('Block', acct)
-            if b:
-                c = b.split(', ')
-                for block in c:
-                    if block not in queries:
-                        queries.append(block)
-                        log.debug('Added Block=%s', block)
+        if not acct.get('accountDefinedValues'):
+            continue
 
-    #log.debug('Queries=%s', queries)
+        b = get_udf('Block', acct)
+        if b:
+            c = b.split(', ')
+            for block in c:
+                if block not in queries:
+                    queries.append(block)
+                    log.debug('Added Block=%s', block)
+
+    log.debug('n_no_geo=%s', n_no_geo)
+    log.debug('Queries=%s', queries)
 
     matches = {}
     acct_list = []
+    n_no_geo = 0
 
     for query in queries:
         #log.debug('Searching Query %s', query)
@@ -243,12 +254,15 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
             log.exception('Error retrieving %s. Skipping', query)
             continue
 
+        log.debug('%s accts in %s', len(accts), query)
+
         for acct in accts:
             geolocation = g.db['cachedAccounts'].find_one(
                 {'group':g.group, 'account.id':acct['id']}
             ).get('geolocation')
 
             if not geolocation or not geolocation.get('geometry'):
+                n_no_geo+=1
                 log.debug('Skipping query acct w/o geolocation')
                 continue
 
@@ -259,6 +273,8 @@ def find_zone_accounts(self, zone=None, blocks=None, **rest):
                     matches[acct['id']] = acct
                     smart_emit('analyze_results',
                         {'status':'match','acct_id':acct['id'],'coords':pt,'n_matches':len(matches)})
+
+        log.debug('%s accts in %s w/ no geolocation', n_no_geo, len(query))
 
     smart_emit('analyze_results', {'status':'completed','n_matches':len(matches)})
 

@@ -172,4 +172,5 @@ class UberTask(Task):
             print 'task_user %s' % db_user['user']
         else:
             login_user(user.Anonymous(user_id='bravo_task'))
+            g.group = 'anon'
             print 'task_user bravo_task'

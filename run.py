@@ -1,5 +1,8 @@
 '''run'''
-import eventlet, os, time, sys, getopt
+import eventlet
+eventlet.monkey_patch()
+
+import os, time, sys, getopt
 from os import environ, system
 from flask import current_app, g, session
 from flask_login import current_user

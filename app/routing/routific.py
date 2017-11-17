@@ -9,7 +9,6 @@ log = getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key):
-
     start_loc = start['geometry']['location']
     end_loc = end['geometry']['location']
 
@@ -29,13 +28,15 @@ def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key)
             "lng": end_loc['lng'],
             "name": end['formatted_address']
           },
-          "shift_start": shift_start #,
+          "shift_start": shift_start
+
           #"shift_end": shift_end
         }
       },
       "options": {
         "traffic": "slow",
-        "shortest_distance": True
+        "shortest_distance": True #,
+        #"geocoder": "here" # TESTING PURPOSES ONLY.
       }
     }
 
@@ -67,7 +68,8 @@ def order(acct, loc_name, geo, shift_start, shift_end, min_per_stop):
     return {
       "gmaps_url": "",
       "location": {
-        "name": loc_name,
+        "address": loc_name,
+        "name": loc_name, #,
         "lat": geo.get('geometry',{}).get('location',{}).get('lat',{}),
         "lng": geo.get('geometry',{}).get('location',{}).get('lng',{})
       },
@@ -75,6 +77,8 @@ def order(acct, loc_name, geo, shift_start, shift_end, min_per_stop):
       #"end": shift_end,
       "duration": int(min_per_stop),
       "customNotes": {
+        "lat": geo.get('geometry',{}).get('location',{}).get('lat',{}),
+        "lng": geo.get('geometry',{}).get('location',{}).get('lng',{}),
         "id": acct['id'],
         "name": acct['name'],
         "phone": get_prim_phone(acct),

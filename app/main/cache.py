@@ -75,7 +75,6 @@ def bulk_store(objects, obj_type=None):
 def query_and_store(query=None, category=None, obj_type=None, get_meta=False, start=0, timeout=75):
     """Pull recent Accounts/Gifts from query and merge w/ cached records
     """
-
     from app.main.etapestry import call, get_query
 
     timer = Timer()
@@ -92,7 +91,6 @@ def query_and_store(query=None, category=None, obj_type=None, get_meta=False, st
 
     while queryEnd != True:
         log.debug('Querying results %s-%s...', start, start+count)
-
         try:
             results = get_query(
                 query,
@@ -107,7 +105,6 @@ def query_and_store(query=None, category=None, obj_type=None, get_meta=False, st
             break
             #start+=500
             #continue
-
         start += 500
 
         if start > results['total']:

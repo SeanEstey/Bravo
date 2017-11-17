@@ -205,7 +205,8 @@ def skip_pickup(self, evnt_id=None, acct_id=None, **rest):
             'next_pickup': to_local(
                 acct['udf']['future_pickup_dt'],
                 to_str='%d/%m/%Y')})
-    except EtapError as e:
+    except Exception as e:
+        log.exception('Error calling skip_pickup')
         log.exception("Error updating account %s",
             acct.get('name') or acct.get('email'),
             extra={'account_id': acct['udf']['etap_id']})

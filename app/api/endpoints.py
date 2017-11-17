@@ -103,7 +103,6 @@ def _update_acct():
     acct_id = var('acct_id')
     persona = loads(var('persona')) if var('persona') else {}
     udf = loads(var('udf')) if var('udf') else {}
-    log.debug('acct_id=%s, udf=%s, persona=%s', acct_id, udf, persona)
     return func_call(mod_acct, acct_id, udf=udf, persona=persona)
 
 @api.route('/accounts/preview_receipt', methods=['POST'])

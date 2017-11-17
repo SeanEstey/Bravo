@@ -156,7 +156,14 @@ def net_accounts(start, end):
     attrition = {}
     for doc in cursor:
         acct = doc['account']
-        cancel_d = ddmmyyyy_to_date(get_udf('Date Cancelled', acct))
+
+        try:
+            cancel_d = ddmmyyyy_to_date(get_udf('Date Cancelled', acct))
+        except Exception as e:
+            log.error('Invalid Date Cancelled value=%s, Acct ID=%s',
+                acct['id'], get_udf('Date Cancelled', acct))
+            continue
+
         if cancel_d < start or cancel_d > end:
             continue
         k = cancel_d.strftime('%b-%Y')

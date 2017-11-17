@@ -24,7 +24,7 @@ function drawMorrisBarChart(id, data, xkey, ykeys, options, ext_options=null) {
         labels: ['Residential', 'Business'], // labels for ykeys -- will be displayed when you hover over the chart
         labelTop: true, // custom extension
         axes: true, // false for none, 'x' for x-axis, 'y' for y-axis
-        grid: false,
+        grid: true, //false,
         hideHover: 'auto',
         hoverCallback: null, // replace w/ custom function
         barColors: ['#279bbe', '#ec8380'], // red, blue

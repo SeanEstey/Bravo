@@ -43,7 +43,6 @@ def submit_job(route_id):
         if is_scheduled(acct, route['date'].date()) == False:
             n_skips += 1
             continue
-
         try:
             order = create_order(
                 acct,
@@ -56,7 +55,6 @@ def submit_job(route_id):
             log.exception(e.message)
             errors.append({'acct':acct, 'desc':str(e)})
             continue
-
         if order == False:
             n_skips += 1
         else:
@@ -161,6 +159,8 @@ def get_solution(job_id, api_key):
     orders = task['output']['solution'].get(doc['routific']['driver']['name'])
     length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
 
+    log.debug('orders object', extra={'orders':orders})
+
     # Add custom fields in solution obj
     for order in orders:
         if order['location_id'] == 'office':
@@ -168,13 +168,12 @@ def get_solution(job_id, api_key):
         elif order['location_id'] == 'depot':
             location = geocode(doc['routific']['endAddress'],api_key)[0]['geometry']['location']
             order['customNotes'] = {'id':'depot', 'name':'Depot'}
-            order['gmaps_url'] = build_url(
-                order['location_name'], location['lat'], location['lng'])
+            order['gmaps_url'] = build_url(order['location_name'], location['lat'], location['lng'])
         else:
             input_ = task['input']['visits'][order['location_id']]
             order['customNotes'] = input_['customNotes']
-            order['gmaps_url'] = build_url(
-                input_['location']['name'], input_['location']['lat'], input_['location']['lng'])
+            #order['gmaps_url'] = build_url(input_['location']['name'], input_['location']['lat'], input_['location']['lng'])
+            order['gmaps_url'] = build_url(order['location_name'], order['customNotes']['lat'], order['customNotes']['lng'])
 
     office = get_keys('routing')['locations']['office']
 
@@ -201,4 +200,3 @@ def get_solution(job_id, api_key):
       }})
 
     return orders
-

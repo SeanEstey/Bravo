@@ -12,7 +12,8 @@ function opt_out_init() {
 
     if($('form input[name="valid"]').val() == "false") {
         alertMsg("This event has expired", "danger");
-        $('form button').prop('disabled', true);
+        $('#opt-out-btn').prop('disabled', true);
+        console.log('expired event');
         return;
     }
 

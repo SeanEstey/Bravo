@@ -73,8 +73,8 @@ def submit_job(route_id):
     job_id = routific.submit_vrp_task(
         orders,
         route['routific']['driver']['name'],
-        office_coords,
-        depot_coords,
+        office['formatted_address'],
+        depot['formatted_address'],
         route['routific']['driver']['shift_start'],
         SHIFT_END,
         get_keys('routing')['routific']['api_key'])
@@ -120,13 +120,21 @@ def create_order(acct, warnings, api_key, shift_start, shift_end, stop_time):
     if 'warning' in geolocation:
         warnings.append(geolocation['warning'])
 
-    return routific.order(
+    return routific.here_order(
+        acct,
+        geolocation,
+        shift_start,
+        shift_end,
+        stop_time)
+
+    """return routific.order(
         acct,
         "%s, %s, AB" % (acct.get('address'), acct.get('city')),
         geolocation,
         shift_start,
         shift_end,
         stop_time)
+    """
 
 #-------------------------------------------------------------------------------
 def get_solution(job_id, api_key):
@@ -172,7 +180,7 @@ def get_solution(job_id, api_key):
         else:
             input_ = task['input']['visits'][order['location_id']]
             order['customNotes'] = input_['customNotes']
-            #order['gmaps_url'] = build_url(input_['location']['name'], input_['location']['lat'], input_['location']['lng'])
+            #order['gmaps_url'] = build_url(order['location_name'], order['customNotes']['lat'], order['customNotes']['lng'])
             order['gmaps_url'] = build_url(order['location_name'], order['customNotes']['lat'], order['customNotes']['lng'])
 
     office = get_keys('routing')['locations']['office']

@@ -128,7 +128,6 @@ def build_route(self, route_id, job_id=None, **rest):
     @job_id: routific job string. If passed, creates Sheet without re-routing
     Returns: db.routes dict on success, False on error
     '''
-
     from app.lib.gsheets_cls import SS
     from app.main.maps import GeocodeError
 

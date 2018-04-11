@@ -1,49 +1,60 @@
 '''app.routing.routific'''
 import json, requests
 from flask import g
-from app.main.etapestry import get_udf as udf, get_prim_phone as prim_phone
+from app.main.etapestry import get_udf, get_prim_phone
 from logging import getLogger
 log = getLogger(__name__)
 
 '''Methods called from .build module. g.group set'''
 
 #-------------------------------------------------------------------------------
-def submit_vrp_task(orders, driver, start_addr, end_addr, shift_start, shift_end, api_key):
-    """@start_addr, end_addr: formatted address str's returned from Google
-    geocoder.
-    """
+def submit_vrp_task(orders, driver, start, end, shift_start, shift_end, api_key):
+    start_loc = start['geometry']['location']
+    end_loc = end['geometry']['location']
 
     payload = {
-        "visits": { order["customNotes"]["id"]:order for order in orders },
-        "fleet": {
-            driver: {
-                "start_location": {
-                    "id": "office",
-                    "name": start_addr,
-                    "address": start_addr
-                },
-                "end_location": {
-                    "id": "depot",
-                    "name":end_addr,
-                    "address": end_addr
-                },
-                "shift_start": shift_start
-            }
-        },
-        "options": {
-            "traffic": "slow",
-            "shortest_distance": True,
-            # TODO: testing Here geocoder
-            "geocoder": "here"
+      "visits": {},
+      "fleet": {
+        driver: {
+          "start_location": {
+            "id": "office",
+            "lat": start_loc['lat'],
+            "lng": start_loc['lng'],
+            "name": start['formatted_address']
+           },
+          "end_location": {
+            "id": "depot",
+            "lat": end_loc['lat'],
+            "lng": end_loc['lng'],
+            "name": end['formatted_address']
+          },
+          "shift_start": shift_start
+
+          #"shift_end": shift_end
         }
+      },
+      "options": {
+        "traffic": "slow",
+        "shortest_distance": True #,
+        #"geocoder": "here" # TESTING PURPOSES ONLY.
+      }
     }
 
+    for order in orders:
+        payload['visits'][order['customNotes']['id']] = order
+
     try:
-        r = requests.post('https://api.routific.com/v1/vrp-long',
-            headers = {'content-type':'application/json', 'Authorization':api_key},
-            data=json.dumps(payload))
+        r = requests.post(
+            'https://api.routific.com/v1/vrp-long',
+            headers = {
+              'content-type': 'application/json',
+              'Authorization': api_key
+            },
+            data=json.dumps(payload)
+        )
     except Exception as e:
-        log.exception('Routific error submitting vrp_task: %s', str(e))
+        log.error('Routific exception=%s', str(e))
+        log.exception(str(e))
         return False
 
     if r.status_code != 202:
@@ -51,35 +62,6 @@ def submit_vrp_task(orders, driver, start_addr, end_addr, shift_start, shift_end
         return False
 
     return json.loads(r.text)['job_id']
-
-#-------------------------------------------------------------------------------
-def here_order(acct, geolocation, start, end, duration):
-    """@addr: google geocoder formatted address str
-    """
-    return {
-      "gmaps_url": "",
-      "location": {
-        "name":geolocation["formatted_address"],
-        "address": geolocation["formatted_address"]
-      },
-      "start": start,
-      "duration": int(duration),
-      "customNotes": {
-        "id": acct['id'],
-        "lat": geolocation.get('geometry',{}).get('location',{}).get('lat',{}),
-        "lng": geolocation.get('geometry',{}).get('location',{}).get('lng',{}),
-        "name": acct['name'],
-        "phone": prim_phone(acct),
-        "email": 'Yes' if acct.get('email') else 'No',
-        "contact": udf('Contact', acct),
-        "block": udf('Block', acct),
-        "status": udf('Status', acct),
-        "neighborhood": udf('Neighborhood', acct),
-        "driver notes": udf('Driver Notes', acct),
-        "office notes": udf('Office Notes', acct),
-        "next pickup": udf('Next Pickup Date', acct)
-      }
-    }
 
 #-------------------------------------------------------------------------------
 def order(acct, loc_name, geo, shift_start, shift_end, min_per_stop):
@@ -92,20 +74,21 @@ def order(acct, loc_name, geo, shift_start, shift_end, min_per_stop):
         "lng": geo.get('geometry',{}).get('location',{}).get('lng',{})
       },
       "start": shift_start,
+      #"end": shift_end,
       "duration": int(min_per_stop),
       "customNotes": {
         "lat": geo.get('geometry',{}).get('location',{}).get('lat',{}),
         "lng": geo.get('geometry',{}).get('location',{}).get('lng',{}),
         "id": acct['id'],
         "name": acct['name'],
-        "phone": prim_phone(acct),
+        "phone": get_prim_phone(acct),
         "email": 'Yes' if acct.get('email') else 'No',
-        "contact": udf('Contact', acct),
-        "block": udf('Block', acct),
-        "status": udf('Status', acct),
-        "neighborhood": udf('Neighborhood', acct),
-        "driver notes": udf('Driver Notes', acct),
-        "office notes": udf('Office Notes', acct),
-        "next pickup": udf('Next Pickup Date', acct)
+        "contact": get_udf('Contact', acct),
+        "block": get_udf('Block', acct),
+        "status": get_udf('Status', acct),
+        "neighborhood": get_udf('Neighborhood', acct),
+        "driver notes": get_udf('Driver Notes', acct),
+        "office notes": get_udf('Office Notes', acct),
+        "next pickup": get_udf('Next Pickup Date', acct)
       }
     }

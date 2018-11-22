@@ -5,23 +5,32 @@ Bravo runs on Ubuntu 16.04, with core dependencies being MongoDB 3.2+, nginx, py
 # Instructions for Clean Install on New VPS
 
 -Setup VPS w/ Ubuntu 16.04 LTS (and mongodb 3.2 if possible)
+
 -Clone repository:
 	```
 	git clone https://github.com/SeanEstey/Bravo --branch <b_name>
 	cd Bravo
 	```
 -Update your DNS records for the new IP address
+
 -Install Python 2.7
+
 -Install mongodb 3.2
+
 -Install other dependencies from requirements/pkg_list.txt and requirements/requirements.txt
+
 -Run setup.py
 
 Virtual host and logrotate.d will be setup now.
 
 -Setup SSL:
+
 	-Update config.py SSL_CERT_PATH="/path/to/chained_cert.crt"  
+
 	-Update virtualhost/default file variables: "ssl_certificate" and "ssl_certificate_key"  
+
 -Add execution permission to Bravo/logs folder
+
 -Setup PHP logging:
 	-Open /etc/php.ini
 	-Find error_log line and replace this line:

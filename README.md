@@ -1,39 +1,34 @@
-# Setup Instructions
+# Core dependencies
 
-#### Clone repository
-```
-git clone https://github.com/SeanEstey/Bravo --branch <b_name>
-cd Bravo
-```
+Bravo runs on Ubuntu 16.04, with core dependencies being MongoDB 3.2+, nginx, python 2.7 with celery.
 
-#### Ubuntu/Python Packages
+# Instructions for Clean Install on New VPS
 
-Follow instructions in requirements/pkg_list.txt and requirements/requirements.txt
+-Setup VPS w/ Ubuntu 16.04 LTS (and mongodb 3.2 if possible)
+-Clone repository:
+	```
+	git clone https://github.com/SeanEstey/Bravo --branch <b_name>
+	cd Bravo
+	```
+-Update your DNS records for the new IP address
+-Install Python 2.7
+-Install mongodb 3.2
+-Install other dependencies from requirements/pkg_list.txt and requirements/requirements.txt
+-Run setup.py
 
-#### Run setup
+Virtual host and logrotate.d will be setup now.
 
-`python setup.py`
+-Setup SSL:
+	-Update config.py SSL_CERT_PATH="/path/to/chained_cert.crt"  
+	-Update virtualhost/default file variables: "ssl_certificate" and "ssl_certificate_key"  
+-Add execution permission to Bravo/logs folder
+-Setup PHP logging:
+	-Open /etc/php.ini
+	-Find error_log line and replace this line:
+	'error_log = BRAVO_PATH/logs/debug.log'
+	Where BRAVO_PATH is the repository path.
 
-This will copy nginx virtual host file and setup logrotate.d
-
-Add execution permission to Bravo/logs folder. 
-
-Create empty files: celery.log, events.log, debug.log. Add execution permissions.
-
-#### PHP Error Logging
-
-Open /etc/php.ini
-
-Find error_log line. Set:
-`error_log = BRAVO_PATH/logs/debug.log`
-Where BRAVO_PATH is the repository path.
-
-#### DNS
-
-Update DNS records to point to IP address of VPS.
-The Mailgun and Twilio webhooks use the domain name so they will point resolve to the new IP address once the DNS changes sync.
-
-#### Mailgun 
+#### Mailgun Setup
 
 (1) Setup SMTP settings for Mailgun to send email on behalf of a domain  
 (2) Set webhooks for domain: https://mailgun.com/app/webhooks:  
@@ -43,7 +38,9 @@ The Mailgun and Twilio webhooks use the domain name so they will point resolve t
   * Spam Complaints: "http://www.bravoweb.ca/email/status"  
   * Unsubscribes: "http://www.bravoweb.ca/email/status"  
 
-#### Twilio
+#### Twilio Setup
+
+The Mailgun and Twilio webhooks use the domain name so they will point resolve to the new IP address once the DNS changes sync.
 
 Setup a Phone number  
 Create Voice Preview app  
@@ -60,7 +57,7 @@ Configure Phone number
     * Configure With: "Webhooks/TwiML"  
     * A Message Comes In: "http://bravoweb.ca/alice/vec/receive"  
 
-#### MongoDB
+#### MongoDB Setup
 
 Create database named "bravo"  
 Create collections: "users", "agencies", "maps"  
@@ -72,26 +69,14 @@ user = "db_user"
 password = "db_pw"
 ```
 
-#### Setup NodeJS & togeojson
-
-If nodejs already installed as “node”, make symbolic link:
-```
-$ln -s /usr/bin/nodejs /usr/bin/node
-```
-
-Install togeojson
-```
-npm install -g togeojson
-```
-
-#### Google Service Account
+#### Google Service Account Setup
 
 1. For each agency, open Google Developer Console  
 2. Find Service Account  
 3. Generate JSON key  
 4. Add contents to MongoDB "agencies" collection under "oauth" key  
 
-#### Google Sheets
+#### Bravo Sheets Setup
 
 From Google Drive, create new Sheet named `Bravo Sheets` with worksheets "Donations", "Issues", "Signups"  
 From Google Drive, create new Script. Open it. Tools->Script Editor, copy the ID in URL.  
@@ -103,36 +88,21 @@ Have user open Bravo Sheets Script Editor, Resources->Libraries, paste in Bravo 
 Have user remove Bravo Library script from Google Drive.  
 Make sure user has all required Calendar's, Sheets, Gdrive Folders shared with them.  
 
-#### SSL
+# Bravo Startup Instructions
 
-Update config.py SSL_CERT_PATH="/path/to/chained_cert.crt"  
-Update virtualhost/default file variables: "ssl_certificate" and "ssl_certificate_key"  
+-Make sure mongod is running
+-If not, start with:
+	`$ mongod --auth --port 27017 --dbpath /var/lib/mongodb`
+-Start RabbitMQ daemon:
+	`$ rabbitmqctl start_app`
 
-# Run Instructions
+-Run run.py (with appropriate cmd-line args)
+	`-c, --celerybeat`
+	`-d, --debug`
+	`-s, --sandbox`
 
-Start RabbitMQ daemon:
 
-`$ rabbitmqctl start_app`
-
-Run app:
-
-`python run.py`
-
-Arguments
-
--Start with celerybeat:
-
-`-c, --celerybeat` 
-
--Start in debug mode:
-
-`-d, --debug`
-
--Start in sandbox mode:
-
-`-s, --sandbox`
-
-# Shutdown Instructions
+# Bravo Shutdown Instructions
 
 If running in foreground, kill with CTRL+C. This will kill Celery workers.
 
@@ -145,34 +115,6 @@ Now kill it using that PID:
 `$kill -9 <PID>`
 
 (May need to run twice)
-
-# Monitoring
-
-Monitor Celery worker(s) with Flower:
-
-pip install flower
-
-To run it:
-
-flower --url_prefix=flower --basic_auth=user1:password1
-
-To access it remotely through the browser, add the following to the nginx virtual_host file:
-
-    server {
-        listen 80;
-        server_name bravoweb.ca;
- 
-        location /flower/ {
-            rewrite ^/flower/(.*)$ /$1 break;
-            proxy_pass http://127.0.0.1:5555;
-            proxy_set_header Host $host;
-        }
-
-Restart nginx:
-
-service nginx restart
-
-It should now be accessible and secured via http://bravoweb.ca/flower
 
 # Notes
 

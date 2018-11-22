@@ -1,16 +1,20 @@
-# Core dependencies
+# Overview
 
 Bravo runs on Ubuntu 16.04, with core dependencies being MongoDB 3.2+, nginx, python 2.7 with celery.
+
+It relies heavily on asynchronous background tasks via celery, so a system with multiple CPU cores is ideal.
 
 # Instructions for Clean Install on New VPS
 
 -Setup VPS w/ Ubuntu 16.04 LTS (and mongodb 3.2 if possible)
 
 -Clone repository:
+
 	```
 	git clone https://github.com/SeanEstey/Bravo --branch <b_name>
 	cd Bravo
 	```
+
 -Update your DNS records for the new IP address
 
 -Install Python 2.7
@@ -25,17 +29,21 @@ Virtual host and logrotate.d will be setup now.
 
 -Setup SSL:
 
-	-Update config.py SSL_CERT_PATH="/path/to/chained_cert.crt"  
+    -Update config.py SSL_CERT_PATH="/path/to/chained_cert.crt"  
 
-	-Update virtualhost/default file variables: "ssl_certificate" and "ssl_certificate_key"  
+    -Update virtualhost/default file variables: "ssl_certificate" and "ssl_certificate_key"  
 
 -Add execution permission to Bravo/logs folder
 
 -Setup PHP logging:
-	-Open /etc/php.ini
-	-Find error_log line and replace this line:
-	'error_log = BRAVO_PATH/logs/debug.log'
-	Where BRAVO_PATH is the repository path.
+
+    -Open /etc/php.ini
+
+    -Find error_log line and replace this line:
+
+    'error_log = BRAVO_PATH/logs/debug.log'
+
+    Where BRAVO_PATH is the repository path.
 
 #### Mailgun Setup
 

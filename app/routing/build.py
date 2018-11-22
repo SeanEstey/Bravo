@@ -3,7 +3,7 @@ Methods can either be called from client user or celery task. Task sets g.group 
 '''
 
 import json, requests
-from datetime import datetime, time, date
+from datetime import timedelta, datetime, time, date
 from bson import ObjectId
 from dateutil.parser import parse
 from flask import g
@@ -157,7 +157,11 @@ def get_solution(job_id, api_key):
 
     output = task['output']
     orders = task['output']['solution'].get(doc['routific']['driver']['name'])
-    length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
+
+    try:
+        length = parse(orders[-1]['arrival_time']) - parse(orders[0]['arrival_time'])
+    except Exception as e:
+        length = timedelta() #-1
 
     log.debug('orders object', extra={'orders':orders})
 

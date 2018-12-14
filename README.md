@@ -4,6 +4,10 @@ Bravo runs on Ubuntu 16.04, with core dependencies being MongoDB 3.2+, nginx, py
 
 It relies heavily on asynchronous background tasks via celery, so a system with multiple CPU cores is ideal.
 
+# End User Manual
+
+[https://docs.google.com/document/d/1uiN0v5ax0lxBXCGAFy9Er1f_pup6McUAhhDt8d4_Ccw/edit?usp=sharing](Bravo User Guide)
+
 # Instructions for Clean Install on New VPS
 
 -Setup VPS w/ Ubuntu 16.04 LTS (and mongodb 3.2 if possible)
@@ -138,3 +142,10 @@ Now kill it using that PID:
 To free memory not released by abberant python/celery processes:
 
 $ sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
+
+
+# System Maintenance
+
+All system events are logged to MongoDB. They can be accessed within Bravo via the Admin menu-->Recent lower menu.
+
+Logging events are also recorded to logfiles in ~/Bravo/logs/. Logrotate.d is set to auto-rotate and keeps 1 week of logfiles by default.

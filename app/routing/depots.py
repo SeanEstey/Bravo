@@ -41,5 +41,5 @@ def resolve(block, postal_codes, event_desc=False):
         block, postal_codes)
 
     for depot in depots:
-        if depot['name'] == 'Strathcona':
+        if depot['name'] == 'Winterburn':
             return depot

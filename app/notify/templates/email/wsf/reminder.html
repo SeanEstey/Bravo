@@ -21,10 +21,13 @@
 			{% if account['nameFormat'] != 3 %}
 			<p>
 			Your bags can be placed at your front entrance, visible from 
-			the street, by 8am. 
+			the street by 8am. 
 			Please keep each bag under 30lbs.  
 			Extra glass can be left in cases to the side.
 			</p>
+      <p>
+      Acct Ref:{{ account['udf']['etap_id'] }}
+      </p>
 			{% endif %}
         {% elif account['udf']['status'] == "Dropoff"%}
           <p>

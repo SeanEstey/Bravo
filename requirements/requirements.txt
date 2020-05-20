@@ -16,7 +16,7 @@ Flask-SocketIO==2.8.2
 Flask-KVSession==0.6.2
 flower==0.9.1
 google-api-python-client==1.6.2
-httplib2==0.10.3
+httplib2==0.18.0
 ipaddress==1.0.18
 Jinja2==2.9.5
 matplotlib==1.5.2

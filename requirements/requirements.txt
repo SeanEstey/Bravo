@@ -7,7 +7,7 @@
 ### Packages ###
 amqp==2.1.4
 apiclient==1.0.2
-celery==4.0.2
+celery==5.2.2
 cryptography==1.2.3
 eventlet==0.20.1
 Flask==0.12
